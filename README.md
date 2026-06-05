@@ -1,6 +1,6 @@
-# openJiuwen AgentBuilder
+# openJiuwen AgentStudio
 
-openJiuwen AgentBuilder提供了一站式AI Agent开发平台，为开发者提供从开发到部署的全栈解决方案。该部分采用低代码 / 零代码的可视化设计与编排工具，能让开发者快速打造和调试智能体和工作流。
+openJiuwen AgentStudio提供了一站式AI Agent开发平台，为开发者提供从开发到部署的全栈解决方案。该部分采用低代码 / 零代码的可视化设计与编排工具，能让开发者快速打造和调试智能体和工作流。
 
 ---
 
@@ -22,7 +22,7 @@ openJiuwen AgentBuilder提供了一站式AI Agent开发平台，为开发者提�
 ## 2 项目整体结构
 
 ```
-agent-builder/
+agent-studio/
 ├── backend/                          # Java后端服务模块
 ├── frontend/                         # Angular前端应用模块
 ├── docs/                             # 项目文档模块
