@@ -1,0 +1,59 @@
+{
+  "schemaVersion": "0.5",
+  "type": "jiuwen.end",
+  "version": "1.0.1",
+  "description": "End Node Invokable for workflow mode.",
+  "classInfo": {
+    "modulePath": "jiuwen.orchestration.invokable.end",
+    "className": "EndComponent",
+    "programLanguage": "python",
+    "filePath": "jiuwen/orchestration/invokable/end.pyc"
+  },
+  "inputs": [],
+  "configs": [
+    {
+      "id": "executeMode",
+      "type": "String",
+      "value": null,
+      "description": "Graph execute mode, only allows \"barch\" (default) and \"stream\"."
+    },
+    {
+      "id": "responseMode",
+      "type": "String",
+      "value": null,
+      "description": "Response mode, only allows \"directResponse\" (default)."
+    },
+    {
+      "id": "responseContent",
+      "type": "String",
+      "value": null,
+      "description": "Available while responseMode is \"directResponse\"."
+    },
+    {
+      "id": "outputParameters",
+      "type": "Map<String, Map<String, String>>",
+      "value": {},
+      "description": "Output parameter dict. A map from name to source type (\"reference\" or \"constant\") and value."
+    }
+  ],
+  "outputs": [
+    {
+      "id": "responseMode",
+      "type": "String"
+    },
+    {
+      "id": "responseContent",
+      "type": "String"
+    },
+    {
+      "id": "outputParameters",
+      "type": "Map<String, T>",
+      "description": "Output parameter dict with selected parameters in configs."
+    },
+    {
+      "id": "result",
+      "type": "String",
+      "value": ""
+    }
+  ]
+}

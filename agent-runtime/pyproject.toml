@@ -1,0 +1,37 @@
+[project]
+name = "open-agentBuilder-engine"
+version = "0.1.0"
+description = "Open AgentBuilder Engine - openjiuwen (agent-core) service wrapper"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "pydantic>=2.0",
+    "pydantic-settings~=2.13.1",
+    "openjiuwen",
+    "boto3",
+    "aiohttp",
+    "httpx",
+    "requests",
+    "urllib3",
+    "psycopg2-binary",
+    "redis>=5.0.0",
+    "sqlalchemy>=2.0.0",
+    "numpy>=1.24.0",
+    "PyYAML>=6.0",
+    "lxml>=4.9.0",
+    "jieba>=0.42.0",
+    "tqdm>=4.65.0",
+    "websockets>=10.0",
+    "mcp>=1.0.0",
+    "spiffworkflow>=1.2.0",
+    "pydantic-core>=2.0.0",
+    "elasticsearch>=8.0.0,<9.0.0",
+]
+
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["agent_runtime*", "jiuwen*"]

@@ -1,0 +1,71 @@
+.scenario-guide-modal {
+  padding: 24px !important;
+}
+
+::ng-deep #scenarioGuideModal {
+  padding-left: 24px;
+}
+
+.scene-left {
+  flex: 1;
+  overflow: hidden;
+}
+
+.scene-right {
+  display: none;
+}
+
+.scene-title {
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.scene-name {
+  max-width: 100%;
+}
+
+.text-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scene-box {
+  border-radius: 8px;
+  background: #FFF;
+  padding: 8px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  &:hover {
+    background: #f0f7ff;
+
+    .scene-right {
+      display: inline-block;
+    }
+  }
+}
+
+.scene-box-disabled {
+  background: #FFF !important;
+}
+
+.scene-sub-title {
+  color: #8A8E99;
+}
+
+.split-line-short {
+  border-left: 1px solid #dbdbdb;
+  height: 9px;
+  display: inline-block;
+  margin: 0 4px;
+}
+
+.icon-border {
+  cursor: pointer;
+
+  &:hover {
+    color: #5E7CE0;
+  }
+}

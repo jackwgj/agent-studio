@@ -1,0 +1,29 @@
+{
+  "total": 5,
+  "search_result_list": [
+    {
+      "file_id": "01e3c0b8ff258373b2250b3dcacfa551",
+      "title": "盘古_API参考.docx",
+      "content": "",
+      "update_date_time": "1724316700675",
+      "file_path": "uni-search/files/4e5f0ba79c2641a6b31b5b902257f3ce/fb9731ab-7085-474f-b6c7-64473586f0f3/b9a2af13-008e-46d8-84a3-9e3024dea114/01e3c0b8ff258373b2250b3dcacfa551/盘古_API参考.docx",
+      "category": "",
+      "score": 0.97640073,
+      "subtitle": "盘古_API参考\n1  使用前必读",
+      "repo_id": "b9a2af13-008e-46d8-84a3-9e3024dea114",
+      "source": "KNOWLEDGE_REPO"
+    },
+    {
+      "file_id": "01e3c0b8ff258373b2250b3dcacfa551",
+      "title": "盘古_API参考.docx",
+      "content": "",
+      "update_date_time": "1724316700675",
+      "file_path": "uni-search/files/4e5f0ba79c2641a6b31b5b902257f3ce/fb9731ab-7085-474f-b6c7-64473586f0f3/b9a2af13-008e-46d8-84a3-9e3024dea114/01e3c0b8ff258373b2250b3dcacfa551/盘古_API参考.docx",
+      "category": "",
+      "score": 0.96472245,
+      "subtitle": "盘古_API参考\n2  如何调用REST API 2.6  认证鉴权(1)",
+      "repo_id": "b9a2af13-008e-46d8-84a3-9e3024dea114",
+      "source": "KNOWLEDGE_REPO"
+    }
+  ]
+}

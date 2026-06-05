@@ -1,0 +1,29 @@
+<svg width="32.000000" height="32.000000" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+	<desc>
+			Created with Pixso.
+	</desc>
+	<defs>
+		<clipPath id="clip368_219412">
+			<rect id="ic_public_mic" width="16.000000" height="16.000000" transform="translate(8.000000 8.000000)" fill="white" fill-opacity="0"/>
+		</clipPath>
+		<clipPath id="clip368_219410">
+			<rect id="业务类型" width="32.000000" height="32.000000" fill="white" fill-opacity="0"/>
+		</clipPath>
+	</defs>
+	<g clip-path="url(#clip368_219410)">
+		<rect id="BG" rx="5.333333" width="32.000011" height="32.000000" fill="#FFFFFF" fill-opacity="1.000000"/>
+		<rect id="BG" x="0.332031" y="0.333496" rx="5.333333" width="31.333345" height="31.333334" stroke="#DBDBDB" stroke-opacity="1.000000" stroke-width="0.666667"/>
+		<g clip-path="url(#clip368_219412)">
+			<path id="path1" d="M8 15.99C8 14.74 8 13.49 8 12.24C8 11.63 8.07 11.03 8.22 10.45C8.55 9.2 9.35 8.47 10.59 8.18C11.21 8.05 11.85 7.99 12.48 8C14.88 8 17.28 8 19.67 8C20.28 7.99 20.88 8.06 21.47 8.2C22.75 8.51 23.51 9.32 23.81 10.6C23.94 11.2 24 11.81 24 12.43C24 14.85 24 17.27 24 19.69C24 20.29 23.93 20.89 23.79 21.47C23.48 22.75 22.66 23.51 21.39 23.81C20.77 23.94 20.14 24 19.5 23.99C17.11 23.99 14.73 23.99 12.34 23.99C11.73 24 11.12 23.93 10.53 23.79C9.25 23.48 8.48 22.66 8.19 21.39C8.04 20.74 8 20.08 8 19.43C8 18.28 8 17.14 8 15.99Z" fill="#FFFFFF" fill-opacity="0" fill-rule="evenodd"/>
+			<circle id="path2" cx="16.000000" cy="16.000000" r="8.000000" fill="#FFFFFF" fill-opacity="0"/>
+			<path id="path" d="" fill="#000000" fill-opacity="0" fill-rule="nonzero"/>
+			<path id="path" d="M14 23.33L18 23.33" stroke="#FFFFFF" stroke-opacity="0" stroke-width="0.886667" stroke-linejoin="round" stroke-linecap="round"/>
+			<path id="path" d="" fill="#000000" fill-opacity="0" fill-rule="nonzero"/>
+			<path id="path" d="M16 20.66L16 23.33" stroke="#FFFFFF" stroke-opacity="0" stroke-width="0.886667" stroke-linejoin="round" stroke-linecap="square"/>
+			<rect id="path4" x="13.332031" y="8.666992" rx="2.666667" width="5.333333" height="9.333333" fill="#000000" fill-opacity="0"/>
+			<rect id="path4" x="13.332031" y="8.666992" rx="2.666667" width="5.333333" height="9.333333" stroke="#FFFFFF" stroke-opacity="0" stroke-width="0.886667" stroke-linejoin="round"/>
+			<path id="path5" d="M11.5 15.16C11.5 15.78 11.6 16.35 11.82 16.89C12.04 17.42 12.37 17.9 12.81 18.34C13.25 18.78 13.73 19.11 14.26 19.33C14.79 19.55 15.37 19.66 16 19.66C16.61 19.66 17.19 19.55 17.72 19.33C18.25 19.11 18.73 18.78 19.17 18.34C19.61 17.9 19.94 17.42 20.16 16.89C20.39 16.35 20.5 15.78 20.5 15.16C20.5 14.69 20.86 14.33 21.33 14.33C21.79 14.33 22.16 14.69 22.16 15.16C22.16 16.01 22.01 16.8 21.71 17.52C21.41 18.25 20.95 18.92 20.35 19.52C19.75 20.12 19.09 20.57 18.36 20.87C17.88 21.07 17.36 21.21 16.83 21.27L16.83 22.33L18 22.33C18.46 22.33 18.83 22.69 18.83 23.16C18.83 23.63 18.46 23.99 18 23.99L14 23.99C13.53 23.99 13.16 23.63 13.16 23.16C13.16 22.69 13.53 22.33 14 22.33L15.16 22.33L15.16 21.27C14.62 21.21 14.11 21.07 13.62 20.87C12.9 20.57 12.23 20.12 11.63 19.52C11.03 18.92 10.58 18.25 10.28 17.52C9.98 16.8 9.83 16.01 9.83 15.16C9.83 14.69 10.19 14.33 10.66 14.33C11.13 14.33 11.5 14.69 11.5 15.16Z" fill="#1476FF" fill-opacity="1.000000" fill-rule="evenodd"/>
+			<path id="path6" d="M12.83 11.16C12.83 9.41 14.25 8 16 8C17.74 8 19.16 9.41 19.16 11.16L19.16 15.16C19.16 16.91 17.74 18.33 16 18.33C14.25 18.33 12.83 16.91 12.83 15.16L12.83 11.16Z" fill="#1476FF" fill-opacity="1.000000" fill-rule="evenodd"/>
+		</g>
+	</g>
+</svg>

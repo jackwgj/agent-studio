@@ -1,0 +1,227 @@
+.no-padding {
+  padding: 0 !important;
+}
+
+.model-route {
+  .header-container {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    box-sizing: border-box;
+    padding: 12px 40px 12px 0;
+    .back-icon-container {
+      width: 24px;
+      height: 24px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      .back-icon {
+        color: #191919;
+        cursor: pointer;
+        font-size: 18px;
+      }
+    }
+
+    .header__line {
+      height: 20px;
+      margin: auto 15px;
+      border-right: 2px solid #808080;
+      opacity: 0.6;
+      border-radius: 3px;
+    }
+
+    .title {
+      font-size: 18px;
+      font-weight: 600;
+      text-align: left;
+      color: #191919;
+      line-height: 28px;
+      margin-right: 24px;
+    }
+
+    .header-img-size {
+      height: 40px;
+      width: 40px;
+      border-radius: 8px;
+      object-fit: cover;
+    }
+
+    .model {
+      margin-left: 15px;
+
+      .model-title {
+        font-size: 18px;
+        font-weight: bold;
+      }
+
+      .detail {
+        display: flex;
+        align-items: center;
+
+        dl {
+          display: flex;
+          gap: 5px;
+          margin-right: 18px;
+
+          dd {
+            max-width: 300px;
+            overflow: hidden;
+          }
+        }
+      }
+    }
+  }
+
+  .main {
+    width: 100%;
+    display: flex;
+    gap: 20px;
+
+    .main-left {
+      display: flex;
+      width: 50%;
+      min-width: 800px;
+      border-radius: 8px;
+      background: #ffffff;
+      .create-box {
+        width: 50%;
+        height: 100%;
+        padding: 16px 24px 24px;
+        overflow: scroll;
+        border-right: 1px solid #e1e1e1;
+      }
+      .test-info {
+        width: 50%;
+        padding: 16px 24px 24px;
+        height: 100%;
+
+        overflow: scroll;
+      }
+
+      .item {
+        margin-bottom: 20px;
+      }
+
+      .title {
+        margin-bottom: 10px;
+        color: #191919;
+        font-size: 14px;
+        font-weight: bold;
+      }
+
+      .serviceType-list {
+        display: flex;
+        flex-wrap: wrap;
+
+        .serviceType-item {
+          width: calc(50% - 8px);
+          padding: 15px 12px;
+          background: #fafafa;
+          border-radius: 8px;
+          margin-bottom: 16px;
+          border: 1px solid transparent;
+          display: flex;
+          align-items: center;
+          cursor: pointer;
+          line-height: 20px;
+          font-weight: 600;
+
+          img {
+            margin-right: 14px;
+            width: 24px;
+            height: 24px;
+          }
+
+          &:nth-child(odd) {
+            margin-right: 16px;
+          }
+        }
+
+        .serviceType-item-selected {
+          background: #ffffff;
+          border: 1px solid #1277fd;
+          box-shadow: 0 2px 12px 0 rgba(86, 72, 72, 0.08);
+          border-radius: 8px;
+        }
+      }
+
+      .config {
+        margin-bottom: 30px;
+        .config-con {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+
+          .config-slider {
+            flex: 1;
+            margin: 10px 0;
+          }
+
+          .config_input {
+            width: 78px;
+            height: 32px;
+          }
+        }
+      }
+    }
+
+    .main-right {
+      flex: 1;
+    }
+  }
+  .ai-model {
+    position: relative;
+  }
+  .ai-add {
+    position: absolute;
+    top: -38px;
+    right: 0;
+    .add-icon {
+      font-size: 16px;
+      vertical-align: middle;
+      margin-right: 4px;
+    }
+    .add-button {
+      text-decoration: none !important;
+      padding: 0;
+    }
+  }
+  .ai-item-detele {
+    display: inline-block;
+    margin-left: 10px;
+    color: #1476ff;
+    cursor: pointer;
+  }
+  .form-item {
+    .form-top-label {
+      height: 18px;
+      margin: 14px 0 8px 0;
+    }
+  }
+  .model-item {
+    margin-bottom: 10px;
+    color: #595959;
+    .single-model {
+      width: 100%;
+    }
+    .multi-model {
+      width: 90%;
+    }
+  }
+  .model-item-content {
+    display: flex;
+    align-items: center; /* 垂直居中 */
+    .model-item-content-left {
+      flex: 1;
+    }
+    .model-item-content-right {
+      margin-left: 8px;
+    }
+  }
+}
+
+.name-rule {
+  margin-top: 4px;
+  color: #808080;
+  font-size: 12px;
+}

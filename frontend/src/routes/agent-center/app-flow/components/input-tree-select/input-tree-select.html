@@ -1,0 +1,142 @@
+<div class="main-select" [nz-tooltip]="showPathIcon ? tipTemplate : ''" [nzTooltipPlacement]="tooltipState" [nzTooltipColor]="'#fff'">
+  <div
+    (click)="selectClick()"
+    [class]="borderClass"
+    [class.is-invalid]="vInvalid"
+    [class.is-valid]="control?.controls[name]?.valid"
+    (blur)="handelSelect()"
+    #inputDom
+  >
+    <div *ngIf="showPathIcon" class="input-main">
+      <img alt="" class="input-img" [src]="urlPathIcon"/>
+      <div class="input-text">
+        <div class="input-text-max">
+          <div class="input-text-fl">
+            <span class="input-text-first">{{ inputFirstNode }}</span>
+            <span class="input-text-line"></span>
+            <span class="input-text-last">{{ inputNodeName }}</span>
+          </div>
+        </div>
+        <span class="input-type">{{ inputTypeString }}</span>
+      </div>
+    </div>
+
+    <nz-icon *ngIf="showSelectDiv" nz-icon nzType="up" theme="outline" class="input-icon-click"></nz-icon>
+    <nz-icon *ngIf="!showSelectDiv" nz-icon nzType="down" theme="outline" class="input-icon-click"></nz-icon>
+  </div>
+
+  <ng-template #tipTemplate>
+    <div class="tip-input-main">
+      <img alt="" class="tip-input-img" [src]="urlPathIcon"/>
+      <span class="tip-input-text-first">{{ inputFirstNode }}</span>
+      <span class="tip-input-text-line"></span>
+      <span class="tip-input-text-last">{{ inputNodeName }}</span>
+      <span class="tip-input-type">{{ inputTypeString }}</span>
+    </div>
+  </ng-template>
+
+  <div
+    *ngIf="showSelectDiv"
+    (mouseleave)="treeNodeLeave($event)"
+    class="select-tree-dom"
+    [style]="{
+    top:domSelectTreeTop,
+    width:domSelectTreeWidth,
+  }"
+  >
+    <div class="select-div" #selectDivDom>
+      <nz-input-wrapper>
+        <nz-icon nz-icon nzType="search" theme="outline" class="input-search-icon"></nz-icon>
+        <input
+          [(ngModel)]="searchVal"
+          (ngModelChange)="onInputChange($event)"
+          nz-input
+          [placeholder]="'' | i18nextEager"
+          style="height: 28px"
+        />
+      </nz-input-wrapper>
+
+      <div
+        [style]="{
+          width:domSearchDivWidth,
+          overflow:'auto'
+        }"
+        *ngIf="searchVal && searchSelectList?.length>0"
+      >
+        <div *ngFor="let item of searchSelectList" class="search-item" (click)="selectItem(item)">
+          <span *ngFor="let textItem of item.text" style="white-space: pre" [style.color]="textItem.key ? '#1476FF' : '#191919'">{{ textItem.text }}</span>
+        </div>
+      </div>
+      <div
+        [style]="{
+          width:domSearchDivWidth,
+        }"
+        *ngIf="searchVal && searchSelectList?.length<=0"
+      >
+        <div class="search-item">
+          <span [style.color]="'#191919'">{{ 'no_data'|i18nextEager }}</span>
+        </div>
+      </div>
+
+      <div
+        [style]="{
+          width:domSearchDivWidth,
+        }"
+        *ngIf="!searchVal && options.length>0"
+      >
+        <div *ngFor="let item of options; let i = index" class="search-item" (click)="treeNodeEnter($event,i)">
+          <img alt="" *ngIf="type2Img(item.type)" class="mr-[8px] h-[16px] w-[16px]" [src]="type2Img(item.type)"/>
+          <div
+            class="search-item-text text-[12px] flex items-center gap-[4px]"
+            [class.select-color-blue]="treeSelectIndex===i"
+            [class.select-color-black]="treeSelectIndex!==i"
+          >
+            <span class="max-w-[70%] overflow-hidden text-ellipsis whitespace-nowrap">
+              {{ item.name }}
+            </span>
+            <nz-icon *ngIf="item?.tipContent" [nz-tooltip]="item?.tipContent" nzType="question-circle" nzTheme="outline" style="font-size: 12px"></nz-icon>
+          </div>
+          <nz-icon [style.display]="item.children ? 'unset' : 'none'" nzType="right" theme="outline" class="ml-[8px] !text-[12px] w-[12px] h-[12px]"></nz-icon>
+        </div>
+      </div>
+      <div
+        [style]="{
+          width:domSearchDivWidth,
+        }"
+        *ngIf="!searchVal && options.length<=0"
+      >
+        <div class="search-item">
+          <span [style.color]="'#191919'">{{ 'no_data'|i18nextEager }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div
+      #selectTreeDom
+      class="node-tree-div"
+      [style]="{
+      top:treeDivPosition.top,
+      right:treeDivPosition.right,
+      transform:treeDivPosition.tr,
+      display :this.treeSelectIndexList.length>0 ? '' : 'none'
+    }"
+    >
+      <nz-tree
+        [nzData]="this.treeSelectIndexList"
+        (nzClick)="onTreeSelect($event)"
+        nzTitlePropertyName="name"
+        [nzTreeTemplate]="nzTreeTemplate"
+      ></nz-tree>
+      <ng-template #nzTreeTemplate let-item let-i="index">
+        <div style="flex: 1; display: flex; align-items: center; justify-content: space-between; width: 100px">
+          <div class="max-w-[70%] overflow-hidden text-ellipsis whitespace-nowrap text-[12px]"
+               [title]="getTreeNodeParamName(item.origin.name)">{{ getTreeNodeParamName(item.origin.name) }}
+          </div>
+          <div class="min-w-[40px] max-w-[30%] rounded-[2px] bg-[#f5f5f5] px-[4px] text-[12px] !font-normal leading-5 text-[#191919]">
+            {{ item.origin.type | paramLabel }}
+          </div>
+        </div>
+      </ng-template>
+    </div>
+  </div>
+</div>

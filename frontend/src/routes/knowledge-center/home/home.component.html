@@ -1,0 +1,65 @@
+<div class="h-full flex flex-col">
+  <div class="flex items-center justify-between pb-[16px] pt-[8px]">
+    <div class="text-[18px] font-bold">{{ 'knowledge' | i18nextEager }}</div>
+    <button nz-button nzType="primary" nzDanger (click)="openHalfModel()">
+      {{ 'create_kb' | i18nextEager }}
+    </button>
+  </div>
+
+  <div class="mb-[16px] flex items-center gap-2">
+    <nz-input-group [nzAddOnBefore]="searchFieldSelect" class="w-[calc(100%-32px)] bg-[#fff]">
+      <input type="text" nz-input [(ngModel)]="searchValue" (keyup.enter)="onSearch()" />
+    </nz-input-group>
+    <ng-template #searchFieldSelect>
+      <nz-select [(ngModel)]="searchField" class="w-[120px]">
+        <nz-option *ngFor="let item of searchItems" [nzLabel]="item.label" [nzValue]="item.field"></nz-option>
+      </nz-select>
+    </ng-template>
+
+    <button
+      type="button"
+      (click)="getData()"
+      class="h-8 w-8 !p-0 flex items-center justify-center"
+      nz-button
+      nzType="default"
+    >
+      <span nz-icon nzType="sync" nzTheme="outline"></span>
+    </button>
+  </div>
+
+  <div class="h-[calc(100%-108px)] relative block">
+    <app-common-no-data-with-btn
+      *ngIf="!knowledges.length && !loading"
+      [noDataStr]="'no_kb_str' | i18nextEager"
+      [noDataBtnStr]="'create_kb' | i18nextEager"
+      (create)="openHalfModel()"
+    ></app-common-no-data-with-btn>
+
+    <nz-spin [nzSpinning]="loading" [nzDelay]="50" class="block h-full">
+      <div
+        class="mb-[16px] h-[calc(100%-84px)] overflow-y-auto"
+        *ngIf="!loading && knowledges.length"
+      >
+        <div class="cards-wrapper">
+          <knowledge-card
+            *ngFor="let card of knowledges"
+            [knowledgeData]="card"
+            (handleAction)="handleAction($event)"
+          ></knowledge-card>
+        </div>
+      </div>
+
+      <nz-pagination
+        *ngIf="knowledges.length"
+        [(nzPageIndex)]="currentPage"
+        [nzTotal]="total"
+        [(nzPageSize)]="pageSize.size"
+        [nzPageSizeOptions]="pageSize.options"
+        nzShowSizeChanger
+        nzSize="small"
+        (nzPageIndexChange)="getData()"
+        (nzPageSizeChange)="currentPage = 1; getData()"
+      ></nz-pagination>
+    </nz-spin>
+  </div>
+</div>

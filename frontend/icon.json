@@ -1,0 +1,18 @@
+{
+  "cloud-action-tip": "<nz-icon nzType=\"question-circle\" nzTheme=\"outline\" />",
+  "cloudx-action-clear": "<nz-icon nzType=\"close\" nzTheme=\"outline\" />",
+  "cloudx-action-create-1": "<nz-icon nzType=\"plus\" nzTheme=\"outline\" />",
+  "cloud-action-state-ing": "<nz-icon nzType=\"loading\" nzTheme=\"outline\" />",
+  "cloudx-action-clean": "<nz-icon nzType=\"clear\" nzTheme=\"outline\" />",
+  "cloudx-action-arrow-left": "<nz-icon nzType=\"left\" nzTheme=\"outline\" />",
+  "cloudx-action-foldI": "<nz-icon nzType=\"down\" nzTheme=\"outline\" />",
+  "cloudx-action-unfoldI": "<nz-icon nzType=\"up\" nzTheme=\"outline\" />",
+  "cloudx-action-search": "<nz-icon nzType=\"search\" nzTheme=\"outline\" />",
+  "cloudx-action-arrow-right": "<nz-icon nzType=\"right\" nzTheme=\"outline\" />",
+  "cloudx-action-edit": "<nz-icon nzType=\"edit\" nzTheme=\"outline\" />",
+  "cloudx-action-delete": "<nz-icon nzType=\"delete\" nzTheme=\"outline\" />",
+  "cloudx-action-volume": "<nz-icon nzType=\"sound\" nzTheme=\"outline\" />",
+  "cloudx-action-download": "<nz-icon nzType=\"download\" nzTheme=\"outline\" />",
+  "cloudx-action-copy": "<nz-icon nzType=\"copy\" nzTheme=\"outline\" />",
+  "cloudx-action-share": "<nz-icon nzType=\"export\" nzTheme=\"outline\" />"
+}

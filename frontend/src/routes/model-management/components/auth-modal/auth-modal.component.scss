@@ -1,0 +1,36 @@
+.detail {
+  margin: 10px 0;
+}
+
+.icon {
+  color: #FA9841
+}
+
+.input {
+  cursor: pointer;
+  margin-left: 16px;
+  color: #344899;
+}
+
+.tp-modal-sm-index {
+  z-index: 1000;
+}
+
+.share-icon {
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  background: url(../../../../assets/model/share.svg) no-repeat 50% 50%;
+  background-size: contain;
+  vertical-align: middle;
+  margin-left: 4px;
+}
+
+.a-link {
+  font-size: 14px;
+  a {
+    color: #1476ff;
+  }
+
+  margin-top: 8px;
+}

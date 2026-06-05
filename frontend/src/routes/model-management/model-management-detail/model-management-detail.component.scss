@@ -1,0 +1,303 @@
+.detail-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.text-truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.height100 {
+  height: 100%;
+}
+
+.model-card-empty-row1 {
+  color: rgba(25, 25, 25, 1);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 22px;
+  margin-top: 16px;
+  margin-bottom: 16px;
+}
+
+.model-card-empty-row2 {
+  color: rgba(25, 25, 25, 1);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header-container {
+  background: url(../../../assets/agent-center/images/service-detail-bg.png)
+  no-repeat 100% 100%;
+  background-size: cover;
+  .header-content {
+    width: 100%;
+    height: 100%;
+  }
+  .header-left {
+    color: #191919;
+    display: flex;
+    align-items: center;
+    padding-left: 20px;
+    justify-content: space-between;
+    margin-right: 40px;
+    .back-icon-container {
+      width: 24px;
+      height: 24px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-right: 10px;
+      &:hover {
+        border-radius: 4px;
+        background-color: #f0f0f0;
+      }
+      .back-icon {
+        color: #191919;
+        cursor: pointer;
+        font-size: 18px;
+      }
+    }
+    .title {
+      max-width: 240px;
+      font-size: 18px;
+      color: #191919;
+      font-weight: 600;
+      line-height: 28px;
+      margin-right: 8px;
+    }
+  }
+  .status {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #5cb300;
+    margin: 0 4px 0 6px;
+  }
+}
+
+.main-container {
+  width: calc(100% - 36px);
+  margin: 16px 24px 0 24px;
+  .basicInfo {
+    width: 100%;
+    background-color: #fff;
+    border-radius: 8px;
+    padding: 24px;
+  }
+  .btn-list{
+    display: flex;
+    margin-bottom: 13px;
+    gap:16px;
+  }
+  .content {
+    min-height: 350px;
+    background-color: #fff;
+    border-radius: 16px;
+    padding: 32px;
+    margin-bottom: 24px;
+  }
+  .top-basic-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 24px;
+  }
+  .info-title {
+    font-size: 14px;
+    color: #808080;
+    line-height: 22px;
+    width: 150px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .info-content {
+    color: #191919;
+    font-size: 14px;
+    line-height: 22px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .info-content-description{
+    font-size: 14px;
+    line-height: 22px;
+    white-space: break-spaces;
+  }
+  .info-col {
+    height: 48px;
+    display: flex;
+    flex-direction: column;
+    width: 30%; //33%每行只有两个
+  }
+}
+
+.model-card-empty {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+
+.model-card-main {
+  display: grid;
+  width: 100%;
+  grid-template-columns: repeat(auto-fill, minmax(352px, 1fr));
+  overflow: auto;
+  gap: 12px;
+  max-height: calc(100vh - 455px);
+}
+
+.model-card {
+  background: #fafafa;
+  border-radius: 8px;
+  cursor: pointer;
+
+  &:hover {
+    box-shadow: 0 4px 6px #00000014;
+    transform: translate3d(0, 0, 0);
+    background-image: url(../../../assets/model/modelBgImage.png);
+    background-size: cover;
+  }
+}
+
+.size12 {
+  font-size: 12px;
+}
+
+.operate-item {
+  display: flex;
+  .operate-icon {
+    width: 16px;
+    height: 16px;
+    margin-right: 4px;
+  }
+}
+
+.loading-class {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.action-menu {
+  font-size: 20px;
+  margin-top: -12px;
+}
+
+::ng-deep {
+  .model-card-bottom-icons {
+    .ant-dropdown-trigger {
+      display: flex;
+      width: 24px;
+      height: 24px;
+      align-items: center;
+      justify-content: center;
+      &:hover {
+        border-radius: 4px;
+        background: rgba(236, 235, 235, 1);
+      }
+    }
+  }
+}
+
+.model-status {
+  margin-left: 6px;
+  color: rgba(25, 25, 25, 1);
+  font-family: PingFang SC;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 22px;
+  letter-spacing: 0px;
+  text-align: left;
+}
+
+.opearte-area {
+  display: flex;
+  gap: 24px;
+  color: rgba(25, 25, 25, 1);
+  font-family: PingFang SC;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 22px;
+  letter-spacing: 0px;
+  text-align: left;
+}
+
+.size20 {
+  height: 20px;
+  width: 20px;
+}
+
+.model-card-title {
+  margin: 24px 24px 12px 24px;
+  display: flex;
+  flex-direction: row;
+}
+
+.model-card-title-icon {
+  height: 44px;
+  width: 44px;
+  margin-right: 12px;
+}
+
+.model-card-title-content {
+  width: 85%;
+  display: flex;
+  flex-direction: column;
+}
+
+.model-card-title-content-title {
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 22px;
+  margin-bottom: 4px;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+  overflow: hidden;
+}
+
+.model-card-description {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+  margin: 0px 24px 16px 24px;
+  height: 36px;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  color: rgba(128, 128, 128, 1);
+}
+
+.model-card-bottom {
+  margin: 0px 24px 24px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: rgba(128, 128, 128, 1);
+  font-size: 12px;
+}
+
+.model-card-title-content-tips {
+  width: 100%;
+  overflow: hidden; // 隐藏溢出内容
+  text-overflow: ellipsis; // 添加省略号
+  white-space: nowrap; // 禁止内部换行
+}
+
+.cursor-disable{
+  cursor: not-allowed;
+}

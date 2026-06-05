@@ -1,0 +1,108 @@
+<div class="memory-lib-card-display" [class.flex-layout]="displayConfig()?.layoutConfig?.layout === 'flex'">
+  @for (memoryLib of _memoryLibs(); track memoryLib.memory_repo_id) {
+    <div
+      class="memory-lib-card"
+      [style.width]="getCardWidth()"
+      [class.cursor-pointer]="isPermitSelect()"
+      [class.permit-add]="isShowOperationContainer && (isPermitSelect() || isMemoryLibSelected(memoryLib))"
+      [class.small-card]="displayConfig()?.cardSize === 'small'"
+      [class.middle-card]="displayConfig()?.cardSize === 'middle'"
+      [class.large-card]="displayConfig()?.cardSize === 'large'"
+      [class.card-selected]="isMemoryLibSelected(memoryLib)"
+      (click)="cardClick(memoryLib)"
+    >
+      <div class="memory-lib-basic-info-container">
+        <div class="memory-lib-logo">
+          <img [src]="memoryLib.icon" alt="" />
+        </div>
+
+        <div class="memory-lib-basic-info">
+          <div class="memory-lib-name-container">
+            <div class="memory-lib-name" [class.name-bold]="displayConfig()?.cardNameBold ?? true" nz-typography nzEllipsis>
+              {{ memoryLib.name }}
+            </div>
+          </div>
+
+          <div class="memory-lib-tag-container gap-2 flex">
+            @for (tag of resolveStrategyTags(memoryLib); track $index) {
+              <nz-tag nzColor="default">{{ tag | i18nextEager }}</nz-tag>
+            }
+          </div>
+        </div>
+
+        @if (isShowOperationContainer) {
+          <div class="memory-lib-operation-container">
+            <label
+              nz-checkbox
+              [nzDisabled]="isMemoryLibSelected(memoryLib) ? false : !isPermitSelect()"
+              [(ngModel)]="memoryLib.selected"
+              (ngModelChange)="selectModelChange(memoryLib)"
+            ></label>
+          </div>
+        }
+      </div>
+
+      @if (displayConfig()?.descriptionConfig?.enable) {
+        <div
+          class="memory-lib-description"
+          [style.min-height]="(displayConfig()?.descriptionConfig?.maxLine ?? 1) * 18 + 'px'"
+          nz-typography
+          [nzEllipsis]="true"
+          [nzEllipsisRows]="displayConfig()?.descriptionConfig?.maxLine ?? 1"
+        >
+          {{ memoryLib.description || '--' }}
+        </div>
+      }
+
+      @if (displayConfig()?.footerConfig) {
+        <div class="memory-lib-card-footer">
+          <div class="card-info-footer">
+            @if (displayConfig()?.footerConfig?.userShow) {
+              <div class="footer-icon-container user-name">
+                <span nz-icon nzType="user" nzTheme="outline" class="footer-icon"></span>
+                <span nz-typography nzEllipsis>{{ memoryLib.last_update_user_name }}</span>
+              </div>
+            }
+
+            @if (displayConfig()?.footerConfig?.timeShow) {
+              <div class="footer-icon-container update-time">
+                <span nz-icon nzType="clock-circle" nzTheme="outline" class="footer-icon"></span>
+                <div class="update-time">{{ memoryLib.update_time | formateTime }}</div>
+              </div>
+            }
+          </div>
+          @if (displayConfig()?.footerConfig?.operation) {
+            <div class="memory-lib-footer-action-container" (click)="clickMenu($event)">
+              <button nz-dropdown [nzDropdownMenu]="menu" nzTrigger="click" nzPlacement="bottomRight" style="visibility: hidden;"></button>
+              <nz-dropdown-menu #menu="nzDropdownMenu">
+                <ul nz-menu>
+                  <!-- 菜单项当前为空数组，保留循环以便扩展 -->
+                  @for (item of []; track item.id) {
+                    <li nz-menu-item (click)="menuOperation(item, memoryLib)">
+                      <span class="custom-action-item">{{ item.label }}</span>
+                    </li>
+                  }
+                </ul>
+              </nz-dropdown-menu>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  } @empty {
+    <div class="card-display-no-data">
+      @if (displayConfig()?.noDataConfig?.showImg) {
+        <div class="no-data-icon"></div>
+      }
+      @if (displayConfig()?.noDataConfig?.showTitle) {
+        <span class="no-data-title mt-[8px]">{{ 'memory.selector.tip.noData' | i18nextEager }}</span>
+      }
+      @if (displayConfig()?.noDataConfig?.showDescription) {
+        <span class="no-data-desc mt-[4px]">{{ 'memory.noData.text.createTip' | i18nextEager }}</span>
+      }
+      @if (displayConfig()?.noDataConfig?.showCreate) {
+        <button nz-button nzType="primary" (click)="createMemoryLib.emit()" class="mt-[16px]">{{ 'memory.create.button' | i18nextEager }}</button>
+      }
+    </div>
+  }
+</div>

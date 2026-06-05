@@ -1,0 +1,114 @@
+<div class="detail-container">
+  <div
+    class="header-container"
+    [class]="'h-[140px]'"
+  >
+    <div class="header-bg"></div>
+    <div class="header-content">
+      <div class="ml-[54px] mt-[12px] mb-[26px]">
+        <span
+          (click)="onPageBack()"
+          class="cursor-pointer"
+        >
+          {{ 'route_policy'|i18nextEager }}
+        </span>
+        <span class="ml-[5px] mr-[5px] text-[#808080]">/</span>
+        <span class="font-semibold">{{ 'route_policy_detail'|i18nextEager }}</span>
+      </div>
+      <div class="flex" style="justify-content: space-between;align-items: center">
+        <div class="header-left">
+          <div (click)="onPageBack()" class="back-icon-container">
+            <span nz-icon nzType="left" class="back-icon"></span>
+          </div>
+          <div class="h-[60px]">
+            <div class="flex items-center">
+              <div class="title" title="{{ infoDetail?.strategy_name }}">
+                {{ infoDetail?.strategy_name }}
+              </div>
+              <div *ngIf="false"
+                   class="h-[20px] rounded-sm bg-[#e6e6e6] pb-[2px] pl-[4px] pr-[4px] pt-[2px]"
+              >
+                {{ 'not_enabled' | i18nextEager }}
+              </div>
+            </div>
+            <div class="mt-[16px] flex items-center text-[#595959]">
+            <span class="text-[#191919]">
+              {{ 'service_key' | i18nextEager }}: {{ infoDetail?.strategy_key}}
+            </span>
+              <span style="display: inline-block; padding: 0 6px">|</span>
+              <span class="text-[#191919]">
+              {{ 'create_time' | i18nextEager }}：{{ infoDetail?.created_date }}
+            </span>
+            </div>
+          </div>
+        </div>
+        <div class="header-right" *ngIf="subscribeBtnStatus">
+          <a nz-dropdown nzTrigger="click" [nzDropdownMenu]="actionMenu" (click)="clickMenu($event)" class="action-menu" style="cursor:pointer; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 4px;">
+            <span nz-icon nzType="ellipsis" nzTheme="outline" style="font-size: 20px; color: #191919;"></span>
+          </a>
+          <nz-dropdown-menu #actionMenu="nzDropdownMenu">
+            <ul nz-menu>
+              <li nz-menu-item *ngFor="let item of menuItems" [nzDisabled]="item.disabled" (click)="item.click(item, infoDetail)">
+                <div class="operate-item"><img alt="" class="operate-icon" [src]="item.icon"> {{item.label}}</div>
+              </li>
+            </ul>
+          </nz-dropdown-menu>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  <div class="main-container">
+    <div class="basicInfo">
+      <p class="top-basic-title">{{ 'basic_info_1'|i18nextEager }}</p>
+      <div style="display: flex;flex-direction: column">
+
+        <div nz-row [nzGutter]="16">
+          <div nz-col nzSpan="8">
+            <div class="info-col">
+              <span class="info-title">{{ 'policy_name' | i18nextEager }}</span>
+              <span class="info-content">{{ infoDetail?.strategy_name}}</span>
+            </div>
+          </div>
+          <div nz-col nzSpan="8">
+            <div class="info-col">
+              <span class="info-title"> {{ 'service_key' | i18nextEager }}</span>
+              <span class="info-content" style="cursor: pointer">{{ infoDetail?.strategy_key}}</span>
+            </div>
+          </div>
+        </div>
+
+        <div nz-row [nzGutter]="16">
+          <div nz-col nzSpan="8">
+            <div class="info-col">
+              <span class="info-title">{{ 'create_time' | i18nextEager }}</span>
+              <span class="info-content">{{ infoDetail?.created_date }}</span>
+            </div>
+          </div>
+          <div nz-col nzSpan="8">
+            <div class="info-col">
+              <span class="info-title">{{ 'AI_model' | i18nextEager }}</span>
+              <span class="info-content">{{ infoDetail?.service_key_list}}</span>
+            </div>
+          </div>
+        </div>
+
+        <div nz-row [nzGutter]="16">
+          <div nz-col nzSpan="8">
+            <div class="info-col">
+              <span class="info-title">{{ 'policy_des' | i18nextEager }}</span>
+              <span class="info-content">{{infoDetail?.strategy_description}}</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+  <div class="main-container" *ngIf="false">
+    <div class="content">
+      <markdown [data]="infoDetail.readme" class="markdown-body"></markdown>
+    </div>
+  </div>
+</div>

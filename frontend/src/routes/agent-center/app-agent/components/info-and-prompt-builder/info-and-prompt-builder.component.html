@@ -1,0 +1,122 @@
+<div class="agent-info-prompt-container">
+  <div class="agent-info-container">
+    <div class="info-title">{{ 'single_agent_info' | i18nextEager }}</div>
+    <div class="info-content">
+      <div class="left-area">
+        <icon-upload
+          class="!h-[60px] !w-[60px] !rounded-[8px]"
+          [(ngModel)]="agentLogo"
+          (ngModelChange)="handleLogoChange()"
+          maskIcon="{{ 'modify_avatar' | i18nextEager }}"
+          [err_msg]="'maximum_img'|i18nextEager"
+          *ngIf="!iconLoading"
+        />
+        <div *ngIf="iconLoading"
+             style="border-radius: 8px; width: 60px;height: 60px; background: rgba(230, 230, 230, 1); display: flex; align-items: center; justify-content: center;">
+          <img [src]="changeUrl('assets/agent-center/agent/model_icon_loading.svg')"
+               [class.rotate-icon]="iconLoading" alt=""
+               style="width: 35px;height: 35px;">
+        </div>
+      </div>
+      <div class="right-area">
+        <form [formGroup]="groupFormControl" class="flex flex-col gap-[12px]">
+          <div class="name-wrapper">
+            <div class="input-container">
+              <span class="char-counter">
+                {{ groupFormControl.get('name')?.value?.length || 0 }}/64
+              </span>
+            </div>
+            <input
+              nz-input
+              [(ngModel)]="openingInputed"
+              maxlength="64"
+              [placeholder]="'enter_app_name' | i18nextEager"
+              formControlName="name"
+              (input)="onInputName($event)"
+            />
+          </div>
+          <div class="desc-wrapper">
+            <textarea
+              nz-input
+              style="
+                width: 100%;
+                min-width: 100%;
+                height: 104px;
+                max-height: 62px;
+              "
+              resize="none"
+              maxlength="256"
+              [(ngModel)]="openingDescription"
+              [placeholder]="'describe_app' | i18nextEager"
+              formControlName="description"
+              (input)="onInputDesc($event)"
+            >
+            </textarea>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="prompt-container relative mt-[12px]" *ngIf="isShowPrompt">
+    <nz-spin *ngIf="tiLoading" style="position: absolute; width:50px;height:50px;left: 50%;top: 50%;background-color: transparent"></nz-spin>
+    <div class="top-area">
+      <div class="prompt-title">{{ 'prompt' | i18nextEager }}</div>
+      <div class="op-btns">
+        <div class="img-hover">
+          <div style="display: flex;justify-content: center;align-items: center;color: #1a1a1a"
+               nz-tooltip
+               [nzTooltipTitle]="exampleTipTemplate"
+               nzTooltipPlacement="bottom"
+               nzTooltipOverlayClassName="max-w-[315px]"
+               nzTooltipColor="#fff"
+               (click)="addExamplePrompt()">
+            <img [src]="changeUrl('assets/agent/role-instruction-template.svg')" alt="" />
+          </div>
+        </div>
+        <div
+          *ngIf="curAgentModeCode !== AGENT_MODE_CODE.PLANNING_MODE"
+          [nzTooltipTitle]="'ref_variables' | i18nextEager"
+          nzTooltipPlacement="top"
+          nz-tooltip
+          (click)="showVarList($event)"
+          class="img-hover"
+        >
+          <div class="ref-args-icon"
+               (mousedown)="$event.preventDefault()"
+               (click)="showVarList($event)"
+          ></div>
+        </div>
+      </div>
+    </div>
+    <div class="bottom-area">
+      <div class="prompt-tags" *ngIf="isNotEmptyAfterTrim()">
+        @for (item of getUniqueTags(agentInfo.promptTags); track item.name) {
+          <span
+            class="single-tag"
+            [ngStyle]="getTagStyle(item.type)"
+          >
+            {{ item.name }}
+          </span>
+        }
+      </div>
+      <meta-cmd-textarea
+        #promptTextareaRef
+        *ngIf="true"
+        class="prompt-textarea"
+        [CMDS]="['{']"
+        [(ngModel)]="promptInputed"
+        [disabled]="isFlowReadonly"
+        [placeholder]="placeholderStr"
+        [variants]="dispatchSelectedType === 'ReAct'?variants:[]"
+        [variantsTrigger]="showVarList$()"
+        [maxHeight]="''"
+        (ngModelChange)="onInputChange($event)"
+        [maxLength]="promptMaxLength"
+      />
+    </div>
+  </div>
+</div>
+
+<ng-template #exampleTipTemplate>
+  <example-tip-modal></example-tip-modal>
+</ng-template>

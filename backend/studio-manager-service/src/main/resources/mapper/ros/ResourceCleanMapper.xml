@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.agent.manager.mapper.ros.ResourceCleanMapper">
+
+    <select id="selectByDomain" parameterType="map" resultType="java.lang.String">
+        SELECT ${idColumn}
+        FROM ${tableName}
+        WHERE
+          ${domainColumn} = #{domainId}
+          limit 100
+    </select>
+
+    <delete id="batchDeleteByIds" parameterType="map">
+        delete
+        from ${tableName}
+        where ${idColumn} IN
+        <foreach item="id" collection="ids" open="(" separator="," close=")">
+            #{id,jdbcType=VARCHAR}
+        </foreach>
+    </delete>
+
+    <select id="countByDomain" parameterType="map" resultType="java.lang.Integer">
+        select count(1)
+        FROM ${tableName}
+        WHERE
+          ${domainColumn} = #{domainId}
+    </select>
+
+    <select id="countByMasterIds" parameterType="map" resultType="java.lang.Integer">
+        select count(1)
+        from ${tableName}
+        where ${idColumn} IN
+        <foreach item="id" collection="ids" open="(" separator="," close=")">
+            #{id,jdbcType=VARCHAR}
+        </foreach>
+    </select>
+</mapper>

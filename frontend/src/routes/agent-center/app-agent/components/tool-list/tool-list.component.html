@@ -1,0 +1,246 @@
+<ng-container *ngIf="agentType !== 'workflow'; else workflowTemplate">
+  <!-- 默认模板 -->
+  <div class="tool-title mt-[24px]">
+    <div class="left" (click)="changeCollapseEvent(toolAdded)">
+      <span class="title-text">{{ toolAdded.title}}</span>
+      <span class="num">({{toolAdded.list.length}}/{{allow_add_num}})</span>
+      <nz-icon
+        *ngIf="false"
+        nzType="cloudx-action-arrow-right"
+        class="unfolded"
+        [ngClass]="toolAdded.collapsed ? 'collapsed-icon' : 'unfolded-icon'"
+      ></nz-icon>
+    </div>
+    <div
+      class="right icon-border"
+      (click)="addBtnClickedEvent()"
+      *ngIf="toolAdded.list.length<allow_add_num">
+      <nz-icon nzType="plus" class="text-[14px]"></nz-icon>
+    </div>
+  </div>
+</ng-container>
+<ng-template #workflowTemplate>
+  <!-- workflow模板 -->
+  <div class="tool-title mt-[24px] flex justify-between items-center">
+    <!-- 标题区块 -->
+    <div
+      class="flex items-center gap-1"
+      (click)="changeCollapseEvent(toolAdded)">
+      <span class="title-text" style="font-size: 14px">{{ toolAdded.title}}</span>
+      <span class="num_2 text-[#808080]">({{toolAdded.list.length}}/{{allow_add_num_workflow}})</span>
+    </div>
+
+    <!-- 右侧按钮 -->
+    <div
+      class="flex items-center justify-center cursor-pointer"
+      (click)="addBtnClickedEvent()"
+      *ngIf="toolAdded.list.length<allow_add_num">
+      <nz-icon
+        class="!text-base !text-[#1476FF]"
+        nzType="cloudx-action-create-1"
+      />
+    </div>
+  </div>
+</ng-template>
+<nz-spin *ngIf="toolAdded.isLoading" nzSimple></nz-spin>
+@if (toolAdded?.list?.length) {
+  <div
+    class="tool-list"
+    [ngClass]="{'hidden': toolAdded.collapsed}"
+  >
+    @for (triggerItem of toolAdded.list; track triggerItem) {
+      <div class="tool-item">
+        <div class="left w-[calc(100%-16px)]">
+          @if (triggerItem.type === 'TIMER') {
+            <svg
+              width="28"
+              height="28"
+              viewBox="0 0 28 28"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              xmlns:xlink="http://www.w3.org/1999/xlink"
+            >
+              <desc>Created with Pixso.</desc>
+              <defs>
+                <radialGradient
+                  gradientTransform="translate(14 0) rotate(0) scale(28 28)"
+                  cx="0.000000"
+                  cy="0.000000"
+                  r="1.000000"
+                  id="paint_radial_148_138075_0"
+                  gradientUnits="userSpaceOnUse"
+                >
+                  <stop stop-color="#72B5FD" />
+                  <stop offset="1.000000" stop-color="#2D90FB" />
+                </radialGradient>
+              </defs>
+              <rect
+                id="矩形"
+                rx="6.125"
+                width="28"
+                height="28"
+                fill="url(#paint_radial_148_138075_0)"
+                fill-opacity="1.000000"
+              />
+              <circle
+                id="椭圆形"
+                cx="13.969"
+                cy="14.790"
+                r="7.529"
+                stroke="#FFFFFF"
+                stroke-opacity="1.000000"
+                stroke-width="1.4"
+              />
+              <path
+                id="直线 2"
+                d="M13.97 5.018L13.97 6.965"
+                stroke="#FFFFFF"
+                stroke-opacity="1.000000"
+                stroke-width="1.4"
+                stroke-linecap="round"
+              />
+              <path
+                id="直线 2备份"
+                d="M22.19 7.998L21.13 6.965"
+                stroke="#FFFFFF"
+                stroke-opacity="1.000000"
+                stroke-width="1.4"
+                stroke-linecap="round"
+              />
+              <path
+                id="路径 23"
+                d="M13.97 10.987L13.97 14.517C13.97 14.63 14.06 14.72 14.18 14.72L16.22 14.72"
+                stroke="#FFFFFF"
+                stroke-opacity="1.000000"
+                stroke-width="1.4"
+                stroke-linecap="round"
+              />
+            </svg>
+          }
+          @if (triggerItem.type === 'EVENT') {
+            <svg
+              width="28"
+              height="28"
+              viewBox="0 0 28 28"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              xmlns:xlink="http://www.w3.org/1999/xlink"
+            >
+              <desc>Created with Pixso.</desc>
+              <defs>
+                <radialGradient
+                  gradientTransform="translate(14 0) rotate(0) scale(28 28)"
+                  cx="0.000000"
+                  cy="0.000000"
+                  r="1.000000"
+                  id="paint_radial_148_138082_0"
+                  gradientUnits="userSpaceOnUse"
+                >
+                  <stop stop-color="#72B5FD" />
+                  <stop offset="1.000000" stop-color="#2D90FB" />
+                </radialGradient>
+              </defs>
+              <rect
+                id="矩形"
+                rx="6.125"
+                width="28"
+                height="28"
+                fill="url(#paint_radial_148_138082_0)"
+                fill-opacity="1.000000"
+              />
+              <rect
+                id="矩形"
+                x="10.375"
+                y="5.6875"
+                rx="1.53125"
+                width="7.1875"
+                height="3.0625"
+                stroke="#FFFFFF"
+                stroke-opacity="1.000000"
+                stroke-width="1.4"
+              />
+              <path
+                id="矩形"
+                d="M17.06125 7.1475L18.8125 7.1475C19.95625 7.1475 20.8125 8.00375 20.8125 9.1475L20.8125 20.94625C20.8125 22.09 19.95625 22.94625 18.8125 22.94625L9.1875 22.94625C8.04375 22.94625 7.1875 22.09 7.1875 20.94625L7.1875 9.1475C7.1875 8.00375 8.04375 7.1475 9.1875 7.1475L11.56625 7.1475"
+                stroke="#FFFFFF"
+                stroke-opacity="1.000000"
+                stroke-width="1.4"
+              />
+              <path
+                id="直线 "
+                d="M10.375 12.6875L17.625 12.6875"
+                stroke="#FFFFFF"
+                stroke-opacity="1.000000"
+                stroke-width="1.4"
+                stroke-linecap="round"
+              />
+              <path
+                id="直线 "
+                d="M10.375 16.3125L14.58375 16.3125"
+                stroke="#FFFFFF"
+                stroke-opacity="1.000000"
+                stroke-width="1.4"
+                stroke-linecap="round"
+              />
+            </svg>
+          }
+          <div class="right">
+            <div class="w-full overflow-hidden text-ellipsis whitespace-nowrap">
+              {{ triggerItem.name }}
+            </div>
+            <div class="grey-font w-full overflow-hidden text-ellipsis whitespace-nowrap">
+              {{ getTriggerType(triggerItem.type) }}
+            </div>
+          </div>
+        </div>
+        <div class="trigger-right-area">
+          <span
+            nz-tooltip
+            [nzTooltipTitle]="triggerDetailTip"
+            [nzTooltipTitleContext]="triggerItem"
+            nzTooltipMaxWidth="344px"
+            nzTooltipPlacement="top"
+            style="word-break: break-all"
+          >
+          </span>
+          <nz-icon
+            *ngIf="!isFlowReadonly"
+            nzType="cloudx-action-edit"
+            class="delete-icon"
+            (click)="editOneTrigger(triggerItem)"
+          ></nz-icon>
+          <nz-icon
+            *ngIf="!isFlowReadonly"
+            nzType="cloudx-action-delete"
+            class="delete-icon"
+            (click)="deleteOneTrigger(triggerItem)"
+          ></nz-icon>
+        </div>
+      </div>
+    }
+  </div>
+} @else {
+  <div class="no-data-text" [ngClass]="{'hidden': toolAdded.collapsed}">
+    {{ noDataText }}
+  </div>
+}
+
+<ng-template #triggerDetailTip let-context="context">
+  <ng-container *ngIf="getTipText(context,agentType) as tip">
+    <ng-container *ngIf="context.type === 'TIMER'; else eventTmpl">
+      <div class="flex flex-col gap-[8px]">
+        <span>{{'trigger_time_t'|i18nextEager}}{{ tip.cron }}</span>
+        <span>{{'prompt_content_t'|i18nextEager}}{{ tip.prompt }}</span>
+        @if (tip?.invocation === 'async' || tip?.invocation === 'sync') {
+          <span>{{'invocation_method_t'|i18nextEager}}{{ (tip.invocation === 'async' ? 'toollistcomponent_56' : 'toollistcomponent_57')|i18nextEager }}</span>
+        }
+      </div>
+    </ng-container>
+    <ng-template #eventTmpl>
+      <div class="flex flex-col gap-[8px]">
+        <span>URL：{{ tip.hook_url }}</span>
+        <span>{{'prompt_content_t'|i18nextEager}}{{ tip.prompt }}</span>
+      </div>
+    </ng-template>
+  </ng-container>
+</ng-template>

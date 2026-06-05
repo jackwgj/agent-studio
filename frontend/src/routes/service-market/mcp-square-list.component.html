@@ -1,0 +1,40 @@
+<div id="mcp-square-list">
+  <div>
+    <div style="height: calc(100vh - 90px);">
+      <div class="com-center-title mt-[6px] mb-6">
+        {{ 'platform_selection' | i18nextEager}}MCP
+        <ng-container *ngIf="officialTotal">（{{officialTotal}}）</ng-container>
+      </div>
+      <div class="mcp-search">
+        <nz-input-group style="flex: 1; height: 28px">
+          <input nz-input [(ngModel)]="officialSearchName" (keyup.enter)="officialOnSearch()" />
+        </nz-input-group>
+
+        <button (click)="refreshOfficialCardData()" nz-button style="background-color: transparent">
+          <nz-icon nzType="reload" nzTheme="outline" />
+        </button>
+      </div>
+      <nz-spin nzSimple *ngIf="officialLoading && !officialCardData.length" class="loading-icon"></nz-spin>
+      <div *ngIf="!officialLoading && !officialCardData.length" style="margin: 10% 45%">
+        <app-new-common-no-data-with-btn
+        [type]="!officialSearchName?.length ? 'noData' : 'filterNoData'"
+          [firstLineData]="'no_data' | i18nextEager"
+          [noDataBtnStr]="!officialSearchName?.length ? '' : ('clear_filters'|i18nextEager)"
+          [noDataBtnStr]="''"
+          (clear)="handleClickClearData()"
+        />
+      </div>
+      <div  class="card-container" *ngIf="officialCardData?.length > 0" [ngClass]="'isLiteStyle'"  (scroll)="onScroll()">
+        <div class="com-cards-wrapper mb-[14px]" style="padding-right: 16px">
+          <mcp-card [mcpData]="item" *ngFor="let item of officialCardData"></mcp-card>
+        </div>
+        <nz-spin
+            nzSimple
+            *ngIf="officialLoading && officialCardData?.length"
+            class="loading-icon !mt-0"
+          ></nz-spin>
+        <div class="flex justify-center text-[#e6e6e6]" *ngIf="!hasMore">——— · ———</div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,157 @@
+.memory-lib-selector {
+  display: flex;
+  flex-direction: column;
+
+  .ml-4 { margin-left: 4px; }
+
+  &.need-padding {
+    .memory-lib-selector-header {
+      padding: 12px;
+      &:hover {
+        border-radius: 2px;
+        background: rgba(245, 245, 245, 1);
+      }
+    }
+    .memory-lib-selector-description {
+      padding: 0 12px;
+      margin-bottom: 4px;
+    }
+    .memory-lib-container {
+      padding: 0 12px;
+    }
+  }
+
+  &:not(.need-padding) {
+    .memory-lib-create-icon {
+      color: #1476ff;
+    }
+  }
+
+  .invalid-style {
+    filter: grayscale(1);
+    opacity: 0.5;
+  }
+
+  .memory-lib-selector-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0;
+
+    .memory-lib-selector-title-content {
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+
+      .memory-lib-selector-title {
+        color: rgba(0, 0, 0, 0.85); // 对应 AntD 文字颜色
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+      }
+
+      .fold-state-container {
+        margin-left: 4px;
+        font-size: 12px;
+      }
+    }
+
+    .memory-lib-selector-operation-container {
+      display: flex;
+      align-items: center;
+
+      .memory-lib-add-container {
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        border-radius: 4px;
+
+        .memory-lib-create-icon {
+          font-size: 16px;
+        }
+
+        &:hover {
+          background-color: rgba(0, 0, 0, 0.04);
+        }
+      }
+    }
+  }
+
+  .memory-lib-selector-description {
+    color: #808080;
+    font-size: 12px;
+  }
+
+  .memory-lib-container {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    .memory-lib-card {
+      padding: 8px 12px;
+      background: rgb(250, 250, 250);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 8px;
+
+      &:hover {
+        &:not(.invalid) {
+          background: rgba(240, 247, 255, 1);
+        }
+        .memory-lib-operation-wrapper {
+          display: block;
+        }
+      }
+
+      .memory-lib-icon {
+        width: 24px;
+        height: 24px;
+        flex-shrink: 0;
+        img { width: 100%; height: 100%; }
+      }
+
+      .memory-lib-basic-info-container {
+        flex: 1;
+        width: 0;
+
+        .memory-lib-name {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          width: 100%;
+          .memory-lib-content {
+            color: rgba(25, 25, 25, 1);
+            line-height: 18px;
+          }
+          .memory-lib-invalid-icon {
+            font-size: 14px;
+            color: #ff4d4f; // AntD Error color
+          }
+        }
+
+        .memory-lib-description {
+          width: 100%;
+          color: rgba(128, 128, 128, 1);
+          line-height: 18px;
+          font-size: 12px;
+        }
+      }
+
+      .memory-lib-operation-wrapper {
+        display: none;
+        .memory-lib-delete-icon {
+          cursor: pointer;
+          font-size: 16px;
+          color: rgba(0, 0, 0, 0.45);
+          &:hover {
+            color: #1890ff;
+          }
+        }
+      }
+    }
+  }
+}

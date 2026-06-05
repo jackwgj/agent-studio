@@ -1,0 +1,75 @@
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
+ */
+
+package com.openjiuwen.studio.agent.manager.dto;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import jakarta.validation.Valid;
+
+import org.springframework.validation.annotation.Validated;
+
+import java.io.Serializable;
+import java.util.Objects;
+
+/**
+ * GetStudioSkillDetailsResponseBody
+ */
+
+@Validated
+
+public class GetStudioSkillDetailsResponseBody implements Serializable {
+    private static final long serialVersionUID = 1L;
+
+    @JsonProperty("skill_info")
+    @Valid
+    private StudioSkillInfo skillInfo = null;
+
+    public StudioSkillInfo getSkillInfo() {
+        return skillInfo;
+    }
+
+    public GetStudioSkillDetailsResponseBody setSkillInfo(StudioSkillInfo skillInfo) {
+        this.skillInfo = skillInfo;
+        return this;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("class GetStudioSkillDetailsResponseBody {\n");
+
+        sb.append("    skillInfo: ").append(toIndentedString(skillInfo)).append("\n");
+        sb.append("}");
+        return sb.toString();
+    }
+
+    @Override
+    public boolean equals(java.lang.Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        GetStudioSkillDetailsResponseBody getStudioSkillDetailsResponseBody = (GetStudioSkillDetailsResponseBody) o;
+        return Objects.equals(this.skillInfo, getStudioSkillDetailsResponseBody.skillInfo);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(skillInfo);
+    }
+
+    /**
+     * Convert the given object to string with each line indented by 4 spaces
+     * (except the first line).
+     */
+    private String toIndentedString(java.lang.Object o) {
+        if (o == null) {
+            return "null";
+        }
+        return o.toString().replace("\n", "\n    ");
+    }
+}

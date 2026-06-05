@@ -1,0 +1,359 @@
+{
+  "id": "1d5c733e-46e4-4229-bc8f-fce10f97528c",
+  "name": "test_env_v2",
+  "description": "test_env_v2",
+  "configs": {
+    "environment": {},
+    "default_model_switch": false,
+    "default_model": {
+      "openai": "openai",
+      "model_name": "deepseek-r1-250528",
+      "model_type": "LLM",
+      "model": "182",
+      "model_deployment_id": "182"
+    }
+  },
+  "nodes": [
+    {
+      "id": "node_start",
+      "type": "Start",
+      "name": "开始",
+      "outputs": [
+        {
+          "name": "query",
+          "type": "string",
+          "description": "用户输入",
+          "required": true,
+          "source": "system",
+          "field_type": "input",
+          "reflection": false,
+          "value": {
+            "type": "literal",
+            "content": "",
+            "hint": "用户输入"
+          }
+        },
+        {
+          "name": "sys",
+          "type": "object",
+          "description": "系统变量",
+          "required": true,
+          "source": "system",
+          "schema": [
+            {
+              "name": "conversation_history",
+              "type": "array",
+              "description": "会话历史消息",
+              "required": true,
+              "source": "system",
+              "value": {
+                "content": [],
+                "hint": "会话历史消息",
+                "type": "literal"
+              },
+              "schema": {
+                "name": "",
+                "type": "object",
+                "schema": [
+                  {
+                    "name": "role",
+                    "type": "string",
+                    "description": "角色",
+                    "required": true,
+                    "source": "system",
+                    "value": {
+                      "type": "literal",
+                      "content": "",
+                      "hint": "角色"
+                    }
+                  },
+                  {
+                    "name": "content",
+                    "type": "string",
+                    "description": "消息内容",
+                    "required": true,
+                    "source": "system",
+                    "value": {
+                      "type": "literal",
+                      "content": "",
+                      "hint": "消息内容"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "name": "current_time",
+              "type": "string",
+              "required": true,
+              "description": "当前系统时间",
+              "field_type": "input",
+              "source": "system",
+              "value": {
+                "type": "literal",
+                "content": "",
+                "hint": "当前系统时间"
+              }
+            },
+            {
+              "name": "user_id",
+              "type": "string",
+              "required": true,
+              "description": "使用该工作流的唯一标识",
+              "field_type": "input",
+              "source": "system",
+              "value": {
+                "type": "literal",
+                "content": "",
+                "hint": "用户唯一标识"
+              }
+            },
+            {
+              "name": "conversation_id",
+              "type": "string",
+              "required": true,
+              "description": "工作流对话id",
+              "field_type": "input",
+              "source": "system",
+              "value": {
+                "type": "literal",
+                "content": "",
+                "hint": "工作流对话id"
+              }
+            }
+          ],
+          "field_type": "object",
+          "reflection": false,
+          "value": {
+            "type": "literal",
+            "content": {},
+            "hint": "系统变量"
+          }
+        },
+        {
+          "name": "env",
+          "type": "object",
+          "description": "环境变量",
+          "required": true,
+          "source": "environment",
+          "schema": [],
+          "field_type": "object",
+          "reflection": false,
+          "value": {
+            "type": "literal",
+            "content": {},
+            "hint": "环境变量"
+          }
+        }
+      ]
+    },
+    {
+      "id": "node_end",
+      "type": "End",
+      "name": "结束",
+      "inputs": [
+        {
+          "name": "result",
+          "type": "string",
+          "description": "最终输出",
+          "required": false,
+          "source": "user",
+          "reflection": false,
+          "value": {
+            "type": "ref",
+            "content": {
+              "ref_node_id": "node_1758250988027",
+              "ref_var_name": "son_workflow_level_limit",
+              "source": "user"
+            }
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "response_content",
+          "type": "string",
+          "description": "最终输出",
+          "required": true,
+          "source": "system",
+          "reflection": false,
+          "value": {
+            "type": "generated"
+          }
+        },
+        {
+          "name": "env_out",
+          "description": "",
+          "required": true,
+          "value": {
+            "type": "ref",
+            "content": {
+              "ref_node_id": "node_start",
+              "ref_var_name": "env.env.203.name",
+              "source": "environment"
+            },
+            "hint": ""
+          },
+          "source": "environment",
+          "type": "string"
+        }
+      ],
+      "configs": {
+        "is_stream_out": true,
+        "response_template": "{{result}}",
+        "response_mode": "directResponse"
+      }
+    },
+    {
+      "id": "node_1758250988027",
+      "type": "Plugin",
+      "name": "test_path_no_delete",
+      "inputs": [
+        {
+          "name": "test",
+          "required": true,
+          "description": "test",
+          "type": "string",
+          "value": {
+            "type": "ref",
+            "content": {
+              "ref_node_id": "node_start",
+              "ref_var_name": "sys.current_time",
+              "source": "system"
+            },
+            "hint": ""
+          },
+          "source": "user"
+        },
+        {
+          "name": "test_headers_02",
+          "required": true,
+          "description": "test_headers_02",
+          "type": "string",
+          "value": {
+            "type": "ref",
+            "content": {
+              "ref_node_id": "node_start",
+              "ref_var_name": "env.description",
+              "source": "environment"
+            },
+            "hint": ""
+          },
+          "source": "environment"
+        },
+        {
+          "name": "service",
+          "required": false,
+          "description": "service",
+          "type": "string",
+          "value": {
+            "type": "literal",
+            "content": "front",
+            "hint": ""
+          },
+          "source": "user"
+        },
+        {
+          "name": "workspace_id",
+          "required": true,
+          "description": "workspace_id",
+          "type": "string",
+          "value": {
+            "type": "literal",
+            "content": "default",
+            "hint": ""
+          },
+          "source": "user"
+        },
+        {
+          "name": "workspace_id1",
+          "required": true,
+          "description": "workspace_id1",
+          "type": "string",
+          "value": {
+            "type": "literal",
+            "content": "default",
+            "hint": ""
+          },
+          "source": "user"
+        },
+        {
+          "name": "path_value1",
+          "required": true,
+          "description": "path_value1",
+          "type": "string",
+          "value": {
+            "type": "literal",
+            "content": "system",
+            "hint": ""
+          },
+          "source": "user"
+        },
+        {
+          "name": "path_value2",
+          "required": true,
+          "description": "path_value2",
+          "type": "string",
+          "value": {
+            "type": "literal",
+            "content": "settings",
+            "hint": ""
+          },
+          "source": "user"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "son_workflow_level_limit",
+          "required": true,
+          "description": "son_workflow_level_limit",
+          "type": "string",
+          "value": {
+            "type": "generated",
+            "content": null,
+            "hint": "",
+            "default": ""
+          },
+          "source": "user"
+        }
+      ],
+      "configs": {
+        "id": "676d51da-4cf5-4a21-b4cf-010801a0569d",
+        "streaming": false,
+        "exception_enable": false,
+        "original_info": {
+          "name": "测试path勿删",
+          "name_en": "test_path_no_delete",
+          "description": "测试path勿删",
+          "type": "custom"
+        },
+        "name": "测试path勿删",
+        "valid": true
+      }
+    }
+  ],
+  "edges": [
+    {
+      "source": "node_start",
+      "target": "node_1758250988027"
+    },
+    {
+      "source": "node_1758250988027",
+      "target": "node_end"
+    }
+  ],
+  "layouts": {
+    "node_start": {
+      "x": -180,
+      "y": 54
+    },
+    "node_end": {
+      "x": 1152,
+      "y": 144
+    },
+    "node_1758250988027": {
+      "x": 414,
+      "y": 36
+    }
+  }
+}

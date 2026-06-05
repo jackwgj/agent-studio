@@ -1,0 +1,926 @@
+{
+  "configs": {
+    "default_model_switch": false,
+    "default_model": {
+      "model_name": "SM_rh",
+      "model_type": "strategy",
+      "model_deployment_id": "f8cc4eaa-fb1a-445c-a8a9-d1ab0655d03a"
+    }
+  },
+  "description": "gttest_ref",
+  "edges": [{"branch":null,"id":null,"source":"node_1752462251152","sourceBranchId":null,"target":"node_end","targetBranchId":null},{"branch":null,"id":null,"source":"node_1752462283184","sourceBranchId":null,"target":"node_1752462261569","targetBranchId":null},{"branch":null,"id":null,"source":"node_1752462233175","sourceBranchId":null,"target":"node_1752462283184","targetBranchId":null},{"branch":null,"id":null,"source":"node_1752462276899","sourceBranchId":null,"target":"node_1752462233175","targetBranchId":null},{"branch":null,"id":null,"source":"node_1752462002340","sourceBranchId":null,"target":"node_1752462017605","targetBranchId":null},{"branch":null,"id":null,"source":"node_start","sourceBranchId":null,"target":"node_1752462002340","targetBranchId":null},{"branch":null,"id":null,"source":"node_intent_container_1752462017605","sourceBranchId":null,"target":"node_1752462276899","targetBranchId":null},{"branch":null,"id":null,"source":"node_1752462017605","sourceBranchId":null,"target":"node_intent_container_1752462017605","targetBranchId":null},{"branch":null,"id":null,"source":"node_1752462261569","sourceBranchId":null,"target":"node_1752462251152","targetBranchId":null}],
+  "icon": null,
+  "id": "062ddaef-d1c6-4ee7-80f9-21bc03408e2e",
+  "layouts": {"node_1752462251152":{"x":396,"y":936},"node_1752462261569":{"x":1764,"y":504},"node_intent_container_1752462017605":{"x":1530,"y":153.5},"node_1752462017605":{"x":1090,"y":153.5},"node_1752462276899":{"x":396,"y":450},"node_start":{"x":210,"y":153.5},"node_1752462233175":{"x":900,"y":450},"node_end":{"x":1062,"y":1008},"node_1752462002340":{"x":650,"y":153.5},"node_1752462283184":{"x":1332,"y":576}},
+  "name": "gttest_ref",
+  "nodes": [
+    {"branches":null,"configs":null,"id":"node_start","inputs":null,"name":"开始","outputs":[{"cn_name":null,"description":"用户输入","field_type":"input","memory":null,"name":"query","reflection":false,"required":true,"schema":null,"source":"system","type":"string","validator":null,"value":{"content":"","default":null,"display":null,"hint":"用户输入","type":"literal"}},{"cn_name":null,"description":"系统变量","field_type":"object","memory":null,"name":"sys","reflection":false,"required":true,"schema":[{"name":"conversation_history","type":"array","description":"会话历史消息","required":true,"source":"system","value":{"content":[],"hint":"会话历史消息","type":"literal"},"schema":{"name":"","type":"object","schema":[{"name":"role","type":"string","description":"角色","required":true,"source":"system","value":{"type":"literal","content":"","hint":"角色"}},{"name":"content","type":"string","description":"消息内容","required":true,"source":"system","value":{"type":"literal","content":"","hint":"消息内容"}}]}},{"name":"current_time","type":"string","required":true,"description":"当前系统时间","field_type":"input","source":"system","value":{"type":"literal","content":"","hint":"当前系统时间"}},{"name":"user_id","type":"string","required":true,"description":"使用该工作流的唯一标识","field_type":"input","source":"system","value":{"type":"literal","content":"","hint":"用户唯一标识"}},{"name":"conversation_id","type":"string","required":true,"description":"工作流对话id","field_type":"input","source":"system","value":{"type":"literal","content":"","hint":"工作流对话id"}}],"source":"system","type":"object","validator":null,"value":{"content":{},"default":null,"display":null,"hint":"系统变量","type":"literal"}}],"type":"Start"},
+    {
+      "branches": null,
+      "configs": {
+        "original_info": {
+          "name": "gttest_publish_1",
+          "name_en": "gttest_publish_1",
+          "description": "gttest_publish_1"
+        },
+        "version_name": "v20250516163117",
+        "plugins": [],
+        "name": "gttest_publish_1",
+        "id": "f9a5c213-6c38-43ad-8e26-d29f21cd5a78",
+        "version_id": "1747384279075"
+      },
+      "id": "node_1752462002340",
+      "inputs": [
+        {
+          "cn_name": null,
+          "description": "用户输入",
+          "field_type": "input",
+          "memory": null,
+          "name": "query",
+          "reflection": false,
+          "required": true,
+          "schema": null,
+          "source": "system",
+          "type": "string",
+          "validator": null,
+          "value": {
+            "content": "111",
+            "default": null,
+            "display": null,
+            "hint": "",
+            "type": "literal"
+          }
+        }
+      ],
+      "name": "gttest_publish_1",
+      "outputs": [
+        {
+          "cn_name": null,
+          "description": "最终输出",
+          "field_type": null,
+          "memory": null,
+          "name": "response_content",
+          "reflection": false,
+          "required": true,
+          "schema": null,
+          "source": "system",
+          "type": "string",
+          "validator": null,
+          "value": {
+            "content": null,
+            "default": null,
+            "display": null,
+            "hint": null,
+            "type": "generated"
+          }
+        }
+      ],
+      "type": "Workflow"
+    },
+    {"branches":[],"configs":{"llm":{"temperature":0.5,"top_p":0.5,"max_tokens":1,"model":{"model_name":"SM_rh","model_type":"ei_agentBuilder","model_deployment_id":"f8cc4eaa-fb1a-445c-a8a9-d1ab0655d03a"}},"prompt":"","chat_history_max_turn":0,"intent":{"id":"b17fbd26-941c-4714-aa58-0833f335f2a7","name":"jjw_test","branches_cnt":2}},"id":"node_1752462017605","inputs":[{"cn_name":null,"description":"","field_type":null,"memory":null,"name":"input","reflection":false,"required":false,"schema":null,"source":"system","type":"string","validator":null,"value":{"content":{"ref_node_id":"node_start","ref_var_name":"query","source":"system"},"default":null,"display":null,"hint":"","type":"ref"}}],"name":"高级意图识别","outputs":[{"cn_name":null,"description":"intentDetection.outputs_id_description","field_type":null,"memory":null,"name":"classification_id","reflection":false,"required":true,"schema":null,"source":"system","type":"integer","validator":null,"value":{"content":null,"default":null,"display":null,"hint":"","type":"generated"}},{"cn_name":null,"description":"intentDetection.outputs_name_description","field_type":null,"memory":null,"name":"name","reflection":false,"required":true,"schema":null,"source":"system","type":"string","validator":null,"value":{"content":null,"default":null,"display":null,"hint":"","type":"generated"}},{"cn_name":null,"description":"输出的分类分支名","field_type":null,"memory":null,"name":"result","reflection":false,"required":false,"schema":null,"source":"system","type":"string","validator":null,"value":{"content":"","default":null,"display":null,"hint":"","type":"generated"}},{"cn_name":null,"description":null,"field_type":null,"memory":null,"name":"reason","reflection":false,"required":true,"schema":null,"source":"system","type":"string","validator":null,"value":{"content":null,"default":null,"display":null,"hint":"","type":"generated"}}],"type":"IntentDetection"},
+    {
+      "id": "node_1756452749092",
+      "name": "提问器",
+      "type": "Questioner",
+      "inputs": [
+        {
+          "name": "a",
+          "description": "",
+          "required": true,
+          "source": "user",
+          "reflection": false,
+          "value": {
+            "type": "literal",
+            "content": "a",
+            "hint": ""
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "USER_RESPONSE",
+          "cn_name": "",
+          "type": "string",
+          "description": "用户最近一轮对话输入",
+          "required": false,
+          "source": "user",
+          "reflection": true,
+          "value": {
+            "default": "",
+            "type": "literal",
+            "content": "",
+            "hint": ""
+          },
+          "validator": [
+          ]
+        },
+        {
+          "name": "STATUS",
+          "cn_name": "",
+          "type": "integer",
+          "description": "提问器运行状态码",
+          "required": false,
+          "source": "user",
+          "reflection": true,
+          "value": {
+            "default": "",
+            "type": "literal",
+            "content": "",
+            "hint": ""
+          },
+          "validator": [
+          ]
+        }
+      ],
+      "configs": {
+        "template_anthropomorphic": false,
+        "example_content": "",
+        "enum_visible": false,
+        "max_tokens": 2048,
+        "extra_prompt_for_fields_extraction": "",
+        "max_response": 10,
+        "auto_ask_template": "",
+        "rewrite_chain": [
+          {
+            "type": "rewrite_api",
+            "index": 1,
+            "enabled": false,
+            "args": {
+              "url": ""
+            }
+          }
+        ],
+        "mode": "effect",
+        "top_p": 0.5,
+        "extract_fields_from_response": true,
+        "with_chat_history": false,
+        "temperature": 0.2,
+        "question_content": "",
+        "model": {
+          "model_name": "test4",
+          "model_type": "LLM",
+          "model_deployment_id": "e638386f-d922-4502-aab6-c666756f767a"
+        },
+        "allow_node_break": false,
+        "allow_node_confirm": false
+      }
+    },
+    {
+      "branches": null,
+      "configs": {
+        "history_size": 3,
+        "max_tokens": 2048,
+        "template_content": "{{query}}",
+        "system_prompt": "",
+        "enable_history": false,
+        "top_p": 0.5,
+        "format_instruction": "",
+        "vision": [],
+        "response_format": "text",
+        "frequency_penalty": 0,
+        "stream": true,
+        "temperature": 0.5,
+        "model": {
+          "model_id": "64c8e9bb-7ded-4fc9-b63e-9ff3f0e7a588",
+          "model_name": "mock",
+          "model_type": "LLM",
+          "model_deployment_id": "64c8e9bb-7ded-4fc9-b63e-9ff3f0e7a588",
+          "api_type": "openai"
+        }
+      },
+      "id": "node_1756450876531",
+      "inputs": [
+        {
+          "cn_name": null,
+          "description": "",
+          "field_type": null,
+          "memory": null,
+          "name": "query",
+          "reflection": false,
+          "required": false,
+          "schema": null,
+          "source": "user",
+          "type": "string",
+          "validator": null,
+          "value": {
+            "content": "a",
+            "default": null,
+            "display": null,
+            "hint": "",
+            "type": "literal"
+          }
+        }
+      ],
+      "name": "大模型",
+      "outputs": [
+        {
+          "cn_name": null,
+          "description": "模型原始输出",
+          "field_type": null,
+          "memory": null,
+          "name": "raw_output",
+          "reflection": false,
+          "required": false,
+          "schema": null,
+          "source": "user",
+          "type": "string",
+          "validator": null,
+          "value": {
+            "content": "",
+            "default": null,
+            "display": null,
+            "hint": "",
+            "type": "literal"
+          }
+        }
+      ],
+      "type": "LLM"
+    },
+    {
+      "branches": [
+        {
+          "configs": {
+            "workflow_version_name": "v20250516163117",
+            "workflow_id": "f9a5c213-6c38-43ad-8e26-d29f21cd5a78",
+            "branch_id": "branch_0",
+            "workflow_name": "gttest_publish_1",
+            "description": "",
+            "index": "branch_0",
+            "workflow_version_id": "1747384279075",
+            "category": "其他意图",
+            "intent_id": "b17fbd26-941c-4714-aa58-0833f335f2a7"
+          },
+          "id": "branch_0"
+        },
+        {
+          "configs": {
+            "workflow_version_name": "v20250516163117",
+            "workflow_id": "f9a5c213-6c38-43ad-8e26-d29f21cd5a78",
+            "branch_id": "88b033d7-f366-4a59-b174-556ea559eed2",
+            "workflow_name": "gttest_publish_1",
+            "index": "branch_1",
+            "workflow_version_id": "1747384279075",
+            "category": "水果",
+            "intent_id": "b17fbd26-941c-4714-aa58-0833f335f2a7"
+          },
+          "id": "branch_1"
+        },
+        {
+          "configs": {
+            "workflow_version_name": "v20250516163117",
+            "workflow_id": "f9a5c213-6c38-43ad-8e26-d29f21cd5a78",
+            "branch_id": "2b4c4a60-7713-479f-b923-a24e62bbc690",
+            "workflow_name": "gttest_publish_1",
+            "index": "branch_2",
+            "workflow_version_id": "1747384279075",
+            "category": "汽车",
+            "intent_id": "b17fbd26-941c-4714-aa58-0833f335f2a7"
+          },
+          "id": "branch_2"
+        }
+      ],
+      "configs": {
+        "groups": {
+          "response_content": [
+            {
+              "name": "branch_0",
+              "description": "",
+              "required": true,
+              "reflection": false,
+              "value": {
+                "type": "ref",
+                "content": {
+                  "ref_node_id": "branch_0",
+                  "ref_var_name": "response_content",
+                  "source": "system"
+                },
+                "hint": ""
+              },
+              "source": "user",
+              "type": "string"
+            },
+            {
+              "name": "branch_1",
+              "description": "",
+              "required": true,
+              "reflection": false,
+              "value": {
+                "type": "ref",
+                "content": {
+                  "ref_node_id": "branch_1",
+                  "ref_var_name": "response_content",
+                  "source": "system"
+                },
+                "hint": ""
+              },
+              "source": "user",
+              "type": "string"
+            },
+            {
+              "name": "branch_2",
+              "description": "",
+              "required": true,
+              "reflection": false,
+              "value": {
+                "type": "ref",
+                "content": {
+                  "ref_node_id": "branch_2",
+                  "ref_var_name": "response_content",
+                  "source": "system"
+                },
+                "hint": ""
+              },
+              "source": "user",
+              "type": "string"
+            }
+          ]
+        },
+        "model": "first-non-null"
+      },
+      "id": "node_intent_container_1752462017605",
+      "inputs": [
+        {
+          "cn_name": null,
+          "description": "用户输入",
+          "field_type": "input",
+          "memory": null,
+          "name": "query",
+          "reflection": false,
+          "required": true,
+          "schema": null,
+          "source": "system",
+          "type": "string",
+          "validator": null,
+          "value": {
+            "content": {
+              "ref_node_id": "node_start",
+              "ref_var_name": "query",
+              "source": "system"
+            },
+            "default": null,
+            "display": null,
+            "hint": "",
+            "type": "ref"
+          }
+        }
+      ],
+      "name": "意图动作配置",
+      "outputs": [
+        {
+          "cn_name": null,
+          "description": "intentDetection.response_content_description",
+          "field_type": null,
+          "memory": null,
+          "name": "response_content",
+          "reflection": false,
+          "required": true,
+          "schema": null,
+          "source": "system",
+          "type": "string",
+          "validator": null,
+          "value": {
+            "content": "",
+            "default": null,
+            "display": null,
+            "hint": "",
+            "type": "generated"
+          }
+        }
+      ],
+      "type": "IntentDetectionContainer"
+    },
+    {
+      "branches": null,
+      "configs": {
+        "name": "数据源源215554",
+        "id": "fb778bb8-a25d-4127-839c-e4d729e6e19e",
+        "type": "MYSQL",
+        "sql": ""
+      },
+      "id": "node_1752462276899",
+      "inputs": [],
+      "name": "数据库",
+      "outputs": [
+        {
+          "cn_name": null,
+          "description": "",
+          "field_type": null,
+          "memory": null,
+          "name": "output_list",
+          "reflection": false,
+          "required": true,
+          "schema": {
+            "name": "",
+            "type": "object",
+            "schema": []
+          },
+          "source": "user",
+          "type": "array",
+          "validator": null,
+          "value": {
+            "content": "",
+            "default": null,
+            "display": null,
+            "hint": "",
+            "type": "generated"
+          }
+        },
+        {
+          "cn_name": null,
+          "description": "影响行数",
+          "field_type": null,
+          "memory": null,
+          "name": "row_num",
+          "reflection": false,
+          "required": true,
+          "schema": null,
+          "source": "user",
+          "type": "integer",
+          "validator": null,
+          "value": {
+            "content": "",
+            "default": null,
+            "display": null,
+            "hint": "",
+            "type": "generated"
+          }
+        }
+      ],
+      "type": "Sql"
+    },
+    {
+      "branches": null,
+      "configs": {
+        "tool_name": "maps_direction_bicycling",
+        "valid": true,
+        "original_info": {
+          "name": "高德地图",
+          "name_en": "amap_2",
+          "description": "高德地图官方"
+        },
+        "name": "高德地图",
+        "id": "2ace9890-f0fc-4604-89c2-1800cd93eb91",
+        "name_en": "amap_2"
+      },
+      "id": "node_1752462233175",
+      "inputs": [
+        {
+          "cn_name": null,
+          "description": "出发点经纬度，坐标格式为：经度，纬度",
+          "field_type": null,
+          "memory": null,
+          "name": "origin",
+          "reflection": false,
+          "required": true,
+          "schema": null,
+          "source": "user",
+          "type": "string",
+          "validator": null,
+          "value": {
+            "content": "1",
+            "default": null,
+            "display": null,
+            "hint": "",
+            "type": "literal"
+          }
+        },
+        {
+          "cn_name": null,
+          "description": "目的地经纬度，坐标格式为：经度，纬度",
+          "field_type": null,
+          "memory": null,
+          "name": "destination",
+          "reflection": false,
+          "required": true,
+          "schema": null,
+          "source": "user",
+          "type": "string",
+          "validator": null,
+          "value": {
+            "content": "2",
+            "default": null,
+            "display": null,
+            "hint": "",
+            "type": "literal"
+          }
+        }
+      ],
+      "name": "高德地图",
+      "outputs": [
+        {
+          "cn_name": null,
+          "description": null,
+          "field_type": null,
+          "memory": null,
+          "name": "isError",
+          "reflection": false,
+          "required": false,
+          "schema": null,
+          "source": "user",
+          "type": "boolean",
+          "validator": null,
+          "value": {
+            "content": null,
+            "default": "",
+            "display": null,
+            "hint": "",
+            "type": "generated"
+          }
+        },
+        {
+          "cn_name": null,
+          "description": null,
+          "field_type": null,
+          "memory": null,
+          "name": "content",
+          "reflection": false,
+          "required": true,
+          "schema": {
+            "name": "",
+            "type": "object",
+            "schema": [
+              {
+                "name": "type",
+                "required": true,
+                "type": "string",
+                "value": {
+                  "type": "generated",
+                  "content": null,
+                  "hint": "",
+                  "default": ""
+                },
+                "source": "user"
+              },
+              {
+                "name": "text",
+                "required": true,
+                "type": "string",
+                "value": {
+                  "type": "generated",
+                  "content": null,
+                  "hint": "",
+                  "default": ""
+                },
+                "source": "user"
+              }
+            ]
+          },
+          "source": "user",
+          "type": "array",
+          "validator": null,
+          "value": {
+            "content": null,
+            "default": "",
+            "display": null,
+            "hint": "",
+            "type": "generated"
+          }
+        }
+      ],
+      "type": "Mcp"
+    },
+    {
+      "branches": null,
+      "configs": {
+        "top_p": 0.5,
+        "max_iteration": 9,
+        "max_tokens": 1,
+        "plugins": [
+          {
+            "id": "75fd59cd-6ed7-4cd1-b8f8-6103a360d8e2",
+            "tool_id": "0",
+            "name": "根因分析插件",
+            "description": "根因分析插件"
+          },
+          {
+            "id": "d89f27eb-f407-4737-a727-9c300736bbdc",
+            "tool_id": "0",
+            "name": "特征处理插件",
+            "description": "特征处理插件"
+          }
+        ],
+        "temperature": 0.5,
+        "break_plugin_ids": [],
+        "enable_intent_break": true,
+        "model": {
+          "model_name": "SM_rh",
+          "model_type": "ei_agentBuilder",
+          "model_deployment_id": "f8cc4eaa-fb1a-445c-a8a9-d1ab0655d03a"
+        },
+        "system_prompt": ""
+      },
+      "id": "node_1752462283184",
+      "inputs": [],
+      "name": "Agent",
+      "outputs": [
+        {
+          "cn_name": null,
+          "description": "",
+          "field_type": null,
+          "memory": null,
+          "name": "output",
+          "reflection": false,
+          "required": false,
+          "schema": null,
+          "source": "user",
+          "type": "string",
+          "validator": null,
+          "value": {
+            "content": null,
+            "default": null,
+            "display": null,
+            "hint": "",
+            "type": "generated"
+          }
+        }
+      ],
+      "type": "Agent"
+    },
+    {
+      "branches": null,
+      "configs": {
+        "search_mode": "doc",
+        "repos": [
+          {
+            "id": "0bcbaeb4-b7d5-4148-b029-d33c00f5666b",
+            "name": "swx_test_intention_0711",
+            "description": "测试faq功能"
+          }
+        ],
+        "top_k": 3,
+        "faq_threshold": 0.9,
+        "recall_threshold": 0.5
+      },
+      "id": "node_1752462261569",
+      "inputs": [
+        {
+          "cn_name": null,
+          "description": "检索query",
+          "field_type": null,
+          "memory": null,
+          "name": "query",
+          "reflection": false,
+          "required": true,
+          "schema": null,
+          "source": "user",
+          "type": "string",
+          "validator": null,
+          "value": {
+            "content": {
+              "ref_node_id": "node_start",
+              "ref_var_name": "query",
+              "source": "system"
+            },
+            "default": null,
+            "display": null,
+            "hint": "",
+            "type": "ref"
+          }
+        }
+      ],
+      "name": "知识检索",
+      "outputs": [
+        {
+          "cn_name": null,
+          "description": "查询结果列表",
+          "field_type": null,
+          "memory": null,
+          "name": "output_list",
+          "reflection": false,
+          "required": true,
+          "schema": {
+            "name": "",
+            "type": "object",
+            "schema": [
+              {
+                "name": "document_name",
+                "required": true,
+                "description": "文件名",
+                "type": "string",
+                "value": {
+                  "type": "generated",
+                  "hint": "",
+                  "default": "",
+                  "content": ""
+                },
+                "source": "user"
+              },
+              {
+                "name": "subtitle",
+                "required": true,
+                "description": "子标题，文档段落信息",
+                "type": "string",
+                "value": {
+                  "type": "generated",
+                  "hint": "",
+                  "default": "",
+                  "content": ""
+                },
+                "source": "user"
+              },
+              {
+                "name": "content",
+                "required": true,
+                "description": "检索内容",
+                "type": "string",
+                "value": {
+                  "type": "generated",
+                  "hint": "",
+                  "default": "",
+                  "content": ""
+                },
+                "source": "user"
+              },
+              {
+                "name": "score",
+                "required": true,
+                "description": "匹配度得分",
+                "type": "number",
+                "value": {
+                  "type": "generated",
+                  "hint": "",
+                  "default": "",
+                  "content": ""
+                },
+                "source": "user"
+              }
+            ]
+          },
+          "source": "user",
+          "type": "array",
+          "validator": null,
+          "value": {
+            "content": "",
+            "default": "",
+            "display": null,
+            "hint": "",
+            "type": "generated"
+          }
+        }
+      ],
+      "type": "KnowledgeRepo"
+    },
+    {
+      "branches": null,
+      "configs": {
+        "original_info": {
+          "name": "eqt",
+          "name_en": "qetqet1",
+          "description": "tqtqt"
+        },
+        "streaming": false,
+        "id": "eaf6cb7c-ab27-4004-9b23-4b77f570b346",
+        "exception_enable": false
+      },
+      "id": "node_1752462251152",
+      "inputs": [
+        {
+          "cn_name": null,
+          "description": "a",
+          "field_type": null,
+          "memory": null,
+          "name": "a",
+          "reflection": false,
+          "required": true,
+          "schema": null,
+          "source": "user",
+          "type": "string",
+          "validator": null,
+          "value": {
+            "content": "a",
+            "default": null,
+            "display": null,
+            "hint": "",
+            "type": "literal"
+          }
+        }
+      ],
+      "name": "qetqet1",
+      "outputs": [
+        {
+          "cn_name": null,
+          "description": "",
+          "field_type": null,
+          "memory": null,
+          "name": "a",
+          "reflection": false,
+          "required": true,
+          "schema": null,
+          "source": "user",
+          "type": "string",
+          "validator": null,
+          "value": {
+            "content": null,
+            "default": "",
+            "display": null,
+            "hint": "",
+            "type": "generated"
+          }
+        }
+      ],
+      "type": "Plugin"
+    },
+    {
+      "branches": null,
+      "id": "node_1768804108310",
+      "name": "代码",
+      "type": "Code",
+      "inputs": [
+        {
+          "name": "qqq",
+          "type": "string",
+          "description": "",
+          "required": true,
+          "source": "user",
+          "reflection": false,
+          "value": {
+            "type": "literal",
+            "content": "11",
+            "hint": ""
+          }
+        },
+        {
+          "name": "www",
+          "type": "string",
+          "description": "",
+          "required": true,
+          "source": "user",
+          "reflection": false,
+          "value": {
+            "type": "literal",
+            "content": "11",
+            "hint": ""
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "ee",
+          "type": "string",
+          "description": "",
+          "required": true,
+          "source": "user",
+          "reflection": false,
+          "value": {
+            "type": "literal",
+            "content": "",
+            "hint": ""
+          }
+        },
+        {
+          "name": "rrr",
+          "type": "string",
+          "description": "",
+          "required": true,
+          "source": "user",
+          "reflection": false,
+          "value": {
+            "type": "literal",
+            "content": "",
+            "hint": ""
+          }
+        }
+      ],
+      "configs": {
+        "code": "def main(args: dict) -> dict:\n    \"\"\"\n    运行代码节点会调用此函数\n    :param args: 输入固定为args字典类型，kv为输入参数键值对\n    :return: 输出参数为字典类型，kv为输出参数键值对\n    \"\"\"\n    ret = {\n        \"key0\": args.get('input', 'default'),\n        \"key1\": \"hi\"\n    }\n    return ret\n",
+        "exec_env": "fg",
+        "fg_id": "fef8efbc-a631-4a3b-bf70-770711ade550",
+        "fg_name": "fgName"
+      }
+    },
+    {
+      "branches": null,
+      "configs": {
+        "is_stream_out": true,
+        "response_template": "1234",
+        "response_mode": "directResponse"
+      },
+      "id": "node_end",
+      "inputs": [],
+      "name": "结束",
+      "outputs": [
+        {
+          "cn_name": null,
+          "description": "最终输出",
+          "field_type": null,
+          "memory": null,
+          "name": "response_content",
+          "reflection": false,
+          "required": true,
+          "schema": null,
+          "source": "system",
+          "type": "string",
+          "validator": null,
+          "value": {
+            "content": null,
+            "default": null,
+            "display": null,
+            "hint": null,
+            "type": "generated"
+          }
+        }
+      ],
+      "type": "End"
+    }
+  ]
+}

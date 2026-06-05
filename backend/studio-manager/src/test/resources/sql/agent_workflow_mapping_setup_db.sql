@@ -1,0 +1,7 @@
+
+INSERT
+ INTO t_mapping(mapping_id, app_id, app_type, app_name, resource_id, resource_type, resource_name, created_on, updated_on)
+VALUES ('test_mapping_id10', 'test_agent_id10', '测试Agent', 'test_agent', 'reserve_meeting_room_12', 'tool', '预定会议室工具1', '2024-08-12 20:34:00', '2024-08-12 20:34:00');
+
+INSERT  INTO t_agent(agent_id, project_id, workspace_id, name, description, icon, instructions, trigger_list, prologue, suggest_queries, additional_questions_config, status, creator, creator_id, created_on, updated_on, published_on, model_config, deleted)
+VALUES ('test_agent_id10', 'test_project_id', 'default', '测试Agent1111111111111111111111111111111111111111111111111111111', '测试Agent描述', 'data:image/png;base64,123', NULL, '[{"trigger_id":"test_trigger_id","name":"触发器1","type":"TIMER","cron":"0/10 * * * * ?","prompt":"打车"}]', NULL, NULL, '{"enable":true,"rounds":1,"prompt":"1. 每次生成的问题不超过30个字。\n2. 生成问题的对话风格，与用户对话历史要一致，贴合用户对话场景。\n3. 不要生成相同或过于相似的问题。"}', 'published', 'test_creator', 'test_creator_id', '2024-08-12 20:34:00', '2024-08-12 20:34:00', '2024-08-12 20:34:00', '{"top_p":0.5,"temperature":0.5}', 0);

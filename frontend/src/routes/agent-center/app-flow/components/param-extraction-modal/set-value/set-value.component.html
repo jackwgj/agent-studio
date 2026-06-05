@@ -1,0 +1,34 @@
+<!-- <div
+  class="flex h-[28px] items-center justify-center"
+  [ngClass]="{ 'h-full w-full': host !== 'default' }"
+>
+  <tp-icon
+    *ngIf="host === 'default'; else jsonInput"
+    [tiTip]="setValueTipCmp"
+    #setDefaultTipRef="tiTip"
+    tiTipTrigger="manual"
+    [tiTipMaxWidth]="tiTipMaxWidth"
+    [tiTipZIndex]="999"
+    [tiTipContext]="tipContext"
+    tiTipPosition="bottom-right"
+    (click)="onSetDefault()"
+    title="{{ 'set_default_values' | i18nextEager }}"
+    class="!text-[16px] hover:cursor-pointer"
+    name="cloudx-action-more-rimless"
+  />
+
+  <ng-template #jsonInput>
+    <div
+      [tiTip]="setValueTipCmp"
+      #setDefaultTipRef="tiTip"
+      tiTipTrigger="manual"
+      [tiTipMaxWidth]="tiTipMaxWidth"
+      [tiTipZIndex]="999"
+      [tiTipContext]="tipContext"
+      tiTipPosition="bottom-right"
+      (click)="onSetDefault()"
+      [title]="tooltipStr"
+      class="h-full w-full bg-transparent !text-[16px] hover:cursor-pointer"
+    ></div>
+  </ng-template>
+</div> -->

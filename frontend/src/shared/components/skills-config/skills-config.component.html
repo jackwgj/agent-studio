@@ -1,0 +1,67 @@
+<div id="skill-config">
+  <div class="tool-title">
+    <div class="left" (click)="changeCollapseEvent()">
+      <span class="title-text">{{ skillsAdded.title }}</span>
+      <span nz-icon [nzType]="'down'" [nzRotate]="skillsAdded.collapsed ? 0 : 180"></span>
+    </div>
+    <div class="right">
+      <div class="intelligent-add-border" nz-tooltip [nzTooltipTitle]="'skill.auto.add.tip' | i18n" nzTooltipPlacement="top" (click)="autoAddClickedEvent()">
+        <asset-intelligent-add></asset-intelligent-add>
+      </div>
+      <button nz-button nzType="text" nzSize="small" class="add-skill-icon" (click)="addBtnClickedEvent()" nz-tooltip [nzTooltipTitle]="'skill.modal.title' | i18n">
+         <span nz-icon nzType="plus" nzTheme="outline" class="create-icon"></span>
+      </button>
+    </div>
+  </div>
+
+  <div class="skill-list" [class.mt-1]="!skillsAdded.collapsed" *ngIf="!skillsAdded.collapsed">
+    @if (!skillsAdded.collapsed && !skillsAdded.list.length) {
+      <p class="skill-limit-tip">{{ 'skill.limit' | i18n: { number: 50 } }}</p>
+    }
+    @for (skillItem of skillsAdded.list; track skillItem.skill_id){
+      <div
+        [id]="skillItem.skill_id"
+        [ngClass]="isShowDeleteIcon(skillItem) ? 'invalid-item common-item' : 'skill-item common-item'"
+        (mouseenter)="skillItem.hover = true"
+        (mouseleave)="skillItem.hover = false"
+      >
+        <div class="skill-item-left">
+          <img alt="" class="skill-common-icon invalid-icon" [src]="skillItem.icon || changeUrl('assets/agent-center/icons/skill-default.svg')" />
+          <div class="skill-info">
+            <div class="skill-name">
+              <div nz-ellipsis class="flex w-full gap-1 items-center">
+                <span class="invalid-text">{{ skillItem.skill_name }}</span>
+                <img alt=""
+                  *ngIf="isShowUpdateIcon(skillItem) && false"
+                  [src]="changeUrl('assets/agent-center/icons/update-node-icon.svg')"
+                  class="update-skill-icon"
+                  nz-tooltip
+                  [nzTooltipTitle]="'skill.update.tip' | i18n: { versionName: skillItem.app_last_version_obj.resource_latest_version_name }"
+                  nzTooltipPlacement="top"
+                  (click)="onConfirmUpdateSkill(skillItem)"
+                />
+                <img alt=""
+                  *ngIf="isShowDeleteIcon(skillItem)"
+                  [src]="changeUrl('assets/agent-center/icons/public_warning.svg')"
+                  class="warning-skill-icon"
+                  nz-tooltip
+                  [nzTooltipTitle]="'skill.invalid.tip' | i18n"
+                  nzTooltipPlacement="top"
+                />
+              </div>
+            </div>
+            <div nz-ellipsis class="skill-desc invalid-text">
+              {{ skillItem.description }}
+            </div>
+          </div>
+        </div>
+
+        <button nz-button nzType="text" nzSize="small" [hidden]="!skillItem?.hover || isFlowReadonly" class="ml-[16px] flex-center gap-[12px]">
+          <span nz-icon nzType="delete" nzTheme="outline" class="!text-[16px] right-icon" nz-tooltip [nzTooltipTitle]="'delete' | i18n" (click)="deleteOneSkills(skillItem)"></span>
+        </button>
+      </div>
+    }
+  </div>
+</div>
+
+<add-skill-halfmodal [isFlowReadonly]="isFlowReadonly" (batchAddSkill)="batchAddSkill($event)"></add-skill-halfmodal>

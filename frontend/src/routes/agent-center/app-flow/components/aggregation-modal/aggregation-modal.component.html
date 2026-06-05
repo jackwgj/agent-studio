@@ -1,0 +1,164 @@
+<div class="flex h-full w-full flex-col" (keydown)="handleKeyDown($event)">
+  <div class="mb-[16px] block">
+    <div class="flex w-[calc(100%-38px)] items-center justify-between">
+      <div class="flex items-center gap-[8px]">
+        <img class="model-config-icon" [src]="icon" alt="aggregation-node" />
+
+        <edit-name [(name)]="nodeInfo.name" (onBlurConfirm)="updateName()"></edit-name>
+      </div>
+
+      @if (!isFlowReadonly) {
+        <div class="flex items-center gap-[16px]">
+          <div class="cursor-pointer" nz-tooltip [nzTooltipTitle]="'icon-more' | i18nextEager">
+            <div nz-dropdown [nzDropdownMenu]="actionsMenu" nzTrigger="click" class="pw-three-dots-more-modal">
+              <span nz-icon nzType="more" nzTheme="outline"></span>
+            </div>
+            <nz-dropdown-menu #actionsMenu="nzDropdownMenu">
+              <ul nz-menu>
+                @for (action of actions; track action) {
+                  <li nz-menu-item (click)="onClickAction(action)">{{ action.label }}</li>
+                }
+              </ul>
+            </nz-dropdown-menu>
+          </div>
+          <div class="h-[16px] w-[1px] bg-[#dbdbdb]"></div>
+        </div>
+      }
+    </div>
+
+    <node-description [nodeInfo]="nodeInfo" (descriptionChange)="updateView()"></node-description>
+
+    <div class="mt-[16px] h-[1px] w-full bg-[#f0f0f0]"></div>
+  </div>
+
+  <div id="flow-llm-modal-body" class="flex-1 overflow-auto">
+    <div class="h-full w-full overflow-auto">
+      <meta-acc-block class="block" [title]="'aggregate_policy' | i18nextEager">
+        <ng-template #content>
+          <nz-select class="mt-[8px]" style="width: 100%" [(ngModel)]="mode" nzPlaceHolder="" (ngModelChange)="onSave()">
+            @for (op of aggOps; track op) {
+              <nz-option [nzValue]="op.value" [nzLabel]="op.label"></nz-option>
+            }
+          </nz-select>
+        </ng-template>
+      </meta-acc-block>
+
+      <div class="mt-[16px] flex flex-col gap-[8px]">
+        @for (group of groups; track group; let i = $index) {
+          <meta-acc-block class="block rounded-[8px] bg-[#fafafa] p-[16px]" [title]="group.name.toUpperCase()">
+            <ng-template #blockTitle>
+              <div class="flex items-center gap-[4px]">
+                <span class="font-bold">{{ group.name | titlecase }}</span>
+                @if (group.type) {
+                  <span class="rounded-[2px] bg-[#e6e6e6] px-[4px]">{{ group.type | paramLabel }}</span>
+                }
+                @if (group.type) {
+                  <span
+                    nz-tooltip
+                    [nzTooltipTitle]="'group_default_type_tip' | i18nextEager"
+                    nz-icon
+                    nzType="question-circle"
+                    nzTheme="outline"
+                    style="font-size: 14px; cursor: pointer"
+                  ></span>
+                }
+              </div>
+            </ng-template>
+
+            <ng-template #content>
+              <form #groupsForm="ngForm">
+                <div
+                  cdkDropList
+                  [cdkDropListData]="group.fields"
+                  (cdkDropListDropped)="dropGroupItem(i, $event)"
+                  [cdkDropListSortPredicate]="sortGroupItemPredicate"
+                  class="mt-[16px] flex flex-col gap-[8px]"
+                >
+                  @for (field of group.fields; track field; let j = $index; let isLast = $last; let len = $count) {
+                    <div cdkDrag cdkDragLockAxis="y" [cdkDragData]="field" [cdkDragDisabled]="!field.value.content" class="flex gap-[8px]">
+                      @if (group.fields.length > 1) {
+                        <div class="flex items-center justify-center">
+                          @if (field.value.content) {
+                            <div cdkDragHandle class="agg-drag cursor-move"></div>
+                          } @else {
+                            <div cdkDragHandle class="agg-drag-disabled"></div>
+                          }
+                        </div>
+                      }
+
+                      <div class="flex-1">
+                        <input-tree-select
+                          [radiusLeft]="true"
+                          style="width: 100%"
+                          [(ngModel)]="field.value.content"
+                          [options]="field.refs"
+                          (ngModelChange)="onFieldChange($event, i, j)"
+                          [name]="len > 1 && isLast ? 'lastGroupItem' + i : group.name + '_' + (j + 1)"
+                          refSelectedRequire
+                          [placeholder]="'select_placeholder' | i18nextEager"
+                          (select)="treeSelect()"
+                        ></input-tree-select>
+
+                        <div
+                          *ngIf="
+                            groupsForm?.controls[len > 1 && isLast ? 'lastGroupItem' + i : group.name + '_' + (j + 1)]?.invalid &&
+                            (groupsForm?.controls[len > 1 && isLast ? 'lastGroupItem' + i : group.name + '_' + (j + 1)]?.dirty ||
+                              groupsForm?.controls[len > 1 && isLast ? 'lastGroupItem' + i : group.name + '_' + (j + 1)]?.touched)
+                          "
+                          class="error-tip"
+                        >
+                          {{ groupsForm?.controls[len > 1 && isLast ? 'lastGroupItem' + i : group.name + '_' + (j + 1)]?.errors?.serviceName?.tiErrorMessage }}
+                        </div>
+                      </div>
+                      @if (group.fields.length > 1 && !isLast) {
+                        <span
+                          nz-icon
+                          nzType="delete"
+                          nzTheme="outline"
+                          (click)="deleteGroupItem(i, j)"
+                          style="font-size: 16px; color: #191919; cursor: pointer; padding-top: 6px"
+                        ></span>
+                      }
+
+                      @if (group.fields.length > 1 && isLast) {
+                        <div class="h-[28px] w-[16px]"></div>
+                      }
+                    </div>
+                  }
+                </div>
+              </form>
+            </ng-template>
+
+            @if (groups.length > 1) {
+              <ng-template #right>
+                <span nz-icon nzType="minus-circle" nzTheme="outline" (click)="deleteGroup(i)" class="cursor-pointer"></span>
+              </ng-template>
+            }
+          </meta-acc-block>
+        }
+        @if (needValid && errorMsg) {
+          <div class="mt-2" style="color: #ff4d4f; font-size: 14px">{{ errorMsg }}</div>
+        }
+
+        <button type="button" (click)="addGroup()" class="w-fit" nz-button nzType="default">
+          {{ 'add_group' | i18nextEager }}
+        </button>
+      </div>
+
+      @if (isGroupsNotEmpty()) {
+        <meta-acc-block class="mt-[16px] block" [title]="'output_params' | i18nextEager">
+          <ng-template #content>
+            @for (g of groups; track g) {
+              @if (isGroupNotEmpty(g)) {
+                <div class="mt-[8px] flex items-center gap-[16px]">
+                  <span class="text-[#595959]">{{ g.name | titlecase }}</span>
+                  <span class="rounded-[2px] bg-[#f5f5f5] px-[8px]">{{ g.type | paramLabel }}</span>
+                </div>
+              }
+            }
+          </ng-template>
+        </meta-acc-block>
+      }
+    </div>
+  </div>
+</div>

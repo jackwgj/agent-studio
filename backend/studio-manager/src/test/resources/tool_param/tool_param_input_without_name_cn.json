@@ -1,0 +1,14 @@
+{
+  "type": "object",
+  "properties": {
+    "hasChildren": {
+      "type": "boolean",
+      "location": "Body",
+      "description": "是否有子节点",
+      "default": "true"
+    }
+  },
+  "required": [
+    "hasChildren"
+  ]
+}

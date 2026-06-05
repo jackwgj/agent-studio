@@ -1,0 +1,24 @@
+<div class="mobile-index">
+  <header>
+    <div class="text-center">
+      <div class="logo"></div>
+      <div class="logo-txt">
+        <div class="title"></div>
+        <p>{{ 'index_title' | i18nextEager }}</p>
+      </div>
+    </div>
+  </header>
+  <div class="modile-content">
+    <h5>{{ 'index_sub_title' | i18nextEager }}</h5>
+    <div class="tip">{{ 'index_dec' | i18nextEager }}</div>
+    <div class="modile-info">
+      <div class="item flex" *ngFor="let item of mobile_list;let i = index" (click)="item.url?openFn(item.url):item.urlFn()">
+        <img alt="" [src]="item.icon"/>
+        <div class="item-txt">
+          <h4>{{item.title}}</h4>
+          <p>{{item.content}}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

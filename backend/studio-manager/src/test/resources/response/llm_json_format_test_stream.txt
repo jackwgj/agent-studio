@@ -1,0 +1,24 @@
+data:{"choices":[{"message":{"content":"{\n"}}],"created":1723432480830,"id":"62b4f782-da11-4ddf-bec2-f570c684d43a"}
+
+data:{"choices":[{"message":{"content":"  \"raw_food\":"}}],"created":1723432481061,"id":"62b4f782-da11-4ddf-bec2-f570c684d43a"}
+
+data:{"choices":[{"message":{"content":" \""}}],"created":1723432481121,"id":"62b4f782-da11-4ddf-bec2-f570c684d43a"}
+
+data:{"choices":[{"message":{"content":"花"}}],"created":1723432481969,"id":"62b4f782-da11-4ddf-bec2-f570c684d43a"}
+
+data:{"choices":[{"message":{"content":"椒\",\n"}}],"created":1723432482090,"id":"62b4f782-da11-4ddf-bec2-f570c684d43a"}
+
+data:{"choices":[{"message":{"content":"  \"procedure\":"}}],"created":1723432482278,"id":"62b4f782-da11-4ddf-bec2-f570c684d43a"}
+
+data:{"choices":[{"message":{"content":"\"我"}}],"created":1723432482399,"id":"62b4f782-da11-4ddf-bec2-f570c684d43a"}
+
+data:{"choices":[{"message":{"content":"不会"}}],"created":1723432482429,"id":"62b4f782-da11-4ddf-bec2-f570c684d43a"}
+
+data:{"choices":[{"message":{"content":"哈哈"}}],"created":1723432482459,"id":"62b4f782-da11-4ddf-bec2-f570c684d43a"}
+
+data:{"choices":[{"message":{"content":"。\"\n}"}}],"created":1723432488191,"id":"62b4f782-da11-4ddf-bec2-f570c684d43a"}
+
+event:{"usage":{"completionTokens":0,"promptTokens":0,"totalTokens":0},"tokens":0,"token_number":0}
+
+data:[DONE]
+

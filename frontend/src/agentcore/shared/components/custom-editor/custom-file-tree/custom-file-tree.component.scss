@@ -1,0 +1,84 @@
+:host::ng-deep {
+  .ti3-icon {
+    z-index: 30 !important;
+  }
+
+  custom-editor-icon {
+    z-index: 30 !important;
+  }
+
+  .ti3-icon-minus-square:before {
+    content: url('../../../../assets/editor/cloud-action-unfold.svg') !important;
+    display: inline-block;
+    width: 16px;
+  }
+
+  .ti3-icon-plus-square:before {
+    content: url('../../../../assets/editor/cloud-action-fold.svg') !important;
+    display: inline-block;
+    width: 16px;
+  }
+
+  .ti3-tree-node-icon {
+    custom-editor-icon {
+      display: inline-block !important;
+      vertical-align: middle !important;
+      line-height: 0 !important;
+      /* 消除容器内的行高干扰 */
+    }
+
+    display: flex !important;
+    align-items: center !important;
+  }
+
+  .ti3-tree-node-text {
+    user-select: none;
+  }
+
+  .ti3-tree-item-active {
+    z-index: 10;
+    color: unset !important;
+    font-weight: unset !important;
+  }
+
+  .ti3-tree-node-text-wrapper:hover {
+    background-color: unset !important;
+  }
+
+  .ti3-tree-node-text {
+    z-index: 10;
+  }
+
+  .ti3-tree-node-text-wrapper:hover::after {
+    content: '' !important;
+    background-color: var(--ti-color-bg-hover) !important;
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: var(--sidebar-width);
+    height: 32px;
+  }
+
+  .ti3-tree-leaf-node > .ti3-tree-content-box > .ti3-tree-item-guide-line {
+    z-index: 30;
+  }
+
+  .ti3-tree-leaf-node:not(.ti3-tree-virtual-scroll-node):not(:last-child) > .ti3-tree-parent-node:after {
+    z-index: 30;
+  }
+
+  .ti3-tree-space-left .ti3-tree-leaf-node > .ti3-tree-content-box > .ti3-tree-item-guide-line {
+    left: var(--ti-tree-guidline-space-padding-left);
+  }
+
+  .ti3-tree-item-active.ti3-tree-node-text-wrapper::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: var(--sidebar-width);
+    height: 32px;
+    background-color: #f0f7ff;
+    z-index: -1;
+  }
+}

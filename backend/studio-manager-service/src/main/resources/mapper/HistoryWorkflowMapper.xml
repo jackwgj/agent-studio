@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.agent.manager.mapper.HistoryWorkflowMapper">
+    <resultMap id="BaseResultMap" extends="com.openjiuwen.studio.agent.manager.mapper.WorkflowMapper.BaseResultMap" type="com.openjiuwen.studio.agent.manager.entity.WorkflowEntity">
+    </resultMap>
+    <sql id="Base_Column_List">
+        history_id,
+        <include refid="com.openjiuwen.studio.agent.manager.mapper.WorkflowMapper.Base_Column_List"/>
+    </sql>
+
+    <insert id="insert" parameterType="com.openjiuwen.studio.agent.manager.entity.WorkflowEntity">
+        INSERT INTO t_history_agent_workflow
+        (
+            <include refid="Base_Column_List"/>
+        )
+        VALUES
+        (
+            UUID(),
+            #{id,jdbcType=VARCHAR},
+            #{name,jdbcType=VARCHAR},
+            #{description,jdbcType=VARCHAR},
+            #{code,jdbcType=VARCHAR},
+            #{avatar,jdbcType=VARCHAR},
+            #{iconName,jdbcType=VARCHAR},
+            #{dslPath,jdbcType=VARCHAR},
+            #{irPath,jdbcType=VARCHAR},
+            #{status,jdbcType=VARCHAR},
+            #{triggerList,jdbcType=VARCHAR},
+            #{visibility,jdbcType=VARCHAR},
+            #{createdAt,jdbcType=BIGINT},
+            #{updatedAt,jdbcType=BIGINT},
+            #{publishedAt,jdbcType=BIGINT},
+            #{createdBy,jdbcType=VARCHAR},
+            #{creatorId,jdbcType=VARCHAR},
+            #{updatedBy,jdbcType=VARCHAR},
+            #{updaterId,jdbcType=VARCHAR},
+            #{projectId,jdbcType=VARCHAR},
+            #{domainId,jdbcType=VARCHAR},
+            #{workspaceId,jdbcType=INTEGER},
+            #{traceId,jdbcType=VARCHAR},
+            #{deployWfVersion,jdbcType=BIGINT},
+            #{customizeNode,jdbcType=TINYINT},
+            #{deleted,jdbcType=TINYINT},
+            #{workflowType,jdbcType=VARCHAR},
+            #{lastVersionId,jdbcType=VARCHAR},
+            #{testStatus,jdbcType=VARCHAR},
+            #{isShare,jdbcType=TINYINT}
+        )
+    </insert>
+    <select id="findByUpdatedOnLessThan" resultType="java.lang.String">
+        SELECT id
+        FROM t_history_agent_workflow
+        WHERE 1 = 1
+          AND updated_at &lt;= #{time}
+    </select>
+    <select id="selectByWorkflowIds" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_history_agent_workflow
+        where project_id = #{projectId,jdbcType=VARCHAR}
+        <if test="workspaceId != null and workspaceId != ''">
+            and workspace_id = #{workspaceId,jdbcType=VARCHAR}
+        </if>
+        and id in
+        <choose>
+            <when test="workflowIds != null and workflowIds.size() > 0">
+                <foreach collection="workflowIds" separator="," open="(" close=")" item="id">
+                    #{id}
+                </foreach>
+            </when>
+            <when test="workflowIds == null or workflowIds.size() == 0">
+                (null)
+            </when>
+        </choose>
+    </select>
+    <delete id="deleteByPrimaryKeys">
+        delete
+        from t_history_agent_workflow
+        where id in
+        <foreach item="id" collection="workflowIds" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+</mapper>

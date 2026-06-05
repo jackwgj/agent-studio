@@ -1,0 +1,37 @@
+<div class="custom-modal-header" id="exceed-header">
+  <div class="header">
+    <img alt="" class="info" [src]="changeUrl('assets/images/common/info.png')" />
+    <span>{{ 'exceed_tip_header_obs' | i18nextEager }}</span>
+  </div>
+</div>
+
+<div class="custom-modal-body">
+  <span *ngIf="!isEnterprise">{{'exceed_tip_obs_content' | i18nextEager}}</span>
+  <span *ngIf="isEnterprise">{{'exceed_tip_obs_content_enterprise' | i18nextEager}}</span>
+</div>
+
+<div class="custom-modal-footer">
+  <button (click)="close()" type="button" nz-button nzType="default">
+    {{ 'base_close' | i18nextEager }}
+  </button>
+  <button
+    *ngIf="!isEnterprise"
+    (click)="upgradeToBusinessEdition(); close()"
+    type="button"
+    nz-button
+    nzType="primary"
+    nzDanger
+  >
+    {{ 'upgrade_to_commercial_1' | i18nextEager }}
+  </button>
+  <button
+    *ngIf="isEnterprise && purchaseUrl"
+    (click)="goToPurchasePage(); close()"
+    type="button"
+    nz-button
+    nzType="primary"
+    nzDanger
+  >
+    {{ 'toShopGuide' | i18nextEager }}
+  </button>
+</div>

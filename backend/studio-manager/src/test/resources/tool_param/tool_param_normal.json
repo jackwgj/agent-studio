@@ -1,0 +1,127 @@
+{
+  "type": "object",
+  "properties": {
+    "hasChildren": {
+      "type": "boolean",
+      "name_cn": "是否有子节点",
+      "location": "Body",
+      "description": "是否有子节点",
+      "default": "true",
+      "validated": false
+    },
+    "ageArr": {
+      "type": "array",
+      "name_cn": "年龄数组",
+      "location": "Body",
+      "description": "年龄数组",
+      "items": {
+        "type": "number"
+      }
+    },
+    "nodes": {
+      "type": "array",
+      "name_cn": "节点数组",
+      "location": "Body",
+      "description": "节点数组",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "name_cn": "节点名称",
+            "location": "Body",
+            "description": "节点名称",
+            "validated": false
+          },
+          "children": {
+            "type": "array",
+            "name_cn": "节点数组",
+            "location": "Body",
+            "description": "节点数组",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "name_cn": "节点名称",
+                  "location": "Body",
+                  "description": "节点名称",
+                  "validated": false
+                }
+              },
+              "required": [
+                "name"
+              ]
+            }
+          }
+        },
+        "required": [
+          "name",
+          "children"
+        ]
+      }
+    },
+    "person": {
+      "type": "object",
+      "name_cn": "人",
+      "location": "Body",
+      "description": "人",
+      "properties": {
+        "age": {
+          "type": "integer",
+          "name_cn": "年龄",
+          "location": "Body",
+          "description": "年龄",
+          "default": "18",
+          "validated": false
+        },
+        "name": {
+          "type": "string",
+          "name_cn": "名称",
+          "location": "Body",
+          "description": "名称",
+          "validated": false
+        },
+        "car": {
+          "type": "object",
+          "name_cn": "车",
+          "location": "Body",
+          "description": "车",
+          "validated": false,
+          "properties": {
+            "brand": {
+              "type": "string",
+              "name_cn": "品牌",
+              "location": "Body",
+              "description": "品牌",
+              "default": "",
+              "validated": false
+            },
+            "size": {
+              "type": "number",
+              "name_cn": "数量",
+              "location": "Body",
+              "description": "数量",
+              "default": "2",
+              "validated": false
+            }
+          },
+          "required": [
+            "brand"
+          ]
+        }
+      },
+      "required": [
+        "age",
+        "name",
+        "car"
+      ]
+    }
+  },
+  "required": [
+    "hasChildren",
+    "ageArr",
+    "nodes",
+    "person"
+  ]
+}

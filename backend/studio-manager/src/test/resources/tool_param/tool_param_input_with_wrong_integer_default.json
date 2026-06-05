@@ -1,0 +1,15 @@
+{
+  "type": "object",
+  "properties": {
+    "age": {
+      "type": "integer",
+      "name_cn": "年龄",
+      "location": "Body",
+      "description": "年龄",
+      "default": "18.2"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

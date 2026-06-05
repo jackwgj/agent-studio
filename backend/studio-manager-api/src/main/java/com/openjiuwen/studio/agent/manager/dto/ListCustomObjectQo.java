@@ -1,0 +1,127 @@
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
+ */
+
+package com.openjiuwen.studio.agent.manager.dto;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import io.swagger.annotations.ApiModel;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+
+import org.hibernate.validator.constraints.Length;
+import org.hibernate.validator.constraints.Range;
+import org.springframework.validation.annotation.Validated;
+
+import java.io.Serializable;
+import java.util.Objects;
+
+/**
+ * ListCustomObjectQo: converted from multi query params
+ */
+@ApiModel(description = "ListCustomObjectQo: converted from multi query params")
+
+@Validated
+
+public class ListCustomObjectQo implements Serializable {
+    private static final long serialVersionUID = 1L;
+
+    @JsonProperty("workspace_id")
+    @Pattern(regexp = "^[a-zA-Z0-9_()\\-]+$")
+    @NotBlank
+    @Length(min = 1, max = 64)
+    private String workspaceId = null;
+
+    @JsonProperty("offset")
+    @Range(min = 0L, max = 100000L)
+    private Integer offset = 0;
+
+    @JsonProperty("limit")
+    @Range(min = 1L, max = 1000L)
+    private Integer limit = 1000;
+
+    @JsonProperty("name")
+    @Pattern(regexp = "^.{0,64}$")
+    @Length(max = 192)
+    private String name = null;
+
+    public String getWorkspaceId() {
+        return workspaceId;
+    }
+
+    public ListCustomObjectQo setWorkspaceId(String workspaceId) {
+        this.workspaceId = workspaceId;
+        return this;
+    }
+
+    public Integer getOffset() {
+        return offset;
+    }
+
+    public ListCustomObjectQo setOffset(Integer offset) {
+        this.offset = offset;
+        return this;
+    }
+
+    public Integer getLimit() {
+        return limit;
+    }
+
+    public ListCustomObjectQo setLimit(Integer limit) {
+        this.limit = limit;
+        return this;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public ListCustomObjectQo setName(String name) {
+        this.name = name;
+        return this;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("class ListCustomObjectQo {\n");
+
+        sb.append("    workspaceId: ").append(toIndentedString(workspaceId)).append("\n");
+        sb.append("    offset: ").append(toIndentedString(offset)).append("\n");
+        sb.append("    limit: ").append(toIndentedString(limit)).append("\n");
+        sb.append("    name: ").append(toIndentedString(name)).append("\n");
+        sb.append("}");
+        return sb.toString();
+    }
+
+    @Override
+    public boolean equals(java.lang.Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        ListCustomObjectQo listCustomObjectQo = (ListCustomObjectQo) o;
+        return Objects.equals(this.workspaceId, listCustomObjectQo.workspaceId) && Objects.equals(this.offset,
+            listCustomObjectQo.offset) && Objects.equals(this.limit, listCustomObjectQo.limit) && Objects.equals(
+            this.name, listCustomObjectQo.name);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(workspaceId, offset, limit, name);
+    }
+
+    /**
+     * Convert the given object to string with each line indented by 4 spaces
+     * (except the first line).
+     */
+    private String toIndentedString(java.lang.Object o) {
+        if (o == null) {
+            return "null";
+        }
+        return o.toString().replace("\n", "\n    ");
+    }
+}

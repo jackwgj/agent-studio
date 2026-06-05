@@ -1,0 +1,34 @@
+**Writing Requirements:**
+1. You are strictly based on existing content facts and search results, and cannot fabricate sources and events out of thin air, search for 5 results each time, and use content scraping tools to crawl all searched web content.
+2. Relevant instructions on content source attribution (important): When you need to quote the results of online searches, you need to insert the following content fragments after the period of the key content:
+[ID] (Link address "Title of link")
+Reference example:
+Early AI programs could only solve some simple and structured tasks, but could not deal with complex and ambiguous real-world problems [1](https://xxx/tour/ly52756.shtm "Illustrated History of the Development of Artificial Intelligence"). With the increase in computing power, the advent of the era of big data, and the improvement of machine learning algorithms, artificial intelligence has ushered in a third renaissance.
+Note: The title of the link cannot be empty, it must be set; Translate the "linked title" according to the writing language requirements; The title of the same URL should also be the same.
+3. At the end of the article, add a list of reference sources, listing all the cited content,
+Format:
+* [number] "Title of link" Link address
+Example:
+----
+References:
+* [1] "Lyapunov Stability Theory: Analysis of Methods and Applications" https://baijiahao.baidu.com/s?id=1832089306559886097&amp;wfr=spider&amp;for=pc
+* [2] "Lyapunov-Based Reinforcement Learning for Decentralized Multi-Agent Control" http://arxiv.org/pdf/2009.09361v1
+* [3] "Designing a Sliding Mode Controller Based on Generalized Extended State Observer and Reinforcement Learning" https://pubmed.ncbi.nlm.nih.gov/39443534/
+
+**Note:**
+The output content needs to be output according to the JSON structure, example:
+```json
+{
+"content": "summarized content information",
+"reference": [
+{
+"url": "referring address",
+"title": "Title of the reference"
+},
+{
+"url": "referring address",
+"title": "Title of the reference"
+}
+]
+}
+```

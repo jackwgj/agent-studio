@@ -1,0 +1,100 @@
+<div class="model-service-compare-router">
+  <div class="debug-header-container">
+    <div class="title">{{ 'effect_preview' | i18nextEager }}</div>
+  </div>
+  <div class="main-wrapper-history">
+    <div class="left-container">
+      <div
+        class="main-container"
+        cdkScrollable
+        #chatContainerRef
+        (scroll)="onScroll($event.target)"
+      >
+        <div
+          [ngClass]="
+            !result
+              ? 'init-chat-content-container'
+              : 'chat-content-container gap-5'
+          "
+        >
+          <div
+            class="chat-content"
+          >
+            <div class="flex w-full">
+              <div
+                class="assistant-content chat-content"
+              >
+                <div class="cv-content">
+                  <div class="flex w-full gap-[12px]">
+                    <div class="content-text">
+                      {{ 'sort_input_hint'| i18nextEager }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex w-full" *ngIf="result">
+              <div
+                class="assistant-content chat-content"
+              >
+                <div class="cv-content">
+                  <div class="flex w-full gap-[12px]">
+                    <div class="textReRank">
+                      <p class="title">{{ 'sorted_text_output'|i18nextEager }}</p>
+                      <div class="content">
+                        <nz-table
+                          #rerankTable
+                          [nzData]="srcData.data"
+                          [nzShowPagination]="false"
+                          nzSize="small"
+                        >
+                          <thead>
+                          <tr>
+                            <th>{{ 'serial_number'|i18nextEager }}</th>
+                            <th>{{ 'text_content'|i18nextEager }}</th>
+                            <th>{{ 'score'|i18nextEager }}</th>
+                          </tr>
+                          </thead>
+                          <tbody>
+                          <tr *ngFor="let row of rerankTable.data">
+                            <td>{{row.index}}</td>
+                            <td>{{row.text}}</td>
+                            <td>{{row.relevance_score}}</td>
+                          </tr>
+                          </tbody>
+                        </nz-table>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div *ngIf="isLoading" class="pl-[5px]">
+              <img alt=""
+                class="w-[20px] h-[20px]"
+                [src]="changeUrl('assets/agent-center/images/running.webp')"
+                [alt]="'loading' | i18nextEager"
+              />
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+      <div class="bottom-container">
+        <div *ngIf="isShowStopIcon" class="stop-button" (click)="stopChat()">
+          <div class="container">
+            <!-- 旋转的边框层 -->
+            <div class="rotating-border"></div>
+
+            <!-- 静止的小方块 -->
+            <div class="center-square"></div>
+          </div>
+          <span>{{ 'stop_answering' | i18nextEager }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.agent.manager.mapper.ReleaseVersionMapper">
+    <resultMap id="BaseResultMap" type="com.openjiuwen.studio.agent.manager.entity.ReleaseVersion">
+        <id column="version_id" jdbcType="VARCHAR" property="versionId"/>
+        <result column="version_name" jdbcType="VARCHAR" property="versionName"/>
+        <result column="version_note" jdbcType="VARCHAR" property="versionNote"/>
+        <result column="app_id" jdbcType="VARCHAR" property="appId"/>
+        <result column="app_type" jdbcType="VARCHAR" property="appType"/>
+        <result column="status" jdbcType="VARCHAR" property="status" />
+        <result column="dsl_path" jdbcType="VARCHAR" property="dslPath" />
+        <result column="ir_path" jdbcType="VARCHAR" property="irPath" />
+        <result column="creator" jdbcType="VARCHAR" property="creator"/>
+        <result column="creator_id" jdbcType="VARCHAR" property="creatorId"/>
+        <result column="app_sub_type" jdbcType="VARCHAR" property="subType" />
+        <result column="released_on" jdbcType="TIMESTAMP" property="releasedOn"/>
+    </resultMap>
+    <sql id="Base_Column_List">
+        id,
+        version_id,
+        version_name,
+        version_note,
+        app_id,
+        app_type,
+        status,
+        dsl_path,
+        ir_path,
+        creator,
+        creator_id,
+        app_sub_type,
+        released_on
+    </sql>
+    <insert id="insert" parameterType="com.openjiuwen.studio.agent.manager.entity.ReleaseVersion">
+        insert into t_release_version (id, version_id, version_name, version_note, app_id, app_type, status, dsl_path,
+        ir_path,creator, creator_id, app_sub_type)
+        values (#{id,jdbcType=VARCHAR}, #{versionId,jdbcType=VARCHAR}, #{versionName,jdbcType=VARCHAR},
+                #{versionNote,jdbcType=VARCHAR}, #{appId,jdbcType=VARCHAR}, #{appType,jdbcType=VARCHAR},
+                #{status,jdbcType=VARCHAR}, #{dslPath,jdbcType=VARCHAR}, #{irPath,jdbcType=VARCHAR},
+                #{creator,jdbcType=VARCHAR}, #{creatorId,jdbcType=VARCHAR}, #{subType,jdbcType=VARCHAR})
+    </insert>
+    <select id="selectByPrimaryKey" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_release_version
+        where id = #{id,jdbcType=VARCHAR} and deleted = 0
+    </select>
+    <select id="selectByAppIdAndVersionId" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_release_version
+        where version_id = #{versionId,jdbcType=VARCHAR}
+        and app_id = #{appId,jdbcType=VARCHAR} and deleted = 0
+    </select>
+
+    <select id="selectByAppIdAndVersionIdWithoutStatus"
+            resultType="com.openjiuwen.studio.agent.manager.entity.ReleaseVersion">
+        select
+        <include refid="Base_Column_List"/>
+        from t_release_version
+        where version_id = #{versionId,jdbcType=VARCHAR}
+        and app_id = #{appId,jdbcType=VARCHAR}
+    </select>
+
+    <select id="selectByAppId" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_release_version
+        where app_id = #{appId,jdbcType=VARCHAR} and deleted = 0
+        order by version_id desc
+    </select>
+    <select id="selectByAppIdWithLimit" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_release_version
+        where app_id = #{appId,jdbcType=VARCHAR} and deleted = 0
+        order by version_id desc limit #{limit,jdbcType=INTEGER}
+    </select>
+    <delete id="deleteByPrimaryKey" parameterType="map">
+        delete
+        from t_release_version
+        where id = #{id,jdbcType=VARCHAR}
+    </delete>
+    <update id="softDeleteByPrimaryKey">
+        update t_release_version
+        <set>
+            deleted = 1
+        </set>
+        where id = #{id,jdbcType=VARCHAR}
+    </update>
+
+    <delete id="deleteByPluginId" parameterType="map">
+        delete
+        from t_history_release_version
+        where app_id = #{id, jdbcType=VARCHAR}
+        and updated_on &lt;= #{twoYearsAgo}
+    </delete>
+
+    <delete id="deleteByAppId" parameterType="map">
+        delete
+        from t_release_version
+        where app_id = #{appId,jdbcType=VARCHAR}
+    </delete>
+    <update id="softDeleteByAppId">
+        update t_release_version
+        <set>
+            deleted = 1
+        </set>
+        where app_id = #{appId,jdbcType=VARCHAR}
+    </update>
+
+    <update id="restoreReleaseVersion">
+        update t_release_version
+        set deleted = 0
+            update
+        where app_id = #{appId,jdbcType=VARCHAR}
+          and version_id = #{versionId,jdbcType=VARCHAR}
+    </update>
+
+    <select id="findReleaseVersionToBeDeleted" resultType="java.lang.String">
+        SELECT id
+        FROM t_release_version
+        WHERE deleted = 1
+          AND updated_on IS NOT NULL
+          AND updated_on &lt;= #{softDeleteTtl}
+    </select>
+    <delete id="deleteByPrimaryKeys">
+        delete
+        from t_release_version
+        where id in
+        <foreach item="id" collection="releaseVersionIds" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+    <delete id="deleteByAppIdAndVersionId">
+        delete
+        from t_release_version
+        where app_id = #{appId,jdbcType=VARCHAR}
+          and version_id = #{versionId,jdbcType=VARCHAR}
+    </delete>
+    <select id="queryByWfVersions" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_release_version
+        where
+            <foreach collection="releaseVersions" separator=" or " open="(" close=")" index="key" item="item">
+                (app_id = #{item.appId,jdbcType=VARCHAR} and version_id = #{item.versionId,jdbcType=VARCHAR})
+            </foreach>
+    </select>
+    <select id="queryLastVersionByAppIds" parameterType="map" resultMap="BaseResultMap">
+        SELECT
+        t1.app_id,
+        t1.version_id,
+        t1.version_name,
+        t1.app_type,
+        t1.app_sub_type
+        FROM
+            (
+            select
+                app_id,
+                version_id,
+                version_name,
+                app_type,
+                app_sub_type
+            from t_release_version
+            where
+                app_id in
+                <foreach collection="appIds" item="id" index="index" open="(" close=")" separator=",">
+                    #{id}
+                </foreach>) t1
+        inner join(
+            select
+              app_id, max(version_id) as max_version_id
+            from t_release_version
+            where
+                app_id in
+                <foreach collection="appIds" item="id" index="index" open="(" close=")" separator=",">
+                    #{id}
+                </foreach>
+            group by app_id
+            ) t2
+        on t1.app_id=t2.app_id and t1.version_id=t2.max_version_id
+    </select>
+
+    <update id="updateDsl" parameterType="com.openjiuwen.studio.agent.manager.entity.ReleaseVersion">
+        update t_release_version
+        <set>
+            dsl_path = #{dslPath,jdbcType=VARCHAR},released_on = #{releasedOn,jdbcType=VARCHAR}
+        </set> where id = #{id,jdbcType=VARCHAR}
+    </update>
+</mapper>

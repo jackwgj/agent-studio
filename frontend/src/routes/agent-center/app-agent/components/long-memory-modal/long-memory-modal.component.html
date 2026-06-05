@@ -1,0 +1,65 @@
+<!-- <tp-halfmodal
+  id="long-memory-halfmodal"
+  #longMemoryModal
+  [style.top]="modalTop + ' !important'"
+  [backdrop]="true"
+  [newZIndex]="true"
+  [width]="'700px'"
+>
+  <tp-halfmodal-header>
+    <div style="height: 24px">
+      <span>{{'LTM'|i18nextEager}}</span>
+    </div>
+  </tp-halfmodal-header>
+  <tp-halfmodal-body>
+    <button [tiPopconfirm]="deleteAllPopConfig" [disabled]="isCanDetele" tiButton id="cancel">{{'clear_data'|i18nextEager}}</button>
+    <div class="create-list-card-area mt-[16px]">
+      <ti-table [(displayedData)]="displayedData" [srcData]="srcData" [columns]="listColumns">
+        <div class="ti3-table-fixed-head">
+          <table>
+            <thead>
+            <tr>
+              <th *ngFor="let column of listColumns" width="{{column.width}}">{{ column.title }}</th>
+            </tr>
+            </thead>
+          </table>
+        </div>
+        <div [(tiLoading)]="loading"  class="ti3-table-container table-show-container">
+          <table>
+            <thead>
+            <tr>
+              <th *ngFor="let column of listColumns" width="{{column.width}}"></th>
+            </tr>
+            </thead>
+            <tbody *ngIf="displayedData.length > 0">
+            <tr *ngFor="let row of displayedData;trackBy: trackByFn">
+              <td tiOverflow>{{row.content || '--'}}</td>
+              <td tiOverflow>{{formatTime(row.update_time)}}</td>
+              <td style="white-space: normal">
+                <a class="link" href="javascript:void(0)" [data]="row" [tiPopconfirm]="deletePopConfig">{{ 'delete' | i18nextEager }}</a>
+              </td>
+            </tr>
+            </tbody>
+            <tbody *ngIf="displayedData.length === 0 && !loading" class="list-no-data">
+            <tr class="show-no-data-tr">
+              <td tiColspan style="border: none;">
+                <ti-no-data [title]="noDataTitle"
+                            [description]="noDataDesc"
+                            [imgSrc]="changeUrl('assets/images/noData.svg')"
+                            [showImg]="true">
+                </ti-no-data>
+              </td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+        <ti-pagination *ngIf="this.total > 10"
+          [pageSize]="pageSize"
+          [(currentPage)]="currentPage"
+          [(totalNumber)]="totalNumber"
+          (pageUpdate)="getReferenceList()"
+        ></ti-pagination>
+      </ti-table>
+    </div>
+  </tp-halfmodal-body>
+</tp-halfmodal> -->

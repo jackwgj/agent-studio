@@ -1,0 +1,13 @@
+﻿{
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "content": "欢迎来到智能体应用，有什么我可以帮助你的吗？请随时告诉我你的需求。",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1735637693783,
+  "usage": {}
+}

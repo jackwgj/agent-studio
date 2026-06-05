@@ -1,0 +1,297 @@
+<div
+  *ngFor="let content of dialogHistoryDeal; let i = index"
+  class="chat-one-out-in"
+>
+  <div
+    *ngIf="
+      content.role === 'user' && isConversationContent(content);
+      else answerContent
+    "
+    class="user-content chat-content"
+  >
+    <div *ngIf="content.image">
+      <img alt="" class="msgImage" [src]="content.image" />
+    </div>
+    <div class="flex gap-[12px] flex-row-reverse" *ngIf="content.content">
+      <asset-color-user-icon></asset-color-user-icon>
+      <div class="content-text self-center">
+        <ng-container>
+          @for (fileItem of content.uploadData; track fileItem.name) {
+            @if (fileItem.type === 'file') {
+              <div class="uploaded-file">
+                <meta-upload-file-icon
+                  [fileName]="fileItem.name"
+                ></meta-upload-file-icon>
+                <span nz-tooltip [nzTooltipTitle]="fileItem.name">{{ fileItem.name }}</span>
+              </div>
+            }
+            @if (fileItem.type === 'image') {
+              <div class="uploaded-image">
+                <img alt="" [src]="fileItem.url || fileItem.img" />
+              </div>
+            }
+          }
+        </ng-container>
+        <!-- 此处不能自动格式化保存，否则发送的用户问题开头会多一个空格，且使用trim无效 -->
+        <div class="user-question-text" style="white-space: pre-wrap">{{
+          getTrimmedQuestion(content.content)
+        }}</div>
+      </div>
+    </div>
+  </div>
+
+  <ng-template #answerContent>
+    <div class="flex w-full">
+      <div
+        *ngIf="
+          content.role === 'functionRole' && isFuncCallItem(content);
+          else content3
+        "
+        class="tool-call flex flex-col w-full"
+      >
+        <div
+          class="flex h-6 items-center gap-2"
+          [class.mb-3]="!content.allCollapsed"
+        >
+          <ng-container *ngIf="content.isRunning; else thinkCompletedTmpl">
+            <asset-think-loading-icon></asset-think-loading-icon>
+            <span>{{ 'agent_plugin_running' | i18nextEager }}...</span>
+          </ng-container>
+          <ng-template #thinkCompletedTmpl>
+            <asset-think-completed-icon></asset-think-completed-icon>
+            <span>{{ 'agent_plugin_completed' | i18nextEager }}</span>
+          </ng-template>
+          <span nz-icon nzType="right" nzTheme="outline"
+            class="unfolded cursor-pointer"
+            [class.rotate-90]="!content.allCollapsed"
+            [class.-rotate-90]="content.allCollapsed"
+            (click)="changeCollapsedState(content, 'allCollapsed')"
+          ></span>
+        </div>
+
+        <ng-container *ngIf="!content.allCollapsed">
+          <div class="flex gap-3 border-t border-[#F0F0F0] pt-3">
+            <div class="flex w-3 shrink-0 flex-col items-center">
+              <img alt=""
+                *ngIf="content.isRunning"
+                [src]="cdnUrl('assets/icons/tool-call-loading.svg')"
+              />
+              <div
+                *ngIf="!content.isRunning"
+                class="h-2 w-2 rounded-full bg-[#5CB300]"
+              ></div>
+              <div class="mt-1 w-px flex-1 bg-[#E6E6E6]"></div>
+            </div>
+
+            <div class="flex flex-col w-full">
+              <span class="thought" [class]="{'mb-4':content.request.thought}">{{ content.request.thought }}</span>
+              <div class="rounded-lg bg-[#fafafa]">
+                <div
+                  class="card"
+                  (click)="changeCollapsedState(content, 'collapsed')"
+                >
+                  <div class="flex items-center gap-2">
+                    <img alt=""
+                      class="h-4 w-4"
+                      [src]="content?.icon || getDefaultIcon(content)"
+                    />
+                    <span>{{ content.pluginName }}</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span
+                      *ngIf="content?.timeConsumptionStr"
+                      class="text-[#808080]"
+                      >{{
+                        content?.timeConsumptionStr?.plugin_latency_str
+                      }}</span
+                    >
+                    <img alt=""
+                      *ngIf="content.isRunning; else loadedContent"
+                      [src]="
+                        cdnUrl('assets/agent-center/flow/call-node-loading.svg')
+                      "
+                    />
+                    <ng-template #loadedContent>
+                      <call-success-icon></call-success-icon>
+                    </ng-template>
+                    <span nz-icon nzType="right" nzTheme="outline"
+                      class="text-[#808080]"
+                      [class.rotate-90]="!content.collapsed"
+                      [class.-rotate-90]="content.collapsed"
+                    ></span>
+                  </div>
+                </div>
+                <div
+                  *ngIf="!content.collapsed"
+                  class="border-t border-[#F0F0F0] px-3 py-2"
+                  style="max-height: fit-content !important;"
+                >
+                  <tool-call-IO
+                    class="flex flex-col gap-2"
+                    [toolCallIO]="content"
+                  ></tool-call-IO>
+                </div>
+              </div>
+            </div>
+          </div>
+        </ng-container>
+      </div>
+
+      <ng-template #content3>
+        <div
+          *ngIf="
+            content.role === 'memorySet' && isFuncCallItem(content);
+            else content4
+          "
+          class="function-content chat-content mb-[14px]"
+        >
+          <nz-collapse [nzBordered]="false">
+            <nz-collapse-panel [nzHeader]="content.title" [nzActive]="!content.collapsed">
+              <div *ngIf="content.memory_variables.length > 0">
+                @for (item of content.memory_variables; track item.key) {
+                  <div>
+                    <strong class="text-[#2868C3]">{{ item.key }}:</strong>
+                    {{ item.value }}
+                  </div>
+                }
+              </div>
+            </nz-collapse-panel>
+          </nz-collapse>
+        </div>
+      </ng-template>
+
+      <ng-template #content4>
+        <div
+          *ngIf="
+          content?.role?.startsWith('think') && isConversationContent(content);
+          else content5
+        "
+          class="tool-call flex flex-col w-full"
+        >
+          <div
+            class="flex h-6 items-center gap-2"
+            [class.mb-3]="!content.collapsed"
+          >
+            <ng-container *ngIf="content.thinking; else thinkCompletedTmpl">
+              <asset-think-loading-icon></asset-think-loading-icon>
+              <span>{{ 'thinking_deeply' | i18nextEager }}...</span>
+            </ng-container>
+            <ng-template #thinkCompletedTmpl>
+              <asset-think-completed-icon></asset-think-completed-icon>
+              <span>{{ 'deeply_pondered' | i18nextEager }}</span>
+            </ng-template>
+            <span nz-icon nzType="right" nzTheme="outline"
+              class="unfolded cursor-pointer"
+              [class.rotate-90]="!content.collapsed"
+              [class.-rotate-90]="content.collapsed"
+              (click)="changeCollapsedState(content, 'collapsed')"
+            ></span>
+          </div>
+
+          <ng-container *ngIf="!content.collapsed">
+            <div class="flex gap-3 border-t border-[#F0F0F0]">
+              <div class="flex flex-col gap-4 w-full">
+                <span class="thought" style="color: #808080;">{{ content.reasoning_content }}</span>
+              </div>
+            </div>
+          </ng-container>
+        </div>
+      </ng-template>
+
+      <ng-template #content5>
+        <div
+          *ngIf="isConversationContent(content)"
+          class="assistant-content chat-content"
+        >
+          <div class="cv-content">
+            <div class="flex w-full gap-[12px]">
+              <div class="content-text">
+                <app-markdown-answer
+                  class="content markdown-no-bg"
+                  *ngIf="content.content"
+                  [(answer)]="content.content"
+                  [sourceMessage]="aiAnswerListService.aiAnswerList"
+                  [isSupKBResolver]="true"
+                ></app-markdown-answer>
+                <div
+                  *ngIf="content?.quoteList?.length"
+                  class="flex flex-col gap-[8px] pb-[4px] pt-[15px]"
+                >
+                  <span class="text-[#808080]">
+                    {{ 'answer_source' | i18nextEager }}({{
+                      content?.quoteList?.length
+                    }})
+                  </span>
+                  <div class="quote-container">
+                    @for (item of content.quoteList; track item.document_name) {
+                      <div
+                        class="quote-list"
+                      >
+                        <asset-quote-icon></asset-quote-icon>
+                        <span nz-tooltip [nzTooltipTitle]="item.document_name">{{ item.document_name }}</span>
+                      </div>
+                    }
+                  </div>
+                </div>
+
+                <div
+                  class="cv-time flex justify-between"
+                  *ngIf="content.time_consumption"
+                >
+                  <div
+                    class="left"
+                    *ngIf="content.timeConsumptionStr.overall_str?.length > 0"
+                  >
+                    <div *ngIf="sourceFiles?.length >0" style="display: flex">
+                      {{ sourceFiles?.length }}{{'source_article'|i18nextEager}}
+                      <span nz-icon
+      [nzType]="showFileList ? 'minus' : 'plus'"
+      style="cursor: pointer"
+      (click)="showFileList = !showFileList"
+    ></span>
+                    </div>
+
+                    <asset-fst-latency-icon></asset-fst-latency-icon>
+                    <div>{{ content.timeConsumptionStr?.overall_str }}</div>
+                  </div>
+                </div>
+
+                <div *ngIf="sourceFiles?.length > 0 && showFileList" id="agent-base-source-detail">
+                  <div *ngFor="let file of (sourceFiles | slice:0:5); let i = index"
+                       class="source-detail-item">
+                    <img [src]="cdnUrl(messageSourceFileMap.get(getFileExtension(file.document_name)))"
+                      (click)="show(file)" class="file-icon" alt="">
+                    <div (click)="show(file)" nz-tooltip [nzTooltipTitle]="file.document_name" class="detail-content">{{ file.document_name }}</div>
+                    <button *ngIf="file?.file_id && file.knowledge_base_type === 'internal'"
+                            nz-button
+                            nzType="text"
+                            (click)="downloadSourceFileFn(file)">
+                      <span nz-icon nzType="download"></span>
+                    </button>
+                  </div>
+
+                  <!-- 如果文件数量超过5个且未选择显示全部，则显示“点击更多” -->
+                  <div *ngIf="sourceFiles.length > 5" (click)="showAllSourceFile()"
+                       class="source-detail-item more-item">
+                      <img class="file-icon" [src]="cdnUrl('assets/knowledge-center/search.svg')" alt="">
+                      <div class="detail-content" nz-tooltip [nzTooltipTitle]="'all_source_documents'|i18nextEager">{{'all_source_documents'|i18nextEager}}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </ng-template>
+    </div>
+  </ng-template>
+</div>
+
+<ng-template #dislikeTip>
+  <custom-popconfirm
+    [type]="'agent'"
+    (cancel)="cancelDislike()"
+    (submit)="submitDisLikeFeedback($event)"
+    (close)="closeDislikeTip()"
+    (clickOutside)="closeDislikeTip()"
+  ></custom-popconfirm>
+</ng-template>

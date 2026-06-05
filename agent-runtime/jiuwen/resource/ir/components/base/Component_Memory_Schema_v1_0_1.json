@@ -1,0 +1,43 @@
+{
+  "type": "jiuwen.planner.components.plan_modules.long_term_memory:LongTermMemory",
+  "version": "1.0.1",
+  "description": "长期记忆模块",
+  "schemaVersion": "0.6",
+  "classInfo": {
+    "modulePath": "jiuwen.planner.components.plan_modules.long_term_memory",
+    "className": "LongTermMemory",
+    "programLanguage": "python",
+    "filePath": "jiuwen/planner/components/planning_modules/long_term_memory.pyc"
+  },
+  "inputs": [
+    {
+      "id": "query",
+      "type": "String",
+      "description": "用户的当前query，用于获取长期记忆"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "memory",
+      "description": "长期记忆",
+      "type": "List<Map<String, T>>"
+    }
+  ],
+  "configs": [
+    {
+      "id": "userFields",
+      "type": "Map<String, T>",
+      "description": "用户参数信息配置"
+    },
+    {
+      "id": "preDefinedFields",
+      "type": "Map<String, T>",
+      "description": "预定义参数信息配置"
+    },
+    {
+      "id": "debugType",
+      "type": "Map<String, T>",
+      "description": "调测树配置"
+    }
+  ]
+}

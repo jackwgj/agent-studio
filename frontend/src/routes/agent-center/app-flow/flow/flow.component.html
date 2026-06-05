@@ -1,0 +1,760 @@
+<div
+  class="h-full w-full overflow-hidden relative"
+  [style]="{ height: 'calc(100vh - ' + elementTop + 'px)' }"
+>
+  <nz-alert
+    id="alert-messages-3"
+    nzType="success"
+    style="position: absolute; top: 58px; right: 24px; z-index: 9999"
+    [nzShowIcon]="true"
+    *ngIf="isShowSuccessAlert"
+  >
+    <span
+    >{{ 'agent-bot-1'|i18nextEager }}
+      <button
+        nz-button
+        [nzType]="'link'"
+        (click)="handleClickAddNewMcpService()"
+      >
+        {{ 'agent-bot-2'|i18nextEager }}
+      </button>
+      {{ 'agent-bot-3'|i18nextEager }}
+    </span>
+  </nz-alert>
+  <nz-alert
+    id="alert-messages-4"
+    nzType="error"
+    style="position: absolute; top: 56px; right: 16px; z-index: 9999"
+    [nzShowIcon]="true"
+    *ngIf="isShowFailAlert"
+  >
+    <span>{{ 'mcp_error'|i18nextEager }}</span>
+  </nz-alert>
+
+  <flow-detail-header
+    [workflowDetail]="workflowDetail"
+    [isFlowReadonly]="isFlowReadonly || notUserSelf"
+    (backClick)="onPageBack()"
+    (titleChange)="saveTitle($event)"
+    [logo]="workflowDetail?.avatar"
+    [isFromAgentBuilder]="isFromAgentBuilder"
+  >
+    <ng-template #statusBar>
+      <div class="status-bar">
+        <div class="flex items-center gap-[8px] rounded-full shrink-0 w-full"
+             style="color: rgba(89, 89, 89, 1);">
+          <div
+            *ngIf="workflow_type && workflow_type.trim() !== '' && type !== 'multi'"
+            class="flow-tag flex items-center rounded-md p-0.5 shrink-0"
+          >
+            <span *ngIf="workflow_type === 'task'">{{
+                'task' | i18nextEager
+              }}</span>
+            <span *ngIf="workflow_type === 'chat'">{{
+                'chat' | i18nextEager
+              }}</span>
+          </div>
+          <div *ngIf="!isFlowReadonly" class="split-dot"></div>
+          <div
+            *ngIf="!isFlowReadonly"
+            class="flow-tag flex items-center gap-[8px] rounded-md shrink-0"
+          >
+            <img [src]="statusBarInfo.icon" alt="status-icon"/>
+            <div>{{ statusBarInfo?.text || '' | i18nextEager }}</div>
+          </div>
+          <div *ngIf="!isFlowReadonly" class="split-dot"></div>
+          <div class="save-time shrink-0" *ngIf="!isFlowReadonly">
+            {{ 'save_in' | i18nextEager }}
+            {{ workflowDetail?.update_time | formateTime }}
+          </div>
+          <div *ngIf="!isFlowReadonly && releaseStatusBar" class="split-dot"></div>
+          <div
+
+            *ngIf="!isFlowReadonly && releaseStatusBar"
+            class="flow-tag flex items-center gap-2 rounded-md bg-[#f5f5f5ff] p-0.5 px-2 shrink-0"
+          >
+            <div>{{ 'flow_unpublish_modify' | i18nextEager }}</div>
+          </div>
+        </div>
+      </div>
+    </ng-template>
+
+    <ng-template #center>
+      <tabs-header
+        *ngIf="isF1 && !isFlowReadonly && !notUserSelf && type !== 'multi'"
+        [tabs]="headerTabs"
+        (activeChange)="tabActiveChange($event)"
+      />
+      <tabs-header
+        *ngIf="!isFlowReadonly"
+        class="config-header-tabs"
+        [tabs]="configHeaderTabs"
+        (activeChange)="configTabActiveChange($event)"
+      />
+    </ng-template>
+
+    <ng-template #opRight>
+      <div *ngIf="curActiveTabId === 'flow'" class="flex items-center gap-[16px] shrink-0">
+        <span
+          class="flex cursor-pointer items-center gap-[4px]"
+          *ngIf="!isFlowReadonly && !notUserSelf"
+          (click)="openConfigHalfmodal()"
+        >
+          <nz-icon nzType="tool" nzTheme="outline" class="custom-resources-icon"/>
+          <span>{{ 'global_configuration' | i18nextEager }}</span>
+        </span>
+        <span
+          class="flex cursor-pointer items-center gap-[4px]"
+          (click)="openLogHalfmodal([])"
+        >
+          <asset-log-icon></asset-log-icon>
+          <span>{{ 'debugging' | i18nextEager }}</span>
+        </span>
+        <span
+          class="flex cursor-pointer items-center gap-[4px]"
+          (click)="openRunHalfmodal()"
+        >
+          <asset-run-icon *ngIf="!testBtnLoading"></asset-run-icon>
+          <nz-spin nzSize="small" *ngIf="testBtnLoading"></nz-spin>
+          <span>{{ 'test_run' | i18nextEager }}</span>
+        </span>
+        <span
+          class="flex cursor-pointer items-center gap-[4px] check-warring-class"
+          *ngIf="checkErrorWorkflowIcon > 0"
+          (click)="showCheckWorkflowModal()"
+        >
+          <nz-icon nzType="warning" class="!text-[16px]"></nz-icon>
+          <span>{{ checkErrorWorkflowIcon }}</span>
+        </span>
+
+        <div class="status-bar-divider"></div>
+        <img alt=""
+          class="h-[30px] w-[30px]"
+          *ngIf="!this.isMultiAgent"
+          nz-tooltip
+          [nzTooltipTitle]="'trigger_setting' | i18nextEager"
+          nzTooltipPlacement="bottom"
+          (click)="click()"
+          [src]="changeUrl('assets/agent-center/icons/trigger.png')"
+        />
+        <button
+          nz-button
+          [nzType]="'default'"
+          [nzGhost]="true"
+          [disabled]="fromShare"
+          class="icon-border"
+          [nz-tooltip]="'release_history' | i18nextEager"
+          nzTooltipPlacement="bottom"
+          (click)="openReleaseHistoryModal()"
+        >
+          <img alt=""
+            [src]="cdnUrl('assets/agent-center/icons/release-history.svg')"
+          />
+        </button>
+        <!--[tiTip]="
+            workflowDetail?.test_status !== 1 && type !== 'multi'
+              ? publish_tip
+              : ''
+          "-->
+        <button
+          *ngIf="(!isFlowReadonly && !notUserSelf)"
+          type="button"
+          (click)="publishAgent()"
+          [disabled]="!subscribeBtnStatus"
+          nz-tooltip
+          nzTooltipPlacement="bottomRight"
+          nz-button
+        >
+          {{ publishBtnText }}
+        </button>
+      </div>
+    </ng-template>
+  </flow-detail-header>
+
+  <div class="up-down-divider"></div>
+  <div class="preview" *ngIf="isFlowReadonly && versionName?.trim() && !fromShare">
+    <div class="mr-[8px] text-[#1476FF]">
+      <nz-icon nzType="info-circle"></nz-icon>
+    </div>
+    {{ 'previewing_version_information' | i18nextEager }}：{{ versionName }}
+    <div class="exit" (click)="exitViewHistory()">
+      {{ 'exit_version_preview' | i18nextEager }}
+      <nz-icon nzType="close"></nz-icon>
+    </div>
+  </div>
+
+  <div
+    [hidden]="curActiveTabId === 'analyze'"
+    class="flex h-[calc(100%-65px)] w-full relative"
+    [style.height]="isFlowReadonly ? 'calc(100% - 97px)' : 'calc(100% - 65px)'"
+  >
+    <div id="flow-right-panel" class="flow-right-panel">
+      <div
+        class="content relative"
+        (drop)="allowDrop($event)"
+        (dragover)="allowDrop($event)"
+      >
+        <!-- 画布 -->
+        <div class="h-full w-full">
+          <!-- 右侧画布 -->
+          <div class="h-full w-full" id="app-flow-container"></div>
+
+          <!-- tool bar -->
+          <div class="absolute bottom-5 left-4 flex h-10 items-center gap-2">
+            <div class="tool-bar-item relative flex items-center gap-4">
+              <div
+                [ngStyle]="{ 'background-color': showMiniMap ? '#deecff' : '' }"
+                class="op-icon cursor-pointer p-1"
+                (click)="onClickShowThumb()"
+              >
+                <div
+                  nz-tooltip
+                  [nzTooltipTitle]="'show_thumb' | i18nextEager"
+                  class="show-thumb"
+                ></div>
+              </div>
+
+              <div
+                [ngStyle]="{
+                  'background-color': showFlowNodesWidget ? '#deecff' : ''
+                }"
+                class="op-icon cursor-pointer p-1"
+                (click)="onClickShowFlowNodes($event)"
+              >
+                <div
+                  nz-tooltip
+                  [nzTooltipTitle]="'show_nodes' | i18nextEager"
+                  class="show-nodes"
+                ></div>
+              </div>
+
+              <div
+                id="minimap-container"
+                [ngStyle]="{ visibility: showMiniMap ? 'visible' : 'hidden' }"
+                class="minimap absolute bottom-12 left-0 w-[180px] rounded-lg bg-white p-2"
+              ></div>
+
+              <div
+                *ngIf="showFlowNodesWidget"
+                (clickOutside)="onClickOutsideShowFlowNodesWidget()"
+                class="absolute bottom-12 left-0 w-[180px] rounded-lg bg-white p-2"
+              >
+                <meta-flow-nodes-widget
+                  [graph]="graph"
+                  (zoomIn)="zoomInFlow()"
+                />
+              </div>
+            </div>
+            <div class="tool-bar-item flex items-center gap-3">
+              <div class="flex items-center gap-2">
+                <div
+                  class="icon-common sub"
+                  title="{{ 'zoomIn' | i18nextEager }}"
+                  (click)="supCanvas()"
+                ></div>
+
+                <div class="w-[35px] text-center text-sm">
+                  {{ localScale }}%
+                </div>
+
+                <div
+                  class="icon-common add"
+                  title="{{ 'zoomOut' | i18nextEager }}"
+                  (click)="addCanvas()"
+                ></div>
+              </div>
+              <div class="status-bar-divider"></div>
+              <div class="flex items-center gap-2" *ngIf="type !== 'multi'">
+                <div class="op-icon cursor-pointer p-1 flex gap-1" (click)="undo()" nz-tooltip [nzTooltipTitle]="'undo' | i18nextEager">
+                  <img class="h-5 w-5" style="fill: #191919"
+                       [src]="canUndo?changeUrl('assets/agent-center/flow/undo_new.svg'):changeUrl('assets/agent-center/flow/undo_new_gray.svg')" alt="">
+                </div>
+                <div class="op-icon cursor-pointer p-1 flex gap-1" (click)="redo()" nz-tooltip [nzTooltipTitle]="'redo' | i18nextEager">
+                  <img class="h-5 w-5" style="fill: #191919"
+                       [src]="canRedo?changeUrl('assets/agent-center/flow/redo_new.svg'):changeUrl('assets/agent-center/flow/redo_new_gray.svg')" alt="">
+                </div>
+              </div>
+              <div class="status-bar-divider" *ngIf="type !== 'multi'"></div>
+              <div class="flex items-center gap-4 ">
+                <div *ngIf="type !== 'multi'" class="w-[48px]">
+                  <div class="op-icon cursor-pointer p-1 flex gap-1"
+                       nz-popover
+                       nzPopoverTrigger="click"
+                       [nzPopoverContent]="modeContent"
+                       nzPopoverPlacement="bottomLeft"
+                       [(nzPopoverVisible)]="isShowModeTip.show"
+                       #modePopover="nzPopover">
+                    <img
+                      [src]="(isKeyDownSpace ||dragMode === DragMode.HAND)?changeUrl('assets/agent-center/flow/hand_mode.svg'):changeUrl('assets/agent-center/flow/pointer_mode.svg')"
+                      alt=""
+                    />
+                    <img class="h-5 w-5" style="fill: #191919"
+                         [src]="isShowModeTip?.show?changeUrl('assets/agent-center/flow/fold-black.svg'):changeUrl('assets/agent-center/flow/unfold-black.svg')" alt="">
+
+                  </div>
+                </div>
+                <div
+                  class="op-icon cursor-pointer p-1 w-[24px]"
+                  (click)="expandAllSwitch()"
+                >
+                  <div
+                    *ngIf="isAllExpand"
+                    class="expand rotate-180"
+                    nz-tooltip
+                    [nzTooltipTitle]="'global_folding_node' | i18nextEager"
+                  ></div>
+
+                  <div
+                    *ngIf="!isAllExpand"
+                    class="expand"
+                    nz-tooltip
+                    [nzTooltipTitle]="'global_expand_nodes' | i18nextEager"
+                  ></div>
+                </div>
+
+                <div class="op-icon cursor-pointer p-1 w-[24px]" (click)="onCenter()">
+                  <div class="position" nz-tooltip [nzTooltipTitle]="'center' | i18nextEager"></div>
+                </div>
+
+                <div
+                  class="op-icon cursor-pointer p-1 w-[24px]"
+                  (click)="optimizeLayout()"
+                >
+                  <div
+                    class="optimize"
+                    nz-tooltip
+                    [nzTooltipTitle]="'layout_optimization' | i18nextEager"
+                  ></div>
+                </div>
+                <div *ngIf="type !== 'multi'" class="op-icon cursor-pointer p-1 w-[24px]">
+                  <div
+                    class="annotate"
+                    nz-tooltip
+                    [nzTooltipTitle]="'add_annotate' | i18nextEager"
+                    draggable="true"
+                    (dragstart)="onDragStart($event)"
+                    (dragend)="onDragEnd($event)"
+                    (click)="onClickAddAnnotate($event)"
+                  ></div>
+                </div>
+                <div class="w-[24px] h-[36px] flex items-center"
+                     [ngStyle]="{width: type !== 'multi'?'24px':'0'}"
+                >
+                  <div *ngIf="type !== 'multi'">
+                    <div class="op-icon cursor-pointer p-1 flex gap-1"
+                         nz-popover
+                         nzPopoverTrigger="click"
+                         [nzPopoverContent]="acceleratorKeyContent"
+                         nzPopoverPlacement="bottomLeft"
+                         #acceleratorPopover="nzPopover"
+                         (click)="toggleAcceleratorKeyTip(acceleratorPopover)">
+                      <img [src]="changeUrl('assets/agent-center/flow/accelerator_key.svg')" alt=""
+                      />
+                    </div>
+                  </div>
+
+                </div>
+
+
+              </div>
+              <div *ngIf="type !== 'multi'" class="status-bar-divider"></div>
+
+              <div
+                *ngIf="type !== 'multi'"
+                (click)="onClickShowAddNodesWidget($event)"
+                class="relative"
+              >
+                <div
+                  class="flex h-6 cursor-pointer items-center justify-center gap-1 rounded-full bg-[#1476ff] px-4 py-1 text-white"
+                >
+                  <nz-icon nzType="plus"></nz-icon>
+                  {{ 'add_nodes' | i18nextEager }}
+                </div>
+
+                <div
+                  [ngStyle]="{
+                    visibility: showAddNodesWidget ? 'visible' : 'hidden'
+                  }"
+                  (clickOutside)="onClickOutsideAddNodesWidget()"
+                  class="nodes-panel absolute bottom-10 w-[264px]"
+                >
+                  <meta-nodes-group-modal
+                    [graph]="graph"
+                    [workflowType]="workflowDetail?.type"
+                    [isFlowReadonly]="isFlowReadonly || notUserSelf"
+                    addMode="common"
+                    (createNode)="onDropNode($event)"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="position: fixed; right: 50px; bottom: 20px"></div>
+        <flow-node-exe
+          id="flow-node-exe-id"
+          *ngIf="nodeExeConversationId"
+          class="absolute bottom-0 right-0 top-0"
+          [nodeInfo]="currTestNodeInfo"
+          [hidden]="!showSingleTest"
+          [conversationId]="nodeExeConversationId"
+          [workflowId]="workflowId"
+          [workflowIcon]="workflowDetail?.avatar"
+          [enableLongMemory]="
+            workflowDetail?.workflow_details?.configs?.long_memory_enabled
+          "
+          (close)="onCloseSingleTestModal()"
+        />
+      </div>
+    </div>
+    <div class="flex h-full w-full absolute left-0 top-0" *ngIf="curActiveConfigTabId==='releaseManage'" style="width: 100%">
+      <div class="manage-content" style="width: 100%">
+        <publish-channel-page [publishParams]="publishParams" #publishChannelPage></publish-channel-page>
+      </div>
+    </div>
+  </div>
+
+  <div
+    [ngStyle]="{
+      visibility: showAddPanel ? 'visible' : 'hidden',
+      top: addPanelPos.top - elementTop + 'px',
+      left: addPanelPos.left + 'px'
+    }"
+    (clickOutside)="clickAddNodeOutside($event)"
+    class="nodes-panel absolute w-[264px]"
+  >
+    <meta-nodes-group-modal
+      [graph]="graph"
+      [workflowType]="workflowDetail?.type"
+      [isFlowReadonly]="isFlowReadonly || notUserSelf"
+      addMode="onCell"
+      (createNode)="onInsertNode($event)"
+    />
+  </div>
+
+  <check-error-workflow
+    [validateWorkflowList]="validateWorkflowList"
+    [workflowDetail]="workflowDetail"
+    (clickNodeEmit)="clickCheckErrorWorkflowModal($event)"
+    (dismissEmit)="dismissCheckErrorWorkflowModal()"
+    [isShow]="checkErrorWorkflowHalfModalRef"
+  ></check-error-workflow>
+
+  <div *ngIf="workflow_type === 'chat' || workflow_type === 'controller'">
+    <dialog-halfmodal
+      class="absolute bottom-0 right-0 top-[65px]"
+      [isDrawerVisible]="showRunModal"
+      [isShow]="showRunModal"
+      [fromComponent]="type"
+      [graph]="graph"
+      [conversationId]="conversationId"
+      [currWorkflow]="workflowDetail"
+      [versionName]="versionName"
+      [environment_id]="this.workflowDetail?.workflow_details?.configs?.environment"
+      (clickErrorInfo)="clickErrorInfo($event)"
+      (close)="dialogHalfmodalClose()"
+    ></dialog-halfmodal>
+  </div>
+  <div *ngIf="workflow_type === 'task'">
+    <flow-run-modal
+      class="absolute bottom-0 right-0 top-[65px]"
+      [hidden]="!showRunModal"
+      [graph]="graph"
+      [conversationId]="conversationId"
+      [currWorkflow]="workflowDetail"
+      (close)="showRunModal = false"
+      [environment_id]="this.workflowDetail?.workflow_details?.configs?.environment"
+      [showRunModal]="showRunModal"
+    ></flow-run-modal>
+  </div>
+
+  <nz-drawer
+    [nzVisible]="showGlobalConfigDrawer"
+    [nzPlacement]="'right'"
+    [nzClosable]="true"
+    [nzWidth]="globalConfigDrawerWidth || '480px'"
+    (nzOnClose)="showGlobalConfigDrawer = false"
+  >
+    <ng-container *nzDrawerContent>
+    @if (type === 'multi') {
+      <multi-agent-config-modal
+      [inputs]="globalConfigInputs"
+      [globalVariables]="globalConfigVariables"
+      [memoryConfig]="globalConfigMemoryConfig"
+      [flowId]="globalConfigFlowId"
+      (configsChange)="onGlobalConfigsMultiChange($event)"
+      (close)="showGlobalConfigDrawer = false"
+    ></multi-agent-config-modal>
+  } @else {
+      <global-config-modal
+      [workflowType]="workflowDetail?.type"
+      [flowId]="workflowId"
+      [configs]="workflowDetail?.workflow_details?.configs"
+      (configsChange)="onGlobalConfigsChange($event)"
+      (close)="showGlobalConfigDrawer = false"
+    ></global-config-modal>
+    }
+    </ng-container>
+  </nz-drawer>
+
+  <nz-drawer
+    [nzVisible]="showLogDrawer"
+    [nzPlacement]="'right'"
+    [nzClosable]="true"
+    [nzWidth]="'620px'"
+    [nzOffsetX]="showRunModal?480:0"
+    (nzOnClose)="showLogDrawer = false"
+  >
+    <ng-container *nzDrawerContent>
+      @if (workflow_type === 'controller') {
+      <controller-log-modal
+      [inputWorkflowId]="workflowId"
+      [isShowLog]="showLogIsShowLog"
+      [graph]="showLogGraph"
+      [openNodeId]="showLogOpenNodeId"
+      [workflowDetail]="showLogWorkflowDetail"
+      [showLogDrawer]="showLogDrawer"
+      (close)="showLogDrawer = false"
+    ></controller-log-modal>
+    } @else {
+      <flow-log-modal
+      [inputWorkflowId]="workflowId"
+      [isShowLog]="showLogIsShowLog"
+      [graph]="showLogGraph"
+      [openNodeId]="showLogOpenNodeId"
+      [showLogDrawer]="showLogDrawer"
+      (close)="showLogDrawer = false"
+    ></flow-log-modal>
+    }
+    </ng-container>
+  </nz-drawer>
+
+  <nz-drawer
+    #modal1
+    id="tp"
+    [nzVisible]="showTriggerModal"
+    [nzPlacement]="'right'"
+    [nzClosable]="true"
+    [nzWidth]="500"
+    (nzOnClose)="showTriggerModal = false"
+  >
+    <ng-container *nzDrawerContent>
+      <span class="title-text">{{ 'trigger_setting'|i18nextEager }}</span>
+      <tool-list
+        [toolAdded]="triggerAdded"
+        [noDataText]="triggerEmptyText"
+        [isFlowReadonly]="isFlowReadonly"
+        [agentType]="'workflow'"
+        (collapseRegionFlag)="changeCollapsedState($event)"
+        (addBtnClickedFlag)="openTriggerHalfmodal($event, 'workflow')"
+        (deleteTrigger)="deleteTrigger($event)"
+      ></tool-list>
+    </ng-container>
+  </nz-drawer>
+
+  <nz-drawer
+    #releaseHistoryDrawer
+    id="release-history"
+    [nzVisible]="showHistoryModal"
+    [nzPlacement]="'right'"
+    [nzClosable]="true"
+    [nzWidth]="700"
+    (nzOnClose)="showHistoryModal = false"
+  >
+    <ng-container *nzDrawerContent>
+      <release-history-halfmodal
+        [isShowHistory]="showHistoryModal"
+        [type]="type"
+        [workflowDetail]="workflowDetail"
+        (close)="showHistoryModal = false"
+      ></release-history-halfmodal>
+    </ng-container>
+  </nz-drawer>
+
+  <div
+    [ngStyle]="{
+      visibility: addTipContent.show ? 'visible' : 'hidden',
+      top: addTipContent.top + 'px',
+      left: addTipContent.left + 'px'
+    }"
+    class="nodes-add-tip-panel"
+  >
+    <p>{{ 'click'|i18nextEager }}<span>{{ 'add_node'|i18nextEager }}</span></p>
+    <p>{{ 'drag_drop'|i18nextEager }}<span>{{ 'connect_node'|i18nextEager }}</span></p>
+
+    <div class="nodes-add-tip-panel-arrow"></div>
+  </div>
+  <div class="nodes-selection-tip-panel tool-bar-item flex items-center gap-1" *ngIf="selectionTip.show" [ngStyle]="{
+      top: (125 - elementTop) + 'px',
+    }">
+    <p class="w-[100px]">{{ 'selection_tip' |i18nextEager :{count: selectionTip.count} }}</p>
+    <div class="nodes-selection-tip-panel-line"></div>
+    <div class="flex nodes-selection-tip-panel-op gap-1">
+      <div class="op-icon cursor-pointer p-1" (click)="selectionCopy()">
+        <img [src]="changeUrl('assets/agent-center/flow/selection_copy.svg')" alt=""/>
+      </div>
+      <div class="op-icon cursor-pointer p-1" (click)="selectionDel()">
+        <img [src]="changeUrl('assets/agent-center/flow/selection_delete.svg')" alt=""/>
+      </div>
+    </div>
+  </div>
+</div>
+
+<ng-template #dropLTMModal let-context="context">
+  <div class="ltm-modal-content">
+    <h3>{{ 'LTM' | i18nextEager }}</h3>
+    <p>{{ 'ltmTip' | i18nextEager }}</p>
+    <div class="ltm-modal-footer">
+      <button type="button" (click)="context.dismiss()" nz-button>
+        {{ 'cancel' | i18nextEager }}
+      </button>
+      <button
+        type="button"
+        nzType="primary"
+        autofocus
+        (click)="context.close()"
+        nz-button
+      >
+        {{ 'ok' | i18nextEager }}
+      </button>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #modeContent let-context="context">
+  <div class="mode-container">
+    <div class="mode-item" (click)="changeDragMode(DragMode.HAND)">
+      <img [src]="changeUrl('assets/agent-center/flow/hand_mode.svg')" alt="use"/>
+      <span>{{ 'hand_mode' | i18nextEager }}</span>
+      <span class="mode-item-key">H</span>
+    </div>
+    <div class="mode-item" (click)="changeDragMode(DragMode.POINTER)">
+      <img [src]="changeUrl('assets/agent-center/flow/pointer_mode.svg')" alt="use"/>
+      <span>{{ 'pointer_mode' | i18nextEager }}</span>
+      <span class="mode-item-key">V</span>
+    </div>
+  </div>
+</ng-template>
+<ng-template #undoContent let-context="context">
+  <div class="history-tip-container">
+    <div class="history-tip-item">
+      <div>{{ 'undo' | i18nextEager }}</div>
+      <div>
+        <span class="history-tip-item-key" *ngIf="isMac"><img  [src]="changeUrl('assets/agent-center/flow/mac_command.svg')" alt="use"/></span>
+        <span class="history-tip-item-key" *ngIf="!isMac">Ctrl</span>
+        <span class="history-tip-item-key">Z</span>
+      </div>
+    </div>
+  </div>
+</ng-template>
+<ng-template #redoContent let-context="context">
+  <div class="history-tip-container">
+    <div class="history-tip-item">
+      <div>{{ 'redo' | i18nextEager }}</div>
+      <div>
+        <span class="history-tip-item-key" *ngIf="isMac"><img  [src]="changeUrl('assets/agent-center/flow/mac_command.svg')" alt="use"/></span>
+        <span class="history-tip-item-key" *ngIf="!isMac">Ctrl</span>
+        <span class="history-tip-item-key">Y</span>
+      </div>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #acceleratorKeyContent let-context="context">
+  <div class="accelerator-container">
+    <div class="accelerator-item">
+      <div>{{ 'hand_mode' | i18nextEager }}</div>
+      <div class="accelerator-item-key">H</div>
+    </div>
+    <div class="accelerator-item">
+      <div>{{ 'pointer_mode' | i18nextEager }}</div>
+      <div class="accelerator-item-key">V</div>
+    </div>
+    <div class="accelerator-item">
+      <div>{{ 'move_canvas' | i18nextEager }}</div>
+      <div>
+        <span class="accelerator-item-key">{{ 'space_bar' | i18nextEager }}</span>
+        <span class="accelerator-item-key">{{ 'drag_drop' | i18nextEager }}</span>
+      </div>
+    </div>
+    <div class="accelerator-item">
+      <div>{{ 'zoom_in' | i18nextEager }}</div>
+      <div>
+        <span class="accelerator-item-key" *ngIf="isMac"><img  [src]="changeUrl('assets/agent-center/flow/mac_command.svg')" alt="use"/></span>
+        <span class="accelerator-item-key" *ngIf="!isMac">Ctrl</span>
+        <span class="accelerator-item-key">{{ 'scrolling' | i18nextEager }}</span>
+        <span> / </span>
+        <span class="accelerator-item-key" *ngIf="isMac"><img  [src]="changeUrl('assets/agent-center/flow/mac_command.svg')" alt="use"/></span>
+        <span class="accelerator-item-key" *ngIf="!isMac">Ctrl</span>
+        <span class="accelerator-item-key">+</span>
+      </div>
+    </div>
+    <div class="accelerator-item">
+      <div>{{ 'zoom_out' | i18nextEager }}</div>
+      <div>
+        <span class="accelerator-item-key" *ngIf="isMac"><img  [src]="changeUrl('assets/agent-center/flow/mac_command.svg')" alt="use"/></span>
+        <span class="accelerator-item-key" *ngIf="!isMac">Ctrl</span>
+        <span class="accelerator-item-key">{{ 'scrolling' | i18nextEager }}</span>
+        <span> / </span>
+        <span class="accelerator-item-key" *ngIf="isMac"><img  [src]="changeUrl('assets/agent-center/flow/mac_command.svg')" alt="use"/></span>
+        <span class="accelerator-item-key" *ngIf="!isMac">Ctrl</span>
+        <span class="accelerator-item-key">-</span>
+      </div>
+    </div>
+    <div class="accelerator-item">
+      <div>{{ 'undo' | i18nextEager }}</div>
+      <div>
+        <span class="accelerator-item-key" *ngIf="isMac"><img  [src]="changeUrl('assets/agent-center/flow/mac_command.svg')" alt="use"/></span>
+        <span class="accelerator-item-key" *ngIf="!isMac">Ctrl</span>
+        <span class="accelerator-item-key">Z</span>
+      </div>
+    </div>
+    <div class="accelerator-item">
+      <div>{{ 'redo' | i18nextEager }}</div>
+      <div>
+        <span class="accelerator-item-key" *ngIf="isMac"><img  [src]="changeUrl('assets/agent-center/flow/mac_command.svg')" alt="use"/></span>
+        <span class="accelerator-item-key" *ngIf="!isMac">Ctrl</span>
+        <span class="accelerator-item-key">Y</span>
+      </div>
+    </div>
+    <div class="accelerator-item">
+      <div>{{ 'delete' | i18nextEager }}</div>
+      <div>
+        <span class="accelerator-item-key">Delete</span>
+        <span> / </span>
+        <span class="accelerator-item-key">Backspace</span>
+      </div>
+    </div>
+    <div class="accelerator-item">
+      <div>{{ 'adding_node' | i18nextEager }}</div>
+      <div>
+        <span class="accelerator-item-key">Tab</span>
+        <span> / </span>
+        <span class="accelerator-item-key">{{ 'left_mouse_double_click' | i18nextEager }}</span>
+      </div>
+    </div>
+    <div class="accelerator-item">
+      <div>{{ 'multiple_choices' | i18nextEager }}</div>
+      <div>
+        <span class="accelerator-item-key">Shift</span>
+        <span class="accelerator-item-key">{{ 'click_node'| i18nextEager }}</span>
+        <span> / </span>
+        <span class="accelerator-item-key">{{ 'pointer_mode_box_selection' | i18nextEager }}</span>
+      </div>
+    </div>
+    <div class="accelerator-item">
+      <div>{{ 'select_all' | i18nextEager }}</div>
+      <div>
+        <span class="accelerator-item-key" *ngIf="isMac"><img  [src]="changeUrl('assets/agent-center/flow/mac_command.svg')" alt="use"/></span>
+        <span class="accelerator-item-key" *ngIf="!isMac">Ctrl</span>
+        <span class="accelerator-item-key">A</span>
+      </div>
+    </div>
+    <div class="accelerator-item">
+      <div>{{ 'connect_to_end_node' | i18nextEager }}</div>
+      <div>
+        <span class="accelerator-item-key">Q</span>
+      </div>
+    </div>
+  </div>
+</ng-template>

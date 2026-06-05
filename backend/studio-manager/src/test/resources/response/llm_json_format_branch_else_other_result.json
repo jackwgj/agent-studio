@@ -1,0 +1,18 @@
+{
+  "id": "66aaf3ec-67c7-4194-8b12-67be585da0f5",
+  "created": 1723431791,
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": null,
+        "content": "汽车是一种通常由内燃机或电动机驱动，用于载人或货物的交通工具。"
+      }
+    }
+  ],
+  "usage": {
+    "completion_tokens": 245,
+    "prompt_tokens": 673,
+    "total_tokens": 918
+  }
+}

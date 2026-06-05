@@ -1,0 +1,81 @@
+<!-- <div class="run-modal-wrapper run-modal-show h-full">
+  <div class="mb-[20px] flex w-full items-center justify-between">
+    <div class="text-[14px] font-bold text-label">
+      {{ 'test_run' | i18nextEager }}
+    </div>
+  </div>
+  <div class="content" *ngIf="taskInfo && taskInfo?.status ==='PENDING'">
+    <div class="start-node-params-area">
+      <dynamic-node-params
+        #dynamicNodeParams
+        [inputList]="startNodeParams"
+      ></dynamic-node-params>
+
+      <div class="run-workflow-btn">
+        <button
+          type="button"
+          color="danger"
+          class="w-full"
+          tiButton
+          (click)="runWorkflow()"
+          [tiTip]="
+              dynamicNodeParams.fileLoading
+                ? ('waiting_for_file_upload_to_complete' | i18nextEager)
+                : ''
+            "
+          [disabled]="!!(canRunWorkflow() || dynamicNodeParams.fileLoading)"
+        >
+          {{ runWorkflowButtonText }}
+        </button>
+      </div>
+
+    </div>
+  </div>
+  <div class="content" *ngIf="taskInfo && taskInfo?.status !=='PENDING'">
+    <div
+      #chatContainerRef
+      cdkScrollable
+      class="main-wrapper"
+      [ngClass]="{
+          'flex-column-gap': chatView === 'CHAT_NOT_EMPTY'
+        }"
+      (scroll)="onScroll($event.target)"
+    >
+      <ng-container *ngIf="chatView === 'CHAT_EMPTY'">
+        <div  class="h-[600px] flex-center gap-[14px]">
+          <img alt="" class="flow-avatar" [src]="flowInfo?.avatar" />
+          <span class="flow-name">{{ flowInfo?.name }}</span>
+        </div>
+
+      </ng-container>
+      <ng-container *ngIf="chatView === 'CHAT_NOT_EMPTY'">
+        <ng-container *ngIf="dialogHistory && dialogHistory.length > 0">
+          <model-chat-async-item
+            class="flex flex-col gap-4"
+            [agentIcon]="changeUrl('assets/model/assist.svg')"
+            [dialogHistory]="dialogHistory"
+          ></model-chat-async-item>
+
+        </ng-container>
+        <ng-container *ngIf="taskInfo.status === 'INIT'||taskInfo.status === 'RUNNING'">
+          <div  class="loading flex" >
+            <img alt="" class="logo" [src]="changeUrl('assets/model/assist.svg')" />
+            <div class="icon">
+              <img alt=""
+                [src]="
+                      changeUrl('assets/agent-center/images/home-loading.webp')
+                    "
+              />
+            </div>
+          </div>
+        </ng-container>
+      </ng-container>
+    </div>
+
+  </div>
+
+  <div *ngIf="!taskInfo" class="h-[calc(100%-66px)] flex-center gap-[14px]">
+    <img alt="" class="flow-avatar" [src]="flowInfo?.avatar" />
+    <span class="flow-name">{{ flowInfo?.name }}</span>
+  </div>
+</div> -->

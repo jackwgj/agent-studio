@@ -1,0 +1,26 @@
+{
+  "code": "0",
+  "msg": "success",
+  "result": [
+    {
+      "modelNameEn": "test_deployment_id1",
+      "modelNameCN": "test_model_name1",
+      "modelConf": {
+        "url": "http://XXX/chat/completions1",
+        "token": "token",
+        "userId": "userId1",
+        "supportFunctionCall": "0"
+      }
+    },
+    {
+      "modelNameEn": "test_deployment_id2",
+      "modelNameCN": "test_model_name2",
+      "modelConf": {
+        "url": "http://test/chat/completions2",
+        "token": "token",
+        "userId": "userId2",
+        "supportFunctionCall": "0"
+      }
+    }
+  ]
+}

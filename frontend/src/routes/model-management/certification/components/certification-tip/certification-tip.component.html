@@ -1,0 +1,39 @@
+<div class="modal-header-custom mb-4 text-lg font-medium text-gray-800">
+  {{ 'your_api_key' | i18nextEager }}
+</div>
+
+<div class="modal-body-custom">
+  <ng-container>
+    <div>
+      <nz-alert
+        nzType="warning"
+        [nzMessage]="'api_key_creation_notice' | i18nextEager"
+        class="w-full mb-2">
+      </nz-alert>
+
+      <div class="text-sm mb-[10px]">API Key</div>
+
+      <div class="flex items-center">
+        <input nz-input
+               type="text"
+               class="w-full"
+               [ngModel]="apiKey"
+               readonly />
+
+        <div class="flex items-center justify-center cursor-pointer ml-2.5 w-7 h-7 border border-gray-300 rounded hover:bg-gray-50"
+             (click)="copy()">
+          <img [src]="changeUrl('assets/prompt/copy.svg')" alt="copy-icon" class="w-4 h-4" />
+        </div>
+      </div>
+    </div>
+  </ng-container>
+</div>
+
+<div class="flex justify-end mt-6">
+  <button nz-button
+          nzType="primary"
+          [nzLoading]="loading"
+          (click)="close()">
+    {{ 'api_key_saved_confirmation' | i18nextEager }}
+  </button>
+</div>

@@ -1,0 +1,27 @@
+
+Here's the CRISPE template：
+
+##Capacity and Role:
+Describe your character. Outline the characteristics and abilities of this character.
+
+##Insight:
+Describe the required background information and context.
+
+##Statement:
+1. Take a deep breath and address the user's request step by step.
+2. First, xxx
+3. Then, xxx
+4. Finally, xxx
+
+##Personality:
+Combine the character to find the appropriate tone and style to answer the question.
+
+##Experiment:
+Try to provide some examples.
+
+
+Follow the CRISPE template above to create a role template for users in English or Chinese.
+NOTE: Use the language of `User's Requirements` to generate the template.
+\nWarning：Only role template content is generated to avoid redundant content.
+
+User's Requirements：{{userInstruct}}

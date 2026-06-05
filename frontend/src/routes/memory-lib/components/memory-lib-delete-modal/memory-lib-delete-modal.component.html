@@ -1,0 +1,97 @@
+<div class="memory-lib-delete-wrapper">
+  @if (loading()) {
+    <div class="loading-container">
+      <nz-spin nzSimple></nz-spin>
+    </div>
+  } @else {
+    @if (isReferenced()) {
+      <nz-alert class="!w-full mb-[16px]" nzType="warning" [nzMessage]="'memory.management.modal.deleteReferencedTip' | i18nextEager" [nzCloseable]="false"></nz-alert>
+
+      <div class="referenced-resource-list">
+        <div class="list-title">
+          {{ 'memory.management.modal.deleteReferencedList' | i18nextEager }}
+        </div>
+
+        <nz-table
+          #dataTable
+          [nzData]="srcData().data"
+          [nzFrontPagination]="false"
+          [nzShowPagination]="false"
+          nzSize="small"
+          [nzScroll]="{ y: '400px' }">
+          <thead>
+          <tr>
+            @for (col of columns; track col.title) {
+              <th>{{ col.title }}</th>
+            }
+          </tr>
+          </thead>
+          <tbody>
+            @for (row of dataTable.data; track row.app_id) {
+              <tr>
+                <td nzEllipsis>
+                  <a nz-tooltip [nzTooltipTitle]="row.app_name" class="cursor-pointer w-full" (click)="toResourceDetail(row)">
+                    {{ row.app_name }}
+                  </a>
+                </td>
+                <td nzEllipsis>{{ resourceTypeMap.get(row.app_type) || '--' }}</td>
+              </tr>
+            }
+          </tbody>
+        </nz-table>
+
+        <nz-pagination
+          class="delete-page"
+          [nzPageIndex]="currentPage()"
+          [nzTotal]="totalNumber()"
+          [nzPageSize]="pageSize().size"
+          [nzPageSizeOptions]="pageSize().options"
+          nzShowSizeChanger
+          nzSize="small"
+          (nzPageIndexChange)="pageIndexChange($event)"
+          (nzPageSizeChange)="pageSizeChange($event)">
+        </nz-pagination>
+      </div>
+
+      <div class="delete-confirm-wrapper">
+        <div class="confirm-tip">
+          <span class="confirm-text">
+            {{ 'memory.management.modal.confirmDeleteTip' | i18nextEager }}
+          </span>
+          <span class="confirm-value"> {{ deleteConfirmText }} </span>
+
+          <span class="auto-input" (click)="autoInputConfirm()">
+            {{ 'memory.management.modal.autoInput' | i18nextEager }}
+          </span>
+        </div>
+
+        <form nz-form #templateFormControl="ngForm">
+          <nz-form-item>
+            <nz-form-control [nzErrorTip]="'memory.management.modal.error.needConfirm' | i18nextEager">
+              <input
+                nz-input
+                class="w-full"
+                name="confirm"
+                [placeholder]="deleteConfirmText"
+                [(ngModel)]="deleteConfirmValue"
+                required
+                [pattern]="deleteConfirmText"
+              />
+            </nz-form-control>
+          </nz-form-item>
+        </form>
+      </div>
+    } @else {
+      <div class="no-referenced-container">
+        <div class="delete-tip-title">
+          {{ 'memory.management.modal.noReferenceDelTip' | i18nextEager }}
+        </div>
+        <ul>
+          <li>
+            {{ deletedMemoryLib?.name }}
+          </li>
+        </ul>
+      </div>
+    }
+  }
+</div>

@@ -1,0 +1,16 @@
+.tool-border {
+  border: 1px solid #F0F0F0;
+
+  &:hover {
+    border-color: #526ECC;
+  }
+}
+
+.tool-border-none {
+  background-color: #FAFAFA;
+}
+
+.selected-btn {
+  border-color: #ADB0B8;
+  background: #EEF0F5;
+}

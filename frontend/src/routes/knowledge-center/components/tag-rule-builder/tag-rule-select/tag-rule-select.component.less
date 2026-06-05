@@ -1,0 +1,49 @@
+.tag-rule-select {
+  display: flex;
+  align-items: center;
+}
+
+::ng-deep {
+  .tag-rule-select {
+    display: flex;
+
+    &.rule-mode {
+      .rule-operator-select {
+        width: 62px;
+        .ant-select-selector {
+          height: 100%;
+          background-color: #F0F7FF !important;
+          border-radius: 6px 0 0 6px !important;
+        }
+      }
+
+      .rule-tag-select {
+        width: 120px;
+        .ant-select-selector {
+          border-radius: 0 !important;
+          border-left: 0 !important;
+          border-right: 0 !important;
+        }
+      }
+
+      .rule-delete {
+        cursor: pointer;
+        width: 28px;
+        height: 28px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        border: 1px solid rgba(194, 194, 194, 1);
+        border-radius: 0 6px 6px 0;
+        background: rgba(255, 255, 255, 1);
+        color: rgba(194, 194, 194, 1);
+        font-size: 14px;
+
+        &:hover {
+          border-color: #191919;
+          color: #191919;
+        }
+      }
+    }
+  }
+}

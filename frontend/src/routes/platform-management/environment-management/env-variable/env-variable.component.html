@@ -1,0 +1,31 @@
+<div id="env-variable">
+  <div class="env-variable-title">{{ 'globalconfig_2'|i18nextEager }}</div>
+  <div style="max-height: 400px">
+    <nz-table
+      [nzData]="srcData.data"
+      [nzLoading]="loading"
+      [nzShowPagination]="false"
+      nzTableLayout="fixed"
+      [nzScroll]="{ y: '320px' }"
+    >
+      <thead>
+        <tr>
+          <th *ngFor="let column of listColumns" [nzWidth]="column.width + 'px'">{{ column.title }}</th>
+        </tr>
+      </thead>
+      <tbody *ngIf="srcData.data?.length > 0">
+        <tr *ngFor="let row of srcData.data;trackBy: trackByFn">
+          <td>{{ row?.name }}</td>
+          <td>{{ row?.value?.content }}</td>
+        </tr>
+      </tbody>
+      <tbody *ngIf="srcData.data?.length === 0 && loading === false">
+        <tr>
+          <td colspan="2" style="border: none; text-align: center;">
+            <nz-empty [nzNotFoundImage]="changeUrl('assets/images/noData.svg')" [nzNotFoundContent]="null"></nz-empty>
+          </td>
+        </tr>
+      </tbody>
+    </nz-table>
+  </div>
+</div>

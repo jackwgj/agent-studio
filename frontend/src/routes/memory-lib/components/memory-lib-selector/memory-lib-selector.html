@@ -1,0 +1,99 @@
+<div class="memory-lib-selector" [class.need-padding]="isNeedPadding()">
+  <!-- 使用 nz-spin 包裹或作为覆盖层 -->
+  <nz-spin [nzSpinning]="loading()">
+    <div class="memory-lib-selector-header">
+      <div class="memory-lib-selector-title-content" (click)="changeFold()">
+        <div class="memory-lib-selector-title">
+          @if (isIconTip()) {
+            <span>{{ 'memory.management.title' | i18nextEager }}</span>
+            <span
+              nz-icon
+              nzType="question-circle"
+              nzTheme="outline"
+              nz-tooltip
+              [nzTooltipTitle]="'memory.selector.tip.quantitiesLimitation' | i18nextEager"
+              class="ml-4"
+            ></span>
+          } @else {
+            <span>{{ 'memory.management.title' | i18nextEager }}</span>
+          }
+        </div>
+
+        <div class="fold-state-container">
+          @if (_folded()) {
+            <span nz-icon nzType="up"></span>
+          } @else {
+            <span nz-icon nzType="down"></span>
+          }
+        </div>
+      </div>
+
+      <div class="memory-lib-selector-operation-container">
+        <div
+          class="memory-lib-add-container"
+          (click)="showMemoryLibSelectorHalfModal()"
+          nz-tooltip
+          [nzTooltipTitle]="'memory.selector.tip.add' | i18nextEager"
+        >
+          <span nz-icon nzType="plus" class="memory-lib-create-icon"></span>
+        </div>
+      </div>
+    </div>
+
+    @if (isDescTip()) {
+      <div class="memory-lib-selector-description">{{ 'memory.selector.tip.quantitiesLimitation' | i18nextEager }}</div>
+    }
+
+    <div class="memory-lib-container">
+      @for (memoryLib of _memoryLibs(); track memoryLib.memory_repo_id) {
+        <div class="memory-lib-card" [class.invalid]="memoryLib.invalid">
+          <div class="memory-lib-icon" [class.invalid-style]="memoryLib.invalid">
+            <img [src]="memoryLib.icon" alt="" />
+          </div>
+          <div class="memory-lib-basic-info-container">
+            <div class="memory-lib-name">
+              <!-- nzEllipsis 处理超长文本 -->
+              <div
+                class="memory-lib-content"
+                [class.invalid-style]="memoryLib.invalid"
+                nz-typography
+                nzEllipsis
+              >
+                {{ memoryLib.name }}
+              </div>
+              @if (memoryLib.invalid) {
+                <span
+                  nz-icon
+                  nzType="info-circle"
+                  nzTheme="fill"
+                  class="memory-lib-invalid-icon"
+                  nz-tooltip
+                  [nzTooltipTitle]="'memory.selector.tip.error.memoryInvalid' | i18nextEager"
+                ></span>
+              }
+            </div>
+            <div
+              class="memory-lib-description"
+              [class.invalid-style]="memoryLib.invalid"
+              nz-typography
+              nzEllipsis
+            >
+              {{ memoryLib.description }}
+            </div>
+          </div>
+
+          <div class="memory-lib-operation-wrapper">
+             <span
+               nz-icon
+               nzType="delete"
+               class="memory-lib-delete-icon"
+               nz-tooltip
+               [nzTooltipTitle]="'delete' | i18nextEager"
+               (click)="$event.stopPropagation(); deleteMemoryLib(memoryLib)"
+             ></span>
+          </div>
+        </div>
+      }
+    </div>
+  </nz-spin>
+</div>

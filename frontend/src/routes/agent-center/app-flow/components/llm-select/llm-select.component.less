@@ -1,0 +1,158 @@
+.acc-blk-wrapper {
+  width: 100%;
+  border-radius: 8px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.model-select-drop:hover{
+  color: rgba(20, 118, 255, 1) !important;
+}
+/* 当屏幕高度小于 1080px 时 */
+@media (max-height: 1080px) {
+  ::ng-deep {
+    .ant-select-dropdown:has(.llm-select-footer) {
+      height: 50%;
+    }
+  }
+}
+
+.extra-btn{
+  color: rgba(20, 118, 255, 1);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+}
+
+
+::ng-deep {
+  #llm-select {
+    .ant-select-selection-item{
+      height: 30px;
+    }
+    .ant-select-dropdown {
+      .ant-select-item-group {
+        height: auto !important;
+        margin-top: 10px;
+        position: relative;
+      }
+      .ant-select-item-disabled {
+        .model-select-drop:hover{
+          color: #bfbfbf !important;
+          cursor: not-allowed!important;
+        }
+      }
+    }
+  }
+  .ant-select-dropdown:has(.llm-select-footer) {
+    min-width: 485px !important;
+    z-index: 9999 !important;
+    .ant-select-selector {
+      height: auto !important;
+    }
+    .ant-select-item {
+      height: calc(100% - 61px);
+      padding-top: 0 !important;
+    }
+    .ant-select-search {
+      padding: 12px !important;
+      margin-bottom: 0px !important;
+      border-bottom: 1px solid rgba(219, 219, 219, 1);
+    }
+    .ant-select-selection-search {
+      border: 1px solid #ccc !important;
+      border-radius: 16px !important;
+    }
+
+    .ant-select-item-group::before {
+      content: "";
+      position: absolute;
+      top: 0px;
+      left: 10px;
+      width: calc(100% - 20px);
+      height: 1px;
+      background-color: #f0f0f0;
+    }
+
+    .ant-select-item-group:first-child {
+      padding-top: 0px;
+      margin-top: 0px;
+    }
+
+    .ant-select-item-group:first-child::before {
+      display: none;
+    }
+    .tag-img {
+      margin: 0 2px;
+      width: 18px;
+      height: 18px;
+    }
+
+  }
+  .ant-select-item-option-active:has(.extra-btn){
+    background: #ffffff !important;
+  }
+
+  .open-model-modal{
+    width: 700px !important;
+    .ant-modal-header{
+      padding: 24px !important;
+    }
+    .ant-modal-body{
+      padding: 0 24px !important;
+    }
+    .ant-modal-footer{
+      padding: 24px !important;
+    }
+  }
+
+  .select-placeholder {
+    color: #595959;
+  }
+}
+
+.status-box{
+  color: rgba(128, 128, 128, 1);
+  font-size: 12px !important;
+  margin-left: 8px;
+
+}
+.status-fail-box{
+  &:hover{
+    text-decoration: underline dashed;
+    text-underline-offset: 4px;
+  }
+}
+
+.service_name{
+  max-width: 150px;
+  overflow:hidden;
+  text-overflow: ellipsis;
+}
+
+.tip-content {}
+
+.select-error-class {
+  border-color: #dc3545 !important;
+  background-color: #f8d7da !important;
+}
+
+.error-class-icon {
+  color: #f23030;
+  margin-right: 4px;
+  font-size: 16px;
+}
+
+.error-class {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  color: #f23030;
+  font-size: 12px;
+  margin-top: 8px;
+}

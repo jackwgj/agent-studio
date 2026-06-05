@@ -1,0 +1,263 @@
+<div id="knowledge-example-container" *ngIf="isLoadeSuccess">
+  <div class="knowledge-header-container">
+    <div class="flex items-center">
+      <nz-icon nzType="left" nzTheme="outline"
+        *ngIf="showBackIcon"
+        class="mr-[8px] cursor-pointer text-[20px]"
+        (click)="onClickBack()"
+        style="color: #191919"
+      />
+      <img alt=""
+        class="mr-[12px] h-[32px] w-[32px] rounded-lg"
+        [src]="knowledgeBotInfo.icon"
+        *ngIf="knowledgeBotInfo.icon"
+      />
+      <div class="title">{{ knowledgeBotInfo.title }}</div>
+    </div>
+    <button nz-button
+      *ngIf="showBackIcon"
+      nzType="primary"
+      [nzLoading]="isLoadingCopyBtn"
+      (click)="copyToWorkbench()"
+      [disabled]="hasPermission()"
+    >
+      {{ 'copyToWorkbench' | i18nextEager }}
+    </button>
+  </div>
+
+  <nz-spin
+    *ngIf="isLoading"
+    class="loading-icon"
+    nzSimple
+  ></nz-spin>
+  <div style="height: calc(100% - 64px);background-color: #f5f7fa;">
+  <div *ngIf="!isLoading" class="main-wrapper-history">
+    <ng-container *ngIf="isDeepResearch">
+      <div class="task-list-box"  >
+        <deep-research-task-list [shortCode]="shortCode"></deep-research-task-list>
+      </div>
+      <div class="left-container-deep-research" >
+        <agent-deep-research-runtime
+          style="width: 100%"
+          [isRuntime]="true"
+          [agentInfo]="knowledgeBotInfo"
+          (expandDialogEnv)="handleClickCloseArticle()"
+          (viewArticleEnv)="handleClickViewArticle($event)"
+        />
+      </div>
+    </ng-container>
+
+
+    <div *ngIf="!isDeepResearch && curAgentModeCode === 'agent'" [ngClass]="isShowHistory ? 'narrow-left-container' : 'left-container'">
+      <nz-alert *ngIf="usedUp" class="!w-[auto] mt-[16px] ml-[24px] mr-[24px]" nzType="warning">
+        <span>{{'plugin_used_end_tip' | i18nextEager :{total: knowledgeBotInfo.free_trial_quota?.limit} }}</span>
+      </nz-alert>
+
+      <div class="flex justify-end gap-[12px] mt-[24px] px-[24px]">
+        <div class="chat-header-icon" nz-tooltip [nzTooltipTitle]="'agent_clear' | i18nextEager" >
+          <nz-icon nzType="clear" nzTheme="outline" (click)="clearChat()" />
+        </div>
+      </div>
+
+      <div
+        class="main-container"
+        [ngClass]="{ 'prologue-questions-margin': chatLoop.length === 0 }"
+        cdkScrollable
+        #chatContainerRef
+      >
+        <div class="chat-content-container">
+          <div class="h-full" *ngIf="chatLoop.length === 0">
+            <prologue-questions-area
+              class="flex h-full prologue-questions"
+              [knowledgeExampleInfo]="knowledgeBotInfo"
+              (clickQuestionCard)="handleClickQuestion($event)"
+            ></prologue-questions-area>
+          </div>
+          <div
+            class="chat-content"
+            *ngFor="let item of chatLoop; let i = index"
+          >
+            <div class="question-container">
+              <div class="user-question-text-wrapper">
+                <div class="user-upload-wrapper">
+                  <ng-container *ngFor="let fileItem of item.uploadData">
+                    <!-- 展示上传的文件 -->
+                    <div class="uploaded-file" *ngIf="fileItem.type === 'file'">
+                      <meta-upload-file-icon
+                        [fileName]="fileItem.name"
+                      ></meta-upload-file-icon>
+                      <span class="overflow-hidden whitespace-nowrap text-overflow-ellipsis">{{ fileItem.name }}</span>
+                    </div>
+                    <!-- 展示上传的图片 -->
+                    <div
+                      class="uploaded-image"
+                      *ngIf="fileItem.type === 'image'"
+                    >
+                      <img alt="" [src]="fileItem.url || fileItem.img" />
+                    </div>
+                  </ng-container>
+                </div>
+
+                <!-- 此处不能自动格式化保存，否则发送的用户问题开头会多一个空格，且使用trim无效 -->
+                <div class="user-question-text" style="white-space: pre-wrap">{{
+                  getTrimmedQuestion(item.showQuestion)
+                }}</div>
+              </div>
+            </div>
+
+            <div
+              [ngClass]="{ 'completed-animated-border': item.showBottomBtns }"
+            >
+              <div
+                class="answer-container"
+                *ngIf="item.showAnswer !== undefined || item.loading"
+              >
+              <div>
+                <div *ngIf="item.thinkValue" style="padding: 16px">
+                  <div class="flex justify-between gap-[48px]">
+                    <div class="flex gap-[12px]">
+                      <ng-container *ngIf="item.thinking; else completed">
+                        <img alt=""
+                          [src]="
+                          changeUrl(
+                            'assets/agent-center/icons/deep-loading-icon.svg'
+                          )
+                        "
+                        />
+                        <span>{{ 'thinking_deeply' | i18nextEager }}</span>
+                      </ng-container>
+                    </div>
+
+                    <nz-icon nzType="right" nzTheme="outline"
+                      class="unfolded cursor-pointer"
+                      [ngClass]="
+                      item.collapsed ? 'collapsed-icon' : 'unfolded-icon'
+                    "
+                      (click)="changeCollapsedState(item)"
+                    />
+                  </div>
+                  <div class="deep-seek-area" *ngIf="!item.collapsed">
+                    <div class="deep-seek-text mt-[12px]">
+                      {{ item.thinkValue }}
+                    </div>
+                    <div
+                      class="flex gap-[6px] self-center text-[#808080]"
+                      (click)="changeCollapsedState(item)"
+                    >
+                      <nz-icon nzType="right" nzTheme="outline"
+                        class="unfolded cursor-pointer"
+                        [ngClass]="
+                        item.collapsed ? 'collapsed-icon' : 'unfolded-icon'
+                      "
+                      />
+                      <span class="cursor-pointer">{{
+                          'retract' | i18nextEager
+                        }}</span>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <div class="top-answer-container">
+                    <div class="model-answer-text">
+                      <div *ngIf="item.loading && !item.showAnswer" class="chat-loading-message">
+                        <img alt=""
+                          [src]="changeUrl('assets/agent-center/images/running.webp')"
+                          [alt]="'loading' | i18nextEager"
+                        />
+                        <span>{{ 'recognizing_user_intent' | i18nextEager }}</span>
+                      </div>
+                      <app-markdown-answer
+                        class="md-answer-text markdown-no-bg"
+                        style="width: 100%"
+                        *ngIf="!item.loading && item.showAnswer"
+                        [(answer)]="item.showAnswer"
+                        [isError]="item.isShowRed"
+                        [isSupKBResolver]="true"
+                        [isRuntime]="true"
+                      ></app-markdown-answer>
+                    </div>
+                  </div>
+                  <div class="bottom-operators-container" *ngIf="item.showBottomBtns">
+                    <ng-container
+                      *ngIf="voiceEnable && timbre && item.showBottomBtns"
+                    >
+                      <button nz-button
+                        *ngIf="soundState !== 'loading'"
+                        type="button"
+                        class="chat-footer-icon"
+                        [disabled]="getText(item).length === 0"
+                        nz-tooltip [nzTooltipTitle]="'chatknowledgepagecomponent_1' | i18nextEager"
+                        (click)="onSoundOut(item)"
+                      >
+                        <nz-icon nzType="sound" nzTheme="outline"
+                          class="!text-[16px]"
+                          [style.color]="soundState === 'playing' ? '#1476ff' : '#808080'"
+                        />
+                      </button>
+                      <button nz-button
+                        *ngIf="soundState === 'loading'"
+                        class="chat-footer-icon"
+                      >
+                        <nz-icon nzType="loading" nzTheme="outline"
+                          class="!text-[16px]"
+                        />
+                      </button>
+                    </ng-container>
+                    <div class="chat-footer-icon" nz-tooltip [nzTooltipTitle]="'refresh' | i18nextEager">
+                      <span
+                        class="common-ops-icon refresh-chat-icon"
+                        [ngClass]="
+                          canRegenerate(item) ? 'abled-icon' : 'disabled-icon'
+                        "
+                        (click)="regenerate(item, i)"
+                      ></span>
+                    </div>
+                    <div class="chat-footer-icon" *ngIf="isVisibleOfLastBtns(item)" nz-tooltip [nzTooltipTitle]="item.showCopiedTip ? ('replicated_tip' | i18nextEager) : ('copy' | i18nextEager)">
+                      <span
+                        class="common-ops-icon copy-answer-icon abled-icon"
+                        (click)="copyAllAnswer(item, i)"
+                      ></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bottom-container" *ngIf="is_agreement">
+        <meta-sender
+          #sender
+          [showClear]="false"
+          [sending]="isShowStopIcon"
+          [maxlength]="userQueryLimit"
+          [aiDisclaimer]="'ai_generated_disclaimer_five' | i18nextEager"
+          [isDisableSender]="usedUp"
+          (send)="sendQuestion($event)"
+          (stop)="stopChat()"
+        />
+      </div>
+    </div>
+    <div class="left-container" *ngIf="!isDeepResearch && curAgentModeCode === 'planexecute'">
+      <preview-debug-plan style="height: 100%" [shortCode]="shortCode" [agentWebInfo]="knowledgeBotInfo"></preview-debug-plan>
+    </div>
+    <div class="pop-modal" *ngIf="showBackIcon">
+      <right-op-panel
+        [sources]="'app_market' | i18nextEager"
+        [headInfo]="knowledgeBotInfo"
+      />
+    </div>
+    <meta-var-memory-modal [actionType]="'VIEW'" [agentId]="shortCode" #varMemoryModalView></meta-var-memory-modal>
+<!--    <meta-long-memory-modal [agentId]="shortCode" #longMemoryModalView></meta-long-memory-modal>-->
+  </div>
+  </div>
+</div>
+
+<app-exceed-modal #appExceedModalKnow></app-exceed-modal>
+
+<ng-template #completed>
+  <img alt="" [src]="changeUrl('assets/agent-center/icons/deep-completed-icon.svg')" />
+  <span>{{ 'deeply_pondered' | i18nextEager }}</span>
+</ng-template>

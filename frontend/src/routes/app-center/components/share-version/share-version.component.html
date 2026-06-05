@@ -1,0 +1,54 @@
+<div>{{ 'sharedetailbtn-4' | i18nextEager }}</div>
+<div>
+  @if (isLoading) {
+    <nz-spin class="loading-icon" nzSimple nzSize="large"></nz-spin>
+  } @else {
+    @if (visionsList.length === 0) {
+      <div class="flex h-full flex-col items-center justify-center">
+        <no-data-icon></no-data-icon>
+        <span>{{ 'no_release_history' | i18nextEager }}</span>
+      </div>
+    } @else {
+      <div class="release-history-container">
+        @for (card of visionsList; track card.version_id; let i = $index) {
+          <div
+            class="flex gap-[8px] item"
+            [class.active]="selectedId === card.version_id"
+            (click)="cardClick($event, card, i)"
+          >
+            <div class="flex flex-col items-center gap-[4px]">
+              <div class="hollow-circle"></div>
+              <div class="vertical-line"></div>
+            </div>
+            <div class="version-card">
+              <div class="flex items-center gap-[10px] share-time">
+                <span class="label">{{ 'rightsharepanel-6' | i18nextEager }}</span>
+                <span>{{ shareInfo.released_on }}</span>
+              </div>
+              <div>
+                <span class="version_name">
+                  {{ card.version_name }}
+                </span>
+              </div>
+              <div class="flex items-center gap-[10px]">
+                <span class="label">ID</span>
+                <span>{{ card.version_id }}</span>
+              </div>
+              <div class="flex items-center gap-[10px]">
+                <span class="label">{{ 'rightsharepanel-2' | i18nextEager }}</span>
+                <span>{{ shareInfo.creator }}</span>
+              </div>
+              <div class="action flex items-center mt-2">
+                <a
+                  (click)="deleteVersionModal($event, card.version_id)"
+                >{{ 'sharedetailbtn-5' | i18nextEager }}</a>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  }
+</div>
+<div>
+</div>

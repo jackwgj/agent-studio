@@ -1,0 +1,63 @@
+<div class="model-service-compare-router">
+  <div class="debug-header-container flex-between">
+    <div class="title">{{ 'preview_debugging' | i18nextEager }}</div>
+    <div class="chat-header-icon" nz-tooltip [nzTooltipTitle]="'agent_clear' | i18nextEager" >
+      <nz-icon nzType="clear" nzTheme="outline" (click)="clearChat()" />
+    </div>
+  </div>
+
+  <div class="main-wrapper-history">
+    <div class="left-container">
+      <div
+        class="main-container"
+        cdkScrollable
+        #chatContainerRef
+        (scroll)="onScroll($event.target)"
+      >
+        <div
+          [ngClass]="
+            dialogHistory.length === 0
+              ? 'init-chat-content-container'
+              : 'chat-content-container gap-[24px]'
+          "
+        >
+          <ng-container *ngIf="dialogHistory.length > 0">
+            <div
+              class="chat-content"
+              *ngFor="let item of dialogHistory; let i = index"
+            >
+              <model-chat-item
+                class="flex flex-col gap-4"
+                [data]="item"
+                [conversationId]="uuid"
+                [messageId]="item[0].messageId"
+                [isError]="item[0].isError"
+                [agentName]="serviceInfo?.name"
+              ></model-chat-item>
+            </div>
+
+            <div *ngIf="isLoading" class="chat-loading-message">
+              <img alt=""
+                [src]="changeUrl('assets/agent-center/images/running.webp')"
+                [alt]="'loading' | i18nextEager"
+              />
+              <span>{{ 'recognizing_user_intent' | i18nextEager }}</span>
+            </div>
+          </ng-container>
+        </div>
+      </div>
+
+      <div class="bottom-container">
+        <model-meta-sender
+          [showClear]="false"
+          [sending]="isShowStopIcon"
+          [disabled]="!serviceInfo?.id"
+          [maxlength]="userQueryLimit"
+          (send)="sendQuestion($event)"
+          (stop)="stopChat()"
+        />
+      </div>
+
+    </div>
+  </div>
+</div>

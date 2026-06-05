@@ -1,0 +1,17 @@
+{
+  "kms-tip4": "如需更换加密方式，复制以下地址，联系租户管理员去修改",
+  "kms-btn1": "复制修改地址",
+  "kms-btn2": "更换加密方式",
+  "kms-modal-title": "加密方式",
+  "kms-modal-type1": "KMS加密",
+  "kms-modal-type2": "AgentsArts加密",
+  "kms-modal-tip1": "使用用户选择的密钥派生DEK",
+  "kms-modal-tip2": "加密密钥类型",
+  "kms-modal-tip3": "默认密钥为Jiuwen，实例不收费，每月2W次免费使用次数，解密时可以缓存，但在敏感数据很多时，可能超出2W次。",
+  "kms-modal-tip4": "自定义密钥实例和使用均收费。",
+  "kms-modal-tip5": "免费，由Jiuwen给每个租户生成一个租户主密钥，使用租户主密钥派生DEK。租户主密钥可以轮转，相对于KMS的用户主密钥。",
+  "kms-modal-subType1": "默认密钥",
+  "kms-modal-subType2": "自定义密钥",
+  "kms-modal-placeholder": "请选择秘钥",
+  "kms-modal-link": "查看KMS密钥"
+}

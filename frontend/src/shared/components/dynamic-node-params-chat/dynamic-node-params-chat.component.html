@@ -1,0 +1,211 @@
+<form [formGroup]="parameterFromGroup" class="form-container">
+  <div class="formfield-style">
+    <nz-form-item *ngFor="let inputItem of inputList; let i = index">
+      <nz-form-label class="flex justify-between" [nzNoColon]="true">
+        <div class="flex-center-left">
+          <span class="dynamic-param-label" nz-tooltip [nzTooltipTitle]="inputItem?.front_name || inputItem?.name">
+            {{ inputItem?.front_name || inputItem?.name }}
+          </span>
+          <span *ngIf="!inputItem.required">{{ 'optional' | i18nextEager }}</span>
+          <nz-icon
+            *ngIf="inputItem.description !== ''"
+            nzType="question-circle"
+            nzTheme="outline"
+            nz-tooltip
+            style="word-break: break-all"
+            [nzTooltipTitle]="inputItem.description"
+            nzTooltipPlacement="top"
+          />
+          <span class="dynamic-param-type">
+            {{ getType(inputItem) }}
+          </span>
+        </div>
+        <button
+          *ngIf="isShowMultiBtn(inputItem)"
+          nz-button
+          nzType="default"
+          [nzGhost]="true"
+          class="flex"
+          [disabled]="inputItem.uploadDatas?.length >= 10 || isUploading"
+          (click)="addMultiFile(i)"
+        >
+          <span class="flex items-center"><nz-icon nzType="plus" nzTheme="outline" /> {{ 'add' | i18nextEager }}</span>
+        </button>
+      </nz-form-label>
+      <nz-form-control>
+        <!-- string类型的输入参数 -->
+        <textarea
+          *ngIf="inputItem.type === 'string'"
+          class="textarea-content ant-input"
+          cdkTextareaAutosize
+          [cdkAutosizeMinRows]="1"
+          [placeholder]="getPlaceholder(inputItem)"
+          [formControlName]="inputItem.name"
+          (input)="handleUserInput(inputItem.name, inputItem.required)"
+        >
+        </textarea>
+        <!-- integer类型的输入参数 -->
+        <nz-input-number
+          *ngIf="inputItem.type === 'integer'"
+          class="number-content"
+          [nzPlaceHolder]="getPlaceholder(inputItem)"
+          [formControlName]="inputItem?.name"
+          [nzPrecision]="0"
+          (input)="handleUserInput(inputItem.name, inputItem.required)"
+        ></nz-input-number>
+        <!-- number类型的输入参数 -->
+        <nz-input-number
+          *ngIf="inputItem.type === 'number'"
+          class="number-content"
+          [nzPlaceHolder]="getPlaceholder(inputItem)"
+          [formControlName]="inputItem?.name"
+          (input)="handleUserInput(inputItem.name, inputItem.required)"
+        ></nz-input-number>
+        <!-- boolean类型的输入参数 -->
+        <nz-switch *ngIf="inputItem.type === 'boolean'" [formControlName]="inputItem?.name"></nz-switch>
+        <!-- object类型的输入参数 -->
+        <div class="editor-container" *ngIf="isShowEditor(inputItem.type)">
+          <div class="editor-header">
+            <span class="header-left">json</span>
+            <asset-format-icon
+              class="cursor-pointer"
+              (click)="formatJson(inputItem.name)"
+              nz-tooltip [nzTooltipTitle]="'format' | i18nextEager"
+            ></asset-format-icon>
+          </div>
+          <ngx-monaco-editor
+            #editor
+            class="input-json-editor"
+            [id]="inputItem.name + 'out'"
+            [options]="editorOptions"
+            [(ngModel)]="inputItem.controlValue"
+            [ngModelOptions]="{ standalone: true }"
+            [uri]="inputItem.modelUri"
+          ></ngx-monaco-editor>
+        </div>
+
+        <div *ngIf="inputItem.type.startsWith('file')">
+          <input
+            type="file"
+            #fileInput
+            class="hidden"
+            [multiple]="false"
+            [accept]="inputItem.type | fileAcc"
+            (change)="onUploadFile($event, inputItem, 'single')"
+          />
+          <div
+            *ngIf="!inputItem.file && !inputItem?.uploadData?.name"
+            (click)="fileInput.click()"
+            class="dotted-frame flex w-full cursor-pointer flex-col items-center rounded-[8px] border-2 border-dashed border-[#c2c2c2] bg-[#fff] pb-[16px] pt-[16px]"
+          >
+            <div class="flex items-center">
+              <img alt="" class="mr-[4px] mt-[6px]" [src]="changeUrl('assets/agent/file.svg')" />
+
+              <div class="mt-[6px] flex">
+                <div class="text-[14px] text-[#191919]">
+                  {{ 'the_current_blank_document_please' | i18nextEager }}
+                  {{ 'one_file_only' | i18nextEager }}
+                </div>
+              </div>
+            </div>
+            <div class="file-desc mt-[6px] text-[#808080]">
+              {{ inputItem.type | fileDesc }}
+            </div>
+          </div>
+          <div
+            *ngIf="inputItem.file || inputItem?.uploadData?.name"
+            class="flex w-full items-center rounded-[8px] border border-solid border-[#DBDBDB] bg-[#fff] p-[12px]"
+          >
+            <div class="mb-[8px] flex w-[100%] items-center rounded-[8px] bg-[#fafafa] p-[16px] pb-[9px] pt-[9px] file-item">
+              <nz-spin *ngIf="inputItem.uploadData.progress === 'loading'" nzSimple [nzSize]="'small'"></nz-spin>
+              <meta-upload-file-icon *ngIf="inputItem.uploadData.progress !== 'loading'" [fileName]="inputItem.uploadData.name"></meta-upload-file-icon>
+              <span
+                class="ml-[12px]"
+                [ngClass]="{
+                  'text-[#F23030]': inputItem.uploadData.progress === 'failed',
+                }"
+                nz-tooltip
+                [nzTooltipTitle]="inputItem.uploadData.name"
+              >
+                {{ inputItem.uploadData.name }}</span
+              >
+              <nz-icon nzType="delete" nzTheme="outline" (click)="removeFile(inputItem)" class="ml-auto cursor-pointer text-[16px]" />
+            </div>
+          </div>
+          <div class="error-tip flex w-full items-center" *ngIf="inputItem?.uploadData?.progress === 'failed'">
+            <nz-icon nzType="delete" nzTheme="outline" (click)="removeFile(inputItem)" class="mr-[6px] text-[#F23030]" />
+            {{ 'a_file_upload_failed' | i18nextEager }}
+            <div (click)="fileInput.click()" class="cursor-pointer text-[#1476ff] hover:underline">
+              {{ 'reupload' | i18nextEager }}
+            </div>
+          </div>
+        </div>
+        <!-- 多文件上传 -->
+        <div #multiFile *ngIf="inputItem.type.includes('array\<file')">
+          <input
+            type="file"
+            #fileInput
+            class="hidden"
+            [ngClass]="'input' + i"
+            multiple="multiple"
+            [accept]="inputItem.type | fileAcc"
+            (change)="onUploadFile($event, inputItem)"
+          />
+          <div
+            *ngIf="!inputItem.uploadDatas?.length"
+            (click)="fileInput.click()"
+            class="dotted-frame flex w-full cursor-pointer flex-col items-center rounded-[8px] border-2 border-dashed border-[#c2c2c2] bg-[#fff] pb-[16px] pt-[16px]"
+          >
+            <div class="flex items-center">
+              <img alt="" class="mr-[4px] mt-[6px]" [src]="changeUrl('assets/agent/file.svg')" />
+
+              <div class="mt-[6px] flex">
+                <div class="text-[14px] text-[#191919]">
+                  {{ 'the_current_blank_document_please' | i18nextEager }}
+                  {{ 'upload_max_ten_files' | i18nextEager }}
+                </div>
+              </div>
+            </div>
+            <div class="file-desc mt-[6px] text-[#808080]">
+              {{ inputItem.type | fileDesc }}
+            </div>
+          </div>
+          <div
+            *ngIf="inputItem.uploadDatas?.length"
+            class="flex w-full flex-col items-center rounded-[8px] border border-solid border-[#DBDBDB] bg-[#fff] p-[12px]"
+          >
+            <div
+              *ngFor="let fileItem of inputItem.uploadDatas"
+              class="mb-[8px] flex w-[100%] items-center rounded-[8px] bg-[#fafafa] p-[12px] pb-[9px] pt-[9px] upload-item"
+              (mouseenter)="fileItem.isHover = true"
+              (mouseleave)="fileItem.isHover = false"
+            >
+              <nz-spin *ngIf="fileItem.progress === 'loading'" nzSimple [nzSize]="'small'"></nz-spin>
+              <meta-upload-file-icon *ngIf="fileItem.progress !== 'loading'" [fileName]="fileItem.name"></meta-upload-file-icon>
+              <span class="ml-[12px]" [ngClass]="{ 'text-[#F23030]': fileItem.progress === 'failed' }" nz-tooltip [nzTooltipTitle]="fileItem.name"> {{ fileItem.name }}</span>
+              <nz-icon
+                nzType="delete"
+                nzTheme="outline"
+                class="ml-auto cursor-pointer text-[16px]"
+                [ngStyle]="{
+                  display: fileItem.isHover ? 'inline-block' : 'none',
+                }"
+                (click)="removeFile(inputItem, fileItem)"
+                [ngClass]="{
+                  'disabled-delete': isUploading && inputIndex !== i,
+                }"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="error-tip" *ngIf="inputItem.isError">
+          {{ 'correct_json' | i18nextEager }}
+        </div>
+        <div class="error-tip" *ngIf="inputItem.required && inputItem.isEmpty && inputItem?.uploadData?.progress !== 'failed'">
+          {{ inputItem.name }}{{ 'no_empty' | i18nextEager }}
+        </div>
+      </nz-form-control>
+    </nz-form-item>
+  </div>
+</form>

@@ -1,0 +1,24 @@
+<div class="flex-left">
+  <span [class]="optionData.id === selectDate ? 'selected-text' : ''">{{
+    optionData.label
+  }}</span>
+  <span
+    *ngIf="!optionData.disabled && optionData.id !== ALL_ITEM"
+    class="flex-left ml-[36px] mr-[4px]"
+  >
+    <nz-icon
+      class="icon-success mr-[4px]"
+      nzType="check-circle"
+      nzTheme="outline"
+    />
+    <span class="width20">{{ optionData.successCount }}</span>
+  </span>
+  <span *ngIf="!optionData.disabled && optionData.id !== ALL_ITEM" class="flex-left">
+    <nz-icon
+      class="icon-error mr-[4px]"
+      nzType="close-circle"
+      nzTheme="outline"
+    />
+    <span>{{ optionData.failCount }}</span>
+  </span>
+</div>

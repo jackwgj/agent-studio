@@ -1,0 +1,15 @@
+<div>
+  <div class="flex items-center gap-[10px]">
+    <img alt="" [src]="changeUrl('assets/prompt/alert.svg')" />
+    {{ 'delete_version_warn' | i18nextEager }}
+  </div>
+</div>
+<div>
+  <div class="text-[#808080]">{{ 'delete_version_tip' | i18nextEager }}</div>
+</div>
+<div class="btn-group" style="margin-top: 16px">
+  <button type="button" nz-button (click)="dismiss()">{{ 'cancel' | i18nextEager }}</button>
+  <button type="button" nz-button nzType="primary" (click)="deleteVersion()">
+    {{ 'ok' | i18nextEager }}
+  </button>
+</div>

@@ -1,0 +1,140 @@
+<div class="ant-modal-header">
+  <div class="header_title">{{ title }}</div>
+</div>
+<div class="ant-modal-body">
+  <form #myForm="ngForm">
+    <nz-form-item *ngIf="isApplyPage && !isEdit">
+      <nz-form-label>{{ 'edit_share_modal_1' | i18nextEager }}</nz-form-label>
+      <nz-form-control>
+        <div class="flex flex-col">
+          <div class="flex gap-[8px]">
+            <div class="w-[30%]">
+              <nz-select
+                class="combo-select-left !w-full"
+                [nzPlaceHolder]="'select_placeholder' | i18nextEager"
+                nzAllowClear
+                name="subFlowAction"
+                [(ngModel)]="typeSelect"
+                (ngModelChange)="onSelectType($event)"
+              >
+                <nz-option *ngFor="let item of typeOptions" [nzValue]="item.value" [nzLabel]="item.label"></nz-option>
+              </nz-select>
+            </div>
+            <div class="w-[70%]">
+              <nz-select
+                class="combo-select-right !w-full"
+                [(ngModel)]="applySelect"
+                (ngModelChange)="onSelectApply($event)"
+                nzShowSearch
+                nzAllowClear
+                [nzPlaceHolder]="'select_placeholder' | i18nextEager"
+                name="Agent"
+              >
+                <nz-option *ngFor="let item of applyOptions" [nzValue]="item.id" [nzLabel]="item.name" [nzDisabled]="item.disabled"></nz-option>
+              </nz-select>
+            </div>
+          </div>
+        </div>
+      </nz-form-control>
+    </nz-form-item>
+    <nz-form-item *ngIf="!isApplyPage && !isEdit">
+      <nz-form-label>{{ 'edit_share_modal_2' | i18nextEager }}</nz-form-label>
+      <nz-form-control>
+        <nz-select
+          class="!w-full"
+          name="plugin"
+          [(ngModel)]="pluginSelect"
+          (ngModelChange)="onSelectPlugin($event)"
+          [nzPlaceHolder]="'select_placeholder' | i18nextEager"
+        >
+          <nz-option *ngFor="let item of pluginOptions" [nzValue]="item.id" [nzLabel]="item.plugin_chinese_name" [nzDisabled]="item.disabled"></nz-option>
+        </nz-select>
+      </nz-form-control>
+    </nz-form-item>
+    <nz-form-item>
+      <nz-form-label>{{ 'edit_share_modal_3' | i18nextEager }}</nz-form-label>
+      <nz-form-control>
+        <nz-select class="!w-[452px]" nzMode="multiple" name="version" [(ngModel)]="versionSelect" [nzPlaceHolder]="'select_placeholder' | i18nextEager">
+          <nz-option *ngFor="let item of versionOptions" [nzValue]="item.version_id" [nzLabel]="item.version_name"></nz-option>
+        </nz-select>
+      </nz-form-control>
+    </nz-form-item>
+    <nz-form-item *ngIf="!isEdit">
+      <nz-form-label>{{ 'edit_share_modal_4' | i18nextEager }}</nz-form-label>
+      <nz-form-control>
+        <ul class="share-type-tabs">
+          <li
+            *ngFor="let item of shareTypeOptions"
+            [ngClass]="{ 'activated-item': item.active, 'disable-item': item.disable }"
+            (click)="changeShareType(item)"
+            nz-tooltip [nzTooltipTitle]="(item.disable ? 'edit_share_modal_5' : '') | i18nextEager"
+          >
+            <div class="type-name">{{ item.name }}</div>
+            <div>{{ item.label }}</div>
+          </li>
+        </ul>
+      </nz-form-control>
+    </nz-form-item>
+    <nz-form-item>
+      <nz-form-label>{{ 'edit_share_modal_6' | i18nextEager }}</nz-form-label>
+      <nz-form-control>
+        <nz-radio-group name="radiogroup" [(ngModel)]="allWorkspaceSelect" id="isAll">
+          <label nz-radio *ngFor="let item of allWorkspaceRadio" [nzValue]="item.value">{{ item.label }}</label>
+        </nz-radio-group>
+        <p class="text-[#808080] text-[12px] mt-2" *ngIf="isWorkspaceSelectAll">{{ 'edit_share_modal_7' | i18nextEager }}</p>
+      </nz-form-control>
+    </nz-form-item>
+    <nz-form-item *ngIf="!isWorkspaceSelectAll">
+      <nz-form-control>
+        <div class="mb-[8px]">
+          <nz-input-group nzSearch [nzSuffix]="searchSuffixTemplate" [nzAddOnAfter]="null">
+            <input nz-input [(ngModel)]="searchKey" name="searchKey" [placeholder]="'edit_share_modal_8' | i18nextEager" (ngModelChange)="search($event)" />
+          </nz-input-group>
+          <ng-template #searchSuffixTemplate>
+            <span nz-icon nzType="search"></span>
+          </ng-template>
+        </div>
+
+        <div class="mt-2">
+          <!-- 用于校验 -->
+          <input
+            type="text"
+            class="h-[0px] w-[0px]"
+            name="allCheckInput"
+            [(ngModel)]="shareWorkspaceSelect"
+          />
+          <label nz-checkbox name="allCheck" [(ngModel)]="isAllSelected" (ngModelChange)="onAllCheckedChange($event)">
+            {{ 'edit_share_modal_9' | i18nextEager }}
+          </label>
+          <div class="flex flex-wrap">
+            <span *ngFor="let item of showWorkspaceList; index as i" class="w-[46%] mt-2 mr-2 flex items-center">
+              <label nz-checkbox [name]="'workspace_' + item.id" [(ngModel)]="item.checked" (ngModelChange)="onItemCheckedChange(item, $event)"></label>
+              <span class="ml-2 w-[150px] align-middle overflow-hidden text-overflow-ellipsis whitespace-nowrap">{{ item.name }}</span>
+            </span>
+          </div>
+        </div>
+        <div class="relative mt-3 mb-2">
+          <div class="selected-count" *ngIf="totalNumber > 0">{{ 'edit_share_modal_10' | i18nextEager: { num: shareWorkspaceSelect.length } }}</div>
+          <nz-pagination
+            [(nzPageIndex)]="currentPage"
+            nzSize="small"
+            [nzPageSize]="pageSize.size"
+            [nzTotal]="totalNumber"
+            (nzPageIndexChange)="onPageUpdate()"
+          ></nz-pagination>
+        </div>
+        <div #checkWrapper></div>
+      </nz-form-control>
+    </nz-form-item>
+  </form>
+</div>
+<div class="ant-modal-footer">
+  <div class="flex justify-end gap-2">
+    <button type="button" nz-button (click)="dismiss()">
+      {{ 'cancel' | i18nextEager }}
+    </button>
+    <button type="button" nz-button (click)="onComfirm()" [nzLoading]="isConfirmLoading">
+      {{ 'ok' | i18nextEager }}
+    </button>
+  </div>
+</div>

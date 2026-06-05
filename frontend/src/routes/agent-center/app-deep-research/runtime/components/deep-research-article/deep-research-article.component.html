@@ -1,0 +1,23 @@
+<div class="deep-research-article-container " [class]="{'no-padding':width === '0%'}" >
+  <div class="flex-between mb-[2px]"  *ngIf="title">
+    <div class="article-title" >{{title}}</div>
+    <div class="flex">
+      <div class="close-icon" (click)="downloadFile()">
+        <nz-icon nzType="download" nzTheme="outline" />
+      </div>
+      <div class="close-icon middle-icon" (click)="copy()">
+        <nz-icon nzType="copy" nzTheme="outline" />
+      </div>
+      <div class="close-icon" (click)="handleClickCloseArticleEnv()">
+        <nz-icon nzType="close" nzTheme="outline" />
+      </div>
+    </div>
+  </div>
+  <div *ngIf="title" class="my-[16px] h-[1px] w-full bg-[#DBDBDB]"></div>
+  <app-markdown-answer
+    *ngIf="content"
+    class="content markdown-no-bg"
+    [(answer)]="content"
+  ></app-markdown-answer>
+
+</div>

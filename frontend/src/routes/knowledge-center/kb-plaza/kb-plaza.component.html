@@ -1,0 +1,66 @@
+<div class="kb-plaza-container">
+
+  <div class="kb-plaza-content">
+
+    <nz-tabset class="h-[30px]" (nzSelectedIndexChange)="changeAppTab($event)">
+      @for (tab of appTabs; track tab.id) {
+        <nz-tab [nzTitle]="tab.title">
+        </nz-tab>
+      }
+    </nz-tabset>
+    <div class="kb-card-title-container">
+      <div class="kb-plaza-title">{{ pageTitle() }}{{totalCount}}</div>
+      <div class="kb-plaza-operation">
+        <button nz-button nzType="primary" (click)="shareKbComponent.showKbShare()">{{ 'kb_share' | i18nextEager }}</button>
+        <share-kb #shareKbComponent (shareSuccess)="shareSuccess()"></share-kb>
+      </div>
+    </div>
+
+    <div class="kb-plaza-card-container">
+    <div class="kb-plaza-card-filter-container">
+      <nz-select
+        class="kb-type-filter-select"
+        *ngIf="kbAbilitiesService.isPermitThirdPartyKb"
+        nzAllowClear
+        [(ngModel)]="kbTypeSearchValue"
+        (ngModelChange)="getKBInSearch()"
+        [nzPlaceHolder]="'select_placeholder' | i18nextEager">
+        <nz-option *ngFor="let item of kbTypeOptions" [nzLabel]="item.label" [nzValue]="item.value">
+        </nz-option>
+      </nz-select>
+      <nz-input-search nzAllowClear (nzSearch)="getKBInSearch()">
+        <input
+          nz-input
+          class="plugin-searchbox"
+          [placeholder]="'search_and_filter' | i18nextEager"
+          [(ngModel)]="searchedTags"
+        />
+      </nz-input-search>
+      <button nz-button [nzType]="'default'" (click)="getKBInSearch()">
+        <span nz-icon nzType="reload"></span>
+      </button>
+    </div>
+    <nz-spin *ngIf="loading" nzSimple class="text-center"></nz-spin>
+    <div class="kb-plaza-card-list-container" #cardContainer>
+        <kb-card-display
+          [kbs]="kbList"
+          [displayConfig]="cardDisplayConfig"
+          [isMarket]="true"
+          (operationCallEmit)="getKBInSearch()"/>
+        <div class="kb-plaza-no-data" *ngIf="kbList.length === 0">
+          <app-new-common-no-data-with-btn
+            [type]=" searchedTags.length ? 'filterNoData' : 'noData'"
+            [firstLineData]="'no_data' | i18nextEager"
+            [noDataBtnStr]="searchedTags.length ? ('clear_filters'|i18nextEager) : ''"
+            (clear)="filterClearSearch()"
+          />
+        </div>
+        <div class="loading-content"
+             *ngIf="this.kbList.length < this.totalNumber && kbList.length && isCardScroll"
+             elIntersectionObs
+             (visible)="getKbs(true)"
+        >{{ 'loading' | i18nextEager }}</div>
+    </div>
+  </div>
+  </div>
+</div>

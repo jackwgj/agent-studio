@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) Huawei Technologies Co., Ltd. 2023-2023. All rights reserved.
+  -->
+
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.prompt.engineering.mapper.ShareResourcePromptMapper">
+    <resultMap id="BaseResultMap" type="com.openjiuwen.studio.prompt.engineering.entity.ShareResourcePromptEntity">
+        <id column="resource_id" jdbcType="VARCHAR" property="resourceId"/>
+        <result column="resource_name" jdbcType="VARCHAR" property="resourceName"/>
+        <result column="resource_type" jdbcType="VARCHAR" property="resourceType"/>
+        <result column="workspace_id" jdbcType="VARCHAR" property="workspaceId"/>
+        <result column="workspace_name" jdbcType="VARCHAR" property="workspaceName"/>
+        <result column="trace_id" jdbcType="VARCHAR" property="traceId"/>
+        <result column="version_list" jdbcType="VARCHAR" property="versionList"/>
+        <result column="project_id" jdbcType="VARCHAR" property="projectId"/>
+        <result column="tenant_id" jdbcType="VARCHAR" property="tenantId"/>
+        <result column="creator_id" jdbcType="VARCHAR" property="creatorId"/>
+        <result column="creator" jdbcType="VARCHAR" property="creator"/>
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+        <result column="updater_id" jdbcType="VARCHAR" property="updaterId"/>
+        <result column="updater" jdbcType="VARCHAR" property="updater"/>
+        <result column="update_time" jdbcType="TIMESTAMP" property="updateTime"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        resource_id,
+        resource_name,
+        resource_type,
+        workspace_id,
+        workspace_name,
+        trace_id,
+        version_list,
+        `project_id`,
+        tenant_id,
+        creator,
+        creator_id,
+        create_time,
+        updater_id,
+        updater,
+        update_time
+    </sql>
+
+    <select id="selectShareResourceEntityById" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_share_resource
+        where project_id = #{projectId}
+        and resource_id = #{resourceId}
+        and workspace_id = #{workspaceId}
+    </select>
+</mapper>

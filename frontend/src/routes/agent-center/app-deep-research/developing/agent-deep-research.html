@@ -1,0 +1,182 @@
+<div class="deep-research-container">
+  <div class="left-container"
+       [style]="{
+       width: leftAndRightAreaStyle.left.width,
+       padding: leftAndRightAreaStyle.left.padding,
+       marginRight: leftAndRightAreaStyle.left.marginRight
+       }"
+  >
+    <div class="main-container" [style]="{visibility: leftAndRightAreaStyle.left.width === '50%' ? 'visible' : 'hidden'}">
+      <div style="max-height: 300px">
+        <info-and-prompt-builder
+          [agentInfo]="agentInfo"
+          [isShowPrompt]="false"
+          (nameUpdated)="onUpdateName($event)"
+          (logoUpdated)="onUpdateLogo($event)"
+        ></info-and-prompt-builder>
+      </div>
+      <div class="capability-config">
+        <p class="title">{{ 'capacityConfig' | i18nextEager }}</p>
+        @for (config of capabilityConfig; track config.id; let i = $index) {
+          <div class="config">
+            <div class="header" (click)="handleClickCollapseIcon(config)">
+              <div style="display: flex; align-items: center; gap: 4px">
+                <nz-icon nzType="right" nzTheme="outline" class="unfolded" [ngClass]="config.collapsed ? 'collapsed-icon' : 'unfolded-icon'" />
+                <span>{{ config.name }}</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px">
+                @if (config.id === 'knowledge') {
+                  <div class="icon-border"
+                       (click)="handleClickConfigData($event, config)"
+                  >
+                    <div class="kb-conf">
+                      <div
+                        *ngIf="false"
+                        class="model-config-tip"
+                        [hidden]="!showModelConfigTip"
+                        (click)="$event.stopPropagation()"
+                      >
+                        <model-config-tip
+                          [availableModels]="availableModels"
+                          [modelConfig]="modelConfig"
+                          [isVisible]="showModelConfigTip"
+                          [isShowLLMSelect]="false"
+                          [arrowStyle]="{left: '-6px', top: '200px'}"
+                        ></model-config-tip>
+                      </div>
+                      <div
+                        style="left: 24px"
+                        class="kb-conf"
+                        [title]="'advanced' | i18nextEager"
+                        (click)="onClickKbConf($event)"
+                        #kbConfRef="nzTooltip"
+                        nz-tooltip
+                        [nzTooltipTitle]="kbConfRefCmp"
+                        nzTooltipTrigger="click"
+                        nzTooltipColor="#fff"
+                        [nzTooltipTitleContext]="kbTipCtx"
+                        (nzTooltipVisibleChange)="onShowKbConfTip($event)"
+                        [nzTooltipOverlayStyle]="{ maxWidth: '90vw', width: '520px' }"
+                      ></div>
+                      <ng-template #kbConfRefCmp>
+                        <kb-conf
+                          style="width: 500px"
+                          [param]="kbParams"
+                          [kbId]="kbTipCtx.kbId"
+                          [selectedNum]="kbTipCtx.selectedNum"
+                          (updatedParam)="kbTipCtx.outputs.updatedParam($event)"
+                        ></kb-conf>
+                      </ng-template>
+                    </div>
+                  </div>
+                }
+                @if (config.id !== 'model') {
+                  <div class="icon-border" (click)="handleClickAddData($event, config)">
+                    <nz-icon nzType="plus" nzTheme="outline" class="text-[14px]" />
+                  </div>
+                }
+              </div>
+            </div>
+            <div class="config-content"
+                 [ngStyle]="{
+                 'max-height': config.collapsed ? null : 'inherit',
+                 'margin-bottom': config.collapsed ? '0px' : '8px'
+                 }"
+            >
+              @if (isShowCapabilityConfigDesc(config, i)) {
+                <p class="config-description">
+                  {{ config.description }}
+                </p>
+              }
+              @if (config.id === 'model') {
+                <llm-select
+                  style="width: 100%"
+                  [panelAlign]="'left'"
+                  [selectedModel]="modelSelected"
+                  (update)="planChangeModelSelected($event)"
+                ></llm-select>
+              }
+              @if (config.id === 'knowledge') {
+                @if (config.data?.length) {
+                  <div class="knowledge-list">
+                    @for (knowledgeItem of config.data; track knowledgeItem.id) {
+                      <div
+                        class="knowledge-item"
+                        (mouseenter)="knowledgeItem.hover = true"
+                        (mouseleave)="knowledgeItem.hover = false"
+                        [ngStyle]="{
+                      'background-color': getBgColor(knowledgeItem, 'kb')
+                    }"
+                      >
+                        <div class="knowledge-item-left">
+                          <img
+                            class="tool-common-icon"
+                            [src]="knowledgeItem.icon || kbDefaultIcon"
+                            alt=""
+                          />
+                          <span
+                            class="knowledgeName max-w-[150px] leading-[1] text-ellipsis"
+                          >
+                            {{ knowledgeItem?.knowledge_repo_name }}
+                          </span>
+                          <nz-icon nzType="exclamation-circle" nzTheme="outline" *ngIf="'CLOSE' === knowledgeItem.status" class="cursor-pointer text-[#f23030]" nz-tooltip
+                                   [nzTooltipTitle]="('knowledge_stop_tip' | i18nextEager)" />
+                        </div>
+                        @if (knowledgeItem?.hover && !isFlowReadonly && !kbAbilitiesService.isResourceDisabled) {
+                          <img
+                            [src]="changeUrl('assets/agent-center/images/reduce.svg')"
+                            (click)="deleteOneKnowledge(knowledgeItem)"
+                            style="font-size: 18px" alt=""
+                          />
+                        }
+                      </div>
+                    }
+                  </div>
+                }
+              }
+              @if (!isShowCapabilityConfigDesc(config, i) && config.id !== 'model' && config.id !== 'knowledge') {
+                @for (item of config.data; track item.id) {
+                  <div class="list-data"
+                       [style]="{'background': item.hover ? '#f0f7ff' : 'rgb(250, 250, 250)'}"
+                       (mouseenter)="item.hover = true"
+                       (mouseleave)="item.hover = false"
+                  >
+                    <p style="width: 30px; height: 30px">
+                      <img  [src]="config.id === 'template' ? changeUrl(item.icon) : item.icon" alt="" class="w-[30px] h-[30px] rounded-[6px]" />
+                    </p>
+                    <p style="display: flex; flex-direction: column; width: calc(100% - 70px)">
+                      <span style="font-size: 12px; color: rgb(25, 25, 25)">{{ item.name }}</span>
+                      <span class="desc">{{ item.description }}</span>
+                    </p>
+                    @if (item?.hover) {
+                      <img  [src]="changeUrl('assets/agent-center/images/reduce.svg')"
+                           (click)="deleteData(config)"
+                           style="font-size: 18px" alt=""
+                      />
+                    }
+                  </div>
+                }
+              }
+            </div>
+            <div class="cut-line"></div>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+  <div class="right-container"
+       [style]="{
+       width: leftAndRightAreaStyle.right.width,
+       marginLeft: leftAndRightAreaStyle.right.marginLeft
+       }">
+    <agent-deep-research-runtime
+      [agentInfo]="agentInfo"
+      [searchEngine]="searchEngine"
+      [agentType]="agentInfo.agentSubType"
+      (expandDialogEnv)="isExpandRuntimeArea($event)"
+      (viewArticleEnv)="viewArticleArea($event)"
+    />
+  </div>
+</div>
+
+<knowledge-base-creation #kbCreation></knowledge-base-creation>

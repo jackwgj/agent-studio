@@ -1,0 +1,47 @@
+{
+  "type": "jiuwen.planner.components.plan_modules.pre_selector:PreSelector",
+  "version": "1.0.1",
+  "schemaVersion": "0.5",
+  "classInfo": {
+    "modulePath": "jiuwen.planner.components.plan_modules.pre_selector",
+    "className": "PreSelector",
+    "programLanguage": "python",
+    "filePath": "jiuwen/planner/components/planning_modules/pre_selector.pyc"
+  },
+  "inputs": [
+  ],
+  "outputs": [
+    {
+      "id": "plugin_candidate_ids",
+      "description": "选择的id列表",
+      "type": "List[String]"
+    },
+    {
+      "id": "workflow_candidate_ids",
+      "description": "选择的id列表",
+      "type": "List[String]"
+    },
+    {
+      "id": "dialogueHistory",
+      "type": "List<Map<String, T>>",
+      "description": "包含历史对话的消息列表"
+    },
+    {
+      "id": "query",
+      "type": "String",
+      "description": "用户的当前query，用于作为对话历史和插件列表优选的key"
+    }
+  ],
+  "configs": [
+    {
+      "id": "plugins",
+      "type": "List<Map<String, T>>",
+      "description": "供大模型调用的插件列表"
+    },
+    {
+      "id": "workflows",
+      "type": "List<Map<String, T>>",
+      "description": "供大模型调用的workflow列表"
+    }
+  ]
+}

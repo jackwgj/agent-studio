@@ -1,0 +1,196 @@
+::ng-deep {
+  #flow-ques-modal-body {
+    padding-bottom: 16px;
+
+    .modal-acc-body {
+      background-color: #fff !important;
+      padding: 0px !important;
+      margin-top: 8px;
+    }
+
+    .modal-acc-head {
+      padding: 0px !important;
+      height: fit-content;
+
+      .ti3-accordion-panel-title-content {
+        margin-left: 0px !important;
+      }
+
+      .ti3-accordion-panel-title-icon {
+        padding-bottom: 6px !important;
+      }
+
+      .ti3-accordion-panel-title {
+        gap: 8px;
+        flex-direction: row-reverse;
+        justify-content: left;
+      }
+    }
+
+    ti-accordion-item {
+      border: none !important;
+      background-color: transparent !important;
+    }
+
+    .ti3-btn-item.ti3-btn-item-radio {
+      max-width: unset !important;
+    }
+  }
+
+  .tp-halfmodal-cotent meta-questioner-modal {
+    display: block;
+    height: 100%;
+  }
+}
+
+.modal-block {
+  padding: 16px;
+  background-color: #fafafa;
+  border-radius: 8px;
+}
+
+.ref-btn {
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+::ng-deep {
+  .a-form-checkbox {
+    .ti3-checkbox-skin {
+      margin-right: 0px !important;
+    }
+  }
+}
+
+.flow-questioner-modes {
+  display: flex;
+  width: 240px;
+
+  ::ng-deep .ant-radio-button-wrapper {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+
+    >span:not(.ant-radio-button) {
+      display: flex;
+      justify-content: center;
+      width: 100%;
+    }
+
+    .mode-content {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .mode-icon {
+      font-size: 14px;
+      color: rgba(0, 0, 0, 0.45);
+      display: flex;
+    }
+  }
+}
+
+.text-line {
+  line-height: 28px;
+}
+
+.expend-more {
+  background-color: #f5f5f5;
+  padding: 10px 0;
+  border-radius: 8px;
+  padding: 8px;
+  flex-wrap: wrap;
+
+  .expend-icon {
+    position: relative;
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+
+    tp-icon:first-child {
+      position: absolute;
+      rotate: -90deg;
+      font-size: 14px;
+      top: -2px;
+    }
+
+    tp-icon:nth-child(2) {
+      position: absolute;
+      rotate: -90deg;
+      top: 3px;
+      font-size: 14px;
+    }
+  }
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+// 替换meta-acc-block子组件的样式，避免修改公共组件，影响其他模块
+:host ::ng-deep {
+  meta-acc-block .flex-class {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+
+.intelligent-add-border {
+  border-radius: 6px;
+  width: 24px;
+  height: 24px;
+  padding: 4px;
+
+  &:hover {
+    border-color: #856afd;
+    background-color: #F2F5FC;
+  }
+}
+
+.disabled {
+  cursor: not-allowed;
+  border-color: #dbdbdb;
+}
+
+.enabled {
+  cursor: pointer;
+  padding: 4px;
+}
+
+.icon-border {
+  border-radius: 6px;
+  padding: 4px;
+  cursor: pointer;
+  border: none;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    border-color: #191919;
+    background-color: #F2F5FC;
+  }
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+.error-tip {
+  color: #ff4d4f;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.input-error {
+  border-color: #ff4d4f !important;
+}

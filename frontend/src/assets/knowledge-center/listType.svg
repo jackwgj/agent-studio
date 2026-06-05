@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="16px" height="16px" viewBox="0 0 16 16" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <g id="提示语管理" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="创建的提示语" transform="translate(-1800.000000, -290.000000)">
+            <g id="编组-3" transform="translate(284.000000, 282.000000)">
+                <g id="组件/tabs/AB/图标/默认备份" transform="translate(1508.000000, 0.000000)">
+                    <g id="-mockplus-" transform="translate(8.000000, 8.000000)">
+                        <g id="编组" transform="translate(1.977976, 3.250000)">
+                            <line x1="3.13161457" y1="4.75" x2="11.5751144" y2="4.75" id="路径-17" stroke="#191919" stroke-linecap="round" stroke-linejoin="round"></line>
+                            <line x1="3.13161457" y1="0.75" x2="11.5751144" y2="0.75" id="路径-17备份" stroke="#191919" stroke-linecap="round" stroke-linejoin="round"></line>
+                            <line x1="3.13161457" y1="8.75" x2="11.5751144" y2="8.75" id="路径-17备份-3" stroke="#191919" stroke-linecap="round" stroke-linejoin="round"></line>
+                            <path d="M0.75,8 C1.16421356,8 1.5,8.33578644 1.5,8.75 C1.5,9.16421356 1.16421356,9.5 0.75,9.5 C0.335786438,9.5 0,9.16421356 0,8.75 C0,8.33578644 0.335786438,8 0.75,8 Z" id="矩形备份-108" fill="#191919"></path>
+                            <path d="M0.75,4 C1.16421356,4 1.5,4.33578644 1.5,4.75 C1.5,5.16421356 1.16421356,5.5 0.75,5.5 C0.335786438,5.5 0,5.16421356 0,4.75 C0,4.33578644 0.335786438,4 0.75,4 Z" id="矩形备份-109" fill="#191919"></path>
+                            <path d="M0.75,0 C1.16421356,0 1.5,0.335786438 1.5,0.75 C1.5,1.16421356 1.16421356,1.5 0.75,1.5 C0.335786438,1.5 0,1.16421356 0,0.75 C0,0.335786438 0.335786438,0 0.75,0 Z" id="矩形备份-110" fill="#191919"></path>
+                        </g>
+                    </g>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg>

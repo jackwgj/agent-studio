@@ -1,0 +1,66 @@
+<div class="input-data-params relative">
+  <div class="data-area relative" [ngClass]="{ 'data-area-err': isErr, 'data-area-send': isSend }">
+    <div class="back" *ngIf="!showBackground">
+    </div>
+    <div class="back-border" *ngIf="!showBackground">
+    </div>
+    <div class="back-white" [ngClass]="{ 'back-white-create': showBackground, 'back-white-create-err': isErr, 'back-shadow': isNeedShadow }"></div>
+    <textarea
+      class="input"
+      id="textarea-resize-none"
+      [placeholder]="(isSend ? 'please_enter_your_requirements' : 'overview_71') | i18nextEager"
+      [(ngModel)]="inputValue"
+      nz-input
+      (keydown)="onKeydown($event)"
+      (ngModelChange)="valueChange($event)"
+    ></textarea>
+    <div class="option">
+      <div class="option-left">
+        <div *ngIf="false" class="switch" nz-tooltip [nzTooltipTitle]="'overview_73' | i18nextEager">
+          <span class="mr-[12px]">spec driven</span>
+          <nz-switch [(ngModel)]="switchState" id="option-switch" />
+        </div>
+      </div>
+      <div class="option-right">
+        <div *ngIf="!isSending && !isCreate && !isSend && hasContent()" class="sendMessage" (click)="sendMessage()"></div>
+        <div *ngIf="isSending && !isCreate && !isSend" class="sendingMessage">
+          <div class="sending-icon"></div>
+        </div>
+        <div
+          *ngIf="isSend && !isSending"
+          class="send-button-wrapper"
+          [class.disabled]="
+            !hasContent() || isSendDisabled
+          "
+          (click)="sendMessage()"
+        >
+          <img alt=""
+            [src]="changeUrl('assets/spec-driven/send.svg')"
+            class="send-img"
+            [class.rotate-icon]="isSending"
+            [alt]="'send' | i18nextEager"
+          />
+        </div>
+        <div
+          *ngIf="isSend && isSending"
+          class="nl2-stop-button"
+          (click)="stopSendMsg()"
+        >
+          <div class="mr-[6px] relative">
+            <div class="rotating-stop-icon"></div>
+            <div class="rotating-stop-dot-icon"></div>
+          </div>
+          <div tiOverflow>{{ 'stop_answering_nl' | i18nextEager }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div *ngIf="!isCreate && !isSend" class="input-data-demo">
+  <ng-container *ngFor="let option of supportDemoOptions; index as index">
+    <div class="demo" (click)="selectDemo(option)">
+      <img alt="" *ngIf="option.iconUrl" [src]="option.iconUrl" class="demo-img">
+      <div class="demo-title">{{option.title}}</div>
+    </div>
+  </ng-container>
+</div>

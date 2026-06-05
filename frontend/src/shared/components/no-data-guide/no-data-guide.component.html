@@ -1,0 +1,64 @@
+<div id="no-data-guide">
+  <div class="big-content" *ngIf="guideConfig&&!isSmall">
+    <div class="main-title">
+      {{ guideConfig.title }}
+    </div>
+    <div class="main-desc">
+      {{ guideConfig.desc }}
+    </div>
+    <div class="step-content"
+         [ngClass]="{
+      'col-four': guideConfig?.stepList?.length === 4,
+      }">
+      <div class="step-item" *ngFor="let item of guideConfig.stepList;let i = index;">
+        <div class="item-title">{{ item.title }}</div>
+        <div class="item-desc" nz-tooltip [nzTooltipTitle]="tipContent">
+          <ng-container *ngTemplateOutlet="descTem;context: { item: item }"></ng-container>
+        </div>
+        <div class="item-index">0{{i+1}}</div>
+        <img class="item-img" [src]="item.icon" alt="">
+      </div>
+    </div>
+  </div>
+
+  <div class="small-content" *ngIf="guideConfig&&isSmall">
+    <div class="step-content"
+      [ngClass]="{
+      'col-four': guideConfig?.stepList?.length === 4,
+      'col-three': guideConfig?.stepList?.length === 3,
+      'col-two': guideConfig?.stepList?.length === 2,
+      }">
+      <div class="step-item" *ngFor="let item of guideConfig.stepList;let i = index;"
+      >
+        <div class="left-content">
+          <div class="item-index">{{getStep(i+1)}}</div>
+          <div class="item-title">{{ item.title }}</div>
+          <div class="item-desc">
+            <ng-container *ngTemplateOutlet="descTem;context: { item: item }"></ng-container>
+          </div>
+        </div>
+        <div class="right-content">
+          <img class="item-img" [src]="item.icon" alt="">
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<ng-template #tipContent let-context="context">
+  <ng-container *ngTemplateOutlet="descTem;context: { item: context }"></ng-container>
+</ng-template>
+
+<ng-template #descTem let-item="item">
+  <ng-container *ngIf="!item?.descList?.length">
+    {{ item?.desc }}
+  </ng-container>
+  <ng-container *ngIf="item?.descList?.length">
+      <ng-container *ngFor="let part of item.descList">
+        <ng-container *ngIf="part.type === 'text'">{{ part.content }}</ng-container>
+        <a *ngIf="part.type === 'link'" (click)="clickHandler(part.clickData)" class="clickable-text">
+          {{ part.content }}
+        </a>
+      </ng-container>
+  </ng-container>
+</ng-template>

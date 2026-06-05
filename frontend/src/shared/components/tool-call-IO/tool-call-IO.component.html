@@ -1,0 +1,128 @@
+<div *ngIf="toolCallIO.request" class="flex flex-col gap-2">
+  <span class="title">{{ 'input_parameter' | i18nextEager }}</span>
+  <div *ngIf="isString(toolCallIO.request); else requestObj">{{
+    toolCallIO.request
+  }}</div>
+  <ng-template #requestObj>
+    <ng-container *ngIf="isEmptyArray(toolCallIO.request)">
+      <div>[]</div>
+    </ng-container>
+    <ng-container *ngIf="isArray(toolCallIO.request); else objTmpl">
+      <div *ngFor="let item of convertToIterable(toolCallIO.request)">
+        {{ convertItemToString(item) }}
+      </div>
+    </ng-container>
+    <ng-template #objTmpl>
+      <ng-container
+        *ngIf="isEmptyObject(toolCallIO.request); else iterateRequest"
+      >
+        <span>&#123;&#125;</span>
+      </ng-container>
+      <ng-template #iterateRequest>
+        <div *ngFor="let key of objectKeys(toolCallIO.request)">
+          <strong class="text-[#2868C3]">{{ key }}: </strong>
+          <ng-container
+            *ngIf="
+              isObject(toolCallIO.request[key]) &&
+                !isString(toolCallIO.request[key]);
+              else checkOtherTypes
+            "
+          >
+            <ng-container
+              *ngIf="isEmptyObject(toolCallIO.request[key]); else objValueTmpl"
+            >
+              <span>&#123;&#125;</span>
+            </ng-container>
+            <ng-template #objValueTmpl>
+              <span>{{ toolCallIO.request[key] | json }}</span>
+            </ng-template>
+          </ng-container>
+          <ng-template #checkOtherTypes>
+            <ng-container
+              *ngIf="isArray(toolCallIO.request[key]); else stringValueTmpl"
+            >
+              <ng-container
+                *ngIf="toolCallIO.request[key].length > 0; else emptyArray"
+              >
+                <span *ngFor="let item of toolCallIO.request[key]">{{
+                  convertItemToString(item)
+                }}</span>
+              </ng-container>
+              <ng-template #emptyArray>
+                <span>[]</span>
+              </ng-template>
+            </ng-container>
+            <ng-template #stringValueTmpl>
+              <span>{{ toolCallIO.request[key] }}</span>
+            </ng-template>
+          </ng-template>
+        </div>
+      </ng-template>
+    </ng-template>
+  </ng-template>
+</div>
+
+<div *ngIf="toolCallIO.response" class="flex flex-col gap-2">
+  <span class="title">{{ 'return_result' | i18nextEager }}</span>
+  <div *ngIf="isString(toolCallIO.response); else responseObj">{{
+    toolCallIO.response
+  }}</div>
+  <ng-template #responseObj>
+    <ng-container *ngIf="isEmptyArray(toolCallIO.response)">
+      <div>[]</div>
+    </ng-container>
+    <ng-container *ngIf="isArray(toolCallIO.response); else objTmpl">
+      <div *ngFor="let item of convertToIterable(toolCallIO.response)">
+        {{ convertItemToString(item) }}
+      </div>
+    </ng-container>
+    <ng-template #objTmpl>
+      <ng-container
+        *ngIf="isEmptyObject(toolCallIO.response); else iterateResponse"
+      >
+        <span>&#123;&#125;</span>
+      </ng-container>
+      <ng-template #iterateResponse>
+        <div *ngFor="let key of objectKeys(toolCallIO.response)">
+          <strong class="text-[#2868C3]">{{ key }}: </strong>
+          <ng-container
+            *ngIf="
+              isObject(toolCallIO.response[key]) &&
+                !isString(toolCallIO.response[key]);
+              else checkOtherTypes
+            "
+          >
+            <ng-container
+              *ngIf="isEmptyObject(toolCallIO.response[key]); else objValueTmpl"
+            >
+              <span>&#123;&#125;</span>
+            </ng-container>
+            <ng-template #objValueTmpl>
+              <span>{{ toolCallIO.response[key] | json }}</span>
+            </ng-template>
+          </ng-container>
+
+          <ng-template #checkOtherTypes>
+            <ng-container
+              *ngIf="isArray(toolCallIO.response[key]); else stringValueTmpl"
+            >
+              <ng-container
+                *ngIf="toolCallIO.response[key].length > 0; else emptyArray"
+              >
+                <span *ngFor="let item of toolCallIO.response[key]">{{
+                  convertItemToString(item)
+                }}</span>
+              </ng-container>
+              <ng-template #emptyArray>
+                <span>[]</span>
+              </ng-template>
+            </ng-container>
+            <ng-template #stringValueTmpl>
+              <span>{{ toolCallIO.response[key] }}</span>
+            </ng-template>
+          </ng-template>
+        </div>
+      </ng-template>
+    </ng-template>
+  </ng-template>
+</div>

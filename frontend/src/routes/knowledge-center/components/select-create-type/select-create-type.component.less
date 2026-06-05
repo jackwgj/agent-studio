@@ -1,0 +1,74 @@
+.select-create-type-class {
+  width: 500px;
+}
+
+#select-create-type {
+  padding-top: 4px;
+  padding-bottom: 4px;
+  .alert-tip {
+    margin-bottom: 12px;
+    width: 100%;
+  }
+
+  .to-access {
+    margin-top: -2px;
+  }
+
+  .card-group {
+    display: flex;
+    justify-content: space-between;
+
+    .card-set {
+      width: 100%;
+      height: 100%;
+
+      .card-header {
+        font-size: 16px;
+        line-height: 24px;
+        font-weight: bold;
+      }
+
+      .card-content {
+        font-size: 12px;
+        font-weight: 400;
+        line-height: 18px;
+        color: rgba(128, 128, 128, 1);
+        margin-top: 10px;
+      }
+      .base-config {
+        display: flex;
+        justify-content: flex-start;
+        color: rgba(20, 118, 255, 1);
+        margin-top: 8px;
+        .base-config-icon {
+          background-image: url('../../../../assets/knowledge-center/base_config.svg');
+          height: 18px;
+          background-repeat: no-repeat;
+          width: 18px;
+        }
+
+        .base-config-link {
+          font-size: 12px;
+          font-weight: 400;
+          line-height: 18px;
+          text-align: left;
+        }
+      }
+    }
+  }
+}
+
+::ng-deep .select-create-type-class {
+  .tp-selectitem-box:last-child {
+    margin-right: 0 !important;
+  }
+}
+
+::ng-deep .ti3-modal-header {
+  padding: 24px 32px!important;
+}
+
+::ng-deep .ti3-modal-footer {
+  padding: 24px 32px!important;
+}
+

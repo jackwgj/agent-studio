@@ -1,0 +1,197 @@
+<div class="overview">
+  <div class="new-overview" [style]="{ minHeight: newOverivewHeight }">
+    <div class="new-overview-title">
+      <span class="new-overview-title-left">
+        {{ 'overview_1' | i18nextEager }}
+      </span>
+      <span class="new-overview-title-right">Open Jiuwen</span>
+    </div>
+
+    <div class="new-overview-title-tip">
+      {{ 'overview_3' | i18nextEager }}
+    </div>
+
+    <div class="new-overview-learn-title">
+      <ng-container *ngFor="let cardItem of cardList; index as i">
+        <div
+          [class]="
+            this.overviewActive === cardItem.key
+              ? 'new-overview-learn-title-text-active'
+              : 'new-overview-learn-title-text'
+          "
+          (click)="setOverviewActive(cardItem.key)"
+        >
+          {{ cardItem.name }}
+        </div>
+        <div
+          class="new-overview-learn-title-line"
+          *ngIf="i < cardList.length - 1"
+        ></div>
+      </ng-container>
+    </div>
+
+    <div
+      *ngIf="showtop"
+      [class]="
+        getCardInfoList(this.overviewActive).length <= 2
+          ? 'rowcard-two'
+          : 'rowcard-third'
+      "
+    >
+      <div
+        *ngFor="let learnItem of getCardInfoList(this.overviewActive)"
+        [class]="
+          getCardInfoList(this.overviewActive).length <= 2
+            ? 'new-overview-learn-card card-bgimg-two'
+            : 'new-overview-learn-card card-bgimg-third'
+        "
+        [style]="{
+          backgroundColor: learnItem.bg,
+          backgroundImage: learnItem.icon
+        }"
+      >
+        <div class="new-overview-learn-card-left-t">
+          <div class="new-overview-learn-card-left-t-text">
+            {{ learnItem.title }}
+          </div>
+        </div>
+        <div class="new-overview-learn-card-left-m">
+          <div
+            class="new-overview-learn-card-left-m-text line-clamp-2"
+            [class]="
+              getCardInfoList(this.overviewActive).length <= 2
+                ? 'card-text-two'
+                : 'card-text-third'
+            "
+          >
+            {{ learnItem.tip }}
+          </div>
+        </div>
+        <div class="new-overview-learn-card-left-b">
+          <div
+            *ngFor="let btnItem of learnItem.btns"
+            (click)="btnItem?.clickFun()"
+            [class]="btnItem.class"
+            [nz-tooltip]="btnItem?.tip ? btnItem?.tip : ''"
+          >
+            {{ btnItem?.name }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="partTwoLoad" *ngIf="isShowAssetCard === 0">
+      <p class="tutorial-title workspace" style="margin: 16px 0">
+        <span style="display: inline-block; margin-right: 5%">{{
+          contentLoading
+        }}</span>
+        <img
+          [src]="changeUrl('assets/images/menu/loading.webp')"
+          alt=""
+          style="margin-top: 50px; margin-left: 50%; margin-bottom: 50px"
+        />
+      </p>
+    </div>
+
+    <div
+      class="new-overview-samestyle-title"
+      *ngIf="isShowAssetCard !== 0 && samestyleList && samestyleList.length > 0"
+    >
+      <div class="new-overview-samestyle-title-l">
+        {{ 'overview_4' | i18nextEager }}
+      </div>
+      <div
+        [class]="'new-overview-samestyle-title-r'"
+        (click)="showAllApp()"
+      >
+        {{ 'overview_5' | i18nextEager }}
+      </div>
+    </div>
+
+    <div
+      class="rowcard-third"
+      *ngIf="isShowAssetCard !== 0 && samestyleList && samestyleList.length > 0"
+    >
+      <div
+        class="new-overview-samestyle-content-card"
+        *ngFor="let userBItem of samestyleList"
+      >
+        <div class="new-overview-samestyle-content-card-t">
+          <img alt=""
+            [src]="userBItem.icon"
+            class="new-overview-samestyle-content-card-t-l"
+          />
+
+          <div class="new-overview-samestyle-content-card-t-r">
+            <div class="new-overview-samestyle-content-card-t-r-title">
+              <div class="new-overview-samestyle-content-card-t-r-title-text">
+                {{ userBItem.title }}
+              </div>
+            </div>
+            <div class="new-overview-samestyle-content-card-t-r-content">
+              <div
+                *ngIf="userBItem.resource_type_new === 'agent'"
+                class="new-overview-samestyle-content-card-t-r-content-tip-a"
+              >
+                {{ userBItem.resource_type_name }}
+              </div>
+              <div
+                *ngIf="userBItem.resource_type_new === 'controller'"
+                class="new-overview-samestyle-content-card-t-r-content-tip-b"
+              >
+                {{ userBItem.resource_type_name }}
+              </div>
+              <div
+                *ngIf="userBItem.resource_type_new === 'chat'"
+                class="new-overview-samestyle-content-card-t-r-content-tip-c"
+              >
+                {{ userBItem.resource_type_name }}
+              </div>
+              <div
+                *ngIf="userBItem.resource_type_new === 'task'"
+                class="new-overview-samestyle-content-card-t-r-content-tip-d"
+              >
+                {{ userBItem.resource_type_name }}
+              </div>
+
+              <div
+                *ngFor="let tags of userBItem.showTags"
+                class="new-overview-samestyle-content-card-t-r-content-tip-t"
+              >
+                {{ lang === 'zh-cn' ? tags.name : tags.name_en }}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="new-overview-samestyle-content-card-m">
+          <div
+            class="new-overview-samestyle-content-card-m-text line-clamp-2"
+          >
+            {{ userBItem.desc }}
+          </div>
+        </div>
+        <div class="new-overview-samestyle-content-card-b">
+          <div class="new-overview-samestyle-content-card-b-l">
+            <div
+              [class]="'new-overview-samestyle-content-card-b-l-link'"
+              (click)="toCardDetail(userBItem)"
+            >
+              {{ 'overview_6' | i18nextEager }}
+            </div>
+            <div
+              [class]="showCreateAppRole !== 'OPERATOR'
+                  ? 'new-overview-samestyle-content-card-b-l-link'
+                  : 'new-overview-samestyle-content-card-b-l-link-disable'
+              "
+              (click)="toCardCopy(userBItem)"
+            >
+              {{ 'overview_7' | i18nextEager }}
+            </div>
+          </div>
+          <div class="new-overview-samestyle-content-card-b-r"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<app-exceed-modal #exceedModal></app-exceed-modal>

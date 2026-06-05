@@ -1,0 +1,48 @@
+.hide-header {
+  .section-header {
+    display: none;
+  }
+}
+
+::ng-deep .link-tip-class {
+  font-size: 16px;
+  transform: translateY(1px);
+  display: inline-block;
+  cursor: pointer;
+}
+
+::ng-deep #knowledge-form-drawer,
+::ng-deep #edit-knowledge-form-drawer,
+::ng-deep #advance-knowledge-form-drawer,
+::ng-deep #overview-knowledge-form-drawer {
+
+  .basic-info-container {
+    .ant-card-head {
+      padding-top: 0;
+      border-bottom: none;
+    }
+  }
+
+  table {
+    width: 100%;
+  }
+
+  .ant-card-head {
+    padding-left: 0;
+  }
+
+  .ant-card-body {
+    padding-left: 0;
+    padding-bottom: 0 !important;
+  }
+
+  .ant-form-item {
+    margin-bottom: 16px !important;
+  }
+}
+
+:host ::ng-deep {
+  table {
+    width: 100%;
+  }
+}

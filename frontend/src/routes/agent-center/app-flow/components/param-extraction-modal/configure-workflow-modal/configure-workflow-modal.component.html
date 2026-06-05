@@ -1,0 +1,257 @@
+<!-- <ti-modal-header>
+  <div class="flex gap-2">
+    <p>{{'configureworkflowmodalcomponent_452'| i18nextEager}}</p>
+  </div>
+
+</ti-modal-header>
+<ti-modal-body id="flow-modal-body">
+  <div class="h-full w-full overflow-x-hidden">
+    <meta-acc-block
+      class="mt-2 block"
+      [title]="'input_params' | i18nextEager"
+    >
+      <ng-template #right>
+        <div
+          class="fill-flow-icon"
+          [tiTip]="placeholder_1"
+          tiTipPosition="top"
+          (click)="fillInputParam()"
+        ></div>
+      </ng-template>
+      <ng-template #content>
+        <div class="mt-2 flex items-center gap-2">
+          <div class="w-1/4 text-label">
+            {{ 'param_name' | i18nextEager }}
+          </div>
+          <div class="w-3/4 text-label">{{ 'type' | i18nextEager }}</div>
+        </div>
+
+        <form #inputForm="ngForm">
+          <div
+            *ngFor="let param of inputParams; index as i"
+            class="mt-2 flex gap-2"
+          >
+            <div
+              class="flex h-[28px] w-1/4 shrink-0 items-center leading-[18px] text-label"
+            >
+                  <span class="max-w-[calc(100%-48px)]" tiOverflow>
+                    {{ param.name }}
+                  </span>
+              <span *ngIf="!param.required">{{
+                  'optional' | i18nextEager
+                }}</span>
+            </div>
+            <div class="flex w-3/4 shrink-0 gap-[8px]">
+              <div
+                class="flex h-fit w-[calc(100%-16px)] items-center gap-2"
+              >
+                <div class="flex w-full">
+                  <div class="w-[30%]">
+                    <ti-select
+                      class="combo-select-left"
+                      style="width: 100%"
+                      [options]="param.options"
+                      [name]="'inputFormType' + i"
+                      [(ngModel)]="param.value.type"
+                      valueKey="value"
+                      (ngModelChange)="onInputTypeChange(param)"
+                    ></ti-select>
+                  </div>
+
+                  <div class="w-[70%]">
+                    <input
+                      class="combo-select-right"
+                      *ngIf="
+                            param.value.type === 'literal' &&
+                            !isArrOrObj(param.type)
+                          "
+                      style="width: 100%"
+                      type="text"
+                      [name]="'inputFormValue' + i"
+                      [tiValidation]="{ type: 'changeAlert' }"
+                      [nonEmptyValidator]="param.required"
+                      [errorMessageWrapper]="valueWrapper"
+                      tiText
+                      [placeholder]="'input_placeholder' | i18nextEager"
+                      [(ngModel)]="param.value.content"
+                      [title]="param.value.content"
+                    />
+
+                    <typed-json-input
+                      *ngIf="isArrOrObj(param.type)"
+                      [param]="param"
+                      [isValidated]="isValidated"
+                    ></typed-json-input>
+
+                    <ti-treeselect
+                      class="combo-select-right"
+                      style="width: 100%"
+                      *ngIf="param.value.type === 'ref'"
+                      [options]="param.refs"
+                      [(ngModel)]="param.value.content"
+                      [placeholder]="'select_placeholder' | i18nextEager"
+                      [refSelectedRequire]="param.required"
+                      [name]="'inputFormValue' + i"
+                      [appendToBody]="false"
+                      (beforeOpen)="setDifferentTypeDisabled($event, param)"
+                      panelWidth="auto"
+                      [panelAlign]="'right'"
+                      [searchable]="true"
+                      labelKey="name"
+                      [clearable]="true"
+                    >
+                      <ng-template #item let-item let-i="index">
+                        <meta-param-tree [item]="item" />
+                      </ng-template>
+                    </ti-treeselect>
+
+                    <div class="w-full" #valueWrapper></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </form>
+      </ng-template>
+    </meta-acc-block>
+
+    <div class="my-[16px] h-[1px] w-full bg-[#f0f0f0]"></div>
+
+    <meta-acc-block
+      class="mt-4 block"
+      [title]="'output_params' | i18nextEager"
+    >
+      <ng-template #content>
+        <readonly-params-tree [params]="flow.outputs" />
+      </ng-template>
+    </meta-acc-block>
+    <div class="my-[16px] h-[1px] w-full bg-[#f0f0f0]"></div>
+
+    <meta-acc-block
+      class="mt-4 block"
+    >
+      <ng-template #blockTitle>
+          <span class="font-bold">{{
+              'configureworkflowmodalcomponent_453' | i18nextEager
+            }}</span>
+        <tp-icon
+          [tiTip]="'configureworkflowmodalcomponent_447'| i18nextEager"
+          class="cursor-pointer"
+          name="cloudx-action-help"
+        />
+      </ng-template>
+      <ng-template #right>
+        <div
+          class="fill-flow-icon"
+          [tiTip]="placeholder_1"
+          tiTipPosition="top"
+          (click)="fillContextParam()"
+        ></div>
+      </ng-template>
+      <ng-template #content>
+        <div class="mt-2 flex items-center gap-2">
+          <div class="w-1/4 text-label">
+            {{ 'variable_name' | i18nextEager }}
+          </div>
+          <div class="w-3/4 text-label">{{ 'type' | i18nextEager }}</div>
+        </div>
+
+        <form #contextForm="ngForm">
+          <div
+            *ngFor="let param of contextParams; index as i"
+            class="mt-2 flex gap-2"
+          >
+            <div
+              class="flex h-[28px] w-1/4 shrink-0 items-center leading-[18px] text-label"
+            >
+                  <span class="max-w-[calc(100%-48px)]" tiOverflow>
+                    {{ param.name }}
+                  </span>
+              <span *ngIf="!param.required">{{
+                  'optional' | i18nextEager
+                }}</span>
+            </div>
+            <div class="flex w-3/4 shrink-0 gap-[8px]">
+              <div
+                class="flex h-fit w-[calc(100%-16px)] items-center gap-2"
+              >
+                <div class="flex w-full">
+                  <div class="w-[30%]">
+                    <ti-select
+                      class="combo-select-left"
+                      style="width: 100%"
+                      [options]="options"
+                      [name]="'inputFormType' + i"
+                      [(ngModel)]="param.value.type"
+                      [disabled]="true"
+                      valueKey="value"
+                      (ngModelChange)="onInputTypeChange(param)"
+                    ></ti-select>
+                  </div>
+
+                  <div class="w-[70%]">
+                    <ti-treeselect
+                      class="combo-select-right"
+                      style="width: 100%"
+                      [options]="param.refs"
+                      [(ngModel)]="param.value.content"
+                      [placeholder]="'select_placeholder' | i18nextEager"
+                      [refSelectedRequire]="false"
+                      [name]="'inputFormValue' + i"
+                      [appendToBody]="false"
+                      (beforeOpen)="setDifferentTypeDisabled($event, param)"
+                      panelWidth="auto"
+                      [panelAlign]="'right'"
+                      [searchable]="true"
+                      [clearable]="true"
+                      labelKey="name"
+                    >
+                      <ng-template #item let-item let-i="index">
+                        <meta-param-tree [item]="item" />
+                      </ng-template>
+                    </ti-treeselect>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </form>
+      </ng-template>
+    </meta-acc-block>
+
+    <div class="my-[16px] h-[1px] w-full bg-[#f0f0f0]"></div>
+    <condition-modal #conditionModal [entryCondition]="entry_condition"
+                     [conditionRefOptions]="conditionRefOptions"
+                     [title]="'configureworkflowmodalcomponent_443'| i18nextEager"
+                     [titleTip]="'configureworkflowmodalcomponent_449'| i18nextEager"></condition-modal>
+    <meta-acc-block
+      class="block w-full"
+      [title]="'configureworkflowmodalcomponent_445'| i18nextEager"
+    >
+      <ng-template #content>
+            <textarea
+              tiTextarea
+              tiValidation
+              [placeholder]="'input_placeholder' | i18nextEager"
+              [(ngModel)]="flow.description"
+              class="!w-full h-[104px] mt-4"
+              maxlength="512"
+              resize="none"
+            ></textarea>
+      </ng-template>
+    </meta-acc-block>
+  </div>
+</ti-modal-body>
+<ti-modal-footer>
+  <button
+    (click)="cancel()"
+    type="button"
+    tiButton
+    style="margin-right: 8px"
+  >
+    {{ 'cancel' | i18nextEager }}
+  </button>
+  <button (click)="onConfirm()" type="button" tiButton color="danger">
+    {{ 'ok' | i18nextEager }}
+  </button>
+</ti-modal-footer> -->

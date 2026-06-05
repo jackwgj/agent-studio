@@ -1,0 +1,27 @@
+<div id="image-uploader"
+     (mouseenter)="mouseEnter = true"
+     (mouseleave)="mouseEnter = false">
+  <!-- 图片预览区域 -->
+  <div *ngIf="imagePreview"
+       class="preview-container">
+    <img [src]="imagePreview" alt="Preview" class="preview-image" />
+
+    <!-- 删除按钮（悬停显示） -->
+    <div *ngIf="mouseEnter && isPermitDel" (click)="$event.stopPropagation(); handleDelete()" class="delete-overlay">
+      <nz-icon nzType="delete" nzTheme="outline" class="delete-icon" />
+    </div>
+  </div>
+
+  <!-- 上传区域 -->
+  <div *ngIf="!imagePreview || (!isPermitDel && mouseEnter)" (click)="triggerFileInput()" class="upload-area">
+    <img [src]="changeUrl('assets/knowledge-center/editKb.svg')" alt=""/>
+  </div>
+  <!-- 加载状态 -->
+  <div *ngIf="isUploading" class="upload-status">
+    {{ 'uploading'|i18nextEager }}
+  </div>
+  <input #fileInput (change)="handleFileChange($event)" type="file" [accept]="accept" class="file-input" />
+</div>
+<div class="upload-tip">
+  {{ 'knowledge.upload.tip' | i18nextEager: { suffix: accept } }}
+</div>

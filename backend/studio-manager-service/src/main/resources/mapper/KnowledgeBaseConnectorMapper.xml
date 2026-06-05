@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.agent.agentbase.mapper.KnowledgeBaseConnectorMapper">
+    <resultMap id="BaseResultMap" type="com.openjiuwen.studio.agent.agentbase.entity.KnowledgeBaseConnectorEntity">
+        <id column="id" jdbcType="VARCHAR" property="id"/>
+        <result column="name" jdbcType="VARCHAR" property="name"/>
+        <result column="icon" jdbcType="VARCHAR" property="icon"/>
+        <result column="description" jdbcType="VARCHAR" property="description"/>
+        <result column="deploy_mode" jdbcType="VARCHAR" property="deployMode"/>
+        <result column="type" jdbcType="VARCHAR" property="type"/>
+        <result column="param_definition" jdbcType="VARCHAR" property="params"
+                typeHandler="com.openjiuwen.studio.agent.agentbase.mapper.handler.KnowledgeBaseConnectorParamListHandler"/>
+        <result column="help_text" jdbcType="VARCHAR" property="helpText"/>
+        <result column="project_id" jdbcType="VARCHAR" property="projectId"/>
+        <result column="domain_id" jdbcType="VARCHAR" property="domainId"/>
+        <result column="domain_name" jdbcType="VARCHAR" property="domainName"/>
+        <result column="create_user_id" jdbcType="VARCHAR" property="createdUserId"/>
+        <result column="create_user_name" jdbcType="VARCHAR" property="createdUserName"/>
+        <result column="create_time" jdbcType="BIGINT" property="createTime"/>
+        <result column="workspace_id" jdbcType="VARCHAR" property="workspaceId"/>
+        <result column="update_user_id" jdbcType="VARCHAR" property="updateUserId"/>
+        <result column="update_user_name" jdbcType="VARCHAR" property="updateUserName"/>
+        <result column="update_time" jdbcType="BIGINT" property="updateTime"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id
+        ,
+        name,
+        icon,
+        description,
+        deploy_mode,
+        type,
+        param_definition,
+        help_text,
+        project_id,
+        domain_id,
+        domain_name,
+        create_user_id,
+        create_user_name,
+        create_time,
+        workspace_id,
+        update_user_id,
+        update_user_name,
+        update_time
+    </sql>
+
+    <select id="find" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_knowledge_base_connector
+        where id = #{id}
+    </select>
+
+    <select id="listKnowledgeBaseConnectors" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_knowledge_base_connector
+        WHERE type = 'Outside'
+        AND LOWER(CONCAT(',', deploy_mode, ',')) LIKE LOWER(CONCAT('%,', #{deploy_mode}, ',%'))
+    </select>
+</mapper>

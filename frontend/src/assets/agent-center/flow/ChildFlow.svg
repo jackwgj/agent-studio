@@ -1,0 +1,42 @@
+<svg width="28.000000" height="28.000000" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+	<desc>
+			Created with Pixso.
+	</desc>
+	<defs>
+		<filter id="filter_558_1682_dd" x="3.881958" y="-3.400391" width="26.581238" height="22.348633" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+			<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+			<feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+			<feOffset dx="0" dy="0"/>
+			<feGaussianBlur stdDeviation="2.66667"/>
+			<feComposite in2="hardAlpha" operator="out" k2="-1" k3="1"/>
+			<feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0.67059 0 0 0 0 0.92941 0 0 0 1 0"/>
+			<feBlend mode="normal" in2="BackgroundImageFix" result="effect_dropShadow_1"/>
+			<feBlend mode="normal" in="SourceGraphic" in2="effect_dropShadow_1" result="shape"/>
+		</filter>
+		<filter id="filter_558_1683_dd" x="-2.466797" y="9.297119" width="26.581238" height="22.348633" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+			<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+			<feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+			<feOffset dx="0" dy="0"/>
+			<feGaussianBlur stdDeviation="2.66667"/>
+			<feComposite in2="hardAlpha" operator="out" k2="-1" k3="1"/>
+			<feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0.67059 0 0 0 0 0.92941 0 0 0 1 0"/>
+			<feBlend mode="normal" in2="BackgroundImageFix" result="effect_dropShadow_1"/>
+			<feBlend mode="normal" in="SourceGraphic" in2="effect_dropShadow_1" result="shape"/>
+		</filter>
+		<clipPath id="clip558_1677">
+			<rect id="画板 2" width="28.000000" height="28.000000" fill="white" fill-opacity="0"/>
+		</clipPath>
+	</defs>
+	<rect id="画板 2" width="28.000000" height="28.000000" fill="#FFFFFF" fill-opacity="0"/>
+	<g clip-path="url(#clip558_1677)">
+		<rect id="矩形 " rx="6.000000" width="28.000006" height="28.000000" fill="#00C2F6" fill-opacity="1.000000"/>
+		<path id="连线" d="M16.11 14.12L7.53 14.12C6.42 14.12 5.53 13.22 5.53 12.12L5.53 9.77C5.53 8.66 6.42 7.77 7.53 7.77L16.11 7.77" stroke="#FFFFFF" stroke-opacity="1.000000" stroke-width="1.800000"/>
+		<path id="连线" d="M11.88 14.12L20.46 14.12C21.56 14.12 22.46 15.01 22.46 16.12L22.46 18.47C22.46 19.57 21.56 20.47 20.46 20.47L11.88 20.47" stroke="#FFFFFF" stroke-opacity="1.000000" stroke-width="1.800000"/>
+		<g filter="url(#filter_558_1682_dd)">
+			<rect id="矩形" x="11.881958" y="4.599609" rx="2.000000" width="10.581250" height="6.348751" fill="#FFFFFF" fill-opacity="1.000000"/>
+		</g>
+		<g filter="url(#filter_558_1683_dd)">
+			<rect id="矩形" x="5.533203" y="17.297119" rx="2.000000" width="10.581250" height="6.348751" fill="#FFFFFF" fill-opacity="1.000000"/>
+		</g>
+	</g>
+</svg>

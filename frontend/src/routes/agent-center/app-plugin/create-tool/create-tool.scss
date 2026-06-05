@@ -1,0 +1,203 @@
+::ng-deep {
+  .tp-halfmodal-cotent create-tool {
+    display: block;
+    height: 100%;
+  }
+}
+
+::ng-deep .header-steps {
+  width: 100%;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.ti3-modal-footer {
+  margin-right: 16px;
+  text-align: right;
+  padding-top: 16px;
+  padding-right: 0;
+}
+
+.plugin-footer {
+  position: fixed;
+  bottom: 32px;
+  right: 0px;
+}
+
+::ng-deep .tp-halfmodal-footer-line {}
+
+::ng-deep .ti-formfield {
+  margin-bottom: 16px;
+}
+
+::ng-deep .ti3-radio {
+  margin-right: 8px;
+}
+
+::ng-deep #argName {
+  .ti3-unifyvalid-tip-error-container {
+    width: 200%;
+  }
+}
+
+.label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #575D6C;
+  font-size: 14px;
+  padding-bottom: 8px;
+  white-space: nowrap;
+
+  .label_add {
+    display: flex;
+    align-items: center;
+    color: #1476ff;
+
+    .my-icon-size {
+      margin-right: 5px;
+      cursor: pointer;
+    }
+
+    span {
+      cursor: pointer;
+      line-height: 0;
+    }
+  }
+}
+
+.tipIcon {
+  display: flex;
+  align-items: center;
+  color: #808080;
+
+  .my-icon-size {
+    margin-right: 5px;
+  }
+
+  p {
+    line-height: 0;
+  }
+}
+
+.plugin-auth-info {
+  ::ng-deep .mb-4 {
+    >ti-formfield {
+      >table {
+        >tbody {
+          >tr {
+            td:nth-child(2) {
+              width: 0 !important;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  ::ng-deep .ti3-accordion-panel-body {
+    border-top: none !important;
+    padding-top: 0px;
+  }
+
+  ::ng-deep .ti3-accordion-panel-heading {
+    padding-top: 12px !important;
+    height: 58px !important;
+  }
+
+  ::ng-deep .ti3-accordion-panel-title {
+    font-weight: bold;
+  }
+}
+
+.plugin-op-icon {
+  tp-icon {
+    padding-top: 0px !important;
+  }
+}
+
+::ng-deep {
+  .a-form-checkbox {
+    .ti3-checkbox-skin {
+      margin-right: 0px !important;
+    }
+  }
+}
+
+.snd-step {
+  overflow-x: hidden;
+}
+
+::ng-deep {
+
+  #cp-req-tree,
+  #cp-res-tree {
+    .ti3-tree-content-box {
+      padding-left: 0;
+      padding-right: 0;
+      cursor: default;
+      min-height: 28px;
+      line-height: 28px;
+      align-items: normal;
+
+      .ti3-icon-minus-square,
+      .ti3-icon-plus-square {
+        margin-top: 6px;
+      }
+
+      .ti3-tree-item-guide-line {
+        left: -16px;
+      }
+
+      .ti3-tree-node-text-wrapper {
+        &:hover {
+          background-color: #fafafa;
+        }
+
+        padding-left: 0px;
+        width: 100%;
+      }
+
+      .ti3-tree-item-active {
+        background: inherit;
+        font-weight: inherit;
+        color: inherit;
+      }
+    }
+  }
+}
+
+.padding-heard {
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+
+.parameter-encapsulation {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.streaming-response {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+}
+
+.params-tip {
+  color: rgba(128, 128, 128, 1);
+  font-size: 12px;
+  line-height: 18px;
+  margin-bottom: 16px;
+}
+
+.error-tip {
+  color: #ff4d4f;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.input-error {
+  border-color: #ff4d4f !important;
+}

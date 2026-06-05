@@ -1,0 +1,128 @@
+<div class="card-wrapper bg-white p-[16px] rounded-[8px]" (mouseenter)="showSelectAll = true;" (mouseleave)="showSelectAll = false;">
+  <div class="relative flex items-center">
+    <div class="flex-1 flex">
+      <img class="w-[40px] h-[40px]" [src]="data.icon" alt="icon" />
+      <div class="flex-1 ml-[16px] mr-[16px]">
+        <div class="flex items-center mb-[4px]">
+          <p class="max-w-[160px] truncate mb-[0]" [title]="data.name">{{ data.name }}</p>
+          <nz-tag *ngFor="let tag of data.tag" class="!m-[0px] !ml-[8px] cursor-pointer" nzSize="small" nz-tooltip
+                  [nzTooltipTitle]="tag.tip"
+                  [nzColor]="tag.color === 'green' ? 'success' : tag.color === 'orange' ? 'warning' : 'default'">
+            {{ tag.text | i18nextEager }}
+          </nz-tag>
+        </div>
+        <p class="break-words text-[12px] leading-[18px] text-[#808080]  max-w-[360px] overflow-hidden line-clamp-3 mb-[0]" [title]="data.description">
+          {{ data.description || '--' }}
+        </p>
+        <div *ngIf="showWorkspace" class="flex items-center text-[#808080]">
+          <nz-icon nzType="user" nzTheme="outline" class="mr-1 !text-[16px]"></nz-icon>
+          <span class="max-w-[130px] text-overflow">
+            {{ data.workspace_name || data.workspace_id }}
+          </span>
+          <ng-container *ngIf="data.version_info_list?.length">
+            <span class="pl-2 pr-2">|</span>
+            <div class="version-info-list-div">
+              {{ 'version_name'|i18nextEager }}:
+              <nz-select
+                class="!max-w-[130px]"
+                [nzDropdownMatchSelectWidth]="false"
+                [(ngModel)]="data.last_version_id"
+                (click)="onVersionClick($event)"
+                (ngModelChange)="onVersionSelect(data)"
+                [nzPlaceHolder]="'select_placeholder'|i18nextEager"
+              >
+                @for (item of data.version_info_list; track item.version_id) {
+                  <nz-option [nzValue]="item.version_id" [nzLabel]="item.version_name"></nz-option>
+                }
+              </nz-select>
+            </div>
+          </ng-container>
+        </div>
+      </div>
+    </div>
+    <div>
+      <button
+        *ngIf="isNeed"
+        type="button"
+        nz-button
+        nzType="default"
+        (click)="toggleForm()"
+      >
+        {{ 'activate_now' | i18nextEager }}
+        <nz-icon
+          nzType="right"
+          nzTheme="outline"
+          class="!text-[#1476ff] transition-all"
+          [ngClass]="{ '-rotate-90': !isShowOtherForm && isShowForm }"
+        />
+      </button>
+      <ng-container *ngIf="!isNeed" [ngSwitch]="data?.fc_instance_status">
+        <button *ngSwitchCase="'stackFail'" nz-button nzType="default" (click)="redeploy()">
+          {{ 'redeploy' | i18nextEager }}
+        </button>
+        <div *ngSwitchCase="'creatingStack'" class="flex items-center">
+          <nz-spin nzSimple class="mr-[4px] h-[16px]"></nz-spin>
+          <p class="leading-[18px] align-middle deploying-text">{{ 'deploying' | i18nextEager }}</p>
+        </div>
+        <div *ngSwitchDefault class="flex items-center">
+          <span [hidden]="showSelectAll && tools.length > 0" class="mr-[4px] tool-num">{{ selectedToolText }}</span>
+          <span [hidden]="!showSelectAll || tools.length === 0" class="cursor-pointer all-btn" [ngClass]="selectAllBtn.class" (click)="addAllTools()">{{ selectAllBtn.text }}</span>
+          <nz-icon nzType="up" nzTheme="outline" [nzRotate]="toolCollapsed ? 180 : 0" class="cursor-pointer ml-[8px]" (click)="toggleCollapse()" />
+        </div>
+      </ng-container>
+    </div>
+  </div>
+  <div [hidden]="toolCollapsed" class="tool-list mt-[16px]">
+    <nz-spin [hidden]="!loading" nzSimple
+             class="flex h-[66px] w-full items-center justify-center"
+    ></nz-spin>
+    <div [hidden]="loading">
+      <div *ngFor="let tool of tools" class="mt-[16px]">
+        <meta-tool-card [tool]="tool" (select)="selectTool($event)" />
+      </div>
+    </div>
+  </div>
+  <div *ngIf="!isShowOtherForm && isShowForm" class="mt-[24px]">
+    <form>
+      <nz-form-item
+        *ngFor="let item of data.auth.auth_keys; let i = index"
+        nzRequired>
+        <nz-form-label>
+          <span>
+            <span>{{item.target_name}}</span>
+            <nz-icon
+              nzType="question-circle"
+              nzTheme="outline"
+              class="common-tip-config"
+              nz-tooltip
+              [nzTooltipTitle]="item.desc"
+            />
+          </span>
+        </nz-form-label>
+        <nz-form-control nzErrorTip="Only letters, numbers and underscores allowed">
+          <input
+            type="password"
+            autocomplete="new-password"
+            class="w-[800px]"
+            [formControl]="controls[i]"
+            nz-input
+          />
+        </nz-form-control>
+      </nz-form-item>
+    </form>
+    <div class="mt-[24px] flex justify-end gap-2">
+      <button type="button" nz-button nzType="default" (click)="handleCancel()">
+        {{ 'cancel' | i18nextEager }}
+      </button>
+      <button
+        type="button"
+        nz-button
+        nzType="primary"
+        [nzLoading]="createLoading"
+        (click)="createMcpServer()"
+      >
+        {{ 'activate_now' | i18nextEager }}
+      </button>
+    </div>
+  </div>
+</div>

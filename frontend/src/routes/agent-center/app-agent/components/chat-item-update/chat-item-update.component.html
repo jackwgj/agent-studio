@@ -1,0 +1,361 @@
+<div
+  *ngFor="let content of dialogHistoryUpdate; let i = index"
+  class="chat-one-out-in"
+  [style.justify-content]="content.role === 'user' ? 'flex-end' : ''"
+>
+  <div
+    *ngIf="
+      content.role === 'user' && isConversationContent(content);
+      else answerContent
+    "
+    class="user-content chat-content"
+  >
+    <div *ngIf="content.image">
+      <img alt="" class="msgImage" [src]="content.image"/>
+    </div>
+    <div class="flex gap-[12px]" *ngIf="content.content">
+      <div class="content-text self-center">
+        <ng-container *ngFor="let fileItem of content.uploadData">
+          <!-- 展示上传的文件 -->
+          <div class="uploaded-file" *ngIf="fileItem.type === 'file'">
+            <meta-upload-file-icon
+              [fileName]="fileItem.name"
+            ></meta-upload-file-icon>
+            <span nz-tooltip [nzTooltipTitle]="fileItem.name">{{ fileItem.name }}</span>
+          </div>
+          <!-- 展示上传的图片 -->
+          <div class="uploaded-image" *ngIf="fileItem.type === 'image'">
+            <img alt="" [src]="fileItem.url || fileItem.img"/>
+          </div>
+        </ng-container>
+        <!-- 此处不能自动格式化保存，否则发送的用户问题开头会多一个空格，且使用trim无效 -->
+        <div class="user-question-text" style="white-space: pre-wrap">{{
+          getTrimmedQuestion(content.content)
+          }}</div>
+      </div>
+    </div>
+  </div>
+
+  <ng-template #answerContent>
+    <div *ngIf="thoughtFinished || content.role ==='assistant' ;else thinking" style="width: 100%;overflow-x: auto">
+      <ng-container *ngIf="content.thought && content.thought.length;else summary">
+        <div class="collapse-btn">
+          <div class="flex" style="align-items: center;">
+            <img alt="" [src]="cdnUrl('assets/agent-center/images/deep-success.svg')"/>
+            <span style="margin-top: 2px">{{'thinked' | i18nextEager}}</span>
+          </div>
+
+          <div class="cursor-pointer ml-[8px]" (click)="changeCollapsedState()">
+            <span nz-icon *ngIf="!collapsed" nzType="unfold" nzTheme="outline"></span>
+            <span nz-icon *ngIf="collapsed" nzType="fold" nzTheme="outline"></span>
+          </div>
+        </div>
+        <div class="answer-box" [style.height]="collapsed ? '0' : 'auto'">
+          <ng-container *ngFor="let answer of content.thought; let j = index">
+            <ng-container *ngTemplateOutlet="
+              childAnswerTmpl;
+              context: { answer:answer }
+            "></ng-container>
+          </ng-container>
+        </div>
+      </ng-container>
+      <ng-template #summary>
+        <div
+          *ngIf="isConversationContent(content) && !isError &&  (!content?.thought || content?.thought?.length !== 0); else error"
+          class="assistant-content chat-content"
+        >
+          <div class="cv-content" [ngClass]="{'no-border':!hasTool}">
+            <div class="flex w-full gap-[12px]">
+              <div class="content-text">
+                <app-markdown-answer
+                  *ngIf="content.content"
+                  [typewriter]="false && isLast"
+                  class="content markdown-no-bg"
+                  [(answer)]="content.content"
+                  [sourceMessage]="aiAnswerListService.aiAnswerList"
+                  [isSupKBResolver]="true"
+                ></app-markdown-answer>
+                <div
+                  *ngIf="content?.quoteList?.length"
+                  class="flex flex-col gap-[8px] pb-[4px] pt-[15px]"
+                >
+                  <span class="text-[#808080]">
+                    {{ 'answer_source' | i18nextEager }}({{
+                    content?.quoteList?.length
+                    }})
+                  </span>
+                  <div class="quote-container">
+                    <div
+                      *ngFor="let item of content.quoteList"
+                      class="quote-list">
+                      <asset-quote-icon></asset-quote-icon>
+                      <span nz-tooltip [nzTooltipTitle]="item.document_name">{{ item.document_name }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  class="cv-time"
+                  *ngIf="content.time_consumption"
+                >
+                  <div *ngIf="sourceFiles?.length > 0" id="agent-base-source-detail">
+                    <div *ngFor="let file of (sourceFiles | slice:0:5); let i = index"
+                         class="source-detail-item">
+                      <img [src]="cdnUrl(messageSourceFileMap.get(getFileExtension(file.document_name)))"
+                           (click)="show(file)" class="file-icon" alt="">
+                      <div (click)="show(file)" nz-tooltip [nzTooltipTitle]="file.document_name" class="detail-content">{{ file.document_name }}</div>
+                      <button *ngIf="file?.file_id && file.knowledge_base_type === 'internal'"
+                              nz-button
+                              [nzType]="'text'"
+                              (click)="downloadSourceFileFn(file)">
+                        <span nz-icon nzType="download"></span>
+                      </button>
+                    </div>
+
+                    <!-- 如果文件数量超过5个且未选择显示全部，则显示“点击更多” -->
+                    <div *ngIf="sourceFiles.length > 5" (click)="showAllSourceFile()"
+                         class="source-detail-item more-item">
+                      <img class="file-icon" [src]="cdnUrl('assets/knowledge-center/search.svg')" alt="">
+                      <div class="detail-content" nz-tooltip [nzTooltipTitle]="'all_source_documents' | i18nextEager">{{'all_source_documents'|i18nextEager}}</div>
+                    </div>
+                  </div>
+
+                  <div class="flex">
+                    <div
+                      class="left"
+                      *ngIf="content?.timeConsumptionStr?.overall_str"
+                    >
+                      <div [innerHTML]="content?.timeConsumptionStr?.overall_str | safeHtml"></div>
+                    </div>
+                    <div *ngIf="!isError" class="flex gap-[4px] split items-center">
+                      <ng-container *ngIf="content.content">
+                        <div class="chat-footer-icon" nz-tooltip [nzTooltipTitle]="'copy' | i18nextEager" (click)="copy(content.content)">
+                          <span nz-icon nzType="copy" nzTheme="outline"></span>
+                        </div>
+                      </ng-container>
+                      <ng-container *ngIf="content?.executionId && !isDevelporFlag && supportAnnotation">
+                        <button
+                          nz-button
+                          class="chat-footer-icon"
+                          nz-tooltip
+                          [nzTooltipTitle]="'manual_annotation' | i18nextEager"
+                          nz-tooltip
+                          nzTooltipTrigger="click"
+                          #kbConfRef="nzTooltip"
+                          [nzType]="'text'"
+                        >
+                          <ng-container *ngIf="content.tagNum; else otherImg">
+                            <img alt=""
+                              class="h-[16px] w-[16px]"
+                              [src]="cdnUrl('assets/agent-observatory/marked.svg')"
+                            />
+                          </ng-container>
+                          <ng-template #otherImg>
+                            <img alt=""
+                              class="h-[16px] w-[16px]"
+                              [src]="cdnUrl('assets/agent-observatory/not_marked.svg')"
+                            />
+                          </ng-template>
+                        </button>
+
+                        <!-- 点赞 -->
+                        <button
+                          nz-button
+                          class="chat-footer-icon"
+                          (click)="like($event, content)"
+                          nz-tooltip
+                          [nzTooltipTitle]="'like' | i18nextEager"
+                          [nzType]="'text'"
+                        >
+                          <ng-container *ngIf="content.vote === 1; else otherLikeImg ">
+                            <img alt=""
+                              [src]="
+                              cdnUrl('assets/agent-observatory/liked.svg')
+                            "
+                            />
+                          </ng-container>
+                          <ng-template #otherLikeImg>
+                            <img alt=""
+                              [src]="
+                              cdnUrl('assets/agent-observatory/like.svg')
+                            "
+                            />
+                          </ng-template>
+                        </button>
+
+                        <!-- 点踩 -->
+                        <button
+                          nz-button
+                          class="chat-footer-icon"
+                          (click)="disLike($event, content)"
+                          nz-tooltip
+                          [nzTooltipTitle]="'dislike' | i18nextEager"
+                          [nzType]="'text'"
+                        >
+                          <ng-container *ngIf="content.vote === -1; else otherDislikeImg">
+                            <img alt=""
+                              [src]="
+                              cdnUrl('assets/agent-observatory/disliked.svg')
+                            "
+                            />
+                          </ng-container>
+                          <ng-template #otherDislikeImg>
+                            <img alt=""
+                              [src]="
+                              cdnUrl('assets/agent-observatory/dislike.svg')
+                            "
+                            />
+                          </ng-template>
+                        </button>
+                      </ng-container>
+                      <ng-container *ngIf="voiceEnable">
+                        <button
+                          *ngIf="soundState !== 'loading'"
+                          class="chat-footer-icon"
+                          type="button"
+                          nz-button
+                          [nzType]="'text'"
+                          [disabled]="getText(content).length === 0"
+                          nz-tooltip
+                          [nzTooltipTitle]="'read_aloud' | i18nextEager"
+                          (click)="onSoundOut(content)"
+                        >
+                          <span nz-icon nzType="sound" nzTheme="outline" [class.text-primary]="soundState === 'playing'"></span>
+                        </button>
+                        <button
+                          nz-button
+                          [nzType]="'text'"
+                          *ngIf="soundState === 'loading'"
+                          class="chat-footer-icon"
+                        >
+                          <span nz-icon nzType="loading" nzTheme="outline"></span>
+                        </button>
+                      </ng-container>
+                      <ng-container *ngIf="supportFeedback && messageId">
+                      <span
+                        class="like-icon h-[16px] w-[16px] cursor-pointer"
+                        [ngClass]="
+                          content?.isLikeClicked ? 'like-solid' : 'like-icon'
+                        "
+                        (click)="likeAnswer(content)"
+                      ></span>
+                        <div
+                          class="dislike-icon h-[16px] w-[16px] cursor-pointer"
+                          [ngClass]="
+                          content?.isDislikeClicked
+                            ? 'dislike-solid'
+                            : 'dislike-icon'
+                        "
+                          nz-tooltip
+                          [nzTooltipTitle]="dislikeTipTitle"
+                          nzTooltipTrigger="click"
+                          nzTooltipPlacement="bottomRight"
+                          (click)="submitDislike(content)"
+                        ></div>
+                      </ng-container>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <ng-template #error>
+          <div *ngIf="content.content  && (!content?.thought || content?.thought.length !== 0)" class="mt-[24px]">
+            <div class="error-content">{{content.content}}</div>
+            <div
+              class="cv-time flex"
+              *ngIf="content.time_consumption"
+            >
+              <div
+                class="left"
+                *ngIf="content?.timeConsumptionStr?.overall_str"
+              >
+                <div [innerHTML]="content?.timeConsumptionStr?.overall_str | safeHtml"></div>
+              </div>
+            </div>
+          </div>
+
+        </ng-template>
+      </ng-template>
+    </div>
+
+    <ng-template #thinking>
+      <ng-container class="mt-[24px]" *ngIf="curAnswer?.role">
+        <div class="loading-icon">
+          <img alt="" [src]="cdnUrl('assets/agent-center/images/running.webp')"/>
+        </div>
+        <ng-container *ngTemplateOutlet="
+          childAnswerTmpl;
+          context: {
+            answer:curAnswer
+          }
+        ">
+
+        </ng-container>
+      </ng-container>
+
+    </ng-template>
+
+  </ng-template>
+</div>
+
+
+
+
+<ng-template let-answer="answer" #childAnswerTmpl>
+  <div
+    *ngIf="answer.role === 'functionRole' && isFuncCallItem(answer);else content3"
+    class="tool-call flex flex-col  mb-[8px] ml-[28px]" [class]="{'is-thinking':!thoughtFinished}">
+    <div class="content-title">{{answer.title}}
+      <div *ngIf="!thoughtFinished" class="collapse-btn-title">
+        <div class="cursor-pointer" style="white-space: normal" (click)="changeCollapsedState(answer)">
+          <span nz-icon *ngIf="!answer.collapsed" nzType="unfold" nzTheme="outline"></span>
+          <span nz-icon *ngIf="answer.collapsed" nzType="fold" nzTheme="outline"></span>
+        </div>
+      </div>
+    </div>
+    <tool-call-IO
+      *ngIf="!thoughtFinished && false;else finished"
+      [class]="{'thought-height-thinking':!answer.collapsed}"
+      class="flex flex-col content-thought"
+      [toolCallIO]="answer"
+    ></tool-call-IO>
+    <ng-template #finished>
+      <span class="content-thought mb-[8px]" [class]="{'thought-height-thinking':!!answer.collapsed}">{{answer.tipTitle}}</span>
+    </ng-template>
+
+  </div>
+  <ng-template #content3>
+    <div
+      *ngIf="answer.role === 'memorySet' && isFuncCallItem(answer);else content4"
+      class="function-content chat-content mb-[8px] ml-[28px]"
+    >
+      <nz-collapse [nzBordered]="false">
+        <nz-collapse-panel [nzHeader]="answer.title" [ngStyle]="{ color: getColor(answer) }">
+          <div *ngIf="answer.memory_variables.length > 0">
+            <div *ngFor="let item of answer.memory_variables">
+              <strong class="text-[#2868C3]">{{ item.key }}:</strong>
+              {{ item.value }}
+            </div>
+          </div>
+        </nz-collapse-panel>
+      </nz-collapse>
+    </div>
+  </ng-template>
+
+  <ng-template #content4>
+    <div *ngIf="answer?.role?.startsWith('think') || answer?.role?.startsWith('model')&& isConversationContent(answer); "
+         class="tool-call flex flex-col ml-[28px]" [class]="{'is-thinking':!thoughtFinished}">
+      <div class="content-title">{{answer.title}}
+        <div *ngIf="!thoughtFinished" class="collapse-btn-title">
+          <div class="cursor-pointer" style="white-space: normal" (click)="changeCollapsedState(answer)">
+            <span nz-icon *ngIf="!answer.collapsed" nzType="unfold" nzTheme="outline"></span>
+            <span nz-icon *ngIf="answer.collapsed" nzType="fold" nzTheme="outline"></span>
+          </div>
+        </div>
+      </div>
+      <span class="content-thought mb-[8px]" [class]="{'thought-height-thinking':!!answer.collapsed}">{{ answer.reasoning_content }}</span>
+    </div>
+  </ng-template>
+</ng-template>

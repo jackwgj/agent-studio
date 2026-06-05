@@ -1,0 +1,7 @@
+<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="24.000000" height="24.000000" fill="none" customFrame="#000000">
+	<rect id="操作/关闭" width="24.000000" height="24.000000" x="0.000000" y="0.000000" />
+	<g id="组合 1">
+		<path id="直线 1" d="M0 0L17.9997 0" stroke="rgb(25,25,25)" stroke-linejoin="round" stroke-width="1.5" transform="matrix(0.707097,0.707117,-0.707117,0.707097,5.625,5.625)" />
+		<path id="直线 1" d="M0 0L17.9997 0" stroke="rgb(25,25,25)" stroke-linejoin="round" stroke-width="1.5" transform="matrix(-0.707097,0.707117,-0.707117,-0.707097,18.3516,5.625)" />
+	</g>
+</svg>

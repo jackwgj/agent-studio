@@ -1,0 +1,156 @@
+<div leftmenu class="!h-[calc(100%-32px)]">
+  <div class="model-route relative" [ngStyle]="{ height: 'calc(100% - 20px)' }">
+    <nz-spin *ngIf="isLoading" nzSize="large" class="loading-icon absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50"></nz-spin>
+
+    <div class="header-container">
+      <div (click)="onPageBack()" class="back-icon-container">
+        <span nz-icon nzType="left" class="back-icon"></span>
+      </div>
+      <div class="header__line"></div>
+      <div class="title">
+        {{ (strategyId ? 'update_route_policy' : 'create_route_policy') | i18nextEager }}
+      </div>
+    </div>
+
+    <div class="main" [ngStyle]="{ height: 'calc(100% - 20px)' }">
+      <div class="main-left">
+        <div class="create-box">
+          <div class="title">{{ 'policy_info' | i18nextEager }}</div>
+
+          <form nz-form nzLayout="vertical" [formGroup]="myForm">
+
+            <nz-form-item>
+              <nz-form-label>{{ 'policy_name' | i18nextEager }}</nz-form-label>
+              <nz-form-control>
+                <input nz-input class="w-full" type="text" formControlName="strategy_name" />
+                <p class="name-rule">
+                  {{ 'validate_name_format'|i18nextEager }}
+                </p>
+              </nz-form-control>
+            </nz-form-item>
+
+            <nz-form-item class="ai-model">
+              <nz-form-label>{{ 'AI_model' | i18nextEager }}</nz-form-label>
+              <nz-form-control>
+                <div *ngFor="let modelItem of getFormArray('model_service_list').controls; index as i" class="model-item">
+                  {{ myForm.value.model_service_list[i].title }}
+                  <div *ngIf="modelItem" class="flex-between mt-[8px]">
+                    <div [class]="{'multi-model':aiNum<2,'single-model':aiNum>=2}">
+                      <llm-select [index]="i" [filter]="filterInfo" [addRouterStrategies]="false"
+                                  [selectedModel]="strategyInfo?.service_list[i]?.id" panelAlign="left"
+                                  (update)="updateModel($event)"></llm-select>
+                    </div>
+                    <span class="ai-item-detele" *ngIf="aiNum<2" (click)="delServiceFn(i)">{{ 'delete'|i18nextEager }}</span>
+                  </div>
+                </div>
+                <div class="ai-add">
+                  <ng-container *ngIf="aiNum else disableAdd">
+                    <button nz-button nzType="text" (click)="addServiceFn()" class="add-button !bg-transparent text-[#1476ff]">
+                      <span nz-icon nzType="plus" class="add-icon"></span>
+                      {{ 'ai_model_label'|i18nextEager }}
+                    </button>
+                  </ng-container>
+                  <ng-template #disableAdd>
+                    <button nz-button nzType="text" disabled class="add-button !bg-transparent" nz-tooltip [nzTooltipTitle]="'add_ai_model_disable_tip'|i18nextEager:{num:aiNumCopy}">
+                      <span nz-icon nzType="plus" class="add-icon"></span>
+                      {{ 'ai_model_label'|i18nextEager }}
+                    </button>
+                  </ng-template>
+                </div>
+              </nz-form-control>
+            </nz-form-item>
+
+            <nz-form-item>
+              <nz-form-label>
+                <div class="flex items-center">
+                  <span>{{ 'policy-timeout' | i18nextEager }}</span>
+                  <span nz-icon nzType="question-circle" class="ml-[4px] !text-[16px] text-gray-400 cursor-pointer" nz-tooltip [nzTooltipTitle]="'strategy_timeout_too_small_warning'|i18nextEager"></span>
+                </div>
+              </nz-form-label>
+              <nz-form-control>
+                <div class="flex model-item-content">
+                  <nz-input-number formControlName="strategy_timeout" id="policy-timeout"
+                                   [nzMin]="0" [(ngModel)]="strategy_spinner_Value"
+                                   class="model-item-content-left w-full"></nz-input-number>
+                  <span class="model-item-content-right">ms</span>
+                </div>
+              </nz-form-control>
+            </nz-form-item>
+
+            <nz-form-item>
+              <nz-form-label>
+                <div class="flex items-center">
+                  <span>{{ 'model-retry-times' | i18nextEager }}</span>
+                  <span nz-icon nzType="question-circle" class="ml-[4px] !text-[16px] text-gray-400 cursor-pointer" nz-tooltip [nzTooltipTitle]="'max_repeat_limit_100'|i18nextEager"></span>
+                </div>
+              </nz-form-label>
+              <nz-form-control>
+                <div class="flex model-item-content">
+                  <nz-input-number class="model-item-content-left w-full" id="model-retry-times"
+                                   [nzMin]="0" formControlName="strategy_retry_count"></nz-input-number>
+                  <span class="model-item-content-right">{{ 'times'|i18nextEager }}</span>
+                </div>
+              </nz-form-control>
+            </nz-form-item>
+
+            <nz-form-item>
+              <nz-form-label>{{ 'policy_des' | i18nextEager }}</nz-form-label>
+              <nz-form-control>
+                <textarea nz-input maxlength="100" formControlName="strategy_description"
+                          class="!w-full min-h-[80px]" [placeholder]="'pls_enter' | i18nextEager"></textarea>
+              </nz-form-control>
+            </nz-form-item>
+
+          </form>
+
+          <button nz-button nzType="primary" class="mt-[18px]" [nzLoading]="btnLoading" (click)="submit()">
+            {{ 'save' | i18nextEager }}
+          </button>
+        </div>
+
+        <div class="test-info">
+          <div class="title">{{ 'model_test' | i18nextEager }}</div>
+          <div *ngIf="strategyInfo?.id">
+            <div class="item">
+              <p class="config-name mb8">{{ 'output_mode'|i18nextEager }}</p>
+              <nz-radio-group [(ngModel)]="settingInfo.stream_val">
+                <label nz-radio *ngFor="let radio of radioList" [nzValue]="radio.value" [nzDisabled]="radio.disabled">
+                  {{ radio.label }}
+                </label>
+              </nz-radio-group>
+            </div>
+
+            <div class="item">
+              <div class="config" *ngFor="let config of configs">
+                <p class="config-name">{{ config.title }}</p>
+                <div class="config-con">
+                  <nz-slider class="config-slider" [nzStep]="config.step" [nzMin]="config.min" [nzMax]="config.max" [(ngModel)]="config.value"></nz-slider>
+                  <nz-input-number class="config_input" [(ngModel)]="config.value" [nzMax]="config.max" [nzMin]="config.min" [nzStep]="config.step"></nz-input-number>
+                </div>
+              </div>
+              <div *ngIf="false">
+                <p>{{ 'content_safety_monitoring'|i18nextEager }}</p>
+                <nz-switch [(ngModel)]="settingInfo.securityVerify" (ngModelChange)="handleBeforeChange($event)"></nz-switch>
+              </div>
+            </div>
+
+            <div class="btn-list-list">
+              <div *ngIf="serviceType === service_type_list.IMAGE_TO_TEXT">
+                <button nz-button nzType="primary">
+                  {{ 'generate_image_understanding'|i18nextEager }}
+                </button>
+              </div>
+            </div>
+          </div>
+          <div *ngIf="!strategyInfo?.id">
+            <nz-alert nzType="info" [nzMessage]="'model_service_config_required_before_tuning'|i18nextEager" nzShowIcon></nz-alert>
+          </div>
+        </div>
+      </div>
+
+      <div class="main-right">
+        <model-service-compare-router [serviceInfo]="strategyInfo" [config]="configs" [settingInfo]="settingInfo"></model-service-compare-router>
+      </div>
+    </div>
+  </div>
+</div>

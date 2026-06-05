@@ -1,0 +1,131 @@
+<div class="h-full w-full">
+  <meta-plugin-header
+    (update)="getPluginDetails()"
+    [pluginInfo]="plugin"
+    [isToolDetail]="true"
+    [isFromDevelopSpace]="isFromDevelopSpace"
+    [isFromAgentBuilder]="isFromAgentBuilder"
+  ></meta-plugin-header>
+  <div class="preview" *ngIf="previewVersionId">
+    <div class="mr-[8px] text-[#1476FF]">
+      <span nz-icon nzType="info-circle"></span>
+    </div>
+    {{ 'previewing_version_information' | i18nextEager }}：{{previewVersionName}}
+    <div class="exit" (click)="exitViewHistory()">
+      {{ 'exit_version_preview' | i18nextEager }}
+      <span nz-icon nzType="close"></span>
+    </div>
+  </div>
+  <div class="h-[calc(100%-110px)]" style="overflow:scroll;padding:0px 24px">
+    <div class="flex flex-col gap-4 text-[14px] p-[16px]" style="background-color:#ffffff;padding:20px 24px;margin-top:12px">
+      <div class="text-[18px] font-bold text-label">
+        {{ 'basic_info' | i18nextEager }}
+      </div>
+      <div class="flex">
+        <div class="text-label text-color">{{ 'tool_name' | i18nextEager }}</div>
+        <span class="w-full text-[#191919] truncate">{{ toolInfo.tool_display_name }}</span>
+      </div>
+      <div class="flex">
+        <div class="text-label text-color">{{ 'varmemorymodalcomponent_227' | i18nextEager }}</div>
+        <span class="w-full text-[#191919]">{{ plugin.updated_on | formateTime }}</span>
+      </div>
+      <div class="flex">
+        <div class="text-label text-color">{{ 'creator' | i18nextEager }}</div>
+        <span class="w-full  text-[#191919] truncate">{{ plugin.creator }}</span>
+      </div>
+      <div class="flex">
+        <div class="text-label text-color">{{ 'tool_description' | i18nextEager }}</div>
+        <span class="w-full  text-[#191919]">{{ toolInfo.tool_desc }}</span>
+      </div>
+
+    </div>
+    <div class="flex flex-col gap-4 px-[16px] pb-[16px]" style="background-color:#ffffff;padding:20px 24px;margin-top:12px">
+      <div class="text-[18px] font-bold text-label">
+        {{ 'params_info' | i18nextEager }}
+      </div>
+
+      <div class="flex flex-col gap-2 mt-[14px]">
+        <div class="text-sm font-bold text-label ">
+          {{ 'request_params' | i18nextEager }}
+        </div>
+        <nz-table
+          [nzData]="requestSrcData.data"
+          [nzShowPagination]="false"
+        >
+          <thead>
+            <tr>
+              <th *ngFor="let column of requestCol">{{ column.title }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let node of requestSrcData.data">
+              <td [ngStyle]="getLevelStyle(node)">
+                <span
+                  class="table-tree"
+                  *ngIf="node.hasChildren"
+                  (click)="toggle(node, 'req')"
+                >
+                  <span nz-icon [nzType]="!node.expand ? 'plus-square' : 'minus-square'"></span>
+                </span>
+                <span
+                  [ngClass]="{
+                    'table-tree-no-leaf': !node.hasChildren
+                  }"
+                >{{ node.name }}</span
+                >
+              </td>
+              <td>{{ node.type }}</td>
+              <td>{{ node.location }}</td>
+              <td>{{ node.default }}</td>
+              <td>{{ node.description }}</td>
+              <td>
+                {{
+                  node.required
+                    ? ('required' | i18nextEager)
+                    : ('param_optional' | i18nextEager)
+                }}
+              </td>
+            </tr>
+          </tbody>
+        </nz-table>
+      </div>
+
+      <div class="flex flex-col gap-2 mt-[14px]">
+        <div class="text-sm font-bold text-label">{{ 'res_params' | i18nextEager }}</div>
+        <nz-table
+          [nzData]="responseSrcData.data"
+          [nzShowPagination]="false"
+        >
+          <thead>
+            <tr>
+              <th *ngFor="let column of responseCol">{{ column.title }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let node of responseSrcData.data">
+              <td [ngStyle]="getLevelStyle(node)">
+                <span
+                  class="table-tree"
+                  *ngIf="node.hasChildren"
+                  (click)="toggle(node, 'res')"
+                >
+                  <span nz-icon [nzType]="!node.expand ? 'plus-square' : 'minus-square'"></span>
+                </span>
+                <span
+                  [ngClass]="{
+                    'table-tree-no-leaf': !node.hasChildren
+                  }"
+                >{{ node.name }}</span
+                >
+              </td>
+              <td>{{ node.description }}</td>
+              <td>{{ node.type }}</td>
+            </tr>
+          </tbody>
+
+     
+        </nz-table>
+      </div>
+    </div>
+  </div>
+</div>

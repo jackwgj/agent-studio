@@ -1,0 +1,43 @@
+{
+  "type": "jiuwen.planner.components.plan_modules.pre_trigger:PreTrigger",
+  "version": "1.0.1",
+  "description": "触发器执行前的预处理",
+  "schemaVersion": "0.6",
+  "classInfo": {
+    "modulePath": "jiuwen.planner.components.plan_modules.pre_trigger",
+    "className": "PreTrigger",
+    "programLanguage": "python",
+    "filePath": "jiuwen/planner/components/planning_modules/pre_trigger.pyc"
+  },
+  "inputs": [
+  ],
+  "outputs": [
+    {
+      "id": "ifTrigger",
+      "type": "String",
+      "description": "是否触发触发器，0为常规规划请求，1为触发workflow的请求，2为未触发任何业务逻辑的请求"
+    }
+  ],
+  "configs": [
+    {
+      "id": "triggers",
+      "type": "List<Map<String, T>>",
+      "description": "触发器相关的配置项，绑定的workflow"
+    },
+    {
+      "id": "userFields",
+      "type": "Map<String, T>",
+      "description": "用户参数信息配置"
+    },
+    {
+      "id": "preDefinedFields",
+      "type": "Map<String, T>",
+      "description": "预定义参数信息配置"
+    },
+    {
+      "id": "debugType",
+      "type": "Map<String, T>",
+      "description": "调测树配置"
+    }
+  ]
+}

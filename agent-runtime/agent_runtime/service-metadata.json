@@ -1,0 +1,15 @@
+{
+  "version": "@PKG_VERSION@",
+  "image_url": "@IMAGE_NAME@:@PKG_VERSION@",
+  "deploy_timeout_in_seconds": 7200,
+  "resource": {
+    "cpu": 2,
+    "memory": 8192,
+    "capacity": 1
+  },
+  "model_env": {
+    "protocol": "https",
+    "port": "8000",
+    "cpu_type": "@CID_BUILD_PLATFORM@"
+  }
+}

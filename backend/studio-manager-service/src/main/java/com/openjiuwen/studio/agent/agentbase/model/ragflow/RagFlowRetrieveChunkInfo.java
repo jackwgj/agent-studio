@@ -1,0 +1,34 @@
+/*
+ *  Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
+ */
+
+package com.openjiuwen.studio.agent.agentbase.model.ragflow;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+
+import lombok.Data;
+
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class RagFlowRetrieveChunkInfo {
+
+    private String chunkId;
+
+    private String contentWithWeight;
+
+    private String docId;
+
+    private String docnmKwd;
+
+    private String[] importantKwd;
+
+    private String[] questionKwd;
+
+    private String imageId;
+
+    private String availableInt;
+
+    private int[][] positions;
+
+}

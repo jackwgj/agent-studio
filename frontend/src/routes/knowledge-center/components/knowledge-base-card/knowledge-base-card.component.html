@@ -1,0 +1,72 @@
+<div id="knowledge-base-card">
+  <div (click)="handleKnowledgeDetailView(item)" class="grid-item" *ngFor="let item of kbs"
+       [ngClass]="{
+    'cursor-pointer': item.type !== 'external',
+  }" nz-tooltip [nzTooltipTitle]="isStatusError(item) ? i18n.transform('knowledge_base_error_tip',{name:item.name}) : ''">
+    <div class="icon-and-name">
+      <img alt="" class="card-icon" [src]="item.icon"/>
+      <div class="w-full" style="width: calc(100% - 60px);">
+        <div class="name-container">
+          <div class="card-name text-ellipsis" [title]="item.name">
+            {{ item.name }}
+          </div>
+          <span *ngIf="item.type === 'external'"
+                nz-icon nzType="copy" nzTheme="outline"
+                class="kb-url-copy cursor-pointer text-blue-500"
+                nz-tooltip [nzTooltipTitle]="'copy_knowledge_base_url'|i18nextEager"
+                (click)="copyUrl($event, item.source?.detail_page_url)">
+          </span>
+        </div>
+        <div class="flex flex-wrap gap-1 mt-1">
+          <nz-tag *ngIf="!isStatusError(item)" [nzColor]="knowledgeBaseStatusMap.get(item.status)?.cardTagColor || 'default'">
+            {{ knowledgeBaseStatusMap.get(item.status)?.text }}
+          </nz-tag>
+          <nz-tag *ngIf="isStatusError(item)" nzColor="error">
+            {{ 'not_available'|i18nextEager }}
+          </nz-tag>
+          <nz-tag [nzColor]="knowledgeBaseSourceMap.get(item.type)?.color || 'default'">
+            {{ knowledgeBaseSourceMap.get(item.type)?.label }}
+          </nz-tag>
+          <nz-tag *ngIf="kbAbilitiesService.getKbSourceName(item)">
+            <div style="max-width: 60px" class="text-ellipsis" [title]="kbAbilitiesService.getKbSourceName(item)">
+              {{ kbAbilitiesService.getKbSourceName(item) }}
+            </div>
+          </nz-tag>
+          <nz-tag *ngIf="isMarket && kbAbilitiesService.isSameSpace(item.workspace_id)">
+            <div style="max-width: 60px" class="text-ellipsis" [title]="'kb_share_in_current_space' | i18nextEager">
+              {{ 'kb_share_in_current_space' | i18nextEager }}
+            </div>
+          </nz-tag>
+        </div>
+      </div>
+    </div>
+    <div
+      class="card-description line-clamp-2"
+      [title]="item.description || '--'"
+    > {{ item.description || '--' }}
+    </div>
+    <div class="card-bottom-area flex items-center justify-between">
+      <div style="display: flex;width: calc(100% - 20px);">
+        <div class="user-name text-ellipsis" [title]="'update_user_name'|i18nextEager + ': ' + item.last_update_user_name">
+          {{ 'update_user_name'|i18nextEager }}: {{ item.last_update_user_name }}
+        </div>
+        <div class="update-time-icon flex items-center">
+          <span nz-icon nzType="clock-circle" nzTheme="outline" class="update-icon mr-1"></span>
+          <div class="update-time">{{ item.update_time | formateTime }}</div>
+        </div>
+      </div>
+
+      <!-- 替换 ti-menu 为 nz-dropdown -->
+      <a nz-dropdown [nzDropdownMenu]="menu" (click)="clickMenu($event)" class="flex-shrink-0 text-gray-500 hover:text-blue-500">
+        <span nz-icon nzType="more" nzTheme="outline" style="font-size: 18px;"></span>
+      </a>
+      <nz-dropdown-menu #menu="nzDropdownMenu">
+        <ul nz-menu>
+          <li nz-menu-item *ngFor="let action of item.actions" [nzDisabled]="action.disabled" (click)="listAction(action, item)">
+            {{ action.label }}
+          </li>
+        </ul>
+      </nz-dropdown-menu>
+    </div>
+  </div>
+</div>

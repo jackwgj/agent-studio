@@ -1,0 +1,58 @@
+.model-select {
+  padding: 16px 24px 16px 24px;
+  border-radius: 8px;
+  background: rgba(250, 250, 250, 1);
+  .tip-title {
+    font-weight: 600;
+  }
+  ::ng-deep {
+    .ti3-checkbox-label {
+      color: #252B3A !important;
+    }
+  }
+}
+.publish-tag-title {
+  font-size: 16px;
+  line-height: 24px;
+  margin-bottom: 8px;
+}
+
+.publish-tag-container {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-group {
+  text-align: right !important;
+}
+
+.non-selectable-label {
+  cursor: not-allowed;
+}
+
+.selectable-label {
+  cursor: pointer;
+}
+
+.model-list {
+  max-height: 138px;
+  overflow-y: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  border-top: 1px solid #dbdbdb;
+  border-bottom: 1px solid #dbdbdb;
+  padding: 8px 0;
+  margin: 8px 0;
+  .model-item {
+    flex: 1 1 calc(50% - 12px);
+  }
+}
+
+.agree-box {
+  ::ng-deep {
+    .ti3-checkbox-skin {
+      margin-top: 0 !important;
+    }
+  }
+}

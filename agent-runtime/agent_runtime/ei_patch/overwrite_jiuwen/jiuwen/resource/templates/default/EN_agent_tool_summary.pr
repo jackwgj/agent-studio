@@ -1,0 +1,6 @@
+`#user#`
+
+Tool Name: {{tool_name}}
+Tool Call Result: {{tool_result}}
+
+The tool name refers to the English name and meaning of the tool. The tool call result is in JSON format, with important content typically found in the "data" section. Based on the tool name and the tool call result, please summarize the information in clear and concise sentences.

@@ -1,0 +1,107 @@
+<div class="h-full w-full">
+  <meta-plugin-header-new (update)="getPluginDetails()" [pluginInfo]="plugin" [isToolDetail]="true"></meta-plugin-header-new>
+  <div class="preview" *ngIf="previewVersionId">
+    <div class="mr-[8px] text-[#1476FF]">
+      <span nz-icon nzType="info-circle"></span>
+    </div>
+    {{ 'previewing_version_information' | i18nextEager }}：{{ previewVersionName }}
+    <div class="exit" (click)="exitViewHistory()">
+      {{ 'exit_version_preview' | i18nextEager }}
+      <span nz-icon nzType="cloudx-action-exit"></span>
+    </div>
+  </div>
+
+  <div class="content-body mt-[12px] mt-[12px] mr-[24px] ml-[24px]">
+    <nz-card class="relative !flex flex-col gap-4 text-[14px]" style="margin-bottom: 24px"
+      >
+      <div class="text-[18px] font-bold text-label">
+        {{ 'basic_info' | i18nextEager }}
+      </div>
+      <div class="flex">
+        <div class="text-label text-color">{{ 'tool_name' | i18nextEager }}</div>
+        <span class="w-full text-[#191919]" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{ toolInfo.tool_display_name }}</span>
+      </div>
+      <div class="flex">
+        <div class="text-label text-color">{{ 'update_time' | i18nextEager }}</div>
+        <span class="w-full text-[#191919]" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{ plugin.updated_on | formateTime }}</span>
+      </div>
+      <div class="flex">
+        <div class="text-label text-color">{{ 'creator' | i18nextEager }}</div>
+        <span class="w-full text-[#191919]" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{ plugin.creator }}</span>
+      </div>
+      <div class="flex">
+        <div class="text-label text-color">{{ 'tool_description' | i18nextEager }}</div>
+        <span class="w-full text-[#191919]">{{ toolInfo.tool_desc }}</span>
+      </div>
+    </nz-card>
+
+    <nz-card class="relative !flex flex-col gap-4">
+      <div class="text-[18px] font-bold text-label">
+        {{ 'params_info' | i18nextEager }}
+      </div>
+
+      <div class="flex flex-col gap-2 mt-[14px]">
+        <div class="text-sm font-bold text-label">
+          {{ 'request_params' | i18nextEager }}
+        </div>
+        <nz-table [nzData]="requestSrcData.data" [nzShowPagination]="false">
+          <thead>
+            <tr>
+              <th *ngFor="let column of requestCol">{{ column.title }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let node of requestSrcData.data">
+              <td [style.padding-left.px]="node.level * 24 + 10">
+                <span class="ti3-table-tree" *ngIf="node.hasChildren" (click)="toggle(node, 'req')">
+                  <span nz-icon [nzType]="!node.expand ? 'plus-square' : 'minus-square'"></span>
+                </span>
+                <span
+                  [ngClass]="{
+                    'ti3-table-tree-no-leaf': !node.hasChildren,
+                  }"
+                  >{{ node.name }}</span
+                >
+              </td>
+              <td>{{ node.type }}</td>
+              <td>{{ node.location }}</td>
+              <td>{{ node.default }}</td>
+              <td>{{ node.description }}</td>
+              <td>
+                {{ node.required ? ('required' | i18nextEager) : ('param_optional' | i18nextEager) }}
+              </td>
+            </tr>
+          </tbody>
+        </nz-table>
+      </div>
+
+      <div class="flex flex-col gap-2 mt-[14px]">
+        <div class="text-sm font-bold text-label">{{ 'res_params' | i18nextEager }}</div>
+        <nz-table [nzData]="responseSrcData.data" [nzShowPagination]="false">
+          <thead>
+            <tr>
+              <th *ngFor="let column of responseCol">{{ column.title }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let node of responseSrcData.data">
+              <td [style.padding-left.px]="node.level * 24 + 10">
+                <span class="ti3-table-tree" *ngIf="node.hasChildren" (click)="toggle(node, 'res')">
+                  <span nz-icon [nzType]="!node.expand ? 'plus-square' : 'minus-square'"></span>
+                </span>
+                <span
+                  [ngClass]="{
+                    'ti3-table-tree-no-leaf': !node.hasChildren,
+                  }"
+                  >{{ node.name }}</span
+                >
+              </td>
+              <td>{{ node.description }}</td>
+              <td>{{ node.type }}</td>
+            </tr>
+          </tbody>
+        </nz-table>
+      </div>
+    </nz-card>
+  </div>
+</div>

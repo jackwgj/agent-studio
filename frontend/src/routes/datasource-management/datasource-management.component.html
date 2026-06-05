@@ -1,0 +1,118 @@
+<div id="datasource-component">
+  <div class="top-title-area">
+    <div class="title-area-left">
+      <div class="page-title">{{ 'data_source_management' | i18nextEager }}</div>
+      <div *ngIf="totalNumber > 0">（{{ totalNumber }}）</div>
+    </div>
+    <div class="btn-area">
+      <button nz-button nzType="default" [disabled]="!subscribeBtnStatus || checkedList.length === 0" (click)="deleteData()">
+        {{ 'batch_delete' | i18nextEager }}
+      </button>
+      <button nz-button nzType="primary" [disabled]="!subscribeBtnStatus" (click)="createDatasource()">
+        {{ 'connect_data_source' | i18nextEager }}
+      </button>
+    </div>
+  </div>
+
+  <div class="query-operate">
+    <nz-input-group [nzPrefix]="prefixIconSearch" [nzSuffix]="suffixIconClear" class="search-input">
+      <input
+        nz-input
+        type="text"
+        [placeholder]="'search_and_filter' | i18nextEager"
+        [(ngModel)]="searchValue"
+        (keyup.enter)="searchList()" />
+    </nz-input-group>
+    <ng-template #prefixIconSearch>
+      <span nz-icon nzType="search"></span>
+    </ng-template>
+    <ng-template #suffixIconClear>
+      <span nz-icon nzType="close-circle" nzTheme="fill" *ngIf="searchValue" (click)="handleClickClearSearch()" style="cursor: pointer; color: rgba(0,0,0,0.25);"></span>
+    </ng-template>
+
+    <button nz-button nzType="default" (click)="getDatasourceListData()">
+      <span nz-icon nzType="reload"></span>
+    </button>
+  </div>
+
+  <div>
+    <nz-table
+      #basicTable
+      [nzData]="srcData.data"
+      [nzLoading]="loading"
+      [nzFrontPagination]="false"
+      [nzShowPagination]="false"
+      [nzNoResult]="noDataTpl"
+      class="table-style">
+      <thead>
+      <tr>
+        <th
+          [nzChecked]="allChecked"
+          [nzIndeterminate]="indeterminate"
+          (nzCheckedChange)="onAllChecked($event)"
+          nzWidth="60px">
+        </th>
+        <th>{{ listColumns[1].title }}</th>
+        <th>{{ listColumns[2].title }}</th>
+        <th>{{ listColumns[3].title }}</th>
+        <th>{{ listColumns[4].title }}</th>
+        <th>{{ listColumns[5].title }}</th>
+        <th [nzWidth]="listColumns[6].width || '120px'">{{ listColumns[6].title }}</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr *ngFor="let row of basicTable.data; trackBy: trackByFn;">
+        <td
+          [nzChecked]="isChecked(row)"
+          [nzDisabled]="row.disabled"
+          (nzCheckedChange)="onItemChecked(row, $event)">
+        </td>
+        <td [title]="row.name" class="ellipsis-cell">{{ row.name }}</td>
+        <td [title]="row.type" class="ellipsis-cell">{{ row.type }}</td>
+        <td [title]="row.description" class="ellipsis-cell">{{ row.description }}</td>
+        <td [title]="row.creator" class="ellipsis-cell">{{ row.creator }}</td>
+        <td [title]="row.update_time | formateTime" class="ellipsis-cell">{{ row.update_time | formateTime}}</td>
+        <td>
+          <a nz-dropdown [nzDropdownMenu]="menu">
+            <span nz-icon nzType="more"></span>
+          </a>
+          <nz-dropdown-menu #menu="nzDropdownMenu">
+            <ul nz-menu>
+              <li nz-menu-item [nzDisabled]="!subscribeBtnStatus" (click)="listAction('edit', row)">
+                {{ 'edit' | i18nextEager }}
+              </li>
+              <li nz-menu-item [nzDisabled]="!subscribeBtnStatus" (click)="listAction('delete', row)">
+                {{ 'delete' | i18nextEager }}
+              </li>
+            </ul>
+          </nz-dropdown-menu>
+        </td>
+      </tr>
+      </tbody>
+    </nz-table>
+
+    <ng-template #noDataTpl>
+      <div class="list-no-data">
+        <app-new-common-no-data-with-btn
+          [type]="searchNameIsEmpty ? 'noData' : 'filterNoData'"
+          [firstLineData]="'no_data' | i18nextEager"
+          [noDataBtnStr]="'create_message_template1' | i18nextEager"
+          (create)="createDatasource()"
+          (clear)="handleClickClearSearch()"
+        />
+      </div>
+    </ng-template>
+
+    <div style="margin-top: 24px; text-align: right;">
+      <nz-pagination
+        [nzPageIndex]="currentPage"
+        [nzTotal]="totalNumber"
+        [nzPageSize]="pageSize.size"
+        [nzPageSizeOptions]="pageSize.options"
+        nzShowSizeChanger
+        (nzPageIndexChange)="pageIndexChange($event)"
+        (nzPageSizeChange)="pageSizeChange($event)">
+      </nz-pagination>
+    </div>
+  </div>
+</div>

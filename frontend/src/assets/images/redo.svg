@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="18px" height="18px" viewBox="0 0 18 18" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 61.2 (89653) - https://sketch.com -->
+    <title>icon-16px-withdraw</title>
+    <desc>Created with Sketch.</desc>
+    <g id="页面-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round">
+        <g id="18ROI区域编辑_交互规则" transform="translate(-942.000000, -306.000000)" fill-rule="nonzero" stroke="#C8C8C8">
+            <g id="编组-15" transform="translate(720.000000, 290.000000)">
+                <g id="编组-6" transform="translate(12.000000, 16.000000)">
+                    <g id="-mockplus-" transform="translate(210.000000, 0.000000)">
+                        <g id="icon-16px-withdraw" transform="translate(9.000000, 9.000000) scale(-1, 1) translate(-9.000000, -9.000000) ">
+                            <g id="编组-4">
+                                <g transform="translate(3.248120, 2.165414)">
+                                    <path d="M0.327752469,5.72475145 C0.521427082,5.38435921 0.763431021,5.06399795 1.05376429,4.77366468 L3.92472415,1.90270482 C5.66887024,0.158558735 8.49668976,0.158558735 10.2408358,1.90270482 C11.9849819,3.6468509 11.9849819,6.47467043 10.2408358,8.21881652 C9.40945737,9.050195 8.74484714,9.71480523 8.24700515,10.2126472 M6.71927502,11.7468018 C6.71927502,11.7468018 5.6216627,12.7725059 5.6216627,12.7725059" id="形状"></path>
+                                    <polyline id="路径" points="5.90567327 5.90567327 0 5.90567327 0 0"></polyline>
+                                </g>
+                            </g>
+                        </g>
+                    </g>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg>

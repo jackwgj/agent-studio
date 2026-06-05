@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
+  -->
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.agent.manager.mapper.DependencyMapper">
+    <resultMap id="BaseResultMap" type="com.openjiuwen.studio.agent.manager.entity.DependencyEntity">
+        <!--@mbg.generated-->
+        <!--@Table t_agent_workflow-->
+        <id column="id" jdbcType="VARCHAR" property="id"/>
+        <id column="version_id" jdbcType="VARCHAR" property="versionId"/>
+        <result column="project_id" jdbcType="VARCHAR" property="projectId"/>
+        <result column="domain_id" jdbcType="VARCHAR" property="domainId"/>
+        <result column="workspace_id" jdbcType="VARCHAR" property="workspaceId"/>
+        <result column="name" jdbcType="VARCHAR" property="name"/>
+        <result column="function_graph_name" jdbcType="VARCHAR" property="functionGraphName"/>
+        <result column="description" jdbcType="VARCHAR" property="description"/>
+        <result column="runtime" jdbcType="VARCHAR" property="runtime"/>
+        <result column="scope" jdbcType="VARCHAR" property="scope"/>
+        <result column="link" jdbcType="VARCHAR" property="link"/>
+        <result column="created_on" jdbcType="TIMESTAMP" property="createdOn"/>
+        <result column="creator_id" jdbcType="VARCHAR" property="creatorId"/>
+        <result column="updated_on" jdbcType="TIMESTAMP" property="updatedOn"/>
+        <result column="updater_id" jdbcType="VARCHAR" property="updaterId"/>
+        <result column="version" jdbcType="TINYINT" property="version"/>
+        <result column="deleted" jdbcType="TINYINT" property="deleted"/>
+    </resultMap>
+    <sql id="Base_Column_List">
+        <!--@mbg.generated-->
+        id,
+        version_id,
+        project_id,
+        domain_id,
+        workspace_id,
+        `name`,
+        function_graph_name,
+        description,
+        runtime,
+        `scope`,
+        link,
+        created_on,
+        creator_id,
+        updated_on,
+        updater_id,
+        version,
+        deleted
+    </sql>
+    <select id="selectCountByWorkspaceIdAndName" parameterType="com.openjiuwen.studio.agent.manager.entity.DependencyEntity"
+            resultType="int">
+        select
+        count(*)
+        from t_dependency
+        where name = #{name} and project_id = #{projectId} and workspace_id = #{workspaceId}
+    </select>
+    <select id="listDependenciesByProjectIdAndWorkspaceId" parameterType="map" resultMap="BaseResultMap">
+        <!--@mbg.generated-->
+        select
+        <include refid="Base_Column_List"/>
+        from t_dependency
+        where deleted = 0
+        <choose>
+            <when test="projectId != null and projectId != ''">
+                and ((project_id = #{projectId,jdbcType=VARCHAR} and workspace_id = #{workspaceId,jdbcType=VARCHAR})
+                <if test="opSvcProjectId != null and opSvcProjectId != ''">
+                    or (project_id = #{opSvcProjectId,jdbcType=VARCHAR} and scope = 'public')
+                </if>
+                    )
+            </when>
+            <when test="opSvcProjectId != null and opSvcProjectId != ''">
+                and (project_id = #{opSvcProjectId,jdbcType=VARCHAR} and scope = 'public')
+            </when>
+        </choose>
+        <if test="keyword != null and keyword != ''">
+            and lower(name) like concat('%', trim(lower(#{keyword})), '%')
+        </if>
+    </select>
+    <select id="listDependenciesByIds" parameterType="map" resultMap="BaseResultMap">
+        <!--@mbg.generated-->
+        select
+        <include refid="Base_Column_List"/>
+        from t_dependency
+        where deleted = 0
+        <choose>
+            <when test="projectId != null and projectId != ''">
+                and ((project_id = #{projectId,jdbcType=VARCHAR} and workspace_id = #{workspaceId,jdbcType=VARCHAR})
+                <if test="opSvcProjectId != null and opSvcProjectId != ''">
+                    or (project_id = #{opSvcProjectId,jdbcType=VARCHAR} and scope = 'public')
+                </if>
+                )
+            </when>
+            <when test="opSvcProjectId != null and opSvcProjectId != ''">
+                and (project_id = #{opSvcProjectId,jdbcType=VARCHAR} and scope = 'public')
+            </when>
+        </choose>
+        <if test="depIds != null">
+            and id IN
+            <foreach item="depId" collection="depIds" open="(" separator="," close=")">
+                #{depId,jdbcType=VARCHAR}
+            </foreach>
+        </if>
+    </select>
+    <select id="selectDependencyEntityById" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_dependency
+        where id = #{id} and project_id = #{projectId} and workspace_id = #{workspaceId}
+    </select>
+    <select id="selectPresetDependencyEntityById"
+            resultType="com.openjiuwen.studio.agent.manager.entity.DependencyEntity">
+        select
+        <include refid="Base_Column_List"/>
+        from t_dependency
+        where id = #{id}
+    </select>
+    <insert id="insert" parameterType="com.openjiuwen.studio.agent.manager.entity.DependencyEntity">
+        insert into t_dependency (id, version_id, project_id, domain_id, workspace_id, name, function_graph_name, description, runtime, scope, link, created_on,
+                                    creator_id, updated_on, updater_id, version)
+        values (#{id}, #{versionId}, #{projectId}, #{domainId}, #{workspaceId}, #{name}, #{functionGraphName}, #{description}, #{runtime}, #{scope}, #{link}, #{createdOn},
+                #{creatorId}, #{updatedOn}, #{updaterId}, #{version})
+    </insert>
+    <update id="updateDependencyEntity"
+            parameterType="com.openjiuwen.studio.agent.manager.entity.DependencyEntity">
+        update t_dependency
+        <set>
+            <if test="name != null">
+                `name` = #{name,jdbcType=VARCHAR},
+            </if>
+            <if test="versionId != null">
+                `version_id` = #{versionId,jdbcType=VARCHAR},
+            </if>
+            <if test="functionGraphName != null">
+                `function_graph_name` = #{functionGraphName,jdbcType=VARCHAR},
+            </if>
+            <if test="description != null">
+                `description` = #{description,jdbcType=VARCHAR},
+            </if>
+            <if test="runtime != null">
+                `runtime` = #{runtime,jdbcType=VARCHAR},
+            </if>
+            <if test="scope != null">
+                `scope` = #{scope,jdbcType=VARCHAR},
+            </if>
+            <if test="link != null">
+                `link` = #{link,jdbcType=VARCHAR},
+            </if>
+            <if test="updatedOn != null">
+                `updated_on` = #{updatedOn,jdbcType=VARCHAR},
+            </if>
+            <if test="updaterId != null">
+                `updater_id` = #{updaterId,jdbcType=VARCHAR},
+            </if>
+            <if test="version != null">
+                `version` = #{version,jdbcType=VARCHAR},
+            </if>
+        </set>
+        where id = #{id,jdbcType=VARCHAR}
+    </update>
+    <delete id="deleteByPrimaryKey" parameterType="map">
+        delete
+        from t_dependency
+        where id = #{id,jdbcType=VARCHAR}
+    </delete>
+</mapper>

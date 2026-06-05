@@ -1,0 +1,174 @@
+<div id="debug-example-container">
+  <div class="debug-header-container" *ngIf="!shortCode">
+    <div class="title">{{ 'preview_debugging' | i18nextEager }}</div>
+    <div class="flex items-center gap-[8px]">
+      <div class="chat-header-icon" nz-tooltip [nzTooltipTitle]="'agent_clear' | i18nextEager">
+        <nz-icon nzType="rest" nzTheme="outline" (click)="onClear()" />
+      </div>
+      @if (configServ.isSupportUserPersona() && configServ.isSupportMemoryInSingleAgent()) {
+        <memory-management
+          class="chat-header-icon"
+          [conversationState]="conversationState"
+          [memoryLibId]="memoryLibId"
+          (confirm)="memoryConfirm($event)"
+        ></memory-management>
+      }
+      <div class="chat-header-icon" (click)="handleClickExpandDialog()" nz-tooltip [nzTooltipTitle]="getIsExpandDialog()">
+        <img [src]="isExpandDialog ? changeUrl('assets/images/full-collapse.svg') : changeUrl('assets/images/full-screen.svg')" alt="" />
+      </div>
+    </div>
+  </div>
+
+  <div class="flex justify-end items-center mt-[24px] px-[24px] gap-[8px]" *ngIf="!!shortCode">
+    <div class="chat-header-icon" nz-tooltip [nzTooltipTitle]="'agent_clear' | i18nextEager">
+      <nz-icon nzType="rest" nzTheme="outline" (click)="onClear()" />
+    </div>
+    @if (configServ.isSupportUserPersona() && configServ.isSupportMemoryInSingleAgent()) {
+      <memory-management
+        class="chat-header-icon"
+        [conversationState]="conversationState"
+        [memoryLibId]="memoryLibId"
+        (confirm)="memoryConfirm($event)"
+      ></memory-management>
+    }
+  </div>
+  <div class="main-wrapper-history">
+    <div class="left-container">
+      <div
+        class="main-container"
+        [ngClass]="{ 'main-container-full': isExpandDialog, 'main-container-web': shortCode }"
+        cdkScrollable
+        #chatContainerRef
+        (scroll)="onScroll($event.target)"
+      >
+        <div [ngClass]="dialogHistory.length === 0 ? 'init-chat-content-container' : 'chat-content-container gap-[24px]'">
+          <div *ngIf="dialogHistory.length === 0 && !shortCode" class="initial-container">
+            <!-- 当 dialogHistory 为空数组时显示的 HTML 代码块 -->
+            <div class="initial-header-container">
+              <img alt="" class="avatar-icon" [src]="agentInfo?.icon" />
+              <span class="title-initial-state" nz-tooltip [nzTooltipTitle]="agentName">{{ agentName }}</span>
+            </div>
+
+            <div class="initial-prologue-container">
+              <div
+                class="initial-prologue-content"
+                *ngIf="getOpenTextAndQuestions.openText || (getOpenTextAndQuestions.openQuestions && getOpenTextAndQuestions.openQuestions.length > 0)"
+              >
+                <div class="prologue-text-style" nz-tooltip [nzTooltipTitle]="getOpenTextAndQuestions.openText" nzTooltipPlacement="top" *ngIf="getOpenTextAndQuestions.openText">
+                  {{ getOpenTextAndQuestions.openText }}
+                </div>
+                <div
+                  class="flex flex-col gap-3 w-fit max-w-[100%]"
+                  *ngIf="getOpenTextAndQuestions.openQuestions && getOpenTextAndQuestions.openQuestions.length > 0"
+                >
+                  <div *ngFor="let item of getOpenTextAndQuestions.openQuestions">
+                    <span class="suggest-question-text-style" nz-tooltip [nzTooltipTitle]="item" nzTooltipPlacement="top" (click)="submitQuestion(item)">{{ item }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div *ngIf="dialogHistory.length === 0 && shortCode" class="flex flex-col items-center justify-center gap-[32px] h-full">
+            <prologue-questions-area
+              class="prologue-questions"
+              [knowledgeExampleInfo]="agentWebInfo"
+              (clickQuestionCard)="handleClickQuestion($event)"
+            ></prologue-questions-area>
+          </div>
+          <ng-container *ngIf="dialogHistory.length > 0">
+            <div class="chat-content" *ngFor="let item of dialogHistory; let i = index">
+              <chat-item-plan
+                #chatItem
+                class="flex flex-col"
+                [agentIcon]="shortCode ? agentWebInfo.icon : agentInfo?.icon"
+                [data]="item"
+                [index]="i"
+                [conversationId]="uuid"
+                [isFinished]="item[0].isFinished"
+                [messageId]="item[0].messageId"
+                [isError]="item[0].isError"
+                [agentName]="agentName"
+                [isQuestionsLoading]="isQuestionsLoading"
+                (confirm)="inputConfirm($event, i)"
+              >
+              </chat-item-plan>
+              <ng-container *ngIf="i === dialogHistory.length - 1">
+                <div class="probe-container" *ngIf="isQuestionsVisible">
+                  <nz-spin nzSimple *ngIf="isQuestionsLoading"></nz-spin>
+                  <ng-container *ngIf="getFollowUpQuestions(item).length > 0">
+                    <div
+                      [ngClass]="{
+                        'mt-[0px]': first,
+                        'mt-[8px]': !first,
+                      }"
+                      class="w-fit cursor-pointer rounded-[12px] px-[16px] py-[5px] border border-solid border-[#DBDBDB]"
+                      *ngFor="let question of getFollowUpQuestions(item)[0].questions; let first = first"
+                      (click)="probeQuestions(question)"
+                    >
+                      {{ question }}
+                    </div>
+                  </ng-container>
+                </div>
+              </ng-container>
+            </div>
+
+            <div *ngIf="isLoading" class="chat-loading-message px-[20px]">
+              <img alt="" [src]="changeUrl('assets/agent-center/images/running.webp')" [alt]="'loading' | i18nextEager" />
+              <span>{{ 'recognizing_user_intent' | i18nextEager }}</span>
+            </div>
+          </ng-container>
+        </div>
+      </div>
+
+      <div [class]="{ 'web-bottom-container': shortCode, 'bottom-container': !shortCode }">
+        <div class="flex w-full items-center gap-4">
+          <div
+            *ngIf="agentParams.length"
+            (click)="showVarConfPanel()"
+            class="show-var-conf-btn flex cursor-pointer items-center justify-center gap-1 rounded-2xl bg-white px-3 py-[6px]"
+          >
+            <nz-icon class="!text-label" nzType="setting" nzTheme="outline" />
+            <div>{{ 'var_conf' | i18nextEager }}</div>
+          </div>
+
+          <div
+            *ngIf="isF1 && isCodeInterpreter"
+            class="code-interpreter"
+            [ngStyle]="{
+              'background-color': isCodeInterpreter ? '#ffffff' : '#f0f0f0',
+              cursor: isCodeInterpreter ? 'pointer' : 'not-allowed',
+            }"
+            (click)="toggleCodePlugin()"
+            (mouseenter)="onMouseEnter()"
+            (mouseleave)="onMouseLeave()"
+          >
+            <div *ngIf="isHovered" class="code-interpreter-tip">
+              {{ codeInterpretTip }}
+            </div>
+            <div *ngIf="isHovered" class="arrow"></div>
+            <div *ngIf="isCodeInterpreter && isCodeInterpreterActive" class="status-circle"></div>
+            <asset-interpreter-icon></asset-interpreter-icon>
+            <div>{{ 'code_interpreter' | i18nextEager }}</div>
+          </div>
+        </div>
+        <meta-sender
+          #sender
+          [showClear]="false"
+          [sending]="isShowStopIcon"
+          [disabled]="sendDisabled"
+          (disabledSender)="getDisableSender($event)"
+          [maxlength]="userQueryLimit"
+          (clear)="clearChat()"
+          (send)="sendQuestion($event)"
+          (stop)="stopChat()"
+        />
+      </div>
+    </div>
+
+    <div [hidden]="isCloseAgentParamsPanel || !agentParams.length" class="absolute bottom-4 right-6 w-[calc(100%-48px)]">
+      <meta-var-config #varConfRef [params]="agentParams" (confirm)="varConfConfirm($event)" />
+    </div>
+  </div>
+  <meta-var-memory-modal [actionType]="'VIEW'" [agentId]="appId" #varMemoryModalView></meta-var-memory-modal>
+<!--  <meta-long-memory-modal [agentId]="appId" #longMemoryModalView></meta-long-memory-modal>-->
+</div>

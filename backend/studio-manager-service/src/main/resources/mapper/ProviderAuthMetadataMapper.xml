@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  ~ Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
+  -->
+
+
+<mapper namespace="com.openjiuwen.studio.agent.manager.mapper.md.ProviderAuthMetadataMapper">
+
+    <!-- 插入记录 -->
+    <insert id="insert" parameterType="com.openjiuwen.studio.agent.manager.entity.md.ProviderAuthMetadata">
+        INSERT INTO t_provider_auth_metadata(
+            ID, PROVIDER_ID, AUTH_TYPE, AUTH_INFO, AUTH_URL,
+            CREATED_BY_USER, CREATED_DATE, LAST_UPDATED_DATE, DOMAIN_ID, PROJECT_ID,WORKSPACE_ID
+            ,IDENTITY_ID
+        ) VALUES (
+                     #{id}, #{providerId}, #{authType}, #{authInfo}, #{authUrl},
+                     #{createdByUser}, #{createdDate}, #{lastUpdatedDate}, #{domainId}, #{projectId}, #{workspaceId}, #{identityId}
+                 )
+    </insert>
+
+    <select id="selectById" resultType="com.openjiuwen.studio.agent.manager.entity.md.ProviderAuthMetadata">
+        select * from t_provider_auth_metadata where ID = #{id}
+    </select>
+    <select id="selectByIds" resultType="com.openjiuwen.studio.agent.manager.entity.md.ProviderAuthMetadata">
+        SELECT * FROM t_provider_auth_metadata
+        WHERE PROVIDER_ID IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <select id="selectByProvider"  resultType="com.openjiuwen.studio.agent.manager.entity.md.ProviderAuthMetadata">
+        select * from t_provider_auth_metadata where PROVIDER_ID = #{provider}
+    </select>
+
+    <delete id="deleteById">
+        delete from  t_provider_auth_metadata where ID = #{id}
+    </delete>
+
+    <delete id="deleteByProviderId">
+        delete from t_provider_auth_metadata  WHERE PROVIDER_ID = #{providerId} and PROJECT_ID = #{projectId}  and WORKSPACE_ID = #{workspaceId}
+    </delete>
+
+    <update id="updateMetadata">
+        update t_provider_auth_metadata
+            set AUTH_TYPE = #{authType}, AUTH_INFO = #{authInfo}, LAST_UPDATED_DATE = #{updatedDate}
+        where ID = #{id}
+    </update>
+
+    <select id="selectByProjectWorkspaceProvider" resultType="com.openjiuwen.studio.agent.manager.entity.md.ProviderAuthMetadata">
+        select * from t_provider_auth_metadata  WHERE PROVIDER_ID = #{providerId} and PROJECT_ID = #{projectId}  and WORKSPACE_ID = #{workspaceId}
+    </select>
+
+    <insert id="insertBackup" parameterType="com.openjiuwen.studio.agent.manager.entity.md.ProviderAuthMetadata">
+        INSERT INTO t_provider_auth_metadata_backup(
+            ID, PROVIDER_ID, AUTH_TYPE, AUTH_INFO, AUTH_URL,
+            CREATED_BY_USER, CREATED_DATE, LAST_UPDATED_DATE, DOMAIN_ID, PROJECT_ID,WORKSPACE_ID
+            ,IDENTITY_ID
+        ) VALUES (
+                     #{id}, #{providerId}, #{authType}, #{authInfo}, #{authUrl},
+                     #{createdByUser}, #{createdDate}, #{lastUpdatedDate}, #{domainId}, #{projectId}, #{workspaceId}, #{identityId}
+                 )
+    </insert>
+
+    <select id="queryBackupByUpdateTime" resultType="com.openjiuwen.studio.agent.manager.entity.md.ProviderAuthMetadata">
+        select * from t_provider_auth_metadata_backup where LAST_UPDATED_DATE &lt; #{lastUpdatedDate}
+    </select>
+
+    <delete id="deleteBackupByIds">
+        DELETE FROM t_provider_auth_metadata_backup
+        WHERE id IN
+        <foreach item="id" collection="ids" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+</mapper>

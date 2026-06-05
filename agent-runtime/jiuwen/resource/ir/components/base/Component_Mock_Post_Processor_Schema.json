@@ -1,0 +1,68 @@
+{
+  "type": "jiuwen.planner.components.plan_modules.post_processor:PostProcessor",
+  "version": "1.0.2",
+  "description": "对生成的插件、workflow调用指令参数后处理（仅用于mock，本地打通流程）",
+  "schemaVersion": "0.6",
+  "classInfo": {
+    "modulePath": "jiuwen.planner.components.plan_modules.post_processor",
+    "className": "PostProcessor",
+    "programLanguage": "python",
+    "filePath": "jiuwen/planner/components/planning_modules/post_processor.pyc"
+  },
+  "inputs": [
+    {
+      "id": "query",
+      "description": "用户原始指令",
+      "type": "String"
+    },
+    {
+      "id": "dialogueHistory",
+      "description": "用户对话历史",
+      "type": "List[String]"
+    },
+    {
+      "id": "functionName",
+      "description": "LLM生成的插件name或WorkflowId",
+      "type": "String"
+    },
+    {
+      "id": "originalParams",
+      "description": "LLM生成的工具参数",
+      "type": "Map<String, T>"
+    },
+    {
+      "id": "paramsSchema",
+      "description": "参数的类型和格式信息",
+      "type": "Map<String, Map<String, String>>"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "functionName",
+      "description": "LLM生成的插件name或WorkflowId",
+      "type": "String"
+    },
+    {
+      "id": "correctedParams",
+      "description": "经过参数后处理的工具参数",
+      "type": "Map<String, T>"
+    }
+  ],
+  "configs": [
+    {
+      "id": "userFields",
+      "type": "Map<String, T>",
+      "description": "用户参数信息配置"
+    },
+    {
+      "id": "preDefinedFields",
+      "type": "Map<String, T>",
+      "description": "预定义参数信息配置"
+    },
+    {
+      "id": "debugType",
+      "type": "Map<String, T>",
+      "description": "调测树配置"
+    }
+  ]
+}

@@ -1,0 +1,234 @@
+# coding: utf-8
+# Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+
+"""
+Patch openjiuwen Workflow._sub_stream / _sub_invoke and CompiledGraph._invoke for nested
+sub-workflow interrupts.
+
+Root causes:
+1. After child graph interrupt, _sub_stream blocks on empty sub_workflow_stream.
+2. CompiledGraph._invoke runs pregel.run() but never returns its result, so checking
+   result.get("__interrupt__") in _sub_stream always fails.
+
+Applied at import time from jiuwen SubWorkflow until agent-core develop merges the fix.
+"""
+
+from __future__ import annotations
+
+import asyncio
+from typing import Any, AsyncIterator, Optional
+
+from openjiuwen.core.context_engine import ModelContext
+from openjiuwen.core.graph.base import CONFIG_KEY, INPUTS_KEY
+from openjiuwen.core.graph.executable import Input, Output
+from openjiuwen.core.graph.pregel import TASK_STATUS_INTERRUPT
+from openjiuwen.core.graph.pregel.base import Interrupt
+from openjiuwen.core.graph.pregel.config import PregelConfig
+from openjiuwen.core.graph.pregel.constants import MAX_RECURSIVE_LIMIT
+from openjiuwen.core.session import InteractiveInput
+from openjiuwen.core.session import (
+    WORKFLOW_EXECUTE_TIMEOUT,
+    WORKFLOW_STREAM_FRAME_TIMEOUT,
+    NodeSession,
+)
+from openjiuwen.core.session.stream import OutputSchema, StreamEmitter
+from openjiuwen.core.workflow.components.base import ComponentAbility
+
+_DEFAULT_SUB_STREAM_RECEIVE_TIMEOUT = 30
+
+_PATCH_APPLIED = False
+
+
+def _bounded_stream_timeout(session) -> float:
+    for key in (WORKFLOW_STREAM_FRAME_TIMEOUT, WORKFLOW_EXECUTE_TIMEOUT):
+        timeout = session.get_env(key) if session else None
+        if timeout is not None and timeout > 0:
+            return float(timeout)
+    return float(_DEFAULT_SUB_STREAM_RECEIVE_TIMEOUT)
+
+
+async def _patched_compiled_invoke(self, inputs, session, config=None):
+    """CompiledGraph._invoke that returns pregel.run() result (upstream omits return)."""
+    is_main = False
+    session_id = session.session_id()
+    workflow_id = session.workflow_id()
+
+    if config is None:
+        is_main = True
+        config = PregelConfig(
+            session_id=session_id,
+            ns=workflow_id,
+            recursion_limit=MAX_RECURSIVE_LIMIT,
+        )
+
+    try:
+        if is_main:
+            await self._checkpointer.pre_workflow_execute(session, inputs)
+        if not isinstance(inputs, InteractiveInput):
+            session.state().commit_user_inputs(inputs)
+
+        result = None
+        exception = None
+
+        try:
+            result = await self._pregel.run(config=config)
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:
+            exception = e
+
+        if is_main:
+            await self._checkpointer.post_workflow_execute(session, result, exception)
+        elif exception is not None:
+            raise exception
+
+        if exception is not None:
+            raise exception
+        return result
+    except asyncio.CancelledError:
+        if is_main:
+            await self._checkpointer.post_workflow_execute(session, {}, None)
+        raise
+
+
+def _interrupt_output_schema(result: Any) -> Optional[OutputSchema]:
+    if not isinstance(result, dict):
+        return None
+    interrupt_bundle = result.get(TASK_STATUS_INTERRUPT)
+    if interrupt_bundle is None:
+        return None
+
+    candidates = (
+        interrupt_bundle if isinstance(interrupt_bundle, tuple) else (interrupt_bundle,)
+    )
+    for item in candidates:
+        if isinstance(item, Interrupt):
+            value = item.value
+            if isinstance(value, OutputSchema):
+                return value
+    return None
+
+
+async def _patched_sub_stream(
+    self,
+    inputs: Input,
+    session,
+    context: ModelContext = None,
+    **kwargs,
+) -> AsyncIterator[Output]:
+    sub_workflow_session = self._create_workflow_session(session, is_sub=True)
+    try:
+        compiled_graph = self._internal.compile(sub_workflow_session, context=context)
+        result = await compiled_graph.invoke(
+            {INPUTS_KEY: inputs, CONFIG_KEY: kwargs.get(CONFIG_KEY)},
+            sub_workflow_session,
+        )
+
+        interrupt_chunk = _interrupt_output_schema(result)
+        if interrupt_chunk is not None:
+            yield interrupt_chunk
+            return
+
+        if self._is_streaming:
+            stream_timeout = _bounded_stream_timeout(session)
+            sub_end_ability = (
+                self._internal.config()
+                .spec.comp_configs.get(self._end_comp_id)
+                .abilities
+            )
+            required_abilities = [ComponentAbility.STREAM, ComponentAbility.TRANSFORM]
+            stream_ability_count = sum(
+                ability in sub_end_ability for ability in required_abilities
+            )
+            while stream_ability_count > 0:
+                try:
+                    frame = (
+                        await sub_workflow_session.actor_manager()
+                        .sub_workflow_stream()
+                        .receive(stream_timeout)
+                    )
+                except asyncio.TimeoutError:
+                    return
+                if frame is None:
+                    continue
+                if frame == StreamEmitter.END_FRAME:
+                    stream_ability_count -= 1
+                    continue
+                yield frame
+    finally:
+        await asyncio.shield(sub_workflow_session.close())
+        await asyncio.shield(self._internal.reset())
+
+
+async def _patched_sub_invoke(
+    self,
+    inputs: Input,
+    session,
+    context: ModelContext = None,
+    **kwargs,
+) -> Output:
+    sub_workflow_session = self._create_workflow_session(session, is_sub=True)
+
+    try:
+        compiled_graph = self._internal.compile(sub_workflow_session, context)
+        result = await compiled_graph.invoke(
+            {INPUTS_KEY: inputs, CONFIG_KEY: kwargs.get(CONFIG_KEY)},
+            sub_workflow_session,
+        )
+
+        interrupt_chunk = _interrupt_output_schema(result)
+        if interrupt_chunk is not None:
+            return {"stream": [interrupt_chunk]}
+
+        if self._is_streaming:
+            messages = []
+            sub_end_ability = (
+                self._internal.config()
+                .spec.comp_configs.get(self._end_comp_id)
+                .abilities
+            )
+            required_abilities = [ComponentAbility.STREAM, ComponentAbility.TRANSFORM]
+            stream_ability_count = sum(
+                ability in sub_end_ability for ability in required_abilities
+            )
+            stream_timeout = _bounded_stream_timeout(session)
+            while stream_ability_count > 0:
+                try:
+                    frame = (
+                        await sub_workflow_session.actor_manager()
+                        .sub_workflow_stream()
+                        .receive(stream_timeout)
+                    )
+                except asyncio.TimeoutError:
+                    break
+                if frame is None:
+                    continue
+                if frame == StreamEmitter.END_FRAME:
+                    stream_ability_count -= 1
+                    continue
+                messages.append(frame)
+            if messages:
+                return dict(stream=messages)
+
+        node_session = NodeSession(sub_workflow_session, self._end_comp_id)
+        output_key = self._end_comp_id
+        return node_session.state().get_outputs(output_key)
+    finally:
+        await asyncio.shield(sub_workflow_session.close())
+        await asyncio.shield(self._internal.reset())
+
+
+def apply_workflow_sub_stream_patch() -> bool:
+    """Monkey-patch Workflow sub-stream helpers and CompiledGraph._invoke once per process."""
+    global _PATCH_APPLIED
+    if _PATCH_APPLIED:
+        return False
+
+    from openjiuwen.core.graph.graph import CompiledGraph
+    from openjiuwen.core.workflow.workflow import Workflow
+
+    CompiledGraph._invoke = _patched_compiled_invoke
+    Workflow._sub_stream = _patched_sub_stream
+    Workflow._sub_invoke = _patched_sub_invoke
+    _PATCH_APPLIED = True
+    return True

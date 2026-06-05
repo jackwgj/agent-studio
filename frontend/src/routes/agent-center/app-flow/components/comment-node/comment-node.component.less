@@ -1,0 +1,96 @@
+
+.annotation {
+  padding: 12px;
+  border-radius: 8px;
+  background: #f0f7ff;
+  user-select: text;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(159, 159, 158, 0.65) transparent;
+  cursor: move;
+  outline: none;
+  white-space: pre-wrap;
+  word-wrap: break-word;      /* 兼容性好 */
+  overflow-wrap: break-word;  /* 现代标准写法 */
+  /* 模拟 placeholder 效果 */
+  &::before {
+    position: absolute;
+    content: attr(placeholder);
+    color: #9ca3af;
+    pointer-events: none;
+  }
+}
+:host{
+  --min-height: 40px;
+  --min-width: 100px;
+  --max-height: 400px;
+  --max-width: 500px;
+}
+.annotation-wrapper{
+  padding: 0;
+}
+.pw-common-node-wrapper{
+  min-height: calc(var(--min-height) + 4px);
+}
+
+.pw-common-node-hover {
+  &:hover {
+    border: 2px solid rgba(20, 118, 255, 1);
+  }
+}
+
+.annotation-wrapper,
+.annotation,
+.resize-right {
+  /* 动态尺寸控制将由JS完成，CSS只设置约束 */
+  min-height: var(--min-height);
+  //max-height: 400px;
+}
+
+.pw-common-node-wrapper{
+  min-width: calc(var(--min-width) + 4px);
+}
+.annotation-wrapper,
+.annotation,
+.resize-bottom {
+  /* 动态尺寸控制将由JS完成，CSS只设置约束 */
+  min-width: var(--min-width);
+  //max-width: 500px;
+}
+
+
+
+.resize-right-bottom {
+  width: 12px;
+  height: 12px;
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  cursor: se-resize;
+}
+
+.resize-right {
+  cursor: e-resize;
+  width: 6px;
+  height: 100%;
+  position: absolute;
+  right: -3px;
+  top: -9px;
+}
+
+.resize-bottom {
+  cursor: n-resize;
+  height: 6px;
+  width: 100%;
+  position: absolute;
+  bottom: -3px;
+  left: -9px;
+}
+
+.text-touch {
+  cursor: text;
+}
+
+.move-touch {
+  cursor: move;
+}

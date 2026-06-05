@@ -1,0 +1,356 @@
+.input-data-params {
+  width: 100%;
+  justify-content: center;
+  display: flex;
+
+  .data-area-err {
+    ::ng-deep.ti3-textarea-container>textarea {
+      background-color: #FFEEED;
+    }
+  }
+
+  .data-area {
+    padding: 16px 20px;
+    width: 100% !important;
+    max-width: 900px !important;
+    height: 212px;
+    box-sizing: border-box;
+    border: 0;
+    border-radius: 24px;
+    font-size: 16px;
+
+    ::ng-deep.input {
+      width: 100% !important;
+      height: 152px;
+      outline: none;
+      position: relative;
+      overflow-y: auto;
+      overflow-wrap: anywhere;
+      z-index: 1;
+      border: 0;
+      padding: 0;
+      &[contenteditable]:empty:not(:focus):before {
+        content: attr(placeholder);
+        color: #aaa; /* 占位符颜色 */
+      }
+    }
+
+    .option {
+      display: flex;
+      justify-content: space-between;
+      position: relative;
+      z-index: 1;
+      
+      .option-left {
+        display: flex;
+        gap: 12px;
+      }
+
+      .option-right {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+
+        .upLoadFile {
+          width: 24px;
+          height: 24px;
+          background-image: url('../../../assets/home/upload-file.svg');
+          cursor: pointer;
+        }
+
+        .sendMessage {
+          width: 32px;
+          height: 32px;
+          background-image: url('../../../assets/home/send-message.svg');
+          cursor: pointer;
+        }
+
+        .sendingMessage {
+          width: 32px;
+          height: 32px;
+          background-image: url('../../../assets/home/sendRect.svg');
+
+          .sending-icon {
+            margin: 8px;
+            width: 16px;
+            height: 16px;
+            background-image: url('../../../assets/home/sending-message.svg');
+            animation: rotate 1.5s linear infinite;
+          }
+        }
+
+        .send-button-wrapper {
+          cursor: pointer;
+          display: inline-block;
+
+          &.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            pointer-events: none;
+
+            .send-img {
+              filter: grayscale(100%);
+            }
+          }
+        }
+
+        .nl2-stop-button {
+          display: flex;
+          flex-direction: row;
+          justify-content: flex-start;
+          align-items: center;
+          gap: 4px;
+          padding: 4px 12px 4px 6px;
+          height: 32px;
+          font-size: 12px;
+          border-radius: 999px;
+          background: rgba(20, 118, 255, 0.08);
+          color: #1476FF;
+          cursor: pointer;
+
+          .rotating-stop-icon {
+            width: 17px;
+            height: 17px;
+            animation: rotate 1s linear infinite;
+            background-image: url('../../../assets/home/sending-message.svg');
+            background-size: 100%;
+          }
+
+          .rotating-stop-dot-icon {
+            position: absolute;
+            top: 6px;
+            left: 6px;
+            width: 5px;
+            height: 5px;
+            background-image: url('../../../assets/home/send-dot.svg');
+            background-size: 100%;
+          }
+        }
+
+        .optimize-btn {
+          width: auto;
+          padding: 0 12px;
+          height: 36px;
+          border-radius: 24px;
+          border: 1px solid #DBDBDB;
+          display: flex;
+          align-items: center;
+          cursor: pointer;
+    
+          &:hover {
+            border-color: #1f07db;
+          }
+    
+          .optimize-btn-img {
+            width: 20px;
+            height: 20px;
+            margin-right: 6px;
+          }
+      
+          .optimize-btn-title {
+            line-height: 22px;
+            font-size: 14px;
+            font-weight: 600;
+          }
+        }
+      }
+
+      .switch {
+        display: flex;
+        align-items: center;
+        padding: 0px 8px 0px 12px;
+        height: 32px;
+        border-radius: 24px;
+        border: 1px solid #DBDBDB;
+      }
+    }
+
+    .back {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border-radius: 24px;
+      background-image: linear-gradient(270deg, #D0BFEACC, #B4CFF9CC, #AEEAFDCC);
+    }
+
+    .back-border {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border-radius: 24px;
+      background-image: linear-gradient(270deg, #D0BFEACC, #B4CFF9CC, #AEEAFDCC);
+    }
+
+    .back-white {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: calc(100% - 4px);
+      height: calc(100% - 4px);
+      border-radius: 24px;
+      background-color: #FFFFFF;
+    }
+
+    .back-white-create {
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border-radius: 6px;
+      border: 1.5px solid #dbdbdb;
+    }
+
+    .back-shadow {
+      border: 0;
+      border-radius: 24px;
+      box-shadow: 0px 2px 12px 0px rgba(0, 0, 0, 0.04);
+    }
+
+    .back-white-create-err {
+      border-color: #F66F6A;
+      background-color: #FFEEED;
+    }
+  }
+
+  .data-area:focus-within {
+    .back {
+      position: absolute;
+      top: -2.5px;
+      left: -2.5px;
+      width: calc(100% + 5px);
+      height: calc(100% + 5px);
+      background-image: linear-gradient(270deg, #E9AEFFFF, #99C1FFFF, #98F4F8D6);
+      filter: blur(10px);
+      opacity: 50%;
+    }
+  }
+
+  @keyframes rotate {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+
+  .data-area-send {
+    height: 88px;
+    ::ng-deep.input {
+      font-size: 12px;
+      width: 100% !important;
+      height: 32px;
+      min-height: 0;
+    }
+  } 
+}
+
+.input-data-demo {
+  margin-top: 16px;
+  width: 100%;
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+
+  .demo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 24px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover {
+      border-color: #1476FF;
+      background-color: #f0f5ff;
+    }
+
+    .demo-img {
+      width: 20px;
+      height: 20px;
+    }
+
+    .demo-title {
+      font-size: 14px;
+      color: #191919;
+    }
+  }
+}
+
+// 标签样式
+:host::ng-deep.tag-element {
+  display: inline-flex;
+  align-items: center;
+  background-color: #F5F5F5;
+  height: 24px;
+  padding: 2px 8px;
+  gap: 8px;
+  margin: 0 2px;
+  border-radius: 100px;
+  user-select: none;
+  cursor: default;
+
+  .tag-content {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .tag-icon {
+    display: inline-block;
+    flex-shrink: 0;
+    width: 10px;
+    height: 10px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+
+    &.loading-icon {
+      background-image: url('../../../assets/icons/tool-call-loading.svg');
+    }
+
+    &.complete-icon {
+      background-image: url('../../../assets/icons/file.svg');
+    }
+  }
+
+  .tag-text {
+    font-size: 14px;
+    color: #333;
+  }
+
+  .tag-delete {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    margin-left: 4px;
+    cursor: pointer;
+    color: #666;
+    font-size: 14px;
+    line-height: 1;
+
+    &:hover {
+      color: #333;
+    }
+  }
+
+  // 无选中高亮
+  &.selected {
+    outline: none;
+  }
+}
+
+// 确保 input 元素内的标签样式正确
+.input {
+  .tag-element {
+    vertical-align: middle;
+  }
+}

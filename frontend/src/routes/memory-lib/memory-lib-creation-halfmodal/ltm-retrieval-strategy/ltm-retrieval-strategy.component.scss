@@ -1,0 +1,98 @@
+.ltm-retrieval-strategy {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  .strategy-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px; // 稍微收紧一点
+
+    .strategy-info-container {
+      display: flex;
+      align-items: flex-start; // 顶部对齐
+      gap: 12px;
+
+      .checkbox-container {
+        padding-top: 2px; // 对齐标题
+        flex-shrink: 0;
+      }
+
+      .basic-info-container {
+        flex: 1 0;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+
+        .strategy-title {
+          font-size: 14px;
+          font-weight: 600;
+          line-height: 22px;
+          color: rgba(0, 0, 0, 0.85);
+        }
+
+        .strategy-description {
+          color: rgba(0, 0, 0, 0.45);
+          font-size: 12px;
+          line-height: 18px;
+        }
+      }
+    }
+
+    .strategy-prompt-container {
+      padding-left: 30px; // 与 checkbox 宽度对齐
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+
+      .prompt-title-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+
+        .title-content {
+          font-size: 12px;
+          color: rgba(0, 0, 0, 0.65);
+        }
+
+        .title-operation-container {
+          display: flex;
+          gap: 12px;
+          align-items: center;
+
+          .copy-icon-btn {
+            cursor: pointer;
+            color: #1890ff;
+            font-size: 14px;
+            &:hover { color: #40a9ff; }
+          }
+
+          .split-line {
+            width: 1px;
+            height: 12px;
+            background: rgba(0, 0, 0, 0.15);
+          }
+
+          .reset-default-container {
+            color: #1890ff;
+            font-size: 12px;
+            cursor: pointer;
+            &:hover { color: #40a9ff; }
+          }
+        }
+      }
+
+      .prompt-content {
+        width: 100%;
+        font-size: 13px;
+      }
+    }
+  }
+
+  .error-message-container {
+    color: #ff4d4f;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+  }
+}

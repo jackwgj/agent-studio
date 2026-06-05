@@ -1,0 +1,188 @@
+<div class="plugin-market-container" [style]="{'padding': isShowDom ? '14px 48px 0' : '0px'}">
+  <div *ngIf="isShowDom">
+    <nz-tabset
+      class="mt-[10px] tab-min-width-plugin2 top-level-tab"
+      id="app-center-tabs"
+      [(nzSelectedIndex)]="appMarketTabIndex"
+      (nzSelectedIndexChange)="onMarketTabChange($event)"
+    >
+      <nz-tab class=" text-[14px]" *ngFor="let tab of marketTabs; let i = index" [nzTitle]="tab.title"></nz-tab>
+    </nz-tabset>
+    <nz-tabset *ngIf="!activeTabIsOfficial" class="h-[30px]" nzSize="small" [(nzSelectedIndex)]="appShareTabIndex" (nzSelectedIndexChange)="onShareTabChange($event)">
+      <nz-tab class=" text-[14px]" *ngFor="let tab of AppShareTabs" [nzTitle]="tab.title">
+      </nz-tab>
+    </nz-tabset>
+    <nz-tabset *ngIf="activeTabIsOfficial" class="h-[30px]" nzSize="small" [(nzSelectedIndex)]="appOfficialTabIndex" (nzSelectedIndexChange)="onOfficialTabChange($event)">
+      <nz-tab
+        *ngFor="let tab of appPluginTabs"
+        [nzTitle]="(lang === 'zh-cn' ? tab.name : tab.name_en)"
+      >
+      </nz-tab>
+    </nz-tabset>
+    <div class="w-full flex justify-between items-center mt-6 mb-6">
+      <div class="text-[20px] text-[#191919] font-[600]">
+        {{ pageTitle() }}{{totalCount}}
+      </div>
+      <button *ngIf="!activeTabIsOfficial && appShareTabIndex > 0" nz-button type="button" nzType="primary" (click)="creatShare()">
+        {{ 'pluginmarket_1'|i18nextEager }}
+      </button>
+    </div>
+  </div>
+
+  <div class="plugin-search flex items-center gap-2" *ngIf="isShowDom">
+    <nz-input-group style="flex: 1; height: 28px" *ngIf="activeTabIsOfficial">
+      <input nz-input [(ngModel)]="platformSearchName" (keyup.enter)="onSearch()" />
+    </nz-input-group>
+    <nz-input-group style="flex: 1; height: 28px" *ngIf="!activeTabIsOfficial">
+      <input nz-input [(ngModel)]="keyword" (keyup.enter)="initShareList()" />
+    </nz-input-group>
+
+    <div style="width: 30px;">
+      <button (click)="activeTabIsOfficial ? handleClickRefreshOfficialBtn() : handleClickRefreshTeamBtn() " class="h-8 w-8" nz-button>
+        <nz-icon nzType="reload" nzTheme="outline" />
+      </button>
+    </div>
+  </div>
+  <div class="plugin-cards">
+    <div *ngIf="!isLoading && !plugins.length" class="h-full w-full">
+      <app-new-common-no-data-with-btn
+        [type]="searchNameIsEmpty ? 'noData' : 'filterNoData'"
+        [firstLineData]="'no_data' | i18nextEager"
+        [noDataBtnStr]="searchNameIsEmpty ? '' : ('clear_filters'|i18nextEager)"
+        (clear)="handleClickClearData()"
+      />
+    </div>
+    <nz-spin
+      *ngIf="isLoading && !plugins.length"
+      class="loading-icon"
+      [style]="{marginTop: !isShowDom ? '50px' : '', height: !isShowDom ? '740px' : 'calc(100vh - 391px)'}"
+    ></nz-spin>
+    <div
+      tiScroll
+      class="overflow-y-auto card-container"
+      (scroll)="onScroll()"
+      [ngStyle]="{'max-height': !isShowDom ? '100%' : 'calc(100% - 40px)'}"
+      *ngIf="plugins.length"
+    >
+      <div class="com-cards-wrapper mb-[14px]" style="padding-right: 16px"
+           [style]="{'display': isFromOverview ? 'flex' : '', 'flex-wrap': isFromOverview ? 'wrap' : ''}"
+      >
+        <div
+          *ngFor="let plugin of plugins; index as i"
+          class="com-card-box"
+          style="position: relative"
+          [ngClass]="{'cursor-not-allowed': !subscribeBtnStatus}"
+          (click)="handleDetailView(plugin)"
+          [style]="{width: isFromOverview ? 'calc((100% - 16px * 2) / 3)' : ''}"
+        >
+          <div class="com-card-header">
+            <img alt="" class="com-card-icon" [src]="plugin.icon" />
+            <span style="width: 48px; height: 48px; border: 1px solid rgb(230,230,230); border-radius: 8px; position: absolute"></span>
+            <div class="flex com-card-name-box" style="flex-direction: column">
+              <div class="com-card-name" tiOverflow>
+                {{ getPluginName(plugin) }}
+              </div>
+              <div class="gap-[8px] flex">
+                <nz-tag
+                  *ngIf="plugin.quotaTag"
+                  [nzColor]="plugin.quotaTag.color"
+                  nz-tooltip
+                  [nzTooltipTitle]="plugin.quotaTag.tip"
+                >
+                  {{ plugin.quotaTag.text }}
+                </nz-tag>
+                <nz-tag
+                  *ngIf="plugin['credential_status'] === PluginCredentialStatus.UNAUTHENTICATED"
+                  nzColor="orange"
+                >
+                  {{ this.isZH() ? getPluginLabels(plugin['credential_status']).zh : getPluginLabels(plugin['credential_status']).en }}
+                </nz-tag>
+                <nz-tag
+                  *ngIf="plugin['credential_status'] === PluginCredentialStatus.AUTHENTICATED"
+                  nzColor="green"
+                >
+                  {{ this.isZH() ? getPluginLabels(plugin['credential_status']).zh : getPluginLabels(plugin['credential_status']).en }}
+                </nz-tag>
+                <nz-tag
+                  *ngIf="plugin['credential_status'] === PluginCredentialStatus.NONE"
+                  nzColor="green"
+                >
+                  {{ this.isZH() ? getPluginLabels(plugin['credential_status']).zh : getPluginLabels(plugin['credential_status']).en }}
+                </nz-tag>
+                <nz-tag
+                  *ngIf="getCategoryLabel(plugin.category)"
+                  style="background-color: rgb(245, 245, 245); color: rgb(25, 25, 25);"
+                >{{ getCategoryLabel(plugin.category) }}</nz-tag>
+                <nz-tag
+                *ngIf="plugin.shareTag && !activeTabIsOfficial"
+                style="background-color: rgb(245, 245, 245); color: rgb(25, 25, 25)"
+                >
+                  {{ plugin.shareTag }}
+                </nz-tag>
+              </div>
+            </div>
+          </div>
+          <div
+              class="com-card-description"
+              nz-tooltip
+              [nzTooltipTitle]="plugin.plugin_desc || '--'"
+            ></div>
+          <div
+            class="bottom-area"
+            style="position: relative"
+            *ngIf="activeTabIsOfficial"
+            [ngClass]="{'bottom-area-have-menu': getBottomAreaHaveMenuWithOfficial(plugin)}"
+          >
+            <span class="flex items-center text-[#808080] text-[12px]">
+              <nz-icon nzType="field-time" nzTheme="outline" class="mr-[8px] !text-[16px]" />
+              <span class="mr-[16px]">
+                {{ plugin.created_on | formateTime }}
+              </span>
+            </span>
+          </div>
+          <div
+            class="bottom-area text-[#808080] text-[12px]"
+            style="position: relative"
+            *ngIf="!activeTabIsOfficial"
+            [ngClass]="{'bottom-area-have-menu': getBottomAreaHaveMenuWithNotOfficial(plugin)}"
+          >
+            <div class="flex items-center w-[50%]">
+              <nz-icon nzType="user" nzTheme="outline" class="mr-[8px] !text-[16px]" />
+              <span class="max-w-[140px]" tiOverflow>
+                {{activeTabIsOfficial ? plugin.creator : (plugin.workspace_name || plugin.creator) }}
+              </span>
+            </div>
+            <span *ngIf="plugin.version_id" tiOverflow class="max-w-[140px]"> {{plugin.version_name}}</span>
+          </div>
+          <div class="com-card-bottom-menu" *ngIf="plugin.shareMenus?.length">
+            <ul>
+              <li (click)="shareMenuOnClick($event, shareMenus, plugin)" style="color: #0c93fe; font-weight: 600">{{ shareMenus[0].label }}</li>
+            </ul>
+          </div>
+          <div class="com-card-bottom-menu" *ngIf="getComCardBottomMenu(plugin)">
+              <span
+                class="text-[#1476FF] font-bold"
+                *ngIf="isShowAuthConfigBtn(plugin) && subscribeBtnStatus"
+                    (click)="handleClickAddAuthConfig(plugin, $event)"
+              >
+                <span>{{ authConfigName(plugin) }}</span>
+              </span>
+              <span
+                class="text-[#1476FF] font-bold"
+                *ngIf="plugin?.call_mode === 'functiongraph'&& subscribeBtnStatus"
+                (click)="copyToWorkbench(plugin, $event)"
+              >
+                <span>{{ 'copyToWorkbench'|i18nextEager }}</span>
+              </span>
+          </div>
+        </div>
+      </div>
+      <nz-spin
+      *ngIf="isLoading && plugins.length"
+      class="loading-icon !mt-0"
+      [style]="{marginTop: !isShowDom ? '0' : '', height: !isShowDom ? '20px' : ''}"
+    ></nz-spin>
+      <div class="flex justify-center text-[#e6e6e6]" *ngIf="!hasMore">——— · ———</div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,9 @@
+{
+  "mcp_details": [
+    {
+      "mcp_id": "test_mcp_server_id",
+      "mcp_param": "[{\"name\":\"apicode1\",\"type\":\"string\",\"description\":\"aa\",\"depth\":0,\"parentType\":\"none\",\"value\":{\"content\":\"asd\",\"type\":\"literal\"},\"visibility\":true,\"required\":true}]"
+    }
+  ],
+  "update_time": 1770260416000
+}

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="240px" height="140px" viewBox="0 0 240 140" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>2备份@2x</title>
+    <g id="页面-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="5.1智能助理-概览1280" transform="translate(-520, -328)">
+            <g id="2备份" transform="translate(520, 328)">
+                <rect id="矩形备份-110" fill="#FFFFFF" opacity="0" x="0" y="0" width="240" height="140"></rect>
+                <path d="M44,65 L49.5,65 C52.8137085,65 55.5,67.6862915 55.5,71 L55.5,72 C55.5,75.3137085 58.1862915,78 61.5,78 L98,78 L98,78 L158.5,72 L191.5,72 C192.604569,72 193.5,72.8954305 193.5,74 C193.5,75.1045695 192.604569,76 191.5,76 C190.395431,76 189.5,75.1045695 189.5,74 L189.5,61 L189.5,61" id="路径-18" stroke="#C2C2C2"></path>
+                <rect id="矩形备份-15" fill-opacity="0.1" fill="#000000" x="11" y="52" width="33" height="27" rx="3"></rect>
+                <rect id="矩形备份-16" fill-opacity="0.1" fill="#000000" x="174" y="41" width="36" height="20" rx="3"></rect>
+                <rect id="矩形备份-17" fill-opacity="0.1" fill="#000000" x="205" y="55" width="23" height="15" rx="3"></rect>
+                <text id="“”" font-family="PingFangSC-Regular, PingFang SC" font-size="10" font-weight="normal" fill="#1476FF">
+                    <tspan x="22.13" y="72">“”</tspan>
+                </text>
+                <text id="{-}" font-family="PingFangSC-Regular, PingFang SC" font-size="10" font-weight="normal" fill="#1476FF">
+                    <tspan x="187.505" y="55">{ }</tspan>
+                </text>
+                <text id="…" font-family="PingFangSC-Regular, PingFang SC" font-size="10" font-weight="normal" fill="#1476FF">
+                    <tspan x="211.5" y="64">…</tspan>
+                </text>
+                <path d="M137.247727,32.909375 C134.593182,25.41875 127.293182,20 118.5,20 C109.706818,20 102.406818,25.41875 99.7522727,32.909375 C89.7977273,33.8656251 82,41.99375 82,51.875 C82,62.39375 90.9590909,71 101.909091,71 L135.090909,71 C146.040909,71 155,62.39375 155,51.875 C155,41.99375 147.202273,33.8656251 137.247727,32.909375 Z" id="路径备份" fill-opacity="0.1" fill="#000000"></path>
+                <path d="M72,62 L97.5,62 C98.8807119,62 100,63.1192881 100,64.5 C100,65.8807119 101.119288,67 102.5,67 L135.5,67 C136.880712,67 138,65.8807119 138,64.5 C138,63.1192881 139.119288,62 140.5,62 L164,62 C166.209139,62 168,63.790861 168,66 L168,90 C168,92.209139 166.209139,94 164,94 L72,94 C69.790861,94 68,92.209139 68,90 L68,66 C68,63.790861 69.790861,62 72,62 Z" id="矩形" stroke="#C2C2C2" fill="#FFFFFF"></path>
+                <path d="M91,75 L145,75 C146.104569,75 147,75.8954305 147,77 C147,78.1045695 146.104569,79 145,79 L91,79 C89.8954305,79 89,78.1045695 89,77 C89,75.8954305 89.8954305,75 91,75 Z" id="矩形备份-3" fill-opacity="0.1" fill="#000000"></path>
+                <polygon id="矩形" fill="#1476FF" points="93 77 143 77 143 114 138.833333 111 134.666667 114 130.5 111 126.333333 114 122.166667 111 118 114 113.833333 111 109.666667 114 105.5 111 101.333333 114 97.1666667 111 93 114"></polygon>
+                <text id="IAM-TOKEN" font-family="PingFangSC-Medium, PingFang SC" font-size="10" font-weight="400" fill="#FFFFFF">
+                    <tspan x="108.88" y="89">IAM</tspan>
+                    <tspan x="100.665" y="103">TOKEN</tspan>
+                </text>
+            </g>
+        </g>
+    </g>
+</svg>

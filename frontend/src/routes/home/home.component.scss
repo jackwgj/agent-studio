@@ -1,0 +1,83 @@
+// home styles
+.minheight {
+  width: 100%;
+  min-height: calc(100vh - 48px);
+  display: flex;
+}
+
+.noMinheight {
+  width: 100%;
+  height: 100%;
+  display: flex;
+}
+
+::ng-deep .ti-app-layout-left-container {
+  left: 0 !important;
+  z-index: 95 !important;
+  box-shadow: none !important;
+}
+
+::ng-deep {
+  .app-layout-content {
+    width: 100% !important;
+    &[data-set=layout-page] {
+      height: auto !important;
+    }
+  }
+
+}
+
+.license-alert-content {
+  width: 100%;
+}
+
+.license-alert-content-2 {
+  position: absolute;
+  width: 100%;
+  top: 0;
+  z-index: 999;
+
+  ::ng-deep {
+    .ant-alert {
+      border-radius: 0px !important;
+    }
+  }
+}
+
+.license-alert-time {
+  color: #ff8800;
+}
+
+.license-alert-update {
+  color: #1476ff;
+  cursor: pointer;
+}
+
+.license-alert-link {
+  background: url('../../assets/icons/status-link.svg') no-repeat center;
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  position: relative;
+  bottom: -4px;
+  margin-left: 2px;
+}
+
+.tip_css {
+  width: 100%;
+  z-index: 100;
+
+  ::ng-deep {
+    .ant-alert {
+      border-radius: 0 !important;
+      height: 68px;
+      align-items: center;
+    }
+  }
+}
+.app-layout-content{
+  height: 100vh;
+}
+.app-layout-sider{
+  z-index: 1001;
+}

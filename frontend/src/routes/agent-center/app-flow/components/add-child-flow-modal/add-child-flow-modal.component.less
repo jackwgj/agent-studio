@@ -1,0 +1,161 @@
+.card {
+  background-color: #fafafa;
+  height: 106px;
+  width: calc((100% - 16px) / 2);
+  border-radius: 8px;
+  box-sizing: border-box;
+  padding: 16px;
+  gap: 16px;
+  border: 1px solid transparent;
+  cursor: pointer;
+
+  .flex-content {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .flow-tag {
+    display: inline-block;
+    background-color: #e6e6e6;
+    line-height: 18px;
+    padding: 0 4px;
+    border-radius: 2px;
+    margin-top: 4px;
+  }
+
+  .text-desc {
+    height: 20px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &:hover {
+    border-color: #1476ff;
+  }
+}
+
+.card-style {
+  width: calc((100% - 16px) / 2);
+}
+
+.cards-wrapper {
+  display: flex;
+  height: 100%;
+  width: 100%;
+  flex-wrap: wrap;
+  place-content: flex-start center;
+  gap: 16px;
+  overflow: auto;
+  padding: 4px 2px;
+
+  &::after {
+    content: "";
+    flex: auto;
+  }
+}
+
+::ng-deep {
+  #flow-add-tool-modal {
+    .ti3-tab-content {
+      height: calc(100% - 52px);
+      border-top-color: transparent;
+    }
+  }
+}
+
+.bottom-area {
+  flex: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding-top: 12px;
+
+  img {
+    font-size: 11px;
+    color: #808080;
+  }
+
+  .creator {
+    position: relative;
+    top: 4px;
+  }
+}
+
+.no-data-page {
+  height: calc(100% - 120px);
+}
+
+.page-div {
+  display: flex;
+  align-items: center;
+  color: rgba(25, 25, 25, 1);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.page-div-span {
+  margin-right: 8px;
+  padding-right: 8px;
+}
+.page-div-select{
+  padding-left: 16px;
+  border-left: 1px solid rgba(219, 219, 219, 1);
+}
+.tip-title {
+  color: rgba(128, 128, 128, 1);
+  font-size: 12px;
+  line-height: 18px;
+  margin-bottom: 8px;
+}
+
+.card-title {
+  color: rgba(25, 25, 25, 1);
+  font-size: 14px;
+  font-weight: bold;
+  line-height: 22px;
+  margin-bottom: 4px;
+}
+
+.card-icon {
+  display: inline-block;
+  background-color: #e6e6e6;
+  border-radius: 2px;
+  background: rgba(230, 230, 230, 1);
+  color: rgba(25, 25, 25, 1);
+  font-size: 12px;
+  line-height: 18px;
+  padding: 0px 4px;
+}
+
+.card-desc {
+  padding-top: 12px;
+  color: rgba(128, 128, 128, 1);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.img-border {
+  height: 44px;
+  width: 44px;
+  border-radius: 8px;
+  border: 1px solid rgba(219, 219, 219, 1);
+}
+
+.card-selected {
+  border-color: #4361ee;
+  background-color: #ffffff;
+}
+
+.share-card{
+  height: 136px;
+}
+
+.version-info-list-div  {
+
+  ::ng-deep {
+    .ti3-select-dominator-text {
+      color: #808080;
+    }
+  }
+}

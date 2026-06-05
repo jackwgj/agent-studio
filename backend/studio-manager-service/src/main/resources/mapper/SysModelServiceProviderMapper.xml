@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  ~ Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
+  -->
+
+
+<mapper namespace="com.openjiuwen.studio.agent.manager.mapper.md.SysModelServiceProviderMapper">
+    <select id="selectById" resultType="com.openjiuwen.studio.agent.manager.entity.md.ModelServiceProvider">
+        select * from t_sys_model_service_provider where ID = #{id}
+    </select>
+
+    <sql id="conditionSql">
+        <if test="condition.query != null and condition.query != '' ">
+          and  (
+                 p.PROVIDER_NAME like CONCAT('%', #{condition.query}, '%')
+                or p.PROVIDER_NAME_EN like CONCAT('%', #{condition.query}, '%')
+                or p.DESCRIPTION like CONCAT('%', #{condition.query}, '%')
+                or p.TAGS like CONCAT('%', #{condition.query}, '%')
+            )
+        </if>
+        <if test="condition.id != null and condition.id != ''">
+            and p.ID like  CONCAT('%', #{condition.id}, '%')
+        </if>
+        <if test="condition.excludeId != null and condition.excludeId != ''">
+            and p.ID != #{condition.excludeId}
+        </if>
+        <if test="condition.providerIds != null and condition.providerIds.size() > 0" >
+            and p.ID in
+            <foreach collection="condition.providerIds" item="pid" open="(" close=")" separator=",">
+                #{pid}
+            </foreach>
+        </if>
+    </sql>
+
+    <select id="queryByCondition" resultType="com.openjiuwen.studio.agent.manager.entity.md.ModelServiceProviderDetail">
+        select p.*,  m.AUTH_TYPE as auth_types, m.ID as auth_meta_ids
+        from t_sys_model_service_provider p
+        left join t_provider_auth_metadata m on p.ID = m.PROVIDER_ID
+        where 1=1
+        <include refid="conditionSql"/>
+        order by p.priority
+    </select>
+</mapper>

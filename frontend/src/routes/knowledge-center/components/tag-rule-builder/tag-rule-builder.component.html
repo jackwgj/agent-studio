@@ -1,0 +1,146 @@
+<div class="tag-rule-builder"
+     [class.is-filter]="!!tagRule().basic || !!tagRule().advancedRules"
+     (click)="showRuleModal()"></div>
+
+<ng-template #tagRuleModal>
+  <div class="tag-rule-builder-modal-content">
+    <div class="kb-list-container">
+      <div class="kb-selected-title-container" (click)="fold.set(!fold())">
+        <div class="title-content">
+          {{ 'kb_selected' | i18nextEager }}（{{ kbs()?.length }}）
+        </div>
+        <div class="toggle-container">
+          <span nz-icon [nzType]="fold() ? 'up' : 'down'"></span>
+        </div>
+      </div>
+      <div class="kb-card-content" *ngIf="!fold()">
+        @for (kb of kbs(); track kb.id) {
+          <div class="kb-card">
+            <img src="{{ kb?.icon ??  WORKFLOW_SVGS.KnowledgeRepo }}" alt="">
+            <div class="kb-content">
+              <div class="kb-name">
+                {{ kb?.name }}
+              </div>
+              <div class="kb-description">
+                {{ kb?.description }}
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+
+    <div class="tag-status-switch">
+      <div class="switch-title">
+        {{ 'retrieve_documents_only_with_the_specified_tag' | i18nextEager }}
+      </div>
+
+      <nz-switch [(ngModel)]="enableTagRule"></nz-switch>
+
+      <div class="rule-tip">
+        {{ 'rule_retrieve_tip' | i18nextEager }}
+      </div>
+    </div>
+
+    @if (enableTagRule()) {
+      <div class="tag-rule-mode-container">
+        <div class="tag-rule-mode-title mb-[4px]">
+          {{ 'retrieve_mode' | i18nextEager }}
+        </div>
+
+        <nz-radio-group
+          id="tag-rule-mode"
+          nzButtonStyle="solid"
+          [(ngModel)]="ruleMode">
+          @for (item of items; track item.value) {
+            <label nz-radio-button [nzValue]="item.value">{{ item.text }}</label>
+          }
+        </nz-radio-group>
+      </div>
+
+      @if (ruleMode() === TagRuleMode.BASIC) {
+        <div class="basic-retrieve">
+          <div class="mb-[4px]">{{ 'select_tag' | i18nextEager }}</div>
+          <nz-select
+            class="rule-tag-select !w-full"
+            nzMode="multiple"
+            [nzMaxTagCount]="1"
+            [nzLoading]="isTagSelectLoading()"
+            nzShowSearch
+            nzAllowClear
+            (nzOpenChange)="onTagSelectOpen($event)"
+            [(ngModel)]="basicTagFilter">
+            @for (group of basicTagOptions(); track group.id) {
+              <nz-option-group [nzLabel]="group.name">
+                @for (tag of group.children; track tag.id) {
+                  <nz-option [nzLabel]="tag.name" [nzValue]="tag.name"></nz-option>
+                }
+              </nz-option-group>
+            }
+          </nz-select>
+        </div>
+      }
+      @if (ruleMode() === TagRuleMode.RULE) {
+        <div class="retrieve-rule-setting">
+          <div class="rule-setting-title">
+            {{ 'retrieve_condition_config' | i18nextEager }}
+          </div>
+
+          <nz-alert nzType="info" nzShowIcon [nzMessage]="'empty_tag_tip' | i18nextEager" class="!w-full mb-[12px]"></nz-alert>
+
+          <div class="rule-preview">
+
+            <div class="preview-title">
+              {{ 'condition_preview' | i18nextEager }}
+            </div>
+
+            <div class="preview-content">
+              @if (previewRule()) {
+                <span
+                  class="preview-rule-content"
+                  (mouseover)="previewMouseOver($event)"
+                  (mouseout)="previewMouseOut($event)"
+                  [innerHTML]="previewRule()"></span>
+              } @else {
+                <span class="no-preview">{{ 'set_before_preview' | i18nextEager }}</span>
+              }
+            </div>
+
+          </div>
+
+          <div class="rule-tree-container">
+
+            <div class="rule-tree-title">
+              {{ 'bool_condition_set' | i18nextEager }}
+            </div>
+
+            <div class="tree-container">
+              <rule-tree
+                [treeData]="tagRuleTreeData()"
+                [ruleTreeConfig]="ruleTreeConfig"
+                (nodeChange)="nodeChange($event)"
+                (afterTreeInit)="afterTreeInit($event)">
+                <ng-template #singleRule let-ruleNode="node">
+                  <ng-container [formGroup]="ruleNode.businessData.formGroup">
+                    <tag-rule-select
+                      formControlName="singleRule"
+                      [kbs]="kbs()"
+                      [isRuleMode]="true"
+                      (deleteHandler)="delCurrentRule(ruleNode)"
+                      (selectChange)="nodeChange(ruleNode.ruleTree.rootNode)"
+                    ></tag-rule-select>
+                  </ng-container>
+                </ng-template>
+              </rule-tree>
+            </div>
+          </div>
+        </div>
+      }
+    }
+  </div>
+</ng-template>
+
+<ng-template #tagRuleModalFooter>
+  <button class="mr-[8px]" nz-button (click)="closeModal('dismiss')">{{ 'cancel' | i18nextEager }}</button>
+  <button nz-button nzType="primary" nzDanger (click)="closeModal('close')">{{ 'ok' | i18nextEager }}</button>
+</ng-template>

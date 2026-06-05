@@ -1,0 +1,205 @@
+.tag-rule-builder {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  background: url('../../../../assets/knowledge-center/tag/kb-tag-filter.svg') 100% center no-repeat;
+
+  &.is-filter {
+    background: url('../../../../assets/knowledge-center/tag/kb-tag-filtered.svg') 100% center no-repeat;
+  }
+}
+
+.tag-rule-builder-modal-content {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 16px;
+
+  .kb-list-container {
+    .kb-selected-title-container {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+
+      .title-content {
+        font-size: 12px;
+        font-weight: bold;
+      }
+
+      .toggle-container {
+        display: flex;
+        align-items: center;
+        margin-left: 4px;
+      }
+    }
+
+    .kb-card-content {
+      margin-top: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+
+      .kb-card {
+        display: flex;
+        gap: 8px;
+        padding: 12px;
+        border-radius: 8px;
+        background: rgba(250, 250, 250, 1);
+        align-items: center;
+
+        & + kb-card {
+          margin-top: 12px;
+        }
+
+        img {
+          width: 28px;
+          height: 28px;
+        }
+
+        .kb-content {
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+
+          .kb-name {
+            color: rgba(25, 25, 25, 1);
+          }
+
+          .kb-description {
+            color: rgba(128, 128, 128, 1);
+          }
+        }
+      }
+    }
+  }
+
+
+  .tag-status-switch {
+    margin-top: 16px;
+
+    .switch-title {
+      color: rgba(25, 25, 25, 1);
+      margin-bottom: 4px;
+    }
+
+    .rule-tip {
+      color: rgba(128, 128, 128, 1);
+      font-size: 12px;
+    }
+  }
+
+  .tag-rule-mode-container {
+    margin-top: 24px;
+    margin-bottom: 24px;
+  }
+
+  .basic-retrieve {
+
+    .tag-rule-mode-title {
+      color: rgba(25, 25, 25, 1);
+      margin-bottom: 4px;
+    }
+  }
+
+  .retrieve-rule-setting {
+    flex: 1 0;
+    display: flex;
+    flex-direction: column;
+
+    .rule-setting-title {
+      color: rgba(25, 25, 25, 1);
+      margin-bottom: 12px;
+      font-weight: 600;
+    }
+
+    .rule-preview {
+
+      .preview-title {
+        color: rgba(25, 25, 25, 1);
+        margin-bottom: 4px;
+      }
+
+      .preview-content {
+        .no-preview {
+          color: rgba(194, 194, 194, 1);
+        }
+
+        .preview-rule-content {
+          width: 100%;
+          overflow-x: auto;
+          display: flex;
+          gap: 4px;
+          align-items: center;
+          font-size: 14px;
+          flex-wrap: wrap;
+
+          ::ng-deep {
+            * {
+              flex-shrink: 0;
+              width: fit-content;
+            }
+          }
+
+          ::ng-deep .tag-content {
+            height: 20px;
+            border-radius: 2px;
+            background: rgba(245, 245, 245, 1);
+            padding: 0 4px;
+            line-height: 20px;
+          }
+
+          ::ng-deep .tag-operator-or {
+            height: 20px;
+            width: 20px;
+            text-align: center;
+            line-height: 20px;
+            border-radius: 2px;
+            background: rgba(213, 242, 220, 1);
+          }
+
+          ::ng-deep .tag-operator-and {
+            height: 20px;
+            width: 20px;
+            text-align: center;
+            line-height: 20px;
+            border-radius: 2px;
+            background: rgba(222, 236, 255, 1);
+          }
+
+          ::ng-deep .tag-rule-brackets {
+            cursor: default;
+            padding: 0 2px;
+            border-radius: 2px;
+
+            &.tag-highlight {
+              color: #ffffff;
+              background-color: #1476ff;
+              font-weight: bold;
+            }
+          }
+        }
+      }
+    }
+
+    .rule-tree-container {
+      margin-top: 16px;
+      flex: 1 0;
+      display: flex;
+      flex-direction: column;
+      overflow: auto;
+
+      .rule-tree-title {
+        color: rgba(25, 25, 25, 1);
+        margin-bottom: 4px;
+      }
+
+      .tree-container {
+        box-sizing: border-box;
+        border: 1px solid rgba(219, 219, 219, 1);
+        border-radius: 8px;
+        padding: 24px;
+        flex: 1 0;
+      }
+    }
+  }
+}

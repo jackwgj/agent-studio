@@ -1,0 +1,741 @@
+<div
+  class="run-modal-wrapper run-modal-show h-full w-[600px]"
+  [ngClass]="{ 'chat-bg': isShowChat }"
+>
+  <div class="flex h-full flex-col">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-[8px] w-[95%]">
+        <img class="h-[24px] w-[24px]" [src]="icon" alt="exe-node" />
+        <div class="text-[16px] font-bold leading-[24px]" nz-ellipsis>
+          {{ nodeInfo?.name }}-{{ 'node_test' | i18nextEager }}
+        </div>
+      </div>
+
+      <span
+        (click)="onClose()"
+        class="cursor-pointer !text-[16px] !text-[#000]"
+      >
+        <nz-icon nzType="close" nzTheme="outline" />
+      </span>
+    </div>
+
+    <div class="mt-[26px] h-[calc(100%-32px)]">
+      <nz-alert
+        *ngIf="showPreRunCheckInfo"
+        nzType="warning"
+        [nzShowIcon]="false"
+        class="mb-4 !h-[34px] !w-full"
+      >
+        <span nz-alert-description>
+          <span>{{ 'alert_long_memory' | i18nextEager }}</span>
+          <span (click)="goToConfig()" class="cursor-pointer !text-[#1476ff]">
+            {{ 'to_open' | i18nextEager }}
+            <nz-icon nzType="export" nzTheme="outline" />
+          </span>
+        </span>
+      </nz-alert>
+
+      <nz-tabset
+        [ngStyle]="{
+          display: isShowChat ? 'none' : 'block',
+          height: showPreRunCheckInfo ? 'calc(100% - 58px)' : '100%'
+        }"
+        nzSize="small"
+        id="exe-tabs"
+        class="h-full"
+        [(nzSelectedIndex)]="selectedTabIndex"
+      >
+        <nz-tab
+          class="h-full"
+          [nzTitle]="tabs[0].title"
+        >
+          <div class="flex h-full w-full flex-col justify-between">
+            <div
+              class="flex h-[calc(100%-80px)] w-full flex-col gap-[16px] overflow-y-auto"
+            >
+              <form class="w-full" *ngIf="params.length" #paramForm="ngForm">
+                <div
+                  class="flex max-h-full w-full flex-col gap-[16px] overflow-auto rounded-[8px] bg-[#fafafa] p-[16px] mt-4"
+                >
+                  <div
+                    class="flex flex-col gap-[8px]"
+                    *ngFor="let param of params; index as i"
+                  >
+                    <div class="flex items-center justify-between gap-[8px]">
+                      <div class="flex items-center gap-2">
+                        <div>{{ param.name }}{{ param.required === false ? ('optional'|i18nextEager) : '' }}</div>
+
+                        <div class="rounded-[2px] bg-[#e6e6e6] px-[4px]">
+                          {{ getTypeFunc(param) }}
+                        </div>
+                      </div>
+                      <button
+                        *ngIf="isShowMultiBtn(param)"
+                        nz-button
+                        nzType="text"
+                        nzGhost
+                        [disabled]="isUploading"
+                        (click)="addMultiFile(i)"
+                      >
+                        <span class="flex items-center"
+                          ><nz-icon nzType="plus" nzTheme="outline"></nz-icon>
+                          {{ 'add' | i18nextEager }}</span
+                        >
+                      </button>
+                    </div>
+
+                    <div class="w-full">
+                      <ng-container *ngIf="isStr(param) || isMultiples(param)">
+                        <flexible-text-field
+                          [(ngModel)]="param.val"
+                          [name]="'param' + i"
+                          [disabled]="isLoading"
+                          [nonEmptyValidator]="param.required"
+                          [placeholder]="'input_placeholder' | i18nextEager"
+                        />
+
+                        <div class="w-full" #paramErrwrapper></div>
+                      </ng-container>
+
+                      <ng-container *ngIf="isInt(param)">
+                        <input
+                          style="width: 100%"
+                          type="text"
+                          nz-input
+                          [disabled]="isLoading"
+                          [name]="'param' + i"
+                          [(ngModel)]="param.val"
+                          [placeholder]="'input_placeholder' | i18nextEager"
+                        />
+
+                        <div class="w-full" #paramErrwrapper></div>
+                      </ng-container>
+
+                      <ng-container *ngIf="isNum(param)">
+                        <input
+                          style="width: 100%"
+                          type="text"
+                          nz-input
+                          [disabled]="isLoading"
+                          [name]="'param' + i"
+                          [(ngModel)]="param.val"
+                          [placeholder]="'input_placeholder' | i18nextEager"
+                        />
+
+                        <div class="w-full" #paramErrwrapper></div>
+                      </ng-container>
+
+                      <ng-container *ngIf="isBool(param)">
+                        <nz-switch
+                          [name]="'param' + i"
+                          [(ngModel)]="param.val"
+                          [nzDisabled]="isLoading"
+                          (ngModelChange)="onBooleanChange()"
+                        ></nz-switch>
+
+                        <div class="w-full" #paramErrwrapper></div>
+                      </ng-container>
+
+                      <ng-container *ngIf="isArr(param)">
+                        <div
+                          class="w-full rounded-[6px] border-[1px] border-solid border-[#ccc]"
+                        >
+                          <div
+                            class="flex items-center justify-between rounded-t-[6px] border-b-[1px] border-solid border-[#ccc] bg-[#f0f7ff] p-[10px]"
+                          >
+                            <span class="font-bold text-[#333]">json</span>
+                            <asset-format-icon
+                              class="cursor-pointer"
+                              nz-tooltip
+                              [nzTooltipTitle]="'format' | i18nextEager"
+                              nzTooltipPlacement="top"
+                              (click)="formatDoc(param.uri)"
+                            ></asset-format-icon>
+                          </div>
+                          <div
+                            class="h-[134px] w-full rounded-b-[6px] bg-white py-[10px] pr-[10px]"
+                          >
+                            <ngx-monaco-editor
+                              #exeEditor
+                              [disabled]="isLoading"
+                              [(ngModel)]="param.val"
+                              (ngModelChange)="onInputJSONChange()"
+                              arrTypeValidator
+                              [nonEmptyValidator]="param.required"
+                              [param]="param"
+                              [options]="editorOps"
+                              [name]="'param' + i"
+                              [uri]="param.uri"
+                            ></ngx-monaco-editor>
+                          </div>
+                        </div>
+
+                        <div
+                          *ngIf="getComplexErr(i)"
+                          class="mt-[8px] w-full text-[#f23030]"
+                        >
+                          {{ getComplexErr(i) }}
+                        </div>
+                      </ng-container>
+
+                      <ng-container *ngIf="isObj(param)">
+                        <div
+                          class="w-full rounded-[6px] border-[1px] border-solid border-[#ccc]"
+                        >
+                          <div
+                            class="flex items-center justify-between rounded-t-[6px] border-b-[1px] border-solid border-[#ccc] bg-[#f0f7ff] p-[10px]"
+                          >
+                            <span class="font-bold text-[#333]">json</span>
+                            <asset-format-icon
+                              class="cursor-pointer"
+                              nz-tooltip
+                              [nzTooltipTitle]="'format' | i18nextEager"
+                              nzTooltipPlacement="top"
+                              (click)="formatDoc(param.uri)"
+                            ></asset-format-icon>
+                          </div>
+                          <div
+                            class="h-[134px] w-full rounded-b-[6px] bg-white py-[10px] pr-[10px]"
+                          >
+                            <ngx-monaco-editor
+                              #exeEditor
+                              [(ngModel)]="param.val"
+                              (ngModelChange)="onInputJSONChange()"
+                              objTypeValidator
+                              [disabled]="isLoading"
+                              [options]="editorOps"
+                              [name]="'param' + i"
+                              [uri]="param.uri"
+                              [nonEmptyValidator]="param.required"
+                            ></ngx-monaco-editor>
+                          </div>
+                        </div>
+
+                        <div
+                          *ngIf="getComplexErr(i)"
+                          class="mt-[8px] w-full text-[#f23030]"
+                        >
+                          {{ getComplexErr(i) }}
+                        </div>
+                      </ng-container>
+
+                      <ng-container *ngIf="isFile(param)">
+                        <div>
+                          <input
+                            type="file"
+                            #fileInput
+                            class="hidden"
+                            [multiple]="false"
+                            [accept]="param.type | fileAcc"
+                            (change)="onUploadFile($event, param, 'single')"
+                          />
+                          <div
+                            *ngIf="!param.file"
+                            class="dotted-frame flex w-full cursor-pointer flex-col items-center rounded-[8px] border-2 border-dotted border-[#c2c2c2] bg-[#fff] pb-[16px] pt-[16px]"
+                            (click)="fileInput.click()"
+                          >
+                            <div class="flex items-center">
+                              <img alt=""
+                                class="mr-[4px] mt-[6px]"
+                                [src]="cdn('assets/agent/file.svg')"
+                              />
+
+                              <div class="mt-[6px] flex">
+                                <div class="text-[14px] text-[#191919]">
+                                  {{
+                                    'the_current_blank_document_please'
+                                      | i18nextEager
+                                  }}
+                                  {{ 'one_file_only' | i18nextEager }}
+                                </div>
+                              </div>
+                            </div>
+                            <div class="mt-[6px] text-[#808080]">
+                              {{ param.type | fileDesc }}
+                            </div>
+                          </div>
+                          <div
+                            *ngIf="param.file"
+                            class="flex w-full items-center rounded-[8px] border border-solid border-[#DBDBDB] bg-[#fff] p-[16px]"
+                          >
+                            <nz-spin
+                              *ngIf="param.uploadData.progress === 'loading'"
+                              nzSimple
+                              [nzSize]="'small'"
+                            ></nz-spin>
+                            <meta-upload-file-icon
+                              *ngIf="param.uploadData.progress !== 'loading'"
+                              [fileName]="param.uploadData.name"
+                            ></meta-upload-file-icon>
+                            <span
+                              class="ml-[12px]"
+                              [ngClass]="{
+                                'text-[#F23030]':
+                                  param.uploadData.progress === 'failed'
+                              }"
+                              nz-ellipsis
+                            >
+                              {{ param.uploadData.name }}</span
+                            >
+                            <span
+                              class="ml-auto cursor-pointer text-[16px]"
+                              (click)="removeFile(param)"
+                            >
+                              <nz-icon nzType="close" nzTheme="outline" />
+                            </span>
+                          </div>
+                          <div
+                            class="error-tip flex w-full items-center"
+                            *ngIf="param?.uploadData?.progress === 'failed'"
+                          >
+                            <nz-icon
+                              class="mr-[6px] text-[#F23030]"
+                              nzType="close-circle"
+                              nzTheme="outline"
+                            ></nz-icon>
+                            {{ 'a_file_upload_failed' | i18nextEager }}
+                            <div
+                              (click)="fileInput.click()"
+                              class="cursor-pointer text-[#1476ff] hover:underline"
+                            >
+                              {{ 'reupload' | i18nextEager }}
+                            </div>
+                          </div>
+                        </div>
+                      </ng-container>
+
+                      <ng-container *ngIf="param.type?.includes('array\<file')">
+                        <div>
+                          <input
+                            type="file"
+                            #fileInput
+                            class="hidden"
+                            [ngClass]="'input' + i"
+                            multiple="multiple"
+                            [accept]="param.type | fileAcc"
+                            (change)="onUploadFile($event, param)"
+                          />
+                          <div
+                            *ngIf="!param.uploadDatas?.length"
+                            class="dotted-frame flex w-full cursor-pointer flex-col items-center rounded-[8px] border-2 border-dotted border-[#c2c2c2] bg-[#fff] pb-[16px] pt-[16px]"
+                            (click)="fileInput.click()"
+                          >
+                            <div class="flex items-center">
+                              <img alt=""
+                                class="mr-[4px] mt-[6px]"
+                                [src]="cdn('assets/agent/file.svg')"
+                              />
+
+                              <div class="mt-[6px] flex">
+                                <div class="text-[14px] text-[#191919]">
+                                  {{
+                                    'the_current_blank_document_please'
+                                      | i18nextEager
+                                  }}
+                                  {{ 'upload_max_ten_files' | i18nextEager }}
+                                </div>
+                              </div>
+                            </div>
+                            <div class="mt-[6px] text-[#808080]">
+                              {{ param.type | fileDesc }}
+                            </div>
+                          </div>
+                          <div
+                            *ngIf="param.uploadDatas?.length"
+                            class="flex w-full flex-col items-center rounded-[8px] border border-solid border-[#DBDBDB] bg-[#fff] p-[16px]"
+                          >
+                            <div
+                              *ngFor="let fileItem of param.uploadDatas"
+                              class="mb-[8px] flex w-[100%] items-center rounded-[8px] bg-[#fafafa] p-[16px] pb-[9px] pt-[9px]"
+                              (mouseenter)="onFileItemHover(fileItem, true)"
+                              (mouseleave)="onFileItemHover(fileItem, false)"
+                            >
+                              <nz-spin
+                                *ngIf="fileItem.progress === 'loading'"
+                                nzSimple
+                                [nzSize]="'small'"
+                              ></nz-spin>
+                              <meta-upload-file-icon
+                                *ngIf="fileItem.progress !== 'loading'"
+                                [fileName]="fileItem.name"
+                              ></meta-upload-file-icon>
+                              <span
+                                class="ml-[12px]"
+                                [ngClass]="{
+                                  'text-[#F23030]':
+                                    fileItem.progress === 'failed'
+                                }"
+                                nz-ellipsis
+                              >
+                                {{ fileItem.name }}</span
+                              >
+                              <span
+                                class="ml-auto cursor-pointer text-[16px]"
+                                (click)="removeFile(param, fileItem)"
+                                [ngClass]="{
+                                  'disabled-delete':
+                                    isUploading && inputIndex !== i
+                                }"
+                                [ngStyle]="{
+                                  display: fileItem.isHover
+                                    ? 'inline-block'
+                                    : 'none'
+                                }"
+                              >
+                                <nz-icon nzType="delete" nzTheme="outline" />
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </ng-container>
+                    </div>
+                  </div>
+                </div>
+              </form>
+
+              <div
+                class="flex h-full w-full items-center justify-center"
+                *ngIf="!params.length"
+              >
+                <div class="flex flex-col items-center gap-[8px]">
+                  <no-data-icon />
+                  <span class="text-[16px] font-bold text-label">{{
+                      'no_configuration' | i18nextEager
+                    }}</span>
+                </div>
+              </div>
+
+              <form #pluginForm="ngForm" *ngIf="isPluginConfigVisible">
+                <div class="mb-[4px] text-[14px] font-bold">
+                  {{ 'plugin_authentication_parameters' | i18nextEager }}
+                </div>
+                <div class="rounded-[8px] bg-[#fafafa] p-[16px]">
+                  <div
+                    *ngFor="let authParam of authParams"
+                    class="flex flex-col gap-[8px]"
+                  >
+                    <span>{{ authParam.name }}</span>
+                    <input
+                      style="width: 100%"
+                      type="password"
+                      autocomplete="new-password"
+                      nz-input
+                      [name]="authParam.name"
+                      [(ngModel)]="authParam.value"
+                      [disabled]="isLoading"
+                      [required]="!isXParams(authParam.name)"
+                      [placeholder]="'input_placeholder' | i18nextEager"
+                    />
+                    <div class="my-1 w-full" #valueWrapper></div>
+                  </div>
+                </div>
+              </form>
+            </div>
+
+            <div
+              class="border-div flex w-full items-center justify-end pb-[14px] pt-6"
+            >
+              <button
+                [nzLoading]="isLoading"
+                (click)="run('config')"
+                type="button"
+                nz-button
+                nzType="primary"
+                [disabled]="runBtnDisabled"
+              >
+                {{ 'start_running' | i18nextEager }}
+              </button>
+            </div>
+          </div>
+        </nz-tab>
+
+        <nz-tab
+          class="h-full"
+          [nzTitle]="tabs[1].title"
+        >
+          <div class="flex h-full w-full flex-col gap-[16px] overflow-y-auto">
+            <div
+              *ngIf="isLoading; else notLoading"
+              class="flex w-full"
+            >
+              <div class="w-full rounded-[8px] bg-[#fafafa] p-[16px] mt-4">
+                <div class="flex items-center gap-[8px] ">
+                  <div
+                    class="loading-icon"
+                  ></div>
+                  <div
+                    class="text-[14px] font-bold loading-txt"
+                  >
+                    {{ 'running'| i18nextEager }}
+                  </div>
+                </div>
+                <button
+                  class="mt-4"
+                  type="button"
+                  nz-button
+                  nzType="default"
+                  (click)="stopChat()"
+                  *ngIf="isLoading"
+                >
+                  {{ 'stop_running' | i18nextEager }}
+                </button>
+              </div>
+
+            </div>
+
+            <ng-template #notLoading>
+              <ng-container *ngIf="runInfo">
+                <div class="mt-4 w-full rounded-[8px] bg-[#fafafa] p-[16px]">
+                  <div class="flex items-center gap-[8px]">
+                    <div
+                      [ngClass]="{
+                        'success-icon': runInfo.status === 'succeeded',
+                        'failed-icon': runInfo.status === 'failed',
+                        'loading-icon': runInfo.status === 'loading'
+                      }"
+                    ></div>
+                    <div
+                      class="text-[14px] font-bold"
+                      [ngClass]="{
+                        'success-txt': runInfo.status === 'succeeded',
+                        'failed-txt': runInfo.status === 'failed',
+                        'loading-txt': runInfo.status === 'loading'
+                      }"
+                    >
+                      {{ statusText }}
+                    </div>
+                  </div>
+                  <div class="mt-4 mb-4 bg-[#FCE3E1] text-[#191919] rounded-[8px] px-4 py-2
+                  " *ngIf="errorMsg">
+                     {{errorMsg?.error_msg || errorMsg?.message || errorMsg?.error_msg_front}}
+                     <div >{{'reason' | i18nextEager}}: {{errorMsg?.error_reason || ''}}</div>
+                     <div >{{'suggestion' | i18nextEager}}: {{errorMsg?.error_suggestion || ''}}</div>
+                     <div class="flex items-center gap-[8px]">{{'errorCode' | i18nextEager}}: {{errorMsg?.error_code || ''}}
+                      <asset-copy-icon
+                        *ngIf="errorMsg?.error_code"
+                        class="cursor-pointer"
+                        (click)="handleCopyErrorCode(errorMsg?.error_code)"
+                      ></asset-copy-icon>
+                      <asset-copy-success-icon
+                        *ngIf="showCodeCopySuccess"
+                        class="cursor-pointer"
+                      ></asset-copy-success-icon>
+                     </div>
+                  </div>
+
+                  <div class="mt-[16px] flex flex-col gap-[8px]">
+                    <div class="flex items-center justify-between">
+                      <div
+                        *ngIf="runInfo?.startTime"
+                        class="flex w-1/2 items-center gap-[12px]"
+                      >
+                        <div class="text-desc">
+                          {{ 'start_time_label' | i18nextEager }}
+                        </div>
+                        <div class="text-label">
+                          {{ runInfo.startTime | date : 'yyyy-MM-dd HH:mm:ss' }}
+                        </div>
+                      </div>
+                      <div
+                        *ngIf="runInfo?.duration"
+                        class="flex w-1/2 items-center gap-[12px]"
+                      >
+                        <div class="text-desc">
+                          {{ 'running_time_label' | i18nextEager }}
+                        </div>
+                        <div class="text-label">{{ runInfo.duration }}</div>
+                      </div>
+                    </div>
+
+                    <div class="flex items-center justify-between">
+                      <div
+                        *ngIf="runInfo?.endTime"
+                        class="flex w-1/2 items-center gap-[12px]"
+                      >
+                        <div class="text-desc">
+                          {{ 'end_time_label' | i18nextEager }}
+                        </div>
+                        <div class="text-label">
+                          {{ runInfo.endTime | date : 'yyyy-MM-dd HH:mm:ss' }}
+                        </div>
+                      </div>
+                      <div
+                        *ngIf="runInfo?.tokens"
+                        class="flex w-1/2 items-center gap-[12px]"
+                      >
+                        <div class="text-desc">
+                          {{ 'total_number_of_tokens' | i18nextEager }}
+                        </div>
+                        <div class="text-label">{{ runInfo.tokens }}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div
+                  *ngIf="isAnswerValid(runInfo)"
+                  class="flex flex-col gap-[8px] rounded-lg bg-[#fafafa] p-[16px]"
+                >
+                  <span class="font-semibold text-[#191919]">{{
+                      'output_result' | i18nextEager
+                    }}</span>
+                  <span>{{ runInfo.answer }}</span>
+                </div>
+                <div
+                  class="flex w-full flex-col gap-[16px] rounded-[8px] p-[16px]"
+                  [ngClass]="{
+                    'bg-[#fafafa]': runInfo?.inputs || runInfo?.outputs
+                  }"
+                >
+                  <div class="flex flex-col gap-[8px]">
+                    <div
+                      *ngIf="runInfo?.inputs"
+                      class="flex items-center gap-[8px]"
+                    >
+                      <div>{{ 'input' | i18nextEager }}</div>
+                      <asset-copy-icon
+                        *ngIf="!showInputsCopySuccess"
+                        class="cursor-pointer"
+                        (click)="handleCopy(runInfo.inputs, 'inputs')"
+                      ></asset-copy-icon>
+                      <asset-copy-success-icon
+                        *ngIf="showInputsCopySuccess"
+                        class="cursor-pointer"
+                      ></asset-copy-success-icon>
+                    </div>
+
+                    <div
+                      *ngIf="runInfo?.inputs"
+                      class="max-h-[340px] w-full overflow-auto rounded-[6px] border-[1px] border-solid border-[#d8d8d8]"
+                    >
+                      <json-viewer [jsonData]="runInfo.inputs"></json-viewer>
+                    </div>
+                  </div>
+
+                  <div class="flex flex-col gap-[8px]" *ngIf="runInfo?.outputs">
+                    <div class="flex items-center gap-[8px]">
+                      <div>{{ 'output' | i18nextEager }}</div>
+                      <asset-copy-icon
+                        *ngIf="!showOutputsCopySuccess"
+                        class="cursor-pointer"
+                        (click)="handleCopy(runInfo.outputs, 'outputs')"
+                      ></asset-copy-icon>
+                      <asset-copy-success-icon
+                        *ngIf="showOutputsCopySuccess"
+                        class="cursor-pointer"
+                      ></asset-copy-success-icon>
+                    </div>
+
+                    <div
+                      class="max-h-[340px] w-full overflow-auto rounded-[6px] border-[1px] border-solid border-[#d8d8d8]"
+                    >
+                      <json-viewer [jsonData]="runInfo.outputs"></json-viewer>
+                    </div>
+                  </div>
+                </div>
+              </ng-container>
+
+              <div
+                class="flex h-full w-full items-center justify-center"
+                *ngIf="!runInfo"
+              >
+                <div class="flex flex-col items-center gap-[8px]">
+                  <no-data-icon />
+                  <span class="text-[16px] font-bold text-label"
+                  >{{ 'no_running_results' | i18nextEager }}，{{
+                      'please_run_first' | i18nextEager
+                    }}</span
+                  >
+                </div>
+              </div>
+            </ng-template>
+          </div>
+        </nz-tab>
+      </nz-tabset>
+
+      <div class="flex h-full flex-col" [hidden]="!isShowChat">
+        <div
+          class="flex h-[calc(100%-245px)] flex-1 flex-col gap-[16px] overflow-y-auto scroll-smooth"
+          #chatContainerRef
+        >
+          <div class="chat-loop" *ngFor="let chat of chats; let i = index">
+            <div class="user-question" *ngIf="chat.query">
+              <asset-user-icon></asset-user-icon>
+              <div class="text">{{ chat.query.trim() }}</div>
+            </div>
+
+            <div class="system-answer">
+              <div class="flex gap-[12px]" *ngIf="!chat.answer?.isError">
+                <img alt="" class="flow-avatar" [src]="workflowIcon" />
+                <div class="text">
+                  <div class="loading" *ngIf="chat.answer.loading">
+                    <span>{{ 'being_generated' | i18nextEager }}</span>
+                    <img alt="" [src]="loadingGif" />
+                  </div>
+                  <app-markdown-answer
+                    class="markdown-text"
+                    style="width: 100%"
+                    *ngIf="!chat.answer.loading"
+                    [(answer)]="chat.answer.text"
+                  ></app-markdown-answer>
+                </div>
+              </div>
+              <div
+                class="flex flex-col gap-[12px]"
+                *ngIf="chat.answer?.isError && !chat.answer.loading"
+              >
+                <div class="flex items-center gap-[4px]">
+                  <img alt="" class="h-[14px] w-[14px]" [src]="validateAlertIcon" />
+                  <span class="error-text">{{ 'fail' | i18nextEager }}</span>
+                </div>
+                <span class="error-reason">{{ chat.answer.text }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bottom-wrapper">
+          <div class="textarea-area">
+            <div class="left-area">
+              <div class="cursor-pointer">
+                <asset-clear-icon
+                  (click)="cleanChats()"
+                  *ngIf="!clearChatDisabled"
+                ></asset-clear-icon>
+                <asset-disabled-clear-icon
+                  *ngIf="clearChatDisabled"
+                ></asset-disabled-clear-icon>
+              </div>
+            </div>
+            <div
+              class="right-area"
+              [ngClass]="{ 'animated-border': isShowBorderAnime }"
+            >
+              <div class="border-box">
+                <textarea
+                  #chatTextarea
+                  class="textarea-content"
+                  cdkTextareaAutosize
+                  [cdkAutosizeMinRows]="1"
+                  [disabled]="isLoading"
+                  [(ngModel)]="query"
+                  [placeholder]="'textarea_placeholder' | i18nextEager"
+                  (input)="onInput()"
+                >
+                </textarea>
+                <div class="inside-right-container">
+                  <span
+                    class="h-[32px] w-[32px]"
+                    (click)="run('chat')"
+                    [ngClass]="
+                      canSend ? 'send-chat-icon' : 'disabled-send-chat-icon'
+                    "
+                  ></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

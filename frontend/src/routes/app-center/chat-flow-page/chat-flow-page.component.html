@@ -1,0 +1,362 @@
+<div
+  class="chat-bg run-modal-wrapper run-modal-show h-full w-full"
+>
+  <div class="header-container">
+    <div class="flex items-center">
+      <nz-icon nzType="left" nzTheme="outline"
+        *ngIf="showBackIcon"
+        class="mr-[8px] cursor-pointer text-[20px]"
+        (click)="onClickBack()"
+        style="color: #191919"
+      />
+      <img alt=""
+        *ngIf="flowInfo.icon"
+        class="mr-[12px] h-[32px] w-[32px] rounded-lg"
+        [src]="flowInfo.icon"
+      />
+      <div class="title">{{ flowInfo.title }}</div>
+      <div *ngIf="showBackIcon && isShare" class="ml-2">
+        <span>
+          {{ 'version_number'|i18nextEager }}
+        </span>
+        <nz-select
+          class="version-select"
+          *ngIf="visionsOptions.length"
+          [nzOptions]="visionsOptions"
+          nzBorderless
+          nzPopupClassName="version-select-panel"
+          [(ngModel)]="visionSelected"
+          (ngModelChange)="visionSelectedChange($event)"
+          [nzPlaceHolder]="'select_placeholder'|i18nextEager"
+          nzValueMember="version_id"
+          nzLabelMember="version_name"
+          nzId="myselect"
+        ></nz-select>
+        <nz-tag
+          *ngIf="shareTag"
+          nzSize="small"
+          class="!rounded-[4px] px-[4px] py-[1px]"
+          [style.background]="'#191919'"
+          [style.color]="'white'"
+        >
+          {{ shareTag }}
+        </nz-tag>
+      </div>
+    </div>
+    <div class="flex items-center justify-end gap-2">
+      <button nz-button
+        *ngIf="showBackIcon && !isShare"
+        nzType="primary"
+        [nzLoading]="isLoadingCopyBtn"
+        (click)="copyToWorkbench()"
+        [disabled]="hasPermission()"
+      >
+        {{ 'copyToWorkbench' | i18nextEager }}
+      </button>
+      <div *ngIf="showBackIcon && isShare && canEditShare">
+        <share-detail-btn [toolId]="flowId" [versionId]="visionSelected" [toolType]="toolType" [pageType]="pageType" [visionsList]="visionsOptions" [shareInfo]="shareInfo"
+                          (changeVersion)="visionSelectedChange($event)" (changeShearVersion)="visionSelectedChange($event)"></share-detail-btn>
+      </div>
+    </div>
+  </div>
+
+  <div class="body-container flex h-full">
+
+    <div class="content !h-full relative">
+      <nz-alert *ngIf="usedUp" class="!w-[auto] mb-[16px] ml-[24px] mr-[24px]" nzType="warning">
+        <span>{{'plugin_used_end_tip' | i18nextEager :{total: flowInfo.free_trial_quota?.limit} }}</span>
+      </nz-alert>
+      <!-- 配置面板 -->
+      <div class="flex items-center justify-end gap-[12px] px-[24px]">
+        <div class="chat-header-icon" nz-tooltip [nzTooltipTitle]="'agent_clear' | i18nextEager" >
+          <nz-icon nzType="clear" nzTheme="outline" (click)="clearChat()" />
+        </div>
+        <memory-management
+          *ngIf="configServ.isSupportUserPersona() && !isShare"
+          [titleMode]="'runtime'"
+          [conversationState]="conversationState"
+          [memoryLibId]="memoryLibId"
+          (confirm)="memoryConfirm($event)"></memory-management>
+        <asset-config-icon
+          nz-tooltip [nzTooltipTitle]="'chat-settings' | i18nextEager"
+          class="cursor-pointer header-icon"
+          (click)="togglePanel()"
+          *ngIf="startNodeParams.length"
+        >
+        </asset-config-icon>
+      </div>
+      <div
+        #chatContainerRef
+        cdkScrollable
+        class="main-wrapper"
+        [ngClass]="{
+          'flex-center': chatView === 'CHAT_EMPTY',
+          'flex-column-gap': chatView === 'CHAT_NOT_EMPTY'
+        }"
+        (scroll)="onScroll($event.target)"
+      >
+        <ng-container *ngIf="chatView === 'CHAT_EMPTY'">
+          <div class="empty-content relative">
+            <prologue-questions-area
+              class="prologue-questions"
+              [knowledgeExampleInfo]="flowInfo"
+              (clickQuestionCard)="quickSend($event)"
+              [showPanel] = "!showPanel || !startNodeParams.length"
+            ></prologue-questions-area>
+          </div>
+        </ng-container>
+        <div *ngIf="chatView === 'CHAT_NOT_EMPTY'" class="max-w-[1080px] w-full h-full">
+          <div class="chat-loop" *ngFor="let item of chatLoop; let i = index">
+            <div class="user-question">
+              <!-- 此处不能自动格式化保存，否则发送的用户问题开头会多一个空格，且使用trim无效 -->
+              <div class="text">{{
+                  getTrimmedQuestion(item.showQuestion)
+                }}
+              </div>
+            </div>
+            <div class="flex gap-[12px]">
+              <!-- loading -->
+              <div *ngIf="item.thinkLoading && isRequesting" class="chat-loading-message w-full">
+                <img alt=""
+                  [src]="changeUrl('assets/agent-center/images/running.webp')"
+                  [alt]="'loading' | i18nextEager"
+                />
+                <span>{{ 'recognizing_user_intent' | i18nextEager }}</span>
+              </div>
+              <!-- 深度思考+回答卡片 -->
+              <div class="flex flex-col gap-[12px]  w-full">
+                <div class="answer-cards" *ngIf="item.thinkValue">
+                  <div class="flex justify-between gap-[48px]">
+                    <div class="flex gap-[12px]">
+                      <ng-container *ngIf="item.thinking; else completed">
+                        <img alt=""
+                          [src]="
+                            changeUrl(
+                              'assets/agent-center/icons/deep-loading-icon.svg'
+                            )
+                          "
+                        />
+                        <span>{{ 'thinking_deeply' | i18nextEager }}</span>
+                      </ng-container>
+                    </div>
+
+                    <nz-icon nzType="right" nzTheme="outline"
+                      class="unfolded cursor-pointer"
+                      [ngClass]="
+                        item.collapsed ? 'collapsed-icon' : 'unfolded-icon'
+                      "
+                      (click)="changeCollapsedState(item)"
+                    />
+                  </div>
+                  <div class="deep-seek-area" *ngIf="!item.collapsed">
+                    <div class="deep-seek-text mt-[12px]">
+                      {{ item.thinkValue }}
+                    </div>
+                    <div
+                      class="flex gap-[6px] self-center text-[#808080]"
+                      (click)="changeCollapsedState(item)"
+                    >
+                      <nz-icon nzType="right" nzTheme="outline"
+                        class="unfolded cursor-pointer"
+                        [ngClass]="
+                          item.collapsed ? 'collapsed-icon' : 'unfolded-icon'
+                        "
+                      />
+                      <span class="cursor-pointer">{{ 'retract' | i18nextEager }}</span>
+                    </div>
+                  </div>
+                </div>
+                <ng-container
+                  *ngFor="
+                    let answer of item.showAnswer;
+                    let i = index;
+                    let last = last
+                  "
+                >
+                  <div class="system-answer">
+                    <div class="flex gap-[12px]" *ngIf="!answer?.isError">
+                      <div
+                        class="right-answer-card"
+                        [ngClass]="{
+                          'completed-text': !answer.loading,
+                          'no-text-css':answer.text.trim()==='' && !last
+                        }"
+                      >
+                        <memory-management-updated
+                          [conversationState]="conversationState"
+                          [memoryLibId]="memoryLibId"
+                          [answers]="item.userPersona"
+                          *ngIf="configServ.isSupportUserPersona() && !answer.loading && i === 0"></memory-management-updated>
+                        <div class="text">
+                          <app-markdown-answer
+                            class="markdown-text w-full overflow-x-hidden markdown-no-bg"
+                            *ngIf="!answer.loading"
+                            [(answer)]="answer.text"
+                            [isSupKBResolver]="true"
+                            [isRuntime]="true"
+                          ></app-markdown-answer>
+                          <div
+                            class="flex flex-col gap-[12px]"
+                            *ngIf="answer?.isShowInputParams"
+                          >
+                            <input-node-params
+                              #inputNodeParams
+                              *ngIf="answer.inputList?.length"
+                              [inputList]="answer.inputList"
+                              [disabled]="answer.isConfirmed"
+                              [chatItem]="item"
+                              (fileUploadStatus)="
+                                onFileUploadStatus($event, answer)
+                              "
+                            ></input-node-params>
+                            <button nz-button
+                              *ngIf="answer.inputList?.length"
+                              style="width: fit-content"
+                              type="button"
+                              (click)="onConfirm(answer, item)"
+                              [nz-tooltip]="
+                                answer.isConfirmed === 'not-prepared'
+                                  ? ('waiting_for_file_upload_to_complete' | i18nextEager)
+                                  : ''
+                              "
+                              [disabled]="
+                                answer.isConfirmed === 'confirmed' ||
+                                answer.isConfirmed === 'not-prepared'
+                              "
+                            >
+                              {{ 'determined' | i18nextEager }}
+                            </button>
+                          </div>
+                        </div>
+                        <div
+                          class="bottom-container"
+                          *ngIf="
+                            last &&
+                            item.latency &&
+                            !(answer.isError && !answer.loading)
+                          "
+                        >
+                          <div class="left-area">
+                            {{ 'run_time' | i18nextEager }}
+                            <span style="color: #191919">{{ item.latency }}</span>
+                          </div>
+
+                          <div *ngIf="isF1" class="flex gap-[12px]">
+                            <span
+                              [ngClass]="
+                                answer?.isLike ? 'like-solid' : 'like-icon'
+                              "
+                              class="like-icon h-[16px] w-[16px] cursor-pointer"
+                              (click)="likeAnswer(answer)"
+                            ></span>
+                            <div
+                              class="dislike-icon h-[16px] w-[16px] cursor-pointer"
+                              [ngClass]="
+                                answer?.isDislike
+                                  ? 'dislike-solid'
+                                  : 'dislike-icon'
+                              "
+                              nz-tooltip
+                              [nzTooltipTitle]="dislikeTip"
+                              [nzTooltipMouseEnterDelay]="0.5"
+                              nzTooltipPlacement="bottomRight"
+                            ></div>
+                            <ng-template #dislikeTip>
+                              <custom-popconfirm
+                                [type]="'workflow'"
+                                (cancel)="cancelDislike()"
+                                (submit)="submitDislike(answer)"
+                                (close)="closeDislikeTip()"
+                              ></custom-popconfirm>
+                            </ng-template>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div
+                      class="flex flex-col gap-[12px]"
+                      *ngIf="answer.isError && !answer.loading"
+                    >
+                      <span class="error-reason">{{ answer.text }}</span>
+                    </div>
+                  </div>
+                </ng-container>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <ng-container *ngIf="is_agreement">
+        <div class="bottom-footer">
+          <div class="config-panel" *ngIf="startNodeParams.length" [hidden]="!showPanel">
+            <div class="flex items-center justify-between mb-4">
+              <div class="font-bold">{{ 'chat-settings' | i18nextEager }}</div>
+              <nz-icon nzType="close" nzTheme="outline" (click)="showPanel = false" class="cursor-pointer" *ngIf="dynamicNodeParamsPass" />
+            </div>
+            <div class="content">
+              <nz-alert nzType="info" [nzShowIcon]="false" class="mb-4"
+                        style="width: 100%;">{{ 'chat_params_required' | i18nextEager }}
+              </nz-alert>
+              <div class="start-node-params-area">
+                <dynamic-node-params-chat
+                  *ngIf="startNodeParams.length"
+                  #dynamicNodeParams
+                  [inputList]="startNodeParams"
+                ></dynamic-node-params-chat>
+                <div class="flex gap-2 justify-end">
+                  <button nz-button
+                    type="button"
+                    (click)="showPanel = false"
+                    *ngIf="dynamicNodeParamsPass"
+                  >
+                    {{ 'cancel' | i18nextEager }}
+                  </button>
+                  <button nz-button
+                    type="button"
+                    nzType="primary"
+                    (click)="runWorkflow()"
+                    [nz-tooltip]="dynamicNodeParams?.fileLoading ? ('waiting_for_file_upload_to_complete' | i18nextEager) : ''"
+                    [disabled]="!!(canRunWorkflow() || dynamicNodeParams?.fileLoading)"
+                  >
+                    {{ 'save' | i18nextEager }}
+                  </button>
+                </div>
+
+              </div>
+            </div>
+          </div>
+          <div class="bottom-wrapper" *ngIf="!showPanel || !startNodeParams.length">
+            <meta-sender
+              #metaSenderComponent
+              [showClear]="false"
+              [userVoiceControl]="false"
+              [isShowFileUpload]="false"
+              [sending]="isShowStopIcon"
+              [senderDiabledTip]="'app_send_btn_tip' | i18nextEager"
+              [disabled]="startNodeParams.length && !dynamicNodeParamsPass"
+              (disabledSender)="!canSend()"
+              [maxlength]="userQueryLimit"
+              [isDisableSender]="!canSend()"
+              (send)="sendQuestion($event)"
+              (stop)="stopChat()"
+              [aiDisclaimer]="getAITip()"
+            />
+          </div>
+        </div>
+      </ng-container>
+
+    </div>
+
+    <div class="pop-modal">
+      <right-op-panel *ngIf="showBackIcon && !isShare" [sources]="'app_market' | i18nextEager" [headInfo]="flowInfo" />
+      <right-share-panel *ngIf="showBackIcon && isShare" [headInfo]="shareInfo"></right-share-panel>
+    </div>
+  </div>
+</div>
+
+<app-exceed-modal #appExceedModalChat></app-exceed-modal>
+
+<ng-template #completed>
+  <img alt="" [src]="changeUrl('assets/agent-center/icons/deep-completed-icon.svg')" />
+  <span>{{ 'deeply_pondered' | i18nextEager }}</span>
+</ng-template>

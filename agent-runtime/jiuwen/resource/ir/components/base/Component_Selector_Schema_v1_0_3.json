@@ -1,0 +1,78 @@
+{
+  "type": "jiuwen.planner.components.plan_modules.selector:Selector",
+  "version": "1.0.3",
+  "description": "对子workflow做预选处理",
+  "schemaVersion": "0.6",
+  "classInfo": {
+    "modulePath": "jiuwen.planner.components.plan_modules.selector",
+    "className": "Selector",
+    "programLanguage": "python",
+    "filePath": "jiuwen/planner/components/planning_modules/selector.pyc"
+  },
+  "inputs": [
+    {
+      "id": "plugin_candidates",
+      "description": "候选id-name映射",
+      "type": "Map<String, T>"
+    },
+    {
+      "id": "workflow_candidates",
+      "description": "候选id-name映射",
+      "type": "Map<String, T>"
+    },
+    {
+      "id": "dialogueHistory",
+      "type": "List<Map<String, T>>",
+      "description": "对话历史"
+    },
+    {
+      "id": "query",
+      "type": "String",
+      "description": "用户的当前query，用于作为对话历史和插件列表优选的key"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "selectedPluginInfoList",
+      "description": "选择的id列表",
+      "type": "List[Map<String, T>]"
+    },
+    {
+      "id": "selectedWorkflowInfoList",
+      "description": "选择的id列表",
+      "type": "List[Map<String, T>]"
+    }
+  ],
+  "configs": [
+    {
+      "id": "topK",
+      "description": "最多选择的workflow/插件的个数",
+      "type": "Int"
+    },
+    {
+      "id": "userFields",
+      "type": "Map<String, T>",
+      "description": "用户参数信息配置"
+    },
+    {
+      "id": "preDefinedFields",
+      "type": "Map<String, T>",
+      "description": "预定义参数信息配置"
+    },
+    {
+      "id": "debugType",
+      "type": "Map<String, T>",
+      "description": "调测树配置"
+    },
+    {
+      "id": "workflows",
+      "type": "List[Map<String, T>]",
+      "description": "workflow配置信息"
+    },
+    {
+      "id": "selectScopes",
+      "description": "基于内部配置决策选择workflow还是版本，或者同时进行",
+      "type": "List<String>"
+    }
+  ]
+}

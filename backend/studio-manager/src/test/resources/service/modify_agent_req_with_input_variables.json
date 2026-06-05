@@ -1,0 +1,16 @@
+{
+  "input_variables": [
+    {
+      "variable_key": "职业",
+      "default_value": "程序员",
+      "description": "用户职业信息",
+      "input_type": "string"
+    },
+    {
+      "variable_key": "身高",
+      "default_value": 175,
+      "description": "用户的身高",
+      "input_type": "integer"
+    }
+  ]
+}

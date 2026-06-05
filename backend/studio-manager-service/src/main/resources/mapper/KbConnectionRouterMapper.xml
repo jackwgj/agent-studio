@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) Huawei Technologies Co., Ltd. 2024-2024. All rights reserved.
+  -->
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.agent.agentbase.mapper.KbConnectionRouterMapper">
+
+    <update id="updateKnowledgebaseUsedNum">
+        <foreach collection="knowledgeBaseStatistics" item="knowledgeBaseStatistic" separator=";">
+            UPDATE t_knowledge_base_connection
+            SET knowledge_base_used = #{knowledgeBaseStatistic.repoNum}
+            WHERE id = #{knowledgeBaseStatistic.knowledgeBaseConnectionId}
+        </foreach>
+    </update>
+
+    <select id="selectByTenantTypeAndDomainId"
+            resultType="com.openjiuwen.studio.agent.agentbase.entity.KbConnectionRouterEntity">
+        SELECT tenant_type,
+        t_kb_connection_router.domain_id,
+        knowledge_base_connection_id,
+        tkbc.knowledge_base_used as knowledgeBaseUsed,
+        tkbc.knowledge_base_capacity as knowledgeBaseCapacity
+        FROM t_kb_connection_router
+        LEFT JOIN t_knowledge_base_connection as tkbc ON t_kb_connection_router.knowledge_base_connection_id=tkbc.id
+        WHERE tenant_type = #{tenantType}
+        <if test="domainId != null and domainId != ''">
+            and t_kb_connection_router.domain_id = #{domainId}
+        </if>
+    </select>
+    <select id="calculateRepoNumUnderEachConnection"
+            resultType="com.openjiuwen.studio.agent.agentbase.model.KnowledgeBaseStatistics">
+        SELECT count(knowledge_base_connection_id) as repoNum,
+               knowledge_base_connection_id,
+               knowledge_base_capacity             as totalNum
+        FROM t_knowledge_base
+                 LEFT JOIN t_knowledge_base_connection
+                           on t_knowledge_base.knowledge_base_connection_id = t_knowledge_base_connection.id
+        WHERE connector_id = 'KooSearchInside'
+        GROUP BY knowledge_base_connection_id, knowledge_base_capacity
+    </select>
+</mapper>

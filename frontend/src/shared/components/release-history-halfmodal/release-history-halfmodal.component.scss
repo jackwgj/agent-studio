@@ -1,0 +1,154 @@
+.run-modal-wrapper {
+  background: #ffffff;
+  box-shadow: -4px 0px 16px 0px #00000014;
+  padding: 18px 16px;
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 22px;
+
+    .title {
+      font-size: 16px;
+      line-height: 24px;
+      font-weight: 600;
+      color: #000000;
+    }
+
+    .close-icon {
+      font-size: 16px;
+      color: #000000;
+      cursor: pointer;
+    }
+  }
+
+  .content {
+    flex: 1;
+    height: calc(100% - 47px);
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+.run-modal-show {
+  animation: show-modal-animation 150ms ease-in;
+  display: flex;
+  flex-direction: column;
+}
+
+@keyframes show-modal-animation {
+  from {
+    display: none;
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.release-history-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-x: hidden;
+  .item.active {
+    .published-card {
+      background: rgba(247, 247, 247);
+    }
+    .hollow-circle{
+      background: #5834ed;
+    }
+  }
+
+  .hollow-circle {
+    width: 8px;
+    height: 8px;
+    background: #c2c2c2;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .hollow-circle.current {
+    background: #f9b661!important;
+  }
+
+  .vertical-line {
+    width: 1px;
+    background-color: #c2c2c2;
+    height: 100%;
+  }
+
+  .published-card {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    border-radius: 8px;
+    background: #fff;
+    padding: 12px;
+    margin: 0 8px;
+    flex: 1;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+
+    .action {
+      display: none;
+    }
+
+    &:hover {
+      box-shadow: 0 4px 6px #00000014;
+      transform: translate3d(0, 0, 0);
+      border: 1px solid #1476ff;
+      background-color: #fff;
+
+      .action {
+        display: block;
+      }
+    }
+
+    .index-tag {
+      color: #1476ffff;
+      border-radius: 2px;
+      background: #deecffff;
+      padding: 0 4px;
+    }
+
+    .status-tag {
+      color: #191919ff;
+      border-radius: 2px;
+      background: #e6e6e6ff;
+      padding: 0 4px;
+    }
+
+    .divider {
+      background: #00000014;
+      height: 10px;
+      width: 1px;
+    }
+  }
+}
+
+::ng-deep {
+  .pw-three-dots-more .ti3-icon:hover:after {
+    background-color: transparent !important;
+  }
+
+  .pw-three-dots-more:hover {
+    .ti3-icon:before {
+      color: #1476ff !important;
+    }
+  }
+}
+
+.loading-icon {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+}

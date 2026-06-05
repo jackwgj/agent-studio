@@ -1,0 +1,13 @@
+{
+  "count": 1,
+  "services": [
+    {
+      "service_id": "test_deployment_id",
+      "service_name": "N1-4k-部署",
+      "project_id": "9f906d4c3d3d4443ace2eadea0f202cf",
+      "status": "running",
+      "infer_type": "online",
+      "category": "agentBuilder"
+    }
+  ]
+}

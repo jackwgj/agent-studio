@@ -1,0 +1,254 @@
+<div
+  (clickOutside)="onClickOutside($event)"
+  class="flex flex-col gap-[8px] py-[4px]"
+  [ngStyle]="{ width: width }"
+  (keydown)="handleKeyDown($event)"
+>
+  <div *ngIf="isShowDesc" class="flex w-full flex-col gap-2">
+    <div class="text-label">
+      {{ 'description' | i18nextEager }}{{ 'optional' | i18nextEager }}
+    </div>
+
+    <input
+      class="w-full"
+      type="text"
+      [placeholder]="'input_placeholder' | i18nextEager"
+      (keydown)="$event.stopPropagation()"
+      nz-input
+      (ngModelChange)="debounceInputDesc()"
+      [(ngModel)]="desc"
+      [title]="desc"
+    />
+  </div>
+
+  <div class="text-label" [ngClass]="isMulti ? 'flex justify-between' : ''">
+    {{ 'default_v' | i18nextEager }}{{ 'optional' | i18nextEager }}
+  </div>
+
+  <div class="w-full">
+    <form #valueForm="ngForm">
+      <ng-container *ngIf="field?.type === 'string'">
+        <nz-textarea-count [nzMaxCharacterCount]="100000">
+        <textarea
+          class="!w-full textarea-h"
+          name="defaultValue"
+          [(ngModel)]="value"
+          rows="5"
+          maxlength="100000"
+          [placeholder]="'input_placeholder' | i18nextEager"
+          nz-input
+          [nzAutosize]="{ minRows: 5, maxRows: 10 }"
+          (ngModelChange)="debounceInput()"
+        ></textarea>
+      </nz-textarea-count>
+      </ng-container>
+
+      <ng-container *ngIf="field?.type === 'integer'">
+        <input
+          name="defaultValue"
+          style="width: 100%"
+          [placeholder]="'input_placeholder' | i18nextEager"
+          type="text"
+          nz-input
+          [(ngModel)]="value"
+          integerStr
+          (ngModelChange)="debounceInput()"
+        />
+      </ng-container>
+
+      <ng-container *ngIf="field?.type === 'number'">
+        <input
+          name="defaultValue"
+          style="width: 100%"
+          [placeholder]="'input_placeholder' | i18nextEager"
+          type="text"
+          nz-input
+          [(ngModel)]="value"
+          numberStr
+          (ngModelChange)="debounceInput()"
+        />
+      </ng-container>
+
+      <ng-container *ngIf="field?.type === 'boolean'">
+        <nz-select
+          style="width: 100%"
+          name="defaultValue"
+          [nzOptions]="booleanOps"
+          [(ngModel)]="value"
+          [nzPlaceHolder]="'select_placeholder' | i18nextEager"
+          nzLabelProperty="label"
+          nzValueProperty="value"
+        >
+        </nz-select>
+      </ng-container>
+
+      <ng-container
+        *ngIf="
+          field?.type?.startsWith('array') &&
+          !param?.type?.includes('array<file>')
+        "
+      >
+        <div
+          class="w-full rounded-[6px] border-[1px] border-solid border-[#ccc]"
+        >
+          <div
+            class="flex items-center justify-between rounded-t-[6px] border-b-[1px] border-solid border-[#ccc] bg-[#f0f7ff] p-[10px]"
+          >
+            <span class="font-bold text-[#333]">json</span>
+            <asset-format-icon
+              class="cursor-pointer"
+              [tiTip]="'format' | i18nextEager"
+              tiTipPosition="top"
+              (click)="formatContent()"
+            ></asset-format-icon>
+          </div>
+          <div
+            class="h-[134px] w-full rounded-b-[6px] bg-white py-[10px] pr-[10px]"
+          >
+            <ngx-monaco-editor
+              #editorCmp
+              [(ngModel)]="value"
+              [options]="editorOps"
+              name="defaultValue"
+              arrTypeValidator
+              [param]="field"
+              [uri]="editorUri"
+              (ngModelChange)="debounceInput()"
+            ></ngx-monaco-editor>
+          </div>
+        </div>
+
+        <div
+          *ngIf="getError()"
+          class="mt-[8px] w-full text-[#f23030]"
+        >
+          {{ getError() }}
+        </div>
+      </ng-container>
+
+      <ng-container *ngIf="field?.type === 'object'">
+        <div
+          class="w-full rounded-[6px] border-[1px] border-solid border-[#ccc]"
+        >
+          <div
+            class="flex items-center justify-between rounded-t-[6px] border-b-[1px] border-solid border-[#ccc] bg-[#f0f7ff] p-[10px]"
+          >
+            <span class="font-bold text-[#333]">json</span>
+            <asset-format-icon
+              class="cursor-pointer"
+              [tiTip]="'format' | i18nextEager"
+              tiTipPosition="top"
+              (click)="formatContent()"
+            ></asset-format-icon>
+          </div>
+          <div
+            class="h-[134px] w-full rounded-b-[6px] bg-white py-[10px] pr-[10px]"
+          >
+            <ngx-monaco-editor
+              #editorCmp
+              [(ngModel)]="value"
+              objTypeValidator
+              [options]="editorOps"
+              name="defaultValue"
+              (ngModelChange)="debounceInput()"
+              [uri]="editorUri"
+            ></ngx-monaco-editor>
+          </div>
+        </div>
+
+        <div
+          *ngIf="getError()"
+          class="mt-[8px] w-full text-[#f23030]"
+        >
+          {{ getError() }}
+        </div>
+      </ng-container>
+
+      <ng-container
+        *ngIf="param?.type?.[0]?.includes('file') && this.host !== 'json-input'"
+      >
+        <div>
+          <input
+            type="file"
+            #fileInput
+            class="hidden"
+            [multiple]="isMulti"
+            [accept]="fileTypeAccept | fileAcc"
+            (change)="onUploadFile($event)"
+          />
+          <div
+            *ngIf="isMulti || !fileList.length"
+            class="dotted-frame flex w-full cursor-pointer flex-col items-center rounded-[8px] border-2 border-dotted border-[#c2c2c2] bg-[#fff] pb-[16px] pt-[16px]"
+            (click)="fileInput.click()"
+          >
+            <div class="flex items-center">
+              <img alt=""
+                class="mr-[4px] mt-[6px]"
+                [src]="cdn('assets/agent/file.svg')"
+              />
+
+              <div class="mt-[6px] flex">
+                <div class="text-[14px] text-[#191919]">
+                  {{ 'the_current_blank_document_please' | i18nextEager }}
+                  {{
+                    (isMulti ? 'upload_max_ten_files' : 'one_file_only')
+                      | i18nextEager
+                  }}
+                </div>
+              </div>
+            </div>
+            <div class="file-desc mt-[6px] text-[#808080]">
+              {{ uploadDesc | fileDesc }}
+            </div>
+          </div>
+          <div
+            *ngIf="fileList.length"
+            class="mt-[16px] flex w-full flex-col items-center"
+          >
+            <div
+              *ngFor="let fileItem of fileList; index as i"
+              class="mb-[8px] flex w-[100%] items-center rounded-[8px] bg-[#fafafa] p-[16px] pb-[9px] pt-[9px]"
+            >
+              <nz-spin
+                *ngIf="fileItem.progress === 'loading'"
+                nzSimple
+              ></nz-spin>
+              <meta-upload-file-icon
+                *ngIf="fileItem.progress !== 'loading'"
+                [fileName]="fileItem.name"
+              ></meta-upload-file-icon>
+              <span
+                class="ml-[12px] overflow-text"
+                [ngClass]="{
+                  'text-[#F23030]': fileItem.progress === 'failed'
+                }"
+              >
+                {{ fileItem.name }}</span
+              >
+              <span
+                class="ml-auto cursor-pointer text-[16px]"
+                nz-icon
+                nzType="delete"
+                nzTheme="outline"
+                (click)="removeFile($event, i)"
+              ></span>
+            </div>
+            <div
+              class="error-tip flex w-full items-center"
+              *ngIf="!isMulti && fileList[0]?.progress === 'failed'"
+            >
+              <span nz-icon class="mr-[6px] text-[#F23030]" nzType="close-circle" nzTheme="outline"></span>
+              {{ 'a_file_upload_failed' | i18nextEager }}
+              <div
+                (click)="fileInput.click()"
+                class="cursor-pointer text-[#1476ff] hover:underline"
+              >
+                {{ 'reupload' | i18nextEager }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+    </form>
+  </div>
+</div>

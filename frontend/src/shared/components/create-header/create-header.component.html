@@ -1,0 +1,14 @@
+<div class="ch-header">
+  <div class="ch-left">
+    <div (click)="onClickBack()" class="back-icon-container">
+      <nz-icon nzType="left" nzTheme="outline"  class="back-icon" />
+    </div>
+    <div class="divider ml-1"></div>
+    <div tiOverflow class="title ml-2">{{ title }}</div>
+  </div>
+  <div class="ch-right">
+    <ng-container *ngIf="!!opTemplate">
+      <ng-container *ngTemplateOutlet="opTemplate"></ng-container>
+    </ng-container>
+  </div>
+</div>

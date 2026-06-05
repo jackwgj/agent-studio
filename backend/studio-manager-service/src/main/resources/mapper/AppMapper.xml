@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.agent.manager.mapper.AppMapper">
+    <resultMap id="BaseResultMap" type="com.openjiuwen.studio.agent.manager.entity.App">
+        <id column="app_id" jdbcType="VARCHAR" property="appId"/>
+        <id column="project_id" jdbcType="VARCHAR" property="projectId"/>
+        <id column="workspace_id" jdbcType="VARCHAR" property="workspaceId"/>
+        <result column="name" jdbcType="VARCHAR" property="name"/>
+        <result column="description" jdbcType="VARCHAR" property="description"/>
+        <result column="icon" jdbcType="VARCHAR" property="icon"/>
+        <result column="tags" jdbcType="VARCHAR" property="tags"/>
+        <result column="app_type" jdbcType="VARCHAR" property="appType"/>
+        <result column="resource_id" jdbcType="VARCHAR" property="resourceId"/>
+        <result column="resource_type" jdbcType="VARCHAR" property="resourceType"/>
+        <result column="creator" jdbcType="VARCHAR" property="creator"/>
+        <result column="published_on" jdbcType="TIMESTAMP" property="publishedOn"/>
+        <result column="workflow_type" jdbcType="VARCHAR" property="workflowType"/>
+        <result column="input_params" jdbcType="VARCHAR" property="inputParams"/>
+        <result column="output_params" jdbcType="VARCHAR" property="outputParams"/>
+        <result column="prologue" jdbcType="VARCHAR" property="prologue"/>
+        <result column="suggest_queries" jdbcType="VARCHAR" property="suggestQueries"/>
+    </resultMap>
+    <sql id="Base_Column_List">
+        app_id
+        ,
+        project_id,
+        workspace_id,
+        `name`,
+        description,
+        icon,
+        tags,
+        app_type,
+        resource_id,
+        resource_type,
+        creator,
+        published_on,
+        workflow_type,
+        input_params,
+        output_params,
+        prologue,
+        suggest_queries
+    </sql>
+    <insert id="insert" parameterType="com.openjiuwen.studio.agent.manager.entity.App">
+        insert into t_app (app_id, project_id, workspace_id, `name`, description, icon, tags, app_type, resource_id,
+                           resource_type, creator, published_on, workflow_type, input_params, output_params, prologue,
+                           suggest_queries)
+        values (#{appId,jdbcType=VARCHAR}, #{projectId,jdbcType=VARCHAR}, #{workspaceId,jdbcType=VARCHAR},
+                #{name,jdbcType=VARCHAR}, #{description,jdbcType=VARCHAR}, #{icon,jdbcType=VARCHAR},
+                #{tags,jdbcType=VARCHAR}, #{appType,jdbcType=VARCHAR}, #{resourceId,jdbcType=VARCHAR},
+                #{resourceType,jdbcType=BOOLEAN},
+                #{creator,jdbcType=VARCHAR}, #{publishedOn,jdbcType=TIMESTAMP}, #{workflowType,jdbcType=VARCHAR},
+                #{inputParams,jdbcType=VARCHAR},
+                #{outputParams,jdbcType=VARCHAR}, #{prologue,jdbcType=VARCHAR}, #{suggestQueries,jdbcType=VARCHAR})
+    </insert>
+    <select id="selectByResourceId" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_app
+        where resource_id = #{resourceId,jdbcType=VARCHAR}
+        and deleted = 0
+    </select>
+    <select id="selectBySearchCriteria" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_app
+        where 1 = 1 and deleted = 0
+        <if test="searchCriteria != null and searchCriteria.name != null">
+            and `name` like concat('%', #{searchCriteria.name,jdbcType=VARCHAR}, '%') escape '!'
+        </if>
+        <if test="searchCriteria != null and searchCriteria.tagId != null">
+            and tags like concat('%', #{searchCriteria.tagId,jdbcType=VARCHAR}, '%')
+        </if>
+        <if test="searchCriteria != null and searchCriteria.type != null">
+            and app_type = #{searchCriteria.type,jdbcType=VARCHAR}
+        </if>
+        <if test="searchCriteria != null and searchCriteria.source != null">
+            and resource_type = #{searchCriteria.source,jdbcType=VARCHAR}
+        </if>
+        <if test="searchCriteria != null and searchCriteria.workflowType != null">
+            and workflow_type = #{searchCriteria.workflowType,jdbcType=VARCHAR}
+        </if>
+        order by published_on desc
+    </select>
+    <delete id="deleteByResourceId" parameterType="map">
+        delete
+        from t_app
+        where resource_id = #{resourceId,jdbcType=VARCHAR}
+          and project_id = #{projectId,jdbcType=VARCHAR}
+          and workspace_id = #{workspaceId,jdbcType=VARCHAR}
+    </delete>
+
+    <update id="softDeleteByResourceId">
+        update t_app
+        <set>
+            deleted = 1
+        </set>
+        where resource_id = #{resourceId,jdbcType=VARCHAR}
+        and project_id = #{projectId,jdbcType=VARCHAR}
+        and workspace_id = #{workspaceId,jdbcType=VARCHAR}
+    </update>
+
+    <select id="findAppToBeDeleted" resultType="java.lang.String">
+        SELECT app_id
+        FROM t_app
+        WHERE deleted = 1
+          AND updated_on IS NOT NULL
+          AND updated_on &lt;= #{softDeleteTtl}
+    </select>
+    <delete id="deleteByPrimaryKeys">
+        delete
+        from t_app
+        where app_id in
+        <foreach item="appId" collection="appIds" open="(" separator="," close=")">
+            #{appId}
+        </foreach>
+    </delete>
+
+    <update id="updateProjectIdByAppIds" parameterType="java.util.Map">
+        UPDATE t_app
+        SET project_id = #{opSvcProjectId}
+        WHERE app_id IN
+        <foreach collection="appIds" item="appId" separator="," open="(" close=")">
+            #{appId}
+        </foreach>
+    </update>
+
+    <select id="selectByResourceIds" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_app
+        where resource_id in
+        <foreach item="resourceId" collection="resourceIds" open="(" separator="," close=")">
+            #{resourceId}
+        </foreach>
+    </select>
+    <select id="selectRandomAppByResourceType" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_app
+        where resource_type = #{resourceType}
+        limit 1
+    </select>
+</mapper>

@@ -1,0 +1,77 @@
+<!-- <div class="h-full w-full overflow-hidden">
+  <flow-detail-header
+    [workflowDetail]="workflowDetail"
+    (backClick)="onPageBack()"
+    [logo]="workflowDetail?.avatar"
+    [isFlowReadonly]='true'
+  >
+    <ng-template #statusBar *ngIf="type !== 'multi'">
+      <div class="status-bar">
+        <div class="flex items-center gap-2 rounded-full py-1 pr-4 text-sm">
+          <div
+            *ngIf="workflowType.trim() !== ''"
+            class="flow-tag flex items-center gap-2 rounded-md bg-[#e6e6e6ff] p-0.5 px-2"
+          >
+            <span *ngIf="workflowType === 'task'">{{
+              'task' | i18nextEager
+            }}</span>
+            <span *ngIf="workflowType === 'chat'">{{
+              'chat' | i18nextEager
+            }}</span>
+          </div>
+        </div>
+      </div>
+    </ng-template>
+  </flow-detail-header>
+  <div class="up-down-divider"></div>
+  <div class="chat-box">
+    <div class="left">
+      <flow-task-list
+        [currWorkflow]="workflowDetail"
+        (selectTask)="selectTask($event)"
+      ></flow-task-list>
+    </div>
+    <div class="center">
+      <flow-task-board
+        *ngIf="workflowType === 'chat'"
+        [conversationId]="conversationId"
+        [taskInfo]="taskInfo"
+        [currWorkflow]="workflowDetail">
+      </flow-task-board>
+      <flow-async-task
+        *ngIf="workflowType === 'task'"
+        [conversationId]="conversationId"
+        [taskInfo]="taskInfo"
+        [currWorkflow]="workflowDetail"
+      ></flow-async-task>
+    </div>
+    <div class="right">
+      <flow-async-log
+        [taskInfo]="taskInfo"
+        [execListInput]="executionList"
+        [showExecList]="workflowType === 'chat'"
+        [conversationId]="conversationId"
+        [currWorkflow]="workflowDetail"
+      ></flow-async-log>
+    </div>
+  </div>
+</div>
+
+<ng-template #dropLTMModal let-context="context">
+  <ti-modal-header>{{ 'LTM' | i18nextEager }}</ti-modal-header>
+  <ti-modal-body>{{ 'ltmTip' | i18nextEager }}</ti-modal-body>
+  <ti-modal-footer>
+    <button type="button" (click)="context.dismiss()" tiButton>
+      {{ 'cancel' | i18nextEager }}
+    </button>
+    <button
+      type="button"
+      color="danger"
+      autofocus
+      (click)="context.close()"
+      tiButton
+    >
+      {{ 'ok' | i18nextEager }}
+    </button>
+  </ti-modal-footer>
+</ng-template> -->

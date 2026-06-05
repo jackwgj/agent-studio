@@ -1,0 +1,64 @@
+<div class="rule-node"
+     [class.first-node]="isFirst()"
+     [class.last-node]="isLast()"
+     [class.root-node]="ruleNode()?.depth === 0">
+
+  @if (!(isFirst() && isLast())) {
+    <div class="guide-line"></div>
+  }
+
+  @if (ruleNode()?.type === IRuleNodeType.LOGIC_OPERATOR) {
+    <div class="logic-operator-container"
+         [class.root-node-operator]="ruleNode()?.depth === 0">
+
+      <nz-select
+        class="logic-operator-selector"
+        [class.logic-and]="ruleNode()?.logicOperator === ILogicalOperator.AND"
+        [class.logic-or]="ruleNode()?.logicOperator === ILogicalOperator.OR"
+        [(ngModel)]="ruleNode().logicOperator"
+        (ngModelChange)="ruleNode().trigger('nodeChange')"
+        [nzOptions]="logicOperatorOptions">
+      </nz-select>
+    </div>
+
+    <div class="rule-child-container">
+      @for (ruleChild of ruleNode().children; track ruleNode().id; let isFirst = $first; let isLast = $last) {
+        <rule-node
+          [isFirst]="isFirst"
+          [isLast]="isLast"
+          [ruleNode]="ruleChild"
+          [ruleTemplate]="ruleTemplate()"></rule-node>
+      }
+    </div>
+  }
+
+  @if (ruleNode()?.type === IRuleNodeType.RULE) {
+    <div class="single-rule-container">
+      <ng-container *ngIf="ruleTemplate">
+        <ng-container *ngTemplateOutlet="ruleTemplate(); context: {
+          node: ruleNode(),
+          isFirst: isFirst(),
+          isLast: isLast(),
+        }"></ng-container>
+      </ng-container>
+    </div>
+  }
+
+  @if (ruleNode()?.type === IRuleNodeType.RULE_ADD) {
+    <div class="rule-add-container">
+      @if (isPermitAddRule) {
+        <div class="rule-add" (click)="ruleNode().addRule()">
+          <nz-icon nzType="plus-square" nzTheme="outline" />
+          <span>{{ 'add_condition' | i18nextEager }}</span>
+        </div>
+      }
+
+      @if (isPermitAddRuleGroup) {
+        <div class="rule-group-add" (click)="ruleNode().addRuleGroup()">
+          <nz-icon nzType="plus-square" nzTheme="outline" />
+          <span>{{ 'add_condition_group' | i18nextEager }}</span>
+        </div>
+      }
+    </div>
+  }
+</div>

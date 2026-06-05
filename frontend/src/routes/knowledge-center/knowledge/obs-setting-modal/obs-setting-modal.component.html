@@ -1,0 +1,136 @@
+<nz-drawer
+  [nzVisible]="isVisible"
+  [nzWidth]="700"
+  [nzTitle]="'obs_access_file' | i18nextEager"
+  [nzFooter]="!obsConfigId ? footerTpl : null"
+  (nzOnClose)="dismiss()"
+  [nzMaskClosable]="true"
+  [nzZIndex]="1000"
+>
+  <ng-container *nzDrawerContent>
+    <nz-alert nzType="warning" style="margin-bottom: 16px; font-size: 14px;" *ngIf="!obsConfigId"
+              [nzMessage]="'obs_config_save_cannot_modify' | i18nextEager">
+    </nz-alert>
+
+    <form nz-form nzLayout="vertical" class="mt-[16px]" [formGroup]="form">
+      <div class="var-title mb-2 text-[14px] font-bold">{{ 'config_info' | i18nextEager }}</div>
+
+      <nz-form-item>
+        <nz-form-label nzRequired>{{ 'obs_bucket_name' | i18nextEager }}</nz-form-label>
+        <nz-form-control>
+          <nz-select
+            style="width: 440px; max-width: 100%;"
+            formControlName="obs_bucket_name"
+            [nzPlaceHolder]="'select_obs_bucket' | i18nextEager"
+            [nzLoading]="isBucketLoading"
+            (ngModelChange)="selectObsBucket($event)"
+            (nzOpenChange)="onBeforeOpenObsBucket($event)"
+          >
+            <nz-option *ngFor="let item of obsBucketOptions" [nzValue]="item" [nzLabel]="item"></nz-option>
+          </nz-select>
+        </nz-form-control>
+      </nz-form-item>
+
+      <nz-form-item>
+        <nz-form-label nzRequired>
+          <span>{{ 'obs_path' | i18nextEager }}</span>
+          <span nz-icon nzType="question-circle" class="ml-[4px] cursor-pointer text-[14px] text-gray-500" nz-tooltip [nzTooltipTitle]="'obs_upload_limitations_tip' | i18nextEager: { maxSize: this.uploadLimit }"></span>
+        </nz-form-label>
+        <nz-form-control>
+          <div class="flex items-center">
+            <nz-select
+              style="width: 440px; max-width: 100%;"
+              formControlName="obs_input_directory"
+              [nzPlaceHolder]="'select_obs_bucket_first' | i18nextEager"
+              [nzLoading]="isBucketDirLoading"
+              (ngModelChange)="selectObsBucketDir($event)"
+              (nzOpenChange)="onBeforeOpenObsBucketDir($event)"
+            >
+              <nz-option *ngFor="let item of obsBucketDirOptions" [nzValue]="item" [nzLabel]="item"></nz-option>
+            </nz-select>
+            <button nz-button *ngIf="!obsConfigId" class="ml-[16px]" nzType="default" (click)="backToLastLevel()" [disabled]="!selectBucketDir">
+              {{ 'back_to_previous' | i18nextEager }}
+            </button>
+          </div>
+        </nz-form-control>
+      </nz-form-item>
+    </form>
+
+    <div class="var-title mt-[24px]">{{ 'execution_history' | i18nextEager }}</div>
+    <div class="flex-between flex justify-between items-center">
+      <div>
+        <button nz-button nzType="default" *ngIf="!obsConfigId"
+                nz-popconfirm
+                [nzPopconfirmTitle]="'confirm_immediate_execution_obs_upload' | i18nextEager"
+                (nzOnConfirm)="executeUploadFiles()">
+          {{ 'execute_now' | i18nextEager }}
+        </button>
+        <button nz-button nzType="default" *ngIf="!!obsConfigId" (click)="executeUploadFiles()">
+          {{ 'execute_now' | i18nextEager }}
+        </button>
+      </div>
+      <button nz-button nzType="default" nzShape="circle" [disabled]="!obsConfigId" (click)="getExecuteRecords()">
+        <span nz-icon nzType="sync"></span>
+      </button>
+    </div>
+
+    <div class="create-list-card-area mt-[16px]">
+      <nz-table #basicTable [nzData]="srcData.data" [nzLoading]="loading" [nzFrontPagination]="false" [nzShowPagination]="false" [nzNoResult]="noDataTpl">
+        <thead>
+        <tr>
+          <th *ngFor="let column of listColumns" [nzWidth]="column.width || null">{{ column.title }}</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr *ngFor="let row of basicTable.data; trackBy: trackByFn">
+          <td class="truncate" style="max-width: 150px;" [title]="formatTime(row.start_time)">{{formatTime(row.start_time)}}</td>
+          <td class="truncate" style="max-width: 150px;" [title]="formatTime(row.end_time)">{{formatTime(row.end_time)}}</td>
+          <td>
+            <nz-badge [nzStatus]="obsExecuteStatusMap.get(row.status)?.icon" [nzText]="obsExecuteStatusMap.get(row.status)?.text"></nz-badge>
+          </td>
+          <td>
+            <div class="flex items-center gap-[4px]">
+              <span style="width: 100px" class="truncate" [title]="row.log_detail">{{row.log_detail}}</span>
+              <span nz-typography nzCopyable [nzCopyText]="row.log_detail" nz-tooltip [nzTooltipTitle]="'copy_execution_log' | i18nextEager"></span>
+            </div>
+          </td>
+        </tr>
+        </tbody>
+      </nz-table>
+
+      <ng-template #noDataTpl>
+        <nz-empty
+          [nzNotFoundImage]="changeUrl('assets/images/noData.svg')"
+          [nzNotFoundContent]="noDataDesc"
+        >
+        </nz-empty>
+      </ng-template>
+
+      <div class="mt-4 flex justify-end" *ngIf="totalNumber > 10">
+        <nz-pagination
+          [nzTotal]="totalNumber"
+          [(nzPageIndex)]="currentPage"
+          [(nzPageSize)]="pageSize.size"
+          [nzPageSizeOptions]="pageSize.options"
+          nzShowSizeChanger
+          (nzPageIndexChange)="getExecuteRecords()"
+          (nzPageSizeChange)="getExecuteRecords()"
+        ></nz-pagination>
+      </div>
+    </div>
+  </ng-container>
+</nz-drawer>
+
+<ng-template #footerTpl>
+  <div class="flex justify-end gap-[8px]">
+    <button nz-button nzType="default" (click)="dismiss()">
+      {{ 'cancel' | i18nextEager }}
+    </button>
+    <button nz-button nzType="primary" nzDanger (click)="closeAndSaveAndExecute()">
+      {{ 'save_and_execute' | i18nextEager }}
+    </button>
+    <button nz-button nzType="primary" (click)="closeAndSaveConfig()">
+      {{ 'save' | i18nextEager }}
+    </button>
+  </div>
+</ng-template>

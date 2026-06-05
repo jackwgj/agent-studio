@@ -1,0 +1,255 @@
+<nz-drawer
+  #auditConfigDrawer
+  [nzWidth]="700"
+  [nzClosable]="true"
+  [nzMaskClosable]="false"
+  [nzPlacement]="'right'"
+  [nzTitle]="drawerTitle"
+  [nzFooter]="drawerFooter"
+  (nzOnClose)="dismiss()"
+>
+  <ng-container *nzDrawerContent>
+    <nz-tabset>
+      <nz-tab [nzTitle]="firstTabTitle">
+        <ng-template #firstTabTitle>
+          <div class="flex items-center leading-[14px] relative pr-[16px]">
+            <span class="mr-[4px]">{{ tabs[0].title }}</span>
+            <span
+              nz-tooltip
+              [nzTooltipTitle]="'content_review_configuration_tips' | i18nextEager"
+              nz-icon
+              nzType="question-circle"
+              nzTheme="outline"
+              class="text-[#8a8a8a] cursor-pointer"
+            ></span>
+            @if (tabs[0].invalid) {
+              <span class="bg-red top-[calc(50% - 4px)] absolute right-[4px] h-[6px] w-[6px] rounded-[50%]"></span>
+            }
+          </div>
+        </ng-template>
+        <p class="mb-[10px] mt-[16px]">{{ 'keywords' | i18nextEager }}</p>
+        <form [formGroup]="groupFormControl" class="flex flex-col">
+          <textarea
+            nz-input
+            nzType="textarea"
+            [nzAutosize]="{ minRows: 6, maxRows: 12 }"
+            maxlength="1000"
+            formControlName="filter"
+            class="w-full"
+            [placeholder]="
+              'content_review_keyword_input_placeholder' | i18nextEager
+            "
+          ></textarea>
+        </form>
+      </nz-tab>
+      <nz-tab [nzTitle]="secTabTitle">
+        <ng-template #secTabTitle>
+          <div class="flex items-center leading-[14px] relative pr-[16px]">
+            <span class="mr-[4px]">{{ tabs[1].title }}</span>
+            <span
+              nz-tooltip
+              [nzTooltipTitle]="'replace_keywords_with_set_tips' | i18nextEager"
+              nz-icon
+              nzType="question-circle"
+              nzTheme="outline"
+              class="text-[#8a8a8a] cursor-pointer"
+            ></span>
+            @if (tabs[1].invalid) {
+              <span class="bg-red top-[calc(50% - 4px)] absolute right-[4px] h-[6px] w-[6px] rounded-[50%]"></span>
+            }
+          </div>
+        </ng-template>
+        <div class="flex w-full justify-between mt-[16px]">
+          <p class="mb-[16px] text-[#191919]">
+            {{ 'keyword_configuration' | i18nextEager }}
+          </p>
+          <button
+            nz-button
+            [nzType]="'text'"
+            [nzSize]="'small'"
+            [disabled]="isReplaceArrayLimit"
+            [nzTooltipTitle]="
+              isReplaceArrayLimit ? ('add_up_to_10_groups' | i18nextEager) : ''
+            "
+            nz-tooltip
+            (click)="addReplaceItem()"
+          >
+            <span nz-icon nzType="plus"></span>
+          </button>
+        </div>
+        <div>
+          <div class="mb-[10px] flex w-full gap-[8px] pr-[24px] text-[#595959]">
+            <div class="flex-1">{{ 'keywords' | i18nextEager }}</div>
+            <div class="flex-1">{{ 'substitute_word' | i18nextEager }}</div>
+          </div>
+          @for (item of getFormArray('replace').controls; track item; let i = $index) {
+            <div class="mb-[10px] flex w-full items-start gap-[8px]">
+              <div class="flex-1">
+                <textarea
+                  nz-input
+                  nzType="textarea"
+                  [nzAutosize]="{ minRows: 3, maxRows: 6 }"
+                  maxlength="1000"
+                  class="!w-full"
+                  [placeholder]="
+                    'content_review_keyword_input_placeholder' | i18nextEager
+                  "
+                  [formControl]="getFormControl(item, 'keywords')"
+                ></textarea>
+              </div>
+              <div class="flex-1">
+                <textarea
+                  nz-input
+                  nzType="textarea"
+                  [nzAutosize]="{ minRows: 3, maxRows: 6 }"
+                  maxlength="1000"
+                  class="!w-full"
+                  [placeholder]="
+                    'content_review_replace_input_placeholder' | i18nextEager
+                  "
+                  [formControl]="getFormControl(item, 'replaceWords')"
+                ></textarea>
+              </div>
+              <span
+                nz-icon
+                nzType="delete"
+                nzTheme="outline"
+                class="pointer !text-[16px] cursor-pointer"
+                (click)="removeReplaceItem(i)"
+              ></span>
+            </div>
+          }
+        </div>
+      </nz-tab>
+      <nz-tab [nzTitle]="thirdTabTitle">
+        <ng-template #thirdTabTitle>
+          <div class="flex items-center leading-[14px] relative pr-[16px]">
+            <span class="mr-[4px]">{{ tabs[2].title }}</span>
+            <span
+              nz-tooltip
+              [nzTooltipTitle]="'content_review_reply_tips' | i18nextEager"
+              nz-icon
+              nzType="question-circle"
+              nzTheme="outline"
+              class="text-[#8a8a8a] cursor-pointer"
+            ></span>
+            @if (tabs[2].invalid) {
+              <span class="bg-red top-[calc(50% - 4px)] absolute right-[4px] h-[6px] w-[6px] rounded-[50%]"></span>
+            }
+          </div>
+        </ng-template>
+        <div class="flex w-full justify-between mt-[16px]">
+          <p class="mb-[16px] text-[#191919]">
+            {{ 'keyword_configuration' | i18nextEager }}
+          </p>
+          <button
+            nz-button
+            [nzType]="'text'"
+            [nzSize]="'small'"
+            [disabled]="isHandlingArrayLimit"
+            [nzTooltipTitle]="
+              isHandlingArrayLimit ? ('add_up_to_10_groups' | i18nextEager) : ''
+            "
+            nz-tooltip
+            (click)="addHandlingItem()"
+          >
+            <span nz-icon nzType="plus"></span>
+          </button>
+        </div>
+        <div>
+          <div class="mb-[10px] flex w-full gap-[8px] pr-[24px] text-[#595959]">
+            <div class="flex-1">{{ 'keywords' | i18nextEager }}</div>
+            <div class="flex-1">{{ 'input_review' | i18nextEager }}</div>
+            <div class="flex-1">{{ 'output_review' | i18nextEager }}</div>
+          </div>
+          @for (item of getFormArray('handling').controls; track item; let i = $index) {
+            <div class="mb-[10px] flex w-full items-start gap-[8px]">
+              <div class="flex-1">
+                <textarea
+                  nz-input
+                  nzType="textarea"
+                  [nzAutosize]="{ minRows: 3, maxRows: 6 }"
+                  maxlength="1000"
+                  class="!w-full"
+                  [placeholder]="
+                    'content_review_keyword_input_placeholder' | i18nextEager
+                  "
+                  [formControl]="getFormControl(item, 'keywords')"
+                ></textarea>
+              </div>
+              <div class="flex flex-1">
+                <div class="mr-[2px]">
+                  <label
+                    nz-checkbox
+                    [formControl]="getFormControl(item, 'inputEnable')"
+                    (ngModelChange)="onCheckboxChange(item, 'input', i)"
+                  ></label>
+                </div>
+                <div class="flex-1">
+                  <textarea
+                    nz-input
+                    nzType="textarea"
+                    [nzAutosize]="{ minRows: 3, maxRows: 6 }"
+                    maxlength="1000"
+                    class="!w-full"
+                    [placeholder]="
+                      'content_review_input_input_placeholder' | i18nextEager
+                    "
+                    [formControl]="getFormControl(item, 'input')"
+                  ></textarea>
+                </div>
+              </div>
+              <div class="flex flex-1">
+                <div class="mr-[2px]">
+                  <label
+                    nz-checkbox
+                    [formControl]="getFormControl(item, 'outputEnable')"
+                    (ngModelChange)="onCheckboxChange(item, 'output', i)"
+                  ></label>
+                </div>
+                <div class="flex-1">
+                  <textarea
+                    nz-input
+                    nzType="textarea"
+                    [nzAutosize]="{ minRows: 3, maxRows: 6 }"
+                    maxlength="1000"
+                    class="!w-full"
+                    [placeholder]="
+                      'content_review_output_input_placeholder' | i18nextEager
+                    "
+                    [formControl]="getFormControl(item, 'output')"
+                  ></textarea>
+                </div>
+              </div>
+              <span
+                nz-icon
+                nzType="delete"
+                nzTheme="outline"
+                class="pointer !text-[16px] cursor-pointer"
+                (click)="removeHandlingItem(i)"
+              ></span>
+            </div>
+          }
+        </div>
+      </nz-tab>
+    </nz-tabset>
+  </ng-container>
+</nz-drawer>
+<ng-template #drawerTitle>
+  <span class="text-[#191919]">{{ 'content_review_configuration' | i18nextEager }}</span>
+</ng-template>
+<ng-template #drawerFooter>
+  <div class="flex justify-end">
+    <button nz-button id="cancel" (click)="dismiss()">
+      {{ 'cancel' | i18nextEager }}
+    </button>
+    <button
+      nz-button
+      nzType="primary"
+      class="ml-[8px]"
+      (click)="saveAuditConfig()"
+    >
+      {{ 'ok' | i18nextEager }}
+    </button>
+  </div>
+</ng-template>

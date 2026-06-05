@@ -1,0 +1,28 @@
+<div class="answer">
+  <div [innerHTML]="transformedAnswer" class="markdown-body" [class.error]="isError" [class.thought]="isThought"></div>
+  <div class="tooltip" id="tooltip"></div>
+</div>
+
+<ng-template id="alert-modal" #alertModal let-modalRef="modalRef">
+  <ng-container *nzModalTitle>
+    <div class="modal-header-style-div">
+      <span nz-icon nzType="warning" nzTheme="fill" class="warn-icon"></span>
+      {{ 'leave_title' | i18nextEager }}
+    </div>
+  </ng-container>
+  <ng-container *nzModalContent>
+    <div class="text-label-main">
+      <span class="text-label-content">
+        {{ 'leave_prompt' | i18nextEager }}
+      </span>
+      <span class="text-label-link">{{ modalRef.nzData.href }}</span>
+    </div>
+  </ng-container>
+  <ng-container *nzModalFooter>
+    <div class="flex w-full justify-end">
+      <button type="button" nz-button nzDanger (click)="openHrefInNewTab(modalRef.nzData.href)">
+        {{ 'continue_visit' | i18nextEager }}
+      </button>
+    </div>
+  </ng-container>
+</ng-template>

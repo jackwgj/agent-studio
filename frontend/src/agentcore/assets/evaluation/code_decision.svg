@@ -1,0 +1,16 @@
+<svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="40.000000" height="40.000000" fill="none" customFrame="#000000">
+	<rect id="代码判定" width="40.000000" height="40.000000" x="0.000000" y="0.000000" />
+	<rect id="矩形" width="40.000000" height="40.000000" x="-0.000977" y="0.000000" rx="8.000000" fill="rgb(230,28,129)" />
+	<rect id="矩形" width="39.000000" height="39.000000" x="0.499023" y="0.500000" rx="7.500000" stroke="rgb(151,151,151)" stroke-opacity="0" stroke-width="1" />
+	<path id="直线 138" d="M11 30L22 30" stroke="rgb(255,255,255)" stroke-linecap="round" stroke-width="1.5" />
+	<rect id="矩形 8450" width="25.000000" height="16.000000" x="7.000000" y="10.000000" rx="2.000000" fill="rgb(255,255,255)" />
+	<circle id="椭圆 3645" cx="29" cy="27" r="6" fill="rgb(255,255,255)" />
+	<circle id="椭圆 3645" cx="29" cy="27" r="6.75" stroke="rgb(230,28,129)" stroke-width="1.5" />
+	<g id="组合 144194">
+		<path id="直线 136" d="M26.4996 30.5L30.4996 30.5" stroke="rgb(230,28,129)" stroke-linecap="round" stroke-width="1" />
+		<rect id="矩形 8449" width="6.000000" height="3.000000" x="0.000000" y="0.000000" rx="0.500000" fill="rgb(230,28,129)" transform="matrix(0.707107,-0.707107,0.707107,0.707107,25.4996,26.7427)" />
+		<path id="直线 137" d="M0 0L3 0" stroke="rgb(230,28,129)" stroke-linecap="round" stroke-width="1" transform="matrix(0.707107,0.707107,-0.707107,0.707107,29.7418,26.7427)" />
+	</g>
+	<path id="直线 139" d="M0 0L4 4L8 0" stroke="rgb(230,28,129)" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" transform="matrix(1.74623e-10,1,-1,1.74623e-10,14,14)" />
+	<path id="直线 140" d="M16.4995 22L21.4995 22" stroke="rgb(230,28,129)" stroke-linecap="round" stroke-width="1.5" />
+</svg>

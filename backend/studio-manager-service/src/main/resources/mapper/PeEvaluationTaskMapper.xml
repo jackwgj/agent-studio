@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) Huawei Technologies Co., Ltd. 2023-2023. All rights reserved.
+  -->
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.prompt.engineering.mapper.PeEvaluationTaskMapper">
+
+    <resultMap id="EvaluationTaskBaseMap" type="com.openjiuwen.studio.prompt.engineering.entity.PeEvaluationTask">
+        <id property="id" column="id" jdbcType="VARCHAR"/>
+        <result property="name" column="name" jdbcType="VARCHAR"/>
+        <result property="method" column="method" jdbcType="VARCHAR"/>
+        <result property="taskId" column="task_id" jdbcType="VARCHAR"/>
+        <result property="testSetId" column="test_set_id" jdbcType="VARCHAR"/>
+        <result property="description" column="description" jdbcType="VARCHAR"/>
+        <result property="regularExpression" column="regular_expression" jdbcType="VARCHAR"/>
+        <result property="evalModelConfig" column="eval_model_config" jdbcType="OTHER"
+            typeHandler="com.openjiuwen.studio.prompt.engineering.mapper.handler.ModelConfigHandler"/>
+        <result property="createdOn" column="created_on" jdbcType="TIMESTAMP"/>
+        <result property="updatedOn" column="updated_on" jdbcType="TIMESTAMP"/>
+        <result property="status" column="status" jdbcType="VARCHAR"/>
+        <result property="creator" column="creator" jdbcType="VARCHAR"/>
+        <result property="prompts" column="prompts" jdbcType="OTHER"
+                typeHandler="com.openjiuwen.studio.prompt.engineering.mapper.handler.JsonArrayPromptHandler"/>
+        <result property="workspaceId" column="workspace_id" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <resultMap id="EvaluationResultMap" type="com.openjiuwen.studio.prompt.engineering.entity.PeEvaluationResult">
+        <id property="id" column="id" jdbcType="VARCHAR"/>
+        <result property="evaluationTaskId" column="evaluation_task_id" jdbcType="VARCHAR"/>
+        <result property="testNum" column="test_num" jdbcType="INTEGER"/>
+        <result property="promptId" column="prompt_id" jdbcType="VARCHAR"/>
+        <result property="generateResult" column="generate_result" jdbcType="VARCHAR"/>
+        <result property="evalFailedReason" column="eval_failed_reason" jdbcType="VARCHAR"/>
+        <result property="evalResult" column="eval_result" jdbcType="OTHER"
+                typeHandler="com.openjiuwen.studio.prompt.engineering.mapper.handler.EvalResultHandler"/>
+        <result property="workspaceId" column="workspace_id" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <select id="queryEvaluationTaskIdsByTestSetId" resultType="java.lang.String">
+        SELECT id
+        FROM t_pe_evaluation_task
+        WHERE test_set_id = #{testSetId} AND workspace_id = #{workspaceId}
+        ORDER BY created_on DESC
+    </select>
+
+    <select id="isIdExist" resultType="java.lang.Boolean">
+        SELECT 1
+        FROM t_pe_evaluation_task
+        WHERE id = #{id} AND workspace_id = #{workspaceId}
+        LIMIT 1
+    </select>
+
+    <select id="isNameExist" resultType="java.lang.Boolean">
+        SELECT 1
+        FROM t_pe_evaluation_task
+        WHERE name = #{name}
+          AND task_id = #{taskId} AND workspace_id = #{workspaceId}
+        LIMIT 1
+    </select>
+
+    <select id="isNameDuplicate" resultType="java.lang.Boolean">
+        SELECT 1
+        FROM t_pe_evaluation_task
+        WHERE id &lt;&gt; #{id}
+          AND name = #{name}
+          AND task_id = #{taskId} AND workspace_id = #{workspaceId}
+        LIMIT 1
+    </select>
+
+    <insert id="insertOneEvaluationTask">
+        INSERT INTO t_pe_evaluation_task(`id`, `name`, method, task_id, test_set_id, description, regular_expression,
+        eval_model_config, prompts, status, creator, workspace_id)
+        VALUES (#{id}, #{name}, #{method}, #{taskId}, #{testSetId}, #{description}, #{regularExpression},
+                #{evalModelConfig,typeHandler=com.openjiuwen.studio.prompt.engineering.mapper.handler.ModelConfigHandler},
+                #{prompts,typeHandler=com.openjiuwen.studio.prompt.engineering.mapper.handler.JsonArrayPromptHandler},
+                #{status}, #{creator}, #{workspaceId})
+    </insert>
+
+    <insert id="batchInsertEvalResult">
+        insert into
+        t_pe_evaluation_result(`id`,`evaluation_task_id`,`prompt_id`,`test_num`,`generate_result`,`eval_result`,`eval_failed_reason`,`workspace_id`)
+        values
+        <foreach collection="results" item="item" separator=",">
+            (#{item.id,jdbcType=VARCHAR},
+            #{item.evaluationTaskId,jdbcType=VARCHAR},
+            #{item.promptId,jdbcType=VARCHAR},
+            #{item.testNum,jdbcType=INTEGER},
+            #{item.generateResult,jdbcType=VARCHAR},
+            #{item.evalResult,typeHandler=com.openjiuwen.studio.prompt.engineering.mapper.handler.EvalResultHandler},
+            #{item.evalFailedReason,jdbcType=VARCHAR},
+            #{item.workspaceId,jdbcType=VARCHAR}
+             )
+        </foreach>
+        on DUPLICATE key update
+            id = VALUES(id),
+            generate_result = VALUES(generate_result),
+            eval_result = VALUES(eval_result),
+            eval_failed_reason = VALUES(eval_failed_reason)
+    </insert>
+
+    <select id="isEvaluationTaskExist" resultType="java.lang.Boolean">
+        SELECT 1
+        FROM t_pe_evaluation_task
+        WHERE id = #{id} and workspace_id = #{workspaceId}
+        LIMIT 1
+    </select>
+
+    <delete id="deleteEvaluationTaskById">
+        DELETE
+        FROM t_pe_evaluation_task
+        WHERE id = #{id} and workspace_id = #{workspaceId}
+    </delete>
+
+    <delete id="deleteEvaluationResultByEvaluationTaskId">
+        DELETE
+        FROM t_pe_evaluation_result
+        WHERE evaluation_task_id = #{evaluationTaskId} and workspace_id = #{workspaceId}
+    </delete>
+
+    <delete id="deleteByTaskId">
+        DELETE
+        FROM t_pe_evaluation_task
+        WHERE task_id = #{taskId} and workspace_id = #{workspaceId}
+    </delete>
+
+    <delete id="deleteEvaluationResultByEvaluationTaskIds">
+        DELETE
+        FROM t_pe_evaluation_result
+        WHERE workspace_id = #{workspaceId} and evaluation_task_id IN
+        <foreach collection="evaluationTaskIds" index="index" item="item" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </delete>
+
+    <update id="updateEvaluationTaskInfoById">
+        UPDATE t_pe_evaluation_task
+        <set>
+            name        = #{name},
+            status      = #{status},
+            description = #{description},
+            updated_on = CURRENT_TIMESTAMP
+        </set>
+        WHERE id = #{id} and workspace_id = #{workspaceId}
+    </update>
+
+    <update id="updateEvaluationTaskStatusById">
+        update t_pe_evaluation_task
+        set status = #{status}
+        where id = #{id} and workspace_id = #{workspaceId}
+    </update>
+
+    <select id="queryEvaluationTaskIdsByQO" resultType="java.lang.String">
+        SELECT distinct tpet.id, tpet.created_on
+        FROM t_pe_evaluation_task tpet
+        WHERE 1=1 and tpet.workspace_id = #{workspaceId}
+        <if test="listEvaluationTaskByPageQO.taskId != null and listEvaluationTaskByPageQO.taskId.length() > 0">
+            AND tpet.task_id = #{listEvaluationTaskByPageQO.taskId}
+        </if>
+        <if test="listEvaluationTaskByPageQO.evaluationTaskName != null and listEvaluationTaskByPageQO.evaluationTaskName.length() > 0">
+            <bind name="evaluationTaskName" value="'%' + listEvaluationTaskByPageQO.evaluationTaskName + '%'"/>
+            AND tpet.name LIKE #{evaluationTaskName}
+        </if>
+        <if test="listEvaluationTaskByPageQO.status != null and listEvaluationTaskByPageQO.status.length() > 0">
+            AND tpet.status = #{listEvaluationTaskByPageQO.status}
+        </if>
+        ORDER BY tpet.created_on DESC
+    </select>
+
+    <select id="queryEvaluationTaskDetailsById"
+            resultMap="EvaluationTaskBaseMap">
+        SELECT *
+        FROM t_pe_evaluation_task tpet
+        WHERE id = #{id} and workspace_id = #{workspaceId}
+        ORDER BY tpet.created_on DESC
+    </select>
+
+    <select id="queryEvaluationTaskDetailsByIds"
+            resultMap="EvaluationTaskBaseMap">
+        SELECT *
+        FROM t_pe_evaluation_task tpet
+        WHERE 1=1 and workspace_id = #{workspaceId}
+        <if test="ids != null and !ids.isEmpty()">
+            AND tpet.id IN
+            <foreach collection='ids' item='id' open='(' separator=',' close=')'>
+                #{id}
+            </foreach>
+        </if>
+        ORDER BY tpet.created_on DESC
+    </select>
+
+    <select id="queryEvaluationTaskStatusByTaskId"
+            resultType="com.openjiuwen.studio.prompt.engineering.enums.EvaluationTaskStatus">
+        SELECT status
+        FROM t_pe_evaluation_task
+        where task_id = #{taskId} and workspace_id = #{workspaceId}
+    </select>
+
+    <select id="queryEvalResultsByEvalTaskId" resultMap="EvaluationResultMap">
+        select *
+        from t_pe_evaluation_result
+        where evaluation_task_id = #{taskId} and workspace_id = #{workspaceId}
+        ORDER BY test_num
+    </select>
+
+    <select id="queryEvaluationTaskByTaskId"
+            resultMap="EvaluationTaskBaseMap">
+        SELECT *
+        FROM t_pe_evaluation_task tpet
+        WHERE task_id = #{taskId} AND workspace_id = #{workspaceId}
+        ORDER BY tpet.created_on DESC
+    </select>
+
+    <select id="queryEvaluationTaskStatusById"
+            resultType="com.openjiuwen.studio.prompt.engineering.enums.EvaluationTaskStatus">
+        SELECT status
+        FROM t_pe_evaluation_task
+        where id = #{id} AND workspace_id = #{workspaceId}
+    </select>
+    <select id="queryLatestEvaluationTaskIdByTaskId" resultType="java.lang.String">
+        select id
+        from t_pe_evaluation_task
+        where task_id = #{taskId} and workspace_id = #{workspaceId}
+        order by created_on DESC limit 1
+    </select>
+    <select id="queryLatestSuccessEvaluationTaskIdByTaskId" resultType="java.lang.String">
+        select id
+        from t_pe_evaluation_task
+        where task_id = #{taskId}
+          and status = 'success' and workspace_id = #{workspaceId}
+        order by created_on DESC limit 1
+    </select>
+    <select id="queryByTaskIdAndStatus" resultMap="EvaluationTaskBaseMap">
+        SELECT *
+        FROM t_pe_evaluation_task
+        WHERE task_id = #{taskId}
+          and status in ("pending", "running","pausing","retrying") and workspace_id = #{workspaceId}
+    </select>
+</mapper>

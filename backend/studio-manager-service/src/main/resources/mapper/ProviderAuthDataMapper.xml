@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  ~ Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
+  -->
+
+
+<mapper namespace="com.openjiuwen.studio.agent.manager.mapper.md.ProviderAuthDataMapper">
+
+    <!-- 插入记录 -->
+    <insert id="insert" parameterType="com.openjiuwen.studio.agent.manager.entity.md.ProviderAuthData">
+        INSERT INTO t_provider_auth_info(ID, PROVIDER_ID, AUTH_METADATA_ID, AUTH_TYPE, AUTH_INFO,
+                                         CREATED_BY_USER, CREATED_DATE, LAST_UPDATED_DATE, DOMAIN_ID, PROJECT_ID,
+                                         WORKSPACE_ID,
+                                         IDENTITY_ID, SYNC_STATUS)
+        VALUES (#{id}, #{providerId}, #{authMetadataId}, #{authType}, #{authInfo},
+                #{createdByUser}, #{createdDate}, #{lastUpdatedDate}, #{domainId}, #{projectId}, #{workspaceId},
+                #{identityId}, 'finish')
+    </insert>
+
+    <select id="selectProviderAuthData"
+            resultType="com.openjiuwen.studio.agent.manager.entity.md.ProviderAuthMetadata">
+        select m.*, a.auth_info as auth_config, a.ID as auth_id
+        from t_provider_auth_metadata m
+                 left join t_provider_auth_info a
+                  on m.id = a.AUTH_METADATA_ID
+                      and (a.PROJECT_ID = #{projectId} or a.PROJECT_ID is null)
+                      and (a.WORKSPACE_ID = #{workspaceId} or a.WORKSPACE_ID='SYSTEM' or a.WORKSPACE_ID is null)
+        WHERE m.PROVIDER_ID = #{providerId}
+    </select>
+
+    <delete id="deleteByProviderId">
+        delete
+        from t_provider_auth_info
+        WHERE PROVIDER_ID = #{providerId}
+          and PROJECT_ID = #{projectId}
+          and WORKSPACE_ID = #{workspaceId}
+    </delete>
+    <select id="selectByProviderIds" resultType="com.openjiuwen.studio.agent.manager.entity.md.ProviderAuthData">
+        SELECT * FROM t_provider_auth_info
+        WHERE  PROVIDER_ID IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+    <select id="selectByProviderId" resultType="com.openjiuwen.studio.agent.manager.entity.md.ProviderAuthData">
+        select *
+        from t_provider_auth_info
+        WHERE PROVIDER_ID = #{providerId}
+          and PROJECT_ID = #{projectId}
+          and WORKSPACE_ID = #{workspaceId}
+    </select>
+    <select id="queryByProviderId" resultType="com.openjiuwen.studio.agent.manager.entity.md.ProviderAuthData">
+        select *
+        from t_provider_auth_info
+        WHERE PROVIDER_ID = #{providerId}
+          and PROJECT_ID = #{projectId}
+          and WORKSPACE_ID = #{workspaceId}
+    </select>
+    <select id="selectAllAuthByTime" resultType="com.openjiuwen.studio.agent.manager.entity.md.ProviderAuthData">
+        select *
+        from t_provider_auth_info
+        WHERE LAST_UPDATED_DATE  &lt;= #{time}
+    </select>
+
+    <update id="updateMetadata">
+        update t_provider_auth_info
+        set AUTH_TYPE         = #{authType},
+            AUTH_INFO         = #{authInfo},
+            LAST_UPDATED_DATE = #{updatedDate}
+        where ID = #{id}
+    </update>
+
+    <select id="selectAuthDataByProviderOrMetaId"
+            resultType="com.openjiuwen.studio.agent.manager.entity.md.ProviderAuthMetadata">
+        select m.*, a.auth_info as auth_config, a.ID as auth_id
+        from t_provider_auth_metadata m
+        left join t_provider_auth_info a
+        on m.id = a.AUTH_METADATA_ID and (a.PROJECT_ID = #{projectId} or a.PROJECT_ID is null) and (a.WORKSPACE_ID = #{workspaceId} or a.WORKSPACE_ID = 'SYSTEM' or a.WORKSPACE_ID is null) and a.auth_info is not null
+        WHERE 1 = 1
+        <if test="providerId != null and providerId != ''">
+            and m.PROVIDER_ID = #{providerId}
+        </if>
+        <if test="authMetadataId != null and authMetadataId != '' ">
+            and m.ID = #{authMetadataId}
+        </if>
+        and (m.PROJECT_ID = #{projectId} or m.PROJECT_ID = 'SYSTEM') and (m.WORKSPACE_ID = #{workspaceId} or m.WORKSPACE_ID = 'SYSTEM')
+    </select>
+
+    <select id="selectByMetaId" resultType="com.openjiuwen.studio.agent.manager.entity.md.ProviderAuthData">
+        select *
+        from t_provider_auth_info
+        where (PROJECT_ID = #{projectId} or PROJECT_ID = 'SYSTEM')
+          and (WORKSPACE_ID = #{workspaceId} or WORKSPACE_ID = 'SYSTEM')
+          and AUTH_METADATA_ID = #{metaId}
+    </select>
+
+    <select id="selectByModelId" resultType="com.openjiuwen.studio.agent.manager.entity.md.ProviderAuthData">
+        select *
+        from t_provider_auth_info
+        where (PROJECT_ID = #{projectId} or PROJECT_ID = 'SYSTEM')
+          and (WORKSPACE_ID = #{workspaceId} or WORKSPACE_ID = 'SYSTEM')
+          and AUTH_METADATA_ID in (select AUTH_METADATA_ID from t_model_service where ID = #{modelId})
+    </select>
+
+    <select id="selectById" resultType="com.openjiuwen.studio.agent.manager.entity.md.ProviderAuthData">
+        select *
+        from t_provider_auth_info
+        where ID = #{id}
+    </select>
+
+    <select id="selectByIdAndProjectIdAndWorkSpaceId" resultType="com.openjiuwen.studio.agent.manager.entity.md.ProviderAuthData">
+        select *
+        from t_provider_auth_info
+        where ID = #{id}
+          and (PROJECT_ID = #{projectId} or PROJECT_ID = 'SYSTEM')  and (WORKSPACE_ID = #{workspaceId} or WORKSPACE_ID = 'SYSTEM')
+    </select>
+
+    <select id="selectByIds" resultType="com.openjiuwen.studio.agent.manager.entity.md.ProviderAuthData">
+        select
+        ID, PROVIDER_ID,PROJECT_ID
+        from t_provider_auth_info
+        <where>
+            <if test="ids != null and ids.size() > 0">
+                id in
+                <foreach collection="ids" item="id" open="(" separator="," close=")">
+                    #{id,jdbcType=VARCHAR}
+                </foreach>
+            </if>
+        </where>
+    </select>
+
+    <delete id="deleteById">
+        delete
+        from t_provider_auth_info
+        WHERE ID = #{id}
+    </delete>
+
+    <update id="updateAuthData">
+        update t_provider_auth_info
+        set auth_type         = #{authType},
+            auth_info         = #{authInfo},
+            LAST_UPDATED_DATE = #{updatedDate},
+            SYNC_STATUS = 'finish'
+        where ID = #{id}
+    </update>
+
+    <update id="clearById">
+        update t_provider_auth_info
+        set
+            auth_info         = null
+        where ID = #{id}
+    </update>
+
+    <update id="clearByProviderId">
+        update t_provider_auth_info
+        set auth_info         = null
+        WHERE PROVIDER_ID = #{providerId}
+          and PROJECT_ID = #{projectId}
+          and WORKSPACE_ID = #{workspaceId}
+    </update>
+
+    <select id="queryNotSyncDatas" resultType="com.openjiuwen.studio.agent.manager.entity.md.ProviderAuthData">
+        SELECT *
+        FROM t_provider_auth_info
+        WHERE SYNC_STATUS != 'finish'
+    </select>
+
+    <update id="updateSyncStatus">
+        update t_provider_auth_info set SYNC_STATUS = 'finish' where ID = #{id}
+    </update>
+
+    <select id="selectByProviders" resultType="com.openjiuwen.studio.agent.manager.entity.md.ProviderAuthData">
+        SELECT *
+        FROM t_provider_auth_info
+        where (PROJECT_ID = #{projectId} or PROJECT_ID = 'SYSTEM')
+          and (WORKSPACE_ID = #{workspaceId} or WORKSPACE_ID = 'SYSTEM')
+          and PROVIDER_ID in
+        <foreach collection="providers" item="pid" open="(" close=")" separator=",">
+            #{pid}
+        </foreach>
+    </select>
+
+    <insert id="insertBackup" parameterType="com.openjiuwen.studio.agent.manager.entity.md.ProviderAuthData">
+        INSERT INTO t_provider_auth_info_backup(ID, PROVIDER_ID, AUTH_METADATA_ID, AUTH_TYPE, AUTH_INFO,
+                                         CREATED_BY_USER, CREATED_DATE, LAST_UPDATED_DATE, DOMAIN_ID, PROJECT_ID,
+                                         WORKSPACE_ID,
+                                         IDENTITY_ID, SYNC_STATUS)
+        VALUES (#{id}, #{providerId}, #{authMetadataId}, #{authType}, #{authInfo},
+                #{createdByUser}, #{createdDate}, #{lastUpdatedDate}, #{domainId}, #{projectId}, #{workspaceId},
+                #{identityId}, 'finish')
+    </insert>
+
+    <select id="queryBackupByUpdateTime" resultType="com.openjiuwen.studio.agent.manager.entity.md.ProviderAuthData">
+        select *
+        from t_provider_auth_info_backup
+        where LAST_UPDATED_DATE &lt; #{lastUpdatedDate}
+    </select>
+
+    <delete id="deleteBackupByIds">
+        DELETE FROM t_provider_auth_info_backup
+        WHERE id IN
+        <foreach item="id" collection="ids" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+</mapper>

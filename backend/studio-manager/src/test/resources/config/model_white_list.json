@@ -1,0 +1,17 @@
+[
+  {
+    "model_version": "N3_agent_v2",
+    "model_type": "AgentBuilder",
+    "model_deployment_id": "77e2900b-2084-45c5-bce7-f39673664d35"
+  },
+  {
+    "model_version": "N3_agent_v2",
+    "model_type": "AgentBuilder",
+    "model_deployment_id": "35067be6-cbe7-48e0-b0ea-d170ab06af6a"
+  },
+  {
+    "model_name": "千问1.5-72B",
+    "model_version": "qwen1.5-72B",
+    "model_type": "OS"
+  }
+]

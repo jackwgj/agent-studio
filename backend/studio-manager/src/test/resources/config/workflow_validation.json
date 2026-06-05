@@ -1,0 +1,825 @@
+{
+  "id": "test_workflow_id",
+  "name": "工作流验证",
+  "description": "描述",
+  "nodes": [
+    {
+      "id": "node_start",
+      "type": "Start",
+      "name": "输入",
+      "outputs": [
+        {
+          "name": "query",
+          "type": "String",
+          "desc": "用户输入",
+          "required": false,
+          "value": {
+            "type": "generated",
+            "content": null
+          },
+          "schema": null
+        }
+      ]
+    },
+    {
+      "id": "node_end",
+      "type": "End",
+      "name": "输出",
+      "inputs": [
+        {
+          "name": "output",
+          "type": "String",
+          "desc": "",
+          "required": false,
+          "value": {
+            "type": "ref",
+            "content": {
+              "ref_node_id": "node_1723866391482",
+              "ref_var_name": "raw_output"
+            }
+          },
+          "schema": null
+        },
+        {
+          "name": "name",
+          "type": "String",
+          "desc": "",
+          "required": false,
+          "value": {
+            "type": "literal",
+            "content": "zhangsan"
+          },
+          "schema": null
+        }
+      ]
+    },
+    {
+      "id": "node_1727403791211",
+      "type": "IntentDetection",
+      "name": "意图分类",
+      "inputs": [
+        {
+          "name": "input",
+          "type": "String",
+          "desc": "",
+          "required": false,
+          "value": {
+            "type": "ref",
+            "content": {
+              "ref_node_id": "node_start",
+              "ref_var_name": "query"
+            }
+          },
+          "schema": null
+        }
+      ],
+      "branches": [
+        {
+          "id": "xx1",
+          "configs": {
+            "category": "1"
+          }
+        },
+        {
+          "id": "xx2",
+          "configs": {
+            "category": "2"
+          }
+        },
+        {
+          "id": "xx3",
+          "configs": {
+            "category": "3"
+          }
+        }
+      ],
+      "configs": {
+        "prompt": {
+          "history": false,
+          "template": "你是一个功能分类器，你可以根据用户的请求提问，和相应的功能类别描述，选择正确的功能帮助用户解决问题。"
+        },
+        "llm": {
+          "config": {
+            "model": "gy-agentBuilder-38b-v30-welink",
+            "temperature": 0.5,
+            "top_p": 0.5
+          },
+          "name": "agentBuilder"
+        }
+      }
+    },
+    {
+      "id": "node_default_llm_chain",
+      "type": "LLM",
+      "name": "大模型",
+      "inputs": [
+        {
+          "name": "query",
+          "type": "String",
+          "desc": "",
+          "required": false,
+          "value": {
+            "type": "ref",
+            "content": {
+              "ref_node_id": "node_start",
+              "ref_var_name": "query"
+            }
+          },
+          "schema": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "rawOutput",
+          "type": "String",
+          "desc": "该节点原始输出",
+          "required": false,
+          "value": {
+            "type": "generated",
+            "content": null
+          },
+          "schema": null
+        }
+      ],
+      "configs": {
+        "template_content": "{{query}}{{CHAT_HISTORY}}",
+        "llm": {
+          "config": {
+            "model": "qwen-turbo",
+            "temperature": 0.5,
+            "top_p": 0.5
+          },
+          "name": "agentBuilder"
+        }
+      }
+    },
+    {
+      "id": "node_loop",
+      "name": "循环节点",
+      "type": "Loop",
+      "inputs": [
+        {
+          "name": "num_loop_var",
+          "type": "integer",
+          "description": "数量次数",
+          "required": true,
+          "source": "pre_defined",
+          "value": {
+            "type": "literal",
+            "content": "",
+            "hint": "",
+            "default": ""
+          }
+        },
+        {
+          "name": "intermediate_loop_var",
+          "type": "object",
+          "description": "循环之间共享参数",
+          "required": true,
+          "source": "pre_defined",
+          "value": {
+            "type": "nested",
+            "content": null,
+            "hint": "",
+            "default": ""
+          },
+          "schema": [
+            {
+              "name": "param1",
+              "type": "string",
+              "description": "param1",
+              "required": true,
+              "source": "user",
+              "value": {
+                "type": "ref",
+                "content": {
+                  "ref_node_id": "node_start",
+                  "ref_var_name": "query",
+                  "source": "system"
+                },
+                "hint": ""
+              }
+            }
+          ]
+        },
+        {
+          "name": "array_loop_var",
+          "type": "array",
+          "description": "数组循环",
+          "required": true,
+          "source": "pre_defined",
+          "value": {
+            "type": "ref",
+            "content": {
+              "ref_node_id": "node_start",
+              "ref_var_name": "query",
+              "source": "system"
+            },
+            "hint": ""
+          },
+          "schema": {
+            "name": "",
+            "type": "string"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "result",
+          "type": "array",
+          "description": "result",
+          "required": true,
+          "source": "user",
+          "value": {
+            "type": "ref",
+            "content": {
+              "ref_node_id": "node_1740535646683",
+              "ref_var_name": "raw_output",
+              "source": "user"
+            },
+            "hint": "",
+            "default": ""
+          },
+          "schema": {
+            "name": "",
+            "type": "string"
+          }
+        }
+      ],
+      "configs": {
+        "loop_type": "array",
+        "loop_body": [
+          "node_default_llm_chain_2",
+          "node_set_variable11111"
+        ]
+      }
+    },
+    {
+      "id": "node_set_variable11111",
+      "type": "SetVariable",
+      "name": "设置变量节点",
+      "inputs": [
+        {
+          "name": "param1",
+          "type": "string",
+          "description": "循环之间共享参数",
+          "required": true,
+          "source": "user",
+          "value": {
+            "type": "ref",
+            "content": {
+              "ref_node_id": "node_loop",
+              "ref_var_name": "intermediate_loop_var.param1",
+              "source": "pre_defined"
+            },
+            "hint": ""
+          }
+        },
+        {
+          "name": "param2",
+          "type": "integer",
+          "description": "循环之间共享参数",
+          "required": true,
+          "source": "user",
+          "value": {
+            "type": "ref",
+            "content": {
+              "ref_node_id": "node_loop",
+              "ref_var_name": "intermediate_loop_var.param2",
+              "source": "pre_defined"
+            },
+            "hint": ""
+          }
+        },
+        {
+          "name": "param3",
+          "type": "object",
+          "description": "循环之间共享参数",
+          "required": true,
+          "source": "user",
+          "value": {
+            "type": "ref",
+            "content": {
+              "ref_node_id": "node_loop",
+              "ref_var_name": "intermediate_loop_var.param3",
+              "source": "pre_defined"
+            },
+            "hint": ""
+          },
+          "schema": [
+            {
+              "name": "key1",
+              "type": "string"
+            },
+            {
+              "name": "key2",
+              "type": "integer"
+            }
+          ]
+        }
+      ],
+      "configs": {
+        "settings": [
+          {
+            "left": {
+              "type": "string",
+              "value": {
+                "type": "ref",
+                "content": {
+                  "ref_node_id": "node_loop",
+                  "ref_var_name": "intermediate_loop_var.param1",
+                  "source": "pre_defined"
+                }
+              }
+            },
+            "right": {
+              "type": "string",
+              "value": {
+                "type": "ref",
+                "content": {
+                  "ref_node_id": "node_loop",
+                  "ref_var_name": "array_loop_var.param1.item",
+                  "source": "pre_defined"
+                }
+              }
+            }
+          },
+          {
+            "left": {
+              "type": "integer",
+              "value": {
+                "type": "ref",
+                "content": {
+                  "ref_node_id": "node_loop",
+                  "ref_var_name": "intermediate_loop_var.param2",
+                  "source": "pre_defined"
+                }
+              }
+            },
+            "right": {
+              "type": "integer",
+              "value": {
+                "type": "literal",
+                "content": 11
+              }
+            }
+          },
+          {
+            "left": {
+              "type": "object",
+              "value": {
+                "type": "ref",
+                "content": {
+                  "ref_node_id": "node_loop",
+                  "ref_var_name": "intermediate_loop_var.param3",
+                  "source": "pre_defined"
+                }
+              },
+              "schema": [
+                {
+                  "name": "key3",
+                  "type": "string"
+                },
+                {
+                  "name": "key2",
+                  "type": "integer"
+                }
+              ]
+            },
+            "right": {
+              "type": "object",
+              "value": {
+                "type": "ref",
+                "content": {
+                  "ref_node_id": "node_start",
+                  "ref_var_name": "object_test",
+                  "source": "user"
+                }
+              },
+              "schema": [
+                {
+                  "name": "key1",
+                  "type": "string"
+                },
+                {
+                  "name": "key2",
+                  "type": "integer"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "node_default_llm_chain_2",
+      "type": "LLM",
+      "name": "大模型",
+      "inputs": [
+        {
+          "name": "query",
+          "type": "String",
+          "desc": "",
+          "required": false,
+          "value": {
+            "type": "ref",
+            "content": {
+              "ref_node_id": "node_start",
+              "ref_var_name": "query"
+            }
+          },
+          "schema": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "rawOutput",
+          "type": "String",
+          "desc": "该节点原始输出",
+          "required": false,
+          "value": {
+            "type": "generated",
+            "content": null
+          },
+          "schema": null
+        }
+      ],
+      "configs": {
+        "prompt": {
+          "history": true,
+          "template": "{{query}}"
+        },
+        "llm": {
+          "config": {
+            "model": "qwen-turbo",
+            "temperature": 0.5,
+            "top_p": 0.5
+          },
+          "name": "agentBuilder"
+        }
+      }
+    },
+    {
+      "id": "node_code",
+      "type": "Code",
+      "name": "代码节点",
+      "inputs": [
+      ],
+      "outputs": [
+      ],
+      "configs": {
+        "code": {
+          "code": ""
+        }
+      }
+    },
+    {
+      "id": "node_http222222",
+      "name": "http节点",
+      "type": "Http",
+      "inputs": [
+        {
+          "name": "queries",
+          "type": "object",
+          "description": "http节点请求参数",
+          "required": true,
+          "source": "pre_defined",
+          "schema": [
+            {
+              "name": "key1",
+              "type": "string",
+              "description": "key1",
+              "required": true,
+              "source": "pre_defined",
+              "value": {
+                "type": "ref",
+                "content": {
+                  "ref_node_id": "node_start",
+                  "ref_var_name": "query",
+                  "source": "system"
+                },
+                "hint": ""
+              }
+            }
+          ],
+          "reflection": false,
+          "value": {
+            "default": "",
+            "type": "nested",
+            "hint": ""
+          }
+        },
+        {
+          "name": "headers",
+          "type": "object",
+          "description": "http节点Header配置参数",
+          "required": true,
+          "source": "pre_defined",
+          "schema": [
+            {
+              "name": "key2",
+              "type": "string",
+              "description": "key2",
+              "required": true,
+              "source": "pre_defined",
+              "value": {
+                "type": "ref",
+                "content": {
+                  "ref_node_id": "node_start",
+                  "ref_var_name": "query",
+                  "source": "system"
+                },
+                "hint": ""
+              }
+            }
+          ],
+          "reflection": false,
+          "value": {
+            "default": "",
+            "type": "nested",
+            "hint": ""
+          }
+        },
+      ],
+      "outputs": [
+        {
+          "name": "body",
+          "type": "string",
+          "description": "请求响应体",
+          "required": true,
+          "source": "system",
+          "reflection": false,
+          "value": {
+            "default": "",
+            "type": "generated",
+            "hint": ""
+          }
+        },
+        {
+          "name": "status_code",
+          "type": "integer",
+          "description": "请求状态码",
+          "required": true,
+          "source": "system",
+          "reflection": false,
+          "value": {
+            "default": "",
+            "type": "generated",
+            "hint": ""
+          }
+        },
+        {
+          "name": "headers",
+          "type": "string",
+          "description": "请求响应头",
+          "required": true,
+          "source": "system",
+          "reflection": false,
+          "value": {
+            "default": "",
+            "type": "generated",
+            "hint": ""
+          }
+        },
+        {
+          "name": "error_body",
+          "type": "object",
+          "description": "错误响应体",
+          "required": true,
+          "source": "system",
+          "schema": [
+            {
+              "name": "error_message",
+              "type": "string",
+              "description": "错误消息",
+              "required": true,
+              "source": "system",
+              "value": {
+                "type": "generated",
+                "content": "",
+                "hint": ""
+              }
+            },
+            {
+              "name": "error_code",
+              "type": "string",
+              "description": "错误码",
+              "required": true,
+              "source": "system",
+              "value": {
+                "type": "generated",
+                "content": "",
+                "hint": ""
+              }
+            }
+          ],
+          "reflection": false,
+          "value": {
+            "default": "",
+            "type": "generated",
+            "hint": ""
+          }
+        }
+      ],
+      "configs": {
+        "path": "asdsafqweqdsadsadas",
+        "endpoint": "asdsafqweqdsadsadas",
+        "method": "POST",
+        "request_type": "JSON",
+        "request_body": "{\"query\": {{input_param1}}}",
+        "auth_info": {
+          "scope": "SERVICE",
+          "domain": "HEADERS",
+          "auth_keys": [
+            {
+              "target_name": "asdasd",
+              "auth_key": ""
+            }
+          ]
+        },
+        "exception_enable": true,
+        "exception_suppression": "{\"response\": \"input_param1\"}"
+      }
+    },
+    {
+      "id": "node_default_llm_chain_1",
+      "type": "LLM",
+      "name": "大模型",
+      "inputs": [
+        {
+          "name": "query",
+          "type": "String",
+          "desc": "",
+          "required": false,
+          "value": {
+            "type": "ref",
+            "content": {
+              "ref_node_id": "node_start",
+              "ref_var_name": "query"
+            }
+          },
+          "schema": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "rawOutput",
+          "type": "String",
+          "desc": "该节点原始输出",
+          "required": false,
+          "value": {
+            "type": "generated",
+            "content": null
+          },
+          "schema": null
+        }
+      ],
+      "configs": {
+        "prompt": {
+          "history": true,
+          "template": "{{query}}"
+        },
+        "llm": {
+          "config": {
+          },
+          "name": "agentBuilder"
+        }
+      }
+    },
+    {
+      "id": "node_intent_container_1750649460494",
+      "type": "IntentDetectionContainer",
+      "name": "意图动作配置",
+      "branches": [
+        {
+          "configs": {
+            "workflow_version_name": "v1",
+            "workflow_id": "test_code_interpreter_workflow_id",
+            "branch_id": "branch_0",
+            "workflow_name": "test",
+            "description": "",
+            "index": "branch_0",
+            "workflow_version_id": "test_version_id",
+            "category": "其他意图",
+            "intent_id": "eebb1b95-2b03-4ebe-9a10-28186797c014"
+          },
+          "id": "branch_0"
+        },
+        {
+          "configs": {
+            "workflow_version_name": "",
+            "workflow_id": "",
+            "branch_id": "branch_1",
+            "workflow_name": "",
+            "index": "branch_1",
+            "workflow_version_id": "",
+            "category": "其他意图",
+            "intent_id": "eebb1b95-2b03-4ebe-9a10-28186797c015"
+          },
+          "id": "branch_0"
+        }
+      ],
+      "configs": {
+        "groups": {
+          "response_content": [
+            {
+              "name": "branch_0",
+              "description": "",
+              "required": true,
+              "reflection": false,
+              "value": {
+                "type": "ref",
+                "content": {
+                  "ref_node_id": "branch_0",
+                  "ref_var_name": "response_content",
+                  "source": "system"
+                },
+                "hint": ""
+              },
+              "source": "user",
+              "type": "string"
+            }
+          ]
+        },
+        "model": "first-non-null"
+      },
+      "inputs": [
+        {
+          "cn_name": null,
+          "description": "用户输入",
+          "field_type": null,
+          "memory": null,
+          "name": "query",
+          "reflection": false,
+          "required": true,
+          "schema": null,
+          "source": "system",
+          "type": "string",
+          "validator": null,
+          "value": {
+            "content": "xxx",
+            "default": null,
+            "display": null,
+            "hint": "",
+            "type": "literal"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "cn_name": null,
+          "description": "intentDetection.response_content_description",
+          "field_type": null,
+          "memory": null,
+          "name": "response_content",
+          "reflection": false,
+          "required": true,
+          "schema": null,
+          "source": "system",
+          "type": "string",
+          "validator": null,
+          "value": {
+            "content": "",
+            "default": null,
+            "display": null,
+            "hint": "",
+            "type": "generated"
+          }
+        }
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "source": "node_start",
+      "target": "node_1727403791211"
+    },
+    {
+      "source": "node_1727403791211",
+      "target": "node_intent_container_1750649460494",
+      "branch": "xx1"
+    },
+    {
+      "source": "node_intent_container_1750649460494",
+      "target": "node_1727403791211",
+      "branch": "xx3"
+    },
+    {
+      "source": "node_1727403791211",
+      "target": "node_default_llm_chain",
+      "branch": "xx2"
+    },
+    {
+      "source": "node_default_llm_chain",
+      "target": "node_code"
+    },
+    {
+      "source": "node_code",
+      "target": "node_default_llm_chain"
+    },
+    {
+      "source": "node_default_llm_chain_1",
+      "target": "node_end"
+    }
+  ]
+}

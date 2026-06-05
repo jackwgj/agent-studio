@@ -1,0 +1,187 @@
+<div class="flex flex-col h-full">
+  <div class="flex-1 overflow-y-auto">
+    <form nz-form nzLayout="vertical" [formGroup]="myForm">
+      <nz-form-item>
+        <nz-form-label>{{ 'model_service_icon' | i18nextEager }}</nz-form-label>
+        <nz-form-control>
+          <div *ngIf="myForm.value.logo" class="event-log-container">
+            <img alt="" [src]="myForm.value.logo" class="upload-avatar" />
+            <div (click)="deleteLogo()" class="delete-box cursor-pointer">
+              <span nz-icon nzType="edit" style="font-size: 16px;"></span>
+            </div>
+          </div>
+          <nz-upload
+            *ngIf="!myForm.value.logo"
+            class="page-upload"
+            [ngClass]="{ 'is-logo-error': logoIsError }"
+            [nzShowUploadList]="false"
+            [nzBeforeUpload]="beforeUpload"
+            nzAccept=".png,.jpg"
+          >
+            <div class="flex items-center justify-center bg-[#f5f5f5] border border-dashed border-[#d9d9d9] hover:border-[#1890ff] cursor-pointer rounded transition-all" style="width: 64px; height: 64px;">
+              <span nz-icon nzType="plus" style="font-size: 20px; color: #999;"></span>
+            </div>
+          </nz-upload>
+          <div style="color: #808080; margin-top: 10px">
+            {{'image_size_100k_max_format_jpg_png'|i18nextEager}}
+          </div>
+        </nz-form-control>
+      </nz-form-item>
+
+      <nz-form-item>
+        <nz-form-label nzRequired>{{ ('model_service' | i18nextEager)+('name' | i18nextEager) }}</nz-form-label>
+        <nz-form-control>
+          <input nz-input class="w-full" type="text" formControlName="service_name" />
+          <p class="name-rule">{{ 'validation-name-tip2' | i18nextEager }}</p>
+        </nz-form-control>
+      </nz-form-item>
+
+      <nz-form-item>
+        <nz-form-label nzRequired>{{ 'model_name' | i18nextEager }}</nz-form-label>
+        <nz-form-control>
+          <div style="display: flex; align-items: center">
+            <input nz-input class="w-full" type="text" formControlName="model_name" />
+            <span nz-icon nzType="question-circle" class="ml-[4px] !text-[16px] text-gray-500 cursor-pointer" nz-tooltip [nzTooltipTitle]="'model_name_for_api_call_tip'|i18nextEager"></span>
+          </div>
+          <p class="name-rule">{{ 'validation-name-tip3' | i18nextEager }}</p>
+        </nz-form-control>
+      </nz-form-item>
+
+      <nz-form-item>
+        <nz-form-label nzRequired>{{ 'model_type' | i18nextEager }}</nz-form-label>
+        <nz-form-control>
+          <nz-radio-group formControlName="model_type" (ngModelChange)="changeModelType($event)">
+            <label nz-radio *ngFor="let item of modelTypeList" [nzValue]="item.id" style="cursor: pointer; margin-right: 16px;">
+              {{ item.label }}
+            </label>
+          </nz-radio-group>
+        </nz-form-control>
+      </nz-form-item>
+
+      <nz-form-item>
+        <nz-form-label nzRequired>{{ 'service_url' | i18nextEager }}</nz-form-label>
+        <nz-form-control>
+          <input nz-input class="w-full" type="text" formControlName="api_url" />
+          <p class="name-rule">{{ validateServiceUrlTip }}</p>
+        </nz-form-control>
+      </nz-form-item>
+
+      <nz-form-item>
+        <nz-form-label nzRequired>
+          <div class="flex items-center">
+            <span>{{ 'interface_protocol' | i18nextEager }}</span>
+          </div>
+        </nz-form-label>
+        <nz-form-control>
+          <nz-radio-group formControlName="interface_protocol" [(ngModel)]="apiProtocolModel" (ngModelChange)="changeProtocol($event)">
+            <label nz-radio *ngFor="let item of apiProtocolOptions" [nzValue]="item.value" style="cursor: pointer; margin-right: 16px;">
+              {{ item.label }}
+            </label>
+          </nz-radio-group>
+        </nz-form-control>
+      </nz-form-item>
+
+      <nz-form-item *ngIf="showSwitch">
+        <nz-form-label>{{ 'is_it_globally_visible'|i18nextEager }}</nz-form-label>
+        <nz-form-control>
+          <nz-switch formControlName="is_public" class="mr-2"></nz-switch>
+        </nz-form-control>
+      </nz-form-item>
+
+      <nz-form-item>
+        <nz-form-label nzRequired>{{ 'platform_throttling_policy_id' | i18nextEager }}</nz-form-label>
+        <nz-form-control>
+          <nz-radio-group formControlName="throttling_policy">
+            <label nz-radio *ngFor="let item of flowControlOptions" [nzValue]="item.id" style="cursor: pointer; margin-right: 16px;">
+              {{ item.label }}
+            </label>
+          </nz-radio-group>
+        </nz-form-control>
+      </nz-form-item>
+
+      <nz-form-item *ngIf="myForm.controls['model_type'].value === 'IMAGE-TO-TEXT' || myForm.controls['model_type'].value === 'LLM'">
+        <nz-form-label>{{ 'select_label'|i18nextEager }}</nz-form-label>
+        <nz-form-control>
+          <div class="flex flex-wrap gap-2">
+            <div
+              (click)="handelTag(item)"
+              *ngFor="let item of tagList"
+              class="item flex cursor-pointer select-none"
+              [style]="{
+                background: modelInfo[item.id] ? item.color : 'rgba(245, 245, 245, 1)',
+                color: modelInfo[item.id] ? item.border : 'rgba(128, 128, 128, 1)'
+              }"
+            >
+              <img alt="" class="icon" [src]="modelInfo[item.id] ? item.icon : item.disIcon" />{{ item.name }}
+            </div>
+          </div>
+        </nz-form-control>
+      </nz-form-item>
+
+      <nz-form-item *ngIf="modelInfo['is_reasoning']">
+        <nz-form-label>{{ 'is_support_close_reasoning'|i18nextEager }}</nz-form-label>
+        <nz-form-control>
+          <nz-switch formControlName="is_support_close_reasoning" class="mr-2"></nz-switch>
+        </nz-form-control>
+      </nz-form-item>
+
+      <nz-form-item>
+        <nz-form-label>{{ 'custom_label' | i18nextEager }}</nz-form-label>
+        <nz-form-control>
+          <div class="flex items-center flex-wrap gap-2">
+            <nz-tag
+              *ngFor="let item of modelTags; let i = index"
+              nzMode="closeable"
+              (nzOnClose)="onCustomTagDelete(item)"
+              style="height: 28px; line-height: 26px; font-size: 14px;"
+            >
+              {{ item.label }}
+            </nz-tag>
+
+            <input
+              *ngIf="showModelTagInput; else addTag"
+              nz-input
+              class="w-32"
+              formControlName="modelTagInputValue"
+              (keyup.enter)="onModelTagInputKeyup($event)"
+              (blur)="onModelTagInputKeyup($event)"
+            />
+            <ng-template #addTag>
+              <button
+                nz-button
+                nzType="dashed"
+                nzShape="circle"
+                [disabled]="modelTags.length >= 5"
+                (click)="onModelTagClick()"
+              >
+                <span nz-icon nzType="plus"></span>
+              </button>
+            </ng-template>
+          </div>
+        </nz-form-control>
+      </nz-form-item>
+
+      <nz-form-item>
+        <nz-form-label>{{ 'model_service_description' | i18nextEager }}</nz-form-label>
+        <nz-form-control>
+          <textarea
+            nz-input
+            maxlength="1000"
+            class="model-description w-full"
+            [placeholder]="'pls_enter' | i18nextEager"
+            formControlName="model_description"
+          ></textarea>
+        </nz-form-control>
+      </nz-form-item>
+    </form>
+  </div>
+
+  <div class="px-6 py-4 border-t border-gray-200 flex justify-end gap-2 bg-white">
+    <button nz-button nzType="default" (click)="dismiss()">
+      {{ 'cancel' | i18nextEager }}
+    </button>
+    <button nz-button nzType="primary" [nzLoading]="btnLoading" (click)="submit()">
+      {{ 'ok' | i18nextEager }}
+    </button>
+  </div>
+</div>

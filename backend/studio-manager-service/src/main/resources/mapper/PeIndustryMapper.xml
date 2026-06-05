@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.prompt.engineering.mapper.PeIndustryMapper">
+
+    <resultMap id="BaseResultMap" type="com.openjiuwen.studio.prompt.engineering.entity.Industry">
+            <id property="id" column="id" jdbcType="VARCHAR"/>
+            <result property="name" column="name" jdbcType="VARCHAR"/>
+            <result property="nameEn" column="name_en" jdbcType="VARCHAR"/>
+            <result property="description" column="description" jdbcType="VARCHAR"/>
+            <result property="createdOn" column="created_on" jdbcType="TIMESTAMP"/>
+            <result property="updatedOn" column="updated_on" jdbcType="TIMESTAMP"/>
+            <result property="workspaceId" column="workspace_id" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,name,name_en,description,
+        created_on,updated_on
+    </sql>
+
+    <insert id="insertOne">
+        insert into t_pe_industry(id, name, name_en, description, workspace_id)
+        values (#{id}, #{name}, #{nameEn}, #{description}, #{workspaceId})
+    </insert>
+
+    <update id="updateOne">
+        UPDATE t_pe_industry
+        SET name        = #{name},
+            name_en        = #{nameEn},
+            description = #{description},
+            updated_on = CURRENT_TIMESTAMP
+        WHERE id = #{id} and workspace_id = #{workspaceId}
+    </update>
+
+    <delete id="deleteById">
+        delete
+        from t_pe_industry
+        where id = #{industryId} and workspace_id = #{workspaceId}
+    </delete>
+
+    <select id="isExist" resultType="java.lang.Boolean">
+        SELECT 1
+        FROM t_pe_industry
+        WHERE name = #{body.name} and workspace_id = #{workspaceId}
+        <if test="body.id !=null and body.id !=''">
+            AND id != #{body.id}
+        </if>
+        LIMIT 1
+    </select>
+
+    <select id="queryAll" resultType="com.openjiuwen.studio.prompt.engineering.entity.Industry">
+        select * from t_pe_industry
+    </select>
+
+    <select id = "queryIndustryByLibraryType" resultType="com.openjiuwen.studio.prompt.engineering.entity.Industry">
+            select * from t_pe_industry
+            where 1=1
+            <if test="libraryType !=null">
+                AND library_type = #{libraryType}
+            </if>
+            ORDER BY created_on
+    </select>
+</mapper>

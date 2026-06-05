@@ -1,0 +1,99 @@
+<div class="kb-source-connection-modal">
+  <div class="drawer-title">{{ 'connect_external_knowledge_base' | i18nextEager }}</div>
+
+  <form [formGroup]="connectionFormGroup">
+    <div class="formfield-wrapper">
+      <div class="formfield-title">{{ 'base_info' | i18nextEager }}</div>
+      <nz-form-item>
+        <nz-form-label [nzSpan]="24" [nzLg]="24">{{ 'select_knowledge_base_type' | i18nextEager }}</nz-form-label>
+        <nz-form-control>
+          <kb-connection-type-card
+            [readonly]="Boolean(connectionId)"
+            [typeData]="typeData"
+            (valueChange)="changeType()"
+            formControlName="type"
+          >
+          </kb-connection-type-card>
+        </nz-form-control>
+      </nz-form-item>
+      <nz-form-item>
+        <nz-form-label [nzSpan]="24" [nzLg]="24">{{ 'knowledge_name' | i18nextEager }}</nz-form-label>
+        <nz-form-control>
+          <input
+            style="width: 100%"
+            type="text"
+            nz-input
+            [placeholder]="'input_placeholder' | i18nextEager"
+            formControlName="name"/>
+        </nz-form-control>
+      </nz-form-item>
+      <nz-form-item>
+        <nz-form-label [nzSpan]="24" [nzLg]="24">{{ 'description_optional' | i18nextEager }}</nz-form-label>
+        <nz-form-control>
+          <textarea
+            style="width: 100%"
+            nz-input
+            [placeholder]="'input_placeholder' | i18nextEager"
+            formControlName="description"
+            cdkTextareaAutosize
+            cdkAutosizeMinRows="3"
+            cdkAutosizeMaxRows="5"
+          ></textarea>
+        </nz-form-control>
+      </nz-form-item>
+      <nz-form-item>
+        <nz-form-label [nzSpan]="24" [nzLg]="24">{{ 'knowledge_icon' | i18nextEager }}</nz-form-label>
+        <nz-form-control>
+          <upload-image
+            [initialImage]="initialImage"
+            (imageChanged)="onImageChanged($event)">
+          </upload-image>
+        </nz-form-control>
+      </nz-form-item>
+    </div>
+  </form>
+
+  <ng-container *ngIf="connectionParamUiData.length">
+    <form class="mt-[16px]" [formGroup]="connectionParamGroup">
+      <div class="formfield-wrapper">
+        <div class="formfield-title">{{ 'connection_info' | i18nextEager }}</div>
+        <nz-form-item *ngFor="let formItem of connectionParamUiData">
+          <nz-form-label [nzSpan]="24" [nzLg]="24">
+            <div class="flex items-center gap-[4px]">
+              <span>
+                {{ formItem.name }}
+              </span>
+            </div>
+          </nz-form-label>
+          <nz-form-control>
+            <ng-container [ngSwitch]="formItem.type">
+              <input
+                style="width: 100%"
+                nz-input
+                clearable
+                *ngSwitchCase="ConnectionFormType.INPUT"
+                [formControlName]="formItem.code"
+                [placeholder]="'input_placeholder' | i18nextEager"/>
+              <nz-input-password      *ngSwitchCase="ConnectionFormType.SECRET">
+                <input
+                  nz-input
+                  style="width: 100%"
+                  [formControlName]="formItem.code"
+                  [placeholder]="'input_placeholder' | i18nextEager"
+                />
+              </nz-input-password>
+            </ng-container>
+            <div class="input-rule-tip" *ngIf="formItem.placeholder">
+              {{ formItem.placeholder }}
+            </div>
+          </nz-form-control>
+        </nz-form-item>
+      </div>
+    </form>
+    <button *ngIf="isTypeAllowed()" nz-button nzType="primary" class="mt-[16px]" (click)="testConnection()">{{ 'test_connection' | i18nextEager }}</button>
+  </ng-container>
+  <div class="drawer-footer">
+    <button nz-button nzType="default" id="cancel" (click)="dismiss()">{{ 'cancel' | i18nextEager }}</button>
+    <button class="ml-[8px]" nz-button nzType="primary" id="ok" [nzLoading]="isLoading" (click)="close()">{{ 'ok' | i18nextEager }}</button>
+  </div>
+</div>

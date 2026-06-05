@@ -1,0 +1,51 @@
+.publish-version-drawer {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.drawer-content {
+  flex: 1;
+  overflow: auto;
+  padding: 24px;
+}
+
+.drawer-footer {
+  padding: 16px 24px;
+  border-top: 1px solid #f0f0f0;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.name-wrapper,
+.desc-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0px !important;
+}
+
+.input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.name {
+  color: #191919;
+  position: relative;
+}
+
+.name-input {
+  padding-right: 40px;
+  box-sizing: border-box;
+}
+
+.char-counter {
+  position: absolute;
+  bottom: -32px;
+  right: 7px;
+  font-size: 12px;
+  color: #666;
+}

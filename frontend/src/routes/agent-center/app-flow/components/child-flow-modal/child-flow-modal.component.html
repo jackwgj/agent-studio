@@ -1,0 +1,144 @@
+<div class="flex h-full w-full flex-col" (keydown)="handleKeyDown($event)">
+  <div class="mb-[16px] block">
+    <div class="flex w-[calc(100%-38px)] items-center justify-between">
+      <div class="flex w-[calc(100%-80px)] items-center gap-[8px]">
+        <img class="model-config-icon" [src]="icon" alt="message-node" />
+
+        <form
+          #nameForm="ngForm"
+          class="flex w-[calc(100%-32px)] items-center gap-3"
+        >
+        <edit-name
+        [(name)]="nodeInfo.name"
+        (onBlurConfirm)="updateName()"
+      ></edit-name>
+          <div class="h-[12px] w-[1px] bg-desc"></div>
+
+          <div class="mt-[2px] flex-1 text-xs font-normal text-desc overflow-text">
+            {{ originalName }}
+          </div>
+        </form>
+      </div>
+
+      <div class="flex items-center gap-[16px]" *ngIf="!isFlowReadonly">
+        <div class="cursor-pointer" nz-tooltip [nzTooltipTitle]="'icon-more'| i18nextEager">
+          <div nz-dropdown [nzDropdownMenu]="actionsMenu" nzTrigger="click" class="pw-three-dots-more-modal">
+            <span nz-icon nzType="more" nzTheme="outline"></span>
+          </div>
+          <nz-dropdown-menu #actionsMenu="nzDropdownMenu">
+            <ul nz-menu>
+              <li *ngFor="let action of actions" nz-menu-item (click)="onClickAction(action)">{{ action.label }}</li>
+            </ul>
+          </nz-dropdown-menu>
+        </div>
+        <div class="h-[16px] w-[1px] bg-[#dbdbdb]"></div>
+      </div>
+    </div>
+
+    <node-description [nodeInfo]="nodeInfo" (descriptionChange)="updateView()" [originDescription]="nodeInfo.configs?.original_info?.description"></node-description>
+
+    <div class="mt-[16px] h-[1px] w-full bg-[#f0f0f0]"></div>
+  </div>
+
+  <div id="flow-llm-modal-body" class="relative h-full w-full overflow-auto flex-1 pr-[16px]">
+    <div class="h-full w-full overflow-auto">
+      <!-- 出入参配置表格 -->
+      <meta-acc-block class="mt-2 block" [title]="'input_params' | i18nextEager">
+        <ng-template #content>
+          <div class="mt-2 flex items-center gap-2">
+            <div class="w-1/4 text-label">{{ 'param_name' | i18nextEager }}</div>
+            <div class="w-3/4 text-label">{{ 'type' | i18nextEager }}</div>
+          </div>
+
+          <form #inputForm="ngForm">
+            <div
+              *ngFor="let param of inputParams; index as i"
+              class="mt-2 flex gap-2"
+            >
+              <div
+                class="flex h-[28px] w-1/4 shrink-0 items-center leading-[18px] text-label overflow-text"
+              >
+                <span class="max-w-[calc(100%-48px)]">
+                  {{ param.name }}
+                </span>
+                <span *ngIf="!param.required">{{
+                  'optional' | i18nextEager
+                }}</span>
+              </div>
+              <div class="flex w-3/4 shrink-0 gap-[8px]">
+                <div class="flex h-fit w-[calc(100%-16px)] items-center gap-2">
+                  <div class="flex w-full">
+                    <div class="w-[30%]">
+                      <nz-select
+                        class="combo-select-left"
+                        style="width: 100%"
+                        [nzOptions]="$any(param.options)"
+                        [name]="'inputFormType' + i"
+                        [(ngModel)]="param.value.type"
+                        nzLabelKey="value"
+                        (ngModelChange)="onTypeChange(param)"
+                      ></nz-select>
+                    </div>
+
+                    <div class="w-[70%]">
+                      <input
+                        class="combo-select-right"
+                        *ngIf="
+                          param.value.type === 'literal' &&
+                          !isArrOrObj(param.type)
+                        "
+                        style="width: 100%"
+                        type="text"
+                        [name]="'inputFormValue' + i"
+                        nz-input
+                        [placeholder]="'input_placeholder' | i18nextEager"
+                        [(ngModel)]="param.value.content"
+                        [title]="param.value.content"
+                        (ngModelChange)="changeUpdateTime()"
+                        (blur)="inputOnSave()"
+                        nonEmptyValidator
+                        [class.input-error]="inputForm?.controls['inputFormValue' + i]?.invalid && (inputForm?.controls['inputFormValue' + i]?.dirty || inputForm?.controls['inputFormValue' + i]?.touched)"
+                      />
+                      <div *ngIf="inputForm?.controls['inputFormValue' + i]?.invalid && (inputForm?.controls['inputFormValue' + i]?.dirty || inputForm?.controls['inputFormValue' + i]?.touched)" class="error-tip">
+                        {{inputForm?.controls['inputFormValue' + i]?.errors?.serviceName?.tiErrorMessage}}
+                      </div>
+
+                      <typed-json-input
+                        *ngIf="isArrOrObj(param.type)"
+                        [param]="param"
+                        (changeValue)="onSave()"
+                        [isValidated]="isValidated"
+                      ></typed-json-input>
+
+                      <input-tree-select
+                        *ngIf="param.value.type === 'ref'"
+                        style="width: 100%"
+                        [(ngModel)]="param.value.content"
+                        [options]="param.refs"
+                        [name]="'inputFormValue' + i"
+                        refSelectedRequire
+                        [placeholder]="'select_placeholder' | i18nextEager"
+                        (select)="treeSelect()"
+                        [specifyType]="getDifferentType(param)"
+                      ></input-tree-select>
+                      <div class="w-full" #valueWrapper></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </form>
+        </ng-template>
+      </meta-acc-block>
+
+      <div class="my-[16px] h-[1px] w-full bg-[#f0f0f0]"></div>
+
+      <meta-acc-block class="mt-4 block" [title]="'output_params' | i18nextEager">
+        <ng-template #content>
+          <readonly-params-tree [params]="nodeInfo.outputs" />
+        </ng-template>
+      </meta-acc-block>
+      <exception-handling #exceptionHandling [nodeInfo]="nodeInfo" (changeValue)="onSave()"></exception-handling>
+    </div>
+  </div>
+</div>

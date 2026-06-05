@@ -1,0 +1,145 @@
+#mcp-card {
+  padding: 24px;
+  background-color: #fff;
+  border: 1px solid rgba(230, 230, 230, 1);
+  border-radius: 16px;
+  height: 196px;
+  box-sizing: border-box;
+
+  &:hover {
+    box-shadow: 0px 4px 16px 0px rgba(0, 0, 0, 0.08);
+    .bottom-area-have-menu {
+      display: none;
+    }
+    .bottom-area-menu {
+      display: inline-block;
+    }
+  }
+
+  .icon-and-name {
+    display: flex;
+    gap: 0 16px;
+    align-items: center;
+
+    .name {
+      font-size: 16px;
+      line-height: 24px;
+      color: #191919;
+      font-weight: 600;
+      font-family: PingFang SC;
+    }
+    .mcp-name-line{
+      line-height: 48px;
+    }
+
+    img {
+      width: 48px;
+      height: 48px;
+      border-radius: 0.5rem
+    }
+  }
+
+  .card-description {
+    margin: 16px 0 16px 0;;
+    height: 44px;
+    color: rgba(25, 25, 25, 0.6);
+    line-height: 22px;
+  }
+
+  .install-text {
+    color: black;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .install-hovered {
+    color: #1677ff;
+  }
+}
+
+.bottom-area {
+  font-size: 12px;
+  color: #808080;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  line-height: 24px;
+
+  .read-num {
+    display: flex;
+    padding-right: 8px;
+    margin-right: 8px;
+  }
+
+  img {
+    width: 16px;
+    height: 22px;
+    margin-left: 6px;
+    transform: translateY(-2px);
+  }
+}
+
+::ng-deep .subscribe-guide-modal-class {
+  width: 800px !important;
+}
+
+#subscribe-guide-modal {
+  .tip-content {
+    color: rgba(89, 89, 89, 1);
+  }
+
+  .use-steps {
+    padding: 24px 0;
+    display: flex;
+    justify-content: space-between;
+
+    .step-item {
+      width: 200px;
+
+      img {
+        height: 120px;
+        object-fit: contain;
+        margin-bottom: 15px;
+      }
+
+      .step-title {
+        font-size: 18px;
+        font-weight: 600;
+        margin-top: 24px;
+        text-align: center;
+      }
+
+      .step-desc {
+        font-size: 14px;
+        color: rgba(128, 128, 128, 1);
+        text-align: center;
+      }
+
+    }
+
+    .arrow {
+      height: 120px;
+      margin: 0 8px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+  }
+}
+
+.cursor-pointer{
+  cursor: pointer;
+}
+.cursor-not-allowed{
+  cursor: not-allowed;
+}
+
+.bottom-area-menu {
+  font-size: 14px;
+  font-size: PingFang SC;
+  gap: 24px;
+  display: none;
+}

@@ -1,0 +1,214 @@
+{
+  "id": "5303a906-742d-4c55-b774-f30ade67d357",
+  "name": "jjw_llm",
+  "description": "jjw_llm",
+  "nodes": [
+    {
+      "id": "node_start",
+      "type": "Start",
+      "name": "开始",
+      "outputs": [
+        {
+          "name": "query",
+          "type": "string",
+          "description": "用户输入",
+          "required": true,
+          "source": "system",
+          "value": {
+            "type": "literal",
+            "content": "",
+            "hint": "用户输入"
+          }
+        }
+      ]
+    },
+    {
+      "id": "node_loop111111",
+      "type": "Loop",
+      "name": "循环",
+      "inputs": [
+        {
+          "name": "arr_loop_var",
+          "description": "",
+          "required": true,
+          "value": {
+            "type": "ref",
+            "content": {
+              "ref_node_id": "node_start",
+              "ref_var_name": "array_test",
+              "source": "user"
+            },
+            "hint": ""
+          },
+          "source": "pre_defined",
+          "type": "array",
+          "schema": {
+            "name": "",
+            "type": "string"
+          }
+        },
+        {
+          "name": "intermediate_loop_var",
+          "type": "object",
+          "description": "循环之间共享参数",
+          "required": true,
+          "source": "pre_defined",
+          "value": {
+            "type": "nested",
+            "hint": "",
+            "default": ""
+          },
+          "schema": [
+            {
+              "name": "cc",
+              "description": "",
+              "required": true,
+              "value": {
+                "type": "ref",
+                "content": {
+                  "ref_node_id": "node_start",
+                  "ref_var_name": "query",
+                  "source": "system"
+                },
+                "hint": ""
+              },
+              "source": "pre_defined",
+              "type": "string"
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "result",
+          "description": "",
+          "required": true,
+          "reflection": false,
+          "value": {
+            "type": "ref",
+            "content": {
+              "ref_node_id": "node_1743492438275",
+              "ref_var_name": "key1",
+              "source": "user"
+            },
+            "hint": ""
+          },
+          "source": "user",
+          "type": "array",
+          "schema": {
+            "type": "string",
+            "name": ""
+          }
+        }
+      ],
+      "configs": {
+        "loop_type": "arrayLoop",
+        "loop_body": [
+          "node_1743492438275"
+        ],
+        "break_condition": {
+          "logic": "and",
+          "conditions": [
+            {
+              "operator": "longer_than",
+              "left": {
+                "name": "",
+                "description": "",
+                "required": false,
+                "value": {
+                  "type": "ref",
+                  "content": {
+                    "ref_node_id": "node_1743492391850",
+                    "ref_var_name": "index",
+                    "source": "pre_defined"
+                  },
+                  "hint": ""
+                },
+                "source": "user",
+                "type": "integer"
+              },
+              "right": {
+                "name": "",
+                "description": "",
+                "required": false,
+                "value": {
+                  "type": "literal",
+                  "content": 3,
+                  "hint": ""
+                },
+                "source": "user",
+                "type": "integer"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "node_end",
+      "type": "End",
+      "name": "结束",
+      "inputs": [
+        {
+          "name": "result",
+          "type": "string",
+          "description": "",
+          "required": true,
+          "source": "user",
+          "reflection": false,
+          "value": {
+            "type": "ref",
+            "content": {
+              "ref_node_id": "node_1740108902156",
+              "ref_var_name": "name",
+              "source": "user"
+            },
+            "hint": ""
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "response_content",
+          "type": "string",
+          "description": "最终输出",
+          "required": true,
+          "source": "system",
+          "reflection": false,
+          "value": {
+            "type": "generated"
+          }
+        }
+      ],
+      "configs": {
+        "is_stream_out": true,
+        "response_template": "{{result}}",
+        "response_mode": "directResponse"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "source": "node_loop111111",
+      "target": "node_end"
+    },
+    {
+      "source": "node_start",
+      "target": "node_loop111111"
+    }
+  ],
+  "layouts": {
+    "node_start": {
+      "x": -216,
+      "y": 234
+    },
+    "node_loop111111": {
+      "x": 342,
+      "y": 144
+    },
+    "node_end": {
+      "x": 864,
+      "y": 252
+    }
+  }
+}

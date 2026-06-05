@@ -1,0 +1,46 @@
+<div class="file-editor" #container>
+  <div class="file-editor" #container>
+    <div class="file-tree-box" [style.--sidebar-width.px]="fileTreeWidth">
+      <div class="header">
+        <div class="header-inner">
+          <span nz-icon [nzType]="'folder'" nzTheme="outline"></span>
+          <div class="ml-[8px]">{{ 'skill.detail.editor.file' | i18n }}</div>
+        </div>
+      </div>
+      <div class="file-tree">
+        <custom-file-tree [treeData]="innerData" (onNodeSelect)="onNodeSelect($event)"></custom-file-tree>
+      </div>
+    </div>
+    <div class="resizer" (mousedown)="startResizing($event)"></div>
+    <div class="editor-box">
+      <div class="header">
+        <div class="header-inner">
+          <div class="flex-center">
+            <custom-editor-icon [name]="selectedFileData?.fileIcon"></custom-editor-icon>
+            <div class="file-label ml-[4px]">{{ selectedFileData?.label }}</div>
+          </div>
+          <nz-tabs class="editor-tab" (nzSelectedIndexChange)="onTabSelected($event)">
+            <nz-tab *ngFor="let tab of tabs" [nzDisabled]="tab.disabled" [nzTitle]="tab.titleTemplate">
+              <ng-template #tab.titleTemplate>
+                <custom-editor-icon [name]="tab.iconName"></custom-editor-icon>
+              </ng-template>
+            </nz-tab>
+          </nz-tabs>
+        </div>
+      </div>
+      @if (selectedTab === skillEditorTab.MD && markdownContent) {
+        <div class="md-box markdown-body" (click)="handlePreviewClick($event)" #scrollContainer>
+          <markdown [data]="markdownContent"></markdown>
+        </div>
+      }
+      @if (selectedTab === skillEditorTab.CODE) {
+        <div class="code-box">
+          <ngx-monaco-editor [options]="editorOptions" [(ngModel)]="code"> </ngx-monaco-editor>
+        </div>
+      }
+      @if (!selectedTab) {
+        <div class="editor-tip">{{ editorTip }}</div>
+      }
+    </div>
+  </div>
+</div>

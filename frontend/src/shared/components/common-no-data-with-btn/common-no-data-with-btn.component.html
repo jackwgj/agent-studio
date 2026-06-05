@@ -1,0 +1,13 @@
+<div class="m-no-data">
+  <div class="content">
+    <span class="noData"></span>
+    <span
+      class="m-[8px] text-[#191919] text-base text-[16px] font-bold"
+      style="margin: 8px"
+      >{{ noDataStr }}  <span class="text-[#1476ff]" *ngIf = "createStr" (click)="onCreate()">{{ createStr }}</span></span>
+
+    <button style="margin-top: 13px" *ngIf="noDataBtnStr" nz-button (click)="onCreate()">
+      {{ noDataBtnStr }}
+    </button>
+  </div>
+</div>

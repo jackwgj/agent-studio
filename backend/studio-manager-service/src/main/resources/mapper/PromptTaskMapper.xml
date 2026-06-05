@@ -1,0 +1,335 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) Huawei Technologies Co., Ltd. 2024-2024. All rights reserved.
+  -->
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.prompt.engineering.mapper.v2.PromptTaskMapper">
+    <resultMap id="BaseResultMap" type="com.openjiuwen.studio.prompt.engineering.entity.v2.PromptTaskEntity">
+        <result column="id" jdbcType="VARCHAR" property="id"/>
+        <result column="jiuwen_task_id" jdbcType="VARCHAR" property="jiuwenTaskId"/>
+        <result column="name" jdbcType="VARCHAR" property="name"/>
+        <result column="desc" jdbcType="VARCHAR" property="desc"/>
+        <result column="prompt_id" jdbcType="VARCHAR" property="promptId"/>
+        <result column="pt_type" jdbcType="VARCHAR" property="ptType"/>
+        <result column="pt_text" jdbcType="VARCHAR" property="ptText"/>
+        <result column="pt_vars" jdbcType="VARCHAR" property="ptVars"/>
+        <result column="exec_time" jdbcType="TIMESTAMP" property="execTime"/>
+        <result column="pt_model" jdbcType="VARCHAR" property="ptModel"/>
+        <result column="exec_object" jdbcType="VARCHAR" property="execObject"/>
+        <result column="max_iter_num" jdbcType="INTEGER" property="maxIterNum"/>
+        <result column="target_acc" jdbcType="VARCHAR" property="targetAcc"/>
+        <result column="show_case_num" jdbcType="INTEGER" property="showCaseNum"/>
+        <result column="target_type" jdbcType="VARCHAR" property="targetType"/>
+        <result column="score_standard" jdbcType="VARCHAR" property="scoreStandard"/>
+        <result column="back_knowledge" jdbcType="VARCHAR" property="backKnowledge"/>
+        <result column="progress_rate" jdbcType="DOUBLE" property="progressRate"/>
+        <result column="status" jdbcType="TINYINT" property="status"/>
+        <result column="message" jdbcType="VARCHAR" property="message"/>
+        <result column="project_id" jdbcType="VARCHAR" property="projectId"/>
+        <result column="workspace_id" jdbcType="VARCHAR" property="workspaceId"/>
+        <result column="created_time" jdbcType="TIMESTAMP" property="createdTime"/>
+        <result column="creator" jdbcType="VARCHAR" property="creator"/>
+        <result column="creator_id" jdbcType="VARCHAR" property="creatorId"/>
+        <result column="updated_time" jdbcType="TIMESTAMP" property="updatedTime"/>
+        <result column="domain_id" jdbcType="VARCHAR" property="domainId"/>
+        <result column="algorithm" jdbcType="VARCHAR" property="algorithm"/>
+    </resultMap>
+    <sql id="Base_Column_List">
+        id, jiuwen_task_id, `name`, `desc`, prompt_id, pt_type, pt_text, pt_vars, exec_time,pt_model, exec_object,
+        max_iter_num, target_acc, show_case_num, target_type,score_standard, back_knowledge, progress_rate, status,
+        message, project_id, workspace_id, creator, created_time, creator_id, updated_time, domain_id, algorithm
+    </sql>
+
+    <!-- 查询是否有该优化任务 -->
+    <select id="selectByTaskNameNotInDraft" parameterType="map"
+            resultType="com.openjiuwen.studio.prompt.engineering.entity.v2.PromptTaskEntity">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM t_pe_op_task
+        WHERE name = #{name}
+        AND project_id = #{projectId, jdbcType=VARCHAR}
+        AND workspace_id = #{workspaceId, jdbcType=VARCHAR}
+        AND status != 0 AND status != 4
+    </select>
+
+    <!-- 查询是否有该优化任务 -->
+    <select id="selectByTaskName" parameterType="map"
+            resultType="com.openjiuwen.studio.prompt.engineering.entity.v2.PromptTaskEntity">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM t_pe_op_task
+        WHERE name = #{name}
+        AND project_id = #{projectId, jdbcType=VARCHAR}
+        AND workspace_id = #{workspaceId, jdbcType=VARCHAR}
+    </select>
+
+    <!-- 查询所有优化任务名称 -->
+    <select id="selectAllOptimizeTaskNames" resultType="java.lang.String">
+        SELECT name
+        FROM t_pe_op_task
+        WHERE project_id = #{projectId}
+          AND workspace_id = #{workspaceId}
+    </select>
+
+    <!-- 查询除了本数据以外所有的优化任务名称 -->
+    <select id="selectAllOptimizeTaskNamesExcludeID" resultType="java.lang.String">
+        SELECT name
+        FROM t_pe_op_task
+        WHERE project_id = #{projectId}
+          AND workspace_id = #{workspaceId}
+          AND id != #{id}
+    </select>
+
+    <insert id="insert"
+            parameterType="com.openjiuwen.studio.prompt.engineering.entity.v2.PromptTaskEntity">
+        INSERT INTO t_pe_op_task (id, jiuwen_task_id, name, `desc`, prompt_id, pt_type, pt_text, pt_vars, exec_time, pt_model,
+                                 exec_object, max_iter_num, target_acc, show_case_num, target_type, score_standard, back_knowledge, progress_rate,
+                                 status, message, project_id, workspace_id, created_time, creator, creator_id, updated_time, domain_id, algorithm)
+        VALUES (#{id, jdbcType=VARCHAR},
+                #{jiuwenTaskId, jdbcType=VARCHAR},
+                #{name, jdbcType=VARCHAR},
+                #{desc, jdbcType=VARCHAR},
+                #{promptId, jdbcType=VARCHAR},
+                #{ptType, jdbcType=VARCHAR},
+                #{ptText, jdbcType=VARCHAR},
+                #{ptVars, jdbcType=VARCHAR},
+                #{execTime, jdbcType=TIMESTAMP},
+                #{ptModel, jdbcType=VARCHAR},
+                #{execObject, jdbcType=VARCHAR},
+                #{maxIterNum, jdbcType=INTEGER},
+                #{targetAcc, jdbcType=VARCHAR},
+                #{showCaseNum, jdbcType=INTEGER},
+                #{targetType, jdbcType=VARCHAR},
+                #{scoreStandard, jdbcType=VARCHAR},
+                #{backKnowledge, jdbcType=VARCHAR},
+                #{progressRate, jdbcType=DOUBLE},
+                #{status, jdbcType=TINYINT},
+                #{message, jdbcType=VARCHAR},
+                #{projectId, jdbcType=VARCHAR},
+                #{workspaceId, jdbcType=VARCHAR},
+                #{createdTime, jdbcType=TIMESTAMP},
+                #{creator, jdbcType=VARCHAR},
+                #{creatorId, jdbcType=VARCHAR},
+                #{updatedTime, jdbcType=TIMESTAMP},
+                #{domainId,jdbcType=VARCHAR},
+                #{algorithm,jdbcType=VARCHAR})
+    </insert>
+
+
+    <delete id="deleteByPrimaryKey">
+        DELETE
+        FROM t_pe_op_task
+        WHERE id = #{id,jdbcType=VARCHAR}
+          AND project_id = #{projectId, jdbcType=VARCHAR}
+          AND workspace_id = #{workspaceId, jdbcType=VARCHAR}
+    </delete>
+
+
+    <insert id="copyToHistory">
+        INSERT INTO t_history_op_task(<include refid="Base_Column_List"/>)
+        SELECT <include refid="Base_Column_List"/>
+        FROM t_pe_op_task
+        WHERE id = #{taskId}
+        AND project_id = #{projectId}
+        AND workspace_id = #{workspaceId};
+    </insert>
+
+
+    <select id="findTasksToBeDeleted" resultType="java.lang.String">
+        SELECT id
+        FROM t_history_op_task
+        WHERE updated_time &lt;= #{twoYearsAgo}
+    </select>
+
+
+    <delete id="deleteTasksPermanently">
+        DELETE FROM t_history_op_task
+        WHERE id IN
+        <foreach collection="taskIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+
+    <update id="updateByPrimaryKey"
+            parameterType="com.openjiuwen.studio.prompt.engineering.entity.v2.PromptTaskEntity">
+        UPDATE t_pe_op_task
+        <set>
+            <if test="promptTaskEntity.jiuwenTaskId != null">
+                jiuwen_task_id = #{promptTaskEntity.jiuwenTaskId, jdbcType=VARCHAR},
+            </if>
+            <if test="promptTaskEntity.name != null">
+                name = #{promptTaskEntity.name, jdbcType=VARCHAR},
+            </if>
+            <if test="promptTaskEntity.desc != null">
+                `desc` = #{promptTaskEntity.desc, jdbcType=VARCHAR},
+            </if>
+            <if test="promptTaskEntity.ptType != null">
+                pt_type = #{promptTaskEntity.ptType, jdbcType=VARCHAR},
+            </if>
+            <if test="promptTaskEntity.ptText != null">
+                pt_text = #{promptTaskEntity.ptText, jdbcType=VARCHAR},
+            </if>
+            <if test="promptTaskEntity.ptVars != null">
+                pt_vars = #{promptTaskEntity.ptVars, jdbcType=VARCHAR},
+            </if>
+            <if test="promptTaskEntity.execTime != null">
+                exec_time = #{promptTaskEntity.execTime, jdbcType=TIMESTAMP},
+            </if>
+            <if test="promptTaskEntity.ptModel != null">
+                pt_model = #{promptTaskEntity.ptModel, jdbcType=VARCHAR},
+            </if>
+            <if test="promptTaskEntity.execObject != null">
+                exec_object = #{promptTaskEntity.execObject, jdbcType=VARCHAR},
+            </if>
+            <if test="promptTaskEntity.maxIterNum != null">
+                max_iter_num = #{promptTaskEntity.maxIterNum, jdbcType=INTEGER},
+            </if>
+            <if test="promptTaskEntity.targetAcc != null">
+                target_acc = #{promptTaskEntity.targetAcc, jdbcType=VARCHAR},
+            </if>
+            <if test="promptTaskEntity.showCaseNum != null">
+                show_case_num = #{promptTaskEntity.showCaseNum, jdbcType=INTEGER},
+            </if>
+            <if test="promptTaskEntity.targetType != null">
+                target_type = #{promptTaskEntity.targetType, jdbcType=VARCHAR},
+            </if>
+            <if test="promptTaskEntity.scoreStandard != null">
+                score_standard = #{promptTaskEntity.scoreStandard, jdbcType=VARCHAR},
+            </if>
+            <if test="promptTaskEntity.backKnowledge != null">
+                back_knowledge = #{promptTaskEntity.backKnowledge, jdbcType=VARCHAR},
+            </if>
+            <!-- 仅当 updatedTime 不为 null 时更新（通常更新时强制刷新，可根据业务调整） -->
+            <if test="promptTaskEntity.updatedTime != null">
+                updated_time = #{promptTaskEntity.updatedTime, jdbcType=TIMESTAMP},
+            </if>
+            <if test="promptTaskEntity.domainId != null">
+                domain_id = #{promptTaskEntity.domainId, jdbcType=VARCHAR},
+            </if>
+            <if test="promptTaskEntity.algorithm != null">
+                algorithm = #{promptTaskEntity.algorithm, jdbcType=VARCHAR}
+            </if>
+        </set>
+        <!-- 主键条件：必须指定，避免全表更新 -->
+        WHERE id = #{promptTaskEntity.id, jdbcType=VARCHAR}
+        AND project_id = #{projectId, jdbcType=VARCHAR}
+        AND workspace_id = #{workspaceId, jdbcType=VARCHAR}
+    </update>
+
+
+    <select id="selectByPrimaryKey" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM t_pe_op_task
+        WHERE id = #{id,jdbcType=VARCHAR}
+        AND project_id = #{projectId, jdbcType=VARCHAR}
+        AND workspace_id = #{workspaceId, jdbcType=VARCHAR}
+    </select>
+
+    <select id="queryTaskIdsByCondition"
+            resultType="com.openjiuwen.studio.prompt.engineering.entity.v2.PromptTaskEntity">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM t_pe_op_task
+        where project_id = #{projectId, jdbcType=VARCHAR} AND workspace_id = #{listPromptTasksQo.workspaceId, jdbcType=VARCHAR}
+        <if test="status != -1">
+            AND status = #{status, jdbcType=TINYINT}
+        </if>
+        <if test="listPromptTasksQo.name != null and listPromptTasksQo.name != ''">
+            AND name LIKE CONCAT('%', #{listPromptTasksQo.name, jdbcType=VARCHAR}, '%')
+        </if>
+        <if test="listPromptTasksQo.type != null and listPromptTasksQo.type != ''">
+            AND pt_type = #{listPromptTasksQo.type, jdbcType=VARCHAR}
+        </if>
+        <!-- 可选：按创建时间倒序，最新的任务排在前面 -->
+        ORDER BY updated_time DESC
+    </select>
+
+    <select id="selectTasksByPrimaryKey" resultType="com.openjiuwen.studio.prompt.engineering.entity.v2.PromptTaskEntity">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM t_pe_op_task
+        Where project_id = #{projectId, jdbcType=VARCHAR} AND workspace_id = #{workspaceId, jdbcType=VARCHAR}
+        <!-- 可选：按更新时间倒序，最新的任务排在前面 -->
+        ORDER BY updated_time DESC
+    </select>
+
+    <update id="updateStatusByPrimaryKey">
+        UPDATE t_pe_op_task
+        set status       = #{status, jdbcType=TINYINT},
+            updated_time = CURRENT_TIMESTAMP
+        WHERE id = #{id, jdbcType=VARCHAR}
+          AND project_id = #{projectId, jdbcType=VARCHAR}
+          AND workspace_id = #{workspaceId, jdbcType=VARCHAR}
+    </update>
+
+    <update id="updateJobIdStatusByPrimaryKey">
+        UPDATE t_pe_op_task
+        set jiuwen_task_id = #{jobId,jdbcType=VARCHAR},
+            status         = #{status, jdbcType=TINYINT},
+            updated_time = CURRENT_TIMESTAMP
+        WHERE id = #{id, jdbcType=VARCHAR}
+          AND project_id = #{projectId, jdbcType=VARCHAR}
+          AND workspace_id = #{workspaceId, jdbcType=VARCHAR}
+    </update>
+
+    <update id="updateProgressRateByPrimaryKey">
+        UPDATE t_pe_op_task
+        set progress_rate = #{progressRate,jdbcType=DOUBLE},
+            updated_time = CURRENT_TIMESTAMP
+        WHERE id = #{id, jdbcType=VARCHAR}
+          AND project_id = #{projectId, jdbcType=VARCHAR}
+          AND workspace_id = #{workspaceId, jdbcType=VARCHAR}
+    </update>
+
+    <update id="updateMessageByPrimaryKey">
+        UPDATE t_pe_op_task
+        set message = #{errorMsg,jdbcType=DOUBLE},
+            updated_time = CURRENT_TIMESTAMP
+        WHERE id = #{id, jdbcType=VARCHAR}
+          AND project_id = #{projectId, jdbcType=VARCHAR}
+          AND workspace_id = #{workspaceId, jdbcType=VARCHAR}
+    </update>
+
+    <select id="selectByIds" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM t_pe_op_task
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <update id="clearMessageById">
+        UPDATE t_pe_op_task
+        set message = NULL,
+            updated_time = CURRENT_TIMESTAMP
+        WHERE id = #{id, jdbcType=VARCHAR}
+          AND project_id = #{projectId, jdbcType=VARCHAR}
+          AND workspace_id = #{workspaceId, jdbcType=VARCHAR}
+    </update>
+
+    <select id="queryProjectIdByModelId" resultType="java.lang.String">
+        select
+            PROJECT_ID
+        from t_model_service
+        where ID = #{id}
+    </select>
+
+    <select id="queryPublishStatusByModelId" resultType="java.lang.String">
+        select
+            PUBLISH_STATUS
+        from t_model_service
+        where ID = #{id}
+    </select>
+
+    <select id="queryModelTypeByModelId" resultType="java.lang.String">
+        select
+            MODEL_DEPLOY_TYPE
+        from t_model_service
+        where ID = #{id}
+    </select>
+</mapper>

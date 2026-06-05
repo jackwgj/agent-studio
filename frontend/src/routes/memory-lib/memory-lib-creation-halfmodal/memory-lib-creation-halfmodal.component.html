@@ -1,0 +1,91 @@
+<!-- 头部结构 -->
+<div class="nz-modal-custom-header">
+  {{ modalTitle() }}
+</div>
+
+<div class="memory-lib-creation">
+  <nz-spin [nzSpinning]="loading()">
+    <div class="memory-lib-creation-content">
+      <!-- 基础信息区块 -->
+      <section class="creation-section">
+        <h3 class="section-title">{{ 'memory.create.basic.title' | i18nextEager }}</h3>
+
+        <form nz-form nzLayout="vertical" [formGroup]="basicInfoFormGroup">
+          <nz-form-item>
+            <nz-form-label>{{ 'memory.detail.icon' | i18nextEager }}</nz-form-label>
+            <nz-form-control>
+              <upload-image [initialImage]="defaultIcon" (imageChanged)="onImageChanged($event)"></upload-image>
+            </nz-form-control>
+          </nz-form-item>
+
+          <nz-form-item>
+            <nz-form-label nzRequired>{{ 'memory.detail.name' | i18nextEager }}</nz-form-label>
+            <nz-form-control [nzErrorTip]="nameErrorTpl">
+              <input nz-input formControlName="name" [placeholder]="'memory.detail.name' | i18nextEager" />
+              <ng-template #nameErrorTpl let-control>
+                @if (control.hasError('required')) { {{ 'common.validate.required' | i18nextEager }} }
+                @if (control.hasError('name')) { {{ control.getError('name').tiErrorMessage }} }
+              </ng-template>
+              <div class="tip-text mt-1">
+                {{ 'memory.create.tip.nameRegxWithNumber' | i18nextEager: { currentNameLength } }}
+              </div>
+            </nz-form-control>
+          </nz-form-item>
+
+          <nz-form-item>
+            <nz-form-label>{{ 'memory.create.descriptionOptional' | i18nextEager }}</nz-form-label>
+            <nz-form-control nzHasFeedback>
+              <textarea
+                nz-input
+                formControlName="description"
+                [nzAutosize]="{ minRows: 3, maxRows: 6 }"
+                [placeholder]="'memory.create.descriptionPlaceholder' | i18nextEager"
+                maxlength="1000"
+              ></textarea>
+            </nz-form-control>
+          </nz-form-item>
+        </form>
+      </section>
+
+      <!-- 策略配置区块 -->
+      <section class="creation-section">
+        <div class="section-header">
+          <h3 class="section-title">
+            {{ 'memory.create.title.lmtStrategy' | i18nextEager }}
+            <span
+              nz-icon
+              nzType="question-circle"
+              nzTheme="outline"
+              nz-tooltip
+            ></span>
+          </h3>
+          <p class="section-description">{{ 'memory.create.title.lmtStrategyDescription' | i18nextEager }}</p>
+        </div>
+
+        <form [formGroup]="ltmRetrievalStrategyFormGroup">
+          <nz-form-item>
+            <nz-form-control [nzErrorTip]="strategyErrorTpl">
+              <ltm-retrieval-strategy formControlName="ltmRetrievalStrategy"></ltm-retrieval-strategy>
+              <ng-template #strategyErrorTpl let-control>
+                {{ control.getError('isStrategyRequired')?.errorMsg }}
+              </ng-template>
+            </nz-form-control>
+          </nz-form-item>
+        </form>
+      </section>
+    </div>
+  </nz-spin>
+</div>
+
+<!-- 页脚结构 -->
+<div class="nz-modal-custom-footer">
+  <button nz-button nzType="default" (click)="dismiss()">{{ 'cancel' | i18nextEager }}</button>
+  <button
+    nz-button
+    nzType="primary"
+    class="ml-[8px]"
+    (click)="close()"
+  >
+    {{ 'ok' | i18nextEager }}
+  </button>
+</div>

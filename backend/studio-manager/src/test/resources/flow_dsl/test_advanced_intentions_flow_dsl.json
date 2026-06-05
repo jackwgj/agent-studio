@@ -1,0 +1,692 @@
+{
+  "id" : "9c3d51f4-d5e7-41ca-a607-da0a4e9a61ad",
+  "name" : "lg_test_619",
+  "description" : "lg_test_619",
+  "nodes" : [{
+    "id" : "node_start",
+    "name" : "开始",
+    "type" : "Start",
+    "outputs" : [{
+      "name" : "query",
+      "type" : "string",
+      "description" : "用户输入",
+      "required" : true,
+      "source" : "system",
+      "reflection" : false,
+      "value" : {
+        "type" : "literal",
+        "content" : "",
+        "hint" : "用户输入"
+      }
+    }, {
+      "name" : "sys",
+      "type" : "object",
+      "description" : "系统变量",
+      "required" : true,
+      "source" : "system",
+      "schema" : [{
+        "name" : "conversation_history",
+        "type" : "array",
+        "description" : "会话历史消息",
+        "required" : true,
+        "source" : "system",
+        "value" : {
+          "content" : [],
+          "hint" : "会话历史消息",
+          "type" : "literal"
+        },
+        "schema" : {
+          "name" : "",
+          "type" : "object",
+          "schema" : [{
+            "name" : "role",
+            "type" : "string",
+            "description" : "角色",
+            "required" : true,
+            "source" : "system",
+            "value" : {
+              "type" : "literal",
+              "content" : "",
+              "hint" : "角色"
+            }
+          }, {
+            "name" : "content",
+            "type" : "string",
+            "description" : "消息内容",
+            "required" : true,
+            "source" : "system",
+            "value" : {
+              "type" : "literal",
+              "content" : "",
+              "hint" : "消息内容"
+            }
+          }
+          ]
+        }
+      }, {
+        "name" : "current_time",
+        "type" : "string",
+        "required" : true,
+        "description" : "当前系统时间",
+        "field_type" : "input",
+        "source" : "system",
+        "value" : {
+          "type" : "literal",
+          "content" : "",
+          "hint" : "当前系统时间"
+        }
+      }, {
+        "name" : "user_id",
+        "type" : "string",
+        "required" : true,
+        "description" : "使用该工作流的唯一标识",
+        "field_type" : "input",
+        "source" : "system",
+        "value" : {
+          "type" : "literal",
+          "content" : "",
+          "hint" : "用户唯一标识"
+        }
+      }, {
+        "name" : "conversation_id",
+        "type" : "string",
+        "required" : true,
+        "description" : "工作流对话id",
+        "field_type" : "input",
+        "source" : "system",
+        "value" : {
+          "type" : "literal",
+          "content" : "",
+          "hint" : "工作流对话id"
+        }
+      }
+      ],
+      "field_type" : "object",
+      "reflection" : false,
+      "value" : {
+        "type" : "literal",
+        "content" : {},
+        "hint" : "系统变量"
+      }
+    }
+    ]
+  }, {
+    "id" : "node_intent_container_1750316866737",
+    "name" : "意图动作配置",
+    "type" : "IntentDetectionContainer",
+    "inputs" : [{
+      "name" : "query",
+      "type" : "string",
+      "description" : "用户输入",
+      "required" : true,
+      "source" : "system",
+      "field_type" : "input",
+      "reflection" : false,
+      "value" : {
+        "type" : "ref",
+        "content" : {
+          "ref_node_id" : "node_start",
+          "ref_var_name" : "query",
+          "source" : "system"
+        },
+        "hint" : ""
+      }
+    }
+    ],
+    "outputs" : [{
+      "name" : "response_content",
+      "type" : "string",
+      "description" : "intentDetection.response_content_description",
+      "required" : true,
+      "source" : "system",
+      "reflection" : false,
+      "value" : {
+        "type" : "generated",
+        "content" : "",
+        "hint" : ""
+      }
+    }
+    ],
+    "configs" : {
+      "groups" : {
+        "response_content" : [{
+          "name" : "branch_0",
+          "description" : "",
+          "required" : true,
+          "reflection" : false,
+          "value" : {
+            "type" : "ref",
+            "content" : {
+              "ref_node_id" : "branch_0",
+              "ref_var_name" : "response_content",
+              "source" : "system"
+            },
+            "hint" : ""
+          },
+          "source" : "user",
+          "type" : "string"
+        }, {
+          "name" : "branch_1",
+          "description" : "",
+          "required" : true,
+          "reflection" : false,
+          "value" : {
+            "type" : "ref",
+            "content" : {
+              "ref_node_id" : "branch_1",
+              "ref_var_name" : "response_content",
+              "source" : "system"
+            },
+            "hint" : ""
+          },
+          "source" : "user",
+          "type" : "string"
+        }
+        ]
+      },
+      "model" : "first-non-null"
+    },
+    "branches" : [{
+      "id" : "branch_0",
+      "configs" : {
+        "workflow_version_name" : "",
+        "workflow_id" : "",
+        "branch_id" : "branch_0",
+        "workflow_name" : "",
+        "description" : "",
+        "index" : "branch_0",
+        "workflow_version_id" : "",
+        "category" : "其他意图",
+        "intent_id" : "dcdba3e7-4c2f-4166-b3c4-ce30ab113fc1"
+      }
+    }, {
+      "id" : "branch_1",
+      "configs" : {
+        "workflow_version_name" : "v20250619213258",
+        "workflow_id" : "4d088e25-1186-4d8a-a07a-25c406525693",
+        "branch_id" : "1ac2b3ea-6b3d-4ad4-af6c-ef08a865cfcb",
+        "workflow_name" : "简单工作流",
+        "index" : "branch_1",
+        "workflow_version_id" : "1750339979097",
+        "category" : "查询飞机",
+        "intent_id" : "dcdba3e7-4c2f-4166-b3c4-ce30ab113fc1"
+      }
+    }
+    ]
+  }, {
+    "id" : "node_1750316866737",
+    "name" : "高级意图识别",
+    "type" : "ComplexIntentDetection",
+    "inputs" : [{
+      "name" : "input",
+      "type" : "string",
+      "description" : "",
+      "required" : false,
+      "source" : "system",
+      "reflection" : false,
+      "value" : {
+        "type" : "ref",
+        "content" : {
+          "ref_node_id" : "node_start",
+          "ref_var_name" : "query",
+          "source" : "system"
+        },
+        "hint" : ""
+      }
+    }
+    ],
+    "outputs" : [{
+      "name" : "classification_id",
+      "type" : "integer",
+      "description" : "intentDetection.outputs_id_description",
+      "required" : true,
+      "source" : "system",
+      "reflection" : false,
+      "value" : {
+        "type" : "generated",
+        "hint" : ""
+      }
+    }, {
+      "name" : "name",
+      "type" : "string",
+      "description" : "intentDetection.outputs_name_description",
+      "required" : true,
+      "source" : "system",
+      "reflection" : false,
+      "value" : {
+        "type" : "generated",
+        "hint" : ""
+      }
+    }, {
+      "name" : "result",
+      "type" : "string",
+      "description" : "输出的分类分支名",
+      "required" : false,
+      "source" : "system",
+      "reflection" : false,
+      "value" : {
+        "type" : "generated",
+        "content" : "",
+        "hint" : ""
+      }
+    }, {
+      "name" : "reason",
+      "type" : "string",
+      "required" : true,
+      "source" : "system",
+      "reflection" : false,
+      "value" : {
+        "type" : "generated",
+        "hint" : ""
+      }
+    }
+    ],
+    "configs" : {
+      "overridable" : false,
+      "llm" : {
+        "temperature" : 0.5,
+        "top_p" : 0.5,
+        "model" : {
+          "model_name" : "38B-V35",
+          "model_type" : "poc_agentBuilder",
+          "model_deployment_id" : "ee9ba77a-84fe-4e23-8754-df66aa446d74"
+        }
+      },
+      "prompt" : "你是一个功能分类器，你可以根据用户的请求提问，和相应的功能类别描述，选择正确的功能帮助用户解决问题。",
+      "chat_history_max_turn" : 0,
+      "intent" : {
+        "id" : "dcdba3e7-4c2f-4166-b3c4-ce30ab113fc1",
+        "name" : "test_0620",
+        "branches_cnt" : 1
+      }
+    },
+    "branches" : []
+  }, {
+    "id" : "node_1750381339443",
+    "name" : "消息",
+    "type" : "Message",
+    "inputs" : [{
+      "name" : "a",
+      "type" : "string",
+      "description" : "",
+      "required" : true,
+      "source" : "user",
+      "reflection" : false,
+      "value" : {
+        "type" : "ref",
+        "content" : {
+          "ref_node_id" : "node_intent_container_1750316866737",
+          "ref_var_name" : "response_content",
+          "source" : "system"
+        },
+        "hint" : ""
+      }
+    }
+    ],
+    "outputs" : [{
+      "name" : "result",
+      "type" : "string",
+      "description" : "消息输出",
+      "required" : false,
+      "source" : "system",
+      "reflection" : false,
+      "value" : {
+        "type" : "generated",
+        "content" : "",
+        "hint" : ""
+      }
+    }
+    ],
+    "configs" : {
+      "template" : "{{a}}"
+    }
+  }, {
+    "id" : "node_1750385195598",
+    "name" : "消息_2",
+    "type" : "Message",
+    "inputs" : [{
+      "name" : "a",
+      "type" : "string",
+      "description" : "",
+      "required" : true,
+      "source" : "user",
+      "reflection" : false,
+      "value" : {
+        "type" : "ref",
+        "content" : {
+          "ref_node_id" : "node_intent_container_1750316866737",
+          "ref_var_name" : "response_content",
+          "source" : "system"
+        },
+        "hint" : ""
+      }
+    }
+    ],
+    "outputs" : [{
+      "name" : "result",
+      "type" : "string",
+      "description" : "消息输出",
+      "required" : false,
+      "source" : "system",
+      "reflection" : false,
+      "value" : {
+        "type" : "generated",
+        "content" : "",
+        "hint" : ""
+      }
+    }
+    ],
+    "configs" : {
+      "template" : "{{a}}"
+    }
+  }, {
+    "id" : "node_end",
+    "name" : "结束",
+    "type" : "End",
+    "inputs" : [{
+      "name" : "result",
+      "type" : "string",
+      "description" : "最终输出",
+      "required" : false,
+      "source" : "user",
+      "reflection" : false,
+      "value" : {
+        "type" : "ref",
+        "content" : {
+          "ref_node_id" : "node_intent_container_1750316866737",
+          "ref_var_name" : "response_content",
+          "source" : "system"
+        }
+      }
+    }
+    ],
+    "outputs" : [{
+      "name" : "response_content",
+      "type" : "string",
+      "description" : "最终输出",
+      "required" : true,
+      "source" : "system",
+      "reflection" : false,
+      "value" : {
+        "type" : "generated"
+      }
+    }
+    ],
+    "configs" : {
+      "is_stream_out" : true,
+      "response_template" : "{{result}}",
+      "response_mode" : "directResponse"
+    }
+  }, {
+    "id" : "node_1750381436549",
+    "name" : "消息_1",
+    "type" : "Message",
+    "inputs" : [{
+      "name" : "a",
+      "type" : "string",
+      "description" : "",
+      "required" : true,
+      "source" : "user",
+      "reflection" : false,
+      "value" : {
+        "type" : "ref",
+        "content" : {
+          "ref_node_id" : "node_intent_container_1750316866737",
+          "ref_var_name" : "response_content",
+          "source" : "system"
+        },
+        "hint" : ""
+      }
+    }
+    ],
+    "outputs" : [{
+      "name" : "result",
+      "type" : "string",
+      "description" : "消息输出",
+      "required" : false,
+      "source" : "system",
+      "reflection" : false,
+      "value" : {
+        "type" : "generated",
+        "content" : "",
+        "hint" : ""
+      }
+    }
+    ],
+    "configs" : {
+      "template" : "{{a}}"
+    }
+  }, {
+    "id" : "node_1750381364778",
+    "name" : "判断",
+    "type" : "Branch",
+    "branches" : [{
+      "id" : "if",
+      "configs" : {
+        "logic" : "and",
+        "conditions" : [{
+          "operator" : "eq",
+          "left" : {
+            "name" : "",
+            "description" : "",
+            "required" : false,
+            "value" : {
+              "type" : "ref",
+              "content" : {
+                "ref_node_id" : "node_intent_container_1750316866737",
+                "ref_var_name" : "response_content",
+                "source" : "system"
+              },
+              "hint" : ""
+            },
+            "source" : "user",
+            "type" : "string"
+          },
+          "right" : {
+            "name" : "",
+            "description" : "",
+            "required" : false,
+            "value" : {
+              "type" : "literal",
+              "content" : "查询飞机",
+              "hint" : ""
+            },
+            "source" : "user",
+            "type" : "string"
+          }
+        }, {
+          "operator" : "longer_than",
+          "left" : {
+            "name" : "",
+            "description" : "",
+            "required" : false,
+            "value" : {
+              "type" : "ref",
+              "content" : {
+                "ref_node_id" : "node_start",
+                "ref_var_name" : "query",
+                "source" : "system"
+              },
+              "hint" : ""
+            },
+            "source" : "user",
+            "type" : "string"
+          },
+          "right" : {
+            "name" : "",
+            "description" : "",
+            "required" : false,
+            "value" : {
+              "type" : "literal",
+              "content" : 1,
+              "hint" : ""
+            },
+            "source" : "user",
+            "type" : "integer"
+          }
+        }
+        ]
+      }
+    }, {
+      "id" : "elseIf-1",
+      "configs" : {
+        "logic" : "and",
+        "conditions" : [{
+          "operator" : "longer_than",
+          "left" : {
+            "name" : "",
+            "description" : "",
+            "required" : false,
+            "value" : {
+              "type" : "ref",
+              "content" : {
+                "ref_node_id" : "node_start",
+                "ref_var_name" : "sys.conversation_id",
+                "source" : "system"
+              },
+              "hint" : ""
+            },
+            "source" : "user",
+            "type" : "string"
+          },
+          "right" : {
+            "name" : "",
+            "description" : "",
+            "required" : false,
+            "value" : {
+              "type" : "literal",
+              "content" : 1,
+              "hint" : ""
+            },
+            "source" : "user",
+            "type" : "integer"
+          }
+        }
+        ]
+      }
+    }, {
+      "id" : "elseIf-2",
+      "configs" : {
+        "logic" : "and",
+        "conditions" : [{
+          "operator" : "eq",
+          "left" : {
+            "name" : "",
+            "description" : "",
+            "required" : false,
+            "value" : {
+              "type" : "ref",
+              "content" : {
+                "ref_node_id" : "node_intent_container_1750316866737",
+                "ref_var_name" : "response_content",
+                "source" : "system"
+              },
+              "hint" : ""
+            },
+            "source" : "user",
+            "type" : "string"
+          },
+          "right" : {
+            "name" : "",
+            "description" : "",
+            "required" : false,
+            "value" : {
+              "type" : "ref",
+              "content" : {
+                "ref_node_id" : "node_intent_container_1750316866737",
+                "ref_var_name" : "response_content",
+                "source" : "system"
+              },
+              "hint" : ""
+            },
+            "source" : "user",
+            "type" : "string"
+          }
+        }
+        ]
+      }
+    }, {
+      "id" : "default"
+    }
+    ]
+  }
+  ],
+  "edges" : [{
+    "source" : "node_1750381364778",
+    "target" : "node_end",
+    "branch" : "elseIf-2"
+  }, {
+    "source" : "node_start",
+    "target" : "node_1750316866737"
+  }, {
+    "source" : "node_intent_container_1750316866737",
+    "target" : "node_1750381339443"
+  }, {
+    "source" : "node_1750316866737",
+    "target" : "node_intent_container_1750316866737"
+  }, {
+    "source" : "node_1750381364778",
+    "target" : "node_1750381436549",
+    "branch" : "default"
+  }, {
+    "source" : "node_1750381364778",
+    "target" : "node_1750385195598",
+    "branch" : "if"
+  }, {
+    "source" : "node_1750381339443",
+    "target" : "node_1750381364778"
+  }, {
+    "source" : "node_1750381436549",
+    "target" : "node_end"
+  }, {
+    "source" : "node_1750381364778",
+    "target" : "node_end",
+    "branch" : "elseIf-1"
+  }, {
+    "source" : "node_1750385195598",
+    "target" : "node_end"
+  }
+  ],
+  "layouts" : {
+    "node_intent_container_1750316866737" : {
+      "x" : 1090,
+      "y" : 221.96680275790658
+    },
+    "node_1750316866737" : {
+      "x" : 650,
+      "y" : 221.96680275790658
+    },
+    "node_1750381436549" : {
+      "x" : 2466,
+      "y" : 504
+    },
+    "node_start" : {
+      "x" : 210,
+      "y" : 221.96680275790658
+    },
+    "node_1750381339443" : {
+      "x" : 1530,
+      "y" : 221.96680275790658
+    },
+    "node_end" : {
+      "x" : 3312,
+      "y" : 324
+    },
+    "node_1750385195598" : {
+      "x" : 2466,
+      "y" : 252
+    },
+    "node_1750381364778" : {
+      "x" : 1962,
+      "y" : 108
+    }
+  },
+  "configs" : {
+    "default_model_switch" : false,
+    "default_model" : {
+      "model_name" : "38B-V35",
+      "model_type" : "poc_agentBuilder",
+      "model_deployment_id" : "ee9ba77a-84fe-4e23-8754-df66aa446d74"
+    }
+  }
+}

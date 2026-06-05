@@ -1,0 +1,27 @@
+{
+  "plugin_id": "preset_OCR",
+  "tool_display_name": "reserve_meeting_room",
+  "tool_desc": "预定会议室，请在需要预定会议室时调用此工具，预定前需要先查询会议室状态",
+  "icon": "3f2504e0-4f89-11d3-9a0c-0305e82c3301.jpg",
+  "request_info": {
+    "url": "https://fake.com",
+    "method": "POST",
+    "headers": {
+      "additionalProp1": "string",
+      "additionalProp2": "string",
+      "additionalProp3": "string"
+    }
+  },
+  "auth_info": {
+    "scope": "IAM",
+    "iam_credentials": {
+      "projectId": "mock_project_id"
+    }
+  },
+  "visibility": "project",
+  "input_schema": "{\"type\":\"object\",\"properties\":{\"meetingRoom\":{\"location\":\"Body\",\"validate_rule\":\"\",\"validate_type\":\"CHAR\",\"validated\":false,\"name_cn\":\"会议室\",\"type\":\"string\",\"description\":\"会议室\"},\"start\":{\"location\":\"Body\",\"validate_rule\":\"\",\"validate_type\":\"CHAR\",\"validated\":false,\"name_cn\":\"会议开始时间\",\"type\":\"string\",\"description\":\"开始时间\"},\"end\":{\"location\":\"Body\",\"validate_rule\":\"\",\"validate_type\":\"CHAR\",\"validated\":false,\"name_cn\":\"会议结束时间\",\"type\":\"string\",\"description\":\"结束时间\"},\"headerParam\":{\"location\":\"Headers\",\"validate_rule\":\"\",\"validate_type\":\"CHAR\",\"validated\":false,\"name_cn\":\"headerParam\",\"type\":\"string\",\"description\":\"headerParam\"},\"queryParam\":{\"location\":\"Query\",\"validate_rule\":\"\",\"validate_type\":\"CHAR\",\"validated\":false,\"name_cn\":\"queryParam\",\"type\":\"string\",\"description\":\"queryParam\"},\"objectParam\":{\"location\":\"Body\",\"validate_rule\":\"\",\"validate_type\":\"CHAR\",\"validated\":false,\"name_cn\":\"objectParam\",\"type\":\"object\",\"description\":\"objectParam\",\"properties\":{\"objectParam1\":{\"location\":\"Body\",\"validate_rule\":\"\",\"validate_type\":\"NUM\",\"validated\":false,\"name_cn\":\"obj1\",\"type\":\"integer\",\"description\":\"objectParam1\"},\"objectParam2\":{\"location\":\"Body\",\"validate_rule\":\"\",\"validate_type\":\"NUM\",\"validated\":false,\"name_cn\":\"obj2\",\"type\":\"number\",\"description\":\"objectParam2\"},\"objectParam3\":{\"location\":\"Body\",\"validate_rule\":\"\",\"validate_type\":\"NUM\",\"validated\":false,\"name_cn\":\"obj3\",\"type\":\"boolean\",\"description\":\"objectParam3\"}},\"required\":[\"objectParam1\",\"objectParam2\",\"objectParam3\"]},\"arrayParam\":{\"location\":\"Body\",\"validate_rule\":\"\",\"validate_type\":\"CHAR\",\"validated\":false,\"name_cn\":\"arrayParam\",\"type\":\"array\",\"description\":\"arrayParam\",\"items\":{\"type\":\"object\",\"properties\":{\"arrayParam1\":{\"location\":\"Body\",\"validate_rule\":\"\",\"validate_type\":\"CHAR\",\"validated\":false,\"name_cn\":\"arrayParam1\",\"type\":\"string\",\"description\":\"arrayParam1\"},\"arrayParam2\":{\"location\":\"Body\",\"validate_rule\":\"\",\"validate_type\":\"CHAR\",\"validated\":false,\"name_cn\":\"arrayParam2\",\"type\":\"string\",\"description\":\"arrayParam2\"}},\"required\":[\"arrayParam1\",\"arrayParam2\"]}}},\"required\":[\"headerParam\",\"queryParam\",\"objectParam\",\"arrayParam\"]}",
+  "is_input_list": false,
+  "output_schema": "{\"type\":\"object\",\"properties\":{\"result\":{\"type\":\"string\",\"description\":\"预定会议室的结果\"}}}",
+  "is_output_list": false,
+  "metadata": "{\"url\":\"https://host/v1/api\",\"authType\":\"OAuth\"}"
+}

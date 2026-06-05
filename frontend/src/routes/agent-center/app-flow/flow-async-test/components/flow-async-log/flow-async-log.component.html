@@ -1,0 +1,481 @@
+<!-- <div class="run-modal-wrapper run-modal-show w-[600px]">
+  <div class="header">
+    <div class="flex items-center gap-[8px]">
+      <div class="title">{{'flowasynclogcomponent_634'| i18nextEager}}</div>
+    </div>
+  </div>
+  <div class="content">
+    <div *ngIf="showExecList" class="exec-list">
+      <nz-select
+        class="date-selector"
+        style="width: 100%"
+        [nzPlaceHolder]="'select_placeholder' | i18nextEager"
+        [nzOptions]="dates"
+        [(ngModel)]="selectDate"
+        (ngModelChange)="onSelectDate($event)"
+      >
+      </nz-select>
+
+      <div class="flex w-[calc(100%-36px)] gap-[8px]">
+        <div class="flex h-fit w-[calc(100%-8px)] items-center gap-2">
+          <div class="flex w-full">
+            <nz-select
+              class="combo-select-right"
+              style="width: 100%; min-width: 100%; margin-bottom: 20px"
+              [nzPlaceHolder]="'select_placeholder' | i18nextEager"
+              [nzOptions]="executionList"
+              [(ngModel)]="executionSelected"
+              (ngModelChange)="changeExecSelected()"
+              nzLabel nzValue nzIdKey="execution_id"
+            >
+              <ng-template #nzOptionTemplate let-item>
+                <span class="flex justify-between">
+                  <span class="w-[calc(100%-70px)]">{{
+                      item?.inputs?.query
+                    }}</span>
+                  <span class="flex gap-[8px] text-[#808080]">
+                    <span>{{ formatToExecTime(item.start_time) }}</span>
+                    <asset-loading-icon
+                      *ngIf="
+                        item.status === 'waiting' || item.status === 'loading'
+                      "
+                    ></asset-loading-icon>
+                    <asset-success-icon
+                      *ngIf="
+                        item.status === 'succeed' ||
+                        item.status === 'succeeded'
+                      "
+                    ></asset-success-icon>
+                    <asset-error-icon
+                      *ngIf="
+                        item.status === 'failed' || item.status === 'FAILED'
+                      "
+                    ></asset-error-icon>
+                  </span>
+                </span>
+              </ng-template>
+            </nz-select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="main-log" style="height: 100%; overflow-y: scroll">
+      <div class="empty-run-result" *ngIf="false && taskInfo?.status==='FAILED' else successResultTmpl">
+        <page-fail-icon></page-fail-icon>
+        <span class="loading-text">{{'flowasynclogcomponent_635'| i18nextEager}}</span>
+        <span class="loading-message">{{taskInfo?.message}}</span>
+      </div>
+      <ng-template #successResultTmpl>
+        <div
+          *ngIf="workflowDebugInfo.list.length === 0 && !workflowDebugInfo?.status && (!executionList.length ||
+                isEmptyObject(timelineData) ||
+                !callChainInfo.list.length);
+              else runResultTmpl
+            "
+          class="empty-run-result">
+          <no-data-icon></no-data-icon>
+          <span class="loading-text">{{'flowasynclogcomponent_636'| i18nextEager}}</span>
+        </div>
+        <ng-template #runResultTmpl>
+          <div class="flex  flex-col gap-[8px] mb-[40px]">
+            <div class="mb-[8px] font-semibold text-[#191919]">{{'flowasynclogcomponent_637'| i18nextEager}}</div>
+            <div class="workflow-info-area">
+              <div class="title-container">
+                <img alt=""
+                  class="workflow-status"
+                  [src]="getNodeStatus(workflowDebugInfo?.status)"
+                />
+                <span
+                  class="workflow-status-desc"
+                  [ngStyle]="{
+                      color: getWorkflowStatusDescColor(
+                        workflowDebugInfo?.status
+                      )
+                    }"
+                >{{ workflowDebugInfo.status_desc }}</span
+                >
+              </div>
+              <div
+                [ngClass]="
+                    workflowDebugInfo.list.length === 0
+                      ? 'empty-info-container'
+                      : 'info-container'
+                  "
+              >
+                <div
+                  class="item-container"
+                  *ngFor="let item of workflowDebugInfo.list"
+                >
+                  <span class="text-[#808080]">{{ item.title }}</span>
+                  <span class="text-[#191919]">
+                      <ng-container
+                        *ngIf="isTimestamp(item.content); else textTmpl"
+                      >
+                        {{ item.content | date : 'yyyy-MM-dd HH:mm:ss' }}
+                      </ng-container>
+                      <ng-template #textTmpl>
+                        {{ item.content }}
+                      </ng-template>
+                    </span>
+                </div>
+              </div>
+            </div>
+            <div
+              *ngIf="
+                  workflowDebugInfo.result &&
+                  workflowDebugInfo.status !== 'aborted'
+                "
+              class="text-chunk-area"
+            >
+              <ng-container
+                *ngIf="
+                    workflowDebugInfo.status === 'succeeded';
+                    else failTmpl
+                  "
+              >
+                <div class="font-semibold">{{ 'output_result' | i18nextEager }}</div>
+                <app-markdown-answer
+                  class="markdown-text w-full overflow-x-hidden"
+                  [(answer)]="workflowDebugInfo.result"
+                ></app-markdown-answer>
+              </ng-container>
+
+              <ng-template #failTmpl>
+                <div class="font-semibold">{{ 'fail' | i18nextEager }}</div>
+                <div>{{ workflowDebugInfo.result }}</div>
+              </ng-template>
+            </div>
+          </div>
+          <div class="call-chain-area">
+            <div class="mb-[8px] flex items-center justify-between">
+              <div class="font-semibold text-[#191919]">{{ 'call_chain' | i18nextEager }}</div>
+              <div class="flex items-center">
+                <asset-list-icon
+                  class="chart-icon"
+                  (click)="switchViewMode('list')"
+                  [ngClass]="{
+                    'icon-selected': chartViewMode === 'list'
+                  }"
+                ></asset-list-icon>
+                <asset-sequence-icon
+                  class="chart-icon"
+                  (click)="switchViewMode('sequence')"
+                  [ngClass]="{
+                    'icon-selected': chartViewMode === 'sequence'
+                  }"
+                ></asset-sequence-icon>
+              </div>
+            </div>
+            <nz-breadcrumb *ngIf="crumb.length>1" nzSelectable>
+              <nz-breadcrumb-item *ngFor="let item of crumb" (click)="onSelectWorkflow(item)">
+                {{ item.label }}
+              </nz-breadcrumb-item>
+            </nz-breadcrumb>
+            <ng-container
+              *ngIf="executionList.length && chartViewMode === 'sequence'"
+            >
+              <!-!- 时序图 -!->
+              <time-line
+                *ngIf="!isEmptyObject(timelineData)"
+                [data]="timelineData"
+                [currentInvodeId]="curInvodeId"
+                (handleClick)="onNodeClicked($event)"
+              ></time-line>
+              <!-!- 展示时序图上被点击节点的输入和输出 -!->
+              <ng-container *ngIf="nodeIdClicked">
+                <ng-container *ngFor="let callItem of callChainInfo.list">
+                  <ng-container *ngIf="callItem.node_uuid === nodeIdClicked">
+                    <div
+                      class="sequence-item-wrapper flex flex-col gap-[16px] bg-[#fafafa]"
+                    >
+                      <ng-container
+                        *ngTemplateOutlet="
+                          callItemTemplate;
+                          context: { $implicit: callItem }
+                        "
+                      >
+                      </ng-container>
+                    </div>
+                  </ng-container>
+                </ng-container>
+              </ng-container>
+            </ng-container>
+            <ng-container
+              *ngIf="executionList.length && chartViewMode === 'list'"
+            >
+              <!-!- 表格 -!->
+              <div
+                *ngIf="callChainInfo.list.length"
+                class="call-chains-container"
+              >
+                <div
+                  *ngFor="let callItem of callChainInfo.list"
+                  class="call-item-wrapper flex flex-col gap-[16px] bg-[#fafafa]"
+                >
+                  <div
+                    class="call-item-wrapper flex flex-col gap-[16px] bg-[#fafafa]"
+                  >
+                    <ng-container
+                      *ngTemplateOutlet="
+                        callItemTemplate;
+                        context: { $implicit: callItem }
+                      "
+                    >
+                    </ng-container>
+                  </div>
+                </div>
+              </div>
+            </ng-container>
+          </div>
+        </ng-template>
+      </ng-template>
+
+
+    </div>
+  </div>
+</div>
+
+<ng-template #noInputs>
+  <div class="mb-[12px]">{{ 'no_input' | i18nextEager }}</div>
+</ng-template>
+<ng-template #noOutputs>
+  <div>{{ 'no_output' | i18nextEager }}</div>
+</ng-template>
+
+<ng-template #callItemTemplate let-callItem>
+  <div
+    class="call-item"
+    (click)="changeCollapsedState(callItem)"
+    [ngClass]="{ 'bg-unfolded': !callItem.collapsed }"
+  >
+    <div class="call-item-left">
+      <tp-icon
+        name="cloudx-action-arrow-right"
+        class="collapse-icon"
+        [ngClass]="{ 'unfolded-icon': !callItem.collapsed }"
+      ></tp-icon>
+      <img alt="" class="call-node-icon" [src]="getNodeIcon(callItem?.node_type)" />
+      <span tiOverflow class="text-[#191919]">
+        {{ callItem?.node_name }}
+      </span>
+      <span *ngIf="isQuestionNode(callItem?.node_type)" class="rounds">
+        {{ 'rounds_count_of_dialogue' | i18nextEager: { number: callItem.questionerRounds.length } }}
+      </span>
+    </div>
+    <div class="call-item-right">
+      <span
+        *ngIf="callItem?.first_token_time && isLLMNode(callItem?.node_type)"
+        class="first-token-time"
+      >
+        {{ 'first_token' | i18nextEager }} {{ callItem?.first_token_time }}
+      </span>
+      <span class="call-elapsed-time">
+        {{ callItem?.elapsed_time }}
+      </span>
+      <img alt=""
+        class="call-node-status"
+        [src]="getNodeStatus(callItem?.node_status)"
+      />
+    </div>
+  </div>
+  <div class="call-node-IO" *ngIf="!callItem.collapsed">
+    <div class="crumb" *ngIf="callItem?.node_type === 'Workflow'" (click)="getChildWorkflow(callItem)">
+      <tp-icon class="mr-1" name="cloudx-action-share"></tp-icon>
+      <span>{{ 'view_sub_workflow_call_chain' | i18nextEager }}</span>
+    </div>
+
+    <div *ngIf="!isQuestionNode(callItem?.node_type); else questionerNode">
+      <!-!- 非提问器节点的输入 -!->
+      <div *ngIf="!isIOEmpty(callItem.inputs); else noInputs" class="mb-[12px]">
+        <div class="node-inputs-area">
+          <span class="text-[#191919]">{{ 'input' | i18nextEager }}</span>
+          <asset-copy-icon
+            *ngIf="!callItem.inputsCopyIcon"
+            class="cursor-pointer"
+            (click)="handleCopy(callItem, 'input')"
+          ></asset-copy-icon>
+          <asset-copy-success-icon
+            *ngIf="callItem.inputsCopyIcon"
+            class="cursor-pointer"
+          ></asset-copy-success-icon>
+        </div>
+        <div class="json-wrap">
+          <json-viewer [jsonData]="callItem.inputs"></json-viewer>
+        </div>
+      </div>
+      <!-!- 非提问器节点的输出 -!->
+      <div *ngIf="!isIOEmpty(callItem.outputs); else noOutputs">
+        <div class="node-inputs-area">
+          <span class="text-[#191919]">{{ 'output' | i18nextEager }}</span>
+          <asset-copy-icon
+            *ngIf="!callItem.outputsCopyIcon"
+            class="cursor-pointer"
+            (click)="handleCopy(callItem, 'output')"
+          ></asset-copy-icon>
+          <asset-copy-success-icon
+            *ngIf="callItem.outputsCopyIcon"
+            class="cursor-pointer"
+          ></asset-copy-success-icon>
+        </div>
+        <div class="json-wrap">
+          <json-viewer [jsonData]="callItem.outputs"></json-viewer>
+        </div>
+      </div>
+      <!-!-模型输入，包含意图节点、提问器节点、大模型节点 -!->
+      <ng-container
+        *ngTemplateOutlet="
+          modelIOTmpl;
+          context: {
+            callItem,
+            fieldType: 'llm_inputs',
+            title: 'model_input' | i18nextEager,
+            copyType: 'modelInput',
+            iconFlag: 'modelInputCopyIcon'
+          }
+        "
+      ></ng-container>
+      <ng-container
+        *ngTemplateOutlet="
+          modelIOTmpl;
+          context: {
+            callItem,
+            fieldType: 'llm_outputs',
+            title: 'model_output' | i18nextEager,
+            copyType: 'modelOutput',
+            iconFlag: 'modelOutputCopyIcon'
+          }
+        "
+      ></ng-container>
+    </div>
+    <!-!- 提问器节点 -!->
+    <ng-template #questionerNode>
+      <nz-select
+        id="questioner-node-select"
+        style="width: 100%; min-width: 100%; margin-bottom: 16px"
+        [nzPlaceHolder]="'select_placeholder' | i18nextEager"
+        [nzOptions]="callItem.questionerRounds"
+        [(ngModel)]="callItem.roundSelected"
+        nzLabel nzValue nzIdKey="uuid"
+      >
+      </nz-select>
+      <!-!- 提问器节点某一次QA的输入 -!->
+      <ng-container
+        *ngIf="
+          getMessagesByUuid(
+            callItem.messages,
+            callItem.roundSelected?.uuid
+          ) as curIO
+        "
+      >
+        <div
+          *ngIf="curIO.length && !isIOEmpty(curIO[0]); else noInputs"
+          class="mb-[12px]"
+        >
+          <div class="node-inputs-area">
+            <span class="text-[#191919]">{{ 'input' | i18nextEager }}</span>
+            <asset-copy-icon
+              *ngIf="!curIO[0]?.copyIcon"
+              class="cursor-pointer"
+              (click)="copyQuestionNodeIO(curIO[0])"
+            ></asset-copy-icon>
+            <asset-copy-success-icon
+              *ngIf="curIO[0]?.copyIcon"
+              class="cursor-pointer"
+            ></asset-copy-success-icon>
+          </div>
+          <div class="json-wrap">
+            <json-viewer [jsonData]="removeUuid(curIO[0])"></json-viewer>
+          </div>
+        </div>
+      </ng-container>
+      <!-!- 提问器节点某一次QA的输出 -!->
+      <ng-container
+        *ngIf="
+          getMessagesByUuid(
+            callItem.messages,
+            callItem.roundSelected?.uuid
+          ) as curIO
+        "
+      >
+        <div *ngIf="curIO.length && !isIOEmpty(curIO[1]); else noOutputs">
+          <div class="node-inputs-area">
+            <span class="text-[#191919]">{{ 'output' | i18nextEager }}</span>
+            <asset-copy-icon
+              *ngIf="!curIO[1]?.copyIcon"
+              class="cursor-pointer"
+              (click)="copyQuestionNodeIO(curIO[1])"
+            ></asset-copy-icon>
+            <asset-copy-success-icon
+              *ngIf="curIO[1]?.copyIcon"
+              class="cursor-pointer"
+            ></asset-copy-success-icon>
+          </div>
+          <div class="json-wrap">
+            <json-viewer [jsonData]="removeUuid(curIO[1])"></json-viewer>
+          </div>
+        </div>
+      </ng-container>
+      <!-!-提问器节点的模型输入 -!->
+      <ng-container
+        *ngTemplateOutlet="
+          modelIOTmpl;
+          context: {
+            callItem,
+            fieldType: 'llm_inputs',
+            title: 'model_input' | i18nextEager,
+            copyType: 'modelInput',
+            iconFlag: 'modelInputCopyIcon'
+          }
+        "
+      ></ng-container>
+      <ng-container
+        *ngTemplateOutlet="
+          modelIOTmpl;
+          context: {
+            callItem,
+            fieldType: 'llm_outputs',
+            title: 'model_output' | i18nextEager,
+            copyType: 'modelOutput',
+            iconFlag: 'modelOutputCopyIcon'
+          }
+        "
+      ></ng-container>
+    </ng-template>
+  </div>
+</ng-template>
+
+<ng-template #emptyTmpl></ng-template>
+
+<!-!- 模型输入和模型输出的公共html代码，后续可抽出子组件 -!->
+<ng-template
+  #modelIOTmpl
+  let-callItem="callItem"
+  let-fieldType="fieldType"
+  let-title="title"
+  let-copyType="copyType"
+  let-iconFlag="iconFlag"
+>
+  <div
+    *ngIf="!isIOEmpty(getLlmField(callItem?.metadata, fieldType))"
+    class="mt-[12px]"
+  >
+    <div class="node-inputs-area">
+      <span class="text-[#191919]">{{ title }}</span>
+      <asset-copy-icon
+        *ngIf="!callItem?.[iconFlag]"
+        class="cursor-pointer"
+        (click)="handleCopy(callItem, copyType)"
+      ></asset-copy-icon>
+      <asset-copy-success-icon
+        *ngIf="callItem?.[iconFlag]"
+        class="cursor-pointer"
+      ></asset-copy-success-icon>
+    </div>
+    <div class="json-wrap">
+      <json-viewer
+        [jsonData]="getLlmField(callItem?.metadata, fieldType)"
+      ></json-viewer>
+    </div>
+  </div>
+</ng-template> -->

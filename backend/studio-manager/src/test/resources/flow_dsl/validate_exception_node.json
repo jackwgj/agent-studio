@@ -1,0 +1,226 @@
+{
+    "id": "ff31526c-62be-4f09-9268-b6a5e740db8b",
+    "name": "wwl_workflow_test",
+    "description": "王文龙的测试工作流",
+    "nodes": [
+        {
+            "id": "node_start",
+            "name": "开始",
+            "type": "Start",
+            "outputs": [
+                {
+                    "name": "query",
+                    "type": "string",
+                    "description": "用户输入",
+                    "required": true,
+                    "source": "system",
+                    "field_type": "input",
+                    "reflection": false,
+                    "value": {
+                        "type": "literal",
+                        "content": "",
+                        "hint": "用户输入"
+                    }
+                },
+                {
+                    "name": "sys",
+                    "type": "object",
+                    "description": "系统变量",
+                    "required": true,
+                    "source": "system",
+                    "schema": [
+                        {
+                            "name": "conversation_history",
+                            "type": "array",
+                            "description": "会话历史消息",
+                            "required": true,
+                            "source": "system",
+                            "value": {
+                                "content": [],
+                                "hint": "会话历史消息",
+                                "type": "literal"
+                            },
+                            "schema": {
+                                "name": "",
+                                "type": "object",
+                                "schema": [
+                                    {
+                                        "name": "role",
+                                        "type": "string",
+                                        "description": "角色",
+                                        "required": true,
+                                        "source": "system",
+                                        "value": {
+                                            "type": "literal",
+                                            "content": "",
+                                            "hint": "角色"
+                                        }
+                                    },
+                                    {
+                                        "name": "content",
+                                        "type": "string",
+                                        "description": "消息内容",
+                                        "required": true,
+                                        "source": "system",
+                                        "value": {
+                                            "type": "literal",
+                                            "content": "",
+                                            "hint": "消息内容"
+                                        }
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "name": "current_time",
+                            "type": "string",
+                            "required": true,
+                            "description": "当前系统时间",
+                            "field_type": "input",
+                            "source": "system",
+                            "value": {
+                                "type": "literal",
+                                "content": "",
+                                "hint": "当前系统时间"
+                            }
+                        },
+                        {
+                            "name": "user_id",
+                            "type": "string",
+                            "required": true,
+                            "description": "使用该工作流的唯一标识",
+                            "field_type": "input",
+                            "source": "system",
+                            "value": {
+                                "type": "literal",
+                                "content": "",
+                                "hint": "用户唯一标识"
+                            }
+                        },
+                        {
+                            "name": "conversation_id",
+                            "type": "string",
+                            "required": true,
+                            "description": "工作流对话id",
+                            "field_type": "input",
+                            "source": "system",
+                            "value": {
+                                "type": "literal",
+                                "content": "",
+                                "hint": "工作流对话id"
+                            }
+                        },
+                        {
+                            "name": "dialogue_count",
+                            "type": "integer",
+                            "required": true,
+                            "description": "会话轮次",
+                            "field_type": "input",
+                            "source": "system",
+                            "value": {
+                                "type": "literal",
+                                "content": "",
+                                "hint": "会话轮次"
+                            }
+                        }
+                    ],
+                    "field_type": "object",
+                    "reflection": false,
+                    "value": {
+                        "type": "literal",
+                        "content": {},
+                        "hint": "系统变量"
+                    }
+                }
+            ]
+        },
+        {
+            "id": "node_1775872234878",
+            "name": "异常",
+            "type": "StructuredMessagesException",
+            "inputs": [],
+            "outputs": [],
+            "configs": {
+                "template": "{\"error_code\":\"agentzzzz1111\",\r\n\"error_message\":\"自定义异常}"
+            }
+        },
+        {
+            "id": "node_end",
+            "name": "结束",
+            "type": "End",
+            "inputs": [],
+            "outputs": [
+                {
+                    "name": "response_content",
+                    "type": "string",
+                    "description": "最终输出",
+                    "required": true,
+                    "source": "system",
+                    "reflection": false,
+                    "value": {
+                        "type": "generated"
+                    }
+                }
+            ],
+            "configs": {
+                "is_stream_out": true,
+                "struct_output_template": "{\n  \"answer\": \"{{_NODE_OUTPUT}}\"\n}",
+                "enable_history": true,
+                "response_template": "",
+                "isStructMessage": false,
+                "response_mode": "directResponse"
+            }
+        }
+    ],
+    "edges": [
+        {
+            "source": "node_start",
+            "exception_branch": false,
+            "target": "node_1775872234878"
+        },
+        {
+            "source": "node_1775872234878",
+            "exception_branch": false,
+            "target": "node_end"
+        }
+    ],
+    "layouts": {
+        "node_1775872234878": {
+            "x": 630,
+            "y": 0
+        },
+        "node_start": {
+            "x": -72,
+            "y": 162
+        },
+        "node_end": {
+            "x": 1134,
+            "y": 36
+        }
+    },
+    "configs": {
+        "voice_interaction": {
+            "language": "chinese",
+            "timbre": "huaxiaohe",
+            "domain": "common"
+        },
+        "default_model_switch": false,
+        "safety_barrier": false,
+        "default_model": {
+            "openai": "openai",
+            "model_name": "AgentBuilder-V3134-38B-Base-4K",
+            "model_type": "LLM",
+            "model": "23d3f9f1-cc1d-405e-b060-437c1233288b",
+            "model_deployment_id": "23d3f9f1-cc1d-405e-b060-437c1233288b"
+        },
+        "content_review": {
+            "enabled": true,
+            "filter": {
+                "keywords": ""
+            },
+            "replace": [],
+            "reply": []
+        }
+    },
+    "comments": []
+}

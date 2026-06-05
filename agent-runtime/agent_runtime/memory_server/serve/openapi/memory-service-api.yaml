@@ -1,0 +1,558 @@
+swagger: '2.0'
+info:
+  title: 用户画像记忆相关的API
+  version: 1.0.0
+paths:
+  /v1/{project_id}/memories/profile/config:
+    post:
+      tags:
+        - user_profile_config
+      summary: 保存用户画像标签
+      operationId: SaveUserProfileConfig
+      description: 保存用户画像标签，以topic+tag名称作为唯一标识，如果已存在，则修改用户画像的标签，如果不存在，则新增用户画像的便签
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - name: project_id
+          type: string
+          in: path
+          required: true
+          description: 项目ID
+          minLength: 1
+          maxLength: 64
+        - in: body
+          name: SaveUserProfileConfigRequestBody
+          description: 保存用户画像标签的请求体
+          required: true
+          schema:
+            $ref: '#/definitions/SaveUserProfileConfigRequestBody'
+      responses:
+        200:
+          description: 保存成功的用户画像标签列表
+          schema:
+            $ref: '#/definitions/SaveUserProfileConfigResponseBody'
+  /v1/{project_id}/memories/profile/config/delete:
+    post:
+      tags:
+        - user_profile_config
+      summary: 删除用户画像标签
+      operationId: DeleteUserProfileConfig
+      description: 删除用户画像标签
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - name: project_id
+          type: string
+          in: path
+          required: true
+          description: 项目ID
+          minLength: 1
+          maxLength: 64
+        - in: body
+          name: SaveUserProfileConfigRequestBody
+          description: 删除用户画像标签的请求体
+          required: true
+          schema:
+            $ref: '#/definitions/DeleteUserProfileConfigRequestBody'
+      responses:
+        200:
+          description: 删除成功的用户画像标签列表
+          schema:
+            $ref: '#/definitions/DeleteUserProfileConfigResponseBody'
+  /v1/{project_id}/memories/profile/users/{user_id}/apps/{app_id}:
+    post:
+      tags:
+        - user_profile
+      operationId: ExtractUserProfile
+      summary: 根据用户的多轮对话内容生成用户画像
+      description: 根据用户的多轮对话内容生成用户画像，提取用户画像的过程为异步操作，请稍后调用查询用户指定topic的记忆内容接口确定指定topic是否已完成记忆提取
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - name: project_id
+          type: string
+          in: path
+          required: true
+          description: 项目ID
+          minLength: 1
+          maxLength: 64
+        - name: user_id
+          type: string
+          in: path
+          required: true
+          description: 用户ID
+          minLength: 1
+          maxLength: 64
+        - name: app_id
+          type: string
+          in: path
+          required: true
+          description: 虚拟应用ID
+          minLength: 1
+          maxLength: 64
+        - in: body
+          name: ExtractUserProfileRequestBody
+          description: 提取用户画像记忆的请求体
+          required: true
+          schema:
+            $ref: '#/definitions/ExtractUserProfileRequestBody'
+      responses:
+        200:
+          description: 提取用户画像记忆的响应体
+          schema:
+            $ref: '#/definitions/ExtractUserProfileResponseBody'
+  /v1/{project_id}/memories/profile/users/{user_id}/apps/{app_id}/tags:
+    get:
+      tags:
+        - user_profile
+      summary: 查询用户指定topic的记忆内容
+      operationId: GetUserProfileValues
+      description: 查询用户指定topic的记忆内容
+      produces:
+        - application/json
+      parameters:
+        - name: project_id
+          type: string
+          in: path
+          required: true
+          description: 项目ID
+          minLength: 1
+          maxLength: 64
+        - name: user_id
+          type: string
+          in: path
+          required: true
+          description: 用户ID
+          minLength: 1
+          maxLength: 64
+        - name: app_id
+          type: string
+          in: path
+          required: true
+          description: 虚拟应用ID
+          minLength: 1
+          maxLength: 64
+        - name: topics
+          in: query
+          type: string
+          required: false
+          description: 需要查询的用户画像主题列表，用逗号分隔多个主题，如financial,geo；为空时查询所有默认主题
+          minLength: 0
+          maxLength: 500
+      responses:
+        200:
+          description: 查询用户指定topic记忆内容的响应体
+          schema:
+            $ref: '#/definitions/GetUserProfileValuesResponseBody'
+  /v1/{project_id}/memories/profile/users/{user_id}/apps/{app_id}/tags/{tag_name}:
+    get:
+      tags:
+        - user_profile
+      summary: 查询指定用户画像标签的当前值
+      operationId: GetUserProfileTagLatestValue
+      description: 查询指定用户画像标签的当前值
+      produces:
+        - application/json
+      parameters:
+        - name: project_id
+          type: string
+          in: path
+          required: true
+          description: 项目ID
+          minLength: 1
+          maxLength: 64
+        - name: user_id
+          type: string
+          in: path
+          required: true
+          description: 用户ID
+          minLength: 1
+          maxLength: 64
+        - name: app_id
+          type: string
+          in: path
+          required: true
+          description: 虚拟应用ID
+          minLength: 1
+          maxLength: 64
+        - name: tag_name
+          in: path
+          type: string
+          required: true
+          description: 标签名称
+          minLength: 1
+          maxLength: 100
+        - name: topic
+          in: query
+          type: string
+          required: true
+          description: 标签所属的主题名称
+          minLength: 1
+          maxLength: 100
+      responses:
+        200:
+          description: 查询指定用户画像标签的当前值的响应体
+          schema:
+            $ref: '#/definitions/GetUserProfileTagLatestValueResponseBody'
+    put:
+      tags:
+        - user_profile
+      summary: 更新查询指定用户画像标签的值
+      operationId: UpdateUserProfileTagValue
+      description: 更新查询指定用户画像标签的值
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - name: project_id
+          type: string
+          in: path
+          required: true
+          description: 项目ID
+          minLength: 1
+          maxLength: 64
+        - name: user_id
+          type: string
+          in: path
+          required: true
+          description: 用户ID
+          minLength: 1
+          maxLength: 64
+        - name: app_id
+          type: string
+          in: path
+          required: true
+          description: 虚拟应用ID
+          minLength: 1
+          maxLength: 64
+        - name: tag_name
+          in: path
+          type: string
+          required: true
+          description: 标签名称
+          minLength: 1
+          maxLength: 100
+        - name: topic
+          in: query
+          type: string
+          required: true
+          description: 标签所属的主题名称
+          minLength: 1
+          maxLength: 100
+        - in: body
+          name: UpdateUserProfileTagValueRequestBody
+          description: 更新用户画像记忆的请求体
+          required: true
+          schema:
+            $ref: '#/definitions/UpdateUserProfileTagValueRequestBody'
+      responses:
+        200:
+          description: 更新用户画像记忆的响应体
+          schema:
+            $ref: '#/definitions/UpdateUserProfileTagValueResponseBody'
+  /v1/{project_id}/memories/profile/users/{user_id}/apps/{app_id}/topics/{topic_name}:
+    delete:
+      operationId: DeleteUserProfileValues
+      summary: 删除某个应用中用户画像记忆的值
+      description: 删除某个用户某个应用中的指定主题或标签的记忆内容
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          type: string
+          description: 租户项目id
+          maxLength: 64
+          minLength: 1
+        - name: user_id
+          type: string
+          in: path
+          required: true
+          description: 用户ID
+          minLength: 1
+          maxLength: 64
+        - name: app_id
+          in: path
+          required: true
+          type: string
+          description: 应用id
+          maxLength: 64
+          minLength: 1
+        - name: topic_name
+          in: path
+          required: true
+          type: string
+          description: 主题名称
+          maxLength: 64
+          minLength: 1
+        - name: tags
+          in: query
+          required: false
+          type: string
+          description: 待删除的用户画像标签列表，多个标签时以,分割，为空时表示删除指定主题下所有的标签内容
+          maxLength: 64
+          minLength: 0
+      responses:
+        '200':
+          description: 删除用户画像记忆的值的响应体
+          schema:
+            $ref: '#/definitions/DeleteUserProfileValuesResponseBody'
+  /v1/{project_id}/memories/profile/users/{user_id}/apps/{app_id}/topics:
+    delete:
+      operationId: ClearUserProfileValues
+      summary: 清空某个应用中用户画像记忆的值
+      description: 清空某个用户某个应用中的用户画像记忆的值
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          type: string
+          description: 租户项目id
+          maxLength: 64
+          minLength: 1
+        - name: user_id
+          type: string
+          in: path
+          required: true
+          description: 用户ID
+          minLength: 1
+          maxLength: 64
+        - name: app_id
+          in: path
+          required: true
+          type: string
+          description: 应用id
+          maxLength: 64
+          minLength: 1
+      responses:
+        '200':
+          description: 清空用户画像记忆的值的响应体
+          schema:
+            $ref: '#/definitions/DeleteUserProfileValuesResponseBody'
+definitions:
+  TagInfo:
+    type: object
+    description: 标签信息
+    required:
+      - topic
+      - name
+    properties:
+      topic:
+        type: string
+        description: 标签所属的主题名称
+        minLength: 1
+        maxLength: 100
+      name:
+        type: string
+        description: 标签名称
+        minLength: 1
+        maxLength: 100
+      description:
+        type: string
+        description: 标签描述
+        minLength: 0
+        maxLength: 500
+  SaveUserProfileConfigRequestBody:
+    type: object
+    description: 保存用户画像标签的请求体
+    properties:
+      tags:
+        type: array
+        minItems: 0
+        maxItems: 30
+        description: 待保存的标签列表，一次最多保存30个
+        items:
+          $ref: '#/definitions/TagInfo'
+  SaveUserProfileConfigResponseBody:
+    type: object
+    description: 保存用户画像标签的响应体
+    properties:
+      tags:
+        type: array
+        description: 标签列表
+        items:
+          $ref: '#/definitions/TagInfo'
+  DeleteUserProfileConfigRequestBody:
+    type: object
+    description: 删除用户画像标签的请求体
+    properties:
+      tags:
+        type: array
+        minItems: 0
+        maxItems: 30
+        description: 待删除的用户画像标签列表，一次最多删除30个
+        items:
+          $ref: '#/definitions/TagInfo'
+  DeleteUserProfileConfigResponseBody:
+    type: object
+    description: 删除用户画像标签的响应体
+    properties:
+      tags:
+        type: array
+        description: 删除完成的用户画像标签列表
+        items:
+          $ref: '#/definitions/TagInfo'
+  Message:
+    type: object
+    description: 消息信息
+    required:
+      - role
+      - timestamp
+      - content
+      - conversation_id
+    properties:
+      role:
+        type: string
+        description: 消息角色，user-用户的对话消息，assistant-应用返回的对话消息
+        enum:
+          - user
+          - assistant
+      timestamp:
+        type: integer
+        format: int64
+        description: 消息产生的时间戳
+      content:
+        type: string
+        description: 消息内容
+        minLength: 1
+        maxLength: 10000
+      conversation_id:
+        type: string
+        description: 会话ID
+        minLength: 1
+        maxLength: 64
+  TagConfig:
+    type: object
+    description: 标签配置
+    required:
+      - name
+      - description
+    properties:
+      name:
+        type: string
+        description: tag名称
+        minLength: 0
+        maxLength: 100
+      description:
+        type: string
+        description: tag描述
+        minLength: 0
+        maxLength: 500
+  TopicConfig:
+    type: object
+    description: 主题配置
+    properties:
+      name:
+        type: string
+        description: topic名称
+        minLength: 0
+        maxLength: 100
+      tags:
+        type: array
+        description: tag列表，如果为空列表，表示提取当前topic下所有的tag信息
+        minItems: 0
+        maxItems: 100
+        items:
+          $ref: '#/definitions/TagConfig'
+  ExtractUserProfileRequestBody:
+    type: object
+    description: 提取用户画像记忆的请求体
+    properties:
+      messages:
+        type: array
+        description: 消息列表
+        minItems: 1
+        maxItems: 50
+        items:
+          $ref: '#/definitions/Message'
+      topics:
+        type: array
+        description: 待提取的topic列表，如果为空列表，表示提取所有的用户画像信息
+        minItems: 0
+        maxItems: 100
+        items:
+          $ref: '#/definitions/TopicConfig'
+  ExtractUserProfileResponseBody:
+    type: object
+    description: 提取的用户画像记忆内容列表
+    properties:
+      tags:
+        type: array
+        description: 标签列表
+        items:
+          $ref: '#/definitions/TagValue'
+  TagValue:
+    type: object
+    description: 用户画像标签的值
+    properties:
+      topic:
+        type: string
+        description: 标签所属的主题名称
+      name:
+        type: string
+        description: 标签名称
+      value:
+        type: string
+        description: 标签的值
+  GetUserProfileValuesResponseBody:
+    type: object
+    description: 查询用户指定topic记忆内容的响应体
+    properties:
+      tags:
+        type: array
+        items:
+          $ref: '#/definitions/TagValue'
+  GetUserProfileTagLatestValueResponseBody:
+    type: object
+    description: 用户画像标签的最新值
+    properties:
+      topic:
+        type: string
+        description: 标签所属的主题名称
+      name:
+        type: string
+        description: 标签名称
+      value:
+        type: string
+        description: 标签的值
+  UpdateUserProfileTagValueRequestBody:
+    type: object
+    properties:
+      value:
+        type: string
+        description: 用户画像标签更新后的值
+        minLength: 0
+        maxLength: 1000
+  UpdateUserProfileTagValueResponseBody:
+    type: object
+    properties:
+      topic:
+        type: string
+        description: 标签所属的主题名称
+      name:
+        type: string
+        description: 标签名称
+      value:
+        type: string
+        description: 用户画像标签更新后的值
+  DeleteUserProfileValuesResponseBody:
+    type: object
+    description: 删除用户画像记忆值的响应消息体
+    properties:
+      success:
+        type: boolean
+        description: 是否删除成功

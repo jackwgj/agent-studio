@@ -1,0 +1,29 @@
+<svg width="16.000000" height="16.000000" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+	<desc>
+			Created with Pixso.
+	</desc>
+	<defs>
+		<clipPath id="clip1_95">
+			<rect width="16.000000" height="16.000000" fill="white" fill-opacity="0"/>
+		</clipPath>
+		<linearGradient x1="5.071327" y1="12.000075" x2="5.071327" y2="0.000816" id="paint_linear_1_99_0" gradientUnits="userSpaceOnUse">
+			<stop offset="0.059622" stop-color="#866AFF"/>
+			<stop offset="0.546206" stop-color="#32CDEC"/>
+			<stop offset="1.000000" stop-color="#A0EA5A"/>
+		</linearGradient>
+		<linearGradient x1="15.291748" y1="13.125277" x2="9.321411" y2="11.250278" id="paint_linear_1_100_0" gradientUnits="userSpaceOnUse">
+			<stop stop-color="#FFB043"/>
+			<stop offset="0.422203" stop-color="#FF637C"/>
+			<stop offset="0.887734" stop-color="#9A83FF"/>
+		</linearGradient>
+	</defs>
+	<g clip-path="url(#clip1_95)">
+		<mask id="mask1_97" mask-type="alpha" maskUnits="userSpaceOnUse" x="0.000000" y="0.000000" width="16.000000" height="16.000000">
+			<rect width="16.000000" height="16.000000" fill="#C4C4C4" fill-opacity="1.000000"/>
+		</mask>
+		<g mask="url(#mask1_97)">
+			<path d="M4.25 1.78L3.47 3.47C3.22 4.02 2.79 4.47 2.25 4.75L0.56 5.62C-0.1 5.96 -0.1 6.89 0.56 7.23L2.25 8.1C2.79 8.37 3.22 8.82 3.47 9.37L4.25 11.06C4.57 11.77 5.56 11.77 5.89 11.06L6.66 9.37C6.91 8.82 7.34 8.37 7.88 8.1L9.58 7.23C10.23 6.89 10.23 5.96 9.58 5.62L7.88 4.75C7.34 4.47 6.91 4.02 6.66 3.47L5.89 1.78C5.56 1.08 4.57 1.08 4.25 1.78Z" fill="url(#paint_linear_1_99_0)" fill-opacity="1.000000" fill-rule="evenodd"/>
+			<path d="M12.25 9.25L11.82 10.17C11.66 10.53 11.37 10.83 11.01 11.02L10.1 11.49C9.77 11.65 9.77 12.12 10.1 12.29L11.01 12.76C11.37 12.94 11.66 13.24 11.82 13.61L12.25 14.53C12.41 14.88 12.9 14.88 13.07 14.53L13.49 13.61C13.66 13.24 13.94 12.94 14.3 12.76L15.21 12.29C15.54 12.12 15.54 11.65 15.21 11.49L14.3 11.02C13.94 10.83 13.66 10.53 13.49 10.17L13.07 9.25C12.9 8.9 12.41 8.9 12.25 9.25Z" fill="url(#paint_linear_1_100_0)" fill-opacity="1.000000" fill-rule="evenodd"/>
+		</g>
+	</g>
+</svg>

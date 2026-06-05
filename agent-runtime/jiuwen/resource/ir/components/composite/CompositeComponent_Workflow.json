@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "0.5",
+  "type": "WorkflowComposite",
+  "version": "0.0.1",
+  "componentCatalog": "compositeComponent",
+  "label": "动态选择workflow",
+  "description": "动态选择workflow",
+  "classInfo": {
+    "irOptions": [
+      {
+        "id": "userDefines",
+        "version": "userDefines"
+      }
+    ]
+  },
+  "inputs": [],
+  "outputs": [],
+  "configs": []
+}

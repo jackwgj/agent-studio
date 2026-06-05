@@ -1,0 +1,460 @@
+
+  <div>
+    <div class="relative h-[96%] w-full flex" >
+      <nz-tabset id="flow-add-tool-modal" class="h-full w-full" [nzAnimated]="false"  [(nzSelectedIndex)]="tabSelectIndex">
+        <div *ngIf="currTab === tabs[0].id" class="add-button">
+          <button type="button" (click)="showAddPluginModal()" nz-button nzType="primary" class="!rounded-button">
+            {{ 'create_plugin' | i18nextEager }}
+          </button>
+        </div>
+        <nz-tab
+          class="h-full"
+          (nzSelect)="onActiveChange(tabs[1], true)"
+          [nzTitle]="tabs[1].title"
+        >
+            <nz-tabset [nzAnimated]="false" level2 [nzTabBarGutter]="0" style="margin: 16px 0"  [(nzSelectedIndex)]="childTabSelectIndex" (nzSelectedIndexChange)="changeAppTab($event)" >
+              <nz-tab
+                *ngFor="let tab of appPluginTabs; let i = index"
+                [nzTitle]="tab.name"
+              ></nz-tab>
+            </nz-tabset>
+          <div class="flex w-full items-center gap-2">
+            <nz-select
+              class="w-[calc(100%-32px)]"
+              [nzMaxTagCount]="1"
+              [(ngModel)]="searchedItem"
+              [nzShowSearch]="true"
+              [nzAllowClear]="true"
+              [nzPlaceHolder]="'plugin_name' | i18nextEager"
+              (ngModelChange)="initApiList('search')"
+              nzMode="multiple"
+            >
+              <nz-option *ngFor="let plugin of plugins" [nzLabel]="plugin.plugin_chinese_name" [nzValue]="plugin"></nz-option>
+            </nz-select>
+            <button
+              (click)="initApiList()"
+              class="h-8 w-8"
+              nz-button
+              nzType="default"
+              nzShape="circle"
+            >
+            <nz-icon nzType="reload" nzTheme="outline" />
+            </button>
+          </div>
+          <nz-spin
+            size="middle"
+            class="flex h-[calc(100%-28px)] w-full items-center justify-center"
+            *ngIf="isLoading"
+          ></nz-spin>
+          <div
+            *ngIf="!isLoading"
+            class="mt-[16px] flex h-[calc(100%-40px)] flex-col gap-[24px]"
+          >
+            <div *ngIf="plugins.length" class="cards-wrapper">
+              <div *ngFor="let plugin of plugins"
+                   class="card-wrapper">
+                <div class="card" (click)="isShow=(isShow===plugin.plugin_id?'':plugin.plugin_id)">
+                  <img
+                    class="h-[40px] w-[40px]"
+                    [src]="getCardIcon(plugin)"
+                    alt="api"
+                  />
+                  <div class="w-[calc(100%-160px)]">
+                    <div class="flex items-center gap-[8px]">
+                      <div
+                        nz-ellipsis
+                        class="max-w-[calc(100%-114px)] text-sm font-bold text-label"
+                      >
+                        {{ getPluginName(plugin) }}
+                      </div>
+                      <div>
+                        <nz-tag *ngIf="plugin?.quotaTag"
+                                nz-tooltip nzTooltipPlacement="bottomLeft" [nzTooltipTitle]="plugin.quotaTag.tip"
+                                class="!rounded-[4px] py-[1px] pl-[2px] pr-[4px]"  [style.color]="plugin.quotaTag.color" [style.background-color]="plugin.quotaTag.bgColor" size="small">
+                          {{plugin.quotaTag.text}}
+                        </nz-tag>
+                        <nz-tag
+                          *ngIf="plugin['credential_status'] === PluginCredentialStatus.UNAUTHENTICATED"
+
+                          nz-tooltip
+                          [nzTooltipTitle]="tipContent"
+
+                          [style.color]="'rgba(25, 25, 25, 1)'"
+                          [style.background-color]="'rgba(230, 230, 230, 1)'"
+                          size="small"
+                          class="!rounded-[4px] py-[1px] pl-[2px] pr-[4px]"
+                        >
+                          {{ this.isZH() ? getPluginLabels(plugin['credential_status']).zh : getPluginLabels(plugin['credential_status']).en }}
+                        </nz-tag>
+                        <nz-tag
+                          *ngIf="plugin['credential_status'] === PluginCredentialStatus.AUTHENTICATED"
+
+                          [style.color]="'rgba(2, 153, 49, 1)'"
+                          [style.background-color]="'rgba(213, 242, 220, 1)'"
+                          size="small"
+                          class="!rounded-[4px] py-[1px] pl-[2px] pr-[4px]"
+                        >
+                          {{ this.isZH() ? getPluginLabels(plugin['credential_status']).zh : getPluginLabels(plugin['credential_status']).en }}
+                        </nz-tag>
+                        <nz-tag
+                          *ngIf="plugin['credential_status'] === PluginCredentialStatus.NONE"
+                          [style.color]="'rgba(20, 118, 255, 1)'"
+                          [style.background-color]="'rgba(222, 236, 255, 1)'"
+                          size="small"
+                          class="!rounded-[4px] py-[1px] pl-[2px] pr-[4px]"
+                        >
+                          {{ this.isZH() ? getPluginLabels(plugin['credential_status']).zh : getPluginLabels(plugin['credential_status']).en }}
+                        </nz-tag>
+                        <nz-tag
+                          *ngIf="getCategoryLabel(plugin.category)"
+                          [style.background-color]="'rgb(245, 245, 245)'"
+                          [style.color]="'rgb(25, 25, 25)'"
+                          [style.font-weight]="'400'"
+                          size="small"
+                          class="!rounded-[4px] py-[1px] pl-[2px] pr-[4px]"
+                        >
+                          {{ getCategoryLabel(plugin.category) }}
+                        </nz-tag>
+                      </div>
+                    </div>
+                    <div
+                      nz-ellipsis
+                      class="mt-[4px] break-words text-desc"
+                    >
+                      {{ plugin.plugin_desc }}
+                    </div>
+                  </div>
+                  <ng-container>
+                    <div class="tool-num">{{getToolNumOfPlugin(plugin)}}{{ 'addpluginscomponent_25' | i18nextEager }}</div>
+                    <img *ngIf="isShow!==plugin.plugin_id"
+                         class="h-4 w-4"
+                         [src]="changeUrl('assets/agent-center/flow/fold.svg')" alt="">
+                    <img *ngIf="isShow===plugin.plugin_id"
+                         class="h-4 w-4"
+                         [src]="changeUrl('assets/agent-center/flow/unfold.svg')" alt="">
+                  </ng-container>
+                </div>
+                <div *ngIf="isShow===plugin.plugin_id" class="my-[16px] h-[1px] w-full bg-[#f0f0f0]"></div>
+                <div *ngIf="isShow===plugin.plugin_id">
+                  <div>
+                    <div class="sub-card sub-card-hover" *ngFor="let tool of plugin.request_info.tool_info">
+                      <div class="w-[calc(100%-160px)]">
+                        <div class="flex items-center gap-[8px]">
+                          <div
+                            nz-ellipsis
+                            class="max-w-[calc(100%-48px)] text-sm font-bold text-label"
+                          >
+                            {{ getToolName(tool) }}
+                          </div>
+                        </div>
+                        <div
+                          nz-ellipsis
+                          class="mt-[4px] break-words text-desc"
+                        >
+                          {{ tool.tool_desc }}
+                        </div>
+                      </div>
+                      <button
+                        (click)="addTool($event, plugin,tool)"
+                        nz-tooltip nzTooltipPlacement="left"
+                        nz-button
+                        nzType="default"
+                      >
+                        {{ 'addpluginmodalcomponent_255' | i18nextEager }}{{tool.ref_num!==0?'('+tool.ref_num+')':''}}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div
+              *ngIf="!plugins.length"
+              class="flex h-full w-full items-center justify-center"
+            >
+            <app-new-common-no-data-with-btn
+            [type]="searchNameIsEmpty ? 'noData' : 'filterNoData'"
+            [tutorialType]="'plugin'"
+            [noDataBtnStr]="'create_plugin' | i18nextEager "
+            (create)="showAddPluginModal()"
+            (clear)="handleClickClearSearch()"
+          />
+            </div>
+          </div>
+        </nz-tab>
+        <nz-tab
+          class="h-full"
+          (nzSelect)="onActiveChange(tabs[0], true)"
+          [nzTitle]="tabs[0].title"
+        >
+          <div class="flex w-full items-center gap-2">
+            <nz-select
+              class="w-[calc(100%-32px)]"
+              [nzMaxTagCount]="1"
+              [(ngModel)]="searchedItem"
+              [nzShowSearch]="true"
+              [nzAllowClear]="true"
+              [nzPlaceHolder]="'plugin_name' | i18nextEager"
+              (ngModelChange)="initApiList('search')"
+              nzMode="multiple"
+            >
+              <nz-option *ngFor="let plugin of plugins" [nzLabel]="plugin.plugin_chinese_name" [nzValue]="plugin"></nz-option>
+            </nz-select>
+            <button
+              (click)="initApiList()"
+              class="h-8 w-8"
+              nz-button
+              nzType="default"
+              nzShape="circle"
+            >
+            <nz-icon nzType="reload" nzTheme="outline" />
+            </button>
+          </div>
+          <nz-spin
+            size="middle"
+            class="flex h-[calc(100%-40px)] w-full items-center justify-center"
+            *ngIf="isLoading"
+          ></nz-spin>
+          <div
+            *ngIf="!isLoading"
+            class="mt-[16px] flex h-[calc(100%-40px)] flex-col gap-[24px] overflow-auto"
+          >
+            <div *ngIf="plugins.length" class="cards-wrapper">
+              <div *ngFor="let plugin of plugins"
+                  class="card-wrapper">
+                <div class="card" (click)="isShow=(isShow===plugin.plugin_id?'':plugin.plugin_id)">
+                  <img
+                    class="h-[40px] w-[40px]"
+                    [src]="getCardIcon(plugin)"
+                    alt="api"
+                  />
+                  <div class="w-[calc(100%-160px)]">
+                    <div class="flex items-center gap-[8px]">
+                      <div
+                        nz-ellipsis
+                        class="max-w-[calc(100%-48px)] text-sm font-bold text-label"
+                      >
+                        {{ getPluginName(plugin) }}
+                      </div>
+                    </div>
+                    <div
+                      nz-ellipsis
+                      class="mt-[4px] break-words text-desc"
+                    >
+                      {{ plugin.plugin_desc }}
+                    </div>
+                  </div>
+                  <ng-container >
+                    <div class="tool-num">{{getToolNumOfPlugin(plugin)}}{{ 'addpluginscomponent_25' | i18nextEager }}</div>
+                    <img *ngIf="isShow!==plugin.plugin_id"
+                        class="h-4 w-4"
+                        [src]="changeUrl('assets/agent-center/flow/fold.svg')" alt="">
+                    <img *ngIf="isShow===plugin.plugin_id"
+                        class="h-4 w-4"
+                        [src]="changeUrl('assets/agent-center/flow/unfold.svg')" alt="">
+                  </ng-container>
+
+                </div>
+                <div *ngIf="isShow===plugin.plugin_id" class="my-[16px] h-[1px] w-full bg-[#f0f0f0]"></div>
+                <div *ngIf="isShow===plugin.plugin_id">
+                  <div>
+                    <div class="sub-card" [ngClass]="{'sub-card-hover': plugin.last_version_id}" *ngFor="let tool of plugin.request_info.tool_info" >
+                      <div class="w-[calc(100%-160px)]">
+                        <div class="flex items-center gap-[8px]">
+                          <div
+                            nz-ellipsis
+                            class="max-w-[calc(100%-48px)] text-sm font-bold text-label"
+                          >
+                            {{ getToolName(tool) }}
+                          </div>
+                        </div>
+                        <div
+                          nz-ellipsis
+                          class="mt-[4px] break-words text-desc"
+                        >
+                          {{ tool.tool_desc }}
+                        </div>
+                      </div>
+                      <button
+                        [nz-tooltip]="plugin.last_version_id || useUnpublishedPlugin ? '' : 'addpluginmodalcomponent_249' | i18nextEager"
+                        (click)="addTool($event, plugin,tool)"
+                        [disabled]="!plugin?.last_version_id && !useUnpublishedPlugin"
+                        nz-tooltip nzTooltipPlacement="left"
+                        nz-button
+                        nzType="default"
+                      >
+                      {{ 'addpluginmodalcomponent_255' | i18nextEager }}{{tool.ref_num!==0?'('+tool.ref_num+')':''}}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div
+              *ngIf="!plugins.length"
+              class="flex h-full w-full items-center justify-center"
+            >
+            <app-new-common-no-data-with-btn
+            [type]="searchNameIsEmpty ? 'noData' : 'filterNoData'"
+            [tutorialType]="'plugin'"
+            [noDataBtnStr]="'create_plugin' | i18nextEager"
+            (create)="showAddPluginModal()"
+            (clear)="handleClickClearSearch()"
+          />
+            </div>
+          </div>
+        </nz-tab>
+        <nz-tab
+        class="h-full"
+        (nzSelect)="onActiveChange(tabs[2], true)"
+        [nzTitle]="tabs[2].title"
+      >
+        <div class="flex w-full items-center gap-2 mt-3">
+          <nz-select
+          class="!w-full workflow-searchbox"
+          [nzPlaceHolder]="'search_placeholder'|i18nextEager"
+          [(ngModel)]="shareSearchKey"
+          (ngModelChange)="initApiList('share')"
+          nzShowSearch
+          nzAllowClear
+        >
+        </nz-select>
+        </div>
+        <nz-spin
+          size="middle"
+          class="flex h-[calc(100%-28px)] w-full items-center justify-center"
+          *ngIf="isLoading"
+        ></nz-spin>
+        <div
+          *ngIf="!isLoading"
+          class="mt-[16px] flex h-[calc(100%-40px)] flex-col gap-[24px]"
+        >
+          <div *ngIf="plugins.length" class="cards-wrapper">
+            <div *ngFor="let plugin of plugins"
+                 class="card-wrapper">
+              <div class="card" (click)="getShareTool(plugin)">
+                <img
+                  class="h-[40px] w-[40px]"
+                  [src]="getCardIcon(plugin)"
+                  alt="api"
+                />
+                <div class="w-[calc(100%-160px)]">
+                  <div class="flex items-center gap-[8px]">
+                    <div
+                      nz-ellipsis
+                      class="max-w-[calc(100%-48px)] text-sm font-bold text-label"
+                    >
+                      {{ getPluginName(plugin) }}
+                    </div>
+                  </div>
+                  <div >
+                    <span class="w-full mt-1 text-[#808080]" nz-ellipsis>
+                      {{plugin.plugin_desc}}
+                    </span>
+                  </div>
+                  <div class="flex items-center text-[#808080]">
+                    <span class="mr-1 !text-[16px]">cloudx-action-account</span>
+                    <span class="max-w-[130px]" nz-ellipsis>
+                    {{plugin.workspace_name || plugin.workspace_id}}
+                    </span>
+                    <span *ngIf="plugin.version_info_list?.length" class="pl-2 pr-2">|</span>
+                      <div class="version-info-list-div"  *ngIf="plugin.version_info_list?.length">
+                        {{'version_name'|i18nextEager}}:
+                        <nz-select
+                          class="!max-w-[130px]"
+                          nzBorderless
+                          [(ngModel)]="plugin.last_version_id"
+                          (click)="onVersionClick($event)"
+                          (ngModelChange)="onVersionSelect(plugin)"
+                          [nzPlaceHolder]="'select_placeholder'|i18nextEager"
+                        >
+                          <nz-option *ngFor="let version of plugin.version_info_list" [nzValue]="version.version_id" [nzLabel]="version.version_name"></nz-option>
+                        </nz-select>
+                      </div>
+                    </div>
+                </div>
+                <ng-container >
+                  <div class="tool-num"></div>
+                  <img *ngIf="isShow!==plugin.plugin_id"
+                       class="h-4 w-4"
+                       [src]="changeUrl('assets/agent-center/flow/fold.svg')" alt="">
+                  <img *ngIf="isShow===plugin.plugin_id"
+                       class="h-4 w-4"
+                       [src]="changeUrl('assets/agent-center/flow/unfold.svg')" alt="">
+                </ng-container>
+              </div>
+              <div *ngIf="isShow===plugin.plugin_id" class="my-[16px] h-[1px] w-full bg-[#f0f0f0]"></div>
+              <nz-spin
+                size="middle"
+                class="flex h-[66px] w-full items-center justify-center"
+                *ngIf="!plugin.toolIsReady && isShow===plugin.plugin_id"
+              ></nz-spin>
+              <div *ngIf="isShow===plugin.plugin_id && plugin.toolIsReady">
+                <div>
+                  <div class="sub-card sub-card-hover" *ngFor="let tool of plugin.tool_info">
+                    <div class="w-[calc(100%-160px)]">
+                      <div class="flex items-center gap-[8px]">
+                        <div
+                          nz-ellipsis
+                          class="max-w-[calc(100%-48px)] text-sm font-bold text-label"
+                        >
+                          {{ getToolName(tool) }}
+                        </div>
+                      </div>
+                      <div
+                        nz-ellipsis
+                        class="mt-[4px] break-words text-desc"
+                      >
+                        {{ tool.tool_desc }}
+                      </div>
+                    </div>
+                    <button
+                      (click)="addTool($event, plugin,tool)"
+                      nz-tooltip nzTooltipPlacement="left"
+                      nz-button
+                      nzType="default"
+                    >
+                      {{'add'|i18nextEager}}{{tool.ref_num ?'('+tool.ref_num+')':''}}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div
+            *ngIf="!plugins.length"
+            class="flex h-full w-full items-center justify-center"
+          >
+          <app-new-common-no-data-with-btn
+          [type]="'noData'"
+          [firstLineData]="'no_data' | i18nextEager"
+          [noDataBtnStr]="''"/>
+          </div>
+        </div>
+      </nz-tab>
+      </nz-tabset>
+    </div>
+  </div>
+  <div>
+    <div class="flex items-center text-[14px] relative" style="justify-content: space-between;">
+      <div class="plugins-selected-count"
+          [style]="{'--left':lang==='zh-cn'?'90px':'124px'}"
+      >
+        {{ 'addpluginmodalcomponent_256' | i18nextEager:{addedToolsTypeCnt:addedToolsTypeCnt,addedCnt:addedCnt } }}
+      </div>
+      <nz-pagination
+        [(nzPageIndex)]="currentPage"
+        [nzTotal]="totalNumber"
+        nzSize="small"
+        (nzPageIndexChange)="initApiList()"
+        [nzPageSize]="pageSize"
+        [nzShowSizeChanger]="true"
+        [nzPageSizeOptions]="pageSizeOptions"
+      ></nz-pagination>
+    </div>
+  </div>
+
+  <ng-template let-context="context" #tipContent>
+    <div class="app-safe-warn-overflow">
+      {{"click"|i18nextEager}}<a (click)="handleClickAddAuthConfig(context)"> {{'configAuth'|i18nextEager}}</a>
+    </div>
+  </ng-template>

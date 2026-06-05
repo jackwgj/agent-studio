@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.common.service.mapper.LicenseRecordMapper">
+    <resultMap id="baseColumns" type="com.openjiuwen.studio.common.service.entity.LicenseRecordEntity">
+        <result column="id" jdbcType="VARCHAR" property="id"/>
+        <result column="sku_code" jdbcType="VARCHAR" property="skuCode"/>
+        <result column="attr_code" jdbcType="VARCHAR" property="attrCode"/>
+        <result column="resource_id" jdbcType="VARCHAR" property="resourceId"/>
+        <result column="oper_type" jdbcType="VARCHAR" property="operType"/>
+        <result column="quantity" jdbcType="VARCHAR" property="status"/>
+        <result column="created_by_user_id" jdbcType="VARCHAR" property="createdByUserId"/>
+        <result column="created_date" jdbcType="TIMESTAMP" property="createdDate"/>
+        <result column="last_updated_by_user_id" jdbcType="VARCHAR" property="lastUpdatedByUserId"/>
+        <result column="last_updated_date" jdbcType="TIMESTAMP" property="lastUpdatedDate"/>
+        <result column="domain_id" jdbcType="VARCHAR" property="domainId"/>
+    </resultMap>
+
+    <sql id="baseColumns">
+        `id`
+        , `sku_code`,
+        `attr_code`,
+        `resource_id`,
+        `oper_type`,
+        `quantity`,
+        `created_by_user_id`,
+        `created_date`,
+        `last_updated_by_user_id`,
+        `last_updated_date`,
+        `domain_id`
+    </sql>
+
+    <insert id="insert" keyProperty="id" useGeneratedKeys="true"
+            parameterType="com.openjiuwen.studio.common.service.entity.LicenseRecordEntity">
+        insert into t_common_license_record (<include refid="baseColumns"></include>)
+        values (
+        #{param.id},
+        #{param.skuCode},
+        #{param.attrCode},
+        #{param.resourceId},
+        #{param.operType},
+        #{param.quantity},
+        #{param.createdByUserId},
+        #{param.createdDate},
+        #{param.lastUpdatedDate},
+        #{param.lastUpdatedByUserId},
+        #{param.domainId}
+        )
+    </insert>
+</mapper>

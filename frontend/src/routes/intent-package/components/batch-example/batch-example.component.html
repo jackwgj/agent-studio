@@ -1,0 +1,44 @@
+<div class="p-[24px]">
+  <div class="modal-header-style mb-[16px]">
+    <span class="modal-header-text">{{ 'batch_input' | i18nextEager }}</span>
+  </div>
+
+  <div>
+    <div class="text-[12px] text-[#191919] mb-[8px]">
+      {{ 'intention_example_name' | i18nextEager }}
+    </div>
+
+    <form nz-form [formGroup]="form" nzLayout="vertical">
+      <nz-form-item class="mb-0">
+        <nz-form-control [nzErrorTip]="errorTpl">
+          <textarea
+            nz-input
+            class="min-h-[100px] w-[100%]"
+            style="resize: vertical;"
+            maxlength="1000"
+            [formControl]="form.controls.name"
+            [placeholder]="'batch_input_tips' | i18nextEager"
+          ></textarea>
+
+          <ng-template #errorTpl let-control>
+            <ng-container *ngIf="control.hasError('nameChAllow')">
+              {{ 'variable_validator6e' | i18nextEager }}
+            </ng-container>
+            <ng-container *ngIf="control.hasError('required')">
+              {{ 'variable_validator6' | i18nextEager }}
+            </ng-container>
+          </ng-template>
+        </nz-form-control>
+      </nz-form-item>
+    </form>
+  </div>
+
+  <div class="flex justify-end gap-[8px] mt-[24px]">
+    <button nz-button nzType="default" (click)="dismiss()">
+      {{ 'cancel' | i18nextEager }}
+    </button>
+    <button nz-button nzType="primary" (click)="submit()">
+      {{ 'ok' | i18nextEager }}
+    </button>
+  </div>
+</div>

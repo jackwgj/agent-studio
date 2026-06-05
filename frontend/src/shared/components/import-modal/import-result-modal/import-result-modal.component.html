@@ -1,0 +1,168 @@
+<div class="import-modal-container">
+  <div *nzModalTitle class="header">
+    <span>{{ 'import' | i18nextEager }}</span>
+  </div>
+
+  <div class="main-container">
+    <div class="import-and-alert">
+      <nz-alert
+        *ngIf="alertStr"
+        nzType="success"
+        [nzShowIcon]="true"
+        class="!w-full"
+        [nzMessage]="alertStr"
+      >
+      </nz-alert>
+      <nz-alert
+        *ngIf="errorTip"
+        nzType="error"
+        [nzShowIcon]="true"
+        class="!w-full"
+        [nzMessage]="errorTip"
+      >
+      </nz-alert>
+
+      <ng-container *ngFor="let tip of warnTipList;index as i">
+        <nz-alert
+          nzType="warning"
+          [nzShowIcon]="true"
+          class="!w-full"
+          [nzMessage]="warnTipRef"
+        >
+          <ng-template #warnTipRef>
+            <div style="line-height: 18px;">
+              <ng-container *ngIf="warnTipList.length>1">{{ i }}.</ng-container>
+              {{ tip }}
+            </div>
+          </ng-template>
+        </nz-alert>
+      </ng-container>
+
+    </div>
+    <div class="parse-file">
+      <nz-table
+        [nzData]="srcData.data"
+        [nzTotal]="srcData.data.length"
+        [nzShowSizeChanger]="false"
+        [nzFrontPagination]="false"
+      >
+        <thead>
+        <tr>
+          <th nzWidth="32px"></th>
+          <ng-container *ngFor="let col of columns;">
+            <th [nzWidth]="col.width">{{ col.title }}</th>
+          </ng-container>
+        </tr>
+        </thead>
+        <tbody>
+        <ng-container *ngFor="let row of srcData.data;index as i">
+          <tr>
+            <td nzExpand>
+                <span
+                  nz-icon
+                  [nzType]="row.showDetails ? 'minus-square' : 'plus-square'"
+                  (click)="beforeToggle(row)"
+                ></span>
+            </td>
+            <ng-container *ngFor="let col of columns;">
+              <td>
+                <ng-container [ngSwitch]="col.key">
+                  <ng-container *ngSwitchCase="columns[2]?.key">
+                      <span class="flex align-center status-font">
+                        <span nz-icon [ngClass]="{'status-success':row.status==='SUCCESS','status-fail':row.status!=='SUCCESS'}"
+                              [nzType]="row.status==='SUCCESS'?'check-circle':'close-circle'"
+                        ></span>
+                        <ng-container *ngIf="row.status === 'SUCCESS'">{{ 'success_1' | i18nextEager }}</ng-container>
+                        <ng-container *ngIf="row.status !== 'SUCCESS'">{{ 'flowtasklistcomponent_646' | i18nextEager }}</ng-container>
+                      </span>
+                  </ng-container>
+                  <ng-container *ngSwitchCase="columns[3]?.key">
+                      <span class="operate-btn"
+                            *ngIf="row.status!=='SUCCESS'"
+                            nz-tooltip
+                            [nzTooltipTitle]="row.detail"
+                      >{{ 'view_reason' | i18nextEager }}</span>
+                  </ng-container>
+                  <ng-container *ngSwitchDefault>
+                    <span>{{ row[col.key] }}</span>
+                  </ng-container>
+                </ng-container>
+              </td>
+            </ng-container>
+          </tr>
+          <tr *ngIf="row.showDetails && row.dependencies?.length">
+            <td></td>
+            <td colspan="3">
+              <div class="ti3-table-detail-container">
+                <div class="sub-detail-container">
+                  <div class="child-list">
+                    <div
+                      *ngFor="let childItem of row.dependencies"
+                      class="child"
+                    >
+                      <div class="child-rounded-wrapper">
+                        <div class="child-wrapper">
+                          <div class="dependency-info-child"
+                          >
+                            <div class="child-col" [ngStyle]="{'width':columns[0]?.width}">
+                              <div style="min-width: 20px">{{ childItem.name }}</div>
+                              <div class="dependency-tag ml-[16px]">
+                                {{ getTypeName(childItem.type) }}
+                              </div>
+                              <div *ngIf="childItem.config_display" class="no-certification-tag ml-[8px]">
+                                {{ 'no_auth_config' | i18nextEager }}
+                              </div>
+                            </div>
+                            <div class="child-col flex-shrink-0" [ngStyle]="{'width':columns[1]?.width}">
+                              {{ childItem.resource_desc }}
+                            </div>
+                            <div *ngIf="columns[2]?.key" class="child-col flex-shrink-0" [ngStyle]="{'width':columns[2]?.width}">
+                                <span class="flex align-center status-font">
+                                  <span nz-icon [ngClass]="{'status-success':childItem.status==='SUCCESS','status-fail':childItem.status!=='SUCCESS'}"
+                                        [nzType]="childItem.status==='SUCCESS'?'check-circle':'close-circle'"
+                                  ></span>
+                                  <ng-container *ngIf="childItem.status === 'SUCCESS'">{{ 'success_1' | i18nextEager }}</ng-container>
+                                  <ng-container *ngIf="childItem.status !== 'SUCCESS'">{{ 'flowtasklistcomponent_646' | i18nextEager }}</ng-container>
+                                </span>
+                            </div>
+                            <div *ngIf="columns[3]?.key" class="child-col flex-shrink-0" [ngStyle]="{'width':columns[3]?.width}">
+                                <span class="operate-btn"
+                                      *ngIf="childItem.status!=='SUCCESS'"
+                                      nz-tooltip
+                                      [nzTooltipTitle]="childItem.detail"
+                                >{{ 'view_reason' | i18nextEager }}</span>
+                              <span *ngIf="childItem.config_display" class="operate-btn" (click)="authenteConfig(childItem)">{{ 'config_auth' | i18nextEager }}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div *ngIf="!row.dependencies?.length" class="no-data-container">
+                      <div class="text">{{ 'no_resource' | i18nextEager }}</div>
+                      <div class="tip">{{ 'no_resource_tip' | i18nextEager }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </td>
+          </tr>
+        </ng-container>
+        </tbody>
+      </nz-table>
+      <div class="total-tip">{{ bottomTip }}</div>
+    </div>
+  </div>
+
+  <div *nzModalFooter class="footer">
+    <button nz-button nzType="primary" class="rounded" (click)="dismiss()">
+      {{ 'close' | i18nextEager }}
+    </button>
+  </div>
+</div>
+
+<ng-template #tipContent let-context="context">
+  <div class="flex align-center">
+    <span nz-icon nzType="close-circle" class="status-fail text-[16px]"></span>
+    <span class="ml-[8px] leading-[24px]">{{ context }}</span>
+  </div>
+</ng-template>

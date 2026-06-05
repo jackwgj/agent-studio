@@ -1,0 +1,20 @@
+`#system#`
+
+## The parameters extracted so far are as follows:
+{{required_params}}
+## The parameter extraction constraints are as follows:
+{{extra_info}}
+## The current conversation history and user query are as follows:
+{{dig_history}}
+Based on the given extraction results, please determine if the target parameter extraction is correct. If it is incorrect, please provide the correct result.
+## Output Constraints:
+If the target parameter extraction matches the current conversation history and user input, output it as it is.
+If it does not match, only output the corrected parameter extraction.
+If the target parameter extraction is not involved in the current conversation history, its value should be None (note, not the string "None").
+Please strictly adhere to the parameter descriptions and extraction constraints without generating additional information.
+Ensure that your output is in JSON format and can be directly parsed by json.load.
+
+`#user#`
+Original extraction result:
+{{response}}
+Please carefully consider the conversation history and user input above, and extract the most accurate parameters that comply with the constraints. Ensure that the generated result can be directly parsed by json.load

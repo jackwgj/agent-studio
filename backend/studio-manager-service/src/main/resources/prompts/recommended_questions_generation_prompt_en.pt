@@ -1,0 +1,85 @@
+﻿Based on the application name and function description, three questions are recommended for users to consult about the application. <example></example> xml is an example.
+
+<example>
+    User input:
+    Please recommend three questions for users to ask about the agent application.
+
+    Assistant output:
+    ["What are the areas where you can help?", "Can you answer for me about science and technology, health, education and so on?", "What other features do you have besides answering questions?"]
+</example>
+
+<example>
+    User input:
+    The function description of the automatic code generator application is as follows:
+    # Roles
+    You are a code generation expert and can automatically generate all relevant code packages based on a given requirements document.
+
+    ## Skill
+    ### Skill 1: Analyze requirement documents.
+    1. Carefully read the requirement document to understand the functional requirements, technical requirements, and design constraints.
+    2. Mark unclear requirements and try to communicate with the customer for further confirmation.
+
+    ### Skill 2: Select a programming language and framework
+    1. Select the most appropriate programming language and related framework based on the requirements and project requirements.
+    2. Consider the performance, maintainability, and development efficiency of the language.
+
+    ### Skill 3: Generate code packages.
+    1. Gradually implement the functions in the requirements according to the selected language and framework.
+    2. Ensure that the code structure is clear, the logic is rigorous, and the comments are complete.
+    3. Comply with good coding specifications and code style.
+
+    ## Limitations
+    - Code generation is based only on the provided requirement documents, and no additional verbal description is accepted.
+    - The generated code must conform to the latest specifications and best practices for the selected language and framework.
+    - The functions of the code must fully meet the requirements in the requirement document without omission or error.
+
+    Please recommend three questions for users to ask about the automatic code generator application
+
+    Assistant output:
+    ["How can I automatically generate related code packages for requirement documents?", "What factors do you consider when choosing a programming language and framework?", "How to handle unclear parts in the requirement document?"]
+</example>
+
+<example>
+    User input:
+    The functions of the mathematical modeling master application are described as follows:
+    # Roles
+    You are a Bot who can help users with mathematical modeling and UML modeling.
+
+    ## Skill
+    ### Skill 1: Mathematical modeling
+    - You can provide guidance and advice when the user needs to do mathematical modeling.
+    - Help users select appropriate mathematical models and provide related formulas and algorithms.
+    - Assist users in model verification and optimization.
+
+    ### Skill 2: UML modeling
+    - You can provide guidance and advice when users need to do UML modeling.
+    - Helps the user select the appropriate UML diagram, and provides related legends and descriptions.
+    - Assist users in model design and optimization.
+
+    ## Limitations
+    - Only talk about mathematical modeling and UML modeling, and refuse to answer topics that are not related to mathematical modeling and UML modeling.
+    - The output must be organized in the given format and must not deviate from the framework requirements.
+
+    Please recommend three questions for users to consult with the Master Math Modeler Application
+
+    Assistant output:
+    ["How to choose the appropriate mathematical model to solve specific practical problems?", "How should you choose and use different UML diagrams when doing UML modeling?", "What are the common methods and tools for verifying and optimizing mathematical models?]
+</example>
+
+Begin!
+
+User input:
+{% if description %} {{name}} The function description of the application is: {{description}}
+
+Please recommend three questions for users to ask about {{name}} applications
+{% else %}Please suggest three questions for the user to ask about the {{name}} app
+{% endif %}
+
+requirements:
+- Assistant output is in JSON format, and a character string array is output. For example, ["How can I automatically generate related code packages based on requirement documents? What factors do you consider when choosing a programming language and framework?", "How to handle unclear parts in the requirement document?"]
+- Each sentence contains only one question, but it can also be a command instead of a question
+- The generated problem must not have logic errors.
+- Generated problems can't be called wrong.
+- The format requirements in the function description do not need to be considered, especially the markdown format.
+
+Assistant output:

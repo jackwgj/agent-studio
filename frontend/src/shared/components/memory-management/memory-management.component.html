@@ -1,0 +1,8 @@
+<div class="memory-management" nz-tooltip [nzTooltipTitle]="titleMode === 'dev' ? ('memory' | i18nextEager) : ('memory_management' | i18nextEager)" (click)="memoryManagementModal.showModal()">
+  <img alt="" [src]="changeUrl('assets/agent-center/icons/memory-icon-new.svg')"/>
+  <memory-management-modal
+    #memoryManagementModal
+    [conversationState]="conversationState"
+    [memoryLibId]="memoryLibId"
+    (confirm)="confirm.emit($event)"></memory-management-modal>
+</div>

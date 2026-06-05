@@ -1,0 +1,27 @@
+<div
+  class="box flex h-fit w-72 flex-col items-center justify-center gap-2 rounded-lg bg-white p-4"
+>
+  <!-- content 区域, 包含 content 与 icon -->
+  <div class="flex w-full gap-2">
+    <div>
+      <img class="h-4 w-4" [src]="icon" alt="use-icon" />
+    </div>
+    <div
+      class="w-[calc(100%-24px)] whitespace-pre-wrap break-all text-sm text-[#191919]"
+    >
+      {{ content }}
+    </div>
+  </div>
+
+  <!-- confirm 与 cancel 按钮组 -->
+  <div *ngIf="isShowButtonGroup" class="flex items-center">
+    <button nz-button nzType="primary" (click)="onConfirm()">
+      {{ 'base_confirm' | i18nextEager }}
+    </button>
+    <button class="ml-2" nz-button (click)="onCancel()">
+      {{ 'base_cancel' | i18nextEager }}
+    </button>
+  </div>
+
+  <div [ngStyle]="getArrowPos()" class="arrow"></div>
+</div>

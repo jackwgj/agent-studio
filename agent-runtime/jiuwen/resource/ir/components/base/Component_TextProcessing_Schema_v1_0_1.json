@@ -1,0 +1,68 @@
+{
+  "schemaVersion": "0.6",
+  "type": "jiuwen.TextProcessingComponent",
+  "version": "1.0.1",
+  "description": "大模型能力配置组件",
+  "classInfo": {
+    "programLanguage": "python",
+    "modulePath": "jiuwen.prompt.agent.components.text_processing",
+    "className": "TextProcessingComponentV1",
+    "filePath": "jiuwen/prompt/agent/components/text_processing.pyc"
+  },
+  "configs": [
+    {
+      "id": "functionality",
+      "description": "字符串分割模式（split）或拼接模式（concat）",
+      "type": "String"
+    },
+    {
+      "id": "listJoinString",
+      "description": "用于连接数组的符号，默认为逗号",
+      "type": "String"
+    },
+    {
+      "id": "concatTemplate",
+      "description": "字符串拼接模板",
+      "type": "String"
+    },
+    {
+      "id": "splitStringList",
+      "description": "用于分隔字符串的符号，默认为逗号",
+      "type": "List<String>"
+    },
+    {
+      "id": "preDefinedFields",
+      "type": "Map<String, T>",
+      "description": "预定义参数信息配置"
+    },
+    {
+      "id": "userFields",
+      "type": "Map<String, T>",
+      "description": "用户自定义输入输出参数的配置信息"
+    }
+  ],
+  "inputs": [
+    {
+      "id": "userFields",
+      "type": "Map<String, T>",
+      "description": "用户自定义输入参数"
+    },
+    {
+      "id": "String",
+      "type": "String",
+      "description": "分隔模式下的固定输入字段"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "output",
+      "type": "String",
+      "description": "仅concat模式下有此输出，表示拼接后的字符串"
+    },
+    {
+      "id": "outputList",
+      "type": "List<String>",
+      "description": "仅split模式下由此输出，表示分隔后的字符串"
+    }
+  ]
+}

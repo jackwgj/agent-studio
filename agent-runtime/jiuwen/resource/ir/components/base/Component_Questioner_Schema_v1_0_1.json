@@ -1,0 +1,83 @@
+{
+  "schemaVersion": "0.6",
+  "type": "jiuwen.QuestionerComponent",
+  "version": "1.0.1",
+  "description": "questioner 组件",
+  "classInfo": {
+    "programLanguage": "python",
+    "modulePath": "jiuwen/planner/components/questioner",
+    "className": "QuestionerComponent",
+    "filePath": "jiuwen/planner/components/questioner.pyc"
+  },
+  "inputs": [
+    {
+      "id": "userFields",
+      "type": "Map<String, T>",
+      "description": "用户自定义输入参数"
+    },
+    {
+      "id": "extractedContent",
+      "type": "String",
+      "description": "用户设置的首轮参数提取的输入，非必选参数"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "userFields",
+      "type": "Map<String, T>",
+      "description": "用户自定义输出参数"
+    },
+    {
+      "id": "userResponse",
+      "type": "String",
+      "description": "用户最近一轮对话"
+    }
+  ],
+  "configs": [
+    {
+      "id": "modelConfigs",
+      "type": "Map<String, T>",
+      "description": "模型配置"
+    },
+    {
+      "id": "extraInstruction",
+      "type": "String",
+      "description": "用于增强问答组件效果的额外指令"
+    },
+    {
+      "id": "questionContent",
+      "type": "String",
+      "description": "直接向用户提问的问题"
+    },
+    {
+      "id": "isExtractedFields",
+      "type": "Boolean",
+      "description": "是否要提取参数"
+    },
+    {
+      "id": "extractedFields",
+      "type": "List[Map<String, T>]",
+      "description": "用户自定义的要提取的参数"
+    },
+    {
+      "id": "maxResponse",
+      "type": "Int",
+      "description": "最大回复次数"
+    },
+    {
+      "id": "preDefinedFields",
+      "type": "Map<String, T>",
+      "description": "预定义参数信息配置"
+    },
+    {
+      "id": "userFields",
+      "type": "Map<String, T>",
+      "description": "用户自定义输入输出参数的配置信息"
+    },
+    {
+      "id": "debugType",
+      "type": "Map<String, T>",
+      "description": "调测功能配置项"
+    }
+  ]
+}

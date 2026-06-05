@@ -1,0 +1,359 @@
+quest_reason_ans: |
+  [query]: {question}
+  [assistant answer]: {answer}
+  ===
+
+quest_reason_ans_error: |
+  [query]: {question}
+  [expected answer]: {answer}
+  [assistant answer]: {predict}
+  ===
+
+meta_critique_template: |
+  作为提示词优化专家，我的目标是帮助代理高效且成功地完成任务。
+  当前的提示词是：“{instruction}”
+  然而，这个提示词在以下示例中未能给出正确的结果：“{examples}”
+  当前可用的背景知识是：“{external_knowledge}”
+  请提供详细的反馈，分析指令可能出错的原因，结合背景知识，指出其表达、结构或内容上的潜在问题。
+  针对每个示例，具体说明指令中的问题，结合背景知识，解释代理为何会误解指令，并提出如何修改指令的建议，使其更加清晰、精确。
+  请确保所有建议都可操作、具备针对性，避免空泛描述。
+  每个反馈建议信息请用 <INS> 和 </INS> 包裹。
+
+critique_refine_template_normal: |
+  你是一位提示词优化专家，你的任务是根据提供的信息对提示词进行优化。具体信息如下：
+  首先，请仔细阅读以下提示词：
+  <prompt_base>
+  {{PROMPT_META_TEMPLATE}}
+  </prompt_base>
+  
+  你拥有的工具或API说明如下
+  <tools_description>
+  {{API_TOOLS_DESCRIPTION}}
+  </tools_description>
+
+  提示词在应用过程中出现的错误case如下：
+  <error_cases>
+  {{ERROR_CASES}}
+  </error_cases>
+  
+  对这些错误case的反思如下：
+  <reflections_on_error_cases>
+  {{REFLECTIONS_ON_ERROR_CASES}}
+  </reflections_on_error_cases>
+  
+  请按照以下步骤进行优化：
+  1. 在<思考>标签中，根据错误案例和反思内容，详细且全面地分析如何对提示词进行优化。分析过程应涵盖对原始提示词中可能导致错误的部分的识别，以及如何通过修改提示词来避免这些错误。
+  2. 基于分析结果，在<PROMPT_OPTIMIZED>标签中输出优化后的提示词。
+  3. 禁止在提示词中添加给出的具体示例信息
+  4. 仔细分析错误case和对应的反思，找出可能导致错误的共性问题。
+  5. 确保优化后的元模板具有泛化性，能够适用于更广泛的场景。
+  
+  输出格式：
+  <思考>
+  [在此详细说明你对提示词的优化分析]
+  </思考>
+  <PROMPT_OPTIMIZED>
+  [在此输出优化后的提示词]
+  </PROMPT_OPTIMIZED>
+  请确保优化后的内容能够有效避免之前出现的错误case。
+
+critique_refine_template_meta: |
+  你是一位提示词优化专家，你的任务是根据提供的信息对prompt元模板进行优化。具体信息如下：
+  请仔细阅读以下prompt元模板：
+  <prompt_base>
+  {{PROMPT_META_TEMPLATE}}
+  </prompt_base>
+
+  你拥有的工具或API说明如下
+  <tools_description>
+  {{API_TOOLS_DESCRIPTION}}
+  </tools_description>
+
+  以下是占位符对应内容：
+  <placeholder_content>
+  {{PLACEHOLDER_CONTENTS}}
+  </placeholder_content>
+  
+  以下是提示词在应用过程中出现的错误case：
+  <error_cases>
+  {{ERROR_CASES}}
+  </error_cases>
+  
+  以下是对这些错误case的反思：
+  <reflections_on_error_cases>
+  {{REFLECTIONS_ON_ERROR_CASES}}
+  </reflections_on_error_cases>
+  
+  在优化prompt元模板时，请遵循以下指南：
+  1. 仔细分析错误case和对应的反思，找出可能导致错误的共性问题。
+  2. 结合占位符对应内容，考虑如何在元模板层面避免这些问题。
+  3. 确保优化后的元模板具有泛化性，能够适用于更广泛的场景。
+  4. 禁止在元模板中包含任何具体错误case的相关信息。
+  5. 优化后的元模板不能丢弃任何的占位符信息
+  
+  输出格式：
+  <PROMPT_OPTIMIZED>
+  [在此输出优化后的prompt元模板，包含占位符信息]
+  </PROMPT_OPTIMIZED>
+  请确保优化后的内容能够有效避免之前出现的错误case。
+
+critique_refine_template_schema: |
+  你是一名提示词优化专家，你的任务是根据提供的信息对指定的占位符进行优化。优化后的占位符内容应详细具体，包含参数描述、注意事项等。
+
+  优化要求如下：
+  严格根据需要优化的占位符列表进行优化。不需优化的占位符则保持不变。
+  优化结果格式：每个优化结果需用 <xx></xx> 包裹，xx 代表占位符的 key。
+  
+  以下是带占位符的prompt元模板：
+  <prompt_base>
+  {{PROMPT_META_TEMPLATE}}
+  </prompt_base>
+
+  你拥有的工具或API说明如下
+  <tools_description>
+  {{API_TOOLS_DESCRIPTION}}
+  </tools_description>
+
+  以下是占位符对应内容：
+  <placeholder_content>
+  {{PLACEHOLDER_CONTENTS}}
+  </placeholder_content>
+  
+  以下是需要优化的占位符：
+  <placeholder_to_optimize>
+  {{PLACEHOLDER_TO_OPTIMIZE}}
+  </placeholder_to_optimize>
+  
+  以下是提示词在应用过程中出现的错误case：
+  <error_cases>
+  {{ERROR_CASES}}
+  </error_cases>
+  
+  以下是对这些错误case的反思：
+  <reflections_on_error_cases>
+  {{REFLECTIONS_ON_ERROR_CASES}}
+  </reflections_on_error_cases>
+  
+  请按照以下步骤进行优化：
+  1. 仔细分析错误case和对其的反思，明确需要改进的方向。
+  2. 结合prompt元模板和占位符对应内容，考虑占位符在整个提示词中的作用。
+  3. 根据以上分析，对需要优化的占位符进行详细具体的优化，包含参数描述、注意事项等。
+  
+  输出格式：
+  <PLACEHOLDER_OPTIMIZED>
+  [在此输出优化后的占位符对应内容，例如<xxx></xxx>]
+  </PLACEHOLDER_OPTIMIZED>
+  请确保优化后的内容能够有效避免之前出现的错误case。
+
+variable_summary_template: |
+  你是一位提示词优化专家，擅长从用户提供的任务模板中抽取变量，并为其生成简洁、清晰的命名，便于标注、对齐和后续展示。
+
+  ## 你的任务如下：
+
+  你将接收两个输入：
+
+  1. 一段**用户指令信息**（通常包含占位符变量，例如 `{{variable_name}}`）
+  2. 一个**已提取的变量名列表**（如 `["custom_id", "rule_list"]`）
+
+  请执行以下操作：
+
+  * 对每个变量名，生成**不超过 8 个字的中文名称**
+  * 变量名仅限于输入列表中提供的值，不得添加、修改或遗漏
+  * 如果指令中已有清晰的对应名称（如字段标题、注释等），**直接提取使用**
+  * 如果没有明确名称，请**根据上下文合理归纳命名**，务必准确、简洁
+  * 最终以**标准 JSON** 形式输出，格式如下：
+
+  ```json
+  {
+    "变量名1": "名称1",
+    "变量名2": "名称2"
+  }
+  ```
+
+  ## 示例输入
+
+  **用户指令信息：**
+
+  ```
+  ## 角色
+  你是一位保险销售的教练，扮演“人物画像”中的人物与销售对话。对话时应参考“考点列表”中任务，按顺序生成回复。回复时要贴合客户画像中人物。
+
+  ## 人物画像
+  {{custom_id}}
+
+  ## 考点列表
+  {{rule_list}}
+  ```
+
+  **变量名列表：**
+
+  ```json
+  ["custom_id", "rule_list"]
+  ```
+
+  ## 示例输出
+
+  ```json
+  {
+    "custom_id": "人物画像",
+    "rule_list": "考点列表"
+  }
+  ```
+
+  ---
+
+  请处理一下输入：
+
+  **用户指令信息：**{{INSTRUCTION}}
+  **变量名列表：**{{VARIABLE_LIST}}
+
+  请严格按照格式输出结果，只返回最终的 JSON，确保由```json```包裹，不要添加额外解释或注释。
+
+
+examples_critique_template_error: |
+  作为提示词优化专家，我的目标是帮助代理高效且成功地完成任务。
+  
+  当前任务描述：
+  [任务描述]: {task_description}
+  当前可用的背景知识：
+  [背景知识]: {external_knowledge}
+  
+  我将基于以下几个方面来优化提示词和示例选择：
+  1. 充分理解并利用背景知识中提供的概念、规则、约束或上下文信息；
+  2. 使用 {num_examples} 个具备思维链的示例来覆盖任务可能的推理路径；
+  3. 分析示例与背景知识之间的一致性、兼容性及是否有效体现了关键知识点；
+  4. 检查示例的多样性、复杂性和代表性，确保它们能广泛覆盖任务空间。
+  
+  我当前的 {num_examples} 个思维链示例集是：
+  {examples}
+  
+  请从以下角度深入分析、理解这些示例：
+  - 每个示例是否有效体现了背景知识中关键的推理点或先验知识；
+  - 示例是否存在与背景知识不一致的推理假设；
+  - 示例之间是否具有代表性和互补性，是否形成覆盖全面、知识对齐的集合。
+  
+  请注意：在分析过程中不得修改或曲解背景知识中的任何内容。
+  
+  然而，在以下示例中，这个提示词的生成结果是错误的：
+  {error_examples}
+  
+  请结合背景知识，深入反思这些错误产生的原因，特别关注：
+  - 是否因为示例未能正确表达知识点；
+  - 是否有知识盲区未被覆盖；
+  - 是否存在与背景知识冲突的隐含假设；
+  - 是否缺乏某种类型的示例，导致模型泛化失败。
+  
+  请提出详细的修正建议，包括：
+  - 每个示例可能的改进方式；
+  - 是否需要替换或补充新的示例；
+  - 如何更好地利用背景知识指导示例选择与构造。
+  
+  目标是提升示例集的整体有效性、知识对齐程度，以及对任务成功完成的支持能力。
+
+examples_optimization_template: |
+  作为提示词优化专家，我的目标是帮助代理高效且成功地完成任务。
+  当前任务描述：
+  [任务描述]: {task_description}
+  我正在尝试通过使用 {num_examples} 个具备思维链示例，编写一个有效的提示词，以解决上述任务中的任何问题。
+  我当前的 {num_examples} 个思维链示例集是：{examples}
+  您还将获得一组建议/改进意见，以帮助优化每个示例和整个示例选择集：
+  [建议/改进]: {critique}
+  请根据上述信息，巧妙且认真地运用所有信息，精心创建一个新的示例集，要求示例数量严格为 {num_examples} 个，确保遵循这些建议和改进。
+  请确保每个示例都用 <START> 和 <END> 包裹。
+  
+  新的示例应严格遵循以下格式：
+  [query]: 紧随其后的为示例中的问题部分
+  [assistant answer]: 紧随其后的为与答案相关的所有逻辑推理步骤，包含最终答案。
+  
+  请确保每个示例都用 <START> 和 <END> 包裹起来。
+  [以下是新生成的 {num_examples} 个示例]：
+
+examples_select_template: |
+  作为提示词优化专家，我的目标是帮助代理高效且成功地完成任务。
+  当前任务描述：
+  [任务描述]: {task_description}
+  请从以下做错的数据中选择最具代表性的 {num_examples} 示例，以解决上述任务中的任何问题。
+  当前错误示例集是：{error_examples}
+  请确保每个示例都用 <START> 和 <END> 包裹。
+  
+  例如： 
+  <START>{gt_example}<END>
+  
+  [选择示例]：
+
+generate_reason_template: |
+  您将获得一个任务描述和指令，后面跟着一组任务的正确示例。
+  [任务描述]：{task_description}
+  [指令]：{instruction}
+  示例包含一个问题，标记为问题 [问题] 和最终答案 [答案]。
+  [问题]：{question}
+  [答案]：{answer}
+  请根据任务描述和示例，生成一个简洁明了的思维链。
+  思维链应包含关键步骤，展示出正确答案的核心逻辑，最后给出最终结果。
+  确保每个步骤简洁且易于理解，避免过多细节。
+  
+  思维链：
+
+get_task_description: |
+  [提示词]：{instruction}
+  请简明扼要地总结以上提示词的任务，精炼其核心目标和要点，确保信息简洁、清晰。
+
+get_answer_format: |
+  [提示词]：{instruction}
+  根据给定提示词，用一句话总结用户要求的输出格式，不包含“用户要求的输出格式是”这样的前缀。请简洁明了地表述。
+
+access_answer: |
+  你是一个答案校验专家，负责校验给定用户答案和标准答案之间的含义和结论一致性。请根据以下标准判断用户答案是否与标准答案含义和结论完全一致：
+
+  - 如果用户答案和标准答案含义一致，返回`true`。
+  - 如果用户答案和标准答案含义不一致，返回`false`。
+  - 注意区分对话和工具调用，两者通常不能按语义判断为一致
+  - 结合用户问题和答案，简要分析用户答案和标准答案不一致的理由
+
+  以下是用户自定义规则，如果与上述规则冲突，优先遵从用户自定义规则，请严格遵守：
+  {{user_compare_rules}}
+
+  输出JSON格式：
+  ```json
+  {{
+    "result": true/false,
+    "reason": "校验理由"
+  }}
+  ```
+  
+  [问题]: {{question}}
+  
+  [用户答案]: {{answer_match}}
+  
+  [标准答案]: {{actual_answer}}
+
+  请校验并返回结果：
+
+subjective_access_answer: |
+  你是一个答案校验专家，结合参考回答，校验给定用户答案是否符合用户自定义规则的评分要求。
+
+  - 如果用户答案符合自定义规则(1分)，返回`true`。
+  - 如果用户答案不符合自定义规则(0分)，返回`false`。
+  - 参照回答不是唯一正确的回答，但是符合规则
+  - 结合用户评分规则和参照答案，简要分析用户答案和参照答案不一致的理由
+  - 如果用户自定义评分规则为空或None等没有内容的情况，自行判断用户答案是否合理
+  
+  以下是用户自定义评分规则，如果与上述规则冲突，优先遵从用户自定义规则，请严格遵守：
+  {{user_compare_rules}}
+
+  输出JSON格式：
+  ```json
+  {{
+    "result": true/false,
+    "reason": "校验理由"
+  }}
+  ```
+  
+  [问题]: {{question}}
+  
+  以下是需要比对的用户答案和标准答案：
+  [参照答案]: {{actual_answer}}
+
+  [用户答案]: {{answer_match}}
+
+  请校验并返回结果：

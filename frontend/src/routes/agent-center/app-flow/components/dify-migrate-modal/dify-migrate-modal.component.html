@@ -1,0 +1,95 @@
+<div class="pb-[16px]">
+  <div class="migrate-box">
+    <div class="flex">
+      <span>{{ 'dsl_migrate_result' | i18nextEager }}</span>
+      <div class="ml-[12px] migrate-res">
+        @for (item of migrateRes; track item.label) {
+          <p class="migrate-res-item">
+            <span nz-icon [nzType]="item.icon" [ngStyle]="{ color: item.color }"></span>
+            <strong>{{ item.label }} ({{ item.nodes.length }})</strong>
+          </p>
+        }
+      </div>
+    </div>
+
+    <div class="migrate-box w-[100%]">
+      <migrate-compare-row>
+        <p class="dsl-type-title dsl-type-dify" left><strong>Dify</strong></p>
+        <p class="dsl-type-title dsl-type-jiuwen" right><strong>Open Jiuwen</strong></p>
+      </migrate-compare-row>
+
+      @if (halfCompatible.nodes.length) {
+        <div class="migrate-box">
+          <div class="cursor-pointer node-group-label" (click)="changeCollapsedState(halfCompatible)">
+            @if (!halfCompatible.collapsed) {
+              <span nz-icon nzType="caret-right" [nzRotate]="90"></span>
+            } @else {
+              <span nz-icon nzType="caret-right"></span>
+            }
+            <strong class="group-title ml-[8px]">{{ 'dsl_half_match' | i18nextEager }}</strong>
+            <span class="group-num ml-[4px] text-[#C25700]">{{ 'dsl_total_items' | i18nextEager: { num: halfCompatible.nodes.length } }}</span>
+          </div>
+
+          @if (!halfCompatible.collapsed) {
+            <div class="migrate-box w-[100%]">
+              @for (node of halfCompatible.nodes; track node) {
+                <llm-compare *ngIf="node.type === nodeType.LLM" [node]="node"></llm-compare>
+
+                <trigger-compare *ngIf="node.type === nodeType.Trigger" [oldTrigger]="oldDifyTrigger" [workFlowDsl]="workFlowDsl">
+                </trigger-compare>
+
+                <global-config-compare *ngIf="node.type === nodeType.GlobalConfig" [workFlowDsl]="workFlowDsl">
+                </global-config-compare>
+
+                <intent-detection-compare *ngIf="node.type === nodeType.IntentDetection" [node]="node">
+                </intent-detection-compare>
+
+                <know-ledge-repo-compare *ngIf="node.type === nodeType.KnowledgeRepo" [node]="node">
+                </know-ledge-repo-compare>
+
+                <set-variable-compare *ngIf="node.type === nodeType.SetVariable" [node]="node">
+                </set-variable-compare>
+
+                <agent-compare *ngIf="node.type === nodeType.Agent" [node]="node">
+                </agent-compare>
+
+                <code-compare *ngIf="node.type === nodeType.Code" [node]="node">
+                </code-compare>
+
+                <http-compare *ngIf="node.type === nodeType.Http" [node]="node">
+                </http-compare>
+              }
+            </div>
+          }
+        </div>
+      }
+
+      @if (notCompatible.nodes.length) {
+        <div class="migrate-box">
+          <div class="cursor-pointer node-group-label" (click)="changeCollapsedState(notCompatible)">
+            @if (!notCompatible.collapsed) {
+              <span nz-icon nzType="caret-right" [nzRotate]="90"></span>
+            } @else {
+              <span nz-icon nzType="caret-right"></span>
+            }
+            <strong class="group-title ml-[8px]">{{ 'dsl_not_match' | i18nextEager }}</strong>
+            <span class="group-num ml-[4px] text-[#C25700]">{{ 'dsl_total_items' | i18nextEager: { num: notCompatible.nodes.length } }}</span>
+          </div>
+
+          @if (!notCompatible.collapsed) {
+            <div class="migrate-box w-[100%]">
+              @for (node of notCompatible.nodes; track node) {
+                <not-compatible-node [node]="node"></not-compatible-node>
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+</div>
+
+<div class="flex justify-end gap-[8px]">
+  <button nz-button nzType="default" (click)="dismiss()">{{ 'cancel' | i18nextEager }}</button>
+  <button nz-button nzType="primary" (click)="confirm()">{{ 'ok' | i18nextEager }}</button>
+</div>

@@ -1,0 +1,318 @@
+[
+  {
+    "id": 1,
+    "name_en": "DataClean-Prediction",
+    "type": "MCPX",
+    "name": "数据加工-预测",
+    "description": "提供预测大模型典型高频和低频数据的加工能力",
+    "tools": {
+      "count": 1,
+      "tools": [
+        {
+          "name": "generalEquipmentFeaturePreprocessing",
+          "title": "通用设备特征处理",
+          "description": "通用设备特征处理",
+          "task_operators": {
+            "type": "array<Object>",
+            "description": "编排",
+            "value": [
+              {
+                "id": "median_filter",
+                "type": "string",
+                "title": "中值滤波",
+                "description": "对自定义数据集中指定列数据,进行中值滤波"
+              },
+              {
+                "id": "bianque_feature_compute",
+                "type": "string",
+                "title": "扁鹊特征计算",
+                "description": "针对CSV文件，进行扁鹊原始特征进行特征计算"
+              },
+              {
+                "id": "csv_join",
+                "type": "string",
+                "title": "CSV文件合并",
+                "description": "针对自定义数据集里面的CSV文件，进行文件合并"
+              },
+              {
+                "id": "label_columns_encoder",
+                "type": "string",
+                "title": "标签列编码",
+                "description": "针对预测数据集里面的CSV文件，进行标签列编码"
+              },
+              {
+                "id": "csv_select",
+                "type": "string",
+                "title": "列选择与丢弃",
+                "description": "针对自定义数据集里面的CSV文件，进行类的选择和丢弃"
+              },
+              {
+                "id": "simple_sampler",
+                "type": "string",
+                "title": "简单采样",
+                "description": "针对预测数据集里面的CSV文件，针对文件进行简单采样"
+              }
+            ]
+          },
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "sourceDatasetName": {
+                "type": "string",
+                "description": "数据集名称"
+              },
+              "sourceDatasetCatalog": {
+                "type": "string",
+                "description": "数据集类型"
+              },
+              "resourceConfig": {
+                "type": "object",
+                "description": "资源配置",
+                "properties": {
+                  "cpu": {
+                    "type": "integer",
+                    "description": "cpu单元个数"
+                  },
+                  "npu": {
+                    "type": "integer",
+                    "description": "npu单元个数"
+                  },
+                  "extraConfig": {
+                    "type": "object",
+                    "description": "高级配置",
+                    "properties": {
+                      "numExecutors": {
+                        "type": "integer",
+                        "description": "Spark应用Executor的个数"
+                      },
+                      "executorCores": {
+                        "type": "integer",
+                        "description": "Spark应用每个Executor的CPU核数"
+                      },
+                      "executorMemory": {
+                        "type": "integer",
+                        "description": "Spark应用的Executor内存，单位GB"
+                      },
+                      "driverCores": {
+                        "type": "integer",
+                        "description": "Spark应用Driver的CPU核数"
+                      },
+                      "driverMemory": {
+                        "type": "integer",
+                        "description": "Spark应用的Driver内存，单位GB"
+                      }
+                    }
+                  }
+                }
+              },
+              "generateDataset": {
+                "type": "object",
+                "description": "生成数据集配置",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "数据集名称"
+                  },
+                  "desc": {
+                    "type": "string",
+                    "description": "数据集描述"
+                  },
+                  "industry": {
+                    "type": "string",
+                    "description": "行业"
+                  },
+                  "language": {
+                    "type": "string",
+                    "description": "语言"
+                  },
+                  "simpleTag": {
+                    "type": "array",
+                    "description": "自定义标签",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            },
+            "required": [
+              "sourceDatasetName",
+              "sourceDatasetCatalog",
+              "generateDataset"
+            ]
+          },
+          "outputSchema": {
+            "type": "object",
+            "properties": {
+              "datasetName": {
+                "type": "string",
+                "description": "数据集名称"
+              },
+              "datasetId": {
+                "type": "string",
+                "description": "数据集ID"
+              },
+              "datasetType": {
+                "type": "string",
+                "description": "数据集类型"
+              },
+              "dataQty": {
+                "type": "integer",
+                "description": "数据集记录数"
+              }
+            },
+            "required": [
+              "datasetName",
+              "datasetId",
+              "datasetType",
+              "dataQty"
+            ]
+          }
+        },
+        {
+          "name": "predictiveSamplingScatterHistogram",
+          "title": "预测采样散点直方图",
+          "description": "预测采样散点直方图",
+          "task_operators": {
+            "type": "array<Object>",
+            "description": "编排",
+            "value": [
+              {
+                "id": "simple_sampler",
+                "type": "string",
+                "title": "简单采样",
+                "description": "针对预测数据集里面的CSV文件，针对文件进行简单采样"
+              },
+              {
+                "id": "csv_select",
+                "type": "string",
+                "title": "列选择与丢弃",
+                "description": "针对自定义数据集里面的CSV文件，进行类的选择和丢弃"
+              },
+              {
+                "id": "plot_scatter_and_histogram",
+                "type": "string",
+                "title": "散点图或直方图可视化",
+                "description": "针对预测数据集里面的CSV文件，对列名所在的数值列，表格数据进行绘制散点图或直方图，输出为jpg文件"
+              }
+            ]
+          },
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "sourceDatasetName": {
+                "type": "string",
+                "description": "数据集名称"
+              },
+              "sourceDatasetCatalog": {
+                "type": "string",
+                "description": "数据集类型"
+              },
+              "resourceConfig": {
+                "type": "object",
+                "description": "资源配置",
+                "properties": {
+                  "cpu": {
+                    "type": "integer",
+                    "description": "cpu单元个数"
+                  },
+                  "npu": {
+                    "type": "integer",
+                    "description": "npu单元个数"
+                  },
+                  "extraConfig": {
+                    "type": "object",
+                    "description": "高级配置",
+                    "properties": {
+                      "numExecutors": {
+                        "type": "integer",
+                        "description": "Spark应用Executor的个数"
+                      },
+                      "executorCores": {
+                        "type": "integer",
+                        "description": "Spark应用每个Executor的CPU核数"
+                      },
+                      "executorMemory": {
+                        "type": "integer",
+                        "description": "Spark应用的Executor内存，单位GB"
+                      },
+                      "driverCores": {
+                        "type": "integer",
+                        "description": "Spark应用Driver的CPU核数"
+                      },
+                      "driverMemory": {
+                        "type": "integer",
+                        "description": "Spark应用的Driver内存，单位GB"
+                      }
+                    }
+                  }
+                }
+              },
+              "generateDataset": {
+                "type": "object",
+                "description": "生成数据集配置",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "数据集名称"
+                  },
+                  "desc": {
+                    "type": "string",
+                    "description": "数据集描述"
+                  },
+                  "industry": {
+                    "type": "string",
+                    "description": "行业"
+                  },
+                  "language": {
+                    "type": "string",
+                    "description": "语言"
+                  },
+                  "simpleTag": {
+                    "type": "array",
+                    "description": "自定义标签",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            },
+            "required": [
+              "sourceDatasetName",
+              "sourceDatasetCatalog",
+              "generateDataset"
+            ]
+          },
+          "outputSchema": {
+            "type": "object",
+            "properties": {
+              "datasetName": {
+                "type": "string",
+                "description": "数据集名称"
+              },
+              "datasetId": {
+                "type": "string",
+                "description": "数据集ID"
+              },
+              "datasetType": {
+                "type": "string",
+                "description": "数据集类型"
+              },
+              "dataQty": {
+                "type": "integer",
+                "description": "数据集记录数"
+              }
+            },
+            "required": [
+              "datasetName",
+              "datasetId",
+              "datasetType",
+              "dataQty"
+            ]
+          }
+        }
+      ]
+    }
+  }
+]

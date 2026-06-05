@@ -1,0 +1,30 @@
+::ng-deep .ant-drawer-body {
+  padding: 24px;
+  .formfield-wrapper {
+    margin-bottom: 16px;
+    .formfield-title {
+      margin-bottom: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: rgba(0, 0, 0, 0.85);
+    }
+  }
+}
+
+.drawer-header {
+  height: 24px;
+  padding: 24px 24px 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.drawer-body {
+  padding: 24px;
+}
+
+.drawer-footer {
+  padding: 16px 24px;
+  border-top: 1px solid #f0f0f0;
+  display: flex;
+  justify-content: flex-end;
+}

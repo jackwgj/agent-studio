@@ -1,0 +1,22 @@
+<svg width="132px" height="132px" viewBox="0 0 48 48" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" fill="#FFFFFF" color="#FFFFFF">
+    <!-- Generator: Sketch 47.1 (45422) - http://www.bohemiancoding.com/sketch -->
+    <title>访问控制</title>
+    <desc>Created with Sketch.</desc>
+    <defs/>
+    <g id="图标" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="功能图标线面" transform="translate(-415.000000, -362.000000)">
+            <g id="Group" transform="translate(69.000000, 54.000000)"/>
+            <g id="访问控制" transform="translate(416.000000, 367.000000)" fill-rule="nonzero">
+                <path d="M17,27 L17,22 L16,22 L16,27 L17,27 Z M17,15.5 L17,8 L16,8 L16,15.5 L17,15.5 Z" id="Path-37" fill="currentColor"/>
+                <path d="M16.5,21 C17.8807119,21 19,19.8807119 19,18.5 C19,17.1192881 17.8807119,16 16.5,16 C15.1192881,16 14,17.1192881 14,18.5 C14,19.8807119 15.1192881,21 16.5,21 Z M16.5,22 C14.5670034,22 13,20.4329966 13,18.5 C13,16.5670034 14.5670034,15 16.5,15 C18.4329966,15 20,16.5670034 20,18.5 C20,20.4329966 18.4329966,22 16.5,22 Z" id="Oval-35" fill="currentColor"/>
+                <path d="M30,27 L30,23.5 L29,23.5 L29,27 L30,27 Z M30,17.5 L30,8 L29,8 L29,17.5 L30,17.5 Z" id="Path-37" fill="currentColor" transform="translate(29.500000, 17.500000) scale(-1, -1) translate(-29.500000, -17.500000) "/>
+                <path d="M29.5,17 C30.8807119,17 32,15.8807119 32,14.5 C32,13.1192881 30.8807119,12 29.5,12 C28.1192881,12 27,13.1192881 27,14.5 C27,15.8807119 28.1192881,17 29.5,17 Z M29.5,18 C27.5670034,18 26,16.4329966 26,14.5 C26,12.5670034 27.5670034,11 29.5,11 C31.4329966,11 33,12.5670034 33,14.5 C33,16.4329966 31.4329966,18 29.5,18 Z" id="Oval-35" fill="currentColor"/>
+                <g id="运维管理-copy" fill="currentColor">
+                    <path d="M1,1 L1,33 L45,33 L45,1 L1,1 Z M46,0 L46,34 L0,34 L0,0 L46,0 Z" id="Rectangle-3"/>
+                    <polygon id="Line" points="12 38 34 38 34 37 12 37"/>
+                    <polygon id="Line" points="23 33 23 38 24 38 24 33"/>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg>

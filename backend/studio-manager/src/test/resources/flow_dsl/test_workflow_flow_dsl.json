@@ -1,0 +1,181 @@
+{
+  "id": "fa39e252-527e-459f-b771-70046cc72685",
+  "name": "hsn_0224_parent",
+  "description": "hsn_0224_parent",
+  "nodes": [
+    {
+      "id": "node_start",
+      "type": "Start",
+      "name": "开始",
+      "outputs": [
+        {
+          "description": "用户输入",
+          "field_type": "input",
+          "name": "query",
+          "reflection": false,
+          "required": true,
+          "source": "system",
+          "type": "string",
+          "value": {
+            "content": "",
+            "hint": "用户输入",
+            "type": "literal"
+          }
+        },
+        {
+          "description": "会话历史消息",
+          "name": "conversation_history",
+          "reflection": false,
+          "required": true,
+          "schema": {
+            "name": "",
+            "type": "object",
+            "schema": [
+              {
+                "name": "role",
+                "type": "string",
+                "description": "角色",
+                "required": true,
+                "source": "system",
+                "value": {
+                  "type": "literal",
+                  "content": "",
+                  "hint": "角色"
+                }
+              },
+              {
+                "name": "content",
+                "type": "string",
+                "description": "消息内容",
+                "required": true,
+                "source": "system",
+                "value": {
+                  "type": "literal",
+                  "content": "",
+                  "hint": "消息内容"
+                }
+              }
+            ]
+          },
+          "source": "system",
+          "type": "array",
+          "value": {
+            "content": [],
+            "hint": "会话历史消息",
+            "type": "literal"
+          }
+        }
+      ]
+    },
+    {
+      "id": "node_end",
+      "type": "End",
+      "name": "结束",
+      "configs": {
+        "is_stream_out": true,
+        "response_template": "{{result}}",
+        "response_mode": "directResponse"
+      },
+      "inputs": [
+        {
+          "description": "最终输出",
+          "name": "result",
+          "reflection": false,
+          "required": false,
+          "source": "user",
+          "type": "string",
+          "value": {
+            "content": {
+              "ref_node_id": "node_1740386526800",
+              "ref_var_name": "response_content",
+              "source": "system"
+            },
+            "type": "ref"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "description": "最终输出",
+          "name": "response_content",
+          "reflection": false,
+          "required": true,
+          "source": "system",
+          "type": "string",
+          "value": {
+            "type": "generated"
+          }
+        }
+      ]
+    },
+    {
+      "id": "node_1740386526800",
+      "type": "Workflow",
+      "name": "hsn_0224_son",
+      "inputs": [
+        {
+          "description": "用户输入",
+          "field_type": "input",
+          "name": "query",
+          "reflection": false,
+          "required": true,
+          "source": "system",
+          "type": "string",
+          "value": {
+            "content": {
+              "ref_node_id": "node_start",
+              "ref_var_name": "query",
+              "source": "system"
+            },
+            "hint": "",
+            "type": "ref"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "description": "最终输出",
+          "name": "response_content",
+          "reflection": false,
+          "required": true,
+          "source": "system",
+          "type": "string",
+          "value": {
+            "type": "generated"
+          }
+        }
+      ],
+      "configs": {
+        "id": "ea1881b1-eb3c-40c7-9872-0b94fcaf814f",
+        "version_id": "1740383908729",
+        "version_name": "v20250224155825",
+        "name": "hsn_0224_son",
+        "plugins": []
+      }
+    }
+  ],
+  "edges": [
+    {
+      "source": "node_1740386526800",
+      "target": "node_end"
+    },
+    {
+      "source": "node_start",
+      "target": "node_1740386526800"
+    }
+  ],
+  "layouts": {
+    "node_start": {
+      "x": 190,
+      "y": 300
+    },
+    "node_end": {
+      "x": 1116,
+      "y": 306
+    },
+    "node_1740386526800": {
+      "x": 630,
+      "y": 198
+    }
+  }
+}

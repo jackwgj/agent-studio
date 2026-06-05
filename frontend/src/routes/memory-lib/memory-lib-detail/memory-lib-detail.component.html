@@ -1,0 +1,76 @@
+<div class="memory-lib-detail-container">
+  <nz-spin [nzSpinning]="loading()">
+    <!-- 顶部导航与页头 -->
+    <nz-page-header class="detail-header" [nzTitle]="subtitle().items?.[0]?.label" (nzBack)="onBack()">
+      <nz-breadcrumb nz-page-header-breadcrumb>
+        @for (item of crumbItems(); track item.label) {
+          <nz-breadcrumb-item>
+            @if (item.routerLink) {
+              <a [routerLink]="item.routerLink" [queryParams]="item.queryParams">{{ item.label }}</a>
+            } @else {
+              {{ item.label }}
+            }
+          </nz-breadcrumb-item>
+        }
+      </nz-breadcrumb>
+
+      <nz-page-header-subtitle>
+        @if (memLibDetail()?.icon) {
+          <img alt="" [src]="memLibDetail()?.icon" class="header-icon" />
+        }
+      </nz-page-header-subtitle>
+
+      <nz-page-header-extra>
+        <div class="header-operators">
+          @for (op of operators(); track op.iconaction.label) {
+            <button nz-button nzType="text" [nzTooltipTitle]="op.iconaction.tipContent" nz-tooltip (click)="op.click()">
+              <span nz-icon [nzType]="getMappedIcon(op.iconaction.iconName)"></span>
+              {{ op.iconaction.label }}
+            </button>
+          }
+        </div>
+      </nz-page-header-extra>
+    </nz-page-header>
+
+    <!-- 内容区域 -->
+    <div class="detail-body">
+      <!-- 基础信息 -->
+      <nz-card [nzTitle]="'memory.create.basic.title' | i18nextEager" class="info-card">
+        <nz-descriptions [nzColumn]="{ xxl: 4, xl: 3, lg: 3, md: 2, sm: 1, xs: 1 }" nzLayout="vertical">
+          <nz-descriptions-item [nzTitle]="'memory.detail.name' | i18nextEager">
+            {{ memLibDetail()?.name }}
+          </nz-descriptions-item>
+          <nz-descriptions-item [nzTitle]="'memory.detail.id' | i18nextEager">
+            {{ memLibDetail()?.memory_repo_id }}
+          </nz-descriptions-item>
+          <nz-descriptions-item [nzTitle]="'memory.listHeader.updateTime' | i18nextEager">
+            {{ memLibDetail()?.update_time | formateTime }}
+          </nz-descriptions-item>
+          <nz-descriptions-item [nzTitle]="'memory.detail.description' | i18nextEager" [nzSpan]="2">
+            {{ memLibDetail()?.description }}
+          </nz-descriptions-item>
+        </nz-descriptions>
+      </nz-card>
+
+      <!-- 策略列表 -->
+      <nz-card [nzTitle]="'memory.create.title.lmtStrategy' | i18nextEager" class="info-card mt-4">
+        <nz-table #strategyTable [nzData]="memLibDetail()?.long_term_memory_strategies || []" [nzFrontPagination]="false" nzSize="middle">
+          <thead>
+          <tr>
+            <th nzWidth="25%">{{ 'memory.detail.text.strategyType' | i18nextEager }}</th>
+            <th>{{ 'memory.detail.text.prompt' | i18nextEager }}</th>
+          </tr>
+          </thead>
+          <tbody>
+            @for (data of strategyTable.data; track data.type) {
+              <tr>
+                <td>{{ i18n.transform(memoryStrategyMap?.get(data.type)?.name ?? '') }}</td>
+                <td [innerHTML]="data.prompt"></td>
+              </tr>
+            }
+          </tbody>
+        </nz-table>
+      </nz-card>
+    </div>
+  </nz-spin>
+</div>

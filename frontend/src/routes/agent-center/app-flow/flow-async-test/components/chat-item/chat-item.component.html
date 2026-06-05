@@ -1,0 +1,125 @@
+<!-- <div
+  *ngFor="let content of dialogHistory; let i = index"
+  class="chat-one-out-in"
+>
+  <div
+    *ngIf="
+      content.role === 'user';
+      else answerContent
+    "
+    class="user-answer chat-content"
+  >
+    <div *ngIf="content.image">
+      <img alt="" class="msgImage" [src]="content.image"/>
+    </div>
+    <div class="flex gap-[12px]" *ngIf="content.content">
+
+      <div class="content-text self-center">
+        <ng-container *ngFor="let fileItem of content.uploadData">
+          <!-!- 展示上传的文件 -!->
+          <div class="uploaded-file" *ngIf="fileItem.type === 'file'">
+            <meta-upload-file-icon
+              [fileName]="fileItem.name"
+            ></meta-upload-file-icon>
+            <span tiOverflow>{{ fileItem.name }}</span>
+          </div>
+          <!-!- 展示上传的图片 -!->
+          <div class="uploaded-image" *ngIf="fileItem.type === 'image'">
+            <img alt="" [src]="fileItem.url || fileItem.img"/>
+          </div>
+        </ng-container>
+        <!-!- 此处不能自动格式化保存，否则发送的用户问题开头会多一个空格，且使用trim无效 -!->
+        <div class="user-question-text" style="white-space: pre-wrap">{{
+            getTrimmedQuestion(content.content)
+          }}
+        </div>
+      </div>
+      <asset-color-user-icon></asset-color-user-icon>
+    </div>
+  </div>
+
+  <ng-template #answerContent>
+    <div class="flex w-full">
+      <div class="w-full">
+        <div *ngIf="content['reasoning_content']" class="assistant-content" style="max-width: 800px">
+          <div class="collapse-btn">
+            <div class="flex" style="align-items: center;">
+              <img alt="" [src]="changeUrl('assets/agent-center/images/deep-success.svg')"/>
+              <span style="margin-top: 2px">{{ content['abort'] ? ('thought_terminated'|i18nextEager) : (content['done'] ? ('deep_thought_completed'|i18nextEager) : ('thinking'|i18nextEager)) }}</span>
+            </div>
+
+            <div class="cursor-pointer ml-[8px]" (click)="content['reason_hidden'] = !content['reason_hidden']">
+              <tp-icon *ngIf="!content['reason_hidden']" name="cloudx-action-unfoldI"/>
+              <tp-icon *ngIf="content['reason_hidden']" name="cloudx-action-foldI"/>
+            </div>
+          </div>
+          <div class="border-l-[1px] border-solid border-gray-200 pl-1.5">
+            <app-markdown-answer
+              [hidden]="content['reason_hidden']"
+              *ngIf="content['reasoning_content']"
+              class="content"
+              [(answer)]="content['reasoning_content']"
+            ></app-markdown-answer>
+          </div>
+        </div>
+        <div
+          *ngIf="isConversationContent(content) && content.content"
+          class="assistant-content chat-content mt-2"
+        >
+          <div class="cv-content">
+            <div class="flex w-full gap-[12px]">
+              <div class="content-text">
+                <app-markdown-answer
+                  *ngIf="content.content && !content?.isShowInputParams"
+                  class="content markdown-no-bg"
+                  [(answer)]="content.content"
+                ></app-markdown-answer>
+                <div
+                  class="flex flex-col gap-[12px]"
+                  *ngIf="content?.isShowInputParams"
+                >
+                  <input-node-params
+                    #inputNodeParams
+                    *ngIf="content.inputList?.length"
+                    [inputList]="content.inputList"
+                  ></input-node-params>
+                  <button
+                    *ngIf="content.inputList.length"
+                    style="width: fit-content"
+                    type="button"
+                    tiButton
+                    [disabled]="!content?.isConfirm"
+                    (click)="onConfirm(content)"
+                  >
+                    {{ 'determined' | i18nextEager }}
+                  </button>
+                </div>
+                <div
+                  *ngIf="content?.quoteList?.length"
+                  class="flex flex-col gap-[8px] pb-[4px] pt-[15px]"
+                >
+                  <span class="text-[#808080]">
+                    {{ 'answer_source' | i18nextEager }}({{
+                      content?.quoteList?.length
+                    }})
+                  </span>
+                  <div class="quote-container">
+                    <div
+                      *ngFor="let item of content.quoteList"
+                      class="quote-list"
+                    >
+                      <asset-quote-icon></asset-quote-icon>
+                      <span tiOverflow>{{ item.document_name }}</span>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </ng-template>
+</div> -->

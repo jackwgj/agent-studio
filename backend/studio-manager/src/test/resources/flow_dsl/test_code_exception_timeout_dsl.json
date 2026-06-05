@@ -1,0 +1,159 @@
+{
+  "id": "test_llm_id",
+  "name": "名称测试",
+  "description": "描述测试",
+  "nodes": [
+    {
+      "id": "node_start",
+      "name": "开始",
+      "type": "Start",
+      "outputs": [
+        {
+          "name": "query",
+          "type": "string",
+          "description": "用户输入",
+          "required": true,
+          "field_type": "input",
+          "source": "system",
+          "value": {
+            "type": "literal",
+            "content": "",
+            "hint": "用户输入"
+          }
+        }
+      ]
+    },
+    {
+      "id": "node_code",
+      "name": "代码节点",
+      "type": "Code",
+      "inputs": [
+        {
+          "name": "query",
+          "type": "string",
+          "description": "用户输入",
+          "required": true,
+          "source": "user",
+          "value": {
+            "type": "ref",
+            "content": {
+              "ref_node_id": "node_start",
+              "ref_var_name": "query",
+              "source": "system"
+            }
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "key0",
+          "type": "string",
+          "required": false,
+          "source": "user",
+          "value": {
+            "type": "generated",
+            "content": null
+          }
+        },
+        {
+          "name": "key1",
+          "type": "string",
+          "required": false,
+          "source": "user",
+          "value": {
+            "type": "generated",
+            "content": null
+          }
+        }
+      ],
+      "configs": {
+        "code": "def main(args: dict) -> dict:\n    ret = {\n        \"key0\": args.get('input', 'default'),\n        \"key1\": \"hi\"\n    }\n    return ret",
+        "enable_sandbox": false,
+        "exception_process": {
+          "timeout": 901,
+          "retry_times": -1,
+          "handle_type": "interrupt"
+        }
+      }
+    },
+    {
+      "id": "node_end",
+      "name": "结束",
+      "type": "End",
+      "inputs": [
+        {
+          "name": "result1",
+          "type": "string",
+          "description": "最终输出",
+          "required": false,
+          "source": "user",
+          "value": {
+            "type": "ref",
+            "content": {
+              "ref_node_id": "node_code",
+              "ref_var_name": "key0",
+              "source": "user"
+            }
+          }
+        },
+        {
+          "name": "result2",
+          "type": "string",
+          "description": "最终输出",
+          "required": false,
+          "source": "user",
+          "value": {
+            "type": "ref",
+            "content": {
+              "ref_node_id": "node_code",
+              "ref_var_name": "key1",
+              "source": "user"
+            }
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "response_content",
+          "type": "string",
+          "description": "最终输出",
+          "required": true,
+          "source": "system",
+          "value": {
+            "type": "generated",
+            "content": null
+          }
+        }
+      ],
+      "configs": {
+        "response_mode": "directResponse",
+        "is_stream_out": true,
+        "response_template": "{{key0}}{{key1}}"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "source": "node_start",
+      "target": "node_code"
+    },
+    {
+      "source": "node_code",
+      "target": "node_end"
+    }
+  ],
+  "layouts": {
+    "node_llm": {
+      "x": 510,
+      "y": 440
+    },
+    "node_end": {
+      "x": 910,
+      "y": 440
+    },
+    "node_start": {
+      "x": 130,
+      "y": 440
+    }
+  }
+}

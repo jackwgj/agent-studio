@@ -1,0 +1,152 @@
+:host {
+  height: 100%;
+  display: block;
+  ::ng-deep {
+    .ti3-menu-toggle-menu {
+      color: #191919 !important;
+      padding: 3px 20px;
+      margin-right: -20px;
+
+      &:after {
+        display: none !important;
+      }
+    }
+
+    .custom-menu {
+      padding: 0 10px;
+    }
+
+    .custom-menu .ti3-menu-toggle-menu .ti3-icon-accordion-unfold {
+      display: none !important;
+    }
+
+    .ti3-menu-toggle-menu:hover {
+      text-decoration: none !important;
+      color: #1476ff !important;
+    }
+
+  }
+}
+.app-cards{
+  height: calc(100% - 295px);
+}
+.card-container {
+  .com-cards-wrapper {
+    padding-right: 16px;
+  }
+}
+
+.card {
+  background-color: #fff;
+  height: 196px;
+  padding: 24px;
+  box-sizing: border-box;
+  border: 1px solid rgba(230, 230, 230, 1);
+  border-radius: 16px;
+  cursor: pointer;
+
+  @media (min-width: 1691px) {
+    &:nth-child(4n) {
+      margin-right: 0;
+    }
+  }
+
+  @media (max-width: 1690px) {
+    //width: calc((100% - 16px * 2) / 3);
+
+    &:nth-child(3n) {
+      margin-right: 0;
+    }
+  }
+
+  &:hover {
+    box-shadow: 0px 4px 16px 0px rgba(0, 0, 0, 0.08);
+    .bottom-area-have-menu {
+      display: none;
+    }
+    .bottom-area-menu {
+      display: inline-block;
+    }
+  }
+}
+
+.icon-and-name {
+  display: flex;
+  gap: 0 16px;
+  align-items: center;
+}
+
+.footer-card {
+  font-size: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.total {
+  color: #191919;
+  flex-shrink: 0;
+}
+
+.loading-icon {
+  width: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 15%;
+}
+
+.item-text{
+  color: rgba(128, 128, 128, 1);
+}
+
+.menu-wrapper {
+  position: relative;
+  display: flex;
+  gap: 24px;
+
+  p {
+    color: #1476ff;
+  }
+
+  .menu-trigger {
+    cursor: pointer;
+    color: #808080;
+    font-size: 16px;
+
+    &:hover {
+      color: #191919;
+    }
+  }
+
+  .menu-list {
+    display: none;
+    position: absolute;
+    right: 0;
+    bottom: 100%;
+    background: #fff;
+    border: 1px solid #e1e5eb;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    padding: 4px 0;
+    min-width: 120px;
+    z-index: 100;
+    margin-bottom: 4px;
+
+    li {
+      padding: 8px 16px;
+      cursor: pointer;
+      color: #191919;
+      white-space: nowrap;
+
+      &:hover {
+        color: #1476ff;
+      }
+    }
+  }
+
+  &:hover .menu-list {
+    display: block;
+  }
+}
+

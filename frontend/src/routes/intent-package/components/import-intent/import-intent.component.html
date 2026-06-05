@@ -1,0 +1,63 @@
+<div #importRef class="import-modal-container">
+  <div class="header">
+    <div class="wrapper">
+      <div class="text-[18px] font-semibold">
+        {{ 'import_intent' | i18nextEager }}
+      </div>
+    </div>
+  </div>
+
+  <div class="main-container">
+    <div class="mb-[16px] flex rounded-lg bg-[#deecff] pb-[8px] pl-[16px] pr-[16px] pt-[8px]">
+      <div class="mr-[6px]">
+        <nz-icon nzType="info-circle" nzTheme="outline" class="tip-icon" />
+      </div>
+      <div class="text-[12px] leading-[18px] text-[#191919]">
+        <p>{{ 'import_intent_pkg_desc_1' | i18nextEager }}</p>
+        <p>
+          {{ 'import_intent_pkg_desc_2' | i18nextEager }}
+          <span class="download" (click)="downTemplate()">{{
+            'download_template' | i18nextEager
+          }}</span>
+        </p>
+      </div>
+    </div>
+    <div>
+      <input
+        type="file"
+        #fileInput
+        multiple="multiple"
+        class="hidden"
+        accept=".xlsx"
+        (change)="onUploadFile($event)"
+      />
+      <button type="button" nz-button (click)="uploadIntent()">
+        {{ 'add_file' | i18nextEager }}
+      </button>
+      <div
+        *ngIf="uplaodFile.file"
+        class="mb-[16px] mt-[16px] flex w-full items-center justify-between pr-[20px]"
+      >
+        <span class="flex flex-1 items-center pr-[10px]" tiOverflow>
+          <img
+            class="mb-[2px] mr-[6px] w-[12px]"
+            [src]="changeUrl('assets/icons/file.svg')"
+            alt=""
+          />
+          <span class="text-[12px] leading-[18px] text-[#595959]">{{
+            uplaodFile.name
+          }}</span>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer" style="margin-top: 16px">
+    <button type="button" nz-button (click)="dismiss()">
+      {{ 'cancel' | i18nextEager }}
+    </button>
+    <button type="button" nzType="primary" nz-button (click)="importIntent()">
+      {{ 'import' | i18nextEager }}
+    </button>
+  </div>
+</div>

@@ -1,0 +1,330 @@
+<div class="drawer-body kb-creation-form">
+  <form nz-form [formGroup]="form" nzLayout="vertical">
+    <div
+      *ngIf="showCreateForm || showEditForm"
+      class="basic-info-container mb-6"
+      [ngClass]="{ 'hide-header': showEditForm }"
+    >
+      <div class="section-header mb-4 text-[16px] font-bold text-gray-800">
+        {{ 'base_info' | i18nextEager }}
+      </div>
+      <nz-form-item>
+        <nz-form-label>{{ 'knowledge_icon' | i18nextEager }}</nz-form-label>
+        <nz-form-control>
+          <upload-image [initialImage]="defaultIcon" (imageChanged)="onImageChanged($event)"></upload-image>
+        </nz-form-control>
+      </nz-form-item>
+
+      <nz-form-item>
+        <nz-form-label nzRequired>{{ 'knowledge_name' | i18nextEager }}</nz-form-label>
+        <nz-form-control>
+          <input
+            nz-input
+            type="text"
+            formControlName="display_name"
+            [placeholder]="'input_placeholder' | i18nextEager"
+            maxlength="50"
+            style="width: 100%"
+          />
+        </nz-form-control>
+      </nz-form-item>
+
+      <nz-form-item>
+        <nz-form-label nzRequired>{{ 'description' | i18nextEager }}</nz-form-label>
+        <nz-form-control>
+          <textarea
+            nz-input
+            maxlength="100"
+            formControlName="description"
+            [placeholder]="'input_placeholder' | i18nextEager"
+            [rows]="8"
+            style="width: 100%; resize: vertical;"
+          ></textarea>
+        </nz-form-control>
+      </nz-form-item>
+    </div>
+
+    <!-- 模型配置 -->
+    <div
+      class="mb-6"
+      *ngIf="showCreateForm || showAdvancedForm"
+    >
+      <div class="section-header mb-4 flex justify-between items-center">
+        <div class="text-[16px] font-bold text-gray-800">{{ 'model_config' | i18nextEager }}</div>
+        <div *ngIf="isEnterprise && modelDescription" class="text-xs text-gray-500">
+          <ng-container *ngFor="let desc of modelDescription">
+            <span *ngIf="desc.type === 'text'">{{ desc.text }}</span>
+            <a *ngIf="desc.type === 'link'" [href]="desc.link?.href" target="_blank" class="mx-1">{{ desc.link?.text }}</a>
+            <span *ngIf="desc.type === 'icon'" class="link-tip-class mx-1" nz-tooltip [nzTooltipTitle]="desc.tip?.content">
+              <span nz-icon nzType="question-circle"></span>
+            </span>
+          </ng-container>
+        </div>
+      </div>
+
+      <nz-form-item *ngIf="!showAdvancedForm">
+        <nz-form-label nzRequired>{{ 'embedding_model' | i18nextEager }}</nz-form-label>
+        <nz-form-control>
+          <div class="flex gap-[8px]">
+            <nz-select
+              #embeddingModelSelect
+              class="flex-1"
+              [nzPlaceHolder]="'select_placeholder' | i18nextEager"
+              nzShowSearch
+              nzAllowClear
+              formControlName="embedding_model"
+              style="width: 100%"
+            >
+              <nz-option
+                *ngFor="let item of embeddingModelOptions"
+                [nzValue]="item"
+                [nzLabel]="item.name"
+                nzCustomContent
+              >
+                <div class="flex items-center justify-between gap-2 model-select-drop">
+                  <div class="flex items-center gap-2 text-[14px]">
+                    <img alt="" class="h-4 w-4 rounded" *ngIf="defaultModelLogo" [src]="item.logo ?? defaultModelLogo" />
+                    <div>{{ item.name }}</div>
+                  </div>
+                  <div class="flex items-center">
+                    <div *ngIf="item.model_tags" style="max-width: 180px; overflow: hidden; text-overflow: ellipsis;">
+                      <nz-tag class="ml-1" *ngFor="let v of item.model_tags?.split(',')">{{ v }}</nz-tag>
+                    </div>
+                    <nz-badge nzStatus="success" [nzText]="'common_normal' | i18nextEager" class="ml-2"></nz-badge>
+                  </div>
+                </div>
+              </nz-option>
+            </nz-select>
+            <button nz-button [disabled]="embeddingModelForm.disabled" nzType="default" (click)="getModelOptions('embedding', true)">
+              <span nz-icon nzType="sync"></span>
+            </button>
+          </div>
+        </nz-form-control>
+      </nz-form-item>
+
+      <nz-form-item>
+        <nz-form-label [nzRequired]="!isRagFlow">
+          <span [nz-tooltip]="form.get('rerank_model').disabled ? i18n.transform('rerank_disable_tip') : ''">{{ rerankModelLabel }}</span>
+        </nz-form-label>
+        <nz-form-control>
+          <div class="flex gap-[8px]">
+            <nz-select
+              #rerankModelSelect
+              class="flex-1"
+              [nzPlaceHolder]="'select_placeholder' | i18nextEager"
+              nzShowSearch
+              nzAllowClear
+              formControlName="rerank_model"
+              style="width: 100%"
+            >
+              <nz-option
+                *ngFor="let item of rerankModelOptions"
+                [nzValue]="item"
+                [nzLabel]="item.name"
+                nzCustomContent
+              >
+                <div class="flex items-center justify-between gap-2 model-select-drop">
+                  <div class="flex items-center gap-2 text-[14px]">
+                    <img alt="" class="h-4 w-4 rounded" *ngIf="defaultModelLogo" [src]="item.logo ?? defaultModelLogo" />
+                    <div>{{ item.name }}</div>
+                  </div>
+                  <div class="flex items-center">
+                    <div *ngIf="item.model_tags" style="max-width: 180px; overflow: hidden; text-overflow: ellipsis;">
+                      <nz-tag class="ml-1" *ngFor="let v of item.model_tags?.split(',')">{{ v }}</nz-tag>
+                    </div>
+                    <nz-badge nzStatus="success" [nzText]="'common_normal' | i18nextEager" class="ml-2"></nz-badge>
+                  </div>
+                </div>
+              </nz-option>
+            </nz-select>
+            <button nz-button [disabled]="rerankForm.disabled" nzType="default" (click)="getModelOptions('rerank', true)">
+              <span nz-icon nzType="sync"></span>
+            </button>
+          </div>
+        </nz-form-control>
+      </nz-form-item>
+    </div>
+
+    <!-- 解析配置（非 RAG） -->
+    <div
+      class="mb-6"
+      *ngIf="(showCreateForm || showAdvancedForm) && !isRagFlow"
+      formGroupName="parse_conf"
+    >
+      <div class="section-header mb-4 text-[16px] font-bold text-gray-800">
+        {{ 'parse_config_optional' | i18nextEager }}
+      </div>
+      <div class="flex flex-wrap mb-2">
+        <div class="mr-[25px]">
+          <span nz-tooltip [nzTooltipTitle]="'ocr_enabled_tip' | i18nextEager">
+            <span *ngIf="hasOcr; else disableOCR">
+              <label nz-checkbox formControlName="ocr_enabled">{{ 'ocr_enabled_label' | i18nextEager }}</label>
+            </span>
+            <ng-template #disableOCR>
+              <span [nz-tooltip]="'ocr_unavailable_tip' | i18nextEager">
+                <label nz-checkbox formControlName="ocr_enabled" nzDisabled>{{ 'ocr_enabled_label' | i18nextEager }}</label>
+              </span>
+            </ng-template>
+          </span>
+        </div>
+        <div class="mr-[25px]">
+          <span nz-tooltip [nzTooltipTitle]="'header_footer_enabled_tip' | i18nextEager">
+            <label nz-checkbox formControlName="header_footer_enabled">{{ 'header_footer_enabled_label' | i18nextEager }}</label>
+          </span>
+        </div>
+        <div>
+          <span nz-tooltip [nzTooltipTitle]="'catalog_enabled_tip' | i18nextEager">
+            <label nz-checkbox formControlName="catalog_enabled">{{ 'catalog_enabled_label' | i18nextEager }}</label>
+          </span>
+        </div>
+      </div>
+      <div>
+        <span nz-tooltip [nzTooltipTitle]="'image_enabled_tip' | i18nextEager">
+          <label nz-checkbox formControlName="image_enabled">{{ 'image_enabled_label' | i18nextEager }}</label>
+        </span>
+        <div *ngIf="imageEnabled" class="mt-2">
+          <nz-radio-group formControlName="image_conf" nzButtonStyle="solid">
+            <label nz-radio-button *ngFor="let item of imageConfigOptions" [nzValue]="item.value" [nzDisabled]="item.disabled">
+              {{ item.text }}
+            </label>
+          </nz-radio-group>
+        </div>
+      </div>
+    </div>
+
+    <!-- RAG 解析配置 -->
+    <div
+      class="mb-6"
+      *ngIf="(showCreateForm || showAdvancedForm) && isRagFlow"
+      formGroupName="rag_chunk_parser_conf"
+    >
+      <div class="section-header mb-4 text-[16px] font-bold text-gray-800">
+        {{ 'parse_config' | i18nextEager }}
+      </div>
+      <nz-form-item>
+        <nz-form-label>
+          <span nz-tooltip [nzTooltipTitle]="'rag_chunk_method_tip' | i18nextEager">{{ 'rag_chunk_method' | i18nextEager }}</span>
+        </nz-form-label>
+        <nz-form-control>
+          <nz-select (ngModelChange)="chunkMethodChange($event)" formControlName="chunk_method" style="width: 100%">
+            <nz-option *ngFor="let item of chunkMethodOptions" [nzValue]="item.value" [nzLabel]="item.label"></nz-option>
+          </nz-select>
+        </nz-form-control>
+      </nz-form-item>
+
+      <ng-container *ngIf="showChunkMethod">
+        <nz-form-item>
+          <nz-form-label>
+            <span nz-tooltip [nzTooltipTitle]="'rag_recommended_text_block_size_tip' | i18nextEager">{{ 'rag_recommended_text_block_size' | i18nextEager }}</span>
+          </nz-form-label>
+          <nz-form-control>
+            <div class="flex items-center gap-x-[16px]">
+              <nz-slider class="flex-1 !m-0" [nzMin]="1" [nzMax]="2048" formControlName="chunk_token_num1" (nzOnAfterChange)="handleChunkConfigChange('chunk_token_num1', 'chunk_token_num1', 'chunk_token_num2')"></nz-slider>
+              <nz-input-number [nzMin]="1" [nzMax]="2048" formControlName="chunk_token_num2" (nzBlur)="handleChunkConfigChange('chunk_token_num2', 'chunk_token_num1', 'chunk_token_num2')"></nz-input-number>
+            </div>
+          </nz-form-control>
+        </nz-form-item>
+
+        <nz-form-item>
+          <nz-form-label>
+            <span nz-tooltip [nzTooltipTitle]="'rag_separator_ids_tip' | i18nextEager">{{ 'separator_ids' | i18nextEager }}</span>
+          </nz-form-label>
+          <nz-form-control [nzErrorTip]="separatorIdsValidation.tip">
+            <nz-select formControlName="delimiter" nzMode="multiple" style="width: 100%">
+              <nz-option *ngFor="let item of identifierOptions" [nzValue]="item.value" [nzLabel]="item.label"></nz-option>
+            </nz-select>
+          </nz-form-control>
+        </nz-form-item>
+      </ng-container>
+    </div>
+
+    <!-- 拆分配置 (非 RAG) -->
+    <div
+      class="mb-6"
+      *ngIf="(showCreateForm || showAdvancedForm) && !isRagFlow"
+      formGroupName="split_conf"
+    >
+      <div class="section-header mb-4 text-[16px] font-bold text-gray-800">
+        {{ 'split_config_optional' | i18nextEager }}
+      </div>
+      <nz-form-item>
+        <nz-form-label>{{ 'split_mode' | i18nextEager }}</nz-form-label>
+        <nz-form-control>
+          <nz-radio-group formControlName="split_mode1" nzButtonStyle="solid">
+            <label nz-radio-button *ngFor="let item of splitModeOptions" [nzValue]="item.value">{{ item.text }}</label>
+          </nz-radio-group>
+        </nz-form-control>
+      </nz-form-item>
+
+      <ng-container *ngIf="showLevelConf">
+        <nz-form-item>
+          <nz-form-label>{{ 'level_mode' | i18nextEager }}</nz-form-label>
+          <nz-form-control>
+            <div class="mb-[8px]">
+              <nz-radio-group formControlName="split_mode2" nzButtonStyle="solid">
+                <label nz-radio-button *ngFor="let item of levelSplitModeOptions" [nzValue]="item.value">{{ item.text }}</label>
+              </nz-radio-group>
+            </div>
+            <knowledge-segment-rule *ngIf="showRuleConf" [kbId]="kbAbilities.getKbId(formData)" formControlName="rule_regex_id"></knowledge-segment-rule>
+          </nz-form-control>
+        </nz-form-item>
+
+        <nz-form-item>
+          <nz-form-label>{{ 'title_level' | i18nextEager }}</nz-form-label>
+          <nz-form-control>
+            <nz-input-number [nzMin]="1" [nzMax]="10" formControlName="title_level"></nz-input-number>
+          </nz-form-control>
+        </nz-form-item>
+
+        <nz-form-item>
+          <nz-form-label>{{ 'combine_title' | i18nextEager }}</nz-form-label>
+          <nz-form-control>
+            <nz-radio-group formControlName="combine_title" nzButtonStyle="solid">
+              <label nz-radio-button *ngFor="let item of combineTitleOptions" [nzValue]="item.value">{{ item.text }}</label>
+            </nz-radio-group>
+          </nz-form-control>
+        </nz-form-item>
+
+        <nz-form-item>
+          <nz-form-label>{{ 'merge_title' | i18nextEager }}</nz-form-label>
+          <nz-form-control>
+            <nz-switch formControlName="merge_titles"></nz-switch>
+          </nz-form-control>
+        </nz-form-item>
+      </ng-container>
+
+      <ng-container *ngIf="showLengthConf">
+        <nz-form-item>
+          <nz-form-label>
+            <span nz-tooltip [nzTooltipTitle]="'separator_ids_tip' | i18nextEager">{{ 'separator_ids' | i18nextEager }}</span>
+          </nz-form-label>
+          <nz-form-control [nzErrorTip]="separatorIdsValidation.tip">
+            <nz-select [nzPlaceHolder]="'select_placeholder' | i18nextEager" formControlName="separator_ids" nzMode="multiple" style="width: 100%">
+              <nz-option *ngFor="let item of identifierOptions" [nzValue]="item.value" [nzLabel]="item.label"></nz-option>
+            </nz-select>
+          </nz-form-control>
+        </nz-form-item>
+
+        <nz-form-item>
+          <nz-form-label>
+            <span nz-tooltip [nzTooltipTitle]="'chunk_size_tip' | i18nextEager">{{ 'chunk_size' | i18nextEager }}</span>
+          </nz-form-label>
+          <nz-form-control>
+            <div class="flex items-center gap-x-[16px]">
+              <nz-slider class="flex-1 !m-0" [nzMin]="1" [nzMax]="6000" formControlName="chunk_size1" (nzOnAfterChange)="handleChunkSizeChange('chunk_size1')"></nz-slider>
+              <nz-input-number [nzMin]="1" [nzMax]="6000" formControlName="chunk_size2" (nzBlur)="handleChunkSizeChange('chunk_size2')"></nz-input-number>
+            </div>
+          </nz-form-control>
+        </nz-form-item>
+      </ng-container>
+
+    </div>
+  </form>
+</div>
+
+<div class="drawer-footer p-4 border-t text-right">
+  <button nz-button (click)="handleCancel()" class="mr-2">{{ 'cancel' | i18nextEager }}</button>
+  <button nz-button nzType="primary" [nzLoading]="confirmLoading" (click)="handleConfirm()">
+    {{ 'ok' | i18nextEager }}
+  </button>
+</div>

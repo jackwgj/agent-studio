@@ -1,0 +1,318 @@
+{
+    "id": "4a44070d-2412-422a-8df9-4cdfc5b95580",
+    "name": "asdasdas",
+    "description": "dasdas",
+    "configs": {
+        "voice_interaction": {
+            "language": "chinese",
+            "timbre": "huaxiaohe",
+            "domain": "common"
+        },
+        "environment": {
+            "name": ""
+        },
+        "memory": [
+            {
+                "name": "asdasd",
+                "type": "string",
+                "description": "",
+                "required": true,
+                "source": "pre_defined",
+                "value": {
+                    "type": "generated",
+                    "hint": "",
+                    "default": ""
+                },
+                "aging_level": "session",
+                "storage_method": "assignment"
+            }
+        ],
+        "default_model_switch": false,
+        "trigger_list": [],
+        "safety_barrier": false,
+        "default_model": {
+            "model_deployment_id": "180",
+            "model_name": "DeepSeek-V3",
+            "model_type": "LLM"
+        },
+        "content_review": {
+            "enabled": false,
+            "filter": {
+                "keywords": ""
+            },
+            "replace": [],
+            "reply": []
+        },
+        "prologue": "",
+        "suggest_queries": []
+    },
+    "nodes": [
+        {
+            "id": "node_start",
+            "type": "Start",
+            "name": "开始",
+            "outputs": [
+                {
+                    "name": "query",
+                    "type": "string",
+                    "description": "用户输入",
+                    "required": true,
+                    "source": "system",
+                    "field_type": "input",
+                    "reflection": false,
+                    "value": {
+                        "type": "literal",
+                        "content": "",
+                        "hint": "用户输入"
+                    }
+                },
+                {
+                    "name": "env",
+                    "type": "object",
+                    "description": "环境变量",
+                    "required": true,
+                    "source": "environment",
+                    "schema": [],
+                    "field_type": "object",
+                    "reflection": false,
+                    "value": {
+                        "type": "literal",
+                        "content": {},
+                        "hint": "环境变量"
+                    }
+                },
+                {
+                    "name": "sys",
+                    "type": "object",
+                    "description": "系统变量",
+                    "required": true,
+                    "source": "system",
+                    "schema": [
+                        {
+                            "name": "conversation_history",
+                            "type": "array",
+                            "description": "会话历史消息",
+                            "required": true,
+                            "source": "system",
+                            "value": {
+                                "content": [],
+                                "hint": "会话历史消息",
+                                "type": "literal"
+                            },
+                            "schema": {
+                                "name": "",
+                                "type": "object",
+                                "schema": [
+                                    {
+                                        "name": "role",
+                                        "type": "string",
+                                        "description": "角色",
+                                        "required": true,
+                                        "source": "system",
+                                        "value": {
+                                            "type": "literal",
+                                            "content": "",
+                                            "hint": "角色"
+                                        }
+                                    },
+                                    {
+                                        "name": "content",
+                                        "type": "string",
+                                        "description": "消息内容",
+                                        "required": true,
+                                        "source": "system",
+                                        "value": {
+                                            "type": "literal",
+                                            "content": "",
+                                            "hint": "消息内容"
+                                        }
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "name": "current_time",
+                            "type": "string",
+                            "required": true,
+                            "description": "当前系统时间",
+                            "field_type": "input",
+                            "source": "system",
+                            "value": {
+                                "type": "literal",
+                                "content": "",
+                                "hint": "当前系统时间"
+                            }
+                        },
+                        {
+                            "name": "user_id",
+                            "type": "string",
+                            "required": true,
+                            "description": "使用该工作流的唯一标识",
+                            "field_type": "input",
+                            "source": "system",
+                            "value": {
+                                "type": "literal",
+                                "content": "",
+                                "hint": "用户唯一标识"
+                            }
+                        },
+                        {
+                            "name": "conversation_id",
+                            "type": "string",
+                            "required": true,
+                            "description": "工作流对话id",
+                            "field_type": "input",
+                            "source": "system",
+                            "value": {
+                                "type": "literal",
+                                "content": "",
+                                "hint": "工作流对话id"
+                            }
+                        }
+                    ],
+                    "field_type": "object",
+                    "reflection": false,
+                    "value": {
+                        "type": "literal",
+                        "content": {},
+                        "hint": "系统变量"
+                    }
+                }
+            ]
+        },
+        {
+            "id": "node_1761825262443",
+            "type": "Code",
+            "name": "代码",
+            "inputs": [],
+            "outputs": [
+                {
+                    "name": "key1",
+                    "type": "string",
+                    "description": "key1",
+                    "required": true,
+                    "source": "user",
+                    "value": {
+                        "type": "generated",
+                        "content": null,
+                        "hint": "",
+                        "default": ""
+                    }
+                }
+            ],
+            "configs": {
+                "code": "def main(args: dict) -> dict:\n    \"\"\"\n    运行代码节点会调用此函数\n    :param args: 输入固定为args字典类型，kv为输入参数键值对\n    :return: 输出参数为字典类型，kv为输出参数键值对\n    \"\"\"\n    ret = {\n        \"key1\": \"hi\"\n    }\n    return ret\n",
+                "exec_env": "sandbox",
+                "exception_process": []
+            }
+        },
+        {
+            "id": "node_end",
+            "type": "End",
+            "name": "结束",
+            "inputs": [
+                {
+                    "name": "asd",
+                    "type": "string",
+                    "description": "",
+                    "required": true,
+                    "source": "user",
+                    "reflection": false,
+                    "value": {
+                        "type": "ref",
+                        "content": {
+                            "ref_node_id": "node_start",
+                            "ref_var_name": "query",
+                            "source": "system"
+                        },
+                        "hint": ""
+                    }
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "response_content",
+                    "type": "string",
+                    "description": "最终输出",
+                    "required": true,
+                    "source": "system",
+                    "reflection": false,
+                    "value": {
+                        "type": "generated"
+                    }
+                }
+            ],
+            "configs": {
+                "is_stream_out": true,
+                "struct_output_template": "{\n  \"answer\": \"{{_NODE_OUTPUT}}\"\n}",
+                "enable_history": false,
+                "response_template": "{{asd}}",
+                "response_mode": "directResponse"
+            }
+        },
+        {
+            "configs": {
+                "isDefaultName": false
+            },
+            "id": "node_1772246500417",
+            "inputs": [
+                {
+                    "name": "ccc",
+                    "reflection": false,
+                    "source": "user",
+                    "type": "string",
+                    "value": {
+                        "type": "ref",
+                        "content": {
+                            "ref_node_id": "node_start",
+                            "ref_var_name": "ccc",
+                            "source": "user"
+                        }
+                    }
+                }
+            ],
+            "name": "文档提取器",
+            "outputs": [
+                {
+                    "name": "text",
+                    "reflection": false,
+                    "source": "user",
+                    "type": "file/default",
+                    "value": {
+                        "type": "generated",
+                        "content": ""
+                    }
+                }
+            ],
+            "type": "Empty"
+        }
+    ],
+    "edges": [
+        {
+            "source": "node_1761825262443",
+            "target": "node_end"
+        },
+        {
+            "source": "node_start",
+            "target": "node_1761825262443"
+        },
+        {
+            "source": "node_start",
+            "target": "node_1772246500417"
+        }
+    ],
+    "layouts": {
+        "node_start": {
+            "x": 216,
+            "y": 126
+        },
+        "node_1761825262443": {
+            "x": 666,
+            "y": 36
+        },
+        "node_end": {
+            "x": 1566,
+            "y": -36
+        }
+    }
+}

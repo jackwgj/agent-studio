@@ -1,0 +1,68 @@
+{
+  "schemaVersion": "0.6",
+  "type": "jiuwen.end",
+  "version": "1.0.2",
+  "description": "IR结束节点，定义IR的输出",
+  "classInfo": {
+    "modulePath": "jiuwen.orchestration.invokable.end_v102",
+    "className": "EndComponentV2",
+    "programLanguage": "python",
+    "filePath": "jiuwen/orchestration/invokable/end_v102.pyc"
+  },
+  "inputs": [
+    {
+      "id": "userFields",
+      "type": "Map<String, T>",
+      "description": "用户输出参数信息配置"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "userFields",
+      "type": "Map<String, T>",
+      "description": "用户输出参数信息配置"
+    },
+    {
+      "id": "responseMode",
+      "type": "String",
+      "description": "回答模式，返回变量或者按设定内容返回"
+    },
+    {
+      "id": "responseContent",
+      "type": "String",
+      "description": "按设定内容返回"
+    }
+  ],
+  "configs": [
+    {
+      "id": "responseMode",
+      "type": "String",
+      "description": "回答模式，返回变量或者按设定内容返回"
+    },
+    {
+      "id": "isStreamOut",
+      "type": "Boolean",
+      "description": "内容直接回答模式下是否按流式输出结果"
+    },
+    {
+      "id": "responseTemplate",
+      "type": "String",
+      "description": "用户的输出模版，输出：{{parm1}} and {{parm2}}"
+    },
+    {
+      "id": "userFields",
+      "type": "Map<String, T>",
+      "description": "用户参数信息配置"
+    },
+    {
+      "id": "preDefinedFields",
+      "type": "Map<String, T>",
+      "description": "预定义参数信息配置"
+    },
+    {
+      "id": "debugType",
+      "type": "Map<String, T>",
+      "description": "调试配置"
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+<div class="skill-normal-card">
+  <div class="skill-card">
+    <div class="left-area">
+      <img class="common-icon" [src]="skillItem.icon" alt="" />
+      <div class="title-desc-container">
+        <div class="skill-title" nz-ellipsis>
+          {{ skillItem.skill_name }}
+        </div>
+        <div>
+          @if (skillItem.status) {
+            <nz-tag class="status-tag" nzColor="green" [class.developing-tag]="isDeveloping">
+              {{ statusMap[skillItem.status] }}
+            </nz-tag>
+          }
+          @if (skillItem.source) {
+            <nz-tag [nzColor]="skillItem.source === 1 ? 'blue' : 'orange'">
+              {{ sourceMap[skillItem.source] }}
+            </nz-tag>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="w-[100%] skill-description" nz-ellipsis>
+    {{ skillItem.description }}
+  </p>
+  <p class="w-[100%] skill-create-time" nz-ellipsis>
+    <span nz-icon nzType="clock-circle" nzTheme="outline" class="!text-[16px]"></span>
+    <span>
+      {{ skillItem.created_time | formateTime }}
+    </span>
+  </p>
+</div>

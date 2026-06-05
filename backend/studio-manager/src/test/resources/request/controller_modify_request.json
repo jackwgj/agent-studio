@@ -1,0 +1,310 @@
+{
+  "agent_id": "5ce53b4a-c167-4997-9b7a-d201b58c8930",
+  "project_id": "project_mock",
+  "name": "qzp_intent",
+  "type": "controller",
+  "description": "十点多舒服",
+  "details": {
+    "id": "5ce53b4a-c167-4997-9b7a-d201b58c8930",
+    "name": "qzp_intent",
+    "description": "十点多舒服",
+    "nodes": [{
+      "id": "node_4ad0c897-a5f1-40c9-958b-3494540c8d2b",
+      "type": "Workflow",
+      "name": "理财产品筛选",
+      "inputs": [{
+        "name": "query",
+        "type": "string",
+        "description": "用户输入",
+        "required": true,
+        "source": "system",
+        "reflection": false,
+        "value": {
+          "type": "literal",
+          "content": "",
+          "hint": ""
+        }
+      }
+      ],
+      "outputs": [{
+        "name": "response_content",
+        "type": "string",
+        "description": "最终输出",
+        "required": true,
+        "source": "system",
+        "reflection": false,
+        "value": {
+          "type": "generated"
+        }
+      }
+      ],
+      "configs": {
+        "id": "83a951bc-27d7-4ccc-9131-268e93267365",
+        "name": "理财产品筛选",
+        "description": "该工作流属于业务工作流，用于客户进行理财产品筛选，根据用户输入的条件，如投资币种、投资风险等级、起投金额、投资期限等条件筛选理财产品，如“请推荐一款理财产品”“我要低风险1元起购的理财产品”。当符合上述意图分类时，进入该工作流。如果无法与该工作流描述及功能精准匹配，不要选取该工作流。",
+        "version_id": "1753499008637",
+        "version_name": "v20250726110249",
+        "code": "YHFinanceProductSelect0607_1",
+        "valid": true
+      }
+    }, {
+      "id": "controller",
+      "type": "Controller",
+      "name": "多Agent控制器",
+      "configs": {
+        "chat_history_max_turn": 10,
+        "enable_history": false,
+        "global_intents": [],
+        "max_iteration": 9,
+        "model": {
+          "model_name": "AgentBuilder_5.0.1.1快思考",
+          "model_type": "openai",
+          "model_deployment_id": "fb481c21-6da1-4852-b9e5-2349c9c107ab"
+        },
+        "prompt": "你是一个多工作流控制器，具备精准分析用户意图的能力，能够从所配置的业务工作流中挑选出最合适的工作流，若无法选出工作流，则返回 \"none_exist\"",
+        "specify_workflow_order": false,
+        "workflows": [{
+          "node_id": "node_4ad0c897-a5f1-40c9-958b-3494540c8d2b",
+          "type": "Normal",
+          "name": "理财产品筛选",
+          "id": "83a951bc-27d7-4ccc-9131-268e93267365",
+          "action": "Continue"
+        }, {
+          "node_id": "default_aff01c5a-5122-456d-8bc8-e165c35a5176",
+          "type": "IntentIdentification",
+          "name": "jjwtest",
+          "id": "afbd1b1b-74de-43d0-a8d3-147256740906",
+          "action": "Continue"
+        }
+        ],
+        "temperature": 0.5,
+        "top_p": 0.5
+      }
+    }, {
+      "id": "default_aff01c5a-5122-456d-8bc8-e165c35a5176",
+      "type": "Workflow",
+      "name": "jjwtest",
+      "inputs": [{
+        "name": "query",
+        "type": "string",
+        "description": "用户输入",
+        "required": true,
+        "source": "system",
+        "reflection": false,
+        "value": {
+          "content": "",
+          "hint": "",
+          "type": "literal"
+        }
+      }, {
+        "name": "messages",
+        "type": "array",
+        "description": "",
+        "required": true,
+        "source": "user",
+        "schema": {
+          "name": "",
+          "type": "object",
+          "schema": [{
+            "name": "role",
+            "type": "string",
+            "description": "",
+            "required": true,
+            "source": "user",
+            "value": {
+              "type": "generated",
+              "hint": "",
+              "default": ""
+            }
+          }, {
+            "name": "content",
+            "type": "string",
+            "description": "",
+            "required": true,
+            "source": "user",
+            "value": {
+              "type": "generated",
+              "hint": "",
+              "default": ""
+            }
+          }
+          ]
+        },
+        "reflection": false,
+        "value": {
+          "content": "",
+          "hint": "",
+          "type": "literal",
+          "default": ""
+        }
+      }, {
+        "name": "intents",
+        "type": "array",
+        "description": "",
+        "required": true,
+        "source": "user",
+        "schema": {
+          "name": "",
+          "type": "object",
+          "schema": [{
+            "name": "id",
+            "type": "integer",
+            "description": "",
+            "required": true,
+            "source": "user",
+            "value": {
+              "type": "generated",
+              "hint": "",
+              "default": ""
+            }
+          }, {
+            "name": "name",
+            "type": "string",
+            "description": "",
+            "required": true,
+            "source": "user",
+            "value": {
+              "type": "generated",
+              "hint": "",
+              "default": ""
+            }
+          }
+          ]
+        },
+        "reflection": false,
+        "value": {
+          "content": "",
+          "hint": "",
+          "type": "literal",
+          "default": ""
+        }
+      }, {
+        "name": "threshold",
+        "type": "number",
+        "description": "",
+        "required": false,
+        "source": "user",
+        "reflection": false,
+        "value": {
+          "content": "0.9",
+          "hint": "",
+          "type": "literal",
+          "default": "0.9"
+        }
+      }
+      ],
+      "outputs": [{
+        "name": "response_content",
+        "type": "string",
+        "description": "最终输出",
+        "required": true,
+        "source": "system",
+        "reflection": false,
+        "value": {
+          "type": "generated"
+        }
+      }, {
+        "name": "intent_id",
+        "type": "integer",
+        "description": "",
+        "required": true,
+        "source": "user",
+        "reflection": false,
+        "value": {
+          "type": "ref",
+          "content": {
+            "ref_node_id": "node_start",
+            "ref_var_name": "intents[0].id",
+            "source": "user"
+          },
+          "hint": ""
+        }
+      }
+      ],
+      "configs": {
+        "id": "afbd1b1b-74de-43d0-a8d3-147256740906",
+        "name": "jjwtest",
+        "description": "jjwtest",
+        "version_id": "1754273140406",
+        "version_name": "v20250804100535",
+        "code": "jjwtest"
+      }
+    }
+    ],
+    "edges": [{
+      "source": "controller",
+      "target": "node_4ad0c897-a5f1-40c9-958b-3494540c8d2b"
+    }, {
+      "source": "controller",
+      "target": "default_aff01c5a-5122-456d-8bc8-e165c35a5176"
+    }
+    ],
+    "layouts": {
+      "node_4ad0c897-a5f1-40c9-958b-3494540c8d2b": {
+        "x": 198,
+        "y": -342
+      },
+      "controller": {
+        "x": -360,
+        "y": -360
+      },
+      "default_aff01c5a-5122-456d-8bc8-e165c35a5176": {
+        "x": 280,
+        "y": -277.0855443617877
+      }
+    },
+    "inputs": [{
+      "name": "workflowSequence",
+      "type": "array<string>",
+      "description": "",
+      "required": false,
+      "source": "system",
+      "schema": {
+        "name": "",
+        "type": "string"
+      },
+      "reflection": false,
+      "value": {
+        "default": "",
+        "type": "generated",
+        "hint": ""
+      }
+    }, {
+      "name": "activeWorkflows",
+      "type": "array<string>",
+      "description": "",
+      "required": false,
+      "source": "system",
+      "schema": {
+        "name": "",
+        "type": "string"
+      },
+      "reflection": false,
+      "value": {
+        "default": "",
+        "type": "generated",
+        "hint": ""
+      }
+    }, {
+      "name": "asd",
+      "type": "string",
+      "description": "asd",
+      "required": true,
+      "source": "user",
+      "reflection": false,
+      "value": {
+        "default": "as",
+        "type": "literal",
+        "content": "",
+        "hint": "",
+        "display": ""
+      }
+    }
+    ],
+    "global_variables": [],
+    "project_id": "project_mock",
+    "update_time": "1754272695111"
+  },
+  "create_time": "2025-07-31 09:12:14",
+  "update_time": "2025-08-04 09:58:15"
+}

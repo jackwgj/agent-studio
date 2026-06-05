@@ -1,0 +1,31 @@
+@if (config) {
+<ti-modal-header>
+  @if(config.type) {
+  <ti-alert class="head-alert" [type]="config.type" [closeIcon]="false">{{ config.title }}</ti-alert>
+  } @else {
+  {{ config.title }}
+  }
+</ti-modal-header>
+<tp-modal-body>
+  @if (config.warn) {
+  <ti-alert class="mb-[16px]" type="warn" [closeIcon]="false">{{ config.warn }}</ti-alert>
+  }
+  @for (text of config.simpleText || []; track $index) {
+  <div class="simple-text">{{ text}}</div>
+  }
+  @if (config.basicInfoConfig) {
+  <ti-basic-info [basicInfo]="config.basicInfoConfig.basicInfo"
+    [formfieldConfig]="config.basicInfoConfig.formfieldConfig"></ti-basic-info>
+  }
+  @if (config.dynamicConfig) {
+  <ti-dynamic-form [model]="config.dynamicConfig.formModel" [group]="config.dynamicConfig.formGroup"
+    [groupOption]="config.dynamicConfig.groupOption"></ti-dynamic-form>
+  }
+</tp-modal-body>
+<ti-modal-footer>
+  <button type="button" (click)="modalOpts.footer.cancelButton.click()" tiButton>{{ 'common.cancel' | i18n }}</button>
+  <button type="button" color="danger" (click)="modalOpts.footer.okButton.click()" [loading]="confirmLoading"
+    tiButton>{{ config?.confirmText ||
+    ('common.confirm' | i18n) }}</button>
+</ti-modal-footer>
+}

@@ -1,0 +1,253 @@
+<div id="model-test">
+  <div class="top-title-area">
+    <div class="title-area-left">
+      <div class="page-title">{{ 'model_test' | i18nextEager }}</div>
+    </div>
+  </div>
+
+  <div class="main-content relative" style="height: calc(100vh - 235px)">
+    <nz-spin *ngIf="isLoading" nzSize="large" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50"></nz-spin>
+
+    <div class="flex gap-[20px] w-full h-full" style="box-sizing: border-box; border: 1px solid rgba(240, 240, 240, 1); border-radius: 16px; padding: 24px 0 24px 24px">
+      <div class="main-left">
+        <div class="item">
+          <h3 class="title">{{ 'model_type'|i18nextEager }}</h3>
+          <div class="serviceType-list">
+            <div class="serviceType-item"
+                 *ngFor="let st of serviceTypeOptions"
+                 (click)="changeServiceType(st)"
+                 [ngClass]="{ 'serviceType-item-selected': st.value === modelType}">
+              <img alt="" [src]="st.icon"/>
+              <p>{{ st.text }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="item">
+          <h3 class="title">{{ 'model_service'|i18nextEager }}{{ isMultiple ? 'A' : '' }}</h3>
+          <div>
+            <llm-select [selectedModel]="selectedMap['0']?.id" [addRouterStrategies]="false" [filter]="filterInfo" panelAlign="left" [index]="0" [modelType]="modelType"
+                        (update)="updateModel($event)"></llm-select>
+          </div>
+        </div>
+
+        <div class="item" *ngIf="isMultiple">
+          <h3 class="title">{{ 'model_service'|i18nextEager }}B</h3>
+          <div>
+            <llm-select [refreshSubscribe]="false" [selectedModel]="selectedMap['1']?.id" [addRouterStrategies]="false" [filter]="filterInfo" panelAlign="left" [index]="1" [modelType]="modelType"
+                        (update)="updateModel($event)"></llm-select>
+          </div>
+        </div>
+
+        <div class="flex flex-1 items-center gap-4 pb-2 mb-[16px]" *ngIf="showThink">
+          <div class="config-name flex items-center">{{ 'deep_think'|i18nextEager }}
+            <span nz-icon nzType="question-circle" nzTheme="outline"
+                  nz-tooltip [nzTooltipTitle]="'deep_think_tip'|i18nextEager"
+                  class="ml-1 text-gray-400 cursor-pointer text-[16px]"></span>
+          </div>
+          <nz-switch [(ngModel)]="settingInfo.thinking"></nz-switch>
+        </div>
+
+        <div class="item" *ngIf="modelType === ModelType.LLM">
+          <div class="item">
+            <h3 class="title">{{ 'output_mode'|i18nextEager }}</h3>
+            <nz-radio-group [(ngModel)]="settingInfo.stream_val">
+              <label nz-radio *ngFor="let item of radioList" [nzValue]="item.value" [nzDisabled]="item.disabled">
+                {{ item.label }}
+              </label>
+            </nz-radio-group>
+          </div>
+          <div class="config" *ngFor="let config of configs" :key="config.name">
+            <p class="config-name flex items-center">
+              {{ config.title }}
+              <img alt=""
+                style="margin-left: 4px"
+                [src]="changeUrl('assets/model/online-test-help.svg')"
+                nz-tooltip [nzTooltipTitle]="config.desc"
+                nzTooltipPlacement="right"
+              >
+            </p>
+
+            <div class="config-con">
+              <nz-slider
+                class="config-slider"
+                [nzStep]="config.step"
+                [nzMin]="config.min"
+                [nzMax]="config.max"
+                (nzOnAfterChange)="changeValue(config)"
+                [(ngModel)]="config.value"
+              ></nz-slider>
+
+              <nz-input-number
+                class="config_input"
+                [(ngModel)]="config.inputValue"
+                [nzMax]="config.max"
+                [nzMin]="config.min"
+                [nzStep]="config.step"
+                (nzBlur)="changeInputValue(config)"
+              ></nz-input-number>
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="modelType===ModelType.IMAGE_TO_TEXT">
+          <div class="item">
+            <h3 class="title">{{ 'output_mode'|i18nextEager }}</h3>
+            <nz-radio-group [(ngModel)]="settingInfo.stream_val">
+              <label nz-radio *ngFor="let item of radioList" [nzValue]="item.value" [nzDisabled]="item.disabled">
+                {{ item.label }}
+              </label>
+            </nz-radio-group>
+          </div>
+          <div class="item">
+            <h3 class="title">{{ 'upload_image'|i18nextEager }}</h3>
+            <nz-upload
+              nzListType="picture-card"
+              [(nzFileList)]="fileList"
+              [nzBeforeUpload]="beforeUploadImage2Text"
+              [nzRemove]="onRemoveItemsNz"
+              [nzLimit]="5"
+              [nzMultiple]="true"
+              nzAccept=".png,.jpg,.jpeg"
+            >
+              <div *ngIf="fileList.length < 5" class="flex flex-col items-center justify-center text-gray-400">
+                <span nz-icon nzType="plus" class="text-[20px]"></span>
+              </div>
+            </nz-upload>
+            <p style="color: rgb(128, 128, 128); font-size: 12px; margin-top: 10px;">
+              {{ 'image_upload_limit_desc'|i18nextEager }}</p>
+          </div>
+          <div class="item">
+            <h3 class="title">{{ 'prompt_content'|i18nextEager }}</h3>
+            <textarea
+              nz-input
+              [(ngModel)]="image2textParam.content"
+              maxlength="4000"
+              style="width: 336px; height: 140px; max-height: 240px; resize: vertical;"
+              [placeholder]="'image_info_requirements' | i18nextEager"
+            ></textarea>
+          </div>
+          <div class="item">
+            <button nz-button nzType="primary" nzSize="large" (click)="triggerImage2Text()"
+                    nz-tooltip [nzTooltipTitle]="Image2TextButtonTip">
+              {{ 'generate_image_understanding'|i18nextEager }}
+            </button>
+          </div>
+        </div>
+
+        <div *ngIf="modelType === ModelType.Text_Embedding">
+          <div class="item">
+            <h3 class="title flex items-center">
+              {{ 'text_input'|i18nextEager }}
+              <img alt=""
+                style="margin-left: 4px"
+                [src]="changeUrl('assets/model/online-test-help.svg')"
+                nz-tooltip [nzTooltipTitle]="textEmbeddingTips"
+                nzTooltipPlacement="right"
+              >
+            </h3>
+            <textarea
+              nz-input
+              [(ngModel)]="textEmbeddingParam.content"
+              maxlength="4000"
+              style="width: 336px; height: 140px; max-height: 240px; resize: vertical;"
+              [placeholder]="'pls_enter' | i18nextEager"
+            ></textarea>
+          </div>
+          <div class="item">
+            <button
+              nz-button
+              nzType="primary"
+              (click)="triggerTextEmbedding()"
+              nz-tooltip [nzTooltipTitle]="EmbeddingButtonTip"
+            >
+              {{ 'generate_vectorization'|i18nextEager }}
+            </button>
+          </div>
+        </div>
+
+        <div *ngIf="modelType === ModelType.RERANK">
+          <div class="item">
+            <div nz-row class="w-full flex items-center mb-[8px]">
+              <div nz-col [nzSpan]="20">
+                <h3 class="title !mb-0">{{ 'sort_text'|i18nextEager }}</h3>
+              </div>
+              <div nz-col [nzSpan]="4" class="text-right" *ngIf="textRerankParam.textsToRerank.length !== maxTextRerankNum">
+                <button nz-button nzType="default" nzSize="small" (click)="addTextToRerankItem()">+</button>
+              </div>
+            </div>
+
+            <div nz-row class="w-full flex items-center mb-[8px]" *ngFor="let textToRerank of textRerankParam.textsToRerank; let textIndex=index">
+              <div nz-col [nzSpan]="20">
+                <input
+                  nz-input
+                  style="width: 100%"
+                  [(ngModel)]="textToRerank.content"
+                  [placeholder]="'input_sort_text'|i18nextEager"
+                />
+              </div>
+              <div nz-col [nzSpan]="4" class="flex justify-end pr-[4px]">
+                <img alt="" [src]="changeUrl('assets/model/delete.svg')" class="cursor-pointer" (click)="removeTextToRerankItem(textIndex)"/>
+              </div>
+            </div>
+            <div class="text-[12px] text-gray-500 mt-2">
+              {{ 'max_text_rerank_count'|i18nextEager:{maxNum: maxTextRerankNum, remainingNum: maxTextRerankNum - textRerankParam.textsToRerank.length} }}
+            </div>
+          </div>
+
+          <div class="item">
+            <h3 class="title">{{ 'shown_text_count'|i18nextEager }}</h3>
+            <nz-input-number
+              style="width: 200px;"
+              [nzMax]="10"
+              [nzMin]="1"
+              [(ngModel)]="textRerankParam.numOfDisplay"
+            ></nz-input-number>
+          </div>
+
+          <div class="item">
+            <h3 class="title">{{ 'my_question'|i18nextEager }}</h3>
+            <textarea
+              nz-input
+              [(ngModel)]="textRerankParam.question"
+              maxlength="4000"
+              style="width: 336px; height: 140px; max-height: 240px; resize: vertical;"
+              [placeholder]="'describe_your_problem' | i18nextEager"
+            ></textarea>
+          </div>
+          <div class="item">
+            <button
+              nz-button
+              nzType="primary"
+              nz-tooltip [nzTooltipTitle]="RerankButtonTip"
+              (click)="triggerTextRerank()"
+            >
+              {{ 'start_sorting'|i18nextEager }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="main-right relative w-full h-full">
+        <ng-container *ngIf="modelType===ModelType.LLM">
+          <model-service-compare-router [serviceInfo]="mySelected" [config]="configs" [modelType]="modelType"
+                                        [settingInfo]="settingInfo" *ngIf="toggleModel"></model-service-compare-router>
+          <model-service-compare-router [serviceInfo]="mySelected" [config]="configs" [modelType]="modelType"
+                                        [settingInfo]="settingInfo" *ngIf="!toggleModel"></model-service-compare-router>
+        </ng-container>
+        <ng-container *ngIf="modelType===ModelType.IMAGE_TO_TEXT">
+          <image2text-output [serviceInfo]="mySelected" #image2text [param]="image2textParam"
+                             [settingInfo]="settingInfo"></image2text-output>
+        </ng-container>
+        <ng-container *ngIf="modelType===ModelType.Text_Embedding">
+          <text-embedding [serviceInfo]="mySelected" #textEmbedding [param]="textEmbeddingParam"
+                          [settingInfo]="settingInfo"></text-embedding>
+        </ng-container>
+        <ng-container *ngIf="modelType===ModelType.RERANK">
+          <text-rerank [serviceInfo]="mySelected" #textRerank [param]="textRerankParam"
+                       [settingInfo]="settingInfo"></text-rerank>
+        </ng-container>
+      </div>
+    </div>
+  </div>
+</div>

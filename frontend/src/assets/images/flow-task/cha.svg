@@ -1,0 +1,9 @@
+<svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="16.000000" height="16.000000" fill="none" customFrame="#000000">
+	<rect id="对错" width="16.000000" height="16.000000" x="0.000000" y="0.000000" />
+	<g id="编组 56备份 2">
+		<rect id="矩形" width="12.000000" height="12.000000" x="2.000000" y="2.000000" opacity="0" fill="rgb(242,48,48)" />
+		<rect id="矩形" width="11.000000" height="11.000000" x="2.500000" y="2.500000" opacity="0" stroke="rgb(151,151,151)" stroke-opacity="0" stroke-width="1" />
+		<path id="路径 4" d="M0 0L12 0" stroke="rgb(242,48,48)" stroke-linecap="round" stroke-width="1.20000005" transform="matrix(-0.707107,-0.707107,0.707107,-0.707107,12.2426,12.2426)" />
+		<path id="路径 3" d="M0 0L12 0" stroke="rgb(242,48,48)" stroke-linecap="round" stroke-width="1.20000005" transform="matrix(-0.707107,0.707107,-0.707107,-0.707107,12.2426,3.75735)" />
+	</g>
+</svg>

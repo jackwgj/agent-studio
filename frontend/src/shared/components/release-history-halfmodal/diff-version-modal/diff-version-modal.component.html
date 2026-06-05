@@ -1,0 +1,17 @@
+<div>
+  <div class="header">
+    {{ 'version_diff' | i18nextEager }}
+    <div class="tag ml-[12px]">
+      <nz-tag [nzColor]="'green'">{{ '+' + lineAdd }}</nz-tag>
+      <nz-tag [nzColor]="'red'">{{ '-' + lineDel }}</nz-tag>
+    </div>
+  </div>
+</div>
+<div>
+  <div *ngIf="false">
+    <div
+      class="ti-diff-editor"
+    ></div>
+  </div>
+</div>
+<div class="footer" style="margin-top: 16px"></div>

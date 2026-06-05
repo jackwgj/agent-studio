@@ -1,0 +1,21 @@
+<svg width="32.500000" height="16.500000" viewBox="0 0 32.5 16.5" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+	<desc>
+			Created with Pixso.
+	</desc>
+	<defs>
+		<clipPath id="clip107_213350">
+			<rect id="提醒-remind" width="16.000000" height="16.000000" transform="translate(0.000000 0.500000)" fill="white" fill-opacity="0"/>
+		</clipPath>
+		<clipPath id="clip107_213351">
+			<rect id="标识-数字角标" rx="5.000000" width="21.000000" height="10.000000" transform="translate(11.000000 0.500000)" fill="white" fill-opacity="0"/>
+		</clipPath>
+	</defs>
+	<g clip-path="url(#clip107_213350)">
+		<path id="形状结合" d="M8.07 2C10.74 2 12.86 4.54 12.86 7.64L12.86 9.5L13.96 12.05C14.09 12.36 13.88 12.7 13.56 12.74L10.33 12.75C10.26 14 9.25 15 8 15C6.7 15 5.66 13.93 5.66 12.62L5.67 12.75L2.5 12.75C2.15 12.75 1.91 12.41 2.02 12.09L3.29 9.48L3.29 7.64C3.29 4.6 5.33 2.09 7.92 2L8.07 2ZM9.32 12.75L6.67 12.75L6.68 12.82C6.77 13.46 7.27 13.94 7.9 13.99L8 14C8.66 14 9.22 13.49 9.31 12.82L9.32 12.75ZM8.07 3C6 3 4.29 5.06 4.29 7.64L4.29 9.6C4.29 9.67 4.27 9.75 4.24 9.82L3.3 11.75L12.74 11.75L11.9 9.8C11.88 9.76 11.87 9.71 11.86 9.67L11.86 9.6L11.86 7.64C11.86 5.06 10.14 3 8.07 3Z" fill="#191919" fill-opacity="1.000000" fill-rule="nonzero"/>
+	</g>
+	<rect id="标识-数字角标" rx="5.000000" width="21.000000" height="10.000000" transform="translate(11.000000 0.500000)" fill="#F23030" fill-opacity="1.000000"/>
+	<g clip-path="url(#clip107_213351)">
+		<path id="NEW" d="M13.87 8L13.87 3L14.64 3L17.2 6.71L17.23 6.71L17.23 3L17.99 3L17.99 8L17.25 8L14.66 4.24L14.63 4.24L14.63 8L13.87 8ZM18.98 8L18.98 3L22.57 3L22.57 3.65L19.74 3.65L19.74 5.1L22.4 5.1L22.4 5.75L19.74 5.75L19.74 7.34L22.69 7.34L22.69 8L18.98 8ZM24.44 8L23.01 3L23.87 3L24.84 6.89L24.87 6.89L25.89 3L26.69 3L27.71 6.89L27.74 6.89L28.71 3L29.57 3L28.13 8L27.32 8L26.3 4.14L26.28 4.14L25.26 8L24.44 8Z" fill="#FFFFFF" fill-opacity="1.000000" fill-rule="evenodd"/>
+	</g>
+	<rect id="标识-数字角标" rx="5.000000" width="21.000000" height="10.000000" transform="translate(11.000000 0.500000)" stroke="#FFFFFF" stroke-opacity="1.000000" stroke-width="1.000000"/>
+</svg>

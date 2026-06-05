@@ -1,0 +1,14 @@
+.detail {
+  margin: 10px 0;
+}
+
+.input-link {
+  cursor: pointer;
+  margin-left: 16px;
+  color: #0067ff;
+  transition: color 0.3s ease;
+
+  &:hover {
+    color: #4096ff;
+  }
+}

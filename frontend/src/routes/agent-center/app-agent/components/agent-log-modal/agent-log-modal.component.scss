@@ -1,0 +1,378 @@
+.run-modal-wrapper {
+  background: #ffffff;
+  box-shadow: -4px 0px 16px 0px #00000014;
+  padding: 24px;
+  border-radius: 24px;
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 22px;
+
+    .title {
+      font-size: 16px;
+      line-height: 24px;
+      font-weight: 600;
+      color: #000000;
+    }
+
+    .close-icon {
+      font-size: 16px;
+      color: #000000;
+      cursor: pointer;
+    }
+  }
+
+  .content {
+    flex: 1;
+    height: calc(100% - 47px);
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+.run-modal-show {
+  animation: show-modal-animation 150ms ease-in;
+  display: flex;
+  flex-direction: column;
+}
+
+.run-modal-hide {
+  display: none;
+}
+
+.exec-list {
+  display: flex;
+  gap: 6px;
+
+  .left-select-area {
+    width: 42%;
+  }
+
+  .right-select-area {
+    width: 58%;
+  }
+
+  .combo-select-left {
+    border-top-right-radius: 0px !important;
+    border-bottom-right-radius: 0px !important;
+  }
+
+  .combo-select-right {
+    border-top-left-radius: 0px !important;
+    border-bottom-left-radius: 0px !important;
+  }
+}
+
+.date-selector {
+  border-radius: 4px;
+  border: 1px solid #c2c2c2ff;
+  padding: 6px;
+  cursor: pointer;
+  width: min-content;
+  height: 30px;
+
+  .selected-icon {
+    margin-right: 4px;
+    color: rgb(59 130 246);
+  }
+}
+
+::ng-deep {
+  #menu-basic {
+    .ti3-menu-toggle-menu::after {
+      display: none !important;
+    }
+
+    .ti3-icon-accordion-unfold,
+    .ti3-icon-accordion-fold {
+      &::before {
+        display: none !important;
+      }
+    }
+  }
+}
+
+@keyframes show-modal-animation {
+  from {
+    display: none;
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.run-modal-wrapper {
+  background: #ffffff;
+  box-shadow: -4px 0px 16px 0px #00000014;
+  padding: 18px 16px;
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 22px;
+
+    .title {
+      font-size: 16px;
+      line-height: 24px;
+      font-weight: 600;
+      color: #000000;
+    }
+
+    .close-icon {
+      font-size: 16px;
+      color: #000000;
+      cursor: pointer;
+    }
+  }
+
+  .content {
+    flex: 1;
+    height: calc(100% - 47px);
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+.run-modal-show {
+  animation: show-modal-animation 150ms ease-in;
+  display: flex;
+  flex-direction: column;
+}
+
+@keyframes show-modal-animation {
+  from {
+    display: none;
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.custom-loading-icon {
+  top: calc(50% - 16px);
+}
+
+.main-log {
+  height: calc(100% - 48px);
+
+  .log-tabs {
+    height: 100%;
+  }
+}
+
+:host ::ng-deep .log-tabs {
+  .ti3-tab-content {
+    height: calc(100% - 52px);
+    border-top: 1px solid transparent !important;
+  }
+
+  .ti3-tab-slider-container {
+    border-bottom: 1px solid transparent !important;
+  }
+}
+
+// 运行结果Tab样式
+.workflow-info-area {
+  padding: 12px 0 18px 0;
+  border-radius: 8px;
+
+  .title-container {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    .workflow-status {
+      width: 16px;
+      height: 16px;
+    }
+
+    .workflow-status-desc {
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 22px;
+    }
+  }
+
+  .empty-info-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 0;
+  }
+
+  .info-container {
+    display: flex;
+    flex-wrap: wrap;
+    margin-top: 16px;
+    gap: 8px 0;
+
+    .item-container {
+      flex: 1 1 50%;
+      display: flex;
+      justify-content: flex-start;
+      gap: 4px;
+    }
+  }
+}
+
+.cutline {
+  border-top: 1px solid #00000014;
+  margin-bottom: 16px;
+}
+
+// 调用详情Tab样式
+.call-chain-area {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow-y: hidden;
+
+  .chart-icon {
+    background: #f5f5f5;
+    padding: 2px;
+    border: 1px solid transparent;
+    cursor: pointer;
+  }
+
+  .icon-selected {
+    border-radius: 4px;
+    background: #ffffff;
+    border-color: #191919;
+  }
+
+  .sequence-item-wrapper {
+    border-radius: 8px;
+    overflow-y: auto;
+    min-height: 42px;
+  }
+
+  .call-chains-container {
+    display: flex !important;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+    margin-top: 10px;
+    height: calc(100% - 28px);
+  }
+
+  .sequence-wrapper {
+    overflow-y: auto;
+    margin-top: 10px;
+  }
+}
+
+.call-item-wrapper {
+  border-radius: 8px;
+}
+
+.call-item {
+  display: flex;
+  align-items: center;
+  background-color: #fafafa;
+  border-radius: 8px;
+  padding: 10px 16px 10px 12px;
+  justify-content: space-between;
+  cursor: pointer;
+
+  .call-item-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .collapse-icon {
+      font-size: 14px;
+      color: #808080;
+    }
+
+    .unfolded-icon {
+      transform: rotate(-90deg);
+    }
+
+    .call-node-icon {
+      width: 20px;
+      height: 20px;
+    }
+
+    .rounds {
+      border-radius: 4px;
+      background: #e6e6e6;
+      padding: 2px 8px;
+    }
+  }
+
+  .call-item-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    .call-elapsed-time {
+      flex-shrink: 0;
+      color: #808080;
+    }
+
+    .call-node-status {
+      width: 14px;
+      height: 14px;
+    }
+  }
+}
+
+.bg-unfolded {
+  background-color: #f0f7ff;
+}
+
+.call-node-IO {
+  margin: 0 16px 16px 16px;
+}
+
+.node-inputs-area {
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.json-wrap {
+  background: #ffffff;
+  border: 1px solid #d8d8d8;
+  border-radius: 8px;
+  max-height: 340px;
+  overflow: auto;
+
+  .jse-main.svelte-sxaskb {
+    min-height: unset;
+  }
+
+  .jse-tree-mode {
+    border: none;
+
+    .jse-contents {
+      border: none;
+    }
+  }
+}
+
+.empty-run-result {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.loading-text {
+  font-size: 16px;
+  color: #191919;
+  line-height: 24px;
+  font-weight: 600;
+}

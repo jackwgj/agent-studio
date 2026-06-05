@@ -1,0 +1,395 @@
+<div
+  class="chat-one-out-in"
+>
+  <div
+    *ngIf="
+      content.role === 'user';
+      else answerContent
+    "
+    class="user-answer chat-content"
+  >
+    <div *ngIf="content.image">
+      <img alt="" class="msgImage" [src]="content.image"/>
+    </div>
+    <div class="flex gap-[12px]" *ngIf="content.content">
+
+      <div class="content-text self-center">
+        <ng-container *ngFor="let fileItem of content.uploadData">
+          <!-- 展示上传的文件 -->
+          <div class="uploaded-file">
+            <meta-upload-file-icon
+              [fileName]="'fileItem.name'"
+            ></meta-upload-file-icon>
+            <span tiOverflow>fileItem.name </span>
+          </div>
+          <!-- 展示上传的图片 -->
+          <div class="uploaded-image">
+            <img alt=""/>
+          </div>
+        </ng-container>
+        <!-- 此处不能自动格式化保存，否则发送的用户问题开头会多一个空格，且使用trim无效 -->
+        <div class="user-question-text" style="white-space: pre-wrap">{{
+          getTrimmedQuestion(content.content)
+          }}
+        </div>
+      </div>
+      <asset-color-user-icon *ngIf="false"></asset-color-user-icon>
+    </div>
+  </div>
+
+  <ng-template #answerContent>
+    <div class="w-full">
+      <div class="answer-tip text-[16px]" *ngIf="content.agent ==='outline'">
+        <ng-container *ngIf="content.status !='finished'">
+          <div style="margin-bottom: 20px;font-size: 16px">{{'deep_research_chat.tip_1' | i18nextEager }}</div>
+        </ng-container>
+        <div class="collapse-btn">
+          <div class="flex" style="align-items: center;" *ngIf="content.status !='finished';else success">
+            <img alt="" [src]="changeUrl('assets/agent-center/images/running.webp')"/>
+            <span>{{'deep_research_chat.deep_research_1' | i18nextEager}}</span>
+          </div>
+
+          <ng-template #success>
+            <img alt="" [src]="changeUrl('assets/agent-center/images/deep-success.svg')"/>
+            <span>{{'deep_research_chat.deep_research_2' | i18nextEager}}</span>
+          </ng-template>
+
+          <div class="cursor-pointer" (click)="handleCollapsedChat(content)">
+            <nz-icon nzType="up" nzTheme="outline" *ngIf="!content.collapsed" />
+            <nz-icon nzType="down" nzTheme="outline" *ngIf="content.collapsed" />
+          </div>
+        </div>
+      </div>
+      <div class="flex w-full gap-3">
+        <div [class]="{'w-full':content.event ==='error'?true:true}"
+             *ngIf="content.agent ==='generate_questions' || content.agent ==='entry' ||  content.event ==='error'">
+          <div
+            *ngIf="content.content && content.agent === 'generate_questions'"
+            class="chat-generate"
+          >
+            <ng-container>
+              <div class="w-full text-[16px]">
+                <div class="plan-title">
+                  {{ 'deep_research_chat.title_2' | i18nextEager }}:
+                </div>
+                <div class="generate_questions">
+                  <app-markdown-answer
+                    *ngIf="content.content"
+                    class="content markdown-no-bg"
+                    [(answer)]="content.content"
+                  ></app-markdown-answer>
+                </div>
+                <div class="plan-title">
+                  {{ 'deep_research_chat.deep_research_tip_1' | i18nextEager}}</div>
+              </div>
+              <div
+                class="cv-time flex justify-between"
+              >
+                <div class="left">
+                  <button
+                    type="button"
+                    [nzSize]="'small'"
+                    nz-button
+                    nzType="default"
+                    [disabled]="startDisabled"
+                    (click)="startTask()"
+                  >
+                    {{ 'deep_research_chat.start_task' | i18nextEager }}
+                  </button>
+                  <div class="mx-[16px] h-[16px] w-[1px] bg-[#DBDBDB]"></div>
+                  <asset-copy-icon
+                    class="cursor-pointer"
+                    (click)="copyAllAnswer(content.content)"
+                  ></asset-copy-icon>
+                </div>
+              </div>
+
+            </ng-container>
+
+            <div class="cv-content"  *ngIf="false">
+              <div class="flex w-full gap-[12px]">
+                <div class="content-text w-full">
+                  <div
+                    class="cv-time flex justify-between"
+                    *ngIf="content.agent ==='entry'"
+                  >
+                    <div class="left" style="height: 20px">
+                      {{ 'deepresearchchatitem-1' | i18nextEager }}
+                      <nz-icon nzType="down" nzTheme="outline" />
+                      |
+                      {{ 'run_time' | i18nextEager }} <span class="text-[#191919]">0.73s</span> |
+
+                      <asset-copy-icon
+                        class="cursor-pointer"
+                        (click)="copyAllAnswer(content)"
+                      ></asset-copy-icon>
+
+                    </div>
+
+                    <asset-fst-latency-icon *ngIf="false"></asset-fst-latency-icon>
+                    <div *ngIf="false && !isError" class="flex gap-[12px]">
+                      <ng-container *ngIf="voiceEnable">
+                        <button
+                          *ngIf="soundState !== 'loading'"
+                          type="button"
+                          nz-button
+                          nzType="default"
+                          [disabled]="getText(content).length === 0"
+                          (click)="onSoundOut(content)"
+                          nz-tooltip
+                          [nzTooltipTitle]="'read_aloud' | i18nextEager"
+                          nzTooltipPlacement="right"
+                        >
+                          <nz-icon nzType="sound" nzTheme="outline" [ngClass]="{
+                            '!text-primary': soundState === 'playing'
+                          }" />
+                        </button>
+                        <nz-icon nzType="loading" nzTheme="outline" class="!text-[16px]" *ngIf="soundState === 'loading'" />
+                      </ng-container>
+                      <ng-container *ngIf="false && supportFeedback && messageId">
+                      <span
+                        class="like-icon h-[16px] w-[16px] cursor-pointer"
+                        [ngClass]="
+                          content?.isLikeClicked ? 'like-solid' : 'like-icon'
+                        "
+                        (click)="likeAnswer(content)"
+                      ></span>
+                        <div
+                          class="dislike-icon h-[16px] w-[16px] cursor-pointer"
+                          [ngClass]="
+                          content?.isDislikeClicked
+                            ? 'dislike-solid'
+                            : 'dislike-icon'
+                        "
+                          nz-tooltip
+                          [nzTooltipTitle]="dislikeTip"
+                          nzTooltipTrigger="click"
+                          nzTooltipPlacement="bottomRight"
+                          (click)="submitDislike(content)"
+                        ></div>
+                      </ng-container>
+                    </div>
+                  </div>
+                  <div
+                    class="cv-time flex justify-between"
+                    *ngIf="content.agent ==='generate_questions' && !content.collapsed"
+                  >
+                    <div class="left">
+                      <button
+                        type="button"
+                        [disabled]="startDisabled"
+                        (click)="startTask()"
+                      >
+                        {{ 'deep_research_chat.start_task' | i18nextEager }}
+                      </button>
+                      |
+                      <asset-copy-icon
+                        class="cursor-pointer"
+                        (click)="copyAllAnswer(content)"
+                      ></asset-copy-icon>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div
+            *ngIf="content.content && content.agent === 'entry'"
+            class="assistant-content normal-content"
+          >
+            <div class="cv-content">
+              <div class="flex w-full gap-[12px]">
+                <div class="content-text text-[16px]">
+                  <app-markdown-answer
+                    *ngIf="content.content"
+                    class="content markdown-no-bg"
+                    [(answer)]="content.content"
+                    [sourceMessage]="aiAnswerListService.aiAnswerList"
+                    [isSupKBResolver]="true"
+                  ></app-markdown-answer>
+                </div>
+              </div>
+            </div>
+          </div>
+
+            <div
+              *ngIf="content.content && content.event === 'error'"
+              class="assistant-content error-content"
+            >
+              <div class="cv-content">
+                <div class="flex w-full gap-[12px]">
+                  <div class="content-text">
+                    <app-markdown-answer
+                      *ngIf="content.content"
+                      class="content markdown-no-bg"
+                      [(answer)]="content.content"
+                      [sourceMessage]="aiAnswerListService.aiAnswerList"
+                      [isSupKBResolver]="true"
+                    ></app-markdown-answer>
+                  </div>
+                </div>
+              </div>
+            </div>
+        </div>
+        <div *ngIf="content.agent ==='outline'" >
+          <ng-container *ngIf="!content.collapsed">
+            <div *ngIf="content.content">{{content.content.thought}}</div>
+            <ng-container *ngIf="content.content?.sections && content.content?.sections.length">
+              <div class="chat-border" *ngFor="let item of content.content?.sections; index as i">
+                <div class="outline-title flex text-[14px]">
+                  <nz-icon nzType="check-circle" nzTheme="outline"
+                           *ngIf="item.status ==='finished'; else loading"
+                           style="color:#c2c2c2"
+                  />
+                  <ng-template #loading>
+                    <nz-spin nzSize="small"></nz-spin>
+                  </ng-template>
+                  <div class="flex" style="align-items: center" (click)="handleCollapsedChat(item)">
+                    <div class="outline-title-text">{{item.title}}</div>
+                    <nz-icon nzType="up" nzTheme="outline" *ngIf="!item.collapsed" />
+                    <nz-icon nzType="down" nzTheme="outline" *ngIf="item.collapsed" />
+                  </div>
+                </div>
+                <div class="text-[#595959]" *ngIf="!item.collapsed">{{item.description}}</div>
+                <ng-container class="text-[#595959]" *ngIf="item.thought && item.thought.length && !item.collapsed">
+                  <div class="text-[14px] action-title">{{ 'deep_research_chat.deep_research_3'| i18nextEager }}</div>
+                  <div *ngFor="let detail of item.thought; index as j">
+                    <div *ngIf="detail.agent ==='plan_reasoning'">
+                      <div class="text-[#595959]">{{detail.content.thought}}</div>
+                    </div>
+                  </div>
+
+                </ng-container>
+
+                <ng-container
+                  class="text-[#595959]"
+                  *ngIf="item.collectorInfoRetrieval && item.collectorInfoRetrieval.length && !item.collapsed"
+                >
+                  <div *ngFor="let itemCollector of item.collectorInfoRetrieval; index as l">
+                    <div class="url flex cursor-pointer" (click)="handleCollapsedChat(itemCollector)">
+                      <nz-icon nzType="search" nzTheme="outline" style="font-size:16px;color:#595959;margin-right:2px" />
+                      {{ 'deep_research_chat.deep_research_4'| i18nextEager: {title: itemCollector.title,count:itemCollector.children.length} }}
+                      <nz-icon nzType="up" nzTheme="outline" *ngIf="itemCollector.collapsed" />
+                      <nz-icon nzType="down" nzTheme="outline" *ngIf="!itemCollector.collapsed" />
+                    </div>
+                    <ng-container *ngIf="itemCollector.collapsed">
+                      <div *ngFor="let urlItem of itemCollector.children; index as m" class="search-info">
+                        <a *ngIf="urlItem.content.tip === 'http'; else knowledge" [href]="urlItem.content.url"
+                           target="_blank" rel="noopener noreferrer">
+                          <div class="a-ellipsis">{{m + 1}}.{{urlItem.content.title}}</div></a>
+                        <ng-template #knowledge>
+                          <a>{{ 'deep_research_chat.deep_research_5'| i18nextEager}} {{urlItem.content.title}}</a>
+                        </ng-template>
+                      </div>
+                    </ng-container>
+                  </div>
+                </ng-container>
+                <ng-container class="text-[#595959]" *ngIf="item.children && item.children.length && !item.collapsed">
+                  <div class="text-[14px] action-title">{{ 'deep_research_chat.title_1' | i18nextEager }}</div>
+                  <div *ngFor="let detail of item.children; index as j">
+                    <div *ngIf="detail.agent ==='plan_reasoning'"
+                         class="text-[14px] action-title">{{ 'deep_research_chat.title_3' | i18nextEager }}</div>
+                    <div *ngIf="detail.agent ==='collector_summary'" class="action-content assistant-content">
+                      <app-markdown-answer
+                        [hidden]="content['reason_hidden']"
+                        *ngIf="detail.content"
+                        class="content markdown-no-bg"
+                        [(answer)]="detail.content"
+                      ></app-markdown-answer>
+                    </div>
+                    <div *ngIf="detail.agent ==='sub_reporter'" class="url flex cursor-pointer sub_reporter" (click)="handleOpenViewArticle(detail,item.title)">
+                      <nz-icon
+                        nzType="file-text"
+                        nzTheme="outline"
+                        style="font-size: 14px;margin-right: 2px"
+                        *ngIf="detail.event ==='done'|| item.status ==='finished'; else loadingIcon"
+                      />
+                      <ng-template #loadingIcon >
+                        <nz-spin nzSize="small"></nz-spin>
+                      </ng-template>
+                      {{ (detail.event === 'done'|| item.status ==='finished' ? '' : 'deep_research_chat.deep_research_6') | i18nextEager }} {{ 'deep_research_chat.deep_research_7' | i18nextEager }} {{item.title}}.md
+                      <nz-icon nzType="right" nzTheme="outline" />
+                    </div>
+                  </div>
+                </ng-container>
+              </div>
+            </ng-container>
+            <div *ngIf="content.content.end && (content.content.end?.content.response_content||content.content.end?.content.file_id)" class="my-[16px] h-[1px] w-full bg-[#DBDBDB]"></div>
+          </ng-container>
+          <ng-container *ngIf="content.content.end && (content.content.end?.content.response_content||content.content.end?.content.file_id)">
+            <div class="summary">{{ 'deep_research_chat.deep_research_tip_2' | i18nextEager }}</div>
+            <div class="file-box flex cursor-pointer"  (click)="openViewEndArticle(content,content.content.title)">
+              <img alt="" class="type-icon" [src]="changeUrl('assets/agent-center/images/MD.svg')">
+              <div class="file-box-text ">
+                <div class="flex">
+                  <div class="text-ellipsis title-width">{{content.content.title}}</div>
+                  .md
+                </div>
+                <div class="time">{{ getTime(content.content.end.created_time) }}</div>
+              </div>
+              <div>
+                <button class="download" *ngIf="!isRuntime" (click)="downloadFileLocal($event,content)" nz-button [nzSize]="'small'">
+                  {{ 'deep_research_chat.deep_research_8' | i18nextEager }}
+                </button>
+                <div nz-dropdown [nzDropdownMenu]="downloadMenu" class="download cursor-pointer" *ngIf="isRuntime" (click)="onClick($event)">
+                  {{ 'deep_research_chat.deep_research_8' | i18nextEager }}
+                  <nz-icon nzType="down" nzTheme="outline" />
+                </div>
+                <nz-dropdown-menu #downloadMenu="nzDropdownMenu">
+                  <ul nz-menu>
+                    <li nz-menu-item *ngFor="let action of actions" (click)="handelTask(action,content.content)">
+                      <div class="file-item flex">
+                        <img alt="" [src]="changeUrl(action.icon)">
+                        <div>{{action.label}}</div>
+                      </div>
+                    </li>
+                  </ul>
+                </nz-dropdown-menu>
+              </div>
+            </div>
+
+            <div class="source-info cur text-[#808080] mt-[10px]" style="height: 20px"
+                 *ngIf="content.content?.end?.content?.citation_messages?.data">
+              <div class="flex">
+                <div (click)="handleCollapsedChat(content.content?.end)">
+                  {{content.content.end.content.citation_messages.data.length}}{{ 'deep_research_chat.deep_research_9' | i18nextEager }}
+                  <nz-icon nzType="up" nzTheme="outline" *ngIf="content.content?.end.collapsed" />
+                  <nz-icon nzType="down" nzTheme="outline" *ngIf="!content.content?.end.collapsed" />
+                </div>
+                <div  class="mx-[16px] h-[16px] w-[1px] bg-[#DBDBDB]"></div>
+                {{ 'deep_research_chat.run_time' | i18nextEager }} <span class="text-[#191919] ml-[4px]">{{conversationRuntime}}</span>
+              </div>
+
+              <div class="flex source-box" *ngIf="content.content?.end.collapsed">
+                <div class="source-info-bg" *ngFor="let url of  content.content.end.content.citation_messages.data; let o = index" >
+                  <div class="text-ellipsis">
+                    <a [href]="url.url" target="_blank" rel="noopener noreferrer">
+                      <div class="text-ellipsis" style="display:block ;align-items: center">
+                        <img alt="" class="mr-[2px] source-icon" *ngIf="url.url.indexOf('.sina.com')>-1;else web" [src]="changeUrl('assets/agent-center/images/xinlang.svg')" >
+                        <ng-template #web>
+                          <nz-icon nzType="global" nzTheme="outline" class="mr-[2px]" />
+                        </ng-template>
+                        {{url.title}}
+                      </div>
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </ng-container>
+        </div>
+      </div>
+    </div>
+  </ng-template>
+</div>
+
+<ng-template #dislikeTip>
+  <custom-popconfirm
+    [type]="'agent'"
+    (cancel)="cancelDislike()"
+    (submit)="submitDisLikeFeedback($event)"
+    (close)="closeDislikeTip()"
+    (clickOutside)="closeDislikeTip()"
+  ></custom-popconfirm>
+</ng-template>

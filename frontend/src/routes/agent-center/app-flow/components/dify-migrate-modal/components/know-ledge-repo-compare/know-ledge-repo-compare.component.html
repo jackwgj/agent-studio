@@ -1,0 +1,37 @@
+<div class="flex flex-col gap-[8px]">
+  <p class="lh-[18px]">{{ node.name }}</p>
+
+  @for (compare of compareKbList; track compare; let i = $index) {
+    <migrate-compare-row>
+      <div left>
+        <div class="left-compare-card h-[44px]">
+          <p>
+            {{ compare.old?.name || '--' }}
+          </p>
+        </div>
+      </div>
+
+      <div right>
+        @if (!compare.new) {
+          <div class="new-compare-select h-[44px]" (click)="onUpdateKnowLedge(i)">
+            <div class="upload-icon"></div>
+            <span>{{ 'know_ledge_create_tip' | i18nextEager }}</span>
+          </div>
+        }
+
+        @if (compare.new) {
+          <div class="tool-item">
+            <div class="left w-[calc(100%-16px)]">
+              <img class="kb-icon" [src]="icon" alt="icon"/>
+              <span>{{ compare.new.name }}</span>
+            </div>
+
+            <div>
+              <span nz-icon nzType="delete" class="delete-icon" (click)="onDeleteKnowLedge(i)"></span>
+            </div>
+          </div>
+        }
+      </div>
+    </migrate-compare-row>
+  }
+</div>

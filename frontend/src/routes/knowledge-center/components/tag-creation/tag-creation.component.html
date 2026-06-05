@@ -1,0 +1,34 @@
+<ng-template #tagCreationModal>
+  <div class="tag-creation-modal-content">
+    <div class="tag-manage-tip" *ngIf="isShowTagJumper() && kbManagementUrl">
+      <span>
+        {{ 'manage_kb_tag_tip' | i18nextEager }}
+      </span>
+      <a *ngIf="!isFromDevelopSpace" [href]="kbManagementUrl" target="_blank" rel="noopener noreferrer">{{ 'kb_tag_management' |i18nextEager }}</a>
+      <a *ngIf="isFromDevelopSpace" (click)="goToTag()">{{ 'kb_tag_management' | i18nextEager }}</a>
+    </div>
+
+    <form nz-form [formGroup]="tagForm">
+      <ul class="tag-add-container" formArrayName="tags">
+        @for (tag of tagsFormArray.controls; track tag.value.id; let i = $index) {
+          <li class="tag-add-item" [formGroupName]="i">
+            <div class="input-container flex-1">
+              <nz-form-control>
+                <input nz-input class="w-full" id="tag-{{i}}" type="text" formControlName="name" [maxlength]="100" />
+              </nz-form-control>
+            </div>
+            <span *ngIf="false" (click)="removeTag(i)">{{ 'delete' | i18nextEager }}</span>
+          </li>
+        }
+      </ul>
+    </form>
+    <div class="add-tag" (click)="addTag()" *ngIf="false">
+      <span nz-icon nzType="plus-square" style="margin-right: 4px; font-size: 16px;"></span>
+      <div>{{ 'add_tag_row' | i18nextEager }}</div>
+    </div>
+
+    <div class="tag-limit-tip" *ngIf="existedTagsQuantities() !== undefined">
+      {{ 'avail_tag_quantities' | i18nextEager : { maxNumber: MAX_KB_TAG_LIMIT - existedTagsQuantities() } }}
+    </div>
+  </div>
+</ng-template>

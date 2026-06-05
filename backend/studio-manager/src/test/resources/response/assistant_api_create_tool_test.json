@@ -1,0 +1,12 @@
+{
+  "tool_id": "test",
+  "project_id": "test_project_id",
+  "tool_display_name": "test",
+  "tool_desc": "test",
+  "input_schema": "{\"type\":\"object\",\"properties\":{\"query\":{\"description\":\"用户输入\",\"type\":\"string\"}},\"required\":[\"query\"]}",
+  "output_schema": "{\"type\":\"object\",\"properties\":{\"result\":{\"description\":\"输出结果\",\"type\":\"string\"}},\"required\":[]}",
+  "type": "workflow",
+  "metadata": "{\"workflow_id\": e7ec6633-3c82-49f5-96a2-cca0356c2396}",
+  "created_on": "2024-09-03 10:00:28",
+  "updated_on": "2024-09-03 10:00:28"
+}

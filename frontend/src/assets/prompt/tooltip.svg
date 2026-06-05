@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="13px" height="13px" viewBox="0 0 13 13" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>全局/帮助备份</title>
+    <g id="页面-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="3训练详情-训练参数" transform="translate(-187.5, -527.5)">
+            <g id="全局/帮助备份" transform="translate(188, 528)">
+                <circle id="椭圆形" stroke="#191919" cx="6" cy="6" r="6"></circle>
+                <g id="编组" transform="translate(4.25, 3)">
+                    <path d="M1.72853795,4.6641791 L1.72853795,3.43987652 C2.6831831,3.43987652 3.45707591,2.66983393 3.45707591,1.71993826 C3.45707591,0.770042589 2.6831831,0 1.72853795,0 C0.773892802,0 0,0.770042589 0,1.71993826" id="路径" stroke="#191919" stroke-linecap="round" stroke-linejoin="round"></path>
+                    <ellipse id="椭圆形" fill="#191919" cx="1.6875" cy="6.15671642" rx="1" ry="1"></ellipse>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg>

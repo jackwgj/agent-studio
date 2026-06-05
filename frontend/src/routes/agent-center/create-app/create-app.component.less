@@ -1,0 +1,252 @@
+@create_header_height: 64px;
+@create_bottom_height:72px;
+@create_content_padding:24px;
+
+#create-app-page {
+  ::ng-deep .ti3-form-content {
+    padding-bottom: 12px !important;
+  }
+
+  .create-app-header {
+    width: 100%;
+    height: 64px;
+    padding: 0 24px;
+    box-sizing: border-box;
+    background-color: #fff;
+    display: flex;
+    align-items: center;
+
+    .back-button {
+      height: 20px;
+      width: 20px;
+      border: none;
+      margin-right: 4px;
+    }
+
+    .back-icon {
+      font-size: 20px;
+    }
+
+    .title {
+      font-size: 16px;
+      color: #191919;
+      font-weight: 600;
+      max-width: 224px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      padding-top: 1px;
+    }
+  }
+
+  .create-app-footer {
+    height: 72px;
+    background-color: #fff;
+    padding: 0 24px;
+
+    .footer-container {
+      max-width: 1552px;
+      margin: 0 auto;
+      text-align: right;
+      line-height: 72px;
+    }
+  }
+
+  .app-introduction {
+    flex: 1 1 0;
+    height: 100%;
+    overflow-y: auto;
+    padding-left: 36px;
+
+    .introduction-title {
+      font-weight: bold;
+      line-height: 20px;
+      font-size: 14px;
+      color: #191919;
+      margin-bottom: 16px;
+    }
+
+    .introduction-image {
+      margin-top: 24px;
+      height: auto;
+      width: 100%;
+    }
+
+    .introduction-text {
+      white-space: pre-line;
+      color: #808080;
+    }
+  }
+
+  .select-type-title {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+
+    .select-type-title-left {
+      font-weight: bold;
+      line-height: 20px;
+      font-size: 14px;
+      color: #191919;
+    }
+  }
+
+  .find-template {
+    color: #0c93fe;
+    cursor: pointer;
+  }
+
+  .create-type-card {
+    padding: 20px 16px;
+    border-radius: 8px;
+    background-color: #fafafa;
+    border: 1px solid transparent;
+    display: flex;
+    align-items: center;
+    gap: 0 12px;
+    cursor: pointer;
+    position: relative;
+
+    &.selected {
+      background-color: #fff;
+      border-color: #1476ff;
+    }
+  }
+
+  .beta-tag {
+    position: absolute;
+    top: 0;
+    right: 0;
+    border-top-right-radius: 8px;
+    border-bottom-left-radius: 8px;
+    padding: 0 12px;
+    color: #1476ff;
+    background-color: #deecff;
+  }
+
+  .new_tag {
+    position: absolute;
+    top: 0;
+    right: 0;
+    border-top-right-radius: 8px;
+    border-bottom-left-radius: 8px;
+    padding: 0 12px;
+    color: #F23030;
+    background-color: #FCE3E0;
+  }
+
+  .config-area {
+
+    .config-area-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      .regular-create {
+        font-weight: bold;
+        line-height: 20px;
+        font-size: 14px;
+        color: #191919;
+      }
+
+      .ai-assisted {
+        margin: 0px 8px 0px 8px;
+        cursor: pointer;
+      }
+    }
+
+    .config-area-ai {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      .regular-create {
+        font-weight: bold;
+        line-height: 20px;
+        font-size: 14px;
+        color: #191919;
+      }
+    }
+
+    .form-label {
+      font-size: 14px;
+      color: rgba(0, 0, 0, 0.85);
+      font-weight: 400;
+      line-height: 1.5714285714285714;
+    }
+  }
+
+  .main-content {
+    box-sizing: border-box;
+    max-width: 1553px;
+    height: 100%;
+    display: flex;
+    margin: 0 auto;
+    padding: 24px 48px;
+    border-radius: 8px;
+    background-color: #fff;
+    min-height: calc(100vh - @create_header_height - @create_bottom_height - @create_content_padding*2 - var(--cf-logo-container-height));
+  }
+
+  .operation-area {
+    width: 728px;
+    height: 100%;
+    overflow-y: auto;
+    padding-right: 36px;
+  }
+
+  .rotate-icon {
+    animation: rotate 1.5s linear infinite;
+    will-change: transform;
+  }
+
+  @keyframes rotate {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+
+  /* 图标选中状态样式 */
+  .icon-option-wrapper {
+    position: relative;
+    display: inline-block;
+    transition: transform 0.2s ease;
+
+    &:hover {
+      transform: scale(1.05);
+    }
+  }
+
+  /* 灰色半透明遮罩 */
+  .selected-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(128, 128, 128, 0.5);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    animation: fadeIn 0.3s ease;
+  }
+
+  /* 对号图标 */
+  .selected-overlay::after {
+    content: '';
+    width: 12px;
+    height: 6px;
+    border-left: 2px solid #fff;
+    border-bottom: 2px solid #fff;
+    transform: rotate(-45deg);
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+}

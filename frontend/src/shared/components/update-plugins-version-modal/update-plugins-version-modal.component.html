@@ -1,0 +1,59 @@
+<div>{{ 'update_flow_modal_btn' | i18nextEager }}</div>
+<div class="update-modal-body">
+  <nz-alert nzType="info" class="alert" [nzMessage]="'plugin_update_available'|i18nextEager" />
+  <nz-table
+    [nzData]="table.srcData.data"
+    [nzShowPagination]="false"
+    [nzSize]="'middle'"
+  >
+    <thead>
+      <tr>
+        <th nzWidth="40px">
+          <label
+            nz-checkbox
+            [nzChecked]="isAllChecked()"
+            [nzIndeterminate]="isIndeterminate()"
+            (nzCheckedChange)="onAllCheckedChange($event)"
+          ></label>
+        </th>
+        <th>{{ columns[0].title }}</th>
+        <th>{{ columns[1].title }}</th>
+        <th>{{ columns[2].title }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr
+        *ngFor="let row of table.srcData.data; trackBy: trackByFn"
+        [ngClass]="{
+          'ant-table-row-selected': table.checkedList.indexOf(row) !== -1
+        }"
+      >
+        <td>
+          <label
+            nz-checkbox
+            [nzChecked]="table.checkedList.indexOf(row) !== -1"
+            [nzDisabled]="row.disabled"
+            (nzCheckedChange)="onItemCheckedChange(row, $event)"
+          ></label>
+        </td>
+        <td class="line-clamp">{{ row.name }}</td>
+        <td class="line-clamp">{{ row.version_id ?? 'unpublished'|i18nextEager }}</td>
+        <td class="line-clamp">{{ row.last_version_id }}</td>
+      </tr>
+    </tbody>
+  </nz-table>
+</div>
+<div style="margin-top: 16px">
+  <button type="button" nz-button (click)="dismiss()">
+    {{ 'cancel' | i18nextEager }}
+  </button>
+  <button
+    type="button"
+    nz-button
+    nzType="primary"
+    [disabled]="!table.checkedList.length"
+    (click)="updateVersions()"
+  >
+    {{ 'update_flow_modal_btn' | i18nextEager }}
+  </button>
+</div>

@@ -1,0 +1,34 @@
+<nz-alert nzType="warning" style="width: 100%" class="mb-[24px]" [nzMessage]="'delete_space_tip' | i18nextEager"></nz-alert>
+
+<div class="mb-[8px] color-[#595959]">
+  {{ 'sure_delete_pls_enter' | i18nextEager }} <strong>DELETE</strong>
+  <span class="input" (click)="configWord = 'DELETE'">{{ 'one_click_input' | i18nextEager }}</span>
+</div>
+
+<input
+  class="w-full"
+  type="text"
+  [(ngModel)]="configWord"
+  [placeholder]="confirmText"
+  nz-input
+/>
+
+<div style="margin-top: 16px">
+  <button
+    type="button"
+    (click)="dismiss()"
+    nz-button
+  >
+    {{ 'cancel' | i18nextEager }}
+  </button>
+  <button
+    type="button"
+    (click)="delete()"
+    nz-button
+    nzType="primary"
+    [disabled]="configWord !== confirmText"
+    [nzLoading]="loading"
+  >
+    {{ 'ok' | i18nextEager }}
+  </button>
+</div>

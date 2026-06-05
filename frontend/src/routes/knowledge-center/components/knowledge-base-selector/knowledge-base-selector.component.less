@@ -1,0 +1,80 @@
+:host::ng-deep {
+  .ant-drawer-body {
+    padding: 0;
+  }
+}
+
+.drawer-header {
+  height: 24px;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 24px;
+  color: rgba(25, 25, 25, 1);
+  margin-bottom: 16px;
+}
+
+#kb-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  height: 100%;
+
+  & > div {
+    flex-shrink: 0;
+  }
+
+  .kb-selector-limit-content {
+    width: 100%;
+  }
+
+  .kb-selector-filter-container {
+    display: flex;
+    justify-content: flex-start;
+    gap: 8px;
+
+    .kb-selector-search-box {
+      flex: 1 0;
+    }
+  }
+
+  .kb-selector-card-container {
+    height: 0;
+    flex:1 0;
+    padding-bottom: 16px;
+    margin-top: 4px;
+
+    .kb-selector-card-content {
+      width: 100%;
+      overflow-y: auto;
+      max-height: calc(100% - 40px);
+      padding-bottom: 4px;
+      margin-bottom: 16px;
+    }
+
+    .kb-selector-no-data {
+      height: calc(100% - 40px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+
+      .no-data-title {
+        font-size: 14px;
+        font-weight: 400;
+        line-height: 22px;
+        color: rgba(25, 25, 25, 1);
+      }
+
+      .no-data-desc {
+        color: #808080;
+      }
+
+      .no-data-icon {
+        width: 80px;
+        height: 80px;
+        background: url('../../../../assets/images/noData.svg') no-repeat center;
+      }
+    }
+  }
+}

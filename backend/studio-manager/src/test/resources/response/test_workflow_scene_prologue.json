@@ -1,0 +1,236 @@
+{
+  "id" : "f2c32282-3f6d-4526-970d-42d243fb0c0f",
+  "name" : "test_workflow_scene_prologue",
+  "description" : "test",
+  "nodes" : [{
+    "id" : "node_start",
+    "name" : "开始",
+    "type" : "Start",
+    "outputs" : [{
+      "name" : "query",
+      "type" : "string",
+      "description" : "用户输入",
+      "required" : true,
+      "source" : "system",
+      "field_type" : "input",
+      "reflection" : false,
+      "value" : {
+        "type" : "literal",
+        "content" : "",
+        "hint" : "用户输入"
+      }
+    }, {
+      "name" : "sys",
+      "type" : "object",
+      "description" : "系统变量",
+      "required" : true,
+      "source" : "system",
+      "schema" : [{
+        "name" : "conversation_history",
+        "type" : "array",
+        "description" : "会话历史消息",
+        "required" : true,
+        "source" : "system",
+        "value" : {
+          "content" : [],
+          "hint" : "会话历史消息",
+          "type" : "literal"
+        },
+        "schema" : {
+          "name" : "",
+          "type" : "object",
+          "schema" : [{
+            "name" : "role",
+            "type" : "string",
+            "description" : "角色",
+            "required" : true,
+            "source" : "system",
+            "value" : {
+              "type" : "literal",
+              "content" : "",
+              "hint" : "角色"
+            }
+          }, {
+            "name" : "content",
+            "type" : "string",
+            "description" : "消息内容",
+            "required" : true,
+            "source" : "system",
+            "value" : {
+              "type" : "literal",
+              "content" : "",
+              "hint" : "消息内容"
+            }
+          }
+          ]
+        }
+      }, {
+        "name" : "current_time",
+        "type" : "string",
+        "required" : true,
+        "description" : "当前系统时间",
+        "field_type" : "input",
+        "source" : "system",
+        "value" : {
+          "type" : "literal",
+          "content" : "",
+          "hint" : "当前系统时间"
+        }
+      }, {
+        "name" : "user_id",
+        "type" : "string",
+        "required" : true,
+        "description" : "使用该工作流的唯一标识",
+        "field_type" : "input",
+        "source" : "system",
+        "value" : {
+          "type" : "literal",
+          "content" : "",
+          "hint" : "用户唯一标识"
+        }
+      }, {
+        "name" : "conversation_id",
+        "type" : "string",
+        "required" : true,
+        "description" : "工作流对话id",
+        "field_type" : "input",
+        "source" : "system",
+        "value" : {
+          "type" : "literal",
+          "content" : "",
+          "hint" : "工作流对话id"
+        }
+      }
+      ],
+      "field_type" : "object",
+      "reflection" : false,
+      "value" : {
+        "type" : "literal",
+        "content" : {},
+        "hint" : "系统变量"
+      }
+    }
+    ]
+  }, {
+    "id" : "node_end",
+    "name" : "结束",
+    "type" : "End",
+    "inputs" : [{
+      "name" : "result",
+      "type" : "string",
+      "description" : "最终输出",
+      "required" : false,
+      "source" : "user",
+      "reflection" : false,
+      "value" : {
+        "type" : "ref",
+        "content" : {
+          "ref_node_id" : "node_llm",
+          "ref_var_name" : "raw_output",
+          "source" : "user"
+        }
+      }
+    }
+    ],
+    "outputs" : [{
+      "name" : "response_content",
+      "type" : "string",
+      "description" : "最终输出",
+      "required" : true,
+      "source" : "system",
+      "reflection" : false,
+      "value" : {
+        "type" : "generated"
+      }
+    }
+    ],
+    "configs" : {
+      "is_stream_out" : true,
+      "response_template" : "{{result}}",
+      "response_mode" : "directResponse"
+    }
+  }, {
+    "id" : "node_llm",
+    "name" : "大模型",
+    "type" : "LLM",
+    "inputs" : [{
+      "name" : "query",
+      "type" : "string",
+      "description" : "用户输入",
+      "required" : false,
+      "source" : "user",
+      "reflection" : false,
+      "value" : {
+        "type" : "ref",
+        "content" : {
+          "ref_node_id" : "node_start",
+          "ref_var_name" : "query",
+          "source" : "system"
+        }
+      }
+    }
+    ],
+    "outputs" : [{
+      "name" : "raw_output",
+      "type" : "string",
+      "description" : "该节点原始输出",
+      "required" : false,
+      "source" : "user",
+      "reflection" : false,
+      "value" : {
+        "type" : "generated"
+      }
+    }
+    ],
+    "configs" : {
+      "top_p" : 0.5,
+      "response_format" : "text",
+      "template_content" : "{{query}}",
+      "temperature" : 0.5,
+      "model" : {
+        "model_name" : "agentBuilder_38b_v35_0414",
+        "model_type" : "ei_agentBuilder",
+        "model_deployment_id" : "3dbfaec6-f264-4437-a07d-49a90895723e"
+      },
+      "enable_history" : false
+    }
+  }
+  ],
+  "edges" : [{
+    "source" : "node_start",
+    "target" : "node_llm"
+  }, {
+    "source" : "node_llm",
+    "target" : "node_end"
+  }
+  ],
+  "layouts" : {
+    "node_llm" : {
+      "x" : 594,
+      "y" : 270
+    },
+    "node_start" : {
+      "x" : 190,
+      "y" : 300
+    },
+    "node_end" : {
+      "x" : 1050,
+      "y" : 300
+    }
+  },
+  "configs" : {
+    "memory" : [],
+    "default_model_switch" : false,
+    "default_model" : {
+      "model_deployment_id" : "faa3fb81-90e4-4d4c-9de1-de9bd2e744ee",
+      "model_name" : "Pro/deepseek-ai/DeepSeek-R1",
+      "model_type" : "openai"
+    },
+    "prologue" : "你好",
+    "suggest_queries" : [
+      "311",
+      "13",
+      "2"
+    ]
+  }
+}

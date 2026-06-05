@@ -1,0 +1,92 @@
+<div class="header-container h-[100px]">
+  <div class="header-content">
+    <div class="pb-[5px] pl-[34px]  pt-[13px]">
+      <span (click)="gotoPluginList()" class="cursor-pointer">{{
+        (pluginInfo?.creator === '官方预置' ? 'plugin_market' : 'plugin') | i18nextEager
+        }}</span>
+      <ng-container *ngIf="!isToolDetail;else ToolDetail">
+        <span class="ml-[5px] mr-[5px] text-[#808080]">/</span>
+        <span class="font-semibold">{{ 'plugin_details' | i18nextEager }}</span>
+      </ng-container>
+      <ng-template #ToolDetail>
+        <span class="ml-[5px] mr-[5px] text-[#808080]">/</span>
+        <span (click)="onPageBack()"  class="cursor-pointer">{{ 'plugin_details' | i18nextEager }}</span>
+        <span class="ml-[5px] mr-[5px] text-[#808080]">/</span>
+        <span class="font-semibold">{{ 'tool_details' | i18nextEager }}</span>
+      </ng-template>
+    </div>
+    <div class="flex h-[60px] justify-between">
+      <div class="header-left">
+        <div (click)="onPageBack()" class="back-icon-container">
+          <nz-icon nzType="left" nzTheme="outline" class="back-icon" />
+        </div>
+        <img alt="" class="mr-4 header-img-size rounded-[10px]" [src]="pluginInfo?.icon"/>
+        <div>
+          <div class="flex items-center">
+            <div class="title" tiOverflow>{{ getPluginName() }}</div>
+            <div *ngIf="isShare && !isToolDetail" class="ml-2">
+              <span>
+                {{ 'version_number'|i18nextEager }}
+              </span>
+              <nz-select
+                class="version-select"
+                nzBorderless
+                nzShowSearch
+                nzAllowClear
+                [(ngModel)]="visionSelected"
+                (ngModelChange)="visionSelectedChange($event)"
+                [nzPlaceHolder]="placeholderStr"
+                [nzDropdownMatchSelectWidth]="false"
+              >
+                <nz-option
+                  *ngFor="let item of visionsOptions"
+                  [nzValue]="item.version_id"
+                  [nzLabel]="item.version_name"
+                ></nz-option>
+              </nz-select>
+              <nz-tag *ngIf="shareTag" class="!rounded-[4px] px-[4px] py-[1px]">{{shareTag }}</nz-tag>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="header-right" *ngIf="subscribeBtnStatus">
+        <div
+          *ngIf="!isShare"
+          class="flex cursor-pointer items-center gap-[4px]"
+          (click)="!hasPermission() && getReference()"
+          [class]="{'disabled-container':currentPermissions && currentPermissions.hasOwnProperty('OPERATOR')}"
+          nz-tooltip [nzTooltipTitle]="hasPermission() ? ('mcpservicedetailcomponent_705'| i18nextEager) : ''"
+        >
+          <meta-inline-svg
+            src="assets/agent-center/icons/public_link.svg"
+            [style.color]="'#000'"
+            [style.fontSize]="'16px'"
+            [isInline]="false"
+          />
+          <span style="font-size: 14px;font-weight: 600">
+            {{'pluginheadercomponent_1139'| i18nextEager}}
+          </span>
+        </div>
+        <div *ngIf="isShare && canEditShare && !isToolDetail">
+          <share-detail-btn
+            [toolId]="pluginInfo?.tool_id"
+            [versionId]="visionSelected"
+            [pageType]="pageType"
+            [toolType]="toolType"
+            (changeVersion)="visionSelectedChange($event)"
+            [visionsList]="visionsOptions"
+            [shareInfo]="shareInfo"
+            (changeShearVersion)="changeShearVersion($event)"
+          ></share-detail-btn>
+        </div>
+        <div class="config_auth ml-[10px] text-[14px]" style="font-weight: 600;cursor: pointer;"
+             *ngIf="!isShare && isShowAuthConfigBtn(pluginInfo)"
+             (click)="handleClickAddAuthConfig(pluginInfo, $event)"
+        >
+          <nz-icon nzType="setting" nzTheme="outline" class="mr-[4px] !text-[16px]" />
+          <span class="mr-[16px]">{{ authConfigName(pluginInfo) }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

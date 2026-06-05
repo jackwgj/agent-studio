@@ -1,0 +1,12 @@
+<div>{{ 'sharedetailbtn-3' | i18nextEager }}</div>
+<div>
+  <div>
+    <nz-tabset [(nzSelectedIndex)]="activeTabIndex" (nzSelectedIndexChange)="onTabChange($event)">
+      @for (tab of tabs; track tab.id) {
+        <nz-tab [nzTitle]="tab.title"></nz-tab>
+      }
+    </nz-tabset>
+    <share-usage-table #shareUsageTable  [shareData]="shareInfo"></share-usage-table>
+  </div>
+</div>
+<div> </div>

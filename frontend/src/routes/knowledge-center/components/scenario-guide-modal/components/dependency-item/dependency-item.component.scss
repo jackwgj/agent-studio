@@ -1,0 +1,24 @@
+.dependency-form {
+  .form-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: flex-start;
+  }
+}
+
+.row-cycle-error-select {
+  :host ::ng-deep .ant-select-selector {
+    border-color: #ff4d4f !important;
+    background-color: #fff2f0 !important;
+  }
+}
+
+.delete-form-item {
+  align-self: flex-start;
+  margin-top: 24px;
+}
+
+.alert-width {
+  width: 100%;
+}

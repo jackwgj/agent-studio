@@ -1,0 +1,122 @@
+{
+  "type": "jiuwen.planner.components.planning_modules.plugin.Plugin",
+  "version": "1.0.2",
+  "schemaVersion": "0.6",
+  "classInfo": {
+    "modulePath": "jiuwen.planner.components.plan_modules.plugin",
+    "className": "Plugin",
+    "programLanguage": "python",
+    "filePath": "jiuwen/planner/components/planning_modules/plugin.pyc"
+  },
+  "inputs": [
+    {
+      "id": "name",
+      "description": "需要使用的插件API名称",
+      "type": "String"
+    },
+    {
+      "id": "arguments",
+      "description": "工具插件参数以及描述等",
+      "type": "Map<String, T>"
+    },
+    {
+      "id": "configs",
+      "description": "插件的配置信息（目前知识库使用）",
+      "type": "Map<String, T>"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "pluginResult",
+      "description": "插件API执行结果",
+      "type": "Map<String, T>"
+    },
+    {
+      "id": "name",
+      "description": "需要使用的插件API名称",
+      "type": "String"
+    },
+    {
+      "id": "displayText",
+      "type": "String",
+      "description": "展示文本"
+    },
+    {
+      "id": "ttsText",
+      "type": "String",
+      "description": "播报文本"
+    },
+    {
+      "id": "streamInfo",
+      "type": "Map<String, T>",
+      "description": "流式文本信息"
+    },
+    {
+      "id": "cardInfo",
+      "type": "String",
+      "description": "卡片信息"
+    },
+    {
+      "id": "commandInfo",
+      "type": "String",
+      "description": "意图框架指令信息"
+    },
+    {
+      "id": "chipsInfo",
+      "type": "String",
+      "description": "chips信息"
+    }
+  ],
+  "configs": [
+    {
+      "id": "executeMode",
+      "description": "执行模式：批batch或流stream",
+      "type": "String"
+    },
+    {
+      "id": "name",
+      "description": "需要使用的插件API名称",
+      "type": "String"
+    },
+    {
+      "id": "displayText",
+      "type": "String",
+      "description": "展示文本"
+    },
+    {
+      "id": "ttsText",
+      "type": "String",
+      "description": "播报文本"
+    },
+    {
+      "id": "commandInfo",
+      "type": "String",
+      "description": "意图框架指令信息"
+    },
+    {
+      "id": "chipsInfo",
+      "type": "String",
+      "description": "chips信息"
+    },
+    {
+      "id": "plugins",
+      "type": "List<Map<String, T>>",
+      "description": "绑卡的配置信息"
+    },
+    {
+      "id": "userFields",
+      "type": "Map<String, T>",
+      "description": "用户参数信息配置"
+    },
+    {
+      "id": "preDefinedFields",
+      "type": "Map<String, T>",
+      "description": "预定义参数信息配置"
+    },
+    {
+      "id": "debugType",
+      "type": "Map<String, T>",
+      "description": "调测树配置"
+    }
+  ]
+}

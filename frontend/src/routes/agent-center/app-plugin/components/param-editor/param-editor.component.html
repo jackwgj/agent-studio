@@ -1,0 +1,21 @@
+<div class="param-editor">
+  <div [style]="style" class="editor-wrapper">
+    <div
+      *ngIf="editorContainer.element.nativeElement.innerText==='\n'||editorContainer.element.nativeElement.innerText===''"
+      class="placeholder">
+      {{ placeholder }}
+    </div>
+    <div #editor (blur)="onblur()"
+         (click)="handleClick()"
+         (copy)="handleCopy($event)"
+         (cut)="handleCut($event)"
+         (input)="onInput($event)"
+         (paste)="handlePaste($event)"
+         (keydown)="handleKeyDown($event)"
+         [attr.contenteditable]="canEdit"
+         class="editor"
+    >
+      <div></div>
+    </div>
+  </div>
+</div>

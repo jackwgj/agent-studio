@@ -1,0 +1,46 @@
+<div id="knowledge-access-base-card">
+  <div class="grid-item" *ngFor="let item of accessKnowledgeListData">
+    <div class="icon-and-name">
+      <img alt="" class="card-icon" [src]="item.icon"/>
+      <div class="name-tag-wrapper">
+        <div class="card-name" [title]="item.name">{{ item.name }}</div>
+        <div class="gap-2 flex">
+          <nz-tag [nzColor]="knowledgeBaseStatusMap.get(item.status)?.cardTagColor" style="margin: 0; padding: 0">
+            {{ knowledgeBaseStatusMap.get(item.status)?.text }}
+          </nz-tag>
+          <nz-tag [nzColor]="'purple'" style="margin: 0; padding: 0">
+            {{ item.connector_name }}
+          </nz-tag>
+        </div>
+      </div>
+    </div>
+    <div
+      class="card-description"
+      [title]="item.description || '--'"
+    > {{ item.description || '--' }}
+    </div>
+    <div class="card-bottom-area">
+      <div class="access-info-container">
+        <div class="user-name" [title]="item.update_user_name">
+          <span nz-icon nzType="user" nzTheme="outline" class="name-icon"></span>
+          <span class="text-ellipsis">{{ item.update_user_name }}</span>
+        </div>
+        <div class="update-time-container">
+          <span nz-icon nzType="clock-circle" nzTheme="outline" class="update-icon"></span>
+          <div class="update-time">{{ item.update_time | formateTime }}</div>
+        </div>
+      </div>
+
+      <div class="access-card-action-container">
+        <!-- 替换 ti-actionmenu，直接遍历按钮即可 -->
+        <ng-container *ngFor="let action of dataToItemsFn(item)">
+           <span class="custom-action-item"
+                 [class.disabled]="action.disabled"
+                 (click)="clickMenu($event); !action.disabled && listAction(action, item)">
+             {{ action.label }}
+           </span>
+        </ng-container>
+      </div>
+    </div>
+  </div>
+</div>

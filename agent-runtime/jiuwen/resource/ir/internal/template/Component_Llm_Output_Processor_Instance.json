@@ -1,0 +1,81 @@
+{
+  "schemaVersion": "0.5",
+  "id": "padding",
+  "version": "padding",
+  "name": "LlmWithOutput",
+  "components": [
+    {
+      "id": "OUTPUT_POST_PROCESS",
+      "type": "<需要读取Agent IR>",
+      "typeVersion": "<需要读取Agent IR>",
+      "inputs": {
+        "query": "${PRE_SELECTOR.query}",
+        "dialogueHistory": "${PRE_SELECTOR.dialogueHistory}",
+        "llmOutput": "${LLM_REACT.message.content}"
+      },
+      "outputs": {
+        "processedOutput": ""
+      },
+      "configs": "<需要读取Agent IR>"
+    },
+    {
+      "id": "BATCH_OUTPUT_UI",
+      "type": "<需要读取Agent IR>",
+      "typeVersion": "<需要读取Agent IR>",
+      "inputs": {
+        "actionName": null,
+        "displayText": "${OUTPUT_POST_PROCESS.processedOutput}",
+        "ttsText": "${OUTPUT_POST_PROCESS.processedOutput}",
+        "cardInfo": "",
+        "chipsInfo": null,
+        "commandInfo": "",
+        "streamInfo": {
+          "streamType": null,
+          "streamingTextId": null,
+          "streamContent": null,
+          "tokenText": null,
+          "metadata": {
+            "inputTokens": null,
+            "outputTokens": null,
+            "modelTime": null,
+            "modelName": null,
+            "averageTokenLatency": null
+          }
+        }
+      },
+      "outputs": {
+      },
+      "configs": {
+        "templates": [
+          {
+            "actionName": null,
+            "label": "非流式默认指令模板",
+            "actionTemplate": "TmplDisplaySpeakFinish"
+          }
+        ]
+      }
+    }
+  ],
+  "connections": [
+    {
+      "source": "<STARTER>",
+      "target": {
+        "componentId": "OUTPUT_POST_PROCESS"
+      }
+    },
+    {
+      "source": {
+        "componentId": "OUTPUT_POST_PROCESS"
+      },
+      "target": {
+        "componentId": "BATCH_OUTPUT_UI"
+      }
+    },
+    {
+      "source": {
+        "componentId": "BATCH_OUTPUT_UI"
+      },
+      "target": "<FINISHER>"
+    }
+  ]
+}

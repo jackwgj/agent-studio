@@ -1,0 +1,253 @@
+.chat-loop {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+
+  .user-question {
+    width: fit-content;
+
+    .text {
+      font-family: PingFang SC;
+      white-space: pre-wrap !important;
+      word-break: break-all;
+      padding: 16px 24px;
+      border-radius: 24px 0 24px 24px;
+      background: #deecff;
+      font-size: 14px;
+    }
+  }
+
+  .answer-cards {
+    width: fit-content;
+    max-width: 100%;
+    word-break: break-all;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .divider-line {
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid rgb(219, 219, 219);
+  }
+
+  .deep-seek-area {
+    display: flex !important;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .unfolded {
+    color: #808080;
+    width: fit-content;
+    font-size: 16px;
+  }
+
+  .unfolded-icon {
+    transform: rotate(-90deg);
+  }
+
+  .collapsed-icon {
+    transform: rotate(90deg);
+  }
+
+  .right-answer-card {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    align-self: center;
+    word-wrap: break-word;
+
+    .input-node-params {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 16px 20px 16px 20px;
+      border-radius: 24px;
+      background: #FFFFFF;
+    }
+  }
+
+  .right-answer-card.no-text-css{
+    padding: 0;
+  }
+
+  .loading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    img {
+      height: 26px;
+    }
+  }
+
+  .bottom-container {
+    display: flex;
+    align-items: center;
+    margin-top: 16px;
+    gap: 16px;
+
+    .left-area {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      color: #666666;
+    }
+  }
+
+  .error-text {
+    color: #f23030;
+  }
+
+  .exception-text {
+    color: #ff8800;
+  }
+
+  .error-reason {
+    font-size: 16px;
+    word-break: break-all;
+  }
+
+  .answer-header {
+    font-family: PingFang SC;
+    font-size: 16px;
+    line-height: 24px;
+    margin-left: 8px;
+  }
+  
+  .answer-box {
+    overflow-y: hidden;
+    margin-bottom: 16px;
+    transition: height 0.8s cubic-bezier(0.25, 0.8, 0.25, 1);
+  }
+
+  .chat-border {
+    position: relative;
+    padding-left: 20px;
+  }
+
+  .chat-border::before {
+    width: 10px;
+    content: '';
+    position: absolute;
+    top: 28px;
+    left: 10px;
+    right: 0;
+    bottom: 0px;
+    z-index: 1; /* 确保伪元素在内容之下 */
+    border-left: 1px dashed rgba(0, 0, 0, 0.4); /* 透明边框 */
+  }
+
+  .split {
+    position: relative;
+    
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0px;
+      height: 16px;
+      width: 1px;
+      background-color: rgba(219, 219, 219, 1);
+    }
+  }
+
+  .step-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+    flex-direction: column;
+    padding-left: 8px;
+    overflow-y: hidden;
+
+    .step-list {
+      max-width: 100%;
+      width: fit-content;
+      display: flex;
+      align-items: center;
+      color: #595959;
+      padding: 2px 12px;
+      height: 24px;
+      gap: 8px;
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.04);
+    }
+
+    .step-title{
+      font-size: 14px;
+    }
+  }
+
+  .action-info {
+    max-width: 100%;
+    width: fit-content;
+    display: flex;
+    align-items: center;
+    color: #595959;
+    padding: 2px 12px;
+    height: 24px;
+    gap: 2px;
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.04);
+  }
+
+  .answer-title{
+    font-weight: bold;
+    align-items: center;
+    margin:10px 0px 0px -17px;
+
+    .answer-title-text{
+      font-size: 14px;
+      margin: 0 5px 0 8px;
+    }
+  }
+
+  .plan-item{
+    max-width: 100%;
+    width: fit-content;
+    display: flex;
+    align-items: center;
+    color: rgba(89, 89, 89, 1);
+  }
+
+  .action-item{
+    display: flex;
+    flex-direction: column;
+    gap:8px;
+  }
+
+  .dot-black{
+    color:#191919;
+    margin-right: 5px;
+  }
+
+  .summary{
+    color: rgba(89, 89, 89, 1);
+  }
+
+  .collapse-btn {
+    width: 166px;
+    color: #191919;
+    display: flex;
+    align-items: center;
+    font-size: 16px;
+    font-weight: bold;
+    margin-top: 24px;
+
+    img {
+      width: 20px;
+      height: 20px;
+      margin-right: 8px;
+    }
+  }
+
+  .warning-icon {
+    height: 16px;
+    width: 16px;
+    margin-top: 17px;
+    margin-right: 12px;
+  }
+}

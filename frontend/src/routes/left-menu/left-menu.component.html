@@ -1,0 +1,366 @@
+<div id="space-occupying"
+     [style]="{
+     display:isHover?'block':''
+     }"
+></div>
+<div (mouseenter)="handleMouseEnter()" (mouseleave)="handleMouseLeave($event)"
+     [style]="{
+        width: isMenuExpand ? '256px' : '48px',
+       padding: isMenuExpand ?'24px 4px 16px 16px':'24px 4px 16px 8px',
+       position: isHover?'absolute':''
+     }"
+     class="body"
+     id="left-menu"
+>
+  <div *ngIf="is_need_menu" class="side-nav-menu-container"
+       [style]="{
+        width: isMenuExpand ? '236px' : '36px',
+        'padding-right':isMenuExpand? '12px':'4px',
+         'overflow-y': isMenuExpand ? 'scroll':'unset'
+     }"
+  >
+    <ng-container *ngIf="isMenuExpand;else collapsedMenu;">
+      <div class="side-nav-menu">
+        <div class="title-box mb-[24px]" *ngIf="!isMarket">
+          <strong class="title" style="font-size: 20px; letter-spacing: 0px; padding-left: 12px;">Open Jiuwen</strong>
+        </div>
+        <div class="title-box mb-[32px]" *ngIf="isMarket">
+          <nz-icon (click)="goBack()" class="!text-[24px] cursor-pointer" nzType="left" nzTheme="outline"/>
+          <strong class="title" style="font-size: 20px; letter-spacing: 1px; padding-left: 12px;">{{ 'asset_center' | i18nextEager }}</strong>
+        </div>
+        <p class="left-menu-title-line" *ngIf="false"></p>
+        <div class="my-space flex my-space-box" *ngIf="!isMarket" style="margin-bottom: 16px">
+          <img  [src]="this.space_icon" alt="" class="space_icon"/>
+          <p class="left_menu_work_space">
+            <span class="left_menu_space_name">{{ space_name }}</span>
+            <nz-icon nzType="down" nzTheme="outline" class="left_menu_space_name-foldI" *ngIf="!isRotate"/>
+            <nz-icon nzType="up" nzTheme="outline" class="left_menu_space_name-foldI"
+                     *ngIf="isRotate"/>
+          </p>
+          <nz-select
+            #select
+            [id]="'select-template'"
+            class="w-full"
+            [style]="{opacity:isRotate ?1:0}"
+            [(ngModel)]="space_value"
+            [nzPlaceHolder]="'my_space'|i18nextEager"
+            [nzAllowClear]="true"
+            (ngModelChange)="onSpaceSelect($event)"
+            (nzOpenChange)="onBeforeOpen($event)"
+            [nzCustomTemplate]="defaultTemplate"
+            [nzDropdownRender]="renderTemplate"
+            (nzOnSearch)="searchMyWorkSpace($event)"
+            nzPlaceHolder="{{ 'search_my_space' | i18nextEager }}"
+            [nzDropdownMatchSelectWidth]="true"
+            (click)="handleClickSpaceSelectBox()"
+            (nzBlur)="handleBlurSpaceSelectBox()"
+            nzShowSearch
+            nzServerSearch
+          >
+          @if (!searchSpaceLoading) {
+            @for (item of space_options; track $index) {
+              <nz-option nzCustomContent [nzValue]="item">
+                <div class="flex items-center my-space-select"
+                     style="justify-content: space-between; width: calc(100% - 12px);">
+                  <p class="flex align-center gap-2 mb-0">
+                    <img  [src]="item.icon" alt="" style="width: 24px; height: 24px; border-radius: 50%;">
+                    <span
+                      [title]="item.name"
+                      class="name-txt inline-block w-[110px] overflow-hidden text-ellipsis whitespace-nowrap pl-[3px] pr-[3px]"
+                    >
+                  {{ item.name }}
+                </span>
+                  </p>
+                  <span class="ruler pb-[1px] pl-[3px] pr-[3px] pt-[1px] bg-[#f5f5f5]">
+                {{ role_name(item.role) }}
+              </span>
+                </div>
+              </nz-option>
+            }
+          }@else {
+            <nz-option nzDisabled nzCustomContent>
+              <nz-icon nzType="loading" class="loading-icon" />
+              Loading Data...
+            </nz-option>
+          }
+          </nz-select>
+          <ng-template #defaultTemplate let-item>
+            <div class="flex items-center my-space-select"
+                 style="justify-content: space-between; width: calc(100% - 12px);">
+              <p class="flex align-center gap-2 mb-0">
+                <img  [src]="item.icon" alt="" style="width: 24px; height: 24px; border-radius: 50%;">
+                <span
+                  [title]="item.name"
+                  class="name-txt inline-block w-[110px] overflow-hidden text-ellipsis whitespace-nowrap pl-[3px] pr-[3px]"
+                >
+                  {{ item.name }}
+                </span>
+              </p>
+            </div>
+          </ng-template>
+          <ng-template #renderTemplate>
+            <div
+              class="select-footer-buttons"
+              (mousedown)="footerClick($event)"
+            >
+              <div class="flex" (click)="create_space_fn()"
+              >
+                <nz-icon nzType="plus" nzTheme="outline"/>
+                <span>{{ 'create_space' | i18nextEager }}</span>
+              </div>
+            </div>
+          </ng-template>
+        </div>
+        <button class="left-menu-btn" style="height: 38px;" *ngIf="!isMarket && false" nz-button (click)="createApp()" [disabled]="hasPermission()">
+          <nz-icon nzType="plus" nzTheme="outline"/>
+          {{ 'create_ai_app' | i18nextEager }}
+        </button>
+
+        <div class="side-nav-menu-item" *ngFor="let menu of copyItems; index as i">
+          <div style="width: 100%" *ngIf="menu.children && menu.children.length">
+            <div
+              class="tree-node gap-in-module"
+              [ngClass]="{
+              'is-market': isMarket,
+              'while-in-hover':isLeafNode(menuItem)
+              }"
+              (click)="handleNodeClick($event, menuItem, i, j)"
+              [style]="{
+              'max-height':getMenuMaxHeight(menuItem),
+              'padding-left': isLeafNode(menuItem) ? '' : '0px',
+            }"
+              [class]="getClassName(menuItem)"
+              *ngFor="let menuItem of menu.children; index as j"
+            >
+              <div
+                class="menu "
+                *ngIf="!menuItem.hide"
+                [style]="{
+              'padding-left': isLeafNode(menuItem) ? '' : '12px',
+              'height':getMenuHeight(menuItem),
+              'padding-right': isLeafNode(menuItem) ?'':'8px'
+              }"
+                [class]="{'while-in-hover':!isLeafNode(menuItem)}"
+              >
+                <div style="display: flex; align-items: center; gap: 8px">
+                  <img alt="" class="menu-icon" [src]="getIcon(menuItem)" *ngIf="getIcon(menuItem)"/>
+                  <span class="menu-label" [style]="getChildMenuStyle(menuItem)">{{ menuItem.label }}</span>
+                  <img alt=""
+                    class="menu-tip-icon"
+                    *ngIf="menuItem.tipIcon"
+                    [src]="menuItem.tipIcon"
+                    style="position: absolute; right: 30px"
+                  />
+                  <img  [src]="menuItem.rightIcon" alt="" *ngIf="menuItem.rightIcon"/>
+                </div>
+                <nz-icon nzType="down" nzTheme="outline" *ngIf="menuItem.collapseStatus === 1"
+                         class="left_menu_space_name-foldI"/>
+                <nz-icon nzType="up" nzTheme="outline"
+                         *ngIf="menuItem.collapseStatus === 2"
+                         class="left_menu_space_name-foldI"/>
+              </div>
+              <div
+                (click)="handleNodeClick($event, menuChildItem, i, j)"
+                *ngFor="
+                  let menuChildItem of menuItem.children || [];
+                  index as ij
+                "
+                class="secondMenu gap-in-module"
+                [class]="{ 'is-selected': menuChildItem.isSelected }"
+                [style]="{'padding-left': isLeafNode(menuItem) ? '' : '12px'}"
+              >
+                <div style="display: inline-flex; align-items: center; gap: 8px">
+                  <img alt="" class="menu-icon" [src]="getIcon(menuChildItem)" *ngIf="getIcon(menuChildItem)"/>
+                  {{ menuChildItem.label }}
+                </div>
+              </div>
+              <div
+                class="welcome-model-btn"
+                (click)="show_model_tip($event)"
+                #tiTipModelRef
+                *ngIf="menuItem.label === model_service_name"
+              ></div>
+            </div>
+          </div>
+          <nz-icon nzType="down" nzTheme="outline" *ngIf="menu.collapseStatus === 1" class="left_menu_space_name-foldI"/>
+          <nz-icon nzType="up" nzTheme="outline"
+                   *ngIf="menu.collapseStatus === 2" class="left_menu_space_name-foldI"/>
+        </div>
+      </div>
+
+      <div class="license-set-body" style="display: block;">
+        <div class="flex mb-[15px]" *ngIf=" !isMarket">
+          <a nz-tooltip [nzTooltipTitle]="tipContent" nzTooltipPlacement="topLeft">
+            {{ selectLanguage.label }}
+          </a>
+        </div>
+        <p class="left-menu-title-line"></p>
+        <div class="left-menu-resource-manage flex"
+             *ngIf="isAdmin && !isMarket"
+             [style]="{
+            backgroundColor: isSelectedAuthorizationManage ? 'rgb(222, 236, 255)' : '',
+            fontWeight: isSelectedAuthorizationManage ? 'bold' : ''
+          }"
+             (click)="routeToAuthorizationManage()"
+        >
+          <div class="flex items-center gap-[8px]">
+            <img [src]="changeUrl(isSelectedAuthorizationManage?'assets/images/menu/AuthorizationManage_selected.svg':'assets/images/menu/AuthorizationManage.svg')" alt="">
+            <span>{{ 'authorization-manage' | i18nextEager }}</span>
+          </div>
+          <div #authorizationManageRef (click)="authorizationManageTipClick($event)"></div>
+        </div>
+
+        <div class="left-menu-resource-manage" (click)="routeToResourceManage()"
+             *ngIf="isAdmin && !isMarket"
+             [style]="{
+            backgroundColor: isSelectedResourceManage ? 'rgb(222, 236, 255)' : '',
+            fontWeight: isSelectedResourceManage ? 'bold' : ''
+          }"
+        >
+          <img [src]="changeUrl(isSelectedResourceManage?'assets/images/menu/resource-manage_selected.svg':'assets/images/menu/resource-manage.svg')" alt="">
+          <span>{{ 'resource-manage' | i18nextEager }}</span>
+        </div>
+        <div class="collapse-button"
+             nz-tooltip
+             [nzTooltipTitle]="'click_to_collapse_menu'|i18nextEager"
+             *ngIf="!isHover"
+             style="cursor: pointer; padding-left: 12px" (click)="collapseMenu()">
+          <img [src]="changeUrl('assets/images/menu/menu-expand.svg')" alt="">
+        </div>
+        <div class="collapse-button"
+             *ngIf="isHover"
+             style="cursor: pointer; padding-left: 12px" (click)="isHover=false">
+          <img [src]="changeUrl('assets/images/menu/menu-collapse.svg')" alt="">
+        </div>
+      </div>
+    </ng-container>
+    <ng-template #collapsedMenu>
+
+      <div class="side-nav-menu w-8">
+        <div class="title-box mt-1 mb-2 w-8 h-8 justify-center while-in-hover" *ngIf="isMarket">
+          <nz-icon (click)="goBack()" class="!text-[24px] cursor-pointer" nzType="left" nzTheme="outline"/>
+        </div>
+        <button (click)="createApp()"
+                *ngIf="!isMarket"
+                [disabled]="hasPermission() " class="left-menu-btn"
+                style="margin: 0;background-color: transparent">
+          <nz-icon nzType="plus" nzTheme="outline"/>
+        </button>
+
+        <div class="side-nav-menu-item-collapsed" *ngFor="let menu of copyItems; index as i">
+          <div style="width: 100%" *ngIf="menu.children && menu.children.length">
+            <div
+              class="tree-node-collapsed"
+              (click)="handleNodeClick($event, menuItem, i, j)"
+              [style]="{
+              backgroundColor: isLeafNode(menuItem) ? '' : 'transparent',
+              borderColor: isLeafNode(menuItem) ? '' : 'transparent',
+              'margin-top': isLeafNode(menuItem) ? '8px' : '',
+              }"
+              [class]="getClassName(menuItem)"
+              *ngFor="let menuItem of menu.children; index as j"
+            >
+              <div
+                class="menu-collapsed"
+                *ngIf="!menuItem.hide && !menuItem.children "
+                [style]=""
+              >
+                <div style="display: flex; align-items: center; gap: 8px">
+                  <img alt="" class="menu-icon" [src]="getIcon(menuItem)" *ngIf="getIcon(menuItem)"/>
+                </div>
+
+              </div>
+              <div class="left-menu-split-point" *ngIf="menuItem.children">
+              </div>
+              <div
+                (click)="handleNodeClick($event, menuChildItem, i, j)"
+                *ngFor="
+                  let menuChildItem of menuItem.children || [];
+                  index as ij
+                "
+                class="secondMenu-collapsed"
+                [class]="{ 'is-selected': menuChildItem.isSelected }"
+              >
+                <div style="display: inline-flex; align-items: center; gap: 8px">
+                  <img alt="" class="menu-icon" [src]="getIcon(menuChildItem)" *ngIf="getIcon(menuChildItem)"/>
+                </div>
+              </div>
+              <div
+                class="welcome-model-btn"
+                (click)="show_model_tip($event)"
+                #tiTipModelRef
+                *ngIf="menuItem.label === model_service_name"
+              ></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="license-set-body w-8" style="display: block;">
+        <div *ngIf=" !isMarket" class="flex mb-[15px]">
+          <a nz-tooltip [nzTooltipTitle]="tipContent" nzTooltipPlacement="topLeft">
+            {{ selectLanguage.label }}
+          </a>
+        </div>
+        <p class="left-menu-title-line" style="margin-left: 8px;width: 16px"></p>
+        <div (click)="routeToAuthorizationManage()" *ngIf="isAdmin && !isMarket"
+             [style]="{
+            backgroundColor: isSelectedAuthorizationManage ? 'rgb(222, 236, 255)' : '',
+            fontWeight: isSelectedAuthorizationManage ? 'bold' : ''
+           }"
+             class="left-menu-resource-manage "
+             style="padding-left: 6px;height: 32px"
+        >
+          <img [src]="changeUrl(isSelectedAuthorizationManage?'assets/images/menu/AuthorizationManage_selected.svg':'assets/images/menu/AuthorizationManage.svg')" alt="">
+        </div>
+        <div (click)="routeToResourceManage()" *ngIf="isAdmin && !isMarket"
+             [style]="{
+           backgroundColor: isSelectedResourceManage ? 'rgb(222, 236, 255)' : '',
+           fontWeight: isSelectedResourceManage ? 'bold' : ''
+           }"
+             class="left-menu-resource-manage h-8"
+             style="padding-left: 6px;height: 32px"
+        >
+          <img [src]="changeUrl(isSelectedResourceManage?'assets/images/menu/resource-manage_selected.svg':'assets/images/menu/resource-manage.svg')" alt="">
+        </div>
+
+        <div (click)="expandMenu()"
+             class="collapse-button" style="cursor: pointer; padding-left: 6px">
+          <img [src]="changeUrl('assets/images/menu/menu-collapse.svg')" alt="">
+        </div>
+      </div>
+    </ng-template>
+
+  </div>
+</div>
+<ng-template #tipContent let-context="context">
+  <div
+    [class]="
+      selectLanguage.id === 'zh-cn'
+        ? 'language-body-text-active'
+        : 'language-body-text'
+    "
+    (click)="changeLanguage('zh-cn')"
+  >
+    简体中文
+  </div>
+  <div
+    [class]="
+      selectLanguage.id === 'en-us'
+        ? 'language-body-text-active'
+        : 'language-body-text'
+    "
+    (click)="changeLanguage('en-us')"
+  >
+    English
+  </div>
+</ng-template>
+<ng-template #authorizationManageTip let-context="context">
+  <div class="authorization-manage-tip w-[280px]">
+    <div class="flex items-center justify-between">
+      <h5>{{ 'authorization_manage_tip'| i18nextEager }}</h5>
+      <nz-icon (click)="closeAuthorizationManageTip()" class="close-icon" nzType="close" nzTheme="outline"/>
+    </div>
+  </div>
+</ng-template>
+<app-exceed-modal #appExceedModal></app-exceed-modal>

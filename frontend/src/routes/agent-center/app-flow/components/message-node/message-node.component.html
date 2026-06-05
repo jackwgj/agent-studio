@@ -1,0 +1,89 @@
+<div
+  class="pw-common-node-wrapper"
+  [ngClass]="{
+    'pw-common-node-error': alertContent.length > 0,
+    'pw-common-node-selected': alertContent.length === 0 && (isSelected || isSelection),
+    'pw-common-node-hover': alertContent.length === 0 && !(isSelected || isSelection),
+    'pw-common-node-extra': alertContent.length === 0
+  }"
+>
+  <div *ngIf="alertContent.length > 0" class="pw-tips bg-[#ffeae8]">
+    <div class="flex items-center gap-[4px]">
+      <img alt="" class="node-img h-[16px] w-[16px]" [src]="validateAlertIcon" />
+      <span>{{ 'node_error' | i18nextEager }}</span>
+    </div>
+    <button
+      class="detail-tip"
+      nz-button
+      [nzType]="'link'"
+      nz-popover
+      [nzPopoverContent]="customTipTmpl"
+      nzPopoverTrigger="click"
+      nzPopoverPlacement="top"
+    >
+      {{ 'details' | i18nextEager }}
+    </button>
+  </div>
+
+  <div
+    *ngIf="runNodeStatus"
+    class="pw-tips"
+    [ngStyle]="{ 'background-color': getBgColor(runNodeStatus),color: getColor(runNodeStatus) }"
+  >
+    <div class="flex items-center gap-[4px]">
+      <img alt=""
+        class="node-img h-[16px] w-[16px]"
+        [src]="getNodeStatus(runNodeStatus)"
+      />
+      <span>{{ getNodeStatusText(runNodeStatus) }}</span>
+      <span>{{ nodeElapsedTime }}</span>
+    </div>
+    <div class="node-test-info" (click)="onClickTestInfo($event)">{{ 'show_detail' | i18nextEager}}</div>
+  </div>
+
+  <div class="pw-common-node">
+    <div class="node-header">
+      <div class="node-icon-name">
+        <div
+          [ngClass]="isExpand ? 'node-open' : 'node-close'"
+          (click)="onSwitchExpand()"
+        ></div>
+
+        <img class="node-icon" [src]="icon" alt="message-node" />
+        <div class="node-name" lineClamp>
+          {{ nodeInfo.name }}
+        </div>
+      </div>
+
+      <div class="node-oprs">
+        <div *ngIf="!isFlowReadonly" class="cursor-pointer">
+          <div class="cursor-pointer" nz-tooltip [nzTooltipTitle]="'icon-more'| i18nextEager">
+            <div nz-dropdown [nzDropdownMenu]="actionsMenu" nzTrigger="click" class="pw-three-dots-more-modal">
+              <span nz-icon nzType="more" nzTheme="outline"></span>
+            </div>
+            <nz-dropdown-menu #actionsMenu="nzDropdownMenu">
+              <ul nz-menu>
+                <li *ngFor="let action of actions" nz-menu-item (click)="onClickAction(action)">{{ action.label }}</li>
+              </ul>
+            </nz-dropdown-menu>
+          </div>
+        </div>
+      </div>
+    </div>
+    <node-card-description *ngIf="isExpand" [description]="nodeInfo.configs?.descriptionText" [nodeInfo]="nodeInfo"></node-card-description>
+
+    <div *ngIf="isExpand" class="node-groups">
+      <div class="node-group">
+        <div class="flex">
+          <div class="w-[calc(100%-120px)]">{{ 'input_params' | i18nextEager }}</div>
+          <div class="w-[120px]">{{ 'value' | i18nextEager }}</div>
+        </div>
+        <meta-input-params [inputs]="nodeInfo.inputs" />
+      </div>
+    </div>
+  </div>
+</div>
+
+<ng-template #customTipTmpl>
+  <div *ngFor="let item of alertContent">{{ item }}</div>
+</ng-template>

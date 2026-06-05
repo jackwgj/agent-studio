@@ -1,0 +1,84 @@
+<div class="export-modal-container flex flex-col" style="min-height: calc(100vh - 48px);">
+
+  <div class="header pb-4 border-b border-gray-100 mb-4">
+    <div class="text-[18px] font-semibold">
+      {{ 'export_package' | i18nextEager }}
+    </div>
+  </div>
+
+  <div class="mb-4">
+    <nz-input-search class="w-full" (nzSearch)="onSearch()">
+      <input
+        nz-input
+        [placeholder]="'intent_package_name' | i18nextEager"
+        [(ngModel)]="searchName"
+      />
+    </nz-input-search>
+  </div>
+
+  <div class="main-container flex-1 overflow-auto">
+    <nz-table
+      #rowSelectionTable
+      nzSize="small"
+      [nzData]="displayData"
+      [nzLoading]="loading"
+      [nzFrontPagination]="false"
+      [nzShowPagination]="false"
+      [nzNoResult]="noDataTpl"
+    >
+      <thead>
+      <tr>
+        <th
+          [nzChecked]="checked"
+          [nzIndeterminate]="indeterminate"
+          (nzCheckedChange)="onAllChecked($event)"
+          nzWidth="60px"
+        ></th>
+        <th>{{ 'intent_package_name' | i18nextEager }}</th>
+        <th>{{ 'intent_num' | i18nextEager }}</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr *ngFor="let data of rowSelectionTable.data">
+        <td
+          [nzChecked]="setOfCheckedId.has(data.intent_id)"
+          (nzCheckedChange)="onItemChecked(data.intent_id, $event)"
+        ></td>
+        <td nzEllipsis [nz-tooltip]="data.name">{{ data.name }}</td>
+        <td>{{ data.branches_cnt }}</td>
+      </tr>
+      </tbody>
+    </nz-table>
+  </div>
+
+  <div class="flex justify-end mt-4">
+    <nz-pagination
+      [nzPageIndex]="currentPage"
+      [nzTotal]="totalNumber"
+      [nzPageSize]="pageSize"
+      nzShowSizeChanger
+      [nzPageSizeOptions]="pagerSelectOptions"
+      (nzPageIndexChange)="onPageIndexChange($event)"
+      (nzPageSizeChange)="onPageSizeChange($event)"
+    ></nz-pagination>
+  </div>
+
+  <div class="footer flex justify-end gap-2 mt-6 pt-4 border-t border-gray-100 bg-white">
+    <button nz-button nzType="default" (click)="dismiss()">
+      {{ 'cancel' | i18nextEager }}
+    </button>
+    <button
+      nz-button
+      nzType="primary"
+      nzDanger
+      [disabled]="setOfCheckedId.size === 0"
+      (click)="exportIntentPackage()"
+    >
+      {{ 'export' | i18nextEager }}
+    </button>
+  </div>
+</div>
+
+<ng-template #noDataTpl>
+  <nz-empty [nzNotFoundImage]="changeUrl('assets/images/noData.svg')" [nzNotFoundContent]="'no_intent_package' | i18nextEager"></nz-empty>
+</ng-template>

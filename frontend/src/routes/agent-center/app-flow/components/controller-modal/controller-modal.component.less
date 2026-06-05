@@ -1,0 +1,114 @@
+::ng-deep {
+  .tp-halfmodal-cotent meta-controller-modal {
+    display: block;
+    height: 100%;
+  }
+}
+
+::ng-deep {
+  .update-version-modal {
+    width: 700px !important;
+  }
+}
+
+.multi-agent{
+  .associated-agent-header{
+    border:1px solid #c2c2c2;
+    border-radius: 8px 0 0 8px;
+    margin-right: -1px;
+    padding: 0 8px 0 8px;
+  }
+  .associated-agent-select{
+    border:1px solid #c2c2c2;
+    border-radius: 0 8px 8px 0;
+    padding: 0 8px 0 8px;
+  }
+}
+#flow-llm-modal-body{
+  .sub-controller{
+    .list{
+      .item{
+        margin-bottom: 15px;
+      }
+      .item-title{
+        font-size: 12px;
+        font-weight: bolder;
+        color: #888888;
+        margin-bottom: 8px;
+      }
+      .item-con{
+        font-size: 12px;
+        color: #191919;
+      }
+    }
+  }
+  .controller{
+    height: 0;
+  }
+}
+
+.intelligent-add-border {
+  background: linear-gradient(4deg, #fdf4ffff 0%, #cde9ffff 100%);
+  border-radius: 6px;
+
+  &:hover {
+    border-color: #856afd;
+  }
+}
+
+.disabled {
+  cursor: not-allowed;
+  background-color: #f0f0f0;
+  border-color: #dbdbdb;
+}
+
+.enabled {
+  cursor: pointer;
+  padding: 4px;
+  border: 1px solid #c2cffb;
+  width: 26px;
+  height: 26px;
+}
+.icon-border {
+  border-radius: 6px;
+  padding: 4px;
+  cursor: pointer;
+  border: 1px solid #c2c2c2;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    border-color: #191919;
+  }
+}
+
+.save-tmp-link {
+  cursor: pointer;
+}
+
+.save-tmp-link-disabled {
+  color: #dbdbdb;
+  cursor: pointer;
+}
+
+.drawer-footer {
+  padding: 16px 20px;
+  border-top: 1px solid #e1e5eb;
+}
+
+.error-tip {
+  color: #ff4d4f;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.input-error {
+  ::ng-deep {
+    input, .ant-input {
+      border-color: #ff4d4f !important;
+    }
+  }
+}

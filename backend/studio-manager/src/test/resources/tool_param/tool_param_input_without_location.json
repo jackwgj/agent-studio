@@ -1,0 +1,13 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "name_cn": "姓名",
+      "description": "姓名"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

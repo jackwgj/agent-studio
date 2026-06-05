@@ -1,0 +1,108 @@
+<nz-drawer
+  #skillModal
+  id="skill-modal"
+  [nzClosable]="true"
+  [nzMaskClosable]="true"
+  [nzVisible]="drawerVisible"
+  [nzFooter]="drawerFooter"
+  [nzMask]="true"
+  nzWidth="700px"
+  (nzOnClose)="dismiss()"
+>
+  <ng-container *nzDrawerContent>
+    <div class="drawer-header">
+      {{ 'skill.modal.title' | i18n }}
+    </div>
+    <div class="drawer-body">
+      <nz-alert nzType="info" class="modal-skill-limit-tip" [nzShowIcon]="false" [nzMessage]="'skill.limit' | i18n: { number: 50 }"></nz-alert>
+      <nz-tabset>
+        <nz-tab [nzTitle]="skillTabs[0].title" (nzSelect)="skillTabs[0].onActiveChange(true)">
+        </nz-tab>
+        <nz-tab [nzTitle]="skillTabs[1].title" (nzSelect)="skillTabs[1].onActiveChange(true)">
+        </nz-tab>
+      </nz-tabset>
+      <div>
+        @if (isLibrary) {
+          <div class="mb-[16px]">
+            <meta-import-skill-button [source]="'agent'" (importCompleted)="getSkillList(this.currentTab, true)"></meta-import-skill-button>
+          </div>
+        }
+        <div class="flex items-center gap-2 mb-[16px]">
+          <nz-input-search nzAllowClear (nzSearch)="getSkillList(currentTab, true)">
+            <input
+              nz-input
+              id="searchbox-basic"
+              class="w-full"
+              [placeholder]="'skill.search.filter.placeholder' | i18n"
+              [(ngModel)]="searchValue"
+            />
+          </nz-input-search>
+          <button nz-button nzType="default" (click)="getSkillList(currentTab, true)">
+            <span nz-icon nzType="reload"></span>
+          </button>
+        </div>
+      </div>
+      <div
+        id="skill-tab-list"
+        class="skill-list-container"
+        [ngClass]="isLibrary ? 'library-list' : 'common-list'"
+        (scroll)="onScroll()"
+      >
+        <div *ngIf="loading" class="loading-container">
+          <nz-spin></nz-spin>
+        </div>
+        @if (skillsList.length) {
+          <div class="skill-selected-group">
+            @for (skillItem of skillsList; track skillItem.skill_id) {
+              <div
+                class="skill-selected-item"
+                [ngClass]="{
+                  active: selectedIds.includes(skillItem.skill_id),
+                  'hover-item': canSelectedStatus.includes(skillItem.status),
+                }"
+                (click)="onSkillItemClick(skillItem)"
+                [nz-tooltip]="skillItem.tip"
+                nzTooltipPlacement="top"
+              >
+                <app-skill-card [skillItem]="skillItem"></app-skill-card>
+              </div>
+            }
+          </div>
+        } @else {
+          @if (!loading) {
+            <div class="no-data-skill">
+              <app-new-common-no-data-with-btn
+                [type]="searchValue.length ? 'noData' : 'filterNoData'"
+                (clear)="clearFilter()"
+              />
+            </div>
+          }
+        }
+      </div>
+    </div>
+
+  </ng-container>
+  <ng-template #drawerFooter>
+    <div class="skill-footer-btn">
+      <div>
+        {{ selectedSkills }}
+      </div>
+      <div>
+        <button type="button" nz-button id="cancel" (click)="dismiss()">{{ 'cancel' | i18n }}</button>
+        <button
+          type="button"
+          nz-button
+          nzType="primary"
+          style="margin-left: 8px"
+          id="ok"
+          (click)="addSkill()"
+          [disabled]="disabledSubmit.disabled"
+          [nz-tooltip]="disabledSubmit.tip"
+          nzTooltipPlacement="top"
+        >
+          {{ 'ok' | i18n }}
+        </button>
+      </div>
+    </div>
+  </ng-template>
+</nz-drawer>

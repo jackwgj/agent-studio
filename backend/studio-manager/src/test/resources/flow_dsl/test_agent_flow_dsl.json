@@ -1,0 +1,135 @@
+{
+  "id": "test_llm_id",
+  "name": "名称测试",
+  "description": "描述测试",
+  "nodes": [
+    {
+      "id": "node_start",
+      "name": "开始",
+      "type": "Start",
+      "outputs": [
+        {
+          "name": "query",
+          "type": "String",
+          "description": "用户输入",
+          "required": true,
+          "field_type": "input",
+          "source": "system",
+          "value": {
+            "type": "literal",
+            "content": "",
+            "hint": "用户输入"
+          }
+        }
+      ]
+    },
+    {
+      "id": "node_1727403791211",
+      "type": "Agent",
+      "name": "agent节点",
+      "inputs": [
+        {
+          "name": "query",
+          "type": "string",
+          "description": "",
+          "required": false,
+          "source": "user",
+          "value": {
+            "type": "ref",
+            "content": {
+              "ref_node_id": "node_start",
+              "ref_var_name": "query",
+              "source": "system"
+            }
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "string",
+          "description": "",
+          "required": false,
+          "source": "user",
+          "value": {
+            "type": "generated",
+            "content": null
+          }
+        }
+      ],
+      "configs": {
+        "model": {
+          "model_name": "agentBuilder-nlp-n1-32k_xhygi5",
+          "model_type": "openai",
+          "model_deployment_id": "8acae074-751e-4abc-922a-403053ebc273"
+        },
+        "system_prompt": "系统人设我是",
+        "user_prompt": "{{query}}",
+        "enable_intent_break": false,
+        "temperature": 0.3,
+        "top_p": 0.3,
+        "max_iteration": 9,
+        "break_plugin_ids": [
+          "reserve_meeting_room"
+        ],
+        "plugins": [
+          {
+            "id": "reserve_meeting_room",
+            "name": "location_search",
+            "description": "地理位置查询"
+          }
+        ]
+      }
+    },
+    {
+      "id": "node_end",
+      "name": "结束",
+      "type": "End",
+      "inputs": [
+        {
+          "name": "result1",
+          "type": "String",
+          "description": "最终输出",
+          "required": false,
+          "source": "user",
+          "value": {
+            "type": "ref",
+            "content": {
+              "ref_node_id": "node_1727403791211",
+              "ref_var_name": "results",
+              "source": "user"
+            }
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "response_content",
+          "type": "String",
+          "description": "最终输出",
+          "required": true,
+          "source": "system",
+          "value": {
+            "type": "generated",
+            "content": null
+          }
+        }
+      ],
+      "configs": {
+        "response_mode": "directResponse",
+        "is_stream_out": true,
+        "response_template": "{{result1}}"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "source": "node_start",
+      "target": "node_1727403791211"
+    },
+    {
+      "source": "node_1727403791211",
+      "target": "node_end"
+    }
+  ]
+}

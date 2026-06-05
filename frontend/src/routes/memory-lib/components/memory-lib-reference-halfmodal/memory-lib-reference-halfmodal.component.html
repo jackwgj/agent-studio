@@ -1,0 +1,57 @@
+<div class="memory-lib-reference-modal-header">
+  {{ 'memory.management.modal.deleteReferencedList' | i18nextEager }}
+</div>
+
+<div class="memory-lib-reference-container">
+  <!-- Loading 状态 -->
+  @if (isLoading) {
+    <nz-spin class="loading-icon" nzSimple nzSize="large"></nz-spin>
+  }
+
+  <!-- 标签页 -->
+  <nz-tabset [(nzSelectedIndex)]="activeTabIndex" (nzSelectedIndexChange)="onTabChange($event)">
+    @for (tab of tabs; track tab.id) {
+      <nz-tab [nzTitle]="tab.title"></nz-tab>
+    }
+  </nz-tabset>
+
+  <!-- 表格 -->
+  <nz-table
+    #basicTable
+    [nzData]="srcData.data"
+    [nzLoading]="isLoading"
+    [nzFrontPagination]="false"
+    [nzTotal]="totalNumber"
+    [nzPageSize]="pageSize.size"
+    [nzPageIndex]="currentPage"
+    (nzPageIndexChange)="onPageChange($event)"
+    [nzScroll]="{ y: '400px' }"
+  >
+    <thead>
+    <tr>
+      @for (column of columns; track column.title) {
+        <th>{{ column.title }}</th>
+      }
+    </tr>
+    </thead>
+    <tbody>
+      @for (row of basicTable.data; track row.app_id) {
+        <tr>
+          <td>
+            <a class="cursor-pointer w-full text-link" (click)="toResourceDetail(row)">
+              {{ row.app_name }}
+            </a>
+          </td>
+          <td>
+            <span class="w-full">{{ row.app_version || ('unpublished' | i18nextEager) }}</span>
+          </td>
+        </tr>
+      }
+    </tbody>
+  </nz-table>
+
+  <!-- 无数据展示 -->
+  @if (!isLoading && !srcData.data.length) {
+    <app-common-no-data class="memory-lib-reference-no-data"></app-common-no-data>
+  }
+</div>

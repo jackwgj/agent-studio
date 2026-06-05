@@ -1,0 +1,9 @@
+{
+  "id": "941ceef2-fd53-4200-91ec-82e554f94691",
+  "name": "repo_test",
+  "detail": "test",
+  "status": "OPEN",
+  "create_time": "1711161570526",
+  "update_time": "1711182192516",
+  "embedding_model": "agentBuilder_vector"
+}

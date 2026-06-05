@@ -1,0 +1,74 @@
+
+.drawer-header {
+  font-weight: 600;
+  font-size: 16px;
+  padding: 16px;
+  border-bottom: 1px solid #F0F0F0;
+}
+
+.drawer-body {
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.modal-skill-limit-tip {
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.library-list {
+  height: calc(100% - 186px);
+}
+
+.common-list {
+  height: calc(100% - 142px);
+}
+
+.skill-list-container {
+  overflow-y: auto;
+
+  .skill-selected-group {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 16px;
+    width: 100%;
+
+    .skill-selected-item {
+      width: calc((100% - 16px) / 2);
+      border-radius: 8px;
+      border: 1px solid transparent;
+      padding: 16px;
+      margin: 0;
+
+      &.hover-item:hover {
+        border: 1px solid #5E7CE0;
+        cursor: pointer;
+      }
+
+      &.active {
+        background-color: #FFFFFF;
+      }
+    }
+  }
+
+  .no-data-skill {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  padding: 24px;
+}
+
+
+.skill-footer-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}

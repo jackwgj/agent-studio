@@ -1,0 +1,114 @@
+.add-button {
+  margin-bottom: 16px;
+  margin-top: 12px;
+}
+
+.header-title {
+  color: rgba(25, 25, 25, 1);
+  font-family: PingFang SC;
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 24px;
+  letter-spacing: 0px;
+  text-align: left;
+}
+
+.card-wrapper {
+  box-sizing: border-box;
+  border: 1px solid rgba(240, 240, 240, 1);
+  border-radius: 8px;
+  margin-bottom: 16px;
+  background: rgba(255, 255, 255, 1);
+  padding: 16px;
+
+  .card {
+    //background-color: #fafafa;
+    height: 90px;
+    //width: calc((100% - 16px) / 2);
+    display: flex;
+    justify-content: space-between;
+    border-radius: 8px;
+    box-sizing: border-box;
+    padding: 16px;
+    gap: 16px;
+    border: 1px solid transparent;
+    cursor: pointer;
+
+    &:hover {
+      border-color: #1476ff;
+    }
+
+    .tool-num {
+      width: 50px;
+      color: rgba(128, 128, 128, 1);
+      font-family: PingFang SC;
+      font-size: 12px;
+      font-weight: 400;
+      line-height: 18px;
+      letter-spacing: 0px;
+      text-align: left;
+    }
+  }
+
+  .sub-card {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    margin-bottom: 16px;
+    border-radius: 8px;
+    gap: 16px;
+    background: rgba(250, 250, 250, 1);
+  }
+}
+
+.sub-card-hover:hover {
+  box-shadow: 0px 4px 16px 0px rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 1);
+}
+
+.card-style {
+  width: calc((100% - 16px) / 2);
+}
+
+.cards-wrapper {
+  height: 100%;
+  width: 100%;
+  overflow: auto;
+  padding: 4px 16px 4px 2px;
+
+
+  &::after {
+    content: "";
+    flex: auto;
+  }
+}
+
+::ng-deep {
+  #flow-add-tool-modal {
+    .ant-tabs-content {
+      height: calc(100% - 52px);
+      border-top-color: transparent;
+    }
+  }
+}
+
+.plugins-selected-count {
+  left: var(--left);
+  padding-left: 8px;
+  border-left: 1px solid rgba(219, 219, 219, 1);
+}
+
+.version-info-list-div {
+  display: flex;
+  align-items: center;
+}
+
+.version-info-list-div  {
+  ::ng-deep {
+    .ant-select-selection-item {
+      color: #808080;
+    }
+  }
+}

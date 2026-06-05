@@ -1,0 +1,170 @@
+<div
+  id="space-team-management"
+  leftmenu
+>
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 24px">
+    <p style="color: #191919; font-weight: 600; font-size: 24px">{{ 'space_team_management' | i18nextEager }}</p>
+    <p>
+      @for(item of descandbuyConfig.buttons; track item.label) {
+        <button (click)="item.click()" nz-button [nzType]="'default'" type="button" [disabled]="item.disabled" style="margin-left: 12px">{{ item.label }}</button>
+      }
+    </p>
+  </div>
+  <div>
+    <div style="display: flex; flex-direction: column; gap: 16px; width: 100%">
+      <div class="info">
+        <div class="title flex justify-between">
+          <span>{{ 'basic_info' | i18nextEager }}</span>
+          <nz-icon
+            nzType="edit"
+            nzTheme="outline"
+            style="font-size:18px;cursor: pointer"
+            (click)="edit_fn()"
+            *ngIf="(info_detail.role === 'OWNER' || info_detail.role === 'ADMIN' )"
+          />
+        </div>
+        <div class="info-con">
+          <div class="item flex gap-2">
+            <img alt="" [src]="getIcon(info_detail?.icon) || '-'"/>
+            <div style="width: 85%">
+              <label>{{ 'space_name' | i18nextEager }}</label>
+              <div class="con overflow-hidden text-ellipsis whitespace-nowrap">{{info_detail?.name || '-'}}</div>
+            </div>
+          </div>
+          <div class="item">
+            <label>{{ 'description' | i18nextEager }}</label>
+            <div class="con overflow-hidden text-ellipsis whitespace-nowrap">{{info_detail?.description || '-'}}</div>
+          </div>
+          <div class="item">
+            <label>{{ 'my_role' | i18nextEager }}</label>
+            <div class="con overflow-hidden text-ellipsis whitespace-nowrap">{{info_detail?.role_name_cn || '-'}}</div>
+          </div>
+          <div class="item">
+            <label>{{ 'creation_time' | i18nextEager }}</label>
+            <div class="con overflow-hidden text-ellipsis whitespace-nowrap">{{info_detail?.createdOn |formateTime}}</div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div>
+          <div class="btn_list">
+            <p class="selected-user">{{ 'Members' | i18nextEager }} ({{ selectNum }})</p>
+            <p>
+              <button
+                *ngIf="['OWNER','ADMIN'].includes(info_detail.role)"
+                (click)="addUser({id:'',name:''})"
+                nzType="primary"
+                nz-button
+              >
+                {{ 'add_user' | i18nextEager }}
+              </button>
+            </p>
+          </div>
+
+          <div class="search mb-[24px] flex items-center gap-2">
+            <div class="my_select">
+              <nz-select
+                style="width: 204px"
+                [nzPlaceHolder]="'please_select_a_character' | i18nextEager"
+                [(ngModel)]="activeName"
+                (ngModelChange)="integrationSelect($event)"
+              >
+                @for(option of integrationTabsOption; track option) {
+                  <nz-option [nzLabel]="option.roleName" [nzValue]="option.roleId"></nz-option>
+                }
+              </nz-select>
+            </div>
+            <div class="flex-1" style="display:flex; gap: 8px">
+              <nz-input-group style="flex: 1;" [nzSuffix]="searchSuffixTemplate">
+                <input nz-input [(ngModel)]="searchName" (keyup.enter)="onSearchContentChange($event)"  />
+              </nz-input-group>
+              <ng-template #searchSuffixTemplate>
+                <span nz-icon nzType="search"></span>
+              </ng-template>
+              <button
+                type="button"
+                class="h-8 w-8"
+                nz-button
+                (click)="handleClickRefresh()"
+              >
+                <nz-icon nzType="reload" nzTheme="outline" />
+              </button>
+            </div>
+          </div>
+
+          <div class="space_table h-[calc(100%-200px)] w-full">
+            <nz-table
+              [nzData]="displayed"
+              [(nzPageIndex)]="currentPage"
+              [nzTotal]="totalNumber"
+              [nzPageSize]="pageSize.size"
+              (nzPageIndexChange)="onCurrentPageChange()"
+              [nzLoading]="loading"
+              [nzShowPagination]="totalNumber > 0"
+            >
+              <thead>
+                <tr style="height:48px;">
+                  <th>{{ columns[1].title }}</th>
+                  <th>{{ columns[2].title }}</th>
+                  <th>{{ columns[3].title }}</th>
+                  <th>{{ columns[4].title }}</th>
+                </tr>
+              </thead>
+              <tbody style="overflow: auto" *ngIf="space_team_data.data.length && !loading">
+                <tr
+                  *ngFor="let row of displayed; index as i; trackBy: trackByFn"
+                  [ngClass]="{
+                  'ti3-selected-tr': checkedList.indexOf(row) !== -1
+                }"
+                >
+                  <td>
+                    <div class="profile_picture overflow-hidden text-ellipsis whitespace-nowrap">
+                      {{ row.memberName }}
+                    </div>
+                  </td>
+                  <td>
+                    <nz-select
+                      style="width: 80%"
+                      [nzPlaceHolder]="'please_select_a_character' | i18nextEager"
+                      [(ngModel)]="row.role"
+                      (ngModelChange)="onRoleSelect($event, row)"
+                      [disabled]="row.role==='OWNER'|| ['DEVELOPER','OPERATOR'].includes(info_detail.role) || userId === row.memberId"
+                    >
+                      @for(option of roles_option; track option) {
+                        <nz-option [nzLabel]="option.roleName" [nzValue]="option.roleId"></nz-option>
+                      }
+                    </nz-select>
+                  </td>
+                  <td>{{ row.createdOn |formateTime }}</td>
+                  <td>
+                    <button
+                      nz-button
+                      style="border: none"
+                      (click)="deleteThisUser(row)"
+                      [disabled]="
+                      row.role === 'OWNER' ||
+                      info_detail.role === 'DEVELOPER' ||
+                      info_detail.role === 'OPERATOR' ||
+                      userId === row.memberId"
+                    >删除</button>
+                  </td>
+                </tr>
+              </tbody>
+              <tbody *ngIf="space_team_data.data.length === 0 && !loading">
+                <ng-container>
+                  <tr>
+                    <td colspan="4">
+                      <div style="text-align: center">
+                        <p>{{ 'no_table_data_available' | i18nextEager }}</p>
+                      </div>
+                    </td>
+                  </tr>
+                </ng-container>
+              </tbody>
+            </nz-table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

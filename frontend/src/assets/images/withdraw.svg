@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="16px" height="16px" viewBox="0 0 16 16" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 61.2 (89653) - https://sketch.com -->
+    <title>icon-16px-withdraw</title>
+    <desc>Created with Sketch.</desc>
+    <g id="页面-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round">
+        <g id="摄像头-配置算法" transform="translate(-1629.000000, -366.000000)" fill-rule="nonzero" stroke="#C8C8C8">
+            <g id="编组-15" transform="translate(1318.000000, 80.000000)">
+                <g id="编组-12" transform="translate(2.000000, 0.000000)">
+                    <g id="编组-6" transform="translate(205.000000, 280.000000)">
+                        <g id="编组-9">
+                            <g id="icon-16px-withdraw" transform="translate(104.000000, 6.000000)">
+                                <g id="编组-4" transform="translate(3.000000, 2.000000)">
+                                    <path d="M0.302715822,5.28744405 C0.481595846,4.97305399 0.705113374,4.67716477 0.973268404,4.40900974 L3.62491883,1.75735931 C5.23583154,0.146446609 7.84763707,0.146446609 9.45854978,1.75735931 C11.0694625,3.36827202 11.0694625,5.98007755 9.45854978,7.59099026 C8.69067938,8.35886066 8.07683798,8.97270205 7.61702559,9.43251445 M6.20599707,10.8494766 C6.20599707,10.8494766 5.19223013,11.7968284 5.19223013,11.7968284" id="形状"></path>
+                                    <polyline id="路径" points="5.45454545 5.45454545 0 5.45454545 0 0"></polyline>
+                                </g>
+                            </g>
+                        </g>
+                    </g>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg>

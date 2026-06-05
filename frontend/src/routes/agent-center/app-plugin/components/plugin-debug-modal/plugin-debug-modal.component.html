@@ -1,0 +1,160 @@
+<ng-template *nzModalTitle>
+  <span>{{ 'tool_debug' | i18nextEager }}</span>
+</ng-template>
+<div nz-modal-content class="debug-modal" class="h-[700px] overflow-auto">
+  <div class="req-params">
+    <span class="title">{{ 'request_params' | i18nextEager }}</span>
+    <div class="h-[calc(100%-38px)] overflow-y-auto p-6">
+      <dynamic-node-params *ngIf="requestArgToDynamicForm.length" #dynamicFormIns [inputList]="requestArgToDynamicForm"></dynamic-node-params>
+    </div>
+    <div class="cutline"></div>
+    <button class="debug-btn" nz-button nzType="primary" (click)="onDebugging()" [disabled]="isLoading">
+      {{ 'start_debug' | i18nextEager }}
+    </button>
+  </div>
+  <div class="debug-res">
+    <div class="title">
+      <span>{{ 'debug_result' | i18nextEager }}</span>
+      <div class="flex items-center gap-1" *ngIf="debugResult && debugResult.success !== undefined">
+        <ng-container *ngIf="debugResult.success">
+          <ng-container *ngIf="isValidJson(debugResult?.raw_response_code); else invalidJsonIcon">
+            <asset-success-icon></asset-success-icon>
+          </ng-container>
+          <ng-template #invalidJsonIcon>
+            <asset-alert-icon></asset-alert-icon>
+          </ng-template>
+
+          <span class="font-medium">
+            <ng-container *ngIf="isSuccess(debugResult?.raw_response_code); else not2xxStatusCode">
+              <ng-container *ngIf="isValidJson(debugResult?.raw_response); else invalidJson">
+                <span class="text-[#5cb300]">{{ 'debug_success' | i18nextEager }}</span>
+              </ng-container>
+              <ng-template #invalidJson>
+                <span class="text-[#ff8800]">{{ 'invalid_json_format' | i18nextEager }}</span>
+              </ng-template>
+            </ng-container>
+
+            <ng-template #not2xxStatusCode>
+              <span class="text-[#5cb300]">{{ 'plugin_return_res' | i18nextEager }}</span>
+            </ng-template>
+          </span>
+        </ng-container>
+        <ng-container *ngIf="!debugResult.success">
+          <asset-error-icon></asset-error-icon>
+          <span class="font-medium text-[#f23030]">
+            {{ 'debug_failed' | i18nextEager }}
+          </span>
+        </ng-container>
+      </div>
+    </div>
+
+    <!-- 空状态 -->
+    <div class="no-data-container" *ngIf="!debugResult && !isLoading">
+      <no-data-icon></no-data-icon>
+      <span>{{ 'debug_no_data' | i18nextEager }}</span>
+    </div>
+
+    <!-- loading加载态 -->
+    <div *ngIf="isLoading" class="relative flex h-[500px] h-full flex-col items-center justify-center">
+      <asset-loading-icon class="custom-loading-icon absolute"></asset-loading-icon>
+      <asset-generate-loading-icon></asset-generate-loading-icon>
+      <span class="loading-text">{{ 'debug_loading' | i18nextEager }}</span>
+    </div>
+
+    <!-- 调测结果 -->
+    <div *ngIf="debugResult" class="IO-container m-6 mb-0 flex flex-col overflow-y-hidden">
+      <div class="res-IO">
+        <div class="left">
+          <span>{{ 'input' | i18nextEager }}</span>
+          <ng-container *ngIf="!inputCopyState[activeTab]">
+            <asset-copy-icon class="cursor-pointer" (click)="copyInput()"></asset-copy-icon>
+          </ng-container>
+          <ng-container *ngIf="inputCopyState[activeTab]">
+            <asset-copy-success-icon class="cursor-pointer"></asset-copy-success-icon>
+          </ng-container>
+        </div>
+        <div class="right">
+          <div class="flex items-center space-x-4">
+            <span
+              *ngFor="let tab of tabs; let i = index"
+              class="cursor-pointer"
+              [ngClass]="{ 'border-r pr-3': i < tabs.length - 1 }"
+              [class.pr-0]="i === tabs.length - 1"
+              [class.font-semibold]="activeTab === tab"
+              (click)="setActiveTab(tab)"
+            >
+              {{ tab }}
+            </span>
+          </div>
+        </div>
+      </div>
+      <div class="res-cutline"></div>
+      <div *ngIf="activeTab === 'Body'" class="h-[calc(100%-44px)] overflow-y-auto">
+        <json-viewer [jsonData]="rawRequestBody"></json-viewer>
+      </div>
+      <div *ngIf="activeTab === 'URL'" class="h-[calc(100%-44px)] overflow-y-auto">
+        <json-viewer [jsonData]="debugResult.raw_request_url"></json-viewer>
+      </div>
+      <div *ngIf="activeTab === 'Headers'" class="h-[calc(100%-44px)] overflow-y-auto">
+        <json-viewer [jsonData]="debugResult.raw_request_headers"></json-viewer>
+      </div>
+    </div>
+
+    <div *ngIf="debugResult" class="IO-container output-container m-6 flex flex-col overflow-y-hidden">
+      <div class="res-IO">
+        <div class="left">
+          <span>{{ 'output' | i18nextEager }}</span>
+          <ng-container *ngIf="!isOutputCopying">
+            <asset-copy-icon class="cursor-pointer" (click)="copyOutput()"></asset-copy-icon>
+          </ng-container>
+          <ng-container *ngIf="isOutputCopying">
+            <asset-copy-success-icon class="cursor-pointer"></asset-copy-success-icon>
+          </ng-container>
+        </div>
+        <div
+          *ngIf="debugResult.success"
+          class="right"
+          [ngClass]="{
+            'text-[#f23030]': !isSuccess(debugResult?.raw_response_code),
+            'text-[#5cb300]': isSuccess(debugResult?.raw_response_code) && isValidJson(debugResult?.raw_response),
+            'text-[#191919]': isSuccess(debugResult?.raw_response_code) && !isValidJson(debugResult?.raw_response),
+          }"
+        >
+          <span>{{ 'status_code' | i18nextEager }}：</span>
+          <span>{{ debugResult?.raw_response_code }}</span>
+        </div>
+      </div>
+      <div class="res-cutline"></div>
+      <div *ngIf="!debugResult.success" class="error-msg h-[calc(100%-44px)] overflow-y-auto">
+        <json-viewer [jsonData]="debugResult.errorMessage"></json-viewer>
+      </div>
+      <div *ngIf="debugResult.success" class="h-[calc(100%-44px)] overflow-y-auto">
+        <nz-alert nzType="info" nzMessage="{{ 'plugindebugmodalcomponent_723' | i18nextEager }}" *ngIf="!showResponseJson"></nz-alert>
+        <div
+          [class]="{
+            'h-full': showResponseJson,
+            'h-[calc(100%-50px)]': !showResponseJson,
+            'pt-[8px]': !showResponseJson,
+          }"
+        >
+          <json-viewer [jsonData]="rawResponse"></json-viewer>
+        </div>
+      </div>
+    </div>
+    <div class="cutline"></div>
+    <button
+      *ngIf="!hideParseBtn"
+      class="debug-btn"
+      nz-button
+      nzType="primary"
+      [disabled]="isDebugBtnDisabled"
+      [nz-tooltip]="isDebugBtnDisabled ? '' : ('auto_parse_tip' | i18nextEager)"
+      (click)="onParseRes()"
+    >
+      {{ 'auto_parse' | i18nextEager }}
+    </button>
+  </div>
+</div>
+<div *nzModalFooter>
+  <nz-space></nz-space>
+</div>

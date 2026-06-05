@@ -1,0 +1,28 @@
+<div class="deep-research-runtime-container">
+  <nz-alert
+    *ngIf="isShowNoSearchEngineTip"
+    style="position: absolute; top: 0; right: 24px; z-index: 100"
+    nzType="warning"
+    [nzMessage]="'deepresearch-no-search' | i18nextEager"
+    nzCloseable
+    nzShowIcon
+  ></nz-alert>
+  <deep-research-chat
+    [agentInfo]="agentInfo"
+    [style]="{width: dialogWidth}"
+    [isRuntime]="isRuntime"
+    [searchEngine]="searchEngine"
+    (expandDialogEnv)="handleClickExpandDialog($event)"
+    (viewArticleEnv)="handleClickViewArticle($event)"
+    (disabledSender)="handleDisabledSender($event)"
+    [agentType]="agentType"
+  />
+  <!-- 查看deep-Research的产物 -->
+  <agent-deep-research-article
+    [style]="{width: articleWidth}"
+    [width]="articleWidth"
+    [title]="articleTitle"
+    [content]="articleContent"
+    (closeArticleEnv)="handleClickCloseArticle()"
+  />
+</div>

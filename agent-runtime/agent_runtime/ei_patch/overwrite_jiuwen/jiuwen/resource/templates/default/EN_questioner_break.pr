@@ -1,0 +1,15 @@
+`#user#`
+User and assistant's conversation history:
+{{chat_history}}
+
+Current input:
+{{input}}
+
+Please consider the user's conversation history and the current input information to determine whether the current task information matches the conversation history and whether the user expressed the intent to stop the current task or switch to another task in the current input.
+Strictly follow these rules:
+1. If the user expresses the intent to end the current task or switch to another task, set the parameter "if_breakout" to true. If not, set it to false.
+2. Only output the result in JSON format. Do not use Markdown formatting symbols or include any explanations or additional text. The JSON result should include the following two fields:
+if_breakout：indicates whether the task type is switched or the task is ended
+reason: explains why "if_breakout" was set to the current value
+Output structure:
+{"if_breakout": false,  "reason": "The current input xxxx"}.

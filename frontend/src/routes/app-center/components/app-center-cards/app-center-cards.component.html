@@ -1,0 +1,86 @@
+<div *ngIf="!isLodingCard && noData" class="h-full w-full">
+  <app-new-common-no-data-with-btn
+    [type]="keyword === '' ? 'noData' : 'filterNoData'"
+    [firstLineData]="'no_data' | i18nextEager"
+    [noDataBtnStr]="keyword === '' ? '' : ('appcentercardscomponent_6' | i18nextEager)"
+    (clear)="handleClickClearData()"
+  />
+</div>
+<nz-spin
+  *ngIf="isLodingCard && !cardList.length"
+  class="loading-icon"
+  [nzSimple]="true"
+  [style]="{ marginTop: !isShowDom ? '0px' : '', height: !isShowDom ? '20px' : '' }"
+></nz-spin>
+<div
+  tiScroll
+  (scroll)="onScroll()"
+  class="overflow-y-auto card-container"
+  [ngStyle]="{ 'max-height': !isShowDom ? '100%' : 'calc(100vh - 300px)' }"
+  *ngIf="!noData && cardList.length"
+>
+  <div class="com-cards-wrapper mb-[14px]" [style]="{ 'display': isFromOverview ? 'flex' : '', 'flex-wrap': isFromOverview ? 'wrap' : '' }">
+    <div
+      *ngFor="let data of cardList"
+      (click)="toCardDetail(data)"
+      class="com-card-box"
+      [ngClass]="{ 'cursor-not-allowed': !subscribeBtnStatus }"
+      [style]="{ width: isFromOverview ? 'calc((100% - 16px * 2) / 3)' : '' }"
+    >
+      <div class="com-card-header" style="position: relative">
+        <img alt="" class="com-card-icon" [src]="data.icon" style="border-radius: 8px" />
+        <span style="width: 48px; height: 48px; border: 1px solid rgb(230, 230, 230); border-radius: 8px; position: absolute"></span>
+        <div class="com-card-name-box">
+          <div class="com-card-name" tiOverflow>
+            {{ data.name }}
+          </div>
+          <div class="com-card-tag-box">
+            <nz-tag *ngIf="data.quotaTag" nzColor="orange" nz-tooltip [nzTooltipTitle]="data.quotaTag.tip">
+              {{ data.quotaTag.text }}
+            </nz-tag>
+            <nz-tag *ngFor="let tag of data.showTags" [nzColor]="'#f5f5f5'" [ngStyle]="{ color: 'rgb(25, 25, 25)', height: '24px', 'border-radius': '4px' }">
+              {{ lang === 'zh-cn' ? tag?.name : tag?.name_en }}
+            </nz-tag>
+            <nz-tag *ngIf="data.resourceTag" [nzColor]="'#f5f5f5'" [ngStyle]="{ color: 'rgb(25, 25, 25)', height: '24px', 'border-radius': '4px' }">
+              {{ data.resourceTag }}
+            </nz-tag>
+            <nz-tag *ngIf="data.workflow_type" [nzColor]="'#f5f5f5'" [ngStyle]="{ color: 'rgb(25, 25, 25)', height: '24px', 'border-radius': '4px' }">
+              {{ (data.workflow_type === 'chat' ? 'workflow_chat' : 'workflow_task') | i18nextEager }}
+            </nz-tag>
+            <nz-tag
+              *ngIf="data.shareTag && !activeTabIsOfficial"
+              [nzColor]="'#f5f5f5'"
+              [ngStyle]="{ color: 'rgb(25, 25, 25)', height: '24px', 'border-radius': '4px' }"
+            >
+              {{ data.shareTag }}
+            </nz-tag>
+          </div>
+        </div>
+      </div>
+      <div class="com-card-description" nz-tooltip [nzTooltipTitle]="data.description || '--'">{{ data.description || '--' }}</div>
+      <div class="bottom-area flex w-full items-center text-[#808080] text-[12px]" [ngClass]="{ 'bottom-area-have-menu': data.shareMenus?.length }">
+        <div class="flex items-center w-[50%]">
+          <nz-icon nzType="user" nzTheme="outline" class="mr-[8px] !text-[16px]" />
+          <span class="max-w-[140px] text-[12px]" nz-tooltip [nzTooltipTitle]="activeTabIsOfficial ? data.creator : data.workspace_name || data.creator">
+            {{ activeTabIsOfficial ? data.creator : data.workspace_name || data.creator }}
+          </span>
+        </div>
+        <span *ngIf="data.version_id" nz-tooltip [nzTooltipTitle]="data.version_name" class="max-w-[140px]"> {{ data.version_name }}</span>
+      </div>
+      <div class="com-card-bottom-menu" *ngIf="data.shareMenus?.length">
+        <div class="menu-wrapper">
+          <p *ngFor="let item of data.shareMenus; index as i" (click)="shareMenuSelect($event, item, data)">
+            <span style="font-weight: 600">{{ item.label }}</span>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <nz-spin
+    *ngIf="isLodingCard && cardList.length"
+    class="loading-icon !mt-0"
+    [nzSimple]="true"
+    [style]="{ marginTop: !isShowDom ? '0px' : '', height: !isShowDom ? '20px' : '' }"
+  ></nz-spin>
+  <div class="flex justify-center text-[#e6e6e6]" *ngIf="!hasMore">——— · ———</div>
+</div>

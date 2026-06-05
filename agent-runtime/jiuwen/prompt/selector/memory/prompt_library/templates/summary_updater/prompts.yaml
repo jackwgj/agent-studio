@@ -1,0 +1,4 @@
+MEM_SUM_UPDATE_SUMMARY_CN:
+  description: "[Chinese] template for updating summary"
+MEM_SUM_UPDATE_SUMMARY_NO_TOPICS_CN:
+  description: "[Chinese] template for updating summary when no topics are provided"

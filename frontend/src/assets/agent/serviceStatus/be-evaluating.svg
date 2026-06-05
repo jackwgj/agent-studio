@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="48px" height="48px" viewBox="0 0 48 48" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>编组</title>
+    <g id="页面-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="1模型评估列表" transform="translate(-510.000000, -139.000000)">
+            <g id="overview" transform="translate(220.000000, 48.000000)">
+                <g id="dashboard" transform="translate(56.000000, 88.000000)">
+                    <g id="编组-3" transform="translate(234.000000, 0.000000)">
+                        <g id="编组" transform="translate(0.000000, 3.000000)">
+                            <rect id="矩形" fill="#FFFFFF" opacity="0" x="0" y="0" width="48" height="48"></rect>
+                            <path d="M36,20 L41,23.5 C41,14.3873016 33.6126984,7 24.5,7 C15.3873016,7 8,14.3873016 8,23.5 C8,32.6126984 15.3873016,40 24.5,40 C26.1208912,40 27.6871937,39.766278 29.1670447,39.3306968" id="路径" stroke="#191919" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                            <path d="M25,16.5773503 L29.9282032,19.4226497 C30.5470054,19.7799153 30.9282032,20.4401694 30.9282032,21.1547005 L30.9282032,26.8452995 C30.9282032,27.5598306 30.5470054,28.2200847 29.9282032,28.5773503 L25,31.4226497 C24.3811978,31.7799153 23.6188022,31.7799153 23,31.4226497 L18.0717968,28.5773503 C17.4529946,28.2200847 17.0717968,27.5598306 17.0717968,26.8452995 L17.0717968,21.1547005 C17.0717968,20.4401694 17.4529946,19.7799153 18.0717968,19.4226497 L23,16.5773503 C23.6188022,16.2200847 24.3811978,16.2200847 25,16.5773503 Z" id="多边形" stroke="#191919" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                            <path d="M17.5,20.5 L22.9481996,23.433646 C23.5960194,23.782472 24,24.4588233 24,25.1945882 L24,31 L24,31" id="路径-3" stroke="#191919" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                            <circle id="椭圆形" stroke="#191919" stroke-width="1.5" stroke-linejoin="round" cx="38.5" cy="34.5" r="7.5"></circle>
+                            <path d="M38.5,31 C38.5,31 38.5,32.3333333 38.5,35 C38.5,35 39.3333333,36 41,38" id="路径-2" stroke="#191919" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                        </g>
+                    </g>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg>

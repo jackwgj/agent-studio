@@ -1,0 +1,37 @@
+<div class="tag-rule-select"
+     [class.rule-mode]="isRuleMode()">
+
+  @if (isRuleMode()) {
+    <div class="operation-select">
+      <nz-select
+        class="rule-operator-select"
+        [(ngModel)]="_value().operator"
+        (ngModelChange)="selectChange.emit()">
+        @for (option of operatorOptions; track option.value) {
+          <nz-option [nzValue]="option.value" [nzLabel]="option.label"></nz-option>
+        }
+      </nz-select>
+    </div>
+  }
+
+  <nz-select
+    class="rule-tag-select"
+    [nzLoading]="isTagLoading"
+    [(ngModel)]="_value().tag"
+    (ngModelChange)="selectChange.emit()"
+    (nzOpenChange)="onTagSelectOpen($event)">
+    @for (group of tagOptions; track group.name) {
+      <nz-option-group [nzLabel]="group.name">
+        @for (tag of group.children; track tag.id) {
+          <nz-option [nzValue]="tag.name" [nzLabel]="tag.name"></nz-option>
+        }
+      </nz-option-group>
+    }
+  </nz-select>
+
+  @if (isRuleMode()) {
+    <div class="rule-delete" (click)="deleteHandler.emit()">
+      <span nz-icon nzType="close" nzTheme="outline"></span>
+    </div>
+  }
+</div>

@@ -1,0 +1,14 @@
+<svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="40" height="40" fill="none" customFrame="#000000">
+	<g id="图标/任务型40x">
+		<rect id="矩形 " width="40" height="39.9999962" x="0" y="0" rx="8" fill="rgba(48,179,112,1)" />
+		<g id="组合 4455">
+			<rect id="矩形" width="22" height="16.9999981" x="9" y="9" rx="1.99999976" fill="rgba(255,255,255,1)" />
+			<rect id="矩形" width="22" height="2.99999976" x="9" y="28" rx="0.999999881" fill="rgba(255,255,255,1)" fill-opacity="0.600000024" />
+			<g id="组合 4454">
+				<path id="矢量 44" d="M0 0L9.85378 0" stroke="rgba(48,179,112,1)" stroke-linecap="round" stroke-width="1.60000002" transform="matrix(0.338668,-0.940906,0.940906,0.338668,18.3311,22.1357)" />
+				<path id="矩形 6290" d="M0 4.28522L0 0L4.23413 0" stroke="rgba(48,179,112,1)" stroke-linejoin="round" stroke-width="1.60000002" transform="matrix(0.707107,-0.707107,0.707107,0.707107,12.3069,17.6696)" />
+				<path id="矩形 6290" d="M0 4.28522L0 0L4.23413 0" stroke="rgba(48,179,112,1)" stroke-linejoin="round" stroke-width="1.60000002" transform="matrix(-0.707107,0.707107,-0.707107,-0.707107,27.8481,17.7054)" />
+			</g>
+		</g>
+	</g>
+</svg>

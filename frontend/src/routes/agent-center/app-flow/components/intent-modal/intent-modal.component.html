@@ -1,0 +1,645 @@
+<div class="flex h-full w-full flex-col" (keydown)="handleKeyDown($event)">
+  <div class="mb-[16px] block">
+    <div class="flex w-[calc(100%-38px)] items-center justify-between">
+      <div class="flex items-center gap-[8px]">
+        <img class="model-config-icon" [src]="intentImgUrl" alt="intent-node" />
+
+        <edit-name [(name)]="nodeInfo.name" (onBlurConfirm)="updateName()"></edit-name>
+      </div>
+
+      <div class="flex items-center gap-[16px]" *ngIf="!isFlowReadonly">
+        <div (click)="onClickTest()" class="single-test-icon-modal" nz-tooltip [nzTooltipTitle]="'single-test' | i18nextEager"></div>
+        <div class="cursor-pointer" nz-tooltip [nzTooltipTitle]="'icon-more' | i18nextEager">
+          <div nz-dropdown [nzDropdownMenu]="actionsMenu" nzTrigger="click" class="pw-three-dots-more-modal">
+            <span nz-icon nzType="more" nzTheme="outline"></span>
+          </div>
+          <nz-dropdown-menu #actionsMenu="nzDropdownMenu">
+            <ul nz-menu>
+              <li *ngFor="let action of actions" nz-menu-item (click)="onClickAction(action)">{{ action.label }}</li>
+            </ul>
+          </nz-dropdown-menu>
+        </div>
+        <div class="h-[16px] w-[1px] bg-[#dbdbdb]"></div>
+      </div>
+    </div>
+
+    <node-description [nodeInfo]="nodeInfo" (descriptionChange)="updateView()"></node-description>
+
+    <div class="mt-[16px] h-[1px] w-full bg-[#f0f0f0]"></div>
+  </div>
+
+  <div id="flow-intent-modal-body" class="relative h-full w-full overflow-auto flex-1 pr-[16px]">
+    <div *ngIf="!hasParentNode && false" class="tabs-container">
+      <ul class="secondary-tabs">
+        <li *ngFor="let item of typeTabs" [ngClass]="{ 'activated-tab-item': item.active }" (click)="changeTab(item)">
+          {{ item.name }}
+          <span
+            nz-icon
+            nzType="question-circle"
+            nzTheme="outline"
+            *ngIf="item.id === 'advanced'"
+            class="absolute right-2.5 !text-[14px] !text-[#191919]"
+            nz-tooltip
+            [nzTooltipTitle]="advancedModeTip"
+          ></span>
+        </li>
+      </ul>
+    </div>
+    <div
+      *ngIf="modeId === 'normal'; else advancedMode"
+      class="mb-[12px] h-full w-full overflow-auto scroll-smooth"
+      cdkScrollable
+      #intentModalRef
+      (scroll)="onScroll()"
+    >
+      <!-- 模型配置表格 -->
+      <meta-acc-block [title]="'model_configuration' | i18nextEager" [isNewStyle]="true">
+        <ng-template #right>
+          <div class="flex cursor-pointer items-center gap-[8px]">
+            <span nz-popover nzPopoverPlacement="bottomRight" nzPopoverTrigger="click" [nzPopoverContent]="modelSettingsContent" class="cursor-pointer">
+              <img alt="" [src]="changeUrl('assets/agent-center/flow/model-settings.svg')" (click)="onShowModelSetTip()" />
+            </span>
+            <ng-template #modelSettingsContent>
+              <div style="width: 540px; padding: 16px; max-height: 500px; overflow-y: auto">
+                <model-settings
+                  [param]="modelSetTipCtx.param"
+                  [isLlm]="modelSetTipCtx.isLlm"
+                  [selectedModel]="modelSetTipCtx.selectedModel"
+                  [showThinkSwitch]="modelSetTipCtx.showThinkSwitch"
+                  (updatedParam)="onModelSettingsUpdate($event)"
+                ></model-settings>
+              </div>
+            </ng-template>
+          </div>
+        </ng-template>
+        <ng-template #content>
+          <form [formGroup]="modelFormGroup">
+            <div class="mt-4">
+              <llm-select
+                [selectedModel]="modelFormGroup.controls.model.value"
+                [modelValidation]="modelValidation"
+                [filter]="{ 'intent_recognition': true }"
+                [panelWidth]="'justified'"
+                (update)="updateModel($event)"
+              ></llm-select>
+            </div>
+          </form>
+        </ng-template>
+      </meta-acc-block>
+      <div class="cutline"></div>
+
+      <!-- 入参配置表格 -->
+      <meta-acc-block class="block w-full" [title]="'input_params' | i18nextEager" [isNewStyle]="true">
+        <ng-template #content>
+          <div class="flex items-center gap-2">
+            <div class="w-1/3 text-label">
+              {{ 'param_name' | i18nextEager }}
+            </div>
+            <div class="flex w-2/3 items-center gap-2 text-label">
+              <div class="flex h-fit w-[calc(100%-16px)] items-center">
+                <div class="w-[35%]">{{ 'type' | i18nextEager }}</div>
+                <div class="w-[65%]">{{ 'value' | i18nextEager }}</div>
+              </div>
+              <div class="h-full w-[16px]"></div>
+            </div>
+          </div>
+
+          <form #inputForm="ngForm">
+            <div *ngFor="let param of inputParams; index as i" class="flex gap-2">
+              <div class="w-1/3">
+                <input
+                  style="width: 100%"
+                  type="text"
+                  [name]="'inputFormName' + i"
+                  [maxlength]="paramNameMaxLen"
+                  nz-input
+                  [(ngModel)]="param.name"
+                  [title]="param.name"
+                  [disabled]="param.source === 'system'"
+                  [valueValidityValidator]="getInputNames(i)"
+                  (ngModelChange)="changeUpdateTime()"
+                  (blur)="inputOnSave()"
+                  [class.input-error]="inputForm?.controls['inputFormName' + i]?.invalid && (inputForm?.controls['inputFormName' + i]?.dirty || inputForm?.controls['inputFormName' + i]?.touched)"
+                />
+                <div *ngIf="inputForm?.controls['inputFormName' + i]?.invalid && (inputForm?.controls['inputFormName' + i]?.dirty || inputForm?.controls['inputFormName' + i]?.touched)" class="error-tip">
+                  {{inputForm?.controls['inputFormName' + i]?.errors?.serviceName?.tiErrorMessage}}
+                </div>
+
+                <div class="w-full" #wrapper></div>
+              </div>
+
+              <div class="flex w-2/3 gap-[8px]">
+                <div class="flex h-fit w-[calc(100%-16px)] items-center gap-2">
+                  <div class="flex w-full">
+                    <div class="w-[35%]">
+                      <nz-select
+                        class="combo-select-left"
+                        style="width: 100%"
+                        [name]="'inputFormType' + i"
+                        [nzOptions]="inputSourceOptions"
+                        [(ngModel)]="param.value.type"
+                        nzLabelKey="value"
+                        (ngModelChange)="onInputValueTypeChange(param)"
+                      ></nz-select>
+                    </div>
+
+                    <div class="w-[65%]">
+                      <input
+                        class="combo-select-right"
+                        *ngIf="param.value.type === 'literal'"
+                        style="width: 100%"
+                        [name]="'inputFormValue' + i"
+                        type="text"
+                        nz-input
+                        nonEmptyValidator
+                        [placeholder]="'input_placeholder' | i18nextEager"
+                        [(ngModel)]="param.value.content"
+                        [title]="param.value.content"
+                        (ngModelChange)="changeUpdateTime()"
+                        (blur)="inputOnSave()"
+                        [class.input-error]="inputForm?.controls['inputFormValue' + i]?.invalid && (inputForm?.controls['inputFormValue' + i]?.dirty || inputForm?.controls['inputFormValue' + i]?.touched)"
+                      />
+                      <div *ngIf="inputForm?.controls['inputFormValue' + i]?.invalid && (inputForm?.controls['inputFormValue' + i]?.dirty || inputForm?.controls['inputFormValue' + i]?.touched)" class="error-tip">
+                        {{inputForm?.controls['inputFormValue' + i]?.errors?.serviceName?.tiErrorMessage}}
+                      </div>
+
+                      <input-tree-select
+                        *ngIf="param.value.type === 'ref'"
+                        style="width: 100%"
+                        [(ngModel)]="param.value.content"
+                        [options]="param.refs"
+                        [name]="'inputFormValue' + i"
+                        refSelectedRequire
+                        [placeholder]="'select_placeholder' | i18nextEager"
+                        (select)="treeSelect()"
+                      ></input-tree-select>
+
+                      <div class="w-full" #inputErrWrapper></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </form>
+        </ng-template>
+      </meta-acc-block>
+      <div class="cutline"></div>
+
+      <meta-acc-block [title]="'intention_configuration' | i18nextEager" [isNewStyle]="true" [open]="true">
+        <ng-container *ngIf="configServ.isSupportUserPersona()">
+          <ng-template #right>
+            <form [formGroup]="modelFormGroup">
+              <div class="flex items-center gap-[4px]">
+                <div class="flex items-center gap-[4px]">
+                  <div class="flex items-center gap-[4px]">
+                    <div>{{ 'memory' | i18nextEager }}</div>
+                    <span nz-icon nzType="question-circle" nzTheme="outline" nz-tooltip [nzTooltipTitle]="'intent_node_persona_tip' | i18nextEager"></span>
+                  </div>
+                </div>
+                <nz-switch formControlName="enableMemory"></nz-switch>
+              </div>
+            </form>
+          </ng-template>
+        </ng-container>
+        <ng-template #content>
+          <form #classForm="ngForm">
+            <div class="mb-[8px] rounded-[8px] bg-[#fafafa] p-[16px]" *ngFor="let item of classList; index as i">
+              <div class="mb-2 flex justify-between">
+                <span>{{ 'intention' | i18nextEager }}{{ i + 1 }}</span>
+                <span
+                  nz-icon
+                  nzType="delete"
+                  nzTheme="outline"
+                  class="cursor-pointer"
+                  style="font-size: 16px; color: #191919; cursor: pointer"
+                  (click)="onDeleteClass(i)"
+                  *ngIf="classList.length > 1"
+                ></span>
+              </div>
+
+              <div class="clear-both">
+                <textarea
+                  class="!w-full"
+                  [name]="item.id"
+                  [(ngModel)]="item.configs.category"
+                  rows="5"
+                  [placeholder]="'input_placeholder' | i18nextEager"
+                  nz-input
+                  nonEmptyValidator
+                  (ngModelChange)="changeUpdateTime()"
+                  (blur)="inputOnSave()"
+                  [class.input-error]="classForm?.controls[item.id]?.invalid && (classForm?.controls[item.id]?.dirty || classForm?.controls[item.id]?.touched)"
+                ></textarea>
+                <div *ngIf="classForm?.controls[item.id]?.invalid && (classForm?.controls[item.id]?.dirty || classForm?.controls[item.id]?.touched)" class="error-tip">
+                  {{classForm?.controls[item.id]?.errors?.serviceName?.tiErrorMessage}}
+                </div>
+              </div>
+              <div class="w-full" #classErrwrapper></div>
+            </div>
+
+            <div *ngIf="hasOtherClass" class="mb-[8px] flex items-center justify-between rounded-[8px] bg-[#fafafa] p-[16px]">
+              <span>{{ 'other_intentions' | i18nextEager }}</span>
+            </div>
+
+            <div>
+              <button type="button" nz-button (click)="addClass()" *ngIf="classList.length < 20">
+                {{ 'add_intent' | i18nextEager }}
+              </button>
+            </div>
+          </form>
+        </ng-template>
+      </meta-acc-block>
+      <div class="cutline"></div>
+
+      <!-- 高级配置 -->
+      <meta-acc-block [title]="'advanced_config' | i18nextEager" [isNewStyle]="true" [open]="false">
+        <ng-template #content>
+          <div class="flex flex-col">
+            <form [formGroup]="modelFormGroup">
+              <div>
+                <div class="mb-2 flex justify-between">
+                  <div>
+                    {{ 'prompt' | i18nextEager }}
+                  </div>
+
+                  <div class="flex items-center gap-2">
+                    <div
+                      nz-tooltip
+                      [nzTooltipTitle]="'citation_template' | i18nextEager"
+                      (click)="openRefModal()"
+                      class="icon-border"
+                      style="padding: 0; border: none"
+                    >
+                      <div class="ref-tmpl-icon"></div>
+                    </div>
+                    <div nz-tooltip [nzTooltipTitle]="'ref_args' | i18nextEager" (click)="agentDataServe.showVarList(showVarListSubject$)" class="icon-border">
+                      <div class="ref-args-icon" (mousedown)="$event.preventDefault()" (click)="agentDataServe.showVarList(showVarListSubject$)"></div>
+                    </div>
+                  </div>
+                </div>
+                <meta-cmd-textarea
+                  class="block relative"
+                  formControlName="prompt"
+                  [variants]="variants"
+                  [variantsTrigger]="showVarListSubject$.asObservable()"
+                  [placeholder]="'var_input_placeholder1' | i18nextEager"
+                />
+                <div class="w-full" #promptErrwrapper></div>
+              </div>
+
+              <div class="mt-[16px]">
+                <div class="mb-2 flex items-center gap-[4px]">
+                  <div>{{ 'historical_dialogue_rounds' | i18nextEager }}</div>
+                  <span
+                    nz-icon
+                    nzType="question-circle"
+                    nzTheme="outline"
+                    class="cursor-pointer !text-[14px] !text-[#191919]"
+                    nz-tooltip
+                    [nzTooltipTitle]="'dialogue_round_tip' | i18nextEager"
+                  ></span>
+                </div>
+
+                <div class="flex items-center justify-between gap-4">
+                  <nz-slider class="!my-0 flex-1" formControlName="chat_history_max_turn" [nzMin]="0" [nzMax]="30" [nzStep]="1"></nz-slider>
+                  <nz-input-number
+                    [nzMin]="0"
+                    [nzMax]="30"
+                    [nzStep]="1"
+                    [(ngModel)]="getChatHistoryMaxTurn"
+                    (ngModelChange)="onSave()"
+                    [ngModelOptions]="{ standalone: true }"
+                  ></nz-input-number>
+                </div>
+              </div>
+
+              <div class="mt-[32px] flex gap-[8px]">
+                <div class="flex items-center gap-[4px]">
+                  <div>
+                    {{ 'aux_identification' | i18nextEager }}
+                  </div>
+                  <span
+                    nz-icon
+                    nzType="question-circle"
+                    nzTheme="outline"
+                    class="cursor-pointer !text-[14px] !text-[#191919]"
+                    nz-tooltip
+                    [nzTooltipTitle]="'aux_identification_tip' | i18nextEager"
+                  ></span>
+                </div>
+                <nz-switch formControlName="enable_knowledge" (ngModelChange)="changeAuxState()"></nz-switch>
+              </div>
+
+              <div class="mt-[16px]" *ngIf="modelFormGroup.controls.enable_knowledge.value">
+                <div class="flex flex-col gap-[4px]">
+                  <div class="intent-kb-title">
+                    <span>
+                      {{ 'intent_knowledge' | i18nextEager }}
+                    </span>
+                    <div class="title-right">
+                      <div class="tag-rule-setting" *ngIf="kbAbilitiesService.isSupTag(kbs[0]) && !kbAbilitiesService.isResourceDisabled && kbs.length">
+                        <tag-rule-builder [kbs]="kbs" [tagRule]="tagRule" (ruleComplete)="ruleComplete($event)" />
+                      </div>
+                    </div>
+                  </div>
+                  <div class="mt-2 rounded-[8px] bg-white">
+                    <div *ngIf="!kbs?.length; else kbList" class="kb-select-area h-[80px]" (click)="openAddKbModal()">
+                      <div class="upload-icon"></div>
+                      <div class="text-label">
+                        {{ 'no_knowledge_desc' | i18nextEager }}
+                      </div>
+                    </div>
+
+                    <ng-template #kbList>
+                      <div class="intent-kb-list-container">
+                        <knowledge-card-used *ngFor="let kb of kbs; index as i" [knowledge]="kb" (valueChange)="onSave()" (deleteKnowledge)="cleanKb(i)" />
+                      </div>
+                    </ng-template>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-[16px]" *ngIf="modelFormGroup.controls.enable_knowledge.value && !kbAbilitiesService.isResourceDisabled">
+                <div class="mb-2 flex items-center gap-[4px]">
+                  {{ 'match_threshold' | i18nextEager }}
+                </div>
+
+                <div class="flex items-center justify-between gap-4 pb-[12px]">
+                  <nz-slider
+                    class="!my-0 flex-1"
+                    formControlName="recall_threshold"
+                    [nzMin]="thresholdLimit.min"
+                    [nzMax]="thresholdLimit.max"
+                    [nzStep]="0.1"
+                  ></nz-slider>
+                  <nz-input-number
+                    [nzMin]="thresholdLimit.min"
+                    [nzMax]="thresholdLimit.max"
+                    [nzStep]="0.1"
+                    [(ngModel)]="getRecallThreshold"
+                    (ngModelChange)="onSave()"
+                    [ngModelOptions]="{ standalone: true }"
+                  ></nz-input-number>
+                </div>
+              </div>
+            </form>
+          </div>
+        </ng-template>
+      </meta-acc-block>
+      <div class="cutline"></div>
+
+      <!-- 输出参数 -->
+      <meta-acc-block [title]="'output_params' | i18nextEager" [isNewStyle]="true" [open]="true">
+        <ng-template #content>
+          <readonly-params-tree [params]="outputsParams" />
+        </ng-template>
+      </meta-acc-block>
+    </div>
+  </div>
+</div>
+
+<!-- 高级模式 -->
+<ng-template #advancedMode>
+  <div class="mb-[12px] h-full w-full overflow-auto scroll-smooth" cdkScrollable #intentModalRef (scroll)="onScroll()">
+    <!-- 模型配置表格 -->
+    <meta-acc-block [title]="'model_configuration' | i18nextEager" [isNewStyle]="true">
+      <ng-template #right>
+        <div class="flex cursor-pointer items-center gap-[8px]">
+          <span nz-popover nzPopoverPlacement="bottomRight" nzPopoverTrigger="click" [nzPopoverContent]="modelSettingsContent2" class="cursor-pointer">
+            <img alt="" [src]="changeUrl('assets/agent-center/flow/model-settings.svg')" (click)="onShowModelSetTip()" />
+          </span>
+          <ng-template #modelSettingsContent2>
+            <div style="width: 540px; padding: 16px; max-height: 500px; overflow-y: auto">
+              <model-settings
+                [param]="modelParams"
+                [isLlm]="modelSetTipCtx.isLlm"
+                [selectedModel]="modelSetTipCtx.selectedModel"
+                [showThinkSwitch]="modelSetTipCtx.showThinkSwitch"
+                (updatedParam)="onModelSettingsUpdate($event)"
+              ></model-settings>
+            </div>
+          </ng-template>
+        </div>
+      </ng-template>
+      <ng-template #content>
+        <form [formGroup]="modelFormGroup">
+          <div class="mt-4">
+            <llm-select
+              [selectedModel]="modelFormGroup.controls.model.value"
+              [modelValidation]="modelValidation"
+              [filter]="{ 'intent_recognition': true }"
+              [panelWidth]="'justified'"
+              (update)="updateModel($event)"
+            ></llm-select>
+          </div>
+        </form>
+      </ng-template>
+    </meta-acc-block>
+    <div class="cutline"></div>
+
+    <!-- 入参配置表格 -->
+    <meta-acc-block class="block w-full" [title]="'input_params' | i18nextEager" [isNewStyle]="true">
+      <ng-template #content>
+        <div class="flex items-center gap-2">
+          <div class="w-1/3 text-label">{{ 'param_name' | i18nextEager }}</div>
+          <div class="flex w-2/3 items-center gap-2 text-label">
+            <div class="flex h-fit w-[calc(100%-16px)] items-center">
+              <div class="w-[30%]">{{ 'type' | i18nextEager }}</div>
+              <div class="w-[70%]">{{ 'value' | i18nextEager }}</div>
+            </div>
+            <div class="h-full w-[16px]"></div>
+          </div>
+        </div>
+
+        <form #inputForm="ngForm">
+          <div *ngFor="let param of inputParams; index as i" class="flex gap-2">
+            <div class="w-1/3">
+              <input
+                style="width: 100%"
+                type="text"
+                [name]="'inputFormName' + i"
+                [maxlength]="paramNameMaxLen"
+                nz-input
+                [(ngModel)]="param.name"
+                [title]="param.name"
+                [disabled]="param.source === 'system'"
+                (ngModelChange)="changeUpdateTime()"
+                (blur)="inputOnSave()"
+                [valueValidityValidator]="getInputNames(i)"
+              />
+
+              <div class="w-full" #wrapper></div>
+            </div>
+
+            <div class="flex w-2/3 gap-[8px]">
+              <div class="flex h-fit w-[calc(100%-16px)] items-center gap-2">
+                <div class="flex w-full">
+                  <div class="w-[30%]">
+                    <nz-select
+                      class="combo-select-left"
+                      style="width: 100%"
+                      [name]="'inputFormType' + i"
+                      [nzOptions]="inputSourceOptions"
+                      [(ngModel)]="param.value.type"
+                      nzLabelKey="value"
+                      (ngModelChange)="onInputValueTypeChange(param)"
+                    ></nz-select>
+                  </div>
+
+                  <div class="w-[70%]">
+                    <input
+                      class="combo-select-right"
+                      *ngIf="param.value.type === 'literal'"
+                      style="width: 100%"
+                      [name]="'inputFormValue' + i"
+                      type="text"
+                      nz-input
+                      nonEmptyValidator
+                      [placeholder]="'input_placeholder' | i18nextEager"
+                      [(ngModel)]="param.value.content"
+                      (ngModelChange)="changeUpdateTime()"
+                      (blur)="inputOnSave()"
+                      [title]="param.value.content"
+                    />
+
+                    <input-tree-select
+                      *ngIf="param.value.type === 'ref'"
+                      style="width: 100%"
+                      [(ngModel)]="param.value.content"
+                      [options]="param.refs"
+                      [name]="'inputFormValue' + i"
+                      refSelectedRequire
+                      (select)="treeSelect()"
+                      [placeholder]="'select_placeholder' | i18nextEager"
+                    ></input-tree-select>
+
+                    <div class="w-full" #inputErrWrapper></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </form>
+      </ng-template>
+    </meta-acc-block>
+    <div class="cutline"></div>
+
+    <!-- 意图配置差异点：选择意图包 -->
+    <meta-acc-block [title]="'intention_configuration' | i18nextEager" [isNewStyle]="true">
+      <ng-container *ngIf="configServ.isSupportUserPersona()">
+        <ng-template #right>
+          <form [formGroup]="modelFormGroup">
+            <div class="flex items-center gap-[4px]">
+              <div class="flex items-center gap-[4px]">
+                <div class="flex items-center gap-[4px]">
+                  <div>{{ 'memory' | i18nextEager }}</div>
+                  <span nz-icon nzType="question-circle" nzTheme="outline" nz-tooltip [nzTooltipTitle]="'intent_node_persona_tip' | i18nextEager"></span>
+                </div>
+              </div>
+              <nz-switch formControlName="enableMemory"></nz-switch>
+            </div>
+          </form>
+        </ng-template>
+      </ng-container>
+      <ng-template #content>
+        <form class="flex flex-col" [formGroup]="modelFormGroup">
+          <span>{{ 'select_intent_package' | i18nextEager }}</span>
+          <div class="flex items-center mt-[8px]">
+            <nz-select
+              #select
+              class="!w-[436px]"
+              [nzOptions]="intentGroupOptions"
+              formControlName="intent_group"
+              [nzPlaceHolder]="'select_placeholder' | i18nextEager"
+              nzShowSearch
+              (nzOnSearch)="onBeforeSearch($event)"
+              (nzOpenChange)="onBeforeOpenIntentGroup($event)"
+              (nzScrollToBottom)="loadMore($event, select)"
+            >
+            </nz-select>
+            <button nz-button class="ml-[8px]" (click)="getIntentSelectList()"><img alt="" [src]="changeUrl('assets/prompt/refresh.svg')" /></button>
+            <div class="ml-[5px] doc-link" (click)="toCreatePackage()">{{ 'create_intent_package' | i18nextEager }}</div>
+            <div class="ml-[4px] guide-link-icon" (click)="toCreatePackage()"></div>
+          </div>
+          <div #selectIntentWrapper></div>
+        </form>
+      </ng-template>
+    </meta-acc-block>
+    <div class="cutline"></div>
+
+    <!-- 高级配置 -->
+    <meta-acc-block [title]="'advanced_config' | i18nextEager" [isNewStyle]="true" [open]="false">
+      <ng-template #content>
+        <div class="flex flex-col">
+          <form class="flex flex-col gap-[12px]" [formGroup]="modelFormGroup">
+            <div>
+              <div class="mb-2 flex justify-between">
+                <div>
+                  {{ 'prompt' | i18nextEager }}
+                </div>
+                <div class="flex items-center gap-2">
+                  <div
+                    nz-tooltip
+                    [nzTooltipTitle]="'citation_template' | i18nextEager"
+                    (click)="openRefModal()"
+                    class="icon-border"
+                    style="padding: 0; border: none"
+                  >
+                    <div class="ref-tmpl-icon"></div>
+                  </div>
+                  <div nz-tooltip [nzTooltipTitle]="'ref_args' | i18nextEager" (click)="agentDataServe.showVarList(showVarListSubject$)" class="icon-border">
+                    <div class="ref-args-icon" (mousedown)="$event.preventDefault()" (click)="agentDataServe.showVarList(showVarListSubject$)"></div>
+                  </div>
+                </div>
+              </div>
+              <meta-cmd-textarea
+                class="block relative"
+                formControlName="prompt"
+                [variants]="variants"
+                [variantsTrigger]="showVarListSubject$.asObservable()"
+                [placeholder]="'var_input_placeholder1' | i18nextEager"
+              />
+              <div class="w-full" #promptErrwrapper></div>
+            </div>
+
+            <div>
+              <div class="mb-2 flex items-center gap-[4px]">
+                <div>{{ 'historical_dialogue_rounds' | i18nextEager }}</div>
+                <span
+                  nz-icon
+                  nzType="question-circle"
+                  nzTheme="outline"
+                  class="cursor-pointer !text-[14px] !text-[#191919]"
+                  nz-tooltip
+                  [nzTooltipTitle]="'dialogue_round_tip' | i18nextEager"
+                ></span>
+              </div>
+
+              <div class="flex items-center justify-between gap-4 pb-[12px]">
+                <nz-slider class="!my-0 flex-1" formControlName="chat_history_max_turn" [nzMin]="0" [nzMax]="30" [nzStep]="1"></nz-slider>
+                <nz-input-number
+                  [nzMin]="0"
+                  [nzMax]="30"
+                  [nzStep]="1"
+                  [(ngModel)]="getChatHistoryMaxTurn"
+                  (ngModelChange)="onSave()"
+                  [ngModelOptions]="{ standalone: true }"
+                ></nz-input-number>
+              </div>
+            </div>
+          </form>
+        </div>
+      </ng-template>
+    </meta-acc-block>
+    <div class="cutline"></div>
+
+    <!-- 输出参数 -->
+    <meta-acc-block [title]="'output_params' | i18nextEager" [isNewStyle]="true" [open]="true">
+      <ng-template #content>
+        <readonly-params-tree [params]="outputsParams" />
+      </ng-template>
+    </meta-acc-block>
+  </div>
+</ng-template>
+
+<knowledge-base-creation #kbCreation></knowledge-base-creation>

@@ -1,0 +1,38 @@
+<div class="tag-select">
+  <nz-select
+    [id]="compId"
+    #tagSelectComp
+    class="rule-tag-select !w-full"
+    nzMode="multiple"
+    [nzLoading]="isLoading()"
+    nzShowSearch
+    nzAllowClear
+    [ngModel]="_value()"
+    [nzMaxTagCount]="5"
+    [nzMaxMultipleCount]="isLimitSelection() ? 10 : MAX_KB_TAG_LIMIT"
+    [nzDropdownRender]="isSupCreate() ? footer : null"
+    (nzOpenChange)="onOpenChange($event)"
+    (ngModelChange)="modeChange($event)">
+
+    @for (tag of tagOptions(); track tag.name) {
+      <nz-option [nzLabel]="tag.name" [nzValue]="tag.name"></nz-option>
+    }
+  </nz-select>
+
+  <ng-template #footer>
+    <div class="tag-select-create pt-[8px] pb-[8px] ml-[16px] mr-[16px] cursor-pointer flex items-center"
+         style="border-top: 1px solid #F0F0F0"
+         (click)="createTag()"
+         (mousedown)="footerClick($event)">
+      <span nz-icon nzType="plus-square" nzTheme="outline" class="mr-[4px]"></span>
+      {{ 'new_kb_tag' | i18nextEager }}
+    </div>
+  </ng-template>
+
+  @if (isSupRefresh()) {
+    <button nz-button nzType="default" (click)="refreshTags()">
+      <span nz-icon nzType="sync" nzTheme="outline"></span>
+    </button>
+  }
+</div>
+<tag-creation #tagCreationModal [kbId]="kbId()" [isShowTagJumper]="true" (goToTagManage)="goToTag()"></tag-creation>

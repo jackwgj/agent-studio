@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.agent.manager.mapper.AgentVersionMapper">
+    <insert id="insert" parameterType="com.openjiuwen.studio.agent.manager.entity.AgentVersion">
+        insert into t_agent_version (version_id, agent_id, project_id, `name`, description, tags, icon,
+                                     instructions, trigger_list, prologue, suggest_queries, additional_questions_config,
+                                     ir_path, dsl_path, is_online, creator, created_on, updated_on, published_on)
+        values (#{versionId,jdbcType=VARCHAR}, #{agentId,jdbcType=VARCHAR}, #{projectId,jdbcType=VARCHAR},
+                #{name,jdbcType=VARCHAR}, #{description,jdbcType=VARCHAR}, #{tags,jdbcType=VARCHAR}, #{icon,jdbcType=VARCHAR},
+                #{instructions,jdbcType=LONGVARCHAR}, #{triggerList,jdbcType=VARCHAR},
+                #{prologue,jdbcType=VARCHAR}, #{suggestQueries,jdbcType=VARCHAR},
+                #{additionalQuestionsConfig,jdbcType=VARCHAR}, #{irPath,jdbcType=VARCHAR}, #{dslPath,jdbcType=VARCHAR}, #{isOnline,jdbcType=BOOLEAN},
+                #{creator,jdbcType=VARCHAR}, #{createdOn,jdbcType=TIMESTAMP}, #{updatedOn,jdbcType=TIMESTAMP},
+                #{publishedOn,jdbcType=TIMESTAMP})
+    </insert>
+
+    <resultMap id="BaseResultMap" type="com.openjiuwen.studio.agent.manager.entity.AgentVersion">
+        <id column="version_id" jdbcType="VARCHAR" property="versionId"/>
+        <id column="agent_id" jdbcType="VARCHAR" property="agentId"/>
+        <id column="project_id" jdbcType="VARCHAR" property="projectId"/>
+        <result column="name" jdbcType="VARCHAR" property="name"/>
+        <result column="description" jdbcType="VARCHAR" property="description"/>
+        <result column="tags" jdbcType="VARCHAR" property="tags"/>
+        <result column="icon" jdbcType="VARCHAR" property="icon"/>
+        <result column="instructions" jdbcType="LONGVARCHAR" property="instructions"/>
+        <result column="trigger_list" jdbcType="VARCHAR" property="triggerList" />
+        <result column="prologue" jdbcType="VARCHAR" property="prologue"/>
+        <result column="suggest_queries" jdbcType="VARCHAR" property="suggestQueries"/>
+        <result column="additional_questions_config" jdbcType="VARCHAR" property="additionalQuestionsConfig" />
+        <result column="ir_path" jdbcType="VARCHAR" property="irPath"/>
+        <result column="dsl_path" jdbcType="VARCHAR" property="dslPath"/>
+        <result column="is_online" jdbcType="BOOLEAN" property="isOnline"/>
+        <result column="creator" jdbcType="VARCHAR" property="creator"/>
+        <result column="created_on" jdbcType="TIMESTAMP" property="createdOn"/>
+        <result column="updated_on" jdbcType="TIMESTAMP" property="updatedOn"/>
+        <result column="published_on" jdbcType="TIMESTAMP" property="publishedOn"/>
+    </resultMap>
+    <sql id="Base_Column_List">
+        version_id,
+        agent_id,
+        project_id,
+        `name`,
+        description,
+        tags,
+        icon,
+        instructions,
+        trigger_list,
+        prologue,
+        suggest_queries,
+        additional_questions_config,
+        ir_path,
+        dsl_path,
+        is_online,
+        creator,
+        created_on,
+        updated_on,
+        published_on
+    </sql>
+    <select id="selectByPrimaryKey" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_agent_version
+        where version_id = #{versionId,jdbcType=VARCHAR}
+        and project_id = #{projectId,jdbcType=VARCHAR}
+    </select>
+    <select id="selectOnlineVersion" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_agent_version
+        where agent_id = #{agentId,jdbcType=VARCHAR}
+        and is_online = true
+    </select>
+    <update id="updateAgentVersionStatus" parameterType="map">
+        update t_agent_version
+        set is_online = #{isOnline,jdbcType=BOOLEAN}
+        where version_id = #{versionId,jdbcType=VARCHAR}
+    </update>
+    <delete id="deleteByAgentId" parameterType="map">
+        delete
+        from t_agent_version
+        where agent_id = #{agentId,jdbcType=VARCHAR}
+    </delete>
+
+    <update id="updateProjectIdByVersionIds" parameterType="java.util.Map">
+        UPDATE t_agent_version
+        SET project_id = #{opSvcProjectId}
+        WHERE version_id IN
+        <foreach collection="versionIds" item="versionId" separator="," open="(" close=")">
+            #{versionId}
+        </foreach>
+    </update>
+</mapper>

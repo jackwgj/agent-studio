@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig.json",
+
+  // Top Level
+  "include": [
+    "*.js",
+    "*.mjs",
+    "*.cjs",
+    "*.ts",
+    "*.mts",
+    "*.cts",
+    "config/**/*.ts",
+    "config/**/*.mts",
+    "config/**/*.cts"
+  ],
+  "exclude": [
+    "./cui.config.js",
+    "./lint-staged.config.mjs",
+    "./prettier.config.cjs",
+    "./stylelint.config.cjs",
+    "./tailwind.config.js",
+    "./init.js"
+  ],
+
+  "compilerOptions": {
+    // Modules
+    "module": "ESNext",
+    "moduleResolution": "NodeNext",
+
+    // JavaScript Support
+    "allowJs": true,
+    "checkJs": true,
+
+    // Interop Constraints
+    "allowSyntheticDefaultImports": true,
+
+    // Language and Environment
+    "target": "ESNext",
+
+    // Projects
+    "composite": true
+  },
+
+  // ts-node
+  "ts-node": {
+    "esm": true,
+    "transpileOnly": true
+  }
+}

@@ -1,0 +1,95 @@
+<div class="square-card-body" (click)="goModelSquareDetail(cardInfo.id)">
+  <div *ngIf="cardInfo?.tag" class="square-card-tag">{{ cardInfo.tag }}</div>
+  <div class="square-card-top">
+    <div class="square-card-meta">
+
+      <ng-container *ngIf="cardInfo?.logo; else logoOtherTemplate">
+        <div class="logo-img">
+          <div class="image">  <img alt="" [src]="cardInfo?.logo" /></div>
+        </div>
+      </ng-container>
+      <ng-template #logoOtherTemplate>
+
+        <div class="logo-img">
+          <div class="image">  <img alt="" class="model-card-title-icon" [src]="iconNoneEmpty" /></div>
+        </div>
+      </ng-template>
+
+
+      <div class="ml-[16px]">
+        <p class="model-title mb-[4px]" nz-tooltip [nzTooltipTitle]="cardInfo.service_name">{{ cardInfo.service_name}}</p>
+        <section class="tag-container" >
+          <ng-container  *ngIf="cardInfo?.is_in_free_trial">
+            <nz-tag class="type-tag" [nzColor]="'blue'">{{ 'tags.free' | i18nextEager}}</nz-tag>
+          </ng-container>
+
+          <ng-container *ngIf="cardInfo?.is_subscribed">
+            <nz-tag class="type-tag" [nzColor]="'green'">{{ 'tags.isOpen' | i18nextEager}}</nz-tag>
+          </ng-container>
+
+          <ng-container *ngIf="cardInfo?.is_support_function">
+            <nz-tag class="type-tag" [nzColor]="'default'">Function call</nz-tag>
+          </ng-container>
+
+          <ng-container>
+            <nz-tag class="type-tag" [nzColor]="'default'">Serverless</nz-tag>
+          </ng-container>
+
+          <ng-container *ngIf="cardInfo?.context_length?.length>0">
+            <nz-tag class="type-tag" [nzColor]="'default'">
+              {{ cardInfo.context_length}}
+            </nz-tag>
+          </ng-container>
+        </section>
+      </div>
+    </div>
+  </div>
+  <div class="square-card-desc mt-[16px]" nz-tooltip [nzTooltipTitle]="cardInfo.model_description"></div>
+  <div class="square-card-footer text-container" [class]="{ 'container-can-hide': hasAvailableButton() }">
+    <div class="developer-container" nz-tooltip [nzTooltipTitle]="cardInfo.model_name">
+      {{ cardInfo.model_name }}
+    </div>
+    <span class="model-update-time flex" *ngIf="cardInfo?.last_updated_date">
+      <nz-icon nzType="field-time" nzTheme="outline" class="mr-[4px] !text-[16px]" />
+      <span class="mr-[4px]">{{ cardInfo.last_updated_date | date:'yyyy-MM-dd HH:mm:ss'}}</span>
+    </span>
+  </div>
+  <div class="square-card-footer button-container">
+    <button
+      *ngIf="!cardInfo?.is_subscribed"
+      class="mr-[24px] button-text"
+      [tabindex]="-1" id="operateGoExperience"
+      [disabled]="!subscribeBtnStatus"
+      (click)="handleCard(cardInfo, $event,'open')"
+      nz-button
+    >
+      {{ 'square_btn.open_1' | i18nextEager }}
+    </button>
+
+    <button
+      class="mr-[24px] button-text"
+      [tabindex]="-1"
+      id="operateOptimization"
+      (click)="handleCard(cardInfo, $event,'view')"
+      nz-button
+    >
+      {{ 'square_btn.view_1' | i18nextEager }}
+    </button>
+
+    <button
+      class="button-text"
+      [tabindex]="-1"
+      id="tune"
+      *ngIf="allowTest"
+      [disabled]="isDisable"
+      (click)="handleCard(cardInfo, $event,'tuning')"
+      nz-button
+    >
+      {{ 'square_btn.tuning' | i18nextEager }}
+    </button>
+  </div>
+</div>
+
+<ng-template #customTemplate let-context>
+  <div class="card-item-container"></div>
+</ng-template>

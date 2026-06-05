@@ -1,0 +1,216 @@
+<div class="flex h-full w-full flex-col">
+  <div class="mb-[16px] block">
+    <div class="text-[16px] text-[#191919]">
+      {{ 'publish_to_app_box' | i18nextEager }}
+    </div>
+  </div>
+
+  <div>
+    <div class="relative h-full w-full overflow-auto pb-[20px]">
+      <div>{{ 'name' | i18nextEager }}</div>
+      <div class="mt-[8px] h-[18px] max-w-[300px] text-ellipsis overflow-hidden whitespace-nowrap">
+        {{ name || '--' }}
+      </div>
+      <div class="mt-[16px]">{{ 'description' | i18nextEager }}</div>
+      <div class="mt-[8px] h-[18px] text-ellipsis overflow-hidden whitespace-nowrap">{{ description || '--' }}</div>
+      <div class="mt-[16px]">{{ 'category' | i18nextEager }}</div>
+      <div class="mt-[8px] flex h-[28px] items-center gap-2">
+        @for (item of tagList; track item.tag_id) {
+          <div
+            class="flex h-full cursor-pointer items-center justify-center rounded-md pl-[24px] pr-[24px]"
+            [class]="tagsClass(item.tag_id)"
+            (click)="chooseCategory(item.tag_id)"
+          >
+            {{ lang === 'zh-cn' ? item.name : item.name_en }}
+          </div>
+        }
+      </div>
+      <div class="mt-[16px] h-[1px] bg-[#F0F0F0]"></div>
+      <div class="mt-[16px] font-semibold text-[#191919]">
+        {{ 'tem_config' | i18nextEager }}
+      </div>
+      <div class="mt-[16px] flex">
+        <div
+          class="flex cursor-pointer items-center gap-[6px]"
+          (click)="expandStart = !expandStart"
+        >
+          <span>{{ 'start_node' | i18nextEager }}</span>
+          <nz-icon
+            *ngIf="expandStart"
+            class="arrow-icon"
+            nzType="unordered-list"
+            nzTheme="outline"
+          ></nz-icon>
+          <nz-icon
+            *ngIf="!expandStart"
+            class="arrow-icon"
+            nzType="menu-fold"
+            nzTheme="outline"
+          ></nz-icon>
+        </div>
+      </div>
+      @if (expandStart) {
+        <div
+          class="mt-[8px] rounded-lg bg-[#FAFAFA] pb-[8px] pl-[12px] pr-[12px] pt-[8px] text-[#191919]"
+        >
+          <div class="flex">
+            <div class="mr-[8px] w-[120px]">
+              {{ 'param_name' | i18nextEager }}
+            </div>
+            <div class="flex w-[calc(100%-128px)] items-center">
+              <div class="mr-[8px] w-[calc(50%-4px)]">
+                {{ 'chinese_name' | i18nextEager }}
+              </div>
+              <div class="w-[calc(50%-4px)]">
+                {{ 'show_content' | i18nextEager }}
+              </div>
+            </div>
+          </div>
+          <form #inputForm="ngForm">
+            @for (item of inputParams; track item.name; let i = $index) {
+              <div
+                class="mt-[8px] flex"
+              >
+                <div class="mr-[8px] w-[120px] text-ellipsis overflow-hidden whitespace-nowrap">{{ item.name }}</div>
+                <div class="flex w-[calc(100%-128px)]">
+                  <div class="mr-[8px] w-[calc(50%-4px)]">
+                    <input
+                      nz-input
+                      style="width: 100%"
+                      type="text"
+                      [name]="'front_name' + i"
+                      nonEmptyValidator
+                      [placeholder]="'input_placeholder' | i18nextEager"
+                      [(ngModel)]="item.front_name"
+                      [title]="item.front_name"
+                    />
+                  </div>
+                  <div class="w-[calc(50%-4px)]">
+                    <input
+                      nz-input
+                      style="width: 100%"
+                      type="text"
+                      [name]="'front_content' + i"
+                      nonEmptyValidator
+                      [placeholder]="'input_placeholder' | i18nextEager"
+                      [(ngModel)]="item.front_content"
+                      [title]="item.front_content"
+                    />
+                  </div>
+                </div>
+              </div>
+            }
+          </form>
+        </div>
+      }
+      <div class="mt-[16px] flex">
+        <div
+          class="flex cursor-pointer items-center gap-[6px]"
+          (click)="expandEnd = !expandEnd"
+        >
+          <span>{{ 'end_node' | i18nextEager }}</span>
+          <nz-icon
+            *ngIf="expandEnd"
+            class="arrow-icon"
+            nzType="unordered-list"
+            nzTheme="outline"
+          ></nz-icon>
+          <nz-icon
+            *ngIf="!expandEnd"
+            class="arrow-icon"
+            nzType="menu-fold"
+            nzTheme="outline"
+          ></nz-icon>
+        </div>
+      </div>
+      @if (expandEnd) {
+        <div class="mt-[16px]">
+          @for (item of outputParams; track item.name; let i = $index) {
+            <div
+              class="mb-[8px] text-[#191919]"
+            >
+              <form #outputForm="ngForm">
+                <div
+                  class="flex cursor-pointer items-center rounded-lg bg-[#FAFAFA] pb-[10px] pl-[12px] pr-[12px] pt-[10px]"
+                  (click)="expandParam(item, outputForm)"
+                >
+                  <div class="w-[calc(100%-38px)]">
+                    {{ item.name }}
+                  </div>
+                  <div
+                    class="ml-[20px] flex h-[18px] w-[18px] cursor-pointer items-center justify-center"
+                  >
+                    <nz-icon
+                      *ngIf="item.expand"
+                      class="arrow-icon"
+                      nzType="unordered-list"
+                      nzTheme="outline"
+                    ></nz-icon>
+                    <nz-icon
+                      *ngIf="!item.expand"
+                      class="arrow-icon"
+                      nzType="right"
+                      nzTheme="outline"
+                    ></nz-icon>
+                  </div>
+                </div>
+                @if (item.expand) {
+                  <div
+                    class="pb-[10px] pl-[12px] pr-[12px] pt-[10px]"
+                  >
+                    <div class="flex items-center">
+                      <div class="mr-[24px] w-[48px]">
+                        {{ 'chinese_name' | i18nextEager }}
+                      </div>
+                      <div class="w-[calc(100%-72px)]">
+                        <input
+                          nz-input
+                          class="w-full"
+                          type="text"
+                          [name]="'front_name' + i"
+                          nonEmptyValidator
+                          [placeholder]="'input_placeholder' | i18nextEager"
+                          [(ngModel)]="item.front_name"
+                          [title]="item.front_name"
+                        />
+                      </div>
+                    </div>
+                    <div class="mt-[18px] flex">
+                      <div class="mr-[24px] w-[48px]">
+                        {{ 'show_content' | i18nextEager }}
+                      </div>
+                      <div class="w-[calc(100%-72px)]">
+                        <textarea
+                          nz-input
+                          style="width: 100%"
+                          class="min-h-[100px]"
+                          maxlength="1000"
+                          [name]="'front_content' + i"
+                          nonEmptyValidator
+                          [(ngModel)]="item.front_content"
+                          [title]="item.front_content"
+                          [placeholder]="'input_placeholder' | i18nextEager"
+                        ></textarea>
+                      </div>
+                    </div>
+                  </div>
+                }
+              </form>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+
+  <div>
+    <div class="flex justify-end gap-2">
+      <button nz-button type="button" (click)="dismiss()">
+        {{ 'cancel' | i18nextEager }}
+      </button>
+      <button nz-button nzType="primary" type="button" (click)="onComfirmExpandNode()">
+        {{ 'ok' | i18nextEager }}
+      </button>
+    </div>
+  </div>
+</div>

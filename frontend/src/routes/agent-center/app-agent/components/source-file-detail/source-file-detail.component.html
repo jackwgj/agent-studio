@@ -1,0 +1,22 @@
+  <div>
+    <h1>{{ 'view_source'| i18nextEager }}</h1>
+  </div>
+  <div id="agent-base-source-modal">
+    <div class="modal-title">
+      <img [src]="cdnAssetUrl(messageSourceFileMap.get(getFileExtension(sourceFileDetail?.document_name)))"
+           class="modal-title-img" alt="">
+      <span class="modal-title-name">{{ sourceFileDetail?.document_name }}</span>
+    </div>
+    <div class="modal-content">
+      <div class="item-card" *ngFor="let slice of renderData?.slicingFiles ?? []">
+        <div [innerHTML]="slice.content | markedPipe | async | safeHtml" class="slice-markdown-container"></div>
+        <div class="modal-bottom">
+          <div class="label-key">{{ 'hit_score'| i18nextEager }}</div>
+          <div class="label-value">{{ formatToTwoDecimal(slice.score)}}</div>
+          <div class="label-key">{{ 'word_count'| i18nextEager }}</div>
+          <div class="label-value">{{ slice.content?.length || 0 }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+

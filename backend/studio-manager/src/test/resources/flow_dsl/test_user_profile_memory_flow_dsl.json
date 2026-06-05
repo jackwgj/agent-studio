@@ -1,0 +1,165 @@
+{
+  "id": "66bd6ca5-9b26-48b7-99bf-f4b8d12d34cd",
+  "name": "tzy_0118",
+  "description": "tzy_0118",
+  "nodes": [
+    {
+      "id": "node_start",
+      "type": "Start",
+      "name": "开始",
+      "outputs": [
+        {
+          "description": "用户输入",
+          "field_type": "input",
+          "name": "query",
+          "reflection": false,
+          "required": true,
+          "source": "system",
+          "type": "string",
+          "value": {
+            "content": "",
+            "hint": "用户输入",
+            "type": "literal"
+          }
+        }
+      ]
+    },
+    {
+      "id": "node_end",
+      "type": "End",
+      "name": "结束",
+      "configs": {
+        "is_stream_out": true,
+        "response_template": "{{result}}",
+        "response_mode": "directResponse"
+      },
+      "inputs": [
+        {
+          "description": "最终输出",
+          "name": "result",
+          "reflection": false,
+          "required": false,
+          "source": "user",
+          "type": "array",
+          "value": {
+            "content": {
+              "ref_node_id": "node_1737183484514",
+              "ref_var_name": "output_list",
+              "source": "user"
+            },
+            "type": "ref"
+          },
+          "schema": {
+            "name": "",
+            "type": "object",
+            "schema": [
+              {
+                "name": "content",
+                "required": true,
+                "description": "检索内容",
+                "type": "string",
+                "value": {
+                  "type": "generated",
+                  "content": null,
+                  "hint": "",
+                  "default": ""
+                },
+                "source": "user"
+              },
+              {
+                "name": "document_name",
+                "required": true,
+                "description": "文件名",
+                "type": "string",
+                "value": {
+                  "type": "generated",
+                  "content": null,
+                  "hint": "",
+                  "default": ""
+                },
+                "source": "user"
+              },
+              {
+                "name": "subtitle",
+                "required": true,
+                "description": "子标题，文档段落信息",
+                "type": "string",
+                "value": {
+                  "type": "generated",
+                  "content": null,
+                  "hint": "",
+                  "default": ""
+                },
+                "source": "user"
+              },
+              {
+                "name": "score",
+                "required": true,
+                "description": "匹配度得分",
+                "type": "number",
+                "value": {
+                  "type": "generated",
+                  "content": null,
+                  "hint": "",
+                  "default": ""
+                },
+                "source": "user"
+              }
+            ]
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "description": "最终输出",
+          "name": "response_content",
+          "reflection": false,
+          "required": true,
+          "source": "system",
+          "type": "string",
+          "value": {
+            "type": "generated"
+          }
+        }
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "source": "node_start",
+      "target": "node_end"
+    }
+  ],
+  "layouts": {
+    "node_start": {
+      "x": 190,
+      "y": 300
+    },
+    "node_end": {
+      "x": 1050,
+      "y": 300
+    }
+  },
+  "configs": {
+    "long_term_memory": false,
+    "user_profile": {
+      "user_profile_enable": true,
+      "time_window": {
+        "time_span": 10,
+        "conversation_round": 1
+      },
+      "topics": [
+        {
+          "topic_name": "基本信息",
+          "topic_description": "用户的基本信息",
+          "tags": [
+            {
+              "tag_name": "性别",
+              "tag_description": "用户的性别"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

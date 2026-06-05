@@ -1,0 +1,55 @@
+<div (click)="handleKnowledgeDetailView()" class="card-wrapper w-full h-full">
+  <div class="icon-and-name">
+    <img alt="" class="h-12 w-12 rounded-lg" [src]="knowledgeData.icon" />
+    <div class="w-[calc(100%-64px)]">
+      <div class="name overflow-hidden whitespace-nowrap text-ellipsis" nz-tooltip [nzTooltipTitle]="knowledgeData.display_name">
+        {{ knowledgeData.display_name }}
+      </div>
+      <div>
+        <span
+          class="status-tag"
+          [ngClass]="{ active: 'status_open' === statusTag }"
+        >
+          <meta-inline-svg src="assets/agent-center/icons/status.svg" />
+          <span>{{ statusTag | i18nextEager }}</span>
+        </span>
+      </div>
+    </div>
+  </div>
+  <div class="mb-[36px] mt-[16px] h-[42px]">
+    <div
+      class="w-full text-[12px] leading-[22px] text-[#595959] break-words line-clamp-2"
+      nz-tooltip
+      [nzTooltipTitle]="knowledgeData.description || '--'"
+    >
+      {{ knowledgeData.description || '--' }}
+    </div>
+  </div>
+  <div class="bottom-area">
+    <span class="flex items-center w-[calc(100%-30px)]">
+      <span nz-icon nzType="user" nzTheme="outline" class="mr-[8px] text-[16px]"></span>
+      <span class="mr-[16px] overflow-hidden whitespace-nowrap text-ellipsis max-w-[80px]" nz-tooltip [nzTooltipTitle]="knowledgeData.creator">
+        {{ knowledgeData.creator }}
+      </span>
+      <ng-container *ngIf="knowledgeData.create_time">
+        <span nz-icon nzType="clock-circle" nzTheme="outline" class="mr-[4px] text-[16px]"></span>
+        <span class="overflow-hidden whitespace-nowrap text-ellipsis flex-1">
+          {{ knowledgeData.create_time }}
+        </span>
+      </ng-container>
+    </span>
+
+    <div class="three-dots-btn flex items-center justify-center" (click)="clickMenu($event)">
+      <a nz-dropdown [nzDropdownMenu]="menu" nzTrigger="click" nzPlacement="bottomRight" class="text-[#808080] hover:text-[#1476ff] flex items-center h-full w-full">
+        <span nz-icon nzType="ellipsis" nzTheme="outline" class="text-[18px]"></span>
+      </a>
+      <nz-dropdown-menu #menu="nzDropdownMenu">
+        <ul nz-menu>
+          <li nz-menu-item *ngFor="let action of knowledgeActions" (click)="onClickAction(action)">
+            {{ action.label }}
+          </li>
+        </ul>
+      </nz-dropdown-menu>
+    </div>
+  </div>
+</div>

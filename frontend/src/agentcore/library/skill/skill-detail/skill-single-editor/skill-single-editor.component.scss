@@ -1,0 +1,144 @@
+$editor-head-height: 40px;
+
+:host ::ng-deep {
+  .ti-code-editor-header {
+    background-color: unset !important;
+  }
+
+  .ti-code-editor {
+    border-top-left-radius: unset !important;
+    border-bottom-left-radius: unset !important;
+    height: 100% !important;
+  }
+
+  .monaco-editor .margin {
+    background-color: #f4f4f5 !important;
+  }
+
+  .editor-container {
+    height: 100% !important;
+  }
+
+  .overflow-guard {
+    max-width: 100% !important;
+  }
+}
+
+.file-editor ::ng-deep {
+  display: flex;
+  height: 650px;
+  border: 2px solid var(--ti-color-border-divider-1);
+  border-radius: 9px;
+  --sidebar-width: 330px;
+  position: relative;
+}
+
+.header {
+  height: $editor-head-height;
+  align-items: center;
+  border-bottom: 1px solid var(--ti-color-border-divider-1);
+  display: flex;
+  overflow: hidden;
+}
+
+.header-inner {
+  margin: 8px 16px;
+  align-items: center;
+  display: flex;
+}
+
+::ng-deep.file-tree-box {
+  width: var(--sidebar-width);
+
+  .header {
+    border-right: 1px solid var(--ti-color-border-divider-1);
+  }
+
+  .file-tree {
+    overflow-x: hidden;
+    height: calc(100% - $editor-head-height);
+    overflow-y: overlay;
+    border-right: 1px solid var(--ti-color-border-divider-1);
+  }
+}
+
+:host .flex-center {
+  display: flex;
+  align-items: center;
+}
+
+:host::ng-deep.editor-box {
+  flex: 1;
+  min-width: 0;
+  z-index: 10;
+  overflow: hidden;
+
+  .file-label {
+    font-size: 12px;
+    line-height: 18px;
+    margin-left: 4px;
+  }
+
+  .header-inner {
+    justify-content: space-between;
+    display: flex;
+    width: 100%;
+  }
+
+  .editor-tab {
+    width: fit-content;
+  }
+
+  .code-box {
+    height: calc(100% - $editor-head-height);
+  }
+
+  .monaco-editor,
+  .monaco-editor .overflow-guard {
+    outline: none !important;
+    border: none !important;
+  }
+
+  ngx-monaco-editor {
+    outline: none !important;
+  }
+
+  .md-box {
+    height: calc(100% - $editor-head-height);
+    padding: 24px;
+    padding-top: 0px;
+    overflow: overlay;
+  }
+}
+
+.resizer {
+  width: 4px;
+  cursor: col-resize;
+  background: transparent;
+  transition: background 0.2s;
+  z-index: 10;
+}
+
+.resizer:hover,
+.resizer:active {
+  background: #007fd4;
+}
+
+.resizer {
+  width: 4px;
+  background: transparent;
+  cursor: col-resize;
+  z-index: 11;
+  margin-right: -4px;
+  transition: background 0.1s;
+}
+
+.resizer:hover {
+  background: #007fd4;
+}
+
+.editor-tip {
+  padding: var(--ti-common-space-4x);
+  font-size: 16px;
+  font-weight: 600;
+}

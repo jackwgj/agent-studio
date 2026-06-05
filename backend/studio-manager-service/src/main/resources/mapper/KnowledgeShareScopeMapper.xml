@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.agent.agentbase.mapper.KnowledgeShareScopeMapper">
+    <resultMap id="BaseResultMap" type="com.openjiuwen.studio.agent.agentbase.entity.KnowledgeShareScopeEntity">
+        <id column="id" jdbcType="VARCHAR" property="id"/>
+        <result column="knowledge_base_id" jdbcType="VARCHAR" property="knowledgeBaseId"/>
+        <result column="workspace_id" jdbcType="VARCHAR" property="workspaceId"/>
+        <result column="project_id" jdbcType="VARCHAR" property="projectId"/>
+        <result column="created_user_id" jdbcType="VARCHAR" property="createdUserId"/>
+        <result column="created_user_name" jdbcType="VARCHAR" property="createdUserName"/>
+        <result column="create_time" jdbcType="BIGINT" property="createTime"/>
+    </resultMap>
+    <sql id="Base_Column_List">
+        id
+        , knowledge_base_id, workspace_id, project_id, created_user_id, created_user_name,
+    create_time
+    </sql>
+
+
+    <select id="queryShareScope" resultType="com.openjiuwen.studio.agent.agentbase.entity.KnowledgeShareScopeEntity">
+        select
+        <include refid="Base_Column_List"/>
+        from t_knowledge_share_scope
+        where knowledge_base_id = #{knowledgeBaseId} and workspace_id = #{workspaceId}
+    </select>
+
+    <select id="findByKnowledgeBaseId"
+            resultType="com.openjiuwen.studio.agent.agentbase.entity.KnowledgeShareScopeEntity">
+        select
+        <include refid="Base_Column_List"/>
+        from t_knowledge_share_scope
+        where knowledge_base_id = #{knowledgeBaseId}
+
+    </select>
+
+
+    <delete id="deleteKnowledgeBase">
+        delete
+        from t_knowledge_share_scope
+        where knowledge_base_id = #{knowledgeBaseId}
+          and project_id = #{projectId}
+    </delete>
+
+    <delete id="deleteByWorkspaceIdsAndKnowledgeBaseId">
+        delete
+        from t_knowledge_share_scope
+        where knowledge_base_id = #{knowledgeBaseId}
+        and project_id = #{projectId}
+        <if test="workspaceIdList != null and !workspaceIdList.isEmpty()">
+            AND id IN
+            <foreach item="workspaceId" index="index" collection="workspaceIdList" open="(" separator="," close=")">
+                #{workspaceId}
+            </foreach>
+        </if>
+    </delete>
+
+
+    <insert id="batchInsert">
+        insert into t_knowledge_share_scope (id , knowledge_base_id, workspace_id, project_id,
+        created_user_id, created_user_name, create_time)
+        values
+        <foreach collection="knowledgeShareScope" item="item" separator=",">
+            (#{item.id,jdbcType=VARCHAR}, #{item.knowledgeBaseId,jdbcType=VARCHAR},
+            #{item.workspaceId,jdbcType=VARCHAR},
+            #{item.projectId,jdbcType=VARCHAR},
+            #{item.createdUserId,jdbcType=VARCHAR}, #{item.createdUserName,jdbcType=VARCHAR},
+            #{item.createTime,jdbcType=BIGINT})
+        </foreach>
+    </insert>
+
+</mapper>

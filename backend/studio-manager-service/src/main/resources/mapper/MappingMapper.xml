@@ -1,0 +1,432 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) Huawei Technologies Co., Ltd. 2024-2024. All rights reserved.
+  -->
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.agent.manager.mapper.MappingMapper">
+    <resultMap id="BaseResultMap" type="com.openjiuwen.studio.agent.manager.entity.MappingEntity">
+        <!-- 所有 id 标签必须在 result 标签之前 -->
+        <id column="mapping_id" jdbcType="VARCHAR" property="mappingId"/>
+        <id column="app_id" jdbcType="VARCHAR" property="appId"/>
+        <id column="app_version" jdbcType="VARCHAR" property="appVersion"/>
+        <id column="app_type" jdbcType="VARCHAR" property="appType"/>
+        <id column="app_name" jdbcType="VARCHAR" property="appName"/>
+        <id column="resource_id" jdbcType="VARCHAR" property="resourceId"/>
+        <id column="resource_type" jdbcType="VARCHAR" property="resourceType"/>
+        <id column="resource_name" jdbcType="VARCHAR" property="resourceName"/>
+        <id column="resource_desc" jdbcType="VARCHAR" property="resourceDesc"/>
+        <id column="valid" jdbcType="TINYINT" property="valid"/>
+        <id column="extends" jdbcType="VARCHAR" property="extendInfo"/>
+
+        <!-- 所有 result 标签必须在 id 标签之后 -->
+        <result column="app_sub_type" jdbcType="VARCHAR" property="subType" />
+        <result column="created_on" jdbcType="TIMESTAMP" property="createdOn"/>
+        <result column="updated_on" jdbcType="TIMESTAMP" property="updatedOn"/>
+        <result column="name" property="appNameZh"/>
+        <result column="reference_type" jdbcType="VARCHAR" property="referenceType"/>
+        <result column="resource_workspace_id" jdbcType="VARCHAR" property="resourceWorkspaceId"/>
+        <result column="app_workspace_id" jdbcType="VARCHAR" property="appWorkspaceId"/>
+        <result column="resource_choose_tools" jdbcType="VARCHAR" property="resourceChooseTools"/>
+    </resultMap>
+    <resultMap id="ResourceMapping" type="com.openjiuwen.studio.agent.manager.dto.ResourceMapping">
+        <id column="resource_id" jdbcType="VARCHAR" property="resourceId"/>
+        <id column="resource_name" jdbcType="VARCHAR" property="resourceName"/>
+        <id column="reference_number" jdbcType="VARCHAR" property="referenceNumber"/>
+    </resultMap>
+    <sql id="Base_Column_List">
+        mapping_id,
+        app_id,
+        app_version,
+        app_type,
+        app_sub_type,
+        app_name,
+        resource_id,
+        resource_type,
+        resource_name,
+        resource_version,
+        resource_desc,
+        valid,
+        extends,
+        created_on,
+        updated_on,
+        reference_type,
+        resource_workspace_id,
+        app_workspace_id,
+        resource_choose_tools
+    </sql>
+    <insert id="insert" parameterType="com.openjiuwen.studio.agent.manager.entity.MappingEntity">
+        insert into t_mapping (mapping_id, app_id, app_version, app_type, app_sub_type, app_name, resource_id, resource_type,
+                               resource_name, resource_version, resource_desc, valid)
+        values (#{mappingId,jdbcType=VARCHAR}, #{appId,jdbcType=VARCHAR}, #{appVersion,jdbcType=VARCHAR},
+                #{appType,jdbcType=VARCHAR}, #{subType,jdbcType=VARCHAR}, #{appName,jdbcType=VARCHAR},
+                #{resourceId,jdbcType=VARCHAR}, #{resourceType,jdbcType=VARCHAR}, #{resourceName,jdbcType=VARCHAR},
+                #{resourceVersion,jdbcType=VARCHAR},
+                #{resourceDesc,jdbcType=VARCHAR}, CASE
+                                                      WHEN #{valid,jdbcType=VARCHAR} THEN 1
+                                                      ELSE 0 END)
+    </insert>
+    <insert id="insertBatch" parameterType="com.openjiuwen.studio.agent.manager.entity.MappingEntity">
+        <if test="records != null and records.size() > 0">
+            insert into t_mapping (mapping_id, app_id, app_version, app_type, app_sub_type, app_name, resource_id,
+            resource_type, resource_name, resource_version, resource_desc, valid, extends, reference_type, resource_workspace_id, app_workspace_id, resource_choose_tools)
+            values
+            <foreach collection="records" item="record" separator=",">
+                (#{record.mappingId,jdbcType=VARCHAR}, #{record.appId,jdbcType=VARCHAR},
+                #{record.appVersion,jdbcType=VARCHAR},
+                #{record.appType,jdbcType=VARCHAR}, #{record.subType,jdbcType=VARCHAR},
+                #{record.appName,jdbcType=VARCHAR},
+                #{record.resourceId,jdbcType=VARCHAR}, #{record.resourceType,jdbcType=VARCHAR},
+                #{record.resourceName,jdbcType=VARCHAR}, #{record.resourceVersion,jdbcType=VARCHAR},
+                #{record.resourceDesc,jdbcType=VARCHAR},
+                #{record.valid,jdbcType=VARCHAR},
+                #{record.extendInfo,jdbcType=VARCHAR},
+                #{record.referenceType,jdbcType=VARCHAR},
+                #{record.resourceWorkspaceId,jdbcType=VARCHAR},
+                #{record.appWorkspaceId,jdbcType=VARCHAR},
+                #{record.resourceChooseTools,jdbcType=VARCHAR})
+            </foreach>
+        </if>
+    </insert>
+
+    <delete id="deleteBatch" parameterType="map">
+        delete
+        from t_mapping
+        where app_id = #{appId,jdbcType=VARCHAR}
+        and app_version is null
+        and resource_id in
+        <foreach collection="resourceIds" separator="," open="(" close=")" item="id">
+            #{id}
+        </foreach>
+    </delete>
+    <delete id="deleteBatchByAppId" parameterType="map">
+        delete
+        from t_mapping
+        where app_id = #{appId,jdbcType=VARCHAR}
+        <if test="appVersion == null and !isAllVersion">
+            and app_version is null
+        </if>
+        <if test="appVersion != null">
+            and app_version = #{appVersion,jdbcType=VARCHAR}
+        </if>
+    </delete>
+    <update id="softDeleteBatchByAppId">
+        update t_mapping
+        <set>
+            valid = false
+        </set>
+        where app_id = #{appId,jdbcType=VARCHAR}
+        <if test="appVersion == null and !isAllVersion">
+            and app_version is null
+        </if>
+        <if test="appVersion != null">
+            and app_version = #{appVersion,jdbcType=VARCHAR}
+        </if>
+    </update>
+    <delete id="deleteBatchByAppIdAndResourceType" parameterType="map">
+        delete
+        from t_mapping
+        where app_id = #{appId,jdbcType=VARCHAR}
+          and resource_type = #{resourceType,jdbcType=VARCHAR}
+          and app_version is null
+    </delete>
+    <select id="selectByAppIdAndResourceType" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_mapping
+        where app_id = #{appId,jdbcType=VARCHAR}
+        and resource_type = #{resourceType,jdbcType=VARCHAR}
+        and app_version is null
+    </select>
+    <select id="selectByAppIdAndResourceId" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_mapping
+        where app_id = #{appId,jdbcType=VARCHAR}
+        and resource_id = #{resourceId,jdbcType=VARCHAR}
+        and app_version is null
+    </select>
+    <select id="selectByAppIdAndAppVersion" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_mapping
+        where app_id = #{appId,jdbcType=VARCHAR}
+        <if test="appVersion != null and appVersion != 'latest'">
+            and app_version = #{appVersion,jdbcType=VARCHAR}
+        </if>
+        <if test="appVersion == 'latest'">
+            and app_version is null
+        </if>
+        <if test="valid != null">
+            and valid = #{valid,jdbcType=TINYINT}
+        </if>
+        <if test="resourceType != null">
+            and resource_type = #{resourceType,jdbcType=VARCHAR}
+        </if>
+    </select>
+
+    <select id="selectByMappingList" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_mapping
+        where 1=1
+        <if test="queryList != null and queryList.size() > 0">
+            and
+            <foreach collection="queryList" item="item" separator="OR" open="(" close=")">
+                <trim prefix="(" suffix=")" prefixOverrides="AND">
+                    <if test="item.appId != null">
+                        and app_id = #{item.appId,jdbcType=VARCHAR}
+                    </if>
+                    <if test="item.appVersion != null">
+                        and app_version = #{item.appVersion,jdbcType=VARCHAR}
+                    </if>
+                    <if test="item.appVersion == 'latest'">
+                        and app_version is null
+                    </if>
+                    <if test="item.resourceType != null">
+                        and resource_type = #{item.resourceType,jdbcType=VARCHAR}
+                    </if>
+                </trim>
+            </foreach>
+        </if>
+    </select>
+
+    <select id="selectByRefs" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_mapping
+        <where>
+            <if test="refs != null and !refs.isEmpty()">
+                (app_id, app_version) IN
+                <foreach collection="refs" item="item" open="(" separator="," close=")">
+                    (#{item.resourceVersion,jdbcType=VARCHAR}, #{item.resourceVersion,jdbcType=VARCHAR})
+                </foreach>
+            </if>
+            <if test="resourceType != null">
+                and resource_type = #{resourceType,jdbcType=VARCHAR}
+            </if>
+            and valid = 1
+        </where>
+    </select>
+    <select id="selectByResourceId" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_mapping
+        where resource_id = #{resourceId,jdbcType=VARCHAR}
+    </select>
+    <select id="selectByResourceIdAndVersionId" resultMap="BaseResultMap">
+        select
+        m.mapping_id,
+        m.app_id,
+        m.app_version,
+        m.app_type,
+        m.app_name,
+        m.app_workspace_id,
+        m.resource_id,
+        m.resource_type,
+        m.resource_name,
+        m.resource_version,
+        m.resource_desc,
+        m.resource_workspace_id,
+        m.reference_type,
+        m.valid,
+        m.created_on,
+        m.updated_on
+        <if test="appType == 'workflow'">
+            , w.name
+        </if>
+        from t_mapping m
+        <if test="appType == 'workflow'">
+            INNER JOIN t_agent_workflow w ON m.app_id = w.id
+        </if>
+        <if test="appType == 'agent'">
+            INNER JOIN t_agent a ON m.app_id = a.agent_id
+        </if>
+        where m.resource_id like concat(#{resourceId,jdbcType=VARCHAR}, '%')
+        <if test="referenceType != 'share' and workspaceId != null and appType == 'workflow'">
+            and w.workspace_id = #{workspaceId,jdbcType=VARCHAR}
+        </if>
+        <if test="referenceType != 'share' and workspaceId != null and appType == 'agent'">
+            and a.workspace_id = #{workspaceId,jdbcType=VARCHAR}
+        </if>
+        <if test="referenceType == 'share'">
+            and m.reference_type = #{referenceType,jdbcType=VARCHAR}
+        </if>
+        <if test="resourceVersion != null and resourceVersion != 'latest'">
+            and m.resource_version = #{resourceVersion,jdbcType=VARCHAR}
+        </if>
+        <if test="resourceVersion == 'latest'">
+            and m.resource_version IS NULL
+        </if>
+        <if test="appType != null">
+            and m.app_type = #{appType,jdbcType=VARCHAR}
+        </if>
+        and valid = 1
+    </select>
+    <update id="updateValidByResourceIdAndVersionId" parameterType="map">
+        update t_mapping
+        <set>
+            valid = false
+        </set>
+        where resource_id = #{resourceId,jdbcType=VARCHAR}
+        <if test="resourceVersion != null">
+            and resource_version = #{resourceVersion,jdbcType=VARCHAR}
+        </if>
+    </update>
+
+    <update id="updateByPrimaryKeySelective"
+        parameterType="com.openjiuwen.studio.agent.manager.entity.MappingEntity">
+        update t_mapping
+        <set>
+            <if test="appName != null">
+                app_name = #{appName,jdbcType=VARCHAR},
+            </if>
+            <if test="resourceName != null">
+                resource_name = #{resourceName,jdbcType=VARCHAR},
+            </if>
+            <if test="resourceDesc != null">
+                resource_desc = #{resourceDesc,jdbcType=VARCHAR},
+            </if>
+            <if test="valid != null">
+                valid = #{valid,jdbcType=VARCHAR},
+            </if>
+        </set>
+        where mapping_id = #{mappingId,jdbcType=VARCHAR}
+    </update>
+    <select id="getByIds" parameterType="com.openjiuwen.studio.agent.manager.entity.MappingEntity"
+        resultMap="ResourceMapping">
+        select resource_id,
+        resource_name,
+        COUNT(*) AS reference_number
+        from t_mapping
+        where resource_id in
+        <foreach collection="ids" item="resourceId" open="(" separator="," close=")">
+            #{resourceId,jdbcType=VARCHAR}
+        </foreach>
+        GROUP BY resource_id, resource_name
+        HAVING resource_id IS NOT NULL
+    </select>
+
+    <select id="selectAllByAppId" resultType="com.openjiuwen.studio.agent.manager.entity.MappingEntity">
+        select
+        <include refid="Base_Column_List"/>
+        from t_mapping
+        where app_id = #{appId,jdbcType=VARCHAR}
+        and app_version is null
+    </select>
+
+    <select id="countMappingEntityListByAppIdAndResourceId" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM t_mapping
+        WHERE app_id = #{appId,jdbcType=VARCHAR}
+        AND resource_id = #{resourceId,jdbcType=VARCHAR}
+        <if test="appVersion != null">
+            AND app_version = #{appVersion,jdbcType=VARCHAR}
+        </if>
+        <if test="resourceVersion != null">
+            AND resource_version = #{resourceVersion,jdbcType=VARCHAR}
+        </if>
+        AND valid = 1
+    </select>
+
+    <delete id="deleteBatchByAppIdType" parameterType="map">
+        delete
+        from t_mapping
+        where app_id = #{appId,jdbcType=VARCHAR}
+        <if test="appVersion == null">
+            and app_version is null
+        </if>
+        <if test="appVersion != null">
+            and app_version = #{appVersion,jdbcType=VARCHAR}
+        </if>
+        <if test="type != null">
+            and resource_type = #{type,jdbcType=VARCHAR}
+        </if>
+    </delete>
+    <update id="updateValidByResourceId">
+        update t_mapping
+        <set>
+            valid = false
+        </set>
+        where resource_id like CONCAT(#{resourceId,jdbcType=VARCHAR},'%')
+    </update>
+    <update id="updateAppNameByAppId">
+        update t_mapping
+        <set>
+            app_name = COALESCE(#{appName,jdbcType=VARCHAR}, app_name)
+        </set>
+        where app_id = #{appId,jdbcType=VARCHAR}
+    </update>
+    <update id="updateResourceParameterByAppIDAndResourceId" parameterType="com.openjiuwen.studio.agent.manager.entity.MappingEntity">
+        update t_mapping
+        <set>
+            <if test="extendInfo != null">
+                extends = #{extendInfo,jdbcType=VARCHAR},
+            </if>
+            <if test="appWorkspaceId != null">
+                app_workspace_id = #{appWorkspaceId,jdbcType=VARCHAR},
+            </if>
+            <if test="referenceType != null">
+                reference_type = #{referenceType,jdbcType=VARCHAR},
+            </if>
+            resource_version = #{resourceVersion,jdbcType=VARCHAR}
+        </set>
+        where resource_id = #{resourceId,jdbcType=VARCHAR}
+            and app_id = #{appId,jdbcType=VARCHAR}
+    </update>
+
+    <update id="updateShareRelationValidStatusByShareResourceId">
+        UPDATE t_mapping
+        SET valid = #{valid}
+        WHERE resource_id like CONCAT(#{resourceId,jdbcType=VARCHAR},'%')
+        AND reference_type = 'share'
+    </update>
+
+    <update id="updateMcpServerBatch" parameterType="com.openjiuwen.studio.agent.manager.entity.MappingEntity">
+        <if test="records != null and records.size() > 0">
+            <foreach collection="records" item="record" separator=";">
+                update t_mapping
+                set
+                resource_choose_tools = #{record.resourceChooseTools,jdbcType=VARCHAR}
+                where
+                app_id = #{record.appId,jdbcType=VARCHAR}
+                <choose>
+                    <when test="record.appVersion != null">
+                        and app_version = #{record.appVersion,jdbcType=VARCHAR}
+                    </when>
+                    <otherwise>
+                        and app_version is null
+                    </otherwise>
+                </choose>
+                and resource_type = #{record.resourceType,jdbcType=VARCHAR}
+                and resource_id = #{record.resourceId,jdbcType=VARCHAR}
+            </foreach>
+        </if>
+    </update>
+
+    <update id="updateById"
+            parameterType="com.openjiuwen.studio.agent.manager.entity.MappingEntity">
+        update t_mapping
+        <set>
+            <if test="appName != null">
+                app_name = #{appName,jdbcType=VARCHAR},
+            </if>
+            <if test="resourceId != null">
+                resource_id = #{resourceId,jdbcType=VARCHAR},
+            </if>
+            <if test="resourceName != null">
+                resource_name = #{resourceName,jdbcType=VARCHAR},
+            </if>
+            <if test="resourceType != null">
+                resource_type = #{resourceType,jdbcType=VARCHAR},
+            </if>
+            <if test="resourceDesc != null">
+                resource_desc = #{resourceDesc,jdbcType=VARCHAR},
+            </if>
+            <if test="valid != null">
+                valid = #{valid,jdbcType=VARCHAR},
+            </if>
+        </set>
+        where mapping_id = #{mappingId,jdbcType=VARCHAR}
+    </update>
+</mapper>

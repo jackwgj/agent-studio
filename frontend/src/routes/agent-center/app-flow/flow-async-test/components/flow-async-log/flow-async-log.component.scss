@@ -1,0 +1,312 @@
+.run-modal-wrapper {
+  background: #ffffff;
+  padding: 18px 16px;
+  height: 100%;
+  border-left: 1px solid rgba(0, 0, 0, 0.08);
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 22px;
+
+    .title {
+      font-size: 16px;
+      line-height: 24px;
+      font-weight: 600;
+      color: #000000;
+    }
+
+    .close-icon {
+      font-size: 16px;
+      color: #000000;
+      cursor: pointer;
+    }
+  }
+
+  .content {
+    flex: 1;
+    height: calc(100% - 47px);
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+.run-modal-show {
+  animation: show-modal-animation 150ms ease-in;
+  display: flex;
+  flex-direction: column;
+}
+
+@keyframes show-modal-animation {
+  from {
+    display: none;
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.exec-list {
+  display: flex;
+  gap: 6px;
+}
+
+.custom-loading-icon {
+  top: calc(50% - 16px);
+}
+
+:host ::ng-deep .log-tabs {
+  .ant-tabs-content {
+    height: calc(100% - 52px);
+    height: calc(100vh - 285px);
+  }
+
+  .ant-tabs-nav {
+    border-bottom: 1px solid transparent !important;
+  }
+}
+
+// 运行结果Tab样式
+.workflow-info-area {
+  padding: 16px;
+  background-color: #fafafa;
+  border-radius: 8px;
+
+  .title-container {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    .workflow-status {
+      width: 16px;
+      height: 16px;
+    }
+
+    .workflow-status-desc {
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 22px;
+    }
+  }
+
+  .empty-info-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 0;
+  }
+
+  .info-container {
+    display: flex;
+    flex-wrap: wrap;
+    margin-top: 16px;
+    gap: 8px 0;
+
+    .item-container {
+      flex: 1 1 50%;
+      display: flex;
+      justify-content: flex-start;
+      gap: 4px;
+    }
+  }
+}
+
+.text-chunk-area {
+  max-height: 100%;
+  height: fit-content;
+  overflow-y: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 16px;
+  border-radius: 8px;
+  background-color: #fafafa;
+}
+
+// 替换公共md渲染子组件的样式，避免修改公共组件，影响其他模块
+:host ::ng-deep {
+  .markdown-text .markdown-container {
+    font-size: 12px;
+    line-height: 18px;
+    padding-left: 0px;
+    word-wrap: break-word;
+  }
+}
+
+// 调用详情Tab样式
+.call-chain-area {
+  display: flex;
+  flex-direction: column;
+
+  .chart-icon {
+    background: #f5f5f5;
+    padding: 2px;
+    border: 1px solid transparent;
+    cursor: pointer;
+  }
+
+  .icon-selected {
+    border-radius: 4px;
+    background: #ffffff;
+    border-color: #191919;
+  }
+
+  .sequence-item-wrapper {
+    border-radius: 8px;
+    min-height: 42px;
+  }
+
+  .call-chains-container {
+    display: flex !important;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+    margin-top: 12px;
+  }
+}
+
+.call-item-wrapper {
+  border-radius: 8px;
+}
+
+.call-item {
+  display: flex;
+  align-items: center;
+  background-color: #fafafa;
+  border-radius: 8px;
+  padding: 10px 16px 10px 12px;
+  justify-content: space-between;
+  cursor: pointer;
+
+  .call-item-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .collapse-icon {
+      font-size: 14px;
+      color: #808080;
+    }
+
+    .unfolded-icon {
+      transform: rotate(-90deg);
+    }
+
+    .call-node-icon {
+      width: 20px;
+      height: 20px;
+    }
+
+    .rounds {
+      border-radius: 4px;
+      background: #e6e6e6;
+      padding: 2px 8px;
+    }
+  }
+
+  .call-item-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    .first-token-time {
+      flex-shrink: 0;
+      color: #808080;
+      padding-right: 6px;
+      border-right: 1px solid rgba(0, 0, 0, 0.08);
+    }
+
+    .call-elapsed-time {
+      flex-shrink: 0;
+      color: #808080;
+    }
+
+    .call-node-status {
+      width: 14px;
+      height: 14px;
+    }
+  }
+}
+
+.bg-unfolded {
+  background-color: #f0f7ff;
+}
+
+.call-node-IO {
+  margin: 0 16px 16px 16px;
+
+  .node-inputs-area {
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .json-wrap {
+    background: #ffffff;
+    border: 1px solid #d8d8d8;
+    border-radius: 8px;
+    overflow: hidden;
+    max-height: 352px;
+    overflow: auto;
+
+    .jse-main.svelte-sxaskb {
+      min-height: unset;
+    }
+
+    .jse-tree-mode {
+      border: none;
+
+      .jse-contents {
+        border: none;
+      }
+    }
+  }
+}
+
+.crumb {
+  color: #526ECC;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.empty-run-result {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.loading-text {
+  font-size: 16px;
+  color: #191919;
+  line-height: 24px;
+  font-weight: 600;
+}
+
+.loading-message{
+  font-size: 14px;
+  color: rgba(89, 89, 89, 1);
+  line-height: 24px;
+}
+
+.date-selector {
+  border-radius: 4px;
+  border: 1px solid #c2c2c2ff;
+  padding: 4px;
+  cursor: pointer;
+  width: min-content;
+  height: 28px;
+}
+
+.selected-icon {
+  margin-right: 4px;
+  color: rgb(59 130 246);
+}

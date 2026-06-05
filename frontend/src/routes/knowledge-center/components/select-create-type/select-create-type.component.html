@@ -1,0 +1,42 @@
+<ng-template #selectCreateType let-context="context">
+  <div class="ant-modal-header">
+    <div class="ant-modal-title">{{ 'select_create_type'|i18nextEager }}</div>
+  </div>
+  <div class="ant-modal-body" id="select-create-type">
+    <nz-alert
+      *ngIf="accessDataTotal === 0"
+      nzType="info"
+      [nzCloseable]="false"
+      class="alert-tip"
+      [nzMessage]="alertContent"> </nz-alert>
+
+    <ng-template #alertContent>
+      <span>{{ 'no_knowledge_base_resources_need' | i18nextEager }}</span>
+      <button style="padding-left:0"
+        (click)="openAccessKnowledgeBase.emit();onCancel()"
+        nz-button
+        nzType="link"
+      >
+        {{ 'connect_external_knowledge_base' | i18nextEager }}
+      </button>
+    </ng-template>
+    <nz-radio-group [(ngModel)]="selectedType" class="card-group">
+      <label nz-radio [nzValue]="item" [nzDisabled]="item.disabled" *ngFor="let item of typeItems; index as i" class="card-radio">
+        <div class="card-set">
+          <div class="card-header">{{ item.title }}</div>
+          <div class="card-content">{{ item.content }}</div>
+          <div (click)="openDefaultModal($event)" *ngIf="isDoneDefaultConfig && i === 0 && kbAbilitiesService.isPermitKBDefaultConfig()" class="base-config">
+            <div class="base-config-icon"></div>
+            <div class="base-config-link">{{ 'default_knowledge_base_config' | i18nextEager }}</div>
+          </div>
+        </div>
+      </label>
+    </nz-radio-group>
+  </div>
+  <div class="ant-modal-footer">
+    <button (click)="onCancel()" type="button" nz-button>{{ 'cancel' | i18nextEager }}</button>
+    <button (click)="onOk()" type="button" nz-button nzType="primary">{{ 'ok' | i18nextEager }}</button>
+  </div>
+</ng-template>
+<knowledge-base-exceed-modal #exceedModal></knowledge-base-exceed-modal>
+

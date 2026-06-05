@@ -1,0 +1,481 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.agent.agentbase.mapper.KnowledgeBaseMapper">
+
+
+    <sql id="Base_Column_List">
+        id
+        , name, type, repo_type, status, icon, knowledge_base_connection_id, external_id, description, create_time,
+        update_time, project_id, domain_id,domain_name,created_user_id, created_user_name, last_update_user_id,
+        last_update_user_name, share_scope, workspace_id
+    </sql>
+
+    <sql id="kb_Base_Column_List">
+        kb
+        .
+        id
+        , kb.name, kb.type, kb.repo_type, kb.status, kb.icon, kb.knowledge_base_connection_id, kb.external_id,
+        kb.description, kb.create_time,
+        kb.update_time, kb.project_id, kb.domain_id,kb.domain_name,kb.created_user_id, kb.created_user_name,
+        kb.last_update_user_id,
+        kb.last_update_user_name, kb.share_scope, kb.workspace_id
+    </sql>
+
+    <select id="queryKnowledgeBaseList" resultType="com.openjiuwen.studio.agent.agentbase.entity.KnowledgeBaseEntity">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM t_knowledge_base
+        <where>
+            <if test="project_id != null and project_id != ''">
+                project_id = #{project_id}
+            </if>
+            <if test="type != null and type != ''">
+                and type = #{type}
+            </if>
+            <if test="workspaceId != null and workspaceId != ''">
+                and workspace_id = #{workspaceId}
+            </if>
+            <if test="shareScope != null and shareScope != ''">
+                and share_scope = #{shareScope}
+            </if>
+            <if test="status != null and status != ''">
+                and status = #{status}
+            </if>
+            <if test="name != null and name != ''">
+                and name like concat('%', #{name}, '%') ESCAPE '/'
+            </if>
+            <if test="fullName != null and fullName != ''">
+                and name = #{fullName}
+            </if>
+            <if test="connectionId != null and connectionId != ''">
+                and knowledge_base_connection_id = #{connectionId}
+            </if>
+            <if test="createUserId != null and createUserId != ''">
+                and created_user_id = #{createUserId}
+            </if>
+            <if test="knowledgeBaseIds != null and !knowledgeBaseIds.isEmpty()">
+                AND id IN
+                <foreach item="id" index="index" collection="knowledgeBaseIds" open="(" separator="," close=")">
+                    #{id}
+                </foreach>
+            </if>
+        </where>
+        ORDER BY update_time desc
+    </select>
+
+
+    <select id="queryKnowledgeBaseListByShareScope"
+            resultType="com.openjiuwen.studio.agent.agentbase.entity.KnowledgeBaseEntity">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM t_knowledge_base
+        <where>
+            <if test="project_id != null and project_id != ''">
+                project_id = #{project_id}
+            </if>
+            <if test="type != null and type != ''">
+                and type = #{type}
+            </if>
+            <if test="shareScope != null and shareScope != ''">
+                and share_scope = #{shareScope}
+            </if>
+            <if test="status != null and status != ''">
+                and status = #{status}
+            </if>
+            <if test="name != null and name != ''">
+                and name like concat('%', #{name}, '%') ESCAPE '/'
+            </if>
+            <if test="fullName != null and fullName != ''">
+                and name = #{fullName}
+            </if>
+            <if test="connectionId != null and connectionId != ''">
+                and knowledge_base_connection_id = #{connectionId}
+            </if>
+            <if test="createUserId != null and createUserId != ''">
+                and created_user_id = #{createUserId}
+            </if>
+            <if test="knowledgeBaseIds != null and !knowledgeBaseIds.isEmpty()">
+                AND id IN
+                <foreach item="id" index="index" collection="knowledgeBaseIds" open="(" separator="," close=")">
+                    #{id}
+                </foreach>
+            </if>
+        </where>
+        ORDER BY update_time desc
+    </select>
+    <select id="queryKnowledgeBaseListFromGlobalAndSelf"
+            resultType="com.openjiuwen.studio.agent.agentbase.entity.KnowledgeBaseEntity">
+        SELECT DISTINCT
+        <include refid="kb_Base_Column_List"/>
+        FROM t_knowledge_base kb
+        LEFT JOIN t_knowledge_share_scope kss
+        ON kb.id = kss.knowledge_base_id
+        AND kss.workspace_id = #{workspaceId}
+        <where>
+            <if test="project_id != null and project_id != ''">
+                kb.project_id = #{project_id}
+            </if>
+            <if test="type != null and type != ''">
+                and type = #{type}
+            </if>
+            <if test="workspaceId != null and workspaceId != ''">
+                AND (
+                kb.workspace_id = #{workspaceId}
+                OR kb.share_scope = 'GLOBAL'
+                OR (kb.share_scope = 'PARTIAL' AND kss.knowledge_base_id IS NOT NULL)
+                )
+            </if>
+            <if test="status != null and status != ''">
+                and status = #{status}
+            </if>
+            <if test="name != null and name != ''">
+                and name like concat('%', #{name}, '%') ESCAPE '/'
+            </if>
+            <if test="connectionId != null and connectionId != ''">
+                and knowledge_base_connection_id = #{connectionId}
+            </if>
+            <if test="createUserId != null and createUserId != ''">
+                and kb.created_user_id = #{createUserId}
+            </if>
+            <if test="knowledgeBaseIds != null and !knowledgeBaseIds.isEmpty()">
+                AND kb.id IN
+                <foreach item="id" index="index" collection="knowledgeBaseIds" open="(" separator="," close=")">
+                    #{id}
+                </foreach>
+            </if>
+        </where>
+        ORDER BY update_time desc
+
+    </select>
+
+    <insert id="insertKnowledgeBase" parameterType="com.openjiuwen.studio.agent.agentbase.entity.KnowledgeBaseEntity">
+        INSERT INTO t_knowledge_base (id, name, type, share_scope, icon, description, knowledge_base_connection_id,
+                                      external_id,
+                                      create_time, update_time,
+                                      project_id, domain_id, domain_name, created_user_id, created_user_name,
+                                      last_update_user_id,
+                                      last_update_user_name, workspace_id, copy_source_id)
+        VALUES (#{id},
+                #{name},
+                #{type},
+                #{shareScope},
+                #{icon},
+                #{description},
+                #{knowledgeBaseConnectionId},
+                #{externalId},
+                #{createTime},
+                #{updateTime},
+                #{projectId},
+                #{domainId},
+                #{domainName},
+                #{createdUserId},
+                #{createdUserName},
+                #{lastUpdateUserId},
+                #{lastUpdateUserName},
+                #{workspaceId},
+                #{copySourceId})
+    </insert>
+
+    <update id="updateKnowledgeBase" parameterType="com.openjiuwen.studio.agent.agentbase.entity.KnowledgeBaseEntity">
+        UPDATE t_knowledge_base
+        <set>
+            <if test="knowledgeBase.externalId != null and knowledgeBase.externalId != ''">
+                external_id = #{knowledgeBase.externalId},
+            </if>
+            <if test="knowledgeBase.knowledgeBaseConnectionId != null and knowledgeBase.knowledgeBaseConnectionId != ''">
+                knowledge_base_connection_id = #{knowledgeBase.knowledgeBaseConnectionId},
+            </if>
+            <if test="knowledgeBase.name != null and knowledgeBase.name != ''">
+                name = #{knowledgeBase.name},
+            </if>
+            <if test="knowledgeBase.status != null and knowledgeBase.status != ''">
+                status = #{knowledgeBase.status},
+            </if>
+            <if test="knowledgeBase.icon != null and knowledgeBase.icon != ''">
+                icon = #{knowledgeBase.icon},
+            </if>
+            <if test="knowledgeBase.description != null">
+                description = #{knowledgeBase.description},
+            </if>
+            <if test="knowledgeBase.updateTime != null">
+                update_time = #{knowledgeBase.updateTime},
+            </if>
+            <if test="knowledgeBase.lastUpdateUserId != null">
+                last_update_user_id = #{knowledgeBase.lastUpdateUserId},
+            </if>
+            <if test="knowledgeBase.lastUpdateUserName != null">
+                last_update_user_name = #{knowledgeBase.lastUpdateUserName},
+            </if>
+            <if test="knowledgeBase.shareScope != null">
+                share_scope = #{knowledgeBase.shareScope},
+            </if>
+            <if test="knowledgeBase.repoType != null and knowledgeBase.repoType != ''">
+                repo_type = #{knowledgeBase.repoType},
+            </if>
+        </set>
+        WHERE id = #{knowledgeBase.id} and project_id = #{project_id}
+    </update>
+    <update id="updatePreviewsKnowledgeBaseConnectionId">
+        UPDATE t_knowledge_base
+        SET knowledge_base_connection_id = #{connectionId}
+        Where knowledge_base_connection_id IS NULL
+    </update>
+
+    <delete id="batchDeleteKnowledgeBase">
+        delete from t_knowledge_base where project_id = #{project_id}
+        and id in
+        <foreach collection="knowledgeBaseIds" item="id" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+    </delete>
+
+    <select id="selectById" resultType="com.openjiuwen.studio.agent.agentbase.entity.KnowledgeBaseEntity">
+        SELECT t_knowledge_base.id AS id,
+        name,
+        type,
+        status,
+        icon,
+        description,
+        repo_type,
+        t_knowledge_base.knowledge_base_connection_id,
+        external_id,
+        create_time,
+        update_time,
+        project_id,
+        t_knowledge_base.domain_id,
+        domain_name,
+        created_user_id,
+        created_user_name,
+        last_update_user_id,
+        last_update_user_name,
+        t_kb_connection_router.tenant_type AS knowledgeBaseTenantType,
+        t_knowledge_base.share_scope,
+        t_knowledge_base.workspace_id
+        FROM t_knowledge_base
+        LEFT JOIN t_kb_connection_router ON t_knowledge_base.knowledge_base_connection_id =
+        t_kb_connection_router.knowledge_base_connection_id
+        where t_knowledge_base.id = #{id}
+        <if test="project_id != null and project_id != ''">
+            and t_knowledge_base.project_id = #{project_id}
+        </if>
+    </select>
+
+    <select id="selectByIdAndWorkspaceId"
+            resultType="com.openjiuwen.studio.agent.agentbase.entity.KnowledgeBaseEntity">
+        SELECT id,
+               name,
+               type,
+               status,
+               icon,
+               description,
+               knowledge_base_connection_id,
+               create_time,
+               update_time,
+               project_id,
+               domain_id,
+               domain_name,
+               created_user_id,
+               created_user_name,
+               last_update_user_id,
+               last_update_user_name
+        FROM t_knowledge_base
+        where workspace_id = #{workspaceId}
+          and id = #{id}
+    </select>
+
+    <select id="batchQueryKnowledgeBases" resultType="com.openjiuwen.studio.agent.agentbase.entity.KnowledgeBaseEntity">
+        SELECT t_knowledge_base.id AS id,
+        t_knowledge_base.name AS name,
+        t_knowledge_base.type AS type,
+        t_knowledge_base.status AS status,
+        t_knowledge_base.icon AS icon,
+        t_knowledge_base.knowledge_base_connection_id AS knowledgeBaseConnectionId,
+        t_knowledge_base.external_id AS externalId,
+        t_knowledge_base.description AS description,
+        t_knowledge_base.create_time AS createTime,
+        t_knowledge_base.update_time AS updateTime,
+        t_knowledge_base.project_id AS projectId,
+        t_knowledge_base.domain_id AS domainId,
+        t_knowledge_base.domain_name AS domainName,
+        t_knowledge_base.created_user_id AS createdUserId,
+        t_knowledge_base.created_user_name AS createdUserName,
+        t_knowledge_base.last_update_user_id AS lastUpdateUserId,
+        t_knowledge_base.last_update_user_name AS lastUpdateUserName,
+        t_knowledge_base.copy_source_id AS copySourceId,
+        tkbc.connector_id AS connector_id
+        FROM t_knowledge_base
+        LEFT JOIN t_knowledge_base_connection tkbc ON t_knowledge_base.knowledge_base_connection_id = tkbc.id
+        <where>
+            <if test="project_id != null and project_id != ''">
+                and t_knowledge_base.project_id = #{project_id}
+            </if>
+            <if test="workspaceId != null and workspaceId != ''">
+                and t_knowledge_base.workspace_id = #{workspaceId}
+            </if>
+            <if test="ids != null and ids.size()>0">
+                AND t_knowledge_base.id IN
+                <foreach item="id" collection="ids" open="(" separator="," close=")">
+                    #{id}
+                </foreach>
+            </if>
+            <if test="externalIds != null and externalIds.size()>0">
+                AND t_knowledge_base.external_id IN
+                <foreach item="externalId" collection="externalIds" open="(" separator="," close=")">
+                    #{externalId}
+                </foreach>
+            </if>
+            <if test="copySourceIds != null and copySourceIds.size()>0">
+                AND t_knowledge_base.copy_source_id IN
+                <foreach item="copySourceId" collection="copySourceIds" open="(" separator="," close=")">
+                    #{copySourceId}
+                </foreach>
+            </if>
+        </where>
+    </select>
+    <select id="countByType" resultType="java.lang.String">
+        SELECT id
+        FROM t_knowledge_base
+        WHERE domain_id = #{domain_id}
+          AND type = #{type}
+            FOR UPDATE
+    </select>
+
+    <insert id="batchInsertKnowledgeBase"
+            parameterType="com.openjiuwen.studio.agent.agentbase.entity.KnowledgeBaseEntity">
+        INSERT INTO t_knowledge_base (id, name, type,share_scope, icon, description, knowledge_base_connection_id,
+        external_id,
+        create_time, update_time,
+        project_id, domain_id,domain_name,created_user_id, created_user_name, last_update_user_id,
+        last_update_user_name, workspace_id, copy_source_id)
+        VALUES
+        <foreach collection="knowledgeBaseList" item="item" separator=",">
+            (#{item.id},
+            #{item.name},
+            #{item.type},
+            #{item.shareScope},
+            #{item.icon},
+            #{item.description},
+            #{item.knowledgeBaseConnectionId},
+            #{item.externalId},
+            #{item.createTime},
+            #{item.updateTime},
+            #{item.projectId},
+            #{item.domainId},
+            #{item.domainName},
+            #{item.createdUserId},
+            #{item.createdUserName},
+            #{item.lastUpdateUserId},
+            #{item.lastUpdateUserName},
+            #{item.workspaceId},
+            #{item.copySourceId})
+        </foreach>
+    </insert>
+
+    <!-- 检查是否存在指定domainId的数据 -->
+    <select id="existsByDomainId" resultType="boolean">
+        SELECT COUNT(1) > 0
+        FROM t_knowledge_base
+        WHERE domain_id = #{domain_id} LIMIT 1
+    </select>
+
+    <select id="countByDomainId" resultType="integer">
+        SELECT COUNT(1) as count
+        FROM t_knowledge_base
+        WHERE domain_id = #{domain_id}
+    </select>
+
+    <select id="selectByDomainId" resultType="com.openjiuwen.studio.agent.agentbase.entity.KnowledgeBaseEntity">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM t_knowledge_base
+        WHERE domain_id = #{domain_id}
+        ORDER BY create_time DESC
+    </select>
+    <select id="queryOtherSharedKnowledgeBaseList"
+            resultType="com.openjiuwen.studio.agent.agentbase.entity.KnowledgeBaseEntity">
+        SELECT
+        <include refid="kb_Base_Column_List"/>
+        FROM t_knowledge_base kb
+        <where>
+            kb.share_scope = 'GLOBAL'
+            <if test="project_id != null and project_id != ''">
+                and kb.project_id = #{project_id}
+            </if>
+            <if test="type != null and type != ''">
+                and type = #{type}
+            </if>
+            <if test="workspaceId != null and workspaceId != ''">
+                and kb.workspace_id != #{workspaceId}
+            </if>
+            <if test="status != null and status != ''">
+                and status = #{status}
+            </if>
+            <if test="name != null and name != ''">
+                and name like concat('%', #{name}, '%') ESCAPE '/'
+            </if>
+            <if test="connectionId != null and connectionId != ''">
+                and knowledge_base_connection_id = #{connectionId}
+            </if>
+            <if test="knowledgeBaseIds != null and !knowledgeBaseIds.isEmpty()">
+                AND kb.id IN
+                <foreach item="id" index="index" collection="knowledgeBaseIds" open="(" separator="," close=")">
+                    #{id}
+                </foreach>
+            </if>
+        </where>
+        UNION
+        SELECT
+        <include refid="kb_Base_Column_List"/>
+        FROM t_knowledge_base kb
+        INNER JOIN t_knowledge_share_scope kss
+        ON kb.id = kss.knowledge_base_id
+        WHERE kb.share_scope = 'PARTIAL'
+        AND kss.workspace_id = #{workspaceId}
+        AND kb.workspace_id != #{workspaceId}
+        <if test="type != null and type != ''">
+            and kb.type = #{type}
+        </if>
+        ORDER BY update_time desc
+    </select>
+
+
+    <select id="queryMySharedKnowledgeBaseList"
+            resultType="com.openjiuwen.studio.agent.agentbase.entity.KnowledgeBaseEntity">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM t_knowledge_base
+        <where>
+            <if test="project_id != null and project_id != ''">
+                project_id = #{project_id}
+            </if>
+            <if test="type != null and type != ''">
+                and type = #{type}
+            </if>
+            <if test="workspaceId != null and workspaceId != ''">
+                and workspace_id = #{workspaceId}
+            </if>
+            <if test="shareScopeEnums != null and !shareScopeEnums.isEmpty()">
+                AND share_scope IN
+                <foreach item="shareScope" index="index" collection="shareScopeEnums" open="(" separator="," close=")">
+                    #{shareScope}
+                </foreach>
+            </if>
+            <if test="status != null and status != ''">
+                and status = #{status}
+            </if>
+            <if test="name != null and name != ''">
+                and name like concat('%', #{name}, '%') ESCAPE '/'
+            </if>
+            <if test="connectionId != null and connectionId != ''">
+                and knowledge_base_connection_id = #{connectionId}
+            </if>
+            <if test="knowledgeBaseIds != null and !knowledgeBaseIds.isEmpty()">
+                AND id IN
+                <foreach item="id" index="index" collection="knowledgeBaseIds" open="(" separator="," close=")">
+                    #{id}
+                </foreach>
+            </if>
+        </where>
+        ORDER BY update_time desc
+    </select>
+</mapper>

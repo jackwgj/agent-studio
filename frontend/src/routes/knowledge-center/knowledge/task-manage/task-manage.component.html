@@ -1,0 +1,94 @@
+<div class="h-full flex flex-col">
+  <!-- 顶部操作与搜索区域 -->
+  <div class="mb-4 flex justify-between items-center" *ngIf="!isMarket">
+    <div class="flex gap-2">
+      <button
+        nz-button
+        nzType="primary"
+        nzDanger
+        [disabled]="operationDisableFn()"
+        (click)="onBatchDelete()"
+      >
+        {{ 'delete' | i18nextEager }}
+      </button>
+    </div>
+
+    <!-- 搜索过滤 -->
+    <div class="flex gap-2 w-[350px]">
+      <nz-select
+        [(ngModel)]="searchStatus"
+        nzAllowClear
+        [nzPlaceHolder]="'all_status' | i18nextEager"
+        (ngModelChange)="onSearch()"
+        class="w-[120px]"
+      >
+        <nz-option nzValue="PENDING" [nzLabel]="'pending' | i18nextEager"></nz-option>
+        <nz-option nzValue="RUNNING" [nzLabel]="'running' | i18nextEager"></nz-option>
+        <nz-option nzValue="SUCCESS" [nzLabel]="'success' | i18nextEager"></nz-option>
+        <nz-option nzValue="ERROR" [nzLabel]="'error' | i18nextEager"></nz-option>
+      </nz-select>
+
+      <nz-input-group [nzSuffix]="suffixIconSearch" class="flex-1">
+        <input type="text" nz-input [placeholder]="'search_by_name' | i18nextEager" [(ngModel)]="searchName" (ngModelChange)="onSearch()" />
+      </nz-input-group>
+      <ng-template #suffixIconSearch>
+        <span nz-icon nzType="search"></span>
+      </ng-template>
+    </div>
+  </div>
+
+  <!-- 表格区域 -->
+  <nz-table
+    #taskTable
+    nzShowSizeChanger
+    [nzData]="tableData"
+    [nzFrontPagination]="false"
+    [nzLoading]="loading"
+    [nzTotal]="total"
+    [(nzPageIndex)]="pageIndex"
+    [(nzPageSize)]="pageSize"
+    [nzPageSizeOptions]="[10, 20, 50, 100]"
+    (nzQueryParams)="onQueryParamsChange($event)"
+    [nzScroll]="{ y: '350px' }"
+    [nzNoResult]="noDataTpl"
+  >
+    <thead>
+    <tr>
+      <th *ngIf="!isMarket" nzWidth="50px" [nzChecked]="allChecked" [nzIndeterminate]="indeterminate" (nzCheckedChange)="onAllChecked($event)"></th>
+      <th nzWidth="15%">ID</th>
+      <th nzWidth="20%">{{ 'file_name' | i18nextEager }}</th>
+      <th nzWidth="15%">{{ 'task_type' | i18nextEager }}</th>
+      <th nzWidth="15%">{{ 'status' | i18nextEager }}</th>
+      <th nzWidth="20%">{{ 'create_time' | i18nextEager }}</th>
+      <th *ngIf="!isMarket" nzWidth="15%">{{ 'operation' | i18nextEager }}</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr *ngFor="let data of taskTable.data">
+      <td *ngIf="!isMarket" [nzChecked]="setOfCheckedId.has(data.id)" [nzDisabled]="kbAbilitiesService.isResourceDisabled" (nzCheckedChange)="onItemChecked(data.id, $event)"></td>
+      <td class="truncate" [title]="data.id">{{ data.id }}</td>
+      <td class="truncate" [title]="data.name">{{ data.name }}</td>
+      <td class="truncate" [title]="getTaskTypeName(data.type)">{{ getTaskTypeName(data.type) }}</td>
+      <td>
+        <nz-badge [nzStatus]="getStatusIcon(data.status)" [nzText]="getStatusText(data.status)"></nz-badge>
+      </td>
+      <td class="truncate" [title]="data.create_time">{{ data.create_time }}</td>
+      <td *ngIf="!isMarket">
+        <a nz-typography nzType="danger" [nzDisabled]="kbAbilitiesService.isResourceDisabled" (click)="onDelete(data)">
+          {{ 'delete' | i18nextEager }}
+        </a>
+      </td>
+    </tr>
+    </tbody>
+  </nz-table>
+</div>
+
+<ng-template #noDataTpl>
+  <div class="flex flex-col items-center justify-center w-full py-[60px] text-[#808080]">
+    <img [src]="emptyImage" alt="no data" class="w-[120px] mb-[16px] mx-auto block" />
+    <span>{{ 'no_data' | i18nextEager }}</span>
+  </div>
+</ng-template>
+
+<!-- 批量删除弹窗 -->
+<batch-delete #batchDeleteModal (confirm)="handleBatchDelete($event)"></batch-delete>

@@ -1,0 +1,163 @@
+<div class="online-sender">
+  <div
+    *ngIf="subscribeBtnStatus && showClear"
+    class="clear-button"
+    [ngClass]="{ 'clear-disabled': sending }"
+    (click)="onClear()"
+  >
+    <span nz-icon nzType="clear" nzTheme="outline"></span>
+  </div>
+  <div
+    *ngIf="subscribeBtnStatus"
+    class="sender-container"
+    [ngClass]="{ 'sender-disabled': disabled, 'is-sending': sending }"
+  >
+    <ng-container *ngIf="!isSingleRow">
+      <div
+        *ngIf="uploadData.length"
+        class="mb-[4px] flex max-h-[125px] flex-wrap gap-x-[9px] gap-y-[8px] overflow-y-auto"
+      >
+        <div
+          *ngFor="let item of uploadData; index as i"
+          class="uploaded-file"
+        >
+          <meta-upload-file-icon
+            *ngIf="item.progress !== 'loading'"
+            [fileName]="item.name"
+          />
+          <span
+            *ngIf="item.progress === 'loading'"
+            nz-icon
+            nzType="loading"
+            class="!text-[16px]"
+          ></span>
+          <span
+            class="w-[calc(100%-44px)]"
+            style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+            [title]="item.name"
+          >
+            {{ item.name }}
+          </span>
+          <span
+            nz-icon
+            nzType="close-circle"
+            nzTheme="outline"
+            class="cursor-pointer text-[#808080] hover:text-[#595959]"
+            (click)="removeFile(i)"
+          ></span>
+        </div>
+      </div>
+      <div class="mb-[12px]">
+      <textarea
+        class="textarea-content"
+        cdkTextareaAutosize
+        #textarea
+        #autosize="cdkTextareaAutosize"
+        cdkAutosizeMinRows="1"
+        [disabled]="recording"
+        [autofocus]="false"
+        [maxlength]="maxlength"
+        [(ngModel)]="content"
+        [placeholder]="
+          (recording ? 'chat_placeholder2' : (modelType==='LLM'?chat_placeholder_llm:chat_placeholder_vision)) | i18nextEager
+        "
+        (ngModelChange)="checkContentWidth()"
+        (blur)="onBlur()"
+      >
+      </textarea>
+      </div>
+    </ng-container>
+    <div
+      class="flex items-center justify-between" style="height: 20px;"
+      [ngClass]="{ 'h-[32px]': !isSingleRow, '!items-end': !isSingleRow }"
+    >
+      <input
+        *ngIf="isSingleRow"
+        class="focus-input !h-[22px] flex-1 !border-none !px-0"
+        type="text"
+        #singleInput
+        nz-input
+        [disabled]="disabled || sending"
+        [placeholder]="(modelType==='LLM'?chat_placeholder_llm:chat_placeholder_vision)"
+        [(ngModel)]="content"
+        (ngModelChange)="checkContentWidth()"
+      />
+      <ng-container *ngIf="!isSingleRow">
+      <span *ngIf="!recording && content.length > 100" class="text-[#808080]">
+        {{ content.length }} / {{ maxlength }}
+      </span>
+        <div class="flex flex-1 justify-center">
+          <img alt=""
+            *ngIf="recording"
+            class="h-[18px] w-[75%] cursor-pointer"
+            src="{{changeUrl('assets/agent-center/images/home-loading.webp')}}"
+          />
+        </div>
+      </ng-container>
+      <ng-container *ngTemplateOutlet="buttons"></ng-container>
+    </div>
+  </div>
+  <input
+    type="file"
+    #fileInput
+    class="hidden"
+    [accept]="fileAccept"
+    [multiple]="true"
+    (change)="onUploadFile($event)"
+  />
+
+  <ng-template #buttons>
+    <ng-container *ngIf="!sending">
+      <div *ngIf="!recording" class="flex items-center gap-x-[8px]">
+        <img alt="" *ngIf="modelType==='IMAGE-TO-TEXT'"
+             src="{{changeUrl('assets/agent-center/icons/attachment.svg')}}"
+             class="attachment-icon cursor-pointer text-[22px] text-[#595959]"
+             nz-tooltip
+             [nzTooltipTitle]="
+          uploadData.length < 10
+            ? ('preview_debug_upload_support_type_vision' | i18nextEager) +
+              ('upload_max_ten_files' | i18nextEager)
+            : ''
+        "
+             (click)="uploadFile()"
+        />
+        <img alt=""
+          *ngIf="isHttps && voiceEnable && false"
+          src="{{changeUrl('assets/agent-center/icons/microphone.svg')}}"
+          class="cursor-pointer text-[22px] text-[#595959]"
+          (click)="startRecording()"
+        />
+        <img alt=""
+          *ngIf="showSend"
+          src="{{changeUrl('assets/agent-center/agent/send-chat-icon.svg')}}"
+          class="cursor-pointer text-[24px] w-[32px] h-[32px] text-transparent"
+          (click)="onSend()"
+        />
+      </div>
+      <span
+        *ngIf="recording"
+        nz-icon
+        nzType="pause-circle"
+        nzTheme="outline"
+        class="!text-[22px] cursor-pointer"
+        nz-tooltip
+        [nzTooltipTitle]="'stop_record' | i18nextEager"
+        (click)="stopRecording(true)"
+      ></span>
+    </ng-container>
+    <div *ngIf="sending" class="stop-button" (click)="onStop()">
+      <div class="container">
+        <!-- 旋转的边框层 -->
+        <div class="rotating-border"></div>
+
+        <!-- 静止的小方块 -->
+        <div class="center-square"></div>
+      </div>
+      <span>{{ 'stop_answering' | i18nextEager }}</span>
+    </div>
+  </ng-template>
+</div>
+
+<div style="text-align: center;color: #c2c2c2;margin-top: 8px;font-size:12px">
+  {{ 'ai_generated_content_note'|i18nextEager }}
+</div>

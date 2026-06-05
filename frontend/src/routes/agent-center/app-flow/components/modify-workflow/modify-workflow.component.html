@@ -1,0 +1,80 @@
+<div class="modal-container p-[8px]">
+  <div class="modal-header-style">
+    <span class="modal-header-text">{{ modalTitle }}</span>
+  </div>
+  <div class="modal-body">
+    <form nz-form [formGroup]="groupFormControl" class="flex w-full flex-col gap-[8px]">
+      <nz-form-item>
+        <nz-form-label [nzSpan]="24" [nzRequired]="true">{{ createAppFormLabel.name }}</nz-form-label>
+        <nz-form-control [nzSpan]="24" [nzErrorTip]="nameErrorTpl">
+          <input
+            type="text"
+            nz-input
+            formControlName="name"
+            style="width: 100%"
+            [placeholder]="createAppFormLabel.namePlaceholder"
+          />
+          <ng-template #nameErrorTpl let-control>
+            @if (control.hasError('required')) {
+              {{ 'required' | i18nextEager }}
+            }
+            @if (control.hasError('serviceName') && !control.hasError('required')) {
+              {{ control.getError('serviceName').tiErrorMessage }}
+            }
+          </ng-template>
+        </nz-form-control>
+      </nz-form-item>
+
+      <div *ngIf="false">
+        <nz-form-label [nzSpan]="24">{{ createAppFormLabel.code }}</nz-form-label>
+        <input
+          type="text"
+          nz-input
+          formControlName="code"
+          maxlength="64"
+          style="width: 100%"
+          [placeholder]="'workflow_code_input_placeholder' | i18nextEager"
+        />
+      </div>
+
+      <nz-form-item>
+        <nz-form-label [nzSpan]="24" [nzRequired]="true">{{ createAppFormLabel.description }}</nz-form-label>
+        <nz-form-control [nzSpan]="24" [nzErrorTip]="descErrorTpl">
+          <textarea
+            nz-input
+            [nzAutosize]="{ minRows: 4, maxRows: 10 }"
+            maxlength="1024"
+            formControlName="description"
+            style="width: 100%; height: 140px"
+            [placeholder]="createAppFormLabel.descriptionPlaceholder"
+          ></textarea>
+          <ng-template #descErrorTpl let-control>
+            @if (control.hasError('required')) {
+              {{ 'required' | i18nextEager }}
+            }
+          </ng-template>
+        </nz-form-control>
+      </nz-form-item>
+    </form>
+    <icon-upload
+      class="!w-[100px] !h-[100px] !rounded-[8px] mt-[12px]"
+      [(ngModel)]="avatar"
+      [upload_size]="1024*200"
+      [err_msg]="'maximum_img'|i18nextEager"
+    />
+  </div>
+  <div class="modal-footer mt-3 flex justify-end gap-2">
+    <button type="button" (click)="dismiss()" nz-button>
+      {{ 'cancel' | i18nextEager }}
+    </button>
+    <button
+      type="button"
+      [nzLoading]="loading"
+      (click)="submit()"
+      nzType="primary"
+      nz-button
+    >
+      {{ 'ok' | i18nextEager }}
+    </button>
+  </div>
+</div>

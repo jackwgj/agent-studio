@@ -1,0 +1,47 @@
+<div
+  class="w-full"
+  [ngClass]="{ 'acc-blk-wrapper': !isNewStyle, 'flex-class': isNewStyle }"
+>
+  <div *ngIf="!isHideHeader" class="header">
+    <div class="flex items-center gap-4">
+      <div class="flex items-center gap-2">
+        <ng-container *ngIf="!!blockTitle; else txtTitle">
+          <ng-container *ngTemplateOutlet="blockTitle"></ng-container>
+        </ng-container>
+
+        <ng-template #txtTitle>
+          <div
+            class="cursor-pointer font-bold text-label"
+            (click)="clickOpenOrCloseFn($event)"
+          >
+            {{ title }}
+          </div>
+          <span *ngIf="tip"
+            nz-tooltip
+            [nzTooltipTitle]="tip"
+            style="font-size: 14px"
+            nz-icon
+            nzType="question-circle"
+            nzTheme="outline"
+          ></span>
+          <ng-container *ngIf="!!tipComp">
+            <ng-container *ngTemplateOutlet="tipComp"></ng-container>
+          </ng-container>
+        </ng-template>
+
+        <div class="cursor-pointer acc-fold" (click)="clickOpenOrCloseFn($event)">
+          <span *ngIf="open" nz-icon nzType="up" nzTheme="outline"></span>
+          <span *ngIf="!open" nz-icon nzType="down" nzTheme="outline"></span>
+        </div>
+      </div>
+    </div>
+
+    <ng-container *ngIf="!!right">
+      <ng-container *ngTemplateOutlet="right"></ng-container>
+    </ng-container>
+  </div>
+
+  <ng-container *ngIf="!!content && open">
+    <ng-container *ngTemplateOutlet="content"></ng-container>
+  </ng-container>
+</div>

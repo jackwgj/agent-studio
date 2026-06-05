@@ -1,0 +1,146 @@
+<div class="drawer-header">
+  {{ 'add_scenario_guide_label' | i18nextEager }}
+</div>
+<div class="drawer-body pb-[24px]">
+  @if (inValidGuideGlobalTip) {
+    <nz-alert
+      nzType="warning"
+      class="alert-width mb-[16px]"
+      [nzMessage]="inValidGuideGlobalTip"
+      [nzCloseable]="true"
+    ></nz-alert>
+  }
+  <nz-alert nzType="info" class="alert-width mb-[16px]" [nzMessage]="('add_scenario_guide_tip' | i18nextEager)"></nz-alert>
+
+  @if (modalLoaded) {
+    <form [formGroup]="modalFormGroup">
+      <nz-form-item>
+        <nz-form-label [nzSpan]="24" [nzRequired]="true">{{ modalFormConfig[SCENARIO_FIELD_ID.SCENE_NAME].label }}</nz-form-label>
+        <nz-form-control>
+          <input
+            nz-input
+            type="text"
+            style="width: 100%"
+            [placeholder]="'input_placeholder' | i18nextEager"
+            [formControlName]="SCENARIO_FIELD_ID.SCENE_NAME"
+            [id]="SCENARIO_FIELD_ID.SCENE_NAME"
+          />
+        </nz-form-control>
+      </nz-form-item>
+
+      <nz-form-item>
+        <nz-form-label [nzSpan]="24">{{ modalFormConfig[SCENARIO_FIELD_ID.SCENE_DESC].label }}</nz-form-label>
+        <nz-form-control>
+          <input
+            nz-input
+            type="text"
+            style="width: 100%"
+            [placeholder]="'input_placeholder' | i18nextEager"
+            [formControlName]="SCENARIO_FIELD_ID.SCENE_DESC"
+          />
+        </nz-form-control>
+      </nz-form-item>
+
+      <div class="mb-[8px] mt-[16px]">
+        {{ modalFormConfig[SCENARIO_FIELD_ID.GUIDE_CONFIG_LIST].label }}
+      </div>
+
+      <ng-container [formArrayName]="SCENARIO_FIELD_ID.GUIDE_CONFIG_LIST">
+        <div cdkDropList [cdkDropListData]="guideFormListData" (cdkDropListDropped)="drop($event)">
+          @for (item of guideFormListData; track trackById(item); let index = $index) {
+            <div
+              [id]="'guideCard' + index"
+              class="guide-card mb-[18px]"
+              cdkDrag
+              [cdkDragDisabled]="guideFormListData.length === LEAST_GUIDE_COUNT"
+            >
+              <guide-card-item
+                [guideDataItem]="item"
+                [formGroupItem]="guideFormList.controls[index]"
+                [guideItemIndex]="index"
+                [formListLength]="guideFormListData.length"
+                [guideFormConfig]="guideFormConfig"
+                [skillSetOptions]="skillSetOptions"
+                (changeCardCollapseEvent)="changeCardCollapse(item, guideFormList.controls[index])"
+                (deleteGuideEvent)="deleteGuide(index)"
+                (removeEffectiveSkillTipEvent)="removeEffectiveSkillTip(guideFormList.controls[index], item)"
+                (removeDeletedSkillTipEvent)="removeDeletedSkillTip(item)"
+              ></guide-card-item>
+            </div>
+          }
+        </div>
+
+        <div
+          class="add-guide-box"
+          [class.icon-border-disabled]="guideFormListData.length >= curSceneMaxGuideCount"
+          [nz-tooltip]="guideFormListData.length >= curSceneMaxGuideCount ? ('guide_max_tip' | i18nextEager) : ''"
+          nzTooltipPlacement="top"
+          (click)="addGuide()"
+        >
+          <span nz-icon nzType="plus"></span>
+          {{ 'add_guide_config_label' | i18nextEager }}
+        </div>
+      </ng-container>
+
+      <div class="flex-left pointer w-fit-content mt-[16px] gap-[4px]" (click)="changeDependencyCollapse()">
+        <span>{{ 'dependency_relate_config_label' | i18nextEager }}</span>
+        <span
+          nz-icon
+          class="common-icon"
+          [class.collapsed-icon]="dependencyCollapsed"
+          [class.unfolded-icon]="!dependencyCollapsed"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16">
+            <path d="M6 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+      </div>
+
+      @if (!dependencyCollapsed) {
+        <ng-container [formArrayName]="SCENARIO_FIELD_ID.DEPENDENCY_LIST">
+          @for (item of dependencyFormListData; track trackById(item); let index = $index) {
+            <div [id]="'dependency' + index" class="mt-[12px]">
+              <dependency-item
+                [dependencyDataItem]="item"
+                [formGroupItem]="dependencyFormList.controls[index]"
+                [itemIndex]="index"
+                [dependencyFormConfig]="dependencyFormConfig"
+                [dependencyOptions]="dependencyOptions"
+                [highlightedCycleRows]="highlightedCycleRows"
+                (deleteDependencyEvent)="deleteDependency(index)"
+              ></dependency-item>
+            </div>
+          }
+
+          @if (cycleErrorMessage) {
+            <div class="global-cycle-error mt-[8px] flex gap-[8px]">
+              <span nz-icon nzType="close-circle" class="error-icon"></span>
+              <span>{{ cycleErrorMessage }}</span>
+            </div>
+          }
+
+          <button
+            nz-button
+            nzType="default"
+            class="mt-[8px]"
+            [disabled]="cycleErrorMessage || guideFormListData.length < LEAST_DEPENDENCY_GUIDE_COUNT"
+            [nz-tooltip]="cycleErrorMessage || (guideFormListData.length < LEAST_DEPENDENCY_GUIDE_COUNT ? ('guide_least_two_tip' | i18nextEager) : '')"
+            nzTooltipPlacement="top"
+            (click)="addDependency()"
+          >
+            + {{ 'add_dependency_relate_label' | i18nextEager }}
+          </button>
+        </ng-container>
+      }
+    </form>
+  }
+
+  <div class="drawer-footer">
+    <button nz-button class="mr-[8px]" (click)="saveData && saveData()">
+      {{ 'cancel' | i18nextEager }}
+    </button>
+    <button nz-button nzType="primary" [nzLoading]="confirmBtnLoading" (click)="onConfirm()">
+      {{ 'ok' | i18nextEager }}
+    </button>
+  </div>
+</div>

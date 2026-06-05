@@ -1,0 +1,67 @@
+<div>
+  {{ 'update_flow_modal_btn' | i18nextEager }}
+</div>
+<div class="update-modal-body">
+  <nz-alert class="alert" [nzShowIcon]="true" [nzMessage]="'update_flows_tip' | i18nextEager"></nz-alert>
+  <nz-table
+    [nzData]="table.srcData.data"
+    [nzShowPagination]="true"
+    [nzPageSize]="pageSize.size"
+    [nzPageIndex]="table.currentPage"
+    [nzTotal]="table.totalNumber"
+    [nzPageSizeOptions]="pageSize.options"
+    [nzSize]="'middle'"
+    (nzPageIndexChange)="onPageIndexChange($event)"
+    (nzPageSizeChange)="onPageSizeChange($event)"
+  >
+    <thead>
+      <tr>
+        <th nzWidth="40px">
+          <label
+            nz-checkbox
+            [nzChecked]="isAllChecked()"
+            [nzIndeterminate]="isIndeterminate()"
+            (nzCheckedChange)="onAllCheckedChange($event)"
+          ></label>
+        </th>
+        <th>{{ columns[1].title }}</th>
+        <th>{{ columns[2].title }}</th>
+        <th>{{ columns[3].title }}</th>
+        <th>{{ columns[4].title }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr
+        *ngFor="let row of table.displayedData; trackBy: trackByFn"
+        [ngClass]="{
+          'ant-table-row-selected': table.checkedList.indexOf(row) !== -1
+        }"
+      >
+        <td>
+          <label
+            nz-checkbox
+            [nzChecked]="table.checkedList.indexOf(row) !== -1"
+            [nzDisabled]="row.disabled"
+            (nzCheckedChange)="onItemCheckedChange(row, $event)"
+          ></label>
+        </td>
+        <td class="line-clamp">{{ row.workflow_name }}</td>
+        <td class="line-clamp">{{ row.category }}</td>
+        <td class="line-clamp">{{ row.workflow_version_name }}</td>
+        <td class="line-clamp">{{ row.last_version_name }}</td>
+      </tr>
+    </tbody>
+  </nz-table>
+</div>
+<div>
+  <button type="button" nz-button (click)="dismiss()">{{ 'cancel' | i18nextEager }}</button>
+  <button
+    type="button"
+    nz-button
+    nzType="primary"
+    [disabled]="!table.checkedList.length"
+    (click)="updateVersions()"
+  >
+    {{ 'update_flow_modal_btn' | i18nextEager }}
+  </button>
+</div>

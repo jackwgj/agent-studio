@@ -1,0 +1,48 @@
+# 此文件仅用于保存配置项结构及配置项含义注释。
+# 所有配置项均可通过环境变量访问，规则为路径名全大写且用下划线分词。
+# 比如，以下配置的 “ES 服务器端口号” 可通过环境变量 DATASOURCE_ELASTICSEARCH_PORT 访问/设置
+service:
+  type:
+
+prompt: # 提示词引擎相关配置
+  model:
+    type:                    # 只支持xiaoyi_llm
+    model:                    # 可选，配置具体model参数，例如type: agentBuilder_llm
+    url:
+    api_key:                    # 可选，配置具体api-key参数，用于区分模型流量、非鉴权Token
+    ssl_verify:                 # ssl 鉴权开关, 不配置时默认打开. 支持false/true
+    ssl_certification_path:    # ssl 鉴权证书路径，如果ssl_verify打开为True，且用的是非官方的ssl鉴权证书，请配置。
+    ssl_client_key_path:       # 双向ssl 客户端证书key路径
+    ssl_client_cert_path:      #双向ssl 客户端证书路径
+    ssl_encrypt_key:          #证书加密key
+  root_path:                  #根目录校验
+
+  max_optimization_task_num:   # 最大自优化任务运行数量
+
+cloud_map:
+  server_addr:
+  db:
+    enable:
+    namespace:
+    middleware_name:
+    cluster:
+    database:
+
+store:
+  mysql: # mysql服务器配置
+    enable:
+    host:                     # 必选，服务器ip
+    port:                      # 必选，服务端口
+    user:                      # 必选，用户名
+    password:                   # 必选，密码
+    database:                  # 必选，数据库名称
+
+sts: # 支持加解密逻辑，默认打开，sts服务需要预置证书在目录下
+  service:   # sts服务名
+  microservice:  # sts微服务名
+  service_domain: # sts服务请求地址
+  api_auth_enable:  # 开启api认证
+  ak:  # 认证ak
+  sk:  # 认证sk
+
+default_models:

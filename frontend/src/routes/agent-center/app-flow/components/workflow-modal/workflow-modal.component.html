@@ -1,0 +1,95 @@
+<div class="flex h-full w-full flex-col">
+  <div class="mb-[16px] block">
+    <div class="flex w-[calc(100%-38px)] items-center justify-between">
+      <div class="flex items-center gap-[8px]">
+        <img class="model-config-icon" [src]="iconUrl" alt="llm-node" />
+
+        <div class="text-[14px] font-bold leading-[24px]">
+          {{ nodeInfo.name }}
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-[16px] h-[1px] w-full bg-[#f0f0f0]"></div>
+  </div>
+
+  <div id="flow-llm-modal-body" class="flex-1 overflow-auto">
+    <div class="relative h-full w-full overflow-auto">
+      <div *ngIf="source === 'sub_controller'" class="sub_con_worflow mt-[8px]">
+        <div class="mb-[8px]">
+          <div class="title">{{ 'intent_name' | i18nextEager }}</div>
+          <div class="con">{{ intent_name }}</div>
+        </div>
+        <div>
+          <div class="title">{{ 'intent_desc' | i18nextEager }}</div>
+          <div class="con">{{ intent_desc }}</div>
+        </div>
+        <div class="my-[16px] h-[1px] w-full bg-[#f0f0f0]"></div>
+      </div>
+
+      <div *ngIf="source === 'controller'">
+        <meta-acc-block class="block" [title]="'intent_name' | i18nextEager">
+          <ng-template #content>
+            <input
+              class="mt-4 w-full !border-[var(--ti-color-border-default)] !bg-white"
+              id="text-basic"
+              [(ngModel)]="intent_name"
+              maxlength="120"
+              nz-input
+            />
+          </ng-template>
+        </meta-acc-block>
+
+        <div class="my-[16px] h-[1px] w-full bg-[#f0f0f0]"></div>
+
+        <meta-acc-block class="block" [title]="'intent_desc' | i18nextEager">
+          <ng-template #content>
+            <textarea
+              class="mt-4 !w-full !border-[var(--ti-color-border-default)] !bg-white"
+              [(ngModel)]="intent_desc"
+              rows="5"
+              [placeholder]="'input_placeholder' | i18nextEager"
+              nz-input
+            ></textarea>
+          </ng-template>
+        </meta-acc-block>
+
+        <div class="my-[16px] h-[1px] w-full bg-[#f0f0f0]"></div>
+      </div>
+
+      <meta-acc-block
+        class="mt-4 block w-full"
+        [title]="'input_params' | i18nextEager"
+      >
+        <ng-template #content>
+          <readonly-params-tree [params]="nodeInfo.inputs" />
+        </ng-template>
+      </meta-acc-block>
+
+      <div class="my-[16px] h-[1px] w-full bg-[#f0f0f0]"></div>
+
+      <meta-acc-block
+        class="mt-4 block w-full"
+        [title]="'output_params' | i18nextEager"
+      >
+        <ng-template #content>
+          <readonly-params-tree [params]="nodeInfo.outputs" />
+        </ng-template>
+      </meta-acc-block>
+    </div>
+  </div>
+  <div *ngIf="source !== 'sub_controller'" class="modal-footer">
+    <button type="button" nz-button (click)="dismiss()">
+      {{ 'cancel' | i18nextEager }}
+    </button>
+    <button
+      [disabled]="isFlowReadonly"
+      type="button"
+      nz-button
+      nzType="primary"
+      (click)="onConfirm()"
+    >
+      {{ 'ok' | i18nextEager }}
+    </button>
+  </div>
+</div>

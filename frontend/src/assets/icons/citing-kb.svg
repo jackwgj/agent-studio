@@ -1,0 +1,22 @@
+<svg width="40.000000" height="40.000000" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+	<desc>
+			Created with Pixso.
+	</desc>
+	<defs/>
+	<rect rx="8.000000" width="40.000000" height="40.000000" fill="#1476FF" fill-opacity="1.000000"/>
+	<rect x="0.500000" y="0.500000" rx="8.000000" width="39.000000" height="39.000000" stroke="#979797" stroke-opacity="0" stroke-width="1.000000"/>
+	<path d="M21.5 8.86L29.75 13.63C30.68 14.16 31.25 15.16 31.25 16.23L31.25 25.76C31.25 26.83 30.68 27.83 29.75 28.36L21.5 33.13C20.57 33.66 19.42 33.66 18.5 33.13L10.24 28.36C9.31 27.83 8.74 26.83 8.74 25.76L8.74 16.23C8.74 15.16 9.31 14.16 10.24 13.63L18.5 8.86C19.42 8.33 20.57 8.33 21.5 8.86Z" fill="#FFFFFF" fill-opacity="1.000000" fill-rule="evenodd"/>
+	<path d="" fill="#FFFFFF" fill-opacity="0" fill-rule="evenodd"/>
+	<path d="M21.5 7.86L29.75 12.63C30.68 13.16 31.25 14.16 31.25 15.23L31.25 24.76C31.25 25.83 30.68 26.83 29.75 27.36L21.5 32.13C20.57 32.66 19.42 32.66 18.5 32.13L10.24 27.36C9.31 26.83 8.74 25.83 8.74 24.76L8.74 15.23C8.74 14.16 9.31 13.16 10.24 12.63L18.5 7.86C19.42 7.33 20.57 7.33 21.5 7.86Z" fill="#1476FF" fill-opacity="1.000000" fill-rule="evenodd"/>
+	<path d="" fill="#FFFFFF" fill-opacity="0" fill-rule="evenodd"/>
+	<path d="M21.5 6.86L29.75 11.63C30.68 12.16 31.25 13.16 31.25 14.23L31.25 23.76C31.25 24.83 30.68 25.83 29.75 26.36L21.5 31.13C20.57 31.66 19.42 31.66 18.5 31.13L10.24 26.36C9.31 25.83 8.74 24.83 8.74 23.76L8.74 14.23C8.74 13.16 9.31 12.16 10.24 11.63L18.5 6.86C19.42 6.33 20.57 6.33 21.5 6.86Z" fill="#FFFFFF" fill-opacity="1.000000" fill-rule="evenodd"/>
+	<path d="" fill="#FFFFFF" fill-opacity="0" fill-rule="evenodd"/>
+	<circle cx="16.000000" cy="15.000000" r="3.000000" fill="#1476FF" fill-opacity="1.000000"/>
+	<circle cx="16.000000" cy="15.000000" r="2.500000" stroke="#FFFFFF" stroke-opacity="0" stroke-width="1.000000"/>
+	<circle cx="20.000000" cy="26.000000" r="2.000000" fill="#1476FF" fill-opacity="1.000000"/>
+	<circle cx="20.000000" cy="26.000000" r="1.500000" stroke="#FFFFFF" stroke-opacity="0" stroke-width="1.000000"/>
+	<circle cx="25.500000" cy="19.500000" r="2.500000" fill="#1476FF" fill-opacity="1.000000"/>
+	<circle cx="25.500000" cy="19.500000" r="2.000000" stroke="#FFFFFF" stroke-opacity="0" stroke-width="1.000000"/>
+	<path d="M16 15L25.5 19.5L20 26L16 15Z" fill="#D8D8D8" fill-opacity="0" fill-rule="evenodd"/>
+	<path d="M16 15L25.5 19.5L20 26" stroke="#1476FF" stroke-opacity="1.000000" stroke-width="1.000000"/>
+</svg>

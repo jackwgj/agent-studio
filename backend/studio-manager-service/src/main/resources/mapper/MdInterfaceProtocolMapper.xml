@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  ~ Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
+  -->
+
+
+<mapper namespace="com.openjiuwen.studio.agent.manager.mapper.md.MdInterfaceProtocolMapper">
+    <select id="queryAllProtocols" resultType="com.openjiuwen.studio.agent.manager.entity.md.MdInterfaceProtocol">
+        SELECT *
+        FROM T_MODEL_INTERFACE_PROTOCOL
+        order by ID
+    </select>
+
+    <update id="updateVisible">
+        UPDATE T_MODEL_INTERFACE_PROTOCOL
+        SET visible = #{visible}
+        WHERE id = #{id}
+    </update>
+</mapper>

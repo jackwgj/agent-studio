@@ -1,0 +1,21 @@
+{
+  "instructions": "测试agent指令",
+  "model_config": {
+    "top_p": 0.1,
+    "temperature": 0.1
+  },
+  "tools": ["reserve_meeting_room"],
+  "tool_details": [{"tool_id": "reserve_meeting_room", "tool_version": "123"}],
+  "knowledge_repos": ["test_knowledge_repo_id"],
+  "workflows": ["test_code_interpreter_workflow_id"],
+  "workflow_details": [{"workflow_id": "test_code_interpreter_workflow_id", "workflow_version": "123"}],
+  "mcp_servers": ["test_mcp_server_id", "test_mcp_server_id1"],
+  "mcp_details": [{"mcp_id": "test_mcp_server_id", "mcp_param":  "test_mcp_server_id1"}],
+  "skill_details": [{"skill_id": "test_skill_id", "skill_version": "test_used_version"}],
+  "trigger_list": [{"trigger_id":"test_id","name":"触发器1","type":"EVENT","cron":"0/20 * * * * ?","prompt":"预定会议1","params":[{"name":"location","description":"地点"}],"hook_url":"test_url","created_on":"2025-03-26 17:03:17"}],
+  "voice_interaction": {
+    "language": "chinese",
+    "timbre": "xiaoyu",
+    "domain": "common"
+  }
+}

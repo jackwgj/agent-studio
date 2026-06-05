@@ -1,0 +1,172 @@
+.task-list-box{
+  font-size: 14px;
+  box-shadow: 0px 2px 12px 0px rgba(0, 0, 0, 0.08);
+  background: rgba(248, 248, 248, 1);
+  border-right: 1px #efefef solid;
+  padding: 24px 0 24px 16px;
+  .search-box{
+    color: rgba(89, 89, 89, 1);
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 18px;
+    letter-spacing: 0px;
+    text-align: left;
+    font-weight: 400;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px;
+  }
+  .run-status{
+    margin-top: 8px;
+  }
+}
+
+.task-list {
+  overflow: scroll;
+  max-height: calc(100% - 100px);
+  padding-right: 16px;
+  .task-category {
+    color:#808080;
+    line-height: 26px;
+    height: 26px;
+    padding: 0 12px;
+  }
+  .task-category:not(:first-child) {
+    margin-top: 10px;
+  }
+}
+
+.task-item{
+  height: 42px;
+  border-radius: 12px;
+
+}
+.edit-item{
+  align-items: center;
+}
+.edit{
+  font-size: 14px;
+  margin-right: 4px;
+}
+
+
+.icon-box{
+  width: 24px;
+  height: 24px;
+  text-align: center;
+  border-radius: 4px;
+}
+.icon{
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+.icon:hover{
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.edit-box{
+  display: block;
+  ::ng-deep {
+    .ti3-menu-toggle-menu .ti3-icon:before {
+      margin-left: 0 !important;
+    }
+  }
+}
+.edit-content{
+  width: 54px;
+  display: flex;
+}
+.status-box{
+  display: block;
+}
+.task-item:hover{
+  background: rgba(255, 255, 255, 1);
+  .status-box{
+    display: none;
+  }
+  .edit-box{
+    display: block;
+  }
+}
+.is-selected{
+  background: rgba(255, 255, 255, 1);
+}
+
+.no-data-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  margin-top: 200px;
+}
+
+.flex-direction {
+  flex-direction: column;
+}
+
+.update-node-name-modal{
+  margin-top: 200px;
+}
+
+::ng-deep .delete-chat-modal {
+  width: 400px !important;
+  max-height: 160px !important;
+  margin-top: 200px !important;
+}
+
+::ng-deep .update-name-modal {
+  width: 400px !important;
+  max-height: 180px !important;
+  margin-top: 200px !important;
+}
+
+.waiting-tag{
+  width:14px;
+  height: 14px;
+  border-radius: 7px;
+  text-align: center;
+  line-height: 14px;
+  color :#ffffff;
+  background: #F23030;
+}
+
+.status-icon{
+  width: 18px;
+  height: 18px;
+  font-size: 14px;
+}
+
+.input-box{
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  border: 1px solid rgba(194, 194, 194, 1);
+  border-radius: 42px;
+  padding: 0 12px;
+  background: #ffffff;
+  margin: 0 12px 12px 12px;
+  input{
+    border: none !important;
+    padding: 0 4px !important;
+  }
+}
+
+.search-icon{
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  &:hover{
+    background: rgba(0, 0, 0, 0.08);
+  }
+
+}
+.name {
+  max-width: calc(100% - 20px);
+}

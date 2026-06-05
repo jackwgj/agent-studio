@@ -1,0 +1,52 @@
+.editor-area {
+  position: relative;
+  height: 100%;
+  width: 100%;
+  overflow: auto;
+  padding: 8px;
+  border: 1px solid #c2c2c2;
+  border-radius: 8px;
+  box-sizing: border-box;
+}
+
+.prompt-editor {
+  position: relative;
+  outline-width: 0;
+  box-sizing: border-box;
+  height: 100%;
+  width: 100%;
+  background-color: transparent;
+  color: transparent;
+  caret-color: #000;
+  resize: none;
+  overflow: auto;
+  border-width: 0;
+
+  &::placeholder {
+    color: #808080;
+  }
+}
+
+.styled-content {
+  position: absolute;
+  max-width: calc(100% - 16px);
+  height: calc(100% - 16px);
+  white-space: pre-wrap;
+  overflow: auto;
+  user-select: none;
+
+  &::-webkit-scrollbar-thumb {
+    background: transparent;
+  }
+}
+
+.snippet-list {
+  overflow: auto;
+
+  .snippet-item {
+    box-sizing: border-box;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+  }
+}

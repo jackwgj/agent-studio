@@ -1,0 +1,432 @@
+{
+  "id": "c9ce7948-1336-4086-9f9d-23f8d65f6fe3",
+  "name": "gttest_parallel_cross",
+  "description": "gttest_parallel_cross",
+  "nodes": [{
+    "id": "node_end",
+    "type": "End",
+    "name": "结束",
+    "inputs": [{
+      "name": "result",
+      "type": "array",
+      "description": "最终输出",
+      "required": false,
+      "source": "user",
+      "schema": {
+        "name": "",
+        "type": "object",
+        "schema": [{
+          "name": "role",
+          "type": "string",
+          "description": "角色",
+          "required": true,
+          "source": "system",
+          "value": {
+            "type": "literal",
+            "content": "",
+            "hint": "角色"
+          }
+        }, {
+          "name": "content",
+          "type": "string",
+          "description": "消息内容",
+          "required": true,
+          "source": "system",
+          "value": {
+            "type": "literal",
+            "content": "",
+            "hint": "消息内容"
+          }
+        }]
+      },
+      "reflection": false,
+      "value": {
+        "type": "ref",
+        "content": {
+          "ref_node_id": "node_start",
+          "ref_var_name": "conversation_history",
+          "source": "system"
+        }
+      }
+    }],
+    "outputs": [{
+      "name": "response_content",
+      "type": "string",
+      "description": "最终输出",
+      "required": true,
+      "source": "system",
+      "reflection": false,
+      "value": {
+        "type": "generated"
+      }
+    }],
+    "configs": {
+      "is_stream_out": true,
+      "response_template": "{{result}}",
+      "response_mode": "directResponse"
+    }
+  }, {
+    "id": "node_message",
+    "type": "Message",
+    "name": "消息",
+    "inputs": [],
+    "outputs": [{
+      "name": "result",
+      "type": "string",
+      "description": "消息输出",
+      "required": false,
+      "source": "system",
+      "reflection": false,
+      "value": {
+        "type": "generated",
+        "content": "",
+        "hint": ""
+      }
+    }],
+    "configs": {
+      "template": "123"
+    }
+  }, {
+    "id": "node_start",
+    "type": "Start",
+    "name": "开始",
+    "outputs": [{
+      "name": "query",
+      "type": "string",
+      "description": "用户输入",
+      "required": true,
+      "source": "system",
+      "reflection": false,
+      "value": {
+        "type": "literal",
+        "content": "",
+        "hint": "用户输入"
+      }
+    }, {
+      "name": "conversation_history",
+      "type": "array",
+      "description": "会话历史消息",
+      "required": true,
+      "source": "system",
+      "schema": {
+        "name": "",
+        "type": "object",
+        "schema": [{
+          "name": "role",
+          "type": "string",
+          "description": "角色",
+          "required": true,
+          "source": "system",
+          "value": {
+            "type": "literal",
+            "content": "",
+            "hint": "角色"
+          }
+        }, {
+          "name": "content",
+          "type": "string",
+          "description": "消息内容",
+          "required": true,
+          "source": "system",
+          "value": {
+            "type": "literal",
+            "content": "",
+            "hint": "消息内容"
+          }
+        }]
+      },
+      "reflection": false,
+      "value": {
+        "type": "literal",
+        "content": [],
+        "hint": "会话历史消息"
+      }
+    }]
+  }, {
+    "id": "node_message_1",
+    "type": "Message",
+    "name": "消息_1",
+    "inputs": [{
+      "name": "",
+      "description": "",
+      "required": true,
+      "value": {
+        "type": "literal",
+        "content": "",
+        "hint": ""
+      },
+      "source": "user"
+    }],
+    "outputs": [{
+      "name": "result",
+      "description": "消息输出",
+      "required": false,
+      "type": "string",
+      "value": {
+        "type": "generated",
+        "content": "",
+        "hint": ""
+      },
+      "source": "system"
+    }],
+    "configs": {
+      "template": ""
+    }
+  }, {
+    "id": "node_message_2",
+    "type": "Message",
+    "name": "消息_2",
+    "inputs": [{
+      "name": "",
+      "description": "",
+      "required": true,
+      "value": {
+        "type": "literal",
+        "content": "",
+        "hint": ""
+      },
+      "source": "user"
+    }],
+    "outputs": [{
+      "name": "result",
+      "description": "消息输出",
+      "required": false,
+      "type": "string",
+      "value": {
+        "type": "generated",
+        "content": "",
+        "hint": ""
+      },
+      "source": "system"
+    }],
+    "configs": {
+      "template": ""
+    }
+  }, {
+    "id": "node_message_3",
+    "type": "Message",
+    "name": "消息_3",
+    "inputs": [{
+      "name": "",
+      "description": "",
+      "required": true,
+      "value": {
+        "type": "literal",
+        "content": "",
+        "hint": ""
+      },
+      "source": "user"
+    }],
+    "outputs": [{
+      "name": "result",
+      "description": "消息输出",
+      "required": false,
+      "type": "string",
+      "value": {
+        "type": "generated",
+        "content": "",
+        "hint": ""
+      },
+      "source": "system"
+    }],
+    "configs": {
+      "template": ""
+    }
+  }, {
+    "id": "node_message_4",
+    "type": "Message",
+    "name": "消息_4",
+    "inputs": [{
+      "name": "",
+      "description": "",
+      "required": true,
+      "value": {
+        "type": "literal",
+        "content": "",
+        "hint": ""
+      },
+      "source": "user"
+    }],
+    "outputs": [{
+      "name": "result",
+      "description": "消息输出",
+      "required": false,
+      "type": "string",
+      "value": {
+        "type": "generated",
+        "content": "",
+        "hint": ""
+      },
+      "source": "system"
+    }],
+    "configs": {
+      "template": ""
+    }
+  }, {
+    "id": "node_message_5",
+    "type": "Message",
+    "name": "消息_5",
+    "inputs": [{
+      "name": "",
+      "description": "",
+      "required": true,
+      "value": {
+        "type": "literal",
+        "content": "",
+        "hint": ""
+      },
+      "source": "user"
+    }],
+    "outputs": [{
+      "name": "result",
+      "description": "消息输出",
+      "required": false,
+      "type": "string",
+      "value": {
+        "type": "generated",
+        "content": "",
+        "hint": ""
+      },
+      "source": "system"
+    }],
+    "configs": {
+      "template": ""
+    }
+  }, {
+    "id": "node_message_6",
+    "type": "Message",
+    "name": "消息_6",
+    "inputs": [{
+      "name": "",
+      "description": "",
+      "required": true,
+      "value": {
+        "type": "literal",
+        "content": "",
+        "hint": ""
+      },
+      "source": "user"
+    }],
+    "outputs": [{
+      "name": "result",
+      "description": "消息输出",
+      "required": false,
+      "type": "string",
+      "value": {
+        "type": "generated",
+        "content": "",
+        "hint": ""
+      },
+      "source": "system"
+    }],
+    "configs": {
+      "template": ""
+    }
+  }, {
+    "id": "node_message_7",
+    "type": "Message",
+    "name": "消息_7",
+    "inputs": [{
+      "name": "",
+      "description": "",
+      "required": true,
+      "value": {
+        "type": "literal",
+        "content": "",
+        "hint": ""
+      },
+      "source": "user"
+    }],
+    "outputs": [{
+      "name": "result",
+      "description": "消息输出",
+      "required": false,
+      "type": "string",
+      "value": {
+        "type": "generated",
+        "content": "",
+        "hint": ""
+      },
+      "source": "system"
+    }],
+    "configs": {
+      "template": ""
+    }
+  }],
+  "edges": [{
+    "source": "node_message_7",
+    "target": "node_message_6"
+  }, {
+    "source": "node_message_6",
+    "target": "node_end"
+  }, {
+    "source": "node_message_4",
+    "target": "node_message_6"
+  }, {
+    "source": "node_message_2",
+    "target": "node_message_4"
+  }, {
+    "source": "node_start",
+    "target": "node_message"
+  }, {
+    "source": "node_message",
+    "target": "node_message_1"
+  }, {
+    "source": "node_message_1",
+    "target": "node_message_2"
+  }, {
+    "source": "node_message_3",
+    "target": "node_message_4"
+  }, {
+    "source": "node_message_3",
+    "target": "node_message_5"
+  }, {
+    "source": "node_message",
+    "target": "node_message_3"
+  }, {
+    "source": "node_message_5",
+    "target": "node_message_7"
+  }],
+  "layouts": {
+    "node_end": {
+      "x": 3312,
+      "y": 342
+    },
+    "node_message": {
+      "x": 594,
+      "y": 198
+    },
+    "node_start": {
+      "x": 144,
+      "y": 198
+    },
+    "node_message_1": {
+      "x": 1080,
+      "y": -90
+    },
+    "node_message_2": {
+      "x": 1512,
+      "y": -90
+    },
+    "node_message_3": {
+      "x": 1314,
+      "y": 360
+    },
+    "node_message_4": {
+      "x": 2124,
+      "y": 162
+    },
+    "node_message_5": {
+      "x": 1926,
+      "y": 576
+    },
+    "node_message_6": {
+      "x": 2844,
+      "y": 342
+    },
+    "node_message_7": {
+      "x": 2394,
+      "y": 576
+    }
+  }
+}

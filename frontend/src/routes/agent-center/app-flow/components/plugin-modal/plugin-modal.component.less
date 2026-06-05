@@ -1,0 +1,68 @@
+.auth-tip{
+
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 12;
+  padding: 9px 12px 9px 12px;
+  border-radius: 8px;
+  background: rgba(222, 236, 255, 1);
+
+}
+.auth-tip-text{
+  color: #252B3A;
+  font-size: 12px;
+}
+.auth-tip-link{
+  color: rgba(20, 118, 255, 1);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 22px;
+  letter-spacing: 0px;
+  text-align: left;
+  cursor:pointer;
+}
+::ng-deep {
+  #flow-api-modal-body {
+    .api-modal-acc-body {
+      background-color: #fff !important;
+      padding: 0px !important;
+    }
+
+    .api-modal-acc-head {
+      padding: 0px !important;
+      height: fit-content;
+
+      .ant-collapse-header {
+        margin-left: 0px !important;
+      }
+
+      .ant-collapse-header {
+        gap: 8px;
+        flex-direction: row-reverse;
+        justify-content: left;
+      }
+    }
+
+    ant-collapse-item {
+      border: none !important;
+      background-color: #fff;
+    }
+  }
+
+  .tp-halfmodal-cotent meta-api-modal {
+    display: block;
+    height: 100%;
+  }
+}
+
+.error-tip {
+  color: #ff4d4f;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.input-error {
+  border-color: #ff4d4f !important;
+}

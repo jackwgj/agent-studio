@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.agent.runtime.mapper.KnowledgeBaseConnectionMapper">
+    <resultMap id="BaseResultMap" type="com.openjiuwen.studio.agent.runtime.entity.KnowledgeBaseConnectionEntity">
+        <id column="id" jdbcType="VARCHAR" property="id"/>
+        <result column="connector_id" jdbcType="VARCHAR" property="connectorId"/>
+        <result column="params" jdbcType="VARCHAR" property="params"
+                typeHandler="com.openjiuwen.studio.agent.runtime.mapper.handler.KnowledgeBaseConnectionParamListHandler"/>
+    </resultMap>
+
+
+    <select id="findById"
+            resultMap="BaseResultMap">
+        SELECT
+            connection_t.id,
+            t_knowledge_base.STATUS,
+            connection_t.connector_id,
+            connection_t.params
+        FROM
+            t_knowledge_base_connection connection_t
+                LEFT JOIN t_knowledge_base
+                          ON connection_t.id = t_knowledge_base.knowledge_base_connection_id
+        WHERE
+            t_knowledge_base.id =  #{knowledge_base_id}
+    </select>
+
+
+</mapper>

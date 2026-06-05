@@ -1,0 +1,43 @@
+{
+  "type": "jiuwen.planner.components.plan_modules.start_planning:StartPlanning",
+  "version": "1.0.2",
+  "schemaVersion": "0.6",
+  "classInfo": {
+    "modulePath": "jiuwen.planner.components.plan_modules.start_planning",
+    "className": "StartPlanning",
+    "programLanguage": "python",
+    "filePath": "jiuwen/planner/components/planning_modules/start_planning.pyc"
+  },
+  "description": "初始化规划状态",
+  "inputs": [
+    {
+      "id": "query",
+      "description": "用户查询",
+      "type": "String"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "status_code",
+      "description": "规划状态初始化的结果",
+      "type": "String"
+    }
+  ],
+  "configs": [
+    {
+      "id": "userFields",
+      "type": "Map<String, T>",
+      "description": "用户参数信息配置"
+    },
+    {
+      "id": "preDefinedFields",
+      "type": "Map<String, T>",
+      "description": "预定义参数信息配置"
+    },
+    {
+      "id": "debugType",
+      "type": "Map<String, T>",
+      "description": "调测树配置"
+    }
+  ]
+}

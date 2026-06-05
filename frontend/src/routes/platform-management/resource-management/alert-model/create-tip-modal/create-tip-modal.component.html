@@ -1,0 +1,20 @@
+<div>
+  <div class="flex items-center">
+    <nz-icon class="mr-[8px] !text-[20px]" nzType="warning" nzTheme="outline" style="color: #ff8800; font-size: 24px !important" />
+    <span>{{ 'no_resources_purchased' | i18nextEager }}</span>
+  </div>
+  <div class="text-[14px] text-[#595959]">
+    {{ 'no_resources_ordered_tip'|i18nextEager }}
+  </div>
+  <div style="margin-top: 16px">
+    <button type="button" (click)="goToResource('free')" nz-button>{{ 'immediate_trial'|i18nextEager }}</button>
+    <button
+      type="button"
+      (click)="goToResource('both')"
+      nz-button
+      nzType="primary"
+    >
+      {{ 'purchase_resources'|i18nextEager }}
+    </button>
+  </div>
+</div>

@@ -1,0 +1,35 @@
+{
+  "tool_id" : "reserve_meeting_room",
+  "project_id" : "test_project_id",
+  "workspace_id" : "default",
+  "tool_display_name" : "reserve_meeting_room",
+  "tool_desc" : "预定会议室，请在需要预定会议室时调用此工具，预定前需要先查询会议室状态",
+  "icon" : "data:image/png;base64,123",
+  "request_info" : {
+    "url" : "https://fake.com",
+    "method" : "POST",
+    "headers" : {
+      "additionalProp1" : "string",
+      "additionalProp2" : "string",
+      "additionalProp3" : "string"
+    }
+  },
+  "auth_info" : {
+    "scope" : "USER",
+    "domain" : "HEADERS",
+    "auth_keys" : [ {
+      "target_name" : "X-API-Key",
+      "source_name" : "X-Key-Source"
+    } ]
+  },
+  "visibility" : "project",
+  "input_schema" : "{\"type\":\"object\",\"properties\":{\"start\":{\"type\":\"string\",\"description\":\"会议开始时间，格式为yyyy-MM-dd HH:mm\"},\"end\":{\"type\":\"string\",\"description\":\"会议结束时间，格式为yyyy-MM-dd HH:mm\"},\"meetingRoom\":{\"type\":\"string\",\"description\":\"会议室\"}},\"required\":[\"start\",\"end\",\"meetingRoom\"]}",
+  "output_schema" : "{\"type\":\"object\",\"properties\":{\"result\":{\"type\":\"string\",\"description\":\"会议室状态\"}}}",
+  "type" : "custom",
+  "metadata" : "{\"url\":\"https://host/v1/api\",\"authType\":\"OAuth\"}",
+  "creator" : "test_creator",
+  "creator_id" : "test_creator_id",
+  "created_on" : "2025-12-19 09:04:19",
+  "updated_on" : "2025-12-19 09:04:19",
+  "auth_required" : false
+}

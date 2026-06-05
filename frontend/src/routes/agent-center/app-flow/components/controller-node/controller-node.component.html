@@ -1,0 +1,159 @@
+<div
+  class="pw-common-node-wrapper"
+  [ngClass]="{
+    'pw-common-node-error': alertContent.length > 0,
+    'pw-common-node-selected': alertContent.length === 0 && (isSelected || isSelection),
+    'pw-common-node-hover': alertContent.length === 0 && !(isSelected || isSelection),
+    'pw-common-node-extra': alertContent.length === 0
+  }"
+>
+  <div *ngIf="alertContent.length > 0" class="pw-tips bg-[#ffeae8]">
+    <div class="flex items-center gap-[4px]">
+      <img alt="" class="node-img h-[16px] w-[16px]" [src]="validateAlertIcon" />
+      <span>{{ 'node_error' | i18nextEager }}</span>
+    </div>
+    <button
+      class="detail-tip"
+      nz-button
+      [nzType]="'text'"
+      nz-popover
+      [nzPopoverContent]="alertContent.join('\n')"
+      nzPopoverPlacement="top"
+    >
+      {{ 'details' | i18nextEager }}
+    </button>
+  </div>
+
+  <div
+    *ngIf="runNodeStatus"
+    class="pw-tips"
+    [ngStyle]="{ 'background-color': getBgColor(runNodeStatus),color: getColor(runNodeStatus) }"
+  >
+    <div class="flex items-center gap-[4px]">
+      <img alt=""
+        class="node-img h-[16px] w-[16px]"
+        [src]="getNodeStatus(runNodeStatus)"
+      />
+      <span>{{ getNodeStatusText(runNodeStatus) }}</span>
+      <span>{{ nodeElapsedTime }}</span>
+    </div>
+    <div class="node-test-info" (click)="onClickTestInfo($event)">{{ 'show_detail' | i18nextEager}}</div>
+  </div>
+
+  <div class="pw-common-node">
+    <div class="node-header">
+      <div class="node-icon-name">
+        <div
+          [ngClass]="isExpand ? 'node-open' : 'node-close'"
+          (click)="onSwitchExpand()"
+        ></div>
+
+        <img class="node-icon" [src]="icon" alt="controller-node" />
+        <div class="node-name" lineClamp>
+          {{ nodeInfo.name }}
+        </div>
+      </div>
+    </div>
+    <node-card-description *ngIf="isExpand" [description]="nodeInfo.configs?.descriptionText" [nodeInfo]="nodeInfo"></node-card-description>
+
+    <div *ngIf="isExpand" class="node-groups">
+      <div class="node-group">
+        <div class="flex flex-col gap-2">
+          <span>{{ 'thinking_planning_models' | i18nextEager }}</span>
+          <span class="text-[#595959]" lineClamp>{{
+            nodeInfo.configs.model?.model_name || ('not_configured' | i18nextEager)
+          }}</span>
+        </div>
+      </div>
+
+      <div class="node-group">
+        <div class="flex flex-col gap-2">
+          <span>{{ 'workflow' | i18nextEager }}</span>
+
+          <ng-container *ngIf="startFlow?.length; else noStartTmpl">
+            <div *ngFor="let item of startFlow" class="flex items-center gap-2">
+              <img alt=""
+                [src]="
+                  changeUrl('assets/agent-center/flow/start-flow-icon.svg')
+                "
+              />
+              <span class="text-[#595959]" lineClamp>{{ item.name }}</span>
+            </div>
+          </ng-container>
+          <ng-template #noStartTmpl>
+            <div class="flex items-center gap-2">
+              <img alt=""
+                [src]="
+                  changeUrl('assets/agent-center/flow/start-flow-icon.svg')
+                "
+              />
+              <span class="text-[#595959]">{{ 'not_configured' | i18nextEager }}</span>
+            </div>
+          </ng-template>
+
+          <ng-container *ngIf="intentDetectionFlow?.length; else noIntentDetectionTmpl">
+            <div *ngFor="let item of intentDetectionFlow" class="flex items-center gap-2">
+              <img alt=""
+                [src]="
+                  changeUrl('assets/agent-center/flow/intent-container-configured.svg')
+                "
+              />
+              <span class="text-[#595959]" lineClamp>{{ item.name }}</span>
+            </div>
+          </ng-container>
+          <ng-template #noIntentDetectionTmpl>
+            <div class="flex items-center gap-2">
+              <img alt=""
+                [src]="
+                  changeUrl('assets/agent-center/flow/intent-container-configured.svg')
+                "
+              />
+              <span class="text-[#595959]">{{ 'not_configured' | i18nextEager }}</span>
+            </div>
+          </ng-template>
+
+          <ng-container *ngIf="normalFlows?.length; else noNormalTmpl">
+            <div
+              *ngFor="let item of normalFlows"
+              class="flex items-center gap-2"
+            >
+              <img alt=""
+                [src]="changeUrl('assets/agent-center/flow/flow-item-icon.svg')"
+              />
+              <span class="text-[#595959]" lineClamp>{{ item.name }}</span>
+            </div>
+          </ng-container>
+          <ng-template #noNormalTmpl>
+            <div class="flex items-center gap-2">
+              <img alt=""
+                [src]="changeUrl('assets/agent-center/flow/flow-item-icon.svg')"
+              />
+              <span class="text-[#595959]">{{ 'not_configured' | i18nextEager }}</span>
+            </div>
+          </ng-template>
+
+          <ng-container *ngIf="endFlow?.length; else noEndTmpl">
+            <div *ngFor="let item of endFlow" class="flex items-center gap-2">
+              <img alt=""
+                [src]="changeUrl('assets/agent-center/flow/end-flow-icon.svg')"
+              />
+              <span class="text-[#595959]" lineClamp>{{ item.name }}</span>
+            </div>
+          </ng-container>
+          <ng-template #noEndTmpl>
+            <div class="flex items-center gap-2">
+              <img alt=""
+                [src]="changeUrl('assets/agent-center/flow/end-flow-icon.svg')"
+              />
+              <span class="text-[#595959]">{{ 'not_configured' | i18nextEager }}</span>
+            </div>
+          </ng-template>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<ng-template #customTipTmpl let-context="context">
+  <div *ngFor="let item of context">{{ item }}</div>
+</ng-template>

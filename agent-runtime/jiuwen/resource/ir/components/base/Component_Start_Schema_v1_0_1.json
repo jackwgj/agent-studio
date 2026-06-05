@@ -1,0 +1,48 @@
+{
+  "schemaVersion": "0.5",
+  "type": "jiuwen.start",
+  "version": "1.0.1",
+  "description": "IR开始节点，定义IR的输入",
+  "classInfo": {
+    "modulePath": "jiuwen.orchestration.invokable.start",
+    "className": "StartComponent",
+    "programLanguage": "python",
+    "filePath": "jiuwen/orchestration/invokable/start.pyc"
+  },
+  "inputs": [
+    {
+      "id": "systemFields",
+      "type": "Map<String, T>",
+      "description": "系统输入参数"
+    },
+    {
+      "id": "userFields",
+      "type": "Map<String, T>",
+      "description": "用户输入参数"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "systemFields",
+      "type": "Map<String, T>",
+      "description": "系统输入参数"
+    },
+    {
+      "id": "userFields",
+      "type": "Map<String, T>",
+      "description": "用户输入参数"
+    }
+  ],
+  "configs": [
+    {
+      "id": "systemFields",
+      "type": "Map<String, T>",
+      "description": "系统输入参数"
+    },
+    {
+      "id": "userFields",
+      "type": "Map<String, T>",
+      "description": "用户输入参数"
+    }
+  ]
+}

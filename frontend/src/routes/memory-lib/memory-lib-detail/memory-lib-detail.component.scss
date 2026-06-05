@@ -1,0 +1,39 @@
+.memory-lib-detail-container {
+  background-color: #f5f7fa;
+  min-height: 100vh;
+
+  .detail-header {
+    background-color: #fff;
+    padding: 16px 24px;
+    border-bottom: 1px solid #e8e8e8;
+
+    .header-icon {
+      width: 24px;
+      height: 24px;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+  }
+
+  .detail-body {
+    padding: 24px;
+
+    .info-card {
+      border-radius: 4px;
+
+      ::ng-deep .ant-descriptions-item-label {
+        color: #808080;
+        font-weight: normal;
+      }
+    }
+  }
+
+  .header-operators {
+    display: flex;
+    gap: 8px;
+  }
+}
+
+.mt-4 {
+  margin-top: 16px;
+}

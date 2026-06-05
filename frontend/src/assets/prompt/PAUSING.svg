@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="8px" height="8px" viewBox="0 0 8 8" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>正在中止</title>
+    <g id="页面-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="9评估记录" transform="translate(-366, -556)">
+            <g id="正在中止" transform="translate(362, 552)">
+                <rect id="矩形" x="0" y="0" width="16" height="16"></rect>
+                <path d="M8,4 C10.209139,4 12,5.790861 12,8 C12,10.209139 10.209139,12 8,12 C5.790861,12 4,10.209139 4,8 C4,5.790861 5.790861,4 8,4 Z M10,7 L6,7 C5.72385763,7 5.5,7.22385763 5.5,7.5 L5.5,8.5 C5.5,8.77614237 5.72385763,9 6,9 L10,9 C10.2761424,9 10.5,8.77614237 10.5,8.5 L10.5,7.5 C10.5,7.22385763 10.2761424,7 10,7 Z" id="形状结合" fill="#FFB700"></path>
+            </g>
+        </g>
+    </g>
+</svg>

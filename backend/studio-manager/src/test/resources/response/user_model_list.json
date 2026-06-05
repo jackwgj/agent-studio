@@ -1,0 +1,32 @@
+{
+  "count": 3,
+  "services": [
+    {
+      "service_id": "8c6751d1-d10c-47de-a789-717e164968fe",
+      "service_name": "user_model1",
+      "project_id": "bc2903d5916b4278a8265f8d7666c0c0",
+      "status": "running",
+      "infer_type": "online",
+      "category": "agentBuilder",
+      "model_name": "agentBuilder"
+    },
+    {
+      "service_id": "b8a6eb5e-722f-462a-9c7d-a444f4620d16",
+      "service_name": "user_model2",
+      "project_id": "bc2903d5916b4278a8265f8d7666c0c0",
+      "status": "running",
+      "infer_type": "online",
+      "category": "agentBuilder",
+      "model_name": "agentBuilder"
+    },
+    {
+      "service_id": "66e94861-1cd9-4152-a897-4acd66b62e09",
+      "service_name": "user_model3",
+      "project_id": "bc2903d5916b4278a8265f8d7666c0c0",
+      "status": "running",
+      "infer_type": "online",
+      "category": "agentBuilder",
+      "model_name": "agentBuilder"
+    }
+  ]
+}

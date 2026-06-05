@@ -1,0 +1,36 @@
+<div class="flex flex-col gap-2 px-1 py-2">
+  <input
+    nz-input
+    class="!w-full"
+    [placeholder]="'search_node_placeholder' | i18nextEager"
+    [(ngModel)]="searchNodeName"
+    (ngModelChange)="onSearch($event)"
+  />
+  <div>
+    <div class="mb-1 ml-2 text-desc">
+      {{ 'flow_nodes' | i18nextEager }}（{{ nodes.length }}）
+    </div>
+    <div class="flex max-h-[320px] flex-col overflow-y-auto">
+      <div
+        (click)="onClickNode(node.id)"
+        [ngClass]="node.id === currFocusedId ? 'selected-node' : ''"
+        class="node-item flex cursor-pointer items-center justify-between rounded-[4px] px-2 py-1"
+        *ngFor="let node of searchedNodes"
+      >
+        <div class="flex items-center gap-2 w-[calc(100%-24px)]">
+          <img alt=""
+            class="h-[16px] w-[16px]"
+            [src]="nodeIcons[node.type]"
+            [alt]="node.name"
+          />
+
+          <div class="w-[100%-32px]" nz-tooltip [nzTooltipTitle]="node.name">
+            {{ node.name }}
+          </div>
+        </div>
+
+        <div class="pin-icon pin"></div>
+      </div>
+    </div>
+  </div>
+</div>

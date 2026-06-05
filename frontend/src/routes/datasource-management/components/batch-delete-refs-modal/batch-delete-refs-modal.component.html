@@ -1,0 +1,60 @@
+<!--<ti-modal-header>{{ title }}</ti-modal-header>-->
+<!--<tp-modal-body>-->
+<!--  <div class="flex flex-col gap-4">-->
+<!--    <div class="flex flex-col gap-4">-->
+<!--      <ti-alert-->
+<!--        *ngIf="isRefsEmpty"-->
+<!--        class="alert-text"-->
+<!--        type="warn"-->
+<!--        [closeIcon]="false"-->
+<!--      >-->
+<!--        {{ alertText }}-->
+<!--      </ti-alert>-->
+<!--      <div class="flex flex-col gap-2">-->
+<!--        <span class="font-semibold">{{ 'data_source_list'|i18nextEager }}</span>-->
+<!--        <ti-table [srcData]="srcData" [(displayedData)]="displayedData">-->
+<!--          <div class="ti3-table-fixed-head">-->
+<!--            <table>-->
+<!--              <thead>-->
+<!--                <tr>-->
+<!--                  <th *ngFor="let column of columns">-->
+<!--                    {{ column.title }}-->
+<!--                  </th>-->
+<!--                </tr>-->
+<!--              </thead>-->
+<!--            </table>-->
+<!--          </div>-->
+<!--          <div class="ti3-table-container" style="max-height: 259px">-->
+<!--            <table>-->
+<!--              <thead>-->
+<!--                <tr>-->
+<!--                  <th *ngFor="let column of columns"></th>-->
+<!--                </tr>-->
+<!--              </thead>-->
+<!--              <tbody>-->
+<!--                <tr *ngFor="let row of displayedData">-->
+<!--                  <td>{{ row.resource_name }}</td>-->
+<!--                  <td>{{ row.type }}</td>-->
+<!--                  <td>{{ row.reference_number }}</td>-->
+<!--                </tr>-->
+<!--              </tbody>-->
+<!--            </table>-->
+<!--          </div>-->
+<!--        </ti-table>-->
+<!--      </div>-->
+<!--    </div>-->
+<!--    <ti-second-confirm-->
+<!--      [conformMode]="confirmMode"-->
+<!--      [secondConfirmConfig]="secondConfirmConfig"-->
+<!--      (initComplate)="initComplateFn($event)"-->
+<!--    ></ti-second-confirm>-->
+<!--  </div>-->
+<!--</tp-modal-body>-->
+<!--<ti-modal-footer class="text-right">-->
+<!--  <button type="button" tiButton (click)="dismiss()">-->
+<!--    {{ 'cancel' | i18nextEager }}-->
+<!--  </button>-->
+<!--  <button color="danger" type="button" tiButton (click)="onConfirm()">-->
+<!--    {{ 'ok' | i18nextEager }}-->
+<!--  </button>-->
+<!--</ti-modal-footer>-->

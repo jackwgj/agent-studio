@@ -1,0 +1,183 @@
+<div class="platform-container">
+  <nz-spin
+    *ngIf="pageloading; else loadingContent"
+    class="loading-icon loading-class"
+    nzSimple
+    [nzSize]="'large'"
+  ></nz-spin>
+
+  <ng-template #loadingContent>
+    <div class="main-container">
+      <div class="basic-info-card">
+        <div class="basic-card-title">
+          <ng-container *ngIf="basicData.logo; else logoOtherTemplate">
+            <img alt="" class="model-card-title-icon" [src]="basicData.logo" />
+          </ng-container>
+          <ng-template #logoOtherTemplate>
+            <img alt="" class="model-card-title-icon" [src]="iconNoneEmpty" />
+          </ng-template>
+
+          <div class="model-card-title-content">
+            <div class="model-card-title-content-title">
+              {{ basicData.provider_name }}
+            </div>
+
+            <div class="model-card-title-content-tips">
+              <nz-tag [nzColor]="basicData?.tagStatus?.type">{{ basicData?.tagStatus?.text }}</nz-tag>
+            </div>
+          </div>
+        </div>
+        <div class="basic-info-description">{{ basicData.description }}</div>
+        <div class="model-card-bottom">
+          <div class="model-card-bottom-url flex" *ngIf="basicData?.provider_url">
+            {{ 'model_address_1'|i18nextEager }}
+            <button nz-button nzType="link" (click)="handleClick($event, basicData.provider_url)">
+              {{basicData.provider_url}}
+            </button>
+          </div>
+          <div class="model-card-bottom-icons" (click)="clickstopProp($event)">
+            <div class="operate-item-card" [ngClass]="{'grey-disabled':!subscribeBtnStatus,'hover-color':subscribeBtnStatus}" (click)="onSelect({ type: 'authModal' }, basicData, $event)">
+              <ng-container>
+                <img alt="" class="operate-icon-card" [src]="itemsTab.icon"/>
+                {{itemsTab.label}}
+              </ng-container>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="main-container flex-1" style="margin-bottom: 16px">
+      <div class="basicInfo height100">
+        <nz-spin [nzSpinning]="loading" style="display: block; height: 100%;">
+          <div class="mb-[16px] flex items-center gap-2">
+            <div class="flex h-[32px] w-[calc(100%-32px)] gap-2 items-center flex-wrap">
+              <ng-container *ngFor="let item of searchItems">
+                <nz-select
+                  *ngIf="item.options"
+                  [(ngModel)]="item._value"
+                  [nzPlaceHolder]="item.label"
+                  (ngModelChange)="onNzSearchChange()"
+                  nzAllowClear
+                  style="min-width: 150px;"
+                >
+                  <nz-option *ngFor="let opt of item.options" [nzValue]="opt.id" [nzLabel]="opt.label"></nz-option>
+                </nz-select>
+                <nz-input-group *ngIf="!item.options" nzPrefixIcon="search" style="width: 200px;">
+                  <input
+                    type="text"
+                    nz-input
+                    [placeholder]="item.label"
+                    [(ngModel)]="item._value"
+                    (ngModelChange)="onNzSearchChange()"
+                  />
+                </nz-input-group>
+              </ng-container>
+            </div>
+
+            <button
+              class="h-8 w-8"
+              nz-button
+              nzType="default"
+              nzShape="circle"
+              (click)="freshData()"
+            >
+              <span nz-icon nzType="reload"></span>
+            </button>
+          </div>
+
+          <div
+            class="model-card-main-tab2 model-card-main"
+            *ngIf="pageData.length > 0; else epmtyTemp"
+          >
+            <div
+              class="model-card"
+              *ngFor="let dataItem of pageData"
+              (click)="toDetail(dataItem)"
+            >
+              <div class="model-tag">
+                <div class="model-tag-bg"  *ngIf="dataItem.showTag">
+                  NEW
+                </div>
+              </div>
+              <div class="model-card-title">
+                <ng-container *ngIf="dataItem.logo; else logoOtherTemplate">
+                  <img alt="" class="model-card-title-icon" [src]="dataItem.logo" />
+                </ng-container>
+                <ng-template #logoOtherTemplate>
+                  <img alt="" class="model-card-title-icon" [src]="iconNoneEmpty" />
+                </ng-template>
+
+                <div class="model-card-title-content">
+                  <div class="model-card-title-content-title">
+                    {{ dataItem.service_name }}
+                  </div>
+
+                  <div class="model-card-title-content-tips">
+                    <nz-tag
+                      [nzColor]="dataItem.publish_status==='online'?'success':'warning'"
+                    >{{ (dataItem.publish_status==='online'?'published':'not_published')|i18nextEager }}
+                    </nz-tag>
+                    <nz-tag *ngIf="dataItem.is_support_function">
+                      {{ tagMap['is_support_function'].name }}
+                    </nz-tag>
+
+                    <nz-tag *ngIf="dataItem.is_reasoning">
+                      {{ tagMap['is_reasoning'].name }}
+                    </nz-tag>
+
+                    <nz-tag *ngIf="dataItem.is_network">
+                      {{ tagMap['is_network'].name }}
+                    </nz-tag>
+
+                    <nz-tag
+                      *ngFor="let item of dataItem.modelTags"
+                    >{{ item }}
+                    </nz-tag>
+                  </div>
+                </div>
+              </div>
+              <div class="model-card-description" nz-tooltip [nzTooltipTitle]="dataItem.model_description">
+                {{ dataItem.model_description }}
+              </div>
+              <div class="model-card-bottom card-margin">
+                <div class="model-card-bottom-url">
+                  {{ dataItem.last_updated_date }}
+                </div>
+
+                <div
+                  [ngClass]="{'model-card-icons' : !(authStatus|| resourcesCurrentValue>0),'hover-color':authStatus|| resourcesCurrentValue>0 }"
+                  class="model-card-bottom-icons"
+                  (click)="onSelect({ type: 'onlineTest' },dataItem,$event)"
+                  nz-tooltip [nzTooltipTitle]="authStatus|| resourcesCurrentValue>0?'' :'need_auth_tip'|i18nextEager "
+                >
+                  <img alt="" class="custom-color" src="{{ changeUrl('assets/model/'+(authStatus|| resourcesCurrentValue>0?'test_model':'test_model_gray')+'.svg') }}">
+                  {{ 'tune_model'|i18nextEager }}
+                </div>
+              </div>
+            </div>
+          </div>
+          <nz-pagination
+            style="margin-top: 13px"
+            *ngIf="totalNumber>=12"
+            [(nzPageIndex)]="currentPage"
+            [nzTotal]="totalNumber"
+            [(nzPageSize)]="pageSize"
+            [nzPageSizeOptions]="[12, 24, 48, 64]"
+            nzShowSizeChanger
+            (nzPageIndexChange)="getPublisherListFn()"
+            (nzPageSizeChange)="getPublisherListFn()"
+          ></nz-pagination>
+          <ng-template #epmtyTemp>
+            <app-new-common-no-data-with-btn
+              [type]="searchName.length === 0 ? 'noData' : 'filterNoData'"
+              [firstLineData]="'no_data' | i18nextEager"
+              [secondLineData]="'no_data'|i18nextEager"
+              (clear)="onClearSearchContentChange()"
+            />
+          </ng-template>
+        </nz-spin>
+      </div>
+    </div>
+  </ng-template>
+</div>

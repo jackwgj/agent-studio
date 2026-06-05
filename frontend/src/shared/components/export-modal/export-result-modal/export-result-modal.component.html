@@ -1,0 +1,163 @@
+<div class="import-modal-container">
+  <div *nzModalTitle>{{ 'export' | i18nextEager }}</div>
+
+  <div class="import-and-alert">
+    <div class="export-tip" *ngIf="alertStr">
+      <nz-icon class="success-icon" nzType="check-circle"></nz-icon>
+      {{ alertStr }}
+    </div>
+    <div class="export-tip" *ngIf="errorTip">
+      <nz-icon class="error-icon" nzType="close-circle"></nz-icon>
+      {{ errorTip }}
+    </div>
+    <nz-alert
+      *ngIf="isHaveFails"
+      nzType="warning"
+      [nzCloseable]="true"
+      class="!w-full mb-[8px]"
+      [nzMessage]="'export_fail_tip' | i18nextEager"
+    >
+    </nz-alert>
+    <nz-alert
+      *ngIf="isShowCopyUrl"
+      nzType="warning"
+      [nzCloseable]="true"
+      class="!w-full mb-[8px]"
+      [nzMessage]="'export_downLoad_tip' | i18nextEager"
+    >
+    </nz-alert>
+  </div>
+  <div class="parse-file">
+    <nz-table [nzData]="srcData" [nzFrontPagination]="false">
+      <thead>
+      <tr>
+        <th nzWidth="40px"></th>
+        @for (col of columns; track col.key) {
+          <th [nzWidth]="col.width">{{ col.title }}</th>
+        }
+      </tr>
+      </thead>
+      <tbody>
+        @for (row of srcData; track row.resource_name; let i = $index) {
+          <tr>
+            <td [(nzExpand)]="row.showDetails"></td>
+            @for (col of columns; track col.key) {
+              <td>
+                @switch (col.key) {
+                  @case ('result') {
+                    <span class="flex align-center status-font">
+                      <nz-icon class="status-icon"
+                               [ngClass]="{'status-success':row.status==='SUCCESS','status-fail':row.status!=='SUCCESS'}"
+                               [nzType]="row.status==='SUCCESS'?'check-circle':'close-circle'"
+                      ></nz-icon>
+                      @if (row.status === 'SUCCESS') {
+                        {{ 'success_1' | i18nextEager }}
+                      } @else {
+                        {{ 'flowtasklistcomponent_646' | i18nextEager }}
+                      }
+                    </span>
+                  }
+                  @case ('operate') {
+                    @if (row.status !== 'SUCCESS') {
+                      <span class="operate-btn"
+                            nz-tooltip
+                            [nzTooltipTitle]="tipContent"
+                            [nzTooltipTitleContext]="$any(row.reason)"
+                      >{{ 'view_reason' | i18nextEager }}</span>
+                    }
+                  }
+                  @default {
+                    <span>{{ row[col.key] }}</span>
+                  }
+                }
+              </td>
+            }
+          </tr>
+          <tr [nzExpand]="row.showDetails">
+            <td colspan="5">
+              <div class="ti3-table-detail-container">
+                <div class="sub-detail-container">
+                  <div class="child-list">
+                    @if (row.child_results?.length) {
+                      @for (childItem of row.child_results; track childItem.resource_name) {
+                        <div class="child">
+                          <div class="child-rounded-wrapper">
+                            <div class="child-wrapper">
+                              <div class="dependency-info-child">
+                                <div class="child-col" [ngStyle]="{'width':columns[0]?.width}">
+                                  <div nzEllipsis>{{ childItem.resource_name }}</div>
+                                  <div class="dependency-tag flex-shrink-0 ml-[16px]">
+                                    {{ getTypeName(childItem.resource_type) }}
+                                  </div>
+                                </div>
+                                <div class="child-col flex-shrink-0" [ngStyle]="{'width':columns[1]?.width}">
+                                  <div class="w-full" nzEllipsis>{{ childItem.resource_desc }}</div>
+                                </div>
+                                <div class="child-col flex-shrink-0" [ngStyle]="{'width':columns[2]?.width}">
+                                  <span class="flex align-center status-font">
+                                    <nz-icon class="status-icon"
+                                             [ngClass]="{'status-success':childItem.status==='SUCCESS','status-fail':childItem.status!=='SUCCESS'}"
+                                             [nzType]="childItem.status==='SUCCESS'?'check-circle':'close-circle'"
+                                    ></nz-icon>
+                                    @if (childItem.status === 'SUCCESS') {
+                                      {{ 'success_1' | i18nextEager }}
+                                    } @else {
+                                      {{ 'flowtasklistcomponent_646' | i18nextEager }}
+                                    }
+                                  </span>
+                                </div>
+                                <div class="child-col flex-shrink-0" [ngStyle]="{'width':columns[3]?.width}">
+                                  @if (childItem.status !== 'SUCCESS') {
+                                    <span class="operate-btn"
+                                          nz-tooltip
+                                          [nzTooltipTitle]="tipContent"
+                                          [nzTooltipTitleContext]="$any(childItem.reason)"
+                                    >{{ 'view_reason' | i18nextEager }}</span>
+                                  }
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      }
+                    } @else {
+                      <div class="no-data-container">
+                        <div class="text">{{ 'no_resource' | i18nextEager }}</div>
+                        <div class="tip">{{ 'no_resource_tip' | i18nextEager }}</div>
+                      </div>
+                    }
+                  </div>
+                </div>
+              </div>
+            </td>
+          </tr>
+        }
+        @if (!srcData?.length) {
+          <tr>
+            <td>
+              <div class="no-data-container">
+                <div class="text">{{ 'no_data' | i18nextEager }}</div>
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </nz-table>
+  </div>
+
+  <div *nzModalFooter>
+    <button nz-button type="button" (click)="dismiss()">
+      {{ 'close' | i18nextEager }}
+    </button>
+    @if (isShowCopyUrl) {
+      <button nz-button nzType="primary" type="button" (click)="copyUrl()">{{ 'copy_downLoad_url' | i18nextEager }}</button>
+    }
+  </div>
+</div>
+
+<ng-template #tipContent let-context="context">
+  <div class="flex align-center">
+    <nz-icon class="status-fail text-[16px]" nzType="close-circle"></nz-icon>
+    <span class="ml-[8px] leading-[24px]">{{ context }}</span>
+  </div>
+</ng-template>

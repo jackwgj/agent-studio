@@ -1,0 +1,179 @@
+<div class="flex flex-col gap-[10px]">
+  <div class="chat-loop" *ngFor="let item of chatLoop; let topIndex = index">
+    <div class="flex justify-end">
+      <img alt="" *ngIf="item.reqErrorStatus"
+        class="warning-icon"
+        (click)="onResend(topIndex)"
+        [src]="cdnUrl('assets/flow/warning.svg')"
+      >
+      <div class="user-question">
+        <div class="w-auto text">
+          {{item.showQuestion?.trim()}}
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div *ngIf="item.thinkLoading" class="chat-loading-message">
+        <img alt=""
+          [src]="cdnUrl('assets/agent-center/images/running.webp')"
+          [alt]="'loading' | i18nextEager"
+        />
+        <span>{{ 'recognizing_user_intent' | i18nextEager }}</span>
+      </div>
+
+      <div class="collapse-btn" *ngIf="item.plans?.length">
+        <div class="flex" style="align-items: center;" *ngIf="item.thinkLoading;else success">
+          <img alt="" [src]="cdnUrl('assets/agent-center/images/running.webp')"/>
+          <span>{{'plan_model.thinking' | i18nextEager}}</span>
+        </div>
+        <ng-template #success>
+          <img alt="" [src]="cdnUrl('assets/agent-center/images/deep-success.svg')"/>
+          <span>{{'plan_model.thinked' | i18nextEager}}</span>
+        </ng-template>
+
+        <div class="cursor-pointer ml-[5px]" (click)="handleCollapsedStep(item)">
+          <nz-icon nzType="down" nzTheme="outline" *ngIf="!item.collapsed" />
+          <nz-icon nzType="up" nzTheme="outline" *ngIf="item.collapsed" />
+        </div>
+      </div>
+
+      <div class="answer-box" *ngIf="item.plans?.length" [style]="{'height': !item.collapsed ? 'auto' : '0'}">
+        <ng-container *ngFor="let plan of item.plans; let j = index">
+          <ng-container *ngTemplateOutlet="
+              childAnswerTmpl;
+              context: { answer: plan, index: j }
+            "></ng-container>
+        </ng-container>
+      </div>
+
+      <div class="flex flex-1 flex-col">
+        <div class="answer-cards" *ngIf="item.thinkValue" [class.divider-line]="!item.thinking">
+          <div class="flex items-center gap-[4px]">
+            <ng-container *ngIf="item.thinking; else completed">
+              <img alt="" class="w-[20px] h-[20px]" [src]="cdnUrl('assets/agent-center/images/running.webp')"/>
+              <span class="answer-header">{{ 'deep_thinking' | i18nextEager }}</span>
+            </ng-container>
+            <nz-icon nzType="right" nzTheme="outline" class="unfolded cursor-pointer"
+                     [ngClass]="item.collapsed ? 'collapsed-icon' : 'unfolded-icon'"
+                     (click)="changeCollapsedState(item)" />
+          </div>
+
+          <div class="deep-seek-area" *ngIf="!item.collapsed">
+            <div class="model-thought-content">
+              {{ item.thinkValue }}
+            </div>
+          </div>
+        </div>
+
+        <!-- 回答正文 -->
+        <div
+          *ngFor="let answer of item.showAnswer; let i = index;"
+          [ngClass]="{ error: answer.isError && !answer.loading }"
+        >
+          <div *ngIf="!answer.isError" class="right-answer-card">
+            <app-markdown-answer
+              class="markdown-text w-full overflow-x-hidden markdown-no-bg"
+              *ngIf="!answer.loading"
+              [(answer)]="answer.text"
+              [isSupKBResolver]="true"
+            ></app-markdown-answer>
+            <div
+              class="input-node-params"
+              *ngIf="answer?.isShowInputParams"
+            >
+              <input-node-params
+                #inputNodeParams
+                *ngIf="answer.inputList?.length"
+                [inputList]="answer.inputList"
+                [disabled]="answer.inputStatus"
+                [chatItem]="item"
+                (fileUploadStatus)="onFileUploadStatus($event, answer)"
+              ></input-node-params>
+              <button
+                *ngIf="answer.inputList?.length"
+                style="width: fit-content"
+                type="button"
+                tiButton
+                (click)="onConfirm(answer, item)"
+                [tiTip]="
+                  answer.inputStatus === 'not-prepared'
+                  ? ('waiting_for_file_upload_to_complete' | i18nextEager)
+                  : ''
+                "
+                [disabled]="
+                  answer.inputStatus === 'confirmed' ||
+                  answer.inputStatus === 'failed' ||
+                  answer.inputStatus === 'not-prepared'
+                "
+              >
+                {{ 'determined' | i18nextEager }}
+              </button>
+            </div>
+          </div>
+
+          <div *ngIf="answer.isError && !answer.loading" class="flex flex-col gap-[12px]">
+            <span class="error-reason">{{ answer.text }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<ng-template #completed>
+  <img alt="" [src]="cdnUrl('assets/agent-center/images/deep-success.svg')"/>
+  <span class="answer-header">{{ 'complete_deep_thinking' | i18nextEager }}</span>
+</ng-template>
+
+<ng-template let-answer="answer" let-index="index" #childAnswerTmpl>
+  <div class="chat-border">
+    <div *ngIf="!answer.id || (answer.id && answer.steps.length)"
+          class="flex mb-[8px] answer-title">
+      <nz-icon nzType="check-circle" nzTheme="outline" *ngIf="answer.status ==='finished'; else loading" style="color:#c2c2c2;font-size: 16px" />
+      <ng-template #loading>
+        <nz-spin size='16px'></nz-spin>
+      </ng-template>
+      <div class="flex" style="align-items: center" (click)="handleCollapsedStep(answer)">
+        <div class="answer-title-text">{{answer.title}}</div>
+        <ng-container *ngIf="index > 0">
+          <nz-icon nzType="up" nzTheme="outline" *ngIf="!answer.collapsed" />
+          <nz-icon nzType="down" nzTheme="outline" *ngIf="answer.collapsed" />
+        </ng-container>
+      </div>
+    </div>
+    <ng-container *ngIf="answer.steps">
+      <div class="step-container" [ngClass]="{'mt-[8px]':!answer.collapsed}"  [style]="{'height':!answer.collapsed?'auto':'0'}">
+        <div
+          *ngFor="let item of answer.steps"
+          class="plan-item">
+          <span tiOverflow><span class="dot-black">•</span>{{ item.step_name }} {{item.description}}</span>
+        </div>
+      </div>
+    </ng-container>
+
+    <ng-container *ngIf="answer.actionSteps">
+      <div class="step-container" [ngClass]="{'mt-[8px]':!answer.collapsed}"  [style]="{'height':!answer.collapsed?'auto':'0'}">
+        <div
+          *ngFor="let item of answer.actionSteps"
+          class="action-item">
+          <span class="step-title" tiOverflow>{{ item.title }}</span>
+          <div
+            *ngFor="let action of item.actions">
+            <div class="action-info">
+              <nz-icon nzType="mail" nzTheme="outline" style="font-size: 14px;margin-right: 2px" />
+              <span tiOverflow>{{ action.title }}</span>
+            </div>
+            <div *ngIf="action.content" style="padding-left: 12px">
+              <app-markdown-answer
+                class="markdown-node-font markdown-no-bg"
+                [(answer)]="action.content"
+              ></app-markdown-answer>
+            </div>
+          </div>
+          <div class="summary">{{item.result_summary}}</div>
+        </div>
+      </div>
+    </ng-container>
+  </div>
+</ng-template>

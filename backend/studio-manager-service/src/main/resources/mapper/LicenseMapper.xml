@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.common.service.mapper.LicenseMapper">
+    <resultMap id="baseColumns" type="com.openjiuwen.studio.common.service.entity.LicenseEntity">
+        <result column="id" jdbcType="VARCHAR" property="id"/>
+        <result column="resource_id" jdbcType="VARCHAR" property="resourceId"/>
+        <result column="sku_code" jdbcType="VARCHAR" property="skuCode"/>
+        <result column="attr_code" jdbcType="VARCHAR" property="attrCode"/>
+        <result column="status" jdbcType="VARCHAR" property="status"/>
+        <result column="current_value" jdbcType="VARCHAR" property="currentValue"/>
+        <result column="max_value" jdbcType="VARCHAR" property="maxValue"/>
+        <result column="type" jdbcType="VARCHAR" property="type"/>
+        <result column="created_by_user_id" jdbcType="VARCHAR" property="createdByUserId"/>
+        <result column="created_date" jdbcType="TIMESTAMP" property="createdDate"/>
+        <result column="last_updated_by_user_id" jdbcType="VARCHAR" property="lastUpdatedByUserId"/>
+        <result column="last_updated_date" jdbcType="TIMESTAMP" property="lastUpdatedDate"/>
+        <result column="domain_id" jdbcType="VARCHAR" property="domainId"/>
+    </resultMap>
+
+    <sql id="baseColumns">
+        `id`
+        ,
+        `resource_id`,
+        `sku_code`,
+        `attr_code`,
+        `status`,
+        `current_value`,
+        `max_value`,
+        `type`,
+        `created_by_user_id`,
+        `created_date`,
+        `last_updated_by_user_id`,
+        `last_updated_date`,
+        `domain_id`
+    </sql>
+
+    <insert id="batchInsert" keyProperty="param.id" useGeneratedKeys="true" keyColumn="id"
+            parameterType="com.openjiuwen.studio.common.service.entity.LicenseEntity">
+        insert into t_common_license (<include refid="baseColumns"></include>)
+        values
+        <foreach collection="list" separator="," item="param">
+            (
+            #{param.id},
+            #{param.resourceId},
+            #{param.skuCode},
+            #{param.attrCode},
+            #{param.status},
+            #{param.currentValue},
+            #{param.maxValue},
+            #{param.type},
+            #{param.createdByUserId},
+            #{param.createdDate},
+            #{param.lastUpdatedByUserId},
+            #{param.lastUpdatedDate},
+            #{param.domainId}
+            )
+        </foreach>
+    </insert>
+
+    <insert id="insert" parameterType="com.openjiuwen.studio.common.service.entity.LicenseEntity">
+        INSERT INTO t_common_license (<include refid="baseColumns"></include>)
+        VALUES (
+                   #{licenseEntity.id},
+                   #{licenseEntity.resourceId},
+                   #{licenseEntity.skuCode},
+                   #{licenseEntity.attrCode},
+                   #{licenseEntity.status},
+                   #{licenseEntity.currentValue},
+                   #{licenseEntity.maxValue},
+                   #{licenseEntity.type},
+                   #{licenseEntity.createdByUserId},
+                   #{licenseEntity.createdDate},
+                   #{licenseEntity.lastUpdatedByUserId},
+                   #{licenseEntity.lastUpdatedDate},
+                   #{licenseEntity.domainId}
+               )
+    </insert>
+
+    <update id="batchUpdate">
+        <foreach collection="list" separator=";" item="param">
+            update t_common_license
+            <set>
+                resource_id = #{param.resourceId},
+                sku_code = #{param.skuCode},
+                attr_code = #{param.attrCode},
+                status = #{param.status},
+                current_value = #{param.currentValue},
+                max_value = #{param.maxValue},
+                type = #{param.type},
+                last_updated_by_user_id = #{param.lastUpdatedByUserId},
+                last_updated_date = #{param.lastUpdatedDate},
+                domain_id = #{param.domainId}
+            </set>
+            where id = #{param.id}
+        </foreach>
+    </update>
+
+    <update id="updateById">
+        update t_common_license
+        <set>
+            resource_id = #{param.resourceId},
+            sku_code = #{param.skuCode},
+            attr_code = #{param.attrCode},
+            status = #{param.status},
+            current_value = #{param.currentValue},
+            max_value = #{param.maxValue},
+            type = #{param.type},
+            created_by_user_id = #{param.createdByUserId},
+            created_date = #{param.createdDate},
+            last_updated_by_user_id = #{param.lastUpdatedByUserId},
+            last_updated_date = #{param.lastUpdatedDate},
+            domain_id = #{param.domainId}
+        </set>
+        where id = #{param.id}
+    </update>
+
+    <select id="selectByResourceId" resultMap="baseColumns">
+        select * from t_common_license where domain_id = #{domainId}
+        <if test="resourceId != null and resourceId != ''">
+            and resource_id = #{resourceId}
+        </if>
+    </select>
+
+    <select id="selectByConditions" resultMap="baseColumns">
+        select * from t_common_license where domain_id = #{domainId}
+        <if test="resourceId != null and resourceId != ''">
+            and resource_id = #{resourceId}
+        </if>
+        <if test="attrCode != null and attrCode != ''">
+            and attr_code = #{attrCode}
+        </if>
+        <if test="skuCode != null and skuCode != ''">
+            and sku_code = #{skuCode}
+        </if>
+        <if test="status != null and status != ''">
+            and status = #{status}
+        </if>
+    </select>
+</mapper>

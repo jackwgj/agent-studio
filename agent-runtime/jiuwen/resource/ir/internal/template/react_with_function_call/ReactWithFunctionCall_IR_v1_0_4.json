@@ -1,0 +1,1106 @@
+{
+  "workflowId": "REACT_WITH_FUNCTIONCALL_IR",
+  "workflowName": "REACT_WITH_FUNCTIONCALL_IR",
+  "description": "react规划模式的流程",
+  "workflowVersion": "0.0.3",
+  "schemaVersion": "0.6",
+  "configs": {
+    "execute_mode": "batch",
+    "model": null,
+    "mockResults": "",
+    "plugins": [],
+    "workflows": [],
+    "promptTemplateContent": "",
+    "promptRefinerConfig": {},
+    "promptToolCallFormat": null,
+    "queryTemplateContent": []
+  },
+  "components": [
+    {
+      "id": "START_PLANNING",
+      "type": "jiuwen.planner.components.plan_modules.start_planning:StartPlanning",
+      "typeVersion": "1.0.2",
+      "description": "初始化规划状态",
+      "inputs": {
+        "query": "${user.inputs.systemFields.query}"
+      },
+      "outputs": {
+        "status_code": null
+      },
+      "configs": {
+        "debugType": {
+          "debugTree": false
+        },
+        "preDefinedFields": {
+          "inputs": [
+            {
+              "id": "query",
+              "type": "String",
+              "sourceType": "ref"
+            }
+          ],
+          "outputs": [
+            {
+              "id": "status_code",
+              "type": "String"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "PRE_SELECTOR",
+      "type": "jiuwen.planner.components.plan_modules.pre_selector:PreSelector",
+      "typeVersion": "1.0.2",
+      "description": "SELECTOR输入预处理",
+      "inputs": {
+      },
+      "outputs": {
+        "query": null,
+        "dialogueHistory": [],
+        "plugin_candidate_ids": [],
+        "workflow_candidate_ids": []
+      },
+      "configs": {
+        "plugins": "${configs.plugins}",
+        "workflows": "${configs.workflows}",
+        "preDefinedFields": {
+          "inputs": [
+          ],
+          "outputs": [
+            {
+              "id": "plugin_candidate_ids",
+              "type": "List",
+              "schema": {
+                "type": "String"
+              }
+            },
+            {
+              "id": "workflow_candidate_ids",
+              "type": "List",
+              "schema": {
+                "type": "String"
+              }
+            },
+            {
+              "id": "dialogueHistory",
+              "type": "List",
+              "schema": {
+                "type": "Map"
+              }
+            },
+            {
+              "id": "query",
+              "type": "String"
+            }
+          ]
+        },
+        "debugType": {
+          "debugTree": false
+        }
+      }
+    },
+    {
+      "id": "SELECTOR",
+      "type": "jiuwen.planner.components.plan_modules.selector:Selector",
+      "typeVersion": "1.0.2",
+      "description": "插件/workflow动态选择",
+      "inputs": {
+        "query": "${PRE_SELECTOR.query}",
+        "dialogueHistory": "${PRE_SELECTOR.dialogueHistory}",
+        "plugin_candidate_ids": "${PRE_SELECTOR.plugin_candidate_ids}",
+        "workflow_candidate_ids": "${PRE_SELECTOR.workflow_candidate_ids}"
+      },
+      "outputs": {
+        "selectedPluginList": [],
+        "selectedWorkflowList": []
+      },
+      "configs": {
+        "preDefinedFields": {
+          "inputs": [
+            {
+              "id": "plugin_candidate_ids",
+              "type": "List<T>",
+              "sourceType": "ref"
+            },
+            {
+              "id": "workflow_candidate_ids",
+              "type": "List<T>",
+              "sourceType": "ref"
+            },
+            {
+              "id": "dialogueHistory",
+              "type": "List<Map<String, T>>",
+              "sourceType": "ref"
+            },
+            {
+              "id": "query",
+              "type": "String",
+              "sourceType": "ref"
+            }
+          ],
+          "outputs": [
+            {
+              "id": "selectedPluginList",
+              "type": "List<String>"
+            },
+            {
+              "id": "selectedWorkflowList",
+              "type": "List<String>"
+            }
+          ]
+        },
+        "debugType": {
+          "debugTree": false
+        }
+      }
+    },
+    {
+      "id": "POST_SELECTOR",
+      "type": "jiuwen.planner.components.plan_modules.post_selector:PostSelector",
+      "typeVersion": "1.0.2",
+      "description": "SELECTOR输出后处理",
+      "inputs": {
+        "selectedPluginList": "${SELECTOR.selectedPluginList}",
+        "selectedWorkflowList": "${SELECTOR.selectedWorkflowList}"
+      },
+      "outputs": {
+        "postPluginList": [],
+        "postWorkflowList": []
+      },
+      "configs": {
+        "plugins": "${configs.plugins}",
+        "workflows": "${configs.workflows}",
+        "preDefinedFields": {
+          "inputs": [
+            {
+              "id": "selectedPluginList",
+              "type": "List<String>",
+              "sourceType": "ref"
+            },
+            {
+              "id": "selectedWorkflowList",
+              "type": "List<String>",
+              "sourceType": "ref"
+            }
+          ],
+          "outputs": [
+            {
+              "id": "postPluginList",
+              "type": "List<Map<String, T>>"
+            },
+            {
+              "id": "postWorkflowList",
+              "type": "List<Map<String, T>>"
+            }
+          ]
+        },
+        "debugType": {
+          "debugTree": false
+        }
+      }
+    },
+    {
+      "id": "KNOWLEDGE_SEARCH",
+      "type": "jiuwen.planner.components.plan_modules.knowledge_search:KnowledgeSearch",
+      "typeVersion": "1.0.2",
+      "description": "知识库组件",
+      "inputs": {
+        "query": "${PRE_SELECTOR.query}"
+      },
+      "outputs": {
+        "knowledgeSegments": null
+      },
+      "configs": {
+        "knowledgeBases": null,
+        "similarityThreshold": 0.0,
+        "maxResultCount": 0,
+        "maxTokenCount": 0,
+        "preDefinedFields": {
+          "inputs": [
+            {
+              "id": "query",
+              "type": "String",
+              "sourceType": "ref"
+            }
+          ],
+          "outputs": [
+            {
+              "id": "knowledgeSegments",
+              "type": "List<String>"
+            }
+          ]
+        },
+        "debugType": {
+          "debugTree": false
+        }
+      }
+    },
+    {
+      "id": "CONSTRUCT_PROMPT",
+      "type": "jiuwen.planner.components.plan_modules.construct_prompt:ConstructPrompt",
+      "typeVersion": "1.0.2",
+      "description": "构建Prompt输入",
+      "inputs": {
+        "postPluginList": "${POST_SELECTOR.postPluginList}",
+        "postWorkflowList": "${POST_SELECTOR.postWorkflowList}",
+        "knowledgeSegments": "${KNOWLEDGE_SEARCH.knowledgeSegments}"
+      },
+      "outputs": {
+        "variables": {},
+        "history": [],
+        "query": null,
+        "tools": ""
+      },
+      "configs": {
+        "queryTemplateContent": "${configs.queryTemplateContent}",
+        "preDefinedFields": {
+          "inputs": [
+            {
+              "id": "postPluginList",
+              "type": "List<Map<String, T>>",
+              "sourceType": "ref"
+            },
+            {
+              "id": "postWorkflowList",
+              "type": "List<Map<String, T>>",
+              "sourceType": "ref"
+            },
+            {
+              "id": "knowledgeSegments",
+              "type": "List<String>",
+              "sourceType": "ref"
+            }
+          ],
+          "outputs": [
+            {
+              "id": "variables",
+              "type": "Map<String, T>"
+            },
+            {
+              "id": "history",
+              "type": "List<Map<String, T>>"
+            },
+            {
+              "id": "query",
+              "type": "String"
+            },
+            {
+              "id": "tools",
+              "type": "String"
+            }
+          ]
+        },
+        "debugType": {
+          "debugTree": false
+        }
+      }
+    },
+    {
+      "id": "LLM_REACT",
+      "type": "jiuwen.LLMComponent",
+      "typeVersion": "1.0.4",
+      "configs": {
+        "mockResults": "${configs.mockResults}",
+        "model": "${configs.model}",
+        "templateContent": "${configs.promptTemplateContent}",
+        "refinerConfig": "${configs.promptRefinerConfig}",
+        "toolCallFormat": "${configs.promptToolCallFormat}",
+        "preDefinedFields": {
+          "inputs": [
+            {
+              "id": "variables",
+              "type": "Map<String, T>",
+              "description": "需要向Prompt模板占位符中填充的变量，以字典的形式传入，键名为占位符变量名称，值为占位符变量的值",
+              "sourceType": "ref"
+            },
+            {
+              "id": "history",
+              "type": "List<Map<String, T>>",
+              "description": "包含历史对话的消息列表",
+              "sourceType": "ref"
+            },
+            {
+              "id": "query",
+              "type": "String",
+              "description": "用户的当前query，用于作为对话历史和插件列表优选的key",
+              "sourceType": "ref"
+            },
+            {
+              "id": "templateContent",
+              "type": "List<Map<String, T>>",
+              "description": "用户定义的prompt模板，可以包含${}形式的占位符，如果传入，会覆盖configs中的模板",
+              "sourceType": "ref"
+            },
+            {
+              "id": "variableFormatSchema",
+              "type": "Map<String, T>",
+              "description": "用于配置模板内占位符填充内容及其格式化方式",
+              "sourceType": "ref"
+            },
+            {
+              "id": "tools",
+              "type": "List<Map<String, T>>",
+              "description": "用户自定义的工具",
+              "sourceType": "ref"
+            }
+          ],
+          "outputs": [
+            {
+              "id": "message",
+              "type": "Map<String, T>",
+              "description": "返回的助手message"
+            },
+            {
+              "id": "metadata",
+              "type": "Map<String, T>",
+              "description": "访问大模型相关的信息，如时延，消耗token数量等"
+            }
+          ]
+        },
+        "debugType": {
+          "debugPreview": true
+        }
+      },
+      "inputs": {
+        "variables": "${CONSTRUCT_PROMPT.variables}",
+        "query": "${CONSTRUCT_PROMPT.query}",
+        "history": "${CONSTRUCT_PROMPT.history}",
+        "tools": "${CONSTRUCT_PROMPT.tools}"
+      },
+      "outputs": {
+        "message": {},
+        "metadata": {}
+      }
+    },
+    {
+      "id": "UPDATE_PLAN_OUTPUT",
+      "type": "jiuwen.planner.components.plan_modules.update_plan_output:UpdatePlanOutput",
+      "typeVersion": "1.0.2",
+      "inputs": {
+        "message": "${LLM_REACT.message}",
+        "metadata": "${LLM_REACT.metadata}"
+      },
+      "outputs": {
+        "status_code": null
+      },
+      "configs": {
+        "preDefinedFields": {
+          "inputs": [
+            {
+              "id": "message",
+              "type": "Map<String, T>",
+              "sourceType": "ref"
+            },
+            {
+              "id": "metadata",
+              "type": "Map<String, T>",
+              "sourceType": "ref"
+            }
+          ],
+          "outputs": [
+            {
+              "id": "status_code",
+              "type": "String"
+            }
+          ]
+        },
+        "debugType": {
+          "debugTree": false
+        }
+      }
+    },
+    {
+      "id": "SHOULD_CONTINUE",
+      "type": "jiuwen.planner.components.plan_modules.should_continue:ShouldContinue",
+      "typeVersion": "1.0.2",
+      "inputs": {},
+      "outputs": {
+        "judge_res": null
+      },
+      "configs": {
+        "debugType": {
+          "debugTree": false
+        }
+      }
+    },
+    {
+      "id": "SKILL_INPUT_PARSER",
+      "type": "jiuwen.planner.components.plan_modules.skill_input_parser:SkillInputParser",
+      "typeVersion": "1.0.2",
+      "inputs": {},
+      "outputs": {
+        "id": "",
+        "name": "",
+        "version": "",
+        "arguments": {},
+        "configs": {},
+        "skillType": "",
+        "paramsSchema": {}
+      },
+      "configs": {
+        "plugins": "${configs.plugins}",
+        "workflows": "${configs.workflows}",
+        "preDefinedFields": {
+          "outputs": [
+            {
+              "id": "id",
+              "type": "String"
+            },
+            {
+              "id": "version",
+              "type": "Map<String, T>"
+            },
+            {
+              "id": "name",
+              "type": "String"
+            },
+            {
+              "id": "arguments",
+              "type": "Map<String, T>"
+            },
+            {
+              "id": "skillType",
+              "type": "String"
+            },
+            {
+              "id": "configs",
+              "type": "Map<String, T>"
+            },
+            {
+              "id": "paramsSchema",
+              "type": "Map<String, Map<String, String>>"
+            }
+          ]
+        },
+        "debugType": {
+          "debugTree": false
+        }
+      }
+    },
+    {
+      "id": "POST_PROCESSOR",
+      "type": "jiuwen.planner.components.plan_modules.post_processor:PostProcessor",
+      "typeVersion": "1.0.2",
+      "inputs": {
+        "query": "${PRE_SELECTOR.query}",
+        "dialogueHistory": "${PRE_SELECTOR.dialogueHistory}",
+        "functionName": "${SKILL_INPUT_PARSER.id}",
+        "originalParams": "${SKILL_INPUT_PARSER.arguments}",
+        "paramsSchema": "${SKILL_INPUT_PARSER.paramsSchema}"
+      },
+      "outputs": {
+        "functionName": "",
+        "correctedParams": {}
+      },
+      "configs": {
+        "preDefinedFields": {
+          "inputs": [
+            {
+              "id": "query",
+              "type": "String",
+              "sourceType": "ref"
+            },
+            {
+              "id": "dialogueHistory",
+              "type": "List<Map<String, T>>",
+              "sourceType": "ref"
+            },
+            {
+              "id": "functionName",
+              "type": "String",
+              "sourceType": "ref"
+            },
+            {
+              "id": "originalParams",
+              "type": "Map<String, T>",
+              "sourceType": "ref"
+            },
+            {
+              "id": "paramsSchema",
+              "type": "Map<String, Map<String, String>>",
+              "sourceType": "ref"
+            }
+          ],
+          "outputs": [
+            {
+              "id": "functionName",
+              "type": "String"
+            },
+            {
+              "id": "correctedParams",
+              "type": "Map<String, T>"
+            }
+          ]
+        },
+        "debugType": {
+          "debugTree": false
+        }
+      }
+    },
+    {
+      "id": "PRE_EXECUTOR",
+      "type": "jiuwen.planner.components.plan_modules.pre_executor:PreExecutor",
+      "typeVersion": "1.0.2",
+      "inputs": {
+        "arguments": "${POST_PROCESSOR.correctedParams}",
+        "skillType": "${SKILL_INPUT_PARSER.skillType}"
+      },
+      "outputs": {},
+      "configs": {
+        "preDefinedFields": {
+          "inputs": [
+            {
+              "id": "arguments",
+              "type": "Map<String, T>",
+              "sourceType": "ref"
+            },
+            {
+              "id": "skillType",
+              "type": "String",
+              "sourceType": "ref"
+            }
+          ],
+          "outputs": []
+        },
+        "debugType": {
+          "debugTree": false
+        }
+      }
+    },
+    {
+      "id": "PLUGIN_18bd04f021",
+      "type": "jiuwen.planner.components.planning_modules.plugin.Plugin",
+      "typeVersion": "1.0.2",
+      "inputs": {
+        "name": "${POST_PROCESSOR.functionName}",
+        "arguments": "${POST_PROCESSOR.correctedParams}",
+        "configs": "${SKILL_INPUT_PARSER.configs}"
+      },
+      "outputs": {
+        "name": null,
+        "displayText": null,
+        "ttsText": null,
+        "cardInfo": null,
+        "commandInfo": null,
+        "chipsInfo": null,
+        "pluginResult": null
+      },
+      "configs": {
+        "executeMode": "",
+        "name": "",
+        "displayText": "",
+        "ttsText": "",
+        "commandInfo": "",
+        "chipsInfo": "",
+        "plugins": [],
+        "preDefinedFields": {
+          "inputs": [
+            {
+              "id": "name",
+              "type": "String",
+              "sourceType": "ref"
+            },
+            {
+              "id": "arguments",
+              "sourceType": "ref",
+              "type": "Map<String, T>"
+            },
+            {
+              "id": "configs",
+              "sourceType": "ref",
+              "type": "Map<String, T>"
+            }
+          ],
+          "outputs": [
+            {
+              "id": "pluginResult",
+              "type": "Map<String, T>"
+            },
+            {
+              "id": "name",
+              "type": "String"
+            },
+            {
+              "id": "displayText",
+              "type": "String"
+            },
+            {
+              "id": "ttsText",
+              "type": "String"
+            },
+            {
+              "id": "streamInfo",
+              "type": "Map<String, T>"
+            },
+            {
+              "id": "cardInfo",
+              "type": "String"
+            },
+            {
+              "id": "commandInfo",
+              "type": "String"
+            },
+            {
+              "id": "chipsInfo",
+              "type": "String"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "WORKFLOW_EXECUTOR",
+      "type": "WorkflowComposite",
+      "typeVersion": "0.0.1",
+      "referenceIR": {
+        "id": "${POST_PROCESSOR.functionName}",
+        "version": "noEffort"
+      },
+      "inputs": {
+      },
+      "outputs": {
+      },
+      "configs": {}
+    },
+    {
+      "id": "SKILL_OUTPUT_PARSER",
+      "type": "jiuwen.planner.components.plan_modules.skill_output_parser:SkillOutputParser",
+      "typeVersion": "1.0.2",
+      "inputs": {
+        "pluginOutput": "${PLUGIN_18bd04f021.pluginResult}",
+        "responseContent": "${WORKFLOW_EXECUTOR.responseContent}"
+      },
+      "outputs": {
+        "status_code": null,
+        "outputType": null
+      },
+      "configs": {
+        "preDefinedFields": {
+          "inputs": [
+            {
+              "id": "pluginOutput",
+              "sourceType": "ref",
+              "type": "Map<String, T>"
+            },
+            {
+              "id": "responseContent",
+              "sourceType": "ref",
+              "type": "String"
+            }
+          ],
+          "outputs": [
+            {
+              "id": "status_code",
+              "type": "String"
+            },
+            {
+              "id": "outputType",
+              "type": "String"
+            }
+          ]
+        },
+        "debugType": {
+          "debugTree": false
+        }
+      }
+    },
+    {
+      "id": "CONTINUE_BRANCH",
+      "type": "jiuwen.switchCase",
+      "branches": [
+        {
+          "branchId": "continue",
+          "boolExpression": "${SHOULD_CONTINUE.judge_res} == 1"
+        },
+        {
+          "branchId": "not_continue",
+          "boolExpression": "${SHOULD_CONTINUE.judge_res} == 0"
+        }
+      ],
+      "configs": {
+        "debugType": {
+          "debugTree": false
+        }
+      }
+    },
+    {
+      "id": "SKILL_TYPE_BRANCH",
+      "type": "jiuwen.switchCase",
+      "branches": [
+        {
+          "branchId": "plugin_execute",
+          "boolExpression": "${SKILL_INPUT_PARSER.skillType} == 'Plugin'"
+        },
+        {
+          "branchId": "workflow_execute",
+          "boolExpression": "${SKILL_INPUT_PARSER.skillType} == 'Workflow'"
+        }
+      ],
+      "configs": {
+        "debugType": {
+          "debugTree": false
+        }
+      }
+    },
+    {
+      "id": "SKILL_OUTPUT_TYPE_BRANCH",
+      "type": "jiuwen.switchCase",
+      "branches": [
+        {
+          "branchId": "next_iteration",
+          "boolExpression": "${SKILL_OUTPUT_PARSER.outputType} == 'LLMResponse'"
+        },
+        {
+          "branchId": "end",
+          "boolExpression": "${SKILL_OUTPUT_PARSER.outputType} == 'directResponse'"
+        }
+      ],
+      "configs": {
+        "debugType": {
+          "debugTree": false
+        }
+      }
+    },
+    {
+      "id": "SKILL_OUTPUT_TRUE_BRANCH",
+      "type": "jiuwen.switchCase",
+      "branches": [
+        {
+          "branchId": "skill_output_true",
+          "boolExpression": "'continue' == 'continue'"
+        }
+      ],
+      "configs": {
+        "debugType": {
+          "debugTree": false
+        }
+      }
+    },
+    {
+      "id": "CONTINUE_TRUE_BRANCH",
+      "type": "jiuwen.switchCase",
+      "branches": [
+        {
+          "branchId": "continue_true",
+          "boolExpression": "'continue' == 'continue'"
+        }
+      ],
+      "configs": {
+        "debugType": {
+          "debugTree": false
+        }
+      }
+    },
+    {
+      "id": "PLUGIN_TRUE_BRANCH",
+      "type": "jiuwen.switchCase",
+      "branches": [
+        {
+          "branchId": "plugin_true",
+          "boolExpression": "'continue' == 'continue'"
+        }
+      ],
+      "configs": {
+        "debugType": {
+          "debugTree": false
+        }
+      }
+    },
+    {
+      "id": "WORKFLOW_TRUE_BRANCH",
+      "type": "jiuwen.switchCase",
+      "branches": [
+        {
+          "branchId": "workflow_true",
+          "boolExpression": "'continue' == 'continue'"
+        }
+      ],
+      "configs": {
+        "debugType": {
+          "debugTree": false
+        }
+      }
+    },
+    {
+      "id": "END_TRUE_BRANCH",
+      "type": "jiuwen.switchCase",
+      "branches": [
+        {
+          "branchId": "workflow_true",
+          "boolExpression": "'continue' == 'continue'"
+        }
+      ],
+      "configs": {
+        "debugType": {
+          "debugTree": false
+        }
+      }
+    },
+    {
+      "id": "END_PLANNING",
+      "type": "jiuwen.planner.components.plan_modules.end_planning:EndPlanning",
+      "typeVersion": "1.0.2",
+      "inputs": {
+        "skillOutputType": "${SKILL_OUTPUT_PARSER.outputType}"
+      },
+      "outputs": {
+        "output": "",
+        "responseType": ""
+      },
+      "configs": {
+        "preDefinedFields": {
+          "inputs": [
+            {
+              "id": "skillOutputType",
+              "type": "String",
+              "sourceType": "ref"
+            }
+          ],
+          "outputs": [
+            {
+              "id": "output",
+              "type": "String"
+            },
+            {
+              "id": "responseType",
+              "type": "String"
+            }
+          ]
+        },
+        "debugType": {
+          "debugTree": false
+        }
+      }
+    }
+  ],
+  "connections": [
+    {
+      "source": {
+        "componentId": "start"
+      },
+      "target": {
+        "componentId": "START_PLANNING"
+      }
+    },
+    {
+      "source": {
+        "componentId": "START_PLANNING"
+      },
+      "target": {
+        "componentId": "PRE_SELECTOR"
+      }
+    },
+    {
+      "source": {
+        "componentId": "PRE_SELECTOR"
+      },
+      "target": {
+        "componentId": "SELECTOR"
+      }
+    },
+    {
+      "source": {
+        "componentId": "SELECTOR"
+      },
+      "target": {
+        "componentId": "POST_SELECTOR"
+      }
+    },
+    {
+      "source": {
+        "componentId": "POST_SELECTOR"
+      },
+      "target": {
+        "componentId": "KNOWLEDGE_SEARCH"
+      }
+    },
+    {
+      "source": {
+        "componentId": "KNOWLEDGE_SEARCH"
+      },
+      "target": {
+        "componentId": "CONSTRUCT_PROMPT"
+      }
+    },
+    {
+      "source": {
+        "componentId": "CONSTRUCT_PROMPT"
+      },
+      "target": {
+        "componentId": "LLM_REACT"
+      }
+    },
+    {
+      "source": {
+        "componentId": "LLM_REACT"
+      },
+      "target": {
+        "componentId": "UPDATE_PLAN_OUTPUT"
+      }
+    },
+    {
+      "source": {
+        "componentId": "SKILL_INPUT_PARSER"
+      },
+      "target": {
+        "componentId": "POST_PROCESSOR"
+      }
+    },
+    {
+      "source": {
+        "componentId": "POST_PROCESSOR"
+      },
+      "target": {
+        "componentId": "PRE_EXECUTOR"
+      }
+    },
+    {
+      "source": {
+        "componentId": "PRE_EXECUTOR"
+      },
+      "target": {
+        "componentId": "SKILL_TYPE_BRANCH"
+      }
+    },
+    {
+      "source": {
+        "componentId": "SKILL_TYPE_BRANCH",
+        "branchId": "plugin_execute"
+      },
+      "target": {
+        "componentId": "PLUGIN_18bd04f021"
+      }
+    },
+    {
+      "source": {
+        "componentId": "SKILL_TYPE_BRANCH",
+        "branchId": "workflow_execute"
+      },
+      "target": {
+        "componentId": "WORKFLOW_EXECUTOR"
+      }
+    },
+    {
+      "source": {
+        "componentId": "UPDATE_PLAN_OUTPUT"
+      },
+      "target": {
+        "componentId": "SHOULD_CONTINUE"
+      }
+    },
+    {
+      "source": {
+        "componentId": "SHOULD_CONTINUE"
+      },
+      "target": {
+        "componentId": "CONTINUE_BRANCH"
+      }
+    },
+    {
+      "source": {
+        "componentId": "CONTINUE_BRANCH",
+        "branchId": "continue"
+      },
+      "target": {
+        "componentId": "SKILL_INPUT_PARSER"
+      }
+    },
+    {
+      "source": {
+        "componentId": "CONTINUE_BRANCH",
+        "branchId": "not_continue"
+      },
+      "target": {
+        "componentId": "CONTINUE_TRUE_BRANCH"
+      }
+    },
+    {
+      "source": {
+        "componentId": "CONTINUE_TRUE_BRANCH",
+        "branchId": "continue_true"
+      },
+      "target": {
+        "componentId": "END_PLANNING"
+      }
+    },
+    {
+      "source": {
+        "componentId": "PLUGIN_18bd04f021"
+      },
+      "target": {
+        "componentId": "PLUGIN_TRUE_BRANCH"
+      }
+    },
+    {
+      "source": {
+        "componentId": "PLUGIN_TRUE_BRANCH",
+        "branchId": "plugin_true"
+      },
+      "target": {
+        "componentId": "SKILL_OUTPUT_PARSER"
+      }
+    },
+    {
+      "source": {
+        "componentId": "WORKFLOW_EXECUTOR"
+      },
+      "target": {
+        "componentId": "WORKFLOW_TRUE_BRANCH"
+      }
+    },
+    {
+      "source": {
+        "componentId": "WORKFLOW_TRUE_BRANCH",
+        "branchId": "workflow_true"
+      },
+      "target": {
+        "componentId": "SKILL_OUTPUT_PARSER"
+      }
+    },
+    {
+      "source": {
+        "componentId": "SKILL_OUTPUT_PARSER"
+      },
+      "target": {
+        "componentId": "SKILL_OUTPUT_TYPE_BRANCH"
+      }
+    },
+    {
+      "source": {
+        "componentId": "SKILL_OUTPUT_TYPE_BRANCH",
+        "branchId": "next_iteration"
+      },
+      "target": {
+        "componentId": "SKILL_OUTPUT_TRUE_BRANCH"
+      }
+    },
+    {
+      "source": {
+        "componentId": "SKILL_OUTPUT_TRUE_BRANCH",
+        "branchId": "skill_output_true"
+      },
+      "target": {
+        "componentId": "CONSTRUCT_PROMPT"
+      }
+    },
+    {
+      "source": {
+        "componentId": "SKILL_OUTPUT_TYPE_BRANCH",
+        "branchId": "end"
+      },
+      "target": {
+        "componentId": "END_TRUE_BRANCH"
+      }
+    },
+    {
+      "source": {
+        "componentId": "END_TRUE_BRANCH",
+        "branchId": "workflow_true"
+      },
+      "target": {
+        "componentId": "END_PLANNING"
+      }
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "type": "jiuwen.IntentDetectionComponent",
+  "version": "1.0.1",
+  "description": "jiuwen意图识别组件",
+  "schemaVersion": "0.6",
+  "classInfo": {
+    "programLanguage": "python",
+    "modulePath": "jiuwen/planner/components/intent_detection",
+    "className": "IntentDetectionComponent",
+    "filePath": "jiuwen/planner/components/intent_detection.pyc"
+  },
+  "inputs": [
+    {
+      "id": "query",
+      "type": "String",
+      "description": "用户输入参数"
+    },
+    {
+      "id": "userFields",
+      "type": "Map<String, T>",
+      "description": "用户自定义输入参数"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "classificationId",
+      "type": "String",
+      "description": "输出的分类分支名"
+    },
+    {
+      "id": "reason",
+      "type": "String",
+      "description": "分类理由"
+    }
+  ],
+  "configs": [
+    {
+      "id": "branches",
+      "type": "List<Map<String, String>>",
+      "description": "分类信息"
+    },
+    {
+      "id": "prompt",
+      "type": "String",
+      "description": "模板配置信息"
+    },
+    {
+      "id": "modelConfigs",
+      "type": "Map<String, T>",
+      "description": "模型配置"
+    },
+    {
+      "id": "enableHistory",
+      "type": "Boolean",
+      "description": "是否开启对话历史"
+    },
+    {
+      "id": "preDefinedFields",
+      "type": "Map<String, T>",
+      "description": "预定义参数信息配置"
+    },
+    {
+      "id": "userFields",
+      "type": "Map<String, T>",
+      "description": "用户自定义输入输出参数的配置信息"
+    }
+  ]
+}

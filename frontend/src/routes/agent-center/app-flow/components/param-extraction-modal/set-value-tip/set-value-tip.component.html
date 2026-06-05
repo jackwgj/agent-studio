@@ -1,0 +1,187 @@
+<!-- <div
+  (clickOutside)="onClickOutside($event)"
+  [ngStyle]="{ width: width }"
+  class="flex flex-col gap-[8px] py-[4px]"
+>
+  <div class="flex w-full flex-col gap-2">
+    <div class="text-label">
+      {{ 'type' | i18nextEager }}
+    </div>
+
+    <ti-select
+      (ngModelChange)="onParamTypeChange(param)"
+      [(ngModel)]="param.value.type"
+      [name]="'paramType'"
+      [options]="sourceOptions"
+      style="width: 100%"
+      valueKey="value"
+    ></ti-select>
+  </div>
+
+  <div [ngClass]="isMulti ? 'flex justify-between' : ''" class="text-label">
+    {{ 'default_v' | i18nextEager }}{{ 'optional' | i18nextEager }}
+  </div>
+
+  <div class="w-full">
+    <ti-treeselect
+      *ngIf="field.value.type === 'ref'"
+      [(ngModel)]="field.value.content"
+      [appendToBody]="true"
+      [name]="'paramValue'"
+      [options]="field.refs"
+      [panelAlign]="'right'"
+      [placeholder]="'select_placeholder' | i18nextEager"
+      [searchable]="true"
+      labelKey="name"
+      panelWidth="auto"
+      refSelectedRequire
+      style="width: 100%"
+    >
+      <ng-template #item let-i="index" let-item>
+        <meta-param-tree [item]="item" />
+      </ng-template>
+    </ti-treeselect>
+    <form #valueForm="ngForm" *ngIf="param.value.type === 'literal'">
+      <ng-container *ngIf="field.type === 'string'">
+        <textarea
+          (ngModelChange)="debounceInput()"
+          [(ngModel)]="value"
+          [placeholder]="'input_placeholder' | i18nextEager"
+          class="!w-full"
+          name="defaultValue"
+          rows="5"
+          tiTextarea
+        ></textarea>
+      </ng-container>
+
+      <ng-container *ngIf="field.type === 'integer'">
+        <input
+          (ngModelChange)="debounceInput()"
+          [(ngModel)]="value"
+          [errorMessageWrapper]="paramErrwrapper"
+          [placeholder]="'input_placeholder' | i18nextEager"
+          [tiValidation]="{ type: 'changeAlert' }"
+          integerStr
+          name="defaultValue"
+          style="width: 100%"
+          tiText
+          type="text"
+        />
+
+        <div #paramErrwrapper class="w-full"></div>
+      </ng-container>
+
+      <ng-container *ngIf="field.type === 'number'">
+        <input
+          (ngModelChange)="debounceInput()"
+          [(ngModel)]="value"
+          [errorMessageWrapper]="paramErrwrapper"
+          [placeholder]="'input_placeholder' | i18nextEager"
+          [tiValidation]="{ type: 'changeAlert' }"
+          name="defaultValue"
+          numberStr
+          style="width: 100%"
+          tiText
+          type="text"
+        />
+
+        <div #paramErrwrapper class="w-full"></div>
+      </ng-container>
+
+      <ng-container *ngIf="field.type === 'boolean'">
+        <ti-select
+          [(ngModel)]="value"
+          [options]="booleanOps"
+          [placeholder]="'select_placeholder' | i18nextEager"
+          name="defaultValue"
+          style="width: 100%"
+          valueKey="value"
+        >
+        </ti-select>
+
+        <div #paramErrwrapper class="w-full"></div>
+      </ng-container>
+
+      <ng-container
+        *ngIf="
+          field.type.startsWith('array') &&
+          !param.type.includes('array\<file\>')
+        "
+      >
+        <div
+          class="w-full rounded-[6px] border-[1px] border-solid border-[#ccc]"
+        >
+          <div
+            class="flex items-center justify-between rounded-t-[6px] border-b-[1px] border-solid border-[#ccc] bg-[#f0f7ff] p-[10px]"
+          >
+            <span class="font-bold text-[#333]">json</span>
+            <asset-format-icon
+              (click)="formatContent()"
+              [tiTip]="'format' | i18nextEager"
+              class="cursor-pointer"
+              tiTipPosition="top"
+            ></asset-format-icon>
+          </div>
+          <div
+            class="h-[134px] w-full rounded-b-[6px] bg-white py-[10px] pr-[10px]"
+          >
+            <ngx-monaco-editor
+              #editorCmp
+              (ngModelChange)="debounceInput()"
+              [(ngModel)]="value"
+              [options]="editorOps"
+              [param]="field"
+              [uri]="editorUri"
+              arrTypeValidator
+              name="defaultValue"
+            ></ngx-monaco-editor>
+          </div>
+        </div>
+
+        <ti-error-msg
+          *ngIf="getError()"
+          [errorMessage]="getError()"
+          class="mt-[8px] w-full text-[#f23030]"
+        ></ti-error-msg>
+      </ng-container>
+
+      <ng-container *ngIf="field.type === 'object'">
+        <div
+          class="w-full rounded-[6px] border-[1px] border-solid border-[#ccc]"
+        >
+          <div
+            class="flex items-center justify-between rounded-t-[6px] border-b-[1px] border-solid border-[#ccc] bg-[#f0f7ff] p-[10px]"
+          >
+            <span class="font-bold text-[#333]">json</span>
+            <asset-format-icon
+              (click)="formatContent()"
+              [tiTip]="'format' | i18nextEager"
+              class="cursor-pointer"
+              tiTipPosition="top"
+            ></asset-format-icon>
+          </div>
+          <div
+            class="h-[134px] w-full rounded-b-[6px] bg-white py-[10px] pr-[10px]"
+          >
+            <ngx-monaco-editor
+              #editorCmp
+              (ngModelChange)="debounceInput()"
+              [(ngModel)]="value"
+              [options]="editorOps"
+              [uri]="editorUri"
+              name="defaultValue"
+              objTypeValidator
+            ></ngx-monaco-editor>
+          </div>
+        </div>
+
+        <ti-error-msg
+          *ngIf="getError()"
+          [errorMessage]="getError()"
+          class="mt-[8px] w-full text-[#f23030]"
+        ></ti-error-msg>
+      </ng-container>
+
+    </form>
+  </div>
+</div> -->

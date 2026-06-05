@@ -1,0 +1,43 @@
+<ng-template #tipContent>
+  <meta-set-default-tip
+    [param]="param"
+    [isNormalWidth]="isNormalWidth"
+    [isShowDesc]="isShowDesc"
+    [host]="host"
+    [cmpWidth]="cmpWidth"
+    [close]="onClose"
+    [valueChange]="onValueChange"
+  ></meta-set-default-tip>
+</ng-template>
+
+<div
+  class="flex h-[28px] items-center justify-center"
+  [ngClass]="{ 'h-full w-full': host !== 'default' }"
+>
+  <span
+    *ngIf="host === 'default'; else jsonInput"
+    nz-popover
+    [nzPopoverContent]="tipContent"
+    nzPopoverTrigger="click"
+    nzPopoverPlacement="bottomRight"
+    [nzPopoverTitle]="'set_default_values' | i18nextEager"
+    class="!text-[16px] hover:cursor-pointer"
+    nz-icon
+    nzType="more"
+    nzTheme="outline"
+  ></span>
+
+  <ng-template #jsonInput>
+    <div
+      nz-popover
+      [nzPopoverContent]="tipContent"
+      nzPopoverTrigger="click"
+      nzPopoverPlacement="bottomRight"
+      [title]="tooltipStr"
+      class="h-full w-full bg-transparent !text-[16px] hover:cursor-pointer"
+      nz-icon
+      nzType="edit"
+      nzTheme="outline"
+    ></div>
+  </ng-template>
+</div>

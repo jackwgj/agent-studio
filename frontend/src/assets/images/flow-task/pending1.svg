@@ -1,0 +1,9 @@
+<svg viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="14.000000" height="14.000000" fill="none" clip-path="url(#clipPath_0)" customFrame="url(#clipPath_0)">
+	<defs>
+		<clipPath id="clipPath_0">
+			<rect width="14.000000" height="14.000000" x="0.000000" y="0.000000" rx="7.000000" fill="rgb(255,255,255)" />
+		</clipPath>
+	</defs>
+	<rect id="标识-数字角标" width="14.000000" height="14.000000" x="0.000000" y="0.000000" rx="7.000000" fill="rgb(242,48,48)" />
+	<path id="" d="M7.2948 3.85889C7.05555 4.12988 6.77479 4.36914 6.43543 4.58887C6.09607 4.78906 5.75428 4.93066 5.43445 5.021L5.43445 5.83887C6.10584 5.64111 6.66492 5.31885 7.11414 4.85986L7.11414 11L7.93445 11L7.93445 3.85889L7.2948 3.85889Z" fill="rgb(255,255,255)" fill-rule="nonzero" />
+</svg>

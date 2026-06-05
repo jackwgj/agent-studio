@@ -1,0 +1,18 @@
+<div class="pb-[30px]">
+  <nz-alert nzType="info" [nzMessage]="i18n.transform('transfer_tip')" style="width: 100%; margin-bottom: 16px;"></nz-alert>
+
+  <div class="mb-[16px]">
+    <label class="block mb-[8px]">{{ 'transfer_ownership' | i18nextEager }}:</label>
+    <nz-select
+      style="width:100%"
+      [nzOptions]="memberOption"
+      [(ngModel)]="memberModel"
+      nzPlaceHolder="{{ 'pls_select_member' | i18nextEager }}"
+    >
+    </nz-select>
+  </div>
+</div>
+<div class="flex justify-end gap-[12px]">
+  <button nz-button (click)="close()">{{ 'cancel' | i18nextEager }}</button>
+  <button nz-button nzType="primary" (click)="transferFn()" [nzLoading]="btnLoading">{{ 'ok' | i18nextEager }}</button>
+</div>

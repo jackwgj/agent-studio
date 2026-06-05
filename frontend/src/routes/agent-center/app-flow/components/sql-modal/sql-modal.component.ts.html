@@ -1,0 +1,523 @@
+<!--import {-->
+<!--Component,-->
+<!--EventEmitter,-->
+<!--Input,-->
+<!--OnDestroy,-->
+<!--OnInit,-->
+<!--Output,-->
+<!--ViewChild,-->
+<!--} from '@angular/core';-->
+<!--import { MODULES } from '@shared/modules';-->
+<!--import { I18NEXT_NAMESPACE, I18NextEagerPipe } from 'angular-i18next';-->
+<!--import { I18nNamespace } from '@i18n';-->
+<!--import { ModalBaseComponent } from '../base/modal-base.component';-->
+<!--import {-->
+<!--getInitInputParamConfig,-->
+<!--getInitOutputParamConfig,-->
+<!--getInputParamTypes,-->
+<!--getNoneObjOutputParamTypes,-->
+<!--getOutputParamTypes,-->
+<!--LAZY_LOAD_LIMIT,-->
+<!--WORKFLOW_SVGS,-->
+<!--} from '../../flow.const';-->
+<!--import { AppFlowService } from '../../app-flow.service';-->
+<!--import { NodeService } from '../../node.service';-->
+<!--import { AccBlockComponent } from '../acc-block/acc-block.component';-->
+<!--import { ReadonlyParamsComponent } from '../readonly-params/readonly-params.component';-->
+<!--import {-->
+<!--TiListScrollLoad,-->
+<!--TiSelectComponent,-->
+<!--TiTreeUtil,-->
+<!--TiValidationConfig,-->
+<!--TiValidators,-->
+<!--} from '@cloud/tiny3';-->
+<!--import { FormBuilder, FormControl, NgForm, Validators } from '@angular/forms';-->
+<!--import { TextFieldModule } from '@angular/cdk/text-field';-->
+<!--import type {-->
+<!--IParamRef,-->
+<!--IQANode,-->
+<!--ISqlNode,-->
+<!--IWFView,-->
+<!--IWFViewParentType,-->
+<!--IWFViewWithMultiType,-->
+<!--IWorkflowField,-->
+<!--} from '../../node.type';-->
+<!--import { NodeUtils } from '../utils';-->
+<!--  import { CommonValidation } from '@shared/validation/commonValidation';-->
+<!--  import { ParamTreeComponent } from '../param-tree/param-tree.component';-->
+<!--  import {-->
+<!--  NonEmptyValidatorDirective,-->
+<!--  ValueValidityValidatorDirective,-->
+<!--  } from '@shared/directives/variable-name-validator.directive';-->
+<!--import { RefSelectedRequireDirective } from '@shared/directives/common-validator.directive';-->
+<!--import { cloneDeep } from 'lodash';-->
+<!--import { DataSourceManagementRepoService } from '@services/repositories/datasource-management-repo.service';-->
+<!--import { CmdTextareaComponent } from '../cmd-textarea/cmd-textarea.component';-->
+<!--import { FlowUtils } from '../../utils/flow-utils';-->
+<!--import { AddPropsIconComponent } from '../add-props-icon/add-props-icon.component';-->
+<!--import { ICallbackFn } from '@routes/agent-center/types/common.types';-->
+<!--import { IDatasourceItem } from '@routes/agent-center/types/datasource.types';-->
+<!--import { EditNameComponent } from '@routes/agent-center/app-flow/components/edit-name/edit-name.component';-->
+<!--import { NodeDescriptionComponent } from '../node-description/node-description.component';-->
+<!--import { InputTreeSelect } from 'src/routes/agent-center/app-flow/components/input-tree-select/input-tree-select';-->
+<!--import { takeUntil } from 'rxjs';-->
+<!--@Component({-->
+<!--  selector: 'meta-sql-modal',-->
+<!--  templateUrl: './sql-modal.component.html',-->
+<!--  styleUrls: ['./sql-modal.component.scss', '../common-styles.less'],-->
+<!--  standalone: true,-->
+<!--  imports: [-->
+<!--  MODULES,-->
+<!--  AccBlockComponent,-->
+<!--  TextFieldModule,-->
+<!--  ParamTreeComponent,-->
+<!--  NonEmptyValidatorDirective,-->
+<!--  RefSelectedRequireDirective,-->
+<!--  ValueValidityValidatorDirective,-->
+<!--  CmdTextareaComponent,-->
+<!--  AddPropsIconComponent,-->
+<!--  EditNameComponent,-->
+<!--  NodeDescriptionComponent,-->
+<!--  InputTreeSelect-->
+<!--  ],-->
+<!--  providers: [-->
+<!--  {-->
+<!--  provide: I18NEXT_NAMESPACE,-->
+<!--  useValue: [I18nNamespace.AGENT_CENTER],-->
+<!--  },-->
+<!--  ],-->
+<!--  })-->
+<!--export class SqlModalComponent-->
+<!--extends ModalBaseComponent-->
+<!--implements OnInit, OnDestroy {-->
+<!--@Input('names') names: string[];-->
+
+<!--@Input('nodeInfo') nodeInfo: ISqlNode;-->
+
+<!--@Output('confirm') confirm = new EventEmitter<ISqlNode>();-->
+
+<!--@ViewChild('inputForm') inputForm: NgForm;-->
+
+<!--@ViewChild('outputForm') outputForm: NgForm;-->
+
+<!--public iconUrl = WORKFLOW_SVGS.Sql;-->
+
+<!--public validation: TiValidationConfig = {-->
+<!--type: 'change',-->
+<!--};-->
+
+<!--public validationRules = [TiValidators.required];-->
+
+<!--public inputParams: IWorkflowField[] = [];-->
+
+<!--public inputSourceOptions = [-->
+<!--{ label: this.i18n.transform('ref'), value: 'ref' },-->
+<!--{ label: this.i18n.transform('literal'), value: 'literal' },-->
+<!--];-->
+
+<!--public datasourceOptions: IDatasourceItem[] = [];-->
+
+<!--public datasourceValidation: TiValidationConfig = {-->
+<!--errorMessage: {-->
+<!--required: this.i18n.transform('sqlmodalcomponent_585'),-->
+<!--},-->
+<!--type: 'changeAlert',-->
+<!--};-->
+
+<!--public formGroup = this.fb.group({-->
+<!--datasource: new FormControl(null, [-->
+<!--TiValidators.required,-->
+<!--CommonValidation.isDatasourceIdEmpty(this.i18n.transform('sqlmodalcomponent_585')),-->
+<!--]),-->
+<!--});-->
+
+<!--public placeholderStr = this.i18n.transform('sqlmodalcomponent_586');-->
+
+<!--public sql = '';-->
+
+<!--public outputParams: IWFViewWithMultiType[] = [];-->
+
+<!--public isSimpleType = NodeUtils.isSimpleType;-->
+
+<!--public isObjectLikeType = NodeUtils.isObjectLikeType;-->
+
+<!--public startTypeOp = getNoneObjOutputParamTypes();-->
+
+<!--public standTypeOps = getOutputParamTypes();-->
+
+<!--public startTypeOptions = getInputParamTypes();-->
+
+<!--override slimParamLableWidth = {-->
+<!--name: '180px',-->
+<!--type: '180px',-->
+<!--desc: '0',-->
+<!--};-->
+
+<!--private nameRefOptions: IParamRef[] = [];-->
+
+<!--private totalCount: number = 0;-->
+<!--updateTimeout: any = null;-->
+<!--constructor(-->
+<!--protected override appFlowServ: AppFlowService,-->
+<!--protected override nodeServ: NodeService,-->
+<!--private fb: FormBuilder,-->
+<!--private i18n: I18NextEagerPipe,-->
+<!--private dataSourceRepoServe: DataSourceManagementRepoService,-->
+<!--) {-->
+<!--super(nodeServ, appFlowServ);-->
+<!--}-->
+
+<!--override ngOnInit() {-->
+<!--this.setNodeBase(this.nodeInfo);-->
+<!--super.ngOnInit();-->
+
+<!--const parentNode = this.getParentNodeInfo(this.appFlowServ.getGraph());-->
+<!--if (parentNode) {-->
+<!--this.getLoopInnerNodeRefs(parentNode, { strOnly: true }).subscribe(-->
+<!--(info) => {-->
+<!--this.onRefUpdate(info);-->
+<!--},-->
+<!--);-->
+<!--} else {-->
+<!--this.getSelfRefs({ strOnly: true }).subscribe((info) => {-->
+<!--this.onRefUpdate(info);-->
+<!--});-->
+<!--}-->
+
+<!--this.outputParams = FlowUtils.fields2Views(-->
+<!--(this.nodeInfo as ISqlNode).outputs,-->
+<!--);-->
+
+<!--this.validationRules.push(-->
+<!--CommonValidation.nameUniquenessVerify(-->
+<!--this.names,-->
+<!--this.i18n.transform('name_uniqueness'),-->
+<!--this.nodeInfo.name,-->
+<!--),-->
+<!--);-->
+
+<!--this.formGroup.setValue({-->
+<!--datasource: this.nodeInfo.configs ?? null,-->
+<!--});-->
+<!--this.sql = this.nodeInfo.configs?.sql;-->
+<!--}-->
+
+<!--ngAfterViewInit() {-->
+<!--if (this.appFlowServ.testRunVerificationError) {-->
+<!--setTimeout(() => {-->
+<!--this.validateNode();-->
+<!--});-->
+<!--}-->
+<!--}-->
+
+<!--override ngOnDestroy(): void {-->
+<!--this.modelCloseSave();-->
+<!--this.destroy$.next();-->
+<!--this.destroy$.complete();-->
+<!--}-->
+
+<!--public get tipVals() {-->
+<!--return this.inputParams.map((param) => param.name);-->
+<!--}-->
+
+<!--validateNode() {-->
+<!--const inputErr = TiValidators.check(this.inputForm.form);-->
+<!--const formErr = TiValidators.check(this.formGroup);-->
+<!--const outputErr = TiValidators.check(this.outputForm.form);-->
+<!--if (inputErr || formErr || outputErr) {-->
+<!--return;-->
+<!--}-->
+<!--}-->
+
+<!--public handelSave() {-->
+<!--if (this.tagCompareNoChange()) {-->
+<!--return;-->
+<!--}-->
+<!--const { id, name, type } = this.formGroup.controls.datasource?.value || {};-->
+<!--const configs = {-->
+<!--...cloneDeep(this.nodeInfo.configs),-->
+<!--id,-->
+<!--name,-->
+<!--type,-->
+<!--sql: this.sql,-->
+<!--};-->
+<!--this.appFlowServ.setNodeSaveMonitor({-->
+<!--nodeData: {-->
+<!--...this.nodeInfo,-->
+<!--inputs: NodeUtils.getDtoInputs(this.inputParams),-->
+<!--configs,-->
+<!--outputs: NodeUtils.multiTypeViews2Fields(this.outputParams),-->
+<!--}-->
+<!--  });-->
+<!--if (this.updateTimeout) {-->
+<!--clearTimeout(this.updateTimeout);-->
+<!--this.updateTimeout = null;-->
+<!--}-->
+<!--this.updateTimeout = setTimeout(() => {-->
+<!--this.updateChangeAndInitTime();-->
+<!--}, 200);-->
+<!--}-->
+
+<!--dismiss(): void { }-->
+
+<!--close(): void { }-->
+
+<!--private onRefUpdate(info: IParamRef[]) {-->
+
+<!--this.nameRefOptions  = info;-->
+
+<!--if (this.isInit) {-->
+<!--this.inputParams = NodeUtils.initInputs(-->
+<!--this.nodeInfo.inputs,-->
+<!--this.nameRefOptions,-->
+<!--);-->
+<!--} else {-->
+<!--NodeUtils.reSelectRefsWithNewOps(this.inputParams, this.nameRefOptions);-->
+<!--}-->
+
+<!--this.isInit = false;-->
+<!--}-->
+
+<!--onNameChange() {-->
+<!--window.setTimeout(() => {-->
+<!--  TiValidators.check(this.inputForm?.form);-->
+<!--    TiValidators.check(this.outputForm?.form);-->
+<!--    });-->
+<!--    }-->
+
+<!--    getInputNames(index: number): {-->
+<!--    existingValues: string[];-->
+<!--  } {-->
+<!--    const names = this.inputParams.map((p) => p.name);-->
+<!--    names.splice(index, 1);-->
+<!--    return { existingValues: names };-->
+<!--    }-->
+
+<!--    onInputValueTypeChange(row: IWorkflowField) {-->
+<!--    row.value.content = NodeUtils.getChangeContent(row.value.type);-->
+<!--    this.onSave();-->
+<!--    }-->
+
+<!--    public addInputParam() {-->
+<!--    this.inputParams.push({-->
+<!--    ...getInitInputParamConfig(),-->
+<!--  refs: cloneDeep(this.nameRefOptions),-->
+<!--  });-->
+<!--this.onSave();-->
+<!--}-->
+
+<!--public deleteInputParam(index: number): void {-->
+<!--this.inputParams.splice(index, 1);-->
+<!--this.onSave();-->
+<!--}-->
+
+<!--// ==== [输出参数配置相关函数 - 开始] ====-->
+<!--showDelete(param: IWFViewWithMultiType) {-->
+<!--if (this.disableEdit(param)) {-->
+<!--return false;-->
+<!--}-->
+
+<!--if (param.depth === 0 && this.outputParams.length === 1) {-->
+<!--return false;-->
+<!--}-->
+
+<!--return true;-->
+<!--}-->
+
+<!--onStartOutputParamTypeChange(param: IWFViewWithMultiType) {-->
+<!--const type = param.type.join('/');-->
+<!--if (this.isSimpleType(type) && param?.children) {-->
+<!--delete param?.children;-->
+<!--return;-->
+<!--}-->
+
+<!--if (this.isObjectLikeType(param.type)) {-->
+<!--if (!param?.children) {-->
+<!--this.addChild(param);-->
+<!--}-->
+<!--  }-->
+
+<!--if (-->
+<!--type.startsWith('array') &&-->
+<!--type !== 'array<object>' &&-->
+<!--  param?.children-->
+<!--  ) {-->
+<!--  delete param?.children;-->
+<!--  }-->
+
+<!--  if (param.value.default) {-->
+<!--  param.value.default = null;-->
+<!--  }-->
+<!--  this.onSave();-->
+<!--  }-->
+
+<!--  addChild(param: IWFViewWithMultiType) {-->
+<!--  const child = {-->
+<!--  ...getInitOutputParamConfig(),-->
+<!--  depth: param.depth + 1,-->
+<!--  parentType: param?.type[0] as IWFViewParentType,-->
+<!--  type: ['string'],-->
+<!--  };-->
+
+<!--  if (param?.children) {-->
+<!--  param.children?.push(child);-->
+<!--  } else {-->
+<!--  param.children = [child];-->
+<!--  }-->
+
+<!--  param.expanded = true;-->
+<!--  this.onSave();-->
+<!--  }-->
+
+<!--  disableEdit(param: IWFViewWithMultiType) {-->
+<!--  return param.name === 'output_list' || param.name === 'row_num';-->
+<!--  }-->
+
+<!--  onStartNodeNameChange() {-->
+<!--  window.setTimeout(() => {-->
+<!--  TiValidators.check(this.outputForm?.form);-->
+<!--  });-->
+<!--  }-->
+
+<!--  getStartNodeInputNames(param: IWFView): {-->
+<!--  existingValues: string[];-->
+<!--  } {-->
+<!--  let names = [];-->
+<!--  if (param.depth === 0) {-->
+<!--  names = this?.outputParams.map((arg) => arg.name);-->
+<!--  } else {-->
+<!--  const parentNode = TiTreeUtil?.getParentNode(this.outputParams, param);-->
+<!--  names = parentNode?.children.map((arg) => arg.name);-->
+<!--  }-->
+
+<!--  names.splice(names.indexOf(param.name), 1);-->
+<!--  return { existingValues: names };-->
+<!--  }-->
+
+<!--  deleteStartNodeParam(param: IWFView) {-->
+<!--    TiTreeUtil?.removeNode(this.outputParams, param);-->
+
+<!--    const parentNodeParam = TiTreeUtil.getParentNode(-->
+<!--      this.outputParams,-->
+<!--      param,-->
+<!--    ) as IWFView;-->
+<!--    if (-->
+<!--      this.isObjectLikeType(parentNodeParam?.type) &&-->
+<!--      parentNodeParam?.children?.length === 0-->
+<!--    ) {-->
+<!--      delete parentNodeParam?.children;-->
+<!--    }-->
+<!--    this.onSave();-->
+<!--  }-->
+<!--  // ==== [输出参数配置相关函数 - 结束] ====-->
+
+<!--  public onBeforeOpenIntentGroup(selectComp: TiSelectComponent) {-->
+<!--    this.getIntentGroups({ offset: 0 }, selectComp, {-->
+<!--      successCb: () => {-->
+<!--        selectComp?.open();-->
+<!--      },-->
+<!--    failCb: () => {-->
+<!--      this.datasourceOptions = [];-->
+<!--      this.totalCount = 0;-->
+<!--      selectComp.setLoading(false);-->
+<!--      selectComp?.open();-->
+<!--    },-->
+<!--    });-->
+<!--  }-->
+
+<!--  /** 后台搜索 */-->
+<!--  public onBeforeSearch(selectComp: TiSelectComponent) {-->
+<!--  const name = selectComp?.getSearchWord();-->
+<!--  this.getIntentGroups({ offset: 0, name }, selectComp);-->
+<!--  }-->
+
+<!--  /** 懒加载数据库 */-->
+<!--  public loadMore(-->
+<!--    scrollLoadInfo: TiListScrollLoad,-->
+<!--    selectComp: TiSelectComponent,-->
+<!--  ) {-->
+<!--  const currentOptions = selectComp?.getSearchResult();-->
+<!--  if (currentOptions.length >= this.totalCount) {-->
+<!--  return;-->
+<!--  }-->
+
+<!--  const offset = this.datasourceOptions.length;-->
+<!--  const name: string = selectComp?.getSearchWord();-->
+<!--  scrollLoadInfo.loading = true;-->
+
+<!--  this.dataSourceRepoServe-->
+<!--  .getDatasourceList({-->
+<!--  offset,-->
+<!--  limit: LAZY_LOAD_LIMIT,-->
+<!--  name,-->
+<!--  status: 'success',-->
+<!--  })-->
+<!--  .then((result) => {-->
+<!--  this.datasourceOptions = [...currentOptions, ...result.datasource_list];-->
+<!--  this.totalCount = result?.count;-->
+<!--  scrollLoadInfo.loading = false;-->
+<!--  });-->
+<!--  }-->
+
+<!--  onSave() {-->
+<!--  this.changeUpdateTime();-->
+<!--  if (this.appFlowServ.testRunVerificationError) {-->
+<!--  this.handelSave();-->
+<!--  }-->
+<!--  }-->
+
+<!--  modelCloseSave() {-->
+<!--  if (!this.tagCompareNoChange()) {-->
+<!--  this.appFlowServ.setNodeModalCloseMonitor({ id: this.nodeInfo.id });-->
+<!--  }-->
+<!--  this.handelSave();-->
+<!--  }-->
+
+<!--  private getIntentGroups(-->
+<!--    params: { offset: number; name?: string },-->
+<!--  selectComp: TiSelectComponent,-->
+<!--  configs: ICallbackFn = {-->
+<!--  successCb: () => { },-->
+<!--  failCb: () => { },-->
+<!--  finallyCb: () => { },-->
+<!--  },-->
+<!--  ): Promise<void> {-->
+<!--  selectComp?.setLoading?.(true);-->
+
+<!--  const requestParams: any = {-->
+<!--  offset: params.offset,-->
+<!--  limit: LAZY_LOAD_LIMIT,-->
+<!--  status: 'success',-->
+<!--  };-->
+<!--  if (params.name !== undefined) {-->
+<!--  requestParams.name = params.name;-->
+<!--  }-->
+<!--  return this?.dataSourceRepoServe-->
+<!--  .getDatasourceList(requestParams)-->
+<!--  .then((result) => {-->
+<!--  selectComp?.setLoading?.(false);-->
+<!--  this.datasourceOptions = result?.datasource_list;-->
+<!--  this.totalCount = result.count;-->
+<!--  configs?.successCb?.();-->
+<!--  })-->
+<!--  .catch(() => {-->
+<!--  configs?.failCb?.();-->
+<!--  })-->
+<!--  .finally(() => {-->
+<!--  configs?.finallyCb?.();-->
+<!--  });-->
+<!--  }-->
+
+<!--  treeSelect() {-->
+<!--  setTimeout(() => {-->
+<!--  this.onSave();-->
+<!--  });-->
+<!--  }-->
+
+<!--  inputOnSave() {-->
+<!--  if (this.appFlowServ.testRunVerificationError) {-->
+<!--  this.handelSave();-->
+<!--  }-->
+<!--  }-->
+
+<!--  }-->

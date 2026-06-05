@@ -1,0 +1,50 @@
+{
+  "headers": {
+    "scope": "SERVICE",
+    "headers": {
+      "apicode2": "456",
+      "apicode1": "asd"
+    },
+    "crypt_method": "scc"
+  },
+  "auth": {
+    "crypt_method": "ei",
+    "headers": {},
+    "query": {
+      "keyquery": "AAAAAgAAAAAAAAAAAAAAAQAAAAdpkliySfoJ8yzXf3vjEyTnkjdfxO1ccDjiZEZDgBzhsAEAAAEAAAAAAAAAECgqQMGpTIBG20RZXxq4/uc="
+    },
+    "scope": "SERVICE"
+  },
+  "pluginDependency": {
+    "paramsWrapper": {}
+  },
+  "name": "test_oauth",
+  "description": "Base on empty template to create mcp service",
+  "arguments": [{
+    "validateType": "CHAR",
+    "validateRule": "",
+    "validated": false,
+    "method": "Headers",
+    "name": "apicode2",
+    "description": "456",
+    "default_value": "456",
+    "type": "string",
+    "required": false
+  }, {
+    "validateType": "CHAR",
+    "validateRule": "",
+    "validated": false,
+    "method": "Headers",
+    "name": "apicode1",
+    "description": "123",
+    "default_value": "asd",
+    "type": "string",
+    "required": false,
+    "visible": true
+  }
+  ],
+  "id": "b0f516f5dc684d97aed88f0d3cdc1136",
+  "type": "sse",
+  "inputParameters": {},
+  "url": "http://127.0.0.1:38341/sse?key=123"
+}

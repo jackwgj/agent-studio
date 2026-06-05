@@ -1,0 +1,93 @@
+:host {
+  padding: 24px;
+  background-color: #fff;
+  height: 196px;
+  box-sizing: border-box;
+  cursor: pointer;
+  font-family: PingFang SC;
+
+  @media (max-width: 1690px) {
+  }
+
+  &:hover {
+    .footer-action-container {
+      display: block!important;
+    }
+  }
+}
+
+.icon-and-name {
+  display: flex;
+  gap: 0 16px;
+  align-items: center;
+
+  .name {
+    font-size: 16px;
+    line-height: 24px;
+    color: rgba(25, 25, 25, 1);
+    font-weight: 600;
+  }
+}
+
+.bottom-area {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  line-height: 18px;
+  color: #808080;
+  position: relative;
+
+  .footer-content{
+    flex: 1;
+    gap: 8px;
+    .footer-item{
+      display: flex;
+      flex: 1;
+      gap: 4px;
+    }
+  }
+
+  .footer-action-container {
+    display: none;
+    position: absolute;
+    background-color: #ffffff;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1;
+
+    .custom-action-item {
+      font-weight: 600;
+      font-size: 14px;
+    }
+  }
+}
+
+.mcp-delete {
+  &:hover {
+    color: #1476ff;
+  }
+}
+
+.creator-plugin {
+  padding-right: 8px;
+  margin-right: 8px;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.text-overflow {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.text-overflow-2 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}

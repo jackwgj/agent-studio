@@ -1,0 +1,17 @@
+<svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="40" height="40" fill="none" customFrame="#000000">
+	<defs>
+		<clipPath id="clipPath_0">
+			<rect width="28" height="28" x="6" y="6" fill="rgba(255,255,255,0.00392157)" />
+		</clipPath>
+	</defs>
+	<g id="图标/对话型40x">
+		<rect id="矩形 " width="40" height="39.9999962" x="0" y="0" rx="8" fill="rgba(48,179,112,1)" />
+		<g id="svg" clip-path="url(#clipPath_0)" customFrame="url(#clipPath_0)">
+			<rect id="svg" width="28" height="28" x="6" y="6" fill="rgba(48,179,112,1)" />
+			<path id="path" d="M28.9823 8L17.0177 8C14.8102 8 13 9.79064 13 12.018L13 21.0586C13 23.286 14.8102 25.0766 17.0177 25.0766L24.0817 25.0766L26.9073 27.6534C27.702 28.3959 29.0706 27.8718 29.0706 26.7799L29.0706 25.033C31.234 25.033 33 23.2423 33 21.0586L33 12.018C33 9.79064 31.1898 8 28.9823 8Z" fill="rgba(255,255,255,1)" fill-opacity="0.600000024" fill-rule="nonzero" />
+			<path id="path" d="M22.9823 12L11.0177 12C8.81015 12 7 13.7867 7 16.0093L7 25.0301C7 27.2091 8.766 28.9958 10.9294 29.0394L10.9294 30.7826C10.9294 31.8721 12.298 32.395 13.0927 31.6542L15.9183 29.083L22.9823 29.083C25.1898 29.083 27 27.2963 27 25.0737L27 16.0093C27 13.7867 25.1898 12 22.9823 12Z" fill="rgba(254.745,254.841,255,1)" fill-rule="nonzero" />
+			<path id="矢量 44" d="M11 18L22.5 18" stroke="rgba(48,179,112,1)" stroke-width="1.60000002" />
+			<path id="矢量 45" d="M11 23L18 23" stroke="rgba(48,179,112,1)" stroke-width="1.60000002" />
+		</g>
+	</g>
+</svg>

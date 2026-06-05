@@ -1,0 +1,842 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) Huawei Technologies Co., Ltd. 2024-2024. All rights reserved.
+  -->
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.agent.manager.mapper.plugin.PluginMapper">
+    <resultMap id="BaseResultMap" type="com.openjiuwen.studio.agent.manager.entity.plugin.PluginEntity">
+        <id column="tool_id" jdbcType="VARCHAR" property="pluginId"/>
+        <id column="project_id" jdbcType="VARCHAR" property="projectId"/>
+        <id column="workspace_id" jdbcType="VARCHAR" property="workspaceId"/>
+        <result column="tool_display_name" jdbcType="VARCHAR" property="pluginDisplayName"/>
+        <result column="tool_chinese_name" jdbcType="VARCHAR" property="pluginChineseName"/>
+        <result column="tool_desc" jdbcType="VARCHAR" property="pluginDesc"/>
+        <result column="icon" jdbcType="VARCHAR" property="icon"/>
+        <result column="icon_name" jdbcType="VARCHAR" property="iconName"/>
+        <result column="request_info" jdbcType="VARCHAR" property="requestInfo"/>
+        <result column="auth_info" jdbcType="VARCHAR" property="authInfo"/>
+        <result column="visibility" jdbcType="VARCHAR" property="visibility"/>
+        <result column="input_schema" jdbcType="VARCHAR" property="inputSchema"/>
+        <result column="output_schema" jdbcType="VARCHAR" property="outputSchema"/>
+        <result column="is_input_list" jdbcType="TINYINT" property="isInputList"/>
+        <result column="is_output_list" jdbcType="TINYINT" property="isOutputList"/>
+        <result column="intf_type" jdbcType="VARCHAR" property="intfType"/>
+        <result column="type" jdbcType="VARCHAR" property="type"/>
+        <result column="test_status" jdbcType="VARCHAR" property="testStatus"/>
+        <result column="last_version_id" jdbcType="VARCHAR" property="lastVersionId"/>
+        <result column="metadata" jdbcType="VARCHAR" property="metadata"/>
+        <result column="creator" jdbcType="VARCHAR" property="creator"/>
+        <result column="creator_id" jdbcType="VARCHAR" property="creatorId"/>
+        <result column="created_on" jdbcType="TIMESTAMP" property="createdOn"/>
+        <result column="updated_on" jdbcType="TIMESTAMP" property="updatedOn"/>
+        <result column="auth_required" jdbcType="TINYINT" property="authRequired"/>
+        <result column="credential_status" jdbcType="VARCHAR" property="credentialStatus"/>
+        <result column="customize_node" jdbcType="TINYINT" property="customizeNode"/>
+        <result column="published" jdbcType="TINYINT" property="published"/>
+        <result column="call_mode" jdbcType="VARCHAR" property="callMode"/>
+        <result column="is_free" jdbcType="TINYINT" property="isFree"/>
+        <result column="domain_id" jdbcType="VARCHAR" property="domainId"/>
+        <result column="is_share" jdbcType="TINYINT" property="isShare"/>
+        <result column="category" jdbcType="VARCHAR" property="category"/>
+        <result column="trace_id" jdbcType="VARCHAR" property="traceId"/>
+        <association property="credentials" javaType="com.openjiuwen.studio.agent.manager.dto.ToolCredential">
+            <id property="id" column="c_id"/>
+            <result property="authKeys" column="c_auth_keys" typeHandler="com.openjiuwen.studio.agent.manager.mapper.handler.AuthKeyInfoListHandler"/>
+        </association>
+    </resultMap>
+    <sql id="Base_Column_List">
+        tool_id,
+        project_id,
+        tool_display_name,
+        tool_chinese_name,
+        tool_desc,
+        icon,
+        icon_name,
+        visibility,
+        request_info,
+        auth_info,
+        input_schema,
+        output_schema,
+        is_input_list,
+        is_output_list,
+        intf_type,
+        `type`,
+        test_status,
+        last_version_id,
+        customize_node,
+        auth_required,
+        metadata,
+        creator,
+        creator_id,
+        created_on,
+        updated_on,
+        workspace_id,
+        trace_id,
+        domain_id,
+        published,
+        call_mode,
+        is_free,
+        label,
+        is_share,
+        category
+    </sql>
+
+    <sql id="Base_Column_List_postgres">
+        tool_id,
+        project_id,
+        workspace_id,
+        tool_display_name,
+        tool_chinese_name,
+        tool_desc,
+        icon,
+        icon_name,
+        request_info,
+        auth_info,
+        visibility,
+        input_schema,
+        output_schema,
+        is_input_list,
+        is_output_list,
+        intf_type,
+        "type",
+        test_status,
+        last_version_id,
+        customize_node,
+        auth_required,
+        metadata,
+        creator,
+        creator_id,
+        created_on,
+        updated_on
+    </sql>
+
+    <insert id="insert" parameterType="com.openjiuwen.studio.agent.manager.entity.plugin.PluginEntity">
+        insert into t_tool (tool_id, project_id, workspace_id, tool_display_name, tool_chinese_name, tool_desc, icon, request_info,
+                            auth_info, visibility, input_schema, output_schema, is_input_list, is_output_list,
+                            intf_type,
+                            `type`, call_mode, metadata, creator, creator_id, icon_name, test_status, last_version_id, auth_required,trace_id, published, domain_id)
+        values (#{pluginId,jdbcType=VARCHAR}, #{projectId,jdbcType=VARCHAR}, #{workspaceId,jdbcType=VARCHAR}, #{pluginDisplayName,jdbcType=VARCHAR},
+                #{pluginChineseName,jdbcType=VARCHAR},
+                #{pluginDesc,jdbcType=VARCHAR}, #{icon,jdbcType=VARCHAR}, #{requestInfo,jdbcType=VARCHAR},
+                #{authInfo,jdbcType=VARCHAR}, #{visibility,jdbcType=VARCHAR}, #{inputSchema,jdbcType=VARCHAR},
+                #{outputSchema,jdbcType=VARCHAR},
+                #{isInputList,jdbcType=TINYINT}, #{isOutputList,jdbcType=TINYINT}, #{intfType,jdbcType=VARCHAR},
+                #{type,jdbcType=VARCHAR},#{callMode,jdbcType=VARCHAR},
+                #{metadata,jdbcType=VARCHAR}, #{creator,jdbcType=VARCHAR}, #{creatorId,jdbcType=VARCHAR},
+                #{iconName,jdbcType=VARCHAR}, #{testStatus,jdbcType=VARCHAR}, #{lastVersionId,jdbcType=VARCHAR}, #{authRequired,jdbcType=TINYINT}, #{traceId,jdbcType=VARCHAR}, #{published,jdbcType=TINYINT}, #{domainId,jdbcType=VARCHAR})
+    </insert>
+
+    <select id="selectByChineseNameAndWorkspaceIdAndProjectId" resultType="int">
+        SELECT count(*)
+        FROM t_tool
+        WHERE workspace_id = #{workspaceId}
+          AND tool_chinese_name = #{pluginChineseName}
+          AND tool_id != #{toolId}
+    </select>
+
+    <select id="selectByDisplayNameAndWorkspaceId" parameterType="map" resultType="int">
+        SELECT count(*)
+        FROM t_tool
+        WHERE workspace_id = #{workspaceId}
+          AND tool_display_name = #{pluginDisplayName}
+    </select>
+
+    <select id="selectByDisplayNameAndWorkspaceIdAndProjectId" resultType="int">
+        SELECT count(*)
+        FROM t_tool
+        WHERE workspace_id = #{workspaceId}
+          AND tool_display_name = #{pluginDisplayName}
+          AND tool_id != #{toolId}
+    </select>
+
+    <select id="selectByWorkspaceIdAndProjectId" parameterType="map" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM t_tool
+        WHERE project_id = #{projectId}
+        AND workspace_id = #{workspaceId}
+        AND tool_id != #{pluginId}
+    </select>
+
+    <select id="selectByPrimaryKeyAndWorkspace" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_tool
+        where tool_id = #{pluginId,jdbcType=VARCHAR}
+        <if test="projectId != null and projectId != ''">
+            and project_id = #{projectId,jdbcType=VARCHAR}
+        </if>
+        <if test="workspaceId != null and workspaceId != ''">
+            and workspace_id = #{workspaceId,jdbcType=VARCHAR}
+        </if>
+    </select>
+
+    <select id="batchSelectByPrimaryKeyAndWorkspace" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_tool
+        <where>
+            <!-- 校验逻辑完全不变，MyBatis自动适配Set -->
+            <if test="pluginIds != null and pluginIds.size() > 0">
+                tool_id in
+                <foreach collection="pluginIds" item="pluginId" open="(" separator="," close=")">
+                    #{pluginId,jdbcType=VARCHAR}
+                </foreach>
+            </if>
+            <if test="projectId != null and projectId != ''">
+                and project_id = #{projectId,jdbcType=VARCHAR}
+            </if>
+            <if test="workspaceId != null and workspaceId != ''">
+                and workspace_id = #{workspaceId,jdbcType=VARCHAR}
+            </if>
+        </where>
+    </select>
+
+    <update id="updateByPrimaryKeySelective"
+            parameterType="com.openjiuwen.studio.agent.manager.entity.plugin.PluginEntity">
+        update t_tool
+        <set>
+            <if test="pluginDisplayName != null">
+                tool_display_name = #{pluginDisplayName,jdbcType=VARCHAR},
+            </if>
+            <if test="pluginChineseName != null">
+                tool_chinese_name = #{pluginChineseName,jdbcType=VARCHAR},
+            </if>
+            <if test="pluginDesc != null">
+                tool_desc = #{pluginDesc,jdbcType=VARCHAR},
+            </if>
+            <if test="icon != null">
+                icon = #{icon,jdbcType=VARCHAR},
+            </if>
+            <if test="iconName != null">
+                icon_name = #{iconName,jdbcType=VARCHAR},
+            </if>
+            <if test="requestInfo != null">
+                request_info = #{requestInfo,jdbcType=VARCHAR},
+            </if>
+            <if test="inputSchema != null">
+                input_schema = #{inputSchema,jdbcType=VARCHAR},
+            </if>
+            <if test="outputSchema != null">
+                output_schema = #{outputSchema,jdbcType=VARCHAR},
+            </if>
+            <if test="intfType != null">
+                intf_type = #{intfType,jdbcType=VARCHAR},
+            </if>
+            <if test="authInfo != null">
+                auth_info = #{authInfo,jdbcType=VARCHAR},
+            </if>
+            <if test="visibility != null">
+                visibility = #{visibility,jdbcType=VARCHAR},
+            </if>
+            <if test="type != null">
+                `type` = #{type,jdbcType=VARCHAR},
+            </if>
+            <if test="metadata != null">
+                metadata = #{metadata,jdbcType=VARCHAR},
+            </if>
+            <if test="createdOn != null">
+                created_on = #{createdOn,jdbcType=TIMESTAMP},
+            </if>
+            <if test="updatedOn != null">
+                updated_on = #{updatedOn,jdbcType=TIMESTAMP},
+            </if>
+            <if test="testStatus != null">
+                test_status = #{testStatus,jdbcType=VARCHAR},
+            </if>
+            <if test="lastVersionId != null">
+                last_version_id = #{lastVersionId,jdbcType=VARCHAR},
+            </if>
+            <if test="authRequired != null">
+                auth_required = #{authRequired,jdbcType=TINYINT},
+            </if>
+            <if test="customizeNode != null">
+                customize_node = #{customizeNode,jdbcType=TINYINT},
+            </if>
+            <if test="isInputList">
+                is_input_list = #{isInputList,jdbcType=VARCHAR},
+            </if>
+            <if test="isOutputList">
+                is_output_list = #{isOutputList,jdbcType=VARCHAR},
+            </if>
+            <if test="published != null">
+                published = #{published,jdbcType=TINYINT},
+            </if>
+            <if test="domainId != null">
+                domain_id = #{domainId,jdbcType=VARCHAR}
+            </if>
+        </set>
+        where tool_id = #{pluginId,jdbcType=VARCHAR}
+        and project_id = #{projectId,jdbcType=VARCHAR}
+    </update>
+    <update id="updateNameByPrimaryKey">
+        update t_tool
+        <set>
+            <if test="pluginDisplayName != null">
+                tool_display_name = #{pluginDisplayName,jdbcType=VARCHAR},
+            </if>
+            <if test="pluginChineseName != null">
+                tool_chinese_name = #{pluginChineseName,jdbcType=VARCHAR}
+            </if>
+        </set>
+        where tool_id = #{pluginId,jdbcType=VARCHAR}
+    </update>
+
+    <insert id="copyToHistoryTool">
+        INSERT INTO t_history_tool (
+            history_id,
+            tool_id,
+            project_id,
+            tool_display_name,
+            tool_chinese_name,
+            tool_desc,
+            icon,
+            icon_name,
+            visibility,
+            request_info,
+            auth_info,
+            input_schema,
+            output_schema,
+            is_input_list,
+            is_output_list,
+            intf_type,
+            `type`,
+            test_status,
+            last_version_id,
+            customize_node,
+            auth_required,
+            metadata,
+            creator,
+            creator_id,
+            created_on,
+            updated_on,
+            workspace_id,
+            trace_id,
+            domain_id,
+            published,
+            call_mode,
+            is_free,
+            label,
+            is_share,
+            category
+        )
+        SELECT
+            #{historyId, jdbcType=VARCHAR},
+            tool_id,
+            project_id,
+            tool_display_name,
+            tool_chinese_name,
+            tool_desc,
+            icon,
+            icon_name,
+            visibility,
+            request_info,
+            auth_info,
+            input_schema,
+            output_schema,
+            is_input_list,
+            is_output_list,
+            intf_type,
+            `type`,
+            test_status,
+            last_version_id,
+            customize_node,
+            auth_required,
+            metadata,
+            creator,
+            creator_id,
+            created_on,
+            CURRENT_TIMESTAMP,
+            workspace_id,
+            trace_id,
+            domain_id,
+            published,
+            call_mode,
+            is_free,
+            label,
+            is_share,
+            category
+        FROM t_tool
+        WHERE tool_id = #{toolId, jdbcType=VARCHAR}
+          AND project_id = #{projectId, jdbcType=VARCHAR}
+    </insert>
+
+    <delete id="deleteByPrimaryKey" parameterType="map">
+        delete
+        from t_tool
+        where tool_id = #{pluginId,jdbcType=VARCHAR}
+          and project_id = #{projectId,jdbcType=VARCHAR}
+    </delete>
+
+    <delete id="deleteByPrimaryKeys">
+        delete
+        from t_history_tool
+        where tool_id in
+        <foreach item="id" collection="pluginIds" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <select id="selectAllBySearchCriteria" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_tool
+        where ((project_id = #{projectId,jdbcType=VARCHAR}
+        <if test="workspaceId != null and workspaceId != ''">
+            and workspace_id = #{workspaceId,jdbcType=VARCHAR}
+        </if>
+        ) or project_id = #{opProjectId,jdbcType=VARCHAR})
+
+        <if test="userId != null">
+            and (visibility != 'user' or (visibility = 'user' and creator_id = #{userId,jdbcType=VARCHAR}))
+        </if>
+        <if test="searchCriteria != null and searchCriteria.type != null and searchCriteria.type != 'all'">
+            and type = #{searchCriteria.type,jdbcType=VARCHAR}
+        </if>
+        <if test="searchCriteria != null and searchCriteria.userId != null">
+            and creator_id = #{searchCriteria.userId,jdbcType=VARCHAR}
+        </if>
+        <if test="searchCriteria != null and searchCriteria.intfType != null">
+            and intf_type = #{searchCriteria.intfType,jdbcType=VARCHAR}
+        </if>
+        <if test="searchCriteria != null and searchCriteria.id != null">
+            and tool_id = #{searchCriteria.id,jdbcType=VARCHAR}
+        </if>
+        <if test="searchCriteria != null and searchCriteria.ids != null and searchCriteria.ids.size() > 0">
+            and tool_id in
+            <foreach collection="searchCriteria.ids" item="id" open="(" separator="," close=")">
+                #{id,jdbcType=VARCHAR}
+            </foreach>
+        </if>
+        <if test="searchCriteria != null and searchCriteria.name != null">
+            and tool_display_name like concat('%', #{searchCriteria.name,jdbcType=VARCHAR}, '%')
+        </if>
+        <if test="searchCriteria != null and searchCriteria.toolDesc != null">
+            and tool_desc like concat('%', #{searchCriteria.toolDesc,jdbcType=VARCHAR}, '%')
+        </if>
+        <if test="searchCriteria != null and searchCriteria.toolChineseName != null">
+            and tool_chinese_name like concat('%', #{searchCriteria.toolChineseName,jdbcType=VARCHAR}, '%')
+        </if>
+        <if test="searchCriteria != null and searchCriteria.creator != null">
+            and creator like concat('%', #{searchCriteria.creator,jdbcType=VARCHAR}, '%')
+        </if>
+        <if test="searchCriteria!= null and searchCriteria.excludeIds!= null and searchCriteria.excludeIds.size() > 0">
+            and tool_id not in
+            <foreach collection="searchCriteria.excludeIds" item="id" open="(" separator="," close=")">
+                #{id,jdbcType=VARCHAR}
+            </foreach>
+        </if>
+        <if test="searchCriteria != null and searchCriteria.isPublished() == true">
+            and published = true
+        </if>
+        <if test="searchCriteria != null and searchCriteria.isPublished() == false">
+            and published = false
+        </if>
+        <if test="searchCriteria != null and searchCriteria.isCustomizeNode() == true">
+            and customize_node = 1
+        </if>
+        <if test="searchCriteria != null and searchCriteria.label != null">
+            and label = #{searchCriteria.label,jdbcType=VARCHAR}
+        </if>
+        order by updated_on desc
+    </select>
+    <select id="selectByPrimaryIdAndPluginIdsWithSearchCriteria" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_tool
+        where ((1=1
+        <if test="projectId != null and projectId != ''">
+            and project_id = #{projectId,jdbcType=VARCHAR}
+        </if>
+        <if test="workspaceId != null and workspaceId != ''">
+            and workspace_id = #{workspaceId,jdbcType=VARCHAR}
+        </if>
+        ) or type = 'inner')
+        <if test="searchCriteria != null and searchCriteria.type != null and searchCriteria.type != 'all'">
+            and type = #{searchCriteria.type,jdbcType=VARCHAR}
+        </if>
+        <if test="searchCriteria != null and searchCriteria.id != null">
+            and tool_id = #{searchCriteria.id,jdbcType=VARCHAR}
+        </if>
+        <if test="searchCriteria != null and searchCriteria.name != null">
+            and tool_display_name like concat('%', #{searchCriteria.name,jdbcType=VARCHAR}, '%')
+        </if>
+        and tool_id in
+        <choose>
+            <when test="toolIds != null and toolIds.size() > 0">
+                <foreach collection="toolIds" separator="," open="(" close=")" item="id">
+                    #{id}
+                </foreach>
+            </when>
+            <when test="toolIds == null or toolIds.size() == 0">
+                (null)
+            </when>
+        </choose>
+        order by updated_on desc
+    </select>
+    <select id="selectByProjectIdAndSearchCriteria" parameterType="map" resultMap="BaseResultMap">
+        select
+        t.tool_id,
+        t.project_id,
+        t.tool_display_name,
+        t.tool_chinese_name,
+        t.tool_desc,
+        t.icon,
+        t.request_info,
+        t.auth_info,
+        t.visibility,
+        t.input_schema,
+        t.output_schema,
+        t.is_input_list,
+        t.is_output_list,
+        t.intf_type,
+        t.type,
+        t.call_mode,
+        t.test_status,
+        t.last_version_id,
+        t.auth_required,
+        t.metadata,
+        t.creator,
+        t.customize_node,
+        t.creator_id,
+        t.created_on,
+        t.updated_on,
+        t.published,
+        t.is_free,
+        t.is_share,
+        t.category,
+        c.id as c_id,
+        c.project_id as c_project_id,
+        c.user_id as c_user_id,
+        c.auth_keys as c_auth_keys,
+        CASE
+        WHEN c.auth_keys IS NULL THEN
+        CASE
+        WHEN t.type = 'custom' THEN 'NONE'
+        WHEN t.auth_required = 0 THEN 'NONE'
+        ELSE 'UNAUTHENTICATED'
+        END
+        ELSE 'AUTHENTICATED'
+        END as credential_status
+        from t_tool t
+        LEFT JOIN t_credential c on t.tool_id = c.resource_id and c.resource_type = 'tool' and (c.workspace_id is null or c.workspace_id = #{workspaceId,jdbcType=VARCHAR})
+        where 1=1
+        <if test="projectId != null">
+            and  t.project_id = #{projectId,jdbcType=VARCHAR}
+        </if>
+        <if test="userId != null">
+            and (t.visibility != 'user' or (t.visibility = 'user' and t.creator_id = #{userId,jdbcType=VARCHAR}))
+        </if>
+        <if test="searchCriteria != null and searchCriteria.type != null and searchCriteria.type != 'all'">
+            and t.type = #{searchCriteria.type,jdbcType=VARCHAR}
+        </if>
+        <if test="searchCriteria != null and searchCriteria.userId != null">
+            and t.creator_id = #{searchCriteria.userId,jdbcType=VARCHAR}
+        </if>
+        <if test="searchCriteria != null and searchCriteria.callMode == 'api'">
+            and (t.call_mode = 'api' or t.call_mode is null)
+        </if>
+        <if test="searchCriteria != null and searchCriteria.workspaceId != null">
+            and t.workspace_id = #{searchCriteria.workspaceId,jdbcType=VARCHAR}
+        </if>
+        <if test="searchCriteria != null and searchCriteria.intfType != null">
+            and t.intf_type = #{searchCriteria.intfType,jdbcType=VARCHAR}
+        </if>
+        <if test="searchCriteria != null and searchCriteria.id != null">
+            and t.tool_id = #{searchCriteria.id,jdbcType=VARCHAR}
+        </if>
+        <if test="searchCriteria != null and searchCriteria.ids != null and searchCriteria.ids.size() > 0">
+            and t.tool_id in
+            <foreach collection="searchCriteria.ids" item="id" open="(" separator="," close=")">
+                #{id,jdbcType=VARCHAR}
+            </foreach>
+        </if>
+        <if test="searchCriteria != null and searchCriteria.name != null">
+            and t.tool_display_name like concat('%', #{searchCriteria.name,jdbcType=VARCHAR}, '%') ESCAPE '!'
+        </if>
+        <if test="searchCriteria != null and searchCriteria.toolDesc != null">
+            and t.tool_desc like concat('%', #{searchCriteria.toolDesc,jdbcType=VARCHAR}, '%') ESCAPE '!'
+        </if>
+        <if test="searchCriteria != null and searchCriteria.toolChineseName != null">
+            and t.tool_chinese_name like concat('%', #{searchCriteria.toolChineseName,jdbcType=VARCHAR}, '%') ESCAPE '!'
+        </if>
+        <if test="searchCriteria != null and searchCriteria.creator != null">
+            and t.creator like concat('%', #{searchCriteria.creator,jdbcType=VARCHAR}, '%')
+        </if>
+        <if test="searchCriteria!= null and searchCriteria.excludeIds!= null and searchCriteria.excludeIds.size() > 0">
+            and t.tool_id not in
+            <foreach collection="searchCriteria.excludeIds" item="id" open="(" separator="," close=")">
+                #{id,jdbcType=VARCHAR}
+            </foreach>
+        </if>
+        <if test="searchCriteria != null and searchCriteria.isPublished() == true">
+            and published = true
+        </if>
+        <if test="searchCriteria != null and searchCriteria.isPublished() == false">
+            and published = false
+        </if>
+        <if test="searchCriteria != null and searchCriteria.isCustomizeNode() == true">
+            and t.customize_node = 1
+        </if>
+        <if test="searchCriteria != null and searchCriteria.label != null">
+            and label = #{searchCriteria.label,jdbcType=VARCHAR}
+        </if>
+        <if test="searchCriteria != null and searchCriteria.category != null">
+            and category = #{searchCriteria.category,jdbcType=VARCHAR}
+        </if>
+        order by t.updated_on desc
+    </select>
+    <select id="selectByNameAndWorkspaceIdAndProjectId" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_tool
+        where tool_display_name = #{pluginDisplayName,jdbcType=VARCHAR}
+        and project_id = #{projectId,jdbcType=VARCHAR}
+        and workspace_id = #{workspaceId,jdbcType=VARCHAR}
+    </select>
+
+    <select id="selectByPrimaryKey" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_tool
+        where tool_id = #{pluginId,jdbcType=VARCHAR}
+        <if test="projectId != null and projectId != ''">
+            and project_id = #{projectId,jdbcType=VARCHAR}
+        </if>
+    </select>
+
+    <select id="selectByPrimaryIdAndToolIdsWithSearchCriteria" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_tool
+        where ((project_id = #{projectId,jdbcType=VARCHAR}
+        <if test="workspaceId != null and workspaceId != ''">
+            and workspace_id = #{workspaceId,jdbcType=VARCHAR}
+        </if>
+        ) or type = 'inner')
+        <if test="searchCriteria != null and searchCriteria.type != null and searchCriteria.type != 'all'">
+            and type = #{searchCriteria.type,jdbcType=VARCHAR}
+        </if>
+        <if test="searchCriteria != null and searchCriteria.id != null">
+            and tool_id = #{searchCriteria.id,jdbcType=VARCHAR}
+        </if>
+        <if test="searchCriteria != null and searchCriteria.name != null">
+            and tool_display_name like concat('%', #{searchCriteria.name,jdbcType=VARCHAR}, '%')
+        </if>
+        and tool_id in
+        <choose>
+            <when test="toolIds != null and toolIds.size() > 0">
+                <foreach collection="toolIds" separator="," open="(" close=")" item="id">
+                    #{id}
+                </foreach>
+            </when>
+            <when test="toolIds == null or toolIds.size() == 0">
+                (null)
+            </when>
+        </choose>
+        order by updated_on desc
+    </select>
+    <select id="selectPluginEntityWithCredential" parameterType="map" resultMap="BaseResultMap">
+        select
+            t.tool_id,
+            t.project_id,
+            t.tool_display_name,
+            t.tool_chinese_name,
+            t.tool_desc,
+            t.icon,
+            t.request_info,
+            t.auth_info,
+            t.visibility,
+            t.input_schema,
+            t.output_schema,
+            t.is_input_list,
+            t.is_output_list,
+            t.intf_type,
+            t.type,
+            t.test_status,
+            t.last_version_id,
+            t.auth_required,
+            t.metadata,
+            t.creator,
+            t.customize_node,
+            t.creator_id,
+            t.created_on,
+            t.updated_on,
+            c.id as c_id,
+            c.project_id as c_project_id,
+            c.user_id as c_user_id,
+            c.auth_keys as c_auth_keys,
+            CASE
+                WHEN c.auth_keys IS NULL THEN
+                    CASE
+                        WHEN t.type = 'custom' THEN 'NONE'
+                        WHEN t.auth_required = 0 THEN 'NONE'
+                        ELSE 'UNAUTHENTICATED'
+                        END
+                ELSE 'AUTHENTICATED'
+                END as credential_status
+        from t_tool t
+                 LEFT JOIN t_credential c on t.tool_id = c.resource_id and c.resource_type = 'tool'
+        where t.tool_id = #{toolId,jdbcType=VARCHAR}
+          and t.project_id = #{projectId,jdbcType=VARCHAR}
+    </select>
+
+    <select id="selectByIds" resultType="com.openjiuwen.studio.agent.manager.entity.plugin.PluginEntity" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_tool
+        <where>
+            <if test="toolIds != null and toolIds.size() > 0">
+                tool_id in
+                <foreach collection="toolIds" item="toolId" open="(" separator="," close=")">
+                    #{toolId,jdbcType=VARCHAR}
+                </foreach>
+            </if>
+        </where>
+    </select>
+
+    <select id="selectByTraceIdAndWorkspaceId"
+            resultType="com.openjiuwen.studio.agent.manager.entity.plugin.PluginEntity">
+        SELECT
+            tool_id as pluginId,
+            project_id,
+            workspace_id,
+            tool_display_name,
+            tool_chinese_name,
+            tool_desc,
+            icon,
+            call_mode,
+            icon_name,
+            request_info,
+            auth_info,
+            visibility,
+            input_schema,
+            output_schema,
+            is_input_list,
+            is_output_list,
+            intf_type,
+            `type`,
+            test_status,
+            last_version_id,
+            customize_node,
+            auth_required,
+            metadata,
+            creator,
+            creator_id,
+            created_on,
+            updated_on
+        FROM t_tool
+        WHERE trace_id = #{traceId}
+        <if test="projectId != null and projectId != ''">
+        AND project_id = #{projectId}
+        </if>
+        <if test="workspaceId != null and workspaceId != ''">
+        AND workspace_id = #{workspaceId}
+        </if>
+    </select>
+
+    <select id="selectStatueByPrimaryKeyAndWorkspace">
+        select
+         test_status
+        from t_tool
+        where tool_id = #{pluginId,jdbcType=VARCHAR}
+        <if test="projectId != null and projectId != ''">
+            and project_id = #{projectId,jdbcType=VARCHAR}
+        </if>
+        <if test="workspaceId != null and workspaceId != ''">
+            and workspace_id = #{workspaceId,jdbcType=VARCHAR}
+        </if>
+    </select>
+
+    <select id="selectInfo">
+        select
+            workspace_id,type
+        from t_tool
+        where tool_id = #{pluginId,jdbcType=VARCHAR}
+    </select>
+
+    <select id="selectByPrimaryKeyAndWorkspaceAndCredential" parameterType="map" resultMap="BaseResultMap">
+        select
+        t.tool_id,
+        t.project_id,
+        t.workspace_id,
+        t.tool_display_name,
+        t.tool_chinese_name,
+        t.tool_desc,
+        t.icon,
+        t.icon_name,
+        t.request_info,
+        t.auth_info,
+        t.visibility,
+        t.input_schema,
+        t.output_schema,
+        t.is_input_list,
+        t.is_output_list,
+        t.intf_type,
+        t.type,
+        t.call_mode,
+        t.test_status,
+        t.last_version_id,
+        t.auth_required,
+        t.metadata,
+        t.creator,
+        t.customize_node,
+        t.creator_id,
+        t.created_on,
+        t.updated_on,
+        t.published,
+        t.is_free,
+        c.id as c_id,
+        c.project_id as c_project_id,
+        c.user_id as c_user_id,
+        c.auth_keys as c_auth_keys,
+        CASE
+            WHEN c.auth_keys IS NULL THEN
+                CASE
+                    WHEN t.type = 'custom' THEN 'NONE'
+                    WHEN t.auth_required = 0 THEN 'NONE'
+                    ELSE 'UNAUTHENTICATED'
+                END
+            ELSE 'AUTHENTICATED'
+        END as credential_status
+        from t_tool t
+        LEFT JOIN t_credential c on t.tool_id = c.resource_id and c.resource_type = 'tool' and (c.workspace_id is null or c.workspace_id = #{workspaceId,jdbcType=VARCHAR})
+        where t.tool_id = #{pluginId,jdbcType=VARCHAR}
+    </select>
+
+
+    <select id="findPluginToBeDeleted" resultType="java.lang.String">
+        SELECT tool_id
+        FROM t_history_tool
+        WHERE updated_on &lt;= #{twoYearsAgo}
+    </select>
+
+    <update id="updatePluginShareStatus">
+        update t_tool
+        set is_share = #{status,jdbcType=VARCHAR}
+        where tool_id = #{toolId,jdbcType=VARCHAR}
+    </update>
+
+    <update id="updateIdAndName">
+        UPDATE t_tool
+        SET tool_id = #{uuid,jdbcType=VARCHAR},
+            tool_display_name = CONCAT(left(tool_display_name,28), '_', #{uuid,jdbcType=VARCHAR})
+        WHERE
+            tool_id = #{toolId,jdbcType=VARCHAR};
+    </update>
+    <update id="updateProjectIdByIds" parameterType="java.util.Map">
+        UPDATE t_tool
+        SET project_id =  #{opSvcProjectId}
+        WHERE id IN
+        <foreach collection="pluginIds" item="pluginId" separator="," open="(" close=")">
+            #{pluginId}
+        </foreach>
+    </update>
+
+    <select id="selectVersionByPluginId" resultType="java.lang.String">
+        SELECT last_version_id
+        FROM t_tool
+        WHERE tool_id = #{pluginId}
+    </select>
+</mapper>

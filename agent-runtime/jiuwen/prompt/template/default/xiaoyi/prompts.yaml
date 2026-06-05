@@ -1,0 +1,10 @@
+xiaoyi_waimai:
+  description: "template for xiaoyi_waimai"
+xiaoyi_situation_detection:
+  description: "template for xiaoyi_situation_detection"
+xiaoyi_intent_detect:
+  description: "template for xiaoyi_intent_detect"
+xiaoyi_travel_respond_sys_template:
+  description: "template for xiaoyi_travel_respond_sys_template"
+xiaoyi_travel_respond_user_template:
+  description: "template for xiaoyi_travel_respond_user_template"

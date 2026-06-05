@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.prompt.engineering.mapper.PeTaskMapper">
+
+    <resultMap id="TaskResultMap" type="com.openjiuwen.studio.prompt.engineering.entity.PeTask">
+        <id property="id" column="id" jdbcType="VARCHAR"/>
+        <result property="name" column="name" jdbcType="VARCHAR"/>
+        <result property="description" column="description" jdbcType="VARCHAR"/>
+        <result property="iterationNum" column="iteration_num" jdbcType="INTEGER"/>
+        <result property="creator" column="creator" jdbcType="VARCHAR"/>
+        <result property="updater" column="updater" jdbcType="VARCHAR"/>
+        <result property="createdOn" column="created_on" jdbcType="TIMESTAMP"/>
+        <result property="updatedOn" column="updated_on" jdbcType="TIMESTAMP"/>
+        <result property="workspaceId" column="workspace_id" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <resultMap id="TaskTagMappingResultMap" type="com.openjiuwen.studio.prompt.engineering.entity.PeTaskTagMapping">
+        <result property="taskId" column="task_id" jdbcType="VARCHAR"/>
+        <result property="tagId" column="tag_id" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <resultMap id="fullTaskMap" type="com.openjiuwen.studio.prompt.engineering.entity.PeTask"
+               extends="com.openjiuwen.studio.prompt.engineering.mapper.PeTaskMapper.TaskResultMap">
+        <association property="industry"
+                     resultMap="com.openjiuwen.studio.prompt.engineering.mapper.PeIndustryMapper.BaseResultMap"
+                     javaType="com.openjiuwen.studio.prompt.engineering.entity.Industry"
+                     columnPrefix="tpi_"></association>
+        <collection property="tagList" ofType="com.openjiuwen.studio.prompt.engineering.entity.PeTag"
+                    resultMap="com.openjiuwen.studio.prompt.engineering.mapper.PeTagMapper.TagResultMap"
+                    columnPrefix="tpt_"/>
+    </resultMap>
+
+    <insert id="insertOneTask">
+        insert into t_pe_task(id, name, description, creator, updater, project_id, industry_id, workspace_id)
+        values (#{peTask.id}, #{peTask.name},
+                #{peTask.description}, #{peTask.creator},
+                #{peTask.updater}, #{projectId}, #{industryId}, #{peTask.workspaceId})
+    </insert>
+
+    <insert id="batchInsertMappings">
+        insert into t_mapping_pe_task_tag(task_id, tag_id, workspace_id)
+        values
+        <foreach collection="mappings" item="item" separator=",">
+            (#{item.taskId,jdbcType=VARCHAR},#{item.tagId,jdbcType=VARCHAR},#{item.workspaceId,jdbcType=VARCHAR})
+        </foreach>
+    </insert>
+    <update id="updateOneTask">
+        UPDATE t_pe_task
+        <set>
+            name = #{peTask.name},
+            description = #{peTask.description},
+            updater = #{peTask.updater},
+            industry_id = #{industryId},
+            updated_on = CURRENT_TIMESTAMP
+        </set>
+        where id = #{peTask.id} and workspace_id = #{peTask.workspaceId}
+    </update>
+    <update id="raiseIterationNum">
+        update t_pe_task
+        set iteration_num = iteration_num + 1
+        where id = #{taskId} and workspace_id = #{workspaceId}
+    </update>
+
+    <delete id="deleteTaskById">
+        delete from t_pe_task where id = #{id} and workspace_id = #{workspaceId}
+    </delete>
+
+    <delete id="deleteMappingByTaskId">
+        delete from t_mapping_pe_task_tag where task_id = #{taskId} and workspace_id = #{workspaceId}
+    </delete>
+
+    <select id="queryTaskIdsByTagId" resultType="java.lang.String">
+        select task_id from t_mapping_pe_task_tag where tag_id = #{tagId} and workspace_id = #{workspaceId}
+    </select>
+
+    <select id="queryTaskDetailsByTaskIds" resultMap="fullTaskMap">
+        select
+        task.*,
+        tpt.id             tpt_id,
+        tpt.name           tpt_name,
+        tpt.name_en        tpt_name_en,
+        tpt.created_on     tpt_created_on,
+        tpt.updated_on     tpt_updated_on,
+        tpi.id             tpi_id,
+        tpi.name           tpi_name,
+        tpi.name_en        tpi_name_en,
+        tpi.description    tpi_description,
+        tpi.created_on     tpi_created_on,
+        tpi.updated_on     tpi_updated_on
+        from t_pe_task task
+        left join t_mapping_pe_task_tag tmptt on tmptt.task_id = task.id
+        left join t_pe_tag tpt on tpt.id = tmptt.tag_id
+        left join t_pe_industry tpi on task.industry_id = tpi.id
+        <if test="taskIds != null and !taskIds.isEmpty()">
+            where task.workspace_id = #{workspaceId} and task.id IN
+            <foreach collection="taskIds" item="taskId" open="(" separator="," close=")">
+                #{taskId}
+            </foreach>
+        </if>
+        ORDER BY
+        task.updated_on DESC
+    </select>
+
+    <select id="queryTaskIdsByQO" resultType="java.lang.String">
+        select distinct task.id, task.updated_on
+        from t_pe_task task
+        LEFT JOIN t_mapping_pe_task_tag tmptt on task.id = tmptt.task_id
+        where 1=1 AND task.workspace_id = #{tasksQo.workspaceId}
+        AND project_id = #{projectId}
+        <if test="tasksQo.name != null and tasksQo.name.length() > 0">
+            <bind name="name" value="'%' + tasksQo.name + '%'" />
+            AND task.name LIKE #{name}
+        </if>
+        <if test="tasksQo.tagIds != null and !tasksQo.tagIds.isEmpty()">
+            AND tmptt.tag_id IN
+            <foreach collection="tasksQo.tagIds" item="tagId" open="(" separator="," close=")">
+                #{tagId}
+            </foreach>
+        </if>
+        <if test="tasksQo.creator != null and tasksQo.creator.length() > 0">
+            AND task.creator = #{tasksQo.creator}
+        </if>
+        <if test="tasksQo.updater != null and tasksQo.updater.length() > 0">
+            AND task.updater = #{tasksQo.updater}
+        </if>
+        <if test="tasksQo.taskIds != null and !tasksQo.taskIds.isEmpty()">
+            and task.id IN
+            <foreach collection="tasksQo.taskIds" item="taskId" open="(" separator="," close=")">
+                #{taskId}
+            </foreach>
+        </if>
+        <if test="tasksQo.industryId != null and tasksQo.industryId !=''">
+            AND task.industry_id = #{tasksQo.industryId}
+        </if>
+        ORDER BY
+        task.updated_on DESC
+    </select>
+
+    <select id="isExist" resultType="java.lang.Boolean">
+        select 1 from t_pe_task
+        where name = #{body.name} and workspace_id = #{workspaceId}
+        and project_id = #{projectId}
+        <if test="body.id != null and body.id.length() > 0">
+            AND id != #{body.id}
+        </if>
+        limit 1
+    </select>
+
+    <select id="isIdExist" resultType="java.lang.Boolean">
+        select 1 from t_pe_task where id = #{id} AND workspace_id = #{workspaceId} limit 1
+    </select>
+
+    <select id="queryTaskIdByTagId" resultType="java.lang.String">
+        select task_id from t_mapping_pe_task_tag where tag_id = #{tagId}
+    </select>
+
+    <select id="queryTagIdsByTaskId" resultType="java.lang.String">
+        select tag_id
+        from t_mapping_pe_task_tag
+        where task_id = #{taskId} and workspace_id = #{workspaceId}
+    </select>
+    <select id="queryTaskNameById" resultType="java.lang.String">
+        select name
+        from t_pe_task
+        where id = #{taskId} and workspace_id = #{workspaceId}
+    </select>
+    <select id="countByIndustryId" resultType="java.lang.Integer">
+        select count(1)
+        from t_pe_task
+        where industry_id = #{industryId} and workspace_id = #{workspaceId} limit 1
+    </select>
+    <select id="queryStatusById" resultType="java.lang.String">
+        select status
+        from t_model_service
+        where id = #{id} and service_name = #{serviceName}
+    </select>
+    <select id="queryPublishStatusById" resultType="java.lang.String">
+        select publish_status
+        from t_model_service
+        where id = #{id} and service_name = #{serviceName}
+    </select>
+
+    <select id="selectModelAuthId" resultType="java.lang.String">
+        select ID
+        from t_provider_auth_info
+        where (PROJECT_ID = #{projectId} or PROJECT_ID = 'SYSTEM')
+          and (WORKSPACE_ID = #{workspaceId} or WORKSPACE_ID = 'SYSTEM')
+          and AUTH_METADATA_ID in (select AUTH_METADATA_ID from t_model_service where ID = #{modelId})
+    </select>
+</mapper>

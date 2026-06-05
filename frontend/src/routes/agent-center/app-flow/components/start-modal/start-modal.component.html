@@ -1,0 +1,279 @@
+<div class="flex h-full w-full flex-col" (keydown)="handleKeyDown($event)">
+  <div class="mb-[16px] block">
+    <div class="flex w-[calc(100%-38px)] items-center justify-between">
+      <div class="flex items-center gap-[8px]">
+        <img
+          class="model-config-icon"
+          [src]="type2Img(nodeInfo.type)"
+          alt="start-node"
+        />
+        <div class="text-[14px] font-bold leading-[28px]">
+          {{ nodeInfo.name }}
+        </div>
+      </div>
+    </div>
+
+
+    <node-description [nodeInfo]="nodeInfo" (descriptionChange)="updateView()"></node-description>
+
+    <div
+      class="mt-[16px] h-[1px] w-full bg-[#f0f0f0]"
+    ></div>
+  </div>
+
+  <div id="flow-llm-modal-body" class="relative h-full w-full overflow-auto flex-1 pr-[16px]">
+    <div class="h-full w-full overflow-auto">
+      <!-- 出入参配置表格 -->
+      <meta-acc-block class="block" [title]="'input_params' | i18nextEager">
+        <ng-template #content>
+          <div class="mt-2 flex items-center gap-1">
+            <div
+              class="text-label"
+              [ngStyle]="{
+                flex: 1,
+              }"
+            >
+              {{ 'param_name' | i18nextEager }}
+            </div>
+            <div
+              class="text-label"
+              [ngStyle]="{
+                width: labelWidth.type
+              }"
+            >
+              {{ 'param_type' | i18nextEager }}
+            </div>
+            <div
+              class="text-label"
+              #descriptionDom
+              [ngStyle]="{
+                width: '20%'
+              }"
+            >
+              {{ 'description' | i18nextEager }}{{ 'optional' | i18nextEager }}
+            </div>
+            <div class="text-label"
+                 [ngStyle]="{
+                    width: isNormalView?'93px':'76px'
+                 }"
+                 >{{ 'required' | i18nextEager }}</div>
+          </div>
+
+          <form #outputForm="ngForm">
+            <nz-tree
+              [nzData]="$any(removeSysFromNode)"
+              nzBlockNode
+              [nzTreeTemplate]="nzTreeTemplate"
+            >
+              <ng-template #nzTreeTemplate let-node let-origin="origin">
+                <div class="mt-[8px] flex w-full gap-1 leading-none">
+                  <div
+                    [ngStyle]="{
+                      flex: 1,
+                    }"
+                  >
+                    <input
+                      style="width: 100%"
+                      type="text"
+                      [name]="'outputFormName' + origin.keyindex"
+                      (keydown)="$event.stopPropagation()"
+                      nz-input
+                      [maxlength]="paramNameMaxLen"
+                      [disabled]="disableSysEdit(origin)"
+                      [(ngModel)]="origin.name"
+                      [title]="origin.name"
+                      (input)="onStartNodeNameChange()"
+                      [valueValidityValidator]="getStartNodeInputNames(origin)"
+                      [placeholder]="'input_placeholder' | i18nextEager"
+                      (ngModelChange)="changeUpdateTime()"
+                      (blur)="inputOnSave()"
+                      [nzStatus]="hasNameError(origin) ? 'error' : ''"
+                    />
+                    <div class="ant-form-item-explain-error py-1" *ngIf="hasNameError(origin)">
+                      {{ getNameErrorTip(origin) }}
+                    </div>
+                    <div class="w-full" #wrapper></div>
+                  </div>
+
+                  <div
+                    class="overflow-hidden"
+                    [ngStyle]="{
+                      width: labelWidth.type
+                    }"
+                    [title]="getTypeString(origin.type)"
+                  >
+                    <nz-cascader
+                      *ngIf="origin.depth === 0; else otherTypes"
+                      style="width: 100%"
+                      [name]="'outputFormType' + origin.keyindex"
+                      [ngModel]="origin.type"
+                      (ngModelChange)="setTypeFromString(origin, $event)"
+                      [nzOptions]="$any(startTypeOptions)"
+                      nzLabelProperty="label"
+                      nzValueProperty="value"
+                      [nzDisabled]="disableSysEdit(origin)"
+                      [nzPlaceHolder]="'select_placeholder' | i18nextEager"
+                      nzChangeOnSelect
+                      nzMenuClassName="customStartMenu"
+                      [nzOptionRender]="renderTpl"
+                    ></nz-cascader>
+
+                    <ng-template #otherTypes>
+                      <nz-cascader
+                        *ngIf="origin.depth === 5; else subTypes"
+                        style="width: 100%"
+                        [name]="'outputFormType' + origin.keyindex"
+                        [ngModel]="origin.type"
+                        (ngModelChange)="setTypeFromString(origin, $event)"
+                        [nzOptions]="$any(startTypeOp)"
+                        nzLabelProperty="label"
+                        nzValueProperty="value"
+                        [nzDisabled]="disableSysEdit(origin)"
+                        [nzPlaceHolder]="'select_placeholder' | i18nextEager"
+                        nzChangeOnSelect
+                        nzMenuClassName="customStartMenu"
+                        [nzOptionRender]="renderTpl"
+                      ></nz-cascader>
+
+                      <ng-template #subTypes>
+                        <nz-cascader
+                          style="width: 100%"
+                          [name]="'outputFormType' + origin.keyindex"
+                          [ngModel]="origin.type"
+                          (ngModelChange)="setTypeFromString(origin, $event)"
+                          [nzOptions]="$any(standTypeOps)"
+                          nzLabelProperty="label"
+                          nzValueProperty="value"
+                          [nzDisabled]="disableSysEdit(origin)"
+                          [nzPlaceHolder]="'select_placeholder' | i18nextEager"
+                          nzChangeOnSelect
+                          nzMenuClassName="customStartMenu"
+                          [nzOptionRender]="renderTpl"
+                        ></nz-cascader>
+                      </ng-template>
+                    </ng-template>
+                    <ng-template #renderTpl let-option let-index="index">
+                      <div class="flex w-full justify-between h-[22px]">
+                        <p>{{ option.label }}</p>
+                      </div>
+                      </ng-template>
+                    <div class="w-full" #wrapper></div>
+                  </div>
+
+                  <div
+                    [ngStyle]="{
+                      width: getParamWidth
+                    }"
+                  >
+                    <input
+                      style="width: 100%"
+                      type="text"
+                      [name]="'outputFormDesc' + origin.keyindex"
+                      (keydown)="$event.stopPropagation()"
+                      nz-input
+                      [disabled]="disableSysEdit(origin)"
+                      [(ngModel)]="origin.description"
+                      [title]="origin.description"
+                      [placeholder]="'input_placeholder' | i18nextEager"
+                      (ngModelChange)="changeUpdateTime()"
+                      (blur)="inputOnSave()"
+                    />
+                  </div>
+
+                  <div
+                    class="a-form-checkbox flex h-[28px] w-[16px] items-center justify-center"
+                    [ngStyle]="{
+                      'margin-left': opMarginLeft
+                    }"
+                  >
+                    <label
+                      [for]="'paramRequiredCheckbox' + origin.keyindex"
+                      nz-checkbox
+                      [name]="'paramRequired' + origin.keyindex"
+                      [(ngModel)]="origin.required"
+                      (ngModelChange)="changeUpdateTime()"
+                      (blur)="inputOnSave()"
+                      [disabled]="origin.source === 'system' && !(workflowType ==='task' && origin.name === 'query')"
+                    ></label>
+                  </div>
+
+                  <div
+                    class="h-[28px] w-[16px]"
+                    [ngStyle]="{
+                      'margin-left': opMarginLeft
+                    }"
+                  >
+                    <meta-add-props-icon
+                      *ngIf="
+                        origin.source === 'user' && isObjectLikeType(origin.type)
+                      "
+                      (click)="addChild(origin)"
+                    />
+                  </div>
+
+                  <div
+                    class="flex h-[28px] w-[16px] items-center justify-center"
+                    [ngStyle]="{
+                      'margin-left': opMarginLeft
+                    }"
+                  >
+                    <span
+                      *ngIf="showDelete(origin)"
+                      (click)="deleteStartNodeParam(origin)"
+                      style="font-size: 16px; color: #191919; cursor: pointer"
+                      nz-icon
+                      nzType="delete"
+                      nzTheme="outline"
+                    ></span>
+                  </div>
+
+                  <div
+                    class="h-[28px] w-[16px]"
+                    [ngStyle]="{
+                      'margin-left': opMarginLeft
+                    }"
+                  >
+                    <meta-set-default
+                      *ngIf="showSetDefault(origin)"
+                      [param]="origin"
+                      (changeParam)="tipSave()"
+                      [isShowDesc]="false"
+                    />
+                  </div>
+                </div>
+              </ng-template>
+            </nz-tree>
+          </form>
+        </ng-template>
+
+        <ng-template #right>
+          <div class="flex items-center justify-center">
+            <button
+              (click)="importJson()"
+              class="mr-[6px] w-fit"
+              nz-button
+              nzType="text"
+              nz-tooltip [nzTooltipTitle]="'import_json' | i18nextEager"
+            >
+              <img
+                class=""
+                [src]="changeUrl('assets/agent-center/images/import.svg')"
+                alt="import"
+              />
+            </button>
+            <button
+              (click)="addStartNodeParam()"
+              class="w-fit !pt-[1px]"
+              nz-button
+              nzType="text"
+              nz-tooltip [nzTooltipTitle]="'add_params' | i18nextEager"
+              [disabled]="isReachedParamLimit(startNodeParams)"
+            >
+              <span nz-icon nzType="plus" nzTheme="outline"></span>
+            </button>
+          </div>
+        </ng-template>
+      </meta-acc-block>
+    </div>
+  </div>
+</div>

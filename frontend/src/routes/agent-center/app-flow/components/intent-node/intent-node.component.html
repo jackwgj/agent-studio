@@ -1,0 +1,184 @@
+<div *ngIf="curModeOfIntent === 'normal'; else advancedIntentNode">
+  <div
+    class="pw-common-node-wrapper"
+    [ngClass]="{
+      'pw-common-node-error': alertContent.length > 0,
+      'pw-common-node-selected': alertContent.length === 0 && (isSelected || isSelection),
+      'pw-common-node-hover': alertContent.length === 0 && !(isSelected || isSelection),
+      'pw-common-node-extra': alertContent.length === 0
+    }"
+  >
+    <div *ngIf="alertContent.length > 0" class="pw-tips bg-[#ffeae8]">
+      <div class="flex items-center gap-[4px]">
+        <img alt="" class="node-img h-[16px] w-[16px]" [src]="validateAlertIcon" />
+        <span>{{ 'node_error' | i18nextEager }}</span>
+      </div>
+      <button
+        class="detail-tip"
+        nz-button
+        [nzType]="'text'"
+        nz-popover
+        [nzPopoverContent]="alertContent.join('\n')"
+        nzPopoverPlacement="top"
+      >
+        {{ 'details' | i18nextEager }}
+      </button>
+    </div>
+
+    <div
+      *ngIf="runNodeStatus"
+      class="pw-tips"
+      [ngStyle]="{ 'background-color': getBgColor(runNodeStatus),color: getColor(runNodeStatus) }"
+    >
+      <div class="flex items-center gap-[4px]">
+        <img alt=""
+          class="node-img h-[16px] w-[16px]"
+          [src]="getNodeStatus(runNodeStatus)"
+        />
+        <span>{{ getNodeStatusText(runNodeStatus) }}</span>
+        <span>{{ nodeElapsedTime }}</span>
+      </div>
+      <div class="node-test-info" (click)="onClickTestInfo($event)">{{ 'show_detail' | i18nextEager}}</div>
+    </div>
+
+    <div class="pw-common-node">
+      <div
+        class="node-header"
+        [ngStyle]="{ 'padding-right': isExpand ? '0px' : '40px' }"
+      >
+        <div class="node-icon-name">
+          <div
+            [ngClass]="isExpand ? 'node-open' : 'node-close'"
+            (click)="onSwitchExpand()"
+          ></div>
+
+          <img class="node-icon" [src]="intentImgUrl" alt="intent-node" />
+          <div class="node-name w-[120px]" lineClamp>
+            {{ nodeInfo.name }}
+          </div>
+        </div>
+
+        <div class="node-oprs" *ngIf="!isFlowReadonly">
+          <div (click)="onClickTest()" class="single-test-icon"></div>
+          <div class="cursor-pointer" nz-dropdown [nzDropdownMenu]="actionMenu" nzTrigger="click" nzPlacement="bottomRight">
+            <nz-icon nzType="more" nzTheme="outline"></nz-icon>
+          </div>
+          <nz-dropdown-menu #actionMenu="nzDropdownMenu">
+            <ul nz-menu>
+              @for (action of actions; track action.label) {
+                <li nz-menu-item (click)="onClickAction(action)">
+                  <span>{{ action.label }}</span>
+                </li>
+              }
+            </ul>
+          </nz-dropdown-menu>
+        </div>
+      </div>
+      <node-card-description *ngIf="isExpand" [description]="nodeInfo.configs?.descriptionText" [nodeInfo]="nodeInfo"></node-card-description>
+
+      <div *ngIf="isExpand" class="node-groups">
+        <div class="node-group" *ngFor="let intent of intentList; index as i">
+          <div [ngStyle]="{ color: getCateColor(intent) }" lineClamp>
+            {{ i + 1 }}. {{ getCateContent(intent) || ('not_configured' | i18nextEager) }}
+          </div>
+        </div>
+
+        <div class="node-group" *ngIf="hasOtherIntent">
+          {{ nodeInfo.branches.length }}. {{ 'other_intentions' | i18nextEager }}
+        </div>
+      </div>
+
+      <div *ngIf="!isExpand && nodeInfo.branches.length > 3">
+        <div *ngFor="let _ of extraDivs" class="h-[22px] w-1"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<ng-template #customTipTmpl let-context="context">
+  <div *ngFor="let item of context">{{ item }}</div>
+</ng-template>
+
+<ng-template #advancedIntentNode>
+  <div
+    class="pw-common-node-wrapper"
+    [ngClass]="{
+      'pw-common-node-error': alertContent.length > 0,
+      'pw-common-node-selected': alertContent.length === 0 && (isSelected || isSelection),
+      'pw-common-node-hover': alertContent.length === 0 && !(isSelected || isSelection),
+      'pw-common-node-extra': alertContent.length === 0
+    }"
+  >
+    <div *ngIf="alertContent.length > 0" class="pw-tips bg-[#ffeae8]">
+      <div class="flex items-center gap-[4px]">
+        <img alt="" class="h-[16px] w-[16px]" [src]="validateAlertIcon" />
+        <span>{{ 'node_error' | i18nextEager }}</span>
+      </div>
+      <button
+        class="detail-tip"
+        nz-button
+        [nzType]="'text'"
+        nz-popover
+        [nzPopoverContent]="alertContent.join('\n')"
+        nzPopoverPlacement="top"
+      >
+        {{ 'details' | i18nextEager }}
+      </button>
+    </div>
+
+    <div
+      *ngIf="runNodeStatus"
+      class="pw-tips"
+      [ngStyle]="{ 'background-color': getBgColor(runNodeStatus),color: getColor(runNodeStatus) }"
+    >
+      <div class="flex items-center gap-[4px]">
+        <img alt="" class="h-[16px] w-[16px]" [src]="getNodeStatus(runNodeStatus)" />
+        <span>{{ getNodeStatusText(runNodeStatus) }}</span>
+        <span>{{ nodeElapsedTime }}</span>
+      </div>
+      <div class="node-test-info" (click)="onClickTestInfo($event)">{{ 'show_detail' | i18nextEager}}</div>
+    </div>
+
+    <div class="pw-common-node">
+      <div class="node-header">
+        <div class="node-icon-name">
+          <div
+            [ngClass]="isExpand ? 'node-open' : 'node-close'"
+            (click)="onSwitchExpand()"
+          ></div>
+
+          <img class="node-icon" [src]="intentImgUrl" alt="intent-node" />
+          <div class="node-name" lineClamp>{{ nodeInfo.name }}</div>
+        </div>
+
+        <div class="node-oprs" *ngIf="!isFlowReadonly">
+          <div (click)="onClickTest()" class="single-test-icon"></div>
+          <div class="cursor-pointer" nz-dropdown [nzDropdownMenu]="actionMenuAdvanced" nzTrigger="click" nzPlacement="bottomRight">
+            <nz-icon nzType="more" nzTheme="outline"></nz-icon>
+          </div>
+          <nz-dropdown-menu #actionMenuAdvanced="nzDropdownMenu">
+            <ul nz-menu>
+              @for (action of actions; track action.label) {
+                <li nz-menu-item (click)="onClickAction(action)">
+                  <span>{{ action.label }}</span>
+                </li>
+              }
+            </ul>
+          </nz-dropdown-menu>
+        </div>
+      </div>
+      <node-card-description *ngIf="isExpand" [description]="nodeInfo.configs?.descriptionText" [nodeInfo]="nodeInfo"></node-card-description>
+
+      <div *ngIf="isExpand" class="node-groups">
+        <div class="node-group">
+          <div class="flex gap-[10px]">
+            <span>{{ nodeInfo.configs?.intent?.name }}</span>
+            <span>
+              {{'includes'|i18nextEager}}{{ nodeInfo.configs?.intent?.branches_cnt ?? '--' }}{{'intentions'|i18nextEager}}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</ng-template>

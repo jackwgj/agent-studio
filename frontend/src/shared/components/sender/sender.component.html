@@ -1,0 +1,209 @@
+<div class="w-full">
+  <div class="sender-main">
+    @if (!isRuntime && showClear) {
+      <div
+        class="clear-button"
+        [ngClass]="{ 'clear-disabled': sending }"
+        (click)="onClear()"
+        [style]="{ cursor: isDisabledSenderBtn ? 'not-allowed' : 'pointer' }"
+      >
+        @if (!isDisabledSenderBtn) {
+          <nz-icon nzType="clear" nzTheme="outline" />
+        }
+        @if (isDisabledSenderBtn) {
+          <img alt="" class="w-[24px] h-[24px]" [src]="isDisabledSenderBtn ? changeUrl('assets/images/common/clean.svg') : ''" />
+        }
+      </div>
+    }
+    <div class="sender-container" [ngClass]="{ 'sender-disabled': disabled, 'is-sending': sending, 'sender-container-full': isRuntime }">
+      @if (!isSingleRow) {
+        <div class="mb-[4px] flex flex-wrap gap-x-[9px] gap-y-[8px] overflow-y-auto">
+          @for (item of uploadData; track item.fileId; let i = $index) {
+            <div class="uploaded-file">
+              @if (item.progress !== 'loading') {
+                <meta-upload-file-icon [fileName]="item.name" />
+              }
+              @if (item.progress === 'loading') {
+                <nz-icon nzType="loading" nzTheme="outline" class="!text-[16px]" />
+              }
+              <span class="w-[calc(100%-44px)]" nz-tooltip [nzTooltipTitle]="item.name" nzTooltipPlacement="top">{{ item.name }}</span>
+              <nz-icon nzType="close" nzTheme="outline" (click)="removeFile(i)" />
+            </div>
+          }
+        </div>
+        <textarea
+          class="textarea-content"
+          [class]="{ 'placeholder': placeholder }"
+          cdkTextareaAutosize
+          #textarea
+          #autosize="cdkTextareaAutosize"
+          cdkAutosizeMinRows="1"
+          [disabled]="recording || disabled"
+          [autofocus]="false"
+          [maxlength]="maxlength"
+          [(ngModel)]="content"
+          [placeholder]="
+            placeholder ? placeholder : ((isShowFileUpload ? (recording ? 'chat_placeholder2' : 'chat_placeholder1') : 'chat_placeholder3') | i18nextEager)
+          "
+          (ngModelChange)="checkContentWidth()"
+          (blur)="onBlur()"
+          nz-input
+        >
+        </textarea>
+      }
+      <div class="flex items-center justify-between" [class.sending-container]="sending" style="height: 24px">
+        @if (isSingleRow) {
+          <input
+            class="focus-input !h-[22px] flex-1 !border-none !px-0"
+            nz-input
+            #singleInput
+            [(ngModel)]="content"
+            (ngModelChange)="checkContentWidth()"
+            [disabled]="disabled || sending"
+            [placeholder]="
+              placeholder ? placeholder : ((isShowFileUpload ? (recording ? 'chat_placeholder2' : 'chat_placeholder1') : 'chat_placeholder3') | i18nextEager)
+            "
+            (focus)="onFocus()"
+          />
+        }
+        @if (!isSingleRow) {
+          <ng-container>
+            @if (!isRuntime && content.length > 100) {
+              <span class="text-[#808080]"> {{ content.length }} / {{ maxlength }}</span>
+            }
+            <div class="flex flex-1 justify-center">
+              @if (recording) {
+                <img alt="" class="h-[18px] w-[50%] cursor-pointer" [src]="changeUrl('assets/agent-center/images/home-loading.webp')" />
+              }
+            </div>
+          </ng-container>
+          @if (isRuntime) {
+            @if (fileInfo?.fileName) {
+              <div
+                class="btn"
+                nz-tooltip [nzTooltipTitle]="disabled || fileInfo.disabled ? ('deep_research_chat.deep_research_14' | i18nextEager) : fileInfo.fileName"
+              >
+                <div
+                  nz-dropdown
+                  [nzDropdownMenu]="fileMenu"
+                  [nzDisabled]="disabled || fileInfo.disabled"
+                  class="upload-file-menu upload-file"
+                >
+                  <nz-icon
+                    nzType="file-jpg"
+                    nzTheme="outline"
+                    [class]="disabled || fileInfo.disabled ? 'disable_btn' : ''"
+                    class="cursor-pointer mr-[5px] icon-size"
+                  />
+                  <div [class]="disabled || fileInfo.disabled ? 'disable_btn' : ''" class="template">{{ fileInfo.fileName }}</div>
+                </div>
+                <nz-dropdown-menu #fileMenu="nzDropdownMenu">
+                  <ul nz-menu>
+                    @for (action of actions; track action.id) {
+                      <li nz-menu-item (click)="handelTask(action.id, {}, null)">
+                        <div class="edit-item icon-size flex">
+                          <nz-icon class="mr-[5px]" nzTheme="outline" [nzType]="action.icon" />
+                          <div class="edit">{{ action.label }}</div>
+                        </div>
+                      </li>
+                    }
+                  </ul>
+                </nz-dropdown-menu>
+              </div>
+            } @else {
+              <button [class]="disabled || fileInfo.disabled ? 'disable_btn' : ''" class="upload-file btn cursor-pointer" (click)="addFileTemplate()">
+                <nz-icon class="mr-[5px]" nzTheme="outline" nzType="file-add" />
+                <div>{{ 'deep_research_chat.deep_research_12' | i18nextEager }}</div>
+              </button>
+            }
+          }
+        }
+        <ng-container *ngTemplateOutlet="buttons"></ng-container>
+      </div>
+    </div>
+  </div>
+  <div style="text-align: center; color: #c2c2c2; margin-top: 8px; font-size: 12px">
+    <div nz-tooltip [nzTooltipTitle]="aiDisclaimer" nzTooltipPlacement="bottom">{{ aiDisclaimer }}</div>
+  </div>
+</div>
+<input type="file" #fileInput class="hidden" [accept]="fileAccept" [multiple]="true" (change)="onUploadFile($event)" />
+
+<ng-template #buttons>
+  @if (!sending) {
+    @if (!recording) {
+      <div class="flex items-center gap-x-[4px]">
+        @if (showConvertAudio) {
+          <div class="convert-audio">{{ 'send_message_conversion_progress' | i18nextEager }}</div>
+        }
+        @if (isShowFileUpload) {
+          <div class="chat-header-icon">
+            <meta-inline-svg
+              src="assets/agent-center/icons/attachment.svg"
+              class="text-[20px] text-[#595959]"
+              [isInline]="false"
+              nz-tooltip
+              [nzTooltipTitle]="uploadData.length < 10 ? ('preview_debug_upload_support_type' | i18nextEager) + ('upload_max_ten_files' | i18nextEager) : ''"
+              nzTooltipPlacement="top"
+              (click)="uploadFile()"
+            />
+          </div>
+        }
+        @if (isHttps && voiceEnable && userVoiceControl && type_page !== 'multi') {
+          <div class="chat-header-icon">
+            <meta-inline-svg
+              src="assets/agent-center/icons/microphone.svg"
+              class="text-[20px] text-[#595959]"
+              [isInline]="false"
+              nz-tooltip
+              [nzTooltipTitle]="'voice_input' | i18nextEager"
+              nzTooltipPlacement="top"
+              (click)="startRecording()"
+            />
+          </div>
+        }
+        <div nz-tooltip [nzTooltipTitle]="senderTip" nzTooltipPlacement="top">
+          @if (showSend) {
+            <img alt=""
+              class="cursor-pointer text-[24px] text-transparent w-[32px] h-[32px] ml-[4px]"
+              (click)="onSend()"
+              [style]="{ cursor: isDisabledSenderBtn || showConvertAudio || isDisableSender ? 'not-allowed' : 'pointer' }"
+              [src]="
+                isDisabledSenderBtn || showConvertAudio || isDisableSender
+                  ? changeUrl('assets/agent-center/agent/send-disabled.svg')
+                  : changeUrl('assets/agent-center/agent/send-chat-icon.svg')
+              "
+            />
+          }
+        </div>
+      </div>
+    }
+    @if (recording && remainingTime && remainingTime < 50) {
+      <div class="remain-audio">{{ remainingTime }}s</div>
+    }
+    @if (recording && remainingTime && remainingTime >= 50) {
+      <div class="convert-audio">
+        {{ 'send_message_record' | i18nextEager: { valueTime: 60 - remainingTime } }}
+      </div>
+    }
+    @if (recording) {
+      <nz-icon
+        nzType="stop"
+        nzTheme="outline"
+        nz-tooltip
+        style="word-break: break-all"
+        [nzTooltipTitle]="'stop_record' | i18nextEager"
+        nzTooltipPlacement="top"
+        (click)="stopRecording(true)"
+      />
+    }
+  }
+  @if (sending) {
+    <div class="stop-button" (click)="onStop()">
+      <div class="container">
+        <div class="rotating-border"></div>
+        <div class="center-square"></div>
+      </div>
+      <span>{{ 'stop_answering' | i18nextEager }}</span>
+    </div>
+  }
+</ng-template>

@@ -1,0 +1,13 @@
+{
+  "node_manage": "组件管理",
+  "node_api": "API组件",
+  "node_arithmetic": "算法包组件",
+  "node_script": "脚本组件",
+  "node_create": "创建组件",
+  "node_no_data": "暂无可用内置组件",
+  "node_inner": "内置组件",
+  "node_custom": "自定义组件",
+  "node_menu": "组件管理",
+  "search_only_mine": "只看我的"
+}
+  

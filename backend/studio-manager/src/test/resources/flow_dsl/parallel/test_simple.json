@@ -1,0 +1,281 @@
+{
+  "id": "fc5b77ba-22e2-4b25-8ce9-acfd7f608a02",
+  "name": "gttest_parallel_simple",
+  "description": "gttest_parallel_simple",
+  "nodes": [{
+    "id": "node_end",
+    "type": "End",
+    "name": "结束",
+    "inputs": [{
+      "name": "result",
+      "type": "array",
+      "description": "最终输出",
+      "required": false,
+      "source": "user",
+      "schema": {
+        "name": "",
+        "type": "object",
+        "schema": [{
+          "name": "role",
+          "type": "string",
+          "description": "角色",
+          "required": true,
+          "source": "system",
+          "value": {
+            "type": "literal",
+            "content": "",
+            "hint": "角色"
+          }
+        }, {
+          "name": "content",
+          "type": "string",
+          "description": "消息内容",
+          "required": true,
+          "source": "system",
+          "value": {
+            "type": "literal",
+            "content": "",
+            "hint": "消息内容"
+          }
+        }]
+      },
+      "reflection": false,
+      "value": {
+        "type": "ref",
+        "content": {
+          "ref_node_id": "node_start",
+          "ref_var_name": "conversation_history",
+          "source": "system"
+        }
+      }
+    }],
+    "outputs": [{
+      "name": "response_content",
+      "type": "string",
+      "description": "最终输出",
+      "required": true,
+      "source": "system",
+      "reflection": false,
+      "value": {
+        "type": "generated"
+      }
+    }],
+    "configs": {
+      "is_stream_out": true,
+      "response_template": "{{result}}",
+      "response_mode": "directResponse"
+    }
+  }, {
+    "id": "node_1738913682745",
+    "type": "Message",
+    "name": "消息",
+    "inputs": [],
+    "outputs": [{
+      "name": "result",
+      "type": "string",
+      "description": "消息输出",
+      "required": false,
+      "source": "system",
+      "reflection": false,
+      "value": {
+        "type": "generated",
+        "content": "",
+        "hint": ""
+      }
+    }],
+    "configs": {
+      "template": "123"
+    }
+  }, {
+    "id": "node_start",
+    "type": "Start",
+    "name": "开始",
+    "outputs": [{
+      "name": "query",
+      "type": "string",
+      "description": "用户输入",
+      "required": true,
+      "source": "system",
+      "reflection": false,
+      "value": {
+        "type": "literal",
+        "content": "",
+        "hint": "用户输入"
+      }
+    }, {
+      "name": "conversation_history",
+      "type": "array",
+      "description": "会话历史消息",
+      "required": true,
+      "source": "system",
+      "schema": {
+        "name": "",
+        "type": "object",
+        "schema": [{
+          "name": "role",
+          "type": "string",
+          "description": "角色",
+          "required": true,
+          "source": "system",
+          "value": {
+            "type": "literal",
+            "content": "",
+            "hint": "角色"
+          }
+        }, {
+          "name": "content",
+          "type": "string",
+          "description": "消息内容",
+          "required": true,
+          "source": "system",
+          "value": {
+            "type": "literal",
+            "content": "",
+            "hint": "消息内容"
+          }
+        }]
+      },
+      "reflection": false,
+      "value": {
+        "type": "literal",
+        "content": [],
+        "hint": "会话历史消息"
+      }
+    }]
+  }, {
+    "id": "node_1740733456650",
+    "type": "Message",
+    "name": "消息_1",
+    "inputs": [{
+      "name": "",
+      "description": "",
+      "required": true,
+      "value": {
+        "type": "literal",
+        "content": "",
+        "hint": ""
+      },
+      "source": "user"
+    }],
+    "outputs": [{
+      "name": "result",
+      "description": "消息输出",
+      "required": false,
+      "type": "string",
+      "value": {
+        "type": "generated",
+        "content": "",
+        "hint": ""
+      },
+      "source": "system"
+    }],
+    "configs": {
+      "template": ""
+    }
+  }, {
+    "id": "node_1740733457896",
+    "type": "Message",
+    "name": "消息_2",
+    "inputs": [{
+      "name": "",
+      "description": "",
+      "required": true,
+      "value": {
+        "type": "literal",
+        "content": "",
+        "hint": ""
+      },
+      "source": "user"
+    }],
+    "outputs": [{
+      "name": "result",
+      "description": "消息输出",
+      "required": false,
+      "type": "string",
+      "value": {
+        "type": "generated",
+        "content": "",
+        "hint": ""
+      },
+      "source": "system"
+    }],
+    "configs": {
+      "template": ""
+    }
+  }, {
+    "id": "node_1740733459207",
+    "type": "Message",
+    "name": "消息_3",
+    "inputs": [{
+      "name": "",
+      "description": "",
+      "required": true,
+      "value": {
+        "type": "literal",
+        "content": "",
+        "hint": ""
+      },
+      "source": "user"
+    }],
+    "outputs": [{
+      "name": "result",
+      "description": "消息输出",
+      "required": false,
+      "type": "string",
+      "value": {
+        "type": "generated",
+        "content": "",
+        "hint": ""
+      },
+      "source": "system"
+    }],
+    "configs": {
+      "template": ""
+    }
+  }],
+  "edges": [{
+    "source": "node_1738913682745",
+    "target": "node_1740733459207"
+  }, {
+    "source": "node_1740733456650",
+    "target": "node_1740733457896"
+  }, {
+    "source": "node_start",
+    "target": "node_1738913682745"
+  }, {
+    "source": "node_1740733457896",
+    "target": "node_end"
+  }, {
+    "source": "node_1738913682745",
+    "target": "node_1740733456650"
+  }, {
+    "source": "node_1740733459207",
+    "target": "node_end"
+  }],
+  "layouts": {
+    "node_end": {
+      "x": 2088,
+      "y": 252
+    },
+    "node_1738913682745": {
+      "x": 666,
+      "y": 270
+    },
+    "node_start": {
+      "x": 198,
+      "y": 252
+    },
+    "node_1740733456650": {
+      "x": 1116,
+      "y": 36
+    },
+    "node_1740733457896": {
+      "x": 1602,
+      "y": 36
+    },
+    "node_1740733459207": {
+      "x": 1368,
+      "y": 396
+    }
+  }
+}

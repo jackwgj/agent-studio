@@ -1,0 +1,204 @@
+.subscription-outer {
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  margin: 0;
+
+  .header-div {
+    width: 100%;
+    height: 288px;
+    padding: 48px 120px 0 120px;
+    box-sizing: border-box;
+    background: #fff url('../../assets/subscription/header-bg.svg')
+      calc(100% - 190px) 50% / 394px 230px no-repeat;
+
+    .main-title {
+      width: 655px;
+      height: 48px;
+      color: rgba(25, 25, 25, 1);
+      font-family: PingFang SC, sans-serif;
+      font-size: 32px;
+      font-weight: 600;
+      line-height: 48px;
+      letter-spacing: 0;
+    }
+
+    .sub-title {
+      width: 655px;
+      color: rgba(25, 25, 25, 1);
+      font-family: PingFang SC, sans-serif;
+      font-size: 14px;
+      font-weight: 400;
+      line-height: 22px;
+      letter-spacing: 0;
+      margin-top: 8px;
+    }
+
+    .btn-div {
+      width: 655px;
+      height: 32px;
+      display: flex;
+      justify-content: flex-start;
+      align-items: flex-start;
+      gap: 8px;
+      margin-top: 24px;
+
+      .btn {
+        height: 32px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 0 24px;
+        border-radius: 999px;
+        cursor: pointer;
+        border: 1px solid rgba(25, 25, 25, 1);
+        box-sizing: border-box;
+        font-family: PingFang SC, sans-serif;
+        font-size: 14px;
+        font-weight: 400;
+        letter-spacing: 0;
+
+        &.black {
+          background: rgba(25, 25, 25, 1);
+          color: rgba(255, 255, 255, 1);
+        }
+      }
+    }
+  }
+
+  .bottom-div {
+    width: calc(100% - 48px);
+    height: calc(100% - 336px);
+    margin: 24px;
+    padding: 24px;
+    box-sizing: border-box;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 1);
+
+    .title-div {
+      width: 100%;
+      height: 24px;
+      color: rgba(25, 25, 25, 1);
+      font-family: PingFang SC, sans-serif;
+      font-size: 16px;
+      font-weight: 500;
+      line-height: 24px;
+      letter-spacing: 0;
+    }
+
+    .content-div {
+      width: 100%;
+      height: calc(100% - 24px);
+      padding: 16px 0;
+      box-sizing: border-box;
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      overflow: auto;
+      align-content: flex-start;
+
+      .card {
+        width: 444px;
+        height: 216px;
+        box-sizing: border-box;
+        border: 1px solid rgba(240, 240, 240, 1);
+        border-radius: 8px;
+        background: rgba(250, 250, 250, 1);
+        position: relative;
+
+        .tag {
+          position: absolute;
+          top: 0;
+          right: 0;
+          width: 66px;
+          height: 24px;
+          line-height: 24px;
+          text-align: center;
+          border-radius: 0px 8px 0px 8px;
+          background: #e6e6e6 100%;
+        }
+        .tag.green {
+          color: #029931;
+          background: #e4f7e9;
+        }
+
+        .sub-status {
+          width: 100%;
+          height: 24px;
+          text-align: right;
+
+          span {
+            color: rgba(217, 105, 0, 1);
+            font-family: PingFang SC, sans-serif;
+            font-size: 14px;
+            font-weight: 400;
+            line-height: 24px;
+            letter-spacing: 0;
+            text-align: left;
+            border-radius: 0 8px 0 8px;
+            background: rgba(255, 240, 224, 1);
+            display: inline-block;
+            padding: 0 12px;
+            box-sizing: border-box;
+          }
+        }
+
+        .card-body {
+          width: 100%;
+          height: calc(100% - 24px);
+          padding: 0 24px 24px 24px;
+          box-sizing: border-box;
+          position: relative;
+          .icon {
+            width: 44px;
+            height: 44px;
+          }
+
+          .title {
+            width: 100%;
+            height: 24px;
+            color: rgba(25, 25, 25, 1);
+            font-family: PingFang SC, sans-serif;
+            font-size: 16px;
+            font-weight: 500;
+            line-height: 24px;
+            letter-spacing: 0;
+            margin-top: 12px;
+          }
+
+          .content {
+            width: 100%;
+            color: rgba(128, 128, 128, 1);
+            font-family: PingFang SC, sans-serif;
+            font-size: 12px;
+            font-weight: 400;
+            line-height: 22px;
+            letter-spacing: 0;
+          }
+
+          .bottom-btn {
+            width: 100%;
+            height: 28px;
+            position: absolute;
+            bottom: 24px;
+
+            .btn {
+              width: 108px;
+              height: 28px;
+              display: flex;
+              flex-direction: row;
+              justify-content: center;
+              align-items: center;
+              cursor: pointer;
+              box-sizing: border-box;
+              border: 1px solid rgba(89, 89, 89, 1);
+              border-radius: 999px;
+              background: rgba(255, 255, 255, 1);
+              font-size: 12px;
+            }
+          }
+        }
+      }
+    }
+  }
+}

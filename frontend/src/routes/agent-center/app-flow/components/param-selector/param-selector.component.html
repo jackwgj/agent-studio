@@ -1,0 +1,51 @@
+<meta-acc-block class="mt-[16px] block" [title]="'agent_policy_config' | i18nextEager">
+  <ng-template #content>
+    <div class="mt-4 flex flex-wrap gap-6">
+      <div
+        class="w-full"
+        *ngFor="
+          let param of modelParams | keyvalue : originalOrder;
+          trackBy: trackByFn
+        "
+      >
+        <div class="item-label flex items-center gap-2">
+          <span class="select-none">{{
+            'model_' + param.key | i18nextEager
+          }}</span>
+          <span
+            nz-tooltip
+            [nzTooltipTitle]="'model_' + param.key + '_desc' | i18nextEager"
+            nz-icon
+            nzType="question-circle"
+            nzTheme="outline"
+          ></span>
+        </div>
+
+        <div class="flex flex-1 items-center justify-between gap-4 pb-2">
+          <nz-slider
+            class="!my-[22px] flex-1"
+            [(ngModel)]="modelParams[param.key]"
+            [nzMin]="modelParamsInfoMap.get(param.key).min"
+            [nzMax]="modelParamsInfoMap.get(param.key).max"
+            [nzStep]="modelParamsInfoMap.get(param.key).step"
+            [nzTooltipVisible]="'always'"
+            (nzOnAfterChange)="changeParams($event)"
+          >
+          </nz-slider>
+          <input
+            type="number"
+            class="!w-[74px] !rounded-md"
+            [min]="modelParamsInfoMap.get(param.key).min"
+            [max]="modelParamsInfoMap.get(param.key).max"
+            [step]="modelParamsInfoMap.get(param.key).step"
+            [(ngModel)]="modelParams[param.key]"
+            [ngModelOptions]="{ standalone: true }"
+            (blur)="onParamInputBlur(param.key)"
+            (keydown)="filterNaN($event)"
+            nz-input
+          />
+        </div>
+      </div>
+    </div>
+  </ng-template>
+</meta-acc-block>

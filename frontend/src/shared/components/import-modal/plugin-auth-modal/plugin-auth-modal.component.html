@@ -1,0 +1,246 @@
+<div class="plugin-auth-modal-container">
+  <div *nzModalTitle class="header">
+    <span>{{ 'config_auth' | i18nextEager }}</span>
+  </div>
+  <div class="main-container">
+    <div style="color: rgb(25,25,25); font-size: 14px; font-weight: 600;margin-bottom: 4px;">
+      {{ 'api_auth_info' | i18nextEager }}
+    </div>
+    <form [formGroup]="basicFormControl">
+      <div class="auth-section">
+        <div class="auth-label">{{ createPluginFormLabel.pluginAuth }}</div>
+        <nz-radio-group
+          id="radiogroup-direction"
+          formControlName="pluginAuthMethod"
+          (ngModelChange)="changeAuthType($event)"
+        >
+          <label nz-radio [nzValue]="item.id" *ngFor="let item of authList">{{item.label}}</label>
+        </nz-radio-group>
+      </div>
+
+      <!-- API Key -->
+      <div
+        class="mb-4 mt-4 w-full"
+        *ngIf="basicFormControl.controls.pluginAuthMethod.value === 'pluginApiKey'"
+      >
+        <div>
+          <div class="auth-section">
+            <div class="auth-label">{{ createPluginFormLabel.pluginAuthLoc }}</div>
+            <nz-radio-group
+              id="radiogroup-direction"
+              formControlName="pluginApiAuth"
+            >
+              <label nz-radio [nzValue]="item.id" *ngFor="let item of userAuthRadioList">{{item.label}}</label>
+            </nz-radio-group>
+          </div>
+        </div>
+
+        <nz-card class="mt-2 block w-full" [nzTitle]="'param_list' | i18nextEager">
+          <ng-template #extra>
+            <div class="flex items-center gap-[4px]" *ngIf="basicFormControl.controls.pluginApiAuth.value ==='Header'">
+              <button
+                (click)="addInputParam()"
+                class="w-fit"
+                nz-button
+                nzType="text"
+                nz-tooltip
+                [nzTooltipTitle]="'add_params' | i18nextEager"
+              >
+                <span nz-icon nzType="plus"></span>
+              </button>
+            </div>
+          </ng-template>
+          <div class="mt-2 flex items-center gap-2">
+            <div
+              class="flex w-[48%] items-center gap-[4px] text-label"
+            >
+              <span>{{ 'param_name' | i18nextEager }}</span>
+              <span nz-icon nzType="question-circle" nz-tooltip [nzTooltipTitle]="'param_name_tips' | i18nextEager" style="font-size: 16px; cursor: pointer"></span>
+            </div>
+            <div
+              class="flex w-[48%] items-center gap-[4px] text-label"
+            >
+              <span>{{ 'param_value' | i18nextEager }}</span>
+              <span nz-icon nzType="question-circle" nz-tooltip [nzTooltipTitle]="'key_val_tips' | i18nextEager" style="font-size: 16px; cursor: pointer"></span>
+            </div>
+          </div>
+          <form #apiAuthForm="ngForm">
+            <div
+              *ngFor="let param of apiKeyAuthArgs; index as i"
+              class="mt-2 flex gap-2"
+            >
+              <div class="w-[48%]">
+                <input
+                  nz-input
+                  style="width: 100%"
+                  type="text"
+                  [name]="'apiKeyAuthName' + i"
+                  maxlength="100"
+                  [(ngModel)]="param.name"
+                  [ngModelOptions]="{standalone: true}"
+                  [placeholder]="'input_placeholder' | i18nextEager"
+                />
+              </div>
+              <div class="w-[48%]">
+                <input
+                  nz-input
+                  style="width: 100%"
+                  type="password"
+                  [name]="'apiKeyAuthVale' + i"
+                  [(ngModel)]="param.value"
+                  [ngModelOptions]="{standalone: true}"
+                  [placeholder]="'input_placeholder' | i18nextEager"
+                />
+              </div>
+
+              <span nz-icon
+                *ngIf="i > 0"
+                (click)="deleteArgs('apiAuth', i)"
+                style="
+                            font-size: 16px;
+                            cursor: pointer;
+                            padding-top: 6px;
+                          "
+                nzType="delete"
+              ></span>
+              <div
+                *ngIf="i === 0"
+                class="h-[16px] w-[16px] bg-transparent"
+              ></div>
+            </div>
+          </form>
+        </nz-card>
+        <div class="mt-4" *ngIf="isOp">
+          <div class="auth-section">
+            <div class="auth-label">
+              <span class="mr-1">{{createPluginFormLabel.auth_required}}</span>
+              <span nz-icon nzType="question-circle" nz-tooltip [nzTooltipTitle]="'createplugincomponent_737'|i18nextEager" style="font-size: 16px; cursor: pointer"></span>
+            </div>
+            <nz-radio-group
+              id="radiogroup-auth"
+              formControlName="auth_required"
+            >
+              <label nz-radio [nzValue]="item.id" *ngFor="let item of authConfigRadioList">{{item.label}}</label>
+            </nz-radio-group>
+          </div>
+
+          <div class="auth-section" *ngIf="basicFormControl.controls.auth_required.value === 'true'">
+            <div class="auth-label">{{ createPluginFormLabel.metadata }}</div>
+            <input
+              nz-input
+              class="w-full"
+              formControlName="metadata"
+              [placeholder]="'input_placeholder' | i18nextEager"
+            />
+          </div>
+        </div>
+      </div>
+      <div class="mt-4" *ngIf="basicFormControl.controls.pluginAuthMethod.value === 'HIS_IAM'">
+        <div class="auth-section">
+          <div class="auth-label">URL <span class="required">*</span></div>
+          <input nz-input class="w-full" type="text" maxlength="255" placeholder="{{ 'pls_enter' | i18nextEager }}" formControlName="iamUrl"/>
+        </div>
+        <div class="auth-section">
+          <div class="auth-label">{{ 'createpluginbase_751'| i18nextEager }} <span class="required">*</span></div>
+          <input nz-input class="w-full" type="text" maxlength="255" placeholder="{{ 'pls_enter' | i18nextEager }}" formControlName="iamAccount"/>
+        </div>
+        <div class="auth-section">
+          <div class="auth-label">{{ 'createpluginbase_752'| i18nextEager }} <span class="required">*</span></div>
+          <input nz-input class="w-full" type="text" maxlength="255" placeholder="{{ 'pls_enter' | i18nextEager }}" formControlName="iamSecret"/>
+        </div>
+        <div class="auth-section">
+          <div class="auth-label">{{ 'createpluginbase_753'| i18nextEager }} <span class="required">*</span></div>
+          <input nz-input class="w-full" type="text" maxlength="255" placeholder="{{ 'pls_enter' | i18nextEager }}" formControlName="iamProject"/>
+        </div>
+        <div class="auth-section">
+          <div class="auth-label">{{ 'createpluginbase_754'| i18nextEager }} <span class="required">*</span></div>
+          <input nz-input class="w-full" type="text" maxlength="255" placeholder="{{ 'pls_enter' | i18nextEager }}" formControlName="iamEnterprise"/>
+        </div>
+      </div>
+      <div class="mt-4" *ngIf="basicFormControl.controls.pluginAuthMethod.value === 'SGOV'">
+        <div class="auth-section">
+          <div class="auth-label">URL <span class="required">*</span></div>
+          <input nz-input class="w-full" type="text" maxlength="255" placeholder="{{ 'pls_enter' | i18nextEager }}" formControlName="sgovUrl"/>
+        </div>
+        <div class="auth-section">
+          <div class="auth-label">APP ID <span class="required">*</span></div>
+          <input nz-input class="w-full" type="text" maxlength="255" placeholder="{{ 'pls_enter' | i18nextEager }}" formControlName="appId"/>
+        </div>
+        <div class="auth-section">
+          <div class="auth-label">{{ 'createpluginbase_755'| i18nextEager }} <span class="required">*</span></div>
+          <input nz-input class="w-full" type="text" maxlength="255" placeholder="{{ 'pls_enter' | i18nextEager }}" formControlName="credential"/>
+        </div>
+      </div>
+      <div class="mt-4" *ngIf="basicFormControl.controls.pluginAuthMethod.value === 'CUSTOM_IAM'">
+        <div class="auth-section">
+          <div class="auth-label">
+            {{ 'server_address' | i18nextEager }}
+            <span nz-icon nzType="question-circle" nz-tooltip [nzTooltipTitle]="iamTip.iamUrl" style="font-size: 16px; cursor: pointer"></span>
+          </div>
+          <input nz-input class="w-full" type="text" maxlength="255" placeholder="{{ 'pls_enter' | i18nextEager }}" formControlName="iamUrl"/>
+        </div>
+        <div class="auth-section">
+          <div class="auth-label">
+            {{ 'account_name' | i18nextEager }}
+            <span nz-icon nzType="question-circle" nz-tooltip [nzTooltipTitle]="iamTip.iamDomain" style="font-size: 16px; cursor: pointer"></span>
+          </div>
+          <input nz-input class="w-full" type="text" maxlength="255" placeholder="{{ 'pls_enter' | i18nextEager }}" formControlName="iamDomain"/>
+        </div>
+        <div class="auth-section">
+          <div class="auth-label">
+            {{ 'project' | i18nextEager }}
+            <span nz-icon nzType="question-circle" nz-tooltip [nzTooltipTitle]="iamTip.iamProject" style="font-size: 16px; cursor: pointer"></span>
+          </div>
+          <input nz-input class="w-full" type="text" maxlength="255" placeholder="{{ 'pls_enter' | i18nextEager }}" formControlName="iamProject"/>
+        </div>
+        <div class="auth-section">
+          <div class="auth-label">{{ 'verification_mode' | i18nextEager }}</div>
+          <nz-radio-group formControlName="verify" (ngModelChange)="changeVerifyMethod($event)">
+            <label nz-radio [nzValue]="item.id" *ngFor="let item of verifyMethods">{{item.label}}</label>
+          </nz-radio-group>
+        </div>
+        <div class="auth-section" *ngIf="basicFormControl.controls.verify.value=== 'iam'">
+          <div class="auth-label">
+            {{ 'iam_username' | i18nextEager }}
+            <span nz-icon nzType="question-circle" nz-tooltip [nzTooltipTitle]="iamTip.iamUser" style="font-size: 16px; cursor: pointer"></span>
+          </div>
+          <input nz-input class="w-full" type="text" maxlength="255" placeholder="{{ 'pls_enter' | i18nextEager }}" formControlName="iamUser"/>
+        </div>
+        <div class="auth-section" *ngIf="basicFormControl.controls.verify.value === 'iam'">
+          <div class="auth-label">
+            {{ 'iam_user_password' | i18nextEager }}
+            <span nz-icon nzType="question-circle" nz-tooltip [nzTooltipTitle]="iamTip.iamPassword" style="font-size: 16px; cursor: pointer"></span>
+          </div>
+          <input nz-input class="w-full" type="password" maxlength="255" placeholder="{{ 'pls_enter' | i18nextEager }}" formControlName="iamPassword"/>
+        </div>
+        <div class="auth-section" *ngIf="basicFormControl.controls.verify.value === 'aksk'">
+          <div class="auth-label">
+            Access Key ID
+            <span nz-icon nzType="question-circle" nz-tooltip [nzTooltipTitle]="iamTip.iamAK" style="font-size: 16px; cursor: pointer"></span>
+          </div>
+          <input nz-input class="w-full" type="password" maxlength="255" placeholder="{{ 'pls_enter' | i18nextEager }}" formControlName="iamAK"/>
+        </div>
+        <div class="auth-section" *ngIf="basicFormControl.controls.verify.value === 'aksk'">
+          <div class="auth-label">
+            Secret Access Key
+            <span nz-icon nzType="question-circle" nz-tooltip [nzTooltipTitle]="iamTip.iamSK" style="font-size: 16px; cursor: pointer"></span>
+          </div>
+          <input nz-input class="w-full" type="password" maxlength="255" placeholder="{{ 'pls_enter' | i18nextEager }}" formControlName="iamSK"/>
+        </div>
+      </div>
+
+    </form>
+  </div>
+  <div *nzModalFooter>
+    <button nz-button class="rounded" type="button" (click)="dismiss()">{{ 'cancel' | i18nextEager }}</button>
+    <button
+      nz-button
+      nzType="primary"
+      class="rounded"
+      type="button"
+      (click)="confirm()"
+      [disabled]="btnDisabledFunc()">
+      {{ 'save' | i18nextEager }}
+    </button>
+  </div>
+</div>

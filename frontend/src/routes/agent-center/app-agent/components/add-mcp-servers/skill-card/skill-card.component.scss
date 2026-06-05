@@ -1,0 +1,39 @@
+:host {
+  width: 100%;
+}
+.card-wrapper {
+  border: 1px solid #F0F0F0;
+
+  .deploying-text, .tool-num {
+    color: #8A8E99;
+  }
+
+  .all-btn {
+    color: #0e57d0;
+    text-underline-offset: 4px;
+    transition: background-color .2s cubic-bezier(0.25, 0.1, 0.25, 1),
+                  border-color .2s cubic-bezier(0.25, 0.1, 0.25, 1),
+                  box-shadow .2s cubic-bezier(0.25, 0.1, 0.25, 1),
+                  color .2s cubic-bezier(0.25, 0.1, 0.25, 1);
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  .remove-all {
+    color: #DE504E;
+  }
+
+  .all-btn-disabled {
+    color: #ADB0B8;
+    cursor: not-allowed;
+    &:hover {
+      text-decoration: none;
+    }
+  }
+
+  .tool-list {
+    border-top: 1px solid #F0F0F0;
+  }
+}

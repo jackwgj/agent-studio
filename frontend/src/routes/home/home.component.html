@@ -1,0 +1,11 @@
+<div class="app-layout flex">
+  <div class="app-layout-sider">
+    <left-menu [items]="vm?.leftmenu.items" [marketItems]="home?.leftmenu.items">
+    </left-menu>
+  </div>
+  <nz-layout class="flex-1">
+    <nz-content class="app-layout-content">
+      <router-outlet></router-outlet>
+    </nz-content>
+  </nz-layout>
+</div>

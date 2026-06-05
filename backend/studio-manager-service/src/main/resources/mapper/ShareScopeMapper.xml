@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
+  -->
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.agent.manager.mapper.ShareScopeMapper">
+    <resultMap id="BaseResultMap" type="com.openjiuwen.studio.agent.manager.entity.ShareScopeEntity">
+        <!--@mbg.generated-->
+        <!--@Table t_agent_workflow-->
+        <id column="id" jdbcType="VARCHAR" property="id"/>
+        <result column="resource_id" jdbcType="VARCHAR" property="resourceId"/>
+        <result column="resource_type" jdbcType="VARCHAR" property="resourceType"/>
+        <result column="workspace_id" jdbcType="VARCHAR" property="workspaceId"/>
+        <result column="project_id" jdbcType="VARCHAR" property="projectId"/>
+        <result column="tenant_id" jdbcType="VARCHAR" property="tenantId"/>
+    </resultMap>
+    <sql id="Base_Column_List">
+        <!--@mbg.generated-->
+        id,
+        resource_id,
+        resource_type,
+        workspace_id,
+        `project_id`,
+        tenant_id
+    </sql>
+    <insert id="insert" parameterType="com.openjiuwen.studio.agent.manager.entity.ShareScopeEntity">
+        insert into t_share_scope (id, resource_id, resource_type, workspace_id, project_id, tenant_id)
+        values (#{id}, #{resourceId}, #{resourceType}, #{workspaceId}, #{projectId}, #{tenantId})
+    </insert>
+
+    <insert id="batchInsert" parameterType="java.util.List">
+        insert into t_share_scope (
+        id,
+        resource_id,
+        resource_type,
+        workspace_id,
+        project_id,
+        tenant_id
+        ) values
+        <foreach collection="list" item="item" separator=",">
+            (
+            #{item.id},
+            #{item.resourceId},
+            #{item.resourceType},
+            #{item.workspaceId},
+            #{item.projectId},
+            #{item.tenantId}
+            )
+        </foreach>
+    </insert>
+
+    <select id="selectShareScopesByResourceId" parameterType="map" resultMap="BaseResultMap">
+        <!--@mbg.generated-->
+        select
+        <include refid="Base_Column_List"/>
+        from t_share_scope
+        where resource_id = #{resourceId}
+    </select>
+
+    <select id="selectShareScopesByResourceIdAndWorkspaceId"
+            resultType="com.openjiuwen.studio.agent.manager.entity.ShareScopeEntity">
+        select
+        <include refid="Base_Column_List"/>
+        from t_share_scope
+        where resource_id = #{resourceId}
+        and (workspace_id = #{workspaceId} or workspace_id = 'all')
+    </select>
+
+    <delete id="deleteByResourceId" parameterType="map">
+        delete
+        from t_share_scope
+        where resource_id = #{resourceId}
+    </delete>
+
+    <delete id="batchDelete" parameterType="java.util.List">
+        delete
+        from t_share_scope
+        where resource_id = #{resourceId}
+        and workspace_id in
+        <foreach collection="list" item="item" open="(" separator="," close=")">
+            #{item.workspaceId}
+        </foreach>
+    </delete>
+
+    <select id="selectShareScopesByResourceIdsAndWorkspaceId" parameterType="map" resultType="com.openjiuwen.studio.agent.manager.entity.ShareScopeEntity">
+        select
+        <include refid="Base_Column_List"/>
+        from t_share_scope
+        where (workspace_id = #{workspaceId} or workspace_id = 'all')
+        and resource_id in
+        <foreach collection="resourceIds" item="resourceId" separator="," open="(" close=")">
+            #{resourceId}
+        </foreach>
+    </select>
+</mapper>

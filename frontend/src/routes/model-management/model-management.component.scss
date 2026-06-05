@@ -1,0 +1,242 @@
+#custom-model {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+
+  .top-title-area {
+    display: flex;
+    justify-content: space-between;
+    margin: 12px 0 24px 0;
+
+    .title-area-left {
+      display: flex;
+      margin-right: 8px;
+      color: rgba(25, 25, 25, 1);
+      font-size: 20px;
+      font-weight: 600;
+
+      .page-title {
+        margin-right: 6px;
+      }
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 16px;
+    }
+  }
+
+  .query-operate {
+    display: flex;
+    margin: 0 0 24px 0;
+    width: 100%;
+
+    .search-input {
+      flex: 1;
+      margin-right: 8px;
+    }
+  }
+
+  > nz-spin {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  ::ng-deep .ant-spin-nested-loading,
+  ::ng-deep .ant-spin-container {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    height: 100%;
+  }
+
+  .card-scroll-container {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    flex: 1;
+
+    .model-card-main {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(352px, 1fr));
+      gap: 16px;
+      width: 100%;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding-right: 4px;
+      flex: 1;
+
+      .model-card {
+        height: 196px;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        border: 1px solid rgba(230, 230, 230, 1);
+        border-radius: 16px;
+        position: relative;
+        transition: all 0.3s ease;
+        overflow: hidden;
+        background: white;
+
+        .model-card-title {
+          margin: 24px 24px 12px 24px;
+          display: flex;
+          flex-direction: row;
+          align-items: center;
+
+          .model-card-title-icon {
+            height: 44px;
+            width: 44px;
+            margin-right: 16px;
+            flex-shrink: 0;
+            border-radius: 4px;
+            object-fit: cover;
+          }
+
+          .model-card-title-content {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+
+            .model-card-title-content-title {
+              font-size: 14px;
+              font-weight: 400;
+              line-height: 22px;
+              display: -webkit-box;
+              -webkit-box-orient: vertical;
+              -webkit-line-clamp: 1;
+              overflow: hidden;
+              color: #191919;
+            }
+
+            .status-tag {
+              width: fit-content;
+              margin: 0;
+              padding: 0;
+            }
+          }
+        }
+
+        .description-container {
+          height: 55px;
+          padding: 0 24px;
+
+          .description-text {
+            max-width: 100%;
+            color: #808080;
+            line-height: 22px;
+            font-size: 14px;
+          }
+        }
+
+        .model-card-footer {
+          margin-top: auto;
+          height: 64px;
+          padding: 0 24px;
+          display: flex;
+          align-items: center;
+          position: relative;
+        }
+
+        .model-card-bottom-info {
+          width: 100%;
+          display: flex;
+          align-items: center;
+
+          .time-info-wrapper {
+            color: #808080;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+
+            .time-icon-instance {
+              margin-right: 8px;
+              font-size: 16px !important;
+              transform: translateY(0.5px);
+            }
+            .time-text-content {
+              line-height: 1;
+            }
+          }
+        }
+
+        .model-card-hover-actions {
+          position: absolute;
+          inset: 0;
+          padding: 0 24px;
+          background: #fff;
+          display: flex;
+          align-items: center;
+          z-index: 10;
+
+          .hover-buttons-flex-container {
+            display: flex;
+            gap: 24px;
+
+            .card-footer-action-btn {
+              padding: 0 !important;
+              height: auto !important;
+              line-height: normal !important;
+              min-width: auto !important;
+
+              .hover-btn-label-text {
+                font-size: 14px;
+                font-weight: 600;
+                display: inline-block;
+                vertical-align: middle;
+              }
+            }
+          }
+        }
+      }
+
+      .empty-state-container {
+        grid-column: 1 / -1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        min-height: 400px;
+
+        .no-data-content {
+          width: 100%;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+        }
+      }
+    }
+  }
+
+  .pagination-container {
+    margin-top: 24px;
+  }
+}
+
+@media screen and (min-width: 1921px) {
+  #custom-model .card-scroll-container .model-card-main { grid-template-columns: repeat(4, 1fr); }
+}
+@media screen and (min-width: 1600px) and (max-width: 1920px) {
+  #custom-model .card-scroll-container .model-card-main { grid-template-columns: repeat(3, 1fr); }
+}
+@media screen and (min-width: 1280px) and (max-width: 1599px) {
+  #custom-model .card-scroll-container .model-card-main { grid-template-columns: repeat(auto-fill, minmax(393px, 1fr)); }
+}
+@media screen and (min-width: 1024px) and (max-width: 1279px) {
+  #custom-model .card-scroll-container .model-card-main { grid-template-columns: repeat(auto-fill, minmax(393px, 1fr)); }
+  #custom-model .model-card-hover-actions .hover-buttons-flex-container { flex-direction: row; gap: 16px; }
+}
+@media screen and (min-width: 800px) and (max-width: 1023px) {
+  #custom-model .card-scroll-container .model-card-main { grid-template-columns: repeat(auto-fill, minmax(393px, 1fr)); }
+}
+@media screen and (max-width: 799px) {
+  #custom-model .card-scroll-container .model-card-main { grid-template-columns: repeat(auto-fill, minmax(393px, 1fr)); }
+}
+@media screen and (max-width: 480px) {
+  #custom-model .card-scroll-container .model-card-main { grid-template-columns: 1fr; }
+  #custom-model .model-card-main .model-card { height: 180px; }
+}

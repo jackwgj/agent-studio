@@ -1,0 +1,149 @@
+<div (click)="handleDetailView()" class="card-wrapper" [style]="{ cursor: this.data.fc_instance_status === 'creatingStack' ? 'not-allowed' : 'pointer' }">
+  <div class="icon-and-name">
+    <img alt=""
+      class="h-[48px] w-[48px] rounded-lg"
+      [src]="!data.icon ? MCP_DEFAULT_ICON_BASE64_STR : data.icon.startsWith('data:image/') ? data.icon : 'data:image/png;base64,' + data.icon"
+    />
+    <div class="flex w-[calc(100%-64px)] flex-col" style="gap: 4px">
+      <div class="flex items-center gap-x-[8px]">
+        <div class="name text-overflow-2">
+          {{ name }}
+        </div>
+      </div>
+      <div class="flex gap-2">
+        <nz-tag
+          *ngIf="isMcp"
+          nzSize="small"
+          [nzColor]="'blue'"
+          style="margin: 0; padding: 0; line-height: 18px"
+          class="!rounded-[4px] py-[1px] pl-[2px] pr-[4px]"
+        >
+          {{ getMcpTagName(data.resource) }}
+        </nz-tag>
+        @if (type !== cardListType.SKILL) {
+          <nz-tag
+            nzSize="small"
+            style="margin: 0; padding: 0; line-height: 18px"
+            [nzColor]="statusColor"
+            (click)="handleClickStatusTag($event)"
+            class="!rounded-[4px] py-[1px] pl-[2px] pr-[4px]"
+          >
+            {{ status | i18nextEager }}
+          </nz-tag>
+        }
+        <nz-tag
+          *ngIf="testStatus"
+          nzSize="small"
+          [nzColor]="testStatusColor"
+          style="margin: 0; padding: 0; line-height: 18px"
+          class="!ml-[2px] !rounded-[4px] py-[1px] pl-[2px] pr-[4px]"
+        >
+          {{ testStatus | i18nextEager }}
+        </nz-tag>
+        @if (data.visibility === 'user') {
+          <nz-tag nzSize="small" style="margin: 0; padding: 0" class="!rounded-[4px] py-[1px] pl-[2px] pr-[4px]">
+            {{ 'only_to_me_see' | i18nextEager }}
+          </nz-tag>
+        }
+        @if (type === cardListType.SKILL) {
+          <nz-tag
+            nzSize="small"
+            [nzColor]="data.status === 'developing' ? '' : 'green'"
+            style="margin: 0; padding: 0; line-height: 18px"
+            class="!rounded-[4px] py-[1px] pl-[2px] pr-[4px]"
+          >
+            {{ data.status === 'developing' ? ('skill.export.list.status.developing' | i18n) : ('skill.export.list.status.active' | i18n) }}
+          </nz-tag>
+          <nz-tag
+            nzSize="small"
+            [nzColor]="data.source === 'custom' ? 'blue' : 'orange'"
+            style="margin: 0; padding: 0; line-height: 18px"
+            class="!rounded-[4px] py-[1px] pl-[2px] pr-[4px]"
+          >
+            {{ data.source === 'custom' ? ('custom' | i18n) : ('skill.list.card.outImport' | i18n) }}
+          </nz-tag>
+        }
+      </div>
+    </div>
+  </div>
+  <div class="mb-[16px] mt-[16px] h-[44px]">
+    <div
+      class="w-full break-words text-[14px] leading-[22px] text-[#19191999] text-overflow-2"
+      [textContent]="isZH() ? data.description || data.plugin_desc || '--' : data.description_en || data.plugin_desc || '--'"
+    ></div>
+  </div>
+  <div class="bottom-area">
+    <span class="flex items-center" *ngIf="this.isMcp">
+      <span nz-icon nzType="api" nzTheme="outline" class="mr-[8px] !text-[16px]"></span>
+      <span class="mr-[16px]">
+        {{ isZH() ? data.status_cn : data.status_en }}
+      </span>
+    </span>
+    <span class="flex items-center footer-content" *ngIf="!this.isMcp" style="gap: 24px">
+      @if (type !== cardListType.SKILL) {
+        <div class="footer-item" style="gap: 0; position: relative">
+          <span nz-icon nzType="user" nzTheme="outline" class="mr-[8px] !text-[16px]" style="position: absolute; top: 1px"></span>
+          <span class="creator-plugin" style="padding-left: 24px">
+            {{ data.creator || data.author }}
+          </span>
+        </div>
+      }
+      <div class="footer-item" style="gap: 0; position: relative">
+        <span nz-icon nzType="history" nzTheme="outline" class="!text-[16px]" style="position: absolute; top: 1px"></span>
+        <span class="text-overflow" style="padding-left: 24px">
+          {{ data.create_time || data.created_on || data.created_time | formateTime }}
+        </span>
+      </div>
+    </span>
+    <div class="footer-action-container">
+      <a nz-dropdown [nzDropdownMenu]="menu">
+        更多
+        <span nz-icon nzType="down"></span>
+      </a>
+      <nz-dropdown-menu #menu="nzDropdownMenu">
+        <ul nz-menu nzSelectable>
+          <ng-container *ngFor="let item of cardActions; let i = index">
+            <li nz-menu-item (click)="onClickAction(item, data)">{{ item.label }}</li>
+          </ng-container>
+        </ul>
+      </nz-dropdown-menu>
+    </div>
+  </div>
+
+  <nz-modal [(nzVisible)]="mcpFailTemplateVisible" (nzOnCancel)="closeMcpFailBox()">
+    <div *nzModalTitle>
+      <div style="display: flex; align-items: center; gap: 8px">
+        <img  [src]="changeUrl('assets/agent-center/images/error.svg')" alt="" />
+        <span>{{ name }} {{ 'deployFailed' | i18nextEager }}</span>
+      </div>
+    </div>
+    <div *nzModalContent>
+      <div style="font-size: 14px">
+        <p style="margin-bottom: 4px">
+          <span style="font-weight: 600">{{ 'reason' | i18nextEager }}:</span>
+          {{ isZH() ? mcpDeployFail.reason_cn : mcpDeployFail.reason_en }}
+        </p>
+        <p style="margin-bottom: 4px">
+          <span style="font-weight: 600">{{ 'suggestion' | i18nextEager }}: </span>
+          {{ isZH() ? mcpDeployFail.suggestion_cn : mcpDeployFail.suggestion_en }}
+        </p>
+        <p style="margin-bottom: 4px; display: flex; align-items: center; gap: 4px">
+          <span style="font-weight: 600">{{ 'errorCode' | i18nextEager }}: </span>
+          <span>{{ mcpDeployFail.code }}</span>
+          <span nz-icon nzType="copy" nzTheme="outline" style="cursor: pointer" (click)="copyData()"></span>
+        </p>
+        <p>
+          <span style="font-weight: 600">{{ 'errorMes' | i18nextEager }}: </span>
+          {{ isZH() ? mcpDeployFail.message_cn : mcpDeployFail.message_en }}
+        </p>
+      </div>
+    </div>
+    <div *nzModalFooter>
+      <nz-space>
+        <button nz-button (click)="closeMcpFailBox()">{{ 'cancel' | i18nextEager }}</button>
+        <button nz-button (click)="handleClickRedeployMcpModal()">{{ 'redeploy' | i18nextEager }}</button>
+        <button nz-button nzType="primary" style="margin-left: 8px" (click)="handleClickEditMcpModal()">{{ 'edit' | i18nextEager }}MCP</button>
+      </nz-space>
+    </div>
+  </nz-modal>
+</div>

@@ -1,0 +1,109 @@
+<div class="w-full">
+  <form [formGroup]="selectFormFG">
+    <nz-form-item>
+      <nz-form-label [nzSpan]="24" [nzRequired]="true">{{ selectFunctionGraphLable }}</nz-form-label>
+      <nz-form-control>
+        <div style="display: flex">
+          <nz-select
+            [nzOptions]="selectFunctionOptions"
+            formControlName="selectFunctionGraph"
+            [nzPlaceHolder]="'select_placeholder' | i18nextEager"
+            style="width: 100%"
+            (ngModelChange)="changeFunctionGraph($event)"
+            (nzOnSearch)="seachMoreFunctionOptions()"
+            (nzScrollToBottom)="loadMoreFunctionOptions()"
+            nzShowSearch
+            nzAllowClear
+          >
+            <nz-option
+              *ngFor="let item of selectFunctionOptions"
+              [nzValue]="item.value"
+              [nzLabel]="item.label"
+            >
+              <div class="flex justify-between function-item">
+                {{item.label}}
+                <div class="delete-icon">
+                  <span nz-icon nzType="close" (click)="deleteFunction($event,item)"></span>
+                </div>
+              </div>
+            </nz-option>
+          </nz-select>
+
+          <button
+            nz-button
+            nzType="primary"
+            nzShape="circle"
+            class="ml-2"
+            (click)="showFunctionWindow('edit')"
+            [disabled]="
+                    !selectFormFG?.controls?.selectFunctionGraph?.value
+                  "
+          >
+            <span nz-icon nzType="edit"></span>
+          </button>
+
+          <button
+            nz-button
+            nzType="primary"
+            nzShape="circle"
+            class="ml-2"
+            (click)="showFunctionWindow('add')"
+          >
+            <span nz-icon nzType="plus"></span>
+          </button>
+        </div>
+      </nz-form-control>
+    </nz-form-item>
+    <!-- 出入参配置表格 -->
+    <form #inputFormFG="ngForm">
+      <meta-acc-block
+        class="mt-2 block w-full"
+        [title]="'input_params' | i18nextEager"
+      >
+        <ng-template #content>
+          <div id="node-param-tree">
+            <ng-container *ngFor="let param of inputParamsFG; let i = index">
+              <div
+                class="ml-[2px] mt-[8px] flex w-full items-center gap-3 leading-none"
+              >
+                <span class="text-[#595959]">{{ param.name }}</span>
+                <span
+                  class="flex h-[18px] items-center justify-center rounded-sm bg-[#F5F5F5] pl-[8px] pr-[8px]"
+                >{{ getType(param) }}</span
+                >
+              </div>
+            </ng-container>
+          </div>
+        </ng-template>
+      </meta-acc-block>
+    </form>
+
+    <div class="my-[16px] h-[1px] w-full bg-[#f0f0f0]"  [hidden]="expanded"></div>
+
+    <!-- 出参配置表格 -->
+    <meta-acc-block
+      class="mt-4 block w-full"
+      [title]="'output_params' | i18nextEager"
+    >
+      <ng-template #content>
+        <div id="node-param-tree">
+          <ng-container *ngFor="let param of outputParamsShowFG; let i = index">
+            <div
+              class="ml-[2px] mt-[8px] flex w-full items-center gap-3 leading-none"
+            >
+              <span class="text-[#595959]">{{ param.name }}</span>
+              <span
+                class="flex h-[18px] items-center justify-center rounded-sm bg-[#F5F5F5] pl-[8px] pr-[8px]"
+              >{{ getType(param) }}</span
+              >
+            </div>
+          </ng-container>
+        </div>
+      </ng-template>
+    </meta-acc-block>
+
+  </form>
+
+  <div class="my-[16px] h-[1px] w-full bg-[#f0f0f0]"  [hidden]="expanded"></div>
+</div>
+

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) Huawei Technologies Co., Ltd. 2024-2024. All rights reserved.
+  -->
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.agent.agentbase.mapper.KnowledgeTestMapper">
+    <resultMap id="BaseResultMap" type="com.openjiuwen.studio.agent.agentbase.entity.KnowledgeTestEntity">
+        <id column="record_id" jdbcType="VARCHAR" property="recordId"/>
+        <result column="knowledge_repo_id" jdbcType="VARCHAR" property="knowledgeRepoId"/>
+        <result column="project_id" jdbcType="VARCHAR" property="projectId"/>
+        <result column="domain_id" jdbcType="VARCHAR" property="domainId"/>
+        <result column="domain_name" jdbcType="VARCHAR" property="domainName"/>
+        <result column="query" jdbcType="VARCHAR" property="query"/>
+        <result column="created_on_timestamp" jdbcType="BIGINT" property="createdOn"/>
+    </resultMap>
+    <sql id="Base_Column_List">
+        record_id
+        ,
+        knowledge_repo_id,
+        project_id,
+        domain_id,
+        domain_name,
+        query,
+        created_on
+    </sql>
+    <insert id="insert" parameterType="com.openjiuwen.studio.agent.agentbase.entity.KnowledgeTestEntity">
+        insert into t_knowledge_test_record (record_id, knowledge_repo_id, project_id, domain_id, domain_name, query,
+                                             created_on)
+        values (#{recordId,jdbcType=VARCHAR}, #{knowledgeRepoId,jdbcType=VARCHAR}, #{projectId,jdbcType=VARCHAR},
+                #{domainId}, #{domainName}, #{query,jdbcType=VARCHAR}, FROM_UNIXTIME(#{createdOn}))
+    </insert>
+    <insert id="insert" parameterType="com.openjiuwen.studio.agent.agentbase.entity.KnowledgeTestEntity"
+            databaseId="gaussv5_M">
+        insert into t_knowledge_test_record (record_id, knowledge_repo_id, project_id, domain_id, domain_name, query,
+                                             created_on)
+        values (#{recordId,jdbcType=VARCHAR}, #{knowledgeRepoId,jdbcType=VARCHAR}, #{projectId,jdbcType=VARCHAR},
+                #{domainId}, #{domainName}, #{query,jdbcType=VARCHAR},
+                TO_TIMESTAMP(#{createdOn}) AT TIME ZONE 'UTC')
+    </insert>
+    <select id="selectByProjectIdAndRepoId" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        , UNIX_TIMESTAMP(created_on) * 1000 as created_on_timestamp
+        from t_knowledge_test_record
+        where project_id = #{project_id}
+        and knowledge_repo_id = #{knowledgeRepoId,jdbcType=VARCHAR}
+        order by created_on desc
+    </select>
+    <delete id="deleteByPrimaryKey" parameterType="map">
+        delete
+        from t_knowledge_test_record
+        where record_id = #{recordId,jdbcType=VARCHAR}
+          and knowledge_repo_id = #{repoId}
+          and project_id = #{project_id,jdbcType=VARCHAR}
+    </delete>
+    <delete id="deleteByRepoId" parameterType="map">
+        delete
+        from t_knowledge_test_record
+        where project_id = #{project_id}
+          and knowledge_repo_id = #{knowledgeRepoId,jdbcType=VARCHAR}
+    </delete>
+</mapper>

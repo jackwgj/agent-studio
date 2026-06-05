@@ -1,0 +1,148 @@
+<div
+  *ngIf="dataType === 'array' && isArrayItem(showData); else objectComp"
+  class="h-full overflow-y-auto py-1 pl-2 pr-1"
+>
+  <div [hidden]="!localOpen">
+    <div class="inline-flex cursor-pointer" (click)="localOpen = !localOpen">
+      <span [class]="['ml-[2px]', 'text-[#404040]', 'flex']">
+        <span class="pt-[2px]">
+          <span class="open"></span>
+        </span>
+        <ng-container *ngIf="keyIndex !== undefined">
+          <span
+            [class]="[
+              'pl-1',
+              keyIndexType === 'number' ? 'text-[#6c71c4]' : 'text-[#404040]'
+            ]"
+          >
+            {{ keyIndexType === 'number' ? keyIndex : '"' + keyIndex + '"' }}
+          </span>
+          <span class="mx-2">:</span>
+        </ng-container>
+      </span>
+      <span class="pl-1 font-semibold text-[#191919]">[</span>
+      <em class="ml-4 text-[#c4c4c4]">{{ showData.length }} items</em>
+    </div>
+    <div class="pl-1.5">
+      <div
+        *ngFor="let item of showData; let i = index"
+        class="flex border-l border-[#EBEBEB]"
+      >
+        <json-viewer
+          [jsonData]="item"
+          [keyIndex]="i"
+          [preOpen]="preOpen"
+        ></json-viewer>
+      </div>
+    </div>
+    <div><span class="pl-1 font-semibold text-[#191919]">]</span></div>
+  </div>
+  <div [hidden]="localOpen">
+    <div class="inline-flex cursor-pointer" (click)="localOpen = !localOpen">
+      <span [class]="['ml-[2px]', 'text-[#404040]', 'flex']">
+        <span class="pt-[1px]">
+          <span class="close"></span>
+        </span>
+        <ng-container *ngIf="keyIndex !== undefined">
+          <span
+            [class]="[
+              'pl-1',
+              keyIndexType === 'number' ? 'text-[#6c71c4]' : 'text-[#404040]'
+            ]"
+          >
+            {{ keyIndexType === 'number' ? keyIndex : '"' + keyIndex + '"' }}
+          </span>
+          <span class="mx-2">:</span></ng-container
+        >
+      </span>
+      <span class="pl-1 font-semibold text-[#191919]">[ . . . ]</span>
+      <em class="ml-4 text-[#c4c4c4]">{{ showData.length }} items</em>
+    </div>
+  </div>
+</div>
+
+<ng-template #objectComp>
+  <div
+    *ngIf="dataType === 'object' && isObjectItem(showData); else otherTypeComp"
+    class="h-full overflow-y-auto py-1 pl-2 pr-1"
+  >
+    <div [hidden]="!localOpen">
+      <div class="inline-flex cursor-pointer" (click)="localOpen = !localOpen">
+        <span [class]="['ml-[2px]', 'text-[#404040]', 'flex']">
+          <span class="pt-[2px]">
+            <span class="open"></span>
+          </span>
+          <ng-container *ngIf="keyIndex !== undefined">
+            <span
+              [class]="[
+                'pl-1',
+                keyIndexType === 'number' ? 'text-[#6c71c4]' : 'text-[#404040]'
+              ]"
+            >
+              {{ keyIndexType === 'number' ? keyIndex : '"' + keyIndex + '"' }}
+            </span>
+            <span class="mx-2">:</span>
+          </ng-container>
+        </span>
+        <span class="pl-1 font-semibold text-[#191919]">&#123;</span>
+        <em class="ml-4 text-[#c4c4c4]">{{ getObjectLength(showData) }} items</em>
+      </div>
+      <div class="pl-1.5">
+        <div
+          *ngFor="let key of showData | keyvalue"
+          class="flex border-l border-[#EBEBEB]"
+        >
+          <json-viewer
+            [jsonData]="key.value"
+            [keyIndex]="key.key"
+            [preOpen]="preOpen"
+          ></json-viewer>
+        </div>
+      </div>
+      <div><span class="pl-1 font-semibold text-[#191919]">&#125;</span></div>
+    </div>
+    <div [hidden]="localOpen">
+      <div class="inline-flex cursor-pointer" (click)="localOpen = !localOpen">
+        <span [class]="['ml-[2px]', 'text-[#404040]', 'flex']">
+          <span class="pt-[1px]">
+            <span class="close"></span>
+          </span>
+          <ng-container *ngIf="keyIndex !== undefined">
+            <span
+              [class]="[
+                'pl-1',
+                keyIndexType === 'number' ? 'text-[#6c71c4]' : 'text-[#404040]'
+              ]"
+            >
+              {{ keyIndexType === 'number' ? keyIndex : '"' + keyIndex + '"' }}
+            </span>
+            <span class="mx-2">:</span></ng-container
+          >
+        </span>
+        <span class="pl-1 font-semibold text-[#191919]"
+          >&#123; . . . &#125;</span
+        >
+        <em class="ml-4 text-[#c4c4c4]">{{ getObjectLength(showData) }} items</em>
+      </div>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #otherTypeComp>
+  <div class="flex h-full overflow-y-auto py-1 pl-2 pr-1">
+    <span
+      *ngIf="keyIndex !== undefined"
+      [class]="['ml-1', 'text-[#404040]', 'flex']"
+    >
+      <span
+        [class]="[
+          keyIndexType === 'number' ? 'text-[#6c71c4]' : 'text-[#404040]'
+        ]"
+      >
+        {{ keyIndexType === 'number' ? keyIndex : '"' + keyIndex + '"' }}
+      </span>
+      <span class="mx-2">:</span>
+    </span>
+    <p [class]="[dataType]" class="whitespace-pre-line">{{ showData }}</p>
+  </div>
+</ng-template>

@@ -1,0 +1,8 @@
+prompt_epo_mutate:
+  description: "template for mutate prompt"
+
+prompt_epo_crossover:
+  description: "template for crossover two prompts"
+
+prompt_epo_evaluate_ref:
+  description: "template for evaluate the response of the prompt with a reference"

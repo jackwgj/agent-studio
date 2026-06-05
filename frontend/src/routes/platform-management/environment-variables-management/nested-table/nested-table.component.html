@@ -1,0 +1,44 @@
+<nz-table
+  #nestedTable
+  [nzData]="srcData.data"
+  nzSize="small"
+  [nzShowPagination]="false"
+  [nzNoResult]="noDataTpl"
+  nzTableLayout="fixed"
+  class="ti3-table-nest"
+>
+  <thead>
+  <tr>
+    <th nzWidth="40%">{{ columns[0].title }}</th>
+    <th nzWidth="60%">{{ columns[1].title }}</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr *ngFor="let row of nestedTable.data">
+    <td>
+      <div class="flex items-center">
+        <div class="truncate mr-2 max-w-[200px]" nz-tooltip [nzTooltipTitle]="row.name">
+          {{ row.name }}
+        </div>
+        <nz-tag *ngIf="row.value?.secret === true" nzColor="orange">
+          {{ 'encrypt' | i18nextEager }}
+        </nz-tag>
+      </div>
+    </td>
+    <td nz-tooltip [nzTooltipTitle]="row.value?.content" class="truncate max-w-[400px]">
+      {{ row.value?.content }}
+    </td>
+  </tr>
+  </tbody>
+</nz-table>
+
+<ng-template #noDataTpl>
+  <div class="flex flex-col items-center justify-center py-6">
+    <img [src]="changeUrl('assets/images/noData.svg')" alt="no-data" class="w-24 mb-4">
+    <div class="text-gray-500 font-medium text-sm mb-1">{{ noDataTitle }}</div>
+    <div class="text-gray-400 text-xs mb-4" [innerHTML]="noDataDescHtml"></div>
+    <button nz-button nzType="primary" (click)="onConfigVariable()">
+      {{ 'create_env_variables' | i18nextEager }}
+    </button>
+  </div>
+</ng-template>

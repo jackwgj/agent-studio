@@ -1,0 +1,52 @@
+<div
+  class="w-full"
+  [class]="getClass('main-collapse')"
+  [style]="{'padding-bottom': open ? getClass('pdb'): '0px'}"
+>
+  <div [class]="getClass('title-row')" (click)="collapseContent($event, true)">
+    <div [class]="getClass('title-left')" (click)="collapseContent($event, false)">
+      <div [class]="getClass('title-text')">{{title}}</div>
+      <span
+        *ngIf="tip"
+        nz-icon
+        nzType="question-circle"
+        nzTheme="outline"
+        class="ml-1"
+        nz-tooltip
+        [nzTooltipTitle]="tip"
+        style="font-size: 14px"
+      ></span>
+      <div class="cursor-pointer" *ngIf="collapseIconAlign==='left'">
+        <span *ngIf="open" nz-icon nzType="down" nzTheme="outline"></span>
+        <span *ngIf="!open" nz-icon nzType="right" nzTheme="outline"></span>
+      </div>
+
+      <span
+        *ngIf="infomation"
+        nz-icon
+        nzType="info-circle"
+        nzTheme="outline"
+        style="font-size: 14px"
+        nz-tooltip
+        [nzTooltipTitle]="infomation"
+      ></span>
+
+      <div class="cursor-pointer" *ngIf="collapseIconAlign==='right'">
+        <span *ngIf="open" nz-icon nzType="down" nzTheme="outline"></span>
+        <span *ngIf="!open" nz-icon nzType="right" nzTheme="outline"></span>
+      </div>
+    </div>
+
+    <div class="right-icons">
+      <ng-container *ngIf="!!icons">
+        <ng-container *ngTemplateOutlet="icons"></ng-container>
+      </ng-container>
+    </div>
+  </div>
+
+  <div [style]="{ 'display':open ? '' : 'none', 'margin-top' : '-8px' }">
+    <ng-container *ngIf="!!content">
+      <ng-container *ngTemplateOutlet="content"></ng-container>
+    </ng-container>
+  </div>
+</div>

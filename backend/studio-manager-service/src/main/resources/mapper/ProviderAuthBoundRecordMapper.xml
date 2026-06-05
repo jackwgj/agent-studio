@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.openjiuwen.studio.agent.manager.mapper.md.ProviderAuthBoundRecordMapper">
+    <sql id="columns">
+      `ID`,
+      `PROVIDER_AUTH_ID`,
+      `DOMAIN_ID`,
+      `PROVIDER_ID`,
+      `CREATED_BY_USER`,
+      `CREATED_DATE`
+    </sql>
+
+    <resultMap id="providerAuthBoundRecordPo"
+               type="com.openjiuwen.studio.agent.manager.entity.md.ProviderAuthBoundRecordPo">
+        <id column="ID" property="id" jdbcType="VARCHAR"/>
+        <id column="PROVIDER_AUTH_ID" property="providerAuthId" jdbcType="VARCHAR"/>
+        <result column="DOMAIN_ID" property="domainId" jdbcType="VARCHAR"/>
+        <result column="PROVIDER_ID" property="providerId" jdbcType="VARCHAR"/>
+        <result column="CREATED_BY_USER" property="createdByUser" jdbcType="VARCHAR"/>
+        <result column="CREATED_DATE" property="createdDate" jdbcType="BIGINT"/>
+    </resultMap>
+
+    <insert id="save" parameterType="com.openjiuwen.studio.agent.manager.entity.md.ProviderAuthBoundRecordPo">
+        INSERT INTO t_provider_auth_bound_records(
+        <include refid="columns"/>
+        )
+        VALUES (
+        #{id},
+        #{providerAuthId},
+        #{domainId},
+        #{providerId},
+        #{createdByUser},
+        #{createdDate}
+        );
+    </insert>
+
+    <select id="findByCons" resultMap="providerAuthBoundRecordPo">
+        SELECT
+        <include refid="columns"/>
+        FROM
+        t_provider_auth_bound_records
+        WHERE
+        1 = 1
+        <if test="DOMAIN_ID != null and DOMAIN_ID != ''">
+            AND DOMAIN_ID = #{DOMAIN_ID}
+        </if>
+        <if test="PROVIDER_ID != null and PROVIDER_ID != ''">
+            AND PROVIDER_ID = #{PROVIDER_ID}
+        </if>
+    </select>
+</mapper>

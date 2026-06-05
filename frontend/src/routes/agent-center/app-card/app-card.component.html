@@ -1,0 +1,78 @@
+<div (click)="handleDetailView()" class="card-wrapper" [id]="cardIndex + 'bottom-area-menu'">
+  <div class="icon-and-name">
+    <img alt="" class="h-11 w-11 rounded-lg" [src]="data.icon || data.avatar" />
+    <div class="w-[calc(100%-64px)]">
+      <div class="name truncate" [title]="data.name">
+        {{ data.name }}
+      </div>
+
+      <div class="flex gap-1">
+        <nz-tag
+          [nzColor]="getStatusNzColor()"
+          class="!rounded-[4px] text-[12px]"
+        >
+          {{ status | i18nextEager }}
+          @if (type === TabIndex.SINGLE_AGENT && status === 'submitted' && channelTypeNew.length) {
+            <span>{{ 'colon' | i18nextEager }}{{ getPublishPath() }}</span>
+          }
+        </nz-tag>
+
+        @if (!isApplication && type !== TabIndex.HIGH) {
+          <nz-tag
+            [nzColor]="getTagColor()"
+            class="!rounded-[4px] text-[12px]"
+          >
+            {{ appType | i18nextEager }}
+          </nz-tag>
+        }
+      </div>
+    </div>
+  </div>
+  <div style="height: 55px">
+    <div class="card-description overflow-hidden line-clamp-2" [title]="data.description">{{ data.description || '--' }}</div>
+  </div>
+  <div class="bottom-area" [id]="cardIndex + 'area'">
+    <div class="flex items-center" style="width: 100%; gap: 24px; position: relative">
+      <div style="width: 55%; position: relative" class="flex items-center">
+        <nz-icon
+          nzType="user"
+          nzTheme="outline"
+          class="mr-[8px] !text-[16px]"
+          style="position: absolute; top: 5px"
+        />
+        <span [title]="data.creator || data.author" class="creator-agent" style="padding-left: 24px">
+        {{ data.creator || data.author }}
+      </span>
+      </div>
+
+      @if (data.created_on || data.update_time || data.updated_on) {
+        <div style="flex: 1; display: flex; position: relative">
+          <nz-icon
+            nzType="clock-circle"
+            nzTheme="outline"
+            class="mr-[8px] !text-[16px]"
+            style="position: absolute; top: 4px"
+          />
+          <span style="padding-left: 24px">
+            {{ getTime(data.created_on || data.update_time || data.updated_on) }}
+          </span>
+        </div>
+      }
+    </div>
+  </div>
+  <div class="bottom-area-menu" [id]="cardIndex + 'area-menu'">
+    @for (action of cardActions; track action.id) {
+      @if (action.disabled) {
+        <a nz-button nzType="link" nz-tooltip [nzTooltipTitle]="action.tipContent" class="disabled" (click)="onDisabledClick($event)">
+          {{ action.label }}
+        </a>
+      } @else {
+        <a nz-button nzType="link" class="action-link" (click)="onClickAction($event,action)">
+          {{ action.label }}
+        </a>
+      }
+    }
+  </div>
+
+  <app-exceed-modal #appNumExceedModal></app-exceed-modal>
+</div>

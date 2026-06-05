@@ -1,0 +1,97 @@
+<!-- <div class="run-modal-wrapper">
+
+  <div *ngIf="chatLoop?.length"
+    class="conversation-title">
+    <span class="task-name">{{ taskInfo?.name }}</span>
+  </div>
+
+  <!-!- 内容区 -!->
+  <div class="run-content">
+    <!-!- 任务未执行 -!->
+    <div *ngIf="chatLoop?.length === 0"
+      class="empty-content relative">
+      <img alt="" class="flow-avatar" [src]="currWorkflow?.avatar" />
+      <span class="flow-name">{{ currWorkflow?.name }}</span>
+    </div>
+
+    <!-!- 执行结果展示区 -!->
+    <div *ngIf="chatLoop?.length"
+      class="flow-content">
+      <agent-chat-container
+        [chatLoop]="chatLoop"
+        (onSubmitInput)="onContinue($event)"
+      ></agent-chat-container>
+    </div>
+  </div>
+
+  <!-!- 输入、配置区 -!->
+  <div class="run-footer">
+    <!-!- 配置区，首轮对话且有多个参数输入 -!->
+    <div *ngIf="isShowStartParam" class="start-node-params-area">
+
+      <div class="header">
+        <div class="flex items-center gap-[8px]">
+          <div class="title">{{'node_g_develop'| i18nextEager }}</div>
+        </div>
+      </div>
+
+      <!-!- 开始节点参数 -!->
+      <dynamic-node-params
+        *ngIf="startNodeParams.length"
+        [inputList]="startNodeParams"
+        #dynamicNodeParams
+      ></dynamic-node-params>
+
+      <!-!- 超时配置 -!->
+      <div class="header mt-[16px]">
+        <div class="flex items-center gap-[8px]">
+          <div class="title">{{'flowasyncchatcomponent_630'| i18nextEager}}</div>
+        </div>
+      </div>
+      <div>
+        <div class="timeout-label">{{'flowasyncchatcomponent_631'| i18nextEager}}</div>
+        <div class="flex items-center gap-[4px] mt-[8px]">
+          <input
+            class="flex-1"
+            type="number"
+            [min]="0"
+            tiText
+            [(ngModel)]="timeout"
+            [tiValidation]="{ type: 'changeAlert' }"
+            [placeholder]="'input_placeholder' | i18nextEager"
+          />
+          <span>{{'flowasyncchatcomponent_632'| i18nextEager}}</span>
+        </div>
+      </div>
+
+      <div class="run-workflow-btn-box">
+        <button
+          class="run-workflow-btn"
+          type="button"
+          color="danger"
+          tiButton
+          (click)="runWorkflow()"
+          [tiTip]="dynamicNodeParams?.fileLoading
+            ? ('waiting_for_file_upload_to_complete' | i18nextEager)
+            : ''"
+          [disabled]="!taskInfo?.id || dynamicNodeParams?.fileLoading"
+        >
+          {{ 'save_run' | i18nextEager }}
+        </button>
+      </div>
+    </div>
+
+    <!-!- 输入框，非首轮或只有默认输入 -!->
+    <div *ngIf="!isShowStartParam" class="w-full">
+      <meta-sender
+        [isShowFileUpload]="false"
+        [showClear]="false"
+        [sending]="isQuerying"
+        [disabled]="!taskInfo?.id"
+        [maxlength]="userQueryLimit"
+        (send)="onMsgSend($event)"
+        (stop)="onMsgStop()"
+      />
+    </div>
+  </div>
+</div> -->

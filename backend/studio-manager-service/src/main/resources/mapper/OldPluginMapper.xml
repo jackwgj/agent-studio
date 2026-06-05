@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) Huawei Technologies Co., Ltd. 2024-2024. All rights reserved.
+  -->
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.agent.manager.mapper.OldPluginMapper">
+    <resultMap id="BaseResultMap" type="com.openjiuwen.studio.agent.manager.entity.ToolEntity">
+        <id column="tool_id" jdbcType="VARCHAR" property="toolId"/>
+        <id column="project_id" jdbcType="VARCHAR" property="projectId"/>
+        <id column="workspace_id" jdbcType="VARCHAR" property="workspaceId"/>
+        <result column="tool_display_name" jdbcType="VARCHAR" property="toolDisplayName"/>
+        <result column="tool_chinese_name" jdbcType="VARCHAR" property="toolChineseName"/>
+        <result column="tool_desc" jdbcType="VARCHAR" property="toolDesc"/>
+        <result column="icon" jdbcType="VARCHAR" property="icon"/>
+        <result column="icon_name" jdbcType="VARCHAR" property="iconName"/>
+        <result column="request_info" jdbcType="VARCHAR" property="requestInfo"/>
+        <result column="auth_info" jdbcType="VARCHAR" property="authInfo"/>
+        <result column="visibility" jdbcType="VARCHAR" property="visibility"/>
+        <result column="input_schema" jdbcType="VARCHAR" property="inputSchema"/>
+        <result column="output_schema" jdbcType="VARCHAR" property="outputSchema"/>
+        <result column="is_input_list" jdbcType="TINYINT" property="isInputList"/>
+        <result column="is_output_list" jdbcType="TINYINT" property="isOutputList"/>
+        <result column="intf_type" jdbcType="VARCHAR" property="intfType"/>
+        <result column="type" jdbcType="VARCHAR" property="type"/>
+        <result column="test_status" jdbcType="TINYINT" property="testStatus"/>
+        <result column="last_version_id" jdbcType="VARCHAR" property="lastVersionId"/>
+        <result column="metadata" jdbcType="VARCHAR" property="metadata"/>
+        <result column="creator" jdbcType="VARCHAR" property="creator"/>
+        <result column="creator_id" jdbcType="VARCHAR" property="creatorId"/>
+        <result column="created_on" jdbcType="TIMESTAMP" property="createdOn"/>
+        <result column="updated_on" jdbcType="TIMESTAMP" property="updatedOn"/>
+        <result column="auth_required" jdbcType="TINYINT" property="authRequired"/>
+        <result column="credential_status" jdbcType="VARCHAR" property="credentialStatus"/>
+        <result column="customize_node" jdbcType="TINYINT" property="customizeNode"/>
+        <result column="published" jdbcType="TINYINT" property="published"/>
+        <association property="credentials" javaType="com.openjiuwen.studio.agent.manager.dto.ToolCredential">
+            <id property="id" column="c_id"/>
+            <result property="authKeys" column="c_auth_keys" typeHandler="com.openjiuwen.studio.agent.manager.mapper.handler.AuthKeyInfoListHandler"/>
+        </association>
+    </resultMap>
+    <sql id="Base_Column_List">
+        tool_id,
+        project_id,
+        workspace_id,
+        tool_display_name,
+        tool_chinese_name,
+        tool_desc,
+        icon,
+        icon_name,
+        request_info,
+        auth_info,
+        visibility,
+        input_schema,
+        output_schema,
+        is_input_list,
+        is_output_list,
+        intf_type,
+        `type`,
+        test_status,
+        last_version_id,
+        customize_node,
+        auth_required,
+        metadata,
+        creator,
+        creator_id,
+        created_on,
+        updated_on
+    </sql>
+    <sql id="Base_Column_List_Without_TestStatus">
+        tool_id,
+        project_id,
+        workspace_id,
+        tool_display_name,
+        tool_chinese_name,
+        tool_desc,
+        icon,
+        icon_name,
+        request_info,
+        auth_info,
+        visibility,
+        input_schema,
+        output_schema,
+        is_input_list,
+        is_output_list,
+        intf_type,
+        `type`,
+        last_version_id,
+        customize_node,
+        auth_required,
+        metadata,
+        creator,
+        creator_id,
+        created_on,
+        updated_on
+    </sql>
+    <select id="selectOldPluginById" resultType="com.openjiuwen.studio.agent.manager.entity.ToolEntity">
+        select
+        <include refid="Base_Column_List"/>
+        from t_tool
+        where tool_id = #{toolId,jdbcType=VARCHAR}
+    </select>
+
+</mapper>

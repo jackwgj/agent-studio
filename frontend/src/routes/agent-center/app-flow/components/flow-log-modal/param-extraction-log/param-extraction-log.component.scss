@@ -1,0 +1,43 @@
+
+.call-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 0 16px 16px 16px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 1);
+  width: 100%;
+
+  .call-card-header {
+    padding: 12px 0;
+    font-size: 12px;
+    font-weight: bold;
+    width: 100%;
+  }
+
+  .call-card-line {
+    border-bottom: 1px solid #F5F5F5;
+  }
+
+  .call-card-body {
+    padding: 12px 0;
+    width: 100%;
+  }
+
+  .call-card-item-body {
+    padding: 0 0 12px 0;
+    width: 100%;
+  }
+}
+.diff-text{
+  border-radius: 4px;
+  padding: 2px 4px;
+}
+.diff-text1{
+  background: rgba(255, 244, 232, 1);
+}
+
+.diff-text2{
+  background: rgba(228, 247, 233,1);
+}

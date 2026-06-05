@@ -1,0 +1,176 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: studio-service
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: studio-service
+  template:
+    metadata:
+      labels:
+        app: studio-service
+    spec:
+      volumes:
+        - name: shm-volume
+          emptyDir:
+            medium: Memory
+            sizeLimit: 2Gi
+      containers:
+        - name: container-studio-service
+          image: studio-service:1.0.0.20260526091153.x86_64
+          env:
+            # 数据库连接信息，必填
+            - name: spring_datasource_url
+              value: 'jdbc:mariadb://${MYSQL_DB_IP}:3306/agent-builder?useUnicode=true&characterEncoding=utf8&autoReconnect=true&sslMode=trust&allowMultiQueries=true&useAffectedRows=true'
+            - name: spring_datasource_username
+              value: ''
+            - name: spring_datasource_password
+              value: ''
+            # redis连接信息，必填
+            - name: redis_host
+              value: ''
+            - name: redis_password
+              value: ''
+            - name: redis_port
+              value: '6379'
+            # obs连接信息，必填
+            - name: obs_url
+              value: 'https://ip:port'
+            - name: obs_bucket
+              value: 'agent-builder'
+            - name: obs_staging_bucket
+              value: 'agent-builder'
+            - name: obs_ak
+              value: ''
+            - name: obs_sk
+              value: ''
+            # https证书
+            - name: server_ssl_enabled
+              value: 'false'
+            - name: CB_CF_SERVER_KEYSTORE
+              value: ''
+            - name: CB_CF_TRUST_KEYSTORE
+              value: ''
+            - name: server_ssl_trust_store_password
+              value: ''
+            - name: server_ssl_key_store_password
+              value: ''
+            - name: server_ssl_key_password
+              value: ''
+            # studio-manager调用地址
+            - name: agent_manager_endpoint
+              value: 'http://studio-manager:31111'
+            # 鉴权配置
+            - name: user_auth_endpoint
+              value: 'http://studio-service:31113'
+            - name: jiuwen_base_url
+              value: 'http://studio-runtime:31014'
+            - name: agent_base_runtime_endpoint
+              value: 'http://agent-base:8008'
+            - name: koosearch_endpoint
+              value: ''
+            - name: model_manager_endpoint
+              value: ''
+            - name: model_url
+              value: ''
+          resources:
+            limits:
+              cpu: '2'
+              memory: 4Gi
+            requests:
+              cpu: '2'
+              memory: 4Gi
+          volumeMounts:
+            - name: shm-volume
+              mountPath: /dev/shm
+          livenessProbe:
+            tcpSocket:
+              port: 31113
+            initialDelaySeconds: 5
+            timeoutSeconds: 30
+            periodSeconds: 5
+            successThreshold: 1
+            failureThreshold: 12
+          startupProbe:
+            tcpSocket:
+              port: 31113
+            initialDelaySeconds: 5
+            timeoutSeconds: 30
+            periodSeconds: 5
+            successThreshold: 1
+            failureThreshold: 240
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          imagePullPolicy: Never
+          securityContext:
+            privileged: true
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      dnsPolicy: ClusterFirst
+      automountServiceAccountToken: false
+      securityContext:
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+        seccompProfile:
+          type: RuntimeDefault
+      imagePullSecrets:
+        - name: default-secret
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 60
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - studio-service
+                topologyKey: failure-domain.beta.kubernetes.io/zone
+            - weight: 40
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - studio-service
+                topologyKey: kubernetes.io/hostname
+      schedulerName: default-scheduler
+      tolerations:
+        - key: node.kubernetes.io/not-ready
+          operator: Exists
+          effect: NoExecute
+          tolerationSeconds: 30
+        - key: node.kubernetes.io/unreachable
+          operator: Exists
+          effect: NoExecute
+          tolerationSeconds: 30
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 25%
+      maxSurge: 25%
+  revisionHistoryLimit: 10
+  progressDeadlineSeconds: 600
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: studio-service
+  namespace: default
+spec:
+  ports:
+    - name: cce-service-0
+      protocol: TCP
+      port: 31113
+      targetPort: 31113
+      nodePort: 31113
+  selector:
+    app: studio-service
+  type: NodePort

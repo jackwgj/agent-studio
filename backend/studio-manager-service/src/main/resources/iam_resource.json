@@ -1,0 +1,6 @@
+[
+  {"action":"agent-builder:environment:getInfo", "resource":"agent-builder::{domainId}:environment:{path.environment_id}"},
+  {"action":"agent-builder:environment:delete", "resource":"agent-builder::{domainId}:environment:{path.environment_id}"},
+  {"action":"agent-builder:environment:updateInfo", "resource":"agent-builder::{domainId}:environment:{path.environment_id}"},
+  {"action":"agent-builder:environment:manage", "resource":"agent-builder::{domainId}:environment:{body.environmentId}"}
+]

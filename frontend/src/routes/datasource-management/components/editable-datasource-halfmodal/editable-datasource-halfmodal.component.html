@@ -1,0 +1,153 @@
+<div class="font-bold text-lg mb-4">{{ title }}</div>
+
+<div class="my-6 h-full w-full">
+  <form nz-form nzLayout="vertical" [formGroup]="form">
+
+    <nz-form-item>
+      <nz-form-label [nzNoColon]="true">
+        <div class="flex items-center gap-2">
+          <span>{{ 'data_source_name'|i18nextEager }}</span>
+          <span nz-icon nzType="question-circle" nzTheme="outline" class="cursor-pointer text-gray-400" [nzTooltipTitle]="'db_name_in_agent_platform'|i18nextEager" nz-tooltip nzTooltipPlacement="top"></span>
+        </div>
+      </nz-form-label>
+      <nz-form-control>
+        <input nz-input style="width: 540px" type="text" formControlName="name" [placeholder]="'input_placeholder' | i18nextEager" />
+      </nz-form-control>
+    </nz-form-item>
+
+    <nz-form-item>
+      <nz-form-label [nzNoColon]="true">
+        <div class="flex items-center gap-2">
+          <div>
+            <span>{{ 'description'|i18nextEager }}</span>
+            <span class="text-gray-400 text-sm ml-1">{{ 'optional' | i18nextEager }}</span>
+          </div>
+          <span nz-icon nzType="question-circle" nzTheme="outline" class="cursor-pointer text-gray-400" [nzTooltipTitle]="'db_desc_in_agent_platform'|i18nextEager" nz-tooltip nzTooltipPlacement="top"></span>
+        </div>
+      </nz-form-label>
+      <nz-form-control>
+        <input nz-input style="width: 540px" type="text" formControlName="desc" [placeholder]="'input_placeholder' | i18nextEager" />
+      </nz-form-control>
+    </nz-form-item>
+
+    <nz-form-item>
+      <nz-form-label [nzNoColon]="true">
+        <div class="flex items-center gap-2">
+          <span>{{ 'source_db_type'|i18nextEager }}</span>
+          <span nz-icon nzType="question-circle" nzTheme="outline" class="cursor-pointer text-gray-400" [nzTooltipTitle]="'data_source_type'|i18nextEager" nz-tooltip nzTooltipPlacement="top"></span>
+        </div>
+      </nz-form-label>
+      <nz-form-control>
+        <nz-select style="width: 540px" formControlName="type" [nzPlaceHolder]="'select_placeholder' | i18nextEager">
+          <nz-option *ngFor="let opt of typeOptions" [nzValue]="opt" [nzLabel]="opt.label"></nz-option>
+        </nz-select>
+      </nz-form-control>
+    </nz-form-item>
+
+    <nz-form-item>
+      <nz-form-label [nzNoColon]="true">
+        <span>{{ 'network_type'|i18nextEager }}</span>
+      </nz-form-label>
+      <nz-form-control>
+        <nz-radio-group formControlName="internet_access">
+          <label nz-radio *ngFor="let opt of internetAccessOptions" [nzValue]="opt.value">{{ opt.label }}</label>
+        </nz-radio-group>
+      </nz-form-control>
+    </nz-form-item>
+
+    <nz-form-item>
+      <nz-form-label [nzNoColon]="true">
+        <div class="flex items-center gap-2">
+          <span>{{ 'domain_name'|i18nextEager }}</span>
+          <span nz-icon nzType="question-circle" nzTheme="outline" class="cursor-pointer text-gray-400" [nzTooltipTitle]="'database_ip_address'|i18nextEager" nz-tooltip nzTooltipPlacement="top"></span>
+        </div>
+      </nz-form-label>
+      <nz-form-control>
+        <input nz-input style="width: 540px" type="text" formControlName="host" [placeholder]="'enter_domain_name'|i18nextEager" />
+      </nz-form-control>
+    </nz-form-item>
+
+    <nz-form-item>
+      <nz-form-label [nzNoColon]="true">
+        <div class="flex items-center gap-2">
+          <span>{{ 'port'|i18nextEager }}</span>
+          <span nz-icon nzType="question-circle" nzTheme="outline" class="cursor-pointer text-gray-400" [nzTooltipTitle]="'database_login_port'|i18nextEager" nz-tooltip nzTooltipPlacement="top"></span>
+        </div>
+      </nz-form-label>
+      <nz-form-control>
+        <input nz-input style="width: 540px" type="text" formControlName="port" [placeholder]="'input_port_placeholder'|i18nextEager" />
+      </nz-form-control>
+    </nz-form-item>
+
+    <nz-form-item>
+      <nz-form-label [nzNoColon]="true">
+        <div class="flex items-center gap-2">
+          <span>{{ 'database_name'|i18nextEager }}</span>
+          <span nz-icon nzType="question-circle" nzTheme="outline" class="cursor-pointer text-gray-400" [nzTooltipTitle]="'target_database_name'|i18nextEager" nz-tooltip nzTooltipPlacement="top"></span>
+        </div>
+      </nz-form-label>
+      <nz-form-control>
+        <input nz-input style="width: 540px" type="text" formControlName="database_name" [placeholder]="'target_database_name_placeholder'|i18nextEager" />
+      </nz-form-control>
+    </nz-form-item>
+
+    <nz-form-item>
+      <nz-form-label [nzNoColon]="true">
+        <div class="flex items-center gap-2">
+          <span class="mr-2">SASL_SSL</span>
+          <nz-switch formControlName="ssl_enabled"></nz-switch>
+        </div>
+      </nz-form-label>
+      <nz-form-control>
+        <span class="text-sm text-gray-500 mt-1 block">{{ 'disable_ssl_risk_warning'|i18nextEager }}</span>
+      </nz-form-control>
+    </nz-form-item>
+
+    <nz-form-item>
+      <nz-form-label [nzNoColon]="true">
+        <div class="flex items-center gap-2">
+          <span>{{ 'username'|i18nextEager }}</span>
+          <span nz-icon nzType="question-circle" nzTheme="outline" class="cursor-pointer text-gray-400" [nzTooltipTitle]="'database_login_username'|i18nextEager" nz-tooltip nzTooltipPlacement="top"></span>
+        </div>
+      </nz-form-label>
+      <nz-form-control>
+        <input nz-input style="width: 540px" type="text" formControlName="user" [placeholder]="'database_login_username_placeholder'|i18nextEager" />
+      </nz-form-control>
+    </nz-form-item>
+
+    <nz-form-item>
+      <nz-form-label [nzNoColon]="true">
+        <div class="flex items-center gap-2">
+          <span>{{ 'password'|i18nextEager }}</span>
+        </div>
+      </nz-form-label>
+      <nz-form-control>
+        <input nz-input style="width: 540px" type="password" autocomplete="new-password" formControlName="password" [placeholder]="'database_login_password_placeholder'|i18nextEager" />
+      </nz-form-control>
+    </nz-form-item>
+
+    <nz-form-item *ngIf="this.status === 'success' || this.status === 'failed'">
+      <nz-form-label [nzNoColon]="true">
+        <span>{{ 'connection_status'|i18nextEager }}</span>
+      </nz-form-label>
+      <nz-form-control>
+        <div *ngIf="this.status === 'success'">
+          <nz-badge nzStatus="success" [nzText]="'success_modified_saved_recheck_status'|i18nextEager"></nz-badge>
+        </div>
+        <div *ngIf="this.status === 'failed'">
+          <nz-badge nzStatus="error" [nzText]="'failure_modified_saved_recheck_status'|i18nextEager"></nz-badge>
+        </div>
+      </nz-form-control>
+    </nz-form-item>
+
+  </form>
+</div>
+
+<div class="flex justify-end gap-2 mt-4 pt-4 border-t border-gray-100">
+  <button nz-button nzType="default" type="button" (click)="dismiss()">
+    {{ 'cancel' | i18nextEager }}
+  </button>
+  <button nz-button nzType="primary" nzDanger type="button" [nzLoading]="btnLoading" (click)="createDatasource()">
+    {{ 'connect_and_save'|i18nextEager }}
+  </button>
+</div>

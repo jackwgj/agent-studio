@@ -1,0 +1,338 @@
+<div id="model-config-tip">
+  <!-- 1. 定义通用配置项模板 -->
+  <ng-template #modelConfigFields
+               let-config="config"
+               let-isPlan="isPlan"
+               let-status="status"
+               let-toggleStatus="toggleStatus"
+               let-modelSelectedInfo="modelSelectedInfo"
+  >
+    <nz-form-item>
+      <nz-form-label>
+        {{'diversity_config'|i18nextEager}}
+        <nz-icon
+          nzType="question-circle"
+          nzTheme="outline"
+          class="common-tip-config"
+          nz-tooltip
+          [nzTooltipTitle]="modeSelectTip"
+          [nzTooltipTitleContext]="modeSelectTipText"
+        />
+        <ng-template #modeSelectTip let-context="context">
+          <div *ngFor="let item of context; index as i">
+            <div style="font-weight: 600">{{ item.mode }}</div>
+            <div>{{ item.desc }}</div>
+          </div>
+        </ng-template>
+      </nz-form-label>
+      <nz-form-control>
+        <nz-radio-group [ngModel]="isPlan ? plan_mode : mode"
+                        (ngModelChange)="isPlan ? planChangeMode($event) : changeMode($event)"
+                        nzButtonGroup>
+          <label nz-radio-button *ngFor="let item of isPlan ? plan_modes : modes" [nzValue]="item">
+            {{ item.text }}
+          </label>
+        </nz-radio-group>
+      </nz-form-control>
+    </nz-form-item>
+    <nz-form-item *ngIf="status">
+      <nz-form-label>
+        {{'random_config'|i18nextEager}}
+        <nz-icon
+          nzType="question-circle"
+          nzTheme="outline"
+          class="common-tip-config"
+          nz-tooltip
+          [nzTooltipTitle]="temperatureDescTip"
+        />
+      </nz-form-label>
+      <nz-form-control>
+        <div class="flex">
+          <nz-slider [(ngModel)]="config.temperature"
+                     [nzMin]="0"
+                     [nzMax]="1"
+                     [nzStep]="0.1"
+                     (nzOnAfterChange)="isPlan ? planChangeTemperature() : changeTemperature()"
+                     (ngModelChange)="isPlan ? checkAndSwitchToCustomPlan('temperature', $event) : checkAndSwitchToCustom('temperature', $event)"
+                     style="flex: 1;margin-right: 16px;">
+          </nz-slider>
+          <nz-input-number [nzMin]="0"
+                      [nzMax]="1"
+                      [nzStep]="0.1"
+                      [(ngModel)]="config.temperature"
+                      (ngModelChange)="isPlan ? planChangeTemperatureSpinner($event) : changeTemperatureSpinner($event)"
+                      style="width: 120px">
+          </nz-input-number>
+        </div>
+      </nz-form-control>
+    </nz-form-item>
+    <nz-form-item *ngIf="status">
+      <nz-form-label>
+        {{'model_top_p'|i18nextEager}}
+        <nz-icon
+          nzType="question-circle"
+          nzTheme="outline"
+          class="common-tip-config"
+          nz-tooltip
+          [nzTooltipTitle]="topPDescTipText"
+        />
+      </nz-form-label>
+      <nz-form-control>
+        <div class="flex">
+          <nz-slider [(ngModel)]="config.top"
+                     [nzMin]="0.1"
+                     [nzMax]="1"
+                     [nzStep]="0.1"
+                     (nzOnAfterChange)="isPlan ? planChangeTop() : changeTop()"
+                     (ngModelChange)="isPlan ? checkAndSwitchToCustomPlan('top', $event) : checkAndSwitchToCustom('top', $event)"
+                     style="flex: 1;margin-right: 16px;">
+          </nz-slider>
+          <nz-input-number class="spinner"
+                      [nzMin]="0.1"
+                      [nzMax]="1"
+                      [nzStep]="0.1"
+                      [(ngModel)]="config.top"
+                      (ngModelChange)="isPlan ? planChangeTopSpinner($event) : changeTopSpinner($event)"
+                      style="width: 120px">
+          </nz-input-number>
+        </div>
+      </nz-form-control>
+    </nz-form-item>
+    <nz-form-item *ngIf="modelSelectedInfo?.is_support_close_reasoning">
+      <nz-form-label>
+        {{ 'modelsettingstip_51' | i18nextEager }}
+        <nz-icon
+          nzType="question-circle"
+          nzTheme="outline"
+          class="common-tip-config"
+          nz-tooltip
+          [nzTooltipTitle]="'deep_think_tip'|i18nextEager"
+        />
+      </nz-form-label>
+      <nz-form-control>
+        <nz-switch [(ngModel)]="config.enable_thinking" (ngModelChange)="changeThinking($event)"></nz-switch>
+      </nz-form-control>
+    </nz-form-item>
+    <nz-form-item>
+      <nz-form-label>
+        {{'model_history_size'|i18nextEager}}
+        <nz-icon
+          nzType="question-circle"
+          nzTheme="outline"
+          class="common-tip-config"
+          nz-tooltip
+          [nzTooltipTitle]="roundsDescTip"
+        />
+      </nz-form-label>
+      <nz-form-control>
+        <div class="flex">
+          <nz-slider [(ngModel)]="config.rounds"
+                     [nzMin]="1"
+                     [nzMax]="100"
+                     [nzStep]="1"
+                     (nzOnAfterChange)="isPlan ? planChangRound() : changRound()"
+                     (ngModelChange)="isPlan ? checkAndSwitchToCustomPlan('rounds', $event) : checkAndSwitchToCustom('rounds', $event)"
+                     style="flex: 1;margin-right: 16px;">
+          </nz-slider>
+          <nz-input-number class="spinner"
+                      [nzMin]="1"
+                      [nzMax]="100"
+                      [nzStep]="1"
+                      [(ngModel)]="config.rounds"
+                      (ngModelChange)="isPlan ? planChangeRoundSpinner($event) : changeRoundSpinner($event)"
+                      style="width: 120px">
+          </nz-input-number>
+        </div>
+      </nz-form-control>
+    </nz-form-item>
+    <nz-form-item>
+      <nz-form-label>
+        {{'model_max_reply_length'|i18nextEager}}
+        <nz-icon
+          nzType="question-circle"
+          nzTheme="outline"
+          class="common-tip-config"
+          nz-tooltip
+          [nzTooltipTitle]="maxReplyLengthDescTip"
+        />
+      </nz-form-label>
+      <nz-form-control>
+        <div class="flex">
+          <nz-slider [(ngModel)]="config.maxReplyLength"
+                     [nzMin]="maxReplySetting.min"
+                     [nzMax]="maxReplySetting.max"
+                     [nzStep]="1"
+                     (nzOnAfterChange)="isPlan ? planChangeMaxReplyLength() : changeMaxReplyLength()"
+                     (ngModelChange)="isPlan ? checkAndSwitchToCustomPlan('maxReplyLength', $event) : checkAndSwitchToCustom('maxReplyLength', $event)"
+                     style="flex: 1;margin-right: 16px;">
+          </nz-slider>
+          <nz-input-number class="spinner"
+                      [nzMin]="maxReplySetting.min"
+                      [nzMax]="maxReplySetting.max"
+                      [nzStep]="1"
+                      [(ngModel)]="config.maxReplyLength"
+                      (ngModelChange)="isPlan ? planChangeMaxReplyLengthSpinner($event) : changeMaxReplyLengthSpinner($event)"
+                      style="width: 120px">
+          </nz-input-number>
+        </div>
+      </nz-form-control>
+    </nz-form-item>
+    <nz-form-item *ngIf="!isPlan">
+      <nz-form-label>
+        {{'model_frequency_penalty'|i18nextEager}}
+        <nz-icon
+          nzType="question-circle"
+          nzTheme="outline"
+          class="common-tip-config"
+          nz-tooltip
+          [nzTooltipTitle]="modelFrequencyPenaltyDescTip"
+        />
+      </nz-form-label>
+      <nz-form-control>
+        <div class="flex">
+          <nz-slider [(ngModel)]="frequencyPenalty"
+                     [nzMin]="-2"
+                     [nzMax]="2"
+                     [nzStep]="1"
+                     (nzOnAfterChange)="changeFrequencyPenalty()"
+                     (ngModelChange)="checkAndSwitchToCustom('frequencyPenalty', $event)"
+                     style="flex: 1;margin-right: 16px;">
+          </nz-slider>
+          <nz-input-number class="spinner"
+                      [nzMin]="-2"
+                      [nzMax]="2"
+                      [nzStep]="1"
+                      [(ngModel)]="frequencyPenalty"
+                      (ngModelChange)="changeFrequencyPenaltySpinner($event)"
+                      style="width: 120px">
+          </nz-input-number>
+        </div>
+      </nz-form-control>
+    </nz-form-item>
+  </ng-template>
+
+  <!-- 2. 根据 useModelMode 展示不同配置 -->
+  <div class="model-select-container">
+    <div class="arrow" [style]="arrowStyle"></div>
+    <!-- 合一模型模式 -->
+    <div *ngIf="modelConfigTipService.useModelMode === 'one'" class="unify-mode">
+      <div class="item-container flex" style="margin-bottom: 24px" *ngIf="isShowLLMSelect && false">
+        <span  class="label">{{ 'model_selection' | i18nextEager }}</span>
+          <llm-select style="width: 360px;" [selectedModel]="modelSelected"
+                      (update)="changeModelSelected($event)"></llm-select>
+      </div>
+      <div *ngIf="availableModelList.length === 0; else unifyConfigTmpl">
+        <nz-alert class="import-alert" nzType="warning" [nzShowIcon]="false">
+          {{ 'model_nodata_tip' | i18nextEager }}
+        </nz-alert>
+      </div>
+      <ng-template #unifyConfigTmpl>
+        <div>
+          <div>
+            <!-- 复用通用配置模板，传入问答模型参数 -->
+            <ng-container *ngTemplateOutlet="modelConfigFields; context: {
+              config: {
+                temperature: temperature,
+                top: top,
+                rounds: rounds,
+                maxReplyLength: maxReplyLength,
+                enable_thinking: enable_thinking
+              },
+              isPlan: false,
+              status: qaStatus,
+              toggleStatus: toggleQaStatus,
+              modelSelectedInfo
+            }"></ng-container>
+
+            <!-- 输出模式（F1专属） -->
+            <div *ngIf="isF1" class="mode-container">
+              <span class="title">{{ 'output_mode' | i18nextEager }}</span>
+              <div class="ml-[42px] flex gap-[24px]">
+                <label nz-radio *ngFor="let item of outputModes; index as i"
+                       [nzValue]="item.value"
+                       [(ngModel)]="outputMode"
+                       (ngModelChange)="changeOutputMode($event)">
+                  {{ item.label }}
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </ng-template>
+    </div>
+
+    <!-- 规划模型模式 -->
+    <div *ngIf="modelConfigTipService.useModelMode === 'plan';  " class="plan-mode">
+      <div class="item-container flex" style="margin-bottom: 16px">
+        <span class="label">{{'planning_model'|i18nextEager}}</span>
+        <llm-select style="width: 100%" [selectedModel]="planModelSelected" *ngIf="false"
+                    (update)="planChangeModelSelected($event)"></llm-select>
+      </div>
+      <div *ngIf="availableModelList.length === 0;">
+        <nz-alert class="import-alert" nzType="warning" [nzShowIcon]="false">
+          {{ 'model_nodata_tip' | i18nextEager }}
+        </nz-alert>
+      </div>
+      <!-- 规划模型配置 -->
+      <div *ngIf="availableModelList.length > 0;">
+        <ng-container *ngTemplateOutlet="modelConfigFields; context: {
+          config: {
+            temperature: plan_temperature,
+            top: plan_top,
+            rounds: plan_rounds,
+            maxReplyLength: plan_maxReplyLength,
+            enable_thinking: enable_thinking
+          },
+          isPlan: true,
+          status: planQaStatus,
+          toggleStatus: togglePlanQaStatus,
+          modelSelectedInfo: planModelSelectedObj
+        }"></ng-container>
+      </div>
+    </div>
+
+
+  <!-- 问答模型模式 -->
+  <div *ngIf="modelConfigTipService.useModelMode === 'question'" class="qa-mode">
+    <div class="item-container flex" style="margin-bottom: 16px">
+      <span class="label">{{'qa_model'|i18nextEager}}</span>
+        <llm-select style="width: 100%" [selectedModel]="modelSelected" *ngIf="false"
+                    (update)="changeModelSelected($event)"></llm-select>
+      </div>
+      <div *ngIf="availableModelList.length === 0;">
+        <nz-alert class="import-alert" nzType="warning" [nzShowIcon]="false">
+          {{ 'model_nodata_tip' | i18nextEager }}
+        </nz-alert>
+      </div>
+      <!-- 问答模型配置 -->
+      <div *ngIf="availableModelList.length > 0;">
+        <ng-container *ngTemplateOutlet="modelConfigFields; context: {
+          config: {
+            temperature: temperature,
+            top: top,
+            rounds: rounds,
+            maxReplyLength: maxReplyLength,
+            enable_thinking: enable_thinking
+          },
+          isPlan: false,
+          status: qaStatus,
+          toggleStatus: toggleQaStatus,
+          modelSelectedInfo
+        }"></ng-container>
+
+        <!-- 输出模式（F1专属） -->
+        <div *ngIf="isF1" class="mode-container">
+          <span class="title">{{ 'output_mode' | i18nextEager }}</span>
+          <div class="ml-[42px] flex gap-[24px]">
+            <label nz-radio *ngFor="let item of outputModes; index as i"
+                   [nzValue]="item.value"
+                   [(ngModel)]="outputMode"
+                   (ngModelChange)="changeOutputMode($event)">
+              {{ item.label }}
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

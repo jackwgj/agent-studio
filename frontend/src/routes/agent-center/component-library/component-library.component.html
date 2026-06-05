@@ -1,0 +1,181 @@
+<div [style]="{ padding: isFromDevelopSpace ? '0px' : '0px', height: '100%' }" style="height: calc(100vh - 48px)">
+  <nz-alert
+    class="import-alert"
+    [nzType]="alertType === 'error' ? 'error' : alertType === 'warn' ? 'warning' : 'success'"
+    *ngIf="open"
+    [ngClass]="{ 'mb-[24px]': open }"
+    [nzAction]="actionTemplate1"
+  >
+    <ng-template #actionTemplate1>
+      {{ alertText }}
+    </ng-template>
+  </nz-alert>
+  <nz-alert class="import-alert" nzType="warning" *ngIf="warnOpen" [ngClass]="{ 'mb-[24px]': warnOpen }" [nzAction]="actionTemplate2">
+    <ng-template #actionTemplate2>
+      {{ warnAlertText }}
+    </ng-template>
+  </nz-alert>
+  <nz-tabset [(nzSelectedIndex)]="currActivedTab" (nzSelectedIndexChange)="handleTabChange($event)" *ngIf="false">
+    <nz-tab *ngFor="let tab of tabs; let i = index" [nzTitle]="tab.title"> </nz-tab>
+  </nz-tabset>
+  <div class="content-background" [style]="{ padding: isFromDevelopSpace ? '8px 0 0 0' : '0' }">
+    <div class="mb-[24px] flex" style="justify-content: space-between">
+      <span class="text-[20px] font-bold leading-[30px]" *ngIf="!isFromDevelopSpace">
+        {{ (currActivedTab === 0 ? 'mcp_title' : 'plugin') | i18nextEager }}
+        <span class="ml-2" *ngIf="totalCardNumber">({{ totalCardNumber }})</span>
+      </span>
+      <div style="display: flex; align-items: center; gap: 8px">
+        <div *ngIf="!isShowNoDataGuide && !isFirstLoading" class="guide-collapse-btn flex items-center cursor-pointer" (click)="isShowGuide = !isShowGuide">
+          <span nz-icon [nzType]="isShowGuide ? 'down' : 'up'" class="mr-[4px]"></span>
+          {{ 'create_guide' | i18nextEager }}
+        </div>
+        <button nz-button [disabled]="!subscribeBtnStatus" (click)="importTool()" *ngIf="currActivedTab === 1">
+          {{ 'import' | i18nextEager }}
+        </button>
+        <button class="common-btn" nz-button nzType="default" [disabled]="!subscribeBtnStatus" (click)="exportTool()" *ngIf="currActivedTab === 1">
+          {{ 'export' | i18nextEager }}
+        </button>
+        <button
+          nz-button
+          nzType="primary"
+          [disabled]="!subscribeBtnStatus && !is_develop_space"
+          (click)="handleCreate(createItems[1])"
+          *ngIf="currActivedTab === 1"
+        >
+          {{ 'create_plugin' | i18nextEager }}
+        </button>
+        <button
+          nz-button
+          nzType="primary"
+          [disabled]="!subscribeBtnStatus && !is_develop_space"
+          nz-dropdown
+          [nzDropdownMenu]="createMenu"
+          *ngIf="currActivedTab === 0"
+        >
+          {{ 'create_mcp' | i18nextEager }}
+        </button>
+        <nz-dropdown-menu #createMenu="nzDropdownMenu">
+          <ul nz-menu>
+            <li nz-menu-item *ngFor="let item of create_items" (click)="create_items_action(item)">{{ item.label }}</li>
+          </ul>
+        </nz-dropdown-menu>
+      </div>
+    </div>
+    <div
+      class="overflow-hidden guide-collapse-content shrink-0"
+      *ngIf="!isShowNoDataGuide && !isFirstLoading"
+      [ngClass]="{ 'h-[188px]': isShowGuide, 'h-[0px]': !isShowGuide, ' mb-[24px]': isShowGuide }"
+    >
+      <app-no-data-guide [isSmall]="true" [type]="tabs[currActivedTab].id"></app-no-data-guide>
+    </div>
+    <div class="mb-[24px] flex items-center gap-2" *ngIf="!isShowNoDataGuide && !isFirstLoading">
+      <input nz-input [(ngModel)]="searchName" class="w-[calc(100%-32px)]" (ngModelChange)="onSearchContentChange()" />
+      <button nz-button nzType="default" class="h-8 w-8" (click)="getCardData()">
+        <span nz-icon nzType="reload"></span>
+      </button>
+    </div>
+    <div style="display: block" class="overflow-hidden h-full w-full">
+      <div class="flex h-full justify-center" style="flex-direction: column" *ngIf="!cards.length && !isLoadingCard && !isLoading">
+        <div>
+          <app-common-no-data-with-btn
+            *ngIf="!cards.length && !isLoadingCard && !isLoading && isFromDevelopSpace"
+            [noDataStr]="'componentlibrarycomponent_1174' | i18nextEager"
+          />
+          <app-new-common-no-data-with-btn
+            [type]="'filterNoData'"
+            [btn_list]="create_items"
+            [tutorialType]="tipType"
+            *ngIf="currActivedTab === 0 && !cards.length && !isLoadingCard && !isLoading && !isFromDevelopSpace && !searchNameIsEmpty"
+            [secondLineData]="('componentlibrarycomponent_1175' | i18nextEager) + (tipType | i18nextEager)"
+            [noDataBtnStr]="noDataBtn | i18nextEager"
+            (create)="create_items_action($event)"
+            (clear)="handleClickClearSearch()"
+          />
+          <app-new-common-no-data-with-btn
+            [type]="'filterNoData'"
+            [tutorialType]="tipType"
+            *ngIf="currActivedTab === 1 && !cards.length && !isLoadingCard && !isLoading && !isFromDevelopSpace && !searchNameIsEmpty"
+            [secondLineData]="('componentlibrarycomponent_1175' | i18nextEager) + (tipType | i18nextEager)"
+            [noDataBtnStr]="noDataBtn | i18nextEager"
+            (create)="handleCreate({ id: currActivedTab })"
+            (clear)="handleClickClearSearch()"
+          />
+          <app-no-data-guide *ngIf="isShowNoDataGuide" [type]="tabs[currActivedTab].id"></app-no-data-guide>
+        </div>
+      </div>
+      <div class="loading-icon" *ngIf="isLoading">
+        <nz-spin></nz-spin>
+      </div>
+      <div class="mb-[16px] overflow-y-auto max-h-[calc(100%-60px)]" *ngIf="!isLoadingCard && cards.length && !isLoading">
+        <div class="cards-wrapper com-cards-wrapper">
+          <component-card
+            style="border: 1px solid rgba(230, 230, 230, 1); border-radius: 16px"
+            [ngClass]="isFromDevelopSpace ? 'component-library-card-background' : ''"
+            *ngFor="let card of cards"
+            [type]="currActivedTab"
+            [data]="card"
+            (handleAction)="handleAction($event)"
+            [isFromDevelopSpace]="isFromDevelopSpace"
+            [isFromAgentBuilder]="isFromAgentBuilder"
+            [workSpaceId]="workSpaceId"
+            (refreshMcpListEmit)="getCardData()"
+          />
+        </div>
+      </div>
+      <div class="flex-right">
+        <nz-pagination
+          style="margin-bottom: 8px"
+          *ngIf="cards.length && !isLoading"
+          [(nzPageIndex)]="currentCardPage"
+          [nzTotal]="totalCardNumber"
+          [(nzPageSize)]="cardPageSize.size"
+          [nzPageSizeOptions]="cardPageSize.options"
+          nzShowSizeChanger
+          (nzPageIndexChange)="getCardData()"
+          (nzPageSizeChange)="getCardData()"
+        />
+      </div>
+    </div>
+  </div>
+</div>
+
+<ng-template id="agent-call-modal" #callModal let-context="context">
+  <div class="ant-modal-header">
+    <span class="ant-modal-title">{{ 'call_path' | i18nextEager }}</span>
+  </div>
+  <div class="ant-modal-body">
+    <div class="text-label">
+      {{ 'call_path_body_tip' | i18nextEager }}
+    </div>
+    <button nz-button [nzType]="'default'" (click)="clickOpenAPILink()">Open Api {{ 'link_document' | i18nextEager }}</button>
+    <br />
+    <br />
+    <div class="text-label url-break">{{ callUrl }}</div>
+  </div>
+  <div class="ant-modal-footer">
+    <div class="flex w-full justify-end">
+      <button nz-button nzType="primary" (click)="copyUrl()">
+        {{ 'copy_path' | i18nextEager }}
+      </button>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template id="agent-node-modal" #nodeModal let-context="context">
+  <div class="ant-modal-header">
+    <span class="ant-modal-title">{{ 'set_node' | i18nextEager }}</span>
+  </div>
+  <div class="ant-modal-body">
+    <div class="text-label">
+      {{ 'set_plugin_node_tip' | i18nextEager }}
+    </div>
+  </div>
+  <div class="ant-modal-footer">
+    <div class="flex w-full justify-end">
+      <button nz-button (click)="context.dismiss()">{{ 'cancel' | i18nextEager }}</button>
+      <button nz-button nzType="primary" (click)="setNode(context)">
+        {{ 'ok' | i18nextEager }}
+      </button>
+    </div>
+  </div>
+</ng-template>

@@ -1,0 +1,168 @@
+#agent-base-source-modal {
+  .modal-title {
+    display: flex;
+    margin-bottom: 12px;
+
+    .modal-title-img {
+      width: 16px;
+      height: 16px;
+      margin-right: 6px;
+    }
+
+    .modal-title-name {
+      color: rgba(25, 25, 25, 1);
+      font-size: 14px;
+      font-weight: 400;
+      line-height: 22px;
+      letter-spacing: 0;
+      text-align: left;
+      margin-top: -4px;
+    }
+  }
+
+  .modal-content {
+    height: 500px;
+    overflow: auto;
+    padding-right: 12px;
+
+    .item-card {
+      margin-bottom: 12px;
+      padding: 20px;
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.04);
+
+      .modal-bottom {
+        margin-top: 12px;
+        display: flex;
+
+        .label-key {
+          color: #808080;
+          font-size: 12px;
+          font-weight: 400;
+          line-height: 18px;
+          letter-spacing: 0;
+          text-align: left;
+          margin-right: 4px;
+        }
+
+        .label-value {
+          color: #191919;
+          font-size: 12px;
+          font-weight: 700;
+          line-height: 18px;
+          letter-spacing: 0;
+          text-align: left;
+          margin-right: 6px;
+        }
+
+        .label-key {
+          color: #808080;
+          font-size: 12px;
+          font-weight: 400;
+          line-height: 18px;
+          letter-spacing: 0;
+          text-align: left;
+          margin-right: 4px;
+        }
+
+        .label-value {
+          color: #191919;
+          font-size: 12px;
+          font-weight: 700;
+          line-height: 18px;
+          letter-spacing: 0;
+          text-align: left;
+        }
+
+      }
+    }
+  }
+  .slice-markdown-container {
+    padding-left: 12px;
+    text-align: justify;
+    font-size: 14px;
+    color: #191919;
+    line-height: 24px;
+    display: flex;
+    flex-direction: column;
+
+    ::ng-deep ol {
+      list-style-type: decimal !important;
+      padding-left: 20px !important;
+      white-space: normal !important; // 保证<ol>的行间距正常，不会过大
+
+      li {
+        white-space: normal !important;
+      }
+    }
+
+    ::ng-deep ul {
+      list-style-type: circle !important;
+      padding-left: 20px !important;
+      white-space: normal !important; // 保证<ul>的行间距正常，不会过大
+
+      li {
+        white-space: normal !important;
+      }
+    }
+
+    // 设置横线的样式
+    ::ng-deep hr {
+      border-top: 1px solid #a5a5a5;
+      margin: 10px 0 !important;
+    }
+
+    ::ng-deep p {
+      margin: 1px 0 !important;
+    }
+
+    ::ng-deep h1,
+    ::ng-deep h2,
+    ::ng-deep h3,
+    ::ng-deep h4,
+    ::ng-deep h5,
+    ::ng-deep h6 {
+      margin-left: 0;
+      margin-right: 0;
+      font-weight: 700;
+      line-height: 1.5;
+    }
+
+    ::ng-deep h1 {
+      font-size: 2em;
+      margin-top: 0.67em;
+      margin-bottom: 0.67em;
+    }
+
+    ::ng-deep h2 {
+      font-size: 1.5em;
+      margin-top: 0.83em;
+      margin-bottom: 0.83em;
+    }
+
+    ::ng-deep h3 {
+      font-size: 1.17em;
+      margin-top: 1em;
+      margin-bottom: 1em;
+    }
+
+    ::ng-deep h4 {
+      font-size: 1em;
+      margin-top: 1.33em;
+      margin-bottom: 1.33em;
+    }
+
+    ::ng-deep h5 {
+      font-size: 0.83em;
+      margin-top: 1.67em;
+      margin-bottom: 1.67em;
+    }
+
+    ::ng-deep h6 {
+      font-size: 0.67em;
+      margin-top: 2.33em;
+      margin-bottom: 2.33em;
+    }
+  }
+
+}

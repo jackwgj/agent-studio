@@ -1,0 +1,12 @@
+<div *nzModalTitle>
+  <h1>{{'source_documents_all'|i18nextEager}}</h1>
+</div>
+<div id="agent-base-all-file-source">
+  <div class="file-source-container">
+    <div class="file-source-item" *ngFor="let file of sourceFiles" (click)="show(file)">
+      <img [src]="cdnAssetUrl(messageSourceFileMap.get(getFileExtension(file?.document_name)))"
+           class="modal-title-img" alt="">
+      <span class="modal-title-name" tiOverflow>{{ file?.document_name }}</span>
+    </div>
+  </div>
+</div>

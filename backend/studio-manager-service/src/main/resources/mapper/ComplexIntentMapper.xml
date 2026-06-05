@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.agent.manager.mapper.ComplexIntentMapper">
+    <resultMap id="BaseResultMap" type="com.openjiuwen.studio.agent.manager.entity.ComplexIntentEntity">
+        <id column="intent_id" jdbcType="VARCHAR" property="intentId" />
+        <result column="project_id" jdbcType="VARCHAR" property="projectId" />
+        <result column="workspace_id" jdbcType="VARCHAR" property="workspaceId" />
+        <result column="domain_id" jdbcType="VARCHAR" property="domainId" />
+        <result column="name" jdbcType="VARCHAR" property="name" />
+        <result column="description" jdbcType="VARCHAR" property="description" />
+        <result column="branches" jdbcType="VARCHAR" property="branches" />
+        <result column="branches_cnt" jdbcType="INTEGER" property="branchesCnt" />
+        <result column="creator_id" jdbcType="VARCHAR" property="creatorId" />
+        <result column="created_on" jdbcType="TIMESTAMP" property="createdOn" />
+        <result column="updated_on" jdbcType="TIMESTAMP" property="updatedOn" />
+    </resultMap>
+    <sql id="Base_Column_List">
+        intent_id,
+        project_id,
+        workspace_id,
+        name,
+        domain_id,
+        description,
+        branches,
+        branches_cnt,
+        creator_id,
+        created_on,
+        updated_on
+    </sql>
+    <insert id="createEntity" parameterType="com.openjiuwen.studio.agent.manager.entity.ComplexIntentEntity">
+        insert into t_complex_intent (intent_id, project_id, workspace_id, domain_id, name, description, branches,
+                                      branches_cnt, creator_id, created_on, updated_on)
+        values (#{entity.intentId,jdbcType=VARCHAR },
+                #{entity.projectId,jdbcType=VARCHAR },
+                #{entity.workspaceId,jdbcType=VARCHAR },
+                #{entity.domainId,jdbcType=VARCHAR },
+                #{entity.name,jdbcType=VARCHAR },
+                #{entity.description,jdbcType=VARCHAR },
+                #{entity.branches,jdbcType=VARCHAR },
+                #{entity.branchesCnt,jdbcType=INTEGER },
+                #{entity.creatorId,jdbcType=VARCHAR },
+                #{entity.createdOn,jdbcType=TIMESTAMP},
+                #{entity.updatedOn,jdbcType=TIMESTAMP})
+    </insert>
+    <delete id="deleteByKey" parameterType="map">
+        delete
+        from t_complex_intent
+        where intent_id = #{intentId,jdbcType=VARCHAR}
+          and project_id = #{projectId,jdbcType=VARCHAR}
+    </delete>
+    <select id="getEntities" parameterType="com.openjiuwen.studio.agent.manager.entity.ComplexIntentEntity"
+        resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List" />
+        from t_complex_intent
+        where 1 = 1
+        <if test="entity.intentId != null and entity.intentId != ''">
+            and intent_id=#{entity.intentId}
+        </if>
+        <if test="entity.projectId != null and entity.projectId != ''">
+            and project_id=#{entity.projectId}
+        </if>
+        <if test="entity.workspaceId != null and entity.workspaceId != ''">
+            and workspace_id=#{entity.workspaceId}
+        </if>
+        <if test="entity.name != null and entity.name != ''">
+            and name like concat('%', #{entity.name,jdbcType=VARCHAR}, '%') escape '!'
+        </if>
+        <if test="entity.createdOn != null">
+            and created_on=#{entity.createdOn}
+        </if>
+        <if test="entity.updatedOn != null">
+            and updated_on=#{entity.updatedOn}
+        </if>
+        order by updated_on desc
+    </select>
+    <select id="countByName" parameterType="com.openjiuwen.studio.agent.manager.entity.ComplexIntentEntity"
+            resultType="Integer">
+        select count(1)
+        from t_complex_intent
+        where 1 = 1
+        <if test="entity.projectId != null and entity.projectId != ''">
+            and project_id=#{entity.projectId}
+        </if>
+        <if test="entity.workspaceId != null and entity.workspaceId != ''">
+            and workspace_id=#{entity.workspaceId}
+        </if>
+        <if test="entity.name != null and entity.name != ''">
+            and name = #{entity.name,jdbcType=VARCHAR}
+        </if>
+    </select>
+    <select id="getByKey" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List" />
+        from t_complex_intent
+        where intent_id = #{intentId,jdbcType=VARCHAR}
+        and project_id = #{projectId,jdbcType=VARCHAR}
+    </select>
+    <select id="getByKeyAndWorkspaceId" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List" />
+        from t_complex_intent
+        where intent_id = #{intentId,jdbcType=VARCHAR}
+        and project_id = #{projectId,jdbcType=VARCHAR}
+        and workspace_id = #{workspaceId,jdbcType=VARCHAR}
+    </select>
+    <update id="updateByKey" parameterType="com.openjiuwen.studio.agent.manager.entity.ComplexIntentEntity">
+        update t_complex_intent
+        <set>
+            <if test="entity.name != null">
+                name = #{entity.name, jdbcType=VARCHAR},
+            </if>
+            <if test="entity.description != null">
+                description = #{ entity.description, jdbcType=VARCHAR },
+            </if>
+            <if test="entity.branches != null">
+                branches = #{ entity.branches, jdbcType=VARCHAR },
+            </if>
+            <if test="entity.branchesCnt != null">
+                branches_cnt = #{ entity.branchesCnt, jdbcType=INTEGER },
+            </if>
+        </set>
+        where intent_id = #{ entity.intentId, jdbcType=VARCHAR }
+        and project_id = #{ entity.projectId, jdbcType=VARCHAR }
+    </update>
+    <select id="getEntitiesAccurate" parameterType="com.openjiuwen.studio.agent.manager.entity.ComplexIntentEntity"
+            resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List" />
+        from t_complex_intent
+        <where>
+            <if test="entity.intentId != null and entity.intentId != ''">
+                and intent_id=#{entity.intentId}
+            </if>
+            <if test="entity.projectId != null and entity.projectId != ''">
+                and project_id=#{entity.projectId}
+            </if>
+            <if test="entity.workspaceId != null and entity.workspaceId != ''">
+                and workspace_id=#{entity.workspaceId}
+            </if>
+            <if test="entity.name != null and entity.name != ''">
+                and `name`=#{entity.name,jdbcType=VARCHAR}
+            </if>
+            <if test="entity.createdOn != null">
+                and created_on=#{entity.createdOn}
+            </if>
+            <if test="entity.updatedOn != null">
+                and updated_on=#{entity.updatedOn}
+            </if>
+        </where>
+    </select>
+</mapper>

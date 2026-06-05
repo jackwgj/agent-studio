@@ -1,0 +1,27 @@
+::ng-deep {
+  .functionWindowModal {
+    height: 90vh !important;
+    width: 90vw !important;
+    margin: 5vh 5vw !important;
+  }
+}
+
+.function-item {
+  .delete-icon{
+    width: 20px;
+    height: 20px;
+    align-items: center;
+    justify-content: center;
+    background: #DBDBDB50;
+    border-radius: 4px;
+    display: none;
+  }
+}
+
+.function-item {
+  &:hover {
+    .delete-icon{
+      display: flex;
+    }
+  }
+}

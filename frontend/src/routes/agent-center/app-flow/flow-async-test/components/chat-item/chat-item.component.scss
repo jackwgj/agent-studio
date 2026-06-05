@@ -1,0 +1,65 @@
+@import '../../../../../../routes/agent-center/app-agent/components/chat-item/chat-item.component.scss';
+
+.user-answer {
+  align-items: flex-end;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+
+  .msgImage {
+    margin-bottom: 10px;
+    width: auto;
+    height: 100px;
+  }
+
+  .content-text {
+    align-self: center;
+    width: calc(100% - 30px);
+    padding: 16px 24px;
+    background-color: #deecff;
+    border-radius: 16px 0px 16px 16px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    .uploaded-file {
+      padding: 12px 18px;
+      border-radius: 8px;
+      background: #fff;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .uploaded-image {
+      width: 52px;
+    }
+
+    .user-question-text {
+      flex-grow: 0;
+      color: #191919;
+      text-align: justify;
+      white-space: pre-wrap;
+      font-size: 14px;
+    }
+  }
+}
+
+.collapse-btn {
+  width: 166px;
+  color: #191919;
+  display: flex;
+  align-items: center;
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 16px;
+  margin-top: 24px;
+
+  img {
+    width: 20px;
+    height: 20px;
+    margin-right: 8px;
+  }
+}

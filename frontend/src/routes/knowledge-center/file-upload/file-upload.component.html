@@ -1,0 +1,221 @@
+<ng-template #modalTitleTpl>
+  {{ modalTitle | i18nextEager }}
+</ng-template>
+
+<div class="h-[calc(100%-95px)] w-full overflow-auto p-[24px]">
+  @if (isSupTag && isEmpty) {
+    <div class="tag-container">
+      <div class="mb-[4px] flex items-center">
+        <span>{{ 'tag_optional' | i18nextEager }}</span>
+        <span nz-tooltip [nzTooltipTitle]="tip" nzTooltipPlacement="top" class="ml-[4px] cursor-pointer text-[#808080]">
+          <span nz-icon nzType="question-circle" nzTheme="outline"></span>
+        </span>
+      </div>
+      <ng-template #tip>
+        <span class="tag-manage-tip">
+          <span>
+            {{ 'tag_use_tip' | i18nextEager }}
+          </span>
+          <br />
+          <span>
+            {{ 'manage_kb_tag_tip' | i18nextEager }}
+          </span>
+          <a *ngIf="!isFromDevelopSpace" [href]="kbManagementUrl" target="_blank" rel="noopener noreferrer" class="cursor-pointer ml-[4px]">{{ 'kb_tag_management' | i18nextEager }}</a>
+          <a *ngIf="isFromDevelopSpace" class="cursor-pointer ml-[4px]" (click)="goToTag()">{{ 'kb_tag_management' | i18nextEager }}</a>
+        </span>
+      </ng-template>
+      <tag-select [kbId]="kbId" [isSupCreate]="true" [isSupRefresh]="true" [(ngModel)]="tagSelected" [isLimitSelection]="true"
+                  [isCacheInInit]="true" (goToTagManage)="goToTag()"></tag-select>
+      <div class="upload-with-tag-tip text-[#808080] mt-[4px]">{{ 'file_upload_with_tag' | i18nextEager }}</div>
+    </div>
+  }
+  <div class="mt-[16px] flex flex-col gap-[8px]">
+    @if (isSupTag) {
+      <div class="doc-title">{{ 'common_file'  | i18nextEager }}</div>
+    }
+    <input
+      type="file"
+      #fileInput
+      class="hidden"
+      multiple="multiple"
+      [accept]="accept"
+      (change)="handleFileUpload($event)"
+    />
+    <div
+      *ngIf="isEmpty"
+      class="dotted-frame flex w-full flex-col items-center p-[16px]"
+    >
+      <div>
+        <svg
+          width="20.000000"
+          height="20.083252"
+          viewBox="0 0 20 20.0833"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <defs/>
+          <path
+            d="M9.8 17.52L9.82 17.5C10.1 17.5 10.32 17.71 10.32 18C10.32 18.28 10.1 18.5 9.82 18.5L9.8 18.48L9.8 17.52ZM17.56 10.04L17.58 10.06C17.58 10.34 17.36 10.56 17.08 10.56C16.8 10.56 16.58 10.34 16.58 10.06L16.6 10.04L17.56 10.04Z"
+            fill="#000000"
+            fill-opacity="0"
+            fill-rule="nonzero"
+          />
+          <path
+            d="M9.82 18L5.17 18C3.92 18 2.91 16.82 2.91 15.38L2.91 3.11C2.91 1.67 3.92 0.5 5.17 0.5L14.82 0.5C16.07 0.5 17.08 1.67 17.08 3.11L17.08 10.06"
+            stroke="#191919"
+            stroke-opacity="1.000000"
+            stroke-width="1.000000"
+            stroke-linejoin="round"
+            stroke-linecap="round"
+          />
+          <path
+            d="M6.66 5.08L12.91 5.08"
+            stroke="#000000"
+            stroke-opacity="1.000000"
+            stroke-width="1.000000"
+            stroke-linecap="round"
+          />
+          <path
+            d="M6.66 8.41L10.83 8.41"
+            stroke="#000000"
+            stroke-opacity="1.000000"
+            stroke-width="1.000000"
+            stroke-linecap="round"
+          />
+          <path
+            d="M10.83 15.7L17.08 15.7"
+            stroke="#000000"
+            stroke-opacity="1.000000"
+            stroke-width="1.000000"
+            stroke-linecap="round"
+          />
+          <path
+            d="M13.95 12.58L13.95 18.83"
+            stroke="#000000"
+            stroke-opacity="1.000000"
+            stroke-width="1.000000"
+            stroke-linecap="round"
+          />
+        </svg>
+      </div>
+
+      <div class="flex mt-[8px]">
+        <div class="mr-[4px] text-[14px] text-[#191919]">
+          {{ 'the_current_blank_document_please' | i18nextEager }}
+        </div>
+        <div
+          (click)="handleFileSelect()"
+          class="cursor-pointer text-[14px] text-[#1476ff] hover:underline"
+        >
+          {{ 'click_here_to_upload' | i18nextEager }}
+        </div>
+      </div>
+      <div class="text-center text-[14px] text-[#808080] mt-[8px]">
+        <span *ngFor="let item of description">
+          <span *ngIf="'text' === item.type">
+            {{ item.content | i18nextEager }}
+          </span>
+          <a
+            *ngIf="'link' === item.type"
+            [href]="item.link"
+            download
+            class="text-[#1476ff]"
+          >
+            {{ item.content | i18nextEager }}
+          </a>
+        </span>
+      </div>
+      <div class="text-[14px] text-center text-[#808080]">
+        {{ 'file_limit_tip' | i18nextEager: { maxSize: uploadLimit } }}
+      </div>
+    </div>
+
+    <div *ngIf="!isEmpty">
+      <button
+        nz-button
+        nzType="default"
+        class="mb-[16px] flex items-center"
+        (click)="handleFileSelect()"
+        [disabled]="isOverSize"
+      >
+        <span nz-icon nzType="plus" nzTheme="outline" class="mr-[4px]"></span>
+        {{ 'upload_file' | i18nextEager }}
+      </button>
+      <nz-alert *ngIf="isOverSize" nzType="error" nzShowIcon [nzMessage]="'oversize_tip' | i18nextEager" class="mb-[16px] !w-full"></nz-alert>
+
+      <nz-table #basicTable [nzData]="fileList" [nzShowPagination]="false" [nzFrontPagination]="false" nzSize="small">
+        <thead>
+        <tr>
+          <th>{{ 'file_name' | i18nextEager }}</th>
+          <th *ngIf="isSupTag">{{ 'kb_tag' | i18nextEager }}</th>
+          <th nzWidth="90px">{{ 'file_size' | i18nextEager }}</th>
+          <th nzWidth="70px">{{ 'operation' | i18nextEager }}</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr *ngFor="let row of basicTable.data; index as i">
+          <td nzEllipsis>
+            <div class="text-[14px] text-[#191919]" nz-tooltip [nzTooltipTitle]="row.file?.name">
+              {{ row.file?.name }}
+            </div>
+          </td>
+          <td *ngIf="isSupTag">
+            <tag-select
+              [kbId]="kbId"
+              [isSupCreate]="true"
+              [(ngModel)]="row.tagSelected"
+              [isLimitSelection]="true"
+              [isCacheInInit]="true"></tag-select>
+          </td>
+          <td>
+            <div class="text-[14px] text-[#191919]">
+              {{ row.file?.size | bytes }}
+            </div>
+          </td>
+          <td>
+            <div
+              (click)="deleteFile(i)"
+              class="flex cursor-pointer items-center gap-[8px]"
+            >
+              <div class="text-[14px] text-[#1476ff]">
+                {{ 'delete' | i18nextEager }}
+              </div>
+            </div>
+          </td>
+        </tr>
+        </tbody>
+      </nz-table>
+
+      <div class="mt-[16px] flex w-full justify-between">
+        <div class="text-[14px] text-[#191919]">
+          {{ 'file' | i18nextEager }}:
+          <span class="font-bold">{{ fileList.length }}</span>
+        </div>
+        <div [ngClass]="{ 'text-[#f23030]': isOverSize }" *ngIf="isNeedCapacityLimit">
+          <span>{{ 'available_size' | i18nextEager }}{{ (available_size < 0 ? 0 : available_size) | bytes }}</span>
+          <span class="mx-[4px]">/</span>
+          <span>{{ 'max_size' | i18nextEager }}{{ max_size | bytes }}</span>
+          <span *ngIf="isOverSize">{{ 'oversize' | i18nextEager }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="flex justify-end gap-2 p-[16px]" style="border-top: 1px solid #e8e8e8; background: #fff;">
+  <button nz-button nzType="default" (click)="handleUploadCancel()">
+    {{ 'cancel' | i18nextEager }}
+  </button>
+  <div nz-tooltip [nzTooltipTitle]="confirmTip">
+    <button
+      nz-button
+      nzType="primary"
+      nzDanger
+      [nzLoading]="isUploadLoading"
+      (click)="handleUploadConfirm()"
+      [disabled]="isOverSize || isEmpty"
+    >
+      {{ 'ok' | i18nextEager }}
+    </button>
+  </div>
+</div>

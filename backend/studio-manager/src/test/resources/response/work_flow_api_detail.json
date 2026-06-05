@@ -1,0 +1,129 @@
+{
+  "components": [
+    {
+      "id": "node_start",
+      "name": "开始",
+      "outputs": [
+        {
+          "description": "城市编码",
+          "name": "city_code",
+          "type": "String",
+          "required": true,
+          "front": "input",
+          "hint": "请输入城市编码",
+          "value": "320500"
+        }
+      ],
+      "type": "Start"
+    },
+    {
+      "id": "node_1724033220984",
+      "configs": [
+        {
+          "name": "api",
+          "type": "api",
+          "value": {
+            "method": "POST",
+            "url": "http://localhost:10002/weather",
+            "headers": [],
+            "params": [
+              {
+                "name": "extensions",
+                "type": "String",
+                "value": "all"
+              }
+            ],
+            "request_body": {
+              "type": "JSON",
+              "body": "{{city_code}}"
+            },
+            "authorization": {
+              "type": "user-custom",
+              "location": "query",
+              "auth": {
+                "key": "encrypt-key"
+              }
+            }
+          }
+        }
+      ],
+      "inputs": [
+        {
+          "name": "city_code",
+          "type": "ref",
+          "value": "${node_start.city_code}"
+        }
+      ],
+      "name": "Api节点",
+      "outputs": [
+        {
+          "description": "状态",
+          "name": "status",
+          "type": "String"
+        },
+        {
+          "description": "http码",
+          "name": "status_code",
+          "type": "String"
+        },
+        {
+          "description": "原始结果",
+          "name": "response",
+          "type": "String"
+        }
+      ],
+      "type": "Api"
+    },
+    {
+      "id": "node_end",
+      "name": "结束",
+      "inputs": [
+        {
+          "value": "${node_1724033220984.status}",
+          "name": "status",
+          "type": "ref"
+        },
+        {
+          "value": "${node_1724033220984.status_code}",
+          "name": "status_code",
+          "type": "ref"
+        },
+        {
+          "value": "${node_1724033220984.response}",
+          "name": "response",
+          "type": "ref"
+        }
+      ],
+      "type": "End"
+    }
+  ],
+  "connections": [
+    {
+      "source": "node_start",
+      "target": "node_1724033220984"
+    },
+    {
+      "source": "node_1724033220984",
+      "target": "node_end"
+    }
+  ],
+  "description": "API-GET-高德天气",
+  "id": "10006",
+  "metadata": {
+    "layout": {
+      "node_default_llm_chain": {
+        "x": 510,
+        "y": 440
+      },
+      "node_end": {
+        "x": 910,
+        "y": 440
+      },
+      "node_start": {
+        "x": 130,
+        "y": 440
+      }
+    }
+  },
+  "name": "API-GET-高德天气"
+}

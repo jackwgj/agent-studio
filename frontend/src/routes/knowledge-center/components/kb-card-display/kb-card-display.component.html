@@ -1,0 +1,137 @@
+<div class="kb-card-display"
+     [class.flex-layout]="displayConfig()?.layoutConfig?.layout === 'flex'">
+  @for (kb of _kbs(); track kb.id) {
+    <div class="kb-card"
+         [style.width]="getCardWidth()"
+         [class.cursor-pointer]="!isKbInvalid(kb) && (displayConfig()?.detailLink?.enable || (displayConfig()?.operationConfig?.enable && isPermitSelect(kb)))"
+         [class.kb-closed]="kb.status === 'CLOSE'"
+         [class.permit-add]="isShowOperationContainer && (isPermitSelect(kb) || isKBSelected(kb))"
+         [class.small-card]="displayConfig()?.cardSize === 'small'"
+         [class.middle-card]="displayConfig()?.cardSize === 'middle'"
+         [class.large-card]="displayConfig()?.cardSize === 'large'"
+         [class.card-selected]="isKBSelected(kb)"
+         [nz-tooltip]="getInvalidTip(kb)"
+         nzTooltipPlacement="top"
+         (click)="cardClick(kb)">
+
+      <div class="kb-basic-info-container">
+
+        <div class="kb-logo">
+          <img [src]="kb.icon" alt="" />
+        </div>
+
+        <div class="kb-basic-info">
+
+          <div class="kb-name-container">
+
+            <div class="kb-name text-overflow-1"
+                 [class.name-bold]="displayConfig()?.cardNameBold ?? true"
+                 [title]="kb.name"
+            >
+              {{ kb.name }}
+            </div>
+
+            @if (displayConfig()?.detailLink?.enable && kb.source?.detail_page_url) {
+              <span class="kb-url-copy" nz-typography nz-copyable [nzCopyText]="kb.source?.detail_page_url" nz-tooltip
+                    [nzTooltipTitle]="'copy_knowledge_base_url' | i18nextEager"></span>
+            }
+
+          </div>
+
+          <div class="kb-tag-container gap-2 flex">
+            @if (tagShow(kb, KbTagType.INVALID) && isKbInvalid(kb)) {
+              <nz-tag nzColor="error">
+                {{ 'kb_not_available'|i18nextEager }}
+              </nz-tag>
+            }
+            @if (tagShow(kb, KbTagType.STATUS) && !isKbInvalid(kb)) {
+              <nz-tag [nzColor]="knowledgeBaseStatusMap.get(kb?.status)?.cardTagColor">
+                {{ knowledgeBaseStatusMap.get(kb?.status)?.text }}
+              </nz-tag>
+            }
+            @if (tagShow(kb, KbTagType.TYPE)) {
+              <nz-tag [nzColor]="knowledgeBaseSourceMap.get(kb?.type)?.color">
+                {{ knowledgeBaseSourceMap.get(kb?.type)?.label }}
+              </nz-tag>
+            }
+            @if (kbAbilitiesService.getKbSourceName(kb) && tagShow(kb, KbTagType.SOURCE)) {
+              <nz-tag nzColor="#191919">
+                {{ kbAbilitiesService.getKbSourceName(kb) }}
+              </nz-tag>
+            }
+            @if (tagShow(kb, KbTagType.SHARE) && kbAbilitiesService.isSameSpace(kb.workspace_id)) {
+              <nz-tag>
+                {{ 'kb_share_in_current_space' | i18nextEager }}
+              </nz-tag>
+            }
+          </div>
+
+        </div>
+
+        @if (isShowOperationContainer) {
+          <div class="kb-operation-container">
+            <label
+              nz-checkbox
+              [nzDisabled]="isKBSelected(kb) ? false : !isPermitSelect(kb)"
+              (ngModelChange)="selectModelChange(kb)"
+              [(ngModel)]="kb.selected"
+            ></label>
+          </div>
+        }
+      </div>
+
+      @if (displayConfig()?.descriptionConfig?.enable) {
+        <div class="kb-description text-overflow-2"
+             [style.min-height]="(displayConfig()?.descriptionConfig?.maxLine ?? 1) * 18 + 'px'">
+          {{ kb.description || '--' }}
+        </div>
+      }
+
+      @if (displayConfig()?.footerConfig) {
+        <div class="kb-card-footer">
+          <div class="card-info-footer">
+            @if (displayConfig()?.footerConfig?.userShow) {
+              <div class="footer-icon-container user-name">
+                <span nz-icon nzType="user" class="footer-icon"></span>
+                <span class="text-overflow-1">{{ kb.last_update_user_name }}</span>
+              </div>
+            }
+
+            @if (displayConfig()?.footerConfig?.timeShow) {
+              <div class="footer-icon-container update-time">
+                <span nz-icon nzType="clock-circle" class="footer-icon"></span>
+                <div class="update-time">{{ kb.update_time | formateTime }}</div>
+              </div>
+            }
+          </div>
+          @if (displayConfig()?.footerConfig?.kbOperation) {
+            <div class="kb-footer-action-container" (click)="clickMenu($event)">
+              @for (item of kb.operations; track item.id) {
+                <a nz-button nzType="link" (click)="menuOperation(item, kb)">
+                  {{ item.label }}
+                </a>
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+  } @empty {
+    <div class="card-display-no-data">
+      @if (displayConfig()?.noDataConfig?.showImg) {
+        <div class="no-data-icon"></div>
+      }
+      @if (displayConfig()?.noDataConfig?.showTitle) {
+        <span class="no-data-title mt-[8px]">{{ 'no_knowledge_base_resources' | i18nextEager }}</span>
+      }
+      @if (displayConfig()?.noDataConfig?.showTitle) {
+        <span class="no-data-desc mt-[4px]" *ngIf="kbAbilitiesService.isPermitCreateKB">{{ 'no_data_available_create_knowledge_base' | i18nextEager }}</span>
+      }
+      @if (displayConfig()?.noDataConfig?.showCreate) {
+        <button nz-button (click)="createKb.emit()" class="mt-[16px]">{{ 'create_kb' | i18nextEager }}</button>
+      }
+    </div>
+  }
+
+</div>
+<knowledge-base-edit (getList)="editSuccess()" #knowledgeBaseEdit></knowledge-base-edit>

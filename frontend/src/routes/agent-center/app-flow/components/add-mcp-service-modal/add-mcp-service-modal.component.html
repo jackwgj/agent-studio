@@ -1,0 +1,25 @@
+<div style="font-size: 16px" *ngIf="!['DataSynthesis', 'DataProcess'].includes(type)">
+  {{ 'add_mcp_service' | i18nextEager }}
+</div>
+<div *ngIf="!['DataSynthesis', 'DataProcess'].includes(type)" style="overflow-x: hidden; margin-top: 16px">
+  <add-mcp-servers
+    [mcpServers]="[]"
+    (mcpAdded)="handleMCPsAdded($event, $event)"
+    (mcpReduced)="handleMCPsReduced($event)"
+    (backToMcpList)="backToMcpListEmit()"
+    [isFromWorkflow]="true"
+    (createMcpRes)="handleClickCreateMcpEmit($event)"
+    [isClickAddMcpToWorkflow]="clicked"
+    [mcpCreateSub]="mcpCreateSub"
+  ></add-mcp-servers>
+</div>
+<div *ngIf="!['DataSynthesis', 'DataProcess'].includes(type) && false">
+  <ng-container>
+    <button tiButton id="cancel" (click)="dismiss()">
+      {{ 'cancel' | i18nextEager }}
+    </button>
+    <button tiButton class="ml-2" color="danger">
+      {{ 'ok' | i18nextEager }}
+    </button>
+  </ng-container>
+</div>

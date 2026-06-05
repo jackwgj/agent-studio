@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.agent.agentbase.mapper.KnowledgeBaseObsExecuteRecordMapper">
+
+    <sql id="baseRecordColumns">
+        id
+        , obs_config_id, start_time, end_time, status, log_detail, domain_id,
+        domain_name, created_user_id, created_user_name, create_time, update_user_id,
+        update_user_name, update_time, project_id, workspace_id
+    </sql>
+
+    <select id="selectRecordById"
+            resultType="com.openjiuwen.studio.agent.agentbase.entity.KnowledgeBaseObsExecuteRecordEntity">
+        select
+        <include refid="baseRecordColumns"></include>
+        from t_knowledge_base_obs_execute_record
+        where id = #{id}
+    </select>
+
+    <select id="selectListByObsConfigId"
+            resultType="com.openjiuwen.studio.agent.agentbase.entity.KnowledgeBaseObsExecuteRecordEntity">
+        select
+        <include refid="baseRecordColumns"></include>
+        from t_knowledge_base_obs_execute_record
+        where obs_config_id = #{obsConfigId} order by create_time desc
+    </select>
+
+    <insert id="insertExecuteRecord"
+            parameterType="com.openjiuwen.studio.agent.agentbase.entity.KnowledgeBaseObsExecuteRecordEntity">
+        INSERT INTO t_knowledge_base_obs_execute_record
+        (<include refid="baseRecordColumns"></include>)
+        VALUES (#{id}, #{obsConfigId}, #{startTime}, #{endTime}, #{status}, #{logDetail}, #{domainId}, #{domainName},
+        #{createdUserId},
+        #{createdUserName}, #{createTime}, #{updateUserId},
+        #{updateUserName}, #{updateTime}, #{projectId}, #{workspaceId})
+    </insert>
+
+    <update id="updateExecuteRecordById"
+            parameterType="com.openjiuwen.studio.agent.agentbase.entity.KnowledgeBaseObsExecuteRecordEntity">
+        update t_knowledge_base_obs_execute_record
+        set log_detail = #{logDetail},
+        <if test="endTime != null">
+            end_time = #{endTime},
+        </if>
+        <if test="status != null and status != ''">
+            status = #{status},
+        </if>
+        update_time = #{updateTime}
+        where id = #{id}
+    </update>
+    <delete id="deleteExecuteRecordByObsConfigId">
+        delete
+        from t_knowledge_base_obs_execute_record
+        where obs_config_id = #{obsConfigId}
+    </delete>
+</mapper>

@@ -1,0 +1,151 @@
+<div class="add-workflows-container">
+  <div class="flex-left">
+    <nz-tabset class="w-full" id="app-center-tabs" [nzSelectedIndex]="getActiveTabIndex()">
+      <nz-tab class="text-[14px]" *ngFor="let tab of addTypeOptions" [nzTitle]="tab.title" (nzSelect)="tabChange(tab)">
+      </nz-tab>
+    </nz-tabset>
+    <button class="mb-[12px]" *ngIf="showAddBtn" nz-button id="create" (click)="createWorkflow()">
+      {{ 'create_workflow' | i18nextEager }}
+    </button>
+    <div class="desc-area">
+      {{ 'flow_limit' | i18nextEager:{ number: flowLimit } }}
+    </div>
+    <div class="w-full flex gap-2">
+      <nz-input-search *ngIf="!isShareTab" nzAllowClear (nzSearch)="loadWorkflowList('search')">
+        <input
+          nz-input
+          id="searchbox-basic"
+          class="workflow-searchbox"
+          [placeholder]="emptyPlaceholder"
+          [(ngModel)]="searchValue"
+        />
+      </nz-input-search>
+      <nz-input-search *ngIf="isShareTab" nzAllowClear (nzSearch)="initList('search')">
+        <input
+          nz-input
+          id="searchbox-basic"
+          class="!w-full workflow-searchbox"
+          [placeholder]="'search_placeholder'|i18nextEager"
+          [(ngModel)]="shareSearchKey"
+        />
+      </nz-input-search>
+    </div>
+
+    <nz-spin
+      *ngIf="workflowData.isLoading; else workflowListTmpl"
+      class="loading-icon"
+      nzSimple
+    ></nz-spin>
+
+    <ng-template #workflowListTmpl>
+      <div class="scroll-container" [ngClass]="isShowNoData() ? '' : 'no-data-scroll-container'">
+        <div class="workflow-list-container" [ngClass]="isShowNoData() ? '' : 'no-data-workflows-container'">
+          <ng-container *ngIf="isShowNoData(); else noData">
+            <div class="workflow-card-list">
+              <div *ngFor="let item of workflowData.list; let i = index"
+                class="single-workflow-card"
+                [ngClass]="{
+                  active: workflowCardSelected.includes(item.workflow_id),
+                  'hover-item': item.status === 1,
+                  'disabled-card': item.status !== 1
+                }"
+                [nz-tooltip]="item.status !== 1 ? workflowTips : ''"
+                nzTooltipPlacement="left">
+                <label
+                  class="card-checkbox"
+                  nz-checkbox
+                  [ngModel]="workflowCardSelected.includes(item.workflow_id)"
+                  (ngModelChange)="toggleWorkflowSelection(item, $event)"
+                  [nzDisabled]="item.status !== 1"
+                  (click)="$event.stopPropagation()"
+                >
+                </label>
+                <div class="card-content" (click)="item.status === 1 && toggleWorkflowSelection(item, !workflowCardSelected.includes(item.workflow_id))">
+                  <div class="left-area">
+                    <img class="common-icon" [src]="item.avatar" alt="" />
+                    <div class="title-desc-container">
+                      <div class="workflow-title text-overflow">
+                        {{ item.name }}
+                      </div>
+                      <nz-tag nzSize="small" [nzColor]="'#191919'" style="width: fit-content"
+                              class="!rounded-[4px] py-[1px] pl-[2px] pr-[4px]">
+                        {{ (item.type === 'chat' ? 'workflow_chat' : 'workflow_task')|i18nextEager }}
+                      </nz-tag>
+                    </div>
+                  </div>
+                  <div *ngIf="!isShareTab">
+                    <span class="w-[90%] text-overflow" tiOverflow>
+                      {{ item.description }}
+                    </span>
+                  </div>
+                  <div class="text-[#808080]" *ngIf="isShareTab">
+                    <div>
+                      <span class="w-full text-overflow" tiOverflow> {{ item.description }}</span>
+                    </div>
+                    <div class="flex items-center">
+                      <nz-icon
+                        nzType="user"
+                        nzTheme="outline"
+                        class="mr-1 !text-[16px]"
+                      />
+                      <span class="max-w-[60px] text-overflow" tiOverflow>
+                        {{ item.workspace_name || item.workspace_id }}
+                      </span>
+                      <span *ngIf="item.version_info_list?.length" class="pl-2 pr-2">|</span>
+                      <div *ngIf="item.version_info_list?.length" class="version-info-list-div">
+                        {{ 'version_name'|i18nextEager }}:
+                        <nz-select
+                          class="!max-w-[130px] version-select"
+                          [ngClass]="{'!max-w-[94px]': !isZH}"
+                          nzBorderless
+                          nzPopupMatchSelectWidth="auto"
+                          (click)="visionClick($event)"
+                          [(ngModel)]="item.last_version_id"
+                          [nzPlaceHolder]="'select_placeholder'|i18nextEager"
+                        >
+                          <nz-option *ngFor="let version of item.version_info_list" [nzValue]="version.version_id" [nzLabel]="version.version_name"></nz-option>
+                        </nz-select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </ng-container>
+        </div>
+      </div>
+      <div class="footer">
+        <span>{{ 'total_number_of_records' | i18nextEager }}: {{ totalNumber }}</span>
+        <nz-pagination
+          *ngIf="isShowNoData()"
+          id="add-workflow-pagination"
+          [(nzPageIndex)]="currentPage"
+          [nzTotal]="totalNumber"
+          nzSimple
+          (nzPageIndexChange)="isShareTab ? initShareList(): loadWorkflowList()"
+        ></nz-pagination>
+      </div>
+    </ng-template>
+
+  </div>
+</div>
+
+<ng-template #noData>
+  <div class="no-data-container">
+    <app-new-common-no-data-with-btn
+      *ngIf="!isShareTab"
+      [type]="searchNameIsEmpty ? 'noData' : 'filterNoData'"
+      [tutorialType]="'workflow'"
+      [noDataBtnStr]="'create_workflow'|i18nextEager"
+      (create)="createWorkflow()"
+      (clear)="handleClickClearSearch()"
+    />
+    <app-new-common-no-data-with-btn
+      *ngIf="isShareTab"
+      [type]="'noData'"
+      [firstLineData]="'no_data' | i18nextEager"
+      [noDataBtnStr]="''"
+    />
+  </div>
+
+</ng-template>

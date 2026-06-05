@@ -1,0 +1,75 @@
+[
+  {
+    "roleName": "OWNER",
+    "roleDescription": "OWNER：空间所有者",
+    "permissions": [
+      "CreateTask",
+      "CreateWorkspace",
+      "DeletePromptTemplate",
+      "DeleteTask",
+      "GetWorkflowScene",
+      "ListPromptTemplates",
+      "ReleaseToolVersion",
+      "deploy",
+      "listDependencies",
+      "listModels",
+      "addMarkTag",
+      "updateAgentDeploy",
+      "createPromptTask",
+      "deletePromptTask"
+    ]
+  },
+  {
+    "roleName": "ADMIN",
+    "roleDescription": "ADMIN：空间管理员",
+    "permissions": [
+      "CreateTask",
+      "CreateWorkspace",
+      "CopyFunctionPlugin",
+      "DeletePromptTemplate",
+      "DeleteTask",
+      "GetWorkflowScene",
+      "ListPromptTemplates",
+      "ReleaseToolVersion",
+      "deploy",
+      "listDependencies",
+      "listModels",
+      "mcpServicesCesLineChart",
+      "addMarkTag",
+      "updateAgentDeploy",
+      "createPromptTask",
+      "deletePromptTask",
+      "batchDeployServices"
+    ]
+  },
+  {
+    "roleName": "DEVELOPER",
+    "roleDescription": "DEVELOPER：开发工程师",
+    "permissions": [
+      "CreateTask",
+      "DeletePromptTemplate",
+      "DeleteTask",
+      "GetWorkflowScene",
+      "ListPromptTemplates",
+      "ReleaseToolVersion",
+      "deploy",
+      "listDependencies",
+      "listModels",
+      "createPromptTask",
+      "deletePromptTask"
+    ]
+  },
+  {
+    "roleName": "OPERATOR",
+    "roleDescription": "OPERATOR：运维工程师",
+    "permissions": [
+      "ListOrderingCapacity",
+      "ModifyCustomModel",
+      "exportVariableDataset",
+      "addMarkTag",
+      "updateAgentDeploy",
+      "RetrieveAgent"
+    ]
+  }
+]
+

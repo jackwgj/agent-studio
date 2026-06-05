@@ -1,0 +1,37 @@
+<div class="apply-success-outer">
+  <div class="info">
+    <div class="info-content">
+      <div class="icon"></div>
+      <div class="main-title">
+        {{ 'resource_application_success'|i18nextEager }}
+      </div>
+      <div class="sub-title">
+        {{ 'jiuwen_enterprise_success'|i18nextEager }}
+        <span>￥0.00</span>。
+        <span class="link-span" (click)="gotoIndex()">{{ 'view_order_details'|i18nextEager }}</span>
+      </div>
+      <div class="btn" (click)="goToModelArts()">
+        {{ 'enter_jiuwen'|i18nextEager }}
+      </div>
+    </div>
+  </div>
+  <div class="footer" *ngIf="showFooter">
+    <div class="top">
+      <div class="info">
+        {{ 'purchase_process_satisfaction_evaluation'|i18nextEager }}
+      </div>
+      <div class="close" (click)="closeThis()"></div>
+    </div>
+    <div class="bottom">
+      <div class="text-div">
+        <span>{{ 'very_unsatisfied'|i18nextEager }}</span>
+        <span>{{ 'very_satisfied'|i18nextEager }}</span>
+      </div>
+      <div class="score">
+        <div class="score-item" *ngFor="let item of scoreOptions; let i = index;trackBy: trackByFn" (click)="scoreThis(item)">
+          {{item.score}}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

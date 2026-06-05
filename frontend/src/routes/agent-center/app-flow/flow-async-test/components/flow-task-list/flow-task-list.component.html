@@ -1,0 +1,94 @@
+<!-- <div class="task-list-box h-full w-full overflow-hidden">
+  <div>
+    <button class="mb-3 w-full task-create" id="button-color-default" tiButton (click)="createTask()">
+      <tp-icon [isSquare]="true" name="cloudx-action-create-1"></tp-icon>{{'flowtasklistcomponent_642'| i18nextEager}}
+    </button>
+    <div class="task-list-line-sever"></div>
+    <div>
+      <div class="task-list-area">
+        <tp-icon [isSquare]="true" name="cloudx-action-history"></tp-icon>
+        <span>{{'flowtasklistcomponent_643'| i18nextEager}}</span>
+        <span>({{countMap.total}})</span>
+      </div>
+      <div class="run-status flex">
+        <div class="run-status-item flex">
+          {{'running'| i18nextEager}}&nbsp;<span class="running">{{countMap.running}}</span>
+        </div>
+        <div class="run-status-line"></div>
+        <div class="run-status-item flex">
+          {{'success_1'| i18nextEager}}&nbsp;<span class="run-success">{{countMap.success}}</span>
+        </div>
+        <div class="run-status-line"></div>
+        <div class="run-status-item flex">
+          {{'flowtasklistcomponent_646'| i18nextEager}}&nbsp;<span class="run-fail">{{countMap.fail}}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="task-group-list" *ngIf="displayGroup.length">
+    <div class="task-group" *ngFor="let taskGroup of displayGroup">
+      <div class="task-group-label">
+        <span>{{ taskGroup.groupLabel }}</span>
+      </div>
+
+      <div *ngFor="let item of taskGroup.taskList"
+        [ngClass]="{'is-selected': selectId === item.id}"
+        class="task-item flex-between pl-[8px] pr-[8px]"
+        (click)="handleTask($event, 'select', item)"
+      >
+        <div *ngIf="!item.isEdit" class="w-full flex-between">
+          <div tiOverflow>{{item.name}}</div>
+          <div class="edit-box">
+            <div class="edit-content">
+              <tp-iconaction
+                class="edit flex-center"
+                iconName="cloudx-action-edit"
+                (click)="handleTask($event, 'edit', item)"
+              />
+              <tp-iconaction
+                class="edit flex-center"
+                iconName="cloudx-action-delete"
+                (click)="handleTask($event, 'delete', item)"
+              />
+            </div>
+          </div>
+          <div class="status-box">
+            <img alt="" class="running" *ngIf="item.status==='INIT' || item.status==='RUNNING'" [src]="changeUrl('assets/images/flow-task/running1.svg')" />
+            <img alt="" *ngIf="item.status==='PENDING'" [src]="changeUrl('assets/images/flow-task/pending1.svg')" />
+            <img alt="" *ngIf="item.status==='COMPLETED'" [src]="changeUrl('assets/images/flow-task/success1.svg')" />
+            <img alt="" *ngIf="item.status==='FAILED' || item.status==='CANCELLED'" [src]="changeUrl('assets/images/flow-task/fail1.svg')" />
+          </div>
+        </div>
+        <div *ngIf="item.isEdit" class="w-full flex-between">
+          <input
+            style="width: 70%; "
+            tiText
+            minlength="1"
+            maxlength="64"
+            [(ngModel)]="item.editName"
+          />
+          <div class="flex">
+            <div class="icon-box flex-center" (click)="handleTask($event, 'cancel', item)">
+              <img alt="" class="icon" [src]="changeUrl('assets/images/flow-task/cha.svg')" />
+            </div>
+
+            <div class="icon-box flex-center" (click)="handleTask($event, 'confirm', item)">
+              <img alt=""  class="icon"  [src]="changeUrl('assets/images/flow-task/gou.svg')" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div *ngIf="isLoading" style="height: 60%" class="flex-center">
+    <ti-loading
+      class="loading-icon"
+      [size]="'middle'"
+    ></ti-loading>
+  </div>
+  <div *ngIf="!isLoading && taskList.length === 0" class="no-data-container">
+    <no-data-icon></no-data-icon>
+    <span>{{ 'no_data' | i18nextEager }}</span>
+  </div>
+</div> -->

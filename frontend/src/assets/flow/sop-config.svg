@@ -1,0 +1,21 @@
+<svg width="40.000000" height="40.000000" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+	<desc>
+			Created with Pixso.
+	</desc>
+	<defs>
+		<linearGradient x1="-2.635962" y1="39.999992" x2="37.239243" y2="2.438618" id="paint_linear_602_165355_0" gradientUnits="userSpaceOnUse">
+			<stop stop-color="#EDC3FF"/>
+			<stop offset="1.000000" stop-color="#BA53E6"/>
+		</linearGradient>
+	</defs>
+	<rect id="矩形" rx="10.000000" width="40.000000" height="40.000000" fill="url(#paint_linear_602_165355_0)" fill-opacity="1.000000"/>
+	<rect id="矩形" x="0.500000" y="0.500000" rx="10.000000" width="39.000000" height="39.000000" stroke="#979797" stroke-opacity="0" stroke-width="1.000000"/>
+	<circle id="椭圆 4" cx="20.000000" cy="14.000000" r="9.000000" fill="#FFFFFF" fill-opacity="0"/>
+	<circle id="椭圆 4" cx="20.000000" cy="14.000000" r="9.000000" stroke="#FFFFFF" stroke-opacity="1.000000" stroke-width="1.500000"/>
+	<path id="path5" d="M23 11L23 16.99M20.61 17C20.61 17 19.83 15 18.29 11C16.76 15 16 17 16 17M16.91 15.15L19.67 15.15" stroke="#FFFFFF" stroke-opacity="1.000000" stroke-width="1.666667" stroke-linejoin="round"/>
+	<path id="path6" d="M15.02 22.68L15 22.66C15 22.2 15.36 21.83 15.83 21.83C16.29 21.83 16.66 22.2 16.66 22.66L16.64 22.68L15.02 22.68ZM12.52 28.48L12.5 28.5C12.03 28.5 11.66 28.13 11.66 27.66C11.66 27.2 12.03 26.83 12.5 26.83L12.52 26.85L12.52 28.48ZM23.35 22.68L23.33 22.66C23.33 22.2 23.7 21.83 24.16 21.83C24.63 21.83 25 22.2 25 22.66L24.98 22.68L23.35 22.68ZM27.48 25.18L27.5 25.16C27.96 25.16 28.33 25.53 28.33 26C28.33 26.46 27.96 26.83 27.5 26.83L27.48 26.81L27.48 25.18ZM19.18 23.52L19.16 23.5C19.16 23.03 19.53 22.66 20 22.66C20.46 22.66 20.83 23.03 20.83 23.5L20.81 23.52L19.18 23.52ZM20.81 29.48L20.83 29.5C20.83 29.96 20.46 30.33 20 30.33C19.53 30.33 19.16 29.96 19.16 29.5L19.18 29.48L20.81 29.48Z" fill="#000000" fill-opacity="0" fill-rule="nonzero"/>
+	<path id="path6" d="M15.83 22.66L15.83 26C15.83 26.92 15.08 27.66 14.16 27.66L12.5 27.66M24.16 22.66L24.16 24.33C24.16 25.25 24.91 26 25.83 26L27.5 26M20 23.5L20 29.5" stroke="#FFFFFF" stroke-opacity="1.000000" stroke-width="1.666667" stroke-linejoin="round"/>
+	<circle id="椭圆 5" cx="10.000000" cy="28.000000" r="3.000000" fill="#FFFFFF" fill-opacity="1.000000"/>
+	<circle id="椭圆 6" cx="30.000000" cy="26.000000" r="3.000000" fill="#FFFFFF" fill-opacity="1.000000"/>
+	<circle id="椭圆 7" cx="20.000000" cy="32.000000" r="3.000000" fill="#FFFFFF" fill-opacity="1.000000"/>
+</svg>

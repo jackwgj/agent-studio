@@ -1,0 +1,18 @@
+{
+  "id": "66aaf3ec-67c7-4194-8b12-67be585da0f5",
+  "created": 1723431791,
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": null,
+        "content": "米饭是亚洲人，尤其是东亚人的主食。"
+      }
+    }
+  ],
+  "usage": {
+    "completion_tokens": 245,
+    "prompt_tokens": 673,
+    "total_tokens": 918
+  }
+}

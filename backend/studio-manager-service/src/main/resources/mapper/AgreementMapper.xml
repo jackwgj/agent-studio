@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.common.service.mapper.AgreementMapper">
+    <resultMap id="baseColumns" type="com.openjiuwen.studio.common.service.entity.AgreementEntity">
+        <result column="id" jdbcType="VARCHAR" property="id" />
+        <result column="domain_id" jdbcType="VARCHAR" property="domainId" />
+        <result column="version" jdbcType="VARCHAR" property="version" />
+        <result column="privacy_statement" jdbcType="VARCHAR" property="privacyStatement" />
+        <result column="agree_flag" jdbcType="VARCHAR" property="agreeFlag" />
+        <result column="created_date" jdbcType="VARCHAR" property="createdDate" />
+        <result column="created_by_user_id" jdbcType="VARCHAR" property="createdByUserId" />
+        <result column="last_updated_date" jdbcType="VARCHAR" property="lastUpdatedDate" />
+        <result column="last_updated_by_user_id" jdbcType="VARCHAR" property="lastUpdatedByUserId" />
+    </resultMap>
+
+    <resultMap id="defColumns" type="com.openjiuwen.studio.common.service.entity.AgreementDefEntity">
+        <result column="id" jdbcType="VARCHAR" property="id" />
+        <result column="version" jdbcType="VARCHAR" property="version" />
+        <result column="privacy_statement" jdbcType="VARCHAR" property="privacyStatement" />
+        <result column="status" jdbcType="VARCHAR" property="status" />
+        <result column="created_date" jdbcType="VARCHAR" property="createdDate" />
+    </resultMap>
+
+    <sql id="baseColumns">
+        `id`,
+        `domain_id`,
+        `version`,
+        `privacy_statement`,
+        `agree_flag`,
+        `created_date`,
+        `created_by_user_id`,
+        `last_updated_date`,
+        `last_updated_by_user_id`
+    </sql>
+
+    <sql id="defColumns">
+        `id`,
+        `version`,
+        `privacy_statement`,
+        `status`,
+        `created_date`
+    </sql>
+
+    <select id="selectByDomainId" resultType="com.openjiuwen.studio.common.service.entity.AgreementEntity">
+        select *
+        from t_common_agreement
+        where domain_id = #{domainId}
+        order by created_date DESC
+        limit 1
+    </select>
+
+    <select id="queryList" resultMap="baseColumns">
+        select *
+        from t_common_agreement
+        where domain_id = #{domainId}
+    </select>
+
+
+    <insert id="insert" parameterType="com.openjiuwen.studio.common.service.entity.AgreementEntity">
+        insert into t_common_agreement (<include refid="baseColumns"></include>)
+        values (
+        #{entity.id}, #{entity.domainId}, #{entity.version}, #{entity.privacyStatement},
+        #{entity.agreeFlag}, #{entity.createdDate}, #{entity.createdByUserId},
+        #{entity.lastUpdatedDate}, #{entity.lastUpdatedByUserId}
+        )
+    </insert>
+
+    <update id="update" parameterType="com.openjiuwen.studio.common.service.entity.AgreementEntity">
+        update `t_common_agreement`
+        set `id`                   = #{entity.id},
+            `domain_id`            = #{entity.domainId},
+            `version`              = #{entity.version},
+            `privacy_statement`    = #{entity.privacyStatement},
+            `agree_flag`           = #{entity.agreeFlag},
+            `created_date`         = #{entity.createdDate},
+            `created_by_user_id`   = #{entity.createdByUserId},
+            `last_updated_date`    = #{entity.lastUpdatedDate},
+            `last_updated_by_user_id` = #{entity.lastUpdatedByUserId}
+        where `domain_id` = #{entity.domainId};
+    </update>
+
+
+</mapper>

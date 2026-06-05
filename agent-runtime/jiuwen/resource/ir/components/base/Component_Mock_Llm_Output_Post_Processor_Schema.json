@@ -1,0 +1,48 @@
+{
+  "type": "jiuwen.planner.components.plan_modules.llm_output_post_processor:MockLlmOutputPostProcessor",
+  "version": "1.0.1",
+  "description": "对生成的插件、workflow调用指令参数后处理（仅用于mock，本地打通流程）",
+  "schemaVersion": "0.5",
+  "classInfo": {
+    "modulePath": "jiuwen.planner.components.plan_modules.llm_output_post_processor",
+    "className": "MockLlmOutputPostProcessor",
+    "programLanguage": "python",
+    "filePath": "jiuwen/planner/components/planning_modules/llm_output_post_processor.pyc"
+  },
+  "inputs": [
+    {
+      "id": "query",
+      "description": "用户原始指令",
+      "type": "String"
+    },
+    {
+      "id": "dialogueHistory",
+      "description": "用户对话历史",
+      "type": "List[String]"
+    },
+    {
+      "id": "llmOutput",
+      "description": "LLM生成content",
+      "type": "String"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "processedOutput",
+      "description": "话术修正后的LLM content",
+      "type": "String"
+    }
+  ],
+  "configs": [
+    {
+      "id": "limit",
+      "description": "兜底最大轮次",
+      "type": "Int"
+    },
+    {
+      "id": "supplementaryText",
+      "description": "workflow的话术配置",
+      "type": "List<Map<String, T>>"
+    }
+  ]
+}

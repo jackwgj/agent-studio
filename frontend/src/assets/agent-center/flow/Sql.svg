@@ -1,0 +1,16 @@
+<svg width="24.000000" height="24.000000" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+	<desc>
+			Created with Pixso.
+	</desc>
+	<defs>
+		<clipPath id="clip2952_181240">
+			<rect id="数据库-24x" width="24.000000" height="24.000000" fill="white" fill-opacity="0"/>
+		</clipPath>
+	</defs>
+	<g clip-path="url(#clip2952_181240)">
+		<rect id="矩形 " rx="4.000000" width="23.999998" height="24.000000" fill="#FF9A2E" fill-opacity="1.000000"/>
+		<path id="path" d="M6 13.79L6 16.49C6 17.99 8.68 19.19 12 19.19C15.31 19.19 18 17.99 18 16.49L18 13.79C18 15.29 15.31 16.49 12 16.49C8.68 16.49 6 15.29 6 13.79Z" fill="#FFFFFF" fill-opacity="1.000000" fill-rule="nonzero"/>
+		<path id="path" d="M6 9.29L6 11.99C6 13.49 8.68 14.69 12 14.69C15.31 14.69 18 13.49 18 11.99L18 9.29C18 10.79 15.31 11.99 12 11.99C8.68 11.99 6 10.79 6 9.29Z" fill="#FFFFFF" fill-opacity="1.000000" fill-rule="nonzero"/>
+		<path id="path" d="M18 7.49C18 8.99 15.31 10.19 12 10.19C8.68 10.19 6 8.99 6 7.49C6 6 8.68 4.79 12 4.79C15.31 4.79 18 6 18 7.49Z" fill="#FFFFFF" fill-opacity="1.000000" fill-rule="nonzero"/>
+	</g>
+</svg>

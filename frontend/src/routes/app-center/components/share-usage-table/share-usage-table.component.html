@@ -1,0 +1,31 @@
+<nz-table
+  [nzData]="displayedData"
+  [(nzPageIndex)]="currentPage"
+  [nzTotal]="totalNumber"
+  [nzPageSize]="pageSize.size"
+  [nzShowSizeChanger]="true"
+  [nzPageSizeOptions]="pageSize.options"
+  nzSize="small"
+  [nzFrontPagination]="false"
+  (nzPageIndexChange)="onStateUpdate()"
+  (nzPageSizeChange)="onStateUpdate()">
+  <thead>
+    <tr>
+      <th *ngFor="let column of columns" width="{{ column.width }}">
+        {{ column.title | i18nextEager }}
+      </th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let row of displayedData">
+      <td *ngFor="let column of columns">
+        <span>{{ row[column.field] || '--' }}</span>
+      </td>
+    </tr>
+    <tr *ngIf="!displayedData.length">
+      <td [attr.colspan]="columns.length">
+        <nz-empty [nzNotFoundContent]="'no_data' | i18nextEager"></nz-empty>
+      </td>
+    </tr>
+  </tbody>
+</nz-table>

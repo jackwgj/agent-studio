@@ -1,0 +1,41 @@
+{
+  "additional_questions_config": {
+    "enable": true,
+    "prompt": "- 问题应该与你最后一轮的回复紧密相关\n- 问题不要与上文已经提问或者回答过的内容重复\n- 每句话只包含一个问题，但也可以不是问句而是一句指令\n- 推荐你有能力回答的问题",
+    "rounds": 1
+  },
+  "agent_id": "9f402a7b-405c-4801-8434-4aaaebc33e56",
+  "created_on": "2025-01-16 15:21:56.783",
+  "creator": "test_creator",
+  "creator_id": "test_creator_id",
+  "description": "测试agent描述",
+  "icon": "data:image/png;base64,123",
+  "instructions": null,
+  "knowledge_repos": [],
+  "knowledge_retrieve_policy": null,
+  "memory_variables": null,
+  "model_config": {
+    "history_size": 20,
+    "output_format": "text",
+    "temperature": 0.0,
+    "top_p": 1.0
+  },
+  "model_deployment_id": 180,
+  "model_endpoint": null,
+  "model_name": "deepseek-v3",
+  "model_version": null,
+  "name": "测试agent",
+  "project_id": "test_project_id",
+  "prologue": null,
+  "published_on": null,
+  "status": "draft",
+  "suggest_queries": null,
+  "tools": [],
+  "trigger_list": null,
+  "updated_on": "2025-01-16 15:21:56.783",
+  "url": null,
+  "workflows": [],
+  "content_review": {
+    "enabled": true
+  }
+}

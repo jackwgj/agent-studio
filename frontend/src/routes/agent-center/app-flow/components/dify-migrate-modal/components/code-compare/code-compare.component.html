@@ -1,0 +1,101 @@
+<div class="flex flex-col gap-[8px]">
+  <p class="node-title">{{ node.name }}</p>
+
+  <migrate-compare-row>
+    <div left>
+      <div class="code-editor !h-[450px]">
+        <ngx-monaco-editor
+          style="margin-right: 30px"
+          [options]="oldCodeOptions"
+          [(ngModel)]="oldCode"
+          [disabled]="true"
+        >
+        </ngx-monaco-editor>
+      </div>
+    </div>
+
+    <div right>
+      @if (showFunctionGraph) {
+        @if (!fgId) {
+          <div class="fg-select-card-empty">
+            <div class="fg-select-card-empty-item" (click)="showSelectFgModal()">
+              <span nz-icon nzType="select-indicator-range" class="fg-select-card-empty-item-icon"></span>
+              {{ 'function_graph_3' | i18nextEager }}
+            </div>
+            <div class="fg-select-card-empty-item" (click)="showAddFgModal()">
+              <span nz-icon nzType="plus-circle" class="fg-select-card-empty-item-icon"></span>
+              {{ 'function_graph_4' | i18nextEager }}
+            </div>
+          </div>
+        }
+
+        @if (fgId) {
+          <div class="fg-select-card-value">
+            <img alt="" (click)="showSelectFgModal($event)"
+                 class="fg-select-card-img"
+                 [src]="changeUrl('assets/agent-center/icons/function-graph-icon.svg')"
+            />
+            @if (fgObj) {
+              <div class="fg-select-card-content" (click)="showSelectFgModal($event)" >
+                <div class="fg-select-card-title">
+                  <div style="font-weight: 600;font-size: 14px;">{{ fgObj?.function_name }}</div>
+                  <span class="fg-select-card-ctip">{{ fgObj.runtime }}</span>
+                </div>
+                <div class="fg-select-card-cdesc">{{ fgObj.description }}</div>
+              </div>
+            }
+            <div class="fg-select-card-icon">
+              <span nz-icon nzType="link" nz-tooltip [nzTooltipTitle]="'function_graph_2' | i18nextEager" class="fg-select-card-unbind" (click)="unbindFgModal($event)"></span>
+
+              <div nz-dropdown [nzDropdownMenu]="menu" class="fg-select-card-menu">
+                <span nz-icon nzType="more" class="menu-select-icon"></span>
+              </div>
+              <nz-dropdown-menu #menu="nzDropdownMenu">
+                <ul nz-menu>
+                  @for (item of menuItems; track item.id) {
+                    <li nz-menu-item (click)="listSelectAction(item)">{{ item.label }}</li>
+                  }
+                </ul>
+              </nz-dropdown-menu>
+            </div>
+          </div>
+
+          <div class="code-editor mt-[16px]"
+               [ngStyle]="{ height: fgEditHeight }"
+          >
+            <ngx-monaco-editor
+              style="margin-right: 30px"
+              [options]="fgCodeOptions"
+              [(ngModel)]="fgCode"
+              (ngModelChange)="onFgCodeBoxChange()"
+            ></ngx-monaco-editor>
+          </div>
+
+          @if (fgCodeOptions.readOnly) {
+            <button
+              nz-button
+              nzType="primary"
+              class="mt-[8px] w-full"
+              (click)="editCodeFun()"
+            >
+              {{ 'fg_enable_switch' | i18nextEager }}
+            </button>
+          }
+        }
+      }
+
+      @if (!showFunctionGraph) {
+        <div class="code-editor !h-[450px]">
+          <ngx-monaco-editor
+            style="margin-right: 30px"
+            [options]="sandBoxOptions"
+            [(ngModel)]="sandBoxCode"
+            [disabled]="false"
+            (ngModelChange)="onSandboxChange()"
+          >
+          </ngx-monaco-editor>
+        </div>
+      }
+    </div>
+  </migrate-compare-row>
+</div>

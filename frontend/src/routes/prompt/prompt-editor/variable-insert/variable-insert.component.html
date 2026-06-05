@@ -1,0 +1,18 @@
+<div #optionsContainer
+  class="main-container"
+>
+  <div  *ngFor="let option of options"
+        class="item"
+        (click)="handleTypeClick(option.value)"
+        (mousedown)="$event.preventDefault()"
+  >
+    <div >
+      <img
+        [src]="changeUrl(option.icon)"
+        alt="" class="h-4 w-4">
+    </div>
+    <div>
+      {{ option.label }}
+    </div>
+  </div>
+</div>

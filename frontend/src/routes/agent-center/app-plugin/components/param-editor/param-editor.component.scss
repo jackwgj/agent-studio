@@ -1,0 +1,67 @@
+.editor-wrapper {
+  width: 100%;
+}
+
+.editor {
+  overflow: auto;
+  height: 100%;
+  background: var(--prompt-editor-background-color);
+  color: rgba(25, 25, 25, 1);
+  font-family: PingFang SC;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-align: justify;
+  outline: none;
+  /* 核心换行控制 */
+  white-space: normal; /* 文本超出容器时自动换行（默认值，可省略） */
+  overflow-wrap: break-word; /* 允许长文本/单词在中间换行，避免溢出 */
+}
+.placeholder{
+  transform: translate(8px,0px);
+  height: 0;
+  color: rgba(128, 128, 128, 1);
+  font-family: PingFang SC;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+  letter-spacing: 0;
+  text-align: left;
+  pointer-events: none;
+}
+::ng-deep{
+  .line{
+    border-radius: 4px;
+    min-height: 18px;
+    padding:0 8px 0 8px;
+    color: rgba(89, 89, 89, 1);
+    text-align: justify;
+    font-size: 12px;
+    line-height: 18px;
+    >span{
+      height: 100%;
+    }
+  }
+  .editor>div{
+    border-radius: 4px;
+    min-height: 18px;
+    padding:0 8px 0 8px;
+    color: rgba(89, 89, 89, 1);
+    text-align: justify;
+    font-size: 12px;
+    line-height: 18px;
+    >span{
+      height: 100%;
+    }
+  }
+}
+
+.param-editor{
+  width: 100%;
+  padding: 4px;
+  box-sizing: border-box;
+  border: 1px solid rgba(194, 194, 194, 1);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 1);
+}
+

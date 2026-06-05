@@ -1,0 +1,12 @@
+<svg width="389.000000" height="212.000000" viewBox="0 0 389 212" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+	<desc>
+			Created with Pixso.
+	</desc>
+	<defs>
+		<radialGradient gradientTransform="translate(253 -8.01086e-05) rotate(85.4772) scale(114.129 209.415)" cx="0.000000" cy="0.000000" r="1.000000" id="paint_radial_35_57520_0" gradientUnits="userSpaceOnUse">
+			<stop stop-color="#E7F2F9"/>
+			<stop offset="1.000000" stop-color="#FAFAFA"/>
+		</radialGradient>
+	</defs>
+	<rect id="BG" width="389.000000" height="212.000000" fill="url(#paint_radial_35_57520_0)" fill-opacity="1.000000"/>
+</svg>

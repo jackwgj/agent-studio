@@ -1,0 +1,145 @@
+<div id="custom-model">
+  <div class="top-title-area">
+    <div class="title-area-left">
+      <div class="page-title">{{ 'custom_model' | i18nextEager }}</div>
+      <div *ngIf="customData.data?.length > 0">（{{ totalNumber }}）</div>
+    </div>
+    <div class="flex gap-[16px]">
+      <div
+        *ngIf="!isShowNoDataGuide && !isFirstLoading"
+        class="guide-collapse-btn flex items-center cursor-pointer"
+        (click)="isShowGuide = !isShowGuide"
+      >
+        <span nz-icon [nzType]="isShowGuide ? 'down' : 'up'" class="mr-[4px]"></span>
+        <span>{{ 'create_guide' | i18nextEager }}</span>
+      </div>
+      <button nz-button nzType="primary" (click)="openPublisherHalfModel()" [disabled]="!subscribeBtnStatus">
+        {{ 'add_model_publisher' | i18nextEager }}
+      </button>
+    </div>
+  </div>
+
+  <div class="overflow-hidden guide-collapse-content shrink-0"
+       *ngIf="!isShowNoDataGuide && !isFirstLoading"
+       [ngClass]="{'h-[188px]': isShowGuide, 'h-[0px]': !isShowGuide, 'mb-[24px]': isShowGuide}">
+    <app-no-data-guide [isSmall]="true" [type]="'routeModel'"></app-no-data-guide>
+  </div>
+
+  <div class="query-operate" *ngIf="!isShowNoDataGuide && !isFirstLoading">
+    <nz-input-search nzAllowClear class="search-input" (nzSearch)="customOnSearch()">
+      <input nz-input
+             [(ngModel)]="searchName"
+             (ngModelChange)="onSearchChange($event)"
+             [placeholder]="'search_and_filter' | i18nextEager"
+             [maxLength]="64"
+             (keyup.enter)="customOnSearch()" />
+    </nz-input-search>
+
+    <button nz-button nzType="default" class="flex items-center justify-center w-[32px] h-[32px] p-0" (click)="getCustomData()">
+      <nz-icon nzType="redo" nzTheme="outline" />
+    </button>
+  </div>
+
+  <nz-spin [nzSpinning]="customLoading" class="min-h-[200px] block w-full flex-1-spin">
+    <div class="card-scroll-container" *ngIf="!isFirstLoading">
+      <div class="model-card-main">
+        <div *ngFor="let dataItem of customData.data"
+             (click)="toDetail(dataItem)"
+             (mouseenter)="onCardHover(dataItem)"
+             (mouseleave)="onCardLeave(dataItem)"
+             class="model-card">
+
+          <div class="model-card-title">
+            <ng-container *ngIf="dataItem.logo; else logoOtherTemplate">
+              <img alt="" class="model-card-title-icon" [src]="dataItem.logo"/>
+            </ng-container>
+            <ng-template #logoOtherTemplate>
+              <img alt="" class="model-card-title-icon" [src]="iconNoneEmpty"/>
+            </ng-template>
+            <div class="model-card-title-content">
+              <div class="model-card-title-content-title"
+                   nz-typography
+                   nzEllipsis
+                   [nzEllipsisRows]="2"
+                   [title]="dataItem.provider_name">
+                {{ dataItem.provider_name }}
+              </div>
+              <nz-tag class="status-tag" [nzColor]="dataItem.tagStatus.type">
+                {{ dataItem.tagStatus.text }}
+              </nz-tag>
+            </div>
+          </div>
+
+          <div class="description-container">
+            <div class="description-text"
+                 nz-typography
+                 nzEllipsis
+                 [nzEllipsisRows]="2"
+                 [title]="dataItem.description">
+              {{ dataItem.description }}
+            </div>
+          </div>
+
+          <div class="model-card-footer">
+            <div class="model-card-bottom-info" *ngIf="!dataItem.isHovering">
+              <div class="time-info-wrapper">
+                <nz-icon nzType="clock-circle" nzTheme="outline" class="time-icon-instance" />
+                <span class="time-text-content">{{ formatTime(dataItem.last_updated_date) }}</span>
+              </div>
+            </div>
+
+            <div class="model-card-hover-actions" *ngIf="dataItem.isHovering">
+              <div class="hover-buttons-flex-container" (click)="$event.stopPropagation()">
+                <button nz-button nzType="link" class="card-footer-action-btn"
+                        [disabled]="dataItem.auth_configs?.[0]?.auth_type === 'NO_AUTH' || !subscribeBtnStatus"
+                        nzSize="small"
+                        (click)="onHoverButtonClick('auth', dataItem, $event)">
+                  <span class="hover-btn-label-text">{{ 'auth_configuration' | i18nextEager }}</span>
+                </button>
+                <button nz-button nzType="link" class="card-footer-action-btn"
+                        [disabled]="!subscribeBtnStatus || dataItem.id?.startsWith('cdi-')"
+                        nzSize="small"
+                        (click)="onHoverButtonClick('edit', dataItem, $event)">
+                  <span class="hover-btn-label-text">{{ 'edit' | i18nextEager }}</span>
+                </button>
+                <button nz-button nzType="link" class="card-footer-action-btn"
+                        [disabled]="!subscribeBtnStatus || dataItem.id?.startsWith('cdi-')"
+                        nzSize="small"
+                        (click)="onHoverButtonClick('delete', dataItem, $event)">
+                  <span class="hover-btn-label-text">{{ 'delete' | i18nextEager }}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="empty-state-container" *ngIf="customData.data?.length === 0 && !customLoading">
+          <ng-container *ngTemplateOutlet="noData"></ng-container>
+        </div>
+      </div>
+    </div>
+
+    <nz-pagination class="pagination-container"
+                   *ngIf="totalNumber > 0"
+                   nzAlign="end"
+                   [(nzPageIndex)]="currentPage"
+                   [nzTotal]="totalNumber"
+                   [(nzPageSize)]="pageSize.size"
+                   [nzPageSizeOptions]="pageSize.options"
+                   nzShowSizeChanger
+                   (nzPageIndexChange)="getCustomData()"
+                   (nzPageSizeChange)="customOnSearch()">
+    </nz-pagination>
+  </nz-spin>
+</div>
+
+<ng-template #noData>
+  <div class="no-data-content">
+    <nz-empty *ngIf="searchName"
+              [nzNotFoundImage]="changeUrl('assets/images/noData.svg')"
+              [nzNotFoundContent]="noDataTitle">
+    </nz-empty>
+    <app-no-data-guide *ngIf="!searchName" [type]="'routeModel'"></app-no-data-guide>
+  </div>
+</ng-template>

@@ -1,0 +1,27 @@
+.no-data-height {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+.component-library-card-background {
+  border: 1px solid rgba(230, 230, 230, 1);
+  border-radius: 16px;
+}
+.flex-column {
+  flex-direction: column;
+}
+.loading-icon {
+  width: 100%;
+  height: calc(100% - 16px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+:host ::ng-deep {
+  .tp-helptip-label {
+    font-size: var(--ti-space-5x);
+  }
+}

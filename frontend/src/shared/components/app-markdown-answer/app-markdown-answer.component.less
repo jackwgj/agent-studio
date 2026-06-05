@@ -1,0 +1,279 @@
+.answer {
+  flex: 1;
+  font-size: 14px;
+  overflow: hidden;
+  resize: none;
+  line-height: 22px;
+  color: #1476ff;
+  width: 100%;
+  box-sizing: content-box;
+  word-break: break-all;
+
+  &:focus {
+    border: none !important;
+    outline: none !important;
+  }
+}
+
+.markdown-container {
+  padding-left: 12px;
+  text-align: justify;
+  font-size: 14px;
+  color: #191919;
+  line-height: 24px;
+  display: flex;
+  flex-direction: column;
+  white-space: pre-wrap;
+  word-break: break-word;
+  ::ng-deep ol {
+    list-style-type: decimal !important;
+    padding-left: 20px !important;
+    white-space: normal !important; // 保证<ol>的行间距正常，不会过大
+
+    li {
+      white-space: normal !important;
+    }
+  }
+
+  ::ng-deep ul {
+    list-style-type: circle !important;
+    padding-left: 20px !important;
+    white-space: normal !important; // 保证<ul>的行间距正常，不会过大
+
+    li {
+      white-space: normal !important;
+    }
+  }
+
+  // 设置横线的样式
+  ::ng-deep hr {
+    border-top: 1px solid #a5a5a5;
+    margin: 10px 0 !important;
+  }
+
+  ::ng-deep p {
+    margin: 1px 0 !important;
+  }
+
+  ::ng-deep h1,
+  ::ng-deep h2,
+  ::ng-deep h3,
+  ::ng-deep h4,
+  ::ng-deep h5,
+  ::ng-deep h6 {
+    margin-left: 0;
+    margin-right: 0;
+    font-weight: 700;
+    line-height: 1.5;
+  }
+
+  ::ng-deep h1 {
+    font-size: 2em;
+    margin-top: 0.67em;
+    margin-bottom: 0.67em;
+  }
+
+  ::ng-deep h2 {
+    font-size: 1.5em;
+    margin-top: 0.83em;
+    margin-bottom: 0.83em;
+  }
+
+  ::ng-deep h3 {
+    font-size: 1.17em;
+    margin-top: 1em;
+    margin-bottom: 1em;
+  }
+
+  ::ng-deep h4 {
+    font-size: 1em;
+    margin-top: 1.33em;
+    margin-bottom: 1.33em;
+  }
+
+  ::ng-deep h5 {
+    font-size: 0.83em;
+    margin-top: 1.67em;
+    margin-bottom: 1.67em;
+  }
+
+  ::ng-deep h6 {
+    font-size: 0.67em;
+    margin-top: 2.33em;
+    margin-bottom: 2.33em;
+  }
+}
+
+::ng-deep .code-wrapper {
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  margin: 16px 0;
+}
+
+::ng-deep .not-code-wrapper {
+  display: flex;
+  flex-direction: column;
+  margin: 16px 0;
+}
+
+::ng-deep .line-numbers {
+  display: inline-block;
+  width: 30px;
+  color: #88898a;
+  margin-left: 8px;
+}
+
+::ng-deep .code-header {
+  display: flex;
+  justify-content: space-between;
+  padding-right: 22px;
+  margin-left: 8px;
+  align-items: center;
+}
+
+::ng-deep .language-type {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+::ng-deep .copy-icon {
+  background-color: #f5f5f5;
+  border-radius: 4px;
+  padding: 6px;
+  font-size: 12px;
+  color: #262626;
+  line-height: 18px;
+  cursor: pointer;
+}
+
+::ng-deep .copy-container-markdown {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+
+  .copy-success-tooltip {
+    font-size: 12px;
+    background-color: #444;
+    color: #fff;
+    width: max-content;
+    padding: 1px 3px;
+    border-radius: 5px;
+    margin-right: 10px;
+    display: none;
+  }
+}
+
+::ng-deep .custom-code-content {
+  font-size: 12px;
+  overflow-x: auto;
+}
+
+::ng-deep {
+  .table-code {
+    padding: 0 0 0 10px;
+    white-space: pre-line;
+    text-align: justify;
+  }
+
+  .custom-table-container {
+    display: flex;
+    overflow: auto;
+    padding-right: 2px;
+  }
+
+  .custom-table-style {
+    width: auto;
+  }
+
+  .custom-table-style th,
+  .custom-table-style td {
+    border: 1px solid #ddd;
+    padding: 10px;
+    min-width: 100px !important;
+    max-width: 240px !important;
+    word-break: break-all;
+  }
+
+  .custom-table-style th {
+    background-color: #f2f2f2;
+    color: black;
+  }
+
+  .custom-table-style th:empty {
+    height: 0;
+    border: 0;
+    padding: 0;
+  }
+
+  .custom-table-style tbody tr:hover {
+    background-color: #ddd;
+  }
+
+  .custom-link {
+    word-break: break-all;
+  }
+}
+
+.error {
+  color: #f23030 !important;
+}
+
+.tooltip {
+  position: fixed;
+  background: white;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 12px;
+  padding: 20px;
+  max-width: 300px;
+  z-index: 1000;
+  pointer-events: none;
+  opacity: 0;
+  color: black;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.visible {
+  opacity: 1;
+}
+
+.text-label-main {
+  font-size: 12px;
+  line-height: 18px;
+
+  .text-label-content {
+    color: #595959ff;
+  }
+
+  .text-label-link {
+    color: #1476ffff;
+  }
+}
+
+.modal-header-style {
+  padding: 24px 24px 24px 24px !important;
+}
+
+.modal-header-style-div {
+  display: flex;
+  align-items: center;
+}
+
+.modal-footer-style {
+  padding: 24px 24px 24px 24px !important;
+}
+
+.warn-icon {
+  font-size: 24px;
+  color: #FA9841;
+  margin-right: 8px;
+}
+
+.thought {
+  font-size: 12px;
+  line-height: 18px;
+  letter-spacing: 0px;
+  text-align: justify;
+  color: #575D6C;
+}

@@ -1,0 +1,24 @@
+<svg width="28.000000" height="28.000000" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+	<desc>
+			Created with Pixso.
+	</desc>
+	<defs>
+		<radialGradient gradientTransform="translate(14 0) rotate(0) scale(28 28)" cx="0.000000" cy="0.000000" r="1.000000" id="paint_radial_1002_161215_0" gradientUnits="userSpaceOnUse">
+			<stop stop-color="#7CDFAD"/>
+			<stop offset="1.000000" stop-color="#3CBC7B"/>
+		</radialGradient>
+		<linearGradient x1="14.255235" y1="6.676758" x2="14.255235" y2="21.324884" id="paint_linear_1002_161315_0" gradientUnits="userSpaceOnUse">
+			<stop stop-color="#60D097"/>
+			<stop offset="1.000000" stop-color="#46C183"/>
+		</linearGradient>
+	</defs>
+	<rect rx="6.000000" width="28.000000" height="28.000000" fill="url(#paint_radial_1002_161215_0)" fill-opacity="1.000000"/>
+	<path d="M4 24L23.99 24L23.99 4L4 4L4 24Z" fill="#E8E8E8" fill-opacity="0" fill-rule="evenodd"/>
+	<path d="M20.93 21.18L18.08 21.3C17.73 21.31 17.39 21.18 17.14 20.93L6.78 10.57C6.29 10.08 6.29 9.29 6.78 8.8L8.55 7.04C9.04 6.55 9.83 6.55 10.32 7.04L20.67 17.39C20.92 17.64 21.06 17.99 21.04 18.34L20.93 21.18Z" stroke="#FFFFFF" stroke-opacity="1.000000" stroke-width="1.200000" stroke-linejoin="round"/>
+	<path d="M8.17 11.24L9.81 9.6" stroke="#FFFFFF" stroke-opacity="1.000000" stroke-width="1.200000" stroke-linecap="round"/>
+	<path d="M16.58 19.66L18.22 18.01" stroke="#FFFFFF" stroke-opacity="1.000000" stroke-width="1.200000" stroke-linecap="round"/>
+	<path d="M10.46 21.32L7.07 21.18L6.93 17.78L17.67 7.04C18.16 6.55 18.95 6.55 19.44 7.04L21.21 8.8C21.7 9.29 21.7 10.08 21.21 10.57L10.46 21.32Z" fill="url(#paint_linear_1002_161315_0)" fill-opacity="1.000000" fill-rule="evenodd"/>
+	<path d="M7.07 21.18L6.93 17.78L17.67 7.04C18.16 6.55 18.95 6.55 19.44 7.04L21.21 8.8C21.7 9.29 21.7 10.08 21.21 10.57L10.46 21.32L7.07 21.18Z" stroke="#FFFFFF" stroke-opacity="1.000000" stroke-width="1.200000" stroke-linejoin="round"/>
+	<path d="M17.08 8.51L19.73 11.16" stroke="#FFFFFF" stroke-opacity="1.000000" stroke-width="1.200000" stroke-linecap="square"/>
+	<path d="M9.64 18.61L11.41 16.84" stroke="#FFFFFF" stroke-opacity="1.000000" stroke-width="1.200000" stroke-linecap="round"/>
+</svg>

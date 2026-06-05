@@ -1,0 +1,21 @@
+{
+  "plugin_id" : "reserve_meeting_room",
+  "tool_display_name": "gt_stream_test",
+  "tool_desc": "gt_stream_test",
+  "icon": "3f2504e0-4f89-11d3-9a0c-0305e82c3301.jpg",
+  "visibility": "project",
+  "tool_chinese_name": "gt_stream_test",
+  "request_info": {
+    "url": "http://127.0.0.1:38035/v1/chat/completions",
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/json"
+    }
+  },
+  "auth_info": {},
+  "is_input_list": false,
+  "is_output_list": false,
+  "intf_type": "streaming",
+  "output_schema": "{\"type\":\"object\",\"properties\":{},\"required\":[]}",
+  "input_schema": "{\"type\":\"object\",\"properties\":{\"model\":{\"location\":\"Body\",\"validate_rule\":\"\",\"validate_type\":\"CHAR\",\"validated\":false,\"name_cn\":\"model\",\"type\":\"string\",\"description\":\"model\"},\"messages\":{\"location\":\"Body\",\"validate_rule\":\"\",\"validate_type\":\"CHAR\",\"validated\":false,\"name_cn\":\"messages\",\"type\":\"array\",\"description\":\"messages\",\"items\":{\"type\":\"object\",\"properties\":{\"role\":{\"location\":\"Body\",\"validate_rule\":\"\",\"validate_type\":\"CHAR\",\"validated\":false,\"name_cn\":\"role\",\"type\":\"string\",\"description\":\"role\"},\"content\":{\"location\":\"Body\",\"validate_rule\":\"\",\"validate_type\":\"CHAR\",\"validated\":false,\"name_cn\":\"content\",\"type\":\"string\",\"description\":\"content\"}},\"required\":[\"role\",\"content\"]}},\"stream\":{\"location\":\"Body\",\"validate_rule\":\"\",\"validate_type\":\"NUM\",\"validated\":false,\"name_cn\":\"stream\",\"type\":\"boolean\",\"description\":\"stream\"}},\"required\":[\"model\",\"messages\",\"stream\"]}"
+}

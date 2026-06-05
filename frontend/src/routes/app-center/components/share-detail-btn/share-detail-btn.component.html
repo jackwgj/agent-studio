@@ -1,0 +1,14 @@
+<div class="flex gap-3 items-center">
+  <div class="icon-border" (click)="getReference()" nz-tooltip [nzTooltipTitle]="'sharedetailbtn-3' | i18nextEager">
+    <meta-inline-svg src="assets/agent-center/icons/public_link.svg" [style.color]="'#000'" [style.fontSize]="'16px'" [isInline]="false" />
+  </div>
+  <div class="icon-border" (click)="getHistory()" nz-tooltip [nzTooltipTitle]="'sharedetailbtn-4' | i18nextEager">
+    <img alt="" [src]="historyIcon" />
+  </div>
+  <button nz-button nzSize="large" nzType="primary" (click)="deleteShare()">
+    {{ 'sharedetailbtn-1' | i18nextEager }}
+  </button>
+  <button nz-button nzSize="large" nzType="primary" (click)="editShare()">
+    {{ 'sharedetailbtn-2' | i18nextEager }}
+  </button>
+</div>

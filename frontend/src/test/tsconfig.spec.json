@@ -1,0 +1,19 @@
+{
+  "extends": "../test/tsconfig.json",
+  "compilerOptions": {
+    "outDir": "../out-tsc/spec",
+    "types": [
+      "jasmine",
+      "node"
+    ],
+    "moduleResolution": "bundler"
+  },
+  "files": [
+    "test.ts",
+    "./app/app.component.spec.ts"
+  ],
+  "include": [
+    "**/*.spec.ts",
+    "**/*.d.ts"
+  ]
+}

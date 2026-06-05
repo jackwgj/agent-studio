@@ -1,0 +1,4 @@
+MEM_SUM_GENERATE_SUMMARY_NO_TOPICS_CN:
+  description: "[Chinese] template for summary generation without topics"
+MEM_SUM_GENERATE_SUMMARY_CN:
+  description: "[Chinese] template for summary generation"

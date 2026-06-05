@@ -1,0 +1,165 @@
+// import { Component } from '@angular/core';
+// import { ActivatedRoute } from '@angular/router';
+// import { Cell, EdgeView } from '@antv/x6';
+// import { I18NEXT_NAMESPACE, I18NextEagerPipe } from 'angular-i18next';
+
+// import { I18nNamespace } from '@i18n';
+// import { FlowAsyncLogComponent } from "@routes/agent-center/app-flow/flow-async-test/components/flow-async-log/flow-async-log.component";
+// import { FlowAsyncTaskComponent } from "@routes/agent-center/app-flow/flow-async-test/components/flow-async-task/flow-async-task.component";
+// import { FlowTaskListComponent } from "@routes/agent-center/app-flow/flow-async-test/components/flow-task-list/flow-task-list.component";
+// import { FlowAsyncTestService } from "@routes/agent-center/app-flow/flow-async-test/flow-async-test.service";
+// import { AppAgentRepoService } from '@services/agent-center/app-agent-repo.service';
+// import { AppFlowRepoService } from '@services/agent-center/app-flow-repo.service';
+// import { FlowTaskService } from "@services/agent-center/flow-task.service";
+// import { MODULES } from '@shared/modules';
+// import { SetSidebarVisibilityService } from '@shared/services/set-sidebar-visibility.service';
+// import { cdnAssetUrl } from 'src/single-spa/assets-url';
+// import {
+//   IWorkflow,
+//   WorkFlowType,
+// } from '../app-flow.types';
+// import { FlowDetailHeaderComponent } from '../components/flow-detail-header/flow-detail-header.component';
+// import { FlowLogModalComponent } from '../components/flow-log-modal/flow-log-modal.component';
+// import { FlowTaskBoardComponent } from './components/flow-task-board/flow-task-board.component';
+// import { FlowParsedTask, FlowTaskDetailRes } from './flow-async-test.interface';
+
+// @Component({
+//   selector: 'meta-flow-async-test',
+//   templateUrl: './flow-async-test.component.html',
+//   styleUrls: ['./flow-async-test.component.less'],
+//   standalone: true,
+//   imports: [
+//     MODULES,
+//     FlowDetailHeaderComponent,
+//     FlowLogModalComponent,
+//     FlowAsyncLogComponent,
+//     FlowAsyncTaskComponent,
+//     FlowTaskListComponent,
+//     FlowTaskBoardComponent,
+//   ],
+//   providers: [
+//     {
+//       provide: I18NEXT_NAMESPACE,
+//       useValue: [
+//         I18nNamespace.AGENT_CENTER,
+//         I18nNamespace.AGENT,
+//         I18nNamespace.KNOWLEDGE,
+//       ],
+//     },
+//   ],
+// })
+// export class FlowAsyncTestComponent {
+//   public cdnUrl = cdnAssetUrl;
+
+//   // 工作流类型，分为任务型和对话型
+//   public workflowType: WorkFlowType = 'chat';
+
+//   public workflowDetail: IWorkflow;
+
+//   public workflowId = '';
+
+//   public versionId = '';
+
+//   public currentInActionEdge: Cell = null;
+
+//   public currentInActionEdgeView: EdgeView = null;
+
+//   public type = '';
+
+//   public publish_tip = this.i18n.transform('publish_tip');
+
+//   public showAddNodesWidget = false;
+
+//   public showMiniMap = false;
+
+//   public showFlowNodesWidget = false;
+
+//   public taskInfo: FlowTaskDetailRes;
+//   public executionList = [];
+
+//   // 试运行工作流接口所需的入参conversation_id
+//   public conversationId = '';
+
+//   constructor(
+//     private route: ActivatedRoute,
+//     private appFlowRepoServ: AppFlowRepoService,
+//     private appAgentRepoServ: AppAgentRepoService,
+//     private i18n: I18NextEagerPipe,
+//     private sidebarVisibilityServ: SetSidebarVisibilityService,
+//     private flowTaskService: FlowTaskService,
+//     private flowRepoServe: AppFlowRepoService,
+//     private flowAsyncTesService: FlowAsyncTestService,
+//   ) { }
+
+//   ngOnInit(): void {
+//     this.sidebarVisibilityServ.setSidebarsVisibilityByState('init');
+//   }
+
+//   ngAfterViewInit(): void {
+//     this.init();
+//   }
+
+//   ngOnDestroy(): void {
+//     this.sidebarVisibilityServ.setSidebarsVisibilityByState('destroy');
+//   }
+
+//   public init(): void {
+//     this.route.queryParams.subscribe((params) => {
+//       const {id, versionId, type, versionName} = params;
+//       this.type = type;
+//       this.versionId = versionId;
+//       if (id) {
+//         this.workflowId = id;
+//       }
+//       this.initWorkflowData();
+//     });
+//   }
+
+//   public async initWorkflowData() {
+//     try {
+//       let value;
+//       if (this.versionId) {
+//         value = await this.appAgentRepoServ.rollbackFlowVersion(
+//           this.workflowId,
+//           this.versionId,
+//         );
+//       } else {
+//         value = await this.appFlowRepoServ.getFlow(this.workflowId);
+//       }
+//       this.workflowType = value.type;
+//       this.workflowDetail = value
+//     } catch (e) {
+
+//     }
+//   }
+
+//   public onPageBack(): void {
+//     window.history.back()
+//   }
+
+//   public selectTask(item: FlowParsedTask): void {
+//     this.flowTaskService.getTaskDetail(this.workflowDetail.workflow_id, item.id).then((res) => {
+//       this.conversationId = res.conversation_id;
+//       this.taskInfo = res;
+
+//       // 详情状态与列表状态不一致，通知更新
+//       if(item.status !== res.status) {
+//         this.flowAsyncTesService.setTaskStatusChange(true);
+//       }
+//       this.getExecutions(this.conversationId);
+//     })
+//   }
+
+//   /** 获取execution list */
+//   private async getExecutions(conversation_id: string) {
+//     try {
+//       const res = await this.flowRepoServe.getAsyncExecList(
+//         this.workflowDetail.workflow_id,
+//         conversation_id,
+//       );
+//       this.executionList = res.execution_infos;
+//     } catch {
+//       this.executionList = [];
+//     }
+//   }
+// }

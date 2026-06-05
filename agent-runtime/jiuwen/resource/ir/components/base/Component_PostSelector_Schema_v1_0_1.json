@@ -1,0 +1,47 @@
+{
+  "type": "jiuwen.planner.components.plan_modules.post_selector:PostSelector",
+  "version": "1.0.1",
+  "schemaVersion": "0.5",
+  "classInfo": {
+    "modulePath": "jiuwen.planner.components.plan_modules.post_selector",
+    "className": "PostSelector",
+    "programLanguage": "python",
+    "filePath": "jiuwen/planner/components/planning_modules/post_selector.pyc"
+  },
+  "inputs": [
+    {
+      "id": "selectedPluginList",
+      "description": "选择的id列表",
+      "type": "List[String]"
+    },
+    {
+      "id": "selectedWorkflowList",
+      "description": "选择的id列表",
+      "type": "List[String]"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "postPluginList",
+      "description": "选择的id列表",
+      "type": "List[Map<String, T>]"
+    },
+    {
+      "id": "postWorkflowList",
+      "description": "选择的id列表",
+      "type": "List[Map<String, T>]"
+    }
+  ],
+  "configs": [
+    {
+      "id": "plugins",
+      "type": "List<Map<String, T>>",
+      "description": "供大模型调用的插件列表"
+    },
+    {
+      "id": "workflows",
+      "type": "List<Map<String, T>>",
+      "description": "供大模型调用的workflow列表"
+    }
+  ]
+}

@@ -1,0 +1,116 @@
+<ng-template #shareKbModal>
+  <form nz-form nzLayout="vertical" [formGroup]="formGroup">
+
+    <nz-form-item>
+      <nz-form-label [nzNoColon]="true" nzRequired>{{ 'select_shared_knowledge_base'|i18nextEager }}</nz-form-label>
+      <nz-form-control>
+        <nz-select
+          class="!w-full"
+          nzShowSearch
+          nzServerSearch
+          formControlName="selectedKb"
+          [nzPlaceHolder]="kbSelectPlaceholder1"
+          [nzLoading]="isSelectLoading"
+          (nzOpenChange)="onSelectOpen($event)"
+          (nzOnSearch)="onSelectSearch($event)"
+          (nzScrollToBottom)="onSelectScrollToBottom()"
+        >
+          <nz-option
+            *ngFor="let opt of kbOptions"
+            [nzValue]="opt"
+            [nzLabel]="opt.name"
+            [nzDisabled]="opt.disabled">
+          </nz-option>
+        </nz-select>
+      </nz-form-control>
+    </nz-form-item>
+
+    <nz-form-item>
+      <nz-form-label [nzNoColon]="true">{{ 'share_modal'|i18nextEager }}</nz-form-label>
+      <nz-form-control>
+        <ul class="share-type-tabs">
+          <li
+            *ngFor="let item of shareModelTypeList"
+            [ngClass]="{ 'activated-item': item.active, 'disable-item': item.disabled }"
+            nz-tooltip [nzTooltipTitle]="item.disabledTip ? item.disabledTip : ''"
+          >
+            <div class="type-name">{{item.label}}</div>
+            <div>{{item.desc}}</div>
+          </li>
+        </ul>
+      </nz-form-control>
+    </nz-form-item>
+
+    <nz-form-item>
+      <nz-form-label [nzNoColon]="true">{{ 'share_range'|i18nextEager }}</nz-form-label>
+      <nz-form-control>
+        <nz-radio-group formControlName="selRangeType">
+          <label nz-radio *ngFor="let type of shareRangeTypeList" [nzValue]="type.value">
+            {{ type.label }}
+          </label>
+        </nz-radio-group>
+
+        <div class="text-[#808080] text-[12px] mt-4 !w-full" *ngIf="selRangeType === 'GLOBAL'">
+          {{ 'share_modal_tip'|i18nextEager }}
+        </div>
+
+        <ng-container *ngIf="selRangeType === 'PARTIAL'">
+          <div class="mt-[4px]">
+            <nz-input-group [nzPrefix]="prefixIconSearch" [nzSuffix]="suffixClearIcon" class="!w-full">
+              <input nz-input
+                     [placeholder]="'search_team_placeholder'|i18nextEager"
+                     [(ngModel)]="searchKeyword"
+                     [ngModelOptions]="{standalone: true}"
+                     (ngModelChange)="search($event)" />
+            </nz-input-group>
+            <ng-template #prefixIconSearch>
+              <span nz-icon nzType="search"></span>
+            </ng-template>
+            <ng-template #suffixClearIcon>
+              <span nz-icon nzType="close-circle" nzTheme="fill" class="cursor-pointer text-gray-400" *ngIf="searchKeyword" (click)="searchKeyword = ''; search('')"></span>
+            </ng-template>
+          </div>
+
+          <div class="mt-[8px]">
+            <div class="select-all-content">
+              <label nz-checkbox
+                     [nzChecked]="isAllChecked"
+                     [nzIndeterminate]="isIndeterminate"
+                     (nzCheckedChange)="onAllChecked($event)">
+                {{ 'select_all'|i18nextEager }}
+              </label>
+            </div>
+            <div class="check-container">
+              <span class="check-item" *ngFor="let item of showWorkspaceList; index as i">
+                <label nz-checkbox
+                       [nzChecked]="isItemChecked(item)"
+                       (nzCheckedChange)="onItemChecked($event, item)">
+                  <span class="text-ellipsis" [title]="item.name">{{item.name}}</span>
+                </label>
+              </span>
+            </div>
+          </div>
+
+          <div class="mt-[8px]">
+            <nz-pagination
+              nzSize="small"
+              [nzPageIndex]="currentSpacePage"
+              [nzTotal]="spaceTotalNumber"
+              [nzPageSize]="spacePageSize"
+              (nzPageIndexChange)="currentSpacePage = $event; getShowWorkspaceList()"
+            >
+            </nz-pagination>
+          </div>
+        </ng-container>
+      </nz-form-control>
+    </nz-form-item>
+
+  </form>
+</ng-template>
+
+<ng-template #drawerFooterTpl>
+  <div style="float: right;">
+    <button nz-button type="button" (click)="closeDrawer()">{{ 'cancel'|i18nextEager }}</button>
+    <button nz-button nzType="primary" type="button" style="margin-left: 8px;" (click)="saveShare()">{{ 'ok'|i18nextEager }}</button>
+  </div>
+</ng-template>

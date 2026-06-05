@@ -1,0 +1,58 @@
+<svg width="28.000000" height="28.000000" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+	<desc>
+			Created with Pixso.
+	</desc>
+	<defs>
+		<filter id="filter_969_16623_dd" x="8.472168" y="11.644043" width="11.561035" height="16.734863" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+			<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+			<feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+			<feOffset dx="0" dy="4"/>
+			<feGaussianBlur stdDeviation="0.5"/>
+			<feComposite in2="hardAlpha" operator="out" k2="-1" k3="1"/>
+			<feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0"/>
+			<feBlend mode="normal" in2="BackgroundImageFix" result="effect_dropShadow_1"/>
+			<feBlend mode="normal" in="SourceGraphic" in2="effect_dropShadow_1" result="shape"/>
+		</filter>
+		<filter id="filter_969_16622_dd" x="9.972168" y="11.644043" width="8.561035" height="11.234863" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+			<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+			<feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+			<feOffset dx="0" dy="4"/>
+			<feGaussianBlur stdDeviation="0.5"/>
+			<feComposite in2="hardAlpha" operator="out" k2="-1" k3="1"/>
+			<feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0"/>
+			<feBlend mode="normal" in2="BackgroundImageFix" result="effect_dropShadow_1"/>
+			<feBlend mode="normal" in="SourceGraphic" in2="effect_dropShadow_1" result="shape"/>
+		</filter>
+		<radialGradient gradientTransform="translate(14 0) rotate(0) scale(28 28)" cx="0.000000" cy="0.000000" r="1.000000" id="paint_radial_969_16617_0" gradientUnits="userSpaceOnUse">
+			<stop offset="0.007634" stop-color="#A0F2FF"/>
+			<stop offset="1.000000" stop-color="#4E9BFE"/>
+		</radialGradient>
+		<pattern id="pattern_969_166180" patternContentUnits="objectBoundingBox" width="1.000000" height="1.000000">
+			<use xlink:href="#image969_16618_0" transform="matrix(0.0625,0,0,0.0625,0,0)"/>
+		</pattern>
+		<image id="image969_16618_0" width="16.000000" height="16.000000" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABHNCSVQICAgIfAhkiAAAAcBJREFUOI1Nkz1uXDEMhD/q6a1jNwHS5/6XSJcLpEobBO7tbBDsvhVFTgrK9haE/jhDckjZt58hAiwAB5trHcCo1Xztvd4ixIjEQ3Q6AAiwBCVYAxpg9UYuC1AKX2BP0bWVjwESmJajLbzKLOp+hN7NM1cG9gHQIrD5xlpnAjyS20xukYwQM0XXXulau4uaVSttRZ+QLq6eXGcy7gnYgQ0UYBuorbon2LV0YcC/EfwbwTETT+EhQqLrtCK+pdqLEEDXAv+9Tl6PycXjPXJKRLJKuBMLrU481fXlx+TXn4OrJyERqXJTuXdOH+2SQQpyglvyIuf771dOh/G4NzYztmYYYEuvPgMkoagBiSH8EJdz8PLsfPm68/LsnM/OY2+cNqM3o5mxNeh+ywJPES7mTdwuyfWc+CH2T42nzyXKuCS3AXsrkt6MPg+RIcJhuvAjGZfEr0mGaBvsj8aDV3v8EGPUFO7N6HPoI/oQ81jmWmNtbLvRH4zMBiTWIFzcpoogZwFiLBIXOddoG7RtkQQoS3EziAY9/C6Dtc/1aXgngK0b2UXuVuMOYKLHFOmlQU7IWZpkVnewKsM20bqxxfovi+Q/ZIWPFgffwmoAAAAASUVORK5CYII="/>
+		<pattern id="pattern_969_166190" patternContentUnits="objectBoundingBox" width="1.000000" height="1.000000">
+			<use xlink:href="#image969_16619_0" transform="matrix(0.0625,0,0,0.0625,0,0)"/>
+		</pattern>
+		<image id="image969_16619_0" width="16.000000" height="16.000000" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABHNCSVQICAgIfAhkiAAAAcBJREFUOI1Nkz1uXDEMhD/q6a1jNwHS5/6XSJcLpEobBO7tbBDsvhVFTgrK9haE/jhDckjZt58hAiwAB5trHcCo1Xztvd4ixIjEQ3Q6AAiwBCVYAxpg9UYuC1AKX2BP0bWVjwESmJajLbzKLOp+hN7NM1cG9gHQIrD5xlpnAjyS20xukYwQM0XXXulau4uaVSttRZ+QLq6eXGcy7gnYgQ0UYBuorbon2LV0YcC/EfwbwTETT+EhQqLrtCK+pdqLEEDXAv+9Tl6PycXjPXJKRLJKuBMLrU481fXlx+TXn4OrJyERqXJTuXdOH+2SQQpyglvyIuf771dOh/G4NzYztmYYYEuvPgMkoagBiSH8EJdz8PLsfPm68/LsnM/OY2+cNqM3o5mxNeh+ywJPES7mTdwuyfWc+CH2T42nzyXKuCS3AXsrkt6MPg+RIcJhuvAjGZfEr0mGaBvsj8aDV3v8EGPUFO7N6HPoI/oQ81jmWmNtbLvRH4zMBiTWIFzcpoogZwFiLBIXOddoG7RtkQQoS3EziAY9/C6Dtc/1aXgngK0b2UXuVuMOYKLHFOmlQU7IWZpkVnewKsM20bqxxfovi+Q/ZIWPFgffwmoAAAAASUVORK5CYII="/>
+		<pattern id="pattern_969_166200" patternContentUnits="objectBoundingBox" width="1.000000" height="1.000000">
+			<use xlink:href="#image969_16620_0" transform="matrix(0.0625,0,0,0.0625,0,0)"/>
+		</pattern>
+		<image id="image969_16620_0" width="16.000000" height="16.000000" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABHNCSVQICAgIfAhkiAAAAcBJREFUOI1Nkz1uXDEMhD/q6a1jNwHS5/6XSJcLpEobBO7tbBDsvhVFTgrK9haE/jhDckjZt58hAiwAB5trHcCo1Xztvd4ixIjEQ3Q6AAiwBCVYAxpg9UYuC1AKX2BP0bWVjwESmJajLbzKLOp+hN7NM1cG9gHQIrD5xlpnAjyS20xukYwQM0XXXulau4uaVSttRZ+QLq6eXGcy7gnYgQ0UYBuorbon2LV0YcC/EfwbwTETT+EhQqLrtCK+pdqLEEDXAv+9Tl6PycXjPXJKRLJKuBMLrU481fXlx+TXn4OrJyERqXJTuXdOH+2SQQpyglvyIuf771dOh/G4NzYztmYYYEuvPgMkoagBiSH8EJdz8PLsfPm68/LsnM/OY2+cNqM3o5mxNeh+ywJPES7mTdwuyfWc+CH2T42nzyXKuCS3AXsrkt6MPg+RIcJhuvAjGZfEr0mGaBvsj8aDV3v8EGPUFO7N6HPoI/oQ81jmWmNtbLvRH4zMBiTWIFzcpoogZwFiLBIXOddoG7RtkQQoS3EziAY9/C6Dtc/1aXgngK0b2UXuVuMOYKLHFOmlQU7IWZpkVnewKsM20bqxxfovi+Q/ZIWPFgffwmoAAAAASUVORK5CYII="/>
+		<pattern id="pattern_969_166210" patternContentUnits="objectBoundingBox" width="1.000000" height="1.000000">
+			<use xlink:href="#image969_16621_0" transform="matrix(0.0625,0,0,0.0625,0,0)"/>
+		</pattern>
+		<image id="image969_16621_0" width="16.000000" height="16.000000" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABHNCSVQICAgIfAhkiAAAAcBJREFUOI1Nkz1uXDEMhD/q6a1jNwHS5/6XSJcLpEobBO7tbBDsvhVFTgrK9haE/jhDckjZt58hAiwAB5trHcCo1Xztvd4ixIjEQ3Q6AAiwBCVYAxpg9UYuC1AKX2BP0bWVjwESmJajLbzKLOp+hN7NM1cG9gHQIrD5xlpnAjyS20xukYwQM0XXXulau4uaVSttRZ+QLq6eXGcy7gnYgQ0UYBuorbon2LV0YcC/EfwbwTETT+EhQqLrtCK+pdqLEEDXAv+9Tl6PycXjPXJKRLJKuBMLrU481fXlx+TXn4OrJyERqXJTuXdOH+2SQQpyglvyIuf771dOh/G4NzYztmYYYEuvPgMkoagBiSH8EJdz8PLsfPm68/LsnM/OY2+cNqM3o5mxNeh+ywJPES7mTdwuyfWc+CH2T42nzyXKuCS3AXsrkt6MPg+RIcJhuvAjGZfEr0mGaBvsj8aDV3v8EGPUFO7N6HPoI/oQ81jmWmNtbLvRH4zMBiTWIFzcpoogZwFiLBIXOddoG7RtkQQoS3EziAY9/C6Dtc/1aXgngK0b2UXuVuMOYKLHFOmlQU7IWZpkVnewKsM20bqxxfovi+Q/ZIWPFgffwmoAAAAASUVORK5CYII="/>
+		<linearGradient x1="13.999867" y1="5.599842" x2="13.999867" y2="22.400387" id="paint_linear_949_162686_0" gradientUnits="userSpaceOnUse">
+			<stop stop-color="#FFFFFF" stop-opacity="0.898039"/>
+			<stop offset="1.000000" stop-color="#FFFFFF" stop-opacity="0.596078"/>
+		</linearGradient>
+	</defs>
+	<rect id="矩形" rx="7.272727" width="28.000000" height="28.000000" fill="url(#paint_radial_969_16617_0)" fill-opacity="1.000000"/>
+	<rect id="矩形" width="20.160000" height="20.160000" transform="matrix(1 0 0 -1 3.91992 24.0801)" fill="#000000" fill-opacity="0"/>
+	<rect id="矩形" width="20.160000" height="20.160000" transform="matrix(1 0 0 -1 3.91992 24.0801)" stroke="#000000" stroke-opacity="0" stroke-width="1.000000"/>
+	<path id="形状结合" d="M14.83 22.17L20.65 18.81C21.17 18.51 21.49 17.96 21.49 17.36L21.49 10.63C21.49 10.03 21.17 9.48 20.65 9.18L14.83 5.82C14.31 5.52 13.67 5.52 13.15 5.82L7.33 9.18C6.81 9.48 6.49 10.03 6.49 10.63L6.49 17.36C6.49 17.96 6.81 18.51 7.33 18.81L13.15 22.17C13.67 22.47 14.31 22.47 14.83 22.17Z" fill="url(#paint_linear_949_162686_0)" fill-opacity="1.000000" fill-rule="evenodd"/>
+	<path id="矩形" d="M13.99 19.87C14.17 19.87 14.31 19.73 14.31 19.56L14.31 14L13.68 14L13.68 19.56C13.68 19.73 13.82 19.87 13.99 19.87Z" fill="#64A2F4" fill-opacity="1.000000" fill-rule="evenodd"/>
+	<path id="矩形备份-2" d="M19.09 11.06C19 10.9 18.81 10.85 18.66 10.94L13.84 13.72L14.15 14.27L18.97 11.49C19.12 11.4 19.17 11.21 19.09 11.06Z" fill="#64A2F4" fill-opacity="1.000000" fill-rule="evenodd"/>
+	<path id="矩形备份" d="M8.9 11.06C8.82 11.21 8.87 11.4 9.02 11.49L13.84 14.27L14.15 13.72L9.33 10.94C9.18 10.85 8.99 10.9 8.9 11.06Z" fill="#64A2F4" fill-opacity="1.000000" fill-rule="evenodd"/>
+</svg>

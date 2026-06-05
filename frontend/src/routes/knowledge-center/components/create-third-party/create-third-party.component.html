@@ -1,0 +1,55 @@
+<div id="knowledge-base-access">
+  <nz-modal #accessKnowledge nzClosable [nzWidth]="700" [(nzVisible)]="isVisible" (nzOnCancel)="clearValue()">
+    <div *nzModalContent>
+      <div class="modal-header">
+        <span>{{ 'connect_third_party_knowledge_base' | i18nextEager }}</span>
+      </div>
+      <div class="modal-body">
+        <div>
+          <div>{{ 'select_connect_knowledge_base_type' | i18nextEager }}</div>
+          <div>
+            <div style="display: flex; justify-content: space-between">
+              <nz-select
+                style="width: 100%"
+                [(ngModel)]="sourceValue"
+                (ngModelChange)="onSelect($event)"
+                nzValue
+                [nzPlaceHolder]="'please_select_a_knowledge_base' | i18nextEager"
+                [nzAllowClear]="true"
+              >
+                <nz-option *ngFor="let opt of sourceOptions" [nzValue]="opt" [nzLabel]="opt.name"> </nz-option>
+              </nz-select>
+              <button (click)="clearValue(); openAccessKnowledgeBase.emit()" nz-button nzType="default" style="margin-left: 8px">
+                {{ 'add_new_knowledge_base' | i18nextEager }}
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="list-wrapper">
+          <div class="quota" *ngIf="isNeedHasQuota">
+            <span class="mr-8">{{ 'quota' | i18nextEager }}{{ leftQuota }}</span>
+            <nz-icon nzType="reload" nzTheme="outline" class="refresh-icon" (click)="refreshQuota()" />
+          </div>
+          <nz-transfer
+            [nzDataSource]="transferDataSource"
+            [nzTitles]="['', '']"
+            [nzShowSearch]="searchable"
+            [nzShowSelectAll]="true"
+            [nzFilterOption]="filterOption"
+            (nzChange)="onTransferChange($event)"
+            [nzListStyle]="{ 'width': '292px', 'height': '300px' }"
+          >
+          </nz-transfer>
+        </div>
+      </div>
+    </div>
+    <div *nzModalFooter>
+      <div>
+        <button (click)="closeModal()" type="button" nz-button nzType="default">{{ 'cancel' | i18nextEager }}</button>
+        <button (click)="handleConfirm()" type="button" nz-button nzType="primary" style="margin-left: 8px">
+          {{ 'ok' | i18nextEager }}
+        </button>
+      </div>
+    </div>
+  </nz-modal>
+</div>

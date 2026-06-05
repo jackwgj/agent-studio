@@ -1,0 +1,183 @@
+::ng-deep {
+  .ant-modal-body create-plugin-base {
+    display: block;
+    height: 100%;
+  }
+}
+
+::ng-deep .header-steps {
+  width: 100%;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.ti3-modal-footer {
+  margin-right: 16px;
+  text-align: right;
+  padding-top: 16px;
+  padding-right: 0;
+}
+
+.plugin-footer {
+}
+
+
+
+::ng-deep .ti-formfield {
+  margin-bottom: 16px;
+}
+
+::ng-deep .ant-radio-group {
+  margin-right: 8px;
+}
+
+::ng-deep #argName {
+  .ant-form-item-explain-error {
+    width: 200%;
+  }
+}
+
+.label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #575D6C;
+  font-size: 14px;
+  padding-bottom: 8px;
+  white-space: nowrap;
+
+  .label_add {
+    display: flex;
+    align-items: center;
+    color: #1476ff;
+
+    .my-icon-size {
+      margin-right: 5px;
+      cursor: pointer;
+    }
+
+    span {
+      cursor: pointer;
+      line-height: 0;
+    }
+  }
+}
+
+.tipIcon {
+  display: flex;
+  align-items: center;
+  color: #808080;
+
+  .my-icon-size {
+    margin-right: 5px;
+  }
+
+  p {
+    line-height: 0;
+  }
+}
+
+.plugin-auth-info {
+  ::ng-deep .mb-4 {
+    > .ant-form-item {
+      > .ant-form-item-col {
+        > .ant-form-item-control {
+          width: 0 !important;
+        }
+      }
+    }
+  }
+
+  ::ng-deep .ant-collapse-content-body {
+    border-top: none !important;
+    padding-top: 0px;
+  }
+
+  ::ng-deep .ant-collapse-header {
+    padding-top: 12px !important;
+    height: 58px !important;
+  }
+
+  ::ng-deep .ant-collapse-header-title {
+    font-weight: bold;
+  }
+}
+
+.plugin-op-icon {
+  tp-icon {
+    padding-top: 0px !important;
+  }
+}
+
+::ng-deep {
+  .a-form-checkbox {
+    .ant-checkbox-wrapper {
+      margin-right: 0px !important;
+    }
+  }
+}
+
+.snd-step {
+  overflow-x: hidden;
+}
+
+#create-plugin-body {
+  margin-top: 0;
+}
+
+::ng-deep {
+  #cp-req-tree,
+  #cp-res-tree {
+    .ant-tree-node-content-wrapper {
+      padding-left: 0;
+      padding-right: 0;
+      cursor: default;
+      min-height: 28px;
+      line-height: 28px;
+      align-items: normal;
+
+      .ant-tree-switcher {
+        margin-top: 6px;
+      }
+
+      &:hover {
+        background-color: #fafafa;
+      }
+    }
+
+    .ant-tree-treenode {
+      padding-left: 0px;
+    }
+
+    .ant-tree-node-selected {
+      background: inherit;
+      font-weight: inherit;
+      color: inherit;
+    }
+  }
+}
+
+.padding-heard {
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+
+.parameter-encapsulation {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.streaming-response {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+}
+
+.custom-error-style {
+  ::ng-deep .param-editor {
+    background: #FCE3E1 !important;
+    border-color: #F23030 !important;
+  }
+}

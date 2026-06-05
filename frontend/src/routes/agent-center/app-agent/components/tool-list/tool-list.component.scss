@@ -1,0 +1,144 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: relative;
+  margin-bottom: 12px;
+}
+
+.tool-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+
+  .left {
+    width: calc(100% - 54px);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    .unfolded {
+      color: #808080;
+    }
+
+    .collapsed-icon {
+      transform: rotate(90deg);
+    }
+
+    .unfolded-icon {
+      transform: rotate(-90deg);
+    }
+
+    .title-text {
+      color: #191919;
+      font-weight: 600;
+      font-size: 14px;
+    }
+    .num{
+      color: #808080;
+      display: inline-block;
+      margin-left: 5px;
+    }
+    .num_2 {
+      color: #808080;
+      display: inline-block;
+      /* 移除默认左边距 */
+      margin-left: 0;
+    }
+  }
+
+.title-text {
+  color: #191919;
+  font-weight: 600;
+}
+
+
+  .right {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    .add-icon {
+      color: #191919;
+    }
+
+    #add-button {
+      color: #191919;
+    }
+  }
+}
+
+.tool-list {
+  display: flex !important;
+  flex-direction: column;
+  gap: 8px;
+  height: calc(100% - 34px);
+  overflow-y: auto;
+
+  .tool-item {
+    padding: 10px 16px 10px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #fafafa;
+    border-radius: 6px;
+    &:hover{
+      background: #F0F7FF;
+    }
+
+    .left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .right {
+      width: calc(100% - 46px);
+    }
+
+    .grey-font {
+      color: #808080;
+    }
+
+    .common-img {
+      background: url('../../../../../assets/agent-center/agent/trigger-icon.svg')
+        no-repeat center;
+      display: block;
+      width: 28px;
+      height: 28px;
+    }
+
+    .delete-icon {
+      color: #191919;
+      cursor: pointer;
+      font-size: 16px;
+    }
+  }
+}
+
+.no-data-text {
+  color: #808080;
+  text-align: justify;
+}
+
+.trigger-right-area {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.icon-border {
+  border-radius: 6px;
+  padding: 4px;
+  cursor: pointer;
+  border: 1px solid #c2c2c2;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    border-color: #191919;
+  }
+}

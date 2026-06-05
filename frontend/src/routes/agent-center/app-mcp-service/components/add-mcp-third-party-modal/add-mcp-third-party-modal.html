@@ -1,0 +1,114 @@
+<div *nzModalTitle>
+  <div class="flex items-center gap-2">
+    <div class="title">{{ title }}</div>
+  </div>
+</div>
+
+<div class="third-party h-[700px] overflow-auto">
+  <nz-tabset [(nzSelectedIndex)]="tabSelectIndex" (nzSelectedIndexChange)="tabChange($event)">
+    <nz-tab *ngFor="let tab of tabs" [nzTitle]="tab.title" > </nz-tab>
+  </nz-tabset>
+  <div class="koo-gallery" *ngIf="resource==='kooGallery'">
+    <nz-alert nzType="info" style="width: 100%; margin-bottom: 16px; margin-top: 8px">
+      <span nz-alert-description>
+        <div class="prompt-alert flex gap-[4px]">
+          <div class="alert_title">{{'install_third_tip'| i18nextEager: {title: tabs[0].title} }}</div>
+          <div class="prompt-alert flex gap-[4px]" (click)="goToMCPSquare('kooGallery',false)">
+            <div class="alert_title common-link flex gap-[4px] items-center">
+              <span>{{'go_now'| i18nextEager}}</span>
+            </div>
+          </div>
+        </div>
+      </span>
+    </nz-alert>
+  </div>
+  <div class="roma-connect" *ngIf="resource==='ROMA'">
+    <nz-alert nzType="info" style="width: 100%; margin-bottom: 16px">
+      <span nz-alert-description>
+        <div class="prompt-alert flex gap-[4px]">
+          <div class="alert_title">{{'install_third_tip'| i18nextEager: {title:tabs[1]?.title} }}</div>
+          <div class="prompt-alert flex gap-[4px]" (click)="goToMCPSquare('ROMA',false)">
+            <div class="alert_title common-link flex gap-[4px] items-center">
+              <span>{{'go_now'| i18nextEager}}</span>
+            </div>
+          </div>
+        </div>
+      </span>
+    </nz-alert>
+  </div>
+  <div class="store">
+    <div class="mb-[16px] flex items-center gap-2">
+      <input nz-input [(ngModel)]="searchName" class="w-[calc(100%-32px)]" (ngModelChange)="onSearchContentChange()" />
+      <button type="button" (click)="refreshData()" class="h-8 w-8" nz-button [nzType]="'default'">
+        <nz-icon nzType="reload" />
+      </button>
+    </div>
+    <div class="h-[500px] w-full">
+      <nz-table
+        [nzData]="srcData.data"
+        [nzLoading]="loading"
+        [nzTotal]="totalNumber"
+        [(nzPageIndex)]="currentPage"
+        [nzPageSize]="pageSize.size"
+        [nzShowSizeChanger]="true"
+        [nzPageSizeOptions]="[10, 20, 50, 100]"
+        (nzPageIndexChange)="getReferenceList()"
+        (nzPageSizeChange)="getReferenceList()"
+        [nzShowPagination]="totalNumber > 10"
+        [nzBordered]="false"
+        [nzSimple]="false"
+      >
+        <thead>
+          <tr>
+            <th nzWidth="50px" nzShowCheckbox [(nzChecked)]="allChecked" (nzCheckedChange)="checkAll($event)"></th>
+            <th nzWidth="120px">{{ columns[1].title }}</th>
+            <th>{{ columns[2].title }}</th>
+            <th>{{ columns[3].title }}</th>
+            <th>{{ columns[4].title }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of srcData.data;trackBy: trackByFn" [ngClass]="{'ant-table-row-selected': checkedList.indexOf(row) !== -1}">
+            <td nzShowCheckbox [nzChecked]="checkedList.indexOf(row) !== -1" [nzDisabled]="row.disabled" (nzCheckedChange)="checkItem(row, $event)"></td>
+            <td>
+              <div class="flex items-center gap-[8px] name-con common-link" (click)="toDetail(row)">
+                <img alt=""
+                  width="24px"
+                  height="24px"
+                  style="border-radius: 8px"
+                  [src]="!row.icon ? MCP_DEFAULT_ICON_BASE64_STR : row.icon.startsWith('http') ? row.icon : (row.icon.startsWith('data:image/') ? row.icon : 'data:image/png;base64,' + row.icon)"
+                />
+                <div class="flex-1" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{ row.name }}</div>
+              </div>
+            </td>
+            <td style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{ row.description }}</td>
+            <td style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">
+              {{ (row.resource === 'kooGallery' ? utcToBeijingTime(row.create_time) : row.create_time) || '-' }}
+            </td>
+            <td style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">
+              {{ (row.resource === 'kooGallery' ? utcToBeijingTime(row.update_time) : row.update_time) || '-' }}
+            </td>
+          </tr>
+        </tbody>
+      </nz-table>
+    </div>
+  </div>
+</div>
+
+<div *nzModalFooter>
+  <nz-space class="flex gap-[8px] items-center third-party-footer">
+    <button type="button" nz-button class="btn" (click)="dismiss()" nzSize="large">{{ 'to_cancel' | i18nextEager }}</button>
+    <button
+      type="button"
+      [nzLoading]="btn_loading"
+      nz-button
+      nzType="primary"
+      [disabled]="checkedList.length===0"
+      class="btn"
+      (click)="handleClickMcpModalConfirm()"
+      nzSize="large"
+    >
+      {{ 'install' | i18nextEager }}
+    </button>
+  </nz-space>
+</div>

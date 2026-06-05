@@ -1,0 +1,96 @@
+{
+  "sandbox.title": "沙箱工具",
+  "sandbox.title.num": "沙箱工具（{{num}}）",
+  "sandbox.create.button.code": "创建代码解释器",
+  "sandbox.create.button.browser": "创建浏览器",
+
+  "sandbox.guide.title": "您还没有沙箱工具，让我们开始创建吧！",
+  "sandbox.guide.desc": "您还没有沙箱工具，让我们开始创建吧！",
+  "sandbox.guide.step1.title": "创建并配置沙箱工具",
+  "sandbox.guide.step1.des": "支持创建内置沙箱工具，提供代码解释器、浏览器等运行环境",
+  "sandbox.guide.step2.title": "在智能体中集成工具",
+  "sandbox.guide.step2.des": "将工具集成至智能体代码，可让智能体调用隔离环境完成代码运行、浏览器等复杂任务。",
+  "sandbox.guide.step3.title": "可观测",
+  "sandbox.guide.step3.des": "支持日志、基础指标、全链路监控，以实时洞悉您的工具性能、准确性和可靠性。",
+
+  "sandbox.listHead.name": "工具名称",
+  "sandbox.listHead.status": "状态",
+  "sandbox.listHead.type": "类型",
+  "sandbox.listHead.createTime": "创建时间",
+  "sandbox.listHead.description": "描述",
+  "sandbox.listHead.tag": "标签",
+  "sandbox.listHead.operator": "操作",
+  "sandbox.list.search.allStatus": "所有状态",
+  "sandbox.list.search.allType": "所有类型",
+
+  "sandbox.list.status.failed": "失败",
+  "sandbox.list.status.stopped": "已停止",
+  "sandbox.list.status.running": "运行中",
+  "sandbox.list.status.deploying": "部署中",
+
+  "sandbox.list.type.code": "代码解释器",
+  "sandbox.list.type.browser": "浏览器",
+  "sandbox.list.operation.integratingCode": "集成代码",
+  "sandbox.list.operator.edit": "编辑",
+  "sandbox.list.operator.copy": "复制",
+  "sandbox.list.operator.delete": "删除",
+  "sandbox.delete.title": "删除沙箱工具",
+  "sandbox.delete.singleConfirm": "即将删除沙箱工具 {{ name }}",
+
+  "sandbox.create.common.placeholder": "请输入",
+  "sandbox.create.basic.title": "基本信息",
+  "sandbox.create.basic.name": "名称",
+  "sandbox.create.basic.description": "描述",
+
+  "sandbox.create.environment.title": "环境",
+  "sandbox.create.environment.create.link": "创建环境",
+
+  "sandbox.create.root.title": "权限",
+  "sandbox.create.root.iam": "IAM角色",
+  "sandbox.create.root.iam.tip": "IAM角色提示",
+  "sandbox.create.root.iam.description": "创建角色并进行权限管理，可前往",
+  "sandbox.create.root.iam.description.link": "访问控制-角色管理",
+
+  "sandbox.create.auth.title": "身份认证与权限",
+  "sandbox.create.auth.id.title": "入站身份认证",
+  "sandbox.create.auth.id.description": "系统将自动为xxx创建和绑定API Key,可通过xxx详情页查看",
+  "sandbox.create.auth.id.tip": "入站身份认证提示",
+  "sandbox.create.auth.id.api": "API Key",
+  "sandbox.create.auth.id.other": "其他-未开放",
+
+  "sandbox.create.advanced.title": "高级配置（可选）",
+  "sandbox.create.advanced.tag.title": "标签",
+
+  "sandbox.create.buyLayer.cost.title": "创建费用：",
+  "sandbox.create.buyLayer.cost.tip": "创建运行时不额外产生费用，运行过程中产生的费用按需收取",
+  "sandbox.create.buyLayer.cost.free": "免费",
+  "sandbox.create.buyLayer.cost.process.title": "运行过程资源费用",
+  "sandbox.create.buyLayer.btn.cancel": "取消",
+  "sandbox.create.buyLayer.btn.submit": "立即创建",
+
+  "sandbox.detail.tab.config": "配置信息",
+  "sandbox.detail.tab.code": "集成代码",
+  "sandbox.detail.tab.log": "日志",
+
+  "sandbox.detail.tab.config.basic.title": "基本信息",
+  "sandbox.detail.tab.config.basic.environment": "环境信息",
+  "sandbox.detail.tab.config.basic.domain": "域名：",
+  "sandbox.detail.tab.config.environment.detail": "查看详情",
+  "sandbox.detail.tab.config.api.detail": "查看API Key",
+  "sandbox.detail.tab.config.address.title": "访问地址",
+  "sandbox.detail.tab.config.title": "公网、私网",
+
+  "sandbox.detail.environment.list.key": "键",
+  "sandbox.detail.environment.list.value": "值",
+  "sandbox.detail.environment.list.copyAll": "一键复制",
+  "sandbox.detail.environment.copy.success": "复制成功",
+
+  "sandbox.detail.tag.edit.title": "编辑标签",
+  "sandbox.detail.tag.edit.ok": "确定",
+  "sandbox.detail.tag.edit.cancel": "取消",
+
+  "sandbox.detail.log.noData": "当前沙箱工具尚未启用日志功能",
+  "sandbox.detail.log.toOpen": "去启用",
+  "sandbox.detail.log.lts.group": "LTS日志组",
+  "sandbox.detail.log.lts.stream": "LTS日志流"
+}

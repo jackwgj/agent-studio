@@ -1,0 +1,130 @@
+<div class="guide-card-title flex items-center" (click)="changeCardCollapse($event)">
+  <div class="left-box mr-[60px] flex w-[calc(100%-16px)] items-center gap-[8px]">
+    @if (formListLength > LEAST_GUIDE_COUNT) {
+      <img alt="" class="h-[16px] w-[16px]" [src]="changeUrl('assets/agent-center/flow/drag.svg')" />
+      <span>
+        <nz-tag [nzColor]="'blue'" [nzBordered]="false">
+          {{ 'guide_priority_label' | i18nextEager : { priorityIndex: guideItemIndex + 1 } }}
+        </nz-tag>
+      </span>
+      <span
+        *ngIf="formGroupItem.get(SCENARIO_FIELD_ID.TRIGGER_CONDITION)?.value as guideName"
+        class="card-title-name"
+        style="display: inline-block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap"
+        >{{ guideName }}</span>
+    } @else {
+      <span
+        class="card-title-name"
+        style="display: inline-block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap"
+        >{{ formGroupItem.get(SCENARIO_FIELD_ID.TRIGGER_CONDITION)?.value || ('guide_title_default_label' | i18nextEager) }}</span>
+    }
+    @if (guideDataItem.inValid && formGroupItem.status === 'INVALID') {
+      <span nz-tooltip [nzTooltipTitle]="''" class="error-icon">
+        <span nz-icon nzType="close-circle" nzTheme="fill" style="color: #ff4d4f"></span>
+      </span>
+    }
+    @if (guideDataItem.invalidSkillTip) {
+      <span nz-tooltip [nzTooltipTitle]="''" class="warn-icon">
+        <span nz-icon nzType="exclamation-circle" nzTheme="fill" style="color: #faad14"></span>
+      </span>
+    }
+    <span
+      nz-icon
+      [nzType]="'right'"
+      [nzRotate]="guideDataItem?.[SCENARIO_FIELD_ID.COLLAPSE] ? 0 : 90"
+      class="common-icon"
+    ></span>
+  </div>
+  <div
+    class="icon-border"
+    [class.icon-border-disabled]="formListLength <= LEAST_GUIDE_COUNT"
+    [nz-tooltip]="formListLength > LEAST_GUIDE_COUNT ? '' : ('guide_least_one_tip' | i18nextEager)"
+    (click)="deleteGuide($event)"
+  >
+    <span nz-icon nzType="delete" nzTheme="fill" class="text-[16px]"></span>
+  </div>
+</div>
+
+@if (!guideDataItem?.[SCENARIO_FIELD_ID.COLLAPSE]) {
+  <div [formGroup]="formGroupItem" class="guide-card-content">
+    <form nz-form nzLayout="vertical">
+      @for (formItem of [guideFormConfig[SCENARIO_FIELD_ID.TRIGGER_CONDITION], guideFormConfig[SCENARIO_FIELD_ID.PERFORM_ACTION], guideFormConfig[SCENARIO_FIELD_ID.SKILL_SET]]; track trackByIndex($index)) {
+        <nz-form-item>
+          <nz-form-label [nzRequired]="formItem.required">
+            {{ formItem.label }}
+            @if (formItem.helpTip) {
+              <span nz-tooltip [nzTooltipTitle]="formItem.helpTip" style="margin-left: 4px">
+                <span nz-icon nzType="question-circle" nzTheme="outline"></span>
+              </span>
+            }
+          </nz-form-label>
+          <nz-form-control>
+            @if (formItem.type === FIELD_TYPE.TEXT_INPUT) {
+              <input
+                nz-input
+                type="text"
+                style="width: 100%"
+                [placeholder]="'input_placeholder' | i18nextEager"
+                [formControlName]="formItem.id"
+              />
+            }
+            @if (formItem.type === FIELD_TYPE.SELECT) {
+              <nz-select
+                style="width: 100%"
+                [nzPlaceHolder]="'select_placeholder' | i18nextEager"
+                [formControlName]="formItem.id"
+                [nzMode]="'multiple'"
+                [nzShowSearch]="true"
+                [nzAllowClear]="true"
+                [nzMaxTagCount]="100"
+                (nzOpenChange)="onRemoveDeletedSkill()"
+              >
+                @for (group of skillSetOptions; track group.label) {
+                  <nz-option-group [nzLabel]="group.label">
+                    <nz-option
+                      *ngFor="let option of group.children"
+                      [nzValue]="option.id"
+                      [nzLabel]="option.label"
+                      [nzDisabled]="option.disabled"
+                    >
+                      <div
+                        class="flex-left gap-[8px]"
+                        [nz-tooltip]="option.disabled ? ('skill_effective_label' | i18nextEager) : ''"
+                      >
+                        <img alt=""
+                          class="skill-avatar"
+                          [src]="option.avatar"
+                          [class.class-filter]="option.disabled"
+                        />
+                        <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{ option.label }}</span>
+                      </div>
+                    </nz-option>
+                  </nz-option-group>
+                }
+              </nz-select>
+            }
+          </nz-form-control>
+        </nz-form-item>
+      }
+    </form>
+
+    @if (guideDataItem.invalidSkillTip) {
+      <div class="flex-left mt-[8px] gap-[8px]">
+        <span nz-icon nzType="exclamation-circle" nzTheme="fill" class="warn-icon" style="color: #faad14"></span>
+        <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">
+          {{ guideDataItem.invalidSkillTip }}
+        </span>
+        @if (guideDataItem.effectiveSkills?.length) {
+          <button nz-button nzType="text" nzSize="small" id="removeInvalidSkillBtn" (click)="onRemoveEffectiveSkill()">
+            {{ 'skill_remove_btn' | i18nextEager }}
+          </button>
+        }
+        @if (!guideDataItem.effectiveSkills?.length && guideDataItem.deletedSkills?.length) {
+          <button nz-button nzType="text" nzSize="small" id="removeDeletedSkillBtn" (click)="onRemoveDeletedSkill()">
+            {{ 'skill_deleted_know_btn' | i18nextEager }}
+          </button>
+        }
+      </div>
+    }
+  </div>
+}

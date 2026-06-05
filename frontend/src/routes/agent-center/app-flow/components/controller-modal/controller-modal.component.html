@@ -1,0 +1,784 @@
+<div class="flex h-full w-full flex-col" (keydown)="handleKeyDown($event)">
+  <div class="drawer-header mb-[16px] block">
+    <div class="flex w-[calc(100%-38px)] items-center justify-between">
+      <div class="flex items-center gap-[8px]">
+        <img class="model-config-icon" [src]="iconUrl" alt="llm-node" />
+
+        <div class="text-[14px] font-bold leading-[24px]">
+          {{ nodeInfo.name }}
+        </div>
+      </div>
+    </div>
+
+    <node-description [nodeInfo]="nodeInfo" (descriptionChange)="updateView()"></node-description>
+
+    <div class="mt-[16px] h-[1px] w-full bg-[#f0f0f0]"></div>
+  </div>
+
+  <div class="drawer-body h-[500px] flex-1 pb-[16px]" id="flow-llm-modal-body">
+    <div
+      class="sub-controller relative h-full w-full overflow-auto pr-[16px]"
+      *ngIf="readOnly"
+    >
+      <div>
+        <meta-acc-block class="block" [title]="'intent_name' | i18nextEager">
+          <ng-template #content>
+            <input class="mt-4 w-full" id="text-basic" [(ngModel)]="intent_name" maxlength="120" nz-input />
+          </ng-template>
+        </meta-acc-block>
+        <meta-acc-block class="mt-4 block w-full">
+          <ng-template #blockTitle>
+            <div class="font-bold">
+              {{ 'intent_desc' | i18nextEager }}
+            </div>
+          </ng-template>
+          <ng-template #content>
+            <div class="mt-4">
+              <textarea
+                class="mt-4 !w-full"
+                [(ngModel)]="intent_desc"
+                maxlength="500"
+                rows="5"
+                [placeholder]="'controllermodalcomponent_289'|i18nextEager"
+                nz-input
+              ></textarea>
+            </div>
+          </ng-template>
+        </meta-acc-block>
+        <div class="my-[16px] h-[1px] w-full bg-[#f0f0f0]"></div>
+      </div>
+      <div class="list">
+        <div class="groups">
+          <div class="item">
+            <div class="item-title">
+              {{ 'intentDetection_workFlow' | i18nextEager }}
+            </div>
+            <div class="item-con">
+              {{ intentFlowName || ('controllermodalcomponent_290'|i18nextEager) }}
+            </div>
+          </div>
+          <div class="item">
+            <div class="item-title">
+              {{ 'model_configuration' | i18nextEager }}
+            </div>
+            <div class="item-con">
+              {{ modelName || ('controllermodalcomponent_290'|i18nextEager) }}
+            </div>
+          </div>
+          <div class="my-[16px] h-[1px] w-full bg-[#f0f0f0]"></div>
+        </div>
+        <div class="groups">
+          <div class="item">
+            <div class="item-title">
+              {{ 'sub_workflow_prompt' | i18nextEager }}
+            </div>
+            <div class="item-con">
+              {{ prompt || ('controllermodalcomponent_290'|i18nextEager) }}
+            </div>
+          </div>
+          <div class="my-[16px] h-[1px] w-full bg-[#f0f0f0]"></div>
+        </div>
+        <div class="groups">
+          <div class="item">
+            <div class="item-title">
+              {{ 'start_workflow' | i18nextEager }}
+            </div>
+            <div class="item-con">
+              {{ startFlowName || ('controllermodalcomponent_290'|i18nextEager) }}
+            </div>
+          </div>
+          <div class="item">
+            <div class="item-title">
+              {{ 'sub_workflow' | i18nextEager }}
+            </div>
+            <div class="item-con">
+              <div *ngFor="let flow of subFlowCtx" class="mt-[3px]">
+                {{ flow.name || ('controllermodalcomponent_290'|i18nextEager) }}
+              </div>
+            </div>
+          </div>
+
+          <div class="item">
+            <div class="item-title">
+              {{ 'default_workflow' | i18nextEager }}
+            </div>
+            <div class="item-con">
+              {{ defaultFlowName || ('controllermodalcomponent_290'|i18nextEager) }}
+            </div>
+          </div>
+
+          <div class="item">
+            <div class="item-title">
+              {{ 'end_workflow' | i18nextEager }}
+            </div>
+            <div class="item-con">
+              {{ endFlowName || ('controllermodalcomponent_290'|i18nextEager) }}
+            </div>
+          </div>
+          <div class="my-[16px] h-[1px] w-full bg-[#f0f0f0]"></div>
+        </div>
+
+        <div class="groups">
+          <div class="item">
+            <div class="item-title">
+              {{ 'global_intent' | i18nextEager }}
+            </div>
+            <div class="item-con">
+              <nz-table
+                [nzData]="displayeIntentdData"
+                [nzFrontPagination]="false"
+                [nzShowPagination]="false"
+              >
+                <thead>
+                  <tr>
+                    <th *ngFor="let column of columns">{{ column.title }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let row of displayeIntentdData">
+                    <td>{{ row.name }}</td>
+                    <td>{{ get_handler_type(row.handler_type) }}</td>
+                    <td>{{ row.description || '-' }}</td>
+                    <td>{{ get_action(row.action) }}</td>
+                  </tr>
+                  <tr *ngIf="displayeIntentdData.length === 0">
+                    <td colspan="4">
+                      <div class="text-center">
+                        <p>{{'controllermodalcomponent_300'| i18nextEager}}</p>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </nz-table>
+            </div>
+          </div>
+          <div class="my-[16px] h-[1px] w-full bg-[#f0f0f0]"></div>
+        </div>
+
+        <div class="groups">
+          <div class="item">
+            <div class="item-title">
+              {{ 'max_dialogue_round' | i18nextEager }}
+            </div>
+            <div class="item-con">
+              {{ chatHistoryMaxTurn || ('controllermodalcomponent_290'|i18nextEager) }}
+            </div>
+          </div>
+
+          <div class="item">
+            <div class="item-title">
+              {{ 'max_number_jumps' | i18nextEager }}
+            </div>
+            <div class="item-con">
+              {{ maxIteration || ('controllermodalcomponent_290'|i18nextEager) }}
+            </div>
+          </div>
+          <div class="my-[16px] h-[1px] w-full bg-[#f0f0f0]"></div>
+        </div>
+      </div>
+    </div>
+    <div
+      class="relative h-full w-full overflow-auto pr-[16px]"
+      [class]="{ controller: readOnly }"
+    >
+      <form [formGroup]="modelFormGroup">
+        <meta-acc-block
+          class="block"
+        >
+          <ng-template #blockTitle>
+            <div class="font-bold">
+              {{ 'model_configuration' | i18nextEager }}{{ 'optional' | i18next }}
+            </div>
+          </ng-template>
+          <ng-template #right>
+            <div class="flex items-center">
+              <span nz-icon nzType="setting" nzTheme="outline"
+                class="settings-icon"
+                nz-popover
+                [nzPopoverContent]="modelConfigTip"
+                nzPopoverPlacement="bottomRight"
+                nzPopoverTrigger="click"
+              ></span>
+            </div>
+          </ng-template>
+
+          <ng-template #content>
+            <div class="mt-4">
+              <llm-select
+                [selectedModel]="modelFormGroup.controls.model.value"
+                [modelValidation]="modelValidation"
+                [filter]="{'intent_recognition':true}"
+                [panelWidth]="'justified'"
+                (update)="updateModel($event)"
+              ></llm-select>
+            </div>
+          </ng-template>
+        </meta-acc-block>
+
+        <ng-template #modelConfigTip>
+          <div class="model-config-tip">
+            <meta-param-selector [(modelParams)]="modelParams"/>
+          </div>
+        </ng-template>
+      </form>
+      <div class="my-[16px] h-[1px] w-full bg-[#f0f0f0]"></div>
+      <div calss="prompt">
+        <meta-acc-block
+          class="mt-4 block w-full"
+          [title]="'sub_workflow_prompt' | i18nextEager"
+        >
+          <ng-template #content>
+            <div class="align-center mb-2 flex justify-between">
+              <div>
+                {{ 'prompt' | i18nextEager }}
+              </div>
+<!--              <div class="flex items-center gap-2">-->
+<!--                <div-->
+<!--                  nz-tooltip [nzTooltipTitle]="'citation_template' | i18nextEager"-->
+<!--                  (click)="openRefModal()"-->
+<!--                  class="icon-border"-->
+<!--                >-->
+<!--                  <div class="ref-tmpl-icon"></div>-->
+<!--                </div>-->
+<!--              </div>-->
+            </div>
+            <textarea
+              class="mt-4 !w-full"
+              [(ngModel)]="prompt"
+              maxlength="1000"
+              rows="5"
+              [placeholder]="promptPlaceholder"
+              nz-input
+            ></textarea>
+          </ng-template>
+        </meta-acc-block>
+        <div class="my-[16px] h-[1px] w-full bg-[#f0f0f0]"></div>
+      </div>
+
+      <div class="intentDetection">
+        <meta-acc-block class="mt-4 block w-full">
+          <ng-template #right>
+            <div class="flex items-center justify-center">
+              <button
+                class="w-fit"
+                nz-button
+                nzBorderless
+                (click)="addIntentFlow('intentFlow')"
+                [disabled]="intentFlow?.id"
+              >
+                <span nz-icon nzType="plus-circle" nzTheme="outline" class="header-button-icon"></span>
+              </button>
+            </div>
+          </ng-template>
+          <ng-template #blockTitle>
+            <div class="font-bold">
+              {{ 'intentDetection' | i18nextEager }}{{ 'optional' | i18next }}
+            </div>
+            <ng-template #intentDetectionTipContent let-context="context">
+              <div>
+                {{ 'intentDetectionParamsTip' | i18nextEager }}<span class="common-link" (click)="goToIntentParamsDetail()">{{ 'intentDetectionParamsTipLink' | i18nextEager }}</span>
+              </div>
+            </ng-template>
+          </ng-template>
+          <ng-template #content>
+            <div class="mt-4">
+              <controller-flow-item *ngIf="intentFlow?.id" [isFlowReadonly]="isFlowReadonly"  [itemFlow]="intentFlow" [update]="intentFlow.update" (deleteItemEvent)="deleteIntentFlowEvent()" (updateCardEvent)="updateIntentFlowEvent()"></controller-flow-item>
+            </div>
+          </ng-template>
+        </meta-acc-block>
+        <div class="my-[16px] h-[1px] w-full bg-[#f0f0f0]"></div>
+      </div>
+
+      <div class="multi-agent">
+        <meta-acc-block class="mt-4 block w-full">
+          <ng-template #right>
+            <div class="flex items-center justify-center">
+              <button
+                class="w-fit"
+                nz-button
+                nz-tooltip [nzTooltipTitle]="'add_sub_controller' | i18nextEager"
+                nzBorderless
+                (click)="addAssociationAgent()"
+                [disabled]="isReachedAddAssociationAgentLimit()"
+              >
+                <span nz-icon nzType="plus-circle" nzTheme="outline" class="header-button-icon"></span>
+              </button>
+            </div>
+          </ng-template>
+          <ng-template #blockTitle>
+            <div class="font-bold">
+              {{ 'sub_agent' | i18nextEager }}
+            </div>
+            <span nz-icon nzType="question-circle" nzTheme="outline"
+              class="cursor-pointer"
+              nz-tooltip [nzTooltipTitle]="'sub_workflow_tip' | i18nextEager"
+              nzTooltipPlacement="right"
+              nzTooltipWidth="500px"
+            ></span>
+          </ng-template>
+          <ng-template #content>
+            <form #subFlowForm="ngForm" *ngIf="associationAgentCtx.length > 0 || subFlowCtx.length > 0">
+              <div class="mt-4 flex flex-col gap-3">
+                <div
+                  *ngFor="
+                    let agent of associationAgentCtx;
+                    index as i;
+                    trackBy: trackByFn
+                  "
+                >
+                  <controller-flow-item *ngIf="agent?.id" [isFlowReadonly]="isFlowReadonly"
+                                        [itemFlow]="agent" [update]="agent.update"
+                                        [type]="agent.subAgentType"
+                                        [showTags]="true"
+                                        (updateCardEvent)="onUpdateSubAgent(agent)"
+                                        (deleteItemEvent)="onDeleteSubAgent(i)">
+                  </controller-flow-item>
+                </div>
+
+                <div
+                  *ngFor="
+                    let agent of subFlowCtx;
+                    index as i;
+                    trackBy: trackByFn
+                  "
+                >
+                  <controller-flow-item *ngIf="agent?.id" [isFlowReadonly]="isFlowReadonly"
+                                        [showAction]="true" [itemFlow]="agent"
+                                        [type]="agent.subAgentType" [update]="agent.update"
+                                        [showTags]="true"
+                                        (updateCardEvent)="updateSubFlowEvent(i)"
+                                        (deleteItemEvent)="deleteSubFlowEvent(i)">
+                  </controller-flow-item>
+                </div>
+              </div>
+            </form>
+          </ng-template>
+        </meta-acc-block>
+        <div class="my-[16px] h-[1px] w-full bg-[#f0f0f0]"></div>
+      </div>
+
+      <div class="global-intent">
+        <meta-acc-block class="mt-4 block w-full">
+          <ng-template #blockTitle>
+            <div class="font-bold">{{ 'global_intent' | i18nextEager }}</div>
+            <span nz-icon nzType="question-circle" nzTheme="outline"
+              class="cursor-pointer"
+              nz-tooltip [nzTooltipTitle]="'global_intent_tip' | i18nextEager"
+              nzTooltipPlacement="right"
+              nzTooltipWidth="500px"
+            ></span>
+          </ng-template>
+          <ng-template #content>
+            <div class="mt-4 w-full" *ngIf="needUpdateFlowCtx.length">
+              <nz-alert [nzCloseable]="false" class="!w-full" nzType="info">
+                <div class="flex w-full items-center">
+                  <span
+                  >{{ needUpdateFlowCtx.length }}
+                    {{ 'version_upgrading' | i18nextEager }} </span
+                  ><button
+                  (click)="openUpdateModal()"
+                  class="ml-2"
+                  nz-button
+                  nzBorderless
+                >
+                  {{ 'click_to_upgrade' | i18nextEager }}
+                </button>
+                </div>
+              </nz-alert>
+            </div>
+            <div class="mt-4">
+              <div class="flex items-center gap-1">
+                <div class="w-[20%]">{{ 'intent_name' | i18nextEager }}</div>
+                <div class="w-[55%]">
+                  {{ 'handling_method' | i18nextEager }}
+                </div>
+                <div class="w-[25%]">{{ 'action' | i18nextEager }}</div>
+              </div>
+
+              <form #intentForm="ngForm">
+                <div
+                  *ngFor="let intent of intents; index as i"
+                  class="mt-2 flex gap-1"
+                >
+                  <div class="w-[20%]">
+                    <div [class.input-error]="intentForm?.controls['intentName' + i]?.invalid && (intentForm?.controls['intentName' + i]?.dirty || intentForm?.controls['intentName' + i]?.touched)">
+                      <input
+                        class="w-full"
+                        type="text"
+                        [name]="'intentName' + i"
+                        nonEmptyValidator
+                        (input)="onIntentNameChange()"
+                        [maxlength]="paramNameMaxLen"
+                        nz-input
+                        [title]="intent.name"
+                        [(ngModel)]="intent.name"
+                        [placeholder]="'input_placeholder' | i18nextEager"
+                        [disabled]="intent.id === '0'"
+                      />
+                    </div>
+                    <div *ngIf="intentForm?.controls['intentName' + i]?.invalid && (intentForm?.controls['intentName' + i]?.dirty || intentForm?.controls['intentName' + i]?.touched)" class="error-tip">
+                      {{ intentForm?.controls['intentName' + i]?.errors?.serviceName?.tiErrorMessage || intentForm?.controls['intentName' + i]?.errors?.tiErrorMessage }}
+                    </div>
+                  </div>
+
+                  <div class="flex w-[55%]">
+                    <div [ngStyle]="{ width: isNormalView ? '35%' : '44%' }">
+                      <nz-select
+                        class="combo-select-left"
+                        style="width: 100%"
+                        [name]="'intentType' + i"
+                        [(ngModel)]="intent.handler_type"
+                        (ngModelChange)="onChangeHandlerType(intent)"
+                        nzValue="value"
+                      >
+                        <nz-option *ngFor="let opt of intentTypeOps" [nzValue]="opt.value" [nzLabel]="opt.label"></nz-option>
+                      </nz-select>
+                    </div>
+
+                    <div [ngStyle]="{ width: isNormalView ? '65%' : '56%' }">
+                      <div [class.input-error]="intentForm?.controls['intentHandler' + i]?.invalid && (intentForm?.controls['intentHandler' + i]?.dirty || intentForm?.controls['intentHandler' + i]?.touched)">
+                        <input
+                          class="combo-select-right !w-full"
+                          *ngIf="intent.handler_type === 'Text'"
+                          [name]="'intentHandler' + i"
+                          nonEmptyValidator
+                          type="text"
+                          nz-input
+                          [placeholder]="'input_placeholder' | i18nextEager"
+                          [(ngModel)]="intent.handler"
+                          [title]="intent.handler"
+                        />
+                      </div>
+                      <div *ngIf="intentForm?.controls['intentHandler' + i]?.invalid && (intentForm?.controls['intentHandler' + i]?.dirty || intentForm?.controls['intentHandler' + i]?.touched)" class="error-tip">
+                        {{ intentForm?.controls['intentHandler' + i]?.errors?.serviceName?.tiErrorMessage || intentForm?.controls['intentHandler' + i]?.errors?.tiErrorMessage }}
+                      </div>
+
+                      <nz-select
+                        *ngIf="
+                          intent.handler_type === 'Workflow' &&
+                          isFlowHandler(intent.handler)
+                        "
+                        class="combo-select-right !w-full"
+                        [(ngModel)]="intent.handler.id"
+                        [nzShowSearch]="true"
+                        [nzPlaceHolder]="'select_placeholder' | i18nextEager"
+                        [name]="'intentHandler' + i"
+                        (ngModelChange)="onSelectFlowSelected($event)"
+                        nzLabel="name"
+                      >
+                        <nz-option *ngFor="let opt of flowOps" [nzValue]="opt.id" [nzLabel]="opt.name"></nz-option>
+                      </nz-select>
+                    </div>
+                  </div>
+
+                  <div class="flex w-[25%] gap-1">
+                    <div class="h-[28px] w-[calc(100%-16px)]">
+                      <nz-select
+                        style="width: 100%"
+                        [name]="'intentAction' + i"
+                        [(ngModel)]="intent.action"
+                        nzValue="value"
+                      >
+                        <nz-option *ngFor="let opt of intentActionOps" [nzValue]="opt.value" [nzLabel]="opt.label"></nz-option>
+                      </nz-select>
+                    </div>
+
+                    <div class="w-4">
+                      <span nz-icon nzType="delete" nzTheme="outline"
+                        (click)="deleteIntent(i)"
+                        class="mt-[6px] cursor-pointer !text-base !text-label"
+                      ></span>
+                    </div>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </ng-template>
+          <ng-template #right>
+            <div class="flex items-center justify-center">
+              <button
+                class="w-fit"
+                nz-button
+                nz-tooltip [nzTooltipTitle]="'add_intent' | i18nextEager"
+                nzBorderless
+                (click)="addIntent()"
+              >
+                <span nz-icon nzType="plus-circle" nzTheme="outline" class="header-button-icon"></span>
+              </button>
+            </div>
+          </ng-template>
+        </meta-acc-block>
+        <div class="my-[16px] h-[1px] w-full bg-[#f0f0f0]"></div>
+      </div>
+
+      <div class="advanced-config">
+        <meta-acc-block
+          class="mt-4 block w-full"
+        >
+          <ng-template #blockTitle>
+            <div class="font-bold">
+              {{ 'advanced_config' | i18nextEager }}
+            </div>
+          </ng-template>
+          <ng-template #right>
+          </ng-template>
+          <ng-template #content>
+            <div class="start-workflow">
+              <meta-acc-block class="mt-4 block w-full">
+                <ng-template #right>
+                  <div class="flex items-center justify-center">
+                    <button
+                      class="w-fit"
+                      nz-button
+                      nzBorderless
+                      (click)="addIntentFlow('startFlow')"
+                      [disabled]="startFlow?.id"
+                    >
+                      <span nz-icon nzType="plus-circle" nzTheme="outline" class="header-button-icon"></span>
+                    </button>
+                  </div>
+                </ng-template>
+                <ng-template #blockTitle>
+                  <div>
+                    {{ 'start_workflow' | i18nextEager }}{{ 'optional' | i18next }}
+                  </div>
+                  <span nz-icon nzType="question-circle" nzTheme="outline"
+                    class="cursor-pointer"
+                    nz-tooltip [nzTooltipTitle]="'start_workflow_tip' | i18nextEager"
+                    nzTooltipPlacement="right"
+                    nzTooltipWidth="500px"
+                  ></span>
+                </ng-template>
+                <ng-template #content>
+                  <div class="mt-4">
+                    <controller-flow-item *ngIf="startFlow?.id" [isFlowReadonly]="isFlowReadonly"  [itemFlow]="startFlow" [update]="startFlow.update" (updateCardEvent)="updateStartFlowEvent()" (deleteItemEvent)="deleteStartFlowEvent()"></controller-flow-item>
+                  </div>
+                </ng-template>
+              </meta-acc-block>
+            </div>
+
+            <div class="default-flow">
+              <meta-acc-block class="mt-4 block w-full">
+                <ng-template #right>
+                  <div class="flex items-center justify-center">
+                    <button
+                      class="w-fit"
+                      nz-button
+                      nzBorderless
+                      (click)="addIntentFlow('defaultFlow')"
+                      [disabled]="defaultFlow?.id"
+                    >
+                      <span nz-icon nzType="plus-circle" nzTheme="outline" class="header-button-icon"></span>
+                    </button>
+                  </div>
+                </ng-template>
+                <ng-template #blockTitle>
+                  <div>
+                    {{ 'default_workflow' | i18nextEager }}{{ 'optional' | i18nextEager }}
+                  </div>
+                  <span nz-icon nzType="question-circle" nzTheme="outline"
+                    class="cursor-pointer"
+                    nz-tooltip [nzTooltipTitle]="'default_workflow_tip' | i18nextEager"
+                    nzTooltipPlacement="right"
+                    nzTooltipWidth="500px"
+                  ></span>
+                </ng-template>
+                <ng-template #content>
+                  <div class="mt-4">
+                    <controller-flow-item *ngIf="defaultFlow?.id" [isFlowReadonly]="isFlowReadonly" [showAction]="true"  [itemFlow]="defaultFlow" [update]="defaultFlow.update" (deleteItemEvent)="deleteDefaultFlowEvent()" (updateCardEvent)="updateDefaultFlowEvent()"></controller-flow-item>
+                  </div>
+                </ng-template>
+              </meta-acc-block>
+            </div>
+
+            <div class="end-flow">
+              <meta-acc-block class="mt-4 block w-full">
+                <ng-template #right>
+                  <div class="flex items-center justify-center">
+                    <button
+                      class="w-fit"
+                      nz-button
+                      nzBorderless
+                      (click)="addIntentFlow('endFlow')"
+                      [disabled]="endFlow?.id"
+                    >
+                      <span nz-icon nzType="plus-circle" nzTheme="outline" class="header-button-icon"></span>
+                    </button>
+                  </div>
+                </ng-template>
+                <ng-template #blockTitle>
+                  <div>
+                    {{ 'end_workflow' | i18nextEager }}{{ 'optional' | i18nextEager }}
+                  </div>
+                  <span nz-icon nzType="question-circle" nzTheme="outline"
+                    class="cursor-pointer"
+                    nz-tooltip [nzTooltipTitle]="'start_workflow_tip' | i18nextEager"
+                    nzTooltipPlacement="right"
+                    nzTooltipWidth="500px"
+                  ></span>
+                </ng-template>
+                <ng-template #content>
+                  <div class="mt-4">
+                    <controller-flow-item *ngIf="endFlow?.id" [isFlowReadonly]="isFlowReadonly"  [itemFlow]="endFlow" [update]="endFlow.update" (deleteItemEvent)="deleteEndFlowEvent()" (updateCardEvent)="updateEndFlowEvent()"></controller-flow-item>
+                  </div>
+                </ng-template>
+              </meta-acc-block>
+            </div>
+
+            <div class="mt-[16px]">
+              <div class="mb-2 flex items-center gap-[4px]">
+                {{ 'max_dialogue_round' | i18nextEager }}
+              </div>
+
+              <div class="flex items-center justify-between gap-4">
+                <nz-slider
+                  class="!my-0 flex-1"
+                  [(ngModel)]="chatHistoryMaxTurn"
+                  [nzMin]="0"
+                  [nzMax]="100"
+                  [nzStep]="1"
+                  [nzMarks]="{'0': '0', '25': '25', '50': '50', '75': '75', '100': '100'}"
+                >
+                </nz-slider>
+                <nz-input-number
+                  [nzMin]="0"
+                  [nzMax]="100"
+                  [nzStep]="1"
+                  [(ngModel)]="chatHistoryMaxTurn"
+                ></nz-input-number>
+              </div>
+            </div>
+
+            <div class="mt-[32px]">
+              <div class="mb-2 flex items-center gap-[4px]">
+                {{ 'max_number_jumps' | i18nextEager }}
+              </div>
+
+              <div class="flex items-center justify-between gap-4">
+                <nz-slider
+                  class="!my-0 flex-1"
+                  [(ngModel)]="maxIteration"
+                  [nzMin]="0"
+                  [nzMax]="mutilagent_max_iteration"
+                  [nzStep]="1"
+                  [nzMarks]="getIterationMarks()"
+                >
+                </nz-slider>
+                <nz-input-number
+                  [nzMin]="1"
+                  [nzMax]="mutilagent_max_iteration"
+                  [nzStep]="1"
+                  [(ngModel)]="maxIteration"
+                ></nz-input-number>
+              </div>
+            </div>
+          </ng-template>
+        </meta-acc-block>
+      </div>
+    </div>
+  </div>
+  <div class="drawer-footer">
+    <div class="flex justify-end gap-2">
+      <button type="button" nz-button (click)="dismiss()">
+        {{ 'cancel' | i18nextEager }}
+      </button>
+      <button
+        [disabled]="isFlowReadonly"
+        type="button"
+        nz-button
+        nzType="primary"
+        (click)="onConfirm()"
+      >
+        {{ 'ok' | i18nextEager }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<ng-template #updateVersionModal let-context="context">
+  <div class="modal-header">{{
+      'update_flow_modal_btn' | i18nextEager
+    }}</div>
+  <div class="modal-body">
+    <div class="flex h-[420px] w-full flex-col gap-4">
+      <div class="w-full">
+        <nz-alert [nzCloseable]="false" class="!w-full" nzType="info">
+          {{ 'update_flows_tip' | i18nextEager }}
+        </nz-alert>
+      </div>
+
+      <div class="h-[calc(100%-40px)] w-full">
+        <div class="font-bold">{{ 'workflow' | i18nextEager }}</div>
+        <nz-table
+          class="mt-2 h-[290px]"
+          [nzData]="tableSrcData.data"
+          [nzFrontPagination]="false"
+          [nzShowPagination]="false"
+        >
+          <thead>
+            <tr>
+              <th nzWidth="40px">
+                <label nz-checkbox (ngModelChange)="checkAll(!!$event)"></label>
+              </th>
+              <th *ngFor="let col of hasTitleCols">
+                {{ col.title }}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              *ngFor="let row of displayedData; trackBy: trackByFn"
+              [ngClass]="{
+                  'ant-table-row-selected': checkedFlows.indexOf(row) !== -1
+                }"
+            >
+              <td
+                [ngClass]="{ 'ant-table-cell-disabled': row.disabled }"
+              >
+                <label nz-checkbox
+                  [nzChecked]="checkedFlows.indexOf(row) !== -1"
+                  [nzDisabled]="row.disabled"
+                  (ngModelChange)="checkItem(row, !!$event)"
+                ></label>
+              </td>
+              <td>
+                <button
+                  (click)="gotoWorkflow(row.workflow_id)"
+                  class="ml-2"
+                  nz-button
+                  nzType="link"
+                >
+                  {{ row.workflow_name }}
+                </button>
+              </td>
+              <td>{{ row.version_id }}</td>
+              <td>{{ row.last_version_id }}</td>
+            </tr>
+          </tbody>
+        </nz-table>
+        <nz-pagination
+          class="mt-2"
+          [(nzPageIndex)]="currentPage"
+          [nzTotal]="needUpdateFlowCtx.length"
+          [nzPageSize]="pageSize.size"
+          nzSize="small"
+        ></nz-pagination>
+      </div>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button type="button" (click)="dismissUpdateModal()" nz-button>
+      {{ 'cancel' | i18nextEager }}
+    </button>
+    <button
+      type="button"
+      nzType="primary"
+      autofocus
+      (click)="confirmUpdate()"
+      nz-button
+      [disabled]="!checkedFlows.length"
+    >
+      {{ 'update_flow_modal_btn' | i18nextEager }}
+    </button>
+  </div>
+</ng-template>

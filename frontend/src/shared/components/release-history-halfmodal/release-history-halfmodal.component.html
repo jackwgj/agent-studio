@@ -1,0 +1,69 @@
+<nz-spin *ngIf="isLoading; else cardList" class="loading-icon" nzSimple></nz-spin>
+<ng-template #cardList>
+  <div
+    class="flex h-full flex-col items-center justify-center"
+    *ngIf="publishedCards.length === 0; else notEmptyCards"
+  >
+    <no-data-icon></no-data-icon>
+    <span>{{ 'no_release_history' | i18nextEager }}</span>
+  </div>
+  <ng-template #notEmptyCards>
+    <div class="release-history-container">
+      <div class="flex gap-[8px] item" [class.active]="selectedTab === -1" (click)="revertDraft()">
+        <div class="flex flex-col items-center gap-[4px]">
+          <div class="hollow-circle current"></div>
+          <div class="vertical-line"></div>
+        </div>
+        <div class="published-card items-center" style="flex-direction: column; align-items: self-start">
+          <div style="color: rgb(128,128,128)">{{'releasehistoryhalfmodalcomponent_75'| i18nextEager}}{{ workflowDetail?.update_time | date : 'yyyy-MM-dd HH:mm:ss' }}</div>
+          <div style="display: flex; gap: 8px; align-items: center">
+            {{ 'current' | i18nextEager }}
+            <span class="inline-block rounded-[2px] bg-[#FFEBD1] p-0.5 px-2" style="color: rgba(217, 105, 0)">
+              {{ 'unpublished' | i18nextEager }}
+            </span>
+          </div>
+          <div class="action flex" *ngIf="false">
+            <a *ngIf="selectedTab !== -1 && type === 'workflow'" class="mr-[8px] cursor-pointer text-[#1476FF]" (click)="showDiff($event, -1)">{{ 'version_diff' | i18nextEager }}</a>
+          </div>
+        </div>
+      </div>
+      @for (card of publishedCards; track card.version_id; let i = $index) {
+        <div class="flex gap-[8px] item" [class.active]="selectedTab === i" (click)="viewHistory($event, card, i)">
+          <div class="flex flex-col items-center gap-[4px]">
+            <div class="hollow-circle"></div>
+            <div class="vertical-line"></div>
+          </div>
+          <div class="published-card">
+            <div style="color: rgb(128,128,128)">{{'releasehistoryhalfmodalcomponent_76'| i18nextEager}}{{ card.release_time | formateTime }}</div>
+            <div class="flex items-center" style="gap: 8px">
+              <span style="display: inline-block; padding: 3px 4px 0px 4px; background: rgb(230,230,230); border-radius: 2px; color: rgb(25,25,25); height: 24px">
+                {{ card.version_name }}
+              </span>
+              <span class="inline-block rounded-[2px] p-0.5 px-2" style="background: rgb(213, 242, 220); color: rgb(2, 153, 49);">
+                {{ 'published' | i18nextEager }}
+              </span>
+            </div>
+            <div class="flex items-center">
+              <span>{{'releasehistoryhalfmodalcomponent_77'| i18nextEager}}{{ card.version_id }}</span>
+            </div>
+            <div class="flex items-center">
+              <span
+                style="max-width: 100%; display: inline-block; white-space: normal; word-break: break-word; overflow-wrap: break-word"
+              >
+                {{'releasehistoryhalfmodalcomponent_78'| i18nextEager}}{{card.version_note === '' ? '--' : card.version_note}}
+              </span>
+            </div>
+            <div class="flex items-center gap-[10px]">
+              <span>{{'releasehistoryhalfmodalcomponent_79'| i18nextEager}}{{ card.creator }}</span>
+            </div>
+            <div class="action flex">
+              <a *ngIf="selectedTab !== i && type === 'workflow' && false" class="mr-[8px] cursor-pointer text-[#1476FF]" (click)="showDiff($event, i)">{{ 'version_diff' | i18nextEager }}</a>
+              <a class="mr-[8px] cursor-pointer text-[#1476FF]" (click)="restoreVersion(card.version_id)">{{ 'version_restored' | i18nextEager }}</a>
+              <a class="cursor-pointer text-[#1476FF]" (click)="openDeleteVersionModal(card.version_id)">{{ 'delete' | i18nextEager }}</a>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  </ng-template>
+</ng-template>

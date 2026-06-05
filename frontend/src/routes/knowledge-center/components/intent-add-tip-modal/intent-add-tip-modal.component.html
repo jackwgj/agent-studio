@@ -1,0 +1,24 @@
+<div class="custom-modal-header" id="exceed-header">
+  <div class="header">
+    <img alt="" class="info" [src]="changeUrl('assets/images/common/success.svg')" />
+    <span>{{ 'intent_add_success_tip' | i18nextEager }}</span>
+  </div>
+</div>
+
+<div class="custom-modal-body">
+  <span>{{ tipContent }}</span>
+</div>
+
+<div class="custom-modal-footer">
+  <button (click)="dismiss()" type="button" nz-button nzType="default">
+    {{ 'cancel' | i18nextEager }}
+  </button>
+  <button
+    (click)="close()"
+    type="button"
+    nz-button
+    nzType="primary"
+  >
+    {{ 'ok' | i18nextEager }}
+  </button>
+</div>

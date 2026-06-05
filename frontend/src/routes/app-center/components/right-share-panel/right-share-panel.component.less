@@ -1,0 +1,17 @@
+.wrap {
+  background: linear-gradient(to bottom, #E8EFFB 0%, #FFFFFF 20%);
+  box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.05);
+  z-index: 10;
+  position: relative;
+  .desc {
+    display: -webkit-box;
+    -webkit-line-clamp: 5;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+:host {
+  height: 100%;
+  position: relative;
+}

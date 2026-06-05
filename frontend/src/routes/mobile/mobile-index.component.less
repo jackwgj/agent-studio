@@ -1,0 +1,119 @@
+::ng-deep {
+  body,
+  html {
+    height: 100vh !important;
+    font-size:10px !important;
+    min-width:unset !important;
+  }
+  #J_header{
+    display: none;
+    min-width:unset !important;
+  }
+  #J_container{
+    padding-top:0 !important;
+    width:100% !important;
+  }
+  #J_rightSidebar{
+    display: none !important;
+  }
+
+}
+.mobile-index {
+  height: 100vh;
+  background: url('src/assets/mobile-device/bg-2.png') no-repeat 50% 50%;
+  background-size: cover;
+  header{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-top:10vh;
+    .title{
+      width:328px;
+      height:35px;
+      background: url("src/assets/mobile-device/title.svg");
+    }
+  }
+  .logo{
+    width:90px;
+    height:98px;
+    background: url('src/assets/mobile-device/logo.png') no-repeat 50% 50%;
+    margin: 0 auto;
+  }
+  .logo-txt{
+    h3{
+      font-size:2.2rem;
+      line-height:3.4rem;
+    }
+    p{
+      font-size:1.4rem;
+      color: #595959;
+      margin-top:0.8rem;
+    }
+  }
+  .modile-content{
+    margin-top:9.2rem;
+    h5{
+      font-size:1.6rem;
+      font-weight: bold;
+      color:#191919;
+      text-align: center;
+      margin-bottom:0.8rem;
+    }
+    .tip{
+      font-size:1.2rem;
+      color:#595959;
+      text-align:center;
+    }
+    .modile-info{
+      margin-top:1.8rem;
+      padding:2.4rem;
+      .item{
+        background: #ffffff;
+        border-radius:16px;
+        padding:24px;
+        margin-bottom:8px;
+        display: flex;
+        gap:12px;
+        align-items: center;
+        cursor: pointer;
+        .item-txt{
+          h4{
+            font-size:14px;
+            color:#191919;
+            font-weight:bold;
+            margin-bottom: 4px;
+          }
+          p{
+            font-size:1.2rem;
+            color:#808080;
+          }
+        }
+        img{
+          width:4rem;
+          height:4rem
+        }
+      }
+    }
+  }
+}
+
+/* 在 styles.css 或组件的 styleUrls 中 */
+@media (max-width: 768px) {
+  .desktop-view {
+    display: none;
+  }
+
+  .mobile-view {
+    display: block;
+  }
+}
+
+@media (min-width: 769px) {
+  .desktop-view {
+    display: block;
+  }
+
+  .mobile-view {
+    display: none;
+  }
+}

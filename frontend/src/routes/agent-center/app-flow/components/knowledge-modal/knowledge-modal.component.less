@@ -1,0 +1,70 @@
+::ng-deep {
+  .tp-halfmodal-cotent meta-knowledge-modal {
+    display: block;
+    height: 100%;
+  }
+}
+
+.kb-select-area {
+  width: 100%;
+  height: 100%;
+  background: white;
+  border: 1px dashed #c2c2c2ff;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.upload-icon {
+  background-image: url('../../../../../assets/agent-center/flow/upload-cmp.svg');
+  height: 24px;
+  width: 24px;
+}
+
+::ng-deep {
+  .add-kb-modal {
+    width: 700px !important;
+  }
+}
+
+.kbm-card {
+  &:hover .goto {
+    display: block;
+  }
+}
+
+.goto {
+  display: none;
+}
+
+.kb-card {
+  &:hover {
+    background: #fff;
+    box-shadow: 0px 4px 6px 0px #00000014;
+  }
+}
+
+::ng-deep {
+  #addKbModal {
+    padding: 20px;
+
+    tp-halfmodal-body {
+      margin-top: 16px;
+      padding: 0;
+    }
+  }
+}
+
+.error-tip {
+  color: #ff4d4f;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.input-error {
+  border-color: #ff4d4f !important;
+}

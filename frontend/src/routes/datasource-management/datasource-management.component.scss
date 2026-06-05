@@ -1,0 +1,60 @@
+#datasource-component{
+  .top-title-area {
+    display: flex;
+    justify-content: space-between;
+    margin: 12px 0 24px 0;
+
+    .title-area-left {
+      display: flex;
+      margin-right: 8px;
+      color: rgba(25, 25, 25, 1);
+      font-size: 20px;
+      font-weight: 600;
+
+      .page-title {
+        margin-right: 6px;
+      }
+    }
+
+    .btn-area {
+      display: flex;
+      gap: 16px;
+
+      button {
+        min-width: 84px;
+      }
+    }
+  }
+
+  .query-operate {
+    display: flex;
+    margin: 24px 0 24px 0;
+    width: 100%;
+
+    .search-input {
+      flex: 1;
+      margin-right: 8px;
+      max-width: calc(100% - 40px);
+    }
+  }
+
+  .list-no-data {
+    height: calc(100vh - 370px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .table-style {
+    border: 1px solid rgba(240, 240, 240, 1);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .ellipsis-cell {
+    max-width: 150px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+}

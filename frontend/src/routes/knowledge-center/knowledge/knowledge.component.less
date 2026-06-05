@@ -1,0 +1,90 @@
+.detail-header-container {
+  width: 100%;
+  height: 64px;
+  padding: 0 20px;
+  box-sizing: border-box;
+  background-color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.right {
+  display: flex;
+  gap: 0 16px;
+  align-items: center;
+
+  & > div {
+    &.disabled {
+      user-select: none;
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+  }
+}
+
+.left-title {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+
+  .title {
+    font-size: 18px;
+    color: #191919;
+    text-align: left;
+    line-height: 28px;
+    font-weight: 600;
+    max-width: 224px;
+  }
+}
+
+.divider {
+  background: #f0f0f0;
+  height: 16px;
+  width: 1px;
+}
+
+.basic-font {
+  font-size: 12px;
+  color: #191919;
+  line-height: 18px;
+}
+
+.status-tag {
+  padding: 2px 8px 2px 11px;
+  display: flex;
+  align-items: center;
+  gap: 0 7px;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+  margin-left: 6px;
+  .status-icon {
+    border: 2px solid #c2c2c2;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    &.active {
+      border-color: #5cb300;
+    }
+  }
+}
+
+::ng-deep {
+  #p-kb-tabs {
+    height: calc(100% - 80px);
+    width: 100%;
+
+    .ant-tabs-content {
+      height: calc(100% - 52px);
+    }
+
+    .ant-tabs-nav {
+      margin-bottom: 0;
+    }
+  }
+}
+
+:host {
+  display: block;
+  height: calc(100% - 50px);
+}

@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) Huawei Technologies Co., Ltd. 2023-2023. All rights reserved.
+  -->
+
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.prompt.engineering.mapper.DatasetMapper">
+    <resultMap id="DatasetMap" type="com.openjiuwen.studio.prompt.engineering.dto.DatasetDto">
+        <result column="dataset_id" jdbcType="VARCHAR" property="datasetId"/>
+        <result column="dataset_name" jdbcType="VARCHAR" property="datasetName"/>
+        <result column="dataset_type" jdbcType="VARCHAR" property="datasetType"/>
+        <result column="description" jdbcType="VARCHAR" property="description"/>
+        <result column="project_id" jdbcType="VARCHAR" property="projectId"/>
+        <result column="obs_path" jdbcType="VARCHAR" property="obsPath"/>
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+        <result column="update_time" jdbcType="TIMESTAMP" property="updateTime"/>
+        <result column="workspace_id" jdbcType="VARCHAR" property="workspaceId"/>
+    </resultMap>
+
+    <sql id="datasetColumn">
+        dataset_id
+        , dataset_name, dataset_type, description, project_id, obs_path, create_time, update_time, workspace_id
+    </sql>
+
+    <select id="getDatasetRecords" resultMap="DatasetMap">
+        select
+        <include refid="datasetColumn"/>
+        from t_dataset
+        where project_id = #{dto.projectId} and workspace_id = #{dto.workspaceId}
+        <if test="dto.datasetType != null and dto.datasetType != '' ">
+            and dataset_type = #{dto.datasetType}
+        </if>
+        <if test="dto.datasetName != null and dto.datasetName != '' ">
+            and dataset_name like concat('%',replace(#{dto.datasetName,jdbcType=VARCHAR}, '_', '\_'),'%')
+        </if>
+        ORDER BY create_time desc
+    </select>
+
+    <select id="getDatasetById" resultMap="DatasetMap"
+            parameterType="com.openjiuwen.studio.prompt.engineering.dto.DatasetDto">
+        select
+        <include refid="datasetColumn"/>
+        from t_dataset
+        where project_id = #{projectId}
+        and dataset_id = #{datasetId}
+        and workspace_id = #{workspaceId}
+    </select>
+
+    <select id="getDatasetByName" resultMap="DatasetMap"
+            parameterType="com.openjiuwen.studio.prompt.engineering.dto.DatasetDto">
+        select
+        <include refid="datasetColumn"/>
+        from t_dataset
+        where project_id = #{projectId}
+        and dataset_name = #{datasetName}
+        and workspace_id = #{workspaceId}
+    </select>
+
+    <!-- 创建数据集 -->
+    <insert id="createDataset" parameterType="com.openjiuwen.studio.prompt.engineering.dto.DatasetDto">
+        INSERT INTO t_dataset(dataset_id,
+                                       dataset_name,
+                                       dataset_type,
+                                       description,
+                                       project_id,
+                                       obs_path,
+                                       create_time,
+                                       update_time,
+                                       workspace_id)
+        VALUES (#{dto.datasetId},
+                #{dto.datasetName},
+                #{dto.datasetType},
+                #{dto.description},
+                #{dto.projectId},
+                #{dto.obsPath},
+                #{dto.createTime},
+                #{dto.updateTime},
+                #{dto.workspaceId})
+    </insert>
+
+    <!-- 根据ID删除数据集信息 -->
+    <delete id="deleteDataset" parameterType="java.lang.String">
+        DELETE
+        FROM t_dataset
+        WHERE DATASET_ID = #{datasetId} AND WORKSPACE_ID = #{workspaceId}
+    </delete>
+
+    <select id="isIdExist" resultType="java.lang.Boolean">
+        SELECT 1
+        FROM t_dataset
+        WHERE dataset_id = #{id} AND WORKSPACE_ID = #{workspaceId}
+        LIMIT 1
+    </select>
+
+    <select id="queryDatasetCountByProjectId" resultType="java.lang.Integer">
+        select count(1) from t_dataset where project_id = #{projectId} and dataset_type = #{datasetType} and WORKSPACE_ID = #{workspaceId}
+    </select>
+</mapper>

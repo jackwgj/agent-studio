@@ -1,0 +1,70 @@
+.assert-banner {
+  padding: 16px 24px;
+  height: 100vh;
+}
+
+.banner {
+  height: 200px;
+  width: 100%;
+  background-image: url('../../../assets/app-library/banner-bg.png');
+  background-repeat: no-repeat;
+  border-radius: 8px;
+  background-size: 100% 100%;
+  padding: 62px 64px;
+  position: relative;
+  margin: 16px 0;
+}
+
+.banner-title {
+  font-size: 32px;
+  color: #191919;
+  font-family: 'PingFang SC';
+  font-weight: 500;
+}
+
+.welcome-text {
+  font-size: 12px;
+  line-height: 18px;
+  color: #191919;
+  margin-top: 8px;
+  font-family: PingFang SC;
+  margin-bottom: 8px;
+}
+:host{
+  ::ng-deep {
+    ti-tag + ti-tag {
+      margin-left: 4px !important;
+    }
+
+    #edit-share{
+      padding: 16px 0 16px 20px !important;
+      box-shadow: -4px 0px 6px 0 rgba(0, 0, 0, 0.05) !important;
+      border-left: 1px solid #e1e5eb;
+      overflow: hidden;
+    }
+    .tp-layout-content{
+      padding: 0 48px!important;
+    }
+    .ant-input-affix-wrapper-focused,
+    .ant-input-affix-wrapper:focus,
+    .ant-input-affix-wrapper:hover {
+      border-color: rgb(16, 16, 16) !important;
+      box-shadow: none !important;
+    }
+  }
+}
+
+.header-title {
+  color:#191919;
+  font-size:14px;
+  line-height:34px
+}
+
+.tab-min-width-1 {
+  min-width: 200px;
+  max-width: 45%
+}
+
+.tab-min-width-2 {
+  width: 650px; //组件问题，百分比，最大值都会导致tabs自动缩小
+}

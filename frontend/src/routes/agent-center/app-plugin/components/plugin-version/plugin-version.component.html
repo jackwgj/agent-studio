@@ -1,0 +1,69 @@
+<div *nzModalTitle>{{ 'release_history' | i18nextEager }}</div>
+<div class="h-[700px] overflow-auto">
+  <nz-spin *ngIf="isLoading; else cardList" class="loading-icon" nzSimple></nz-spin>
+  <ng-template #cardList>
+    <div class="flex h-full flex-col items-center justify-center" *ngIf="publishedCards.length === 0; else notEmptyCards">
+      <no-data-icon></no-data-icon>
+      <span>{{ 'no_release_history' | i18nextEager }}</span>
+    </div>
+    <ng-template #notEmptyCards>
+      <div class="release-history-container">
+        <div class="flex gap-[8px] item" [class.active]="selectedTab === -1" (click)="exitPreview()">
+          <div class="flex flex-col items-center gap-[4px]">
+            <div class="hollow-circle current"></div>
+            <div class="vertical-line"></div>
+          </div>
+          <div class="published-card !flex-row items-center">
+            {{ 'current' | i18nextEager }}
+          </div>
+        </div>
+        <!-- 使用*ngFor生成发布卡片 -->
+        <div
+          *ngFor="let card of publishedCards; index as i"
+          class="flex gap-[8px] item"
+          [class.active]="selectedTab === i"
+          (click)="cardClick($event, card, i)"
+        >
+          <div class="flex flex-col items-center gap-[4px]">
+            <div class="hollow-circle"></div>
+            <div class="vertical-line"></div>
+          </div>
+          <div class="published-card">
+            <div class="flex items-center justify-between">
+              <span class="mr-[4px] font-semibold text-[#191919]">
+                {{ card.version_name }}
+              </span>
+            </div>
+            <div class="flex items-center gap-[10px]">
+              <span class="label">ID</span>
+              <span>{{ card.version_id }}</span>
+            </div>
+            <div class="flex items-center gap-[10px]">
+              <span class="label">{{ 'creator' | i18nextEager }}</span>
+              <span>{{ card.creator }}</span>
+            </div>
+            <div class="flex items-center gap-[10px]">
+              <span class="label">{{ 'release_time' | i18nextEager }}</span>
+              <span>{{ card.release_time | formateTime }}</span>
+            </div>
+            <div class="flex items-center gap-[10px]">
+              <span class="label">{{ 'description' | i18nextEager }}</span>
+              <span>{{ card.version_note || '--' }}</span>
+            </div>
+            <div class="action flex items-center">
+              <span nz-icon nzType="delete" nzTheme="outline" class="icon"></span>
+              <a nzTypography (click)="deleteVersionModal($event, card.version_id)">{{ 'delete' | i18nextEager }}</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </ng-template>
+  </ng-template>
+</div>
+<div *nzModalFooter>
+  <nz-space>
+    <button type="button" nz-button nzType="primary" nzDanger (click)="exitPreview()">
+      {{ 'exit_version_preview' | i18nextEager }}
+    </button>
+  </nz-space>
+</div>

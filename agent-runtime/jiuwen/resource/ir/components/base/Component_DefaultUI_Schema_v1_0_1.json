@@ -1,0 +1,62 @@
+{
+  "schemaVersion": "0.5",
+  "type": "jiuwen.DefaultUIComponent",
+  "version": "1.0.1",
+  "description": "输出组件",
+  "classInfo": {
+    "programLanguage": "python",
+    "modulePath": "jiuwen.prompt.components.default_ui",
+    "className": "DefaultUIComponent",
+    "filePath": "jiuwen/prompt/components/default_ui.pyc"
+  },
+  "inputs": [
+    {
+      "id": "actionName",
+      "type": "String",
+      "description": "action名称"
+    },
+    {
+      "id": "displayText",
+      "type": "String",
+      "description": "展示文本"
+    },
+    {
+      "id": "ttsText",
+      "type": "String",
+      "description": "播报文本"
+    },
+    {
+      "id": "cardInfo",
+      "type": "Map<String, T>",
+      "description": "卡片信息"
+    },
+    {
+      "id": "chipsInfo",
+      "type": "Map<String, T>",
+      "description": "chips信息"
+    },
+    {
+      "id": "streamInfo",
+      "type": "Map<String, T>",
+      "description": "流式文本信息"
+    },
+    {
+      "id": "commandInfo",
+      "type": "Map<String, T>",
+      "description": "意图框架指令信息"
+    }
+  ],
+  "outputs": [],
+  "configs": [
+    {
+      "id": "executeMode",
+      "description": "执行模式：批batch或流stream",
+      "type": "String"
+    },
+    {
+      "id": "templates",
+      "type": "List<Json>",
+      "description": "指令模板配置信息"
+    }
+  ]
+}

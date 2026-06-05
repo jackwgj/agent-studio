@@ -1,0 +1,708 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.agent.manager.mapper.WorkflowMapper">
+    <resultMap id="BaseResultMap" type="com.openjiuwen.studio.agent.manager.entity.WorkflowEntity">
+        <id column="id" jdbcType="VARCHAR" property="id"/>
+        <result column="name" jdbcType="VARCHAR" property="name"/>
+        <result column="description" jdbcType="VARCHAR" property="description"/>
+        <result column="code" jdbcType="VARCHAR" property="code"/>
+        <result column="avatar" jdbcType="VARCHAR" property="avatar"/>
+        <result column="icon_name" jdbcType="VARCHAR" property="iconName"/>
+        <result column="dsl_path" jdbcType="VARCHAR" property="dslPath"/>
+        <result column="ir_path" jdbcType="VARCHAR" property="irPath"/>
+        <result column="status" jdbcType="VARCHAR" property="status"/>
+        <result column="trigger_list" jdbcType="VARCHAR" property="triggerList"
+                typeHandler="com.openjiuwen.studio.agent.manager.mapper.handler.TriggerConfigArrayHandler"/>
+        <result column="visibility" jdbcType="VARCHAR" property="visibility"/>
+        <result column="created_at" jdbcType="BIGINT" property="createdAt"/>
+        <result column="updated_at" jdbcType="BIGINT" property="updatedAt"/>
+        <result column="published_at" jdbcType="BIGINT" property="publishedAt"/>
+        <result column="created_by" jdbcType="VARCHAR" property="createdBy"/>
+        <result column="creator_id" jdbcType="VARCHAR" property="creatorId"/>
+        <result column="updated_by" jdbcType="VARCHAR" property="updatedBy"/>
+        <result column="updater_id" jdbcType="VARCHAR" property="updaterId"/>
+        <result column="project_id" jdbcType="VARCHAR" property="projectId"/>
+        <result column="domain_id" jdbcType="VARCHAR" property="domainId"/>
+        <result column="workspace_id" jdbcType="VARCHAR" property="workspaceId"/>
+        <result column="trace_id" jdbcType="VARCHAR" property="traceId"/>
+        <result column="deploy_wf_version" jdbcType="BIGINT" property="deployWfVersion"/>
+        <result column="deleted" jdbcType="TINYINT" property="deleted"/>
+        <result column="workflow_type" jdbcType="VARCHAR" property="workflowType"/>
+        <result column="last_version_id" jdbcType="VARCHAR" property="lastVersionId"/>
+        <result column="test_status" jdbcType="TINYINT" property="testStatus"/>
+        <result column="customize_node" jdbcType="TINYINT" property="customizeNode"/>
+        <result column="is_share" jdbcType="TINYINT" property="isShare"/>
+    </resultMap>
+    <resultMap id="WorkflowVersionMap" type="com.openjiuwen.studio.agent.manager.entity.WorkflowVersionEntity"
+               extends="BaseResultMap">
+        <result column="version_id" jdbcType="VARCHAR" property="versionId"/>
+        <result column="version_name" jdbcType="VARCHAR" property="versionName"/>
+    </resultMap>
+    <sql id="Base_Column_List">
+        <!--@mbg.generated-->
+        id,
+        name,
+        description,
+        code,
+        avatar,
+        icon_name,
+        dsl_path,
+        ir_path,
+        status,
+        trigger_list,
+        visibility,
+        created_at,
+        updated_at,
+        published_at,
+        created_by,
+        creator_id,
+        updated_by,
+        updater_id,
+        project_id,
+        domain_id,
+        workspace_id,
+        trace_id,
+        deploy_wf_version,
+        customize_node,
+        deleted,
+        workflow_type,
+        last_version_id,
+        test_status,
+        is_share
+    </sql>
+    <select id="getAll" resultMap="BaseResultMap">
+        <!--@mbg.generated-->
+        select
+        <include refid="Base_Column_List"/>
+        from t_agent_workflow
+        where deleted = 0
+    </select>
+    <select id="findWorkflowToBeDeleted" resultType="java.lang.String">
+        SELECT id
+        FROM t_agent_workflow
+        WHERE deleted = 1
+          AND updated_at IS NOT NULL
+          AND updated_at &lt;= #{softDeleteTtl}
+    </select>
+    <delete id="deleteByPrimaryKeys">
+        delete
+        from t_agent_workflow
+        where id in
+        <foreach item="id" collection="workflowIds" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+    <select id="getWorkflowEntity" parameterType="java.lang.String" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_agent_workflow
+        where
+        (
+        (project_id = #{projectId,jdbcType=VARCHAR}
+        <if test="workspaceId != null and workspaceId != ''">
+            and workspace_id = #{workspaceId,jdbcType=VARCHAR}
+        </if>)
+        or project_id = #{opProjectId,jdbcType=VARCHAR}
+        )
+        and id = #{id,jdbcType=VARCHAR}
+        and deleted = 0
+    </select>
+    <select id="getWorkflowEntityByWorkspaceId" parameterType="java.lang.String" resultMap="BaseResultMap">
+        <!--@mbg.generated-->
+        select
+        <include refid="Base_Column_List"/>
+        from t_agent_workflow
+        where project_id = #{projectId,jdbcType=VARCHAR} and id = #{id,jdbcType=VARCHAR} and deleted = 0
+        <if test="workspaceId != null and workspaceId != ''">
+            and workspace_id = #{workspaceId,jdbcType=VARCHAR}
+        </if>
+    </select>
+    <select id="getAllWorkflowEntity" parameterType="java.lang.String" resultMap="BaseResultMap">
+        <!--@mbg.generated-->
+        select
+        <include refid="Base_Column_List"/>
+        from t_agent_workflow
+        where project_id = #{projectId,jdbcType=VARCHAR} and id = #{id,jdbcType=VARCHAR} and creator_id = #{creatorId,jdbcType=VARCHAR} and workspace_id = #{workspaceId,jdbcType=VARCHAR}
+    </select>
+    <select id="getWorkflowEntityByStatus" resultMap="BaseResultMap">
+        <!--@mbg.generated-->
+        select
+        <include refid="Base_Column_List"/>
+        from t_agent_workflow
+        where status = #{status,jdbcType=VARCHAR} and id = #{id,jdbcType=VARCHAR} and deleted = 0
+    </select>
+    <select id="getWorkflowEntityByIds" resultMap="BaseResultMap">
+        <!--@mbg.generated-->
+        select
+        <include refid="Base_Column_List"/>
+        from t_agent_workflow
+        where deleted = 0
+        <if test="projectId != null">
+            and project_id = #{projectId,jdbcType=VARCHAR}
+        </if>
+        <if test="workspaceId != null">
+            and workspace_id = #{workspaceId,jdbcType=VARCHAR}
+        </if>
+        <if test="ids != null and ids.size() > 0">
+            and id in
+            <foreach item="id" collection="ids" open="(" separator="," close=")">
+                #{id,jdbcType=VARCHAR}
+            </foreach>
+        </if>
+    </select>
+    <insert id="createWorkflowEntity" parameterType="com.openjiuwen.studio.agent.manager.entity.WorkflowEntity">
+        insert into t_agent_workflow (id, name, description, code, avatar, dsl_path, ir_path, status, trigger_list,
+                                      visibility,
+                                      created_at, updated_at, published_at, created_by, creator_id, updated_by,
+                                      updater_id,
+                                      project_id, domain_id, workspace_id, deploy_wf_version, deleted, workflow_type,
+                                      last_version_id, test_status, icon_name, trace_id)
+        values (#{id,jdbcType=VARCHAR}, #{name,jdbcType=VARCHAR}, #{description,jdbcType=VARCHAR},
+                #{code,jdbcType=VARCHAR},
+                #{avatar,jdbcType=VARCHAR}, #{dslPath,jdbcType=VARCHAR}, #{irPath,jdbcType=VARCHAR},
+                #{status,jdbcType=VARCHAR},
+                #{triggerList,jdbcType=VARCHAR},
+                #{visibility,jdbcType=VARCHAR}, #{createdAt,jdbcType=BIGINT}, #{updatedAt,jdbcType=BIGINT},
+                #{publishedAt,jdbcType=BIGINT}, #{createdBy,jdbcType=VARCHAR}, #{creatorId,jdbcType=VARCHAR},
+                #{updatedBy,jdbcType=VARCHAR}, #{updaterId,jdbcType=VARCHAR}, #{projectId,jdbcType=VARCHAR},
+                #{domainId,jdbcType=VARCHAR}, #{workspaceId,jdbcType=INTEGER}, #{deployWfVersion,jdbcType=BIGINT},
+                #{deleted,jdbcType=TINYINT}, #{workflowType,jdbcType=VARCHAR}, #{lastVersionId,jdbcType=VARCHAR},
+                #{testStatus,jdbcType=VARCHAR}, #{iconName,jdbcType=VARCHAR}, #{traceId,jdbcType=VARCHAR})
+    </insert>
+
+    <insert id="insertWorkflowEntity">
+        INSERT INTO t_agent_workflow (id, name, description, code, avatar, dsl_path, ir_path, status, trigger_list,
+                                      visibility,
+                                      created_at, updated_at, published_at, created_by, creator_id, updated_by,
+                                      updater_id,
+                                      project_id, domain_id, workspace_id, deploy_wf_version, deleted, workflow_type,
+                                      last_version_id, test_status, icon_name, trace_id)
+        VALUES (#{id,jdbcType=VARCHAR}, #{name,jdbcType=VARCHAR}, #{description,jdbcType=VARCHAR},
+                #{code,jdbcType=VARCHAR},
+                #{avatar,jdbcType=VARCHAR}, #{dslPath,jdbcType=VARCHAR}, #{irPath,jdbcType=VARCHAR},
+                #{status,jdbcType=VARCHAR},
+                #{triggerList,jdbcType=VARCHAR},
+                #{visibility,jdbcType=VARCHAR}, #{createdAt,jdbcType=BIGINT}, #{updatedAt,jdbcType=BIGINT},
+                #{publishedAt,jdbcType=BIGINT}, #{createdBy,jdbcType=VARCHAR}, #{creatorId,jdbcType=VARCHAR},
+                #{updatedBy,jdbcType=VARCHAR}, #{updaterId,jdbcType=VARCHAR}, #{projectId,jdbcType=VARCHAR},
+                #{domainId,jdbcType=VARCHAR}, #{workspaceId,jdbcType=INTEGER}, #{deployWfVersion,jdbcType=BIGINT},
+                #{deleted,jdbcType=TINYINT}, #{workflowType,jdbcType=VARCHAR}, #{lastVersionId,jdbcType=VARCHAR},
+                #{testStatus,jdbcType=VARCHAR}, #{iconName,jdbcType=VARCHAR}, #{traceId,jdbcType=VARCHAR})
+    </insert>
+
+    <update id="updateWorkflowEntity" parameterType="com.openjiuwen.studio.agent.manager.entity.WorkflowEntity">
+        update t_agent_workflow
+        set
+        <if test="workflowEntity.name!=null and workflowEntity.name !=''">
+            name=#{workflowEntity.name},
+        </if>
+        <if test="workflowEntity.description!=null and workflowEntity.description !=''">
+            description=#{workflowEntity.description},
+        </if>
+        <if test="workflowEntity.code!=null and workflowEntity.code !=''">
+            code=#{workflowEntity.code},
+        </if>
+        <if test="workflowEntity.avatar!=null and workflowEntity.avatar !=''">
+            avatar=#{workflowEntity.avatar},
+        </if>
+        <if test="workflowEntity.iconName!=null and workflowEntity.iconName !=''">
+            icon_name=#{workflowEntity.iconName},
+        </if>
+        <if test="workflowEntity.dslPath!=null and workflowEntity.dslPath !=''">
+            dsl_path=#{workflowEntity.dslPath},
+        </if>
+        <if test="workflowEntity.irPath!=null and workflowEntity.irPath !=''">
+            ir_path=#{workflowEntity.irPath},
+        </if>
+        <if test="workflowEntity.status!=null and workflowEntity.status !=''">
+            status=#{workflowEntity.status},
+        </if>
+        <if test="workflowEntity.triggerList != null">
+            trigger_list = #{workflowEntity.triggerList,jdbcType=VARCHAR,typeHandler=com.openjiuwen.studio.agent.manager.mapper.handler.TriggerConfigArrayHandler},
+        </if>
+        <if test="workflowEntity.visibility!=null and workflowEntity.visibility !=''">
+            visibility=#{workflowEntity.visibility},
+        </if>
+        <if test="workflowEntity.createdAt!=null">
+            created_at=#{workflowEntity.createdAt},
+        </if>
+        <if test="workflowEntity.publishedAt!=null">
+            published_at=#{workflowEntity.publishedAt},
+        </if>
+        <if test="workflowEntity.createdBy!=null and workflowEntity.createdBy !=''">
+            created_by=#{workflowEntity.createdBy},
+        </if>
+        <if test="workflowEntity.creatorId!=null and workflowEntity.creatorId !=''">
+            creator_id=#{workflowEntity.creatorId},
+        </if>
+        <if test="workflowEntity.updatedBy!=null and workflowEntity.updatedBy !=''">
+            updated_by=#{workflowEntity.updatedBy},
+        </if>
+        <if test="workflowEntity.updaterId!=null and workflowEntity.updaterId !=''">
+            updater_id=#{workflowEntity.updaterId},
+        </if>
+        <if test="workflowEntity.projectId!=null and workflowEntity.projectId !=''">
+            project_id=#{workflowEntity.projectId},
+        </if>
+        <if test="workflowEntity.domainId!=null and workflowEntity.domainId !=''">
+            domain_id=#{workflowEntity.domainId},
+        </if>
+        <if test="workflowEntity.workspaceId!=null and workflowEntity.workspaceId !=''">
+            workspace_id=#{workflowEntity.workspaceId},
+        </if>
+        <if test="workflowEntity.customizeNode!=null">
+            customize_node=#{workflowEntity.customizeNode},
+        </if>
+        <if test="workflowEntity.deployWfVersion!=null">
+            deploy_wf_version=#{workflowEntity.deployWfVersion},
+        </if>
+        <if test="workflowEntity.deleted!=null">
+            deleted=#{workflowEntity.deleted},
+        </if>
+        <if test="workflowEntity.workflowType!=null">
+            workflow_type=#{workflowEntity.workflowType},
+        </if>
+        <if test="workflowEntity.lastVersionId!=null">
+            last_version_id=#{workflowEntity.lastVersionId},
+        </if>
+        <if test="workflowEntity.testStatus!=null">
+            test_status=#{workflowEntity.testStatus},
+        </if>
+        id=#{id,jdbcType=VARCHAR},updated_at=#{workflowEntity.updatedAt}
+        where
+        1=1
+        <if test="projectId!=null">
+            and project_id = #{projectId,jdbcType=VARCHAR}
+        </if>
+        <if test="id!=null">
+            and id = #{id,jdbcType=VARCHAR}
+        </if>
+    </update>
+    <update id="updateWorkflowTransactionalId" parameterType="java.lang.String">
+        update t_agent_workflow
+        set id=#{id,jdbcType=VARCHAR}
+        where id = #{id,jdbcType=VARCHAR}
+          and project_id = #{projectId,jdbcType=VARCHAR}
+          and workspace_id= #{workspaceId,jdbcType=VARCHAR}
+    </update>
+
+    <update id="updateWorkflowEntityByTraceId">
+        update t_agent_workflow
+        <trim prefix="set" suffixOverrides=",">
+            <if test="workflowEntity.name!=null and workflowEntity.name !=''">
+                name = #{workflowEntity.name},
+            </if>
+            <if test="workflowEntity.description != null and workflowEntity.description != ''">
+                description = #{workflowEntity.description},
+            </if>
+            <if test="workflowEntity.code != null and workflowEntity.code != ''">
+                code = #{workflowEntity.code},
+            </if>
+            <if test="workflowEntity.avatar != null and workflowEntity.avatar != ''">
+                avatar = #{workflowEntity.avatar},
+            </if>
+            <if test="workflowEntity.iconName != null and workflowEntity.iconName != ''">
+                icon_name = #{workflowEntity.iconName},
+            </if>
+            <if test="workflowEntity.dslPath != null and workflowEntity.dslPath != ''">
+                dsl_path = #{workflowEntity.dslPath},
+            </if>
+            <if test="workflowEntity.irPath != null and workflowEntity.irPath != ''">
+                ir_path = #{workflowEntity.irPath},
+            </if>
+            <if test="workflowEntity.triggerList != null">
+                trigger_list = #{workflowEntity.triggerList,jdbcType=VARCHAR,typeHandler=com.openjiuwen.studio.agent.manager.mapper.handler.TriggerConfigArrayHandler},
+            </if>
+            <if test="workflowEntity.visibility != null and workflowEntity.visibility != ''">
+                visibility = #{workflowEntity.visibility},
+            </if>
+            <if test="workflowEntity.publishedAt != null">
+                published_at = #{workflowEntity.publishedAt},
+            </if>
+            <if test="workflowEntity.updatedBy != null and workflowEntity.updatedBy != ''">
+                updated_by = #{workflowEntity.updatedBy},
+            </if>
+            <if test="workflowEntity.updaterId != null and workflowEntity.updaterId != ''">
+                updater_id = #{workflowEntity.updaterId},
+            </if>
+            <if test="workflowEntity.customizeNode != null">
+                customize_node = #{workflowEntity.customizeNode},
+            </if>
+            <if test="workflowEntity.deployWfVersion != null">
+                deploy_wf_version = #{workflowEntity.deployWfVersion},
+            </if>
+            <if test="workflowEntity.workflowType != null">
+                workflow_type = #{workflowEntity.workflowType},
+            </if>
+            <if test="workflowEntity.lastVersionId != null">
+                last_version_id = #{workflowEntity.lastVersionId},
+            </if>
+            updated_at=#{workflowEntity.updatedAt}
+        </trim>
+        where
+        <trim prefixOverrides="and">
+            <if test="projectId != null">
+                and project_id = #{projectId,jdbcType=VARCHAR}
+            </if>
+            <if test="traceId != null">
+                and trace_id = #{traceId,jdbcType=VARCHAR}
+            </if>
+            <if test="workspaceId != null">
+                and workspace_id = #{workspaceId,jdbcType=VARCHAR}
+            </if>
+        </trim>
+    </update>
+
+    <delete id="deleteByPrimaryKey" parameterType="map">
+        delete
+        from t_agent_workflow
+        where id = #{id,jdbcType=VARCHAR}
+          and project_id = #{projectId,jdbcType=VARCHAR}
+    </delete>
+    <select id="selectByWorkflowSearchCriteria" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_agent_workflow
+        where project_id = #{projectId,jdbcType=VARCHAR} and deleted = 0
+        <if test="workflowSearchCriteria != null and workflowSearchCriteria.id != null">
+            and id = #{workflowSearchCriteria.id,jdbcType=VARCHAR}
+        </if>
+        <if test="workflowSearchCriteria != null and workflowSearchCriteria.workspaceId != null">
+            and workspace_id = #{workflowSearchCriteria.workspaceId,jdbcType=VARCHAR}
+        </if>
+        <if test="workflowSearchCriteria != null and workflowSearchCriteria.name != null">
+            and `name` like concat('%', #{workflowSearchCriteria.name,jdbcType=VARCHAR}, '%') escape '!'
+        </if>
+        <if test="workflowSearchCriteria != null and workflowSearchCriteria.description != null">
+            and description like concat('%', #{workflowSearchCriteria.description,jdbcType=VARCHAR}, '%') escape '!'
+        </if>
+        <if test="workflowSearchCriteria != null and workflowSearchCriteria.creator != null">
+            and created_by like concat('%', #{workflowSearchCriteria.creator,jdbcType=VARCHAR}, '%') escape '!'
+        </if>
+        <if test="workflowSearchCriteria != null and workflowSearchCriteria.type != null">
+            and workflow_type = #{workflowSearchCriteria.type,jdbcType=VARCHAR}
+        </if>
+        <if test="workflowSearchCriteria != null and workflowSearchCriteria.code != null">
+            and code like concat('%', #{workflowSearchCriteria.code,jdbcType=VARCHAR}, '%') escape '!'
+        </if>
+        <if test="workflowSearchCriteria != null">
+            <if test="workflowSearchCriteria.isCustomizeNode() == true">
+                and customize_node = 1
+            </if>
+            <if test="workflowSearchCriteria.isCustomizeNode() == false">
+                and (customize_node is null or customize_node!=1)
+            </if>
+        </if>
+        <if test="workflowSearchCriteria != null and workflowSearchCriteria.status != null">
+            and status = #{workflowSearchCriteria.status,jdbcType=VARCHAR}
+        </if>
+        order by updated_at desc
+    </select>
+    <select id="selectLastVersionByWorkflowSearchCriteria" parameterType="map" resultMap="WorkflowVersionMap">
+        select w.*,r.version_id,r.version_name
+        from
+        (
+        select
+        <include refid="Base_Column_List"/>
+        from t_agent_workflow
+        where project_id = #{projectId,jdbcType=VARCHAR} and deleted = 0
+        <if test="workflowSearchCriteria != null and workflowSearchCriteria.id != null">
+            and id in
+            <foreach collection="workflowSearchCriteria.id" item="workflow_id" index="index" open="(" close=")"
+                     separator=",">
+                #{workflow_id}
+            </foreach>
+        </if>
+        <if test="workflowSearchCriteria != null and workflowSearchCriteria.name != null">
+            and `name` like concat('%', #{workflowSearchCriteria.name,jdbcType=VARCHAR}, '%') escape '!'
+        </if>
+        <if test="workflowSearchCriteria != null and workflowSearchCriteria.description != null">
+            and description like concat('%', #{workflowSearchCriteria.description,jdbcType=VARCHAR}, '%') escape '!'
+        </if>
+        <if test="workflowSearchCriteria != null and workflowSearchCriteria.creator != null">
+            and created_by like concat('%', #{workflowSearchCriteria.creator,jdbcType=VARCHAR}, '%') escape '!'
+        </if>
+        <if test="workflowSearchCriteria != null and workflowSearchCriteria.type != null">
+            and workflow_type = #{workflowSearchCriteria.type,jdbcType=VARCHAR}
+        </if>
+        <if test="workflowSearchCriteria != null and workflowSearchCriteria.workspaceId != null">
+            and workspace_id = #{workflowSearchCriteria.workspaceId,jdbcType=VARCHAR}
+        </if>
+        and last_version_id is not null
+        ) as w inner join t_release_version as r on w.id=r.app_id and w.last_version_id=r.version_id and r.app_type='workflow'
+        order by COALESCE(w.published_at, w.updated_at) desc
+    </select>
+    <select id="selectByCreatorId" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_agent_workflow
+        where creator_id = #{creatorId,jdbcType=VARCHAR} and project_id = #{projectId,jdbcType=VARCHAR} and deleted = 0
+        <if test="workflowSearchCriteria != null and workflowSearchCriteria.id != null">
+            and id = #{workflowSearchCriteria.id,jdbcType=VARCHAR}
+        </if>
+        <if test="workflowSearchCriteria != null and workflowSearchCriteria.workspaceId != null">
+            and workspace_id = #{workflowSearchCriteria.workspaceId,jdbcType=VARCHAR}
+        </if>
+        <if test="workflowSearchCriteria != null and workflowSearchCriteria.name != null">
+            and `name` like concat('%', #{workflowSearchCriteria.name,jdbcType=VARCHAR}, '%')
+        </if>
+        <if test="workflowSearchCriteria != null and workflowSearchCriteria.description != null">
+            and description like concat('%', #{workflowSearchCriteria.description,jdbcType=VARCHAR}, '%')
+        </if>
+        <if test="workflowSearchCriteria != null and workflowSearchCriteria.creator != null">
+            and created_by like concat('%', #{workflowSearchCriteria.creator,jdbcType=VARCHAR}, '%')
+        </if>
+        <if test="workflowSearchCriteria != null and workflowSearchCriteria.type != null">
+            and workflow_type = #{workflowSearchCriteria.type,jdbcType=VARCHAR}
+        </if>
+        <if test="workflowSearchCriteria != null and workflowSearchCriteria.code != null">
+            and code like concat('%', #{workflowSearchCriteria.code,jdbcType=VARCHAR}, '%')
+        </if>
+        <if test="workflowSearchCriteria != null">
+            <if test="workflowSearchCriteria.isCustomizeNode() == true">
+                and customize_node = 1
+            </if>
+            <if test="workflowSearchCriteria.isCustomizeNode() == false">
+                and (customize_node is null or customize_node!=1)
+            </if>
+        </if>
+        order by updated_at desc
+    </select>
+    <select id="getAvailableWorkflowEntity" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_agent_workflow
+        where creator_id = #{creatorId,jdbcType=VARCHAR} and project_id = #{projectId,jdbcType=VARCHAR} and workspace_id = #{workspaceId,jdbcType=VARCHAR} and deleted = 0
+        order by updated_at desc
+    </select>
+    <select id="getAvailableWorkflowEntityByWorkspaceId" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_agent_workflow
+        where project_id = #{projectId,jdbcType=VARCHAR} and workspace_id = #{workspaceId,jdbcType=VARCHAR} and deleted = 0
+        order by updated_at desc
+    </select>
+    <select id="getWorkflowEntityByFilter" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_agent_workflow
+        where deleted = 0
+        <if test="workflowEntity != null and workflowEntity.id != null">
+            and id = #{workflowEntity.id,jdbcType=VARCHAR}
+        </if>
+        <if test="workflowEntity != null and workflowEntity.name != null">
+            and name = #{workflowEntity.name,jdbcType=VARCHAR}
+        </if>
+        <if test="workflowEntity != null and workflowEntity.code != null">
+            and code = #{workflowEntity.code,jdbcType=VARCHAR}
+        </if>
+        <if test="workflowEntity != null and workflowEntity.description != null">
+            and description = #{workflowEntity.description,jdbcType=VARCHAR}
+        </if>
+        <if test="workflowEntity != null and workflowEntity.avatar != null">
+            and avatar = #{workflowEntity.avatar,jdbcType=VARCHAR}
+        </if>
+        <if test="workflowEntity != null and workflowEntity.iconName != null">
+            and icon_name = #{workflowEntity.iconName,jdbcType=VARCHAR}
+        </if>
+        <if test="workflowEntity != null and workflowEntity.dslPath != null">
+            and dsl_path = #{workflowEntity.dslPath,jdbcType=VARCHAR}
+        </if>
+        <if test="workflowEntity != null and workflowEntity.irPath != null">
+            and irPath = #{workflowEntity.irPath,jdbcType=VARCHAR}
+        </if>
+        <if test="workflowEntity != null and workflowEntity.status != null">
+            and status = #{workflowEntity.status,jdbcType=VARCHAR}
+        </if>
+        <if test="workflowEntity != null and workflowEntity.triggerList != null">
+            and trigger_list = #{workflowEntity.triggerList,jdbcType=VARCHAR},
+        </if>
+        <if test="workflowEntity != null and workflowEntity.visibility != null">
+            and visibility = #{workflowEntity.visibility,jdbcType=VARCHAR}
+        </if>
+        <if test="workflowEntity != null and workflowEntity.createdAt != null">
+            and created_at = #{workflowEntity.createdOn,jdbcType=BIGINT}
+        </if>
+        <if test="workflowEntity != null and workflowEntity.updatedAt != null">
+            and updated_at = #{workflowEntity.updatedOn,jdbcType=BIGINT}
+        </if>
+        <if test="workflowEntity != null and workflowEntity.publishedAt != null">
+            and published_at = #{workflowEntity.publishedOn,jdbcType=BIGINT}
+        </if>
+        <if test="workflowEntity != null and workflowEntity.createdBy != null">
+            and created_by = #{workflowEntity.createdBy,jdbcType=VARCHAR}
+        </if>
+        <if test="workflowEntity != null and workflowEntity.creatorId != null">
+            and creator_id = #{workflowEntity.creatorId,jdbcType=VARCHAR}
+        </if>
+        <if test="workflowEntity != null and workflowEntity.updatedBy != null">
+            and updated_by = #{workflowEntity.updatedBy,jdbcType=VARCHAR}
+        </if>
+        <if test="workflowEntity != null and workflowEntity.updaterId != null">
+            and updater_id = #{workflowEntity.updaterId,jdbcType=VARCHAR}
+        </if>
+        <if test="workflowEntity != null and workflowEntity.projectId != null">
+            and project_id = #{workflowEntity.projectId,jdbcType=VARCHAR}
+        </if>
+        <if test="workflowEntity != null and workflowEntity.domainId != null">
+            and domain_id = #{workflowEntity.domainId,jdbcType=VARCHAR}
+        </if>
+        <if test="workflowEntity != null and workflowEntity.workspaceId != null">
+            and workspace_id = #{workflowEntity.workspaceId,jdbcType=INTEGER}
+        </if>
+        <if test="workflowEntity != null and workflowEntity.deployWfVersion != null">
+            and deploy_wf_version = #{workflowEntity.deployWfVersion,jdbcType=BIGINT}
+        </if>
+        <if test="workflowEntity != null and workflowEntity.workflowType != null">
+            and workflow_type = #{workflowEntity.workflowType,jdbcType=VARCHAR}
+        </if>
+    </select>
+    <select id="selectByWorkflowIds" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_agent_workflow
+        where project_id = #{projectId,jdbcType=VARCHAR}
+        <if test="workspaceId != null and workspaceId != ''">
+            and workspace_id = #{workspaceId,jdbcType=VARCHAR}
+        </if>
+        and id in
+        <choose>
+            <when test="workflowIds != null and workflowIds.size() > 0">
+                <foreach collection="workflowIds" separator="," open="(" close=")" item="id">
+                    #{id}
+                </foreach>
+            </when>
+            <when test="workflowIds == null or workflowIds.size() == 0">
+                (null)
+            </when>
+        </choose>
+    </select>
+    <select id="getWorkflowById" parameterType="java.lang.String" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_agent_workflow
+        where id = #{id,jdbcType=VARCHAR}
+    </select>
+    <select id="selectWithQuoteNums" parameterType="map" resultMap="BaseResultMap">
+        select id, name, description, coalesce(workflow_quote.quote_nums, 0) as quote_nums
+        from t_agent_workflow
+                 left join (select resource_id, count(*) as quote_nums
+                            from t_mapping
+                            where resource_type = 'workflow'
+                            group by resource_id
+                            order by quote_nums desc) as workflow_quote
+                           on t_agent_workflow.id = workflow_quote.resource_id
+        where project_id = #{projectId,jdbcType=VARCHAR}
+        order by quote_nums desc limit #{limitNums,jdbcType=INTEGER}
+    </select>
+    <select id="selectByNameAndCreatorId" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_agent_workflow
+        where name = #{name,jdbcType=VARCHAR}
+        and creator_id = #{creatorId,jdbcType=VARCHAR}
+    </select>
+    <select id="selectCustomizeNodeCountByProjectId" parameterType="map" resultType="int">
+        select count(*)
+        from t_agent_workflow
+        where project_id = #{projectId,jdbcType=VARCHAR}
+          and workspace_id = #{workspaceId,jdbcType=VARCHAR}
+          and customize_node = 1
+    </select>
+
+    <select id="selectByWorkflowIdAndResourceId" parameterType="map" resultType="int">
+        select count(*)
+        from t_agent_workflow a
+                 left join t_mapping m on a.id = m.app_id
+        where a.project_id = #{projectId,jdbcType=VARCHAR}
+          and a.workspace_id = #{workspaceId,jdbcType=VARCHAR}
+          and m.resource_id = #{resourceId,jdbcType=VARCHAR}
+          and m.resource_type = #{resourceType,jdbcType=VARCHAR}
+    </select>
+
+    <select id="selectByTraceId"
+            resultType="com.openjiuwen.studio.agent.manager.entity.WorkflowEntity">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM t_agent_workflow
+        WHERE trace_id = #{traceId}
+        AND project_id = #{projectId}
+        AND workspace_id = #{workspaceId}
+        AND deleted = 0
+    </select>
+
+    <select id="selectByWorkflowId"
+            resultType="com.openjiuwen.studio.agent.manager.entity.WorkflowEntity">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM t_agent_workflow
+        WHERE id = #{id}
+        AND workspace_id = #{workspaceId}
+        AND project_id = #{projectId}
+        AND deleted = 0
+    </select>
+
+    <select id="countWorkflowCountByDomainId" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM t_agent_workflow
+        WHERE domain_id = #{domainId}
+          AND deleted = 0
+    </select>
+
+    <select id="selectByWorkflowIdList"
+            resultType="com.openjiuwen.studio.agent.manager.entity.WorkflowEntity">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM t_agent_workflow
+        WHERE project_id = #{projectId,jdbcType=VARCHAR}
+        <if test="workspaceId != null and workspaceId != ''">
+            AND workspace_id = #{workspaceId,jdbcType=VARCHAR}
+        </if>
+        <if test="workflowIdList != null and workflowIdList.size() > 0">
+            AND id IN
+            <foreach collection="workflowIdList" separator="," open="(" close=")" item="id">
+                #{id}
+            </foreach>
+        </if>
+        AND deleted = 0
+    </select>
+
+
+    <select id="queryWorkflowList" resultType="com.openjiuwen.studio.agent.manager.entity.WorkflowEntity">
+        select
+        <include refid="Base_Column_List"/>
+        from t_agent_workflow where deleted =0 ORDER BY workspace_id,id limit #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countWorkflowIdInDb" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM t_agent_workflow
+        WHERE id = #{workflowId}
+    </select>
+
+    <update id="updateProjectIdByIds" parameterType="java.util.Map">
+        UPDATE t_agent_workflow
+        SET project_id = #{opSvcProjectId}
+        WHERE id IN
+        <foreach collection="workflowIds" item="workflowId" separator="," open="(" close=")">
+            #{workflowId}
+        </foreach>
+    </update>
+
+    <update id="updateWorkflowShareStatus">
+        UPDATE t_agent_workflow
+        SET is_share = #{status}
+        WHERE id = #{workflowId}
+    </update>
+
+    <select id="countWorkflowMetric" resultType="double">
+        select count(*) from t_agent_workflow where deleted =0 AND workspace_id = #{workspaceId}
+        AND project_id = #{projectId}
+        <if test="agentMetricRequest.agentStatus!=null and agentMetricRequest.agentStatus!=''">
+            and status = #{agentMetricRequest.agentStatus}
+        </if>
+        <if test="agentMetricRequest.metricType == 'created'">
+            and created_at >= #{startTime} and created_at &lt; #{endTime}
+        </if>
+    </select>
+</mapper>

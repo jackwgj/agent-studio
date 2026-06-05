@@ -1,0 +1,133 @@
+.card {
+  background-color: #fafafa;
+  min-height: 72px;
+  width: 100%;
+  border-radius: 8px;
+  box-sizing: border-box;
+  padding: 16px 16px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  margin-bottom: 16px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  &:hover {
+    border-color: #1476ff;
+  }
+
+  .info {
+    display: flex;
+  }
+}
+
+.cards-wrapper {
+  height: 100%;
+  width: 100%;
+  overflow: auto;
+
+  .add-btn-wrap {
+    display: flex;
+    align-items: center;
+
+    .add-btn {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+      border: 1px solid #c2c2c2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 8px;
+
+      .add-icon {
+        font-size: 12px;
+      }
+    }
+
+    &:hover {
+      .add-btn {
+        border-color: #191919;
+      }
+    }
+  }
+
+  .arrow-up-icon,
+  .arrow-right-icon {
+    color: #1476ff;
+    font-size: 16px;
+  }
+}
+
+::ng-deep {
+  #flow-add-tool-modal {
+    .ti3-tab-content {
+      height: calc(100% - 52px);
+      border-top-color: transparent;
+    }
+  }
+
+  .ti3-modal-footer {
+    .ti3-checkbox-label {
+      line-height: 20px;
+    }
+  }
+}
+
+.sure-tips {
+  box-shadow: 0 6px 12px 6px rgba(0, 0, 0, 0.08);
+
+  &::after {
+    display: block;
+    width: 12px;
+    height: 12px;
+    margin: auto;
+    background-color: #fff;
+    content: "";
+    border-radius: 0 0 2px;
+    pointer-events: none;
+    transform: translateY(-8px) rotate(45deg);
+    position: absolute;
+    bottom: -14px;
+    right: 20px;
+  }
+}
+
+.warn-icon {
+  font-size: 16px;
+  color: #FA9841;
+  margin-right: 9px;
+}
+
+.content-type-option {
+  cursor: pointer;
+  height: 24px;
+  padding: 3px 16px 3px 16px;
+
+  .content-type-option-label{
+    height: 18px;
+    color: rgba(89, 89, 89, 1);
+    font-family: PingFang SC;
+    font-size: 12px;
+    line-height: 18px;
+    letter-spacing: 0px;
+    text-align: left;
+  }
+}
+
+.content-type-selector {
+  border-radius: 2px;
+  background: rgba(245, 245, 245, 1);
+  display: flex;
+}
+.is-selected{
+  box-sizing: border-box;
+  border: 1px solid rgba(25, 25, 25, 1);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 1);
+  .content-type-option-label{
+    font-weight: 600;
+    color:rgba(25, 25, 25, 1);
+  }
+}

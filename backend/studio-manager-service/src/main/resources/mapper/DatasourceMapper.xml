@@ -1,0 +1,251 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.agent.manager.mapper.DatasourceMapper">
+    <resultMap id="BaseResultMap" type="com.openjiuwen.studio.agent.manager.entity.DatasourceEntity">
+        <!--@mbg.generated-->
+        <!--@Table t_agent_datasource-->
+        <id column="id" jdbcType="VARCHAR" property="id" />
+        <result column="project_id" jdbcType="VARCHAR" property="projectId" />
+        <result column="workspace_id" jdbcType="VARCHAR" property="workspaceId" />
+        <result column="domain_id" jdbcType="VARCHAR" property="domainId" />
+        <result column="name" jdbcType="VARCHAR" property="name" />
+        <result column="type" jdbcType="VARCHAR" property="type" />
+        <result column="desc" jdbcType="VARCHAR" property="desc" />
+        <result column="internet_access" jdbcType="VARCHAR" property="internetAccess" />
+        <result column="instance_id" jdbcType="VARCHAR" property="instanceId" />
+        <result column="instance_name" jdbcType="VARCHAR" property="instanceName" />
+        <result column="connection_info" jdbcType="VARCHAR" property="connectionInfo" />
+        <result column="status" jdbcType="VARCHAR" property="status" />
+        <result column="last_error_message" jdbcType="VARCHAR" property="lastErrorMessage" />
+        <result column="created_by" jdbcType="VARCHAR" property="createdBy"/>
+        <result column="creator_id" jdbcType="VARCHAR" property="creatorId" />
+        <result column="created_on" jdbcType="TIMESTAMP" property="createdOn" />
+        <result column="updated_by" jdbcType="VARCHAR" property="updatedBy"/>
+        <result column="updater_id" jdbcType="VARCHAR" property="updaterId" />
+        <result column="updated_on" jdbcType="TIMESTAMP" property="updatedOn" />
+    </resultMap>
+    <sql id="Base_Column_List">
+        <!--@mbg.generated-->
+        id,
+        project_id,
+        workspace_id,
+        domain_id,
+        `name`,
+        `type`,
+        `desc`,
+        internet_access,
+        instance_id,
+        instance_name,
+        connection_info,
+        status,
+        last_error_message,
+        created_by,
+        creator_id,
+        created_on,
+        updated_by,
+        updater_id,
+        updated_on
+    </sql>
+    <sql id="Base_Column_List_Pg">
+        <!--@mbg.generated-->
+        id,
+        project_id,
+        workspace_id,
+        domain_id,
+        `name`,
+        `type`,
+        `desc`,
+        internet_access,
+        instance_id,
+        instance_name,
+        connection_info,
+        status,
+        last_error_message,
+        created_by,
+        creator_id,
+        created_on,
+        updated_by,
+        updater_id,
+        updated_on
+    </sql>
+    <insert id="createDatasourceEntity"
+        parameterType="com.openjiuwen.studio.agent.manager.entity.DatasourceEntity">
+        insert into t_agent_datasource (id, project_id, workspace_id, domain_id, `name`, `type`, `desc`, internet_access,
+                                        instance_id,
+                                        instance_name, connection_info, status, last_error_message, created_by,
+                                        creator_id, created_on, updated_by, updater_id, updated_on)
+        values (#{datasourceEntity.id,jdbcType=VARCHAR}, #{datasourceEntity.projectId,jdbcType=VARCHAR},
+                #{datasourceEntity.workspaceId,jdbcType=VARCHAR},
+                #{datasourceEntity.domainId,jdbcType=VARCHAR},
+                #{datasourceEntity.name,jdbcType=VARCHAR}, #{datasourceEntity.type,jdbcType=VARCHAR},
+                #{datasourceEntity.desc,jdbcType=VARCHAR}, #{datasourceEntity.internetAccess,jdbcType=VARCHAR},
+                #{datasourceEntity.instanceId,jdbcType=VARCHAR}, #{datasourceEntity.instanceName,jdbcType=VARCHAR},
+                #{datasourceEntity.connectionInfo,jdbcType=VARCHAR}, #{datasourceEntity.status,jdbcType=VARCHAR},
+                #{datasourceEntity.lastErrorMessage,jdbcType=VARCHAR}, #{datasourceEntity.createdBy,jdbcType=VARCHAR},
+                #{datasourceEntity.creatorId,jdbcType=VARCHAR}, #{datasourceEntity.createdOn,jdbcType=TIMESTAMP},
+                #{datasourceEntity.updatedBy,jdbcType=VARCHAR}, #{datasourceEntity.updaterId,jdbcType=VARCHAR},
+                #{datasourceEntity.updatedOn,jdbcType=TIMESTAMP})
+    </insert>
+    <delete id="deleteByIds" parameterType="map">
+        delete
+        from t_agent_datasource
+        where id in
+        <foreach collection="ids" item="deploymentId" open="(" separator="," close=")">
+            #{deploymentId,jdbcType=VARCHAR}
+        </foreach> and project_id = #{projectId,jdbcType=VARCHAR}
+    </delete>
+    <select id="getDatasourceEntity" parameterType="com.openjiuwen.studio.agent.manager.entity.DatasourceEntity"
+            resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List" />
+        from t_agent_datasource
+        where 1 = 1
+        <if test="datasourceEntity.id != null and datasourceEntity.id != ''">
+            and id=#{datasourceEntity.id}
+        </if>
+        <if test="datasourceEntity.projectId != null and datasourceEntity.projectId != ''">
+            and project_id=#{datasourceEntity.projectId}
+        </if>
+        <if test="datasourceEntity.workspaceId != null and datasourceEntity.workspaceId != ''">
+            and workspace_id=#{datasourceEntity.workspaceId}
+        </if>
+        <if test="datasourceEntity.name != null and datasourceEntity.name != ''">
+            and `name` like concat('%', #{datasourceEntity.name,jdbcType=VARCHAR}, '%') escape '!'
+        </if>
+        <if test="datasourceEntity.type != null and datasourceEntity.type != ''">
+            and `type`=#{datasourceEntity.type}
+        </if>
+        <if test="datasourceEntity.internetAccess != null and datasourceEntity.internetAccess != ''">
+            and internet_access=#{datasourceEntity.internetAccess,jdbcType=VARCHAR}
+        </if>
+        <if test="datasourceEntity.status != null and datasourceEntity.status != ''">
+            and status=#{datasourceEntity.status}
+        </if>
+        <if test="datasourceEntity.createdBy != null and datasourceEntity.createdBy != ''">
+            and created_by=#{datasourceEntity.createdBy}
+        </if>
+        <if test="datasourceEntity.creatorId != null and datasourceEntity.creatorId != ''">
+            and creator_id=#{datasourceEntity.creatorId}
+        </if>
+        <if test="datasourceEntity.createdOn != null">
+            and created_on=#{datasourceEntity.createdOn}
+        </if>
+        <if test="datasourceEntity.updatedBy != null and datasourceEntity.updatedBy != ''">
+            and updated_by=#{datasourceEntity.updatedBy}
+        </if>
+        <if test="datasourceEntity.updaterId != null and datasourceEntity.updaterId != ''">
+            and updater_id=#{datasourceEntity.updaterId}
+        </if>
+        <if test="datasourceEntity.updatedOn != null">
+            and updated_on=#{datasourceEntity.updatedOn}
+        </if>
+        order by updated_on
+        <choose>
+            <when test="order != null and order == 'asc'">
+                asc
+            </when>
+            <otherwise>
+                desc
+            </otherwise>
+        </choose>
+    </select>
+    <select id="getByPrimaryKey" parameterType="com.openjiuwen.studio.agent.manager.entity.DatasourceEntity"
+            resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List" />
+        from t_agent_datasource
+        where id = #{id,jdbcType=VARCHAR}
+        and project_id = #{projectId,jdbcType=VARCHAR}
+    </select>
+    <select id="getByPrimaryKeyAndWorkspaceId" parameterType="com.openjiuwen.studio.agent.manager.entity.DatasourceEntity"
+            resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List" />
+        from t_agent_datasource
+        where id = #{id,jdbcType=VARCHAR}
+        and project_id = #{projectId,jdbcType=VARCHAR}
+        and workspace_id = #{workspaceId,jdbcType=VARCHAR}
+    </select>
+
+    <select id="getByIds" parameterType="com.openjiuwen.studio.agent.manager.entity.DatasourceEntity"
+            resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List" />
+        from t_agent_datasource
+        where id in
+        <foreach collection="ids" item="deploymentId" open="(" separator="," close=")">
+            #{deploymentId,jdbcType=VARCHAR}
+        </foreach>
+        order by updated_on desc
+    </select>
+
+    <select id="getByIdsAndWorkspace" parameterType="com.openjiuwen.studio.agent.manager.entity.DatasourceEntity"
+        resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List" />
+        from t_agent_datasource
+        where id in
+        <foreach collection="ids" item="deploymentId" open="(" separator="," close=")">
+            #{deploymentId,jdbcType=VARCHAR}
+        </foreach>
+        and project_id = #{projectId,jdbcType=VARCHAR}
+        and workspace_id = #{workspaceId,jdbcType=VARCHAR}
+        order by updated_on desc
+    </select>
+
+    <update id="updateByPrimaryKey"
+            parameterType="com.openjiuwen.studio.agent.manager.entity.DatasourceEntity">
+        update t_agent_datasource
+        <set>
+            <if test="datasourceEntity.name != null">
+                `name` = #{datasourceEntity.name, jdbcType=VARCHAR},
+            </if>
+            <if test="datasourceEntity.type != null">
+                `type` = #{datasourceEntity.type, jdbcType=VARCHAR},
+            </if>
+            <if test="datasourceEntity.desc != null">
+                `desc` = #{datasourceEntity.desc, jdbcType=VARCHAR},
+            </if>
+            <if test="datasourceEntity.internetAccess != null">
+                internet_access = #{datasourceEntity.internetAccess, jdbcType=VARCHAR},
+            </if>
+            <if test="datasourceEntity.instanceId != null">
+                instance_id = #{customModelEntity.instanceId, jdbcType=VARCHAR},
+            </if>
+            <if test="datasourceEntity.instanceName != null">
+                instance_name = #{datasourceEntity.instanceName, jdbcType=VARCHAR},
+            </if>
+            <if test="datasourceEntity.connectionInfo != null">
+                connection_info = #{datasourceEntity.connectionInfo, jdbcType=VARCHAR},
+            </if>
+            <if test="datasourceEntity.status != null">
+                status = #{datasourceEntity.status, jdbcType=VARCHAR},
+            </if>
+            <if test="datasourceEntity.lastErrorMessage != null">
+                last_error_message = #{datasourceEntity.lastErrorMessage, jdbcType=VARCHAR},
+            </if>
+            <if test="datasourceEntity.updatedBy != null">
+                updated_by = #{datasourceEntity.updatedBy, jdbcType=VARCHAR},
+            </if>
+            <if test="datasourceEntity.updaterId != null">
+                updater_id = #{datasourceEntity.updaterId, jdbcType=VARCHAR},
+            </if>
+            <if test="datasourceEntity.updatedOn != null">
+                updated_on = #{datasourceEntity.updatedOn, jdbcType=VARCHAR},
+            </if>
+        </set>
+        where id = #{datasourceEntity.id, jdbcType=VARCHAR}
+        and project_id = #{datasourceEntity.projectId, jdbcType=VARCHAR}
+    </update>
+    <select id="getByName" parameterType="com.openjiuwen.studio.agent.manager.entity.DatasourceEntity"
+            resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List" />
+        from t_agent_datasource
+        where name = #{name,jdbcType=VARCHAR}
+        and project_id = #{projectId,jdbcType=VARCHAR}
+        <if test="workspaceId != null and workspaceId != ''">
+            and workspace_id = #{workspaceId,jdbcType=VARCHAR}
+        </if>
+    </select>
+</mapper>

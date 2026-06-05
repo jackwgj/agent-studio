@@ -1,0 +1,3333 @@
+{
+  "configs": {
+    "voice_interaction": {
+      "language": "chinese",
+      "timbre": "huaxiaohe",
+      "domain": "common"
+    },
+    "environment": {
+      "name": ""
+    },
+    "memory": [
+      {
+        "name": "asdasd",
+        "type": "string",
+        "description": "",
+        "required": true,
+        "source": "pre_defined",
+        "value": {
+          "type": "generated",
+          "hint": "",
+          "default": ""
+        },
+        "aging_level": "session",
+        "storage_method": "assignment"
+      }
+    ],
+    "default_model_switch": false,
+    "trigger_list": [],
+    "safety_barrier": false,
+    "default_model": {
+      "model_deployment_id": "180",
+      "model_name": "DeepSeek-V3",
+      "model_type": "LLM"
+    },
+    "content_review": {
+      "enabled": false,
+      "filter": {
+        "keywords": ""
+      },
+      "replace": [],
+      "reply": []
+    },
+    "prologue": "",
+    "suggest_queries": []
+  },
+  "description": "dasdas",
+  "edges": [
+    {
+      "branch": null,
+      "exception_branch": true,
+      "id": null,
+      "source": "node_1761566777882",
+      "sourceBranchId": null,
+      "target": "composite_node_1761649332651_node_8e33bd25bea449aaa55b80c254309f2c_start",
+      "targetBranchId": null
+    },
+    {
+      "branch": null,
+      "exception_branch": false,
+      "id": null,
+      "source": "node_1761567031977",
+      "sourceBranchId": null,
+      "target": "node_1761566777882",
+      "targetBranchId": null
+    },
+    {
+      "branch": null,
+      "exception_branch": false,
+      "id": null,
+      "source": "node_start",
+      "sourceBranchId": null,
+      "target": "node_1761567031977",
+      "targetBranchId": null
+    },
+    {
+      "branch": null,
+      "exception_branch": false,
+      "id": null,
+      "source": "node_1761566777882",
+      "sourceBranchId": null,
+      "target": "composite_node_1761649332651_node_8e33bd25bea449aaa55b80c254309f2c_start",
+      "targetBranchId": null
+    },
+    {
+      "branch": null,
+      "exception_branch": false,
+      "id": null,
+      "source": "composite_node_1761649332651_node_ff3b4405f78743df9d598dd9200e7235_end",
+      "sourceBranchId": null,
+      "target": "node_end",
+      "targetBranchId": null
+    },
+    {
+      "branch": null,
+      "exception_branch": false,
+      "id": null,
+      "source": "composite_node_1761649332651_node_0cb9179b3f5a4462bdf4de8c4b34d49b_end_exception",
+      "sourceBranchId": null,
+      "target": "node_end",
+      "targetBranchId": null
+    },
+    {
+      "branch": null,
+      "exception_branch": false,
+      "id": null,
+      "source": "composite_node_1761649332651_node_8e33bd25bea449aaa55b80c254309f2c_start",
+      "sourceBranchId": null,
+      "target": "composite_node_1761649332651_node_43c08d7064b2441f8a16d1b9b7aa089d",
+      "targetBranchId": null
+    },
+    {
+      "branch": null,
+      "exception_branch": false,
+      "id": null,
+      "source": "composite_node_1761649332651_node_43c08d7064b2441f8a16d1b9b7aa089d",
+      "sourceBranchId": null,
+      "target": "composite_node_1761649332651_node_c3728283af73482c86844691c8574b6a",
+      "targetBranchId": null
+    },
+    {
+      "branch": "if",
+      "exception_branch": false,
+      "id": null,
+      "source": "composite_node_1761649332651_node_c3728283af73482c86844691c8574b6a",
+      "sourceBranchId": null,
+      "target": "composite_node_1761649332651_node_4bd16234dfd64d52936ab5ee24c22ab0_extension_before_entry",
+      "targetBranchId": null
+    },
+    {
+      "branch": null,
+      "exception_branch": false,
+      "id": null,
+      "source": "composite_node_1761649332651_node_4bd16234dfd64d52936ab5ee24c22ab0_extension_before_entry",
+      "sourceBranchId": null,
+      "target": "composite_node_1761649332651_node_072cb9c8176143be85c3a1f43ed4ebe3",
+      "targetBranchId": null
+    },
+    {
+      "branch": "default",
+      "exception_branch": false,
+      "id": null,
+      "source": "composite_node_1761649332651_node_072cb9c8176143be85c3a1f43ed4ebe3",
+      "sourceBranchId": null,
+      "target": "composite_node_1761649332651_node_c68aa9fca92041be8dea9eda0f748115_extension_before_entry",
+      "targetBranchId": null
+    },
+    {
+      "branch": "default",
+      "exception_branch": false,
+      "id": null,
+      "source": "composite_node_1761649332651_node_c3728283af73482c86844691c8574b6a",
+      "sourceBranchId": null,
+      "target": "composite_node_1761649332651_node_c68aa9fca92041be8dea9eda0f748115_extension_before_entry",
+      "targetBranchId": null
+    },
+    {
+      "branch": null,
+      "exception_branch": false,
+      "id": null,
+      "source": "composite_node_1761649332651_node_c68aa9fca92041be8dea9eda0f748115_extension_before_entry",
+      "sourceBranchId": null,
+      "target": "composite_node_1761649332651_node_3e3b616ff4484ee0b554e793ab30f41d",
+      "targetBranchId": null
+    },
+    {
+      "branch": "default",
+      "exception_branch": false,
+      "id": null,
+      "source": "composite_node_1761649332651_node_3e3b616ff4484ee0b554e793ab30f41d",
+      "sourceBranchId": null,
+      "target": "composite_node_1761649332651_node_1c70698cdd88406a97e05fbb54d3e73c_cycle_begin",
+      "targetBranchId": null
+    },
+    {
+      "branch": null,
+      "exception_branch": false,
+      "id": null,
+      "source": "composite_node_1761649332651_node_1c70698cdd88406a97e05fbb54d3e73c_cycle_begin",
+      "sourceBranchId": null,
+      "target": "composite_node_1761649332651_node_9c5fa4f3939549459519c07011701101",
+      "targetBranchId": null
+    },
+    {
+      "branch": "if",
+      "exception_branch": false,
+      "id": null,
+      "source": "composite_node_1761649332651_node_9c5fa4f3939549459519c07011701101",
+      "sourceBranchId": null,
+      "target": "composite_node_1761649332651_node_c76d957092364032bb9189b5af539cbf_llm",
+      "targetBranchId": null
+    },
+    {
+      "branch": null,
+      "exception_branch": false,
+      "id": null,
+      "source": "composite_node_1761649332651_node_c76d957092364032bb9189b5af539cbf_llm",
+      "sourceBranchId": null,
+      "target": "composite_node_1761649332651_node_7284dfb6aec841d1bf367bcb2caf62b3",
+      "targetBranchId": null
+    },
+    {
+      "branch": "default",
+      "exception_branch": false,
+      "id": null,
+      "source": "composite_node_1761649332651_node_9c5fa4f3939549459519c07011701101",
+      "sourceBranchId": null,
+      "target": "composite_node_1761649332651_node_7284dfb6aec841d1bf367bcb2caf62b3",
+      "targetBranchId": null
+    },
+    {
+      "branch": "if",
+      "exception_branch": false,
+      "id": null,
+      "source": "composite_node_1761649332651_node_7284dfb6aec841d1bf367bcb2caf62b3",
+      "sourceBranchId": null,
+      "target": "composite_node_1761649332651_node_3ed127e144db411c9d3523830c5a9ff3_domain_objects_buyer",
+      "targetBranchId": null
+    },
+    {
+      "branch": null,
+      "exception_branch": false,
+      "id": null,
+      "source": "composite_node_1761649332651_node_3ed127e144db411c9d3523830c5a9ff3_domain_objects_buyer",
+      "sourceBranchId": null,
+      "target": "composite_node_1761649332651_node_da44d1fa46e94c208d54c227c035d024",
+      "targetBranchId": null
+    },
+    {
+      "branch": "default",
+      "exception_branch": false,
+      "id": null,
+      "source": "composite_node_1761649332651_node_da44d1fa46e94c208d54c227c035d024",
+      "sourceBranchId": null,
+      "target": "composite_node_1761649332651_node_e59ebddea6e745618025ad8c06bcbe1c_domain_objects_buyer",
+      "targetBranchId": null
+    },
+    {
+      "branch": "default",
+      "exception_branch": false,
+      "id": null,
+      "source": "composite_node_1761649332651_node_7284dfb6aec841d1bf367bcb2caf62b3",
+      "sourceBranchId": null,
+      "target": "composite_node_1761649332651_node_e59ebddea6e745618025ad8c06bcbe1c_domain_objects_buyer",
+      "targetBranchId": null
+    },
+    {
+      "branch": null,
+      "exception_branch": false,
+      "id": null,
+      "source": "composite_node_1761649332651_node_e59ebddea6e745618025ad8c06bcbe1c_domain_objects_buyer",
+      "sourceBranchId": null,
+      "target": "composite_node_1761649332651_node_e4b70be569ff4fd1a93f51058a447088",
+      "targetBranchId": null
+    },
+    {
+      "branch": "default",
+      "exception_branch": false,
+      "id": null,
+      "source": "composite_node_1761649332651_node_e4b70be569ff4fd1a93f51058a447088",
+      "sourceBranchId": null,
+      "target": "composite_node_1761649332651_node_5777618d75124b20951c03cce028d28c",
+      "targetBranchId": null
+    },
+    {
+      "branch": "if",
+      "exception_branch": false,
+      "id": null,
+      "source": "composite_node_1761649332651_node_5777618d75124b20951c03cce028d28c",
+      "sourceBranchId": null,
+      "target": "composite_node_1761649332651_node_908f87ec54f34a36a8cc8f1cacac57f1_extension_before_judge_quit",
+      "targetBranchId": null
+    },
+    {
+      "branch": null,
+      "exception_branch": false,
+      "id": null,
+      "source": "composite_node_1761649332651_node_908f87ec54f34a36a8cc8f1cacac57f1_extension_before_judge_quit",
+      "sourceBranchId": null,
+      "target": "composite_node_1761649332651_node_642b5900b4a847918c50f06931ec22c5",
+      "targetBranchId": null
+    },
+    {
+      "branch": "default",
+      "exception_branch": false,
+      "id": null,
+      "source": "composite_node_1761649332651_node_0f39e2c095024d39836ff6f11b890a30",
+      "sourceBranchId": null,
+      "target": "composite_node_1761649332651_node_9c5fa4f3939549459519c07011701101",
+      "targetBranchId": null
+    },
+    {
+      "branch": "default",
+      "exception_branch": false,
+      "id": null,
+      "source": "composite_node_1761649332651_node_642b5900b4a847918c50f06931ec22c5",
+      "sourceBranchId": null,
+      "target": "composite_node_1761649332651_node_0f39e2c095024d39836ff6f11b890a30",
+      "targetBranchId": null
+    },
+    {
+      "branch": "default",
+      "exception_branch": false,
+      "id": null,
+      "source": "composite_node_1761649332651_node_5777618d75124b20951c03cce028d28c",
+      "sourceBranchId": null,
+      "target": "composite_node_1761649332651_node_0f39e2c095024d39836ff6f11b890a30",
+      "targetBranchId": null
+    },
+    {
+      "branch": "if",
+      "exception_branch": false,
+      "id": null,
+      "source": "composite_node_1761649332651_node_0f39e2c095024d39836ff6f11b890a30",
+      "sourceBranchId": null,
+      "target": "composite_node_1761649332651_node_ff3b4405f78743df9d598dd9200e7235_end",
+      "targetBranchId": null
+    },
+    {
+      "branch": "if",
+      "exception_branch": false,
+      "id": null,
+      "source": "composite_node_1761649332651_node_072cb9c8176143be85c3a1f43ed4ebe3",
+      "sourceBranchId": null,
+      "target": "composite_node_1761649332651_node_0cb9179b3f5a4462bdf4de8c4b34d49b_end_exception",
+      "targetBranchId": null
+    },
+    {
+      "branch": "if",
+      "exception_branch": false,
+      "id": null,
+      "source": "composite_node_1761649332651_node_3e3b616ff4484ee0b554e793ab30f41d",
+      "sourceBranchId": null,
+      "target": "composite_node_1761649332651_node_0cb9179b3f5a4462bdf4de8c4b34d49b_end_exception",
+      "targetBranchId": null
+    },
+    {
+      "branch": "if",
+      "exception_branch": false,
+      "id": null,
+      "source": "composite_node_1761649332651_node_da44d1fa46e94c208d54c227c035d024",
+      "sourceBranchId": null,
+      "target": "composite_node_1761649332651_node_0cb9179b3f5a4462bdf4de8c4b34d49b_end_exception",
+      "targetBranchId": null
+    },
+    {
+      "branch": "if",
+      "exception_branch": false,
+      "id": null,
+      "source": "composite_node_1761649332651_node_e4b70be569ff4fd1a93f51058a447088",
+      "sourceBranchId": null,
+      "target": "composite_node_1761649332651_node_0cb9179b3f5a4462bdf4de8c4b34d49b_end_exception",
+      "targetBranchId": null
+    },
+    {
+      "branch": "if",
+      "exception_branch": false,
+      "id": null,
+      "source": "composite_node_1761649332651_node_642b5900b4a847918c50f06931ec22c5",
+      "sourceBranchId": null,
+      "target": "composite_node_1761649332651_node_0cb9179b3f5a4462bdf4de8c4b34d49b_end_exception",
+      "targetBranchId": null
+    }
+  ],
+  "icon": null,
+  "id": "4a44070d-2412-422a-8df9-4cdfc5b95580",
+  "layouts": {
+    "node_1761566777882": {
+      "x": 666,
+      "y": 252
+    },
+    "node_1761649332651": {
+      "x": 1242,
+      "y": 90
+    },
+    "node_start": {
+      "x": -252,
+      "y": 306
+    },
+    "node_1761567031977": {
+      "x": 257,
+      "y": 235
+    },
+    "node_end": {
+      "x": 1800,
+      "y": 144
+    }
+  },
+  "name": "asdasdas",
+  "nodes": [
+    {
+      "branches": null,
+      "configs": {
+        "code": "def main(args: dict) -> dict:\n    \"\"\"\n    运行代码节点会调用此函数\n    :param args: 输入固定为args字典类型，kv为输入参数键值对\n    :return: 输出参数为字典类型，kv为输出参数键值对\n    \"\"\"\n    ret = {\n        \"key0\": args.get('input', 'default'),\n        \"key1\": \"hi\"\n    }\n    return ret\n",
+        "exec_env": "sandbox",
+        "exception_process": {
+          "timeout": 900,
+          "retry_times": 0,
+          "handle_type": "errorbranch"
+        }
+      },
+      "id": "node_1761566777882",
+      "inputs": [
+        {
+          "aging_level": null,
+          "cn_name": null,
+          "description": "",
+          "field_type": null,
+          "memory": null,
+          "name": "asd",
+          "reflection": false,
+          "required": true,
+          "schema": null,
+          "source": "user",
+          "storage_method": null,
+          "type": null,
+          "validator": null,
+          "value": {
+            "content": "asd",
+            "default": null,
+            "display": null,
+            "hint": "",
+            "operator": null,
+            "type": "literal"
+          }
+        }
+      ],
+      "name": "代码",
+      "outputs": [
+        {
+          "aging_level": null,
+          "cn_name": null,
+          "description": "asd",
+          "field_type": null,
+          "memory": null,
+          "name": "asd",
+          "reflection": false,
+          "required": true,
+          "schema": null,
+          "source": "user",
+          "storage_method": null,
+          "type": "string",
+          "validator": null,
+          "value": {
+            "content": null,
+            "default": "",
+            "display": null,
+            "hint": "",
+            "operator": null,
+            "type": "generated"
+          }
+        }
+      ],
+      "type": "Code"
+    },
+    {
+      "branches": null,
+      "configs": null,
+      "id": "node_start",
+      "inputs": null,
+      "name": "开始",
+      "outputs": [
+        {
+          "aging_level": null,
+          "cn_name": null,
+          "description": "用户输入",
+          "field_type": "input",
+          "memory": null,
+          "name": "query",
+          "reflection": false,
+          "required": true,
+          "schema": null,
+          "source": "system",
+          "storage_method": null,
+          "type": "string",
+          "validator": null,
+          "value": {
+            "content": "",
+            "default": null,
+            "display": null,
+            "hint": "用户输入",
+            "operator": null,
+            "type": "literal"
+          }
+        },
+        {
+          "aging_level": null,
+          "cn_name": null,
+          "description": "环境变量",
+          "field_type": "object",
+          "memory": null,
+          "name": "env",
+          "reflection": false,
+          "required": true,
+          "schema": [],
+          "source": "environment",
+          "storage_method": null,
+          "type": "object",
+          "validator": null,
+          "value": {
+            "content": {},
+            "default": null,
+            "display": null,
+            "hint": "环境变量",
+            "operator": null,
+            "type": "literal"
+          }
+        },
+        {
+          "aging_level": null,
+          "cn_name": null,
+          "description": "系统变量",
+          "field_type": "object",
+          "memory": null,
+          "name": "sys",
+          "reflection": false,
+          "required": true,
+          "schema": [
+            {
+              "aging_level": null,
+              "cn_name": null,
+              "description": "会话历史消息",
+              "field_type": null,
+              "memory": null,
+              "name": "conversation_history",
+              "reflection": false,
+              "required": true,
+              "schema": {
+                "aging_level": null,
+                "cn_name": null,
+                "description": null,
+                "field_type": null,
+                "memory": null,
+                "name": "",
+                "reflection": false,
+                "required": null,
+                "schema": [
+                  {
+                    "aging_level": null,
+                    "cn_name": null,
+                    "description": "角色",
+                    "field_type": null,
+                    "memory": null,
+                    "name": "role",
+                    "reflection": false,
+                    "required": true,
+                    "schema": null,
+                    "source": "system",
+                    "storage_method": null,
+                    "type": "string",
+                    "validator": null,
+                    "value": {
+                      "content": "",
+                      "default": null,
+                      "display": null,
+                      "hint": "角色",
+                      "operator": null,
+                      "type": "literal"
+                    }
+                  },
+                  {
+                    "aging_level": null,
+                    "cn_name": null,
+                    "description": "消息内容",
+                    "field_type": null,
+                    "memory": null,
+                    "name": "content",
+                    "reflection": false,
+                    "required": true,
+                    "schema": null,
+                    "source": "system",
+                    "storage_method": null,
+                    "type": "string",
+                    "validator": null,
+                    "value": {
+                      "content": "",
+                      "default": null,
+                      "display": null,
+                      "hint": "消息内容",
+                      "operator": null,
+                      "type": "literal"
+                    }
+                  }
+                ],
+                "source": "user",
+                "storage_method": null,
+                "type": "object",
+                "validator": null,
+                "value": null
+              },
+              "source": "system",
+              "storage_method": null,
+              "type": "array",
+              "validator": null,
+              "value": {
+                "content": [],
+                "default": null,
+                "display": null,
+                "hint": "会话历史消息",
+                "operator": null,
+                "type": "literal"
+              }
+            },
+            {
+              "aging_level": null,
+              "cn_name": null,
+              "description": "当前系统时间",
+              "field_type": "input",
+              "memory": null,
+              "name": "current_time",
+              "reflection": false,
+              "required": true,
+              "schema": null,
+              "source": "system",
+              "storage_method": null,
+              "type": "string",
+              "validator": null,
+              "value": {
+                "content": "",
+                "default": null,
+                "display": null,
+                "hint": "当前系统时间",
+                "operator": null,
+                "type": "literal"
+              }
+            },
+            {
+              "aging_level": null,
+              "cn_name": null,
+              "description": "使用该工作流的唯一标识",
+              "field_type": "input",
+              "memory": null,
+              "name": "user_id",
+              "reflection": false,
+              "required": true,
+              "schema": null,
+              "source": "system",
+              "storage_method": null,
+              "type": "string",
+              "validator": null,
+              "value": {
+                "content": "",
+                "default": null,
+                "display": null,
+                "hint": "用户唯一标识",
+                "operator": null,
+                "type": "literal"
+              }
+            },
+            {
+              "aging_level": null,
+              "cn_name": null,
+              "description": "工作流对话id",
+              "field_type": "input",
+              "memory": null,
+              "name": "conversation_id",
+              "reflection": false,
+              "required": true,
+              "schema": null,
+              "source": "system",
+              "storage_method": null,
+              "type": "string",
+              "validator": null,
+              "value": {
+                "content": "",
+                "default": null,
+                "display": null,
+                "hint": "工作流对话id",
+                "operator": null,
+                "type": "literal"
+              }
+            }
+          ],
+          "source": "system",
+          "storage_method": null,
+          "type": "object",
+          "validator": null,
+          "value": {
+            "content": {},
+            "default": null,
+            "display": null,
+            "hint": "系统变量",
+            "operator": null,
+            "type": "literal"
+          }
+        },
+        {
+          "aging_level": null,
+          "cn_name": null,
+          "description": null,
+          "field_type": "input",
+          "memory": null,
+          "name": "memory",
+          "reflection": false,
+          "required": true,
+          "schema": [
+            {
+              "aging_level": "session",
+              "cn_name": null,
+              "description": "intermediate_param11",
+              "field_type": null,
+              "memory": null,
+              "name": "intermediate_param1",
+              "reflection": false,
+              "required": true,
+              "schema": null,
+              "source": "pre_defined",
+              "storage_method": "assignment",
+              "type": "string",
+              "validator": null,
+              "value": {
+                "content": null,
+                "default": null,
+                "display": null,
+                "hint": null,
+                "operator": null,
+                "type": "generated"
+              }
+            },
+            {
+              "aging_level": "session",
+              "cn_name": null,
+              "description": "intermediate_param22",
+              "field_type": null,
+              "memory": null,
+              "name": "intermediate_param2",
+              "reflection": false,
+              "required": true,
+              "schema": null,
+              "source": "pre_defined",
+              "storage_method": "assignment",
+              "type": "integer",
+              "validator": null,
+              "value": {
+                "content": null,
+                "default": null,
+                "display": null,
+                "hint": null,
+                "operator": null,
+                "type": "generated"
+              }
+            },
+            {
+              "aging_level": "session",
+              "cn_name": null,
+              "description": "intermediate_param33",
+              "field_type": null,
+              "memory": null,
+              "name": "intermediate_param3",
+              "reflection": false,
+              "required": true,
+              "schema": null,
+              "source": "pre_defined",
+              "storage_method": "assignment",
+              "type": "boolean",
+              "validator": null,
+              "value": {
+                "content": null,
+                "default": null,
+                "display": null,
+                "hint": null,
+                "operator": null,
+                "type": "generated"
+              }
+            },
+            {
+              "aging_level": "session",
+              "cn_name": null,
+              "description": "收款人",
+              "field_type": null,
+              "memory": null,
+              "name": "buyer",
+              "reflection": false,
+              "required": true,
+              "schema": [
+                {
+                  "aging_level": null,
+                  "cn_name": null,
+                  "description": "姓名",
+                  "field_type": null,
+                  "memory": null,
+                  "name": "name",
+                  "reflection": false,
+                  "required": true,
+                  "schema": null,
+                  "source": "pre_defined",
+                  "storage_method": null,
+                  "type": "string",
+                  "validator": null,
+                  "value": {
+                    "content": null,
+                    "default": null,
+                    "display": null,
+                    "hint": null,
+                    "operator": null,
+                    "type": "generated"
+                  }
+                },
+                {
+                  "aging_level": null,
+                  "cn_name": null,
+                  "description": "年龄",
+                  "field_type": null,
+                  "memory": null,
+                  "name": "age",
+                  "reflection": false,
+                  "required": true,
+                  "schema": null,
+                  "source": "pre_defined",
+                  "storage_method": null,
+                  "type": "integer",
+                  "validator": null,
+                  "value": {
+                    "content": null,
+                    "default": null,
+                    "display": null,
+                    "hint": null,
+                    "operator": null,
+                    "type": "generated"
+                  }
+                }
+              ],
+              "source": "pre_defined",
+              "storage_method": "assignment",
+              "type": "object",
+              "validator": null,
+              "value": {
+                "content": null,
+                "default": null,
+                "display": null,
+                "hint": null,
+                "operator": null,
+                "type": "generated"
+              }
+            },
+            {
+              "aging_level": "session",
+              "cn_name": null,
+              "description": "付款人",
+              "field_type": null,
+              "memory": null,
+              "name": "payer",
+              "reflection": false,
+              "required": true,
+              "schema": [
+                {
+                  "aging_level": null,
+                  "cn_name": null,
+                  "description": "姓名",
+                  "field_type": null,
+                  "memory": null,
+                  "name": "g_name",
+                  "reflection": false,
+                  "required": true,
+                  "schema": null,
+                  "source": "pre_defined",
+                  "storage_method": null,
+                  "type": "string",
+                  "validator": null,
+                  "value": {
+                    "content": null,
+                    "default": null,
+                    "display": null,
+                    "hint": null,
+                    "operator": null,
+                    "type": "generated"
+                  }
+                },
+                {
+                  "aging_level": null,
+                  "cn_name": null,
+                  "description": "年龄",
+                  "field_type": null,
+                  "memory": null,
+                  "name": "g_age",
+                  "reflection": false,
+                  "required": true,
+                  "schema": null,
+                  "source": "pre_defined",
+                  "storage_method": null,
+                  "type": "integer",
+                  "validator": null,
+                  "value": {
+                    "content": null,
+                    "default": null,
+                    "display": null,
+                    "hint": null,
+                    "operator": null,
+                    "type": "generated"
+                  }
+                }
+              ],
+              "source": "pre_defined",
+              "storage_method": "assignment",
+              "type": "object",
+              "validator": null,
+              "value": {
+                "content": null,
+                "default": null,
+                "display": null,
+                "hint": null,
+                "operator": null,
+                "type": "generated"
+              }
+            }
+          ],
+          "source": "pre_defined",
+          "storage_method": null,
+          "type": "object",
+          "validator": null,
+          "value": {
+            "content": null,
+            "default": null,
+            "display": null,
+            "hint": null,
+            "operator": null,
+            "type": "generated"
+          }
+        }
+      ],
+      "type": "Start"
+    },
+    {
+      "branches": null,
+      "configs": {
+        "top_p": 0.5,
+        "history_size": 3,
+        "format_instruction": "",
+        "response_format": "text",
+        "max_tokens": 2048,
+        "stream": true,
+        "template_content": "{{query11}}",
+        "temperature": 0.5,
+        "model": {
+          "model_name": "DeepSeek-V3",
+          "model_type": "LLM",
+          "model_deployment_id": "180",
+          "model": "180"
+        },
+        "system_prompt": "",
+        "enable_history": false
+      },
+      "id": "node_1761567031977",
+      "inputs": [
+        {
+          "aging_level": null,
+          "cn_name": null,
+          "description": "",
+          "field_type": null,
+          "memory": null,
+          "name": "query",
+          "reflection": false,
+          "required": false,
+          "schema": null,
+          "source": "user",
+          "storage_method": null,
+          "type": "string",
+          "validator": null,
+          "value": {
+            "content": "",
+            "default": null,
+            "display": null,
+            "hint": "",
+            "operator": null,
+            "type": "literal"
+          }
+        }
+      ],
+      "name": "大模型",
+      "outputs": [
+        {
+          "aging_level": null,
+          "cn_name": null,
+          "description": "模型原始输出",
+          "field_type": null,
+          "memory": null,
+          "name": "raw_output",
+          "reflection": false,
+          "required": false,
+          "schema": null,
+          "source": "user",
+          "storage_method": null,
+          "type": "string",
+          "validator": null,
+          "value": {
+            "content": "",
+            "default": null,
+            "display": null,
+            "hint": "",
+            "operator": null,
+            "type": "literal"
+          }
+        }
+      ],
+      "type": "LLM"
+    },
+    {
+      "branches": null,
+      "configs": {
+        "is_stream_out": true,
+        "struct_output_template": "{\n  \"answer\": \"{{_NODE_OUTPUT}}\"\n}",
+        "enable_history": false,
+        "response_template": "{{result1}}{{result2}}{{result3}}",
+        "response_mode": "directResponse"
+      },
+      "id": "node_end",
+      "inputs": [
+        {
+          "aging_level": null,
+          "cn_name": null,
+          "description": "最终输出",
+          "field_type": null,
+          "memory": null,
+          "name": "result1",
+          "reflection": false,
+          "required": false,
+          "schema": null,
+          "source": "user",
+          "storage_method": null,
+          "type": "string",
+          "validator": null,
+          "value": {
+            "content": {
+              "ref_node_id": "node_start",
+              "ref_var_name": "memory.intermediate_param1",
+              "source": "pre_defined"
+            },
+            "default": null,
+            "display": null,
+            "hint": null,
+            "operator": null,
+            "type": "ref"
+          }
+        },
+        {
+          "aging_level": null,
+          "cn_name": null,
+          "description": "",
+          "field_type": null,
+          "memory": null,
+          "name": "result2",
+          "reflection": false,
+          "required": true,
+          "schema": null,
+          "source": "user",
+          "storage_method": null,
+          "type": "integer",
+          "validator": null,
+          "value": {
+            "content": {
+              "ref_node_id": "node_start",
+              "ref_var_name": "memory.intermediate_param2",
+              "source": "pre_defined"
+            },
+            "default": null,
+            "display": null,
+            "hint": "",
+            "operator": null,
+            "type": "ref"
+          }
+        },
+        {
+          "aging_level": null,
+          "cn_name": null,
+          "description": "",
+          "field_type": null,
+          "memory": null,
+          "name": "result3",
+          "reflection": false,
+          "required": true,
+          "schema": null,
+          "source": "user",
+          "storage_method": null,
+          "type": "boolean",
+          "validator": null,
+          "value": {
+            "content": {
+              "ref_node_id": "node_start",
+              "ref_var_name": "memory.intermediate_param3",
+              "source": "pre_defined"
+            },
+            "default": null,
+            "display": null,
+            "hint": "",
+            "operator": null,
+            "type": "ref"
+          }
+        }
+      ],
+      "name": "结束",
+      "outputs": [
+        {
+          "aging_level": null,
+          "cn_name": null,
+          "description": "最终输出",
+          "field_type": null,
+          "memory": null,
+          "name": "response_content",
+          "reflection": false,
+          "required": true,
+          "schema": null,
+          "source": "system",
+          "storage_method": null,
+          "type": "string",
+          "validator": null,
+          "value": {
+            "content": null,
+            "default": null,
+            "display": null,
+            "hint": null,
+            "operator": null,
+            "type": "generated"
+          }
+        }
+      ],
+      "type": "End"
+    },
+    {
+      "branches": null,
+      "configs": {},
+      "id": "composite_node_1761649332651_node_8e33bd25bea449aaa55b80c254309f2c_start",
+      "inputs": [
+        {
+          "aging_level": null,
+          "cn_name": null,
+          "description": "",
+          "field_type": null,
+          "memory": null,
+          "name": "input_param1",
+          "reflection": false,
+          "required": true,
+          "schema": null,
+          "source": "user",
+          "storage_method": null,
+          "type": "string",
+          "validator": null,
+          "value": {
+            "content": {
+              "ref_node_id": "node_start",
+              "ref_var_name": "sys.user_id",
+              "source": "system"
+            },
+            "default": null,
+            "display": null,
+            "hint": "",
+            "operator": null,
+            "type": "ref"
+          }
+        },
+        {
+          "aging_level": null,
+          "cn_name": null,
+          "description": "",
+          "field_type": null,
+          "memory": null,
+          "name": "input_param2",
+          "reflection": false,
+          "required": true,
+          "schema": null,
+          "source": "user",
+          "storage_method": null,
+          "type": null,
+          "validator": null,
+          "value": {
+            "content": "1213213",
+            "default": null,
+            "display": null,
+            "hint": "",
+            "operator": null,
+            "type": "literal"
+          }
+        }
+      ],
+      "name": "参数提取",
+      "outputs": [
+        {
+          "aging_level": null,
+          "cn_name": null,
+          "description": "",
+          "field_type": null,
+          "memory": null,
+          "name": "input_param1",
+          "reflection": false,
+          "required": true,
+          "schema": null,
+          "source": "user",
+          "storage_method": null,
+          "type": "string",
+          "validator": null,
+          "value": {
+            "content": null,
+            "default": null,
+            "display": null,
+            "hint": null,
+            "operator": null,
+            "type": "generated"
+          }
+        },
+        {
+          "aging_level": null,
+          "cn_name": null,
+          "description": "",
+          "field_type": null,
+          "memory": null,
+          "name": "input_param2",
+          "reflection": false,
+          "required": true,
+          "schema": null,
+          "source": "user",
+          "storage_method": null,
+          "type": null,
+          "validator": null,
+          "value": {
+            "content": null,
+            "default": null,
+            "display": null,
+            "hint": null,
+            "operator": null,
+            "type": "generated"
+          }
+        }
+      ],
+      "type": "ParamOutput"
+    },
+    {
+      "branches": null,
+      "configs": {
+        "settings": [
+          {
+            "left": {
+              "aging_level": null,
+              "cn_name": null,
+              "description": null,
+              "field_type": null,
+              "memory": null,
+              "name": null,
+              "reflection": false,
+              "required": null,
+              "schema": null,
+              "source": "user",
+              "storage_method": null,
+              "type": "string",
+              "validator": null,
+              "value": {
+                "content": {
+                  "ref_node_id": "node_start",
+                  "ref_var_name": "memory.intermediate_param1",
+                  "source": "pre_defined"
+                },
+                "default": null,
+                "display": null,
+                "hint": "",
+                "operator": null,
+                "type": "ref"
+              }
+            },
+            "operator": null,
+            "right": {
+              "aging_level": null,
+              "cn_name": null,
+              "description": null,
+              "field_type": null,
+              "memory": null,
+              "name": null,
+              "reflection": false,
+              "required": null,
+              "schema": null,
+              "source": "user",
+              "storage_method": null,
+              "type": "string",
+              "validator": null,
+              "value": {
+                "content": "你好",
+                "default": null,
+                "display": null,
+                "hint": "",
+                "operator": null,
+                "type": "literal"
+              }
+            }
+          }
+        ]
+      },
+      "id": "composite_node_1761649332651_node_43c08d7064b2441f8a16d1b9b7aa089d",
+      "inputs": [
+        {
+          "aging_level": null,
+          "cn_name": null,
+          "description": "intermediate_param11",
+          "field_type": null,
+          "memory": null,
+          "name": "intermediate_param1",
+          "reflection": false,
+          "required": true,
+          "schema": null,
+          "source": "user",
+          "storage_method": null,
+          "type": "string",
+          "validator": null,
+          "value": {
+            "content": {
+              "ref_node_id": "node_start",
+              "ref_var_name": "memory.intermediate_param1",
+              "source": "pre_defined"
+            },
+            "default": null,
+            "display": null,
+            "hint": "",
+            "operator": null,
+            "type": "ref"
+          }
+        }
+      ],
+      "name": "composite_node_1761649332651_node_43c08d7064b2441f8a16d1b9b7aa089d",
+      "outputs": null,
+      "type": "SetVariable"
+    },
+    {
+      "branches": [
+        {
+          "configs": {
+            "logic": "and",
+            "conditions": [
+              {
+                "left": {
+                  "aging_level": null,
+                  "cn_name": null,
+                  "description": "",
+                  "field_type": null,
+                  "memory": null,
+                  "name": "",
+                  "reflection": false,
+                  "required": false,
+                  "schema": null,
+                  "source": "user",
+                  "storage_method": null,
+                  "type": "boolean",
+                  "validator": null,
+                  "value": {
+                    "content": {
+                      "ref_node_id": "node_start",
+                      "ref_var_name": "memory.intermediate_param3",
+                      "source": "pre_defined"
+                    },
+                    "default": null,
+                    "display": null,
+                    "hint": "",
+                    "operator": null,
+                    "type": "ref"
+                  }
+                },
+                "operator": "eq",
+                "right": {
+                  "aging_level": null,
+                  "cn_name": null,
+                  "description": "",
+                  "field_type": null,
+                  "memory": null,
+                  "name": "",
+                  "reflection": false,
+                  "required": false,
+                  "schema": null,
+                  "source": "user",
+                  "storage_method": null,
+                  "type": "boolean",
+                  "validator": null,
+                  "value": {
+                    "content": true,
+                    "default": null,
+                    "display": null,
+                    "hint": "",
+                    "operator": null,
+                    "type": "literal"
+                  }
+                }
+              }
+            ]
+          },
+          "id": "if"
+        },
+        {
+          "configs": null,
+          "id": "default"
+        }
+      ],
+      "configs": null,
+      "id": "composite_node_1761649332651_node_c3728283af73482c86844691c8574b6a",
+      "inputs": null,
+      "name": "composite_node_1761649332651_node_c3728283af73482c86844691c8574b6a",
+      "outputs": null,
+      "type": "Branch"
+    },
+    {
+      "branches": null,
+      "configs": {
+        "id": "a48265d0-1bb8-46c0-a5a2-d804e243723e",
+        "version_id": "1761137107998"
+      },
+      "id": "composite_node_1761649332651_node_4bd16234dfd64d52936ab5ee24c22ab0_extension_before_entry",
+      "inputs": [
+        {
+          "aging_level": null,
+          "cn_name": null,
+          "description": "用户输入",
+          "field_type": "input",
+          "memory": null,
+          "name": "query",
+          "reflection": false,
+          "required": true,
+          "schema": null,
+          "source": "system",
+          "storage_method": null,
+          "type": "string",
+          "validator": null,
+          "value": {
+            "content": {
+              "ref_node_id": "node_start",
+              "ref_var_name": "memory.payer.g_name",
+              "source": "pre_defined"
+            },
+            "default": null,
+            "display": null,
+            "hint": "",
+            "operator": null,
+            "type": "ref"
+          }
+        },
+        {
+          "aging_level": null,
+          "cn_name": null,
+          "description": "用户输入",
+          "field_type": "input",
+          "memory": null,
+          "name": "query1",
+          "reflection": false,
+          "required": true,
+          "schema": null,
+          "source": "system",
+          "storage_method": null,
+          "type": "string",
+          "validator": null,
+          "value": {
+            "content": {
+              "ref_node_id": "node_start",
+              "ref_var_name": "memory.intermediate_param3",
+              "source": "pre_defined"
+            },
+            "default": null,
+            "display": null,
+            "hint": "",
+            "operator": null,
+            "type": "ref"
+          }
+        },
+        {
+          "aging_level": null,
+          "cn_name": null,
+          "description": "用户输入",
+          "field_type": "input",
+          "memory": null,
+          "name": "query2",
+          "reflection": false,
+          "required": true,
+          "schema": null,
+          "source": "system",
+          "storage_method": null,
+          "type": "string",
+          "validator": null,
+          "value": {
+            "content": {
+              "ref_node_id": "node_start",
+              "ref_var_name": "sys.user_id",
+              "source": "system"
+            },
+            "default": null,
+            "display": null,
+            "hint": "",
+            "operator": null,
+            "type": "ref"
+          }
+        },
+        {
+          "aging_level": null,
+          "cn_name": null,
+          "description": "记忆变量",
+          "field_type": null,
+          "memory": null,
+          "name": "memory",
+          "reflection": false,
+          "required": true,
+          "schema": [
+            {
+              "aging_level": "session",
+              "cn_name": null,
+              "description": "",
+              "field_type": null,
+              "memory": null,
+              "name": "asdas",
+              "reflection": false,
+              "required": true,
+              "schema": null,
+              "source": "pre_defined",
+              "storage_method": "assignment",
+              "type": "string",
+              "validator": null,
+              "value": {
+                "content": {
+                  "ref_node_id": "node_start",
+                  "ref_var_name": "memory.intermediate_param1",
+                  "source": "pre_defined"
+                },
+                "default": null,
+                "display": null,
+                "hint": "",
+                "operator": null,
+                "type": "ref"
+              }
+            },
+            {
+              "aging_level": "session",
+              "cn_name": null,
+              "description": "",
+              "field_type": null,
+              "memory": null,
+              "name": "xzcas",
+              "reflection": false,
+              "required": true,
+              "schema": [
+                {
+                  "aging_level": "session",
+                  "cn_name": null,
+                  "description": "",
+                  "field_type": null,
+                  "memory": null,
+                  "name": "xzcasd",
+                  "reflection": false,
+                  "required": true,
+                  "schema": null,
+                  "source": "pre_defined",
+                  "storage_method": "assignment",
+                  "type": "string",
+                  "validator": null,
+                  "value": {
+                    "content": null,
+                    "default": "",
+                    "display": null,
+                    "hint": "",
+                    "operator": null,
+                    "type": "generated"
+                  }
+                }
+              ],
+              "source": "pre_defined",
+              "storage_method": "assignment",
+              "type": "object",
+              "validator": null,
+              "value": {
+                "content": {
+                  "ref_node_id": "node_start",
+                  "ref_var_name": "memory.payer.g_name",
+                  "source": "pre_defined"
+                },
+                "default": null,
+                "display": null,
+                "hint": "",
+                "operator": null,
+                "type": "ref"
+              }
+            }
+          ],
+          "source": "pre_defined",
+          "storage_method": null,
+          "type": "object",
+          "validator": null,
+          "value": {
+            "content": null,
+            "default": "",
+            "display": null,
+            "hint": "",
+            "operator": null,
+            "type": "nested"
+          }
+        }
+      ],
+      "name": "composite_node_1761649332651_node_4bd16234dfd64d52936ab5ee24c22ab0_extension_before_entry",
+      "outputs": [
+        {
+          "aging_level": null,
+          "cn_name": null,
+          "description": "最终输出",
+          "field_type": null,
+          "memory": null,
+          "name": "response_content",
+          "reflection": false,
+          "required": true,
+          "schema": null,
+          "source": "system",
+          "storage_method": null,
+          "type": "string",
+          "validator": null,
+          "value": {
+            "content": null,
+            "default": null,
+            "display": null,
+            "hint": null,
+            "operator": null,
+            "type": "generated"
+          }
+        },
+        {
+          "aging_level": null,
+          "cn_name": null,
+          "description": "",
+          "field_type": null,
+          "memory": null,
+          "name": "intent_id",
+          "reflection": false,
+          "required": true,
+          "schema": null,
+          "source": "user",
+          "storage_method": null,
+          "type": "integer",
+          "validator": null,
+          "value": {
+            "content": {
+              "ref_node_id": "node_1761136985011",
+              "ref_var_name": "key0",
+              "source": "user"
+            },
+            "default": null,
+            "display": null,
+            "hint": "",
+            "operator": null,
+            "type": "ref"
+          }
+        }
+      ],
+      "type": "Workflow"
+    },
+    {
+      "branches": [
+        {
+          "configs": {
+            "logic": "and",
+            "conditions": [
+              {
+                "left": {
+                  "aging_level": null,
+                  "cn_name": null,
+                  "description": "",
+                  "field_type": null,
+                  "memory": null,
+                  "name": "",
+                  "reflection": false,
+                  "required": false,
+                  "schema": null,
+                  "source": "user",
+                  "storage_method": null,
+                  "type": "boolean",
+                  "validator": null,
+                  "value": {
+                    "content": {
+                      "ref_node_id": "node_start",
+                      "ref_var_name": "memory.intermediate_param3",
+                      "source": "pre_defined"
+                    },
+                    "default": null,
+                    "display": null,
+                    "hint": "",
+                    "operator": null,
+                    "type": "ref"
+                  }
+                },
+                "operator": "eq",
+                "right": {
+                  "aging_level": null,
+                  "cn_name": null,
+                  "description": "",
+                  "field_type": null,
+                  "memory": null,
+                  "name": "",
+                  "reflection": false,
+                  "required": false,
+                  "schema": null,
+                  "source": "user",
+                  "storage_method": null,
+                  "type": "boolean",
+                  "validator": null,
+                  "value": {
+                    "content": true,
+                    "default": null,
+                    "display": null,
+                    "hint": "",
+                    "operator": null,
+                    "type": "literal"
+                  }
+                }
+              },
+              {
+                "left": {
+                  "aging_level": null,
+                  "cn_name": null,
+                  "description": "",
+                  "field_type": null,
+                  "memory": null,
+                  "name": "",
+                  "reflection": false,
+                  "required": false,
+                  "schema": null,
+                  "source": "user",
+                  "storage_method": null,
+                  "type": "boolean",
+                  "validator": null,
+                  "value": {
+                    "content": {
+                      "ref_node_id": "node_start",
+                      "ref_var_name": "memory.intermediate_param3",
+                      "source": "pre_defined"
+                    },
+                    "default": null,
+                    "display": null,
+                    "hint": "",
+                    "operator": null,
+                    "type": "ref"
+                  }
+                },
+                "operator": "eq",
+                "right": {
+                  "aging_level": null,
+                  "cn_name": null,
+                  "description": "",
+                  "field_type": null,
+                  "memory": null,
+                  "name": "",
+                  "reflection": false,
+                  "required": false,
+                  "schema": null,
+                  "source": "user",
+                  "storage_method": null,
+                  "type": "boolean",
+                  "validator": null,
+                  "value": {
+                    "content": true,
+                    "default": null,
+                    "display": null,
+                    "hint": "",
+                    "operator": null,
+                    "type": "literal"
+                  }
+                }
+              }
+            ]
+          },
+          "id": "if"
+        },
+        {
+          "configs": null,
+          "id": "default"
+        }
+      ],
+      "configs": null,
+      "id": "composite_node_1761649332651_node_072cb9c8176143be85c3a1f43ed4ebe3",
+      "inputs": null,
+      "name": "composite_node_1761649332651_node_072cb9c8176143be85c3a1f43ed4ebe3",
+      "outputs": null,
+      "type": "Branch"
+    },
+    {
+      "branches": null,
+      "configs": {
+        "id": "a48265d0-1bb8-46c0-a5a2-d804e243723e",
+        "version_id": "1761137107998"
+      },
+      "id": "composite_node_1761649332651_node_c68aa9fca92041be8dea9eda0f748115_extension_before_entry",
+      "inputs": [
+        {
+          "aging_level": null,
+          "cn_name": null,
+          "description": "用户输入",
+          "field_type": null,
+          "memory": null,
+          "name": "query",
+          "reflection": false,
+          "required": true,
+          "schema": null,
+          "source": "system",
+          "storage_method": null,
+          "type": "string",
+          "validator": null,
+          "value": {
+            "content": {
+              "ref_node_id": "node_start",
+              "ref_var_name": "sys.user_id",
+              "source": "system"
+            },
+            "default": null,
+            "display": null,
+            "hint": "",
+            "operator": null,
+            "type": "ref"
+          }
+        }
+      ],
+      "name": "composite_node_1761649332651_node_c68aa9fca92041be8dea9eda0f748115_extension_before_entry",
+      "outputs": [
+        {
+          "aging_level": null,
+          "cn_name": null,
+          "description": "最终输出",
+          "field_type": null,
+          "memory": null,
+          "name": "response_content",
+          "reflection": false,
+          "required": true,
+          "schema": null,
+          "source": "system",
+          "storage_method": null,
+          "type": "string",
+          "validator": null,
+          "value": {
+            "content": null,
+            "default": null,
+            "display": null,
+            "hint": null,
+            "operator": null,
+            "type": "generated"
+          }
+        },
+        {
+          "aging_level": null,
+          "cn_name": null,
+          "description": "",
+          "field_type": null,
+          "memory": null,
+          "name": "intent_id",
+          "reflection": false,
+          "required": true,
+          "schema": null,
+          "source": "user",
+          "storage_method": null,
+          "type": "integer",
+          "validator": null,
+          "value": {
+            "content": {
+              "ref_node_id": "node_1761136985011",
+              "ref_var_name": "key0",
+              "source": "user"
+            },
+            "default": null,
+            "display": null,
+            "hint": "",
+            "operator": null,
+            "type": "ref"
+          }
+        }
+      ],
+      "type": "Workflow"
+    },
+    {
+      "branches": [
+        {
+          "configs": {
+            "logic": "and",
+            "conditions": [
+              {
+                "left": {
+                  "aging_level": null,
+                  "cn_name": null,
+                  "description": "",
+                  "field_type": null,
+                  "memory": null,
+                  "name": "",
+                  "reflection": false,
+                  "required": false,
+                  "schema": null,
+                  "source": "user",
+                  "storage_method": null,
+                  "type": "boolean",
+                  "validator": null,
+                  "value": {
+                    "content": {
+                      "ref_node_id": "node_start",
+                      "ref_var_name": "memory.intermediate_param3",
+                      "source": "pre_defined"
+                    },
+                    "default": null,
+                    "display": null,
+                    "hint": "",
+                    "operator": null,
+                    "type": "ref"
+                  }
+                },
+                "operator": "eq",
+                "right": {
+                  "aging_level": null,
+                  "cn_name": null,
+                  "description": "",
+                  "field_type": null,
+                  "memory": null,
+                  "name": "",
+                  "reflection": false,
+                  "required": false,
+                  "schema": null,
+                  "source": "user",
+                  "storage_method": null,
+                  "type": "boolean",
+                  "validator": null,
+                  "value": {
+                    "content": true,
+                    "default": null,
+                    "display": null,
+                    "hint": "",
+                    "operator": null,
+                    "type": "literal"
+                  }
+                }
+              },
+              {
+                "left": {
+                  "aging_level": null,
+                  "cn_name": null,
+                  "description": "",
+                  "field_type": null,
+                  "memory": null,
+                  "name": "",
+                  "reflection": false,
+                  "required": false,
+                  "schema": null,
+                  "source": "user",
+                  "storage_method": null,
+                  "type": "boolean",
+                  "validator": null,
+                  "value": {
+                    "content": {
+                      "ref_node_id": "node_start",
+                      "ref_var_name": "memory.intermediate_param3",
+                      "source": "pre_defined"
+                    },
+                    "default": null,
+                    "display": null,
+                    "hint": "",
+                    "operator": null,
+                    "type": "ref"
+                  }
+                },
+                "operator": "eq",
+                "right": {
+                  "aging_level": null,
+                  "cn_name": null,
+                  "description": "",
+                  "field_type": null,
+                  "memory": null,
+                  "name": "",
+                  "reflection": false,
+                  "required": false,
+                  "schema": null,
+                  "source": "user",
+                  "storage_method": null,
+                  "type": "boolean",
+                  "validator": null,
+                  "value": {
+                    "content": true,
+                    "default": null,
+                    "display": null,
+                    "hint": "",
+                    "operator": null,
+                    "type": "literal"
+                  }
+                }
+              }
+            ]
+          },
+          "id": "if"
+        },
+        {
+          "configs": null,
+          "id": "default"
+        }
+      ],
+      "configs": null,
+      "id": "composite_node_1761649332651_node_3e3b616ff4484ee0b554e793ab30f41d",
+      "inputs": null,
+      "name": "composite_node_1761649332651_node_3e3b616ff4484ee0b554e793ab30f41d",
+      "outputs": null,
+      "type": "Branch"
+    },
+    {
+      "branches": null,
+      "configs": {},
+      "id": "composite_node_1761649332651_node_1c70698cdd88406a97e05fbb54d3e73c_cycle_begin",
+      "inputs": [],
+      "name": "composite_node_1761649332651_node_1c70698cdd88406a97e05fbb54d3e73c_cycle_begin",
+      "outputs": [],
+      "type": "ParamOutput"
+    },
+    {
+      "branches": [
+        {
+          "configs": {
+            "logic": "and",
+            "conditions": [
+              {
+                "left": {
+                  "aging_level": null,
+                  "cn_name": null,
+                  "description": "",
+                  "field_type": null,
+                  "memory": null,
+                  "name": "",
+                  "reflection": false,
+                  "required": false,
+                  "schema": null,
+                  "source": "user",
+                  "storage_method": null,
+                  "type": "boolean",
+                  "validator": null,
+                  "value": {
+                    "content": {
+                      "ref_node_id": "node_start",
+                      "ref_var_name": "memory.intermediate_param3",
+                      "source": "pre_defined"
+                    },
+                    "default": null,
+                    "display": null,
+                    "hint": "",
+                    "operator": null,
+                    "type": "ref"
+                  }
+                },
+                "operator": "eq",
+                "right": {
+                  "aging_level": null,
+                  "cn_name": null,
+                  "description": "",
+                  "field_type": null,
+                  "memory": null,
+                  "name": "",
+                  "reflection": false,
+                  "required": false,
+                  "schema": null,
+                  "source": "user",
+                  "storage_method": null,
+                  "type": "boolean",
+                  "validator": null,
+                  "value": {
+                    "content": {
+                      "ref_node_id": "node_start",
+                      "ref_var_name": "memory.intermediate_param3",
+                      "source": "pre_defined"
+                    },
+                    "default": null,
+                    "display": null,
+                    "hint": "",
+                    "operator": null,
+                    "type": "ref"
+                  }
+                }
+              }
+            ]
+          },
+          "id": "if"
+        },
+        {
+          "configs": null,
+          "id": "default"
+        }
+      ],
+      "configs": null,
+      "id": "composite_node_1761649332651_node_9c5fa4f3939549459519c07011701101",
+      "inputs": null,
+      "name": "composite_node_1761649332651_node_9c5fa4f3939549459519c07011701101",
+      "outputs": null,
+      "type": "Branch"
+    },
+    {
+      "branches": null,
+      "configs": {
+        "top_p": 0.5,
+        "history_size": 3,
+        "format_instruction": "",
+        "frequency_penalty": 0,
+        "response_format": "json",
+        "max_tokens": 2048,
+        "stream": false,
+        "template_content": "{{input_param1}}",
+        "temperature": 0.5,
+        "model": {
+          "model_id": "180",
+          "model_name": "DeepSeek-V3",
+          "model_type": "LLM",
+          "model_deployment_id": "180"
+        },
+        "system_prompt": null,
+        "enable_history": true
+      },
+      "id": "composite_node_1761649332651_node_c76d957092364032bb9189b5af539cbf_llm",
+      "inputs": [
+        {
+          "aging_level": null,
+          "cn_name": null,
+          "description": "",
+          "field_type": null,
+          "memory": null,
+          "name": "input_param1",
+          "reflection": false,
+          "required": true,
+          "schema": null,
+          "source": "user",
+          "storage_method": null,
+          "type": "string",
+          "validator": null,
+          "value": {
+            "content": {
+              "ref_node_id": "node_start",
+              "ref_var_name": "sys.user_id",
+              "source": "system"
+            },
+            "default": null,
+            "display": null,
+            "hint": "",
+            "operator": null,
+            "type": "ref"
+          }
+        },
+        {
+          "aging_level": null,
+          "cn_name": null,
+          "description": "",
+          "field_type": null,
+          "memory": null,
+          "name": "input_param2",
+          "reflection": false,
+          "required": true,
+          "schema": null,
+          "source": "user",
+          "storage_method": null,
+          "type": null,
+          "validator": null,
+          "value": {
+            "content": "1213213",
+            "default": null,
+            "display": null,
+            "hint": "",
+            "operator": null,
+            "type": "literal"
+          }
+        }
+      ],
+      "name": "composite_node_1761649332651_node_c76d957092364032bb9189b5af539cbf_llm",
+      "outputs": [
+        {
+          "aging_level": null,
+          "cn_name": null,
+          "description": "姓名",
+          "field_type": null,
+          "memory": null,
+          "name": "accountName",
+          "reflection": false,
+          "required": true,
+          "schema": null,
+          "source": "user",
+          "storage_method": null,
+          "type": "string",
+          "validator": null,
+          "value": {
+            "content": null,
+            "default": null,
+            "display": null,
+            "hint": null,
+            "operator": null,
+            "type": "generated"
+          }
+        },
+        {
+          "aging_level": null,
+          "cn_name": null,
+          "description": "付款人",
+          "field_type": null,
+          "memory": null,
+          "name": "pay_man",
+          "reflection": false,
+          "required": true,
+          "schema": [
+            {
+              "aging_level": null,
+              "cn_name": null,
+              "description": "银行卡号",
+              "field_type": null,
+              "memory": null,
+              "name": "cardNumber",
+              "reflection": false,
+              "required": true,
+              "schema": null,
+              "source": "user",
+              "storage_method": null,
+              "type": "string",
+              "validator": null,
+              "value": {
+                "content": null,
+                "default": null,
+                "display": null,
+                "hint": null,
+                "operator": null,
+                "type": "generated"
+              }
+            }
+          ],
+          "source": "user",
+          "storage_method": null,
+          "type": "object",
+          "validator": null,
+          "value": {
+            "content": null,
+            "default": null,
+            "display": null,
+            "hint": null,
+            "operator": null,
+            "type": "generated"
+          }
+        }
+      ],
+      "type": "LLM"
+    },
+    {
+      "branches": [
+        {
+          "configs": {
+            "logic": "and",
+            "conditions": [
+              {
+                "left": {
+                  "aging_level": null,
+                  "cn_name": null,
+                  "description": "",
+                  "field_type": null,
+                  "memory": null,
+                  "name": "",
+                  "reflection": false,
+                  "required": false,
+                  "schema": null,
+                  "source": "user",
+                  "storage_method": null,
+                  "type": "boolean",
+                  "validator": null,
+                  "value": {
+                    "content": {
+                      "ref_node_id": "node_start",
+                      "ref_var_name": "memory.intermediate_param3",
+                      "source": "pre_defined"
+                    },
+                    "default": null,
+                    "display": null,
+                    "hint": "",
+                    "operator": null,
+                    "type": "ref"
+                  }
+                },
+                "operator": "eq",
+                "right": {
+                  "aging_level": null,
+                  "cn_name": null,
+                  "description": "",
+                  "field_type": null,
+                  "memory": null,
+                  "name": "",
+                  "reflection": false,
+                  "required": false,
+                  "schema": null,
+                  "source": "user",
+                  "storage_method": null,
+                  "type": "boolean",
+                  "validator": null,
+                  "value": {
+                    "content": true,
+                    "default": null,
+                    "display": null,
+                    "hint": "",
+                    "operator": null,
+                    "type": "literal"
+                  }
+                }
+              }
+            ]
+          },
+          "id": "if"
+        },
+        {
+          "configs": null,
+          "id": "default"
+        }
+      ],
+      "configs": null,
+      "id": "composite_node_1761649332651_node_7284dfb6aec841d1bf367bcb2caf62b3",
+      "inputs": null,
+      "name": "composite_node_1761649332651_node_7284dfb6aec841d1bf367bcb2caf62b3",
+      "outputs": null,
+      "type": "Branch"
+    },
+    {
+      "branches": null,
+      "configs": {
+        "id": "a48265d0-1bb8-46c0-a5a2-d804e243723e",
+        "version_id": "1761113363640"
+      },
+      "id": "composite_node_1761649332651_node_3ed127e144db411c9d3523830c5a9ff3_domain_objects_buyer",
+      "inputs": [
+        {
+          "aging_level": null,
+          "cn_name": null,
+          "description": "用户输入",
+          "field_type": "input",
+          "memory": null,
+          "name": "query",
+          "reflection": false,
+          "required": true,
+          "schema": null,
+          "source": "system",
+          "storage_method": null,
+          "type": "string",
+          "validator": null,
+          "value": {
+            "content": {
+              "ref_node_id": "node_start",
+              "ref_var_name": "memory.payer.g_name",
+              "source": "pre_defined"
+            },
+            "default": null,
+            "display": null,
+            "hint": "",
+            "operator": null,
+            "type": "ref"
+          }
+        },
+        {
+          "aging_level": null,
+          "cn_name": null,
+          "description": "用户输入",
+          "field_type": "input",
+          "memory": null,
+          "name": "query1",
+          "reflection": false,
+          "required": true,
+          "schema": null,
+          "source": "system",
+          "storage_method": null,
+          "type": "string",
+          "validator": null,
+          "value": {
+            "content": {
+              "ref_node_id": "node_start",
+              "ref_var_name": "memory.intermediate_param3",
+              "source": "pre_defined"
+            },
+            "default": null,
+            "display": null,
+            "hint": "",
+            "operator": null,
+            "type": "ref"
+          }
+        },
+        {
+          "aging_level": null,
+          "cn_name": null,
+          "description": "用户输入",
+          "field_type": "input",
+          "memory": null,
+          "name": "query2",
+          "reflection": false,
+          "required": true,
+          "schema": null,
+          "source": "system",
+          "storage_method": null,
+          "type": "string",
+          "validator": null,
+          "value": {
+            "content": {
+              "ref_node_id": "composite_node_1761649332651_node_c76d957092364032bb9189b5af539cbf_llm",
+              "ref_var_name": "accountName",
+              "source": "user"
+            },
+            "default": null,
+            "display": null,
+            "hint": "",
+            "operator": null,
+            "type": "ref"
+          }
+        },
+        {
+          "aging_level": null,
+          "cn_name": null,
+          "description": "用户输入",
+          "field_type": "input",
+          "memory": null,
+          "name": "query3",
+          "reflection": false,
+          "required": true,
+          "schema": null,
+          "source": "system",
+          "storage_method": null,
+          "type": "string",
+          "validator": null,
+          "value": {
+            "content": {
+              "ref_node_id": "node_start",
+              "ref_var_name": "sys.user_id",
+              "source": "system"
+            },
+            "default": null,
+            "display": null,
+            "hint": "",
+            "operator": null,
+            "type": "ref"
+          }
+        },
+        {
+          "aging_level": null,
+          "cn_name": null,
+          "description": "记忆变量",
+          "field_type": null,
+          "memory": null,
+          "name": "memory",
+          "reflection": false,
+          "required": true,
+          "schema": [
+            {
+              "aging_level": "session",
+              "cn_name": null,
+              "description": "",
+              "field_type": null,
+              "memory": null,
+              "name": "asdas",
+              "reflection": false,
+              "required": true,
+              "schema": null,
+              "source": "pre_defined",
+              "storage_method": "assignment",
+              "type": "string",
+              "validator": null,
+              "value": {
+                "content": {
+                  "ref_node_id": "node_start",
+                  "ref_var_name": "memory.intermediate_param1",
+                  "source": "pre_defined"
+                },
+                "default": null,
+                "display": null,
+                "hint": "",
+                "operator": null,
+                "type": "ref"
+              }
+            },
+            {
+              "aging_level": "session",
+              "cn_name": null,
+              "description": "",
+              "field_type": null,
+              "memory": null,
+              "name": "xzcas",
+              "reflection": false,
+              "required": true,
+              "schema": [
+                {
+                  "aging_level": "session",
+                  "cn_name": null,
+                  "description": "",
+                  "field_type": null,
+                  "memory": null,
+                  "name": "xzcasd",
+                  "reflection": false,
+                  "required": true,
+                  "schema": null,
+                  "source": "pre_defined",
+                  "storage_method": "assignment",
+                  "type": "string",
+                  "validator": null,
+                  "value": {
+                    "content": null,
+                    "default": "",
+                    "display": null,
+                    "hint": "",
+                    "operator": null,
+                    "type": "generated"
+                  }
+                }
+              ],
+              "source": "pre_defined",
+              "storage_method": "assignment",
+              "type": "object",
+              "validator": null,
+              "value": {
+                "content": {
+                  "ref_node_id": "node_start",
+                  "ref_var_name": "memory.payer.g_name",
+                  "source": "pre_defined"
+                },
+                "default": null,
+                "display": null,
+                "hint": "",
+                "operator": null,
+                "type": "ref"
+              }
+            }
+          ],
+          "source": "pre_defined",
+          "storage_method": null,
+          "type": "object",
+          "validator": null,
+          "value": {
+            "content": null,
+            "default": "",
+            "display": null,
+            "hint": "",
+            "operator": null,
+            "type": "nested"
+          }
+        }
+      ],
+      "name": "composite_node_1761649332651_node_3ed127e144db411c9d3523830c5a9ff3_domain_objects_buyer",
+      "outputs": [
+        {
+          "aging_level": null,
+          "cn_name": null,
+          "description": "最终输出",
+          "field_type": null,
+          "memory": null,
+          "name": "response_content",
+          "reflection": false,
+          "required": true,
+          "schema": null,
+          "source": "system",
+          "storage_method": null,
+          "type": "string",
+          "validator": null,
+          "value": {
+            "content": null,
+            "default": null,
+            "display": null,
+            "hint": null,
+            "operator": null,
+            "type": "generated"
+          }
+        }
+      ],
+      "type": "Workflow"
+    },
+    {
+      "branches": [
+        {
+          "configs": {
+            "logic": "and",
+            "conditions": [
+              {
+                "left": {
+                  "aging_level": null,
+                  "cn_name": null,
+                  "description": "",
+                  "field_type": null,
+                  "memory": null,
+                  "name": "",
+                  "reflection": false,
+                  "required": false,
+                  "schema": null,
+                  "source": "user",
+                  "storage_method": null,
+                  "type": "boolean",
+                  "validator": null,
+                  "value": {
+                    "content": {
+                      "ref_node_id": "node_start",
+                      "ref_var_name": "memory.intermediate_param3",
+                      "source": "pre_defined"
+                    },
+                    "default": null,
+                    "display": null,
+                    "hint": "",
+                    "operator": null,
+                    "type": "ref"
+                  }
+                },
+                "operator": "eq",
+                "right": {
+                  "aging_level": null,
+                  "cn_name": null,
+                  "description": "",
+                  "field_type": null,
+                  "memory": null,
+                  "name": "",
+                  "reflection": false,
+                  "required": false,
+                  "schema": null,
+                  "source": "user",
+                  "storage_method": null,
+                  "type": "boolean",
+                  "validator": null,
+                  "value": {
+                    "content": true,
+                    "default": null,
+                    "display": null,
+                    "hint": "",
+                    "operator": null,
+                    "type": "literal"
+                  }
+                }
+              },
+              {
+                "left": {
+                  "aging_level": null,
+                  "cn_name": null,
+                  "description": "",
+                  "field_type": null,
+                  "memory": null,
+                  "name": "",
+                  "reflection": false,
+                  "required": false,
+                  "schema": null,
+                  "source": "user",
+                  "storage_method": null,
+                  "type": "boolean",
+                  "validator": null,
+                  "value": {
+                    "content": {
+                      "ref_node_id": "node_start",
+                      "ref_var_name": "memory.intermediate_param3",
+                      "source": "pre_defined"
+                    },
+                    "default": null,
+                    "display": null,
+                    "hint": "",
+                    "operator": null,
+                    "type": "ref"
+                  }
+                },
+                "operator": "eq",
+                "right": {
+                  "aging_level": null,
+                  "cn_name": null,
+                  "description": "",
+                  "field_type": null,
+                  "memory": null,
+                  "name": "",
+                  "reflection": false,
+                  "required": false,
+                  "schema": null,
+                  "source": "user",
+                  "storage_method": null,
+                  "type": "boolean",
+                  "validator": null,
+                  "value": {
+                    "content": true,
+                    "default": null,
+                    "display": null,
+                    "hint": "",
+                    "operator": null,
+                    "type": "literal"
+                  }
+                }
+              }
+            ]
+          },
+          "id": "if"
+        },
+        {
+          "configs": null,
+          "id": "default"
+        }
+      ],
+      "configs": null,
+      "id": "composite_node_1761649332651_node_da44d1fa46e94c208d54c227c035d024",
+      "inputs": null,
+      "name": "composite_node_1761649332651_node_da44d1fa46e94c208d54c227c035d024",
+      "outputs": null,
+      "type": "Branch"
+    },
+    {
+      "branches": null,
+      "configs": {
+        "id": "e8baae37-5deb-4367-96ba-8911e8387b51",
+        "version_id": "1761137107998"
+      },
+      "id": "composite_node_1761649332651_node_e59ebddea6e745618025ad8c06bcbe1c_domain_objects_buyer",
+      "inputs": [
+        {
+          "aging_level": null,
+          "cn_name": null,
+          "description": "用户输入",
+          "field_type": null,
+          "memory": null,
+          "name": "query",
+          "reflection": false,
+          "required": true,
+          "schema": null,
+          "source": "system",
+          "storage_method": null,
+          "type": "string",
+          "validator": null,
+          "value": {
+            "content": {
+              "ref_node_id": "node_start",
+              "ref_var_name": "sys.user_id",
+              "source": "system"
+            },
+            "default": null,
+            "display": null,
+            "hint": "",
+            "operator": null,
+            "type": "ref"
+          }
+        }
+      ],
+      "name": "composite_node_1761649332651_node_e59ebddea6e745618025ad8c06bcbe1c_domain_objects_buyer",
+      "outputs": [
+        {
+          "aging_level": null,
+          "cn_name": null,
+          "description": "最终输出",
+          "field_type": null,
+          "memory": null,
+          "name": "response_content",
+          "reflection": false,
+          "required": true,
+          "schema": null,
+          "source": "system",
+          "storage_method": null,
+          "type": "string",
+          "validator": null,
+          "value": {
+            "content": null,
+            "default": null,
+            "display": null,
+            "hint": null,
+            "operator": null,
+            "type": "generated"
+          }
+        },
+        {
+          "aging_level": null,
+          "cn_name": null,
+          "description": "",
+          "field_type": null,
+          "memory": null,
+          "name": "intent_id",
+          "reflection": false,
+          "required": true,
+          "schema": null,
+          "source": "user",
+          "storage_method": null,
+          "type": "integer",
+          "validator": null,
+          "value": {
+            "content": {
+              "ref_node_id": "node_1761136985011",
+              "ref_var_name": "key0",
+              "source": "user"
+            },
+            "default": null,
+            "display": null,
+            "hint": "",
+            "operator": null,
+            "type": "ref"
+          }
+        }
+      ],
+      "type": "Workflow"
+    },
+    {
+      "branches": [
+        {
+          "configs": {
+            "logic": "and",
+            "conditions": [
+              {
+                "left": {
+                  "aging_level": null,
+                  "cn_name": null,
+                  "description": "",
+                  "field_type": null,
+                  "memory": null,
+                  "name": "",
+                  "reflection": false,
+                  "required": false,
+                  "schema": null,
+                  "source": "user",
+                  "storage_method": null,
+                  "type": "boolean",
+                  "validator": null,
+                  "value": {
+                    "content": {
+                      "ref_node_id": "node_start",
+                      "ref_var_name": "memory.intermediate_param3",
+                      "source": "pre_defined"
+                    },
+                    "default": null,
+                    "display": null,
+                    "hint": "",
+                    "operator": null,
+                    "type": "ref"
+                  }
+                },
+                "operator": "eq",
+                "right": {
+                  "aging_level": null,
+                  "cn_name": null,
+                  "description": "",
+                  "field_type": null,
+                  "memory": null,
+                  "name": "",
+                  "reflection": false,
+                  "required": false,
+                  "schema": null,
+                  "source": "user",
+                  "storage_method": null,
+                  "type": "boolean",
+                  "validator": null,
+                  "value": {
+                    "content": true,
+                    "default": null,
+                    "display": null,
+                    "hint": "",
+                    "operator": null,
+                    "type": "literal"
+                  }
+                }
+              },
+              {
+                "left": {
+                  "aging_level": null,
+                  "cn_name": null,
+                  "description": "",
+                  "field_type": null,
+                  "memory": null,
+                  "name": "",
+                  "reflection": false,
+                  "required": false,
+                  "schema": null,
+                  "source": "user",
+                  "storage_method": null,
+                  "type": "boolean",
+                  "validator": null,
+                  "value": {
+                    "content": {
+                      "ref_node_id": "node_start",
+                      "ref_var_name": "memory.intermediate_param3",
+                      "source": "pre_defined"
+                    },
+                    "default": null,
+                    "display": null,
+                    "hint": "",
+                    "operator": null,
+                    "type": "ref"
+                  }
+                },
+                "operator": "eq",
+                "right": {
+                  "aging_level": null,
+                  "cn_name": null,
+                  "description": "",
+                  "field_type": null,
+                  "memory": null,
+                  "name": "",
+                  "reflection": false,
+                  "required": false,
+                  "schema": null,
+                  "source": "user",
+                  "storage_method": null,
+                  "type": "boolean",
+                  "validator": null,
+                  "value": {
+                    "content": true,
+                    "default": null,
+                    "display": null,
+                    "hint": "",
+                    "operator": null,
+                    "type": "literal"
+                  }
+                }
+              }
+            ]
+          },
+          "id": "if"
+        },
+        {
+          "configs": null,
+          "id": "default"
+        }
+      ],
+      "configs": null,
+      "id": "composite_node_1761649332651_node_e4b70be569ff4fd1a93f51058a447088",
+      "inputs": null,
+      "name": "composite_node_1761649332651_node_e4b70be569ff4fd1a93f51058a447088",
+      "outputs": null,
+      "type": "Branch"
+    },
+    {
+      "branches": [
+        {
+          "configs": {
+            "logic": "and",
+            "conditions": [
+              {
+                "left": {
+                  "aging_level": null,
+                  "cn_name": null,
+                  "description": "",
+                  "field_type": null,
+                  "memory": null,
+                  "name": "",
+                  "reflection": false,
+                  "required": false,
+                  "schema": null,
+                  "source": "user",
+                  "storage_method": null,
+                  "type": "boolean",
+                  "validator": null,
+                  "value": {
+                    "content": {
+                      "ref_node_id": "node_start",
+                      "ref_var_name": "memory.intermediate_param3",
+                      "source": "pre_defined"
+                    },
+                    "default": null,
+                    "display": null,
+                    "hint": "",
+                    "operator": null,
+                    "type": "ref"
+                  }
+                },
+                "operator": "eq",
+                "right": {
+                  "aging_level": null,
+                  "cn_name": null,
+                  "description": "",
+                  "field_type": null,
+                  "memory": null,
+                  "name": "",
+                  "reflection": false,
+                  "required": false,
+                  "schema": null,
+                  "source": "user",
+                  "storage_method": null,
+                  "type": "boolean",
+                  "validator": null,
+                  "value": {
+                    "content": true,
+                    "default": null,
+                    "display": null,
+                    "hint": "",
+                    "operator": null,
+                    "type": "literal"
+                  }
+                }
+              }
+            ]
+          },
+          "id": "if"
+        },
+        {
+          "configs": null,
+          "id": "default"
+        }
+      ],
+      "configs": null,
+      "id": "composite_node_1761649332651_node_5777618d75124b20951c03cce028d28c",
+      "inputs": null,
+      "name": "composite_node_1761649332651_node_5777618d75124b20951c03cce028d28c",
+      "outputs": null,
+      "type": "Branch"
+    },
+    {
+      "branches": null,
+      "configs": {
+        "id": "a48265d0-1bb8-46c0-a5a2-d804e243723e",
+        "version_id": "1761137107998"
+      },
+      "id": "composite_node_1761649332651_node_908f87ec54f34a36a8cc8f1cacac57f1_extension_before_judge_quit",
+      "inputs": [
+        {
+          "aging_level": null,
+          "cn_name": null,
+          "description": "用户输入",
+          "field_type": null,
+          "memory": null,
+          "name": "query",
+          "reflection": false,
+          "required": true,
+          "schema": null,
+          "source": "system",
+          "storage_method": null,
+          "type": "string",
+          "validator": null,
+          "value": {
+            "content": {
+              "ref_node_id": "node_start",
+              "ref_var_name": "sys.user_id",
+              "source": "system"
+            },
+            "default": null,
+            "display": null,
+            "hint": "",
+            "operator": null,
+            "type": "ref"
+          }
+        }
+      ],
+      "name": "composite_node_1761649332651_node_908f87ec54f34a36a8cc8f1cacac57f1_extension_before_judge_quit",
+      "outputs": [
+        {
+          "aging_level": null,
+          "cn_name": null,
+          "description": "最终输出",
+          "field_type": null,
+          "memory": null,
+          "name": "response_content",
+          "reflection": false,
+          "required": true,
+          "schema": null,
+          "source": "system",
+          "storage_method": null,
+          "type": "string",
+          "validator": null,
+          "value": {
+            "content": null,
+            "default": null,
+            "display": null,
+            "hint": null,
+            "operator": null,
+            "type": "generated"
+          }
+        },
+        {
+          "aging_level": null,
+          "cn_name": null,
+          "description": "",
+          "field_type": null,
+          "memory": null,
+          "name": "intent_id",
+          "reflection": false,
+          "required": true,
+          "schema": null,
+          "source": "user",
+          "storage_method": null,
+          "type": "integer",
+          "validator": null,
+          "value": {
+            "content": {
+              "ref_node_id": "node_1761136985011",
+              "ref_var_name": "key0",
+              "source": "user"
+            },
+            "default": null,
+            "display": null,
+            "hint": "",
+            "operator": null,
+            "type": "ref"
+          }
+        }
+      ],
+      "type": "Workflow"
+    },
+    {
+      "branches": [
+        {
+          "configs": {
+            "logic": "and",
+            "conditions": [
+              {
+                "left": {
+                  "aging_level": null,
+                  "cn_name": null,
+                  "description": "",
+                  "field_type": null,
+                  "memory": null,
+                  "name": "",
+                  "reflection": false,
+                  "required": false,
+                  "schema": null,
+                  "source": "user",
+                  "storage_method": null,
+                  "type": "boolean",
+                  "validator": null,
+                  "value": {
+                    "content": {
+                      "ref_node_id": "node_start",
+                      "ref_var_name": "memory.intermediate_param3",
+                      "source": "pre_defined"
+                    },
+                    "default": null,
+                    "display": null,
+                    "hint": "",
+                    "operator": null,
+                    "type": "ref"
+                  }
+                },
+                "operator": "eq",
+                "right": {
+                  "aging_level": null,
+                  "cn_name": null,
+                  "description": "",
+                  "field_type": null,
+                  "memory": null,
+                  "name": "",
+                  "reflection": false,
+                  "required": false,
+                  "schema": null,
+                  "source": "user",
+                  "storage_method": null,
+                  "type": "boolean",
+                  "validator": null,
+                  "value": {
+                    "content": true,
+                    "default": null,
+                    "display": null,
+                    "hint": "",
+                    "operator": null,
+                    "type": "literal"
+                  }
+                }
+              },
+              {
+                "left": {
+                  "aging_level": null,
+                  "cn_name": null,
+                  "description": "",
+                  "field_type": null,
+                  "memory": null,
+                  "name": "",
+                  "reflection": false,
+                  "required": false,
+                  "schema": null,
+                  "source": "user",
+                  "storage_method": null,
+                  "type": "boolean",
+                  "validator": null,
+                  "value": {
+                    "content": {
+                      "ref_node_id": "node_start",
+                      "ref_var_name": "memory.intermediate_param3",
+                      "source": "pre_defined"
+                    },
+                    "default": null,
+                    "display": null,
+                    "hint": "",
+                    "operator": null,
+                    "type": "ref"
+                  }
+                },
+                "operator": "eq",
+                "right": {
+                  "aging_level": null,
+                  "cn_name": null,
+                  "description": "",
+                  "field_type": null,
+                  "memory": null,
+                  "name": "",
+                  "reflection": false,
+                  "required": false,
+                  "schema": null,
+                  "source": "user",
+                  "storage_method": null,
+                  "type": "boolean",
+                  "validator": null,
+                  "value": {
+                    "content": true,
+                    "default": null,
+                    "display": null,
+                    "hint": "",
+                    "operator": null,
+                    "type": "literal"
+                  }
+                }
+              }
+            ]
+          },
+          "id": "if"
+        },
+        {
+          "configs": null,
+          "id": "default"
+        }
+      ],
+      "configs": null,
+      "id": "composite_node_1761649332651_node_642b5900b4a847918c50f06931ec22c5",
+      "inputs": null,
+      "name": "composite_node_1761649332651_node_642b5900b4a847918c50f06931ec22c5",
+      "outputs": null,
+      "type": "Branch"
+    },
+    {
+      "branches": [
+        {
+          "configs": {
+            "logic": "or",
+            "conditions": [
+              {
+                "left": {
+                  "aging_level": null,
+                  "cn_name": null,
+                  "description": "",
+                  "field_type": null,
+                  "memory": null,
+                  "name": "",
+                  "reflection": false,
+                  "required": false,
+                  "schema": null,
+                  "source": "user",
+                  "storage_method": null,
+                  "type": "boolean",
+                  "validator": null,
+                  "value": {
+                    "content": {
+                      "ref_node_id": "node_start",
+                      "ref_var_name": "memory.intermediate_param3",
+                      "source": "pre_defined"
+                    },
+                    "default": null,
+                    "display": null,
+                    "hint": "",
+                    "operator": null,
+                    "type": "ref"
+                  }
+                },
+                "operator": "eq",
+                "right": {
+                  "aging_level": null,
+                  "cn_name": null,
+                  "description": "",
+                  "field_type": null,
+                  "memory": null,
+                  "name": "",
+                  "reflection": false,
+                  "required": false,
+                  "schema": null,
+                  "source": "user",
+                  "storage_method": null,
+                  "type": "boolean",
+                  "validator": null,
+                  "value": {
+                    "content": true,
+                    "default": null,
+                    "display": null,
+                    "hint": "",
+                    "operator": null,
+                    "type": "literal"
+                  }
+                }
+              },
+              {
+                "left": {
+                  "aging_level": null,
+                  "cn_name": null,
+                  "description": "",
+                  "field_type": null,
+                  "memory": null,
+                  "name": "",
+                  "reflection": false,
+                  "required": false,
+                  "schema": null,
+                  "source": "user",
+                  "storage_method": null,
+                  "type": "boolean",
+                  "validator": null,
+                  "value": {
+                    "content": {
+                      "ref_node_id": "node_start",
+                      "ref_var_name": "memory.intermediate_param3",
+                      "source": "pre_defined"
+                    },
+                    "default": null,
+                    "display": null,
+                    "hint": "",
+                    "operator": null,
+                    "type": "ref"
+                  }
+                },
+                "operator": "eq",
+                "right": {
+                  "aging_level": null,
+                  "cn_name": null,
+                  "description": "",
+                  "field_type": null,
+                  "memory": null,
+                  "name": "",
+                  "reflection": false,
+                  "required": false,
+                  "schema": null,
+                  "source": "user",
+                  "storage_method": null,
+                  "type": "boolean",
+                  "validator": null,
+                  "value": {
+                    "content": true,
+                    "default": null,
+                    "display": null,
+                    "hint": "",
+                    "operator": null,
+                    "type": "literal"
+                  }
+                }
+              }
+            ]
+          },
+          "id": "if"
+        },
+        {
+          "configs": null,
+          "id": "default"
+        }
+      ],
+      "configs": null,
+      "id": "composite_node_1761649332651_node_0f39e2c095024d39836ff6f11b890a30",
+      "inputs": null,
+      "name": "composite_node_1761649332651_node_0f39e2c095024d39836ff6f11b890a30",
+      "outputs": null,
+      "type": "Branch"
+    },
+    {
+      "branches": null,
+      "configs": {},
+      "id": "composite_node_1761649332651_node_ff3b4405f78743df9d598dd9200e7235_end",
+      "inputs": [],
+      "name": "composite_node_1761649332651_node_ff3b4405f78743df9d598dd9200e7235_end",
+      "outputs": [],
+      "type": "ParamOutput"
+    },
+    {
+      "branches": null,
+      "configs": {},
+      "id": "composite_node_1761649332651_node_0cb9179b3f5a4462bdf4de8c4b34d49b_end_exception",
+      "inputs": [],
+      "name": "composite_node_1761649332651_node_0cb9179b3f5a4462bdf4de8c4b34d49b_end_exception",
+      "outputs": [],
+      "type": "ParamOutput"
+    }
+  ]
+}

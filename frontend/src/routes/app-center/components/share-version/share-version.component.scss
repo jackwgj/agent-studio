@@ -1,0 +1,127 @@
+.run-modal-wrapper {
+  background: #ffffff;
+  box-shadow: -4px 0px 16px 0px #00000014;
+  padding: 18px 16px;
+}
+
+.release-history-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-x: hidden;
+  .item.active {
+    .version-card {
+      background: #eeebfa;
+    }
+    .hollow-circle{
+      background: #5834ed;
+    }
+  }
+
+  .hollow-circle {
+    width: 8px;
+    height: 8px;
+    background: #c2c2c2;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .hollow-circle.current {
+    background: #f9b661!important;
+  }
+
+  .vertical-line {
+    width: 1px;
+    background-color: #c2c2c2;
+    height: 100%;
+  }
+
+  .version-card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px 16px;
+    border-radius: 8px;
+    padding: 16px;
+    margin: 0 8px;
+    flex: 1;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+    .version_name{
+      display: inline-block;
+      padding: 4px;
+      border-radius: 2px;
+      background: rgba(230, 230, 230, 1);
+      max-width: 300px;
+    }
+    .share-time{
+      color: rgba(128, 128, 128, 1);
+    }
+    .action {
+      display: none;
+
+      .icon {
+        color: #1476ff;
+        font-size: 16px;
+        margin-right: 4px;
+      }
+    }
+
+    &:hover {
+      box-shadow: 0 4px 6px #00000014;
+      transform: translate3d(0, 0, 0);
+      border: 1px solid #1476ff;
+      background-color: #fff;
+
+      .action {
+        display: block;
+      }
+    }
+
+    .index-tag {
+      color: #1476ffff;
+      border-radius: 2px;
+      background: #deecffff;
+      padding: 0 4px;
+    }
+
+    .status-tag {
+      color: #191919ff;
+      border-radius: 2px;
+      background: #e6e6e6ff;
+      padding: 0 4px;
+    }
+
+    .divider {
+      background: #00000014;
+      height: 10px;
+      width: 1px;
+    }
+  }
+
+  .label {
+    width: 60px;
+    color: #595959;
+  }
+}
+
+::ng-deep {
+  .pw-three-dots-more .ti3-icon:hover:after {
+    background-color: transparent !important;
+  }
+
+  .pw-three-dots-more:hover {
+    .ti3-icon:before {
+      color: #1476ff !important;
+    }
+  }
+}
+
+.loading-icon {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+}

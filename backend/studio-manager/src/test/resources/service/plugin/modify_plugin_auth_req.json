@@ -1,0 +1,24 @@
+{
+
+  "tool_display_name": "tte1",
+  "tool_desc": "tte",
+  "visibility": "project",
+  "tool_chinese_name": "tte",
+  "request_info":
+  {
+    "url": "http://deepseek.com/chat",
+    "method": "POST"
+  },
+  "auth_info": {
+    "scope": "SGOV",
+    "domain": "QUERY",
+    "auth_keys": [
+      {
+        "target_name": "X-API-Key",
+        "auth_key": "123test"
+      }
+    ]
+  },
+  "auth_required": true,
+  "call_mode": "api"
+}

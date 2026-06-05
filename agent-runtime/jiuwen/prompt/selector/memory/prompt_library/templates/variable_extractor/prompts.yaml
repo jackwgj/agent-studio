@@ -1,0 +1,4 @@
+MEM_VAR_EXTRACTION_CN:
+  description: "[Chinese] template for variable extraction"
+MEM_VAR_VALIDATION_CN:
+  description: "[Chinese] template for variable validation"

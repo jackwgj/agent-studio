@@ -1,0 +1,126 @@
+<div class="h-full flex flex-col">
+  <div class="mb-4 flex justify-between items-center" *ngIf="!isMarket">
+    <div class="flex gap-2">
+      <button nz-button nzType="primary" [disabled]="kbAbilitiesService.isResourceDisabled" (click)="openUploadFileHalfmodal()">
+        <span nz-icon nzType="upload"></span>
+        {{ 'upload' | i18nextEager }}
+      </button>
+      <button nz-button nzType="default" [disabled]="operationDisableFn()" (click)="onBatchDownload()" [nzLoading]="isDownloading">
+        <span nz-icon nzType="download"></span>
+        {{ 'download' | i18nextEager }}
+      </button>
+      <button nz-button nzType="primary" nzDanger [disabled]="operationDisableFn()" (click)="onBatchDelete()">
+        {{ 'delete' | i18nextEager }}
+      </button>
+      <button *ngIf="isFaqEnable" nz-button nzType="default" [disabled]="operationDisableFn()" (click)="onBatchRetry()">
+        <span nz-icon nzType="reload"></span>
+        {{ 'retry' | i18nextEager }}
+      </button>
+    </div>
+
+    <div class="flex gap-2 w-[450px]">
+      <nz-select [(ngModel)]="searchFileType" nzAllowClear [nzPlaceHolder]="'all_file_type' | i18nextEager" (ngModelChange)="onSearch()" class="w-[120px]">
+        <nz-option *ngFor="let opt of fileTypeOptions" [nzValue]="opt.value" [nzLabel]="opt.label"></nz-option>
+      </nz-select>
+
+      <nz-select [(ngModel)]="searchStatus" nzAllowClear [nzPlaceHolder]="'all_status' | i18nextEager" (ngModelChange)="onSearch()" class="w-[130px]">
+        <nz-option *ngFor="let opt of statusOptions" [nzValue]="opt.value" [nzLabel]="opt.label"></nz-option>
+      </nz-select>
+
+      <nz-input-group [nzSuffix]="suffixIconSearch" class="flex-1">
+        <input type="text" nz-input [placeholder]="'search_by_name' | i18nextEager" [(ngModel)]="searchName" (ngModelChange)="onSearch()" />
+      </nz-input-group>
+      <ng-template #suffixIconSearch>
+        <span nz-icon nzType="search"></span>
+      </ng-template>
+    </div>
+  </div>
+
+  <nz-table
+    #filesTable
+    nzShowSizeChanger
+    [nzData]="tableData"
+    [nzFrontPagination]="false"
+    [nzLoading]="loading"
+    [nzTotal]="total"
+    [(nzPageIndex)]="pageIndex"
+    [(nzPageSize)]="pageSize"
+    [nzPageSizeOptions]="[10, 20, 50, 100]"
+    (nzQueryParams)="onQueryParamsChange($event)"
+    [nzScroll]="{ y: '350px' }"
+    [nzNoResult]="noDataTpl"
+  >
+    <thead>
+    <tr>
+      <th *ngIf="!isMarket" nzWidth="50px" [nzChecked]="allChecked" [nzIndeterminate]="indeterminate" (nzCheckedChange)="onAllChecked($event)"></th>
+      <th nzWidth="20%">{{ 'file_name' | i18nextEager }}</th>
+      <th nzWidth="10%">{{ 'file_type' | i18nextEager }}</th>
+      <th *ngIf="kbAbilitiesService.isSupTag(kb)" nzWidth="15%">{{ 'kb_tag' | i18nextEager }}</th>
+      <th nzWidth="10%">{{ 'file_size' | i18nextEager }}</th>
+      <th nzWidth="15%">{{ 'status' | i18nextEager }}</th>
+      <th nzWidth="15%">{{ 'create_time' | i18nextEager }}</th>
+      <th nzWidth="15%">{{ 'operation' | i18nextEager }}</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr *ngFor="let data of filesTable.data">
+      <td *ngIf="!isMarket" [nzChecked]="setOfCheckedId.has(data.file_id)" [nzDisabled]="kbAbilitiesService.isResourceDisabled" (nzCheckedChange)="onItemChecked(data.file_id, $event)"></td>
+
+      <td class="truncate" [title]="data.file_name">
+        <a *ngIf="!isMarket" [routerLink]="['/home/knowledge-center/knowledge', kbId, 'files', data.file_id]">{{ data.file_name }}</a>
+        <span *ngIf="isMarket">{{ data.file_name }}</span>
+      </td>
+
+      <td class="truncate" [title]="data.file_type">{{ data.file_type }}</td>
+
+      <td *ngIf="kbAbilitiesService.isSupTag(kb)">
+        <div class="flex flex-wrap gap-1 cursor-pointer min-h-[24px] items-center" (click)="editTag([data], false)">
+          <ng-container *ngIf="data.file_tags?.length; else noTag">
+            <nz-tag *ngFor="let tag of data.file_tags" class="!mr-0 mb-1">{{ tag.name || tag }}</nz-tag>
+          </ng-container>
+          <ng-template #noTag><span class="text-gray-400 text-xs">--</span></ng-template>
+        </div>
+      </td>
+
+      <td class="truncate">{{ data.file_size | bytes }}</td>
+
+      <td>
+        <nz-badge [nzStatus]="getStatusIcon(data.file_status)" [nzText]="getStatusText(data.file_status)"></nz-badge>
+      </td>
+
+      <td class="truncate" [title]="data.create_time">{{ data.create_time }}</td>
+
+      <td>
+        <div class="flex items-center gap-2 flex-wrap">
+          <a nz-typography [nzDisabled]="kbAbilitiesService.isResourceDisabled" (click)="onDownload(data)">
+            {{ 'download' | i18nextEager }}
+          </a>
+          <nz-divider *ngIf="!isMarket" nzType="vertical"></nz-divider>
+          <a *ngIf="!isMarket" nz-typography nzType="danger" [nzDisabled]="kbAbilitiesService.isResourceDisabled" (click)="onDelete(data)">
+            {{ 'delete' | i18nextEager }}
+          </a>
+          <nz-divider *ngIf="!isMarket && isFaqEnable" nzType="vertical"></nz-divider>
+          <a *ngIf="!isMarket && isFaqEnable" nz-typography [nzDisabled]="kbAbilitiesService.isResourceDisabled" (click)="showRetryModal([data.file_id])">
+            {{ 'retry' | i18nextEager }}
+          </a>
+          <nz-divider *ngIf="!isMarket && kbAbilitiesService.isSupTag(kb)" nzType="vertical"></nz-divider>
+          <a *ngIf="!isMarket && kbAbilitiesService.isSupTag(kb)" nz-typography [nzDisabled]="kbAbilitiesService.isResourceDisabled" (click)="editTag([data], false)">
+            {{ 'edit_tag' | i18nextEager }}
+          </a>
+        </div>
+      </td>
+    </tr>
+    </tbody>
+  </nz-table>
+</div>
+
+<ng-template #noDataTpl>
+  <nz-empty [nzNotFoundImage]="customEmptyImageTpl" [nzNotFoundContent]="'no_data' | i18nextEager"></nz-empty>
+</ng-template>
+
+<ng-template #customEmptyImageTpl>
+  <img [src]="emptyImage" alt="no data" class="mx-auto block" />
+</ng-template>
+
+<batch-delete #batchDeleteModal (confirm)="handleBatchDelete($event)"></batch-delete>
+<kb-file-tag-edit #kbFileTagEdit [kbId]="kbId" (success)="tagEditSuccess()"></kb-file-tag-edit>

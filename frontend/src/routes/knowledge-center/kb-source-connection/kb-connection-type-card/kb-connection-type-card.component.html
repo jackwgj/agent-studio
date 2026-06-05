@@ -1,0 +1,21 @@
+<div class="kb-connection-type-card">
+
+  <div class="type-card-item"
+       [ngClass]="{
+         active: value === card.id,
+         disabled: readonly,
+       }"
+       *ngFor="let card of typeData"
+       (click)="selectValue(card.id)">
+
+    <div class="kb-connection-type-title-container">
+      <div class="type-card-title" tiOverflow>
+        {{ card.name }}
+      </div>
+    </div>
+
+    <div class="type-card-desc" tiOverflow>
+      {{ card.description }}
+    </div>
+  </div>
+</div>

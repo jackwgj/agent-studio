@@ -1,0 +1,39 @@
+<div *nzModalTitle>
+  {{ modalTitle }}
+</div>
+<div>
+  <nz-alert type="warn" [nzMessage]="'plugin_delete_tip' | i18nextEager"  class="alert-width mb-[16px]"></nz-alert>
+  <div class="mb-[8px]">{{ 'relate_guide_label' | i18nextEager }}</div>
+  <nz-table
+    [nzData]="quotaData"
+    [nzShowPagination]="quotaData.length > 10"
+    [nzPageSize]="10"
+    [nzScroll]="{ y: quotaData.length > 10 ? '420px' : 'auto' }"
+  >
+    <thead>
+      <tr>
+        <th>{{ 'scene_name_label' | i18nextEager }}</th>
+        <th>{{ 'guide_name_label' | i18nextEager }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let item of quotaData">
+        <td>{{ item.sceneName }}</td>
+        <td>{{ item.guideName }}</td>
+      </tr>
+    </tbody>
+  </nz-table>
+</div>
+<div *nzModalFooter>
+  <button class="mr-[8px]" type="button" nz-button (click)="dismiss()">
+    {{ 'cancel' | i18nextEager }}
+  </button>
+  <button
+    (click)="close()"
+    type="button"
+    nz-button
+    nzDanger
+  >
+    {{ 'ok' | i18nextEager }}
+  </button>
+</div>

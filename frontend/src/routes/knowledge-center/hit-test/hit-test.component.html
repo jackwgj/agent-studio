@@ -1,0 +1,203 @@
+<header class="header-container">
+  <div class="flex items-center gap-[12px]">
+    <button
+      nz-button
+      nzType="text"
+      class="!h-[20px] !w-[20px] !p-0 flex items-center justify-center"
+      (click)="back()"
+    >
+      <span nz-icon nzType="arrow-left" nzTheme="outline" class="!text-[20px]"></span>
+    </button>
+    <div class="text-[16px] font-bold">{{ 'hit_test' | i18nextEager }}</div>
+  </div>
+
+  <div
+    *ngIf="!isMarket"
+    class="flex cursor-pointer items-center gap-[4px]"
+    (click)="openHistoryModal()"
+  >
+    <span nz-icon nzType="history" nzTheme="outline" class="!text-[14px]"></span>
+    {{ 'view_history' | i18nextEager }}
+  </div>
+</header>
+
+<main class="main-container">
+  <div class="flex h-full gap-[24px]">
+    <div class="section basis-[40%]">
+      <div class="mb-[16px] flex items-center justify-between">
+        <span class="text-[14px] font-bold">{{ display_name }}</span>
+        <button
+          nz-button
+          nzType="primary"
+          [disabled]="!query"
+          [nzLoading]="isCardLoading"
+          (click)="getResults()"
+        >
+          {{ 'hit_test' | i18nextEager }}
+        </button>
+      </div>
+      <textarea
+        class="h-[calc(100%-44px)] w-full"
+        autofocus
+        [(ngModel)]="query"
+        [placeholder]="'input_placeholder' | i18nextEager"
+        nz-input
+        style="resize: none;"
+        maxlength="1000"
+      ></textarea>
+    </div>
+    <div class="section basis-[60%]">
+      <div class="mb-[16px] text-[14px] font-bold">
+        {{ 'all_results' | i18nextEager }}
+      </div>
+      <nz-tabset class="mb-[16px]" (nzSelectedIndexChange)="handleTabChange($event)">
+        <nz-tab
+          *ngFor="let tab of tabs"
+          [nzTitle]="tab.title | i18nextEager"
+        ></nz-tab>
+      </nz-tabset>
+      <ng-container *ngIf="0 !== total">
+        <div class="mb-[16px] max-h-[calc(100%-150px)] overflow-y-auto">
+          <nz-spin [nzSpinning]="isCardLoading">
+            <div #scrollContent>
+              <div
+                class="mb-[16px] rounded-[8px] bg-[#fafafa] p-[16px]"
+                *ngFor="let card of kbResutList"
+              >
+                <div class="flex items-center justify-between">
+                  <div class="w-[calc(100%-300px)] font-bold overflow-hidden whitespace-nowrap text-ellipsis" nz-tooltip [nzTooltipTitle]="card.title">
+                    <div style="font-size: 14px">{{ card.title }}</div>
+                    <div style="color: #999999; white-space: pre-wrap;">{{ card.subtitle }}</div>
+                  </div>
+                  <div class="flex items-center gap-[6px]">
+                    <div class="w-[36px] text-[#666666]">
+                      {{ 'result_score' | i18nextEager }}:
+                    </div>
+                    <div class="w-[140px]">
+                      <nz-progress
+                        [nzPercent]="card.score * 100"
+                        [nzShowInfo]="false"
+                        nzStrokeColor="#1476ff"
+                        nzSize="small"
+                      ></nz-progress>
+                    </div>
+                    <div class="w-fit">{{ card.score | number : '1.2-2' }}</div>
+                  </div>
+                </div>
+                <div class="my-[16px] break-words leading-[22px]">
+                  <div *ngIf="card.kb_type === KnowledgeType.INTERNAL" style="display: flex">
+                    <img alt="" *ngFor="let pic of card.image;" [src]="pic" (click)="openModal(pic)"
+                         style="min-width: 50px;max-width: 100px; min-height: 50px; max-height: 100px;margin-right:4px;cursor: pointer"/>
+                  </div>
+                  <div [innerHTML]="card.content | markedPipe | async | safeHtml" class="hit-test-markdown-container"></div>
+                  <div *ngIf="card.kb_type === KnowledgeType.EXTERNAL" style="font-size: 14px;margin-top: 16px" class="flex items-center flex-wrap">
+                    <span *ngIf="card.image?.length">{{ 'contains_image'|i18nextEager }}</span>
+                    <span *ngFor="let url of card.image; index as i" style="margin-right: 16px" class="flex items-center">
+                       <span>{{ 'image'|i18nextEager }}{{ i + 1 }}</span>
+                       <span class="ml-1 cursor-pointer text-[#1476ff]" nz-icon nzType="copy" nzTheme="outline" nz-tooltip [nzTooltipTitle]="'copy_image_url'|i18nextEager" (click)="copyText(url)"></span>
+                    </span>
+                  </div>
+                </div>
+                <div
+                  class="flex w-full items-center justify-end leading-[22px]"
+                >
+                  <div class="text-[14px] text-[#808080]">
+                    {{ 'character' | i18nextEager }}:
+                    {{ card.content?.length || 0 }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </nz-spin>
+        </div>
+        <nz-pagination
+          [(nzPageIndex)]="currentPage"
+          [nzTotal]="total"
+          [(nzPageSize)]="pageConfig.size"
+          [nzPageSizeOptions]="pageConfig.options"
+          nzShowSizeChanger
+          nzSize="small"
+          (nzPageIndexChange)="getResults()"
+          (nzPageSizeChange)="currentPage = 1; getResults()"
+        ></nz-pagination>
+      </ng-container>
+      <div *ngIf="0 === total" class="flex h-[calc(100%-110px)] items-center justify-center">
+        <nz-empty
+          [nzNotFoundContent]="sliceCardDesc"
+        ></nz-empty>
+      </div>
+    </div>
+  </div>
+</main>
+
+<nz-drawer
+  [nzVisible]="isHistoryVisible"
+  [nzTitle]="'view_history' | i18nextEager"
+  [nzWidth]="400"
+  [nzClosable]="true"
+  (nzOnClose)="closeHistoryModal()"
+>
+  <ng-container *nzDrawerContent>
+    <div *ngIf="totalHistory" class="h-full">
+      <nz-spin [nzSpinning]="isHistoryLoading" class="block max-h-[calc(100%-50px)] w-full overflow-y-auto">
+        <div class="history-card" *ngFor="let card of perPageHistoryList">
+          <div>
+            <svg
+              width="22.000000"
+              height="22.000000"
+              viewBox="0 0 22 22"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              xmlns:xlink="http://www.w3.org/1999/xlink"
+            >
+              <defs />
+              <rect
+                rx="6.000000"
+                width="22.000000"
+                height="22.000000"
+                fill="#DEECFF"
+                fill-opacity="1.000000"
+              />
+              <path
+                d="M8.01 15.54Q9.05 16.2 10.56 16.2Q12.07 16.2 13.1 15.54Q13.29 15.41 13.46 15.27L14.39 16.2L15.08 15.5L14.15 14.57Q14.45 14.17 14.67 13.68Q15.21 12.5 15.21 10.95Q15.21 9.41 14.67 8.23Q14.31 7.43 13.73 6.87Q13.44 6.59 13.1 6.37Q12.07 5.7 10.56 5.7Q9.05 5.7 8.01 6.37Q7.66 6.6 7.36 6.89Q6.8 7.45 6.45 8.23Q5.92 9.41 5.92 10.95Q5.92 12.5 6.45 13.68Q6.8 14.46 7.36 15.02Q7.66 15.31 8.01 15.54ZM13.39 13.81Q13.58 13.52 13.72 13.18Q14.11 12.21 14.11 10.95Q14.11 9.7 13.72 8.74Q13.43 8.04 12.92 7.56Q12.74 7.38 12.53 7.24Q11.74 6.7 10.56 6.69Q9.37 6.69 8.59 7.23Q8.41 7.35 8.26 7.49Q7.72 7.99 7.41 8.74Q7.01 9.7 7.01 10.95Q7 12.21 7.4 13.17Q7.68 13.87 8.18 14.34Q8.37 14.52 8.58 14.67Q9.37 15.21 10.56 15.22Q11.74 15.22 12.53 14.68Q12.63 14.61 12.72 14.54L11.71 13.52L12.4 12.82L13.39 13.81Z"
+                fill="#1476FF"
+                fill-opacity="1.000000"
+                fill-rule="evenodd"
+              />
+            </svg>
+          </div>
+          <div class="flex flex-1 flex-col gap-[4px]">
+            <div class="text-[14px] leading-[22px]">{{ card.query }}</div>
+            <div class="basic-desc-sm">
+              {{ 'history_time' | i18nextEager }}:
+              {{ card.create_time | formateTime }}
+            </div>
+          </div>
+
+          <div class="flex justify-center gap-[8px]">
+            <span nz-icon nzType="delete" nzTheme="outline" (click)="deleteHistory(card)" class="text-[#191919] cursor-pointer text-[14px]"></span>
+            <span nz-icon nzType="copy" nzTheme="outline" (click)="copyText(card.query)" class="text-[#191919] cursor-pointer text-[14px]"></span>
+          </div>
+        </div>
+      </nz-spin>
+      <nz-pagination
+        class="mt-[16px]"
+        [(nzPageIndex)]="currentHistoryPage"
+        [nzTotal]="totalHistory"
+        [nzPageSize]="10"
+        nzSize="small"
+      ></nz-pagination>
+    </div>
+    <div *ngIf="!totalHistory" class="flex h-full items-center justify-center">
+      <nz-empty
+        [nzNotFoundContent]="'no_data' | i18nextEager"
+      ></nz-empty>
+    </div>
+  </ng-container>
+</nz-drawer>
+
+<div class="modal" *ngIf="isModalOpen" (click)="closeModal($event)">
+  <div class="modal-content">
+    <img alt="" [src]="base64"  class="modal-img">
+  </div>
+</div>

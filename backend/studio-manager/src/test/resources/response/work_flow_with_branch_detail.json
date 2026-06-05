@@ -1,0 +1,310 @@
+{
+  "id": "9491b6edf26541ee99cc2ec7ab73cfab",
+  "name": "hsn_test",
+  "description": "hsn_test",
+  "components": [
+    {
+      "id": "node_start",
+      "type": "Start",
+      "name": "输入",
+      "outputs": [
+        {
+          "description": "用户输入",
+          "name": "query",
+          "type": "String"
+        }
+      ]
+    },
+    {
+      "id": "node_default_llm_chain",
+      "type": "LLM",
+      "name": "LLM",
+      "inputs": [
+        {
+          "name": "query",
+          "type": "ref",
+          "value": "${node_start.query}"
+        }
+      ],
+      "outputs": [
+        {
+          "description": "该节点原始输出",
+          "name": "raw_output",
+          "type": "String"
+        }
+      ],
+      "configs": [
+        {
+          "name": "prompt",
+          "type": "prompt",
+          "value": {
+            "history": true,
+            "template": "请判断用户的问题是关于什么商品的，可选类别：电器、食物\n用户的问题是：{{query}}"
+          }
+        },
+        {
+          "name": "llm",
+          "type": "llm",
+          "value": {
+            "config": {
+              "model_version": "N3_agent_v2",
+              "model_type": "AgentBuilder",
+              "temperature": 0.5,
+              "top_p": 0.5
+            },
+            "name": "agentBuilder-N4-4k-default"
+          }
+        }
+      ]
+    },
+    {
+      "id": "node_1723866391482",
+      "type": "LLM",
+      "name": "大模型",
+      "inputs": [
+        {
+          "name": "query",
+          "type": "ref",
+          "value": "${node_start.query}"
+        }
+      ],
+      "outputs": [
+        {
+          "description": "该节点原始输出",
+          "name": "raw_output",
+          "type": "String"
+        }
+      ],
+      "configs": [
+        {
+          "name": "prompt",
+          "type": "prompt",
+          "value": {
+            "history": false,
+            "template": "请介绍电器：{{query}}"
+          }
+        },
+        {
+          "name": "llm",
+          "type": "llm",
+          "value": {
+            "config": {
+              "model_version": "N3_agent_v2",
+              "model_type": "AgentBuilder",
+              "temperature": 0.5,
+              "top_p": 0.5
+            },
+            "name": "agentBuilder-N4-4k-default"
+          }
+        }
+      ]
+    },
+    {
+      "id": "node_1724463906979",
+      "type": "Branch",
+      "name": "判断",
+      "condition": {
+        "branches": [
+          {
+            "id": "node_1724463906979-if",
+            "boolExpression": {
+              "expressions": [
+                "${node_default_llm_chain.raw_output} contain 电器",
+                "${node_default_llm_chain.raw_output} not_equal ${node_start.query}"
+              ],
+              "operator": "and"
+            }
+          },
+          {
+            "id": "node_1724463906979-elseIf-1",
+            "boolExpression": {
+              "expressions": [
+                "${node_start.query} equal 米饭",
+                "${node_default_llm_chain.raw_output} equal 食物"
+              ],
+              "operator": "or"
+            }
+          },
+          {
+            "id": "default"
+          }
+        ]
+      }
+    },
+    {
+      "id": "node_1724464007980",
+      "type": "LLM",
+      "name": "大模型",
+      "inputs": [
+        {
+          "name": "query",
+          "type": "ref",
+          "value": "${node_start.query}"
+        }
+      ],
+      "outputs": [
+        {
+          "description": "该节点原始输出",
+          "name": "raw_output",
+          "type": "String"
+        }
+      ],
+      "configs": [
+        {
+          "name": "prompt",
+          "type": "prompt",
+          "value": {
+            "history": false,
+            "template": "请介绍食物：{{query}}"
+          }
+        },
+        {
+          "name": "llm",
+          "type": "llm",
+          "value": {
+            "config": {
+              "model_version": "N3_agent_v2",
+              "model_type": "AgentBuilder",
+              "temperature": 0.5,
+              "top_p": 0.5
+            },
+            "name": "agentBuilder-N4-4k-default"
+          }
+        }
+      ]
+    },
+    {
+      "id": "node_1724464281065",
+      "type": "LLM",
+      "name": "大模型",
+      "inputs": [
+        {
+          "name": "query",
+          "type": "ref",
+          "value": "${node_start.query}"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "raw_output",
+          "type": "String",
+          "description": "该节点原始输出"
+        }
+      ],
+      "configs": [
+        {
+          "name": "prompt",
+          "type": "prompt",
+          "value": {
+            "history": false,
+            "template": "请介绍其他：{{query}}"
+          }
+        },
+        {
+          "name": "llm",
+          "type": "llm",
+          "value": {
+            "config": {
+              "model_version": "N3_agent_v2",
+              "model_type": "AgentBuilder",
+              "temperature": 0.5,
+              "top_p": 0.5
+            },
+            "name": "agentBuilder-N4-4k-default"
+          }
+        }
+      ]
+    },
+    {
+      "id": "node_end",
+      "type": "End",
+      "name": "输出",
+      "inputs": [
+        {
+          "name": "end_input1",
+          "type": "ref",
+          "value": "${node_1723866391482.raw_output}"
+        },
+        {
+          "name": "end_input2",
+          "type": "ref",
+          "value": "${node_1724464007980.raw_output}"
+        },
+        {
+          "name": "end_input3",
+          "type": "ref",
+          "value": "${node_1724464281065.raw_output}"
+        }
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "source": "node_1723866391482",
+      "target": "node_end"
+    },
+    {
+      "source": "node_start",
+      "target": "node_default_llm_chain"
+    },
+    {
+      "source": "node_default_llm_chain",
+      "target": "node_1724463906979"
+    },
+    {
+      "source": "node_1724463906979",
+      "target": "node_1723866391482",
+      "conditionId": "node_1724463906979-if"
+    },
+    {
+      "source": "node_1724464007980",
+      "target": "node_end"
+    },
+    {
+      "source": "node_1724463906979",
+      "target": "node_1724464007980",
+      "conditionId": "node_1724463906979-elseIf-1"
+    },
+    {
+      "source": "node_1724463906979",
+      "target": "node_1724464281065",
+      "conditionId": "node_1724463906979-default"
+    },
+    {
+      "source": "node_1724464281065",
+      "target": "node_end"
+    }
+  ],
+  "metadata": {
+    "layout": {
+      "node_start": {
+        "x": 70,
+        "y": 180
+      },
+      "node_default_llm_chain": {
+        "x": 230,
+        "y": 160
+      },
+      "node_end": {
+        "x": 1690,
+        "y": 190
+      },
+      "node_1723866391482": {
+        "x": 1110,
+        "y": -30
+      },
+      "node_1724463906979": {
+        "x": 590,
+        "y": 210
+      },
+      "node_1724464007980": {
+        "x": 1110,
+        "y": 170
+      },
+      "node_1724464281065": {
+        "x": 1120,
+        "y": 330
+      }
+    }
+  }
+}

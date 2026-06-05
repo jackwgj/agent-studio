@@ -1,0 +1,15 @@
+{
+  "type": "object",
+  "properties": {
+    "isChild": {
+      "type": "boolean",
+      "name_cn": "是否孩子",
+      "location": "Body",
+      "description": "是否孩子",
+      "default": "yes"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

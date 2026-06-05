@@ -1,0 +1,283 @@
+{
+  "agentConfig": {
+    "title": "You have not created a single agent yet. Let's get started!",
+    "desc": "A single agent is an AI entity centered around a large model, with independent perception, decision-making, and execution capabilities. It can flexibly call RAG, plugins, MCP, and other diversified skills to meet users' complete task requirements.",
+    "stepList": {
+      "one": {
+        "title": "Create a Single Agent",
+        "desc": "Click to create a single agent, select the agent type, and fill in the basic information to complete the creation. You can also use AI to assist in creation."
+      },
+      "two": {
+        "title": "Configure Capabilities",
+        "desc": "Configure prompts, model services, skills, knowledge bases, and conversation experience to set up core capabilities."
+      },
+      "three": {
+        "title": "Test and Run",
+        "desc": "Simulate real-world conversations to verify the accuracy of the agent's responses. Support call chain tracing for targeted optimization of configurations."
+      },
+      "four": {
+        "title": "Submit Version and Share",
+        "desc": "After submitting the version, complete multi-channel sharing. Supports API, web, and other methods of invocation."
+      }
+    }
+  },
+  "workflowConfig": {
+    "title": "You have not created a workflow yet. Let's get started!",
+    "desc": "A workflow automates business processes through visual orchestration, suitable for scenarios with fixed task flows.",
+    "stepList": {
+      "one": {
+        "title": "Create a Workflow",
+        "desc": "Click to create a workflow, select dialogue-type or task-type, and fill in the basic information to create it. Dialogue-type workflows can be created with AI assistance."
+      },
+      "two": {
+        "title": "Configure Workflow Nodes",
+        "desc": "Add and connect nodes according to the business process, and complete parameter and content configuration for each node."
+      },
+      "three": {
+        "title": "Test and Run",
+        "desc": "Simulate real-world conversations to verify the accuracy and completeness of the workflow's responses. View the call chain for targeted optimization of configurations."
+      },
+      "four": {
+        "title": "Submit Version and Share",
+        "desc": "After submitting the version, complete multi-channel sharing. Supports API, web, and other methods of invocation."
+      }
+    }
+  },
+  "multiConfig": {
+    "title": "You have not created a multi-agent yet. Let's get started!",
+    "desc": "A multi-agent application allows users to combine multiple agent applications or workflow applications and schedule them collaboratively according to preset modes. Suitable for scenarios that require multi-task processing.",
+    "stepList": {
+      "one": {
+        "title": "Create a Multi-Agent",
+        "desc": "Click to create a multi-agent, select the multi-agent type, and fill in the basic information to complete the creation."
+      },
+      "two": {
+        "title": "Configure Controller",
+        "desc": "Configure prompts, model services, sub-agents, sub-workflows, and other core capabilities."
+      },
+      "three": {
+        "title": "Test and Run",
+        "desc": "Simulate real-world conversations to verify the accuracy and completeness of the multi-agent's responses. View the call chain for targeted optimization of configurations."
+      },
+      "four": {
+        "title": "Submit Version and Share",
+        "desc": "After submitting the version, complete multi-channel sharing. Supports API, web, and other methods of invocation."
+      }
+    }
+  },
+  "mcpConfig": {
+    "title": "You have not created an MCP yet. Let's get started!",
+    "desc": "Integrate tools and data services that comply with the MCP standard to quickly expand the agent's capabilities through a common protocol.",
+    "stepList": {
+      "one": {
+        "title": "Create an MCP",
+        "desc": "Select the creation type: blank creation, template creation, or third-party service installation."
+      },
+      "two": {
+        "title": "Debug Parameters and Tools",
+        "desc": "Provide debugging capabilities to ensure that the MCP integrated into the application is usable and correct, reducing the risks in application development and operations."
+      }
+    }
+  },
+  "pluginConfig": {
+    "title": "You have not created a plugin yet. Let's get started!",
+    "desc": "Integrate API interfaces and third-party services to give agents the ability to call external tools for execution.",
+    "stepList": {
+      "one": {
+        "title": "Create a Plugin",
+        "desc": "Fill in the basic information and configure the protocol, domain, URL, parameters, and other settings to complete the creation."
+      },
+      "two": {
+        "title": "Configure Tools",
+        "desc": "Fill in the tool's basic information, support importing and parsing the tool URL, and expand the plugin's functionality."
+      },
+      "three": {
+        "title": "Publish the Plugin",
+        "desc": "Edit the version information, and after publishing, it can be called by agents and workflows."
+      }
+    }
+  },
+  "promptConfig": {
+    "title": "You have not created a prompt yet. Let's get started!",
+    "desc": "Uniformly manage prompt templates, support variable insertion and debugging, and can be reused in multiple scenarios such as agent personas or large model nodes in workflows.",
+    "stepList": {
+      "one": {
+        "title": "Create a Prompt",
+        "desc": "Click to create a new one or import. After selecting new, fill in the basic information and prompt content, and save to complete the creation."
+      },
+      "two": {
+        "title": "Optimize the Prompt",
+        "desc": "Select an existing prompt or create an optimization task, fill in the basic information, create a test set based on variables in the prompt, and configure the optimization strategy to submit the optimization task."
+      },
+      "three": {
+        "title": "View Optimization Results",
+        "desc": "View the results of each round of optimization, compare the results before and after optimization, and synchronize the best prompt to the prompt management list."
+      }
+    }
+  },
+  "optimizeConfig": {
+    "title": "You haven't tuned the model yet. Let's get started!",
+    "desc": "",
+    "stepList": {
+      "one": {
+        "title": "Create Optimization Task",
+        "desc": "Click to create an optimization task. Select the optimization object, method, and dataset to start the task."
+      },
+      "two": {
+        "title": "Deploy and Access the Optimized Model",
+        "desc": "Based on the model generated from the optimization task, select the best model output to complete model deployment and access."
+      },
+      "three": {
+        "title": "Use the Optimized Model",
+        "desc": "Once deployed and accessed successfully, the optimized model can be referenced by agents."
+      }
+    }
+  },
+  "knowledgeConfig": {
+    "title": "You have not created a knowledge base yet. Let's get started!",
+    "desc": "Import business documents and data to provide private domain knowledge retrieval capabilities for agents, enabling accurate Q&A.",
+    "stepList": {
+      "one": {
+        "title": "Create a Knowledge Base",
+        "desc": "Select the creation type: default creation or external third-party knowledge base connection."
+      },
+      "two": {
+        "title": "Upload Documents",
+        "desc": "Upload files which are automatically sliced and stored in the database. You can perform hit tests to view RAG effects."
+      },
+      "three": {
+        "title": "Set Enable/Disable Status",
+        "desc": "After creation, it is enabled by default and can be called by applications. Switching to disabled will stop providing services to applications."
+      }
+    }
+  },
+  "cardConfig": {
+    "title": "You have not created a card yet. Let's get started!",
+    "desc": "Design rich interactive UI components to render forms, lists, and other visual interfaces in conversations.",
+    "stepList": {
+      "one": {
+        "title": "Create a Card",
+        "desc": "Fill in the card name, configure the resource URL and a recognizable card cover, and define metadata."
+      },
+      "two": {
+        "title": "Card Publishing and Management",
+        "desc": "Support publishing and updating, and view, restore, or delete published history."
+      },
+      "three": {
+        "title": "View Reference Data",
+        "desc": "Support viewing the card versions referenced by workflows, and easily locate and update the corresponding versions."
+      },
+      "four": {
+        "title": "Associate with Application Nodes",
+        "desc": "Workflow > Card Node > Bind a published card template to quickly call standardized card content."
+      }
+    }
+  },
+  "intentManage": {
+    "title": "You have not created an intent package yet. Let's get started!",
+    "desc": "Define intent categories and examples to achieve accurate identification and routing of conversations.",
+    "stepList": {
+      "one": {
+        "title": "Create an Intent Package",
+        "desc": "Create new intent categories and examples, and you can enter them in bulk."
+      },
+      "two": {
+        "title": "Reference in Workflows",
+        "desc": "Workflow > Advanced Intent Recognition Node > Intent Configuration can quickly associate and call intent packages, improving the efficiency and accuracy of AI intent recognition."
+      }
+    }
+  },
+  "messageTemplate": {
+    "title": "You have not created a message template yet. Let's get started!",
+    "desc": "Pre-define standardized reply text structures, and support referencing templates and filling in variables at relevant nodes to quickly generate final messages, avoiding repetitive work.",
+    "stepList": {
+      "one": {
+        "title": "Create a Message Template",
+        "desc": "Create a template name, select the exception or custom type, and determine the visibility scope."
+      },
+      "two": {
+        "title": "Configure Message Body",
+        "desc": "Configure the message body content in JSON format."
+      },
+      "three": {
+        "title": "Reference in Workflows",
+        "desc": "Workflow > Exception Node > Select an enabled message template to quickly trigger exception notifications and ensure timely synchronization of workflow issues."
+      }
+    }
+  },
+  "objectManage": {
+    "title": "You have not created an object template yet. Let's get started!",
+    "desc": "Define the field structure to be extracted from text, for reference by the object extraction node in workflows to achieve automated data extraction.",
+    "stepList": {
+      "one": {
+        "title": "Create an Object Template",
+        "desc": "Fill in the object name, set object variables, and define the identifiers and properties of the structured data."
+      },
+      "two": {
+        "title": "Reference in Workflows",
+        "desc": "Support importing object templates in workflow global configuration – memory variables, start node, object extraction node – to accurately extract and structure the required business data."
+      }
+    }
+  },
+  "customManage": {
+    "title": "You have not created a model provider yet. Let's get started!",
+    "desc": "Configure API endpoints for third-party or private models to meet model invocation needs in specific scenarios.",
+    "stepList": {
+      "one": {
+        "title": "Create a Model Provider",
+        "desc": "Fill in the model provider information and submit for confirmation."
+      },
+      "two": {
+        "title": "Create a Model Service",
+        "desc": "After creating the model provider, create a model service under the provider and fill in the service information."
+      },
+      "three": {
+        "title": "Model Debugging",
+        "desc": "Execute test cases to verify the availability, accuracy, and performance of the model service to ensure it meets the requirements for going live."
+      }
+    }
+  },
+  "routeManage": {
+    "title": "You have not created a routing strategy yet. Let's get started!",
+    "desc": "Configure fault-tolerant rules for model calls to ensure smooth switching to a backup model when the service is abnormal.",
+    "stepList": {
+      "one": {
+        "title": "Create a New Routing Strategy",
+        "desc": "Configure the routing rules for model services, fill in the strategy basic information, select the target model group, and set the strategy parameters."
+      },
+      "two": {
+        "title": "Set Debug Parameters / Preview Debug Effect",
+        "desc": "Configure debug parameters and perform multiple rounds of debugging to achieve the desired preview effect."
+      },
+      "three": {
+        "title": "Use the Model Strategy",
+        "desc": "In the model configuration of the agent, select the created routing strategy."
+      }
+    }
+  },
+  "agentConfig_split1": "Click",
+  "agentConfig_split2": "Create a Single Agent",
+  "agentConfig_split3": ", select the agent type, and fill in the basic information to complete the creation.",
+  "agentConfig_split4": "AI-assisted creation",
+  "workflowConfig_split2": "Create a Workflow",
+  "workflowConfig_split3": ", select dialogue-type or task-type, and fill in the basic information to create it;",
+  "multiConfig_split2": "Create multiple agents",
+  "multiConfig_split3": "Select multiple agents and fill in the basic information to create them",
+  "promptConfig_split2": "creating prompt word",
+  "promptConfig_split3": "or",
+  "promptConfig_split4": "import",
+  "promptConfig_split5": ". After selecting creating prompt word, fill in the basic information and prompt content, and save to complete the creation",
+  "promptConfig_split6": "Select an existing prompt or",
+  "promptConfig_split7": "Create an Optimization Task",
+  "promptConfig_split8": ", fill in the basic information and create a test set based on variables in the prompt, and configure the optimization strategy to submit the optimization task",
+  "promptConfig_split9": "View the results of each round of optimization, compare the results before and after optimization, and synchronize the best prompt to the",
+  "promptConfig_split10": "list",
+  "optimizeConfig_split2": "Create Optimization Task",
+  "optimizeConfig_split3": "Select the optimization object, method, and dataset to start the task",
+  "memory.create.guide.title": "You don't have a memory library yet, let's start creating one!",
+  "memory.create.guide.describe": "As the memory center of the agent, the memory library can effectively extract and integrate context information to form the memory content of the agent.",
+  "memory.create.guide.step1.title": "Create and configure the library",
+  "memory.create.guide.step1.des": "As the memory center of an agent, the memory library can be created on the console and configured with short-term and long-term memory policies to effectively extract and integrate context information, and manage the entire lifecycle of memory data.",
+  "memory.create.guide.step2.title": "Intelligent Twins application association memory library.",
+  "memory.create.guide.step2.des": "Supports the association of a workflow, and multi-agent with the memory library, automatically summarizes conversations, extracts instructions and user profiles, and stores them for a long time to achieve more accurate personalized responses."
+}

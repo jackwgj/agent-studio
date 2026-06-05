@@ -1,0 +1,179 @@
+# KooSearch、LakeSearch的错误码与AgentBase错误码映射
+
+mapping_rules:
+  - koo_search_error_code: "KOS.00010001"
+    agent_base_error_code: "openjiuwen.03003001"
+    description: "JSON格式异常"
+
+  - koo_search_error_code: "KOS.00010002"
+    agent_base_error_code: "openjiuwen.03001001"
+    description: "请求参数不合法"
+
+  - koo_search_error_code: "KOS.00010003"
+    agent_base_error_code: "openjiuwen.03003002"
+    description: "请求参数为空"
+
+  - koo_search_error_code: "KOS.00010004"
+    agent_base_error_code: "openjiuwen.03003003"
+    description: "url参数解析异常"
+
+  - koo_search_error_code: "KOS.00010005"
+    agent_base_error_code: "openjiuwen.03003004"
+    description: "url路径不合法"
+
+  - koo_search_error_code: "KOS.00010006"
+    agent_base_error_code: "openjiuwen.03001001"
+    description: "参数类型异常"
+
+  - koo_search_error_code: "KOS.00020001"
+    agent_base_error_code: "openjiuwen.03003005"
+    description: "es查询异常"
+
+  - koo_search_error_code: "KOS.00020002"
+    agent_base_error_code: "openjiuwen.03003006"
+    description: "es索引创建异常"
+
+  - koo_search_error_code: "KOS.00020003"
+    agent_base_error_code: "openjiuwen.03003007"
+    description: "es更新异常"
+
+  - koo_search_error_code: "KOS.00020004"
+    agent_base_error_code: "openjiuwen.03003008"
+    description: "es删除索引异常"
+
+  - koo_search_error_code: "KOS.00020005"
+    agent_base_error_code: "openjiuwen.03003009"
+    description: "es批量删除异常"
+
+  - koo_search_error_code: "KOS.00020006"
+    agent_base_error_code: "openjiuwen.03003008"
+    description: "es删除索引异常"
+
+  - koo_search_error_code: "KOS.00020007"
+    agent_base_error_code: "openjiuwen.03003010"
+    description: "es批量创建索引异常"
+
+  - koo_search_error_code: "KOS.00020008"
+    agent_base_error_code: "openjiuwen.03003011"
+    description: "es删除文档异常"
+
+  - koo_search_error_code: "KOS.00020009"
+    agent_base_error_code: "openjiuwen.03003012"
+    description: "es更新文档异常"
+
+  - koo_search_error_code: "KOS.00020010"
+    agent_base_error_code: "openjiuwen.03003013"
+    description: "es批量操作异常"
+
+  - koo_search_error_code: "KOS.00020011"
+    agent_base_error_code: "openjiuwen.03003014"
+    description: "连接es失败"
+
+  - koo_search_error_code: "KOS.00020013"
+    agent_base_error_code: "openjiuwen.03003015"
+    description: "更新es索引配置异常"
+
+  - koo_search_error_code: "KOS.00040001"
+    agent_base_error_code: "openjiuwen.03003016"
+    description: "调用盘古nlp模型异常"
+
+  - koo_search_error_code: "KOS.00040002"
+    agent_base_error_code: "openjiuwen.03003017"
+    description: "调用多轮改写服务异常"
+
+  - koo_search_error_code: "KOS.00040003"
+    agent_base_error_code: "openjiuwen.03003018"
+    description: "调用文档解析服务异常"
+
+  - koo_search_error_code: "KOS.00050001"
+    agent_base_error_code: "openjiuwen.03003019"
+    description: "文件不存在"
+
+  - koo_search_error_code: "KOS.00050002"
+    agent_base_error_code: "openjiuwen.03003020"
+    description: "读取文件内容失败"
+
+  - koo_search_error_code: "KOS.00050003"
+    agent_base_error_code: "openjiuwen.03003021"
+    description: "文件信息写入数据库异常"
+
+  - koo_search_error_code: "KOS.00050004"
+    agent_base_error_code: "openjiuwen.03003022"
+    description: "上传obs异常"
+
+  - koo_search_error_code: "KOS.00050005"
+    agent_base_error_code: "openjiuwen.03003023"
+    description: "json处理异常"
+
+  - koo_search_error_code: "KOS.00050006"
+    agent_base_error_code: "openjiuwen.03003024"
+    description: "处理中的文件不支持删除"
+
+  - koo_search_error_code: "KOS.00050008"
+    agent_base_error_code: "openjiuwen.03002007"
+    description: "文件上传请求触发限流"
+
+  - koo_search_error_code: "KOS.00060001"
+    agent_base_error_code: "openjiuwen.03003025"
+    description: "数据库查询结果为空"
+
+  - koo_search_error_code: "KOS.00060002"
+    agent_base_error_code: "openjiuwen.03003026"
+    description: "数据库操作失败"
+
+  - koo_search_error_code: "KOS.00060003"
+    agent_base_error_code: "openjiuwen.03003027"
+    description: "数据库更新异常"
+
+  - koo_search_error_code: "KOS.00060004"
+    agent_base_error_code: "openjiuwen.03001003"
+    description: "操作资源不存在"
+
+  - koo_search_error_code: "KOS.00060005"
+    agent_base_error_code: "openjiuwen.03003028"
+    description: "模型不可用"
+
+  - koo_search_error_code: "KOS.00060006"
+    agent_base_error_code: "openjiuwen.03003029"
+    description: "资源已经存在"
+
+  - koo_search_error_code: "KOS.00070004"
+    agent_base_error_code: "openjiuwen.03003030"
+    description: "下载json文件异常"
+
+  - koo_search_error_code: "KOS.00070005"
+    agent_base_error_code: "openjiuwen.03003031"
+    description: "写入json文件异常"
+
+  - koo_search_error_code: "KOS.00080001"
+    agent_base_error_code: "openjiuwen.03003032"
+    description: "同名知识库已存在"
+
+  - koo_search_error_code: "KOS.00080002"
+    agent_base_error_code: "openjiuwen.03003033"
+    description: "知识库为空时不支持开启"
+
+  - koo_search_error_code: "KOS.00080003"
+    agent_base_error_code: "openjiuwen.03003034"
+    description: "知识库关闭时不允许当前操作"
+
+  - koo_search_error_code: "KOS.00080004"
+    agent_base_error_code: "openjiuwen.03003035"
+    description: "对话时间超期"
+
+  - koo_search_error_code: "KOS.00080005"
+    agent_base_error_code: "openjiuwen.03003036"
+    description: "知识库更新失败"
+
+  - koo_search_error_code: "KOS.00090001"
+    agent_base_error_code: "openjiuwen.03000000"
+    description: "内部异常"
+
+  - koo_search_error_code: "KOS.00100002"
+    agent_base_error_code: "openjiuwen.03001002"
+    description: "权限不足"
+
+  - koo_search_error_code: "KOS.00080015"
+    agent_base_error_code: "openjiuwen.03003040"
+    description: "共享知识库资源池不足"
+

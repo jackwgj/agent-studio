@@ -1,0 +1,39 @@
+<div *nzModalTitle>{{ 'import_dify_dsl' | i18nextEager }}</div>
+
+<div>
+  <nz-alert nzType="info" [nzMessage]="'import_external_dsl_tip' | i18nextEager" nzCloseable="false"></nz-alert>
+
+  <div class="mt-[16px]">
+    <div class="mb-[8px] text-[14px]">{{ 'import_dsl_file_label' | i18nextEager }}</div>
+    <nz-upload
+      [(nzFileList)]="fileList"
+      [nzAction]="null"
+      [nzAccept]="uploadType"
+      [nzBeforeUpload]="beforeUpload"
+      [nzRemove]="onRemove"
+    >
+      <button type="button" nz-button>
+        <span>{{ 'select_file' | i18nextEager }}</span>
+      </button>
+    </nz-upload>
+    <div class="mt-[8px] text-[12px] text-[#999]">
+      {{ 'file_import_tip' | i18nextEager : { type: uploadType, maxSize: maxSize / (1024 * 1024) } }}
+    </div>
+  </div>
+</div>
+
+<div *nzModalFooter>
+  <button type="button" nz-button (click)="dismiss()">
+    {{ 'cancel' | i18nextEager }}
+  </button>
+  <button
+    type="button"
+    nz-button
+    nzType="primary"
+    [disabled]="!fileInfo"
+    [nzLoading]="isAnalyzing"
+    (click)="importTool()"
+  >
+    {{ 'import' | i18nextEager }}
+  </button>
+</div>

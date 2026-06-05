@@ -1,0 +1,48 @@
+rails:
+  input:
+    - date_trigger:
+        - rewrite_date_in_query
+    - time_trigger:
+        - rewrite_date_and_time_in_query
+  execution:
+    - time_trigger:
+        - parse_time
+
+actions_config:
+  rewrite_date_and_time_in_query:
+    model:
+      type:
+      model:
+      url:
+      api_key:
+    prompt:
+      - role: system
+        content: '你是一个时间描述提取助手，你需要提取用户输入中提到的时间描述并以json格式输出。{{FEW_SHOT}}请严格遵循如下规则：1、将收集到的出差信息通过JSON的方式展示给用户。2、输出只能包含时间信息，不要包含地点。3、如果用户输入中不包含要提取的时间，输出可以是空列表。4、输出格式必须是：["query1", "query2"]'
+    few_shot: '1.用户输入：帮我预定明天下午6-7点的座位，输出： ["明天下午6-7点"]。\
+             2.用户输入：明天下午11点开始，输出： ["明天下午11点"]。\
+             3.用户输入：帮我预定大后天早上11-12点的501会议室，输出： ["大后天早上11-12点"]。\
+             4.用户输入：定个房间，时间是大后天8点一刻到大后天9点三刻，输出： ["大后天8点一刻", "大后天9点三刻"]。\
+             5.用户输入：去广州进行市场调研，输出： []。'
+    action_extra_args:
+      time_format: "%Y-%m-%d %H:%M"
+  rewrite_date_in_query:
+    model:
+      type:
+      model:
+      url:
+      api_key:
+    prompt:
+      - role: system
+        content: '你是一个日期描述提取助手，你需要提取用户输入中提到的日期描述并以json格式输出。{{FEW_SHOT}}请严格遵循如下规则：1、将收集到的出差信息通过JSON的方式展示给用户。2、如果用户输入中不包含要查询的日期，输出可以是空列表。3、输出格式必须是：["query1", "query2"]'
+    few_shot: '1.用户输入：下下周一出差，周五回来，输出： ["下下周一", "下下周五"]。\
+               2.用户输入：我下个月1号去北京进行培训，做火车，预计15天后回来，输出： ["下个月1号"]。\
+               3.用户输入：我后天要坐高铁去上海考察，大大后天回来，输出： ["后天", "大大后天"]。\
+               4.用户输入：下个月的第二个星期三我将去武汉开展业务，两周后回来，我会选择租车，输出： ["下个月的第二个星期三"]。\
+               5.用户输入：大后天，输出： ["大后天"]。\
+               6.用户输入：一周后的周三要去南京进行为期两天的调研，第三天回来，输出： ["一周后的周三", "一周后的周三，第三天"]。\
+               7.用户输入：去广州进行市场调研，输出： []。'
+    action_extra_args:
+      date_format: "%Y-%m-%d"
+  parse_time:
+    action_extra_args:
+      time_format: "%Y-%m-%d %H:%M"

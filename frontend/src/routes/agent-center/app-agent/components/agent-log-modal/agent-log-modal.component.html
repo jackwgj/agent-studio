@@ -1,0 +1,337 @@
+<div class="content h-full">
+  <div class="exec-list">
+    <nz-select
+      class="date-selector"
+      style="width: 200px"
+      [nzPlaceHolder]="'select_date' | i18nextEager"
+      nzAllowClear
+      (ngModelChange)="onSelectDate($event)"
+    >
+      @for (date of dates; track date.id) {
+        <nz-option
+          [nzValue]="date.id"
+          [nzLabel]="date.label"
+        >
+          <date-option-render
+            [selectDate]="selectDate"
+            [optionData]="date"
+          ></date-option-render>
+        </nz-option>
+      }
+    </nz-select>
+
+    <div class="flex w-[calc(100%-36px)] gap-[8px]">
+      <div class="flex h-fit w-[calc(100%-8px)] items-center gap-2">
+        <div class="flex w-full">
+          <div class="left-select-area">
+            <nz-select
+              class="combo-select-left"
+              style="width: 100%; min-width: 100%; margin-bottom: 20px"
+              [nzPlaceHolder]="'select_placeholder' | i18nextEager"
+              nzAllowClear
+              [(ngModel)]="conversationSelected"
+              (ngModelChange)="changeConvSelected()"
+              [nzServerSearch]="true"
+              (nzOnSearch)="onBeforeOpenConv($event)"
+            >
+              @for (item of conversationList; track item.conversation_id) {
+                <nz-option
+                  [nzValue]="item.conversation_id"
+                  [nzLabel]="item.conversation_id"
+                >
+                  <span class="flex justify-between">
+                    {{ 'conversation' | i18nextEager }}
+                    <span class="text-[#808080]">{{ formatToConvTime(item.start_time) }}</span>
+                  </span>
+                </nz-option>
+              }
+            </nz-select>
+          </div>
+
+          <div class="right-select-area">
+            <nz-select
+              class="combo-select-right"
+              style="width: 100%; min-width: 100%; margin-bottom: 20px"
+              [nzPlaceHolder]="'select_placeholder' | i18nextEager"
+              nzAllowClear
+              [(ngModel)]="executionSelected"
+              (ngModelChange)="changeExecSelected()"
+              [nzServerSearch]="true"
+              (nzOnSearch)="onBeforeOpenExec($event)"
+            >
+              @for (item of executionList; track item.execution_id) {
+                <nz-option
+                  [nzValue]="item.execution_id"
+                  [nzLabel]="item.query"
+                >
+                  <span class="flex justify-between">
+                    <span class="text-overflow w-[calc(100%-70px)]">{{ item?.query }}</span>
+                    <span class="flex gap-[8px] text-[#808080]">
+                      <span>{{ formatToExecTime(item.start_time) }}</span>
+                      <asset-success-icon
+                        *ngIf="item.status === 'succeed' || item.status === 'succeeded'"
+                      ></asset-success-icon>
+                      <asset-error-icon
+                        *ngIf="item.status === 'failed' || item.status === 'FAILED'"
+                      ></asset-error-icon>
+                    </span>
+                  </span>
+                </nz-option>
+              }
+            </nz-select>
+            <div class="w-full" #inputErrWrapper></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-log">
+    <nz-tabs class="log-tabs" [nzSelectedIndex]="activeTabIndex" (nzSelectedIndexChange)="onTabIndexChange($event)">
+      <nz-tab [nzTitle]="tabs[0].title">
+        <div
+          *ngIf="agentDebugInfo.list.length === 0 && !agentDebugInfo?.status; else runResultTmpl"
+          class="empty-run-result"
+        >
+          <no-data-icon></no-data-icon>
+          <span class="loading-text">{{ 'no_running_results' | i18nextEager }}</span>
+        </div>
+        <ng-template #runResultTmpl>
+          <div class="flex h-full flex-col overflow-y-hidden">
+            <div class="workflow-info-area">
+              <div class="title-container">
+                <img alt=""
+                  class="workflow-status"
+                  [src]="getNodeStatus(agentDebugInfo?.status)"
+                />
+                <span
+                  class="workflow-status-desc"
+                  [style.color]="getAgentStatusDescColor(agentDebugInfo?.status)"
+                >{{ agentDebugInfo.status_desc }}</span>
+              </div>
+              <div
+                [class]="
+                  agentDebugInfo.list.length === 0
+                    ? 'empty-info-container'
+                    : 'info-container'
+                "
+              >
+                @for (item of agentDebugInfo.list; track item.title) {
+                  <div class="item-container">
+                    <span class="text-[#808080]">{{ item.title }}</span>
+                    <span class="text-[#191919]">
+                      <ng-container *ngIf="isTimestamp(item.content); else textTmpl">
+                        {{ item.content | date : 'yyyy-MM-dd HH:mm:ss' }}
+                      </ng-container>
+                      <ng-template #textTmpl>
+                        {{ item.content }}
+                      </ng-template>
+                    </span>
+                  </div>
+                }
+              </div>
+            </div>
+            <div class="cutline"></div>
+            <div class="mb-[2px] overflow-y-auto">
+              <div
+                *ngIf="!isIOEmpty(agentDebugInfo.inputs); else noInputs"
+                class="mb-[12px]"
+              >
+                <div class="node-inputs-area">
+                  <span class="color-[#191919]">{{ 'input' | i18nextEager }}</span>
+                  <asset-copy-icon
+                    *ngIf="!agentDebugInfo.inputsCopyIcon"
+                    class="cursor-pointer"
+                    (click)="handleCopy(agentDebugInfo, 'input')"
+                  ></asset-copy-icon>
+                  <asset-copy-success-icon
+                    *ngIf="agentDebugInfo.inputsCopyIcon"
+                    class="cursor-pointer"
+                  ></asset-copy-success-icon>
+                </div>
+                <div class="json-wrap">
+                  <json-viewer [jsonData]="agentDebugInfo.inputs"></json-viewer>
+                </div>
+              </div>
+              <div *ngIf="!isIOEmpty(agentDebugInfo.outputs); else noOutputs">
+                <div class="node-inputs-area">
+                  <span class="color-[#191919]">{{ 'output' | i18nextEager }}</span>
+                  <asset-copy-icon
+                    *ngIf="!agentDebugInfo.outputsCopyIcon"
+                    class="cursor-pointer"
+                    (click)="handleCopy(agentDebugInfo, 'output')"
+                  ></asset-copy-icon>
+                  <asset-copy-success-icon
+                    *ngIf="agentDebugInfo.outputsCopyIcon"
+                    class="cursor-pointer"
+                  ></asset-copy-success-icon>
+                </div>
+                <div class="json-wrap">
+                  <json-viewer [jsonData]="agentDebugInfo.outputs"></json-viewer>
+                </div>
+              </div>
+            </div>
+          </div>
+        </ng-template>
+      </nz-tab>
+      <nz-tab [nzTitle]="tabs[1].title" (nzClick)="onActivateDetails()">
+        <div class="call-chain-area">
+          <div class="flex items-center justify-between">
+            <div class="font-semibold text-[#191919]">{{ 'call_chain' | i18nextEager }}</div>
+            <div class="flex items-center">
+              <asset-list-icon
+                class="chart-icon"
+                (click)="switchViewMode('list')"
+                [class.icon-selected]="chartViewMode === 'list'"
+              ></asset-list-icon>
+              <asset-sequence-icon
+                class="chart-icon"
+                (click)="switchViewMode('sequence')"
+                [class.icon-selected]="chartViewMode === 'sequence'"
+              ></asset-sequence-icon>
+            </div>
+          </div>
+
+          <div
+            *ngIf="chartViewMode === 'sequence' && isEmptyObject(timelineData)"
+            class="empty-run-result relative bottom-[16px] mt-[16px]"
+          >
+            <no-data-icon></no-data-icon>
+            <span class="loading-text">{{ 'no_call_details' | i18nextEager }}</span>
+          </div>
+          <div
+            *ngIf="chartViewMode === 'sequence' && !isEmptyObject(timelineData)"
+            class="sequence-wrapper"
+          >
+            <time-line
+              *ngIf="chartViewMode === 'sequence' && !isEmptyObject(timelineData)"
+              [data]="timelineData"
+              [currentInvodeId]="curInvodeId"
+              (handleClick)="onNodeClicked($event)"
+            ></time-line>
+            <ng-container *ngIf="chartViewMode === 'sequence' && nodeIdClicked">
+              @for (callItem of callChainInfo; track callItem.node_id) {
+                @if (callItem.node_id === nodeIdClicked) {
+                  <div class="sequence-item-wrapper flex flex-col gap-[16px] bg-[#fafafa]">
+                    <ng-container
+                      *ngTemplateOutlet="callItemTemplate; context: { $implicit: callItem }"
+                    ></ng-container>
+                  </div>
+                }
+              }
+            </ng-container>
+          </div>
+
+          <div
+            *ngIf="chartViewMode === 'list' && callChainInfo.length === 0"
+            class="empty-run-result relative bottom-[16px] mt-[16px]"
+          >
+            <no-data-icon></no-data-icon>
+            <span class="loading-text">{{ 'no_call_details' | i18nextEager }}</span>
+          </div>
+          <div
+            *ngIf="chartViewMode === 'list' && callChainInfo.length"
+            class="call-chains-container"
+          >
+            @for (callItem of callChainInfo; track callItem.node_id) {
+              <div class="call-item-wrapper flex flex-col gap-[16px] bg-[#fafafa]">
+                <ng-container
+                  *ngTemplateOutlet="callItemTemplate; context: { $implicit: callItem }"
+                ></ng-container>
+              </div>
+            }
+          </div>
+        </div>
+      </nz-tab>
+    </nz-tabs>
+  </div>
+</div>
+<ng-template #noInputs>
+  <div class="mb-[12px]">{{ 'no_input' | i18nextEager }}</div>
+</ng-template>
+<ng-template #noOutputs>
+  <div>{{ 'no_output' | i18nextEager }}</div>
+</ng-template>
+<ng-template #callItemTemplate let-callItem>
+  <div
+    class="call-item"
+    (click)="changeCollapsedState(callItem)"
+    [class.bg-unfolded]="!callItem.collapsed"
+  >
+    <div class="call-item-left">
+      <span
+        nz-icon
+        nzType="right"
+        nzTheme="outline"
+        class="collapse-icon"
+        [class.unfolded-icon]="!callItem.collapsed"
+      ></span>
+      <img alt="" class="call-node-icon" [src]="getNodeIcon(callItem?.node_type)" />
+      <span class="text-overflow color-[#191919]">
+        {{ callItem?.node_name || callItem?.node_id }}
+      </span>
+    </div>
+    <div class="call-item-right">
+      <span class="call-elapsed-time">
+        {{ callItem?.elapsed_time }}
+      </span>
+      <img alt=""
+        class="call-node-status"
+        [src]="getNodeStatus(callItem?.node_status)"
+      />
+    </div>
+  </div>
+  <div class="call-node-IO" [class.hidden]="callItem.collapsed">
+    <div *ngIf="!isIOEmpty(callItem.inputs); else noInputs" class="mb-[12px]">
+      <div class="node-inputs-area">
+        <span class="color-[#191919]">{{ 'input' | i18nextEager }}</span>
+        <asset-copy-icon
+          *ngIf="!callItem.inputsCopyIcon"
+          class="cursor-pointer"
+          (click)="handleCopy(callItem, 'input')"
+        ></asset-copy-icon>
+        <asset-copy-success-icon
+          *ngIf="callItem.inputsCopyIcon"
+          class="cursor-pointer"
+        ></asset-copy-success-icon>
+      </div>
+      <div class="json-wrap">
+        <json-viewer [jsonData]="callItem.inputs"></json-viewer>
+      </div>
+    </div>
+    <div *ngIf="!isIOEmpty(callItem.meta_data)" class="mb-[12px]">
+      <div class="node-inputs-area">
+        <span class="color-[#191919]">{{ 'agent_log_model_options' | i18nextEager }}</span>
+        <asset-copy-icon
+          *ngIf="!callItem.metadataCopyIcon"
+          class="cursor-pointer"
+          (click)="handleCopyMetadata(callItem, 'metadata')"
+        ></asset-copy-icon>
+        <asset-copy-success-icon
+          *ngIf="callItem.metadataCopyIcon"
+          class="cursor-pointer"
+        ></asset-copy-success-icon>
+      </div>
+      <div class="json-wrap">
+        <json-viewer [jsonData]="callItem.meta_data"></json-viewer>
+      </div>
+    </div>
+    <div *ngIf="!isIOEmpty(callItem.outputs); else noOutputs">
+      <div class="node-inputs-area">
+        <span class="color-[#191919]">{{ 'output' | i18nextEager }}</span>
+        <asset-copy-icon
+          *ngIf="!callItem.outputsCopyIcon"
+          class="cursor-pointer"
+          (click)="handleCopy(callItem, 'output')"
+        ></asset-copy-icon>
+        <asset-copy-success-icon
+          *ngIf="callItem.outputsCopyIcon"
+          class="cursor-pointer"
+        ></asset-copy-success-icon>
+      </div>
+      <div class="json-wrap">
+        <json-viewer [jsonData]="callItem.outputs"></json-viewer>
+      </div>
+    </div>
+  </div>
+</ng-template>

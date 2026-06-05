@@ -1,0 +1,55 @@
+<svg viewBox="0 0 250 150" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="250.000000" height="150.000000" fill="none" clip-path="url(#clipPath_3)" customFrame="url(#clipPath_3)">
+	<defs>
+		<clipPath id="clipPath_3">
+			<rect width="250.000000" height="150.000000" x="0.000000" y="0.000000" rx="12.000000" fill="rgb(255,255,255)" />
+		</clipPath>
+		<g id="pixso_custom_effect_3">
+			<effect visibility="visible" effectType="backgroundBlur" saturation="0" stdDeviation="4" />
+		</g>
+		<filter id="filter_3" width="103.000000" height="124.000000" x="134.007812" y="13.000000" filterUnits="userSpaceOnUse" customEffect="url(#pixso_custom_effect_3)" color-interpolation-filters="sRGB">
+			<feFlood flood-opacity="0" result="BackgroundImageFix" />
+			<feBlend result="shape" in="SourceGraphic" in2="BackgroundImageFix" mode="normal" />
+		</filter>
+		<clipPath id="outline_mask_0" transform="matrix(1,0,0,1,-134.008,-13)">
+			<path d="M237.008 13L237.008 137L134.008 137L134.008 13L237.008 13Z" fill="rgb(255,255,255)" fill-rule="evenodd" />
+		</clipPath>
+	</defs>
+	<rect id="容器 4760" width="250.000000" height="150.000000" x="0.000000" y="0.000000" rx="12.000000" fill="rgb(230,252,250)" />
+	<rect id="矩形 6980" width="58.000000" height="46.000000" x="38.007812" y="33.000000" rx="2.000000" fill="rgb(200,245,241)" />
+	<rect id="矩形 6981" width="105.000000" height="46.000000" x="102.007812" y="33.000000" rx="2.000000" fill="rgb(200,245,241)" />
+	<path id="直线 105" d="M107.008 63.0004L118.006 63.9999L131.007 62.9999L148.509 58.9995L160.008 61.0002L174.009 55.9996L193.509 51" stroke="rgb(108,219,209)" stroke-width="1" />
+	<path id="直线 104" d="M107.008 71L120.133 68.599L138.506 58.999L159.509 61.4001L176.509 48.5999L195.008 43" stroke="rgb(108,219,209)" stroke-width="1" />
+	<rect id="矩形 6982" width="174.000000" height="4.000000" x="38.000000" y="91.000000" rx="2.000000" fill="rgb(200,245,241)" />
+	<rect id="矩形 6983" width="174.000000" height="4.000000" x="38.000000" y="101.000000" rx="2.000000" fill="rgb(200,245,241)" />
+	<rect id="矩形 6984" width="174.000000" height="4.000000" x="38.000000" y="112.000000" rx="2.000000" fill="rgb(200,245,241)" />
+	<rect id="矩形 6985" width="174.000000" height="4.000000" x="38.000000" y="123.000000" rx="2.000000" fill="rgb(200,245,241)" />
+	<circle id="椭圆 209" cx="52.0078125" cy="45" r="5" fill="rgb(108,219,209)" />
+	<rect id="矩形 6986" width="43.000000" height="2.000000" x="46.007812" y="56.000000" rx="1.000000" fill="rgb(108,219,209)" />
+	<rect id="矩形 6987" width="43.000000" height="2.000000" x="46.007812" y="63.000000" rx="1.000000" fill="rgb(108,219,209)" />
+	<rect id="矩形 6988" width="22.000000" height="2.000000" x="46.007812" y="70.000000" rx="1.000000" fill="rgb(108,219,209)" />
+	<g data-pixso-skip-parse="true">
+		<foreignObject width="103.000000" height="124.000000" x="134.007812" y="13.000000">
+			<div xmlns="http://www.w3.org/1999/xhtml" style="clip-path:url(#outline_mask_0);height:100%;backdrop-filter:blur(2.000000px);width:100%;-webkit-backdrop-filter:blur(2.000000px);" />
+		</foreignObject>
+	</g>
+	<g filter="url(#filter_3)">
+		<rect id="矩形 6989" width="103.000000" height="124.000000" x="134.007812" y="13.000000" fill="rgb(255,255,255)" fill-opacity="0.699999988" />
+	</g>
+	<rect id="矩形 6992" width="46.000000" height="4.000000" x="144.007812" y="22.000000" rx="2.000000" fill="rgb(108,219,209)" />
+	<rect id="矩形 6993" width="79.000000" height="4.000000" x="146.007812" y="38.000000" rx="2.000000" fill="rgb(200,245,241)" />
+	<rect id="矩形 6994" width="39.000000" height="4.000000" x="146.007812" y="48.000000" rx="2.000000" fill="rgb(200,245,241)" />
+	<rect id="矩形 6996" width="11.000000" height="2.000000" x="156.007812" y="67.000000" rx="1.000000" fill="rgb(108,219,209)" />
+	<rect id="矩形 6999" width="11.000000" height="2.000000" x="180.007812" y="67.000000" rx="1.000000" fill="rgb(108,219,209)" />
+	<rect id="矩形 7002" width="11.000000" height="2.000000" x="204.007812" y="67.000000" rx="1.000000" fill="rgb(108,219,209)" />
+	<rect id="矩形 6997" width="11.000000" height="2.000000" x="156.007812" y="76.000000" rx="1.000000" fill="rgb(200,245,241)" />
+	<rect id="矩形 7000" width="11.000000" height="2.000000" x="180.007812" y="76.000000" rx="1.000000" fill="rgb(200,245,241)" />
+	<rect id="矩形 7003" width="11.000000" height="2.000000" x="204.007812" y="76.000000" rx="1.000000" fill="rgb(200,245,241)" />
+	<rect id="矩形 6998" width="11.000000" height="2.000000" x="156.007812" y="86.000000" rx="1.000000" fill="rgb(200,245,241)" />
+	<rect id="矩形 7001" width="11.000000" height="2.000000" x="180.007812" y="86.000000" rx="1.000000" fill="rgb(200,245,241)" />
+	<rect id="矩形 7004" width="11.000000" height="2.000000" x="204.007812" y="86.000000" rx="1.000000" fill="rgb(200,245,241)" />
+	<rect id="矩形 6990" width="28.000000" height="10.000000" x="197.007812" y="115.000000" rx="5.000000" fill="rgb(108,219,209)" />
+	<rect id="矩形 6991" width="27.000000" height="9.000000" x="163.507812" y="115.500000" rx="4.500000" stroke="rgb(108,219,209)" stroke-width="1" />
+	<rect id="矩形 6995" width="78.000000" height="28.000000" x="146.507812" y="63.500000" rx="1.500000" stroke="rgb(200,245,241)" stroke-width="1" />
+	<line id="直线 106" x1="146.007812" x2="224.007812" y1="72" y2="72" stroke="rgb(200,245,241)" stroke-width="1" />
+	<line id="直线 107" x1="146.007812" x2="224.007812" y1="82" y2="82" stroke="rgb(200,245,241)" stroke-width="1" />
+</svg>

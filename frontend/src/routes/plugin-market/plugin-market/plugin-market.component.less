@@ -1,0 +1,167 @@
+.plugin-market-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+
+  .plugin-market-banner {
+    height: 200px;
+    width: 100%;
+    background-image: url('../../../assets/app-library/banner-bg.png');
+    background-size: 100% 100%;
+    padding: 62px 64px;
+
+    .plugin-market-banner-title {
+      color: #191919ff;
+      font-size: 32px;
+      line-height: 48px;
+      text-align: left;
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+  }
+
+  .plugin-search {
+    padding: 0 0 24px 0;
+  }
+
+  .plugin-cards {
+    flex-shrink: 1;
+    overflow: auto;
+    height: 100%;
+  }
+
+  .h-auto {
+    height: auto !important;
+  }
+
+  .loading-icon {
+    width: auto !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+  }
+
+  .card-wrapper {
+    padding: 24px;
+    background-color: #fff;
+    height: 196px;
+    cursor: pointer;
+    border: 1px solid rgba(230, 230, 230, 1);
+    border-radius: 16px;
+    box-sizing: border-box;
+
+    // width <= 1690px supported on less-4.2.0 only.
+    @media (max-width: 1690px) {
+    }
+
+    &:hover {
+      box-shadow: 0px 4px 16px 0px rgba(0, 0, 0, 0.08);
+      .bottom-area-have-menu {
+        display: none;
+      }
+      .bottom-area-menu {
+        display: inline-block;
+      }
+    }
+  }
+
+  .icon-and-name {
+    display: flex;
+    gap: 0 16px;
+    align-items: center;
+
+    .name {
+      font-size: 16px;
+      line-height: 24px;
+      color: #191919;
+      font-weight: 600;
+      font-family: PingFang SC;
+    }
+  }
+
+  .bottom-area {
+    display: flex;
+
+    align-items: center;
+    font-size: 12px;
+    line-height: 18px;
+    color: #595959;
+  }
+
+  .config_auth {
+    position: absolute;
+    right: 0;
+    display: flex;
+    align-items: center;
+    &:hover {
+      color: #0c93fe;
+      cursor: pointer;
+    }
+  }
+
+  .loading-icon {
+    width: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 5%;
+  }
+}
+
+
+.plugin-name{
+  font-size: 14px;
+  margin-bottom: 12px;
+  color: #191919;
+  font-weight: 600;
+}
+
+.plugin-market-search{
+  background-color: white;
+  flex: 1;
+}
+
+:host {
+  height: 100%;
+  display: block;
+  background: #ffffff;
+  ::ng-deep {
+    .ti3-menu-toggle-menu {
+      color: #191919 !important;
+      margin-right: -20px;
+      padding: 3px 20px;
+
+
+      &:after {
+        display: none !important;
+      }
+    }
+    .custom-menu .ti3-menu-toggle-menu .ti3-icon-accordion-unfold {
+      display: none !important;
+    }
+
+    .custom-menu {
+      padding: 0 10px;
+    }
+
+    .ti3-menu-toggle-menu:hover {
+      text-decoration: none !important;
+      color: #1476ff !important;
+    }
+
+  }
+}
+
+.plugin-des{
+  color: rgba(25, 25, 25, 0.6);
+}
+.tab-min-width-plugin1 {
+  min-width: 200px;
+  max-width: 45%
+}
+
+.tab-min-width-plugin2 {
+  max-width: 45%
+}

@@ -1,0 +1,9 @@
+<svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="16.000000" height="16.000000" fill="none" customFrame="#000000">
+	<rect id="耗时" width="16.000000" height="16.000000" x="0.000000" y="0.000000" />
+	<path id="椭圆形" d="M13.0377 11.1869C14.8323 8.09848 13.7673 4.1493 10.6589 2.36618C7.55053 0.583067 3.57585 1.64125 1.78123 4.7297C-0.0133969 7.81814 1.05161 11.7673 4.16 13.5504C6.23225 14.7392 8.44075 14.8118 10.7855 13.7683" fill="rgb(216,216,216)" fill-opacity="0" fill-rule="evenodd" />
+	<path id="椭圆形" d="M13.0377 11.1869C14.8323 8.09848 13.7673 4.1493 10.6589 2.36618C7.55053 0.583067 3.57585 1.64125 1.78123 4.7297C-0.0133969 7.81814 1.05161 11.7673 4.16 13.5504C6.23225 14.7392 8.44075 14.8118 10.7855 13.7683" fill-rule="evenodd" stroke="rgb(2,153,49)" stroke-linecap="round" stroke-linejoin="round" stroke-width="1" />
+	<path id="路径 17" d="M0 0L0.00893067 2.35324L2.37296 2.36217" fill="rgb(216,216,216)" fill-opacity="0" fill-rule="evenodd" transform="matrix(0.866025,-0.5,0.5,0.866025,11.8545,9.7981)" />
+	<path id="路径 17" d="M0 0L0.00893067 2.35324L2.37296 2.36217" fill-rule="evenodd" stroke="rgb(2,153,49)" stroke-width="1" transform="matrix(0.866025,-0.5,0.5,0.866025,11.8545,9.7981)" />
+	<path id="路径 19" d="M7.51507 4.6615L7.51507 8.62372L5.89709 10.2276" fill="rgb(216,216,216)" fill-opacity="0" fill-rule="evenodd" />
+	<path id="路径 19" d="M7.51507 4.6615L7.51507 8.62372L5.89709 10.2276" fill-rule="evenodd" stroke="rgb(2,153,49)" stroke-width="1" />
+</svg>

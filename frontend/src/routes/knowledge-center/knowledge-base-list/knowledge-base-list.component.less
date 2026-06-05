@@ -1,0 +1,231 @@
+#knowledge-base-list {
+  height: 100%;
+  overflow: hidden;
+
+  .header-style {
+    margin-top: 16px;
+    padding: 0 !important;
+    height: 43px;
+    line-height: 43px;
+    margin-bottom: 12px;
+
+    ::ng-deep {
+      tp-descandbuy {
+        height: 43px;
+        line-height: 43px;
+      }
+
+      .tp-helptip-label {
+        font-size: 20px;
+        color: rgb(34, 34, 34);
+      }
+    }
+  }
+
+  .main-content {
+    background-color: white;
+    border-radius: 16px;
+    height: 100%;
+
+    .create-list {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+
+      .new-create {
+        margin: 4px 0 16px 0
+      }
+
+      .create-top-operate {
+        display: flex;
+        margin-bottom: 24px;
+
+        .create-search {
+          flex: 1;
+          margin: 0 8px;
+        }
+
+        .create-switch-card {
+          background: rgb(0 0 0 / 5%);
+          border-radius: 2px;
+          height: fit-content;
+          line-height: 9px;
+          cursor: pointer;
+          display: flex;
+          margin-left: 8px;
+
+          img {
+            padding: 4px;
+            height: 18px;
+            box-sizing: content-box;
+          }
+
+          .selected-img {
+            background-color: white;
+            border: 1px solid #191919;
+            border-radius: 4px;
+          }
+        }
+      }
+
+      .knowledge-base-page {
+        height: calc(100vh - 300px);
+      }
+
+      .create-list-card-area {
+        flex-grow: 1;
+        overflow: hidden;
+        position: relative;
+
+        .icon-set {
+          height: 22px;
+          width: 22px;
+        }
+
+        .table-show-container {
+          max-height: calc(100% - 48px);
+        }
+
+        .list-no-data {
+          height: calc(100vh - 390px);
+
+          .show-no-data-tr {
+            background-color: transparent;
+            transition: none;
+          }
+        }
+
+        .show-card-list.kb-cards {
+          max-height: calc(100% - 40px);
+          overflow: auto;
+
+          .card-item {
+            margin-top: 20px;
+          }
+
+          .card-no-data {
+            height: calc(100vh - 450px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+        }
+
+      }
+    }
+
+    .access-list {
+      .new-access {
+        margin: 4px 0 16px 0;
+      }
+
+      .access-top-operate {
+        display: flex;
+        margin-bottom: 24px;
+
+        .access-search {
+          flex: 1;
+          margin-right: 8px;
+        }
+
+        .access-switch-card {
+          background: rgb(0 0 0 / 5%);
+          border-radius: 2px;
+          height: fit-content;
+          line-height: 9px;
+          cursor: pointer;
+          display: flex;
+          margin-left: 8px;
+
+          img {
+            padding: 4px;
+            height: 18px;
+            box-sizing: content-box;
+          }
+
+          .selected-img {
+            background-color: white;
+            border: 1px solid #191919;
+            border-radius: 4px;
+          }
+        }
+      }
+
+      .access-list-card-area {
+        position: relative;
+
+        .icon-set {
+          height: 22px;
+          width: 22px;
+        }
+
+        .table-show-container {}
+
+        .list-no-data {
+          height: calc(100vh - 370px);
+
+          .show-no-data-tr {
+            background-color: transparent;
+            transition: none;
+          }
+        }
+
+        .show-card-list {
+          max-height: calc(100% - 64px);
+          overflow: auto;
+
+          .card-item {
+            margin-top: 20px;
+          }
+
+          .card-no-data {
+            height: calc(100vh - 450px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+        }
+      }
+    }
+  }
+
+  ::ng-deep {
+    .desc-style {
+      color: #1476FF;
+      cursor: pointer;
+    }
+  }
+
+  .develop-space-page {
+    padding: 0
+  }
+
+  .page-area {
+    bottom: 0;
+
+    &.card-page {
+      margin-top: 16px;
+    }
+  }
+
+  .table-style {
+    border-bottom: 0;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .table-border {
+    border-left: 1px solid rgba(240, 240, 240, 1);
+    border-right: 1px solid rgba(240, 240, 240, 1);
+  }
+}
+
+.tab-min-width {
+  min-width: 220px;
+}
+
+.flex-right {
+  display: flex;
+  align-items: flex-end;
+}

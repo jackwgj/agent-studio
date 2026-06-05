@@ -1,0 +1,62 @@
+<div class="task-list-box h-full w-full overflow-hidden">
+  <div class="flex-center flex-direction" style="margin-right: 16px">
+    <img alt="" class="cursor-pointer" (click)="showCreate()" [src]="changeUrl('assets/app-center/add-btn.svg')">
+    <div class="search-box">
+      {{ 'deep_research_task.history' | i18nextEager }}
+      <div class="search-icon" (click)="showSearchBox()" *ngIf="!showBox">
+        <nz-icon nzType="search" nzTheme="outline" class="cursor-pointer" style="font-size:16px;color:#595959" />
+      </div>
+    </div>
+    <div class="input-box" *ngIf="showBox">
+      <nz-icon nzType="search" nzTheme="outline" class="text-[#595959]" />
+      <input class="w-48" id="text-basic" [(ngModel)]="search" (ngModelChange)="searchTask()" maxlength="10" [placeholder]="'deep_research_chat.deep_research_11'| i18nextEager" tiText />
+      <img alt="" (click)="showSearchBox()" [src]="changeUrl('assets/agent-center/images/collapse.svg')">
+    </div>
+  </div>
+
+  <div class="task-list">
+    <div *ngFor="let taskLists of taskGroupList; index as i">
+      <div class="task-category text-[12px]" *ngIf="taskLists.tasks.length > 0">{{ taskLists.name }}</div>
+      <div [ngClass]="{'is-selected':selectId === item.id}" class="task-item flex-between pl-[12px] pr-[12px]" *ngFor="let item of taskLists.tasks; index as j" (click)="handelTask('select',item,{group:i,index:j})">
+        <div  class="w-full flex-between">
+          <div class="name text-ellipsis" tiOverflow>{{item.name}}</div>
+          <div class="edit-box" *ngIf="selectId === item.id">
+            <span nz-dropdown [nzDropdownMenu]="actionMenu" class="pw-three-dots-more cursor-pointer" nzTrigger="click">
+              <nz-icon nzType="more" nzTheme="outline" />
+            </span>
+            <nz-dropdown-menu #actionMenu="nzDropdownMenu">
+              <ul nz-menu>
+                <li nz-menu-item *ngFor="let action of actions" (click)="handelTask(action.id, item, null)">
+                  <div class="edit-item flex">
+                    <nz-icon class="edit" [nzType]="action.icon" />
+                    <div>{{action.label}}</div>
+                  </div>
+                </li>
+              </ul>
+            </nz-dropdown-menu>
+          </div>
+          <div class="status-box" *ngIf="selectId !== item.id">
+            <nz-spin *ngIf="item.statusTitle==='running' || item.statusTitle==='pending'" class="status-icon" nzSimple></nz-spin>
+            <div *ngIf="item.statusTitle==='waiting'" class="waiting-tag">
+              1
+            </div>
+            <nz-icon nzType="check-circle" nzTheme="outline" class="status-icon" style="color:#5db303" *ngIf="item.statusTitle==='completed'" />
+            <img alt="" *ngIf="item.statusTitle ==='finished'"   class="status-icon"  [src]="changeUrl('assets/images/flow-task/fail.svg')" />
+          </div>
+      </div>
+    </div>
+    </div></div>
+  <div *ngIf="isloading" style="height: 600px" class="flex-center">
+    <nz-spin class="loading-icon"></nz-spin>
+  </div>
+  <div *ngIf="isloading===false && taskList.length === 0" class="no-data-container">
+    <ng-container *ngIf="!search;else searchNodata" >
+      <no-data-icon></no-data-icon>
+      <span style="margin-top: 20px">{{ 'no_data' | i18nextEager }}</span>
+    </ng-container>
+    <ng-template #searchNodata>
+      <nz-icon nzType="exception" nzTheme="outline" />
+      <span style="margin-top: 20px">{{ 'deep_research_chat.deep_research_10'| i18nextEager }}</span>
+    </ng-template>
+  </div>
+</div>

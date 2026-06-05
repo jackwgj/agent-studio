@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.agent.manager.mapper.SkillVersionMapper">
+    <resultMap id="BaseResultMap" type="com.openjiuwen.studio.agent.manager.entity.SkillVersionEntity">
+        <id column="id" jdbcType="VARCHAR" property="id"/>
+        <result column="skill_id" jdbcType="VARCHAR" property="skillId"/>
+        <result column="version_name" jdbcType="VARCHAR" property="versionName"/>
+        <result column="used" jdbcType="TINYINT" property="used"/>
+        <result column="name" jdbcType="VARCHAR" property="name"/>
+        <result column="description" jdbcType="VARCHAR" property="description"/>
+        <result column="obs_path" jdbcType="VARCHAR" property="obsPath"/>
+        <result column="creator_id" jdbcType="VARCHAR" property="creatorId"/>
+        <result column="creator_name" jdbcType="VARCHAR" property="creatorName"/>
+        <result column="created_at" jdbcType="BIGINT" property="createdAt"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.openjiuwen.studio.agent.manager.entity.SkillVersionEntity">
+        INSERT INTO t_skill_version (
+            id, skill_id, version_name, used, name, description, obs_path, creator_id, creator_name, created_at
+        ) VALUES (
+                     #{id,jdbcType=VARCHAR},
+                     #{skillId,jdbcType=VARCHAR},
+                     #{versionName,jdbcType=VARCHAR},
+                     #{used,jdbcType=TINYINT},
+                     #{name,jdbcType=VARCHAR},
+                     #{description,jdbcType=VARCHAR},
+                     #{obsPath,jdbcType=VARCHAR},
+                     #{creatorId,jdbcType=VARCHAR},
+                     #{creatorName,jdbcType=VARCHAR},
+                     #{createdAt,jdbcType=BIGINT}
+                 )
+    </insert>
+
+    <update id="update" parameterType="com.openjiuwen.studio.agent.manager.entity.SkillVersionEntity">
+        UPDATE t_skill_version
+        <set>
+            <if test="used != null and used != ''">
+                used = #{used, jdbcType=TINYINT},
+            </if>
+            <if test="name != null and name != ''">
+                name = #{name, jdbcType=VARCHAR},
+            </if>
+            <if test="description != null and description != ''">
+                description = #{description, jdbcType=VARCHAR},
+            </if>
+            <if test="obsPath != null and obsPath != ''">
+                obs_path = #{obsPath, jdbcType=VARCHAR}
+            </if>
+        </set>
+        WHERE id = #{id, jdbcType=VARCHAR}
+    </update>
+
+    <delete id="delete" parameterType="java.lang.String">
+        DELETE FROM t_skill_version WHERE id = #{id, jdbcType=VARCHAR}
+    </delete>
+
+    <delete id="deleteBySkillId" parameterType="java.lang.String">
+        DELETE FROM t_skill_version WHERE skill_id = #{skillId, jdbcType=VARCHAR}
+    </delete>
+
+    <select id="searchBySkillId" resultMap="BaseResultMap" parameterType="map">
+        SELECT * FROM t_skill_version
+        WHERE skill_id = #{skillId, jdbcType=VARCHAR}
+        ORDER BY created_at DESC
+            LIMIT #{limit, jdbcType=INTEGER} OFFSET #{offset, jdbcType=INTEGER}
+    </select>
+
+    <select id="searchByVersionId" resultMap="BaseResultMap" parameterType="java.lang.String">
+        SELECT * FROM t_skill_version WHERE id = #{id, jdbcType=VARCHAR}
+    </select>
+
+    <select id="searchBySkillIdAndVersion" resultMap="BaseResultMap" parameterType="map">
+        SELECT * FROM t_skill_version
+        WHERE skill_id = #{skillId, jdbcType=VARCHAR} AND version_name = #{versionName, jdbcType=VARCHAR}
+    </select>
+
+    <select id="countVersionBySkillId" resultType="java.lang.Integer">
+        SELECT COUNT(*) AS total FROM t_skill_version
+        WHERE skill_id = #{skillId, jdbcType=VARCHAR}
+    </select>
+</mapper>

@@ -1,0 +1,12 @@
+{
+  "node_manage": "Component Management",
+  "node_api": "API Component",
+  "node_arithmetic": "Algorithm Package Component",
+  "node_script": "Script Component",
+  "node_create": "Create Component",
+  "node_no_data": "No built-in components available",
+  "node_inner": "Built-in Components",
+  "node_custom": "Custom Components",
+  "node_menu": "Component Management",
+  "search_only_mine": "Show Only My Components"
+}

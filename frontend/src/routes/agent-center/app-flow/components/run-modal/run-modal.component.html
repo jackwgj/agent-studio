@@ -1,0 +1,458 @@
+<div class="run-modal-wrapper run-modal-show h-full w-[480px]">
+  <div class="mb-[18px] flex w-full items-center justify-between">
+    <div class="text-base font-bold text-label">
+      {{ 'test_run' | i18nextEager }}
+    </div>
+    <div class="flex items-center gap-[8px]">
+      <span
+        style="font-size: 16px; color: #808080"
+        class="cursor-pointer"
+        (click)="onClose()"
+      >
+        <nz-icon nzType="close" nzTheme="outline" />
+      </span>
+    </div>
+  </div>
+  <div class="content">
+    <nz-tabset id="task-run-tabs" [(nzSelectedIndex)]="selectedTabIndex">
+      <nz-tab
+        class="h-full"
+        [nzTitle]="tabs[0].title"
+      >
+        <div class="start-node-params-area flex flex-col h-full">
+          <div class="flex-1 overflow-y-auto">
+            <dynamic-node-params
+              #dynamicNodeParams
+              [inputList]="startNodeParams"
+            ></dynamic-node-params>
+
+            <nz-spin
+              *ngIf="isPluginAuthLoading; else pluginArea"
+              class="loading-icon"
+              nzSize="default"
+            ></nz-spin>
+            <ng-template #pluginArea>
+              <div class="plugin-config" *ngIf="settingsList.length">
+                <div class="text-[14px] font-bold text-label">
+                  {{ 'plugin_authentication_parameters' | i18nextEager }}
+                </div>
+                <div
+                  #pluginAreaRef
+                  class="plugin-content flex h-full w-full flex-col gap-2"
+                >
+                  <form #pluginForm="ngForm" id="plugin-auth-form">
+                    <div
+                      *ngFor="let block of settingsList; index as i"
+                      class="plugin-card"
+                    >
+                      <span
+                        class="title"
+                        (click)="changePluginFormCollapse(block)"
+                      >
+                        <span class="font-semibold">{{ block.name }}</span>
+                        <nz-icon *ngIf="!block.collapsed" nzType="up" nzTheme="outline" />
+                        <nz-icon *ngIf="block.collapsed" nzType="down" nzTheme="outline" />
+                      </span>
+                      <nz-collapse *ngIf="!block.collapsed" class="formfield-style">
+                        <nz-form-item
+                          *ngFor="let inputItem of block.params; index as kvIndex"
+                        >
+                          <nz-form-label [nzRequired]="!isOptional(inputItem?.name)">
+                            <span nz-ellipsis class="dynamic-param-label">
+                              {{ inputItem?.name }}
+                              <span *ngIf="isOptional(inputItem?.name)">{{
+                                  'optional' | i18nextEager
+                                }}</span>
+                            </span>
+                          </nz-form-label>
+                          <nz-form-control>
+                            <input
+                              style="width: 100%"
+                              type="password"
+                              autocomplete="new-password"
+                              nz-input
+                              [name]="inputItem.key"
+                              [(ngModel)]="inputItem.value"
+                              [placeholder]="'input_placeholder' | i18nextEager"
+                            />
+                          </nz-form-control>
+                        </nz-form-item>
+                      </nz-collapse>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </ng-template>
+          </div>
+
+          <div class="flex-shrink-0">
+            <div class="cutline"></div>
+            <div class="flex justify-end mt-[12px]">
+              <button
+                class="run-workflow-btn"
+                type="button"
+                nz-button
+                nzType="primary"
+                (click)="runWorkflow()"
+                nz-tooltip
+                [nzTooltipTitle]="
+                  dynamicNodeParams.fileLoading
+                    ? ('waiting_for_file_upload_to_complete' | i18nextEager)
+                    : ''
+                "
+                [disabled]="!!(canRunWorkflow() || dynamicNodeParams.fileLoading)"
+              >
+                {{ runWorkflowButtonText }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </nz-tab>
+      <nz-tab
+        class="h-full"
+        [nzTitle]="tabs[1].title"
+      >
+        <div
+          *ngIf="isEmptyRunResult; else runResultTmpl"
+          class="empty-run-result"
+        >
+          <no-data-icon></no-data-icon>
+          <span class="loading-text">
+            {{ 'no_running_results' | i18nextEager }}，{{
+              'please_run_first' | i18nextEager
+            }}
+          </span>
+        </div>
+        <ng-template #runResultTmpl>
+          <div class="stream-area">
+            <div class="workflow-info-area">
+              <div class="title-container">
+                <img alt=""
+                  class="workflow-status"
+                  [src]="getNodeStatus(workflowDebugInfo?.status)"
+                />
+                <span
+                  class="workflow-status-desc"
+                  [ngStyle]="{
+                    color: getWorkflowStatusDescColor(workflowDebugInfo?.status)
+                  }"
+                >{{ workflowDebugInfo.status_desc }}</span
+                >
+              </div>
+              <button
+                class="mt-4"
+                type="button"
+                *ngIf="workflowDebugInfo?.status === 'loading'"
+                nz-button
+                nzType="default"
+                (click)="stopChat()"
+              >
+                {{ 'stop_running' | i18nextEager }}
+              </button>
+              <div
+                [ngClass]="
+                  workflowDebugInfo.list.length === 0
+                    ? 'empty-info-container'
+                    : 'info-container'
+                "
+              >
+                <div
+                  class="item-container"
+                  *ngFor="let item of workflowDebugInfo.list"
+                >
+                  <span class="title-style">{{ item.title }}</span>
+                  <span class="content-style">
+                    <ng-container
+                      *ngIf="isTimestamp(item.content); else textTmpl"
+                    >
+                      {{ item.content | date : 'yyyy-MM-dd HH:mm:ss' }}
+                    </ng-container>
+                    <ng-template #textTmpl>
+                      {{ item.content }}
+                    </ng-template>
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div class="text-chunk-area" *ngFor="let item of chatLoop">
+              <div class="answer-cards" *ngIf="item.thinkValue">
+                <div class="flex justify-between gap-[48px]">
+                  <div class="flex gap-[12px]">
+                    <ng-container *ngIf="item.thinking; else completed">
+                      <img alt=""
+                        [src]="
+                          changeUrl(
+                            'assets/agent-center/icons/deep-loading-icon.svg'
+                          )
+                        "
+                      />
+                      <span>{{ 'thinking_deeply' | i18nextEager }}</span>
+                    </ng-container>
+                  </div>
+
+                  <span
+                    class="cursor-pointer"
+                    [ngClass]="
+                      item.collapsed ? 'collapsed-icon' : 'unfolded-icon'
+                    "
+                    (click)="changeCollapsedState(item)"
+                  >
+                    <nz-icon nzType="right" nzTheme="outline" />
+                  </span>
+                </div>
+                <div class="deep-seek-area" [ngStyle]="{ display: item.collapsed ? 'none' : 'block' }">
+                  <div class="deep-seek-text mt-[12px]">
+                    {{ item.thinkValue }}
+                  </div>
+                </div>
+              </div>
+              <div
+                *ngIf="
+                  item.showAnswer?.length && item.showAnswer[0]?.text?.trim()
+                "
+                class="has-answer"
+              >
+                <div class="text-chunk-title">
+                  {{ 'final_output_result' | i18nextEager }}
+                </div>
+                <div #chatContainerRef cdkScrollable class="answer-text">
+                  <ng-container *ngFor="let subItem of item.showAnswer">
+                    <app-markdown-answer
+                      *ngIf="subItem.text"
+                      class="markdown-text w-full overflow-x-hidden"
+                      [(answer)]="subItem.text"
+                      [isSupKBResolver]="true"
+                    ></app-markdown-answer>
+                  </ng-container>
+                </div>
+              </div>
+            </div>
+          </div>
+        </ng-template>
+      </nz-tab>
+
+      <nz-tab
+        class="h-full"
+        [nzTitle]="tabs[2].title"
+        (nzSelect)="onActivateDetails()"
+      >
+        <div
+          *ngIf="isShowEmptyTmpl; else logDetailTmpl"
+          class="empty-run-result"
+        >
+          <no-data-icon></no-data-icon>
+          <ng-container *ngIf="isEmptyRunResult; else noErrorTpl">
+            <span class="loading-text">
+              {{ 'no_call_details' | i18nextEager }}，{{
+                'please_run_first' | i18nextEager
+              }}
+            </span>
+          </ng-container>
+          <ng-template #noErrorTpl>
+            <span class="loading-text">{{
+                'no_call_details' | i18nextEager
+              }}</span>
+          </ng-template>
+        </div>
+        <ng-template #logDetailTmpl>
+          <div class="call-chain-area">
+            <div class="mb-[10px] flex items-center justify-between">
+              <div class="color-[#191919] font-semibold">
+                {{ 'call_chain' | i18nextEager }}
+              </div>
+              <div class="flex items-center">
+                <asset-list-icon
+                  class="chart-icon"
+                  (click)="switchViewMode('list')"
+                  [ngClass]="{ 'icon-selected': chartViewMode === 'list' }"
+                ></asset-list-icon>
+                <asset-sequence-icon
+                  class="chart-icon"
+                  (click)="switchViewMode('sequence')"
+                  [ngClass]="{
+                    'icon-selected': chartViewMode === 'sequence'
+                  }"
+                ></asset-sequence-icon>
+              </div>
+            </div>
+            <nz-breadcrumb *ngIf="crumb.length > 1">
+              <nz-breadcrumb-item
+                *ngFor="let item of crumb"
+                (click)="onSelectWorkflow(item)"
+              >
+                <span class="cursor-pointer">{{ item.label }}</span>
+              </nz-breadcrumb-item>
+            </nz-breadcrumb>
+            <div
+              *ngIf="
+                chartViewMode === 'sequence' &&
+                isEmptyObject(timelineData) &&
+                !isStreamFail
+              "
+              class="relative flex h-full flex-col items-center justify-center"
+            >
+              <asset-loading-icon
+                class="custom-loading-icon absolute"
+              ></asset-loading-icon>
+              <asset-generate-loading-icon></asset-generate-loading-icon>
+              <span class="loading-text">
+                {{ 'running' | i18nextEager }}...
+              </span>
+            </div>
+
+            <time-line
+              *ngIf="
+                chartViewMode === 'sequence' && !isEmptyObject(timelineData) && showRunModal
+              "
+              [data]="timelineData"
+              (handleClick)="onNodeClicked($event)"
+            ></time-line>
+            <ng-container *ngIf="chartViewMode === 'sequence' && nodeIdClicked">
+              <ng-container *ngFor="let callItem of callChainInfo.list">
+                <ng-container *ngIf="callItem.node_id === nodeIdClicked">
+                  <div
+                    class="sequence-item-wrapper flex flex-col gap-[16px] bg-[#fafafa]"
+                  >
+                    <ng-container
+                      *ngTemplateOutlet="
+                        callItemTemplate;
+                        context: { $implicit: callItem }
+                      "
+                    ></ng-container>
+                  </div>
+                </ng-container>
+              </ng-container>
+            </ng-container>
+
+            <div
+              *ngIf="
+                chartViewMode === 'list' &&
+                callChainInfo.list.length === 0 &&
+                !isStreamFail
+              "
+              class="relative flex h-full flex-col items-center justify-center"
+            >
+              <asset-loading-icon
+                class="custom-loading-icon absolute"
+              ></asset-loading-icon>
+              <asset-generate-loading-icon></asset-generate-loading-icon>
+              <span class="loading-text">
+                {{ 'running' | i18nextEager }}...
+              </span>
+            </div>
+            <div
+              *ngIf="chartViewMode === 'list' && callChainInfo.list.length"
+              class="call-chains-container"
+            >
+              <div
+                *ngFor="let callItem of callChainInfo.list"
+                class="call-item-wrapper flex flex-col gap-[16px] bg-[#fafafa]"
+                [style.display]="
+                  callItem.parent_node_id === curNodeId ? 'block' : 'none'
+                "
+              >
+                <div
+                  *ngIf="callItem.parent_node_id === curNodeId"
+                  class="call-item-wrapper flex flex-col gap-[16px] bg-[#fafafa]"
+                >
+                  <ng-container
+                    *ngTemplateOutlet="
+                      callItemTemplate;
+                      context: { $implicit: callItem }
+                    "
+                  ></ng-container>
+                </div>
+              </div>
+            </div>
+          </div>
+        </ng-template>
+      </nz-tab>
+    </nz-tabset>
+  </div>
+</div>
+
+<ng-template #noInputs>
+  <div class="mb-[12px]">{{ 'no_input' | i18nextEager }}</div>
+</ng-template>
+<ng-template #noOutputs>
+  <div>{{ 'no_output' | i18nextEager }}</div>
+</ng-template>
+
+<ng-template #callItemTemplate let-callItem>
+  <div
+    class="call-item"
+    (click)="changeCollapsedState(callItem)"
+    [ngClass]="{ 'bg-unfolded': !callItem.collapsed }"
+  >
+    <div class="call-item-left">
+      <span
+        class="collapse-icon"
+        [ngClass]="{ 'unfolded-icon': !callItem.collapsed }"
+      >
+        <nz-icon nzType="right" nzTheme="outline" />
+      </span>
+      <img alt="" class="call-node-icon" [src]="getNodeIcon(callItem?.node_type)" />
+      <span nz-ellipsis class="color-[#191919]">
+        {{ callItem?.node_name }}
+      </span>
+    </div>
+    <div class="call-item-right">
+      <span class="call-elapsed-time">
+        {{ callItem?.elapsed_time }}
+      </span>
+      <img alt=""
+        class="call-node-status"
+        [src]="getNodeStatus(callItem?.node_status)"
+      />
+    </div>
+  </div>
+  <div class="call-node-IO" [ngStyle]="{ display: callItem.collapsed ? 'none' : 'block' }">
+    <div
+      class="crumb"
+      *ngIf="callItem?.node_type === 'Workflow'"
+      (click)="getChildWorkflow(callItem)"
+    >
+      <nz-icon class="mr-1" nzType="export" nzTheme="outline"></nz-icon>
+      <span>{{ 'view_sub_workflow_call_chain' | i18nextEager }}</span>
+    </div>
+    <div *ngIf="!isIOEmpty(callItem.inputs); else noInputs" class="mb-[12px]">
+      <div class="node-inputs-area">
+        <span class="color-[#191919]">{{ 'input' | i18nextEager }}</span>
+        <asset-copy-icon
+          *ngIf="!callItem.inputsCopyIcon"
+          class="cursor-pointer"
+          (click)="handleCopy(callItem, 'input')"
+        ></asset-copy-icon>
+        <asset-copy-success-icon
+          *ngIf="callItem.inputsCopyIcon"
+          class="cursor-pointer"
+        ></asset-copy-success-icon>
+      </div>
+      <div class="json-wrap">
+        <json-viewer [jsonData]="callItem.inputs"></json-viewer>
+      </div>
+    </div>
+    <div *ngIf="!isIOEmpty(callItem.outputs); else noOutputs">
+      <div class="node-inputs-area">
+        <span class="color-[#191919]">{{ 'output' | i18nextEager }}</span>
+        <asset-copy-icon
+          *ngIf="!callItem.outputsCopyIcon"
+          class="cursor-pointer"
+          (click)="handleCopy(callItem, 'output')"
+        ></asset-copy-icon>
+        <asset-copy-success-icon
+          *ngIf="callItem.outputsCopyIcon"
+          class="cursor-pointer"
+        ></asset-copy-success-icon>
+      </div>
+      <div class="json-wrap">
+        <json-viewer [jsonData]="callItem.outputs"></json-viewer>
+      </div>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #completed>
+  <img alt="" [src]="changeUrl('assets/agent-center/icons/deep-completed-icon.svg')" />
+  <span>{{ 'deeply_pondered' | i18nextEager }}</span>
+</ng-template>

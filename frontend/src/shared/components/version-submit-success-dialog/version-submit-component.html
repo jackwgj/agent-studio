@@ -1,0 +1,16 @@
+<div>
+  <span class="text-[18px] bold">{{ 'version_submit_title' | i18nextEager }}</span>
+  <div>
+    <div>
+      <div class="flex items-center justify-center">
+        <img alt="" [src]="successIcon" style="width: 88px; height: 88px" />
+      </div>
+      <div class="mt-[24px] text-[18px] font-semibold text-[#191919] text-center">{{ 'version_submit_success_tip' | i18nextEager }}</div>
+    </div>
+    <div class="btn-group flex justify-end mt-4">
+      <nz-space>
+        <button nz-button type="button" (click)="dismiss()">{{ 'close' | i18nextEager }}</button>
+      </nz-space>
+    </div>
+  </div>
+</div>

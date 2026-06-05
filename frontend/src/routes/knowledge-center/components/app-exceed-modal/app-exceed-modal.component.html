@@ -1,0 +1,49 @@
+<ng-template #appExceedModal>
+  <ng-container *nzModalContent>
+    <div class="header">
+      <img alt="" class="info" [src]="changeUrl('assets/images/common/info.png')" />
+      <span>{{ 'app_exceed_header' | i18nextEager }}</span>
+    </div>
+    <div class="modal-body-content">
+      <span>{{ exceedTip }}</span>
+    </div>
+  </ng-container>
+  <ng-container *nzModalFooter>
+    <div *ngIf="!isPayed">
+      <div *ngIf="isHomePage">
+        <button (click)="goToAppManage(); modalRef?.close()" type="button" nz-button>
+          {{ 'goto_app_manage' | i18nextEager }}
+        </button>
+        <button (click)="upgradeToBusinessEdition(); modalRef?.close()" type="button" nz-button nzType="primary" nzDanger>
+          {{ 'upgrade_to_commercial_1' | i18nextEager }}
+        </button>
+      </div>
+
+      <div *ngIf="!isHomePage">
+        <button (click)="modalRef?.close()" type="button" nz-button>
+          {{ 'base_close' | i18nextEager }}
+        </button>
+        <button (click)="upgradeToBusinessEdition(); modalRef?.close()" type="button" nz-button nzType="primary" nzDanger>
+          {{ 'upgrade_to_commercial_1' | i18nextEager }}
+        </button>
+      </div>
+    </div>
+
+    <div *ngIf="isPayed">
+      <div *ngIf="isHomePage">
+        <button (click)="modalRef?.close()" type="button" nz-button>
+          {{ 'base_close' | i18nextEager }}
+        </button>
+        <button (click)="goToAppManage(); modalRef?.close()" type="button" nz-button nzType="primary" nzDanger>
+          {{ 'goto_app_manage' | i18nextEager }}
+        </button>
+      </div>
+
+      <div *ngIf="!isHomePage">
+        <button (click)="modalRef?.close()" type="button" nz-button>
+          {{ 'base_close' | i18nextEager }}
+        </button>
+      </div>
+    </div>
+  </ng-container>
+</ng-template>

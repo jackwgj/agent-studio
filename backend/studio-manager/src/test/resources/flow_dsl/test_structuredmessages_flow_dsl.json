@@ -1,0 +1,101 @@
+{
+  "id": "test_llm_id",
+  "name": "名称测试",
+  "description": "描述测试",
+  "nodes": [
+    {
+      "id": "node_start",
+      "name": "开始",
+      "type": "Start",
+      "outputs": [
+        {
+          "name": "query",
+          "type": "string",
+          "description": "用户输入",
+          "required": true,
+          "field_type": "input",
+          "source": "system",
+          "value": {
+            "type": "literal",
+            "content": "",
+            "hint": "用户输入"
+          }
+        }
+      ]
+    },
+    {
+      "id": "node_1757992515180",
+      "name": "异常",
+      "type": "StructuredMessagesException",
+      "inputs": [],
+      "outputs": [],
+      "configs": {
+        "template": "{'error': {'code': 'ERR-1001', 'message': '数据库连接失败', 'description': '无法建立与MySQL数据库的连接，请检查数据库服务是否运行或网络配置是否正确', 'details': {'host': 'db.example.com', 'port': 3306, 'connection_attempts': 3}, 'timestamp': '2025-09-17T10:30:45.123Z'}}"
+      }
+    },
+    {
+      "id": "node_end",
+      "name": "结束",
+      "type": "End",
+      "inputs": [
+        {
+          "name": "result1",
+          "type": "string",
+          "description": "最终输出",
+          "required": false,
+          "source": "user",
+          "value": {
+            "type": "ref",
+            "content": {
+              "ref_node_id": "node_sql",
+              "ref_var_name": "row_num",
+              "source": "user"
+            }
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "response_content",
+          "type": "string",
+          "description": "最终输出",
+          "required": true,
+          "source": "system",
+          "value": {
+            "type": "generated",
+            "content": null
+          }
+        }
+      ],
+      "configs": {
+        "response_mode": "directResponse",
+        "is_stream_out": true,
+        "response_template": "{{key0}}"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "source": "node_start",
+      "target": "node_1757992515180"
+    },
+    {
+      "source": "node_1757992515180",
+      "target": "node_end"
+    }
+  ],
+  "layouts": {
+    "node_1757992515180": {
+      "x": 510,
+      "y": 440
+    },
+    "node_end": {
+      "x": 910,
+      "y": 440
+    },
+    "node_start": {
+      "x": 130,
+      "y": 440
+    }
+  }
+}

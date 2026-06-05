@@ -1,0 +1,306 @@
+{
+  "id": "ac355ff1-406c-4aa9-b429-8f5c439b9f5e",
+  "name": "test234",
+  "description": "test234",
+  "nodes": [
+    {
+      "id": "node_start",
+      "name": "开始",
+      "type": "Start",
+      "outputs": [
+        {
+          "name": "query",
+          "type": "string",
+          "description": "用户输入",
+          "required": true,
+          "source": "system",
+          "field_type": "input",
+          "reflection": false,
+          "value": {
+            "type": "literal",
+            "content": "",
+            "hint": "用户输入"
+          }
+        },
+        {
+          "name": "sys",
+          "type": "object",
+          "description": "系统变量",
+          "required": true,
+          "source": "system",
+          "schema": [
+            {
+              "name": "conversation_history",
+              "type": "array",
+              "description": "会话历史消息",
+              "required": true,
+              "source": "system",
+              "value": {
+                "content": [],
+                "hint": "会话历史消息",
+                "type": "literal"
+              },
+              "schema": {
+                "name": "",
+                "type": "object",
+                "schema": [
+                  {
+                    "name": "role",
+                    "type": "string",
+                    "description": "角色",
+                    "required": true,
+                    "source": "system",
+                    "value": {
+                      "type": "literal",
+                      "content": "",
+                      "hint": "角色"
+                    }
+                  },
+                  {
+                    "name": "content",
+                    "type": "string",
+                    "description": "消息内容",
+                    "required": true,
+                    "source": "system",
+                    "value": {
+                      "type": "literal",
+                      "content": "",
+                      "hint": "消息内容"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "name": "current_time",
+              "type": "string",
+              "required": true,
+              "description": "当前系统时间",
+              "field_type": "input",
+              "source": "system",
+              "value": {
+                "type": "literal",
+                "content": "",
+                "hint": "当前系统时间"
+              }
+            },
+            {
+              "name": "user_id",
+              "type": "string",
+              "required": true,
+              "description": "使用该工作流的唯一标识",
+              "field_type": "input",
+              "source": "system",
+              "value": {
+                "type": "literal",
+                "content": "",
+                "hint": "用户唯一标识"
+              }
+            }
+          ],
+          "field_type": "object",
+          "reflection": false,
+          "value": {
+            "type": "literal",
+            "content": {},
+            "hint": "系统变量"
+          }
+        }
+      ]
+    },
+    {
+      "id": "message_1",
+      "name": "消息",
+      "type": "Message",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "result",
+          "type": "string",
+          "description": "消息输出",
+          "required": false,
+          "source": "system",
+          "reflection": false,
+          "value": {
+            "type": "generated",
+            "content": "",
+            "hint": ""
+          }
+        }
+      ],
+      "configs": {
+        "template": "1"
+      }
+    },
+    {
+      "id": "message_2",
+      "name": "消息_1",
+      "type": "Message",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "result",
+          "type": "string",
+          "description": "消息输出",
+          "required": false,
+          "source": "system",
+          "reflection": false,
+          "value": {
+            "type": "generated",
+            "content": "",
+            "hint": ""
+          }
+        }
+      ],
+      "configs": {
+        "template": "2"
+      }
+    },
+    {
+      "id": "questioner",
+      "name": "提问器",
+      "type": "Questioner",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "USER_RESPONSE",
+          "cn_name": "",
+          "type": "string",
+          "description": "用户最近一轮对话输入",
+          "required": false,
+          "source": "user",
+          "reflection": true,
+          "value": {
+            "default": "",
+            "type": "literal",
+            "content": "",
+            "hint": ""
+          },
+          "validator": []
+        },
+        {
+          "name": "STATUS",
+          "cn_name": "",
+          "type": "integer",
+          "description": "用户最近一轮对话输入",
+          "required": false,
+          "source": "user",
+          "reflection": true,
+          "value": {
+            "default": "",
+            "type": "literal",
+            "content": "",
+            "hint": ""
+          },
+          "validator": []
+        }
+      ],
+      "configs": {
+        "mode": "effect",
+        "temperature": 0.2,
+        "top_p": 0.5,
+        "extra_prompt_for_fields_extraction": "",
+        "question_content": "",
+        "with_chat_history": false,
+        "extract_fields_from_response": true,
+        "max_response": 3,
+        "model": {
+          "model_name": "agentBuilder",
+          "model_type": "openai",
+          "model_deployment_id": "27dbb969-f0a6-4287-9cf3-3ced06ac1558"
+        },
+        "template_anthropomorphic": false,
+        "auto_ask_template": "",
+        "rewrite_chain": [],
+        "example_content": "",
+        "allow_node_break": false,
+        "allow_node_confirm": false
+      }
+    },
+    {
+      "id": "node_end",
+      "name": "结束",
+      "type": "End",
+      "inputs": [
+        {
+          "name": "result",
+          "type": "string",
+          "description": "最终输出",
+          "required": false,
+          "source": "user",
+          "reflection": false,
+          "value": {
+            "type": "ref",
+            "content": {
+              "ref_node_id": "node_llm",
+              "ref_var_name": "raw_output",
+              "source": "user"
+            }
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "response_content",
+          "type": "string",
+          "description": "最终输出",
+          "required": true,
+          "source": "system",
+          "reflection": false,
+          "value": {
+            "type": "generated"
+          }
+        }
+      ],
+      "configs": {
+        "is_stream_out": true,
+        "response_template": "{{result}}",
+        "response_mode": "directResponse"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "source": "questioner",
+      "target": "node_end"
+    },
+    {
+      "source": "message_2",
+      "target": "questioner"
+    },
+    {
+      "source": "message_1",
+      "target": "questioner"
+    },
+    {
+      "source": "node_start",
+      "target": "message_2"
+    },
+    {
+      "source": "node_start",
+      "target": "message_1"
+    }
+  ],
+  "layouts": {
+    "node_start": {
+      "x": 0,
+      "y": 360
+    },
+    "message_1": {
+      "x": 459,
+      "y": 231
+    },
+    "message_2": {
+      "x": 450,
+      "y": 522
+    },
+    "questioner": {
+      "x": 918,
+      "y": 252
+    },
+    "node_end": {
+      "x": 1386,
+      "y": 306
+    }
+  }
+}

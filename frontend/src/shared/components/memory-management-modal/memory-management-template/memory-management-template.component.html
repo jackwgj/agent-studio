@@ -1,0 +1,140 @@
+<div>{{ 'memory_management' | i18nextEager }}</div>
+<div>
+  <div class="memory-management-modal-container">
+    <div class="common-container">
+      <div class="common-title">
+        {{ 'memory_retrieve_in_chat' | i18nextEager }}
+        <nz-icon
+          nzType="question-circle"
+          nzTheme="outline"
+          style="font-size: 14px"
+          [nzTooltipTitle]="'memory_retrieve_in_chat_tip' | i18nextEager"
+          nzTooltipPlacement="top"
+          nz-tooltip
+        />
+      </div>
+      <div class="common-content">
+        <nz-switch [(ngModel)]="isRetrieve" />
+      </div>
+    </div>
+    <div class="common-container">
+      <div class="common-title">
+        {{ 'memory_extract_in_chat' | i18nextEager }}
+        <nz-icon
+          nzType="question-circle"
+          nzTheme="outline"
+          style="font-size: 14px"
+          [nzTooltipTitle]="'memory_extract_in_chat_tip' | i18nextEager"
+          nzTooltipPlacement="top"
+          nz-tooltip
+        />
+      </div>
+      <div class="common-content">
+        <nz-switch [(ngModel)]="isExtract" />
+      </div>
+    </div>
+    <div class="common-container">
+      <div class="common-title">
+        {{ 'memory_banK' | i18nextEager }}
+        <nz-icon
+          nzType="question-circle"
+          nzTheme="outline"
+          style="font-size: 14px"
+          [nzTooltipTitle]="'mem_limit_tip' | i18nextEager"
+          nzTooltipPlacement="top"
+          nz-tooltip
+        />
+      </div>
+      <div class="common-content">
+        <button nz-button [disabled]="!srcData.data.length" nz-popover [nzPopoverTitle]="'confirm_delete_all' | i18nextEager" (nzOnConfirm)="deleteAll()">{{ 'delete_all' | i18nextEager }}</button>
+      </div>
+    </div>
+
+    <div class="tab-container">
+      <nz-tabset class="mb-[8px]" (nzSelectedIndexChange)="handleTabIndexChange($event)" [(nzSelectedIndex)]="tabIndex" >
+        <nz-tab *ngFor="let tab of tabs" [nzTitle]="tab.title" >
+        </nz-tab>
+      </nz-tabset>
+    </div>
+    <div class="memory-container">
+      <nz-table
+        class="mt-[8px]"
+        [nzData]="srcData.data"
+        [nzLoading]="memoryLoading"
+        [nzShowPagination]="false"
+        [nzBordered]="false"
+        [nzSize]="'middle'">
+        <thead>
+          <tr>
+            <th *ngFor="let column of columns" [nzWidth]="column.width">{{ column.title }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <ng-container *ngFor="let row of displayedData; trackBy: trackByFn">
+            <tr *ngIf="editingRow?.fakeId !== row.fakeId else editingTemplate">
+              <td>{{ getDisplayMemContent(row) }}</td>
+              <td>
+                <nz-space [nzSize]="8">
+                  <button *nzSpaceItem nz-button nzType="link" nzSize="small" (click)="onSelect({id: 'EDIT'}, row)">{{ 'edit' | i18nextEager }}</button>
+                  <button *nzSpaceItem nz-button nzType="link" nzSize="small" nzDanger (click)="onSelect({id: 'DELETE'}, row)">{{ 'delete' | i18nextEager }}</button>
+                </nz-space>
+              </td>
+            </tr>
+            <ng-template #editingTemplate>
+              <tr *ngIf="(editingRow && editingRow.id === row.id);">
+                <td>
+                  <struct-mem-edit-cell
+                    [tagName]="editingRow.name"
+                    [(ngModel)]="editingRow.content"></struct-mem-edit-cell>
+                </td>
+                <td>
+                  <nz-space [nzSize]="8">
+                    <button *nzSpaceItem nz-button nzType="link" nzSize="small" (click)="onSelectEditing({id: 'SAVE'}, row)">{{ 'save' | i18nextEager }}</button>
+                    <button *nzSpaceItem nz-button nzType="link" nzSize="small" (click)="onSelectEditing({id: 'CANCEL'}, row)">{{ 'cancel' | i18nextEager }}</button>
+                  </nz-space>
+                </td>
+              </tr>
+            </ng-template>
+          </ng-container>
+        </tbody>
+      </nz-table>
+      <nz-pagination
+        class="mt-[8px]"
+        [nzHideOnSinglePage]="true"
+        [nzShowTotal]="null"
+        [nzPageIndex]="currentPage()"
+        [nzTotal]="totalNumber()"
+        [nzPageSize]="pageSize().size"
+        [nzPageSizeOptions]="[10, 20, 50, 100]"
+        (nzPageIndexChange)="pageIndexChange($event)"
+        (nzPageSizeChange)="pageSizeChange($event)"
+      />
+      <div class="no-data-container" *ngIf="!srcData.data.length">
+        <app-new-common-no-data-with-btn
+          [type]="'noData'"
+          [firstLineData]="'no_memory' | i18nextEager"
+          [secondLineData]="'no_memory_guide' | i18nextEager"
+        />
+      </div>
+    </div>
+  </div>
+</div>
+<div style="margin-top: 16px;">
+  <button nz-button id="cancel" (click)="dismiss()">{{ 'cancel' | i18nextEager }}</button>
+  <button
+    nz-button
+    class="ml-[8px]"
+    nzType="primary"
+    id="ok"
+    [disabled]="confirmIsDisabled()"
+    nz-tooltip [nzTooltipTitle]="confirmInvalidTip()"
+    (click)="close()"
+    [nzLoading]="loading"
+  >
+    {{ 'ok' | i18nextEager }}
+  </button>
+</div>
+
+
+
+

@@ -1,0 +1,105 @@
+.knowledge-base-overview {
+  padding: 24px;
+  border-radius: 8px;
+  height: 174px;
+  box-sizing: border-box;
+
+  .text-ellipsis {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-break: break-all;
+  }
+
+  &:hover {
+    .kb-url-copy {
+      visibility: visible!important;
+    }
+  }
+
+  .icon-and-name {
+    display: flex;
+    gap: 0 16px;
+    align-items: center;
+
+    .icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 8px;
+    }
+
+    .name {
+      font-size: 14px;
+      line-height: 24px;
+      color: #191919;
+      font-weight: 600;
+      margin-bottom: 0;
+      max-width: 260px;
+    }
+
+    .kb-url-copy {
+      visibility: hidden;
+    }
+  }
+
+  .card-bottom-area {
+    display: flex;
+    color: rgba(128, 128, 128, 1);
+    justify-content: space-between;
+
+    .user-name {
+      border-right: 1px solid rgba(0, 0, 0, 0.08);
+      padding-right: 8px;
+      margin-right: 8px;
+      max-width: 120px;
+    }
+
+    .update-time-icon {
+      display: flex;
+      white-space: nowrap;
+
+      .update-icon {
+        margin-top: 3px;
+      }
+
+      .update-time {
+        margin: 0 4px;
+      }
+    }
+
+    .action-menu {
+      font-size: 20px;
+      margin-top: -8px;
+    }
+  }
+
+  &:hover {
+    box-shadow: 0 4px 6px #00000014;
+    transform: translate3d(0, 0, 0);
+    background-image: url(../../../../assets/knowledge-center/knowledge-base-card-bg.png);
+    background-size: cover;
+  }
+
+  .card-description {
+    margin: 12px 0 16px 0;
+    height: 36px;
+    color: rgba(128, 128, 128, 1);
+    line-height: 18px;
+  }
+}
+
+.overview-card-background {
+  background-color: #fff;
+}
+
+.develop-space-card-background {
+  background-color: #fafafa;
+}

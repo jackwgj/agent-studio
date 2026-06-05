@@ -1,0 +1,52 @@
+.knowledge-segment-rule-wrapper {
+  width: 100%;
+  padding: 8px;
+  border-radius: 8px;
+  background-color: #f5f5f5;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  .segment-rule-card {
+    height: 108px;
+    box-sizing: border-box;
+    cursor: pointer;
+    flex-basis: 20%;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background-color: #fff;
+    padding: 8px 12px;
+    line-height: 18px;
+    color: #808080;
+    position: relative;
+    .rule-actions {
+      position: absolute;
+      display: none;
+      top: 8px;
+      right: 8px;
+      font-size: 16px;
+    }
+    &.rule-selected {
+      border: 1px solid #1476ff;
+      box-shadow: 0px 4px 8px #00000014;
+    }
+    &:hover {
+      border: 1px solid #1476ff;
+      box-shadow: 0px 4px 8px #00000014;
+      .rule-actions {
+        display: block;
+      }
+    }
+  }
+  .custom-rule-card {
+    cursor: pointer;
+    border-radius: 8px;
+    flex-basis: 20%;
+    height: 108px;
+    box-sizing: border-box;
+    border: 1px dashed #c2c1c1ff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #808080;
+  }
+}

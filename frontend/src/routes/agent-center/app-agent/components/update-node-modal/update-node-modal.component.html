@@ -1,0 +1,28 @@
+<div *nzModalTitle>
+  <div class="title-box">
+    <img alt="" [src]=" changeUrl('assets/agent-observatory/success.svg')"/> {{title}}
+  </div>
+
+</div>
+
+<div>
+  <span class="context">{{context}}</span>
+</div>
+
+<div *nzModalFooter>
+  <button
+    type="button"
+    (click)="dismiss()"
+    nz-button
+  >
+    {{ 'cancel' | i18nextEager }}
+  </button>
+  <button
+    type="button"
+    (click)="close()"
+    nz-button
+    color="primary"
+  >
+    {{'ok'| i18nextEager }}
+  </button>
+</div>

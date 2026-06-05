@@ -1,0 +1,172 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: studio-runtime
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: studio-runtime
+  template:
+    metadata:
+      labels:
+        app: studio-runtime
+    spec:
+      volumes:
+        - name: shm-volume
+          emptyDir:
+            medium: Memory
+            sizeLimit: 2Gi
+      containers:
+        - name: container-studio-runtime
+          image: studio-runtime:1.0.0.20260526091150.x86_64
+          env:
+            - name: PORT
+              value: '31014'
+            # redis连接信息，必填
+            - name: REDIS_HOST
+              value: ''
+            - name: REDIS_PASSWORD
+              value: ''
+            - name: REDIS_PORT
+              value: '6379'
+            # obs连接信息，必填
+            - name: DATASOURCE_OBS_SERVER
+              value: 'https://ip:port'
+            - name: DATASOURCE_OBS_BUCKET
+              value: 'agent-builder'
+            - name: DATASOURCE_OBS_AK
+              value: ''
+            - name: DATASOURCE_OBS_SK
+              value: ''
+            # https证书，默认不用修改
+            - name: HTTPS
+              value: 'false'
+            - name: HTTPS_CERT_FILE
+              value: ''
+            - name: HTTPS_KEY_FILE
+              value: ''
+            - name: TLS_CERT_KEY_PASSWD
+              value: ''
+            - name: TLS_CERT_KEY_PATH
+              value: '/opt/cloud/agent-runtime/tls/key.pem'
+            - name: TLS_CERT_PATH
+              value: '/opt/cloud/agent-runtime/tls/cert.pem'
+            # studio-service调用地址
+            - name: MODEL_ROUTER_API
+              value: 'http://studio-service:31113/v1/agent-builder'
+            - name: JIUWEN_LOG_FILE
+              value: '/opt/cloud/logs/tgf_python.log'
+            - name: JIUWEN_LOG_PATH
+              value: '/opt/cloud/logs/jiuwen.log'
+            - name: JIUWEN_LOGGING_LOG_FILE
+              value: '/opt/cloud/logs/jiuwen_python.log'
+            - name: LOGGING_LOG_PATH
+              value: '/opt/cloud/logs/'
+            - name: TGF_LOG_DIR
+              value: '/opt/cloud/logs/'
+            - name: PLUGIN_SSL_API_CERT
+              value: 'false'
+            - name: WORKFLOW_EXECUTE_TIMEOUT
+              value: '900'
+          resources:
+            limits:
+              cpu: '2'
+              memory: 4Gi
+            requests:
+              cpu: '2'
+              memory: 4Gi
+          volumeMounts:
+            - name: shm-volume
+              mountPath: /dev/shm
+          livenessProbe:
+            httpGet:
+              path: /v1/health
+              port: 31014
+              # https启动时，需要改成https
+              scheme: HTTP
+            initialDelaySeconds: 10
+            timeoutSeconds: 1
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 5
+          startupProbe:
+            tcpSocket:
+              port: 31014
+            initialDelaySeconds: 5
+            timeoutSeconds: 30
+            periodSeconds: 5
+            successThreshold: 1
+            failureThreshold: 240
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          imagePullPolicy: Never
+          securityContext:
+            privileged: true
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      dnsPolicy: ClusterFirst
+      automountServiceAccountToken: false
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      imagePullSecrets:
+        - name: default-secret
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 60
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - studio-runtime
+                topologyKey: failure-domain.beta.kubernetes.io/zone
+            - weight: 40
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - studio-runtime
+                topologyKey: kubernetes.io/hostname
+      schedulerName: default-scheduler
+      tolerations:
+        - key: node.kubernetes.io/not-ready
+          operator: Exists
+          effect: NoExecute
+          tolerationSeconds: 30
+        - key: node.kubernetes.io/unreachable
+          operator: Exists
+          effect: NoExecute
+          tolerationSeconds: 30
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 25%
+      maxSurge: 25%
+  revisionHistoryLimit: 10
+  progressDeadlineSeconds: 600
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: studio-runtime
+  namespace: default
+spec:
+  ports:
+    - name: cce-service-0
+      protocol: TCP
+      port: 31014
+      targetPort: 31014
+  selector:
+    app: studio-runtime
+  type: ClusterIP

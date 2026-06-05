@@ -1,0 +1,4 @@
+{{question_answers}}
+根据以上信息，结合以下章节列表：
+{{sorted_chapter_list}}
+按照用户的需求“{{user_question}}”，以markdown格式写一篇调研报告。

@@ -1,0 +1,1112 @@
+<!-- <div class="flex h-full w-full flex-col" (keydown)="handleKeyDown($event)">
+  <tp-halfmodal-header class="mb-[16px] block">
+    <div class="flex w-[calc(100%-38px)] items-center justify-between">
+      <div class="flex items-center gap-[8px]">
+        <img class="model-config-icon" [src]="iconUrl" alt="llm-node" />
+
+        <edit-name
+        [(name)]="nodeInfo.name"
+        (onBlurConfirm)="updateName()"
+      ></edit-name>
+      </div>
+
+      <div class="flex items-center gap-[16px]" *ngIf="!isFlowReadonly">
+        <div class="cursor-pointer" [tiTip]="'icon-more'| i18nextEager">
+          <ti-menu
+            class="pw-three-dots-more-modal"
+            [items]="actions"
+            (select)="onClickAction($event)"
+            ellipsis
+          ></ti-menu>
+        </div>
+        <div class="h-[16px] w-[1px] bg-[#dbdbdb]"></div>
+      </div>
+    </div>
+
+    <node-description [nodeInfo]="nodeInfo" (descriptionChange)="updateView()"></node-description>
+
+    <div class="mt-[16px] h-[1px] w-full bg-[#f0f0f0]"></div>
+  </tp-halfmodal-header>
+
+  <tp-halfmodal-body id="flow-llm-modal-body">
+    <div class="relative h-full w-full overflow-auto">
+
+      <!-- 出入参配置表格 --&gt;
+      <meta-acc-block
+        class="block w-[calc(100%-8px)]"
+        [title]="'input_params' | i18nextEager"
+      >
+        <ng-template #content>
+          <div class="mt-2 flex items-center gap-1">
+            <div class="w-1/3 text-label">
+              {{ 'param_name' | i18nextEager }}
+            </div>
+            <div class="flex w-2/3 items-center gap-2 text-label">
+              <div class="flex h-fit w-[calc(100%-16px)] items-center">
+                <div class="w-[35%]">{{ 'type' | i18nextEager }}</div>
+                <div class="w-[65%]">{{ 'value' | i18nextEager }}</div>
+              </div>
+              <div class="h-full w-[16px]"></div>
+            </div>
+          </div>
+
+          <form #inputForm="ngForm">
+            <div
+              *ngFor="let param of inputParams; index as i"
+              class="mt-2 flex gap-1"
+            >
+              <div class="w-1/3">
+                <input
+                  style="width: 100%"
+                  type="text"
+                  [name]="'inputFormName' + i"
+                  [tiValidation]="{ type: 'changeAlert' }"
+                  [errorMessageWrapper]="wrapper"
+                  [maxlength]="paramNameMaxLen"
+                  tiText
+                  [title]="param.name"
+                  [(ngModel)]="param.name"
+                  (input)="onNameChange()"
+                  [placeholder]="'input_placeholder' | i18nextEager"
+                  [valueValidityValidator]="getInputNames(i)"
+                  (blur)="onMidRefChange()"
+                />
+
+                <div class="w-full" #wrapper></div>
+              </div>
+
+              <div class="flex w-2/3 gap-[8px]">
+                <div class="flex h-fit w-[calc(100%-16px)] items-center gap-2">
+                  <div class="flex w-full">
+                    <div class="w-[35%]">
+                      <ti-select
+                        class="combo-select-left"
+                        style="width: 100%"
+                        [name]="'inputFormType' + i"
+                        [options]="inputSourceOptions"
+                        [(ngModel)]="param.value.type"
+                        valueKey="value"
+                        (ngModelChange)="onInputValueTypeChange(param)"
+                      ></ti-select>
+                    </div>
+
+                    <div class="w-[65%]">
+                      <input
+                        class="combo-select-right"
+                        *ngIf="param.value.type === 'literal'"
+                        style="width: 100%"
+                        [name]="'inputFormValue' + i"
+                        [tiValidation]="{ type: 'changeAlert' }"
+                        nonEmptyValidator
+                        [errorMessageWrapper]="valueWrapper"
+                        type="text"
+                        tiText
+                        [placeholder]="'input_placeholder' | i18nextEager"
+                        [(ngModel)]="param.value.content"
+                        [title]="param.value.content"
+                        (ngModelChange)="changeUpdateTime()"
+                        (blur)="inputOnSave()"
+                      />
+
+                      <input-tree-select
+                        *ngIf="param.value.type === 'ref'"
+                        style="width: 100%"
+                        [(ngModel)]="param.value.content"
+                        [options]="param.refs"
+                        [name]="'inputFormValue' + i"
+                        refSelectedRequire
+                        [tiValidation]="{ type: 'changeAlert' }"
+                        [errorMessageWrapper]="valueWrapper"
+                        [placeholder]="'select_placeholder' | i18nextEager"
+                        (select)="treeSelect()"
+                      ></input-tree-select>
+
+                      <div class="w-full" #valueWrapper></div>
+                    </div>
+                  </div>
+                </div>
+                <tp-icon
+                  (click)="deleteInputParam(i)"
+                  style="
+                    font-size: 16px;
+                    color: #191919;
+                    cursor: pointer;
+                    padding-top: 8px;
+                  "
+                  name="cloudx-action-delete"
+                />
+              </div>
+            </div>
+          </form>
+        </ng-template>
+
+        <ng-template #right>
+          <div class="flex items-center justify-center">
+            <button
+              (click)="addInputParam()"
+              class="w-fit"
+              tiButton
+              [tiTip]="'add_params' | i18nextEager"
+              [hasBorder]="false"
+              [disabled]="isModelReachedParamLimit()"
+            >
+              <tp-icon
+                class="header-button-icon"
+                name="cloudx-action-create-1"
+              />
+            </button>
+          </div>
+        </ng-template>
+      </meta-acc-block>
+
+      <div class="my-[16px] h-[1px] w-full bg-[#f0f0f0]"></div>
+
+      <meta-acc-block
+        class="mt-4 block w-[calc(100%-8px)]"
+      >
+        <ng-template #blockTitle>
+          <span class="font-bold">{{
+              'paramextractionlogcomponent_352' | i18nextEager
+            }}</span>
+          <tp-icon
+            [tiTip]="'paramextractionmodalcomponent_479'| i18nextEager"
+            class="cursor-pointer"
+            name="cloudx-action-help"
+          />
+        </ng-template>
+        <ng-template #right>
+          <div class="flex items-center justify-center">
+            <button
+              (click)="midChooseTemplate()"
+              class="mr-[6px] w-fit"
+              tiButton
+              [tiTip]="'choose_object_template' | i18nextEager"
+              [hasBorder]="false"
+            >
+              <img
+                class=""
+                [src]="changeUrl('assets/agent-center/images/choose_object_template.svg')"
+                alt="import"
+              />
+            </button>
+            <button
+              (click)="addPreDefinedParam(midParams, nameRefOptions)"
+              class="w-fit"
+              tiButton
+              [tiTip]="'add_params' | i18nextEager"
+              [hasBorder]="false"
+              [disabled]="isReachedParamLimit(midParams)"
+            >
+              <tp-icon
+                class="header-button-icon"
+                name="cloudx-action-create-1"
+              />
+            </button>
+          </div>
+        </ng-template>
+        <ng-template #content>
+          <p class="text-[12px] text-[#808080] my-[8px]">{{'paramextractionmodalcomponent_496'| i18nextEager}}</p>
+          <div class="mt-2 flex items-center gap-1">
+            <div
+              [ngStyle]="{
+                      flex: 1,
+                    }"
+            >
+              {{ 'variable_name' | i18nextEager }}
+            </div>
+            <div
+              class="text-label"
+              [ngStyle]="{
+                      width: labelWidth.type
+                    }"
+            >
+              {{ 'paramextractionmodalcomponent_458' | i18nextEager }}
+            </div>
+            <div
+              class="text-label"
+              #descriptionDom
+              [ngStyle]="{
+                      width: '25%'
+                    }"
+            >
+              {{ 'paramextractionmodalcomponent_459' | i18nextEager }}
+            </div>
+            <div class="w-[56px] text-label"></div>
+          </div>
+
+          <form #midParamForm="ngForm">
+            <ti-tree id="node-param-tree" [data]="midParams">
+              <ng-template let-param let-i="index">
+                <div class="mt-[8px] flex w-full gap-1">
+                  <div
+                    [ngStyle]="{
+                      flex: 1,
+                    }"
+                  >
+                    <input
+                      style="width: 100%"
+                      type="text"
+                      [name]="'midParamForm' + i"
+                      [tiValidation]="{ type: 'changeAlert' }"
+                      variableNameValidator
+                      [errorMessageWrapper]="wrapper"
+                      [maxlength]="paramNameMaxLen"
+                      tiText
+                      [(ngModel)]="param.name"
+                      [title]="param.name"
+                      (input)="onMidNameChange()"
+                      (blur)="onMidRefChange()"
+                      [valueValidityValidator]="getNames(midParams, i)"
+                      [placeholder]="'input_placeholder' | i18nextEager"
+                    />
+                    <div class="w-full" #wrapper></div>
+                  </div>
+                  <div
+                    [ngStyle]="{
+                      width: labelWidth.type
+                    }"
+                  >
+                    <ti-select
+                      *ngIf="param.depth === 5; else otherTypes"
+                      style="width: 100%"
+                      [name]="'midParamFormType' + i"
+                      [tiValidation]="{ type: 'changeAlert' }"
+                      [(ngModel)]="param.type"
+                      [options]="noneObjDataTypes"
+                      (ngModelChange)="onPreParamTypeChange(param)"
+                      valueKey="value"
+                      [disabled]="param.source === 'system'"
+                      [placeholder]="'select_placeholder' | i18nextEager"
+                    >
+                      <ng-template #selected let-item>
+                        <div tiOverflow>{{ item.label }}</div>
+                      </ng-template>
+                    </ti-select>
+
+                    <ng-template #otherTypes>
+                      <ti-select
+                        style="width: 100%"
+                        [name]="'midParamFormType' + i"
+                        [tiValidation]="{ type: 'changeAlert' }"
+                        [(ngModel)]="param.type"
+                        [options]="outputDataTypes"
+                        (ngModelChange)="onPreParamTypeChange(param)"
+                        valueKey="value"
+                        [disabled]="param.source === 'system'"
+                        [placeholder]="'select_placeholder' | i18nextEager"
+                      >
+                        <ng-template #selected let-item>
+                          <div tiOverflow>{{ item.label }}</div>
+                        </ng-template>
+                      </ti-select>
+                    </ng-template>
+                  </div>
+
+                  <div
+                    [ngStyle]="{
+                      width: getParamWidth
+                    }"
+                  >
+                    <input
+                      style="width: 100%"
+                      type="text"
+                      [placeholder]="'input_placeholder' | i18nextEager"
+                      (keydown)="$event.stopPropagation()"
+                      [name]="'midParamFormDesc' + i"
+                      tiText
+                      [tiValidation]="{ type: 'changeAlert' }"
+                      [errorMessageWrapper]="desErrwrapper"
+                      [(ngModel)]="param.description"
+                      [title]="param.description"
+                      (ngModelChange)="changeUpdateTime()"
+                      (blur)="inputOnSave()"
+                    />
+
+                    <div class="w-full" #desErrwrapper></div>
+                  </div>
+
+
+                  <div class="w-[56px]" style="display: flex;">
+                  <div
+                    class="h-[28px] w-[16px]"
+                    [ngStyle]="{
+                      'margin-left': opMarginLeft
+                    }"
+                  >
+                    <meta-add-props-icon
+                      *ngIf="isObjectLikeType(param.type)"
+                      (click)="addChild(param)"
+                    />
+                  </div>
+
+                  <div
+                    class="flex h-[28px] w-[16px] items-center justify-center"
+                    [ngStyle]="{
+                      'margin-left': opMarginLeft
+                    }"
+                  >
+                    <tp-icon
+                      *ngIf="showDelete(param,midParams)"
+                      (click)="onDeleteParam(param,midParams)"
+                      style="font-size: 16px; color: #191919; cursor: pointer"
+                      name="cloudx-action-delete"
+                    />
+                  </div>
+                  <meta-set-value
+                    *ngIf="param.depth === 0"
+                    [param]="param"
+                    [isShowDesc]="true"
+                    [nameRefOptions]="nameRefOptions"
+                  >
+                  </meta-set-value>
+                </div>
+                </div>
+              </ng-template>
+            </ti-tree>
+          </form>
+        </ng-template>
+      </meta-acc-block>
+
+      <div class="my-[16px] h-[1px] w-full bg-[#f0f0f0]"></div>
+
+      <meta-acc-block
+        class="mt-4 block"
+      >
+        <ng-template #blockTitle>
+          <span class="font-bold">{{
+              'paramextractionlogcomponent_366' | i18nextEager
+            }}</span>
+          <tp-icon
+            [tiTip]="'paramextractionmodalcomponent_480'| i18nextEager"
+            class="cursor-pointer"
+            name="cloudx-action-help"
+          />
+        </ng-template>
+        <ng-template #right>
+          <div class="flex items-center justify-center">
+            <button
+              (click)="domainObjectChooseTemplate()"
+              class="mr-[6px] w-fit"
+              tiButton
+              [tiTip]="'choose_object_template' | i18nextEager"
+              [hasBorder]="false"
+            >
+              <img
+                class=""
+                [src]="changeUrl('assets/agent-center/images/choose_object_template.svg')"
+                alt="import"
+              />
+            </button>
+            <button
+              (click)="addDomainObjectsParam(domainObjectsParams, nameRefOptions)"
+              class="w-fit"
+              tiButton
+              [tiTip]="'paramextractionmodalcomponent_461' | i18nextEager"
+              [hasBorder]="false"
+              [disabled]="isReachedParamLimit(domainObjectsParams)"
+            >
+              <tp-icon
+                class="header-button-icon"
+                name="cloudx-action-create-1"
+              />
+            </button>
+          </div>
+        </ng-template>
+        <ng-template #content>
+          <form #domainForm="ngForm">
+            <div
+              *ngFor="let domainObject of domainObjectsParams; index as j"
+              class="mt-4 bg-[#FAFAFA] rounded-2 py-3 px-3"
+            >
+              <div class="mt-2  flex items-center gap-1">
+                <div class="flex items-center gap-1 flex-1">
+                  <div
+                    class="text-label"
+                    [ngStyle]="{
+                      flex: 1,
+                    }"
+                  >
+                    {{ 'variable_name' | i18nextEager }}
+                  </div>
+                  <div
+                    class="text-label"
+                    [ngStyle]="{
+                      width: labelWidth.type
+                    }"
+                  >
+                    {{ 'paramextractionmodalcomponent_458' | i18nextEager }}
+                  </div>
+                  <div
+                    class="text-label"
+                    #descriptionDomO
+                    [ngStyle]="{
+                      width: '25%'
+                    }"
+                  >
+                    {{ 'paramextractionmodalcomponent_459' | i18nextEager }}
+                  </div>
+                  <div style="display: flex; justify-content: flex-end;"
+                       [ngStyle]="{
+                    width: isNormalView?'50px':'40px'
+                 }">
+                    <button
+                      (click)="onDeleteParam(domainObject,domainObjectsParams)"
+                      class="w-fit"
+                      tiButton
+                      [tiTip]="'delete' | i18nextEager"
+                      [hasBorder]="false"
+                    >
+                      <tp-icon
+                        style="font-size: 16px; color: #191919; cursor: pointer"
+                        name="cloudx-action-delete"
+                      />
+                    </button>
+
+                </div>
+              </div>
+              </div>
+              <ti-tree id="node-param-tree" [data]="[domainObject]">
+                <ng-template let-param let-i="index">
+                  <div class="mt-[8px] flex w-full gap-1">
+                    <div
+                      [ngStyle]="{
+                      flex: 1,
+                    }"
+                    >
+                      <input
+                        style="width: 100%"
+                        type="text"
+                        [name]="'domainForm'+j + i"
+                        [tiValidation]="{ type: 'changeAlert' }"
+                        variableNameValidator
+                        [errorMessageWrapper]="wrapper"
+                        [maxlength]="paramNameMaxLen"
+                        tiText
+                        [(ngModel)]="param.name"
+                        [title]="param.name"
+                        (input)="onDomainNameChange()"
+                        (blur)="onMidRefChange()"
+                        [valueValidityValidator]="getNames(domainObjectsParams, j)"
+                        [placeholder]="'input_placeholder' | i18nextEager"
+                      />
+                      <div class="w-full" #wrapper></div>
+                    </div>
+                    <div
+                      [ngStyle]="{
+                      width: labelWidth.type
+                    }"
+                    >
+                      <ti-select
+                        *ngIf="param.depth === 5; else otherTypesL"
+                        style="width: 100%"
+                        [name]="'domainFormType'+j + i"
+                        [tiValidation]="{ type: 'changeAlert' }"
+                        [(ngModel)]="param.type"
+                        [options]="noneObjDataTypes"
+                        (ngModelChange)="onPreParamTypeChange(param)"
+                        valueKey="value"
+                        [disabled]="param.source === 'system'"
+                        [placeholder]="'select_placeholder' | i18nextEager"
+                      >
+                        <ng-template #selected let-item>
+                          <div tiOverflow>{{ item.label }}</div>
+                        </ng-template>
+                      </ti-select>
+
+                      <ng-template #otherTypesL>
+                        <ti-select
+                          style="width: 100%"
+                          [name]="'domainFormType' + i"
+                          [tiValidation]="{ type: 'changeAlert' }"
+                          [(ngModel)]="param.type"
+                          [options]="outputDataTypes"
+                          (ngModelChange)="onPreParamTypeChange(param)"
+                          valueKey="value"
+                          [disabled]="param.source === 'system'"
+                          [placeholder]="'select_placeholder' | i18nextEager"
+                        >
+                          <ng-template #selected let-item>
+                            <div tiOverflow>{{ item.label }}</div>
+                          </ng-template>
+                        </ti-select>
+                      </ng-template>
+                    </div>
+
+                    <div
+                      [ngStyle]="{
+                      width: getParamWidth
+                    }"
+                    >
+                      <input
+                        style="width: 100%"
+                        type="text"
+                        [placeholder]="'input_placeholder' | i18nextEager"
+                        (keydown)="$event.stopPropagation()"
+                        [name]="'domainFormDesc'+j + i"
+                        tiText
+                        [tiValidation]="{ type: 'changeAlert' }"
+                        [errorMessageWrapper]="desErrwrapper"
+                        [(ngModel)]="param.description"
+                        [title]="param.description"
+                        (ngModelChange)="changeUpdateTime()"
+                        (blur)="inputOnSave()"
+                      />
+
+                      <div class="w-full" #desErrwrapper></div>
+                    </div>
+
+
+                    <div
+                      class="h-[28px] w-[16px]"
+                      [ngStyle]="{
+                      'margin-left': opMarginLeft
+                    }"
+                    >
+                      <meta-add-props-icon
+                        *ngIf="isObjectLikeType(param.type)"
+                        (click)="addChild(param)"
+                      />
+                    </div>
+
+                    <div
+                      class="flex h-[28px] w-[16px] items-center justify-center"
+                      [ngStyle]="{
+                      'margin-left': opMarginLeft
+                    }"
+                    >
+                      <tp-icon
+                        *ngIf="showDelete(param,[domainObject])"
+                        (click)="onDeleteParam(param,[domainObject])"
+                        style="font-size: 16px; color: #191919; cursor: pointer"
+                        name="cloudx-action-delete"
+                      />
+                    </div>
+
+                  </div>
+                </ng-template>
+              </ti-tree>
+              <div class="my-[8px] h-[1px] w-full bg-[#f0f0f0]"></div>
+              <div>
+                <div class="flex align-center justify-between">
+                  <div class="flex gap-1 items-center">
+                   <span class="text-[12px]font-bold">{{
+                       'paramextractionmodalcomponent_463' | i18nextEager
+                     }}</span>
+                    <tp-icon
+                      [tiTip]="'paramextractionmodalcomponent_483'| i18nextEager"
+                      class="cursor-pointer"
+                      name="cloudx-action-help"
+                    />
+                  </div>
+
+                  <button
+                    (click)="addProcessingFlow(domainObject)"
+                    class="w-fit"
+                    tiButton
+                    [tiTip]="domainObject.name?('paramextractionmodalcomponent_464' | i18nextEager):('paramextractionmodalcomponent_465'| i18nextEager)"
+                    [hasBorder]="false"
+                    [disabled]="isReachedParamLimit(domainObject.processing_workflows) || !domainObject.name"
+                  >
+                    <tp-icon
+                      class="header-button-icon"
+                      name="cloudx-action-create-1"
+                    />
+                  </button>
+                </div>
+                <form #subFlowForm="ngForm">
+                  <div cdkDropList (cdkDropListDropped)="drop(domainObject.processing_workflows,$event)">
+                    <div
+                      *ngFor="let flow of domainObject.processing_workflows; index as i"
+                      class="mt-2 flex gap-1"
+                      cdkDrag
+                    >
+                      <div style="cursor:all-scroll ">
+                        <img alt="" [src]="changeUrl('assets/agent-center/icons/drag-icon.svg')" class="mt-[6px] h-[16px]" />
+                      </div>
+                      <div class="w-full">
+                        <ti-select
+                          class="!w-full"
+                          [options]="subFlowOps"
+                          [(ngModel)]="flow.id"
+                          (select)="onSelectFlow($event, flow)"
+                          (ngModelChange)="onSelectProcessingFlow(domainObject.processing_workflows)"
+                          [searchable]="true"
+                          [clearable]="true"
+                          [placeholder]="'select_placeholder' | i18nextEager"
+                          [name]="'process_flow' +j+i+flow.id"
+                          [tiValidation]="{ type: 'changeAlert' }"
+                          [tiRequired]="false"
+                          [errorMessageWrapper]="wrapper"
+                          labelKey="name"
+                          valueKey="id"
+                          [id]="j+i+flow.id"
+                        >
+                        </ti-select>
+                        <div #wrapper></div>
+                      </div>
+                      <div class="flex gap-1 align-center" style="align-items: center">
+                        <div
+                          *ngIf="flow?.showUpdate"
+                          class="update-flow-icon"
+                          [tiTip]="flow?.updateFlowTip"
+                          tiTipPosition="top"
+                          (click)="openUpdateFlowModal(flow,domainObject.name)"
+                        ></div>
+                        <tp-iconaction
+                          iconName="cloudx-action-configuration"
+                          [disabled]="!flow.canConfigure && !flow.inputs"
+                          (click)="configureProcessingFlow(flow,domainObject.name)"
+                        ></tp-iconaction>
+                        <tp-iconaction
+                          iconName="cloudx-action-view-detail"
+                          [disabled]="!flow.id"
+                          (click)="viewProcessingFlow(flow,domainObject.name)"
+                        ></tp-iconaction>
+                        <tp-icon
+                          (click)="deleteProcessingFlow(domainObject.processing_workflows,i)"
+                          style="
+                    font-size: 16px;
+                    cursor: pointer;
+                  "
+                          name="cloudx-action-delete"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                </form>
+              </div>
+            </div>
+          </form>
+        </ng-template>
+      </meta-acc-block>
+
+      <div class="my-[16px] h-[1px] w-full bg-[#f0f0f0]"></div>
+
+      <meta-acc-block
+        class="mt-4 block"
+      >
+        <ng-template #blockTitle>
+          <span class="font-bold">{{
+              'paramextractionmodalcomponent_466' | i18nextEager
+            }}</span>
+          <tp-icon
+            [tiTip]="'paramextractionmodalcomponent_485'| i18nextEager"
+            class="cursor-pointer"
+            name="cloudx-action-help"
+          />
+        </ng-template>
+
+        <ng-template #content>
+          <!--          <form [formGroup]="modelFormGroup">--&gt;
+          <div class="llm-modal-block mt-[16px]">
+            <div>
+              <div class="mb-2 flex justify-between">
+                <div>
+                  {{ 'select_model' | i18nextEager }}
+                </div>
+                <div class="flex items-center gap-2">
+                  <tp-icon
+                    #modelSettingsRef="tiTip"
+                    class="settings-icon"
+                    name="cloudx-action-setting"
+                    tiTipPosition="bottom-right"
+                    tiTipTrigger="manual"
+                    tiTipMaxWidth="500px"
+                    [tiTip]="modelSetRefCmp"
+                    [tiTipContext]="modelSetTipCtx"
+                    (click)="onShowModelSetTip()"
+                  ></tp-icon>
+                </div>
+              </div>
+              <div class="mt-4">
+                <llm-select [selectedModel]="modelFormGroup.controls.model.value" [modelValidation]="modelValidation" [panelWidth]="'justified'"
+                            (update)="updateModel($event)"></llm-select>
+              </div>
+            </div>
+            <ng-template #modelConfigTip>
+              <div class="model-config-tip">
+                <meta-param-selector [(modelParams)]="modelParams" />
+              </div>
+            </ng-template>
+          </div>
+          <div class="llm-modal-block mt-[16px]">
+            <div>
+              <div class="mb-2 flex justify-between">
+                <div>
+                  {{ 'paramextractionmodalcomponent_468' | i18nextEager }}
+                </div>
+                <div class="flex items-center gap-2">
+                  <button
+                    (click)="addPreDefinedParam(fetchParams, nameRefOptions)"
+                    class="w-fit"
+                    tiButton
+                    [tiTip]="'add_params' | i18nextEager"
+                    [hasBorder]="false"
+                    [disabled]="isReachedParamLimit(fetchParams)"
+                  >
+                    <tp-icon
+                      class="header-button-icon"
+                      name="cloudx-action-create-1"
+                    />
+                  </button>
+                </div>
+              </div>
+              <div class="mt-2 flex items-center gap-1">
+                <div
+                  class="text-label"
+                  [ngStyle]="{
+                      width: labelWidth.name
+                    }"
+                >
+                  {{ 'variable_name' | i18nextEager }}
+                </div>
+                <div
+                  class="text-label"
+                  [ngStyle]="{
+                      width: labelWidth.type
+                    }"
+                >
+                  {{ 'paramextractionmodalcomponent_458' | i18nextEager }}
+                </div>
+                <div
+                  class="text-label"
+                  [ngStyle]="{
+                      width: labelWidth.type
+                    }"
+                >
+                  {{ 'paramextractionmodalcomponent_459' | i18nextEager }}
+                </div>
+              </div>
+
+              <form #fetchParamForm="ngForm">
+                <ti-tree id="node-param-tree" [data]="fetchParams">
+                  <ng-template let-param let-i="index">
+                    <div class="mt-[8px] flex w-full gap-1">
+                      <div
+                        [ngStyle]="{
+                      width: getLayerIndexWidth(param)
+                    }"
+                      >
+                        <input
+                          style="width: 100%"
+                          type="text"
+                          [name]="'fetchParamForm' + i"
+                          [tiValidation]="{ type: 'changeAlert' }"
+                          variableNameValidator
+                          [errorMessageWrapper]="wrapper"
+                          [maxlength]="paramNameMaxLen"
+                          tiText
+                          [(ngModel)]="param.name"
+                          [title]="param.name"
+                          (input)="onFetchNameChange()"
+                          (blur)="onMidRefChange()"
+                          [valueValidityValidator]="getNames(fetchParams, i)"
+                          [placeholder]="'input_placeholder' | i18nextEager"
+                        />
+                        <div class="w-full" #wrapper></div>
+                      </div>
+
+                      <div
+                        [ngStyle]="{
+                      width: labelWidth.type
+                    }"
+                      >
+                        <ti-select
+                          style="width: 100%"
+                          [name]="'fetchParamFormType' + i"
+                          [tiValidation]="{ type: 'changeAlert' }"
+                          [(ngModel)]="param.type"
+                          [options]="outputDataTypes"
+                          (ngModelChange)="onPreParamTypeChange(param)"
+                          valueKey="value"
+                          [disabled]="param.source === 'system'"
+                          [placeholder]="'select_placeholder' | i18nextEager"
+                        >
+                          <ng-template #selected let-item>
+                            <div tiOverflow>{{ item.label }}</div>
+                          </ng-template>
+                        </ti-select>
+                      </div>
+
+                      <div
+                        [ngStyle]="{
+                      width: labelWidth.desc
+                    }"
+                        style="flex: 1;"
+                      >
+                        <input
+                          style="width: 100%"
+                          type="text"
+                          [placeholder]="'input_placeholder' | i18nextEager"
+                          (keydown)="$event.stopPropagation()"
+                          [name]="'fetchParamFormDesc' + i"
+                          tiText
+                          [tiValidation]="{ type: 'changeAlert' }"
+                          [errorMessageWrapper]="desErrwrapper"
+                          [(ngModel)]="param.description"
+                          [title]="param.description"
+                          (ngModelChange)="changeUpdateTime()"
+                          (blur)="inputOnSave()"
+                        />
+
+                        <div class="w-full" #desErrwrapper></div>
+                      </div>
+                      <div
+                        class="h-[28px] w-[16px]"
+                        [ngStyle]="{
+                      'margin-left': opMarginLeft
+                    }"
+                      >
+                        <meta-add-props-icon
+                          *ngIf="isObjectLikeType(param.type)"
+                          (click)="addChild(param)"
+                        />
+                      </div>
+
+                      <div
+                        class="flex h-[28px] w-[16px] items-center justify-center"
+                        [ngStyle]="{
+                      'margin-left': opMarginLeft
+                    }"
+                      >
+                        <tp-icon
+                          *ngIf="showDelete(param,fetchParams)"
+                          (click)="onDeleteParam(param,fetchParams)"
+                          style="font-size: 16px; color: #191919; cursor: pointer"
+                          name="cloudx-action-delete"
+                        />
+                      </div>
+
+                    </div>
+                  </ng-template>
+                </ti-tree>
+              </form>
+            </div>
+          </div>
+          <div class="llm-modal-block mt-[16px]">
+            <div>
+              <div class="mb-2 flex justify-between">
+                <div>
+                  {{ 'paramextractionmodalcomponent_469' | i18nextEager }}
+                </div>
+                <div class="flex items-center gap-2">
+                  <div
+                    [tiTip]="'citation_template' | i18nextEager"
+                    (click)="openRefModal()"
+                    class="icon-border"
+                  >
+                    <div class="ref-tmpl-icon"></div>
+                  </div>
+                  <div
+                    [tiTip]="'ref_args' | i18nextEager"
+                    (click)="agentDataServe.showVarList(showVarListSubject$)"
+                    class="icon-border"
+                  >
+                    <div class="ref-args-icon"
+                         (mousedown)="$event.preventDefault()"
+                         (click)="agentDataServe.showVarList(showVarListSubject$)"
+                    ></div>
+                  </div>
+                </div>
+              </div>
+              <meta-cmd-textarea
+                class="block w-full"
+                [class]="{'param-ex-prompt-error':promptInvalid}"
+                [(ngModel)]="prompt"
+                [variants]="tipVals"
+                [ngModelOptions]="{ standalone: true }"
+                [placeholder]="'var_input_placeholder1' | i18nextEager"
+                [variantsTrigger]="showVarListSubject$.asObservable()"
+                (ngModelChange)="onPromptChange()"
+                (blur)="onPromptChange()"
+              />
+              <ti-error-msg
+                *ngIf="promptInvalid"
+                class="mt-[8px] w-full text-[#f23030]"
+                [errorMessage]="'prompt_not_empty'|i18nextEager"
+              ></ti-error-msg>
+            </div>
+          </div>
+        </ng-template>
+      </meta-acc-block>
+
+      <div class="my-[16px] h-[1px] w-full bg-[#f0f0f0]"></div>
+
+      <meta-acc-block
+        class="mt-4 block"
+        [open]="!!extension_workflows.length"
+      >
+        <ng-template #blockTitle>
+          <span class="font-bold">
+            {{'paramextractionmodalcomponent_472'| i18nextEager}}
+          </span>
+          <tp-icon
+            [tiTip]="'paramextractionmodalcomponent_487'| i18nextEager"
+            class="cursor-pointer"
+            name="cloudx-action-help"
+          />
+        </ng-template>
+
+        <ng-template #right>
+          <div class="flex items-center justify-center">
+            <button
+              (click)="addExtensionFlow(extension_workflows)"
+              class="w-fit"
+              tiButton
+              [tiTip]="'paramextractionmodalcomponent_464' | i18nextEager"
+              [hasBorder]="false"
+              [disabled]="isReachedParamLimit(extension_workflows)"
+            >
+              <tp-icon
+                class="header-button-icon"
+                name="cloudx-action-create-1"
+              />
+            </button>
+          </div>
+        </ng-template>
+
+        <ng-template #content>
+          <div>
+            <div class="w-[calc(100%-40px)] flex gap-2 mt-4">
+              <div class="w-1/2">
+                {{'node_work_flow' | i18nextEager}}
+              </div>
+              <div class="w-1/2">
+                {{'paramextractionlogcomponent_349' | i18nextEager}}
+              </div>
+            </div>
+            <form #exFlowForm="ngForm">
+              <div
+                *ngFor="let flow of extension_workflows; index as i"
+                class="mt-2 flex gap-1"
+              >
+                <div class="w-full flex gap-2">
+                  <div class="w-1/2">
+                    <ti-select
+                      class="!w-full"
+                      [options]="subFlowOps"
+                      [(ngModel)]="flow.id"
+                      (select)="onSelectFlow($event,flow)"
+                      (ngModelChange)="onSelectExtensionFlow(extension_workflows)"
+                      [searchable]="true"
+                      [clearable]="true"
+                      [placeholder]="'select_placeholder' | i18nextEager"
+                      [name]="'extension_flow' + i"
+                      [tiValidation]="{ type: 'changeAlert' }"
+                      [tiRequired]="true"
+                      [errorMessageWrapper]="wrapper"
+                      labelKey="name"
+                      valueKey="id"
+                    >
+                    </ti-select>
+                    <div #wrapper></div>
+                  </div>
+                  <div class="w-1/2">
+                    <ti-select
+                      class="!w-full"
+                      [options]="executionTimingOptions"
+                      [(ngModel)]="flow.execution_timing"
+                      (ngModelChange)="onSelectExtensionFlowTiming($event,flow)"
+                      [clearable]="true"
+                      [placeholder]="'select_placeholder' | i18nextEager"
+                      [name]="'execution_timing'+i"
+                      [tiValidation]="{ type: 'changeAlert' }"
+                      [tiRequired]="true"
+                      [errorMessageWrapper]="wrapper2"
+                      valueKey="value"
+                    >
+                    </ti-select>
+                    <div #wrapper2></div>
+                  </div>
+                </div>
+
+                <div class="flex gap-1" style="align-items: start;margin-top: 6px">
+                  <div
+                    *ngIf="flow?.showUpdate"
+                    class="update-flow-icon"
+                    [tiTip]="flow?.updateFlowTip"
+                    tiTipPosition="top"
+                    (click)="openUpdateFlowModal(flow)"
+                  ></div>
+                  <tp-iconaction
+                    iconName="cloudx-action-configuration"
+                    [disabled]="!flow.canConfigure && !flow.inputs"
+                    (click)="configureExtensionFlow(flow)"
+                  ></tp-iconaction>
+                  <tp-iconaction
+                    iconName="cloudx-action-view-detail"
+                    [disabled]="!flow.id"
+                    (click)="viewExtensionFlow(flow)"
+                  ></tp-iconaction>
+                  <tp-icon
+                    (click)="deleteExtensionFlow(extension_workflows,i)"
+                    style="
+                    font-size: 16px;
+                    cursor: pointer;
+                  "
+                    name="cloudx-action-delete"
+                  />
+                </div>
+              </div>
+            </form>
+          </div>
+        </ng-template>
+      </meta-acc-block>
+
+      <div class="my-[16px] h-[1px] w-full bg-[#f0f0f0]"></div>
+
+      <meta-acc-block
+        class="mt-4 block"
+        [open]="openConditionConfig"
+      >
+        <ng-template #blockTitle>
+          <span class="font-bold">{{
+              'paramextractionmodalcomponent_473' | i18nextEager
+            }}</span>
+          <tp-icon
+            [tiTip]="'paramextractionmodalcomponent_489'| i18nextEager"
+            class="cursor-pointer"
+            name="cloudx-action-help"
+          />
+        </ng-template>
+
+        <ng-template #content>
+          <div class="mt-4">
+            <condition-modal #entryConditionModal [entryCondition]="entry_condition"
+                             [conditionRefOptions]="conditionOps" [showFold]="false"
+                             [title]="'paramextractionmodalcomponent_474'| i18nextEager" [titleTip]="'paramextractionmodalcomponent_474'| i18nextEager" (valueChange)="onSave()" (inputChange)="inputOnSave()" (inputChangeUpdateTime)="changeUpdateTime()"></condition-modal>
+            <condition-modal #breakConditionModal [entryCondition]="break_condition"
+                             [conditionRefOptions]="conditionOps" [showFold]="false"
+                             [title]="'paramextractionmodalcomponent_475'| i18nextEager" [titleTip]="'paramextractionmodalcomponent_475'| i18nextEager" (valueChange)="onSave()" (inputChange)="inputOnSave()" (inputChangeUpdateTime)="changeUpdateTime()"></condition-modal>
+            <condition-modal #exceptionConditionModal [entryCondition]="exception_config.exception_condition"
+                             [showFold]="false"
+                             [conditionRefOptions]="conditionOps"
+                             [title]="'paramextractionmodalcomponent_476'| i18nextEager" [titleTip]="'paramextractionmodalcomponent_476'| i18nextEager" (valueChange)="onSave()" (inputChange)="inputOnSave()" (inputChangeUpdateTime)="changeUpdateTime()"></condition-modal>
+          </div>
+        </ng-template>
+      </meta-acc-block>
+      <div class="my-[16px] h-[1px] w-full bg-[#f0f0f0]"></div>
+      <meta-acc-block
+        class="w-full"
+        [title]="'configureworkflowmodalcomponent_445'| i18nextEager"
+        [open]="!!description"
+      >
+        <ng-template #content>
+            <textarea
+              tiTextarea
+              tiValidation
+              [placeholder]="'input_placeholder' | i18nextEager"
+              [(ngModel)]="description"
+              class="w-full h-[104px] mt-4"
+              maxlength="512"
+              resize="none"
+              (ngModelChange)="changeUpdateTime()"
+              (blur)="inputOnSave()"
+            ></textarea>
+        </ng-template>
+      </meta-acc-block>
+    </div>
+  </tp-halfmodal-body>
+</div>
+ -->

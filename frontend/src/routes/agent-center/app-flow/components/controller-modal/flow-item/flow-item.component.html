@@ -1,0 +1,46 @@
+ <div  class="item-select-area">
+  <div class="tool-item">
+    <div class="flex left w-[calc(100%-142px)] items-center gap-2">
+      <img class="tool-common-icon"
+           [ngClass]="{'icon-valid': itemFlow.valid === false}"
+           [src]="src"
+           alt="" />
+      <div class="right w-[calc(100%-46px)]">
+        <div class="flex w-full gap-1 ">
+          <span class="max-w-[calc(100%-46px)] overflow-hidden text-ellipsis whitespace-nowrap">{{ itemFlow.name }}</span>
+          <span *ngIf="itemFlow.valid === false" nz-icon nzType="exclamation-circle" nzTheme="outline"
+                   class="relative top-[2px] text-[#f23030]"
+                   nz-tooltip [nzTooltipTitle]="tip"></span>
+          <div
+            *ngIf="update && itemFlow.valid !== false"
+            class="update-flow-icon ml-2"
+            nz-tooltip [nzTooltipTitle]="updateFlowTip"
+            nzTooltipPlacement="top"
+            (click)="openUpdateFlowModal()"
+          ></div>
+        </div>
+        <div class="w-full flex gap-[4px] items-center text-[#808080]">
+          <ng-container *ngFor="let tag of tags">
+            <nz-tag [nzColor]="'#191919'"
+                    class="!rounded-[4px] py-[1px] pl-[2px] pr-[4px]">
+                    <span>{{tag}}</span>
+            </nz-tag>
+          </ng-container>
+          <span class="overflow-hidden text-ellipsis whitespace-nowrap">{{ itemFlow.description }}</span>
+        </div>
+      </div>
+    </div>
+    <div class="right-area flex gap-2 items-center">
+      <nz-select
+        *ngIf="showAction && isWorkflow"
+        class="!w-[120px]"
+        [ngModel]="itemFlow.action"
+        (ngModelChange)="itemFlow.action = $event; changeAction()"
+      >
+        <nz-option *ngFor="let op of intentActionOps" [nzValue]="op.value" [nzLabel]="op.label"></nz-option>
+      </nz-select>
+      <span *ngIf="!isFlowReadonly" nz-icon nzType="delete" style="font-size: 14px"
+               class="delete-icon cursor-pointer" (click)="deleteOneFlow()"></span>
+    </div>
+  </div>
+</div>

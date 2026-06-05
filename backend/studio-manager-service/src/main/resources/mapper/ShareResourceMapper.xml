@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
+  -->
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.agent.manager.mapper.ShareResourceMapper">
+    <resultMap id="BaseResultMap" type="com.openjiuwen.studio.agent.manager.entity.ShareResourceEntity">
+        <id column="resource_id" jdbcType="VARCHAR" property="resourceId"/>
+        <result column="resource_name" jdbcType="VARCHAR" property="resourceName"/>
+        <result column="resource_type" jdbcType="VARCHAR" property="resourceType"/>
+        <result column="workspace_id" jdbcType="VARCHAR" property="workspaceId"/>
+        <result column="workspace_name" jdbcType="VARCHAR" property="workspaceName"/>
+        <result column="trace_id" jdbcType="VARCHAR" property="traceId"/>
+        <result column="version_list" jdbcType="VARCHAR" property="versionList"/>
+        <result column="project_id" jdbcType="VARCHAR" property="projectId"/>
+        <result column="tenant_id" jdbcType="VARCHAR" property="tenantId"/>
+        <result column="creator_id" jdbcType="VARCHAR" property="creatorId"/>
+        <result column="creator" jdbcType="VARCHAR" property="creator"/>
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+        <result column="updater_id" jdbcType="VARCHAR" property="updaterId"/>
+        <result column="updater" jdbcType="VARCHAR" property="updater"/>
+        <result column="update_time" jdbcType="TIMESTAMP" property="updateTime"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        resource_id,
+        resource_name,
+        resource_type,
+        workspace_id,
+        workspace_name,
+        trace_id,
+        version_list,
+        `project_id`,
+        tenant_id,
+        creator,
+        creator_id,
+        create_time,
+        updater_id,
+        updater,
+        update_time
+    </sql>
+
+    <insert id="insert" parameterType="com.openjiuwen.studio.agent.manager.entity.ShareResourceEntity">
+        insert into t_share_resource (resource_id, resource_name, resource_type, workspace_id, workspace_name, trace_id, version_list,
+                                      project_id, tenant_id, creator, creator_id, create_time, updater, updater_id,
+                                      update_time)
+        values (#{resourceId}, #{resourceName}, #{resourceType}, #{workspaceId}, #{workspaceName}, #{traceId}, #{versionList},
+                #{projectId}, #{tenantId}, #{creator},
+                #{creatorId}, #{createTime}, #{updater}, #{updaterId}, #{updateTime})
+    </insert>
+
+    <select id="selectShareResourceEntityById" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_share_resource
+        where project_id = #{projectId}
+        and resource_id = #{resourceId}
+        and workspace_id = #{workspaceId}
+    </select>
+
+    <select id="selectSharedResourceByAuthWorkspaceIdAndType" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_share_resource
+        where resource_id in
+        (
+        select resource_id
+        from t_share_scope
+        where project_id = #{projectId}
+        and (workspace_id = #{authWorkspaceId} or (workspace_id = 'all'))
+        )
+        <if test="resourceType == 'all'">
+            and (resource_type = 'controller' or resource_type = 'workflow')
+        </if>
+        <if test="resourceType != 'all'">
+            and resource_type = #{resourceType}
+        </if>
+        <if test="resourceName != null and resourceName != ''">
+            and resource_name like concat('%', trim(lower(#{resourceName})), '%')
+        </if>
+            and workspace_id != #{authWorkspaceId}
+        order by update_time desc
+    </select>
+
+
+    <select id="selectShareResourceByResourceIds" parameterType="java.util.List" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_share_resource
+        where resource_id in
+        <foreach collection="resourceIds" item="resourceId" open="(" separator="," close=")">
+            #{resourceId}
+        </foreach>
+    </select>
+
+    <select id="selectShareResourceEntityByResourceId"
+            resultType="com.openjiuwen.studio.agent.manager.entity.ShareResourceEntity">
+        select
+        <include refid="Base_Column_List"/>
+        from t_share_resource
+        where resource_id = #{resourceId}
+    </select>
+
+    <select id="selectSharResourceEntityByWorkspaceId"
+            resultType="com.openjiuwen.studio.agent.manager.entity.ShareResourceEntity">
+        select
+        <include refid="Base_Column_List"/>
+        from t_share_resource
+        where project_id = #{projectId}
+        and workspace_id = #{workspaceId}
+        <if test="resourceType == 'all'">
+            and (resource_type = 'controller' or resource_type = 'workflow')
+        </if>
+        <if test="resourceType != 'all'">
+            and resource_type = #{resourceType}
+        </if>
+        <if test="resourceName != null and resourceName != ''">
+            and resource_name like concat('%', trim(lower(#{resourceName})), '%')
+        </if>
+        order by update_time desc
+    </select>
+
+    <select id="countResourceByResourceId" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM t_share_resource
+        WHERE project_id = #{projectId}
+          AND resource_id = #{resourceId}
+    </select>
+
+    <update id="updateShareResourceEntity"
+            parameterType="com.openjiuwen.studio.agent.manager.entity.ShareResourceEntity">
+        update t_share_resource
+        <set>
+            <if test="versionList != null">
+                `version_list` = #{versionList,jdbcType=VARCHAR},
+            </if>
+            <if test="updaterId != null">
+                `updater_id` = #{updaterId,jdbcType=VARCHAR},
+            </if>
+            <if test="updateTime != null">
+                `update_time` = #{updateTime,jdbcType=VARCHAR},
+            </if>
+        </set>
+        where resource_id = #{resourceId,jdbcType=VARCHAR}
+    </update>
+
+    <delete id="deleteByPrimaryKey" parameterType="map">
+        delete
+        from t_share_resource
+        where resource_id = #{resourceId,jdbcType=VARCHAR}
+    </delete>
+</mapper>

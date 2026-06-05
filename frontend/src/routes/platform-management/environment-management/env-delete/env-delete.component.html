@@ -1,0 +1,52 @@
+<div id="env-delete">
+  <div class="env-delete-header">
+    <div style="display: flex;">
+      <img *ngIf="envInfo.length === 0" style="margin-right: 8px;margin-top: -4px" [src]="changeUrl('assets/env/delete-env.svg')" alt="">
+      <div>{{ 'delete_env' | i18nextEager }}</div>
+    </div>
+  </div>
+  <div class="env-delete-body">
+    <div *ngIf="envInfo.length === 0">
+      {{'confirm_delete_env' | i18nextEager: { name: data?.name } }}
+    </div>
+    <div *ngIf="envInfo.length > 0">
+      <nz-alert nzType="warning" [nzShowIcon]="false" class="alert-style">
+        {{'delete_env_tip' | i18nextEager: { name: data?.name } }}
+      </nz-alert>
+      <div class="citation-list">{{ 'instance_list' | i18nextEager }}</div>
+      <div style="max-height: 500px">
+        <nz-table
+          [nzData]="srcData.data"
+          [nzLoading]="loading"
+          [nzScroll]="{ y: '500px' }"
+          [nzShowPagination]="totalNumber > 10"
+          [(nzPageIndex)]="currentPage"
+          [nzTotal]="totalNumber"
+          [nzPageSize]="pageSize.size"
+          (nzPageIndexChange)="pageUpdate($event)"
+          nzTableLayout="fixed"
+        >
+          <thead>
+          <tr>
+            <th *ngFor="let column of listColumns" [nzWidth]="column.width + 'px'">{{ column.title }}</th>
+          </tr>
+          </thead>
+          <tbody *ngIf="srcData.data.length > 0">
+          <tr *ngFor="let row of srcData.data;trackBy: trackByFn">
+            <td>
+              <button nz-button nzType="link" (click)="goToAgentDeploymen()">{{ row.deployName }}</button>
+            </td>
+            <td>{{ deployTypeMap.get(row.agentType) }}</td>
+            <td>{{ row.version }}</td>
+            <td>{{ row.workspaceName }}</td>
+          </tr>
+          </tbody>
+        </nz-table>
+      </div>
+    </div>
+  </div>
+  <div class="env-delete-footer flex justify-end gap-[8px] mt-4">
+    <button type="button" nz-button (click)="dismiss()">{{ 'cancel' |i18nextEager }}</button>
+    <button [disabled]="srcData.data.length > 0" type="button" nz-button nzType="primary" nzDanger (click)="close()">{{ 'ok' | i18nextEager }}</button>
+  </div>
+</div>

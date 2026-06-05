@@ -1,0 +1,249 @@
+{
+  "id": "5303a906-742d-4c55-b774-f30ade67d357",
+  "name": "jjw_llm",
+  "description": "jjw_llm",
+  "nodes": [
+    {
+      "id": "node_start",
+      "type": "Start",
+      "name": "开始",
+      "outputs": [
+        {
+          "name": "query",
+          "type": "string",
+          "description": "用户输入",
+          "required": true,
+          "source": "system",
+          "value": {
+            "type": "literal",
+            "content": "",
+            "hint": "用户输入"
+          }
+        }
+      ]
+    },
+    {
+      "id": "node_1740108902156",
+      "type": "Questioner",
+      "name": "提问器",
+      "inputs": [
+      ],
+      "outputs": [
+        {
+          "name": "USER_RESPONSE",
+          "cn_name": "",
+          "description": "用户最近一轮对话输入",
+          "required": false,
+          "type": "string",
+          "value": {
+            "type": "literal",
+            "content": "",
+            "hint": "",
+            "default": ""
+          },
+          "source": "user",
+          "validator": [
+          ],
+          "reflection": false
+        },
+        {
+          "name": "STATUS",
+          "cn_name": "状态码",
+          "description": "提问器状态码",
+          "required": false,
+          "type": "integer",
+          "value": {
+            "type": "literal",
+            "content": "",
+            "hint": "",
+            "default": ""
+          },
+          "source": "user",
+          "validator": [
+          ],
+          "reflection": false
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "description": "姓名",
+          "required": true,
+          "value": {
+            "type": "generated",
+            "hint": "",
+            "default": "塞班"
+          },
+          "source": "user",
+          "cn_name": "姓名",
+          "validator": [
+            {
+              "type": "length_limit_validate",
+              "params": [
+                "11"
+              ]
+            }
+          ],
+          "reflection": false
+        },
+        {
+          "name": "age",
+          "type": "integer",
+          "description": "年龄",
+          "required": true,
+          "value": {
+            "type": "generated",
+            "content": null,
+            "hint": "",
+            "default": 11
+          },
+          "source": "user",
+          "cn_name": "年龄",
+          "validator": [
+            {
+              "type": "number_range_validate",
+              "params": [
+                "1",
+                "100"
+              ]
+            }
+          ],
+          "reflection": false
+        },
+        {
+          "name": "date",
+          "type": "string",
+          "description": "日期",
+          "required": true,
+          "value": {
+            "type": "generated",
+            "content": null,
+            "hint": "",
+            "default": ""
+          },
+          "source": "user",
+          "cn_name": "日期",
+          "validator": [
+            {
+              "type": "date_time_format",
+              "params": [
+                "%Y-%m-%d %H:%M:%S"
+              ]
+            }
+          ],
+          "reflection": false
+        },
+        {
+          "name": "phone",
+          "type": "string",
+          "description": "手机号",
+          "required": true,
+          "value": {
+            "type": "generated",
+            "content": null,
+            "hint": "",
+            "default": ""
+          },
+          "source": "user",
+          "cn_name": "手机号",
+          "validator": [
+            {
+              "type": "common_data_format_check",
+              "params": [
+                "电话号码"
+              ]
+            }
+          ],
+          "reflection": true
+        }
+      ],
+      "configs": {
+        "mode": "effect",
+        "temperature": 0.2,
+        "top_p": 0.5,
+        "extra_prompt_for_fields_extraction": "界面2",
+        "question_content": "界面1",
+        "with_chat_history": true,
+        "extract_fields_from_response": true,
+        "max_response": 3,
+        "model": {
+          "model_name": "agentBuilder3",
+          "model_type": "ei_agentBuilder",
+          "model_deployment_id": "f1593ad5-2255-46ee-b715-219c759a64c9"
+        },
+        "rewrite_chain": [
+        ],
+        "example_content": "界面3",
+        "template_anthropomorphic": false,
+        "auto_ask_template": "请您提供以下参数信息：\n{参数信息}",
+        "assist_recognize": true,
+        "assist_example": "输入query：我要坐飞机去呼和浩特学习培训\n提取参数：{\"location\":\"呼和浩特\", \"traveltool\":\"飞机\"}"
+      }
+    },
+    {
+      "id": "node_end",
+      "type": "End",
+      "name": "结束",
+      "inputs": [
+        {
+          "name": "result",
+          "type": "string",
+          "description": "",
+          "required": true,
+          "source": "user",
+          "reflection": false,
+          "value": {
+            "type": "ref",
+            "content": {
+              "ref_node_id": "node_1740108902156",
+              "ref_var_name": "name",
+              "source": "user"
+            },
+            "hint": ""
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "response_content",
+          "type": "string",
+          "description": "最终输出",
+          "required": true,
+          "source": "system",
+          "reflection": false,
+          "value": {
+            "type": "generated"
+          }
+        }
+      ],
+      "configs": {
+        "is_stream_out": true,
+        "response_template": "{{result}}",
+        "response_mode": "directResponse"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "source": "node_1740108902156",
+      "target": "node_end"
+    },
+    {
+      "source": "node_start",
+      "target": "node_1740108902156"
+    }
+  ],
+  "layouts": {
+    "node_start": {
+      "x": -216,
+      "y": 234
+    },
+    "node_1740108902156": {
+      "x": 342,
+      "y": 144
+    },
+    "node_end": {
+      "x": 864,
+      "y": 252
+    }
+  }
+}

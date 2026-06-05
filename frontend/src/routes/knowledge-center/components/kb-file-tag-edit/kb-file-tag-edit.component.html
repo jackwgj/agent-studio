@@ -1,0 +1,62 @@
+<ng-template #singleTagEdit>
+  <div class="single-tag-edit">
+    <form nz-form nzLayout="vertical">
+      @for (file of files(); track file.file_id) {
+        <nz-form-item>
+          <nz-form-label>{{ 'current_file' | i18nextEager }}</nz-form-label>
+          <nz-form-control>
+            <span class="text-[14px] text-[#191919]">{{ file.file_name }}</span>
+          </nz-form-control>
+        </nz-form-item>
+        <nz-form-item>
+          <nz-form-label>{{ 'kb_tag' | i18nextEager }}</nz-form-label>
+          <nz-form-control>
+            <tag-select [kbId]="kbId()" [(ngModel)]="file.file_tags" name="fileTags" [isLimitSelection]="true"></tag-select>
+          </nz-form-control>
+        </nz-form-item>
+      }
+    </form>
+  </div>
+</ng-template>
+
+<ng-template #singleTagEditFooter>
+  <button nz-button nzType="default" (click)="closeModal()">{{ 'cancel' | i18nextEager }}</button>
+  <button
+    nz-button
+    nzType="primary"
+    nzDanger
+    [nzLoading]="isConfirmLoading"
+    (click)="handleSingleTagSubmit()">
+    {{ 'ok' | i18nextEager }}
+  </button>
+</ng-template>
+
+
+<ng-template #multiTagEdit>
+  <div class="multi-tag-edit">
+    <nz-table #basicTable [nzData]="files()" [nzShowPagination]="false" [nzFrontPagination]="false" nzSize="small">
+      <thead>
+      <tr>
+        <th nzWidth="50%">{{ 'file_name' | i18nextEager }}</th>
+        <th nzWidth="50%">{{ 'kb_tag' | i18nextEager }}</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr *ngFor="let row of basicTable.data; index as i">
+        <td class="truncate" [title]="row.file_name">
+          <div class="text-[14px] text-[#191919]">
+            {{ row.file_name }}
+          </div>
+        </td>
+        <td>
+          <tag-select #tagSelectComponent id="file-tag-{{i}}" [kbId]="kbId()" [isSupCreate]="true" [(ngModel)]="row.file_tags" name="tag-{{i}}" [isLimitSelection]="true"></tag-select>
+        </td>
+      </tr>
+      </tbody>
+    </nz-table>
+  </div>
+</ng-template>
+
+<ng-template #multiTagEditFooter>
+  <button nz-button nzType="primary" nzDanger (click)="closeDrawer()">{{ 'ok' | i18nextEager }}</button>
+</ng-template>

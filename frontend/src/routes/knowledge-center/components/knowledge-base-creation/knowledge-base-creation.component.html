@@ -1,0 +1,11 @@
+<select-create-type #selectCreateType
+                    (openDefaultKnowledgeBase)="openDefaultModel()"
+                    (openThirdPartyKnowledgeBase)="createThirdPartyRef.showDrawer();"
+                    (openDefaultConfigModal)="openDefaultConfigModal($event)"
+                    (openAccessKnowledgeBase)="kbSourceConnection.showModal()">
+</select-create-type>
+<meta-default-config-modal #defaultConfigModalRef></meta-default-config-modal>
+<create-third-party #createThirdPartyRef
+                    (openAccessKnowledgeBase)="kbSourceConnection.showModal()"
+                    (kbCreateSuccess)="thirdPartyKbCreate($event)"></create-third-party>
+<kb-source-connection #kbSourceConnection></kb-source-connection>

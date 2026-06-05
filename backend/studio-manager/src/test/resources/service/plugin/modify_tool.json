@@ -1,0 +1,16 @@
+{
+  "plugin_id": "preset_tdfen",
+  "tool_display_name": "tdfen3",
+  "tool_desc": "test",
+  "visibility": "project",
+  "tool_chinese_name": "tdfcn3",
+  "request_info": {"url": "http://deepseek.com/chat", "method": "POST", "headers": {"Content-Type": "application/json"}},
+  "auth_info": {"scope": "SERVICE", "domain": "HEADERS", "auth_keys": [{"auth_key": "aaa", "target_name": "apikey"}]},
+  "is_input_list": false,
+  "is_output_list": false,
+  "intf_type": "blocking",
+  "auth_required": false,
+  "metadata": "",
+  "output_schema": "{\"type\":\"object\",\"properties\":{\"personList\":{\"type\":\"array\",\"description\":\"\",\"items\":{\"type\":\"object\",\"properties\":{\"pserson\":{\"type\":\"object\",\"description\":\"\",\"properties\":{\"age\":{\"type\":\"string\",\"description\":\"\"},\"name\":{\"type\":\"string\",\"description\":\"\"}},\"required\":[\"age\",\"name\"]}},\"required\":[\"pserson\"]}}},\"required\":[\"personList\"]}",
+  "input_schema": "{\"type\":\"object\",\"properties\":{\"person\":{\"location\":\"Body\",\"validate_rule\":\"\",\"validate_type\":\"CHAR\",\"validated\":false,\"name_cn\":\"\",\"type\":\"object\",\"description\":\"mz\",\"properties\":{\"name2\":{\"location\":\"Body\",\"validate_rule\":\"\",\"validate_type\":\"CHAR\",\"validated\":false,\"name_cn\":\"\",\"type\":\"string\",\"description\":\"mz\"},\"age\":{\"location\":\"Body\",\"validate_rule\":\"\",\"validate_type\":\"CHAR\",\"validated\":false,\"name_cn\":\"\",\"type\":\"string\",\"description\":\"nl\"}},\"required\":[\"name2\",\"age\"]}},\"required\":[\"person\"]}"
+}

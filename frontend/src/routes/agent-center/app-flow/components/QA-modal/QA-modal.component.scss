@@ -1,0 +1,100 @@
+::ng-deep {
+  .tp-halfmodal-cotent meta-QA-modal {
+    display: block;
+    height: 100%;
+  }
+
+  #qa-strategy {
+    .acc-blk-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+  }
+
+  #qaCmdTextarea .editor-wrapper {
+    border: none;
+  }
+}
+
+.question-form {
+  height: calc(100% - 30px);
+}
+
+.question-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  height: 100%;
+}
+
+.single-question {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.border {
+  border: 1px solid rgb(194, 194, 194);
+  border-radius: 6px;
+  padding: 0 4px;
+  flex: 1;
+  display: flex;
+  align-items: center;
+
+  &:hover {
+    border-color: #191919;
+    transition-duration: 0.2s;
+    transition-timing-function: ease;
+    transition-delay: 0s;
+    transition-property: border-color;
+  }
+
+  &.error {
+    border-color: #f23030;
+    background-color: #fce3e1;
+  }
+}
+
+.question-textarea {
+  min-width: calc(100% - 48px);
+  resize: none;
+  height: 20px;
+  max-height: 50px;
+  padding: 5px 12px 5px 12px;
+  box-sizing: content-box;
+
+  &:focus {
+    outline: none !important;
+    resize: none;
+  }
+}
+
+.disabled-delete-icon {
+  color: #c2c2c2;
+  cursor: not-allowed;
+}
+
+.delete-question-icon {
+  color: #191919;
+  width: 14px;
+  height: 14px;
+  border: 1px solid #191919;
+  border-radius: 50%;
+  cursor: pointer;
+
+  &:hover {
+    background-color: #c2c2c2;
+  }
+}
+
+.error-tip {
+  color: #ff4d4f;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.input-error {
+  border-color: #ff4d4f !important;
+}

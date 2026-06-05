@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.agent.manager.mapper.McpServerRatingMapper">
+    <select id="queryScoreAllServer">
+        select server_id, count(*) as times, sum(score) as totalScore
+        from ws_mcp_server_rating
+        group by server_id
+    </select>
+
+    <select id="queryScoreByServerIds">
+        select server_id, count(*) as times, sum(score) as totalScore
+        from ws_mcp_server_rating
+        where server_id in
+        <foreach collection="serverIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        group by server_id
+    </select>
+
+
+    <select id="queryScoreByServerId">
+        select server_id, count(*) as times, sum(score) as totalScore
+        from ws_mcp_server_rating
+        where server_id = #{serverId}
+        group by server_id
+    </select>
+
+
+    <select id="queryScoreByServerIdAndTenantId">
+        select server_id, score as totalScore
+        from ws_mcp_server_rating
+        where server_id = #{serverId} and tenant_id = #{tenantId}
+    </select>
+
+    <update id="insertRating">
+        INSERT INTO ws_mcp_server_rating (server_id, tenant_id, score, created_date, updated_date)
+        VALUES (#{serverId}, #{tenantId}, #{score},
+                NOW(), NOW()) ON DUPLICATE KEY
+        UPDATE
+            score = #{score},
+            updated_date = NOW();
+    </update>
+</mapper>

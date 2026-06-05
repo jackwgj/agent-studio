@@ -1,0 +1,56 @@
+<div class="variable-box" contenteditable="false">
+  <span class="cursor-pointer" contenteditable="false">
+    <ng-container *ngIf="type==='text';else typeTemplate">
+        <img
+          [src]="changeUrl('assets/prompt/type-text-green.svg')"
+          alt="" class="h-4 w-4">
+    </ng-container>
+    <ng-template #typeTemplate>
+        <img
+          [src]="changeUrl('assets/prompt/type-image-green.svg')"
+          alt="" class="h-4 w-4">
+    </ng-template>
+  </span>
+  <span>{{"{{"}}</span>
+
+  <span #variableContainer
+        (blur)="onBlur()"
+        (click)="onClick()"
+        (input)="onInput($event)"
+        (keydown.enter)="onEnterKeyPress($event)"
+        [attr.contenteditable]="canEdit"
+        [class]="{
+        'cursor-pointer': !canEdit,
+        'cursor-text':canEdit
+         }"
+        class="variable-input">
+    {{ variable }}
+  </span>
+  <span>{{"}}"}}</span>
+  <span class="cursor-pointer" *ngIf="!onlyShow&&promptType==='multi'">
+    <ng-container *ngIf="!isChangeType;else unfoldTemplate">
+      <img
+        (click)="showTypeChange()"
+        [src]="changeUrl('assets/agent-center/flow/fold.svg')"
+        alt="" class="h-4 w-4">
+    </ng-container>
+    <ng-template #unfoldTemplate>
+      <img
+        (click)="hideTypeChange()"
+        [src]="changeUrl('assets/agent-center/flow/unfold.svg')"
+        alt="" class="h-4 w-4">
+    </ng-template>
+  </span>
+</div>
+<meta-variable-insert
+  #variableInsertRef
+  style="z-index: 5"
+  class="fixed"
+  [class]="{'hidden':!isChangeType}"
+  (onselect)="handleTypeChange($event)"
+>
+</meta-variable-insert>
+
+
+
+

@@ -1,0 +1,266 @@
+<!--import { Component, OnInit, ViewEncapsulation } from '@angular/core';-->
+<!--import { MODULES } from '@shared/modules';-->
+<!--import { I18NEXT_NAMESPACE, I18NextEagerPipe } from 'angular-i18next';-->
+<!--import { I18nNamespace } from '@i18n';-->
+<!--import { DataSourceManagementRepoService } from '@services/repositories/datasource-management-repo.service';-->
+<!--import { DeleteRefsService } from '@shared/services/delete-refs.service';-->
+<!--import { CommonService } from '@services/common.service';-->
+<!--import { FormateTimePipe } from 'src/pipes/formate-time.pipe';-->
+<!--import {-->
+<!--NewCommonNoDataWithBtnComponent-->
+<!--} from '@shared/components/new-common-no-data-with-btn/new-common-no-data-with-btn.component';-->
+<!--import { PipesModule } from '../../pipes/pipes.module';-->
+<!--import {-->
+<!--BatchDeleteRefsModalComponent-->
+<!--} from '@routes/datasource-management/components/batch-delete-refs-modal/batch-delete-refs-modal.component';-->
+<!--import {-->
+<!--EditableDatasourceHalfmodalComponent-->
+<!--} from '@routes/datasource-management/components/editable-datasource-halfmodal/editable-datasource-halfmodal.component';-->
+<!--import { HttpService } from '@services/http.service';-->
+<!--import { NzModalService } from 'ng-zorro-antd/modal';-->
+<!--import { NzDrawerService } from 'ng-zorro-antd/drawer';-->
+<!--import { NzMessageService } from 'ng-zorro-antd/message';-->
+
+<!--@Component({-->
+<!--  selector: 'datasource-management',-->
+<!--  templateUrl: './datasource-management.component.html',-->
+<!--  styleUrls: ['./datasource-management.component.scss'],-->
+<!--  standalone: true,-->
+<!--  imports: [MODULES, NewCommonNoDataWithBtnComponent, PipesModule],-->
+<!--  providers: [-->
+<!--  {-->
+<!--  provide: I18NEXT_NAMESPACE,-->
+<!--  useValue: [I18nNamespace.COMMON, I18nNamespace.AGENT_CENTER],-->
+<!--  },-->
+<!--  DeleteRefsService,-->
+<!--  FormateTimePipe,-->
+<!--  NzModalService,-->
+<!--  NzDrawerService,-->
+<!--  NzMessageService-->
+<!--  ],-->
+<!--  encapsulation: ViewEncapsulation.None,-->
+<!--  })-->
+<!--export class DatasourceManagementComponent implements OnInit {-->
+<!--subscribeBtnStatus = this.commonService.getSubscribeStatus();-->
+<!--is_white_list = false;-->
+
+<!--constructor(-->
+<!--private i18n: I18NextEagerPipe,-->
+<!--private dataSourceRepoServe: DataSourceManagementRepoService,-->
+<!--private deleteRefsServe: DeleteRefsService,-->
+<!--private nzDrawer: NzDrawerService,-->
+<!--private nzModal: NzModalService,-->
+<!--private nzMessage: NzMessageService,-->
+<!--private commonService: CommonService,-->
+<!--private readonly http: HttpService,-->
+<!--) {-->
+<!--this.http.getResourceWhiteList().subscribe(res => {-->
+<!--  this.is_white_list = res;-->
+<!--    });-->
+<!--    }-->
+
+<!--    ngOnInit() {-->
+<!--    this.getDatasourceListData();-->
+<!--    }-->
+
+<!--    loading = false;-->
+<!--    srcData: { data: any[] } = {-->
+<!--    data: [],-->
+<!--  };-->
+<!--    checkedList: any[] = [];-->
+<!--    allChecked = false;-->
+<!--    indeterminate = false;-->
+
+<!--    listColumns: Array<{ title: string; width?: string; fixed?: string }> = [-->
+<!--    { title: '' },-->
+<!--  { title: this.i18n.transform('data_source_name') },-->
+<!--  { title: this.i18n.transform('database_type') },-->
+<!--{ title: this.i18n.transform('description') },-->
+<!--{ title: this.i18n.transform('operator1') },-->
+<!--{ title: this.i18n.transform('operation_time') },-->
+<!--{-->
+<!--title: this.i18n.transform('operation'),-->
+<!--fixed: 'right',-->
+<!--width: '120px',-->
+<!--},-->
+<!--];-->
+
+<!--public trackByFn(index: number) {-->
+<!--return index;-->
+<!--}-->
+<!--updateCheckStatus(): void {-->
+<!--if (this.srcData.data.length === 0) {-->
+<!--this.allChecked = false;-->
+<!--this.indeterminate = false;-->
+<!--return;-->
+<!--}-->
+<!--const allEnabledRows = this.srcData.data.filter(item => !item.disabled);-->
+<!--const checkedRows = this.checkedList;-->
+<!--this.allChecked = allEnabledRows.length > 0 && allEnabledRows.every(item => this.isChecked(item));-->
+<!--this.indeterminate = checkedRows.length > 0 && !this.allChecked;-->
+<!--}-->
+
+<!--isChecked(row: any): boolean {-->
+<!--return this.checkedList.indexOf(row) !== -1;-->
+<!--}-->
+
+<!--onItemChecked(row: any, checked: boolean): void {-->
+<!--if (checked) {-->
+<!--  this.checkedList.push(row);-->
+<!--    } else {-->
+<!--    this.checkedList = this.checkedList.filter(item => item !== row);-->
+<!--    }-->
+<!--    this.updateCheckStatus();-->
+<!--    }-->
+
+<!--    onAllChecked(checked: boolean): void {-->
+<!--    if (checked) {-->
+<!--    this.checkedList = this.srcData.data.filter(item => !item.disabled);-->
+<!--    } else {-->
+<!--    this.checkedList = [];-->
+<!--    }-->
+<!--    this.updateCheckStatus();-->
+<!--    }-->
+
+<!--    listAction(key: string, row: any) {-->
+<!--    if (key === 'delete') {-->
+<!--      if(this.subscribeBtnStatus){-->
+<!--        const { id } = row;-->
+<!--        this.deleteRefsServe.onDeleteRefs(-->
+<!--          {-->
+<!--            id,-->
+<!--  query:{-->
+<!--    resource_type :'sql'-->
+<!--    }-->
+<!--  },-->
+<!--{-->
+<!--title: this.i18n.transform(''),-->
+<!--alertText:-->
+<!--this.i18n.transform('datasource_in_use_delete_warning'),-->
+<!--secondConfirmLabel: this.i18n.transform('confirm_delete_input_hint'),-->
+<!--tiMsgTitle: this.i18n.transform(''),-->
+<!--tiMsgContent: this.i18n.transform('confirm_delete_data_source_desc'),-->
+<!--},-->
+<!--() => {-->
+<!--this.deleteDatasource(id);-->
+<!--},-->
+<!--);-->
+<!--}-->
+<!--  } else if (key === 'edit') {-->
+<!--if(this.subscribeBtnStatus){-->
+<!--this.openHalfModel(row);-->
+<!--}-->
+<!--  }-->
+<!--}-->
+
+<!--searchValue = '';-->
+<!--get searchNameIsEmpty(): boolean {-->
+<!--return this.searchValue.length === 0;-->
+<!--}-->
+
+<!--currentPage = 1;-->
+<!--pageSize = {-->
+<!--options: [10, 20, 50, 100],-->
+<!--size: 10,-->
+<!--};-->
+<!--totalNumber = 0;-->
+
+<!--pageIndexChange(index: number) {-->
+<!--this.currentPage = index;-->
+<!--this.getDatasourceListData();-->
+<!--}-->
+
+<!--pageSizeChange(size: number) {-->
+<!--this.pageSize.size = size;-->
+<!--this.currentPage = 1;-->
+<!--this.getDatasourceListData();-->
+<!--}-->
+
+<!--getDatasourceListData() {-->
+<!--this.loading = true;-->
+<!--const params = {-->
+<!--limit: this.pageSize.size,-->
+<!--offset: (this.currentPage - 1) * this.pageSize.size,-->
+<!--...(this.searchValue && { name: this.searchValue }),-->
+<!--};-->
+<!--this.dataSourceRepoServe-->
+<!--.getDatasourceList(params)-->
+<!--.then((res) => {-->
+<!--this.srcData.data = res.datasource_list || [];-->
+<!--this.totalNumber = res.count || 0;-->
+<!--this.checkedList = [];-->
+<!--this.updateCheckStatus();-->
+<!--})-->
+<!--.finally(() => {-->
+<!--this.loading = false;-->
+<!--});-->
+<!--}-->
+
+<!--// 单个删除-->
+<!--private deleteDatasource(id: string): any {-->
+<!--this.dataSourceRepoServe.deleteDatasource(id).then(() => {-->
+<!--this.searchList();-->
+<!--this.nzMessage.success(this.i18n.transform('deleted_successfully'));-->
+<!--});-->
+<!--}-->
+
+<!--// 批量删除-->
+<!--deleteData(){-->
+<!--this.nzModal.create({-->
+<!--nzWidth: 800,-->
+<!--nzClassName: 'tp-modal-lg',-->
+<!--nzContent: BatchDeleteRefsModalComponent,-->
+<!--nzData: {-->
+<!--title: this.i18n.transform('delete'),-->
+<!--alertText: this.i18n.transform('datasource_in_use_delete_warning'),-->
+<!--secondConfirmConfig: {-->
+<!--  supportQuickInput: true,-->
+<!--  label: this.i18n.transform('confirm_delete_input_hint'),-->
+<!--  },-->
+<!--resource_ids: this.checkedList.map((i) => ({-->
+<!--resource_id: i.id,-->
+<!--resource_name: i.name,-->
+<!--reference_number: 0,-->
+<!--type: i.type,-->
+<!--})),-->
+<!--outputs: {-->
+<!--confirm: () => {-->
+<!--this.searchList();-->
+<!--this.checkedList = [];-->
+<!--},-->
+<!--},-->
+<!--}-->
+<!--  });-->
+<!--}-->
+
+<!--public createDatasource() {-->
+<!--this.openHalfModel();-->
+<!--}-->
+
+<!--private openHalfModel(param?) {-->
+<!--const drawerRef = this.nzDrawer.create({-->
+<!--nzTitle: param ? this.i18n.transform('datasource-1') : this.i18n.transform('datasource-2'),-->
+<!--nzContent: EditableDatasourceHalfmodalComponent,-->
+<!--nzWidth: 600,-->
+<!--nzMaskClosable: false,-->
+<!--nzData: {-->
+<!--id: param?.id,-->
+<!--}-->
+<!--  });-->
+
+<!--drawerRef.afterClose.subscribe(() => {-->
+<!--this.searchList();-->
+<!--});-->
+<!--}-->
+
+<!--handleClickClearSearch() {-->
+<!--this.searchValue = '';-->
+<!--this.searchList();-->
+<!--}-->
+
+<!--searchList() {-->
+<!--this.currentPage = 1;-->
+<!--this.pageSize.size = 10;-->
+<!--this.getDatasourceListData();-->
+<!--}-->
+<!--  }-->

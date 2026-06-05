@@ -1,0 +1,784 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.agent.manager.mapper.McpServiceMapper">
+    <resultMap id="mcpServerEntity" type="com.openjiuwen.studio.agent.manager.entity.McpServiceEntity">
+        <result property="id" column="id" jdbcType="VARCHAR"/>
+        <result property="name" column="name" jdbcType="VARCHAR"/>
+        <result property="nameEn" column="name_en" jdbcType="VARCHAR"/>
+        <result property="description" column="description" jdbcType="VARCHAR"/>
+        <result property="descriptionEn" column="description_en" jdbcType="VARCHAR"/>
+        <result property="readme" column="readme" jdbcType="LONGVARCHAR"/>
+        <result property="orgType" column="org_type" jdbcType="VARCHAR"/>
+        <result property="deployType" column="deploy_type" jdbcType="VARCHAR"/>
+        <result property="serverConfig" column="server_config" jdbcType="LONGVARCHAR"/>
+        <result property="tools" column="tools" jdbcType="LONGVARCHAR"/>
+        <result property="fcInstanceUrl" column="fc_instance_url" jdbcType="VARCHAR"/>
+        <result property="fcInstanceId" column="fc_instance_id" jdbcType="VARCHAR"/>
+        <result property="fcInstanceStatus" column="fc_instance_status" jdbcType="VARCHAR"/>
+        <result property="functionApplicationName" column="function_application_name" jdbcType="VARCHAR"/>
+        <result property="fcRegion" column="fc_region" jdbcType="VARCHAR"/>
+        <result property="apigGroupId" column="apig_group_id" jdbcType="VARCHAR"/>
+        <result property="apigInstanceId" column="apig_instance_id" jdbcType="VARCHAR"/>
+        <result property="createdDate" column="created_date" jdbcType="TIMESTAMP"/>
+        <result property="createdByUserId" column="created_by_user_id" jdbcType="VARCHAR"/>
+        <result property="lastUpdatedDate" column="last_updated_date" jdbcType="TIMESTAMP"/>
+        <result property="lastUpdatedByUserId" column="last_updated_by_user_id" jdbcType="VARCHAR"/>
+        <result property="tenantId" column="tenant_id" jdbcType="VARCHAR"/>
+        <result property="deleted" column="deleted" jdbcType="TINYINT"/>
+        <result property="deptCode" column="dept_code" jdbcType="VARCHAR"/>
+        <result property="uniqueCode" column="unique_code" jdbcType="VARCHAR"/>
+        <result property="serverId" column="server_id" jdbcType="VARCHAR"/>
+        <result property="projectId" column="project_id" jdbcType="VARCHAR"/>
+        <result property="workspaceId" column="workspace_id" jdbcType="VARCHAR"/>
+        <result property="visibility" column="visibility" jdbcType="VARCHAR"/>
+        <result property="nodeType" column="node_type" jdbcType="VARCHAR"/>
+        <result property="authType" column="auth_type" jdbcType="VARCHAR"/>
+        <result property="thirdResource" column="third_resource" jdbcType="VARCHAR"/>
+        <result property="thirdId" column="third_id" jdbcType="VARCHAR"/>
+        <result property="thirdVersionId" column="third_version_id" jdbcType="VARCHAR"/>
+        <result property="failReason" column="fail_reason" jdbcType="VARCHAR"/>
+        <result property="authInfo" column="auth_info" jdbcType="VARCHAR"/>
+        <result property="isShare" column="is_share" jdbcType="TINYINT"/>
+        <result property="traceId" column="trace_id" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <select id="selectByTenant" resultMap="mcpServerEntity">
+        SELECT *
+        FROM ws_mcp_service_def
+        WHERE 1=1
+        <if test="tenantId != null">
+            AND tenant_id = #{tenantId}
+        </if>
+        <if test="deptCode != null">
+            AND dept_code = #{deptCode}
+        </if>
+        AND node_type = 'Mcp'
+        AND deleted = false
+        ORDER BY last_updated_date DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="selectByTenantAndName" resultMap="mcpServerEntity">
+        SELECT *
+        FROM ws_mcp_service_def
+        WHERE 1=1
+        <if test="tenantId != null">
+            AND tenant_id = #{tenantId}
+        </if>
+        <if test="deptCode != null">
+            AND dept_code = #{deptCode}
+        </if>
+        <if test="nameEn != null">
+            AND name_en like CONCAT('%', #{nameEn}, '%')
+        </if>
+        <if test="deptCode != null">
+            AND name like CONCAT('%', #{name}, '%')
+        </if>
+        AND deleted = false
+        ORDER BY last_updated_date DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="selectById" resultMap="mcpServerEntity">
+        SELECT *
+        FROM ws_mcp_service_def
+        <where>
+            <trim prefix="(" suffix=")" prefixOverrides="OR">
+                OR (id = #{id} AND visibility = 'global')
+                <if test="workspaceId != null">
+                    OR (id = #{id} AND visibility = 'workspace' AND workspace_id = #{workspaceId})
+                </if>
+                <if test="workspaceId != null">
+                    OR (id = #{id} AND visibility = 'user' AND workspace_id = #{workspaceId})
+                </if>
+                <if test="workspaceId == null">
+                    OR (id = #{id} AND visibility = 'workspace')
+                </if>
+            </trim>
+            AND deleted = false;
+        </where>
+    </select>
+
+    <select id="selectByMcpId" resultMap="mcpServerEntity">
+        SELECT *
+        FROM ws_mcp_service_def
+        <where>
+            id = #{id}
+        </where>
+    </select>
+
+    <select id="selectByName" resultMap="mcpServerEntity">
+        SELECT *
+        FROM ws_mcp_service_def
+        WHERE name = #{name}
+        <if test="workspaceId != null">
+            AND workspace_id = #{workspaceId}
+        </if>
+        AND deleted = false;
+    </select>
+
+    <select id="selectByNameEn" resultMap="mcpServerEntity">
+        SELECT *
+        FROM ws_mcp_service_def
+        WHERE name_en = #{nameEn}
+        <if test="workspaceId != null">
+            AND workspace_id = #{workspaceId}
+        </if>
+        AND deleted = false;
+    </select>
+
+    <select id="selectList" resultMap="mcpServerEntity">
+        SELECT *
+        FROM ws_mcp_service_def
+        <where>
+            id IN
+            <foreach item="id" collection="ids" open="(" separator="," close=")">
+                #{id}
+            </foreach>
+            AND (
+            <trim prefix="(" suffix=")" prefixOverrides="OR">
+                OR (visibility = 'global')
+                <if test="workspaceId != null">
+                    OR (visibility = 'workspace' AND workspace_id = #{workspaceId})
+                </if>
+                <if test="workspaceId != null">
+                    OR (visibility = 'user' AND workspace_id = #{workspaceId})
+                </if>
+            </trim>
+            )
+            AND deleted = false;
+        </where>
+    </select>
+
+    <select id="selectListByTenant" resultMap="mcpServerEntity">
+        SELECT *
+        FROM ws_mcp_service_def
+        WHERE 1=1
+        <if test="tenantId != null">
+            AND tenant_id = #{tenantId}
+        </if>
+        <if test="deptCode != null">
+            AND dept_code = #{deptCode}
+        </if>
+        <if test="workspaceId != null">
+            AND workspace_id = #{workspaceId}
+        </if>
+        AND node_type = 'Mcp'
+    </select>
+
+    <select id="selectCount" resultType="Long">
+        SELECT COUNT(*)
+        FROM ws_mcp_service_def
+        WHERE tenant_id = #{tenantId}
+        <if test="deptCode != null">
+            AND dept_code = #{deptCode}
+        </if>
+        AND node_type = 'Mcp'
+        AND deleted = false
+    </select>
+    <update id="updateViewTimes" parameterType="map">
+        UPDATE ws_mcp_service_def
+        SET view_times = view_times + 1
+        WHERE id = #{serverId}
+    </update>
+
+    <insert id="insert">
+        INSERT INTO ws_mcp_service_def (
+            id,
+            name,
+            name_en,
+            description,
+            description_en,
+            fc_instance_url,
+            fc_instance_id,
+            fc_instance_status,
+            fc_region,
+            apig_group_id,
+            apig_instance_id,
+            deleted,
+            tenant_id,
+            dept_code,
+            created_date,
+            created_by_user_id,
+            last_updated_date,
+            last_updated_by_user_id,
+            readme,
+            server_config,
+            tools,
+            deploy_type,
+            org_type,
+            function_name,
+            server_id,
+            function_urn,
+            function_application_name,
+            domain_id,
+            unique_code,
+            project_id,
+            workspace_id,
+            icon,
+            trace_id,
+            visibility,
+            node_type,
+            auth_type,
+            third_resource,
+            third_id,
+            third_version_id,
+            fail_reason,
+            auth_info
+        ) VALUES (
+                     #{id},
+                     #{name},
+                     #{nameEn},
+                     #{description},
+                     #{descriptionEn},
+                     #{fcInstanceUrl},
+                     #{fcInstanceId},
+                     #{fcInstanceStatus},
+                     #{fcRegion},
+                     #{apigGroupId},
+                     #{apigInstanceId},
+                     #{deleted},
+                     #{tenantId},
+                     #{deptCode},
+                     #{createdDate},
+                     #{createdByUserId},
+                     #{lastUpdatedDate},
+                     #{lastUpdatedByUserId},
+                     #{readme},
+                     #{serverConfig},
+                     #{tools},
+                     #{deployType},
+                     #{orgType},
+                     #{functionName},
+                     #{serverId},
+                     #{functionUrn},
+                     #{functionApplicationName},
+                     #{domainId},
+                     #{uniqueCode},
+                     #{projectId},
+                     #{workspaceId},
+                     #{icon},
+                     #{traceId},
+                     #{visibility},
+                     #{nodeType},
+                     #{authType},
+                     #{thirdResource},
+                     #{thirdId},
+                     #{thirdVersionId},
+                     #{failReason},
+                     #{authInfo}
+                 )
+    </insert>
+
+    <update id="updateInstallTimes">
+        UPDATE ws_mcp_service_def
+        SET install_times = install_times + 1
+        WHERE id = #{serverId}
+    </update>
+
+
+    <update id="update">
+        UPDATE ws_mcp_service_def
+        SET
+        <if test="functionApplicationName != null">
+            function_application_name = #{functionApplicationName},
+        </if>
+        <if test="name != null">
+            name = #{name},
+        </if>
+        <if test="nameEn != null">
+            name_en = #{nameEn},
+        </if>
+        <if test="description != null">
+            description = #{description},
+        </if>
+        <if test="descriptionEn != null">
+            description_en = #{descriptionEn},
+        </if>
+        <if test="serverConfig != null">
+            server_config = #{serverConfig},
+        </if>
+        <if test="fcInstanceStatus != null">
+            fc_instance_status = #{fcInstanceStatus},
+        </if>
+        <if test="orgType != null">
+            org_type = #{orgType},
+        </if>
+        <if test="icon != null">
+            icon = #{icon},
+        </if>
+        <if test="fcInstanceUrl != null">
+            fc_instance_url = #{fcInstanceUrl},
+        </if>
+        <if test="tools != null">
+            tools = #{tools},
+        </if>
+        <if test="readme != null">
+            readme = #{readme},
+        </if>
+        <if test="lastUpdatedDate != null">
+            last_updated_date = #{lastUpdatedDate},
+        </if>
+        <if test="failReason != null">
+            fail_reason = #{failReason},
+        </if>
+        <if test="authInfo != null">
+            auth_info = #{authInfo},
+        </if>
+        deleted = false
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateFcInstanceStatus">
+        UPDATE ws_mcp_service_def
+        SET fc_instance_status = #{status},
+            last_updated_date = #{lastUpdatedDate}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateStatus">
+        UPDATE ws_mcp_service_def
+        SET fc_instance_status = #{status},
+            last_updated_date = #{lastUpdatedDate}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateFcInstanceIdAndReadme">
+        UPDATE ws_mcp_service_def
+        SET fc_instance_id = #{fcInstanceId},
+            readme = #{readme},
+            last_updated_date = #{lastUpdatedDate}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateFcInstanceUrlAndStatus">
+        UPDATE ws_mcp_service_def
+        SET fc_instance_url = #{fcInstanceUrl},
+            fc_instance_status = #{fcInstanceStatus},
+            readme = #{readme},
+            last_updated_date = #{lastUpdatedDate},
+            tools = #{tools}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateTools">
+        UPDATE ws_mcp_service_def
+        SET tools = #{tools},
+            last_updated_date = #{lastUpdatedDate}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateToolsAndStatus">
+        UPDATE ws_mcp_service_def
+        SET tools = #{tools},
+            last_updated_date = #{lastUpdatedDate},
+            fc_instance_status = #{fcInstanceStatus}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateFcInstanceInfo">
+        UPDATE ws_mcp_service_def
+        SET fc_instance_url = #{fcInstanceUrl},
+            fc_instance_id = #{fcInstanceId},
+            apig_group_id = #{apigGroupId},
+            apig_instance_id = #{apigInstanceId},
+            function_name = #{functionName},
+            function_urn = #{functionUrn},
+            domain_id = #{domainId},
+            fc_instance_status = 'success'
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateAuthInfo">
+        UPDATE ws_mcp_service_def
+        SET auth_info = #{authInfo},
+            last_updated_date = #{lastUpdatedDate},
+            fail_reason = #{entity.failReason},
+            fc_instance_status = #{fcInstanceStatus}
+        where id = #{id}
+    </update>
+
+    <update id="updateFcInstanceInfo2">
+        UPDATE ws_mcp_service_def
+        SET fc_instance_url = #{fcInstanceUrl},
+            apig_group_id = #{apigGroupId},
+            apig_instance_id = #{apigInstanceId},
+            function_name = #{functionName},
+            function_urn = #{functionUrn},
+            domain_id = #{domainId},
+            fc_instance_status = #{fcInstanceStatus},
+            fc_instance_id = #{fcInstanceId},
+            function_application_name = #{functionApplicationName}
+        WHERE id = #{id}
+    </update>
+
+    <update id="markAsDeleted">
+        UPDATE ws_mcp_service_def
+        SET fc_instance_status = 'deleted',
+            deleted = true,
+            last_updated_date = #{lastUpdatedDate}
+        WHERE id = #{id}
+          AND tenant_id = #{tenantId}
+          AND dept_code = #{deptCode}
+    </update>
+
+    <update id="updateById" parameterType="map">
+        UPDATE ws_mcp_service_def
+        <set>
+            <if test="entity.functionApplicationName != null">
+                function_application_name = #{entity.functionApplicationName},
+            </if>
+            <if test="entity.name != null">
+                name = #{entity.name},
+            </if>
+            <if test="entity.nameEn != null">
+                name_en = #{entity.nameEn},
+            </if>
+            <if test="entity.description != null">
+                description = #{entity.description},
+            </if>
+            <if test="entity.descriptionEn != null">
+                description_en = #{entity.descriptionEn},
+            </if>
+            <if test="entity.serverConfig != null">
+                server_config = #{entity.serverConfig},
+            </if>
+            <if test="entity.fcInstanceStatus != null">
+                fc_instance_status = #{entity.fcInstanceStatus},
+            </if>
+            <if test="entity.orgType != null">
+                org_type = #{entity.orgType},
+            </if>
+            <if test="entity.icon != null">
+                icon = #{entity.icon},
+            </if>
+            <if test="entity.fcInstanceUrl != null">
+                fc_instance_url = #{entity.fcInstanceUrl},
+            </if>
+            <if test="entity.tools != null">
+                tools = #{entity.tools},
+            </if>
+            <if test="entity.readme != null">
+                readme = #{entity.readme},
+            </if>
+            <if test="entity.failReason != null">
+                fail_reason = #{entity.failReason}
+            </if>
+        </set>
+        WHERE id = #{mcpId}
+    </update>
+
+    <select id="selectByIds" resultMap="mcpServerEntity">
+        SELECT *
+        FROM ws_mcp_service_def
+        WHERE 1=1
+        <if test="ids != null and ids.size() > 0">
+            AND id IN
+            <foreach item="id" collection="ids" open="(" separator="," close=")">
+                #{id, jdbcType=VARCHAR}
+            </foreach>
+        </if>
+    </select>
+
+    <select id="selectByIdsAndWorkspace" resultMap="mcpServerEntity">
+        SELECT *
+        FROM ws_mcp_service_def
+        WHERE 1=1
+        <if test="ids != null and ids.size() > 0">
+            AND id IN
+            <foreach item="id" collection="ids" open="(" separator="," close=")">
+                #{id, jdbcType=VARCHAR}
+            </foreach>
+        </if>
+        AND project_id = #{projectId}
+        AND workspace_id = #{workspaceId}
+    </select>
+
+    <select id="selectByPrimaryKey" resultMap="mcpServerEntity">
+        SELECT *
+        FROM ws_mcp_service_def
+        WHERE id = #{id}
+        <if test="workspaceId != null">
+            and workspace_id =#{workspaceId}
+        </if>
+    </select>
+
+
+    <select id="selectServiceWithPage" resultMap="mcpServerEntity">
+        SELECT *
+        FROM ws_mcp_service_def
+        WHERE deleted = false
+        <if test="workspaceId != null">
+            and workspace_id =#{workspaceId}
+        </if>
+
+        <if test="tenantId != null">
+            AND tenant_id = #{tenantId}
+        </if>
+        <if test="deptCode != null">
+            AND dept_code = #{deptCode}
+        </if>
+        <if test="nameEn != null">
+            AND name_en like CONCAT('%', #{nameEn}, '%')
+        </if>
+        <if test="name != null">
+            AND name like CONCAT('%', #{name}, '%')
+        </if>
+        <if test="orgType != null">
+            AND org_type = #{orgType}
+        </if>
+        <if test="fcInstanceStatus != null">
+            AND fc_instance_status = #{fcInstanceStatus}
+        </if>
+        ORDER BY last_updated_date DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="selectVisibilityServiceWithPage" resultMap="mcpServerEntity">
+        SELECT *
+        FROM ws_mcp_service_def
+        <where>
+            <trim prefix="(" suffix=")" prefixOverrides="OR">
+                <if test="visibility == 'global'">
+                    OR visibility = 'global'
+                </if>
+                <if test="workspaceId != null">
+                    OR (visibility = 'user' AND workspace_id = #{workspaceId})
+                </if>
+                <if test="workspaceId != null">
+                    OR (visibility = 'workspace' AND workspace_id = #{workspaceId})
+                </if>
+                <if test="workspaceId == null">
+                    OR (visibility = 'workspace')
+                </if>
+            </trim>
+            <if test="deptCode != null">
+                AND dept_code = #{deptCode}
+            </if>
+            <if test="nameEn != null">
+                AND name_en LIKE CONCAT('%', #{nameEn}, '%')
+            </if>
+            <if test="name != null">
+                AND name LIKE CONCAT('%', #{name}, '%')
+            </if>
+            <if test="orgType != null">
+                AND org_type = #{orgType}
+            </if>
+            <if test="fcInstanceStatus != null">
+                AND fc_instance_status = #{fcInstanceStatus}
+            </if>
+            <if test="nodeType != null">
+                AND node_type = #{nodeType}
+            </if>
+            AND deleted = false
+        </where>
+        ORDER BY last_updated_date DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="selectServiceWithPageCount" resultType="java.lang.Long">
+        SELECT count(*) as total
+        FROM ws_mcp_service_def
+        <where>
+            <trim prefix="(" suffix=")" prefixOverrides="OR">
+                <if test="visibility == 'global'">
+                    OR visibility = 'global'
+                </if>
+                <if test="workspaceId != null">
+                    OR (visibility = 'workspace' AND workspace_id = #{workspaceId})
+                </if>
+                <if test="workspaceId != null">
+                    OR (visibility = 'user' AND workspace_id = #{workspaceId})
+                </if>
+                <if test="workspaceId == null">
+                    OR (visibility = 'workspace')
+                </if>
+            </trim>
+            <if test="deptCode != null">
+                AND dept_code = #{deptCode}
+            </if>
+            <if test="nameEn != null">
+                AND name_en like CONCAT('%', #{nameEn}, '%')
+            </if>
+            <if test="name != null">
+                AND name like CONCAT('%', #{name}, '%')
+            </if>
+            <if test="orgType != null">
+                AND org_type = #{orgType}
+            </if>
+            <if test="fcInstanceStatus != null">
+                AND fc_instance_status = #{fcInstanceStatus}
+            </if>
+            <if test="nodeType != null">
+                AND node_type = #{nodeType}
+            </if>
+            AND deleted = false
+        </where>
+    </select>
+
+    <select id="selectByIdAndWorkspaceId"
+            resultType="com.openjiuwen.studio.agent.manager.entity.McpServiceEntity">
+        SELECT *
+        FROM ws_mcp_service_def
+        WHERE id = #{mcpId}
+          AND workspace_id = #{workspaceId}
+    </select>
+
+    <select id="selectByTraceIdAndWorkspaceId"
+            resultType="com.openjiuwen.studio.agent.manager.entity.McpServiceEntity">
+        SELECT *
+        FROM ws_mcp_service_def
+        WHERE trace_id = #{traceId}
+          AND workspace_id = #{workspaceId}
+          AND project_id = #{projectId}
+          AND deleted = 0
+    </select>
+
+    <select id="batchInsert">
+        insert into ws_mcp_service_def (
+        id,
+        name,
+        name_en,
+        description,
+        description_en,
+        fc_instance_url,
+        fc_instance_id,
+        fc_instance_status,
+        fc_region,
+        apig_group_id,
+        apig_instance_id,
+        deleted,
+        tenant_id,
+        dept_code,
+        created_date,
+        created_by_user_id,
+        last_updated_date,
+        last_updated_by_user_id,
+        readme,
+        server_config,
+        tools,
+        deploy_type,
+        org_type,
+        function_name,
+        server_id,
+        function_urn,
+        function_application_name,
+        domain_id,
+        unique_code,
+        project_id,
+        workspace_id,
+        icon,
+        trace_id,
+        visibility,
+        node_type,
+        auth_type,
+        fail_reason
+        ) values
+        <foreach collection="list" item="item" separator=",">
+            (
+            #{item.id},
+            #{item.name},
+            #{item.nameEn},
+            #{item.description},
+            #{item.descriptionEn},
+            #{item.fcInstanceUrl},
+            #{item.fcInstanceId},
+            #{item.fcInstanceStatus},
+            #{item.fcRegion},
+            #{item.apigGroupId},
+            #{item.apigInstanceId},
+            #{item.deleted},
+            #{item.tenantId},
+            #{item.deptCode},
+            #{item.createdDate},
+            #{item.createdByUserId},
+            #{item.lastUpdatedDate},
+            #{item.lastUpdatedByUserId},
+            #{item.readme},
+            #{item.readmeEn},
+            #{item.serverConfig},
+            #{item.tools},
+            #{item.deployType},
+            #{item.orgType},
+            #{item.functionName},
+            #{item.serverId},
+            #{item.functionUrn},
+            #{item.functionApplicationName},
+            #{item.domainId},
+            #{item.uniqueCode},
+            #{item.projectId},
+            #{item.workspaceId},
+            #{item.icon},
+            #{item.traceId},
+            #{item.visibility},
+            #{item.nodeType},
+            #{item.authType},
+            #{item.failReason}
+            )
+        </foreach>
+    </select>
+
+    <select id="selectIdsToBeHardDeleted" resultType="string">
+        SELECT id
+        FROM ws_mcp_service_def
+        WHERE deleted = true
+          AND fc_instance_status = #{fcInstanceStatus}
+          AND last_updated_date &lt;= #{lastUpdatedDate}
+    </select>
+
+    <delete id="hardDeleteService">
+        DELETE FROM ws_mcp_service_def
+        WHERE id IN
+        <foreach item="id" collection="ids" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <delete id="hardDeleteSingleService">
+        DELETE FROM ws_mcp_service_def
+        WHERE id = #{id}
+          AND tenant_id = #{tenantId}
+          And dept_code = #{deptCode}
+    </delete>
+
+    <update id="updateStatusWithReason">
+        UPDATE ws_mcp_service_def
+        SET fc_instance_status = #{status},
+            fail_reason = #{failReason},
+            last_updated_date = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+          AND tenant_id = #{tenantId}
+    </update>
+
+
+    <update id="updateMcpShareStatus">
+        update ws_mcp_service_def
+        set is_share = #{status,jdbcType=TINYINT}
+        where id = #{id,jdbcType=VARCHAR}
+    </update>
+
+
+    <select id="listMcpServiceByIdAndProjectId" resultMap="mcpServerEntity">
+        SELECT *
+        FROM ws_mcp_service_def
+        <where>
+            id IN
+            <foreach item="id" collection="ids" open="(" separator="," close=")">
+                #{id}
+            </foreach>
+            AND project_id = #{projectId, jdbcType=VARCHAR}
+            AND deleted = false;
+        </where>
+    </select>
+
+    <select id="listMcpServiceByShareResourceEntity" resultMap="mcpServerEntity">
+        SELECT *
+        FROM ws_mcp_service_def w
+        where
+            deleted = false AND
+            (w.workspace_id, w.project_id, w.id) IN
+            <foreach collection="list" item="item" open="(" separator="," close=")">
+                (#{item.workspaceId},#{item.projectId},#{item.resourceId})
+            </foreach>
+    </select>
+</mapper>

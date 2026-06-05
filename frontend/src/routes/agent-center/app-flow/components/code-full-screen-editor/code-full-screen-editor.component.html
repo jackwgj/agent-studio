@@ -1,0 +1,16 @@
+<div class="full-screen-json-input" *ngIf="isFullScreen">
+  <div class="top-header">
+    <div class="top-title">{{ 'codefullscreeneditorcomponent_274'| i18nextEager }}</div>
+    <div>
+      <span nz-icon nzType="close" nzTheme="outline" (click)="closeScreen()" class="top-icon cursor-pointer"></span>
+    </div>
+  </div>
+  <div class="json-border">
+    <ngx-monaco-editor
+      #jsonEditor
+      [options]="editorOptions"
+      [(ngModel)]="code"
+      [ngModelOptions]="{ standalone: true }"
+    ></ngx-monaco-editor>
+  </div>
+</div>

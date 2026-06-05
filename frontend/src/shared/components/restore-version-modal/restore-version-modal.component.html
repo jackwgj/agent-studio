@@ -1,0 +1,15 @@
+<div>
+  <div class="flex items-center gap-[10px]">
+    <img alt="" [src]="changeUrl('assets/prompt/alert.svg')" />
+    {{ 'restore_version_warn' | i18nextEager }}
+  </div>
+</div>
+<div>
+  <div class="text-[#808080] mt-2">{{ type === 'agent' ? ('restore_version_tip' | i18nextEager ) : ('restore_version_tip1' | i18nextEager) }}</div>
+</div>
+<div class="btn-group flex justify-end gap-2 mt-4">
+  <button type="button" nz-button (click)="dismiss()">{{ 'cancel' | i18nextEager }}</button>
+  <button type="button" nz-button nzType="primary" (click)="restoreVersion()">
+    {{ 'ok' | i18nextEager }}
+  </button>
+</div>

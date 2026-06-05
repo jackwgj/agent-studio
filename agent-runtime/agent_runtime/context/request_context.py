@@ -1,0 +1,28 @@
+#!/usr/bin/env python
+# -*- coding: UTF-8 -*-
+# Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
+
+"""
+请求级上下文 — 透传 HTTP 请求头和请求级参数到深层调用栈
+
+使用 contextvars 实现协程安全的请求作用域存储。
+"""
+
+from contextvars import ContextVar
+from dataclasses import dataclass, field
+
+
+@dataclass
+class RequestContext:
+    """请求级上下文 — 所有需要透传到深层的参数集中管理"""
+
+    headers: dict = field(default_factory=dict)
+    user_id: str = ""
+    conversation_id: str = ""
+    execution_id: str = ""
+    request_id: str = ""
+
+
+_request_ctx: ContextVar[RequestContext] = ContextVar(
+    "request_ctx", default=RequestContext()
+)

@@ -1,0 +1,12 @@
+{
+  "instructions": "测试agent指令",
+  "model_config": {
+    "top_p": 0.1,
+    "temperature": 0.1
+  },
+  "knowledge_retrieve_policy": {
+    "top_k": 1,
+    "recall_threshold": 0.7
+  },
+  "knowledge_repos": ["test_lakeSearch_knowledge_repo_id"]
+}

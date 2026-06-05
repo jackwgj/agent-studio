@@ -1,0 +1,20 @@
+sub_question_and_keyword:
+  description: "template for research"
+
+reference_digest:
+  description: "template for research"
+
+sort_chapter_list:
+  description: "template for research"
+
+sub_task_sum:
+  description: "template for research"
+
+output_report:
+  description: "template for research"
+
+answer_assemble:
+  description: "template for research"
+
+gen_keyword_by_sub_question:
+  description: "template for research"

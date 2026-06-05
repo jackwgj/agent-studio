@@ -1,0 +1,75 @@
+#image-uploader {
+  position: relative;
+  width: 64px;
+  height: 64px;
+
+  .upload-area {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 100%;
+    background-color: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: border-color 0.3s;
+  }
+
+  .file-input {
+    display: none;
+  }
+
+  .preview-container {
+    position: relative;
+    height: 100%;
+    width: 100%;
+    cursor: pointer;
+  }
+
+  .preview-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 8px;
+    transition: opacity 0.3s;
+  }
+
+  .preview-container:hover .preview-image {
+    opacity: 0.8;
+  }
+
+  .delete-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+  }
+
+  .delete-icon {
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: transform 0.2s;
+  }
+
+  .upload-status {
+    margin-top: 10px;
+    color: #666;
+  }
+}
+
+.upload-tip {
+  margin-top: 8px;
+  color: #808080;
+}

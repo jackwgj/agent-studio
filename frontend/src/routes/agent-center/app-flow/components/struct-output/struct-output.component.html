@@ -1,0 +1,75 @@
+<div class="my-[16px] h-[1px] w-full bg-[#f0f0f0]"></div>
+<div class="flex w-full flex-col mb-4">
+  <!-- 出入参配置表格 -->
+  <meta-acc-block
+    class="block w-[calc(100%-8px)]"
+  >
+    <ng-template #blockTitle>
+      <div class="flex items-center gap-2 font-bold">
+            <span class="font-bold">{{
+                'codefullscreeneditorcomponent_274' | i18nextEager
+              }}</span>
+      </div>
+    </ng-template>
+    <ng-template #right>
+      <div class="flex items-center">
+        <nz-switch
+          [(ngModel)]="structEnable"
+          (ngModelChange)="switchStructEnable($event)"
+        ></nz-switch>
+        <div
+          nz-tooltip
+          [nzTooltipTitle]="'exceptionmodalcomponent_337' | i18nextEager"
+          (click)="openFullScreen()"
+          class="icon-border"
+          [ngClass]="structEnable?'upload-enable':'upload-disabled'"
+        >
+          <div class="upload-icon"></div>
+        </div>
+      </div>
+
+    </ng-template>
+    <ng-template #content>
+      <div [hidden]="!structEnable">
+
+        <div class="mt-3 exception-code">
+
+          <form class="mt-[8px] w-full" #contentForm="ngForm">
+            <div
+              class="w-full rounded-[6px] border-[1px] border-solid border-[#ccc]"
+            >
+              <div
+                class="h-[320px] rounded-[6px] w-full bg-white py-[10px] pr-[10px]"
+              >
+                <form #contentForm="ngForm" class="h-full">
+                  <ngx-monaco-editor
+                    #editorCmp
+                    [(ngModel)]="struct_output_template"
+                    objTypeValidator
+                    nonEmptyValidator
+                    [options]="editorOps"
+                    name="template"
+                    (ngModelChange)="handelChange()"
+                  ></ngx-monaco-editor>
+                </form>
+              </div>
+            </div>
+
+            <nz-form-control *ngIf="getContentError()" class="mt-[8px] w-full text-[#f23030]">
+              <span class="text-[#f23030]">{{ getContentError() }}</span>
+            </nz-form-control>
+            <div *ngIf="!getContentError()" class="mt-[8px] h-[18px] w-full"></div>
+          </form>
+        </div>
+      </div>
+
+    </ng-template>
+
+    <ng-template #right>
+      <div class="flex items-center justify-center">
+
+      </div>
+    </ng-template>
+  </meta-acc-block>
+</div>
+<code-full-screen-editor [(code)]="struct_output_template" [(isFullScreen)]="isFullScreen" (codeChange)="handelChange()"></code-full-screen-editor>

@@ -1,0 +1,64 @@
+/*
+ *  Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
+ */
+
+package com.openjiuwen.studio.agent.runtime.service.knowledgerepo.connection;
+
+
+import com.openjiuwen.studio.agent.common.dto.knowledge.KooSearchAuthMode;
+import com.openjiuwen.studio.agent.common.enums.StudioError;
+import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
+
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+
+import java.util.Locale;
+import java.util.Objects;
+
+@Data
+@EqualsAndHashCode(callSuper = false)
+public class KooSearchConnection extends KnowledgeSourceConnection {
+
+    private String authMode;
+
+    private String applicationId;
+
+    private String userName;
+
+    private String appCode;
+
+    // 加密后的值
+    private String userPassword;
+
+    private String domainName;
+
+    private String projectName;
+
+    private String projectId;
+
+    private boolean ocrEnable = false;
+
+    public boolean isValid() {
+        Objects.requireNonNull(super.getEndpoint(), "endpoint should not be null");
+        Objects.requireNonNull(this.applicationId, "applicationId should not be null");
+        Objects.requireNonNull(this.projectId, "domainName should not be null");
+        KooSearchAuthMode kooSearchAuthMode = KooSearchAuthMode.valueOf(authMode.toUpperCase(Locale.ENGLISH));
+        switch (kooSearchAuthMode) {
+            case NONE -> {
+                return true;
+            }
+            case TOKEN -> {
+                Objects.requireNonNull(this.userName, "userName should not be null");
+                Objects.requireNonNull(this.userPassword, "userPassword should not be null");
+                Objects.requireNonNull(this.domainName, "domainName should not be null");
+                Objects.requireNonNull(this.projectName, "domainName should not be null");
+                return true;
+            }
+            case APP_CODE -> {
+                Objects.requireNonNull(this.appCode, "appCode should not be null");
+                return true;
+            }
+        }
+        throw new AgentStudioException(StudioError.KOO_SEARCH_AUTH_MODE_ERROR);
+    }
+}

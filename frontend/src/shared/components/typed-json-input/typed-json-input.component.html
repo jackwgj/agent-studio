@@ -1,0 +1,39 @@
+<div
+  *ngIf="param.value.type === 'literal' && isArrOrObj(param.type)"
+  class="flex flex-col gap-2"
+>
+  <div
+    class="json-input"
+    [ngClass]="{
+      'error-input': !param?.value?.content && param.required && isValidated
+    }"
+  >
+    <asset-json-input-icon></asset-json-input-icon>
+    <span
+      class="text-[#1476FF]"
+      *ngIf="!param?.value?.content; else displayStr"
+    >
+      {{ 'json_input' | i18nextEager }}
+    </span>
+    <ng-template #displayStr>
+      <span class="overflow-hidden text-ellipsis whitespace-nowrap">
+        {{ formatText(param.value.content) }}
+      </span>
+    </ng-template>
+
+    <meta-set-default
+      class="json-tip"
+      [param]="field2View(param)"
+      [isShowDesc]="false"
+      (changeParam)="changeParam()"
+      [host]="'json-input'"
+    />
+  </div>
+  <div
+    *ngIf="!param?.value?.content && param.required && isValidated"
+    class="flex items-center gap-1 text-[#F23030]"
+  >
+    <nz-icon nzType="close-circle" nzTheme="outline" class="text-base" />
+    <span>{{ 'input_cannot_be_empty' | i18nextEager }}</span>
+  </div>
+</div>

@@ -1,0 +1,1 @@
+delete from t_router_strategy where id = 'f8cc4eaa-fb1a-445c-a8a9-d1ab0655d03a';

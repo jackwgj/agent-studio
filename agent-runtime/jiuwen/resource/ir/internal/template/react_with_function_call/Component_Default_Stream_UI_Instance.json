@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "0.5",
+  "id": "OUTPUT_710d6f5a21",
+  "type": "jiuwen.DefaultUIComponent",
+  "typeVersion": "1.0.1",
+  "inputs": {
+    "actionName": "",
+    "displayText": null,
+    "ttsText": null,
+    "cardInfo": "",
+    "chipsInfo": null,
+    "streamInfo": null,
+    "commandInfo": ""
+  },
+  "outputs": {},
+  "configs": {
+    "templates": [
+      {
+        "actionName": "defaultStream",
+        "label": "流式默认模板",
+        "actionTemplate": "xxxx"
+      }
+    ]
+  }
+}

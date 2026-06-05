@@ -1,0 +1,27 @@
+{
+  "type": "jiuwen.planner.components.plan_modules.should_continue:ShouldContinue",
+  "version": "1.0.1",
+  "schemaVersion": "0.5",
+  "classInfo": {
+    "modulePath": "jiuwen.planner.components.plan_modules.should_continue",
+    "className": "ShouldContinue",
+    "programLanguage": "python",
+    "filePath": "jiuwen/planner/components/planning_modules/should_continue.pyc"
+  },
+  "description": "判断是否继续规划",
+  "inputs": [
+    {
+      "id": "result",
+      "description": "插件执行结果的返回体",
+      "type": "Map<String, T>"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "judge_res",
+      "description": "判断是否继续规划的结果",
+      "type": "String"
+    }
+  ],
+  "configs": []
+}

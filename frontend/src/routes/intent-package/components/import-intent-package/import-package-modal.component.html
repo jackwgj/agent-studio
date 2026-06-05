@@ -1,0 +1,65 @@
+<nz-spin [nzSpinning]="isLoading">
+  <div #importRef class="import-modal-container">
+    <div class="header pb-[24px]">
+      <div class="wrapper flex flex-col gap-[16px]">
+        <div class="text-[18px] font-semibold">
+          {{ 'import_package' | i18nextEager }}
+        </div>
+      </div>
+    </div>
+
+    <div class="main-container">
+      <div class="mb-[16px] flex rounded-lg bg-[#deecff] pb-[8px] pl-[16px] pr-[16px] pt-[8px]">
+        <div class="mr-[6px] pt-[2px]">
+          <nz-icon nzType="info-circle" nzTheme="fill" class="tip-icon text-[#1476ff] text-[14px]"></nz-icon>
+        </div>
+        <div class="text-[12px] leading-[18px] text-[#191919]">
+          <p>{{ 'import_intent_pkg_desc_1' | i18nextEager }}</p>
+          <p>
+            {{ 'import_intent_pkg_desc_2' | i18nextEager }}
+            <span class="download" (click)="downloadTemplate()">
+              {{ 'download_template' | i18nextEager }}
+            </span>
+          </p>
+        </div>
+      </div>
+      <div>
+        <input
+          type="file"
+          #fileInput
+          multiple="multiple"
+          class="hidden"
+          accept=".xlsx"
+          (change)="onUploadFile($event)"
+        />
+        <button nz-button nzType="default" (click)="uploadIntent()">
+          {{ 'add_file' | i18nextEager }}
+        </button>
+        <div
+          *ngIf="uplaodFile.file"
+          class="mb-[16px] mt-[16px] flex w-full items-center justify-between pr-[20px]"
+        >
+          <span class="flex flex-1 items-center pr-[10px] truncate">
+            <img
+              class="mb-[2px] mr-[6px] w-[12px]"
+              [src]="changeUrl('assets/icons/file.svg')"
+              alt=""
+            />
+            <span class="text-[12px] leading-[18px] text-[#595959] truncate">{{
+                uplaodFile.name
+              }}</span>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer flex justify-end gap-2 mt-[24px]">
+      <button nz-button nzType="default" (click)="dismiss()">
+        {{ 'cancel' | i18nextEager }}
+      </button>
+      <button nz-button nzType="primary" nzDanger (click)="importIntent()" [disabled]="!uplaodFile.file">
+        {{ 'import' | i18nextEager }}
+      </button>
+    </div>
+  </div>
+</nz-spin>

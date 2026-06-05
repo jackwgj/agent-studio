@@ -1,0 +1,14 @@
+<nz-tree [nzData]="treeData" (nzClick)="onSelect($event)" [nzTreeTemplate]="nzTreeTemplate">
+  <ng-template #nzTreeTemplate let-node let-i="index">
+    @if (node.isDir) {
+      @if (node.expanded) {
+        <custom-editor-icon [name]="'folder-fold'"></custom-editor-icon>
+      } @else {
+        <custom-editor-icon [name]="'folder'"></custom-editor-icon>
+      }
+    } @else {
+      <custom-editor-icon [name]="node.fileIcon"></custom-editor-icon>
+    }
+    <span class="tree-node-label">{{ node.label }}</span>
+  </ng-template>
+</nz-tree>

@@ -1,0 +1,176 @@
+<div class="modal-header">
+  <div style="height: 24px;font-size: 18px;margin-bottom: 8px">
+    <span>{{ 'add_workflow' | i18nextEager }}</span>
+  </div>
+</div>
+<div class="modal-body">
+  <nz-tabset class="w-full" id="app-center-tabs" [(nzSelectedIndex)]="activeTabIndex" (nzSelectedIndexChange)="onTabIndexChange($event)">
+    <nz-tab *ngFor="let tab of addTypeOptions; let i = index" [nzTitle]="tab.title">
+    </nz-tab>
+  </nz-tabset>
+  <div class="tip-title mt-2" *ngIf="!isAgentPage">
+    {{ 'addchildflowmodalcomponent_245'| i18nextEager }}
+  </div>
+  <div class="flex w-full items-center gap-2 mt-2">
+    <input
+      nz-input
+      class="!w-full workflow-searchbox"
+      [placeholder]="'search_placeholder'|i18nextEager"
+      [(ngModel)]="searchKey"
+      (ngModelChange)="search_fn()"
+    />
+    <button
+      (click)="search_fn()"
+      class="h-8 w-8"
+      nz-button
+      [nzType]="'default'"
+    >
+      <span nz-icon nzType="reload"></span>
+    </button>
+  </div>
+  <nz-spin class="flex h-[calc(100%-40px)] w-full items-center justify-center" *ngIf="isLoading">
+  </nz-spin>
+  <div
+    *ngIf="!isLoading"
+    class="mt-[16px] flex flex-col gap-[24px]" [class]="!workflows.length ? 'no-data-page' : ''"
+  >
+    <div *ngIf="workflows.length" class="cards-wrapper">
+      <div class="card" *ngFor="let workflow of workflows;"  [class.card-selected]="workflow.workflow_id === agentSingleSelect?.workflow_id" [ngClass]="{'share-card': isShareTab}" (click)="changeSelectCard(workflow)" >
+        <div class="flex-content">
+          <img
+            class="img-border"
+            [src]="getCardIcon(workflow)"
+            alt="api"
+          />
+          <div class="w-[calc(100%-112px)]">
+            <div class="flex items-center gap-[8px]">
+              <div
+                nz-tooltip
+                [nzTooltipTitle]="workflow.name"
+                [ngStyle]="{
+                        'max-width': 'calc(100% - 48px)',
+                        'overflow': 'hidden',
+                        'white-space': 'nowrap',
+                        'text-overflow': 'ellipsis'
+                      }"
+                class="text-sm font-bold text-label"
+              >
+                {{ workflow.name }}
+              </div>
+              <div
+                class="rounded-[6px] bg-[#deecff] px-[4px] leading-[18px] text-[#1476ff]"
+                *ngIf="addedNumMap[workflow.workflow_id]"
+              >
+                {{ addedNumMap[workflow.workflow_id] }}{{ 'number' | i18nextEager }}
+              </div>
+            </div>
+            <div class="flow-tag">
+              {{ getWorkflowType(workflow.type) }}
+            </div>
+          </div>
+          <span nz-tooltip [nzTooltipTitle]="disabledTip(workflow)">
+            <button
+              *ngIf="!isAgentPage"
+              (click)="addWorkflow($event, workflow)"
+              nz-button
+              [nzType]="'default'"
+              [disabled]="isDisabled(workflow) || clicked"
+            >
+              <span nz-icon nzType="plus"></span>
+            </button>
+          </span>
+            <div class="right-area"  *ngIf="isAgentPage && !isAgentSingle">
+              <button *ngIf="!isAddOrReduceIcon(workflow)" nz-button [nzType]="'default'" (click)="handleIconClick('add', workflow, $event)" [disabled]="workflowSelected.length > workflowSelectedLimit">
+                <span nz-icon nzType="plus-circle" class="add-icon"></span>
+              </button>
+              <button *ngIf="isAddOrReduceIcon(workflow)" nz-button [nzType]="'default'" (click)="handleIconClick('reduce', workflow, $event)">
+                <span nz-icon nzType="minus-circle" class="reduce-icon"></span>
+            </button>
+            </div>
+            <div class="right-area"  *ngIf="isAgentPage && isAgentSingle"></div>
+        </div>
+        <div *ngIf="!isShareTab" >
+          <span class="w-[80%] mt-3 block" nz-tooltip [nzTooltipTitle]="workflow.description" [ngStyle]="{'overflow': 'hidden', 'white-space': 'nowrap', 'text-overflow': 'ellipsis', 'display': 'block'}">
+            {{workflow.description}}
+          </span>
+        </div>
+        <div class="text-[#808080] mt-3"  *ngIf="isShareTab" >
+          <div>
+            <span class="w-full" nz-tooltip [nzTooltipTitle]="workflow.description">  {{workflow.description}}</span>
+          </div>
+          <div class="flex items-center">
+            <span nz-icon nzType="user" class="mr-1 !text-[16px]"></span>
+             <span class="max-w-[50px]" nz-tooltip [nzTooltipTitle]="workflow.workspace_name || workflow.workspace_id" [ngStyle]="{'overflow': 'hidden', 'white-space': 'nowrap', 'text-overflow': 'ellipsis', 'display': 'block'}">
+              {{workflow.workspace_name || workflow.workspace_id}}
+             </span>
+             <span *ngIf="workflow.version_info_list?.length" class="pl-2 pr-2">|</span>
+             <div *ngIf="workflow.version_info_list?.length" class="version-info-list-div">
+              {{'version_name'|i18nextEager}}:
+                <nz-select
+                  [nzOptions]="workflow.version_info_list"
+                  [nzBorderless]="true"
+                  class="!max-w-[125px]"
+                  [ngClass]="{'!max-w-[94px]': !isZH}"
+                  [nzDropdownMatchSelectWidth]="false"
+                  (click)="visionClick($event)"
+                  [(ngModel)]="workflow.version_id"
+                  [nzPlaceHolder]="'select_placeholder'|i18nextEager"
+                ></nz-select>
+              </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <div
+      *ngIf="!workflows.length"
+      class="flex w-full h-full items-center justify-center"
+    >
+    <app-new-common-no-data-with-btn
+    *ngIf="!isShareTab"
+    [type]="!searchKey ? 'noData' : 'filterNoData'"
+    [tutorialType]="'workflow'"
+    [noDataBtnStr]="noDataBtnStr"
+    (create)="createWorkflow()"
+    (clear)="handleClickClearSearch()"
+      />
+      <app-new-common-no-data-with-btn
+      *ngIf="isShareTab"
+      [type]="!searchKey ? 'noData' : 'filterNoData'"
+      [firstLineData]="'no_data' | i18nextEager"
+      [noDataBtnStr]="''"
+      (clear)="handleClickClearSearch()"
+    />
+    </div>
+  </div>
+
+    <div class="flex items-center justify-between text-[14px]" *ngIf="workflows.length">
+      <div class="page-div">
+        <div class="page-div-span"> {{ ('count_num' | i18nextEager)+totalNumber }}</div>
+        <div  class="page-div-select" *ngIf="!isAgentSingle"> {{ ('select_num' | i18nextEager)+addedCnt }}</div>
+      </div>
+      <nz-pagination
+        class="!w-fit mt-2"
+        [(nzPageIndex)]="currentPage"
+        [nzTotal]="totalNumber"
+        nzSize="small"
+        (nzPageIndexChange)="pageChange()"
+      ></nz-pagination>
+    </div>
+</div>
+<div class="modal-footer flex justify-end mt-4" *ngIf="isAgentPage">
+  <ng-container>
+    <button nz-button id="cancel" (click)="dismiss()">
+      {{ 'cancel' | i18nextEager }}
+    </button>
+    <button
+      nz-button
+      style="margin-left: 8px"
+      nzType="primary"
+      (click)="submit()"
+      [disabled]="!workflows.length || ( isAgentPage && !isAgentSingle && workflowSelected.length > workflowSelectedLimit) || (isAgentPage && isAgentSingle && !agentSingleSelect)"
+    >
+      {{ 'ok' | i18nextEager }}
+    </button>
+  </ng-container>
+</div>

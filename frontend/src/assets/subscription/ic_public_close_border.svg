@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="40" height="40" viewBox="0 0 48 48" fill="none" version="1.1" pluginData="%7B%22pluginID%22%3A%22mLPblskg8N2dCg5ADiieuw%22%2C%22key%22%3A%22__hiconInfo__%22%2C%22value%22%3A%22%7B%5C%22iconSize%5C%22%3A40%2C%5C%22defaultIconSize%5C%22%3A40%2C%5C%22storkeWidth%5C%22%3A2.4%2C%5C%22iconState%5C%22%3A%5C%22border%5C%22%2C%5C%22color1%5C%22%3A%5C%22%23191919%5C%22%2C%5C%22color2%5C%22%3A%5C%22%5C%22%2C%5C%22color3%5C%22%3A%5C%22%5C%22%2C%5C%22strokeWidth%5C%22%3A2.4%2C%5C%22model%5C%22%3A%5C%22border%5C%22%2C%5C%22type%5C%22%3A%5C%22iconPlus%5C%22%2C%5C%22version%5C%22%3A%5C%221.0.1%5C%22%2C%5C%22typeValue%5C%22%3A%5C%22universal%5C%22%2C%5C%22background%5C%22%3A%5C%22%5C%22%7D%22%7D">
+	<desc>
+			Created with Pixso.
+	</desc>
+	<defs>
+		<clipPath id="clip310_170">
+			<rect width="48.000000" height="48.000000" fill="white" fill-opacity="0"/>
+		</clipPath>
+		<clipPath id="clip310_169">
+			<rect width="48.000000" height="48.000000" fill="white" fill-opacity="0"/>
+		</clipPath>
+	</defs>
+	<rect width="48.000000" height="48.000000" fill="#FFFFFF" fill-opacity="0"/>
+	<g clip-path="url(#clip310_169)">
+		<g clip-path="url(#clip310_170)">
+			<path d="M0 23.98C0 20.23 -0.01 16.48 0 12.73C-0.01 10.91 0.22 9.1 0.66 7.35C1.64 3.62 4.06 1.41 7.79 0.56C9.64 0.16 11.56 -0.04 13.46 0C20.64 0 27.83 0 35.04 0C36.85 -0.01 38.66 0.19 40.43 0.62C44.26 1.54 46.56 3.98 47.43 7.79C47.83 9.6 48.01 11.44 47.99 13.29C47.99 20.56 47.99 27.83 47.99 35.08C48 36.89 47.8 38.69 47.37 40.44C46.43 44.27 44 46.54 40.18 47.42C38.31 47.83 36.41 48.02 34.51 47.99C27.35 47.99 20.18 47.99 13.03 47.99C11.2 48 9.37 47.79 7.6 47.37C3.75 46.45 1.43 44 0.56 40.16C0.12 38.21 0 36.27 0 34.29C0 30.86 0 27.41 0 23.98Z" fill="#FFFFFF" fill-opacity="0" fill-rule="evenodd"/>
+			<circle cx="24.000000" cy="24.000000" r="24.000000" fill="#FFFFFF" fill-opacity="0"/>
+		</g>
+		<path d="M5.57 5.57L42.42 42.42M42.42 5.57L5.57 42.42" stroke="#191919" stroke-opacity="1.000000" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+		<path d="M8.04 4.5C7.05 3.51 5.49 3.51 4.5 4.5C3.51 5.49 3.51 7.05 4.5 8.04L20.46 24L4.5 39.95C3.51 40.94 3.51 42.5 4.5 43.49C5.49 44.48 7.05 44.48 8.04 43.49L24 27.53L39.95 43.49C40.94 44.48 42.5 44.48 43.49 43.49C44.48 42.5 44.48 40.94 43.49 39.95L27.53 24L43.49 8.04C44.48 7.05 44.48 5.49 43.49 4.5C42.5 3.51 40.94 3.51 39.95 4.5L24 20.46L8.04 4.5Z" fill="#FFFFFF" fill-opacity="0" fill-rule="evenodd"/>
+	</g>
+</svg>

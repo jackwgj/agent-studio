@@ -1,0 +1,23 @@
+<svg width="16.000000" height="16.000000" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+	<desc>
+			Created with Pixso.
+	</desc>
+	<defs>
+		<clipPath id="clip88_102571">
+			<rect rx="3.553333" width="16.000000" height="16.000000" fill="white" fill-opacity="0"/>
+		</clipPath>
+	</defs>
+	<rect rx="3.553333" width="16.000000" height="16.000000" fill="#1476FF" fill-opacity="1.000000"/>
+	<g clip-path="url(#clip88_102571)">
+		<circle r="1.271125" transform="matrix(0.707107 0.707107 -0.707107 0.707107 8 3.57092)" fill="#FFFFFF" fill-opacity="1.000000"/>
+		<circle r="1.271125" transform="matrix(0.707107 0.707107 -0.707107 0.707107 5.78711 5.78333)" fill="#FFFFFF" fill-opacity="1.000000"/>
+		<circle r="0.971125" transform="matrix(0.707107 0.707107 -0.707107 0.707107 3.5752 7.99585)" stroke="#FFFFFF" stroke-opacity="1.000000" stroke-width="0.600000"/>
+		<circle r="1.271125" transform="matrix(0.707107 0.707107 -0.707107 0.707107 10.2129 5.78333)" fill="#FFFFFF" fill-opacity="1.000000"/>
+		<circle r="1.271125" transform="matrix(0.707107 0.707107 -0.707107 0.707107 8 7.99585)" fill="#FFFFFF" fill-opacity="1.000000"/>
+		<circle r="0.971125" transform="matrix(0.707107 0.707107 -0.707107 0.707107 5.78711 10.2083)" stroke="#FFFFFF" stroke-opacity="1.000000" stroke-width="0.600000"/>
+		<circle r="0.971125" transform="matrix(0.707107 0.707107 -0.707107 0.707107 12.4248 7.99585)" stroke="#FFFFFF" stroke-opacity="1.000000" stroke-width="0.600000"/>
+		<circle r="0.971125" transform="matrix(0.707107 0.707107 -0.707107 0.707107 10.2119 10.2084)" stroke="#FFFFFF" stroke-opacity="1.000000" stroke-width="0.600000"/>
+		<circle r="0.971125" transform="matrix(0.707107 0.707107 -0.707107 0.707107 8 12.4208)" stroke="#FFFFFF" stroke-opacity="1.000000" stroke-width="0.600000"/>
+		<path d="M5.84 5.84L8 7.99L10.15 5.84" stroke="#FFFFFF" stroke-opacity="1.000000" stroke-width="0.600000"/>
+	</g>
+</svg>

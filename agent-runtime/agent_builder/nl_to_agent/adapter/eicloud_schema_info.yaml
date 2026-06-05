@@ -1,0 +1,130 @@
+components: |
+  - **开始**("type": "Start")：工作流的起始节点，用于初始化流程。
+  - **结束**("type": "End")：工作流的结束节点。
+  - **大模型**("type": "LLM")：调用大语言模型的节点，根据入参和提示词生成回复。
+  - **意图识别**("type": "IntentDetection")：根据用户输入进行分类并控制流程走向不同分支进行处理。
+  - **提问器**("type": "Questioner")：通过与用户对话的方式完成预配置参数的提取。
+  - **代码**("type": "Code")：执行自定义python代码逻辑，无法完成主观任务。
+  - **插件**("type": "Plugin")：集成预置或自定义的第三方插件，完成特定功能。
+  - **消息**("type": "Message")：在工作流执行过程中输出指定内容，例如"正在执行中"等状态暂时或安抚语。
+  - **判断**("type": "Branch")：根据条件判断，决定工作流的执行路径。
+  - **循环**("type": "Loop")：循环执行循环体内的工作流，直到满足结束条件。
+  - **循环输入**("type": "LoopInput")：循环体内的开始节点，与循环节点配套使用。
+  - **循环输出**("type": "LoopOutput")：循环体内的结束节点，与循环节点配套使用。
+  - **变量赋值**("type": "SetVariable")：将工作流中的变量参数赋值到全局记忆变量。
+  - **工作流***("type": "Workflow")：将其他工作流作为一个节点集成到工作流中。
+  上述这些节点可以组合使用，以构建复杂的工作流，实现多种功能。
+examples: |
+  - 案例 1 智能客服流程
+    * 用户输入：搭建一个智能客服工作流，用户输入问题后判断用户意图。当用户希望退款时，通过大模型根据公司退款政策，为用户提供退款说明。当用户进行咨询时，通过大模型根据问题提供相关产品咨询回复。两者都不是的时候输出'抱歉，我暂时无法理解您的请求，请尝试使用更明确的描述'
+    * Mermaid格式的工作流任务流程图：
+    flowchart TD
+      A["开始：接收用户问题"] --> B{"用户意图?"}
+      B --> |"退款"| C["大模型：生成退款说明"]
+      B --> |"咨询"| D["大模型：产品咨询回复"]
+      B --> |"其他"| E["消息：抱歉，我暂时无法理解您的请求，请尝试使用更明确的描述"]
+      C --> F["结束：输出退款说明/产品咨询建议"]
+      D --> F
+      E --> F
+    * 生成结果：
+    ```json[{"id": "node_start", "type": "Start", "parameters": {"outputs": [{"name": "query", "type": "string", "description": "用户输入"}]}, "next": "node_intent_detection"}, {"id": "node_intent_detection", "type": "IntentDetection", "parameters": {"inputs": [{"name": "input", "type": "string", "value": "${node_start.query}"}], "configs": {"prompt": "你是一个功能分类器，可以根据用户的请求，结合相应的功能类别描述，帮助用户选择正确的分支"}, "conditions": [{"branch": "branch_1", "expression": "${node_intent_detection.rawOutput} contain 退款", "next": "node_refund_handler"}, {"branch": "branch_2", "expression": "${node_intent_detection.rawOutput} contain 咨询", "next": "node_consult_handler"}, {"branch": "branch_0", "expression": "default", "next": "node_unknown_handler"}]}}, {"id": "node_refund_handler", "type": "LLM", "parameters": {"inputs": [{"name": "input", "type": "string", "value": "${node_start.query}"}], "outputs": [{"name": "output", "type": "string", "description": "退款说明"}], "configs": {"system_prompt": "请根据公司退款政策，为用户提供退款说明。", "user_prompt": "用户诉求：{{input}}"}}, "next": "node_end"}, {"id": "node_consult_handler", "type": "LLM", "parameters": {"inputs": [{"name": "input", "type": "string", "value": "${node_start.query}"}], "outputs": [{"name": "output", "type": "string", "description": "咨询回复"}], "configs": {"system_prompt": "请根据用户的问题提供相关产品咨询建议。", "user_prompt": "问题：{{input}}"}}, "next": "node_end"}, {"id": "node_unknown_handler", "type": "Output", "parameters": {"inputs": [], "configs": {"template": "抱歉，我暂时无法理解您的请求，请尝试使用更明确的描述。"}}, "next": "node_end"}, {"id": "node_end", "type": "End", "parameters": {"inputs": [{"name": "refund_response", "type": "string", "value": "${node_refund_handler.output}"}, {"name": "consult_response", "type": "string", "value": "${node_consult_handler.output}"}], "configs": {"template": "{{refund_response}}{{consult_response}}"}}}]```
+  - 案例 2 天气助手
+    * 插件描述：你可以使用天气查询插件。预定飞机票插件的入参为city，出参为weather，id为mock_weather_id
+    * 用户输入：搭建一个天气助手工作流，用户输入城市名查询天气，并根据温度范围调用大模型生成自然语言回答，需要满足：当温度低于10度时，提醒用户注意保暖；温度高于30度时，提醒用户注意防暑降温；温度处于10-30度时，提醒用户温度适宜，推荐外出运动或游玩
+    * Mermaid格式的工作流任务流程图：
+    flowchart TD
+      A["开始：接收查询城市"] --> B["插件：查询天气"]
+      B --> C["代码: 提取温度和天气描述"]
+      C --> D{"判断：温度情况?"}
+      D --> |"温度 < 10"| E["大模型：保暖提醒"]
+      D --> |"温度 > 30"| F["大模型：防暑降温提醒"]
+      D --> |"10 <= 温度 <= 30"| G["大模型：适宜外出活动提醒"]
+      E --> I["结束：输出提醒消息"]
+      F --> I
+      G --> I
+    * 生成结果：
+    ```json[{"id": "node_start", "type": "Start", "parameters": {"outputs": [{"name": "query", "type": "string", "description": "用户输入"}, {"name": "city", "type": "string", "description": "城市"}]}, "next": "node_plugin_weather"}, {"id": "node_plugin_weather", "type": "Plugin", "parameters": {"inputs": [{"name": "city", "type": "string", "value": "${node_start.city}"}], "outputs": [{"name": "weather", "type": "object", "description": "天气信息"}], "configs": {"apiId": "mock_weather_id", "tool_name": "get_weather_by_city"}}, "next": "node_code"}, {"id": "node_code_format", "type": "Code", "parameters": {"inputs": [{"name": "weather", "type": "object", "value": "${node_plugin_weather.weather}"}], "outputs": [{"name": "temperature", "type": "number", "description": "温度"}, {"name": "description", "type": "string", "description": "天气描述"}], "configs": {"code": "def main(args: dict):\n    weather = args.get('weather')\n    temper = weather.get('temperature')\n    desc = weather.get('description')\n    return {'temperature': temper, 'description': desc}"}}, "next": "node_check_temperature"}, {"id": "node_check_temperature", "type": "Branch", "parameters": {"conditions": [{"branch": "branch_1", "expression": "${node_code_format.temperature} shorter_than 10", "next": "node_llm_cold"}, {"branch": "branch_2", "expression": "${node_code_format.temperature} longer_than 30", "next": "node_llm_hot"}, {"branch": "branch_3", "expressions": ["${node_code_format.temperature} longer_than_or_eq 10", "${node_code_format.temperature} shorter_than_or_eq 30"], "operator": "and", "next": "node_llm_mild"}, {"branch": "branch_0", "expression": "default", "next": "node_end"}]}}, {"id": "node_llm_cold", "type": "LLM", "parameters": {"inputs": [{"name": "temperature", "type": "number", "value": "${node_code_format.temperature}"}, {"name": "description", "type": "string", "value": "${node_code_format.description}"}], "outputs": [{"name": "output", "type": "string", "description": "天气信息回复"}], "configs": {"system_prompt": "根据以下天气信息生成关怀提示，建议用户注意保暖：\n温度：{{temperature}}，天气状况：{{description}}", "user_prompt": ""}}, "next": "node_end"}, {"id": "node_llm_hot", "type": "LLM", "parameters": {"inputs": [{"name": "temperature", "type": "number", "value": "${node_code_format.temperature}"}, {"name": "description", "type": "string", "value": "${node_code_format.description}"}], "outputs": [{"name": "output", "type": "string", "description": "天气信息回复"}], "configs": {"system_prompt": "根据以下天气信息生成关怀提示，提醒用户注意防暑降温：\n温度：{{temperature}}，天气状况：{{description}}", "user_prompt": ""}}, "next": "node_end"}, {"id": "node_llm_mild", "type": "LLM", "parameters": {"inputs": [{"name": "temperature", "type": "number", "value": "${node_code_format.temperature}"}, {"name": "description", "type": "string", "value": "${node_code_format.description}"}], "outputs": [{"name": "output", "type": "string", "description": "天气信息回复"}], "configs": {"system_prompt": "根据以下天气信息生成关怀提示，建议用户外出活动：\n温度：{{temperature}}，天气状况：{{description}}", "user_prompt": ""}}, "next": "node_end"}, {"id": "node_end", "type": "End", "parameters": {"inputs": [{"name": "cold_weather_response", "type": "string", "value": "${node_llm_cold.output}"}, {"name": "mild_weather_response", "type": "string", "value": "${node_llm_mild.output}"}, {"name": "hot_weather_response", "type": "string", "value": "${node_llm_hot.output}"}], "configs": {"template": "{{cold_weather_response}}{{mild_weather_response}}{{hot_weather_response}}"}}}]```
+  - 例子 3 批量邮件发送工作流
+    * 工作流描述：你可以使用邮件发送工作流。邮件发送工作流的入参为email_content和recipient，出参为message，id为1234567
+    * 用户输入：搭建一个批量发送邮件的工作流。流程接收邮件正文模板、修改提示词和待发送邮箱列表，先通过大模型基于修改提示词对邮件正文进行优化，然后向用户输出优化后的邮件内容，然后接收用户反馈，当接收到“确认”、”无问题“等肯定回复后启动循环，遍历这个列表，调用“发送邮件”工作流将邮件发送到对应邮箱，子工作流会返回邮件发送结果，最后输出发送结果列表。如果接收到其他意图，直接结束流程。
+    * Mermaid格式的工作流任务流程图：
+    flowchart TD
+      A["开始：接收邮件内容、优化提示词和邮箱地址列表"] --> B["大模型：润色邮件内容"]
+      B --> C["提问器：是否确认发送"]
+      C --> D{"用户意图？"}
+      D --> |"确认发送"| E["循环"]
+      subgraph 批量处理邮件
+        E --> F["循环输入"]
+        F --> G["工作流：发送邮件"]
+        G --> H["循环输出"]
+      end
+      H --> I["结束：输出邮件发送结果"]
+      D --> |"取消"| I
+    * 生成结果：
+    ```json[{"id": "node_start", "type": "Start", "parameters": {"outputs": [{"name": "query", "type": "string", "description": "用户输入"}, {"name": "email_content", "type": "string", "description": "邮件内容"}, {"name": "optimize_prompt", "type": "string", "description": "优化提示词"}, {"name": "recipient_list", "type": "array<string>", "description": "收件人列表"}]}, "next": "node_llm"}, {"id": "node_llm", "type": "LLM", "parameters": {"inputs": [{"name": "email_content", "type": "string", "value": "${node_start.email_content}"}, {"name": "optimize_prompt", "type": "string", "value": "${node_start.optimize_prompt}"}], "outputs": [{"name": "output", "type": "string", "description": "大模型输出"}], "configs": {"system_prompt": "你需要根据用户输入修改邮件内容", "user_prompt": "要求：{{query}}，邮件内容：{{email_content}}"}}, "next": "node_questioner"}, {"id": "node_questioner", "type": "Questioner", "parameters": {"inputs": [{"name": "content", "type": "string", "value": "${node_llm.output}"}], "outputs": [{"name": "option", "type": "string", "description": "用户选择"}], "configs": {"prompt": "查看修改后的邮件内容:{{content}}，确认是否发送"}}, "next": "node_intent_detection"}, {"id": "node_intent_detection", "type": "IntentDetection", "parameters": {"inputs": [{"name": "input", "type": "string", "value": "${node_questioner.option}"}], "configs": {"prompt": "你是一个分类器，可以根据用户输入选择正确的分支"}, "conditions": [{"branch": "branch_1", "expression": "${node_intent_detection.rawOutput} contain 确认", "next": "node_loop"}, {"branch": "branch_0", "expression": "default", "next": "node_end"}]}}, {"id": "node_loop", "type": "Loop", "parameters": {"inputs": [{"name": "arr_loop_var", "type": "array<string>", "value": "${node_start.recipient_list}"}], "outputs": [{"name": "results", "type": "array<string>", "description": "发送结果", "value": "${node_workflow.message}"}], "configs": {"loop_type": "arrayLoop", "loop_body": ["node_loop_input", "node_workflow", "node_loop_output"]}}, "next": "node_end"}, {"id": "node_loop_input", "type": "LoopInput", "next": "node_workflow"}, {"id": "node_workflow", "type": "Workflow", "parameters": {"inputs": [{"name": "email_content", "type": "string", "value": "${node_llm.output}"}, {"name": "recipient", "type": "string", "value": "${node_loop.arr_loop_var.item}"}], "outputs": [{"name": "message", "type": "string", "description": "发送结果"}], "configs": {"workflow_id": "1234567", "workflow_name": "email_sender"}}, "next": "node_loop_output"}, {"id": "node_loop_output", "type": "LoopOutput", "next": "node_loop"}, {"id": "node_end", "type": "End", "parameters": {"inputs": [{"name": "send_results", "type": "array<string>", "value": "${node_loop.results}"}], "configs": {"template": "发送结果：{{send_results}}"}}}]```
+schema: |
+  - 开始节点：工作流的起始节点，用于最开始接收用户输入，可以支持多个变量
+    * 限制：outputs必须包含用户输入参数，即存在 {"name": "query", "type": "string", "description": "用户输入"} 元素
+    * 示例：{"id": "node_start", "type": "Start", "parameters": {"outputs": [{"name": "query", "type": "string", "description": "用户输入"}]}, "next": "node_end"}
+  - 结束节点：工作流的终止节点，可以配置template定义最终输出消息的形式，支持多个输入参数
+    * 限制：
+      1. 没有输出参数，禁止其他节点引用结束节点的输出
+      2. template中需要引用inputs的全部参数，引用形式是双花括号{{}}
+    * 示例：{"id": "node_end", "type": "End", "parameters": {"inputs": [{"name": "result", "type": "string", "value": "${node_start.query}"}], "configs": {"template": "{{result}}"}}}
+  - 大模型节点：通过配置system_prompt和user_prompt调用大模型生成回复
+    * 限制：system_prompt和user_prompt中引用inputs的参数需要使用双花括号的形式{{}}
+    * 示例：{"id": "node_llm", "type": "LLM", "parameters": {"inputs": [{"name": "query", "type": "string", "value": "${node_start.query}"}], "outputs": [{"name": "output", "type": "string", "description": "大模型输出"}], "configs": {"system_prompt": "## 人设\\n你是一个xxx。\\n\\n## 任务描述\\nxxx", "user_prompt": "{{query}}"}}, "next": "node_end"}
+  - 意图识别节点：可以自定义配置prompt进行分类
+    * 限制：
+      1. conditions中expression固定只能使用contain
+      2. default分支必须存在，表示其他意图。
+      3. 只包含input一个输入参数，没有输出参数。
+      4. configs中必须包含prompt，内容可自定义
+      5. 没有输出参数，禁止其他节点引用意图识别节点的输出
+    * 示例：{"id": "node_intent_detection", "type": "IntentDetection", "parameters": {"inputs": [{"name": "input", "type": "string", "value": "${node_start.query}"}], "configs": {"prompt": "你是一个功能分类器，可以根据用户的请求，结合相应的功能类别描述，帮助用户选择正确的分支"}, "conditions": [{"branch": "branch_1", "expression": "${node_intent_detection.rawOutput} contain 分类1", "next": "node_llm"}, {"branch": "branch_2", "expression": "${node_intent_detection.rawOutput} contain 分类2", "next": "node_llm_2"}, {"branch": "branch_0", "expression": "default", "next": "node_end"}]}}
+  - 提问器节点：配置prompt向用户提问，按照预配置的outputs参数从用户回复中提取内容。
+    * 限制：
+      1. prompt中引用inputs的参数需要使用双花括号的形式{{}}
+      2. outputs中的参数类型只能是string, integer, number, boolean四种基本类型
+    * 示例：{"id": "node_questioner", "type": "Questioner", "parameters": {"inputs": [{"name": "input", "type": "string", "value": "${node_start.query}"}], "outputs": [{"name": "destination", "type": "string", "description": "出行目的地"}, {"name": "travel_mode", "type": "string", "description": "出行方式"}], "configs": {"prompt": "请输入出行目的地以及出行方式"}}, "next": "node_llm"}
+  - 代码节点：配置code自定义代码逻辑，保障代码正常运行，需要在代码区域使用转义字符
+    * 限制：inputs参数按照`name: value`的键值对放入args.params中，代码返回结果时同样需要按照`名称: 值`的形式返回字典，且名称需要和outputs配置的参数保持一致
+    * 示例：{"id": "node_code", "type": "Code", "parameters": {"inputs": [{"name": "height", "type": "string", "value": "${node_questioner.height}"}, {"name": "weight", "type": "string", "value": "${node_questioner.weight}"}], "outputs": [{"name": "bmi", "type": "string", "description": "计算的BMI结果"}], "configs": {"code": "def main(args: dict):\\n    '''运行代码会调用此函数\\n    :param args: 输入固定为args字典类型，kv为输入参数键值对\\n    :return: 输出参数为字典类型，kv为输出参数键值对\\n    '''\\n    height = args.get('height')\\n    weight = args.get('weight')\\n    bmi = weight / height / height\\n    result = {'bmi': bmi}\\n    return result"}}, "next": "node_llm"}
+  - 插件节点：通过配置apiId选取插件
+    * 限制：apiId需要从提供的工具资源列表中选取，并保持输入输出参数与对应资源的输入输出相同
+    * 示例：{"id": "node_plugin", "type": "Plugin", "parameters": {"inputs": [{"name": "image_file", "type": "file/default", "value": "${node_start.input_file}"}], "outputs": [{"name": "text", "type": "string", "description": "文本识别结果"}], "configs": {"apiId": "mock_ocr", "tool_name": "ocr"}}, "next": "node_llm"}
+  - 消息节点：配置template定义输出消息的内容形式
+    * 限制：
+      1. template中使用双花括号形式{{}}引用输入参数 
+      2. 需要使用inputs中的所有参数，不能遗漏，支持零到多个输入参数
+      3. 没有输出参数，禁止其他节点引用消息节点的输出
+    * 示例：{"id": "node_message", "type": "Message", "parameters": {"inputs": [{"name": "content", "type": "string", "value": "${node_llm.output}"}], "configs": {"template": "{{content}}"}}, "next": "node_end"}
+  - 判断节点：通过对参数进行条件判断控制分支走向
+    * 限制：
+      1. 当一个条件分支只有一个条件关系时使用`"expression": "条件表达式"`，存在多个条件关系时使用`"expressions": ["条件表达式1", "条件表达式2"]`
+      2. expression/expressions 中支持 eq/not_eq/contain/not_contain/longer_than/longer_than_or_eq/shorter_than/shorter_than_or_eq/is_empty/is_not_empty 十种方式条件关系
+      3. operator支持and/or两种方式，只有一个条件分支存在多个条件表达式时才被使用。
+      4. default分支必须存在。
+    * 示例：{"id": "node_branch", "type": "Branch", "parameters": {"conditions": [{"branch": "branch_1", "expressions": ["${node_questioner.number} longer_than 0", "${node_questioner.number} shorter_than 5"], "operator": "and", "next": "node_llm"}, {"branch": "branch_2", "expression": "${node_questioner.number} is_empty", "next": "node_llm_2"}, {"branch": "branch_0", "expression": "default", "next": "node_end"}]}}
+  - 循环节点：多次执行循环体内的节点，直到满足结束条件
+    * 限制：
+      1. 只能使用数组循环，也就是configs中loop_type只能设置为arrayLoop，inputs中必须存在一个array类型变量arr_loop_var，表示遍历的数组，循环体内的节点引用当前循环的遍历变量的方式为${node_loop.arr_loop_var.item}
+      2. 循环体内节点可以引用循环的索引，索引从0开始每循环一次加1，引用方式为`${循环节点id.index}`
+      3. outputs中的变量必须是数组类型，且包含value字段。仅能引用循环体内部节点的输出变量，输出类型由引用变量决定，例如所引用变量类型为string时，对应输出变量类型为array<string>
+      4. configs中的loop_body用于配置循环体，是一个节点id列表，列出循环体内的所有节点id，需要包含配对使用的LoopInput和LoopOutput节点，确保逻辑链路完整。
+    * 示例：{"id": "node_loop", "type": "Loop", "parameters": {"inputs": [{"name": "arr_loop_var", "type": "array<string>", "value": "${node_code.querys}"}], "outputs": [{"name": "results", "type": "array<string>", "description": "循环输出", "value": "${node_llm.result}"}], "configs": {"loop_type": "arrayLoop", "loop_body": ["node_loop_input", "node_llm", "node_loop_output"]}}, "next": "node_end"}
+  - 循环输入节点：循环体的开始
+    * 限制：next指向所在循环体除循环输入外的第一个节点
+    * 示例：{"id": "node_loop_input", "type": "LoopInput", "next": "node_llm"}
+  - 循环输出节点：表示循环体的结束，
+    * 限制：next指向循环节点
+    * 示例：{"id": "node_loop_output", "type": "LoopOutput", "next": "node_loop"}
+  - 变量赋值节点：将工作流中的参数赋值到全局记忆变量，方便后续节点使用
+    * 限制：
+      1. settings中元素的left字段的值只能是全局记忆变量，需要满足`${memory.var}`的形式，当引用的变量var必须在variables中定义
+      2. settings中元素的right字段的值只能采用引用赋值的形式`${node.var}`，不能使用其他方式
+      3. 整个工作流中所有变量赋值节点的variables是共同的，name相同的变量在不同变量赋值节点的variables中定义必须完全相同
+    * 示例：{"id": "node_set_variable", "type": "SetVariable", "parameters": {"settings": [{"left": "${memory.mem_var}", "right": "${node_start.query}"}]}, "variables": [{"name": "mem_var", "type": "string", "description": "记忆变量", "default": ""}], "next": "node_next"}
+  - 工作流节点：通过配置workflow_id选取工作流
+    * 限制：workflow_id需要从提供的工作流资源列表中选取，并保持输入输出参数与对应资源的输入输出相同
+    * 示例：{"id": "node_workflow", "type": "Workflow", "parameters": {"inputs": [{"name": "query", "type": "string", "value": "${node_start.query}"}], "outputs": [{"name": "response_content", "type": "string", "description": "最终输出"}], "configs": {"workflow_id": "mock_workflow_id", "workflow_name": "天气预测", }}, "next": "node_next"}

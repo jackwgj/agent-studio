@@ -1,0 +1,317 @@
+@input-height: 32px;
+
+:host {
+  display: flex;
+}
+
+.is-invalid {
+  border-color: #dc3545 !important;
+}
+
+.is-invalid:focus {
+  border-color: #dc3545 !important;
+}
+
+.invalid-feedback {
+  color: #dc3545;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+.input-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+  position: relative;
+  justify-content: space-between;
+}
+
+.input-text {
+  flex: 1;
+  display: inline-block;
+  overflow: hidden;
+  white-space: nowrap;
+  height: 16px;
+  position: absolute;
+  left: 24px;
+  right: 0px;
+}
+
+.input-text-max {
+  display: inline-block;
+  max-width: 100%;
+}
+
+.input-text-fl {
+  position: relative;
+  top: -3px;
+  display: flex;
+}
+
+.input-text-line {
+  width: 1px;
+  border-right: 1px solid rgba(219, 219, 219, 1);
+  height: 16px;
+  display: inline-block;
+  margin-left: 4px;
+  border-radius: 2px;
+}
+
+.input-text-first {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: rgba(128, 128, 128, 1);
+  display: inline-block;
+  line-height: 16px;
+  font-size: 12px;
+  max-width: calc(100% + 9px);
+}
+
+.input-text-last {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: rgba(25, 25, 25, 1);
+  margin-left: 4px;
+  display: inline-block;
+  line-height: 16px;
+  font-size: 12px;
+  max-width: calc(100% + 9px);
+  flex: 1;
+  position: relative;
+  top: -1px;
+}
+
+.input-img {
+  height: 16px;
+  width: 16px;
+}
+
+.input-type {
+  border-radius: 2px;
+  background: rgba(245, 245, 245, 1);
+  padding: 0px 4px 0px 4px;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  color: rgba(25, 25, 25, 1);
+  margin-left: 4px;
+  display: inline-block;
+  overflow: hidden;
+}
+
+.input-icon-click {
+  width: 12px;
+  height: 12px;
+  font-size: 12px;
+  position: absolute;
+  right: 12px;
+}
+
+.input-icon-unclick {
+  width: 16px;
+  height: 16px;
+  font-size: 16px;
+  position: absolute;
+  right: 12px;
+}
+
+.main-select {
+  width: 100%;
+  position: relative;
+}
+
+.this-input-class-left {
+  display: flex;
+  align-items: center;
+  height: @input-height;
+  width: 100%;
+  border-radius: 6px;
+  padding: 0px 28px 0px 12px;
+}
+
+.this-input-class {
+  display: flex;
+  align-items: center;
+  height: @input-height;
+  width: 100%;
+  padding: 0px 28px 0px 12px;
+  border-top-right-radius: 6px;
+  border-bottom-right-radius: 6px;
+  border-top-left-radius: 0px;
+  border-bottom-left-radius: 0px;
+}
+
+.this-input-class-left:hover {
+  border: 1px solid #191919;
+}
+
+.this-input-class:hover {
+  border: 1px solid #191919;
+}
+
+.this-input-class-unclick {
+  border: 1px solid #c2c2c2;
+}
+
+.this-input-class-click {
+  border: 1px solid #191919;
+}
+
+.select-div {
+  max-height: 300px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 8px 16px 8px 16px;
+  border-radius: 6px;
+  box-shadow: 0px 2px 12px 0px rgba(0, 0, 0, 0.16);
+  background: rgba(255, 255, 255, 1);
+  position: absolute;
+  z-index: 9;
+  right: 0px;
+}
+
+.search-input-class {
+  min-height: 28px;
+  height: 28px;
+  padding-left: 28px;
+  border-radius: 0px;
+}
+
+:host ::ng-deep .ant-input-group-wrapper {
+  width: 100%;
+}
+
+:host ::ng-deep .ant-input-group {
+  height: 28px;
+  line-height: 28px;
+}
+
+:host ::ng-deep .ant-input {
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  border-radius: 0px;
+  padding-left: 0px;
+  height: 32px;
+}
+
+:host ::ng-deep .ant-input:focus {
+  border-bottom: 1px solid #c2c2c2 !important;
+  border-top: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  box-shadow: none !important;
+}
+
+:host ::ng-deep .ant-input:hover {
+  border-bottom: 1px solid #c2c2c2 !important;
+  border-top: none !important;
+  border-left: none !important;
+  border-right: none !important;
+}
+
+.search-item {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 8px;
+  line-height: 32px;
+  background: rgba(255, 255, 255, 1);
+  cursor: pointer;
+  white-space: nowrap;
+  height: 32px;
+}
+
+.search-item:hover {
+  background: rgba(245, 245, 245, 1);
+}
+
+.node-tree-div {
+  max-height: 300px;
+  min-width: 200px;
+  overflow: auto;
+  position: absolute;
+  z-index: 9;
+  padding: 8px 0px 8px 0px;
+  border-radius: 6px;
+  box-shadow: 0px 2px 12px 0px rgba(0, 0, 0, 0.16);
+  background: rgba(255, 255, 255, 1);
+  right: 0;
+}
+
+.search-item-text {
+  flex: 1;
+}
+
+.select-tree-dom {
+  position: fixed;
+  z-index: 10000;
+}
+
+.select-color-black {
+  color: #191919;
+}
+
+.select-color-blue {
+  color: #1476FF;
+}
+
+.input-search-icon {
+  height: 16px;
+  width: 16px;
+  font-size: 16px;
+  position: absolute;
+  top: 14px;
+}
+
+.tip-input-main {
+  display: flex;
+  align-items: center;
+  width: max-content;
+}
+
+.tip-input-text-line {
+  width: 1px;
+  border-right: 1px solid rgba(219, 219, 219, 1);
+  height: 16px;
+  margin-left: 4px;
+  border-radius: 2px;
+}
+
+.tip-input-text-first {
+  margin-left: 8px;
+  color: rgba(128, 128, 128, 1);
+  line-height: 16px;
+  font-size: 12px;
+}
+
+.tip-input-text-last {
+  color: rgba(25, 25, 25, 1);
+  margin-left: 4px;
+  line-height: 16px;
+  font-size: 12px;
+}
+
+.tip-input-img {
+  height: 16px;
+  width: 16px;
+}
+
+.tip-input-type {
+  border-radius: 2px;
+  background: rgba(245, 245, 245, 1);
+  padding: 0px 4px 0px 4px;
+  font-size: 12px;
+  line-height: 16px;
+  color: rgba(25, 25, 25, 1);
+  margin-left: 4px;
+}

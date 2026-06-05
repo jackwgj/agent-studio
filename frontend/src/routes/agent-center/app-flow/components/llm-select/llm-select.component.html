@@ -1,0 +1,154 @@
+<div
+  class="w-full acc-blk-wrapper flex-class"
+>
+  <nz-select
+    [id]="'llm-select'"
+    class="!w-full model-select"
+    [class]="showError ? 'select-error-class' : ''"
+    [ngModel]="selectedModel"
+    (ngModelChange)="changeSelect($event)"
+    [nzPlaceHolder]="'model_select_placeholder' | i18nextEager"
+    [nzDropdownMatchSelectWidth]="panelWidth === 'justified'"
+    [nzCustomTemplate]="defaultTemplate"
+    [nzShowSearch]="true"
+    [nzAllowClear]="clearable"
+    (nzOnSearch)="onBeforeSearch($event)"
+  >
+    @for (group of modelOptions; track group.id) {
+      <nz-option-group [nzLabel]="groupLabelTemplate">
+        <ng-template #groupLabelTemplate>
+          <div class="group-name llm-group-name">
+            <div *ngIf="group.isFirstPlatform" style="display: flex">
+              <span style="margin-right: 2px;">↓</span>
+              <div style="margin-top: 2px">{{'llmselectcomponent_425'| i18nextEager}}</div>
+            </div>
+            <div>{{ group.provider_name }}</div>
+          </div>
+        </ng-template>
+        @for (item of group.children; track item.id) {
+          <nz-option
+            [nzValue]="item.id"
+            [nzLabel]="item.service_name"
+            [nzDisabled]="item.type === 'button'"
+            [nzCustomContent]="true"
+          >
+            @if (item.type === 'button') {
+              <div class="extra-btn" (click)="openMore($event)">
+                {{item.name}}
+              </div>
+            } @else {
+              <div class="flex items-center justify-between gap-2 model-select-drop">
+                <div class="flex items-center gap-2 text-[14px]">
+                  <img alt=""
+                    class="h-4 w-4 rounded"
+                    *ngIf="image && item.service_name"
+                    [src]="item.logo?item.logo:image"
+                  />
+                  <div nz-tooltip [nzTooltipTitle]="item.service_name" nzTooltipZIndex="99999" class="service_name">{{ item.service_name }}</div>
+                </div>
+                <div class="flex">
+                  <div *ngIf="item.model_tags" style="max-width: 180px;overflow: hidden;text-overflow: ellipsis;">
+                    <nz-tag
+                      nz-tooltip
+                      [nzTooltipTitle]="v"
+                      class="ml-1"
+                      *ngFor="let v of item.model_tags?.split(','); let i = index">{{v}}
+                    </nz-tag>
+                  </div>
+
+                  <ng-container *ngIf="item.is_in_free_trial">
+                    <nz-tag class="type-tag"  nzColor="default">{{ 'tags.free' | i18nextEager}}</nz-tag>
+                  </ng-container>
+                  @if (item.isSubscribed) {
+                    <nz-tag class="type-tag"  nzColor="default">{{ 'tags.isOpen' | i18nextEager}}</nz-tag>
+                  }
+
+                  <img alt="" class="tag-img" *ngIf="item.is_network" nz-tooltip [nzTooltipTitle]="tagsMap['is_network']['name']" nzTooltipZIndex="99999" [src]="tagsMap['is_network']['icon']">
+                  <img alt="" class="tag-img" *ngIf="item.is_reasoning" nz-tooltip [nzTooltipTitle]="tagsMap['is_reasoning']['name']" nzTooltipZIndex="99999" [src]="tagsMap['is_reasoning']['icon']">
+                  <img alt="" class="tag-img" *ngIf="item.is_support_function" nz-tooltip [nzTooltipTitle]="tagsMap['is_support_function']['name']" nzTooltipZIndex="99999"
+                       [src]="tagsMap['is_support_function']['icon']">
+                  <div *ngFor="let tag of modelTagMap[item.model_type]" style="max-width: 180px">
+                    <img alt="" class="tag-img" nz-tooltip [nzTooltipTitle]="tagsMap[tag.id]['name']" nzTooltipZIndex="99999" [src]="tagsMap[tag.id]['icon']">
+                  </div>
+                  <nz-tag
+                    nz-tooltip
+                    [nzTooltipTitle]="getTipContentRef(item)"
+                    nzTooltipPlacement="bottom"
+                    [nzTooltipMouseEnterDelay]="0"
+                    *ngIf="item.model_name && showStatus"
+                    [ngClass]="{'status-fail-box': item.status==='fail'}"
+                    class="justify-items-end status-box"
+                    [nzColor]="item.status==='success' ? 'green' : item.status==='fail' ?'red':'default'"
+                  >
+                    {{ getModelStatus(item.status) }}
+                  </nz-tag>
+                </div>
+              </div>
+            }
+          </nz-option>
+        }
+      </nz-option-group>
+    }
+  </nz-select>
+  <ng-template #defaultTemplate let-item>
+    <div class="flex items-center gap-2 select-placeholder">
+      <img alt=""
+        class="h-4 w-4 rounded"
+        *ngIf="selectedModelInfo?.service_name"
+        [src]="selectedModelInfo && selectedModelInfo?.service_name?selectedModelInfo?.logo:image"
+      />
+      @if (selectedModelInfo?.service_name) {
+        {{ selectedModelInfo?.service_name }}
+      } @else {
+        {{ 'model_select_placeholder' | i18nextEager }}
+      }
+    </div>
+  </ng-template>
+
+  <ng-template #authTipContent let-context="context">
+    <div>
+      <div class="flex tip-content">
+        <nz-icon nzType="close-circle" nzTheme="outline" class="mr-[8px]" style="color:#f13132;font-size: 16px" />
+        <div style="vertical-align: text-bottom;">{{authTipInfo.tip}}</div>
+      </div>
+      <div class="operation-container mt-[8px] text-right">
+        <button nz-button nzType="primary" (click)="showAuthModal(context)">{{authTipInfo.btn}}</button>
+      </div>
+    </div>
+  </ng-template>
+
+  <ng-template #debugTipContent let-context="context">
+    <div>
+      <div class="flex tip-content">
+        <nz-icon nzType="warning" nzTheme="outline" style="color:#fe8803;font-size: 16px" class="mr-[8px]" />
+        <div style="vertical-align: text-bottom;">{{debugTipInfo.tip}}</div>
+      </div>
+
+      <div class="operation-container mt-[8px] text-right">
+        <button nz-button nzType="primary" (click)="gotoDebug(context)">{{debugTipInfo.btn}}</button>
+      </div>
+    </div>
+  </ng-template>
+
+  <ng-template #tipContent let-context="context">
+    <div>
+      <div class="flex tip-content">
+        <nz-icon nzType="close-circle" nzTheme="outline" style="color:#f13132;font-size: 16px" class="mr-[8px]" />
+        <div style="vertical-align: text-bottom;">
+          <div>{{authTipInfo.tip}}</div>
+          <div style="margin-top: 8px;" *ngIf="showDebugIcon">{{debugTipInfo.tip}}</div>
+        </div>
+      </div>
+
+      <div class="operation-container mt-[8px] text-right">
+        <button class="mr-[8px]" nz-button nzType="primary" (click)="showAuthModal(context)">{{authTipInfo.btn}}</button>
+        <button nz-button nzType="primary"  *ngIf="showDebugIcon" (click)="gotoDebug(context)">{{debugTipInfo.btn}}</button>
+      </div>
+    </div>
+  </ng-template>
+
+  <div *ngIf="showError" class="error-class">
+    <nz-icon nzType="close-circle" nzTheme="outline" class="error-class-icon" />
+    {{'select_placeholder'|i18nextEager}}
+  </div>
+</div>

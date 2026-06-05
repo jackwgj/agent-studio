@@ -1,0 +1,511 @@
+<div *nzModalTitle>
+  <div class="mb-[16px]">{{ modalTitle }}</div>
+
+  <nz-alert *ngIf="!isLocked" class="text-[12px]" [nzShowIcon]="true" nzType="info" style="width: 100%" [nzAction]="actionTemplate1">
+    <ng-template #actionTemplate1>
+      <span nz-typography> {{ 'plugin_update_prompt' | i18nextEager }} </span>
+      <span (click)="hideTips()" class="cursor-pointer text-[#1476ff]"> {{ 'no_more_prompt' | i18nextEager }} </span>
+    </ng-template>
+  </nz-alert>
+
+  <div *ngIf="!isLocked" class="header-steps">
+    <nz-steps class="!justify-flex-start !flex" [nzCurrent]="step" nzSize="small">
+      <nz-step [nzTitle]="step.label" *ngFor="let step of steps"></nz-step>
+    </nz-steps>
+  </div>
+</div>
+
+<div id="create-plugin-body" class="h-[700px] overflow-auto">
+  <div class="snd-step h-[calc(100%-40px)] w-full overflow-auto">
+    <form [formGroup]="groupFormControl">
+      <!-- 基本信息  -->
+      <div [hidden]="step !== 0" class="plugin-basic-info">
+        <nz-form-item *ngIf="!isHideFg">
+          <nz-form-label [nzSpan]="24">{{ 'plugin_type'|i18nextEager }}</nz-form-label>
+          <nz-form-control>
+            <nz-radio-group id="radiogroup-direction" nzName="callMode" (ngModelChange)="changeType($event)" [(ngModel)]="groupFormControl.value.callMode">
+              <label nz-radio [nzValue]="item.id" *ngFor="let item of typeRadioList">{{item.label}}</label>
+            </nz-radio-group>
+          </nz-form-control>
+        </nz-form-item>
+        <nz-form-item *ngIf="groupFormControl.value.callMode === 'api' && !pluginId">
+          <nz-form-control>
+            <button nz-button nzType="default" class="rounded" (click)="importOpenAPI()">{{ 'import_and_parse' | i18nextEager }}</button>
+          </nz-form-control>
+        </nz-form-item>
+        <nz-form-item>
+          <nz-form-label [nzSpan]="24">{{ createPluginFormLabel.pluginLogo }}</nz-form-label>
+          <nz-form-control>
+            <icon-upload
+              class="!h-[50px] !w-[50px]"
+              formControlName="pluginLogo"
+              [defaultIcon]="logo"
+              [upload_size]="1024 * 200"
+              [err_msg]="'maximum_img'|i18nextEager"
+            />
+            <div *ngIf="logo" style="color: #808080; margin-top: 10px">{{'createplugincomponent_739'|i18nextEager}}</div>
+          </nz-form-control>
+        </nz-form-item>
+        <nz-form-item>
+          <nz-form-label [nzSpan]="24">{{ createPluginFormLabel.pluginZhName }}</nz-form-label>
+          <nz-form-control nzErrorTip="{{ 'input_placeholder' | i18nextEager }}">
+            <input nz-input maxlength="64" formControlName="pluginZhName" style="width: 100%" [placeholder]="createPluginFormLabel.defaultPlaceholder" />
+          </nz-form-control>
+        </nz-form-item>
+        <nz-form-item *ngIf="false">
+          <nz-form-label [nzSpan]="24">{{ createPluginFormLabel.pluginName }}</nz-form-label>
+          <nz-form-control nzErrorTip="{{ 'input_placeholder' | i18nextEager }}">
+            <input nz-input maxlength="64" formControlName="pluginName" style="width: 100%" [placeholder]="createPluginFormLabel.defaultPlaceholder" />
+          </nz-form-control>
+        </nz-form-item>
+        <nz-form-item>
+          <nz-form-label [nzSpan]="24">{{ createPluginFormLabel.pluginDescription }}</nz-form-label>
+          <nz-form-control nzErrorTip="{{ 'input_placeholder' | i18nextEager }}">
+            <textarea
+              nz-input
+              maxlength="600"
+              formControlName="pluginDescription"
+              style="width: 100%; height: 120px; max-height: 240px"
+              [placeholder]="createPluginFormLabel.defaultPlaceholder"
+            >
+            </textarea>
+          </nz-form-control>
+        </nz-form-item>
+        <div [hidden]="isOp" class="mt-[20px] flex items-center gap-[4px]">
+          <div>{{ 'only_to_me_see' | i18nextEager }}</div>
+          <span nz-tooltip [nzTooltipTitle]="'visible_tip' | i18nextEager" style="font-size: 16px; cursor: pointer">
+            <nz-icon nzType="question-circle" nzTheme="outline" />
+          </span>
+          <nz-switch class="ml-[4px]" formControlName="visibility"></nz-switch>
+        </div>
+      </div>
+
+      <!-- 配置信息 -->
+      <div *ngIf="step === 1" class="plugin-auth-info" style="margin-top: -25px">
+        <div>
+          <collapse-text [title]="'config_info'|i18nextEager">
+            <ng-template #content>
+              <nz-form-item>
+                <nz-form-label [nzSpan]="24">{{ createPluginFormLabel.protocol }}</nz-form-label>
+                <nz-form-control>
+                  <nz-radio-group formControlName="protocol">
+                    <label nz-radio [nzValue]="item.id" *ngFor="let item of protocolList">{{item.label}}</label>
+                  </nz-radio-group>
+                </nz-form-control>
+              </nz-form-item>
+              <nz-form-item>
+                <nz-form-label [nzSpan]="24">
+                  <div class="text-label flex justify-between items-center">
+                    <p>{{createPluginFormLabel.host }}</p>
+                    <button nz-button nzType="default" nzSize="small" (click)="showInserter()" (mousedown)="$event.preventDefault()">
+                      <img  [src]="changeUrl('assets/prompt/insert_variable.svg')" alt="" class="h-4 w-4" />
+                    </button>
+                  </div>
+                </nz-form-label>
+                <nz-form-control>
+                  <meta-param-editor
+                    [backgroundColor]="'transparent'"
+                    (afterInsertVariable)="hideInserter()"
+                    (variablesChange)="updateVariables($event)"
+                    [initVariables]="initVariables"
+                    [promptType]="PromptType.TEXT"
+                    [showInserter]="isShowInserter"
+                    [variables]="variables"
+                    [style]="'min-height:18px;max-height:360px'"
+                    formControlName="host"
+                    [class]="{'custom-error-style':hostError}"
+                  ></meta-param-editor>
+                    <span class="mt-[8px] w-full text-[#f23030]" *ngIf="hostError">{{ hostError }}</span>
+                </nz-form-control>
+              </nz-form-item>
+              <nz-form-item>
+                <nz-form-label [nzSpan]="24">
+                  <div class="text-label flex justify-between items-center">
+                    <p>{{createPluginFormLabel.baseURL }}</p>
+                    <button nz-button nzType="default" nzSize="small" (click)="showInserterBase()" (mousedown)="$event.preventDefault()">
+                      <img  [src]="changeUrl('assets/prompt/insert_variable.svg')" alt="" class="h-4 w-4" />
+                    </button>
+                  </div>
+                </nz-form-label>
+                <nz-form-control>
+                  <meta-param-editor
+                    [backgroundColor]="'transparent'"
+                    (afterInsertVariable)="hideInserterBase()"
+                    (variablesChange)="updateVariablesBase($event)"
+                    [initVariables]="initVariablesBase"
+                    [promptType]="PromptType.TEXT"
+                    [showInserter]="isShowInserterBase"
+                    [variables]="variablesBase"
+                    [style]="'min-height:18px;max-height:360px'"
+                    formControlName="baseURL"
+                    [class]="{'custom-error-style':baseURLError}"
+                  ></meta-param-editor>
+                    <span class="mt-[8px] w-full text-[#f23030]" *ngIf="baseURLError">{{ baseURLError }}</span>
+                </nz-form-control>
+              </nz-form-item>
+              <nz-form-item>
+                <nz-form-label [nzSpan]="24">
+                  <div class="flex items-center gap-2">
+                    {{ 'plugin_host_param' | i18nextEager }}
+                    <span nz-tooltip [nzTooltipTitle]="'plugin_host_param_tip' | i18nextEager" class="cursor-pointer">
+                      <nz-icon nzType="question-circle" nzTheme="outline" />
+                    </span>
+                  </div>
+                </nz-form-label>
+                <nz-form-control>
+                  <form #responseForm="ngForm">
+                    <div class="flex w-full flex-col gap-[8px]" *ngIf="patchArgs?.length > 0; else pathEmpty">
+                      <div class="flex items-center gap-1">
+                        <div class="w-[240px] text-label">{{ 'param_name' | i18nextEager }}</div>
+                        <div class="w-[96px] text-label">{{ 'type' | i18nextEager }}</div>
+                        <div class="text-label" style="width: 284px">{{ 'description' | i18nextEager }}</div>
+                      </div>
+                      <nz-tree id="cp-res-tree" [nzData]="patchArgs" nzShowLine>
+                        <ng-template #nzTreeTemplate let-node let-origin="origin" let-i="index">
+                          <div class="mt-[8px] flex gap-2 leading-none">
+                            <div class="w-[240px]">
+                              <p class="leading-[28px]">{{origin.name}}</p>
+                            </div>
+                            <div class="w-[96px]">
+                              <p class="leading-[28px]">String</p>
+                            </div>
+                            <div style="width: 284px">
+                              <input
+                                nz-input
+                                style="width: 100%"
+                                [name]="'responseFormDesc' + i"
+                                maxlength="2000"
+                                nonEmptyValidator
+                                [(ngModel)]="origin.description"
+                                [title]="origin.description"
+                                [placeholder]="'input_placeholder' | i18nextEager"
+                              />
+                            </div>
+                          </div>
+                        </ng-template>
+                      </nz-tree>
+                    </div>
+                    <ng-template #pathEmpty>
+                      <nz-empty [nzNotFoundImage]="null" [nzNotFoundContent]="'no_data' | i18nextEager"></nz-empty>
+                    </ng-template>
+                  </form>
+                </nz-form-control>
+              </nz-form-item>
+            </ng-template>
+          </collapse-text>
+        </div>
+        <collapse-text [classType]="'style2'" [title]="'request_auth'|i18nextEager">
+          <ng-template #content>
+            <nz-form-item style="width: 630px">
+              <nz-form-label [nzSpan]="6">{{ createPluginFormLabel.pluginAuth }}</nz-form-label>
+              <nz-form-control>
+                <nz-radio-group id="radiogroup-direction" (ngModelChange)="changeAuthType($event)" formControlName="pluginAuthMethod">
+                  <label nz-radio [nzValue]="item.id" *ngFor="let item of authList">{{item.label}}</label>
+                </nz-radio-group>
+              </nz-form-control>
+            </nz-form-item>
+
+            <!-- API Key -->
+            <div class="mb-4 mt-4 w-full" *ngIf="groupFormControl.controls.pluginAuthMethod.value === 'pluginApiKey'">
+              <nz-form-item>
+                <nz-form-label [nzSpan]="6">{{ createPluginFormLabel.pluginAuthLoc }}</nz-form-label>
+                <nz-form-control>
+                  <nz-radio-group id="radiogroup-direction" formControlName="pluginApiAuth">
+                    <label nz-radio [nzValue]="item.label" *ngFor="let item of userAuthRadioList">{{item.label}}</label>
+                  </nz-radio-group>
+                </nz-form-control>
+              </nz-form-item>
+
+              <meta-acc-block class="mt-2 block w-full" [title]="'param_list' | i18nextEager">
+                <ng-template #blockTitle>
+                  <div class="flex gap-[4px]">
+                    <span>{{'param_list' | i18nextEager}}</span>
+                  </div>
+                </ng-template>
+                <ng-template #right>
+                  <div class="flex items-center gap-[4px]" *ngIf="groupFormControl.controls.pluginApiAuth.value ==='Header'">
+                    <button nz-button nzType="default" nzSize="small" nz-tooltip [nzTooltipTitle]="'add_params' | i18nextEager" (click)="addInputParam()">
+                      <nz-icon class="header-button-icon" nzType="plus" nzTheme="outline" />
+                    </button>
+                  </div>
+                </ng-template>
+                <ng-template #content>
+                  <div class="mt-2 flex items-center gap-2">
+                    <div class="flex w-[48%] items-center gap-[4px] text-label">
+                      <span>{{ 'param_name' | i18nextEager }}</span>
+                      <span nz-tooltip [nzTooltipTitle]="'param_name_tips' | i18nextEager" style="font-size: 16px; cursor: pointer">
+                        <nz-icon nzType="question-circle" nzTheme="outline" />
+                      </span>
+                    </div>
+                    <div class="flex w-[48%] items-center gap-[4px] text-label">
+                      <span>{{ 'param_value' | i18nextEager }}</span>
+                      <span nz-tooltip [nzTooltipTitle]="'key_val_tips' | i18nextEager" style="font-size: 16px; cursor: pointer">
+                        <nz-icon nzType="question-circle" nzTheme="outline" />
+                      </span>
+                    </div>
+                  </div>
+                  <form #apiAuthForm="ngForm">
+                    <div *ngFor="let param of apiKeyAuthArgs; index as i" class="mt-2 flex gap-2">
+                      <div class="w-[48%]">
+                        <input
+                          nz-input
+                          style="width: 100%"
+                          [name]="'apiKeyAuthName' + i"
+                          nonEmptyValidator
+                          pluginAuthNameValidator
+                          maxlength="100"
+                          [(ngModel)]="param.name"
+                          [ngModelOptions]="{standalone: true}"
+                          [placeholder]="'input_placeholder' | i18nextEager"
+                        />
+                      </div>
+
+                      <div class="w-[48%]">
+                        <input
+                          *ngIf="isOriginAuth(param.name)"
+                          nz-input
+                          style="width: 100%"
+                          type="password"
+                          [name]="'apiKeyAuthVale' + i"
+                          noCn
+                          [(ngModel)]="param.value"
+                          [ngModelOptions]="{standalone: true}"
+                          [placeholder]="'input_placeholder' | i18nextEager"
+                        />
+
+                        <input
+                          *ngIf="!isOriginAuth(param.name)"
+                          nz-input
+                          style="width: 100%"
+                          type="password"
+                          [name]="'apiKeyAuthVale' + i"
+                          nonEmptyValidator
+                          noCn
+                          [(ngModel)]="param.value"
+                          [ngModelOptions]="{standalone: true}"
+                          [placeholder]="'input_placeholder' | i18nextEager"
+                        />
+                      </div>
+
+                      <span *ngIf="i > 0" (click)="deleteArgs('apiAuth', i)" style="font-size: 16px; cursor: pointer; padding-top: 6px">
+                        <nz-icon nzType="delete" nzTheme="outline" />
+                      </span>
+                      <div *ngIf="i === 0" class="h-[16px] w-[16px] bg-transparent"></div>
+                    </div>
+                  </form>
+                </ng-template>
+              </meta-acc-block>
+              <div class="mt-4" *ngIf="isOp">
+                <nz-form-item>
+                  <nz-form-label [nzSpan]="6">
+                    <span class="mr-1">{{ createPluginFormLabel.auth_required }}</span>
+                    <span class="mr-[4px] !text-[16px]" nz-tooltip [nzTooltipTitle]="'createplugincomponent_737'|i18nextEager">
+                      <nz-icon nzType="question-circle" nzTheme="outline" />
+                    </span>
+                  </nz-form-label>
+                  <nz-form-control>
+                    <nz-radio-group id="radiogroup-auth" formControlName="auth_required">
+                      <label nz-radio [nzValue]="item.id" *ngFor="let item of authConfigRadioList">{{item.label}}</label>
+                    </nz-radio-group>
+                  </nz-form-control>
+                </nz-form-item>
+
+                <nz-form-item class="mt-4" *ngIf="groupFormControl.controls.auth_required.value === 'true'">
+                  <nz-form-label [nzSpan]="6" class="w-full">{{ createPluginFormLabel.metadata }}</nz-form-label>
+                  <nz-form-control>
+                    <input nz-input style="width: 100%" nonEmptyValidator formControlName="metadata" [placeholder]="'input_placeholder' | i18nextEager" />
+                  </nz-form-control>
+                </nz-form-item>
+              </div>
+            </div>
+            <div class="mt-4" [hidden]="groupFormControl.controls.pluginAuthMethod.value !== 'HIS_IAM'">
+              <nz-form-item>
+                <nz-form-label [nzSpan]="6">URL</nz-form-label>
+                <nz-form-control>
+                  <input class="w-full" nz-input type="text" maxlength="255" placeholder="{{ 'pls_enter' | i18nextEager }}" formControlName="iamUrl" />
+                </nz-form-control>
+              </nz-form-item>
+              <nz-form-item>
+                <nz-form-label [nzSpan]="6">{{ 'createpluginbase_751'| i18nextEager }}</nz-form-label>
+                <nz-form-control>
+                  <input class="w-full" nz-input type="text" maxlength="255" placeholder="{{ 'pls_enter' | i18nextEager }}" formControlName="iamAccount" />
+                </nz-form-control>
+              </nz-form-item>
+              <nz-form-item>
+                <nz-form-label [nzSpan]="6">{{ 'createpluginbase_752'| i18nextEager }}</nz-form-label>
+                <nz-form-control>
+                  <input class="w-full" nz-input type="text" maxlength="255" placeholder="{{ 'pls_enter' | i18nextEager }}" formControlName="iamSecret" />
+                </nz-form-control>
+              </nz-form-item>
+              <nz-form-item>
+                <nz-form-label [nzSpan]="6">{{ 'createpluginbase_753'| i18nextEager }}</nz-form-label>
+                <nz-form-control>
+                  <input class="w-full" nz-input type="text" maxlength="255" placeholder="{{ 'pls_enter' | i18nextEager }}" formControlName="iamProject" />
+                </nz-form-control>
+              </nz-form-item>
+              <nz-form-item>
+                <nz-form-label [nzSpan]="6">{{ 'createpluginbase_754'| i18nextEager }}</nz-form-label>
+                <nz-form-control>
+                  <input class="w-full" nz-input type="text" maxlength="255" placeholder="{{ 'pls_enter' | i18nextEager }}" formControlName="iamEnterprise" />
+                </nz-form-control>
+              </nz-form-item>
+            </div>
+            <div class="mt-4" [hidden]="groupFormControl.controls.pluginAuthMethod.value !== 'SGOV'">
+              <nz-form-item>
+                <nz-form-label [nzSpan]="6">URL</nz-form-label>
+                <nz-form-control>
+                  <input class="w-full" nz-input type="text" maxlength="255" placeholder="{{ 'pls_enter' | i18nextEager }}" formControlName="sgovUrl" />
+                </nz-form-control>
+              </nz-form-item>
+              <nz-form-item>
+                <nz-form-label [nzSpan]="6">APP ID</nz-form-label>
+                <nz-form-control>
+                  <input class="w-full" nz-input type="text" maxlength="255" placeholder="{{ 'pls_enter' | i18nextEager }}" formControlName="appId" />
+                </nz-form-control>
+              </nz-form-item>
+              <nz-form-item>
+                <nz-form-label [nzSpan]="6">{{ 'createpluginbase_755'| i18nextEager }}</nz-form-label>
+                <nz-form-control>
+                  <input class="w-full" nz-input type="text" maxlength="255" placeholder="{{ 'pls_enter' | i18nextEager }}" formControlName="credential" />
+                </nz-form-control>
+              </nz-form-item>
+            </div>
+            <div class="mt-4" [hidden]="groupFormControl.controls.pluginAuthMethod.value !== 'CUSTOM_IAM'">
+              <nz-form-item>
+                <nz-form-label [nzSpan]="6">
+                  {{ 'server_address' | i18nextEager }}
+                  <span nz-tooltip [nzTooltipTitle]="iamTip.iamUrl" style="font-size: 16px; cursor: pointer">
+                    <nz-icon nzType="question-circle" nzTheme="outline" />
+                  </span>
+                </nz-form-label>
+                <nz-form-control>
+                  <input class="w-full" nz-input type="text" maxlength="255" placeholder="{{ 'pls_enter' | i18nextEager }}" formControlName="iamUrl" />
+                </nz-form-control>
+              </nz-form-item>
+              <nz-form-item>
+                <nz-form-label [nzSpan]="6">
+                  {{ 'account_name' | i18nextEager }}
+                  <span nz-tooltip [nzTooltipTitle]="iamTip.iamDomain" style="font-size: 16px; cursor: pointer">
+                    <nz-icon nzType="question-circle" nzTheme="outline" />
+                  </span>
+                </nz-form-label>
+                <nz-form-control>
+                  <input class="w-full" nz-input type="text" maxlength="255" placeholder="{{ 'pls_enter' | i18nextEager }}" formControlName="iamDomain" />
+                </nz-form-control>
+              </nz-form-item>
+              <nz-form-item>
+                <nz-form-label [nzSpan]="6">
+                  {{ 'project' | i18nextEager }}
+                  <span nz-tooltip [nzTooltipTitle]="iamTip.iamProject" style="font-size: 16px; cursor: pointer">
+                    <nz-icon nzType="question-circle" nzTheme="outline" />
+                  </span>
+                </nz-form-label>
+                <nz-form-control>
+                  <input class="w-full" nz-input type="text" maxlength="255" placeholder="{{ 'pls_enter' | i18nextEager }}" formControlName="iamProject" />
+                </nz-form-control>
+              </nz-form-item>
+              <nz-form-item>
+                <nz-form-label [nzSpan]="24">{{ 'verification_mode' | i18nextEager }}</nz-form-label>
+                <nz-form-control>
+                  <div class="flex items-center gap-[8px]">
+                    <nz-radio-group formControlName="verify" (ngModelChange)="changeVerifyMethod($event)">
+                      <label nz-radio [nzValue]="item.id" *ngFor="let item of verifyMethods">{{item.label}}</label>
+                    </nz-radio-group>
+                  </div>
+                </nz-form-control>
+              </nz-form-item>
+              <nz-form-item *ngIf="groupFormControl.controls.verify.value=== 'iam'">
+                <nz-form-label [nzSpan]="6">
+                  {{ 'iam_username' | i18nextEager }}
+                  <span nz-tooltip [nzTooltipTitle]="iamTip.iamUser" style="font-size: 16px; cursor: pointer">
+                    <nz-icon nzType="question-circle" nzTheme="outline" />
+                  </span>
+                </nz-form-label>
+                <nz-form-control>
+                  <input class="w-full" nz-input type="text" maxlength="255" placeholder="{{ 'pls_enter' | i18nextEager }}" formControlName="iamUser" />
+                </nz-form-control>
+              </nz-form-item>
+              <nz-form-item *ngIf="groupFormControl.controls.verify.value === 'iam'">
+                <nz-form-label [nzSpan]="6">
+                  {{ 'iam_user_password' | i18nextEager }}
+                  <span nz-tooltip [nzTooltipTitle]="iamTip.iamPassword" style="font-size: 16px; cursor: pointer">
+                    <nz-icon nzType="question-circle" nzTheme="outline" />
+                  </span>
+                </nz-form-label>
+                <nz-form-control>
+                  <input class="w-full" nz-input type="password" maxlength="255" placeholder="{{ 'pls_enter' | i18nextEager }}" formControlName="iamPassword" />
+                </nz-form-control>
+              </nz-form-item>
+              <nz-form-item *ngIf="groupFormControl.controls.verify.value === 'aksk'">
+                <nz-form-label [nzSpan]="6">
+                  Access Key ID
+                  <span nz-tooltip [nzTooltipTitle]="iamTip.iamAK" style="font-size: 16px; cursor: pointer">
+                    <nz-icon nzType="question-circle" nzTheme="outline" />
+                  </span>
+                </nz-form-label>
+                <nz-form-control>
+                  <input class="w-full" nz-input type="password" maxlength="255" placeholder="{{ 'pls_enter' | i18nextEager }}" formControlName="iamAK" />
+                </nz-form-control>
+              </nz-form-item>
+              <nz-form-item *ngIf="groupFormControl.controls.verify.value === 'aksk'">
+                <nz-form-label [nzSpan]="6">
+                  Secret Access Key
+                  <span nz-tooltip [nzTooltipTitle]="iamTip.iamSK" style="font-size: 16px; cursor: pointer">
+                    <nz-icon nzType="question-circle" nzTheme="outline" />
+                  </span>
+                </nz-form-label>
+                <nz-form-control>
+                  <input class="w-full" nz-input type="password" maxlength="255" placeholder="{{ 'pls_enter' | i18nextEager }}" formControlName="iamSK" />
+                </nz-form-control>
+              </nz-form-item>
+            </div>
+          </ng-template>
+        </collapse-text>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div *nzModalFooter>
+  <nz-space class="plugin-footer flex justify-end gap-2">
+    <button nz-button nzType="default" class="rounded" *ngIf="this.step === 0 || isLocked" (click)="dismiss()">{{ 'cancel' | i18nextEager }}</button>
+    <button
+      nz-button
+      nzType="primary"
+      class="rounded"
+      *ngIf="this.step === 0 && !isLocked && groupFormControl.controls.callMode.value != 'functiongraph'"
+      [disabled]="btnDisabledFunc(this.step)"
+      (click)="nextstep()"
+    >
+      {{ 'next_step' | i18nextEager }}
+    </button>
+    <button nz-button nzType="default" class="rounded" *ngIf="this.step === 1 && !isLocked" (click)="laststep()">{{ 'pre_step' | i18nextEager }}</button>
+
+    <button
+      nz-button
+      nzType="primary"
+      class="rounded"
+      *ngIf="step === 1 || isLocked || groupFormControl.controls.callMode.value === 'functiongraph'"
+      [disabled]="btnDisabledFunc(isLocked ? lockedStep : step) || loading"
+      [nzLoading]="loading"
+      (click)="onConfirm()"
+    >
+      {{ 'ok' | i18nextEager }}
+    </button>
+  </nz-space>
+</div>
+
+<ng-template #streamTmpl>
+  <div class="flex flex-col gap-[8px] rounded-lg bg-[#fafafa] p-[16px]">
+    <span class="font-semibold text-[#191919]"> {{ 'stream_res_example' | i18nextEager }} </span>
+    <div class="break-all">
+      <div *ngFor="let item of streamResExamples">
+        <div>data: {{ formatJson(item) }}</div>
+      </div>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #streamResTip>
+  <stream-response-tip></stream-response-tip>
+</ng-template>

@@ -1,0 +1,46 @@
+.icon-border {
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid #c2c2c2;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 8px;
+
+  &:hover {
+    border-color: #191919;
+  }
+}
+
+.upload-icon {
+  background-image: url('../../../../../assets/agent-center/flow/public_fullscreen.svg');
+  height: 12px;
+  width: 12px;
+}
+
+.upload-enable {
+  cursor: pointer;
+
+  &:hover {
+    border-color: #191919;
+  }
+
+  .upload-icon {
+    background-image: url('../../../../../assets/agent-center/flow/public_fullscreen_grey.svg');
+  }
+}
+
+.upload-disabled {
+  cursor: not-allowed;
+
+  &:hover {
+    border-color: #c2c2c2;
+  }
+
+  .upload-icon {
+    background-image: url('../../../../../assets/agent-center/flow/public_fullscreen_grey.svg');
+  }
+
+}

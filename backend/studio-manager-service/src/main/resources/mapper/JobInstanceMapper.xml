@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) Huawei Technologies Co., Ltd. 2023-2023. All rights reserved.
+  -->
+
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.prompt.engineering.mapper.JobInstanceMapper">
+    <resultMap id="JobInstanceMap" type="com.openjiuwen.studio.prompt.engineering.task.dao.JobInstance">
+        <id column="id" jdbcType="VARCHAR" property="id" />
+        <result column="name" jdbcType="VARCHAR" property="name" />
+        <result column="created_on" jdbcType="TIMESTAMP" property="createdOn" />
+        <result column="updated_on" jdbcType="TIMESTAMP" property="updatedOn" />
+        <result column="job_spec_id" jdbcType="VARCHAR" property="jobSpecId" />
+        <result column="context" javaType="com.openjiuwen.studio.prompt.engineering.task.domain.Context" jdbcType="VARCHAR"
+                property="context" typeHandler="com.openjiuwen.studio.prompt.engineering.mapper.handler.ContextTypeHandler" />
+        <result column="retry_time" jdbcType="INTEGER" property="retryTime" />
+        <result column="status" jdbcType="VARCHAR" property="status" />
+        <result column="started_on" jdbcType="TIMESTAMP" property="startedOn" />
+        <result column="ended_on" jdbcType="TIMESTAMP" property="endedOn" />
+        <result column="handler_id" jdbcType="VARCHAR" property="handlerId" />
+        <result column="account_id" jdbcType="VARCHAR" property="accountId" />
+        <result column="workspace_id" jdbcType="VARCHAR" property="workspaceId" />
+        <association javaType="com.openjiuwen.studio.prompt.engineering.task.dao.JobSpec" property="jobSpec">
+            <id column="job_spec_id" property="id" />
+            <result column="job_spec_name" property="name" />
+            <result column="job_spec_created_on" property="createdOn" />
+            <result column="job_spec_updated_on" property="updatedOn" />
+            <result column="job_spec_type" property="type" />
+        </association>
+        <association javaType="com.openjiuwen.studio.prompt.engineering.task.dao.UserEntity" property="user">
+            <id column="account_id" property="id" />
+            <result column="user_name" property="name" />
+        </association>
+    </resultMap>
+
+
+    <select id="queryWithCondition2" resultMap="JobInstanceMap">
+        SELECT t1.*,
+        t2.name       AS job_spec_name,
+        t2.created_on AS job_spec_created_on,
+        t2.updated_on AS job_spec_updated_on,
+        t2.type       AS job_spec_type,
+        t3.name       AS user_name
+        FROM t_job_instance t1
+        INNER JOIN t_job_spec t2
+        ON t1.job_spec_id = t2.id
+        INNER JOIN t_user t3
+        ON t1.account_id = t3.id
+        WHERE 1 = 1
+        <if test="statuses != null and !statuses.isEmpty()">
+            AND t1.status IN <foreach collection='statuses' item='ss' open='(' separator=',' close=')'>#{ss} </foreach>
+        </if>
+        <if test="handlerId != null and handlerId.length() > 0">
+            AND t1.handler_id = #{handlerId}
+        </if>
+        <if test="accountIds != null and !accountIds.isEmpty()">
+            AND t1.account_id IN
+            <foreach collection='accountIds' item='accountId' open='(' separator=',' close=')'>
+                #{accountId}
+            </foreach>
+        </if>
+        <if test="taskType != null and !taskType.isEmpty()">
+            AND t2.name IN
+            <foreach collection='taskType' item='type' open='(' separator=',' close=')'>
+                #{type}
+            </foreach>
+        </if>
+        <if test="name != null and name.length() > 0">
+            <bind name="name" value="'%' + name + '%'"/>
+            AND t1.`name` LIKE #{name}
+        </if>
+        ORDER BY t1.updated_on DESC
+    </select>
+</mapper>

@@ -1,0 +1,221 @@
+<div
+  *ngFor="let content of dialogHistoryDeal; let i = index"
+  class="chat-one-out-in"
+>
+  <div
+    *ngIf="
+      content.role === 'user' && isConversationContent(content);
+      else answerContent
+    "
+    class="user-answer chat-content"
+  >
+    <div *ngIf="content.image">
+      <img alt="" class="msgImage" [src]="content.image"/>
+    </div>
+    <div *ngIf="content.content" class="w-full flex justify-end">
+      <div class="content-text">
+        <ng-container *ngFor="let fileItem of content.uploadData">
+          <!-- 展示上传的文件 -->
+          <div class="uploaded-file" *ngIf="fileItem.type === 'file'">
+            <meta-upload-file-icon
+              [fileName]="fileItem.name"
+            ></meta-upload-file-icon>
+            <span class="truncate" nz-tooltip [nzTooltipTitle]="fileItem.name">{{ fileItem.name }}</span>
+          </div>
+          <!-- 展示上传的图片 -->
+          <div class="uploaded-image" *ngIf="fileItem.type === 'image'">
+            <img alt="" [src]="fileItem.url || fileItem.img"/>
+          </div>
+        </ng-container>
+        <!-- 此处不能自动格式化保存，否则发送的用户问题开头会多一个空格，且使用trim无效 -->
+        <div class="user-question-text" style="white-space: pre-wrap">{{
+            getTrimmedQuestion(content.content)
+          }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <ng-template #answerContent>
+    <div class="flex w-full">
+      <div class="w-full">
+        <div *ngIf="content['reasoning_content']" class="assistant-content">
+          <div class="collapse-btn" [class.collapse-btn-border]="content['reason_hidden']">
+            <div class="flex items-center">
+              <img alt="" *ngIf="!content['content']" [src]="changeUrl('assets/agent-center/images/running.webp')" [alt]="'loading' | i18nextEager" />
+              <img alt="" *ngIf="content['content']" [src]="cdnUrl('assets/agent-center/images/deep-success.svg')"/>
+              <span style="margin-top: 2px">{{ content['abort'] ? ('thought_terminated'|i18nextEager) : (content['content'] ? ('complete_deep_thinking'|i18nextEager) : ('deep_thinking'|i18nextEager)) }}</span>
+            </div>
+
+            <div class="cursor-pointer ml-[8px]" (click)="content['reason_hidden'] = !content['reason_hidden']">
+              <span nz-icon nzType="up" nzTheme="outline" [hidden]="content['reason_hidden']" class="fold-icon"></span>
+              <span nz-icon nzType="down" nzTheme="outline" [hidden]="!content['reason_hidden']" class="fold-icon"></span>
+            </div>
+          </div>
+          <div [hidden]="content['reason_hidden']" class="pl-[28px]">
+            <app-markdown-answer
+              [isThought]="true"
+              [(answer)]="content['reasoning_content']"
+            ></app-markdown-answer>
+          </div>
+        </div>
+        <div
+          *ngIf="isConversationContent(content) && content.content"
+          class="assistant-content chat-content mt-2"
+        >
+          <div class="cv-content">
+            <div class="flex w-full gap-[12px]">
+              <div class="content-text">
+                <app-markdown-answer
+                  *ngIf="content.content"
+                  class="content markdown-no-bg"
+                  [(answer)]="content.content"
+                ></app-markdown-answer>
+                <div *ngIf="content.isError" class="error-answer-main">
+                  <a
+                    class="error-answer-main-span"
+                    (click)="content.errorIsOpen = false"
+                    *ngIf="content.errorIsOpen"
+                  >{{ 'hide_question_details'|i18nextEager }}</a
+                  >
+                  <a
+                    class="error-answer-main-span"
+                    (click)="content.errorIsOpen = true"
+                    *ngIf="!content.errorIsOpen"
+                  >{{ 'show_question_details'|i18nextEager }}</a
+                  >
+                  <div
+                    *ngIf="content.errorIsOpen"
+                    class="error-answer-main-text"
+                  >
+                    <div class="error-answer-main-text-title">
+                      <div class="error-answer-main-text-title-left">
+                        {{ 'question_details'|i18nextEager }}
+                      </div>
+                      <div class="error-answer-main-text-title-right" (click)="copy(content.errorContent)">
+                        <svg
+                          x="0px"
+                          y="0px"
+                          viewBox="0 0 16 16"
+                          style="fill: currentcolor"
+                          xml:space="preserve"
+                        >
+                        <path
+                          id="形状结合"
+                          d="M10,3.5c1.4,0,2.5,1.1,2.5,2.5v6c0,1.4-1.1,2.5-2.5,2.5H4c-1.4,0-2.5-1.1-2.5-2.5V6
+                          c0-1.4,1.1-2.5,2.5-2.5H10z M10,4.5H4C3.2,4.5,2.5,5.2,2.5,6v6c0,0.8,0.7,1.5,1.5,1.5h6c0.8,0,1.5-0.7,1.5-1.5V6
+                          C11.5,5.2,10.8,4.5,10,4.5z M12,1.5c1.4,0,2.5,1.1,2.5,2.5v5c0,0.3-0.2,0.5-0.5,0.5c-0.3,0-0.5-0.2-0.5-0.5V4c0-0.8-0.7-1.5-1.5-1.5
+                          H7C6.7,2.5,6.5,2.3,6.5,2c0-0.3,0.2-0.5,0.5-0.5H12z"
+                        ></path>
+                      </svg>
+                      </div>
+                    </div>
+                    <div class="error-answer-main-text-content">
+                      {{ content.errorContent }}
+                    </div>
+                  </div>
+                </div>
+                <div
+                  *ngIf="content?.quoteList?.length"
+                  class="flex flex-col gap-[8px] pb-[4px] pt-[15px]"
+                >
+                  <span class="text-[#808080]">
+                    {{ 'answer_source' | i18nextEager }}({{
+                      content?.quoteList?.length
+                    }})
+                  </span>
+                  <div class="quote-container">
+                    <div
+                      *ngFor="let item of content.quoteList"
+                      class="quote-list"
+                    >
+                      <asset-quote-icon></asset-quote-icon>
+                      <span class="truncate" nz-tooltip [nzTooltipTitle]="item.document_name">{{ item.document_name }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  class="cv-time flex justify-between"
+                  *ngIf="content.time_consumption"
+                >
+                  <div
+                    class="left"
+                    *ngIf="content.timeConsumptionStr.overall_str?.length > 0"
+                  >
+                    <asset-fst-latency-icon></asset-fst-latency-icon>
+                    <div>{{ content.timeConsumptionStr?.overall_str }}</div>
+                  </div>
+                  <div *ngIf="!isError" class="flex gap-[12px]">
+                    <ng-container *ngIf="voiceEnable">
+                      <button
+                        *ngIf="soundState !== 'loading'"
+                        type="button"
+                        nz-button
+                        nzType="text"
+                        [disabled]="getText(content).length === 0"
+                        nz-tooltip
+                        [nzTooltipTitle]="'read_aloud' | i18nextEager"
+                        (click)="onSoundOut(content)"
+                      >
+                        <span
+                          nz-icon
+                          nzType="sound"
+                          nzTheme="outline"
+                          [ngClass]="{
+                            '!text-primary': soundState === 'playing'
+                          }"
+                        ></span>
+                      </button>
+                      <span
+                        *ngIf="soundState === 'loading'"
+                        nz-icon
+                        nzType="loading"
+                        nzTheme="outline"
+                        class="!text-[16px]"
+                      ></span>
+                    </ng-container>
+                    <ng-container *ngIf="supportFeedback && messageId">
+                      <span
+                        class="like-icon h-[16px] w-[16px] cursor-pointer"
+                        [ngClass]="
+                          content?.isLikeClicked ? 'like-solid' : 'like-icon'
+                        "
+                        (click)="likeAnswer(content)"
+                      ></span>
+                      <div
+                        class="dislike-icon h-[16px] w-[16px] cursor-pointer"
+                        [ngClass]="
+                          content?.isDislikeClicked
+                            ? 'dislike-solid'
+                            : 'dislike-icon'
+                        "
+                        #tip="nzPopover"
+                        nz-popover
+                        [nzPopoverContent]="dislikeTip"
+                        nzPopoverTrigger="click"
+                        nzPopoverPlacement="bottomRight"
+                        [nzPopoverOverlayStyle]="{'max-width': '500px'}"
+                        (click)="submitDislike(content)"
+                      ></div>
+                    </ng-container>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </ng-template>
+</div>
+
+<ng-template #dislikeTip>
+  <custom-popconfirm
+    [type]="'agent'"
+    (cancel)="cancelDislike()"
+    (submit)="submitDisLikeFeedback($event)"
+    (close)="closeDislikeTip()"
+    (clickOutside)="closeDislikeTip()"
+  ></custom-popconfirm>
+</ng-template>

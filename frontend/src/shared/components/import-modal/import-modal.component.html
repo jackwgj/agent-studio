@@ -1,0 +1,153 @@
+<div class="import-modal-container">
+  <div *nzModalTitle class="header">
+    <span>{{ 'import' | i18nextEager }}</span>
+  </div>
+  <div class="main-container">
+    <div class="import-and-alert">
+      <!-- 意图管理有关提示先隐藏 -->
+      <nz-alert
+        *ngIf="false"
+        nzType="info"
+        [nzShowIcon]="true"
+        class="!w-full"
+        [nzAction]="actionTemplate0"
+      >
+      <ng-template #actionTemplate0>
+        {{ 'workflow_import_prompt' | i18nextEager }}
+      </ng-template>
+      </nz-alert>
+      <nz-alert
+        *ngIf="isParseError"
+        nzType="error"
+        class="alert"
+        [nzShowIcon]="true"
+        [nzAction]="actionTemplate1"
+      >
+      <ng-template #actionTemplate1>
+        {{ 'parse_error' | i18nextEager }}
+      </ng-template>
+      </nz-alert>
+      <nz-alert
+        *ngIf="import_type_tip"
+        nzType="warning"
+        class="warn"
+        [nzShowIcon]="true"
+        [nzAction]="actionTemplate2"
+      >
+      <ng-template #actionTemplate2>
+        {{ 'import_type_tip' | i18nextEager :{ name: getTypeName(importToolType)} }}
+      </ng-template>
+      </nz-alert>
+      <nz-alert
+        *ngIf="isSelectError"
+        nzType="error"
+        class="alert"
+        [nzShowIcon]="true"
+        [nzAction]="actionTemplate3"
+      >
+      <ng-template #actionTemplate3>
+        {{ 'select_import_data'|i18nextEager }}
+      </ng-template>
+      </nz-alert>
+      <nz-alert
+        nzType="info"
+        [nzShowIcon]="true"
+        class="!w-full"
+        [nzAction]="actionTemplate4"
+      >
+      <ng-template #actionTemplate4>
+        {{ 'file_import_tip' | i18nextEager :{ type: '.jsonl', maxSize:max_size/(1024*1024) } }}
+      </ng-template>
+      </nz-alert>
+
+      <nz-upload
+        [nzLimit]="1"
+        class="mt-[8px]"
+        [nzAction]="''"
+        [nzAccept]="'.jsonl'"
+        [nzShowUploadList]="!!fileInfo"
+        (nzChange)="onAddFileSuccess($event)"
+      >
+        <button nz-button>
+          <span nz-icon nzType="upload"></span>
+          {{ fileButtonName }}
+        </button>
+      </nz-upload>
+    </div>
+    <div class="parse-file">
+      <nz-spin
+        *ngIf="isLoading; else parseContentArea"
+        class="loading-icon"
+        nzSimple
+      ></nz-spin>
+      <ng-template #parseContentArea>
+        <nz-table
+          [nzData]="srcData.data"
+          [nzTotal]="srcData.data.length"
+          [nzShowSizeChanger]="false"
+          [nzFrontPagination]="false"
+          *ngIf="isFileImported"
+        >
+          <thead>
+            <tr>
+              <th nzWidth="40%">{{ columns[0].title }}</th>
+              <th nzWidth="30%">{{ columns[1].title }}</th>
+              <th nzWidth="30%">{{ columns[2].title }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <ng-container *ngFor="let row of srcData.data;index as i">
+              <tr>
+                <td>{{ row[columns[0].key] }}</td>
+                <td>{{ row[columns[1].key] }}</td>
+                <td>
+                  <span *ngIf="columns[2].key!=='import_description'">{{ row[columns[2].key] }}</span>
+                  <span *ngIf="columns[2].key==='import_description'" [nz-tooltip]="getStatusInfo(row)?.tip" class="flex align-center">
+                    <span nz-icon [nzType]="getStatusInfo(row)?.icon" [ngStyle]="{'color': getStatusInfo(row)?.color}"></span>
+                    {{getStatusInfo(row)?.text}}
+                  </span>
+                </td>
+              </tr>
+            </ng-container>
+            <ng-container *ngIf="!srcData.data?.length">
+              <tr>
+                <td colspan="3">
+                  <div class="no-data-container">
+                    <div class="text">{{ 'no_match_resource' | i18nextEager}}</div>
+                    <div class="tip">{{ 'no_match_resource_tip' | i18nextEager}}</div>
+                  </div>
+                </td>
+              </tr>
+            </ng-container>
+          </tbody>
+        </nz-table>
+        <div class="total-tip">{{bottomTip}}</div>
+      </ng-template>
+    </div>
+  </div>
+
+  <div *nzModalFooter class="footer">
+    <nz-space>
+      <button nz-button class="rounded" (click)="dismiss()">
+        {{ 'cancel' | i18nextEager }}
+      </button>
+      <button
+        nz-button
+        nzType="primary"
+        class="rounded"
+        [nzLoading]="isImporting"
+        [disabled]="isCanImport"
+        (click)="importTool()"
+      >
+        {{ 'import' | i18nextEager }}
+      </button>
+    </nz-space>
+  </div>
+</div>
+
+<ng-template #tipContent let-context="context">
+  <div class="flex align-center">
+    <span nz-icon nzType="delete" class="status-fail text-[16px]"></span>
+    <span class="ml-[8px] leading-[24px]">{{context}}</span>
+  </div>
+</ng-template>

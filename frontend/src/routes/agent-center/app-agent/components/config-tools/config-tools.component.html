@@ -1,0 +1,1032 @@
+<div class="config-container">
+  <div class="main-container" cdkScrollable #mainContainerRef>
+    <!--模型-->
+    <div>
+      <div class="common-main-title">{{ 'model_config' | i18nextEager }}</div>
+      <div>
+        <!-- 合一模式 （即使用问答） -->
+        <div class="plugin-area config-tool-items">
+          <div class="plugin-area-title">
+            <div class="left">
+              <span class="font-semibold">{{ 'model' | i18nextEager }}</span>
+            </div>
+            <div class="right">
+              <div class="header-right">
+                <div class="inner">
+                  <llm-select
+                    style="width: 100%;"
+                    [selectedModel]="modelConfig.model_deployment_id"
+                    [clearable]="false"
+                    (update)="changeModelSelected($event)"
+                  ></llm-select>
+                </div>
+                <!-- 模型配置的Tip弹窗 -->
+                <div class="model-config-tip" [hidden]="!showModelConfigTip" (click)="$event.stopPropagation()">
+                  <model-config-tip
+                    style="position: fixed"
+                    [availableModels]="availableModels"
+                    [modelConfig]="modelConfig"
+                    [isVisible]="showModelConfigTip">
+                  </model-config-tip>
+                </div>
+              </div>
+              <div class="content-examine-config-main">
+                <div class="content-examine-config" (click)="triggerModel($event,'one')"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="common-separator-line"></div>
+      </div>
+    </div>
+
+    <!--技能-->
+    <div>
+      <div class="common-main-title">{{ 'skill' | i18nextEager }}</div>
+      <div class="config-tool-items">
+        <!-- MCP服务区域 -->
+        <div
+          class="flex flex-col"
+          *ngIf="curAgentModeCode !== AGENT_MODE_CODE.PLANNING_MODE"
+        >
+          <skill-list
+            type="mcp"
+            [curAgentModeCode]="curAgentModeCode"
+            [toolAdded]="mcpServersAdded"
+            [loading]="mcpServerLoading"
+            [noDataText]="mcpServerEmptyText"
+            [flowActionsVisible]="false"
+            [defaultIcon]="mcpDefaultIcon"
+            [isFlowReadonly]="isFlowReadonly"
+            (collapseRegionFlag)="changeCollapsedState($event)"
+            (addBtnClickedFlag)="openMCPHalfmodal(mcpModal)"
+            (deleteFlow)="deleteOneMCP($event)"
+            (selectTool)="selectTool($event)"
+            (configPlugin)="configParams('mcp', $event)"
+          ></skill-list>
+        </div>
+
+        <!-- 插件区域 -->
+        <div class="plugin-area">
+          <div class="plugin-area-title" (click)="changeCollapsedState(pluginAdded)">
+            <div class="left">
+              <span class="font-semibold">{{ pluginAdded.title }}</span>
+              <nz-icon
+                nzType="right"
+                nzTheme="outline"
+                class="unfolded common-up-down-arrow"
+                [ngClass]="pluginAdded.collapsed ? 'collapsed-icon' : 'unfolded-icon'"
+              />
+            </div>
+            <div class="right">
+              <div *ngIf="isF1" class="intelligent-add-border" nz-tooltip
+                   [nzTooltipTitle]="'add_plugins_tip' | i18nextEager"
+                   nzTooltipPlacement="top" (click)="generatePlugins()">
+                <asset-intelligent-add></asset-intelligent-add>
+              </div>
+              <div class="add-icon-area" (click)="handleAddPlugin(pluginAddModal)">
+                <nz-icon nzType="plus" nzTheme="outline" class="text-[16px]" />
+              </div>
+            </div>
+          </div>
+          <nz-spin *ngIf="pluginAdded.isLoading" nzSimple class="loading-icon"></nz-spin>
+          <div *ngIf="pluginAdded?.list?.length && !pluginAdded.collapsed; else noPluginText" class="plugin-list" [class.mt-1]="!pluginAdded.collapsed">
+            <ng-container *ngFor="let pluginItem of pluginAdded.list">
+              <div
+                class="plugin-item"
+                (mouseenter)="pluginItem.hover = true"
+                (mouseleave)="pluginItem.hover = false"
+                [ngStyle]="{ 'background-color': getBgColor(pluginItem, 'plugin') }"
+              >
+                <div class="plugin-item-left" [ngClass]="{'plugin-item-disabled': pluginItem?.unauthenticated && !pluginItem.hasQuota }">
+                  <img alt=""
+                    class="tool-common-icon"
+                    [src]="pluginItem.icon"
+                    [class]="!isFlowReadonly && pluginItem.app_last_version_obj && !pluginItem.app_last_version_obj.valid ? 'class-filter' : ''"
+                  />
+                  <div class="plugin-info">
+                    <div class="plugin-name">
+                      <div class="text-overflow"
+                           [class]="!isFlowReadonly && pluginItem.app_last_version_obj && !pluginItem.app_last_version_obj.valid ? 'class-filter':''"
+                      >
+                        {{ getPluginName(pluginItem) + '/' + getToolName(pluginItem) }}
+                      </div>
+                      <img alt=""
+                        *ngIf="
+                        !isFlowReadonly &&
+                        pluginItem.app_last_version_obj &&
+                        pluginItem.resource_version &&
+                        pluginItem.app_last_version_obj.valid &&
+                        pluginItem.app_last_version_obj.resource_latest_version !==
+                        pluginItem.resource_version
+                      "
+                        [src]="
+                        changeUrl('assets/agent-center/icons/update-node-icon.svg')
+                      "
+                        class="update-flow-icon"
+                        nz-tooltip
+                        [nzTooltipTitle]="'update_flow_tip' | i18nextEager :{versionName:pluginItem.app_last_version_obj.resource_latest_version_name}"
+                        nzTooltipPlacement="top"
+                        (click)="onConfirmPluginUpdate(pluginItem)"
+                      />
+                      <img alt=""
+                        *ngIf="
+                      !isFlowReadonly &&
+                      pluginItem.app_last_version_obj &&
+                      !pluginItem.app_last_version_obj.valid
+                    "
+                        [src]="
+                      changeUrl('assets/agent-center/icons/public_warning.svg')
+                    "
+                        class="warring-flow-icon"
+                        nz-tooltip
+                        [nzTooltipTitle]="'flowitemcomponent_18' | i18nextEager"
+                        nzTooltipPlacement="top"
+                      />
+                    </div>
+                    <div class="plugin-desc" [class]="!isFlowReadonly && pluginItem.app_last_version_obj && !pluginItem.app_last_version_obj.valid ? 'class-filter' : ''">
+                      {{ pluginItem.desc }}
+                    </div>
+                  </div>
+
+                </div>
+
+                <div [hidden]="!pluginItem?.hover || isFlowReadonly" class="ml-[16px] flex-center gap-[12px]">
+                  <nz-icon
+                    *ngIf="curAgentModeCode !== AGENT_MODE_CODE.PLANNING_MODE"
+                    nzType="info-circle"
+                    nzTheme="outline"
+                    class="!text-[18px] right-icon"
+                    nz-tooltip
+                    [nzTooltipTitle]="inputParamsTipTmpl"
+                    nzTooltipColor="#fff"
+                  />
+
+                  <nz-icon
+                    *ngIf="curAgentModeCode !== AGENT_MODE_CODE.PLANNING_MODE && (!pluginItem?.unauthenticated || pluginItem.hasQuota)"
+                    nzType="setting"
+                    nzTheme="outline"
+                    class="!text-[16px] right-icon"
+                    nz-tooltip
+                    [nzTooltipTitle]="'param_conf' | i18nextEager"
+                    nzTooltipPlacement="top"
+                    (click)="configParams('tool',pluginItem)"
+                  />
+                  <nz-icon
+                    nzType="delete"
+                    nzTheme="outline"
+                    class="!text-[16px] right-icon"
+                    nz-tooltip
+                    [nzTooltipTitle]="'delete' | i18nextEager"
+                    nzTooltipPlacement="top"
+                    (click)="deleteOnePluginPre(pluginItem)"
+                  />
+                </div>
+                <ng-container *ngIf="pluginItem?.unauthenticated">
+                  <p [hidden]="!pluginItem.hasQuota" class="ml-[12px] quota-tip" nz-tooltip [nzTooltipTitle]="pluginItem.quotaTip"
+                     (click)="handleClickAddAuthConfig(pluginItem)">{{ 'app_center_tag_1' | i18nextEager :{ time: pluginItem.quota } }}</p>
+                  <button [hidden]="pluginItem.hasQuota" class="ml-[12px]" nz-button nzSize="small" nzType="default" nz-tooltip [nzTooltipTitle]="pluginItem.authTip"
+                          (click)="handleClickAddAuthConfig(pluginItem)">
+                    {{ 'configAuth' | i18nextEager }}
+                  </button>
+                </ng-container>
+              </div>
+            </ng-container>
+          </div>
+        </div>
+
+        <!-- 工作流区域 -->
+        <skill-list
+          type="workflow"
+          [toolAdded]="flowAdded"
+          [loading]="flowLoading"
+          [noDataText]="flowEmptyText"
+          [defaultIcon]="flowDefaultIcon"
+          [isFlowReadonly]="isFlowReadonly"
+          [curAgentModeCode]="curAgentModeCode"
+          (collapseRegionFlag)="changeCollapsedState($event)"
+          (addBtnClickedFlag)="openFlowHalfmodal(flowModal)"
+          (deleteFlow)="deleteOneFlow($event)"
+          (configPlugin)="configParams('workflow',$event)"
+          (autoAddFlow)="generateFlows()"
+          (onConfirmUpdateFlow)="generateUpdateFlowsV($event)"
+        ></skill-list>
+
+        <!-- Skill区域 -->
+        @if (false) {
+          <skills-config
+            [agentId]="agentId"
+            [isFlowReadonly]="isFlowReadonly"
+            [selectedSkills]="selectedSkills"
+            (doTriggerSaveSkill)="doTriggerSaveSkill($event)"
+          ></skills-config>
+        }
+
+        <div class="common-separator-line"></div>
+      </div>
+    </div>
+    <!-- 任务规划 -->
+    <task-planning
+      *ngIf="curAgentModeCode === AGENT_MODE_CODE.PLANNING_MODE"
+      [mcpServersAdded]="mcpServersAdded"
+      [pluginAdded]="pluginAdded"
+      [flowAdded]="flowAdded"
+      [isFlowReadonly]="isFlowReadonly"
+      [sceneList]="sceneList"
+      (doTriggerSaveScenes)="doTriggerSaveScenes($event)"
+    ></task-planning>
+    <!--知识库-->
+    <div
+      *ngIf="curAgentModeCode !== AGENT_MODE_CODE.PLANNING_MODE"
+      class="skills-container knowledge-base-config"
+    >
+      <div class="skills-title">{{ 'knowledge' | i18nextEager }}</div>
+      <div class="skills config-tool-items">
+        <!-- 知识库区域 -->
+        <div class="tool-item">
+          <div class="tool-title"
+               (click)="changeCollapsedState(knowledgeAdded)">
+            <div
+              class="left w-[calc(100%-84px)]"
+            >
+              <span class="font-semibold">{{ knowledgeAdded.title }}</span>
+              <nz-icon
+                nzType="right"
+                nzTheme="outline"
+                style="font-size: 16px"
+                class="unfolded"
+                [ngClass]="
+                  knowledgeAdded.collapsed ? 'collapsed-icon' : 'unfolded-icon'
+                "
+              />
+            </div>
+
+            <div class="flex items-center gap-[8px]">
+              <div
+                class="icon-border"
+                *ngIf="!!knowledgeAdded?.list?.length"
+              >
+                <div class="kb-conf" [title]="'advanced' | i18nextEager"
+                     #kbConfRef="nzTooltip"
+                     (click)="onClickKbConf($event)"
+                     nz-tooltip
+                     [nzTooltipTitle]="kbConfRefCmp"
+                     [nzTooltipTrigger]="null"
+                     nzTooltipColor="#fff"
+                     [nzTooltipOverlayStyle]="{ maxWidth: '90vw', width: '520px' }"
+                     nzTooltipPlacement="bottomRight"
+                ></div>
+              </div>
+              <ng-template #kbConfRefCmp>
+                <kb-conf [param]="kbParams" [kbId]="kbTipCtx.kbId" [selectedNum]="kbTipCtx.selectedNum" (updatedParam)="kbTipCtx.outputs.updatedParam($event)" />
+              </ng-template>
+
+
+              <div class="icon-border" (click)="showKBSelectorHalfModal($event)">
+                <nz-icon nzType="plus" nzTheme="outline" style="font-size: 16px" />
+              </div>
+            </div>
+          </div>
+          <nz-spin
+            *ngIf="knowledgeAdded.isLoading"
+            nzSimple
+            class="loading-icon"
+          ></nz-spin>
+          <div
+            *ngIf="knowledgeAdded?.list?.length && !knowledgeAdded.collapsed; else noKnowledgeText"
+            class="knowledge-list"
+            [class.mt-1]="!knowledgeAdded.collapsed"
+          >
+            <ng-container *ngFor="let knowledgeItem of knowledgeAdded.list">
+              <div
+                class="knowledge-item"
+                (mouseenter)="knowledgeItem.hover = true"
+                (mouseleave)="knowledgeItem.hover = false"
+                [ngStyle]="{
+                  'background-color': getBgColor(knowledgeItem, 'kb')
+                }"
+              >
+                <div class="knowledge-item-left">
+                  <img
+                    class="tool-common-icon"
+                    [src]="knowledgeItem.icon || kbDefaultIcon"
+                    alt=""
+                  />
+                  <span
+                    class="knowledgeName max-w-[150px] leading-[1] text-overflow"
+                  >
+                    {{
+                      knowledgeItem?.name || knowledgeItem?.knowledge_repo_name
+                    }}
+                  </span>
+                  <nz-icon
+                    *ngIf="'CLOSE' === knowledgeItem.status"
+                    nzType="warning"
+                    nzTheme="fill"
+                    class="cursor-pointer text-[#f23030]"
+                    nz-tooltip
+                    [nzTooltipTitle]="'knowledge_stop_tip' | i18nextEager"
+                    nzTooltipPlacement="top"
+                  />
+                </div>
+                <nz-icon
+                  *ngIf="knowledgeItem?.hover && !isFlowReadonly && !kbAbilitiesService.isResourceDisabled"
+                  class="ml-[16px] text-[16px] del-icon"
+                  nzType="delete"
+                  nzTheme="outline"
+                  nz-tooltip
+                  [nzTooltipTitle]="'delete' | i18nextEager"
+                  nzTooltipPlacement="top"
+                  (click)="deleteOneKnowledge(knowledgeItem)"
+                />
+              </div>
+            </ng-container>
+          </div>
+        </div>
+        <div class="common-separator-line"></div>
+      </div>
+    </div>
+    <!--记忆-->
+    <div>
+      @if (curAgentModeCode === AGENT_MODE_CODE.PLANNING_MODE) {
+        @if (configServ.isSupportUserPersona() && configServ.isSupportMemoryInSingleAgent()) {
+          <div class="common-main-title">{{ 'memory' | i18nextEager }}</div>
+          <memory-lib-selector
+            [memoryLibs]="memoryLibData.list"
+            [tipType]="memoryLibSelectorTipType.DESCRIPTION"
+            [loading]="memoryLibData.isLoading"
+            (memoryLibSelectChange)="memoryLibSelectChange($event)"></memory-lib-selector>
+          <div class="common-separator-line"></div>
+        }
+      } @else {
+        <div class="common-main-title">{{ 'memory' | i18nextEager }}</div>
+        <!-- 变量 -->
+        <div class="config-tool-items">
+          <ng-container *ngTemplateOutlet="params; context: {context: {param: memoryParamAdded, data: agent_variables, type: 'userVars'}}"></ng-container>
+          <ng-container *ngTemplateOutlet="params; context: {context: {param: inputParamAdded, data: input_variables, type: 'inputVars'}}"></ng-container>
+        </div>
+        <div class="common-separator-line"></div>
+      }
+    </div>
+
+    <!-- 像是废弃的代码 -->
+    <div
+      class="skills-container mt-[24px]"
+      *ngIf="isF1 && curAgentModeCode !== AGENT_MODE_CODE.PLANNING_MODE"
+    >
+      <div class="skills-title">{{ 'memory' | i18nextEager }}</div>
+      <div class="skills config-tool-items">
+        <!-- 记忆参数 -->
+        <div class="tool-item mb-[12px]">
+          <div class="tool-title">
+            <div
+              class="left w-[calc(100%-54px)]"
+              (click)="changeCollapsedState(memosAdded)"
+            >
+              <nz-icon
+                nzType="right"
+                nzTheme="outline"
+                class="unfolded"
+                [ngClass]="
+                  memosAdded.collapsed ? 'collapsed-icon' : 'unfolded-icon'
+                "
+              />
+              <span class="font-semibold">{{ memosAdded.title }}</span>
+            </div>
+            <div class="right" (click)="showAddMemo()">
+              <div class="icon-border">
+                <nz-icon nzType="plus" nzTheme="outline" class="text-[14px]" />
+              </div>
+            </div>
+          </div>
+          <div
+            *ngIf="memosAdded?.list?.length && !memosAdded.collapsed; else noMemosText"
+          >
+            <div class="flex w-full flex-wrap gap-[8px]">
+              <div
+                class="w-fit cursor-pointer rounded-[6px] bg-[#deecff] px-[12px] py-[6px] text-[#1476ff]"
+                *ngFor="let memo of memosAdded.list"
+                (click)="showAddMemo(memo.name)"
+              >
+                {{ memo.name }}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="cutline"></div>
+      </div>
+    </div>
+
+    <!--对话体验-->
+    <div>
+      <div class="common-main-title">{{ 'dialogue_experience' | i18nextEager }}</div>
+      <div class="conversation-experience-main config-tool-items">
+        <!-- 开场白区域 -->
+        <div>
+          <div class="flex justify-between common-item-title">
+            <div class="left w-[calc(100%-84px)] flex" (click)="changeCollapsedPrologue(prologueInfo)">
+              <span class="font-semibold">{{ 'prologue' | i18nextEager }}</span>
+              <nz-icon
+                nzType="right"
+                nzTheme="outline"
+                style="font-size: 16px;color: #808080"
+                class="unfolded ml-[4px]"
+                [ngClass]="prologueInfo.collapsed ? 'collapsed-icon' : 'unfolded-icon'" />
+            </div>
+            <div class="right">
+              <div class="common-item-add-icon" *ngIf="openingInputed === ''" (click)="confirmAutoGenerate()">
+                <img alt="" [src]="optimizeIcon" />
+              </div>
+              <div
+                class="common-item-add-icon"
+                *ngIf="openingInputed !== ''"
+                #autoGenerateTip="nzTooltip"
+                nz-tooltip
+                [nzTooltipTitle]="autoGenerateTemplate"
+                nzTooltipColor="#fff"
+                nzTooltipTrigger="click"
+                nzTooltipPlacement="bottomLeft"
+                (click)="handleAutoGenerateTip()"
+              >
+                <img alt="" class="optimize-opening-icon" [src]="optimizeIcon" />
+              </div>
+            </div>
+          </div>
+          <div class="pl-[12px] pr-[12px] w-[100%] h-[109px]" [class.mt-1]="!prologueInfo.collapsed" *ngIf="!prologueInfo.isAutoLoading && !prologueInfo.collapsed">
+            <nz-spin *ngIf="prologueInfo.isAutoLoading" nzSimple class="conversation-loading-icon"></nz-spin>
+            <textarea
+              *ngIf="!prologueInfo.isAutoLoading"
+              nz-input
+              maxlength="512"
+              [placeholder]="'statement_placeholder' | i18nextEager"
+              [(ngModel)]="openingInputed"
+              [disabled]="isFlowReadonly"
+              (ngModelChange)="inputChanged.next($event)"
+              style="width: 100%; height: 109px; min-width: 100%" resize="none"
+            ></textarea>
+          </div>
+        </div>
+
+        <!-- 推荐问题区域 -->
+        <div>
+          <div class="flex justify-between common-item-title">
+            <div class="left w-[calc(100%-84px)]" (click)="changeCollapsedState(openingDialogInfo)">
+              <span class="font-semibold">{{ 'recommended_questions' | i18nextEager }}</span>
+              <nz-icon
+                nzType="right"
+                nzTheme="outline"
+                style="font-size: 16px;"
+                class="unfolded"
+                [ngClass]="openingDialogInfo.collapsed ? 'collapsed-icon' : 'unfolded-icon'"
+              />
+            </div>
+            <div class="right">
+              <div class="common-item-add-icon" *ngIf="isAllTextareasEmpty()" (click)="confirmAutoGeneQuestions()">
+                <img alt="" [src]="optimizeIcon" />
+              </div>
+              <div
+                (click)="handleAutoGeneQuestionTip()"
+                class="common-item-add-icon"
+                #autoGeneQuestionTip="nzTooltip"
+                nz-tooltip
+                [nzTooltipTitle]="autoGeneQuestionTemplate"
+                nzTooltipTrigger="click"
+                nzTooltipPlacement="bottomLeft"
+                [nzTooltipOverlayStyle]="{  width: '315px' }"
+              >
+                <img alt="" [src]="optimizeIcon" />
+              </div>
+              <span
+                class="create-gene-question"
+                (click)="onCompositionStart()"
+                [ngClass]="{ disabled: checkQuestionLength(3) || hasBlankItem() }"
+                nz-tooltip
+                [nzTooltipTitle]="checkQuestionLength(3) ? ('recommended_questions_max_tip' | i18nextEager) : ''"
+              >
+                <nz-icon nzType="plus" nzTheme="outline" />
+              </span>
+            </div>
+          </div>
+          <div
+            class="pl-[12px] pr-[12px] w-[100%] min-h-[32px]"
+            [class.mt-1]="!openingDialogInfo.collapsed"
+            *ngIf="!openingDialogInfo.collapsed"
+          >
+            <nz-spin *ngIf="openingDialogInfo.isAutoLoading" nzSimple class="conversation-loading-icon"></nz-spin>
+            <form
+              *ngIf="!openingDialogInfo.isAutoLoading && !openingDialogInfo.collapsed"
+              [formGroup]="questionListForm"
+              class="question-form"
+            >
+              <div formArrayName="headers" class="question-list">
+                <div
+                  *ngFor="let item of getHeadersControls().controls; index as i"
+                  [formGroupName]="i"
+                  [ngClass]="{ error: isControlInvalid(item) }"
+                  class="single-question"
+                >
+                <textarea
+                  formControlName="key"
+                  [placeholder]="'input_placeholder' | i18nextEager"
+                  cdkTextareaAutosize maxlength="512" class="question-textarea"
+                  [cdkAutosizeMinRows]="1"
+                  (ngModelChange)="onInputChange($event, i)"
+                ></textarea>
+                  <span
+                    class="delete-question-icon cursor-pointer"
+                    *ngIf="!isFlowReadonly"
+                    (click)="deleteOneQuestion(i)"
+                  >
+                    <nz-icon nzType="delete" nzTheme="outline" />
+                  </span>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- 追问 -->
+        <div>
+          <div class="common-item-title" style="padding: 12px">
+            <div class="left w-[calc(100%-84px)] flex" (click)="changeCollapsedState(probeInfo)">
+              <span>
+                <span class="font-semibold"> {{ probeInfo.title }}</span>
+                <nz-icon
+                  nzType="question-circle"
+                  nzTheme="outline"
+                  nz-tooltip
+                  [nzTooltipTitle]="promptDescTip"
+                />
+              </span>
+              <nz-icon
+                nzType="right"
+                nzTheme="outline"
+                style="font-size: 16px;color: #808080"
+                class="unfolded ml-[4px]"
+                [ngClass]="probeInfo.collapsed ?  'unfolded-icon' :'collapsed-icon'"
+              />
+            </div>
+            <div class="right">
+              <nz-switch
+                style="margin-top: -10px"
+                (ngModelChange)="onSwitchChange($event)"
+                [nzDisabled]="isFlowReadonly"
+                [(ngModel)]="switchState"
+              ></nz-switch>
+            </div>
+          </div>
+          <div *ngIf="probeInfo.collapsed" class="collapse-area flex flex-col gap-[8px] mt-1">
+            <span class="desc text-[#808080] no-var-text" *ngIf="!switchState">{{ probeInfo.closeDesc }}</span>
+            <span class="desc text-[#808080] no-var-text" *ngIf="switchState">{{ probeInfo.openDesc }}</span>
+            <div class="flex flex-col gap-[8px]" style="padding: 0 12px">
+                <textarea
+                  nz-input
+                  maxlength="512"
+                  resize="none"
+                  style="width: 100%; height: 109px; min-width: 100%"
+                  [placeholder]="followupPlaceholder"
+                  [(ngModel)]="probeInputed" [disabled]="isFlowReadonly"
+                  (ngModelChange)="updateFollowUpPrompt($event)"
+                ></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!--音色-->
+        <div *ngIf="voiceEnable">
+          <div class="common-item-title" style="padding: 12px">
+            <div (click)="changeCollapsedState(voiceConfig)" class="left w-[calc(100%-54px)]">
+              <span>
+                <span class="font-semibold"> {{ 'timbre' | i18nextEager }}</span>
+                <nz-icon
+                  nzType="question-circle"
+                  nzTheme="outline"
+                  nz-tooltip
+                  [nzTooltipTitle]="'timbre_select_tip' | i18nextEager"
+                />
+              </span>
+            </div>
+          </div>
+          <div *ngIf="!voiceConfig.collapsed" [class.mt-1]="!voiceConfig.collapsed" style="padding: 0 12px;">
+            <div
+              class="timbre-area-content"
+              #voiceTip="nzTooltip"
+              nz-tooltip
+              [nzTooltipTitle]="voiceConfigTemplate"
+              nzTooltipTrigger="click"
+              nzTooltipPlacement="topRight"
+              (click)="voiceTipTrigger($event)"
+            >
+              <img class="h-[32px] w-[32px]" [src]="voiceIcon" alt="" />
+              <div class="flex-1 ml-2">
+                <div class="font-semibold">{{ voiceConfig.name }}-{{ voiceConfig.type }}</div>
+                <div class="text-[#808080]">{{ voiceConfig.scene }}</div>
+              </div>
+              <button [disabled]="isFlowReadonly" nz-button nzType="default" type="button">
+                <nz-icon nzType="swap" nzTheme="outline" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 引用和归属 -->
+        <div
+          class="reference-area"
+          *ngIf="curAgentModeCode !== AGENT_MODE_CODE.PLANNING_MODE"
+        >
+          <div class="reference-area-title" style="align-items: center; justify-content: space-between; padding: 12px;">
+            <div class="left w-[calc(100%-54px)]" (click)="changeCollapsedState(referenceConfig)" style="cursor: default">
+              <span>
+                <span class="font-semibold"> {{ 'reference' | i18nextEager }}</span>
+                <nz-icon
+                  nzType="question-circle"
+                  nzTheme="outline"
+                  nz-tooltip
+                  [nzTooltipTitle]="'reference_select_tip' | i18nextEager"
+                />
+              </span>
+
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px">
+              <nz-switch [nzDisabled]="isFlowReadonly" [(ngModel)]="referenceConfig.enabled" (ngModelChange)="enableAgentReference()"></nz-switch>
+            </div>
+          </div>
+          <div class="reference-area-content" *ngIf="referenceConfig.enabled && referenceConfig.json_formate">
+            <div style="display: flex; gap: 8px;">
+              <img [src]="changeUrl('assets/images/common/json.svg')" alt="" width="32">
+              <p style="display: flex; flex-direction: column; justify-content: center">
+                <span style="color: rgb(25, 25 ,25)">{{ 'json_output' | i18nextEager }}</span>
+                <span style="color: rgb(128, 128, 128); font-size: 12px">{{ 'json_output_1' | i18nextEager }}</span>
+              </p>
+            </div>
+            <button [disabled]="isFlowReadonly" nz-button nzType="default" type="button" style="margin-top: 16px" nz-tooltip [nzTooltipTitle]="tipContent">
+              <nz-icon nzType="swap" nzTheme="outline" />
+            </button>
+          </div>
+          <div class="reference-area-content" *ngIf="referenceConfig.enabled && !referenceConfig.json_formate">
+            <div style="display: flex; gap: 8px;">
+              <img [src]="changeUrl('assets/images/common/text.svg')" alt="" width="32">
+              <p style="display: flex; flex-direction: column; justify-content: center">
+                <span style="color: rgb(25, 25 ,25)">{{ 'text_output' | i18nextEager }}</span>
+                <span style="color: rgb(128, 128, 128); font-size: 12px">{{ 'text_output_1' | i18nextEager }}</span>
+              </p>
+            </div>
+            <button [disabled]="isFlowReadonly" nz-button nzType="default" type="button" style="margin-top: 16px" nz-tooltip [nzTooltipTitle]="tipContent" nzTooltipColor="#fff">
+              <nz-icon nzType="swap" nzTheme="outline" />
+            </button>
+          </div>
+        </div>
+
+        <div class="common-separator-line"></div>
+      </div>
+    </div>
+
+    <!--安全-->
+    <div class="security-area">
+      <div class="common-main-title security-area-title">
+        <div>{{ securityCfg.title }}</div>
+        <nz-icon
+          *ngIf="showSafetyBarrier"
+          nzType="question-circle"
+          nzTheme="outline"
+          nz-tooltip
+          [nzTooltipTitle]="'llmmodalcomponent_419'|i18nextEager"
+        />
+      </div>
+      <div class="security-main config-tool-items">
+        <collapse-text [title]="'content_moderation_configuration'|i18nextEager" classType="style4" [collapseIconAlign]="'left'"
+                       [tip]="showSettingContentReview ?('configtoolscomponent_48'|i18nextEager) : ''" [open]="false" [titleClick]="true">
+          <ng-template #icons>
+            <div *ngIf="auditConfig.enabled" (click)="openAuditHalfModal($event)" class="content-examine-config-main">
+              <div class="content-examine-config"></div>
+            </div>
+            <nz-switch style="margin-left: 8px;margin-top: -10px" (ngModelChange)="onContentReviewSwitchChange($event)" [nzDisabled]="isFlowReadonly"
+                       [(ngModel)]="auditConfig.enabled"></nz-switch>
+          </ng-template>
+          <ng-template #content>
+            <div class="security-row3">{{ 'setting_keyword_tip'|i18nextEager }}</div>
+          </ng-template>
+        </collapse-text>
+        <collapse-text [titleClick]="true" [title]="'safety_barrier'|i18nextEager" classType="style4" *ngIf="showSafetyBarrier" [collapseIconAlign]="'left'" [open]="false">
+          <ng-template #icons>
+            <nz-switch style="margin-top: -10px" (ngModelChange)="securitySwitchChange($event)" [nzDisabled]="isFlowReadonly" [(ngModel)]="securityConfig"></nz-switch>
+          </ng-template>
+          <ng-template #content>
+            <div class="security-row3">
+              <div>{{ 'detecting_prompt_tip'|i18nextEager }}</div>
+              <div>{{ 'detect_sensitive_tip'|i18nextEager }}</div>
+            </div>
+          </ng-template>
+        </collapse-text>
+      </div>
+    </div>
+
+    <!-- empty plugin template -->
+    <ng-template #noPluginText>
+      <div class="no-plugin-text" [class.mt-1]="!pluginAdded.collapsed" *ngIf="!pluginAdded.collapsed">
+        {{ 'plugin_limit' | i18nextEager : { number: pluginLimit } }}
+      </div>
+    </ng-template>
+
+    <ng-template #noKnowledgeText>
+      <div class="no-knowledge-text" [class.mt-1]="!knowledgeAdded.collapsed" *ngIf="!knowledgeAdded.collapsed">
+        {{ 'kbUseTip' | i18nextEager }}
+      </div>
+    </ng-template>
+
+    <ng-template #noMemosText>
+      <div class="no-memo-text" [class.mt-1]="!memosAdded.collapsed" *ngIf="!memosAdded.collapsed">
+        {{ 'memosText' | i18nextEager }}
+      </div>
+    </ng-template>
+
+    <nz-drawer
+      #pluginAddModal
+      id="add-plugin-halfmodal"
+      [nzPlacement]="'right'"
+      [nzMaskClosable]="false"
+      [nzMask]="true"
+      [nzClosable]="true"
+      [nzWidth]="halfModalWidth"
+      (nzOnClose)="closePluginDrawer(pluginAddModal)"
+    >
+      <ng-container *nzDrawerContent>
+        <div class="h-full flex flex-col">
+          <div class="flex justify-between items-center px-[24px] py-[16px] border-b border-[#e8e8e8]">
+            <span class="text-[16px] font-medium">{{ 'add_plug_tool' | i18nextEager }}</span>
+          </div>
+          <div class="flex-1 overflow-auto p-[24px]">
+            <add-plugins
+              [usedFrom]="'agent'"
+              [plugins]="pluginAdded.list"
+              (pluginAdded)="handlePluginAdded($event)"
+              (pluginReduced)="handlePluginReduced($event)"
+            ></add-plugins>
+          </div>
+          <div class="flex justify-end gap-[8px] px-[24px] py-[16px] border-t border-[#e8e8e8]">
+            <button nz-button nzType="default" id="cancel" (click)="closePluginDrawer(pluginAddModal)">
+              {{ 'cancel' | i18nextEager }}
+            </button>
+            <button
+              nz-button
+              nzType="primary"
+              id="ok"
+              (click)="closeAndSavePlugins(pluginAddModal)"
+              [disabled]="isDisabledPlugin()"
+            >
+              {{ 'ok' | i18nextEager }}
+            </button>
+          </div>
+        </div>
+      </ng-container>
+    </nz-drawer>
+
+    <nz-drawer
+      #flowModal
+      id="add-flow-halfmodal"
+      [nzPlacement]="'right'"
+      [nzMaskClosable]="false"
+      [nzMask]="true"
+      [nzClosable]="true"
+      [nzWidth]="halfModalWidth"
+      (nzOnClose)="closeFlowDrawer(flowModal)"
+    >
+      <ng-container *nzDrawerContent>
+        <div class="h-full flex flex-col">
+          <div class="flex justify-between items-center px-[24px] py-[16px] border-b border-[#e8e8e8]">
+            <span class="text-[16px] font-medium">{{ 'add_workflow' | i18nextEager }}</span>
+          </div>
+          <div class="flex-1 overflow-auto p-[24px]">
+            <add-workflows
+              [(showAddBtn)]="showAddBtn"
+              [workflows]="flowAdded.list"
+              (workflowCreate)="createWorkflow(flowModal)"
+              (workflowAdded)="handleFlowAdded($event)"
+              (workflowReduced)="handleFlowReduced($event)"
+            ></add-workflows>
+          </div>
+          <div class="flex justify-end gap-[8px] px-[24px] py-[16px] border-t border-[#e8e8e8]">
+            <button nz-button nzType="default" id="cancel" (click)="closeFlowDrawer(flowModal)">
+              {{ 'cancel' | i18nextEager }}
+            </button>
+            <button
+              nz-button
+              nzType="primary"
+              (click)="closeAndSaveFlows(flowModal)"
+              [disabled]="isDisabledFlow()"
+            >
+              {{ 'ok' | i18nextEager }}
+            </button>
+          </div>
+        </div>
+      </ng-container>
+    </nz-drawer>
+
+    <nz-drawer
+      #mcpModal
+      id="add-mcp-halfmodal"
+      [nzPlacement]="'right'"
+      [nzMaskClosable]="false"
+      [nzMask]="true"
+      [nzClosable]="true"
+      [nzWidth]="halfModalWidth"
+      (nzOnClose)="closeMcpDrawer(mcpModal)"
+    >
+      <ng-container *nzDrawerContent>
+        <div class="h-full flex flex-col">
+          <div class="flex justify-between items-center px-[24px] py-[16px] border-b border-[#e8e8e8]">
+            <span style="font-size: 16px">{{ 'add_mcp_service' | i18nextEager }}</span>
+          </div>
+          <div class="flex-1 overflow-auto p-[24px]">
+            <add-mcp-servers
+              [agentId]="agentId"
+              [mcpServers]="mcpServersAdded.list"
+              (mcpAdded)="handleMCPsAdded($event)"
+              (mcpReduced)="handleMCPsReduced($event)"
+              (backToMcpList)="backToMcpListEmit(mcpModal)"
+              (createMcpRes)="createMcpResEmit($event)"
+              (closeMcpList)="hideMcpHalfModal(mcpModal)"
+            ></add-mcp-servers>
+          </div>
+          <div class="flex justify-end gap-[8px] px-[24px] py-[16px] border-t border-[#e8e8e8]">
+            <button nz-button nzType="default" id="cancel" (click)="closeMcpDrawer(mcpModal)">
+              {{ 'cancel' | i18nextEager }}
+            </button>
+            <button
+              nz-button
+              nzType="primary"
+              class="ml-2"
+              (click)="closeAndSaveMCPs(mcpModal)"
+              [disabled]="isDisabledMCP()"
+            >
+              {{ 'ok' | i18nextEager }}
+            </button>
+          </div>
+        </div>
+      </ng-container>
+    </nz-drawer>
+
+    <audit-config-halfmodal [auditConfig]="auditConfig" (onSaveAuditConfig)="onSaveAuditConfig($event)"></audit-config-halfmodal>
+    <meta-var-memory-modal [actionType]="'EDIT'" [agentId]="agentId" (saveMemoryVars)="saveMemoryVarsFn($event)"></meta-var-memory-modal>
+
+    <!-- 智能生成开场白的Tip模板 -->
+    <ng-template #autoGenerateTemplate>
+      <ng-container
+        *ngTemplateOutlet="
+      autoGenerateContent;
+      context: { config: prologueAlterModal }
+    "
+      ></ng-container>
+    </ng-template>
+
+    <!-- 智能生成推荐问题的Tip模板 -->
+    <ng-template #autoGeneQuestionTemplate>
+      <ng-container *ngTemplateOutlet="autoGenerateContent;context: { config: questionsAlterModal }"></ng-container>
+    </ng-template>
+
+    <ng-template #autoGenerateContent let-config="config">
+      <div class="auto-tip-container">
+        <div class="auto-tip-title">
+          <img alt="" class="auto-alert-icon" [src]="alertIcon" />
+          <span class="auto-alert-title">{{ config.title }}</span>
+        </div>
+        <div class="auto-tip-content">
+          {{ config.description }}
+        </div>
+        <div class="auto-tip-bottom-btns">
+          <button
+            nz-button
+            nzSize="small"
+            nzType="default"
+            (click)="config.dismissTip()"
+            style="z-index: 1000"
+          >
+            {{ 'cancel' | i18nextEager }}
+          </button>
+          <button
+            nz-button
+            nzSize="small"
+            nzType="primary"
+            id="ok"
+            (click)="config.confirmBtn()"
+          >
+            {{ 'ok' | i18nextEager }}
+          </button>
+        </div>
+      </div>
+    </ng-template>
+
+    <ng-template #voiceConfigTemplate>
+      <div class="voice-config-tip" (clickOutside)="voiceTipTrigger()">
+        <div
+          *ngFor="let item of timbreList"
+          class="voice-config-item flex w-[320px] cursor-pointer items-center justify-between py-[7px]"
+          (click)="onTimbreSelect(item)"
+        >
+          <div>
+            <span
+              [ngClass]="{
+                'text-[#1476ff]': voiceConfig.timbre === item.property
+              }"
+            >
+              {{ item.name }}-{{ item.type }}
+            </span>
+            <span class="ml-[8px] text-desc">{{ item.scene }}</span>
+          </div>
+          <button
+            type="button"
+            nz-button
+            nzType="default"
+            (click)="onAudition($event, item)"
+          >
+            <nz-icon nzType="sound" nzTheme="outline" />
+          </button>
+        </div>
+      </div>
+    </ng-template>
+
+    <knowledge-base-creation #kbCreation></knowledge-base-creation>
+    <kb-add-modal-after-create (confirmAddKb)="confirmAddKb($event)" [serviceName]="'Agent' | i18nextEager"></kb-add-modal-after-create>
+  </div>
+</div>
+
+<ng-template #tipContent let-context="context">
+  <p style="color: rgb(128,128,128);" class="single-agent-reference-list">{{ 'output_type' | i18nextEager }}</p>
+  <p [style]="{color: (referenceConfig.enabled && !referenceConfig.json_formate) ? 'rgb(20,118,225)' : 'rgb(25,25,25)'}"
+     style="cursor: pointer" class="single-agent-reference-list single-agent-reference-item"
+     (click)="handleClickSelectReferenceMode('text')"
+  >
+    {{ 'text_output' | i18nextEager }}
+  </p>
+  <p style="cursor: pointer" class="single-agent-reference-list single-agent-reference-item"
+     [style]="{color: (referenceConfig.enabled && referenceConfig.json_formate) ? 'rgb(20,118,225)' : 'rgb(25,25,25)'}"
+     (click)="handleClickSelectReferenceMode('json')"
+  >
+    {{ 'json_output' | i18nextEager }}
+  </p>
+</ng-template>
+
+<!-- context: param: 参数信息, data: 变量信息, type: 变量的类型 -->
+<ng-template #params let-context="context">
+  <div class="common-item-title">
+    <div class="left w-[calc(100%-84px)]" (click)="changeCollapsedState(context.param)">
+      <span class="font-semibold">{{ context.param.title }}</span>
+      <nz-icon
+        nzType="question-circle"
+        nzTheme="outline"
+        class="cursor-pointer !text-[16px] !text-[#191919]"
+        nz-tooltip
+        [nzTooltipTitle]="context.type === 'userVars' ? ('varmemorymodalcomponent_218' | i18nextEager) : ('variable-memory-tip4' | i18nextEager)"
+      />
+      <nz-icon nzType="right" nzTheme="outline" class="unfolded common-up-down-arrow"
+               [ngClass]="context.param.collapsed ? 'collapsed-icon' : 'unfolded-icon'" />
+    </div>
+    <div class="right" (click)="handleAddMemoryParam(context.type)">
+      <div class="common-item-add-icon">
+        <nz-icon nzType="plus" nzTheme="outline" style="font-size:16px" />
+      </div>
+    </div>
+  </div>
+  <div class="no-var-text" *ngIf="context.data?.length === 0 && !context.param.collapsed">
+    <span *ngIf="context.type === 'userVars'">{{ 'record_chat' | i18nextEager }}</span>
+    <span *ngIf="context.type === 'inputVars'">{{ 'variable-memory-tip4' | i18nextEager }}</span>
+  </div>
+  <nz-spin
+    *ngIf="context.param.isLoading"
+    nzSimple
+    class="loading-icon"
+  ></nz-spin>
+  <div class="knowledge-list" *ngIf="!context.param.collapsed">
+    <ng-container *ngIf="context.data?.length > 0">
+      <div style="flex-wrap: wrap; padding: 0 12px" class="flex cursor-pointer items-center gap-[8px]">
+        <nz-tag *ngFor="let memoryItem of context.data" [style.maxWidth.px]="86">
+          {{ memoryItem.variable_key }}
+        </nz-tag>
+      </div>
+    </ng-container>
+  </div>
+</ng-template>
+
+<!-- 插件的配置信息 -->
+<ng-template #inputParamsTipTmpl let-context="context">
+  <div style="width: 300px; max-height: 400px; overflow-y: scroll; color: black" (mouseleave)="showInputParamsHoverLeaveTip()" (mouseenter)="showInputParamsHoverEnterTip()">
+    <p class="skill-list-input-params-title">{{ 'input_params' | i18nextEager }}</p>
+    <div *ngIf="getInputParams.length <= 0" style="color: rgb(128, 128, 128)">
+      {{ 'no_data' | i18nextEager }}
+    </div>
+    <div *ngFor="let item of getInputParams; index as i" class="skill-list-input-params-content">
+      <p class="first-line">
+        <span>{{ item.name }}</span>
+        <span class="param-type">{{ getParamsType(item?.value?.type) ? ('reference_1' | i18nextEager) : item.type }}</span>
+        <span class="param-require" *ngIf="item.required">{{ 'required' | i18nextEager }}</span>
+      </p>
+      <div class="param-desc text-overflow">
+        {{ 'description' | i18nextEager }}: {{ (item.description || '--') }}
+      </div>
+      <p style="display: flex; align-items: center; gap: 4px; margin-bottom: 12px; color: rgb(128, 128, 128);">
+        <span>{{ 'default_v' | i18nextEager }}: {{ getDefaultValue(item?.value) }}</span>
+      </p>
+      <div style="width: 100%; height: 1px; background: #eee" *ngIf="getInputParams.length > 1 && i < (getInputParams.length - 1)"></div>
+    </div>
+  </div>
+</ng-template>

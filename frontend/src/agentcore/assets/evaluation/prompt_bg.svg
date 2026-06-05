@@ -1,0 +1,26 @@
+<svg viewBox="0 0 460 828" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="460.000000" height="828.000000" fill="none">
+	<defs>
+		<g id="pixso_custom_effect_0">
+			<effect visibility="visible" effectType="gaussianBlur" stdDeviation="135.914001" />
+		</g>
+		<filter id="filter_0" width="875.891602" height="985.763855" x="-130.014160" y="-335.471191" filterUnits="userSpaceOnUse" customEffect="url(#pixso_custom_effect_0)" color-interpolation-filters="sRGB">
+			<feFlood flood-opacity="0" result="BackgroundImageFix" />
+			<feBlend result="shape" in="SourceGraphic" in2="BackgroundImageFix" mode="normal" />
+			<feGaussianBlur stdDeviation="45.3046684" result="effect_layerBlur_1" />
+		</filter>
+		<radialGradient id="paint_radial_0" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="matrix(143.96,-633.729,633.729,143.96,113.174,190.564)">
+			<stop stop-color="rgb(250,251,242)" offset="0" stop-opacity="1" />
+			<stop stop-color="rgb(236,250,245)" offset="0.194055855" stop-opacity="1" />
+			<stop stop-color="rgb(219,253,254)" offset="0.400473595" stop-opacity="1" />
+			<stop stop-color="rgb(231,218,252)" offset="0.579002738" stop-opacity="1" />
+			<stop stop-color="rgb(253,245,253)" offset="0.809270442" stop-opacity="1" />
+			<stop stop-color="rgb(252,236,239)" offset="0.918111563" stop-opacity="1" />
+		</radialGradient>
+	</defs>
+	<rect id="moxingxiangq_bg" width="460.000000" height="828.000000" x="0.000000" y="0.000000" fill="rgb(250,250,250)" />
+	<g id="组合 4057">
+		<g filter="url(#filter_0)">
+			<path id="椭圆形备份" d="M343.153 277.886C549.8 337.2 783.84 548.073 783.85 355.245C783.86 162.417 552.152 45.7843 426.262 9.64989C300.372 -26.4845 54.7724 39.6541 7.69758 194.728C-39.3773 349.803 136.506 218.572 343.153 277.886Z" opacity="0.399999976" fill="url(#paint_radial_0)" fill-rule="evenodd" transform="matrix(0.71933,0.694669,-0.694669,0.71933,182.031,-320)" />
+		</g>
+	</g>
+</svg>

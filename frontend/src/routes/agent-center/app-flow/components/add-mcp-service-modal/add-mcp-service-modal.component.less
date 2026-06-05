@@ -1,0 +1,85 @@
+:host ::ng-deep {
+  .create-btn {
+    margin: 16px 0 12px 0 !important;
+  }
+}
+
+.card {
+  background-color: #fafafa;
+  min-height: 72px;
+  width: 100%;
+  border-radius: 8px;
+  box-sizing: border-box;
+  padding: 16px 16px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  margin-bottom: 16px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  &:hover {
+    border-color: #1476ff;
+  }
+
+  .info {
+    display: flex;
+  }
+}
+
+.cards-wrapper {
+  height: 100%;
+  width: 100%;
+  overflow: auto;
+
+  .add-btn-wrap {
+    display: flex;
+    align-items: center;
+
+    .add-btn {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+      border: 1px solid #c2c2c2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 8px;
+
+      .add-icon {
+        font-size: 12px;
+      }
+    }
+
+    &:hover {
+      .add-btn {
+        border-color: #191919;
+      }
+    }
+  }
+
+  .add-btn-wrap-disabled{
+    color: #808080!important;
+    &:hover {
+      .add-btn {
+        border-color: #808080!important;
+      }
+    }
+  }
+
+  .arrow-up-icon,
+  .arrow-right-icon {
+    color: #1476ff;
+    font-size: 16px;
+  }
+}
+
+::ng-deep {
+  #flow-add-tool-modal {
+    .ti3-tab-content {
+      height: calc(100% - 52px);
+      border-top-color: transparent;
+    }
+  }
+}

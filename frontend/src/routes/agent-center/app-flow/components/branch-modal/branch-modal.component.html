@@ -1,0 +1,1174 @@
+<div class="flex h-full w-full flex-col" (keydown)="handleKeyDown($event)">
+  <div class="mb-[16px] block">
+    <div class="flex w-[calc(100%-38px)] items-center justify-between">
+      <div class="flex items-center gap-[8px]">
+        <img class="model-config-icon" [src]="branchImgUrl" alt="branch-node" />
+
+        <edit-name
+        [(name)]="nodeInfo.name"
+        (onBlurConfirm)="updateName()"
+      ></edit-name>
+      </div>
+
+      <div class="flex items-center gap-[16px]" *ngIf="!isFlowReadonly">
+          <div class="cursor-pointer" nz-tooltip [nzTooltipTitle]="'icon-more'| i18nextEager">
+          <div nz-dropdown [nzDropdownMenu]="actionsMenu" nzTrigger="click" class="pw-three-dots-more-modal">
+            <span nz-icon nzType="more" nzTheme="outline"></span>
+          </div>
+          <nz-dropdown-menu #actionsMenu="nzDropdownMenu">
+            <ul nz-menu>
+              <li *ngFor="let action of actions" nz-menu-item (click)="onClickAction(action)">{{ action.label }}</li>
+            </ul>
+          </nz-dropdown-menu>
+        </div>
+        <div class="h-[16px] w-[1px] bg-[#dbdbdb]"></div>
+      </div>
+    </div>
+
+    <node-description [nodeInfo]="nodeInfo" (descriptionChange)="updateView()"></node-description>
+
+    <div class="mt-[16px] h-[1px] w-full bg-[#f0f0f0]"></div>
+  </div>
+
+  <div id="flow-branch-modal-body" class="relative h-full w-full overflow-auto flex-1">
+    <div class="flex h-full w-full flex-col gap-2 overflow-auto">
+      <!-- if condition -->
+      <meta-acc-block
+        class="block w-full rounded-lg bg-[#fafafa] p-4"
+        title="IF"
+      >
+        <ng-template #content>
+          <div class="flex w-full gap-[8px]">
+            <div
+              *ngIf="ifCondition.configs.conditions.length > 1"
+              class="mb-[22px] mt-[34px] flex w-[42px] flex-col"
+            >
+              <div class="relative flex-1">
+                <div
+                  class="absolute bottom-0 left-1/2 right-0 top-2.5 rounded-tl-lg border-0 border-l border-t border-solid border-[#e1e1e1]"
+                ></div>
+              </div>
+              <div
+                (click)="onIfExpChange()"
+                class="relative flex cursor-pointer items-center justify-between rounded-[6px] bg-[#e6f2ff] px-[4px] py-[2px]"
+              >
+                <div class="select-none text-[#1476ff]">
+                  {{ ifCondition.configs.logic | i18nextEager }}
+                </div>
+                <span nz-icon nzType="swap" nzTheme="outline" style="color: #1476ff"></span>
+              </div>
+              <div class="relative flex-1">
+                <div
+                  class="absolute bottom-2.5 left-1/2 right-0 top-0 rounded-bl-lg border-0 border-b border-l border-solid border-[#e1e1e1]"
+                ></div>
+              </div>
+            </div>
+
+            <div class="mt-1 flex-1">
+              <form #inputForm="ngForm">
+                <div class="mt-2 flex w-full flex-col gap-2">
+                  <div
+                    class="w-full"
+                    *ngFor="
+                      let con of ifCondition.configs.conditions;
+                      index as i;
+                      last as isLast
+                    "
+                    [ngClass]="isLast ? 'last-err-place' : ''"
+                  >
+                    <div class="flex h-fit w-full gap-2">
+                      <!-- 比较条件 -->
+                      <div class="mt-4 flex h-fit w-[64px]">
+                        <nz-select
+                          *ngIf="isStrType(con.left.value.content?.[0]?.type)"
+                          [name]="'inputFormCon' + i"
+                          [nzPlaceHolder]="'select_placeholder' | i18nextEager"
+                          [nzOptions]="strConditionOptions"
+                          [(ngModel)]="con.operator"
+                          (ngModelChange)="opChange($event, con);onSave()"
+                          nzLabelKey="value"
+                          [nzDropdownMatchSelectWidth]="false"
+                          class="w-full"
+                        >
+                        </nz-select>
+
+                        <nz-select
+                          *ngIf="!con.left.value.content?.[0]"
+                          [name]="'inputFormCon' + i"
+                          [nzOptions]="emptyOps"
+                          [(ngModel)]="emptyModel"
+                          (ngModelChange)="opChange($event, con);onSave()"
+                          nzLabelKey="value"
+                          [nzDropdownMatchSelectWidth]="false"
+                          class="w-full"
+                        >
+                        </nz-select>
+
+                        <nz-select
+                          *ngIf="con.left.value.content?.[0]?.type.startsWith('array')"
+                          [name]="'inputFormCon' + i"
+                          [nzPlaceHolder]="'select_placeholder' | i18nextEager"
+                          [nzOptions]="arrConditionOptions"
+                          [(ngModel)]="con.operator"
+                          (ngModelChange)="opChange($event, con);onSave()"
+                          nzLabelKey="value"
+                          [nzDropdownMatchSelectWidth]="false"
+                          class="w-full"
+                        >
+                        </nz-select>
+
+                        <nz-select
+                          *ngIf="['integer', 'number'].includes(con.left.value.content?.[0]?.type)"
+                          [name]="'inputFormCon' + i"
+                          [nzPlaceHolder]="'select_placeholder' | i18nextEager"
+                          [nzOptions]="numConditionOptions"
+                          [(ngModel)]="con.operator"
+                          (ngModelChange)="opChange($event, con);onSave()"
+                          nzLabelKey="value"
+                          [nzDropdownMatchSelectWidth]="false"
+                          class="w-full"
+                        >
+                        </nz-select>
+
+                        <nz-select
+                          *ngIf="con.left.value.content?.[0]?.type === 'boolean'"
+                          [name]="'inputFormCon' + i"
+                          [nzPlaceHolder]="'select_placeholder' | i18nextEager"
+                          [nzOptions]="boolConditionOptions"
+                          [(ngModel)]="con.operator"
+                          (ngModelChange)="opChange($event, con);onSave()"
+                          nzLabelKey="value"
+                          [nzDropdownMatchSelectWidth]="false"
+                          class="w-full"
+                        >
+                        </nz-select>
+
+                        <nz-select
+                          *ngIf="con.left.value.content?.[0]?.type === 'object'"
+                          [name]="'inputFormCon' + i"
+                          [nzPlaceHolder]="'select_placeholder' | i18nextEager"
+                          [nzOptions]="objConditionOptions"
+                          [(ngModel)]="con.operator"
+                          (ngModelChange)="opChange($event, con);onSave()"
+                          nzLabelKey="value"
+                          [nzDropdownMatchSelectWidth]="false"
+                          class="w-full"
+                        >
+                        </nz-select>
+                      </div>
+
+                      <div class="flex w-[calc(100%-82px)] flex-col gap-2">
+                        <div class="w-full">
+                          <input-tree-select
+                            [radiusLeft]="true"
+                            (ngModelChange)="leftTypeChange($event, con);"
+                            style="width: 100%"
+                            [(ngModel)]="con.left.value.content"
+                            [options]="con.left.refs"
+                            [name]="'inputFormValue' + i"
+                            refSelectedRequire
+                            [placeholder]="'select_placeholder' | i18nextEager"
+                            (select)="treeSelect()"
+                          ></input-tree-select>
+                        </div>
+
+                        <div class="flex w-full">
+                          <div class="w-1/4">
+                            <nz-select
+                              class="combo-select-left h-[28px]"
+                              [name]="'inputFormObj' + i"
+                              style="width: 100%"
+                              [nzPlaceHolder]="'select_placeholder' | i18nextEager"
+                              [nzOptions]="paramSourceOptions"
+                              [(ngModel)]="con.right.value.type"
+                              nzLabelKey="value"
+                              [disabled]="!con.left.value.content?.[0] || ['is_empty', 'is_not_empty', 'eq_true', 'eq_false'].includes(con.operator)"
+                              (ngModelChange)="onTypeChange(con)"
+                            ></nz-select>
+                          </div>
+
+                          <div class="relative w-3/4">
+                            <!-- empty -->
+                            <input
+                            *ngIf="
+                                [
+                                  'eq_true',
+                                  'eq_false'
+                                ].includes(con.operator);
+                              "
+                            class="combo-select-right"
+                            [name]="'inputFormLit' + i"
+                            style="width: 100%"
+                            [placeholder]="'input_placeholder' | i18nextEager"
+                            type="text"
+                            nz-input
+                            (ngModelChange)="changeUpdateTime()"
+                            (blur)="inputOnSave()"
+                            [(ngModel)]="con.right.value.content"
+                            [disabled]="true"
+                          />
+
+                            <input
+                              *ngIf="
+                                  ([
+                                    'is_empty',
+                                    'is_not_empty',
+                                  ].includes(con.operator) || !con.left.value.content?.[0]) && ![
+                                  'eq_true',
+                                  'eq_false'
+                                ].includes(con.operator);
+                                  else double
+                                "
+                              class="combo-select-right"
+                              [name]="'inputFormLit' + i"
+                              style="width: 100%"
+                              [placeholder]="'input_placeholder' | i18nextEager"
+                              type="text"
+                              nz-input
+                              [(ngModel)]="emptyModel"
+                              (ngModelChange)="changeUpdateTime()"
+                              (blur)="inputOnSave()"
+                              [disabled]="true"
+                            />
+
+
+                            <ng-template #double>
+                              <!-- str -->
+                              <ng-container
+                                *ngIf="isStrType(con.left.value.content?.[0]?.type); else arr"
+                              >
+                                <ng-container
+                                  *ngIf="
+                                    [
+                                      'longer_than',
+                                      'longer_than_or_eq',
+                                      'shorter_than',
+                                      'shorter_than_or_eq'
+                                    ].includes(con.operator)
+                                  "
+                                >
+                                  <input
+                                    *ngIf="con.right.value.type === 'literal'"
+                                    class="combo-select-right"
+                                    [name]="'inputFormLit' + i"
+                                    style="width: 100%"
+                                    [placeholder]="'input_placeholder' | i18nextEager"
+                                    type="text"
+                                    nz-input
+                                    [(ngModel)]="con.right.value.content"
+                                    [title]="con.right.value.content"
+
+                                    [disabled]="!con.left.value.content?.[0]"
+                                    nonEmptyValidator
+                                    (ngModelChange)="changeUpdateTime()"
+                                    (blur)="inputOnSave()"
+                                    positiveIntStr
+                                    [class.input-error]="inputForm?.controls['inputFormLit' + i]?.invalid && (inputForm?.controls['inputFormLit' + i]?.dirty || inputForm?.controls['inputFormLit' + i]?.touched)"
+                                  />
+                                  <div *ngIf="inputForm?.controls['inputFormLit' + i]?.invalid && (inputForm?.controls['inputFormLit' + i]?.dirty || inputForm?.controls['inputFormLit' + i]?.touched)" class="error-tip">
+                                    {{inputForm?.controls['inputFormLit' + i]?.errors?.serviceName?.tiErrorMessage}}
+                                  </div>
+
+                                  <input-tree-select
+                                    *ngIf="con.right.value.type === 'ref'"
+                                    style="width: 100%"
+                                    [(ngModel)]="con.right.value.content"
+                                    [options]="con.right.refs"
+                                    [name]="'inputFormRef' + i"
+                                    refSelectedRequire
+                                    [placeholder]="'select_placeholder' | i18nextEager"
+                                    (select)="treeSelect()"
+                                  ></input-tree-select>
+                                </ng-container>
+
+                                <ng-container
+                                  *ngIf="
+                                    [
+                                      'eq',
+                                      'not_eq',
+                                      'contain',
+                                      'not_contain'
+                                    ].includes(con.operator)
+                                  "
+                                >
+                                  <input
+                                    *ngIf="con.right.value.type === 'literal'"
+                                    class="combo-select-right"
+                                    [name]="'inputFormLit' + i"
+                                    style="width: 100%"
+                                    [placeholder]="'input_placeholder' | i18nextEager"
+                                    type="text"
+                                    nz-input
+                                    [(ngModel)]="con.right.value.content"
+                                    [title]="con.right.value.content"
+
+                                    [disabled]="!con.left.value.content?.[0]"
+                                    nonEmptyValidator
+                                    (ngModelChange)="changeUpdateTime()"
+                                    (blur)="inputOnSave()"
+                                    [class.input-error]="inputForm?.controls['inputFormLit' + i]?.invalid && (inputForm?.controls['inputFormLit' + i]?.dirty || inputForm?.controls['inputFormLit' + i]?.touched)"
+                                  />
+                                  <div *ngIf="inputForm?.controls['inputFormLit' + i]?.invalid && (inputForm?.controls['inputFormLit' + i]?.dirty || inputForm?.controls['inputFormLit' + i]?.touched)" class="error-tip">
+                                    {{inputForm?.controls['inputFormLit' + i]?.errors?.serviceName?.tiErrorMessage}}
+                                  </div>
+
+                                  <input-tree-select
+                                    style="width: 100%"
+                                    *ngIf="con.right.value.type === 'ref'"
+                                    [(ngModel)]="con.right.value.content"
+                                    [options]="con.right.refs"
+                                    [name]="'inputFormRef' + i"
+                                    refSelectedRequire
+
+                                    [placeholder]="'select_placeholder' | i18nextEager"
+                                    (select)="treeSelect()"
+                                  ></input-tree-select>
+                                </ng-container>
+                              </ng-container>
+
+                              <!-- arr -->
+                              <ng-template #arr>
+                                <ng-container
+                                  *ngIf="con.left.value.content?.[0]?.type.startsWith('array'); else num"
+                                >
+                                  <ng-container
+                                    *ngIf="
+                                      [
+                                        'longer_than',
+                                        'longer_than_or_eq',
+                                        'shorter_than',
+                                        'shorter_than_or_eq'
+                                      ].includes(con.operator)
+                                    "
+                                  >
+                                    <input
+                                      *ngIf="con.right.value.type === 'literal'"
+                                      class="combo-select-right"
+                                      [name]="'inputFormLit' + i"
+                                      style="width: 100%"
+                                      [placeholder]="'input_placeholder' | i18nextEager"
+                                      type="text"
+                                      nz-input
+                                      [(ngModel)]="con.right.value.content"
+                                      [title]="con.right.value.content"
+
+                                      [disabled]="!con.left.value.content?.[0]"
+                                      nonEmptyValidator
+                                      positiveIntStr
+                                      (ngModelChange)="changeUpdateTime()"
+                                      (blur)="inputOnSave()"
+                                      [class.input-error]="inputForm?.controls['inputFormLit' + i]?.invalid && (inputForm?.controls['inputFormLit' + i]?.dirty || inputForm?.controls['inputFormLit' + i]?.touched)"
+                                    />
+                                    <div *ngIf="inputForm?.controls['inputFormLit' + i]?.invalid && (inputForm?.controls['inputFormLit' + i]?.dirty || inputForm?.controls['inputFormLit' + i]?.touched)" class="error-tip">
+                                      {{inputForm?.controls['inputFormLit' + i]?.errors?.serviceName?.tiErrorMessage}}
+                                    </div>
+
+                                    <input-tree-select
+                                      style="width: 100%"
+                                      *ngIf="con.right.value.type === 'ref'"
+                                      [(ngModel)]="con.right.value.content"
+                                      [options]="con.right.refs"
+                                      [name]="'inputFormRef' + i"
+                                      refSelectedRequire
+
+                                      [placeholder]="'select_placeholder' | i18nextEager"
+                                      (select)="treeSelect()"
+                                    ></input-tree-select>
+                                  </ng-container>
+
+                                  <ng-container
+                                    *ngIf="
+                                      ['contain', 'not_contain'].includes(
+                                        con.operator
+                                      )
+                                    "
+                                  >
+                                    <ng-container
+                                      *ngIf="con.right.value.type === 'literal'"
+                                    >
+                                      <input
+                                        *ngIf="canFillStr(con.right.type)"
+                                        class="combo-select-right"
+                                        [name]="'inputFormLit' + i"
+                                        style="width: 100%"
+                                        [placeholder]="'input_placeholder' | i18nextEager"
+                                        type="text"
+                                        nz-input
+                                        [(ngModel)]="con.right.value.content"
+                                        [title]="con.right.value.content"
+                                        (ngModelChange)="changeUpdateTime()"
+                                        (blur)="inputOnSave()"
+                                        [disabled]="!con.left.value.content?.[0]"
+                                        nonEmptyValidator
+                                        [class.input-error]="inputForm?.controls['inputFormLit' + i]?.invalid && (inputForm?.controls['inputFormLit' + i]?.dirty || inputForm?.controls['inputFormLit' + i]?.touched)"
+                                      />
+                                      <div *ngIf="inputForm?.controls['inputFormLit' + i]?.invalid && (inputForm?.controls['inputFormLit' + i]?.dirty || inputForm?.controls['inputFormLit' + i]?.touched)" class="error-tip">
+                                        {{inputForm?.controls['inputFormLit' + i]?.errors?.serviceName?.tiErrorMessage}}
+                                      </div>
+
+                                      <input
+                                        *ngIf="con.right.type === 'number'"
+                                        class="combo-select-right"
+                                        [name]="'inputFormLit' + i"
+                                        style="width: 100%"
+                                        [placeholder]="'input_placeholder' | i18nextEager"
+                                        type="text"
+                                        nz-input
+                                        [(ngModel)]="con.right.value.content"
+                                        [title]="con.right.value.content"
+                                        [disabled]="!con.left.value.content?.[0]"
+                                        nonEmptyValidator
+                                        numberStr
+                                        (ngModelChange)="changeUpdateTime()"
+                                        (blur)="inputOnSave()"
+                                        [class.input-error]="inputForm?.controls['inputFormLit' + i]?.invalid && (inputForm?.controls['inputFormLit' + i]?.dirty || inputForm?.controls['inputFormLit' + i]?.touched)"
+                                      />
+                                      <div *ngIf="inputForm?.controls['inputFormLit' + i]?.invalid && (inputForm?.controls['inputFormLit' + i]?.dirty || inputForm?.controls['inputFormLit' + i]?.touched)" class="error-tip">
+                                        {{inputForm?.controls['inputFormLit' + i]?.errors?.serviceName?.tiErrorMessage}}
+                                      </div>
+
+                                      <input
+                                        *ngIf="con.right.type === 'integer'"
+                                        class="combo-select-right"
+                                        [name]="'inputFormLit' + i"
+                                        style="width: 100%"
+                                        [placeholder]="'input_placeholder' | i18nextEager"
+                                        type="text"
+                                        nz-input
+                                        [(ngModel)]="con.right.value.content"
+                                        [title]="con.right.value.content"
+                                        (ngModelChange)="changeUpdateTime()"
+                                        (blur)="inputOnSave()"
+                                        [disabled]="!con.left.value.content?.[0]"
+                                        nonEmptyValidator
+                                        integerStr
+                                        [class.input-error]="inputForm?.controls['inputFormLit' + i]?.invalid && (inputForm?.controls['inputFormLit' + i]?.dirty || inputForm?.controls['inputFormLit' + i]?.touched)"
+                                      />
+                                      <div *ngIf="inputForm?.controls['inputFormLit' + i]?.invalid && (inputForm?.controls['inputFormLit' + i]?.dirty || inputForm?.controls['inputFormLit' + i]?.touched)" class="error-tip">
+                                        {{inputForm?.controls['inputFormLit' + i]?.errors?.serviceName?.tiErrorMessage}}
+                                      </div>
+
+                                      <nz-select
+                                        *ngIf="con.right.type === 'boolean'"
+                                        class="combo-select-right"
+                                        style="width: 100%"
+                                        [name]="'inputFormLit' + i"
+                                        [nzOptions]="booleanOps"
+                                        [(ngModel)]="con.right.value.content"
+                                        [disabled]="!con.left.value.content?.[0]"
+                                        [nzPlaceHolder]="'select_placeholder' | i18nextEager"
+                                        nzLabelKey="value"
+                                        (ngModelChange)="changeUpdateTime()"
+                                        (blur)="inputOnSave()"
+                                      >
+                                      </nz-select>
+                                    </ng-container>
+
+                                    <input-tree-select
+                                      style="width: 100%"
+                                      *ngIf="con.right.value.type === 'ref'"
+                                      [(ngModel)]="con.right.value.content"
+                                      [options]="con.right.refs"
+                                      [name]="'inputFormRef' + i"
+                                      refSelectedRequire
+                                      [placeholder]="'select_placeholder' | i18nextEager"
+                                      (select)="treeSelect()"
+                                    ></input-tree-select>
+                                  </ng-container>
+                                </ng-container>
+                              </ng-template>
+
+                              <!-- int num -->
+                              <ng-template #num>
+                                <ng-container
+                                  *ngIf="['integer', 'number'].includes(con.left.value.content?.[0]?.type)"
+                                >
+                                  <input
+                                    class="combo-select-right"
+                                    *ngIf="con.right.value.type === 'literal'"
+                                    style="width: 100%"
+                                    type="text"
+                                    nz-input
+                                    nz-input
+                                    type="number"
+                                    [name]="'inputFormLit' + i"
+                                    [title]="con.right.value.content"
+                                    [(ngModel)]="con.right.value.content"
+                                    nonEmptyValidator
+                                    (ngModelChange)="changeUpdateTime()"
+                                    (blur)="inputOnSave()"
+                                    [placeholder]="'input_placeholder' | i18nextEager"
+                                  />
+
+                                  <input-tree-select
+                                    style="width: 100%"
+                                    *ngIf="con.right.value.type === 'ref'"
+                                    [(ngModel)]="con.right.value.content"
+                                    [options]="con.right.refs"
+                                    [name]="'inputFormRef' + i"
+                                    refSelectedRequire
+                                    [placeholder]="'select_placeholder' | i18nextEager"
+                                    (select)="treeSelect()"
+                                  ></input-tree-select>
+                                </ng-container>
+                              </ng-template>
+                            </ng-template>
+
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- 垃圾桶 -->
+                      <span
+                        (click)="deleteIfExp(i)"
+                        [style.color]="
+                          i === 0 && ifCondition.configs.conditions.length === 1
+                            ? 'transparent'
+                            : '#191919'
+                        "
+                        [style.cursor]="
+                          i === 0 && ifCondition.configs.conditions.length === 1
+                            ? 'default'
+                            : 'pointer'
+                        "
+                        class="mt-4 cursor-pointer !text-[16px] text-[#191919]"
+                        nz-icon
+                        nzType="delete"
+                        nzTheme="outline"
+                      ></span>
+                    </div>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+        </ng-template>
+
+        <ng-template #right>
+          <div class="flex items-center justify-center">
+            <button
+              (click)="addIfCondition()"
+              class="h-4 w-fit"
+              nz-button
+              nzType="text"
+              nz-tooltip [nzTooltipTitle]="'add_conditions' | i18nextEager"
+            >
+              <span nz-icon nzType="plus" nzTheme="outline"></span>
+            </button>
+          </div>
+        </ng-template>
+      </meta-acc-block>
+
+      <!-- else-if conditions -->
+      <form #elseifForm="ngForm" class="flex flex-col gap-4">
+        <meta-acc-block
+          *ngFor="let elseIfCondition of elseIfConditions; index as blockIndex"
+          class="mt-2 block w-full rounded-lg bg-[#fafafa] p-4"
+          [title]="'ELSE IF ' + (blockIndex + 1)"
+        >
+          <ng-template #right>
+            <div class="flex items-center gap-2">
+              <button
+                (click)="addElseIfCondition(blockIndex)"
+                type="button"
+                class="h-4 w-fit"
+                nz-button
+                nzType="text"
+                nz-tooltip [nzTooltipTitle]="'add_conditions' | i18nextEager"
+              >
+                <span nz-icon nzType="plus" nzTheme="outline"></span>
+              </button>
+              <span
+                (click)="onElseIfBlockDelete(blockIndex)"
+                style="font-size: 16px; cursor: pointer; color: #191919"
+                nz-icon
+                nzType="minus"
+                nzTheme="outline"
+              ></span>
+            </div>
+          </ng-template>
+
+          <ng-template #content>
+            <div class="flex w-full gap-[8px]">
+              <div
+                *ngIf="elseIfCondition.configs.conditions.length > 1"
+                class="mb-[22px] mt-[34px] flex w-[42px] flex-col"
+              >
+                <div class="relative flex-1">
+                  <div
+                    class="absolute bottom-0 left-1/2 right-0 top-2.5 rounded-tl-lg border-0 border-l border-t border-solid border-[#e1e1e1]"
+                  ></div>
+                </div>
+                <div
+                  (click)="onElseIfExpChange(blockIndex)"
+                  class="relative flex cursor-pointer items-center justify-between rounded-[6px] bg-[#e6f2ff] px-[4px] py-[2px]"
+                >
+                  <div class="select-none text-[#1476ff]">
+                    {{ elseIfCondition.configs.logic | i18nextEager }}
+                  </div>
+                  <span nz-icon nzType="swap" nzTheme="outline" style="color: #1476ff"></span>
+                </div>
+                <div class="relative flex-1">
+                  <div
+                    class="absolute bottom-2.5 left-1/2 right-0 top-0 rounded-bl-lg border-0 border-b border-l border-solid border-[#e1e1e1]"
+                  ></div>
+                </div>
+              </div>
+
+              <div class="mt-1 flex-1">
+                <div class="mt-2 flex w-full flex-col gap-2">
+                  <div
+                    class="w-full"
+                    *ngFor="
+                      let con of elseIfCondition.configs.conditions;
+                      index as i;
+                      last as isElLast
+                    "
+                    [ngClass]="isElLast ? 'last-err-place' : ''"
+                  >
+                    <div class="flex w-full gap-2">
+                      <!-- 比较条件 -->
+                      <div class="mt-4 flex h-fit w-[64px]">
+                        <nz-select
+                          *ngIf="isStrType(con.left.value.content?.[0]?.type)"
+                          [name]="'elseifFormCon' + blockIndex + i"
+                          [nzPlaceHolder]="'select_placeholder' | i18nextEager"
+                          [nzOptions]="strConditionOptions"
+                          [(ngModel)]="con.operator"
+                          (ngModelChange)="opChange($event, con);onSave()"
+                          nzLabelKey="value"
+                          [nzDropdownMatchSelectWidth]="false"
+                          class="w-full !border-transparent"
+                        >
+                          <ng-template #selected let-item>
+                            <div
+                              class="flex h-full w-fit items-center justify-center"
+                            >
+                              <div
+                                [ngClass]="iconClassNameMap(item.value)"
+                              ></div>
+                            </div>
+                          </ng-template>
+                        </nz-select>
+
+                        <nz-select
+                          *ngIf="!con.left.value.content?.[0]"
+                          [name]="'elseifFormCon' + blockIndex + i"
+                          [nzOptions]="emptyOps"
+                          [(ngModel)]="emptyModel"
+                          (ngModelChange)="opChange($event, con);onSave()"
+                          nzLabelKey="value"
+                          [nzDropdownMatchSelectWidth]="false"
+                          class="w-full !border-transparent"
+                        >
+                          <ng-template #selected let-item>
+                            <div
+                              class="flex h-full w-fit items-center justify-center"
+                            >
+                              <div
+                                [ngClass]="iconClassNameMap(item.value)"
+                              ></div>
+                            </div>
+                          </ng-template>
+                        </nz-select>
+
+                        <nz-select
+                          *ngIf="con.left.value.content?.[0]?.type.startsWith('array')"
+                          [name]="'elseifFormCon' + blockIndex + i"
+                          [nzPlaceHolder]="'select_placeholder' | i18nextEager"
+                          [nzOptions]="arrConditionOptions"
+                          [(ngModel)]="con.operator"
+                          (ngModelChange)="opChange($event, con);onSave()"
+                          nzLabelKey="value"
+                          [nzDropdownMatchSelectWidth]="false"
+                          class="w-full !border-transparent"
+                        >
+                          <ng-template #selected let-item>
+                            <div
+                              class="flex h-full w-fit items-center justify-center"
+                            >
+                              <div
+                                [ngClass]="iconClassNameMap(item.value)"
+                              ></div>
+                            </div>
+                          </ng-template>
+                        </nz-select>
+
+                        <nz-select
+                          *ngIf="['integer', 'number'].includes(con.left.value.content?.[0]?.type)"
+                          [name]="'elseifFormCon' + blockIndex + i"
+                          [nzPlaceHolder]="'select_placeholder' | i18nextEager"
+                          [nzOptions]="numConditionOptions"
+                          [(ngModel)]="con.operator"
+                          (ngModelChange)="opChange($event, con);onSave()"
+                          nzLabelKey="value"
+                          [nzDropdownMatchSelectWidth]="false"
+                          class="w-full !border-transparent"
+                        >
+                          <ng-template #selected let-item>
+                            <div
+                              class="flex h-full w-fit items-center justify-center"
+                            >
+                              <div
+                                [ngClass]="iconClassNameMap(item.value)"
+                              ></div>
+                            </div>
+                          </ng-template>
+                        </nz-select>
+
+                        <nz-select
+                          *ngIf="con.left.value.content?.[0]?.type === 'boolean'"
+                          [name]="'elseifFormCon' + blockIndex + i"
+                          [nzPlaceHolder]="'select_placeholder' | i18nextEager"
+                          [nzOptions]="boolConditionOptions"
+                          [(ngModel)]="con.operator"
+                          (ngModelChange)="opChange($event, con);onSave()"
+                          nzLabelKey="value"
+                          [nzDropdownMatchSelectWidth]="false"
+                          class="w-full !border-transparent"
+                        >
+                          <ng-template #selected let-item>
+                            <div
+                              class="flex h-full w-fit items-center justify-center"
+                            >
+                              <div
+                                [ngClass]="iconClassNameMap(item.value)"
+                              ></div>
+                            </div>
+                          </ng-template>
+                        </nz-select>
+
+                        <nz-select
+                          *ngIf="con.left.value.content?.[0]?.type === 'object'"
+                          [name]="'elseifFormCon' + blockIndex + i"
+                          [nzPlaceHolder]="'select_placeholder' | i18nextEager"
+                          [nzOptions]="objConditionOptions"
+                          [(ngModel)]="con.operator"
+                          (ngModelChange)="opChange($event, con);onSave()"
+                          nzLabelKey="value"
+                          [nzDropdownMatchSelectWidth]="false"
+                          class="w-full !border-transparent"
+                        >
+                          <ng-template #selected let-item>
+                            <div
+                              class="flex h-full w-fit items-center justify-center"
+                            >
+                              <div
+                                [ngClass]="iconClassNameMap(item.value)"
+                              ></div>
+                            </div>
+                          </ng-template>
+                        </nz-select>
+                      </div>
+
+                      <div class="flex w-[calc(100%-82px)] flex-col gap-2">
+                        <!-- 参数名称 -->
+                        <div class="w-full">
+                          <input-tree-select
+                            [radiusLeft]="true"
+                            (ngModelChange)="leftTypeChange($event, con);"
+                            style="width: 100%"
+                            [(ngModel)]="con.left.value.content"
+                            [options]="con.left.refs"
+                            [name]="'elseifFormValue' + blockIndex + i"
+                            refSelectedRequire
+                            [placeholder]="'select_placeholder' | i18nextEager"
+                            (select)="treeSelect()"
+                          ></input-tree-select>
+                        </div>
+
+                        <div class="flex w-full">
+                          <div class="w-1/4">
+                            <nz-select
+                              class="combo-select-left h-[28px]"
+                              [name]="'elseifFormType' + blockIndex + i"
+                              style="width: 100%"
+                              [nzOptions]="paramSourceOptions"
+                              [(ngModel)]="con.right.value.type"
+                              [nzPlaceHolder]="'select_placeholder' | i18nextEager"
+                              nzLabelKey="value"
+                              [disabled]="!con.left.value.content?.[0] || ['is_empty', 'is_not_empty', 'eq_true', 'eq_false'].includes(con.operator)"
+                              (ngModelChange)="onTypeChange(con)"
+                            ></nz-select>
+                          </div>
+
+                          <div class="relative w-3/4">
+                            <!-- empty -->
+                            <input
+                            *ngIf="
+                                [
+                                  'eq_true',
+                                  'eq_false'
+                                ].includes(con.operator);
+                              "
+                            class="combo-select-right"
+                            [name]="'elseifFormLit' + blockIndex + i"
+                            style="width: 100%"
+                            [placeholder]="'input_placeholder' | i18nextEager"
+                            type="text"
+                            nz-input
+                            (ngModelChange)="changeUpdateTime()"
+                            (blur)="inputOnSave()"
+                            [(ngModel)]="con.right.value.content"
+                            [disabled]="true"
+                          />
+
+                            <input
+                              *ngIf="
+                                  ([
+                                    'is_empty',
+                                    'is_not_empty',
+                                  ].includes(con.operator) || !con.left.value.content?.[0]) && ![
+                                  'eq_true',
+                                  'eq_false'
+                                ].includes(con.operator);
+                                  else double
+                                "
+                              class="combo-select-right"
+                              [name]="'elseifFormLit' + blockIndex + i"
+                              style="width: 100%"
+                              [placeholder]="'input_placeholder' | i18nextEager"
+                              type="text"
+                              nz-input
+                              (ngModelChange)="changeUpdateTime()"
+                              (blur)="inputOnSave()"
+                              [(ngModel)]="emptyModel"
+                              [disabled]="true"
+                            />
+
+                            <ng-template #double>
+                              <!-- str -->
+                              <ng-container
+                                *ngIf="isStrType(con.left.value.content?.[0]?.type); else arr"
+                              >
+                                <ng-container
+                                  *ngIf="
+                                    [
+                                      'longer_than',
+                                      'longer_than_or_eq',
+                                      'shorter_than',
+                                      'shorter_than_or_eq'
+                                    ].includes(con.operator)
+                                  "
+                                >
+                                  <input
+                                    *ngIf="con.right.value.type === 'literal'"
+                                    class="combo-select-right"
+                                    [name]="'elseifFormLit' + blockIndex + i"
+                                    style="width: 100%"
+                                    [placeholder]="'input_placeholder' | i18nextEager"
+                                    type="text"
+                                    nz-input
+                                    [(ngModel)]="con.right.value.content"
+                                    [title]="con.right.value.content"
+
+                                    [disabled]="!con.left.value.content?.[0]"
+                                    nonEmptyValidator
+                                    positiveIntStr
+                                    (ngModelChange)="changeUpdateTime()"
+                                    (blur)="inputOnSave()"
+                                    [class.input-error]="elseifForm?.controls['elseifFormLit' + blockIndex + i]?.invalid && (elseifForm?.controls['elseifFormLit' + blockIndex + i]?.dirty || elseifForm?.controls['elseifFormLit' + blockIndex + i]?.touched)"
+                                  />
+                                  <div *ngIf="elseifForm?.controls['elseifFormLit' + blockIndex + i]?.invalid && (elseifForm?.controls['elseifFormLit' + blockIndex + i]?.dirty || elseifForm?.controls['elseifFormLit' + blockIndex + i]?.touched)" class="error-tip">
+                                    {{elseifForm?.controls['elseifFormLit' + blockIndex + i]?.errors?.serviceName?.tiErrorMessage}}
+                                  </div>
+
+                                  <input-tree-select
+                                    style="width: 100%"
+                                    *ngIf="con.right.value.type === 'ref'"
+                                    [(ngModel)]="con.right.value.content"
+                                    [options]="con.right.refs"
+                                    [name]="'elseifFormRef' + blockIndex + i"
+                                    refSelectedRequire
+                                    (select)="treeSelect()"
+                                    [placeholder]="'select_placeholder' | i18nextEager"
+                                  ></input-tree-select>
+                                </ng-container>
+
+                                <ng-container
+                                  *ngIf="
+                                    [
+                                      'eq',
+                                      'not_eq',
+                                      'contain',
+                                      'not_contain'
+                                    ].includes(con.operator)
+                                  "
+                                >
+                                  <input
+                                    *ngIf="con.right.value.type === 'literal'"
+                                    class="combo-select-right"
+                                    [name]="'elseifFormLit' + blockIndex + i"
+                                    style="width: 100%"
+                                    [placeholder]="'input_placeholder' | i18nextEager"
+                                    type="text"
+                                    nz-input
+                                    [(ngModel)]="con.right.value.content"
+                                    [title]="con.right.value.content"
+
+                                    [disabled]="!con.left.value.content?.[0]"
+                                    nonEmptyValidator
+                                    (ngModelChange)="changeUpdateTime()"
+                                    (blur)="inputOnSave()"
+                                    [class.input-error]="elseifForm?.controls['elseifFormLit' + blockIndex + i]?.invalid && (elseifForm?.controls['elseifFormLit' + blockIndex + i]?.dirty || elseifForm?.controls['elseifFormLit' + blockIndex + i]?.touched)"
+                                  />
+                                  <div *ngIf="elseifForm?.controls['elseifFormLit' + blockIndex + i]?.invalid && (elseifForm?.controls['elseifFormLit' + blockIndex + i]?.dirty || elseifForm?.controls['elseifFormLit' + blockIndex + i]?.touched)" class="error-tip">
+                                    {{elseifForm?.controls['elseifFormLit' + blockIndex + i]?.errors?.serviceName?.tiErrorMessage}}
+                                  </div>
+
+                                  <input-tree-select
+                                    style="width: 100%"
+                                    *ngIf="con.right.value.type === 'ref'"
+                                    [(ngModel)]="con.right.value.content"
+                                    [options]="con.right.refs"
+                                    [name]="'elseifFormRef' + blockIndex + i"
+                                    refSelectedRequire
+                                    (select)="treeSelect()"
+                                    [placeholder]="'select_placeholder' | i18nextEager"
+                                  ></input-tree-select>
+                                </ng-container>
+                              </ng-container>
+
+                              <!-- arr -->
+                              <ng-template #arr>
+                                <ng-container
+                                  *ngIf="con.left.value.content?.[0]?.type.startsWith('array'); else num"
+                                >
+                                  <ng-container
+                                    *ngIf="
+                                      [
+                                        'longer_than',
+                                        'longer_than_or_eq',
+                                        'shorter_than',
+                                        'shorter_than_or_eq'
+                                      ].includes(con.operator)
+                                    "
+                                  >
+                                    <input
+                                      *ngIf="con.right.value.type === 'literal'"
+                                      class="combo-select-right"
+                                      [name]="'elseifFormLit' + blockIndex + i"
+                                      style="width: 100%"
+                                      [placeholder]="'input_placeholder' | i18nextEager"
+                                      type="text"
+                                      nz-input
+                                      [(ngModel)]="con.right.value.content"
+                                      [title]="con.right.value.content"
+
+                                      [disabled]="!con.left.value.content?.[0]"
+                                      nonEmptyValidator
+                                      positiveIntStr
+                                      (ngModelChange)="changeUpdateTime()"
+                                      (blur)="inputOnSave()"
+                                      [class.input-error]="elseifForm?.controls['elseifFormLit' + blockIndex + i]?.invalid && (elseifForm?.controls['elseifFormLit' + blockIndex + i]?.dirty || elseifForm?.controls['elseifFormLit' + blockIndex + i]?.touched)"
+                                    />
+                                    <div *ngIf="elseifForm?.controls['elseifFormLit' + blockIndex + i]?.invalid && (elseifForm?.controls['elseifFormLit' + blockIndex + i]?.dirty || elseifForm?.controls['elseifFormLit' + blockIndex + i]?.touched)" class="error-tip">
+                                      {{elseifForm?.controls['elseifFormLit' + blockIndex + i]?.errors?.serviceName?.tiErrorMessage}}
+                                    </div>
+
+                                    <input-tree-select
+                                      style="width: 100%"
+                                      *ngIf="con.right.value.type === 'ref'"
+                                      [(ngModel)]="con.right.value.content"
+                                      [options]="con.right.refs"
+                                      [name]="'elseifFormRef' + blockIndex + i"
+                                      refSelectedRequire
+
+                                      (select)="treeSelect()"
+                                      [placeholder]="'select_placeholder' | i18nextEager"
+                                    ></input-tree-select>
+                                  </ng-container>
+
+                                  <ng-container
+                                    *ngIf="
+                                      ['contain', 'not_contain'].includes(
+                                        con.operator
+                                      )
+                                    "
+                                  >
+                                    <ng-container
+                                      *ngIf="con.right.value.type === 'literal'"
+                                    >
+                                      <input
+                                        *ngIf="canFillStr(con.right.type)"
+                                        class="combo-select-right"
+                                        [name]="
+                                          'elseifFormLit' + blockIndex + i
+                                        "
+                                        style="width: 100%"
+                                        [placeholder]="'input_placeholder' | i18nextEager"
+                                        type="text"
+                                        nz-input
+                                        [(ngModel)]="con.right.value.content"
+                                        [title]="con.right.value.content"
+
+                                        [disabled]="!con.left.value.content?.[0]"
+                                        nonEmptyValidator
+                                        (ngModelChange)="changeUpdateTime()"
+                                        (blur)="inputOnSave()"
+                                        [class.input-error]="elseifForm?.controls['elseifFormLit' + blockIndex + i]?.invalid && (elseifForm?.controls['elseifFormLit' + blockIndex + i]?.dirty || elseifForm?.controls['elseifFormLit' + blockIndex + i]?.touched)"
+                                      />
+                                      <div *ngIf="elseifForm?.controls['elseifFormLit' + blockIndex + i]?.invalid && (elseifForm?.controls['elseifFormLit' + blockIndex + i]?.dirty || elseifForm?.controls['elseifFormLit' + blockIndex + i]?.touched)" class="error-tip">
+                                        {{elseifForm?.controls['elseifFormLit' + blockIndex + i]?.errors?.serviceName?.tiErrorMessage}}
+                                      </div>
+
+                                      <input
+                                        *ngIf="con.right.type === 'number'"
+                                        class="combo-select-right"
+                                        [name]="
+                                          'elseifFormLit' + blockIndex + i
+                                        "
+                                        style="width: 100%"
+                                        [placeholder]="'input_placeholder' | i18nextEager"
+                                        type="text"
+                                        nz-input
+                                        [(ngModel)]="con.right.value.content"
+                                        [title]="con.right.value.content"
+
+                                        [disabled]="!con.left.value.content?.[0]"
+                                        nonEmptyValidator
+                                        numberStr
+                                        (ngModelChange)="changeUpdateTime()"
+                                        (blur)="inputOnSave()"
+                                        [class.input-error]="elseifForm?.controls['elseifFormLit' + blockIndex + i]?.invalid && (elseifForm?.controls['elseifFormLit' + blockIndex + i]?.dirty || elseifForm?.controls['elseifFormLit' + blockIndex + i]?.touched)"
+                                      />
+                                      <div *ngIf="elseifForm?.controls['elseifFormLit' + blockIndex + i]?.invalid && (elseifForm?.controls['elseifFormLit' + blockIndex + i]?.dirty || elseifForm?.controls['elseifFormLit' + blockIndex + i]?.touched)" class="error-tip">
+                                        {{elseifForm?.controls['elseifFormLit' + blockIndex + i]?.errors?.serviceName?.tiErrorMessage}}
+                                      </div>
+
+                                      <input
+                                        *ngIf="con.right.type === 'integer'"
+                                        class="combo-select-right"
+                                        [name]="
+                                          'elseifFormLit' + blockIndex + i
+                                        "
+                                        style="width: 100%"
+                                        [placeholder]="'input_placeholder' | i18nextEager"
+                                        type="text"
+                                        nz-input
+                                        [(ngModel)]="con.right.value.content"
+                                        [title]="con.right.value.content"
+
+                                        [disabled]="!con.left.value.content?.[0]"
+                                        nonEmptyValidator
+                                        integerStr
+                                        (ngModelChange)="changeUpdateTime()"
+                                        (blur)="inputOnSave()"
+                                        [class.input-error]="elseifForm?.controls['elseifFormLit' + blockIndex + i]?.invalid && (elseifForm?.controls['elseifFormLit' + blockIndex + i]?.dirty || elseifForm?.controls['elseifFormLit' + blockIndex + i]?.touched)"
+                                      />
+                                      <div *ngIf="elseifForm?.controls['elseifFormLit' + blockIndex + i]?.invalid && (elseifForm?.controls['elseifFormLit' + blockIndex + i]?.dirty || elseifForm?.controls['elseifFormLit' + blockIndex + i]?.touched)" class="error-tip">
+                                        {{elseifForm?.controls['elseifFormLit' + blockIndex + i]?.errors?.serviceName?.tiErrorMessage}}
+                                      </div>
+
+                                      <nz-select
+                                        *ngIf="con.right.type === 'boolean'"
+                                        class="combo-select-right"
+                                        style="width: 100%"
+                                        [name]="
+                                          'elseifFormLit' + blockIndex + i
+                                        "
+                                        [nzOptions]="booleanOps"
+                                        [(ngModel)]="con.right.value.content"
+                                        [disabled]="!con.left.value.content?.[0]"
+                                        [nzPlaceHolder]="'select_placeholder' | i18nextEager"
+                                        nzLabelKey="value"
+                                        (ngModelChange)="onSave()"
+                                      >
+                                      </nz-select>
+                                    </ng-container>
+
+                                    <input-tree-select
+                                      style="width: 100%"
+                                      *ngIf="con.right.value.type === 'ref'"
+                                      [(ngModel)]="con.right.value.content"
+                                      [options]="con.right.refs"
+                                      [name]="'elseifFormRef' + blockIndex + i"
+                                      refSelectedRequire
+                                      (select)="treeSelect()"
+                                      [placeholder]="'select_placeholder' | i18nextEager"
+                                    ></input-tree-select>
+                                  </ng-container>
+                                </ng-container>
+                              </ng-template>
+
+                              <!-- int num -->
+                              <ng-template #num>
+                                <ng-container
+                                  *ngIf="['integer', 'number'].includes(con.left.value.content?.[0]?.type)"
+                                >
+                                  <input
+                                    class="combo-select-right"
+                                    *ngIf="con.right.value.type === 'literal'"
+                                    style="width: 100%"
+                                    type="text"
+                                    nz-input
+                                    nz-input
+                                    type="number"
+                                    [name]="'elseifFormLit' + blockIndex + i"
+                                    [title]="con.right.value.content"
+                                    [(ngModel)]="con.right.value.content"
+                                    (ngModelChange)="changeUpdateTime()"
+                                    (blur)="inputOnSave()"
+                                    [placeholder]="'input_placeholder' | i18nextEager"
+                                  />
+
+                                  <input-tree-select
+                                    style="width: 100%"
+                                    *ngIf="con.right.value.type === 'ref'"
+                                    [(ngModel)]="con.right.value.content"
+                                    [options]="con.right.refs"
+                                    [name]="'elseifFormRef' + blockIndex + i"
+                                    refSelectedRequire
+
+                                    (select)="treeSelect()"
+                                    [placeholder]="'select_placeholder' | i18nextEager"
+                                  ></input-tree-select>
+                                </ng-container>
+                              </ng-template>
+                            </ng-template>
+                          </div>
+                        </div>
+                      </div>
+
+                      <span
+                        (click)="deleteElseIfExp(blockIndex, i)"
+                        [style.color]="
+                          i === 0 &&
+                          elseIfCondition.configs.conditions.length === 1
+                            ? 'transparent'
+                            : '#191919'
+                        "
+                        [style.cursor]="
+                          i === 0 &&
+                          elseIfCondition.configs.conditions.length === 1
+                            ? 'default'
+                            : 'pointer'
+                        "
+                        class="mt-4 cursor-pointer !text-[16px] text-[#191919]"
+                        nz-icon
+                        nzType="delete"
+                        nzTheme="outline"
+                      ></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </ng-template>
+        </meta-acc-block>
+      </form>
+
+      <div class="condition-block font-bold text-label">ELSE</div>
+
+      <button
+        (click)="addElseIfBlock()"
+        class="mt-2 w-[104px]"
+        nz-button
+        nzType="default"
+        [disabled]="elseIfConditions.length === 18"
+      >
+        {{ 'add_branch' | i18nextEager }}
+      </button>
+    </div>
+  </div>
+</div>

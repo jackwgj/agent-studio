@@ -1,0 +1,51 @@
+{
+  "schemaVersion": "0.5",
+  "type": "jiuwen.planner.components.plan_modules.knowledge_search:KnowledgeSearch",
+  "version": "1.0.0",
+  "description": "知识库检索组件",
+  "classInfo": {
+    "modulePath": "jiuwen.planner.components.plan_modules.knowledge_search",
+    "className": "KnowledgeSearch",
+    "programLanguage": "python",
+    "filePath": "jiuwen/planner/components/planning_modules/knowledge_search.pyc"
+  },
+  "inputs": [
+    {
+      "id": "query",
+      "type": "String",
+      "description": "检索用的query文本",
+      "constrains": {
+        "required": true
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "id": "knowledgeSegments",
+      "type": "List<String>",
+      "description": "知识片段，按照相关度从高到低排序"
+    }
+  ],
+  "configs": [
+    {
+      "id": "knowledgeBases",
+      "type": "List<String>",
+      "description": "知识库的ID列表，最大10个"
+    },
+    {
+      "id": "similarityThreshold",
+      "type": "Float",
+      "description": "相关性阈值：0-1的浮点值，越靠近1代表越相关，召回结果可能就约精准、越少"
+    },
+    {
+      "id": "maxResultCount",
+      "type": "Int",
+      "description": "最大召回片段数：正整数值，支持召回的最大片段数，取值范围[1-10]"
+    },
+    {
+      "id": "maxTokenCount",
+      "type": "Int",
+      "description": "最大Token数：召回片段的文本部分的最大token数；取值范围[1-8000]"
+    }
+  ]
+}

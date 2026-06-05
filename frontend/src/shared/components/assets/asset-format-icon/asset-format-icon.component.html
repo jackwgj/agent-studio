@@ -1,0 +1,35 @@
+<span
+  nz-popover
+  [nzPopoverPlacement]="tiTipPosition || 'top'"
+  nzPopoverTrigger="hover"
+  [nzPopoverContent]="tipContent"
+>
+  <svg
+    width="16.000000"
+    height="16.000000"
+    viewBox="0 0 16 16"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    xmlns:xlink="http://www.w3.org/1999/xlink"
+  >
+    <desc>
+        Created with Pixso.
+    </desc>
+    <defs/>
+    <path d="M8.47 6.06L8.5 6.08C8.5 6.36 8.27 6.58 8 6.58C7.72 6.58 7.5 6.36 7.5 6.08L7.52 6.06L8.47 6.06ZM7.52 1.58L7.5 1.57C7.5 1.28 7.72 1.07 8 1.07C8.27 1.07 8.5 1.28 8.5 1.57L8.47 1.58L7.52 1.58Z" fill="#D8D8D8" fill-opacity="0" fill-rule="nonzero"/>
+    <path d="M8 6.08L8 1.57" stroke="#595959" stroke-opacity="1.000000" stroke-width="1.000000" stroke-linecap="round"/>
+    <path d="M8.47 13.74L8.5 13.76C8.5 14.04 8.27 14.26 8 14.26C7.72 14.26 7.5 14.04 7.5 13.76L7.52 13.74L8.47 13.74ZM7.52 11.78L7.5 11.76C7.5 11.48 7.72 11.26 8 11.26C8.27 11.26 8.5 11.48 8.5 11.76L8.47 11.78L7.52 11.78Z" fill="#D8D8D8" fill-opacity="0" fill-rule="nonzero"/>
+    <path d="M8 13.76L8 11.76" stroke="#595959" stroke-opacity="1.000000" stroke-width="1.000000" stroke-linecap="round"/>
+    <path d="M10.74 13.74L10.76 13.76C10.76 14.04 10.54 14.26 10.26 14.26C9.98 14.26 9.76 14.04 9.76 13.76L9.78 13.74L10.74 13.74ZM9.78 11.78L9.76 11.76C9.76 11.48 9.98 11.26 10.26 11.26C10.54 11.26 10.76 11.48 10.76 11.76L10.74 11.78L9.78 11.78Z" fill="#D8D8D8" fill-opacity="0" fill-rule="nonzero"/>
+    <path d="M10.26 13.76L10.26 11.76" stroke="#595959" stroke-opacity="1.000000" stroke-width="1.000000" stroke-linecap="round"/>
+    <path d="M6.21 13.74L6.23 13.76C6.23 14.04 6.01 14.26 5.73 14.26C5.45 14.26 5.23 14.04 5.23 13.76L5.25 13.74L6.21 13.74ZM5.25 11.78L5.23 11.76C5.23 11.48 5.45 11.26 5.73 11.26C6.01 11.26 6.23 11.48 6.23 11.76L6.21 11.78L5.25 11.78Z" fill="#D8D8D8" fill-opacity="0" fill-rule="nonzero"/>
+    <path d="M5.73 13.76L5.73 11.76" stroke="#595959" stroke-opacity="1.000000" stroke-width="1.000000" stroke-linecap="round"/>
+    <path d="M7.27 9.03L7.25 9.05C6.97 9.05 6.75 8.83 6.75 8.55C6.75 8.27 6.97 8.05 7.25 8.05L7.27 8.07L7.27 9.03ZM8.72 8.07L8.75 8.05C9.02 8.05 9.25 8.27 9.25 8.55C9.25 8.83 9.02 9.05 8.75 9.05L8.72 9.03L8.72 8.07Z" fill="#D8D8D8" fill-opacity="0" fill-rule="nonzero"/>
+    <path d="M7.25 8.55L8.75 8.55" stroke="#595959" stroke-opacity="1.000000" stroke-width="1.000000" stroke-linecap="round"/>
+    <path d="M4.48 6.08L11.51 6.08C11.79 6.08 12.04 6.35 12.07 6.68L12.66 13.16C12.69 13.49 12.45 13.76 12.12 13.76L3.87 13.76C3.54 13.76 3.3 13.49 3.33 13.16L3.92 6.68C3.95 6.35 4.2 6.08 4.48 6.08Z" fill="#FFFFFF" fill-opacity="0" fill-rule="evenodd"/>
+    <path d="M11.51 6.08C11.79 6.08 12.04 6.35 12.07 6.68L12.66 13.16C12.69 13.49 12.45 13.76 12.12 13.76L3.87 13.76C3.54 13.76 3.3 13.49 3.33 13.16L3.92 6.68C3.95 6.35 4.2 6.08 4.48 6.08L11.51 6.08Z" stroke="#595959" stroke-opacity="1.000000" stroke-width="1.000000"/>
+  </svg>
+</span>
+<ng-template #tipContent>
+  {{ tiTip }}
+</ng-template>

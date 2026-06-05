@@ -1,0 +1,50 @@
+.api-node {
+  width: 300px;
+  height: fit-content;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0px 4px 16px 0px #00000014;
+  box-sizing: border-box;
+  padding: 0px 16px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #e1e5eb;
+
+  &:hover {
+    border: 1px solid #909bab;
+  }
+
+  .node-main {
+    margin-top: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  ::ng-deep {
+    .api-modal-acc-body {
+      background-color: #fff !important;
+      padding: 0px !important;
+      margin-top: 8px;
+    }
+
+    .api-modal-acc-head {
+      padding: 0px !important;
+      height: fit-content;
+
+      .ti3-accordion-panel-title-content {
+        margin-left: 0px !important;
+      }
+
+      .ti3-accordion-panel-title {
+        gap: 8px;
+        flex-direction: row-reverse;
+        justify-content: left;
+      }
+    }
+
+    ti-accordion-item {
+      border: none !important;
+    }
+  }
+}

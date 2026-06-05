@@ -1,0 +1,36 @@
+#library-home-page {
+  height: 100%;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+
+  .main-container{
+    margin-top: 24px;
+    height: 100%;
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    &.has-sub-tab {
+      margin-top: 8px;
+    }
+  }
+}
+
+#library-home-page {
+  ::ng-deep {
+    .tp-layout-content {
+      padding: 0 !important;
+    }
+    @media screen and (min-width: 1920px) {
+      .tp-layout-content {
+        max-width: unset !important;
+        padding: 0 !important;
+      }
+    }
+    .ti3-tab-content{
+      display: none;
+    }
+  }
+}

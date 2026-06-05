@@ -1,0 +1,32 @@
+<div
+  class="memory-updated-container w-fit cursor-pointer flex align-center gap-[4px] mb-[4px]"
+  *ngIf="memoryInfo?.length"
+  nz-tooltip
+  [nzTooltipTitle]="tipContent"
+>
+  <div class="memory-icon"></div>
+  <span>{{ 'memory_updated' | i18nextEager }}</span>
+</div>
+
+<ng-template #tipContent let-context="context">
+  <div class="memory-list-container w-[268px] flex flex-col gap-[12px]">
+    <div class="memory-item flex w-full items-start gap-[8px]" *ngFor="let mem of memoryInfo">
+      <nz-tag id="tag-color" [nzColor]="memUpdateOperationMap.get(mem.updatedType)?.color" nzSize="small">
+        {{ memUpdateOperationMap.get(mem.updatedType)?.name }}
+      </nz-tag>
+      <div
+        class="memory-value w-[0] flex-shrink-0 text-[#191919]"
+        style="flex-grow: 2; line-height: 18px"
+        nz-tooltip
+        [nzTooltipTitle]="memoryManagementUtils.getMemDisplayContent(mem)"
+      >
+        {{ memoryManagementUtils.getMemDisplayContent(mem) }}
+      </div>
+    </div>
+    <div class="operation-container mt-[8px] text-right" *ngIf="isShowMemoryManageButton">
+      <button (click)="memoryManagementModal.showModal()">{{ 'manage_mem' | i18nextEager }}</button>
+    </div>
+  </div>
+</ng-template>
+
+<memory-management-modal #memoryManagementModal [memoryLibId]="memoryLibId" [conversationState]="conversationState"></memory-management-modal>

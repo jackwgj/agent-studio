@@ -1,0 +1,9 @@
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
+ */
+
+INSERT INTO t_provider_auth_metadata (ID, PROVIDER_ID, AUTH_TYPE, AUTH_INFO, AUTH_URL, CREATED_BY_USER, CREATED_DATE, LAST_UPDATED_DATE, DOMAIN_ID, PROJECT_ID, WORKSPACE_ID, IDENTITY_ID) VALUES ('test_auth_meta_id', 'test_provider', 'NO_AUTH', '{}', '', '2', 1754964550955, 1754964550955, 'test_domain_id', 'test_project_id', 'default', 'test_auth_meta_id');
+
+INSERT INTO t_provider_auth_info (ID, PROVIDER_ID, AUTH_METADATA_ID, AUTH_TYPE, AUTH_INFO, CREATED_BY_USER, CREATED_DATE, LAST_UPDATED_DATE, DOMAIN_ID, PROJECT_ID, WORKSPACE_ID, IDENTITY_ID) VALUES ('test_auth_auth_id', 'test_provider', 'test_auth_meta_id', 'NO_AUTH', '{}', '2', 1754964550955, 1754964550955, 'test_domain_id', 'test_project_id', 'default', 'test_auth_auth_id');
+
+INSERT INTO  t_model_service (ID, PROVIDER_ID, SERVICE_NAME, SERVICE_KEY, MODEL_NAME, MODEL_VERSION, MODEL_TYPE, MODEL_TAGS, MODEL_DESCRIPTION, MODEL_DEPLOY_TYPE, DOCUMENT_URL, MODEL_SIZE, CONTEXT_LENGTH, MODEL_PRIORITY, DOMAIN_ID, PROJECT_ID, WORKSPACE_ID, CREATED_BY_USER, LAST_UPDATED_BY_USER, CREATED_DATE, LAST_UPDATED_DATE, API_URL, IS_REASONING, IS_SUPPORT_FUNCTION, INTERFACE_PROTOCOL, IS_SUPPORT_STREAM, AUTH_METADATA_ID, PUBLISH_STATUS, IDENTITY_ID, SYSTEM_PROMPT, THROTTLING_POLICY) VALUES ('64c8e9bb-7ded-4fc9-b63e-9ff3f0e7a588', 'test_provider', 'agentBuilder4', 'publisher:agentBuilder4', 'agentBuilder4', 'agentBuilder4', 'LLM', '大语言模型,深度求索,中文,英文,对话问答,文案生成,代码生成,NL2SQL,任务规划,通用', '擅长通用对话任务', 'PLATFORM-INTEGRATION', 'resource_access/model_desc/deepseek/deepseek_model.md', 0, 0, 40, 'SYSTEM', 'SYSTEM', 'SYSTEM', 'SYSTEM', 'SYSTEM', 1753675200000, 1753675200000, 'https://127.0.0.1:8080/v1/model-router/chat/completions', 0, 1, 'STANDARD', 1, 'test_auth_meta_id', 'online', '64c8e9bb-7ded-4fc9-b63e-9ff3f0e7a588', NULL, -1);

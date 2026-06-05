@@ -1,0 +1,100 @@
+<div class="drawer-header">
+  {{ 'add_knowledge' | i18nextEager }}
+</div>
+<div class="drawer-body" style="padding-right: 24px;margin-top: 16px;">
+  <div id="kb-selector">
+
+    <nz-alert nzType="info" class="kb-selector-limit-content" [nzShowIcon]="false" [nzMessage]="alertMsg">
+      <ng-template #alertMsg>
+        @if (sharedKbLimitSelection) {
+          {{ 'shared_kb_selection_limit' | i18nextEager }}
+        } @else {
+          {{ 'kbLimit' | i18nextEager : { number: kbQuantityLimit } }}
+        }
+      </ng-template>
+    </nz-alert>
+
+    <div class="kb-range-selector" *ngIf="configServ.isSupportSharedKb()">
+      <nz-tabs>
+        <nz-tab
+          [nzTitle]="tabs[0].title"
+          (nzSelect)="tabs[0].onActiveChange(true)">
+        </nz-tab>
+        <nz-tab
+          [nzTitle]="tabs[1].title"
+          (nzSelect)="tabs[1].onActiveChange(true)">
+        </nz-tab>
+      </nz-tabs>
+    </div>
+    <div class="kb-selector-operation-container"
+         *ngIf="currentSpaceType === 'currentSpace' && kbAbilitiesService.isPermitCreateKB">
+      <button nz-button [disabled]="kbAbilitiesService.isResourceDisabled" (click)="createKB.emit()">{{ 'create_kb' | i18nextEager }}</button>
+    </div>
+
+    <div class="kb-selector-filter-container">
+      <nz-select
+        *ngIf="kbAbilitiesService.isPermitThirdPartyKb"
+        nzAllowClear
+        [nzOptions]="kbTypeOptions"
+        [(ngModel)]="searchState.kbType"
+        (ngModelChange)="getKBInSearch()"
+        [nzPlaceHolder]="'select_placeholder' | i18nextEager"
+        style="width: 200px;"
+      ></nz-select>
+      <nz-input-search nzAllowClear (nzSearch)="getKBInSearch()">
+        <input
+          nz-input
+          id="searchbox-basic"
+          class="kb-selector-search-box"
+          [placeholder]="'search_and_filter' | i18nextEager"
+          [(ngModel)]="searchState.searchName"
+        />
+      </nz-input-search>
+      <button nz-button nzType="default" (click)="getKBList()">
+        <span nz-icon nzType="reload"></span>
+      </button>
+    </div>
+
+    <div class="kb-selector-card-container">
+      <div class="kb-selector-card-content" *ngIf="kbs.length && !isLoading">
+        <kb-card-display
+          [kbs]="kbs"
+          [displayConfig]="cardDisplayConfig"
+          [currentSelected]="selectedKbs"
+          (cardHandler)="cardHandler($event)"
+          (operationCallEmit)="getKBList()" />
+      </div>
+
+      <div class="kb-selector-no-data" *ngIf="!kbs.length && !isLoading">
+        <div class="no-data-icon"></div>
+        <span class="no-data-title mt-[8px]">{{ 'no_knowledge_base_resources'|i18nextEager }}</span>
+        <span class="no-data-desc mt-[4px]" *ngIf="kbAbilitiesService.isPermitCreateKB">{{ 'no_data_available_create_knowledge_base'|i18nextEager }}</span>
+        <button *ngIf="kbAbilitiesService.isPermitCreateKB" nz-button (click)="createKB.emit()" class="mt-[16px]">{{ 'create_kb' | i18nextEager }}</button>
+      </div>
+
+      <nz-pagination
+        *ngIf="!isLoading"
+        [(nzPageIndex)]="pageState.currentPage"
+        [nzTotal]="pageState.totalNumber"
+        [(nzPageSize)]="pageState.pageSize"
+        nzSimple
+        (nzPageIndexChange)="getKBList()"
+      ></nz-pagination>
+    </div>
+  </div>
+</div>
+<div class="flex justify-end gap-[8px]">
+  <button nz-button id="cancel" (click)="dismiss()">
+    {{ 'cancel' | i18nextEager }}
+  </button>
+  <button
+    class="ml-[8px]"
+    nz-button
+    nzType="primary"
+    id="ok"
+    [disabled]="!selectedKbs.length || kbAbilitiesService.isResourceDisabled"
+    (click)="close()"
+  >
+    {{ 'ok' | i18nextEager }}
+  </button>
+</div>

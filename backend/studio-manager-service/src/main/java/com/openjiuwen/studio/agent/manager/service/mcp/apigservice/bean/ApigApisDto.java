@@ -1,0 +1,67 @@
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2024-2024. All rights reserved.
+ */
+
+package com.openjiuwen.studio.agent.manager.service.mcp.apigservice.bean;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.sql.Timestamp;
+
+/**
+ * @ClassName : ApicApisDto
+ * @Description :
+ * @Date : Created in 2024/4/8 19:12
+ * @Version : V1.0
+ */
+@Data
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+public class ApigApisDto {
+    private String id;
+
+    private String name;
+
+    @JsonProperty("group_id")
+    private String groupId;
+
+    private String description;
+
+    @JsonProperty("tenant_id")
+    private String tenantId;
+
+    /**
+     * API策略ID
+     */
+    @JsonProperty("throttling_policy_id")
+    private String throttlingPolicyId;
+
+    /**
+     * api策略和api绑定的关系ID-APIC上的
+     */
+    @JsonProperty("api_policy_bind_id")
+    private String apiPolicyBindId;
+
+    /**
+     * 创建者对应的用户名
+     */
+    @JsonProperty("created_by_user_id")
+    private String createdByUserId;
+
+    @JsonProperty("last_updated_by_user_id")
+    private String lastUpdatedByUserId;
+
+    @JsonProperty("created_date")
+    private Timestamp createdDate;
+
+    @JsonProperty("last_updated_date")
+    private Timestamp lastUpdatedDate;
+
+    private String status;
+}

@@ -1,0 +1,29 @@
+<ng-template #modalHeader>
+  <div class="text-base font-medium">{{ title }}</div>
+</ng-template>
+
+<div class="pb-4">
+  <nz-alert class="mb-4 !w-full" nzType="warning" [nzMessage]="tip"></nz-alert>
+  <share-usage-table #shareUsageTable [pageType]="pageType" [toolId]="toolId" [versionId]="versionId" [shareData]="shareData"></share-usage-table>
+  <div class="mb-2 mt-4 text-[#595959]">
+    {{ 'sure_cancel_share_version' | i18nextEager }} <strong>DELETE</strong>
+    <span class="input cursor-pointer" (click)="configWord = 'DELETE'">{{ 'one_click_input' | i18nextEager }}</span>
+  </div>
+
+  <input
+    class="w-full"
+    nz-input
+    type="text"
+    [(ngModel)]="configWord"
+    [placeholder]="confirmText"
+  />
+</div>
+
+<div style="margin-top: 16px">
+  <button type="button" nz-button (click)="dismiss()">
+    {{ 'cancel' | i18nextEager }}
+  </button>
+  <button type="button" nzType="primary" nz-button (click)="delete()" [disabled]="configWord !== confirmText" [nzLoading]="loading" style="margin-left: 16px">
+    {{ 'ok' | i18nextEager }}
+  </button>
+</div>

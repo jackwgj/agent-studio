@@ -1,0 +1,29 @@
+.json-input {
+  width: 100%;
+  height: 28px;
+  border: 1px solid #c2c2c2;
+  border-radius: 6px;
+  border-top-left-radius: 0px;
+  border-bottom-left-radius: 0px;
+  cursor: pointer;
+  display: flex;
+  padding: 5px 8px;
+  gap: 4px;
+  position: relative;
+
+  &:hover {
+    border-color: #191919;
+  }
+
+  .json-tip {
+    width: calc(100% - 16px);
+    height: calc(100% - 10px);
+    position: absolute;
+    z-index: 1000;
+  }
+}
+
+.error-input {
+  border-color: #f23030;
+  background-color: #fce3e1;
+}

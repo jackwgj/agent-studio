@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) Huawei Technologies Co., Ltd. 2024-2024. All rights reserved.
+  -->
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.agent.manager.mapper.ApigApiGroupsMapper">
+
+    <sql id="Base_Column_List">
+        `ID`, `NAME`, `DESCRIPTION`, `TENANT_ID`, `CREATED_BY_USER_ID`, `LAST_UPDATED_BY_USER_ID`,
+        `CREATED_DATE`, `LAST_UPDATED_DATE`, `STATUS`
+    </sql>
+
+    <select id="selectById" resultType="com.openjiuwen.studio.agent.manager.service.mcp.apigservice.bean.ApigApiGroupsDto">
+        select
+        <include refid="Base_Column_List"/>
+        from `t_apig_api_groups`
+        where `ID` = #{id} and `status` != 'deleted'
+    </select>
+
+    <select id="selectByName" resultType="com.openjiuwen.studio.agent.manager.service.mcp.apigservice.bean.ApigApiGroupsDto">
+        select
+        <include refid="Base_Column_List"/>
+        from `t_apig_api_groups`
+        where `NAME` = #{name} and `status` != 'deleted'
+    </select>
+
+    <insert id="insert" keyProperty="apigApiGroupsDto.id">
+        insert into `t_apig_api_groups` (`ID`, `NAME`,
+                                                          `DESCRIPTION`, `TENANT_ID`, `CREATED_BY_USER_ID`,
+                                                          `LAST_UPDATED_BY_USER_ID`,
+                                                          `CREATED_DATE`, `LAST_UPDATED_DATE`, `STATUS`)
+        values (#{apigApiGroupsDto.id}, #{apigApiGroupsDto.name},
+                #{apigApiGroupsDto.description},
+                #{apigApiGroupsDto.tenantId}, #{apigApiGroupsDto.createdByUserId},
+                #{apigApiGroupsDto.lastUpdatedByUserId}, #{apigApiGroupsDto.createdDate},
+                #{apigApiGroupsDto.lastUpdatedDate},
+                #{apigApiGroupsDto.status});
+    </insert>
+
+    <update id="deleteById">
+        update `t_apig_api_groups`
+        set `STATUS`='deleted'
+        where `ID` = #{id}
+    </update>
+
+    <update id="deleteByName">
+        update `t_apig_api_groups`
+        set `STATUS`='deleted'
+        where `NAME` = #{name}
+    </update>
+
+    <select id="getNullDeptCodeNum" resultType="Integer">
+        select count(1)
+        from t_apig_api_groups
+        where `DEPT_CODE` is null
+          and created_by_user_id is not null;
+    </select>
+
+    <update id="updateNullDeptCodeByUserId">
+        update t_apig_api_groups
+        set dept_code = #{deptCode}
+        where dept_code is null
+          and created_by_user_id = #{userId}
+    </update>
+</mapper>

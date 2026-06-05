@@ -1,0 +1,25 @@
+::ng-deep .diff-modal {
+  width: 100vw !important;
+  max-width: 1000px !important;
+
+  .header {
+    line-height: 28px;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+
+    .tag {
+      font-size: 12px;
+      line-height: 18px;
+
+      ti-tag {
+        margin-right: 4px;
+      }
+    }
+  }
+
+  .footer {
+    padding: 0;
+    height: 24px;
+  }
+}

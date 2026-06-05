@@ -1,0 +1,114 @@
+@import 'highlight.js/styles/github.css';
+@import 'github-markdown-light.css';
+
+/* Tailwind CSS */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-primary: 31 66 206;
+  }
+}
+
+.noLeftMenuWidth {
+  width: 100% !important;
+}
+
+.hasLeftMenuWidth {
+  width: calc(100% - 220px) !important;
+}
+
+tp-layout-content-body {
+  padding-bottom: 0px !important;
+}
+
+.cdk-overlay-container {
+  z-index: 2000 !important;
+}
+
+tp-layout-content {
+  margin-left: 0px !important;
+}
+
+.ti-delete-second-confirm .ti-delete-second-confirm-error-message {
+  line-height: 20px;
+}
+
+.embedding-highlighting .pw-common-node-wrapper {
+  border: 2px solid #1476ff !important;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+
+::placeholder {
+  color: #808080 !important;
+}
+.grey-disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed;
+}
+.grey-disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed;
+}
+/* 定义动画 */
+@keyframes running-line {
+  to {
+    stroke-dashoffset: -20;
+  }
+}
+.running-line {
+  stroke-dasharray: 10 10;
+
+  animation: running-line 1s linear infinite;
+}
+
+.guide-collapse-btn .tp-icon-action-text {
+  text-decoration: none !important;
+}
+
+.guide-collapse-content {
+  transition: height 0.2s ease;
+}
+
+.top-level-tab .ti3-tab-pane {
+  padding-top: 8px !important;
+}
+
+.page-container {
+  padding: 24px 48px 32px;
+}
+
+.text-with-link {
+  width: 100%;
+  display: flex;
+
+  .text-link {
+    margin-left: 4px;
+    cursor: pointer;
+    color: #1476ff;
+    display: flex;
+    align-items: center;
+
+    tp-icon {
+      margin-left: 4px;
+      font-size: 16px;
+    }
+  }
+}
+
+/*工作流日志菜单弹窗层级过低会被试运行半屏弹窗遮挡*/
+#menu-basic_drop0 {
+  z-index: 882 !important;
+}
+/* select选中自定义元素高度问题*/
+.ant-select-selection-item {
+  height: 30px;
+}

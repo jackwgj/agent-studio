@@ -1,0 +1,339 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.agent.agentbase.mapper.KnowledgeBaseConnectionMapper">
+    <resultMap id="BaseResultMap" type="com.openjiuwen.studio.agent.agentbase.entity.KnowledgeBaseConnectionEntity">
+        <id column="id" jdbcType="VARCHAR" property="id"/>
+        <result column="connector_id" jdbcType="VARCHAR" property="connectorId"/>
+        <result column="name" jdbcType="VARCHAR" property="name"/>
+        <result column="icon" jdbcType="VARCHAR" property="icon"/>
+        <result column="description" jdbcType="VARCHAR" property="description"/>
+        <result column="used_abilities" jdbcType="VARCHAR" property="usedAbilities"
+                typeHandler="com.openjiuwen.studio.agent.agentbase.mapper.handler.AbilityDetailListHandler"/>
+        <result column="params" jdbcType="VARCHAR" property="params"
+                typeHandler="com.openjiuwen.studio.agent.agentbase.mapper.handler.KnowledgeBaseConnectionParamListHandler"/>
+        <result column="krb5_file" jdbcType="VARCHAR" property="krb5File"/>
+        <result column="keytab_file" jdbcType="VARCHAR" property="keytabFile"/>
+        <result column="status" jdbcType="VARCHAR" property="status"/>
+        <result column="project_id" jdbcType="VARCHAR" property="projectId"/>
+        <result column="domain_id" jdbcType="VARCHAR" property="domainId"/>
+        <result column="domain_name" jdbcType="VARCHAR" property="domainName"/>
+        <result column="create_user_id" jdbcType="VARCHAR" property="createdUserId"/>
+        <result column="create_user_name" jdbcType="VARCHAR" property="createdUserName"/>
+        <result column="create_time" jdbcType="BIGINT" property="createTime"/>
+        <result column="workspace_id" jdbcType="VARCHAR" property="workspaceId"/>
+        <result column="update_user_id" jdbcType="VARCHAR" property="updateUserId"/>
+        <result column="update_user_name" jdbcType="VARCHAR" property="updateUserName"/>
+        <result column="update_time" jdbcType="BIGINT" property="updateTime"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id
+        ,
+        name,
+        icon,
+        status,
+        description,
+        connector_id,
+        params,
+        project_id,
+        domain_id,
+        domain_name,
+        create_user_id,
+        create_user_name,
+        create_time,
+        workspace_id,
+        update_user_id,
+        update_user_name,
+        update_time,
+        used_abilities
+    </sql>
+
+    <insert id="insert" parameterType="com.openjiuwen.studio.agent.agentbase.entity.KnowledgeBaseConnectionEntity">
+        insert into t_knowledge_base_connection (id, connector_id, name, icon, status, description, params,
+                                                 project_id,
+                                                 domain_id, domain_name, create_user_id, create_user_name,
+                                                 create_time, workspace_id, update_user_id, update_user_name,
+                                                 update_time, used_abilities)
+        values (#{connection.id}, #{connection.connectorId}, #{connection.name},
+                #{connection.icon}, #{connection.status}, #{connection.description},
+                #{connection.params,typeHandler=com.openjiuwen.studio.agent.agentbase.mapper.handler.KnowledgeBaseConnectionParamListHandler},
+                #{connection.projectId}, #{connection.domainId}, #{connection.domainName},
+                #{connection.createdUserId}, #{connection.createdUserName}, #{connection.createTime},
+                #{connection.workspaceId}, #{connection.updateUserId}, #{connection.updateUserName},
+                #{connection.updateTime}, #{connection.usedAbilities})
+    </insert>
+    <update id="update" parameterType="com.openjiuwen.studio.agent.agentbase.entity.KnowledgeBaseConnectionEntity">
+        update t_knowledge_base_connection
+        <set>
+            <if test="connection.name != null and connection.name != ''">
+                name = #{connection.name},
+            </if>
+            <if test="connection.icon != null and connection.icon != ''">
+                icon = #{connection.icon},
+            </if>
+            <if test="connection.description != null and connection.description != ''">
+                description = #{connection.description},
+            </if>
+            <if test="connection.params != null and connection.params != ''">
+                params =
+                #{connection.params,typeHandler=com.openjiuwen.studio.agent.agentbase.mapper.handler.KnowledgeBaseConnectionParamListHandler},
+            </if>
+            <if test="connection.status != null and connection.status != ''">
+                status = #{connection.status},
+            </if>
+            <if test="connection.usedAbilities != null and connection.usedAbilities != ''">
+                used_abilities = #{connection.usedAbilities},
+            </if>
+            update_user_id = #{connection.updateUserId},
+            update_user_name = #{connection.updateUserName},
+            update_time = #{connection.updateTime}
+        </set>
+        where id = #{connection.id}
+    </update>
+    <delete id="delete">
+        delete
+        from t_knowledge_base_connection
+        where id = #{id}
+    </delete>
+
+    <delete id="batchDelete">
+        delete from t_knowledge_base_connection
+        where id in
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <select id="find" resultMap="BaseResultMap">
+        select connection_t.id,
+               connection_t.name,
+               connection_t.icon,
+               connection_t.status,
+               connection_t.description,
+               connection_t.connector_id,
+               connection_t.params,
+               connection_t.project_id,
+               connection_t.domain_id,
+               connection_t.domain_name,
+               connection_t.create_user_id,
+               connection_t.create_user_name,
+               connection_t.create_time,
+               connection_t.workspace_id,
+               connection_t.update_user_id,
+               connection_t.update_user_name,
+               connection_t.update_time,
+               connection_t.used_abilities,
+               connector_t.name as connector_name
+        from t_knowledge_base_connection connection_t
+                 INNER JOIN t_knowledge_base_connector connector_t ON connection_t.connector_id = connector_t.id
+        where connection_t.id = #{id}
+          and connection_t.workspace_id = #{workspace_id}
+          and connection_t.project_id = #{project_id}
+    </select>
+
+    <select id="listThirdPartyKnowledgeBases" resultMap="BaseResultMap">
+        select
+        connection_t.id,
+        connection_t.name,
+        connection_t.icon,
+        connection_t.status,
+        connection_t.description,
+        connection_t.connector_id,
+        connection_t.params,
+        connection_t.project_id,
+        connection_t.domain_id,
+        connection_t.domain_name,
+        connection_t.create_user_id,
+        connection_t.create_user_name,
+        connection_t.create_time,
+        connection_t.workspace_id,
+        connection_t.update_user_id,
+        connection_t.update_user_name,
+        connection_t.update_time,
+        connection_t.used_abilities,
+        connector_t.name as connector_name
+        from t_knowledge_base_connection connection_t
+        INNER JOIN t_knowledge_base_connector connector_t ON connection_t.connector_id = connector_t.id
+        where connection_t.workspace_id = #{workspace_id}
+        <if test="project_id != null and project_id != ''">
+            and connection_t.project_id = #{project_id}
+        </if>
+        <if test="name != null and name != ''">
+            and connection_t.name like concat('%', #{name}, '%') ESCAPE '/'
+        </if>
+        <if test="connector_id != null and connector_id != ''">
+            and connection_t.connector_id = #{connector_id}
+        </if>
+        <if test="status != null and status != ''">
+            and connection_t.status = #{status}
+        </if>
+        ORDER BY connection_t.update_time desc
+    </select>
+
+    <select id="findByName" resultType="java.lang.String">
+        select name
+        from t_knowledge_base_connection
+        where workspace_id = #{workspace_id}
+        and name = #{name}
+        <if test="id != null and id != ''">
+            and id != #{id}
+        </if>
+    </select>
+
+    <select id="batchQueryKnowledgeBaseConnections"
+            resultType="com.openjiuwen.studio.agent.agentbase.entity.KnowledgeBaseConnection">
+        SELECT id, connector_id, name, description, icon, status, params, domain_id, domain_name, workspace_id
+        FROM t_knowledge_base_connection
+        <where>
+            <if test="connectionIds != null and connectionIds.size()>0">
+                AND id IN
+                <foreach item="id" collection="connectionIds" open="(" separator="," close=")">
+                    #{id}
+                </foreach>
+            </if>
+            <if test="workspace_id != null and workspace_id != ''">
+                AND workspace_id = #{workspace_id}
+            </if>
+        </where>
+    </select>
+
+    <update id="updateKnowledgeBaseConnectionStatus"
+            parameterType="com.openjiuwen.studio.agent.agentbase.entity.KnowledgeBaseEntity">
+        UPDATE t_knowledge_base_connection
+        set status = #{status}
+        where id = #{connectionId}
+    </update>
+    <select id="countByDomainId" resultType="java.lang.Long">
+        select count(id)
+        from t_knowledge_base_connection
+        where domain_id = #{domain_id}
+    </select>
+    <select id="findById" resultMap="BaseResultMap">
+        select connection_t.id,
+               connection_t.name,
+               connection_t.icon,
+               connection_t.status,
+               connection_t.description,
+               connection_t.connector_id,
+               connection_t.params,
+               connection_t.krb5_file,
+               connection_t.keytab_file,
+               connection_t.project_id,
+               connection_t.domain_id,
+               connection_t.domain_name,
+               connection_t.create_user_id,
+               connection_t.create_user_name,
+               connection_t.create_time,
+               connection_t.workspace_id,
+               connection_t.update_user_id,
+               connection_t.update_user_name,
+               connection_t.update_time,
+               connection_t.used_abilities,
+               connector_t.name as connector_name,
+               connector_t.type as connector_type
+        from t_knowledge_base_connection connection_t
+                 INNER JOIN t_knowledge_base_connector connector_t ON connection_t.connector_id = connector_t.id
+        where connector_t.type = 'inside'
+          and connection_t.id = #{connection_id}
+    </select>
+    <select id="findByExternalRepoId" resultMap="BaseResultMap">
+        select connection_t.id,
+               connection_t.name,
+               connection_t.icon,
+               connection_t.status,
+               connection_t.description,
+               connection_t.connector_id,
+               connection_t.params,
+               connection_t.krb5_file,
+               connection_t.keytab_file,
+               connection_t.project_id,
+               connection_t.domain_id,
+               connection_t.domain_name,
+               connection_t.create_user_id,
+               connection_t.create_user_name,
+               connection_t.create_time,
+               connection_t.workspace_id,
+               connection_t.update_user_id,
+               connection_t.update_user_name,
+               connection_t.update_time,
+               connection_t.used_abilities
+        from t_knowledge_base_connection connection_t
+                 LEFT JOIN t_knowledge_base ON connection_t.id = t_knowledge_base.knowledge_base_connection_id
+        where t_knowledge_base.external_id = #{repo_id}
+    </select>
+
+    <select id="findConnectionBySegmentId" resultMap="BaseResultMap">
+        select connection_t.id,
+               connection_t.name,
+               connection_t.icon,
+               connection_t.status,
+               connection_t.description,
+               connection_t.connector_id,
+               connection_t.params,
+               connection_t.krb5_file,
+               connection_t.keytab_file,
+               connection_t.project_id,
+               connection_t.domain_id,
+               connection_t.domain_name,
+               connection_t.create_user_id,
+               connection_t.create_user_name,
+               connection_t.create_time,
+               connection_t.workspace_id,
+               connection_t.update_user_id,
+               connection_t.update_user_name,
+               connection_t.update_time,
+               connection_t.used_abilities
+        from t_knowledge_base_connection connection_t
+                 LEFT JOIN t_knowledge_segment_rule
+                           ON connection_t.id = t_knowledge_segment_rule.knowledge_base_connection_id
+        where t_knowledge_segment_rule.id = #{segmentId}
+    </select>
+    <select id="findDefaultConnection"
+            resultMap="BaseResultMap">
+        select id,
+               name,
+               icon,
+               status,
+               description,
+               connector_id,
+               params,
+               project_id,
+               domain_id,
+               domain_name,
+               create_user_id,
+               create_user_name,
+               create_time,
+               workspace_id,
+               update_user_id,
+               update_user_name,
+               update_time,
+               used_abilities
+        from t_knowledge_base_connection
+        where connector_id = #{connectorId}
+    </select>
+    <select id="findConnectionById"
+            resultMap="BaseResultMap">
+        select id,
+               connector_id,
+               name,
+               icon,
+               description,
+               used_abilities,
+               params,
+               krb5_file,
+               keytab_file,
+               status,
+               project_id,
+               domain_id,
+               domain_name,
+               create_user_id,
+               create_user_name,
+               create_time,
+               workspace_id,
+               update_user_id,
+               update_user_name,
+               update_time
+        from t_knowledge_base_connection
+        where id = #{connectionId}
+    </select>
+</mapper>

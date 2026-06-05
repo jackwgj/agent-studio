@@ -1,0 +1,171 @@
+{
+  "id": "test_llm_id",
+  "name": "名称测试",
+  "description": "描述测试",
+  "nodes": [
+    {
+      "id": "node_start",
+      "name": "开始",
+      "type": "Start",
+      "outputs": [
+        {
+          "name": "query",
+          "type": "string",
+          "required": true,
+          "field_type": "input",
+          "source": "system",
+          "value": {
+            "type": "literal",
+            "content": "",
+            "hint": "用户输入"
+          }
+        }
+      ]
+    },
+    {
+      "id": "node_1727403791211",
+      "type": "IntentDetection",
+      "name": "意图识别",
+      "inputs": [
+        {
+          "name": "input",
+          "description": "",
+          "required": false,
+          "type": "string",
+          "value": {
+            "type": "ref",
+            "content": {
+              "ref_node_id": "node_start",
+              "ref_var_name": "query",
+              "source": "system"
+            },
+            "hint": ""
+          },
+          "source": "system"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "result",
+          "description": "输出的分类分支名",
+          "required": false,
+          "type": "string",
+          "value": {
+            "type": "generated",
+            "content": "",
+            "hint": ""
+          },
+          "source": "system"
+        },
+        {
+          "name": "reason",
+          "type": "string",
+          "required": true,
+          "source": "system",
+          "value": {
+            "type": "generated",
+            "content": null,
+            "hint": ""
+          }
+        }
+      ],
+      "configs": {
+        "prompt": "你是一个功能分类器，你可以根据用户的请求提问，和相应的功能类别描述，选择正确的功能帮助用户解决问题。",
+        "llm": {
+          "temperature": 0.5,
+          "top_p": 0.5,
+          "model": {
+            "model_name": "agentBuilder4",
+            "model_type": "ei_agentBuilder",
+            "model_deployment_id": "64c8e9bb-7ded-4fc9-b63e-9ff3f0e7a588"
+          }
+        },
+        "enable_history": false,
+        "chat_history_max_turn": 6,
+        "repos": [
+          {
+            "id": "test_knowledge_repo_id",
+            "name": "这上传是真的吗l当然是假的啦",
+            "description": "试试是不是真的\n"
+          }
+        ],
+        "file_ids": [
+          "id1",
+          "id2"
+        ],
+        "enable_knowledge": true,
+        "recall_threshold": 0.5
+      },
+      "branches": [
+        {
+          "id": "branch_0",
+          "configs": {
+            "category": "不确定，其他的意图"
+          }
+        },
+        {
+          "id": "branch_1",
+          "configs": {
+            "category": "天气类问题"
+          }
+        }
+      ]
+    },
+    {
+      "id": "node_end",
+      "name": "结束",
+      "type": "End",
+      "inputs": [
+        {
+          "name": "result1",
+          "type": "string",
+          "description": "最终输出",
+          "required": false,
+          "source": "user",
+          "value": {
+            "type": "ref",
+            "content": {
+              "ref_node_id": "node_start",
+              "ref_var_name": "query",
+              "source": "user"
+            }
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "response_content",
+          "type": "string",
+          "description": "最终输出",
+          "required": true,
+          "source": "system",
+          "value": {
+            "type": "generated",
+            "content": null
+          }
+        }
+      ],
+      "configs": {
+        "response_mode": "directResponse",
+        "is_stream_out": true,
+        "response_template": "{{result1}}"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "source": "node_start",
+      "target": "node_1727403791211"
+    },
+    {
+      "source": "node_1727403791211",
+      "target": "node_end",
+      "branch": "branch_0"
+    },
+    {
+      "source": "node_1727403791211",
+      "target": "node_end",
+      "branch": "branch_1"
+    }
+  ]
+}

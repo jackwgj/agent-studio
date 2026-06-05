@@ -1,0 +1,56 @@
+<div class="header" [ngClass]="{ 'header-responsive ': responsive }">
+  <div [ngClass]="{ 'responsive': responsive }">
+    <nz-breadcrumb [ngClass]="{ 'mb-[8px]': data()?.isCreate, 'mb-[32px]': !data()?.isCreate }">
+      @for (item of data()?.crumb; track $index) {
+        <nz-breadcrumb-item>
+          @if (item.clickFn) {
+            <a (click)="onCrumbClick(item)">{{ item.label }}</a>
+          } @else {
+            {{ item.label }}
+          }
+        </nz-breadcrumb-item>
+      }
+    </nz-breadcrumb>
+    <ng-content select="[customArea]"></ng-content>
+    <div class="header-box">
+      <div class="flex-align-center">
+        @if (data()?.img) {
+          <img alt="" class="header-img" [src]="data().img" />
+        }
+        <div class="title-box">
+          <div class="label">{{ data()?.title }}</div>
+          @if (data()?.status) {
+            <div class="flex-align-center mt-[4px]">
+              <div class="flex-align-center mr-[4px]">
+                <nz-icon [nzType]="data().status.icon" [nzTheme]="'outline'" [ngStyle]="{ color: data().status.color, fontSize: '16px' }"></nz-icon>
+              </div>
+              <div>
+                {{ data().status.labelKey | i18n }}
+              </div>
+            </div>
+          }
+          @if (data()?.tags?.length) {
+            <div class="flex-align-center gap-[8px]">
+              @for (tag of data()?.tags; track trackByIndex($index)) {
+                <nz-tag [nzColor]="tag.color || 'default'">{{ tag.label }}</nz-tag>
+              }
+            </div>
+          }
+        </div>
+      </div>
+      @if (data()?.operators?.length) {
+        <div class="operator flex-align-center gap-[8px]">
+          @if (data()?.operators?.length === 1) {
+            <button nz-button nzShape="round" [nzType]="data()?.operators?.[0]?.type || 'primary'" (click)="onSelect(data()?.operators?.[0])">
+              {{ data()?.operators?.[0]?.label }}
+            </button>
+          } @else {
+              @for (op of data()?.operators; track trackByIndex($index)) {
+                <button nz-button nzShape="round" [nzType]="op.type || 'primary'" (click)="onSelect(op)">{{ op.label }}</button>
+              }
+          }
+        </div>
+      }
+    </div>
+  </div>
+</div>

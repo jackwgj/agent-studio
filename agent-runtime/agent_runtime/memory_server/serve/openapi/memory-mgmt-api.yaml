@@ -1,0 +1,34 @@
+swagger: '2.0'
+paths:
+  /agent-runtime/v1/{project_id}/memories/long-terms:
+    delete:
+      summary: 清空某个应用中的用户记忆内容
+      description: 清空某个应用中的用户记忆内容
+      operationId: ClearLongTermMemories
+      parameters:
+        - name: project_id
+          in: path
+          description: 项目ID
+          required: true
+          type: string
+          minLength: 1
+          maxLength: 64
+        - name: application_id
+          in: query
+          description: 应用ID（可以是多智能体ID，也可以是工作流ID）
+          required: true
+          type: string
+          minLength: 1
+          maxLength: 64
+      responses:
+        '200':
+          description: 清空结果
+          schema:
+            $ref: '#/definitions/ClearLongTermMemoriesResponseBody'
+definitions:
+  ClearLongTermMemoriesResponseBody:
+    type: object
+    properties:
+      result:
+        type: boolean
+        description: 是否清除成功

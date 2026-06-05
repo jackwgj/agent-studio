@@ -1,0 +1,22 @@
+<div class="flex flex-col gap-[8px]">
+  <p class="node-title">{{ node.name }}</p>
+
+  @if (showVisionModelTip) {
+    <nz-alert class="!w-[100%]" nzType="warning" [nzMessage]="'llm_migrate_vision_tip' | i18nextEager"></nz-alert>
+  }
+
+  <migrate-compare-row>
+    <div left>
+      <div class="left-compare-card h-[28px]">
+        <span>{{ oldModelName || '--' }}</span>
+      </div>
+    </div>
+
+    <div right>
+      <llm-select
+        [selectedModel]="selected"
+        [modelValidation]="modelValidation" (update)="updateModel($event)">
+      </llm-select>
+    </div>
+  </migrate-compare-row>
+</div>

@@ -1,0 +1,20 @@
+<div class="ant-modal-header">
+  <div class="ant-modal-title">{{'changeName'|i18nextEager}}</div>
+</div>
+<div class="ant-modal-body">
+  <div class="flex flex-col gap-2">
+    <input
+      nz-input
+      class="w-full"
+      [placeholder]="'input_placeholder' | i18nextEager"
+      [maxLength]="64"
+      [(ngModel)]="name"
+    />
+  </div>
+</div>
+<div class="ant-modal-footer">
+  <button type="button" (click)="dismiss()" nz-button>{{ 'cancel' | i18nextEager }}</button>
+  <button type="button" (click)="confirmValue($event)" nz-button nzType="primary">
+    {{ 'button_confirm' | i18nextEager }}
+  </button>
+</div>

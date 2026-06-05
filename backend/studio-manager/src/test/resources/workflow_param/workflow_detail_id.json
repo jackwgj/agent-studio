@@ -1,0 +1,572 @@
+{
+  "nodes": [
+    {
+      "id": "node_start",
+      "type": "Start",
+      "name": "开始",
+      "outputs": [
+        {
+          "name": "query",
+          "type": "string",
+          "description": "用户输入",
+          "required": true,
+          "source": "system",
+          "field_type": "input",
+          "reflection": false,
+          "value": {
+            "type": "literal",
+            "content": "",
+            "hint": "用户输入"
+          }
+        },
+        {
+          "name": "sys",
+          "type": "object",
+          "description": "系统变量",
+          "required": true,
+          "source": "system",
+          "schema": [
+            {
+              "name": "conversation_history",
+              "type": "array",
+              "description": "会话历史消息",
+              "required": true,
+              "source": "system",
+              "value": {
+                "content": [
+
+                ],
+                "hint": "会话历史消息",
+                "type": "literal"
+              },
+              "schema": {
+                "name": "",
+                "type": "object",
+                "schema": [
+                  {
+                    "name": "role",
+                    "type": "string",
+                    "description": "角色",
+                    "required": true,
+                    "source": "system",
+                    "value": {
+                      "type": "literal",
+                      "content": "",
+                      "hint": "角色"
+                    }
+                  },
+                  {
+                    "name": "content",
+                    "type": "string",
+                    "description": "消息内容",
+                    "required": true,
+                    "source": "system",
+                    "value": {
+                      "type": "literal",
+                      "content": "",
+                      "hint": "消息内容"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "name": "current_time",
+              "type": "string",
+              "required": true,
+              "description": "当前系统时间",
+              "field_type": "input",
+              "source": "system",
+              "value": {
+                "type": "literal",
+                "content": "",
+                "hint": "当前系统时间"
+              }
+            },
+            {
+              "name": "user_id",
+              "type": "string",
+              "required": true,
+              "description": "使用该工作流的唯一标识",
+              "field_type": "input",
+              "source": "system",
+              "value": {
+                "type": "literal",
+                "content": "",
+                "hint": "用户唯一标识"
+              }
+            },
+            {
+              "name": "conversation_id",
+              "type": "string",
+              "required": true,
+              "description": "工作流对话id",
+              "field_type": "input",
+              "source": "system",
+              "value": {
+                "type": "literal",
+                "content": "",
+                "hint": "工作流对话id"
+              }
+            }
+          ],
+          "field_type": "object",
+          "reflection": false,
+          "value": {
+            "type": "literal",
+            "content": {
+
+            },
+            "hint": "系统变量"
+          }
+        }
+      ]
+    },
+    {
+      "id": "node_end",
+      "type": "End",
+      "name": "结束",
+      "inputs": [
+        {
+          "name": "result1",
+          "type": "string",
+          "description": "最终输出",
+          "required": false,
+          "source": "user",
+          "reflection": false,
+          "value": {
+            "type": "ref",
+            "content": {
+              "ref_node_id": "node_start",
+              "ref_var_name": "sys.conversation_history[0].content",
+              "source": "system"
+            }
+          }
+        },
+        {
+          "name": "result2",
+          "type": "string",
+          "description": "",
+          "required": true,
+          "source": "user",
+          "reflection": false,
+          "value": {
+            "type": "ref",
+            "content": {
+              "ref_node_id": "node_start",
+              "ref_var_name": "sys.conversation_history[0].role",
+              "source": "system"
+            },
+            "hint": ""
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "response_content",
+          "type": "string",
+          "description": "最终输出",
+          "required": true,
+          "source": "system",
+          "reflection": false,
+          "value": {
+            "type": "generated"
+          }
+        }
+      ],
+      "configs": {
+        "is_stream_out": true,
+        "response_template": "{{result1}}但是发射点犯得上房贷首付{{result2}}",
+        "response_mode": "directResponse"
+      }
+    },
+    {
+      "id": "node_1757947349027",
+      "type": "LLM",
+      "name": "大模型",
+      "inputs": [
+        {
+          "name": "query",
+          "type": "string",
+          "description": "",
+          "required": false,
+          "source": "user",
+          "reflection": false,
+          "value": {
+            "type": "literal",
+            "content": "222",
+            "hint": ""
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "raw_output",
+          "type": "object",
+          "description": "模型原始输出",
+          "required": false,
+          "source": "user",
+          "schema": [
+            {
+              "name": "test1",
+              "type": "string",
+              "description": "微软",
+              "required": true,
+              "source": "user",
+              "value": {
+                "type": "generated",
+                "hint": "",
+                "default": ""
+              }
+            },
+            {
+              "name": "test2",
+              "type": "string",
+              "description": "234234",
+              "required": true,
+              "source": "user",
+              "value": {
+                "type": "generated",
+                "hint": "",
+                "default": ""
+              }
+            }
+          ],
+          "reflection": false,
+          "value": {
+            "type": "literal",
+            "content": "",
+            "hint": ""
+          }
+        }
+      ],
+      "configs": {
+        "history_size": 3,
+        "max_tokens": 2048,
+        "template_content": "{{query}}",
+        "system_prompt": "",
+        "enable_history": false,
+        "top_p": 0.5,
+        "format_instruction": "",
+        "vision": [
+
+        ],
+        "response_format": "json",
+        "frequency_penalty": 0,
+        "stream": true,
+        "temperature": 0.5,
+        "model": {
+          "model_id": "c6b2dbea-ed82-4c93-93c7-55894ec7f4e4",
+          "model_name": "啊实打实的",
+          "model_type": "LLM",
+          "model_deployment_id": "c6b2dbea-ed82-4c93-93c7-55894ec7f4e4"
+        }
+      }
+    },
+    {
+      "id": "node_1757991195906",
+      "type": "ComplexIntentDetection",
+      "name": "高级意图识别",
+      "inputs": [
+        {
+          "name": "input",
+          "description": "",
+          "required": false,
+          "type": "string",
+          "value": {
+            "type": "literal",
+            "content": "aaa",
+            "hint": ""
+          },
+          "source": "system"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "classification_id",
+          "description": "intentDetection.outputs_id_description",
+          "type": "integer",
+          "required": true,
+          "value": {
+            "type": "generated",
+            "content": null,
+            "hint": ""
+          },
+          "source": "system"
+        },
+        {
+          "name": "name",
+          "description": "intentDetection.outputs_name_description",
+          "type": "string",
+          "required": true,
+          "value": {
+            "type": "generated",
+            "content": null,
+            "hint": ""
+          },
+          "source": "system"
+        },
+        {
+          "name": "result",
+          "description": "输出的分类分支名",
+          "required": false,
+          "type": "string",
+          "value": {
+            "type": "generated",
+            "content": "",
+            "hint": ""
+          },
+          "source": "system"
+        },
+        {
+          "name": "reason",
+          "type": "string",
+          "required": true,
+          "source": "system",
+          "value": {
+            "type": "generated",
+            "content": null,
+            "hint": ""
+          }
+        }
+      ],
+      "configs": {
+        "prompt": "",
+        "llm": {
+          "temperature": 0.5,
+          "top_p": 0.5,
+          "max_tokens": 2048,
+          "model": {
+            "model_name": "deepseek-r1-250528",
+            "model_type": "LLM",
+            "model_deployment_id": "182"
+          }
+        },
+        "chat_history_max_turn": 0,
+        "intent": {
+          "id": "337bdbd0-6898-4d68-a738-8bf4720adfe1",
+          "name": "telebirr Intent management",
+          "branches_cnt": 99
+        }
+      },
+      "branches": [
+
+      ]
+    },
+    {
+      "id": "node_1758022395313",
+      "type": "KnowledgeRepo",
+      "name": "知识检索",
+      "inputs": [
+        {
+          "name": "query",
+          "type": "string",
+          "description": "检索query",
+          "required": true,
+          "source": "user",
+          "value": {
+            "type": "literal",
+            "content": "aaa",
+            "hint": ""
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output_list",
+          "type": "array",
+          "description": "查询结果列表",
+          "required": true,
+          "source": "user",
+          "schema": {
+            "name": "",
+            "type": "object",
+            "schema": [
+              {
+                "name": "document_name",
+                "required": true,
+                "description": "文件名",
+                "type": "string",
+                "value": {
+                  "type": "generated",
+                  "hint": "",
+                  "default": "",
+                  "content": ""
+                },
+                "source": "user"
+              },
+              {
+                "name": "subtitle",
+                "required": true,
+                "description": "子标题，文档段落信息",
+                "type": "string",
+                "value": {
+                  "type": "generated",
+                  "hint": "",
+                  "default": "",
+                  "content": ""
+                },
+                "source": "user"
+              },
+              {
+                "name": "content",
+                "required": true,
+                "description": "检索内容",
+                "type": "string",
+                "value": {
+                  "type": "generated",
+                  "hint": "",
+                  "default": "",
+                  "content": ""
+                },
+                "source": "user"
+              },
+              {
+                "name": "score",
+                "required": true,
+                "description": "匹配度得分",
+                "type": "number",
+                "value": {
+                  "type": "generated",
+                  "hint": "",
+                  "default": "",
+                  "content": ""
+                },
+                "source": "user"
+              }
+            ]
+          },
+          "reflection": false,
+          "value": {
+            "default": "",
+            "type": "generated",
+            "hint": "",
+            "content": ""
+          }
+        }
+      ],
+      "configs": {
+        "repos": [
+          {
+            "id": "17211eaea4e0487481316443c7757d17",
+            "name": "行星科普知识库",
+            "tags": [
+
+            ]
+          },
+          {
+            "id": "86bdf3e464214117a42c045cdef120a0",
+            "name": "人才政策知识库",
+            "tags": [
+
+            ]
+          },
+          {
+            "id": "292a99186dbc49d09b741be253e5607f",
+            "name": "测试创建rag_kv01_勿动_general切片",
+            "description": "这是ragflow的知识库哟哟哟哟",
+            "tags": [
+
+            ]
+          },
+          {
+            "id": "292a99186dbc49d09b741be253e5607f1",
+            "name": "测试创建rag_kv01_勿动_general切片",
+            "description": "这是ragflow的知识库哟哟哟哟",
+            "tags": [
+
+            ]
+          }
+        ],
+        "top_k": 3,
+        "recall_threshold": 0.5,
+        "search_mode": "doc",
+        "faq_threshold": 0.9
+      }
+    },
+    {
+      "id": "node_1758507226580",
+      "type": "Workflow",
+      "name": "子工作流三层三层子工作流三层三层子工作流三层三层子工作流三层三层子工作流三层三层子工作流三层三层子工作流三层三层子工作流三层三层a",
+      "inputs": [
+        {
+          "name": "query",
+          "type": "string",
+          "description": "用户输入",
+          "required": true,
+          "source": "system",
+          "field_type": "input",
+          "reflection": false,
+          "value": {
+            "type": "literal",
+            "content": "",
+            "hint": ""
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "response_content",
+          "type": "string",
+          "description": "最终输出",
+          "required": true,
+          "source": "system",
+          "reflection": false,
+          "value": {
+            "type": "generated"
+          }
+        }
+      ],
+      "configs": {
+        "original_info": {
+          "name": "子工作流三层",
+          "name_en": "threetyuh",
+          "description": "1"
+        },
+        "version_name": "v20250915184610",
+        "plugins": [
+
+        ],
+        "name": "子工作流三层",
+        "id": "0004e523-fad6-482d-a429-493fe10a88b9",
+        "version_id": "1757933171424",
+        "type": "chat",
+        "valid": true
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "80bd5444-164f-42fd-95ad-2a614232e99b",
+      "source": "node_start",
+      "target": "node_llm"
+    },
+    {
+      "id": "697258f3-6f4c-465b-b8c5-e8f5103fe410",
+      "source": "node_llm",
+      "target": "node_end"
+    }
+  ],
+  "layouts": {
+    "node_llm": {
+      "x": 620,
+      "y": 300
+    },
+    "node_end": {
+      "x": 1050,
+      "y": 300
+    },
+    "node_start": {
+      "x": 190,
+      "y": 300
+    }
+  },
+  "configs": {
+    "default_model_switch": false,
+    "voice_interaction": {
+      "language": "chinese",
+      "timbre": "huaxiaohe",
+      "domain": "common"
+    }
+  }
+}

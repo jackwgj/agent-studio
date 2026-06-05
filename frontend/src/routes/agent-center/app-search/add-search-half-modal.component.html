@@ -1,0 +1,71 @@
+<div class="search-header">
+  <div class="search-title">{{ 'add_search_engine' | i18nextEager }}</div>
+  <div class="search-description">{{ 'add_search_engine_tip' | i18nextEager }}</div>
+</div>
+
+<div class="search-body">
+  @for (item of searchList; track item.plugin_id; let i = $index) {
+    <div class="search-card" (click)="handleClickAddSearchCard(item)">
+      <div class="content gap-[10px]">
+        <div class="overflow-hidden flex-left gap-[10px]">
+          <img  [src]="item.icon" alt="" class="w-[40px] h-[40px] rounded-[6px]">
+          <div class="overflow-hidden flex flex-col gap-[10px]">
+            <p class="title-text">{{ isZH() ? item.plugin_chinese_name : item.plugin_display_name }}</p>
+            <p class="desc">{{ item.plugin_desc }}</p>
+          </div>
+        </div>
+        <div class="open" nz-wave>
+          <span>{{ 'open' | i18nextEager }}</span>
+          <nz-icon [nzType]="'right'" [nzTheme]="'outline'" *ngIf="!item.openPayment"></nz-icon>
+          <nz-icon [nzType]="'down'" [nzTheme]="'outline'" *ngIf="item.openPayment"></nz-icon>
+        </div>
+        <button nz-button nzType="default" nzSize="small" *ngIf="!item.isNeedAuth && !item.isAdded" class="add">
+          <nz-icon [nzType]="'plus'" [nzTheme]="'outline'"></nz-icon>
+        </button>
+        <button nz-button nzType="primary" nzSize="small" *ngIf="!item.isNeedAuth && item.isAdded" class="reduce">
+          <nz-icon [nzType]="'minus'" [nzTheme]="'outline'"></nz-icon>
+        </button>
+      </div>
+      @if (item.openPayment && item.isNeedAuth) {
+        <div class="auth">
+          <p class="key">
+            <span>API KEY</span>
+            <nz-icon [nzType]="'question-circle'" [nzTheme]="'outline'" style="font-size: 16px"></nz-icon>
+          </p>
+          <input
+            class="w-full"
+            type="password"
+            nz-input
+            [placeholder]="'input_password_login' | i18nextEager"
+            [(ngModel)]="item.API_KEY"
+          />
+          <div class="search-button">
+            <span class="metadata">
+              {{ 'how_to_get' | i18nextEager }}
+              <img  [src]="changeUrl('assets/images/how_to_get.svg')" alt="">
+            </span>
+            <button nz-button nzSize="small" (click)="handleClickCardBtn($event, item, 'cancel')">
+              {{ 'to_cancel' | i18nextEager }}
+            </button>
+            <button nz-button nzType="primary" nzSize="small" [disabled]="item.API_KEY === ''"
+                    (click)="handleClickCardBtn($event, item, 'save')"
+            >
+              {{ 'save' | i18nextEager }}
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>
+
+<div class="search-footer">
+  <div class="search-button">
+    <button nz-button nzSize="large" (click)="dismiss()">
+      {{ 'to_cancel' | i18nextEager }}
+    </button>
+    <button nz-button nzType="primary" nzSize="large" (click)="close()">
+      {{ 'save' | i18nextEager }}
+    </button>
+  </div>
+</div>

@@ -1,0 +1,16 @@
+{
+  "input_variables": [
+    {
+      "variable_key": "职业",
+      "default_value": "程序员1",
+      "description": "用户职业信息1",
+      "input_type": "string"
+    },
+    {
+      "variable_key": "职业",
+      "default_value": "程序员2",
+      "description": "用户职业信息2",
+      "input_type": "string"
+    }
+  ]
+}

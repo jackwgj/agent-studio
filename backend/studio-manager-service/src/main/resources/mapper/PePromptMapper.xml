@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.prompt.engineering.mapper.PePromptMapper">
+
+    <resultMap id="BaseResultMap" type="com.openjiuwen.studio.prompt.engineering.entity.PePrompt">
+            <id property="id" column="id" jdbcType="VARCHAR"/>
+            <result property="name" column="name" jdbcType="VARCHAR"/>
+            <result property="model" column="model" jdbcType="VARCHAR"/>
+            <result property="modelConfig" column="model_config" jdbcType="OTHER"
+            typeHandler="com.openjiuwen.studio.prompt.engineering.mapper.handler.ModelConfigHandler"/>
+            <result property="taskId" column="task_id" jdbcType="VARCHAR"/>
+            <result property="source" column="source" jdbcType="VARCHAR"/>
+            <result property="type" column="type" jdbcType="TINYINT"/>
+            <result property="question" column="question" jdbcType="VARCHAR"/>
+            <result property="answer" column="answer" jdbcType="VARCHAR"/>
+            <result property="variables" column="variables" jdbcType="OTHER"/>
+            <result property="manualScore" column="manual_score" jdbcType="DOUBLE"/>
+            <result property="creator" column="creator" jdbcType="VARCHAR"/>
+            <result property="updater" column="updater" jdbcType="VARCHAR"/>
+            <result property="createdOn" column="created_on" jdbcType="TIMESTAMP"/>
+            <result property="updatedOn" column="updated_on" jdbcType="TIMESTAMP"/>
+            <result property="workspaceId" column="workspace_id" jdbcType="VARCHAR"/>
+            <result property="fileId" column="file_id" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,name,model,
+        model_config,task_id,source,
+        type,question,answer,
+        variables,manual_score,creator,
+        updater,created_on,updated_on
+    </sql>
+
+    <insert id="savePrompt">
+        INSERT INTO `t_pe_prompt`
+        (id, name, model, model_config, task_id, source, type, question, answer, variables, manual_score, creator,
+         updater, workspace_id, file_id)
+        VALUES (#{id},
+                #{name},
+                #{model},
+                #{modelConfig,
+                typeHandler=com.openjiuwen.studio.prompt.engineering.mapper.handler.ModelConfigHandler},
+                #{taskId},
+                #{source},
+                #{type},
+                #{question},
+                #{answer},
+                #{variables},
+                #{manualScore},
+                #{creator},
+                #{updater},
+                #{workspaceId},
+                #{fileId});
+    </insert>
+    <update id="updatePrompt">
+        update t_pe_prompt t
+        set t.name         = #{name},
+            t.model        = #{model},
+            t.model_config = #{modelConfig,
+            typeHandler=com.openjiuwen.studio.prompt.engineering.mapper.handler.ModelConfigHandler},
+            t.type         = #{type},
+            t.question     = #{question},
+            t.answer       = #{answer},
+            t.variables    = #{variables},
+            t.manual_score = #{manualScore},
+            t.updater      = #{updater},
+            t.file_id      = #{fileId}
+        where t.id = #{id} and t.workspace_id = #{workspaceId}
+    </update>
+    <update id="updateSmallPrompt">
+        update t_pe_prompt
+        <set>
+            <if test="smallPrompt.manualScore != null and smallPrompt.manualScore != ''">
+                manual_score = #{smallPrompt.manualScore},
+            </if>
+            <if test="smallPrompt.name != null and smallPrompt.name != ''">
+                name = #{smallPrompt.name},
+            </if>
+            updated_on = CURRENT_TIMESTAMP
+        </set>
+        where id = #{smallPrompt.id} and workspace_id = #{workspaceId}
+    </update>
+
+    <delete id="deleteRecordsByTaskId">
+        DELETE
+        FROM t_pe_prompt
+        WHERE task_id = #{taskId} and workspace_id = #{workspaceId}
+          and type = 0
+          and id NOT IN (SELECT id
+                         FROM (SELECT id
+                               FROM t_pe_prompt
+                               WHERE task_id = #{taskId}
+                                 and type = 0
+                               ORDER BY created_on DESC LIMIT 99) AS latest_data);
+    </delete>
+
+    <delete id="deleteByPromptId">
+        delete from t_pe_prompt where id = #{promptId} AND workspace_id = #{workspaceId}
+    </delete>
+
+    <delete id="deleteByTaskId">
+        delete from t_pe_prompt where task_id = #{taskId} AND workspace_id = #{workspaceId}
+    </delete>
+
+    <select id="queryVariablesByTaskId" resultType="java.lang.String">
+        SELECT `variables` from t_pe_prompt where task_id = #{taskId} and type = 1 AND workspace_id = #{workspaceId}
+    </select>
+
+    <select id="queryByPromptId" resultMap="BaseResultMap">
+        select *
+        from t_pe_prompt
+        where id = #{promptId} AND workspace_id = #{workspaceId}
+    </select>
+
+    <select id="queryByCondition" resultMap="BaseResultMap">
+        select *
+        from t_pe_prompt
+        where task_id = #{body.taskId} AND workspace_id = #{workspaceId}
+        <if test="body.content != null and body.content != ''">
+            <bind name="contentKeyWordPattern" value="'%' + body.content + '%'"/>
+            and question like #{contentKeyWordPattern}
+        </if>
+        <if test="body.name != null and body.name != ''">
+            <bind name="nameKeyWordPattern" value="'%' + body.name + '%'"/>
+            and name like #{nameKeyWordPattern}
+        </if>
+        <if test="body.type != null">
+            and type = #{body.type}
+        </if>
+        <if test="body.isGoodRating">
+            order by manual_score desc
+        </if>
+        <if test="!body.isGoodRating">
+            order by created_on desc
+        </if>
+    </select>
+
+    <select id="countCandidateTemplateByTaskId" resultType="java.lang.Integer">
+        select count(1) from t_pe_prompt where task_id = #{taskId} and type = 1 AND workspace_id = #{workspaceId}
+    </select>
+
+    <select id="queryPromptsByIds" resultMap="BaseResultMap">
+        SELECT *
+        FROM t_pe_prompt
+        WHERE workspace_id = #{workspaceId}
+        <if test="promptIds != null and !promptIds.isEmpty()">
+            AND id IN
+            <foreach collection='promptIds' item='id' open='(' separator=',' close=')'>
+                #{id}
+            </foreach>
+        </if>
+        ORDER BY
+        updated_on DESC
+    </select>
+
+    <select id="isPromptIdExist" resultType="java.lang.Boolean">
+        SELECT 1
+        FROM t_pe_prompt
+        WHERE id = #{promptId}
+          AND task_id = #{taskId} AND workspace_id = #{workspaceId} LIMIT 1
+    </select>
+    <select id="isNameExist" resultType="java.lang.Boolean">
+        SELECT 1
+        FROM t_pe_prompt
+        WHERE name = #{name}
+        AND task_id = #{taskId} AND workspace_id = #{workspaceId}
+        <if test="id !=null and id !=''">
+            AND id != #{id}
+        </if>
+        LIMIT 1
+    </select>
+
+    <select id="checkDuplicateName" resultType="java.lang.Integer">
+        SELECT COUNT(1)
+        FROM t_pe_prompt
+        WHERE name = #{name}
+          AND workspace_id = #{workspaceId}
+          AND task_id = (
+            SELECT task_id
+            FROM t_pe_prompt
+            WHERE id = #{id}
+              AND workspace_id = #{workspaceId}
+        )
+    </select>
+</mapper>

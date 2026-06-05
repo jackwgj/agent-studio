@@ -1,0 +1,15 @@
+<svg viewBox="0 0 42 42" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="42" height="42" fill="none" customFrame="url(#clipPath_5)">
+	<defs>
+		<clipPath id="clipPath_5">
+			<rect width="41.9999962" height="42" x="0" y="0" rx="8.02247047" fill="rgb(255,255,255)" />
+		</clipPath>
+		<linearGradient id="paint_linear_11" x1="21.0000343" x2="21.0000343" y1="8.85693359" y2="33.1430893" gradientUnits="userSpaceOnUse">
+			<stop stop-color="rgb(0,231,255)" offset="0.497890294" stop-opacity="1" />
+			<stop stop-color="rgb(255,0,158)" offset="0.502109706" stop-opacity="1" />
+		</linearGradient>
+	</defs>
+	<rect id="组合 4425" width="41.9999962" height="42" x="0" y="0" rx="8.02247047" fill="rgb(246,246,246)" />
+	<g id="编组">
+		<path id="矢量 115" d="M10.6296 33.1431L10.6296 8.85693L19.5055 8.85693C23.4494 8.85693 26.4053 9.95292 28.4478 12.1283C30.3824 14.1625 31.3704 17.1267 31.3704 21.0042C31.3704 24.8484 30.3824 27.8043 28.4478 29.88C26.4053 32.0554 23.4494 33.1431 19.5055 33.1431L10.6296 33.1431ZM18.7582 12.2611L14.6068 12.2611L14.6068 29.7389L18.7582 29.7389C21.7805 29.7389 23.9891 29.0248 25.384 27.6299C26.7457 26.2018 27.4265 23.9932 27.4265 21.0042C27.4265 17.9404 26.7457 15.6986 25.384 14.3369C23.9891 12.942 21.7805 12.2611 18.7582 12.2611Z" fill="url(#paint_linear_11)" fill-rule="evenodd" />
+	</g>
+</svg>

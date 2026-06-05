@@ -1,0 +1,18 @@
+{
+  "workspaces": [{
+    "id": "01b35ab3-dd62-4455-9ff9-8c587518616c",
+    "name": "test1029",
+    "description": "dddd",
+    "project_id": "0ba805c3edf64df48732c5bf47c40e70",
+    "domain_id": "f7d716ba5f5d474f8480efb926fabd1b",
+    "source": "0",
+    "workspace_owner": "c1764f03893744fe96648ae747198cbe",
+    "create_user": "lizhe",
+    "update_user": "lizhe",
+    "create_time": "2024-10-29T09:55:55.899583+08:00",
+    "update_time": "2024-10-29T16:40:06.836025+08:00",
+    "status": "0",
+    "extend_properties": "{\"obs\":{\"bucket_name\":\"data0926\",\"ak\":\"data0926_1029\",\"sk\":\"******\"}}"
+  }],
+  "count": 1
+}

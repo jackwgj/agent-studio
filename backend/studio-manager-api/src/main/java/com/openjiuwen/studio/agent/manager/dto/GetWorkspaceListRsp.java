@@ -1,0 +1,94 @@
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
+ */
+
+package com.openjiuwen.studio.agent.manager.dto;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import io.swagger.annotations.ApiModel;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Size;
+
+import org.springframework.validation.annotation.Validated;
+
+import java.io.Serializable;
+import java.util.List;
+import java.util.Objects;
+
+/**
+ * 获取团队空间列表。
+ */
+@ApiModel(description = "获取团队空间列表。")
+
+@Validated
+
+public class GetWorkspaceListRsp implements Serializable {
+    private static final long serialVersionUID = 1L;
+
+    @JsonProperty("count")
+    private Integer count = null;
+
+    @JsonProperty("workspaceList")
+    @Valid
+    @Size()
+    private List<WorkspaceInfo> workspaceList = null;
+
+    public Integer getCount() {
+        return count;
+    }
+
+    public GetWorkspaceListRsp setCount(Integer count) {
+        this.count = count;
+        return this;
+    }
+
+    public List<WorkspaceInfo> getWorkspaceList() {
+        return workspaceList;
+    }
+
+    public GetWorkspaceListRsp setWorkspaceList(List<WorkspaceInfo> workspaceList) {
+        this.workspaceList = workspaceList;
+        return this;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("class GetWorkspaceListRsp {\n");
+
+        sb.append("    count: ").append(toIndentedString(count)).append("\n");
+        sb.append("    workspaceList: ").append(toIndentedString(workspaceList)).append("\n");
+        sb.append("}");
+        return sb.toString();
+    }
+
+    @Override
+    public boolean equals(java.lang.Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        GetWorkspaceListRsp getWorkspaceListRsp = (GetWorkspaceListRsp) o;
+        return Objects.equals(this.count, getWorkspaceListRsp.count) && Objects.equals(this.workspaceList,
+            getWorkspaceListRsp.workspaceList);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(count, workspaceList);
+    }
+
+    /**
+     * Convert the given object to string with each line indented by 4 spaces
+     * (except the first line).
+     */
+    private String toIndentedString(java.lang.Object o) {
+        if (o == null) {
+            return "null";
+        }
+        return o.toString().replace("\n", "\n    ");
+    }
+}

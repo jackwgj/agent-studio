@@ -1,0 +1,249 @@
+{
+  "id" : "9491b6edf26532ez99cc2ec7ab73cfab",
+  "name" : "test2",
+  "description" : "1",
+  "nodes" : [{
+    "id" : "node_start",
+    "name" : "开始",
+    "type" : "Start",
+    "outputs" : [{
+      "name" : "query",
+      "type" : "string",
+      "description" : "用户输入",
+      "required" : true,
+      "source" : "system",
+      "field_type" : "input",
+      "reflection" : false,
+      "value" : {
+        "type" : "literal",
+        "content" : "",
+        "hint" : "用户输入"
+      }
+    }, {
+      "name" : "sys",
+      "type" : "object",
+      "description" : "系统变量",
+      "required" : true,
+      "source" : "system",
+      "schema" : [{
+        "name" : "conversation_history",
+        "type" : "array",
+        "description" : "会话历史消息",
+        "required" : true,
+        "source" : "system",
+        "value" : {
+          "content" : [],
+          "hint" : "会话历史消息",
+          "type" : "literal"
+        },
+        "schema" : {
+          "name" : "",
+          "type" : "object",
+          "schema" : [{
+            "name" : "role",
+            "type" : "string",
+            "description" : "角色",
+            "required" : true,
+            "source" : "system",
+            "value" : {
+              "type" : "literal",
+              "content" : "",
+              "hint" : "角色"
+            }
+          }, {
+            "name" : "content",
+            "type" : "string",
+            "description" : "消息内容",
+            "required" : true,
+            "source" : "system",
+            "value" : {
+              "type" : "literal",
+              "content" : "",
+              "hint" : "消息内容"
+            }
+          }
+          ]
+        }
+      }, {
+        "name" : "current_time",
+        "type" : "string",
+        "required" : true,
+        "description" : "当前系统时间",
+        "field_type" : "input",
+        "source" : "system",
+        "value" : {
+          "type" : "literal",
+          "content" : "",
+          "hint" : "当前系统时间"
+        }
+      }, {
+        "name" : "user_id",
+        "type" : "string",
+        "required" : true,
+        "description" : "使用该工作流的唯一标识",
+        "field_type" : "input",
+        "source" : "system",
+        "value" : {
+          "type" : "literal",
+          "content" : "",
+          "hint" : "用户唯一标识"
+        }
+      }, {
+        "name" : "conversation_id",
+        "type" : "string",
+        "required" : true,
+        "description" : "工作流对话id",
+        "field_type" : "input",
+        "source" : "system",
+        "value" : {
+          "type" : "literal",
+          "content" : "",
+          "hint" : "工作流对话id"
+        }
+      }
+      ],
+      "field_type" : "object",
+      "reflection" : false,
+      "value" : {
+        "type" : "literal",
+        "content" : {},
+        "hint" : "系统变量"
+      }
+    }
+    ]
+  }, {
+    "id" : "node_llm",
+    "name" : "大模型",
+    "type" : "LLM",
+    "inputs" : [{
+      "name" : "query",
+      "type" : "string",
+      "description" : "用户输入",
+      "required" : false,
+      "source" : "user",
+      "reflection" : false,
+      "value" : {
+        "type" : "ref",
+        "content" : {
+          "ref_node_id" : "node_start",
+          "ref_var_name" : "query",
+          "source" : "system"
+        }
+      }
+    }
+    ],
+    "outputs" : [{
+      "name" : "raw_output",
+      "type" : "string",
+      "description" : "该节点原始输出",
+      "required" : false,
+      "source" : "user",
+      "reflection" : false,
+      "value" : {
+        "type" : "generated"
+      }
+    }
+    ],
+    "configs" : {
+      "top_p" : 0.5,
+      "response_format" : "text",
+      "template_content" : "{{query}}",
+      "system_prompt" :"你是一个写作助手，能帮助用户完成金融实时分析文章的书写",
+      "temperature" : 0.5,
+      "history_size": 10,
+      "max_tokens":2049,
+      "model" : {
+        "model_name" : "agentBuilder",
+        "model_type" : "poc_agentBuilder_chat",
+        "model_deployment_id" : "9a5613f8-8f4c-4989-b41f-74f4d10ee044"
+      },
+      "enable_history" : false
+    }
+  }, {
+    "id" : "node_end",
+    "name" : "结束",
+    "type" : "End",
+    "inputs" : [{
+      "name" : "result",
+      "type" : "string",
+      "description" : "最终输出",
+      "required" : false,
+      "source" : "user",
+      "reflection" : false,
+      "value" : {
+        "type" : "ref",
+        "content" : {
+          "ref_node_id" : "node_llm",
+          "ref_var_name" : "raw_output",
+          "source" : "user"
+        }
+      }
+    }
+    ],
+    "outputs" : [{
+      "name" : "response_content",
+      "type" : "string",
+      "description" : "最终输出",
+      "required" : true,
+      "source" : "system",
+      "reflection" : false,
+      "value" : {
+        "type" : "generated"
+      }
+    }
+    ],
+    "configs" : {
+      "is_stream_out" : true,
+      "response_template" : "{{result}}",
+      "response_mode" : "directResponse"
+    }
+  }
+  ],
+  "edges" : [{
+    "source" : "node_start",
+    "target" : "node_llm"
+  }, {
+    "source" : "node_llm",
+    "target" : "node_end"
+  }
+  ],
+  "layouts" : {
+    "node_llm" : {
+      "x" : -486,
+      "y" : -594
+    },
+    "node_start" : {
+      "x" : -1494,
+      "y" : -306
+    },
+    "node_end" : {
+      "x" : 36,
+      "y" : -414
+    }
+  },
+  "configs" : {
+    "memory" : [{
+      "name" : "aaa",
+      "type" : "string",
+      "description" : "",
+      "required" : true,
+      "source" : "pre_defined",
+      "value" : {
+        "type" : "generated",
+        "hint" : "",
+        "default" : ""
+      },
+      "aging_level" : "session",
+      "storage_method" : "assignment"
+    }
+    ],
+    "default_model_switch" : false,
+    "default_model" : {
+      "model_deployment_id" : "f70bebc8-8411-4067-9169-4dca96671e0a",
+      "model_name" : "Pro/deepseek-ai/DeepSeek-V3",
+      "model_type" : "openai"
+    },
+    "prologue" : "",
+    "suggest_queries" : []
+  }
+}

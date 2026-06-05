@@ -1,0 +1,106 @@
+<div class="knowledge-segment-rule-wrapper">
+  <div
+    class="segment-rule-card"
+    *ngFor="let rule of segmentRuleList; let first = first"
+    [ngClass]="{ 'rule-selected': rule.id === value }"
+    (click)="handleRuleSelect(rule)"
+  >
+    <div class="rule-actions">
+      <span
+        *ngIf="!first"
+        nz-icon nzType="edit" nzTheme="outline"
+        class="cursor-pointer mr-2"
+        (click)="openRuleModal($event, rule)"
+      ></span>
+      <span
+        *ngIf="!first"
+        nz-icon nzType="delete" nzTheme="outline"
+        class="cursor-pointer"
+        (click)="deleteSegmentRule($event, rule)"
+      ></span>
+    </div>
+    <div class="h-full overflow-y-auto">
+      <div
+        *ngFor="let content of rule.rule_regexs"
+        class="rule-content max-w-[60px] overflow-hidden text-ellipsis whitespace-nowrap"
+        nz-tooltip
+        [nzTooltipTitle]="content"
+        nzTooltipPlacement="left"
+      >
+        {{ content }}
+      </div>
+    </div>
+  </div>
+  <div
+    class="custom-rule-card"
+    *ngIf="showAdd"
+    (click)="openRuleModal($event)"
+  >
+    <span nz-icon nzType="plus" nzTheme="outline" class="mr-1"></span>
+    <span>{{ 'custom' | i18nextEager }}</span>
+  </div>
+</div>
+
+<ng-template #ruleModalContent>
+  <form [formGroup]="form">
+    <div cdkDropList (cdkDropListDropped)="drop($event)">
+      <div
+        *ngFor="let control of rule_regexs; let i = index"
+        cdkDrag
+        class="mb-[8px] flex items-center gap-x-[12px]"
+      >
+        <span
+          nz-icon nzType="drag" nzTheme="outline"
+          cdkDragHandle
+          class="cursor-move select-none !text-[16px]"
+        ></span>
+        <input
+          class="w-[430px]"
+          type="text"
+          nz-input
+          [formControl]="control"
+          [name]="'item-' + i"
+          [placeholder]="'input_placeholder' | i18nextEager"
+        />
+        <button
+          type="button"
+          nz-button
+          nzType="text"
+          (click)="handleRuleDelete(i)"
+          class="!p-0"
+        >
+          <span nz-icon nzType="delete" nzTheme="outline"></span>
+        </button>
+      </div>
+    </div>
+  </form>
+  <div
+    *ngIf="rule_regexs.length < 10"
+    class="mb-[8px] flex items-center gap-x-[12px]"
+  >
+    <span
+      (click)="handleInputChange()"
+      class="text-[14px] !text-[#1476ff] hover:cursor-pointer flex items-center"
+    >
+      <span nz-icon nzType="plus" nzTheme="outline" class="mr-1"></span>
+      {{'add' | i18nextEager}}
+    </span>
+  </div>
+</ng-template>
+
+<ng-template #ruleModalFooter>
+  <button type="button" nz-button nzType="default" (click)="closeModal()">
+    {{ 'cancel' | i18nextEager }}
+  </button>
+  <button
+    type="button"
+    nz-button
+    nzType="primary"
+    nzDanger
+    (click)="handleRuleSave()"
+    [nzLoading]="saveLoading"
+    [disabled]="1 > rule_regexs.length"
+  >
+    {{ 'ok' | i18nextEager }}
+  </button>
+</ng-template>

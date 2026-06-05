@@ -1,0 +1,123 @@
+#model-test {
+  .top-title-area {
+    display: flex;
+    justify-content: space-between;
+    margin: 8px 0 24px 0;
+    .title-area-left {
+      display: flex;
+      color: rgba(25, 25, 25, 1);
+      font-size: 20px;
+      font-weight: 600;
+      margin-right: 8px;
+
+      .page-title {
+        margin-right: 6px;
+      }
+    }
+  }
+
+  .main-content {
+    width: 100%;
+
+    .main-left {
+      padding-right: 20px;
+      width: 400px;
+      height: 100%;
+      overflow-y: auto;
+      overflow-x: hidden;
+
+      &::-webkit-scrollbar {
+        width: 2px;
+        height: 4px;
+        background-color: transparent;
+      }
+
+      &::-webkit-scrollbar-thumb {
+        border-radius: 4px;
+        background-color: transparent;
+      }
+
+      &:hover::-webkit-scrollbar-thumb {
+        background-color: #cccccc;
+      }
+
+      &::-webkit-scrollbar-thumb:active {
+        background-color: red;
+      }
+
+      scrollbar-width: thin;
+      scrollbar-color: transparent transparent;
+
+      &:hover {
+        scrollbar-color: #cccccc transparent;
+      }
+
+      .item {
+        margin-bottom: 16px;
+        .reRank-add { font-size: 20px; }
+      }
+      .title {
+        display: flex;
+        margin-bottom: 8px;
+        color: #191919;
+        font-size: 14px;
+        font-weight: bold;
+      }
+      .serviceType-list {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: repeat(2, 1fr);
+
+        .serviceType-item {
+          width: 100%;
+          padding: 15px 12px;
+          background: #fafafa;
+          border-radius: 8px;
+          border: 1px solid transparent;
+          display: flex;
+          align-items: center;
+          cursor: pointer;
+          line-height: 20px;
+          font-weight: 600;
+          img { margin-right: 14px; width: 24px; height: 24px; }
+          &:hover{
+            background: #ffffff;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+          }
+        }
+        .serviceType-item-selected {
+          background: #ffffff;
+          border: 1px solid #1277fd;
+          box-shadow: 0 2px 12px 0 rgba(86, 72, 72, 0.08);
+        }
+
+      }
+      .config {
+        margin-bottom: 30px;
+        font-size: 14px;
+        .config-name {
+          font-size: 14px;
+          display: flex;
+        }
+        .config-con {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          .config-slider { flex: 1; margin: 10px 0; }
+          .config_input {
+            width: 78px;
+            /* nz-input-number自带高度和边框，这里仅限制宽度以保证样式协调 */
+          }
+        }
+      }
+    }
+
+    .main-right {
+      flex: 1;
+      box-sizing: border-box;
+      border: 1px solid rgba(240, 240, 240, 1);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+  }
+}

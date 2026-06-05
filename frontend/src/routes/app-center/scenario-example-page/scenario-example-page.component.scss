@@ -1,0 +1,223 @@
+#scenario-example-container {
+  position: relative;
+  height: 100%;
+  overflow-y: hidden;
+  background-size: cover;
+  display: flex;
+  flex-direction: column;
+}
+
+.scenario-header-container {
+  background-color: #fff !important;
+  padding: 12px 20px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  .title {
+    font-size: 14px;
+    color: #191919;
+    font-weight: 600;
+    line-height: 22px;
+  }
+}
+
+.loading-icon {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: rgba(0, 0, 0, 0.13);
+  z-index: 100;
+}
+
+.banner-area {
+  margin: 16px 24px 0 24px;
+}
+
+.pop-modal {
+  position: relative;
+}
+
+.left-form-area {
+  max-width: 580px;
+  height: 100%;
+  flex: 1;
+  background: #ffffff;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+
+  dynamic-node-params {
+    height: 100%;
+    display: block;
+  }
+  .op-btn-style {
+    margin:8px 24px 0 8px;
+  }
+}
+
+.middle-result-area {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 8px;
+  padding-bottom: 16px;
+
+  .top-area {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 20px 24px 0 24px;
+    position: relative;
+  }
+
+  .sub-title {
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 24px;
+  }
+
+  .right-opr-btns {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: relative;
+  }
+
+  .result-area {
+    flex: 1;
+    height: calc(100% - 60px);
+    width: 100%;
+    position: relative;
+    word-break: break-all;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .no-data-container {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .img-desc {
+    font-size: 16px;
+    line-height: 24px;
+    font-weight: 600;
+  }
+
+  .answer-container {
+    height: calc(100% - 40px);
+    width: 100%;
+    padding: 20px 24px;
+    box-sizing: border-box;
+    overflow: auto;
+  }
+}
+
+:host ::ng-deep {
+  .scene-creation-btn {
+    background-color: #0c93fe;
+    border-color: #0c93fe;
+  }
+
+  .scene-creation-btn[disabled]:not(.ti3-btn-noborder):hover {
+    background-color: #f0f0f0 !important;
+    border-color: #f0f0f0 !important;
+  }
+
+  .scene-creation-btn:hover {
+    background: #55b3fe !important;
+    border-color: #55b3fe !important;
+  }
+
+  // 替换公共md渲染子组件的样式，避免修改公共组件，影响其他模块
+  .published-task-md .markdown-container {
+    font-size: 12px;
+    line-height: 18px;
+    padding-left: 0px;
+    word-wrap: break-word;
+  }
+}
+
+.chat-alert-style {
+  width: 100%;
+}
+
+.stop-chat-container {
+  display: flex;
+  align-items: center;
+  background-color: #fff;
+  cursor: pointer;
+  gap: 8px;
+  align-self: center;
+  box-shadow: 0px 2px 9px 0px #0000001a;
+  padding: 10px;
+  border-radius: 20px;
+
+  .stop-chat-icon {
+    background-image: url('../../../assets/app-library/stop-chat-icon.svg');
+    display: block;
+    width: 20px;
+    height: 20px;
+  }
+
+  .stop-text {
+    color: #666;
+  }
+}
+
+.answer-cards {
+  width: 100%;
+  max-height: 40%;
+  flex-shrink: 0;
+  word-break: break-all;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background-color: #fafafa;
+  padding: 16px;
+  border-radius: 8px;
+
+  .deep-seek-area {
+    display: flex !important;
+    flex-direction: column;
+    gap: 8px;
+    height: calc(100% - 18px);
+    text-align: justify;
+  }
+
+  .deep-seek-text {
+    border-left: 1px solid #d8d8d8ff;
+    padding-left: 8px;
+    color: #808080;
+    max-height: 100%;
+    overflow-y: auto;
+    text-align: justify;
+  }
+
+  .unfolded {
+    color: #808080;
+    width: fit-content;
+    font-size: 16px;
+  }
+
+  .collapsed-icon {
+    transform: rotate(90deg);
+  }
+
+  .unfolded-icon {
+    transform: rotate(-90deg);
+  }
+}

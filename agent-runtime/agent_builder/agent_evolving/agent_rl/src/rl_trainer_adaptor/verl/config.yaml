@@ -1,0 +1,29 @@
+hydra:
+  searchpath:
+    - pkg://verl/trainer/config
+
+defaults:
+  - ppo_trainer
+  - _self_
+
+data:
+  filter_overlong_prompts: false
+
+actor_rollout_ref:
+  rollout:
+    mode: async
+    agent:
+      custom_async_server:
+        path: agent_builder/agent_evolving/agent_rl/src/rl_trainer_adaptor/verl/async_server.py
+        name: PatchedvLLMServer
+# configs related to ray
+ray_kwargs:
+
+  # configs related to ray initialization
+  ray_init:
+
+    # Number of CPUs for Ray. Use a fixed number instead of null when using SLURM.
+    num_cpus: null
+
+  # Path to save Ray timeline JSON for performance profiling
+  timeline_json_file: null

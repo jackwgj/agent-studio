@@ -1,0 +1,55 @@
+HELP.md
+target/
+**/target/**
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**
+!**/src/test/**
+
+### client project ignore
+src/main/java/**
+
+### server project ignore
+**/doc/rest-api.md
+studio-agent-manager/studio-agent-manager-base/src/main/**
+studio-agent-manager/studio-agent-manager-base/src/test/**
+studio-agent-runtime/studio-agent-runtime-base/src/test/**
+studio-prompt-engineering/studio-prompt-engineering-base/src/test/**
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+
+### VS Code ###
+.vscode/
+
+*.log
+
+/**/.flattened-pom.xml
+mybatis.xml
+env/
+
+.codemate
+/agent-runtime/open_lumina_engine.egg-info
+/agent-runtime/logs
+/agent-runtime/agent_builder/nl_to_agent/adapter/logs/*
+/agent-runtime/agent_builder/serve/logs/*
+*.mmap

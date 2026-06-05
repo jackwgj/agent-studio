@@ -1,0 +1,58 @@
+{
+  "schemaVersion": "0.6",
+  "type": "jiuwen.workflowComposite",
+  "version": "1.0.2",
+  "componentCatalog": "compositeComponent",
+  "classInfo": {},
+  "inputs": [
+    {
+      "id": "systemFields",
+      "type": "Map<String, T>",
+      "description": "系统输入参数"
+    },
+    {
+      "id": "userFields",
+      "type": "Map<String, T>",
+      "description": "用户输入参数"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "userFields",
+      "type": "Map<String, T>",
+      "description": "用户输入参数"
+    },
+    {
+      "id": "responseMode",
+      "type": "String",
+      "description": "回答模式，返回变量或者按设定内容返回"
+    },
+    {
+      "id": "responseContent",
+      "type": "String",
+      "description": "按设定内容返回"
+    }
+  ],
+  "configs": [
+    {
+      "id": "reference",
+      "type": "Map<String,T>",
+      "description": "引用的workflow信息"
+    },
+    {
+      "id": "systemFields",
+      "type": "Map<String, T>",
+      "description": "系统参数信息配置"
+    },
+    {
+      "id": "userFields",
+      "type": "Map<String, T>",
+      "description": "用户参数信息配置"
+    },
+    {
+      "id": "preDefinedFields",
+      "type": "Map<String, T>",
+      "description": "预定义参数信息配置"
+    }
+  ]
+}

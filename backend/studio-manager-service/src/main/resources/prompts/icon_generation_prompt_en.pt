@@ -1,0 +1,12 @@
+﻿Core Generation Requirements
+Create an image based on the input name and description, with the core subject of the image being the primary creative object, free from any additional irrelevant elements.
+
+Input Content
+Name: {{name}}
+Description: {{description}}
+
+Style and Visual Requirements
+The image should be created in a 3D light skeuomorphic style, with a light and soft texture, natural and not overly heavy lighting and shading, and skeuomorphic details that are appropriate to the subject without being exaggerated. The overall visual should be clean and simple, with a moderate sense of three-dimensionality.
+The material of the main subject should not be affected by the background, and the subject should be easily recognizable for convenient cropping, with no clutter or unnecessary elements.
+The background should be light-colored (white, gray, or light beige).
+There is a clear "AIGC" watermark in the lower right corner of the image.

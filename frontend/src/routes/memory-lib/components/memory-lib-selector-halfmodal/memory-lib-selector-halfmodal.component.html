@@ -1,0 +1,103 @@
+<!-- 头部：由于 nz-modal 结构不同，通常作为内部容器 -->
+<div class="nz-modal-custom-header">
+  {{ 'memory.selector.title' | i18nextEager }}
+</div>
+
+<div id="memory-lib-selector">
+  <!-- 提示框 -->
+  <nz-alert
+    nzType="info"
+    [nzMessage]="'memory.selector.tip.selectLimitation' | i18nextEager"
+    nzShowIcon
+    class="memory-lib-selector-limit-content"
+  ></nz-alert>
+
+  <!-- 操作区 -->
+  <div class="memory-lib-selector-operation-container">
+    <button
+      nz-button
+      nzType="primary"
+      [disabled]="memoryLibService.subscribeBtnDisabled()"
+      (click)="createMemoryLib()"
+    >
+      {{ 'memory.create.button' | i18nextEager }}
+    </button>
+  </div>
+
+  <!-- 搜索与刷新 -->
+  <div class="memory-lib-selector-filter-container">
+    <nz-input-group [nzSuffix]="suffixIconSearch" class="memory-lib-selector-search-box">
+      <input
+        type="text"
+        nz-input
+        [(ngModel)]="tempSearchValue"
+        (keyup.enter)="queryInSearch()"
+        [placeholder]="'memory.list.search.placeholder' | i18nextEager"
+      />
+    </nz-input-group>
+    <ng-template #suffixIconSearch>
+      <span nz-icon nzType="search"></span>
+    </ng-template>
+
+    <button nz-button nzType="default" (click)="queryData()">
+      <span nz-icon nzType="reload"></span>
+    </button>
+  </div>
+
+  <!-- 卡片列表与加载状态 -->
+  <div class="memory-lib-selector-card-container">
+    <nz-spin [nzSpinning]="isLoading()">
+      <div class="memory-lib-selector-card-content">
+        <memory-lib-card-display
+          [memoryLibs]="memoryLibs()"
+          [displayConfig]="cardDisplayConfig"
+          [selectedMemoryLibs]="existedMemoryLibs()"
+          (selectChange)="selectChange($event)"
+        ></memory-lib-card-display>
+      </div>
+
+      <!-- 无数据状态 -->
+      @if (!isLoading() && !memoryLibs().length) {
+        <div class="memory-lib-selector-no-data">
+          <div class="no-data-icon"></div>
+          <span class="no-data-title mt-[8px]">{{ 'memory.selector.tip.noData' | i18nextEager }}</span>
+          <span class="no-data-desc mt-[4px]">{{ 'memory.noData.text.createTip' | i18nextEager }}</span>
+          <button nz-button class="mt-[16px]" (click)="createMemoryLib()">{{ 'memory.create.button' | i18nextEager }}</button>
+        </div>
+      }
+    </nz-spin>
+
+    <!-- 分页 -->
+    @if (!isLoading()) {
+      <div class="pagination-wrapper">
+        <nz-pagination
+          [nzPageIndex]="currentPage()"
+          [nzTotal]="totalNumber()"
+          [nzPageSize]="pageSize().size"
+          nzSize="small"
+          (nzPageIndexChange)="onPageChange($event)"
+        ></nz-pagination>
+        <span class="ml-4 text-xs text-gray-500">已选: {{existedMemoryLibs().length}}</span>
+      </div>
+    }
+  </div>
+</div>
+
+<!-- 底部 -->
+<div class="nz-modal-custom-footer">
+  <button nz-button nzType="default" (click)="dismiss()">
+    {{ 'cancel' | i18nextEager }}
+  </button>
+  <button
+    class="ml-[8px]"
+    nz-button
+    nzType="primary"
+    nzDanger
+    [disabled]="!existedMemoryLibs().length || memoryLibService.subscribeBtnDisabled()"
+    nz-tooltip
+    [nzTooltipTitle]="existedMemoryLibs().length ? '' : ('memory.selector.tip.needMemorySelected' | i18nextEager)"
+    (click)="close()"
+  >
+    {{ 'ok' | i18nextEager }}
+  </button>
+</div>

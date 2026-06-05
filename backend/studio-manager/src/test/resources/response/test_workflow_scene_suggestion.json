@@ -1,0 +1,711 @@
+{
+  "id" : "fe4016a0-39a4-42a2-8547-5aa59d9369a0",
+  "name" : "test_suggest",
+  "description" : "test_suggest",
+  "nodes" : [{
+    "id" : "node_start",
+    "name" : "开始",
+    "type" : "Start",
+    "outputs" : [{
+      "name" : "query",
+      "type" : "string",
+      "description" : "用户输入",
+      "required" : true,
+      "source" : "system",
+      "field_type" : "input",
+      "reflection" : false,
+      "value" : {
+        "type" : "literal",
+        "content" : "",
+        "hint" : "用户输入"
+      }
+    }, {
+      "name" : "sys",
+      "type" : "object",
+      "description" : "系统变量",
+      "required" : true,
+      "source" : "system",
+      "schema" : [{
+        "name" : "conversation_history",
+        "type" : "array",
+        "description" : "会话历史消息",
+        "required" : true,
+        "source" : "system",
+        "value" : {
+          "content" : [],
+          "hint" : "会话历史消息",
+          "type" : "literal"
+        },
+        "schema" : {
+          "name" : "",
+          "type" : "object",
+          "schema" : [{
+            "name" : "role",
+            "type" : "string",
+            "description" : "角色",
+            "required" : true,
+            "source" : "system",
+            "value" : {
+              "type" : "literal",
+              "content" : "",
+              "hint" : "角色"
+            }
+          }, {
+            "name" : "content",
+            "type" : "string",
+            "description" : "消息内容",
+            "required" : true,
+            "source" : "system",
+            "value" : {
+              "type" : "literal",
+              "content" : "",
+              "hint" : "消息内容"
+            }
+          }
+          ]
+        }
+      }, {
+        "name" : "current_time",
+        "type" : "string",
+        "required" : true,
+        "description" : "当前系统时间",
+        "field_type" : "input",
+        "source" : "system",
+        "value" : {
+          "type" : "literal",
+          "content" : "",
+          "hint" : "当前系统时间"
+        }
+      }, {
+        "name" : "user_id",
+        "type" : "string",
+        "required" : true,
+        "description" : "使用该工作流的唯一标识",
+        "field_type" : "input",
+        "source" : "system",
+        "value" : {
+          "type" : "literal",
+          "content" : "",
+          "hint" : "用户唯一标识"
+        }
+      }, {
+        "name" : "conversation_id",
+        "type" : "string",
+        "required" : true,
+        "description" : "工作流对话id",
+        "field_type" : "input",
+        "source" : "system",
+        "value" : {
+          "type" : "literal",
+          "content" : "",
+          "hint" : "工作流对话id"
+        }
+      }
+      ],
+      "field_type" : "object",
+      "reflection" : false,
+      "value" : {
+        "type" : "literal",
+        "content" : {},
+        "hint" : "系统变量"
+      }
+    }
+    ]
+  }, {
+    "id" : "node_1749720215728",
+    "name" : "消息",
+    "type" : "Message",
+    "inputs" : [{
+      "name" : "a",
+      "type" : "boolean",
+      "description" : "",
+      "required" : true,
+      "source" : "user",
+      "reflection" : false,
+      "value" : {
+        "type" : "ref",
+        "content" : {
+          "ref_node_id" : "node_start",
+          "ref_var_name" : "memory.b",
+          "source" : "pre_defined"
+        },
+        "hint" : ""
+      }
+    }
+    ],
+    "outputs" : [{
+      "name" : "result",
+      "type" : "string",
+      "description" : "消息输出",
+      "required" : false,
+      "source" : "system",
+      "reflection" : false,
+      "value" : {
+        "type" : "generated",
+        "content" : "",
+        "hint" : ""
+      }
+    }
+    ],
+    "configs" : {
+      "template" : "{{a}}"
+    }
+  }, {
+    "id" : "node_1749720363768",
+    "name" : "变量赋值_1",
+    "type" : "SetVariable",
+    "inputs" : [{
+      "name" : "b",
+      "type" : "boolean",
+      "description" : "循环之间共享参数",
+      "required" : true,
+      "source" : "user",
+      "reflection" : false,
+      "value" : {
+        "type" : "ref",
+        "content" : {
+          "ref_node_id" : "node_start",
+          "ref_var_name" : "memory.b",
+          "source" : "pre_defined"
+        },
+        "hint" : ""
+      }
+    }
+    ],
+    "configs" : {
+      "settings" : [{
+        "left" : {
+          "type" : "boolean",
+          "value" : {
+            "type" : "ref",
+            "content" : {
+              "ref_node_id" : "node_start",
+              "ref_var_name" : "memory.b",
+              "source" : "pre_defined"
+            },
+            "hint" : ""
+          }
+        },
+        "right" : {
+          "type" : "boolean",
+          "value" : {
+            "type" : "literal",
+            "content" : true,
+            "hint" : ""
+          }
+        }
+      }
+      ]
+    }
+  }, {
+    "id" : "node_1749719970878",
+    "name" : "变量赋值",
+    "type" : "SetVariable",
+    "inputs" : [{
+      "name" : "b",
+      "type" : "boolean",
+      "description" : "循环之间共享参数",
+      "required" : true,
+      "source" : "user",
+      "reflection" : false,
+      "value" : {
+        "type" : "ref",
+        "content" : {
+          "ref_node_id" : "node_start",
+          "ref_var_name" : "memory.b",
+          "source" : "pre_defined"
+        },
+        "hint" : ""
+      }
+    }
+    ],
+    "configs" : {
+      "settings" : [{
+        "left" : {
+          "type" : "boolean",
+          "value" : {
+            "type" : "ref",
+            "content" : {
+              "ref_node_id" : "node_start",
+              "ref_var_name" : "memory.b",
+              "source" : "pre_defined"
+            },
+            "hint" : ""
+          }
+        },
+        "right" : {
+          "type" : "boolean",
+          "value" : {
+            "type" : "literal",
+            "content" : false,
+            "hint" : ""
+          }
+        }
+      }
+      ]
+    }
+  }, {
+    "id" : "node_1749721662142",
+    "name" : "判断_1",
+    "type" : "Branch",
+    "branches" : [{
+      "id" : "if",
+      "configs" : {
+        "logic" : "and",
+        "conditions" : [{
+          "operator" : "eq",
+          "left" : {
+            "name" : "",
+            "description" : "",
+            "required" : false,
+            "value" : {
+              "type" : "ref",
+              "content" : {
+                "ref_node_id" : "node_start",
+                "ref_var_name" : "memory.b",
+                "source" : "pre_defined"
+              },
+              "hint" : ""
+            },
+            "source" : "user",
+            "type" : "boolean"
+          },
+          "right" : {
+            "name" : "",
+            "description" : "",
+            "required" : false,
+            "value" : {
+              "type" : "literal",
+              "content" : false,
+              "hint" : ""
+            },
+            "source" : "user",
+            "type" : "boolean"
+          }
+        }
+        ]
+      }
+    }, {
+      "id" : "default"
+    }
+    ]
+  }, {
+    "id" : "node_1749721668151",
+    "name" : "消息_1",
+    "type" : "Message",
+    "inputs" : [{
+      "name" : "aa",
+      "type" : "boolean",
+      "description" : "",
+      "required" : true,
+      "source" : "user",
+      "reflection" : false,
+      "value" : {
+        "type" : "ref",
+        "content" : {
+          "ref_node_id" : "node_start",
+          "ref_var_name" : "memory.b",
+          "source" : "pre_defined"
+        },
+        "hint" : ""
+      }
+    }
+    ],
+    "outputs" : [{
+      "name" : "result",
+      "type" : "string",
+      "description" : "消息输出",
+      "required" : false,
+      "source" : "system",
+      "reflection" : false,
+      "value" : {
+        "type" : "generated",
+        "content" : "",
+        "hint" : ""
+      }
+    }
+    ],
+    "configs" : {
+      "template" : "{{aa}}"
+    }
+  }, {
+    "id" : "node_1749720040359",
+    "name" : "判断",
+    "type" : "Branch",
+    "branches" : [{
+      "id" : "if",
+      "configs" : {
+        "logic" : "and",
+        "conditions" : [{
+          "operator" : "eq",
+          "left" : {
+            "name" : "",
+            "description" : "",
+            "required" : false,
+            "value" : {
+              "type" : "ref",
+              "content" : {
+                "ref_node_id" : "node_start",
+                "ref_var_name" : "memory.b",
+                "source" : "pre_defined"
+              },
+              "hint" : ""
+            },
+            "source" : "user",
+            "type" : "boolean"
+          },
+          "right" : {
+            "name" : "",
+            "description" : "",
+            "required" : false,
+            "value" : {
+              "type" : "literal",
+              "content" : true,
+              "hint" : ""
+            },
+            "source" : "user",
+            "type" : "boolean"
+          }
+        }
+        ]
+      }
+    }, {
+      "id" : "default"
+    }
+    ]
+  }, {
+    "id" : "node_end",
+    "name" : "结束",
+    "type" : "End",
+    "inputs" : [{
+      "name" : "result",
+      "type" : "boolean",
+      "description" : "最终输出",
+      "required" : false,
+      "source" : "user",
+      "reflection" : false,
+      "value" : {
+        "type" : "ref",
+        "content" : {
+          "ref_node_id" : "node_start",
+          "ref_var_name" : "memory.b",
+          "source" : "pre_defined"
+        }
+      }
+    }
+    ],
+    "outputs" : [{
+      "name" : "response_content",
+      "type" : "string",
+      "description" : "最终输出",
+      "required" : true,
+      "source" : "system",
+      "reflection" : false,
+      "value" : {
+        "type" : "generated"
+      }
+    }
+    ],
+    "configs" : {
+      "is_stream_out" : true,
+      "response_template" : "{{result}}",
+      "response_mode" : "directResponse"
+    }
+  }, {
+    "id" : "node_1750160418495",
+    "name" : "循环",
+    "type" : "Loop",
+    "inputs" : [{
+      "name" : "num_loop_var",
+      "type" : "integer",
+      "description" : "循环次数",
+      "required" : true,
+      "source" : "pre_defined",
+      "reflection" : false,
+      "value" : {
+        "default" : "",
+        "type" : "literal",
+        "content" : 5,
+        "hint" : ""
+      }
+    }
+    ],
+    "outputs" : [{
+      "name" : "a",
+      "type" : "array",
+      "description" : "",
+      "required" : true,
+      "source" : "user",
+      "schema" : {
+        "type" : "string",
+        "name" : ""
+      },
+      "reflection" : false,
+      "value" : {
+        "type" : "ref",
+        "content" : {
+          "ref_node_id" : "node_1750160424735",
+          "ref_var_name" : "raw_output",
+          "source" : "user"
+        },
+        "hint" : ""
+      }
+    }
+    ],
+    "configs" : {
+      "loop_type" : "numLoop",
+      "loop_body" : [
+        "node_1750160424735"
+      ]
+    }
+  }, {
+    "id" : "node_1750160418495_input",
+    "name" : "循环输入",
+    "type" : "LoopInput"
+  }, {
+    "id" : "node_1750160418495_output",
+    "name" : "循环输出",
+    "type" : "LoopOutput"
+  }, {
+    "id" : "node_1750160424735",
+    "name" : "大模型_1",
+    "type" : "LLM",
+    "inputs" : [{
+      "name" : "query",
+      "type" : "integer",
+      "description" : "",
+      "required" : false,
+      "source" : "user",
+      "reflection" : false,
+      "value" : {
+        "type" : "ref",
+        "content" : {
+          "ref_node_id" : "node_1750160418495",
+          "ref_var_name" : "index",
+          "source" : "pre_defined"
+        },
+        "hint" : ""
+      }
+    }
+    ],
+    "outputs" : [{
+      "name" : "raw_output",
+      "type" : "string",
+      "description" : "模型原始输出",
+      "required" : false,
+      "source" : "user",
+      "reflection" : false,
+      "value" : {
+        "type" : "literal",
+        "content" : "",
+        "hint" : ""
+      }
+    }
+    ],
+    "configs" : {
+      "top_p" : 0.5,
+      "format_instruction" : "",
+      "response_format" : "text",
+      "template_content" : "{{query}}",
+      "temperature" : 0.5,
+      "model" : {
+        "model_name" : "test",
+        "model_type" : "openai",
+        "model_deployment_id" : "0f4ce8e5-b736-444f-a52d-364d3793462b"
+      },
+      "enable_history" : false
+    }
+  }, {
+    "id" : "node_1750160405154",
+    "name" : "大模型",
+    "type" : "LLM",
+    "inputs" : [{
+      "name" : "query",
+      "type" : "string",
+      "description" : "",
+      "required" : false,
+      "source" : "user",
+      "reflection" : false,
+      "value" : {
+        "type" : "ref",
+        "content" : {
+          "ref_node_id" : "node_start",
+          "ref_var_name" : "query",
+          "source" : "system"
+        },
+        "hint" : ""
+      }
+    }
+    ],
+    "outputs" : [{
+      "name" : "raw_output",
+      "type" : "string",
+      "description" : "模型原始输出",
+      "required" : false,
+      "source" : "user",
+      "reflection" : false,
+      "value" : {
+        "type" : "literal",
+        "content" : "",
+        "hint" : ""
+      }
+    }
+    ],
+    "configs" : {
+      "top_p" : 0.5,
+      "format_instruction" : "",
+      "response_format" : "text",
+      "template_content" : "{{query}}",
+      "temperature" : 0.5,
+      "model" : {
+        "model_name" : "test",
+        "model_type" : "openai",
+        "model_deployment_id" : "0f4ce8e5-b736-444f-a52d-364d3793462b"
+      },
+      "enable_history" : false
+    }
+  }
+  ],
+  "edges" : [{
+    "source" : "node_start",
+    "target" : "node_1749720215728"
+  }, {
+    "source" : "node_1749720040359",
+    "target" : "node_1749720363768",
+    "branch" : "default"
+  }, {
+    "source" : "node_1749721662142",
+    "target" : "node_1749721668151",
+    "branch" : "default"
+  }, {
+    "source" : "node_1749721668151",
+    "target" : "node_end"
+  }, {
+    "source" : "node_1749720215728",
+    "target" : "node_1749720040359"
+  }, {
+    "source" : "node_1749720040359",
+    "target" : "node_1749719970878",
+    "branch" : "if"
+  }, {
+    "source" : "node_1749721662142",
+    "target" : "node_end",
+    "branch" : "if"
+  }, {
+    "source" : "node_1749720363768",
+    "target" : "node_1749721662142"
+  }, {
+    "source" : "node_1749719970878",
+    "target" : "node_1750160405154"
+  }, {
+    "source" : "node_1750160405154",
+    "target" : "node_1750160418495"
+  }, {
+    "source" : "node_1750160418495",
+    "target" : "node_end"
+  }, {
+    "source" : "node_1750160418495_input",
+    "target" : "node_1750160424735"
+  }, {
+    "source" : "node_1750160424735",
+    "target" : "node_1750160418495_output"
+  }
+  ],
+  "layouts" : {
+    "node_1749720215728" : {
+      "x" : 650,
+      "y" : 136.00001017252603
+    },
+    "node_start" : {
+      "x" : 210,
+      "y" : 136.00001017252603
+    },
+    "node_1749720040359" : {
+      "x" : 1080,
+      "y" : 144
+    },
+    "node_end" : {
+      "x" : 3618,
+      "y" : 234
+    },
+    "node_1750160405154" : {
+      "x" : 2124,
+      "y" : -180
+    },
+    "node_1749719970878" : {
+      "x" : 1512,
+      "y" : 126
+    },
+    "node_1750160418495_output" : {
+      "x" : 3348,
+      "y" : 108
+    },
+    "node_1750160424735" : {
+      "x" : 2898,
+      "y" : -18
+    },
+    "node_1749721668151" : {
+      "x" : 2430,
+      "y" : 414
+    },
+    "node_1750160418495_input" : {
+      "x" : 2681,
+      "y" : 124
+    },
+    "node_1749720363768" : {
+      "x" : 1512,
+      "y" : 342
+    },
+    "node_1749721662142" : {
+      "x" : 1944,
+      "y" : 324
+    },
+    "node_1750160418495" : {
+      "x" : 2651,
+      "y" : -88
+    }
+  },
+  "configs" : {
+    "memory" : [{
+      "name" : "a",
+      "type" : "boolean",
+      "description" : "",
+      "required" : true,
+      "source" : "pre_defined",
+      "value" : {
+        "type" : "generated",
+        "hint" : "",
+        "default" : ""
+      },
+      "aging_level" : "permanent",
+      "storage_method" : "assignment"
+    }, {
+      "name" : "b",
+      "type" : "boolean",
+      "description" : "",
+      "required" : true,
+      "source" : "pre_defined",
+      "value" : {
+        "type" : "generated",
+        "hint" : "",
+        "default" : "false",
+        "display" : ""
+      },
+      "aging_level" : "permanent",
+      "storage_method" : "assignment"
+    }
+    ],
+    "default_model_switch" : true,
+    "default_model" : {
+      "model_deployment_id" : "ac8edf5e-60e6-4955-a154-1437c44d460a",
+      "model_name" : "Pro/deepseek-ai/DeepSeek-R1",
+      "model_type" : "openai"
+    },
+    "prologue" : "欢迎使用办公知识应用！这里有丰富的办公知识资源和工具，无论你是新手还是老手，都能找到适合你的办公技巧和解决方案。让我们一起提升办公效率，轻松应对各种办公挑战吧！",
+    "suggest_queries" : [
+      "办公知识应用能提供哪些具体的办公技巧和工具？",
+      "如何利用办公知识应用提高工作效率？",
+      "办公知识应用在处理办公常见问题方面有哪些实用功能？"
+    ]
+  }
+}

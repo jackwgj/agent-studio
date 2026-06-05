@@ -1,0 +1,97 @@
+<div class="model-service-compare-router">
+  <div class="debug-header-container">
+    <div class="title">{{isRuntime ? taskInfo.name : 'preview_debugging' | i18nextEager }}</div>
+    <div class="flex items-center gap-[8px]">
+      <div class="chat-header-icon" nz-tooltip [nzTooltipTitle]="'agent_clear' | i18nextEager" >
+        <nz-icon nzType="clear" nzTheme="outline" (click)="onClear()" />
+      </div>
+      <div class="chat-header-icon" (click)="handleClickExpandDialog()" nz-tooltip [nzTooltipTitle]="getIsExpandDialog()" *ngIf="!isRuntime">
+        <img [src]="isExpandDialog ? changeUrl('assets/images/full-collapse.svg') : changeUrl('assets/images/full-screen.svg')" alt="" >
+      </div>
+    </div>
+  </div>
+
+  <div class="main-wrapper-history">
+    <div class="left-container">
+      <div
+        class="main-container"
+        cdkScrollable
+        #chatContainerRef
+        (scroll)="onScroll($event.target)"
+      >
+        <div
+          [ngClass]="
+            dialogHistory.length === 0
+              ? 'init-chat-content-container'
+              : 'chat-content-container gap-5'
+          "
+        >
+          <div *ngIf="dialogHistory.length === 0" class="initial-container">
+            <!-- 当 dialogHistory 为空数组时显示的 HTML 代码块 -->
+            <div class="initial-header-container">
+              <img alt="" class="common-icon" [src]="agentInfo?.icon" />
+              <span class="title-initial-state" tiOverflow>{{agentInfo?.name || agentInfo?.title}}</span>
+            </div>
+          </div>
+          <ng-container *ngIf="dialogHistory.length > 0">
+
+            <div
+              class="chat-content"
+              *ngFor="let item of dialogHistory; let i = index"
+            >
+
+              <deep-research-chat-item
+                class="flex flex-col gap-4 w-full"
+                [agentIcon]="agentInfo?.icon"
+                [content]="item"
+                [taskId] ="taskInfo.id"
+                [isRuntime]="isRuntime"
+                [conversationId]="uuid"
+                [messageId]="item.message_id"
+                [isError]="item.isError"
+                [agentName]="agentInfo?.name"
+                [conversationRuntime]="conversationRuntime"
+                (send)="sendQuestion($event)"
+                [startDisabled]="startDisabled || dialogHistory.length >2"
+                (openViewArticle) ="handleClickViewArticle($event)"
+              ></deep-research-chat-item>
+            </div>
+            <div class="answer-tip text-[16px]" *ngIf="dialogHistory.length === 1">
+              {{'deep_research_chat.tip_2' | i18nextEager }}
+            </div>
+            <div>
+              <div *ngIf="isLoading" class="loading">
+                <img alt="" class="logo"  [src]="changeUrl('assets/agent-center/images/running.webp')"/>
+                <div class="loading-container">
+                  <span>{{ 'being_generated_2' | i18nextEager }}</span>
+                </div>
+              </div>
+            </div>
+          </ng-container>
+        </div>
+      </div>
+
+      <div class="bottom-container">
+        <meta-sender
+          #sender
+          [showClear]="false"
+          [userVoiceControl]="false"
+          [isShowFileUpload]="false"
+          [disabled]="sendDisable"
+          [isRuntime] = "isRuntime"
+          [sending]="isShowStopIcon"
+          [maxlength]="userQueryLimit"
+          [searchEngine]="searchEngine"
+          [fileInfo]="fileInfo"
+          (fileTemplate) ="handleClickAddTemplateModal($event)"
+          (disabledSender)="handleDisabledSender($event)"
+          (send)="sendQuestion($event)"
+          (stop)="stopChat()"
+          [placeholder]="placeholder"
+          [agentInfo]="agentInfo"
+          [agentType]="agentType"
+        />
+      </div>
+    </div>
+  </div>
+</div>

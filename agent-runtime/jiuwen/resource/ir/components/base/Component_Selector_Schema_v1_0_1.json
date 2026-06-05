@@ -1,0 +1,53 @@
+{
+  "type": "jiuwen.planner.components.plan_modules.selector:Selector",
+  "version": "1.0.1",
+  "description": "对子workflow做预选处理",
+  "schemaVersion": "0.5",
+  "classInfo": {
+    "modulePath": "jiuwen.planner.components.plan_modules.selector",
+    "className": "Selector",
+    "programLanguage": "python",
+    "filePath": "jiuwen/planner/components/planning_modules/selector.pyc"
+  },
+  "inputs": [
+    {
+      "id": "plugin_candidate_ids",
+      "description": "候选id列表",
+      "type": "List[String]"
+    },
+    {
+      "id": "workflow_candidate_ids",
+      "description": "候选id列表",
+      "type": "List[String]"
+    },
+    {
+      "id": "dialogueHistory",
+      "type": "List<Map<String, T>>",
+      "description": "对话历史"
+    },
+    {
+      "id": "query",
+      "type": "String",
+      "description": "用户的当前query，用于作为对话历史和插件列表优选的key"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "selectedPluginList",
+      "description": "选择的id列表",
+      "type": "List[String]"
+    },
+    {
+      "id": "selectedWorkflowList",
+      "description": "选择的id列表",
+      "type": "List[String]"
+    }
+  ],
+  "configs": [
+    {
+      "id": "topK",
+      "description": "最多选择的workflow/插件的个数",
+      "type": "Int"
+    }
+  ]
+}

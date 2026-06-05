@@ -1,0 +1,217 @@
+<div class="flex flex-col h-full overflow-y-scroll">
+  <div class="body-alert-tip">
+    <nz-alert class="import-alert" nzType="warning" *ngIf="warnOpen">
+      {{ warnAlertText }}
+    </nz-alert>
+  </div>
+  <div class="agent-box bg-[#ffffff] page-container" style="flex: 1;">
+    <div class="tool-bar">
+      <nz-tabset class="mb-[8px]" [nzSelectedIndex]="activeVisibleTabIndex" (nzSelectedIndexChange)="handleVisibleTabChange($event)">
+        @for (tab of visibleTabs; track tab.id; let i = $index) {
+          <nz-tab [nzTitle]="tab.title" [nzDisabled]="tab.disabledImport">
+            @if (tab.showType === false) {
+              <ng-template nz-tab-header>
+                <span class="mr-[8px]">{{ tab.title }}</span>
+              </ng-template>
+            }
+          </nz-tab>
+        }
+      </nz-tabset>
+      <div class="mb-[24px] flex gap-[8px]" style="justify-content: space-between;">
+        <div class="text-[20px] mb-24px" style="font-weight: 600;">
+          {{ tabs[currActivedTab].title }} <span class="ml-2">{{ totalCardNumber ? '(' + totalCardNumber + ')' : '' }}</span>
+        </div>
+        <div class="flex gap-[8px]">
+          @if (!isShowNoDataGuide && !isLoadingCard && !isLoading) {
+            <div
+              class="flex items-center cursor-pointer"
+              (click)="isShowGuide = !isShowGuide"
+            >
+              <span nz-icon [nzType]="isShowGuide ? 'down' : 'up'" class="mr-[4px]"></span>
+              <span>{{ 'create_guide' | i18nextEager }}</span>
+            </div>
+          }
+          @if (currActivedTab !== TabIndex.WORKFLOW && !tabs[currActivedTab].disabledImport) {
+            <button
+              nz-button
+              nzType="default"
+              [disabled]="!subscribeBtnStatus || !_agent_export_import_enable"
+              class="common-btn"
+              (click)="importTool()"
+            >
+              {{ 'import' | i18nextEager }}
+            </button>
+          }
+          @if (currActivedTab === TabIndex.WORKFLOW) {
+            <div nz-dropdown [nzDropdownMenu]="importMenu" nzTrigger="click" [nzDisabled]="!subscribeBtnStatus || !_agent_export_import_enable">
+              <button nz-button nzType="default">
+                {{ 'import' | i18nextEager }}
+                <nz-icon nzType="down"></nz-icon>
+              </button>
+              <nz-dropdown-menu #importMenu="nzDropdownMenu">
+                <ul nz-menu>
+                  @for (item of importItems; track item.id) {
+                    <li nz-menu-item (click)="onImportMenuClick(item)">{{ item.label }}</li>
+                  }
+                </ul>
+              </nz-dropdown-menu>
+            </div>
+          }
+          @if (!tabs[currActivedTab].disabledExport) {
+            <button
+              nz-button
+              nzType="default"
+              [disabled]="!subscribeBtnStatus || !_agent_export_import_enable"
+              class="common-btn"
+              (click)="exportTool()"
+            >
+              {{ 'export' | i18nextEager }}
+            </button>
+          }
+          <button nz-button nzType="primary" [disabled]="!subscribeBtnStatus && !is_develop_space" class="common-btn" (click)="toCreate()">
+            {{ createBtnText }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="overflow-y-auto flex" style="display:flex; flex-direction: column;">
+      @if (!isShowNoDataGuide && !isLoadingCard && !isLoading) {
+        <div class="overflow-hidden guide-collapse-content mb-[24px]"
+             [style.height]="isShowGuide ? '188px' : '0px'">
+          <app-no-data-guide
+            [isSmall]="true"
+            [type]="tabs[currActivedTab].id"
+            (clickDesc)="handleGuideClick($event)"
+          ></app-no-data-guide>
+        </div>
+      }
+      @if (!isShowNoDataGuide && !isLoadingCard && !isLoading) {
+        <div class="mb-[24px] flex items-center gap-2">
+          @if (tabs[currActivedTab].showType) {
+            <nz-select
+              id="select-high-type"
+              (ngModelChange)="getCardData()"
+              [nzOptions]="highOptions"
+              [(ngModel)]="highValue">
+            </nz-select>
+          }
+          <nz-input-search nzAllowClear (nzSearch)="onSearchContentChange()">
+            <input
+              nz-input
+              class="w-[calc(100%-32px)] bg-[#fff]"
+              [(ngModel)]="searchName"
+              (ngModelChange)="hasSearched = true"
+            />
+          </nz-input-search>
+          <button
+            type="button"
+            (click)="getCardData()"
+            class="h-8 w-8"
+            nz-button
+            [nzType]="'default'"
+            [nzGhost]="true"
+            style="color: #191919; background: #fff; border: 1px solid #ddd"
+          >
+            <span nz-icon nzType="reload"></span>
+          </button>
+        </div>
+      }
+      <app-new-common-no-data-with-btn
+        style="flex: 1"
+        [type]="'filterNoData'"
+        *ngIf="!cards.length && !isLoadingCard && !isLoading && this.hasSearched"
+        [firstLineData]="'no_data' | i18nextEager"
+        [tutorialType]="tutorialType"
+        [secondLineData]="tipType"
+        [noDataBtnStr]="noDataStr | i18nextEager"
+        (create)="toCreate()"
+        (clear)="handleClickClearSearch()"
+      />
+      @if (isShowNoDataGuide) {
+        <div class="flex h-full justify-center" style="flex-direction: column;">
+          <app-no-data-guide
+            [type]="tabs[currActivedTab].id"
+            [isSmall]="false"
+            (clickDesc)="handleGuideClick($event)"
+          ></app-no-data-guide>
+        </div>
+      }
+      <nz-spin nzSimple *ngIf="isLoading" class="text-center"></nz-spin>
+      @if (cards.length && !isLoadingCard && !isLoading) {
+        <div class="mb-[16px]">
+          <div class="cards-wrapper">
+            <application-card
+              *ngFor="let card of cards; index as i"
+              [cardIndex]="i"
+              [type]="currActivedTab"
+              [data]="card"
+              [isFromDevelopSpace]="appType !== ''"
+              [exportEnable]="_agent_export_import_enable"
+              [activedTab]="currActivedTab"
+              (handleAction)="handleAction($event)"
+            />
+          </div>
+          <nz-pagination
+            nzAlign="end"
+            class="mt-[24px]"
+            [(nzPageIndex)]="currentCardPage"
+            [nzTotal]="totalCardNumber"
+            [(nzPageSize)]="cardPageSize.size"
+            nzShowSizeChanger
+            [nzPageSizeOptions]="cardPageSize.options"
+            (nzPageIndexChange)="getCardData()"
+            (nzPageSizeChange)="getCardData()"
+          />
+        </div>
+      }
+    </div>
+  </div>
+</div>
+<ng-template #callModalTitle>
+  <span>{{ 'call_path' | i18nextEager }}</span>
+</ng-template>
+<ng-template #callModalContent let-modalRef>
+  <div class="text-label" style="display: flex">
+    {{ 'call_path_body_tip' | i18nextEager }}
+    <img alt=""
+      [src]="changeUrl('assets/model/online-test-help.svg')"
+      nz-tooltip
+      [nzTooltipTitle]="pathTip"
+    >
+  </div>
+  @if (!isSite) {
+    <div class="flex gap-[4px]">
+      <button nz-button [nzType]="'default'" [nzGhost]="true" (click)="clickOpenAPILink()">Open Api {{ 'link_document' | i18nextEager }}</button>
+    </div>
+  }
+  <br />
+  <div class="text-label url-break">{{ callUrl }}</div>
+</ng-template>
+<ng-template #callModalFooter let-modalRef>
+  <div class="flex w-full justify-end">
+    <button nz-button nzType="primary" (click)="copyUrl()">
+      {{ 'copy_path' | i18nextEager }}
+    </button>
+  </div>
+</ng-template>
+
+<ng-template #nodeModalTitle let-context>
+  <span>{{ (context.status ? 'remove_node' : 'set_node') | i18nextEager }}</span>
+</ng-template>
+<ng-template #nodeModalContent let-context>
+  <div class="text-label">
+    {{ (context.status ? 'remove_node_tip' : 'set_node_tip') | i18nextEager }}
+  </div>
+</ng-template>
+<ng-template #nodeModalFooter let-context>
+  <div class="flex w-full justify-end">
+    <button nz-button (click)="closeNodeModal()">
+      {{ 'cancel' | i18nextEager }}
+    </button>
+    <button nz-button nzType="primary" autofocus (click)="setNode(context)">
+      {{ 'ok' | i18nextEager }}
+    </button>
+  </div>
+</ng-template>
+<app-exceed-modal #appExceedModal></app-exceed-modal>

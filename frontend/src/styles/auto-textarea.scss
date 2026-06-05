@@ -1,0 +1,38 @@
+.auto-textarea {
+  box-sizing: border-box;
+  resize: none;
+  outline: none;
+
+  min-height: 28px;
+
+  font-size: 12px;
+  line-height: 18px;
+  padding: 5px 12px;
+
+  color: #252B3A;
+  background-color: #FFFFFF;
+
+  border: 1px solid #ADB0B8;
+  border-radius: 2px;
+
+  transition: border-color 0.15s;
+
+  overflow-y: hidden;
+
+  &:hover:not(.auto-textarea--disabled) {
+    border-color: #252B3A;
+  }
+
+  &--focus {
+    border-color: #252B3A;
+    color: #252B3A;
+  }
+
+  &--disabled {
+    background-color: #F5F5F6;
+    color: #ADB0B8;
+    border-color: #DFE1E6;
+
+    cursor: not-allowed !important;
+  }
+}

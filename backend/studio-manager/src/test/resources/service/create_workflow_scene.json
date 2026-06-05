@@ -1,0 +1,36 @@
+{
+  "version_id": "1748400865320",
+  "channel_type": "WEB_PAGE",
+  "metadata": [
+    "b4b9e07a-9b86-447e-85c5-400c1e2a8a6b",
+    "2f88ed16-5952-11ef-abd9-607d092d9149"
+  ],
+  "inputs": [
+    {
+      "name": "query",
+      "type": "string",
+      "description": "用户输入",
+      "required": true,
+      "source": "system",
+      "front_name": "用户输入框",
+      "front_content": "用户输出内容"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "result",
+      "type": "string",
+      "description": "最终输出",
+      "required": false,
+      "source": "user",
+      "front_name": "用户输出框",
+      "front_content": "用户输出内容"
+    }
+  ],
+  "prologue": "你好！我是“天气查询助手”。想知道具体某一天天气怎么样？问我吧，我会为你提供最新的天气信息和预报。输入你关心的城市，我会为你呈现详细的天气状况。\n",
+  "suggest_queries" : [
+    "2025/03/28南京的天气怎么样？",
+    "2025/03/29上海会下雨吗？",
+    "2025/03/30北京会下雨吗？"
+  ]
+}

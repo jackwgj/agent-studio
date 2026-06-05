@@ -1,0 +1,179 @@
+::ng-deep {
+  #flow-intent-modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+
+    .intent-modal-acc-body {
+      background-color: #fff !important;
+      padding: 0px !important;
+    }
+
+    .intent-modal-acc-head {
+      padding: 0px !important;
+      height: fit-content;
+
+      .ant-collapse-header {
+        margin-left: 0px !important;
+      }
+
+      .ant-collapse-header {
+        gap: 8px;
+        flex-direction: row-reverse;
+        justify-content: left;
+      }
+    }
+
+    ant-collapse-item {
+      border: none !important;
+      background-color: #fff;
+    }
+  }
+
+  .tp-halfmodal-cotent meta-intent-modal {
+    display: block;
+    height: 100%;
+  }
+
+  .add-kb-modal {
+    width: 700px !important;
+  }
+}
+.kb-select-area {
+  width: 100%;
+  border: 1px dashed #c2c2c2ff;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.intent-kb-list-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.intent-kb-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.upload-icon {
+  background-image: url('../../../../../assets/agent-center/flow/upload-cmp.svg');
+  height: 24px;
+  width: 24px;
+}
+
+.tabs-container {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.secondary-tabs {
+  display: flex;
+  align-items: center;
+  background: rgb(245, 245, 245);
+  border-radius: 6px;
+  width: 100%;
+  height: 32px;
+  position: relative;
+
+  li {
+    width: 50%;
+    height: 100%;
+    color: #595959;
+    cursor: pointer;
+    line-height: 28px;
+    border: 1px solid transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &.activated-tab-item {
+      background-color: #fff;
+      color: #191919;
+      border: 1px solid #191919;
+      border-radius: 6px;
+    }
+
+    &:hover {
+      color: #191919;
+    }
+  }
+}
+
+// 替换meta-acc-block子组件的样式，避免修改公共组件，影响其他模块
+:host ::ng-deep {
+  meta-acc-block .flex-class {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+}
+
+.cutline {
+  border-top: 1px solid #f0f0f0;
+  margin: 16px 0;
+}
+.icon-border {
+  border-radius: 6px;
+  padding: 4px;
+  cursor: pointer;
+  border: none;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    border-color: #191919;
+    background-color: #F2F5FC;
+  }
+}
+
+.intelligent-add-border {
+  border-radius: 6px;
+  width: 24px;
+  padding: 4px;
+  justify-items: center;
+  &:hover {
+    border-color: #856afd;
+    background-color: #F2F5FC;
+  }
+}
+
+.disabled {
+  cursor: not-allowed;
+  border-color: #dbdbdb;
+}
+
+.enabled {
+  cursor: pointer;
+  padding: 4px;
+}
+
+.save-tmp-link {
+  cursor: pointer;
+}
+
+.save-tmp-link-disabled {
+  color: #dbdbdb;
+  cursor: pointer;
+}
+
+.error-tip {
+  color: #ff4d4f;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.input-error {
+  border-color: #ff4d4f !important;
+}

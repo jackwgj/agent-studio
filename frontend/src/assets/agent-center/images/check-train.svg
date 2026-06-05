@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="40px" height="40px" viewBox="0 0 40 40" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>有监督微调</title>
+    <defs>
+        <linearGradient x1="-20.1032239%" y1="115.345982%" x2="92.8439942%" y2="6.74206184%" id="linearGradient-1">
+            <stop stop-color="#F9DC89" offset="0%"></stop>
+            <stop stop-color="#F4BD69" offset="26.7045455%"></stop>
+            <stop stop-color="#FF8E32" offset="100%"></stop>
+        </linearGradient>
+    </defs>
+    <g id="页面-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="4创建数据集-奖励模型-json" transform="translate(-532, -242)">
+            <g id="训练类型" transform="translate(48, 222)">
+                <g transform="translate(460, 0)" id="有监督微调">
+                    <g transform="translate(24, 20)">
+                        <rect id="矩形" fill="url(#linearGradient-1)" x="0" y="0" width="40" height="40" rx="8"></rect>
+                        <path d="M21,6.57735027 L31.1243557,12.4226497 C31.7431578,12.7799153 32.1243557,13.4401694 32.1243557,14.1547005 L32.1243557,25.8452995 C32.1243557,26.5598306 31.7431578,27.2200847 31.1243557,27.5773503 L21,33.4226497 C20.3811978,33.7799153 19.6188022,33.7799153 19,33.4226497 L8.87564435,27.5773503 C8.25684219,27.2200847 7.87564435,26.5598306 7.87564435,25.8452995 L7.87564435,14.1547005 C7.87564435,13.4401694 8.25684219,12.7799153 8.87564435,12.4226497 L19,6.57735027 C19.6188022,6.22008468 20.3811978,6.22008468 21,6.57735027 Z" id="多边形" stroke="#FFFFFF" stroke-width="1.5"></path>
+                        <path d="M20.5,14.2886751 L24.6961524,16.7113249 C25.0055535,16.8899577 25.1961524,17.2200847 25.1961524,17.5773503 L25.1961524,22.4226497 C25.1961524,22.7799153 25.0055535,23.1100423 24.6961524,23.2886751 L20.5,25.7113249 C20.1905989,25.8899577 19.8094011,25.8899577 19.5,25.7113249 L15.3038476,23.2886751 C14.9944465,23.1100423 14.8038476,22.7799153 14.8038476,22.4226497 L14.8038476,17.5773503 C14.8038476,17.2200847 14.9944465,16.8899577 15.3038476,16.7113249 L19.5,14.2886751 C19.8094011,14.1100423 20.1905989,14.1100423 20.5,14.2886751 Z" id="多边形" stroke="#FFFFFF" stroke-width="1.5" fill-opacity="0.3" fill="#FFFFFF"></path>
+                        <line x1="8" y1="13" x2="15" y2="17" id="路径-6" stroke="#FFFFFF" stroke-width="1.5" fill-opacity="0" fill="#FFFFFF"></line>
+                        <line x1="32" y1="13" x2="25" y2="17" id="路径-7" stroke="#FFFFFF" stroke-width="1.5" fill-opacity="0" fill="#FFFFFF"></line>
+                        <line x1="20" y1="26" x2="20" y2="34" id="路径-8" stroke="#FFFFFF" stroke-width="1.5" fill-opacity="0" fill="#FFFFFF"></line>
+                    </g>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg>

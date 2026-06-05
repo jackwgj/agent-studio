@@ -1,0 +1,100 @@
+<div class="ant-modal-header">
+  <div class="ant-modal-title">{{ 'open_modal.title' | i18nextEager }}</div>
+</div>
+<div class="ant-modal-body" [class.loading]="loading">
+  <nz-spin [nzSpinning]="loading">
+  <div class="mb-[18px] text-[#595959]">
+    <ng-container *ngIf="modelArtsPriceUrl; else noLink">
+      <span [innerHTML]="'open_modal.description_1' | i18nextEager | safeHtml"></span>
+      <a [href]="modelArtsPriceUrl" target="_blank" rel="noopener noreferrer">
+        {{ 'open_modal.description_2' | i18nextEager }}
+      </a>
+    </ng-container>
+    <ng-template #noLink>
+      <span [innerHTML]="'open_modal.description_1_no_bill_link' | i18nextEager | safeHtml"></span>
+    </ng-template>
+
+    <span [innerHTML]="'open_modal.description_3' | i18nextEager | safeHtml">
+    </span>
+  </div>
+
+  <div class="model-select mb-[16px]">
+    <div class="tip-title mb-[9px]">
+      {{ 'open_modal.preset_services_label' | i18nextEager }}
+    </div>
+    <div
+    nz-tooltip
+    [nzTooltipTitle]="selectAllTipContent"
+    nzTooltipPlacement="topLeft"
+    >
+      <label nz-checkbox
+        [nzChecked]="isCheckedAll"
+        [nzDisabled]="isAllModelEnabled"
+        (nzCheckedChange)="onAllCheckChange($event)"
+      >
+        {{ 'open_modal.all_select_label' | i18nextEager }}
+      </label>
+      <div class="model-list">
+        <div class="model-item" *ngFor="let item of modelList">
+          <label nz-checkbox
+            [nzChecked]="isModelChecked(item)"
+            [nzDisabled]="item.disabled"
+            (nzCheckedChange)="onModelCheckChange(item, $event)"
+          >
+            {{ item.text }}
+          </label>
+        </div>
+      </div>
+    </div>
+    <div>
+      <label nz-checkbox
+        [nzChecked]="modelAutoOpenCheckbox.value"
+        [nzDisabled]="modelAutoOpenCheckbox.disabled"
+        [(ngModel)]="modelAutoOpenCheckbox.value"
+      >
+        {{ 'open_modal.new_model_auto_enabled_label' | i18nextEager }}
+      </label>
+    </div>
+  </div>
+  @if (isAllModelEnabled) {
+  <label>{{ 'open_modal.all_model_enable_tip' | i18nextEager }}</label>
+  } @else {
+  <div
+    class="agree-box flex"
+    nz-tooltip
+    [nzTooltipTitle]="agreeTipContent"
+    nzTooltipPlacement="topLeft"
+  >
+    <label nz-checkbox
+      [(ngModel)]="agreeCheckbox.value"
+      (ngModelChange)="onAgreeCheckBoxChange($event)"
+    >
+    </label>
+    <label class="selectable-label" for="agree">{{ 'open_modal.read_and_agree_label' | i18nextEager }}</label>
+  </div>
+  }
+  </nz-spin>
+</div>
+<div class="ant-modal-footer btn-group">
+  <button
+    nz-button
+    nzType="primary"
+    nzDanger
+    type="button"
+    (click)="submit()"
+    [nzLoading]="loading"
+  >
+    {{
+      (isAllModelEnabled ? 'ok' : 'open_modal.one_click_enable_btn')
+        | i18nextEager
+    }}
+  </button>
+</div>
+
+<ng-template #selectAllTipContent>
+  <div class="tip-content">{{ selectAll.tipStr }}</div>
+</ng-template>
+
+<ng-template #agreeTipContent>
+  <div class="tip-content">{{ agreeCheckbox.tipStr }}</div>
+</ng-template>

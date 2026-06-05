@@ -1,0 +1,39 @@
+<svg viewBox="0 0 44.0989 47.1598" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="44.0988922" height="47.1598206" fill="none" customFrame="#000000">
+	<defs>
+		<g id="pixso_custom_effect_0">
+			<effect x="0" y="0" visibility="visible" fill="rgba(28,116,254,1)" effectType="dropShadow" stdDeviation="9.47834015" radius="0" />
+		</g>
+		<filter id="filter_0" width="44.0988922" height="47.1598206" x="0" y="0" filterUnits="userSpaceOnUse" customEffect="url(#pixso_custom_effect_0)" color-interpolation-filters="sRGB">
+			<feFlood flood-opacity="0" result="BackgroundImageFix" />
+			<feColorMatrix result="hardAlpha" in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0 " />
+			<feOffset dx="0" dy="0" />
+			<feGaussianBlur stdDeviation="3.15944672" />
+			<feComposite k2="-1" k3="1" in2="hardAlpha" operator="out" />
+			<feColorMatrix type="matrix" values="0 0 0 0 0.109804 0 0 0 0 0.454902 0 0 0 0 0.996078 0 0 0 1 0 " />
+			<feBlend result="effect_dropShadow_1" in2="BackgroundImageFix" mode="normal" />
+			<feBlend result="shape" in="SourceGraphic" in2="effect_dropShadow_1" mode="normal" />
+		</filter>
+	</defs>
+	<rect id="业务类型图标" width="40" height="40" x="2.04957581" y="3.57989502" fill="rgba(255,255,255,1)" fill-opacity="0" />
+	<rect id="test0331" width="40" height="40" x="2.04957581" y="3.57989502" rx="8" opacity="0" fill="#000000" />
+	<rect id="矩形 " width="40" height="39.9999962" x="2.04957581" y="3.57989502" rx="8" fill="rgba(20,118,255,1)" />
+	<g id="ic_ict_custom_network-自定义网络/base/ic_ict_custom_network">
+		<g filter="url(#filter_0)">
+			<path id="path8" d="M23.7773 11.0429L32.0429 15.8151C33.1121 16.4323 33.7708 17.5731 33.7708 18.8077L33.7708 28.3521C33.7708 29.5867 33.1121 30.7275 32.0429 31.3448L23.7773 36.117C22.7081 36.7343 21.3908 36.7343 20.3216 36.117L12.056 31.3448C10.9868 30.7275 10.3281 29.5867 10.3281 28.3521L10.3281 18.8077C10.3281 17.5731 10.9868 16.4323 12.056 15.8151L20.3216 11.0429C21.3908 10.4256 22.7081 10.4256 23.7773 11.0429Z" fill="rgba(255,255,255,1)" fill-rule="evenodd" />
+			<path id="path8" d="M32.0429 15.8151C33.1121 16.4323 33.7708 17.5731 33.7708 18.8077L33.7708 28.3521C33.7708 29.5867 33.1121 30.7275 32.0429 31.3448L23.7773 36.117C22.7081 36.7343 21.3908 36.7343 20.3216 36.117L12.056 31.3448C10.9868 30.7275 10.3281 29.5867 10.3281 28.3521L10.3281 18.8077C10.3281 17.5731 10.9868 16.4323 12.056 15.8151L20.3216 11.0429C21.3908 10.4256 22.7081 10.4256 23.7773 11.0429L32.0429 15.8151Z" fill-rule="evenodd" stroke="rgba(255,255,255,1)" stroke-linejoin="round" stroke-width="1.69959104" />
+		</g>
+		<g id="组合 4442">
+			<rect id="矩形" width="16" height="16" x="13.8143005" y="15.579895" opacity="0" fill="rgba(216,216,216,1)" />
+			<rect id="矩形" width="14.666667" height="14.666667" x="14.4809675" y="16.2465611" opacity="0" stroke="rgba(151,151,151,1)" stroke-opacity="0" stroke-width="1.33333325" />
+			<g id="组合 4443" opacity="0">
+				<path id="path4" d="M25.8922 19.5884C27.7502 19.9672 29.1482 21.6105 29.1482 23.5804C29.1482 25.8305 27.3241 27.6546 25.074 27.6546C23.0817 27.6546 21.5875 27.6546 20.5914 27.6546L22.3209 29.3831M17.736 27.5722C15.8785 27.193 14.481 25.5499 14.481 23.5804C14.481 21.3303 16.3051 19.5062 18.5552 19.5062C20.5468 19.5062 22.0404 19.5062 23.0361 19.5062L21.3083 17.7776" stroke="rgba(20,118,255,1)" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.39999998" />
+				<path id="path5" d="M20.7159 23.0279L21.8948 21.5081L21.8948 25.6528" stroke="rgba(20,118,255,1)" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.39999998" />
+			</g>
+			<g id="组合 4443">
+				<path id="path5" d="M20.4229 23.0385L22.188 21.1684L22.188 26.2685" stroke="rgba(20,118,255,1)" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.39999998" />
+				<path id="矩形 6289" d="M18.0899 28.5215L18.0703 28.5215C15.3561 28.5215 13.1558 26.3214 13.1558 23.6072C13.1558 20.8931 15.356 18.6929 18.07 18.6929L22.7934 18.6929L20.4648 16.5224" stroke="rgba(20,118,255,1)" stroke-width="1.60000002" />
+				<path id="矩形 6289" d="M5.03508 11.9992L4.91437 11.9992C2.20024 11.9992 -2.14814e-07 9.799 -2.14814e-07 7.08487C-2.14814e-07 4.37074 2.20024 2.1705 4.91437 2.1705L9.6376 2.1705L7.30904 0" stroke="rgba(20,118,255,1)" stroke-width="1.60000002" transform="matrix(-1,0,0,-1,30.9431,30.956)" />
+			</g>
+		</g>
+	</g>
+</svg>

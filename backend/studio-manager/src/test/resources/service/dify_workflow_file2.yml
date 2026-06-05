@@ -1,0 +1,331 @@
+app:
+  description: ''
+  icon: 🤖
+  icon_background: '#FFEAD5'
+  mode: workflow
+  name: 选车
+  use_icon_as_answer_icon: false
+dependencies: []
+kind: app
+version: 0.5.0
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - .JPG
+      - .JPEG
+      - .PNG
+      - .GIF
+      - .WEBP
+      - .SVG
+      allowed_file_types:
+      - image
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: false
+      fileUploadConfig:
+        attachment_image_file_size_limit: 2
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        file_upload_limit: 50
+        image_file_batch_limit: 10
+        image_file_size_limit: 10
+        single_chunk_attachment_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 3
+    opening_statement: ''
+    retriever_resource:
+      enabled: true
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: loop
+      id: 1771897062192-source-1772104043559-target
+      source: '1771897062192'
+      sourceHandle: source
+      target: '1772104043559'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: true
+        loop_id: '1772104043559'
+        sourceType: loop-start
+        targetType: list-operator
+      id: 1772104043559start-source-1772104053594-target
+      source: 1772104043559start
+      sourceHandle: source
+      target: '1772104053594'
+      targetHandle: target
+      type: custom
+      zIndex: 1002
+    - data:
+        isInIteration: false
+        isInLoop: true
+        loop_id: '1772104043559'
+        sourceType: list-operator
+        targetType: document-extractor
+      id: 1772104053594-source-1772104122072-target
+      source: '1772104053594'
+      sourceHandle: source
+      target: '1772104122072'
+      targetHandle: target
+      type: custom
+      zIndex: 1002
+    - data:
+        isInIteration: false
+        isInLoop: true
+        loop_id: '1772104043559'
+        sourceType: document-extractor
+        targetType: llm
+      id: 1772104122072-source-1772104134274-target
+      source: '1772104122072'
+      sourceHandle: source
+      target: '1772104134274'
+      targetHandle: target
+      type: custom
+      zIndex: 1002
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: loop
+        targetType: end
+      id: 1772104043559-source-1772104176268-target
+      source: '1772104043559'
+      sourceHandle: source
+      target: '1772104176268'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        selected: false
+        title: 用户输入
+        type: start
+        variables: []
+      height: 73
+      id: '1771897062192'
+      position:
+        x: -2
+        y: 246
+      positionAbsolute:
+        x: -2
+        y: 246
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        break_conditions: []
+        height: 180
+        logical_operator: and
+        loop_count: 10
+        loop_variables:
+        - id: 4d865522-9cbe-4a43-93f2-b7db971d8485
+          label: ''
+          value: ''
+          value_type: constant
+          var_type: string
+        selected: false
+        start_node_id: 1772104043559start
+        title: 循环
+        type: loop
+        width: 1292
+      height: 180
+      id: '1772104043559'
+      position:
+        x: 287
+        y: 274
+      positionAbsolute:
+        x: 287
+        y: 274
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 1292
+      zIndex: 1
+    - data:
+        desc: ''
+        isInLoop: true
+        selected: false
+        title: ''
+        type: loop-start
+      draggable: false
+      height: 48
+      id: 1772104043559start
+      parentId: '1772104043559'
+      position:
+        x: 24
+        y: 68
+      positionAbsolute:
+        x: 311
+        y: 342
+      selectable: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom-loop-start
+      width: 44
+      zIndex: 1002
+    - data:
+        extract_by:
+          enabled: true
+          serial: '5'
+        filter_by:
+          conditions:
+          - comparison_operator: contains
+            key: name
+            value: car
+          enabled: true
+        isInIteration: false
+        isInLoop: true
+        item_var_type: file
+        limit:
+          enabled: false
+          size: 10
+        loop_id: '1772104043559'
+        order_by:
+          enabled: true
+          key: name
+          value: asc
+        selected: false
+        title: 列表操作
+        type: list-operator
+        var_type: array[file]
+        variable:
+        - sys
+        - files
+      height: 92
+      id: '1772104053594'
+      parentId: '1772104043559'
+      position:
+        x: 129.51571656651038
+        y: 65
+      positionAbsolute:
+        x: 416.5157165665104
+        y: 339
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 1002
+    - data:
+        isInIteration: false
+        isInLoop: true
+        is_array_file: true
+        loop_id: '1772104043559'
+        selected: false
+        title: 文档提取器
+        type: document-extractor
+        variable_selector:
+        - sys
+        - files
+      height: 104
+      id: '1772104122072'
+      parentId: '1772104043559'
+      position:
+        x: 442.12573253208325
+        y: 56
+      positionAbsolute:
+        x: 729.1257325320832
+        y: 330
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 1002
+    - data:
+        context:
+          enabled: true
+          variable_selector:
+          - '1772104122072'
+          - text
+        isInIteration: false
+        isInLoop: true
+        loop_id: '1772104043559'
+        model:
+          completion_params:
+            temperature: 0.7
+          mode: chat
+          name: ''
+          provider: ''
+        prompt_template:
+        - role: system
+          text: ''
+        selected: false
+        title: LLM
+        type: llm
+        vision:
+          enabled: false
+      height: 52
+      id: '1772104134274'
+      parentId: '1772104043559'
+      position:
+        x: 800.207245492968
+        y: 69.64144909859363
+      positionAbsolute:
+        x: 1087.207245492968
+        y: 343.6414490985936
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 1002
+    - data:
+        outputs:
+        - value_selector:
+          - sys
+          - user_id
+          value_type: string
+          variable: test
+        selected: false
+        title: 输出
+        type: end
+      height: 89
+      id: '1772104176268'
+      position:
+        x: 1720.4842834334895
+        y: 274
+      positionAbsolute:
+        x: 1720.4842834334895
+        y: 274
+      selected: true
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    viewport:
+      x: 42.023964141031456
+      y: 159.52613835211298
+      zoom: 0.6597539553864471
+  rag_pipeline_variables: []

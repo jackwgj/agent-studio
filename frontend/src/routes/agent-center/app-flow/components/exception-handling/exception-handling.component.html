@@ -1,0 +1,127 @@
+<div class="my-[16px] h-[1px] w-full bg-[#f0f0f0]"></div>
+<div class="flex w-full flex-col mb-4">
+  <!-- 出入参配置表格 -->
+  <meta-acc-block
+    class="block w-[calc(100%-8px)]"
+  >
+    <ng-template #blockTitle>
+      <div class="flex items-center gap-2 font-bold">
+            <span class="font-bold">{{
+                'exception_handling' | i18nextEager
+              }}</span>
+        <span nz-tooltip [nzTooltipTitle]="'exception_handling_tip' | i18nextEager" class="cursor-pointer" nz-icon nzType="question-circle" nzTheme="outline"></span>
+      </div>
+    </ng-template>
+    <ng-template #right>
+      <nz-switch
+        [(ngModel)]="exceptionEnable"
+        (ngModelChange)="switchExceptionEnable($event)"
+      ></nz-switch>
+    </ng-template>
+    <ng-template #content>
+      <div [hidden]="!exceptionEnable">
+        <div class="mt-2 flex items-center gap-1">
+          <div *ngIf="!stream" class="w-[30%] text-label">
+            {{'exceptionhandlingcomponent_313'| i18nextEager}}
+          </div>
+          <div class="w-[30%] text-label">
+            {{'exceptionhandlingcomponent_314'| i18nextEager}}
+          </div>
+          <div class="w-[40%] text-label">
+            {{'exceptionhandlingcomponent_315'| i18nextEager}}
+          </div>
+        </div>
+
+        <div
+          class="mt-2 flex gap-1"
+        >
+          <div *ngIf="!stream" class="w-[30%]">
+            <nz-input-number
+              style="width: 100%"
+              [(ngModel)]="exception_process.timeout"
+              (blur)="onTimeoutChange()"
+              [nzPlaceHolder]="'input_placeholder' | i18nextEager"
+              [nzMin]="minTimeout"
+              [nzMax]="maxTimeout"
+              [nzStep]="1"
+            ></nz-input-number>
+
+            <div class="w-full" #wrapper></div>
+          </div>
+          <div class="w-[30%]">
+            <nz-select
+              style="width: 100%"
+              [nzOptions]="retryOptions"
+              [(ngModel)]="exception_process.retry_times"
+              (ngModelChange)="handelChangeValue()"
+              [nzDisabled]="nodeInfo?.type === 'Workflow' || stream"
+              [nzTooltipTitle]="nodeInfo?.type === 'Workflow'?('exceptionhandlingcomponent_316'| i18nextEager):(stream?('exceptionhandlingcomponent_317'| i18nextEager):'')"
+              nz-tooltip
+            ></nz-select>
+          </div>
+          <div class="w-[40%]">
+            <nz-select
+              style="width: 100%"
+              [nzOptions]="handleOptions"
+              [(ngModel)]="exception_process.handle_type"
+              (ngModelChange)="onHandleTypeChange($event)"
+              [nzDisabled]="stream || ['text', 'markdown'].includes(response_format)"
+              [nzTooltipTitle]="stream || ['text', 'markdown'].includes(response_format)?('exceptionhandlingcomponent_318'| i18nextEager):''"
+              nz-tooltip
+            ></nz-select>
+          </div>
+        </div>
+        <div *ngIf="isShowCode" class="mt-3 exception-code">
+
+          <form class="mt-[8px] w-full" #contentForm="ngForm">
+            <div
+              class="w-full rounded-[6px] border-[1px] border-solid border-[#ccc]"
+            >
+              <div
+                class="flex items-center justify-between rounded-t-[6px] border-b-[1px] border-solid border-[#ccc] bg-[#f0f7ff] p-[10px]"
+              >
+                <span class="font-bold text-[#333]">json</span>
+                <span
+                  class="cursor-pointer"
+                  nz-tooltip
+                  [nzTooltipTitle]="'format' | i18nextEager"
+                  nzTooltipPlacement="top"
+                  (click)="formatContent()"
+                  nz-icon
+                  nzType="file-text"
+                  nzTheme="outline"
+                ></span>
+              </div>
+              <div
+                class="h-[240px] w-full rounded-b-[6px] bg-white py-[10px] pr-[10px]"
+              >
+                <ngx-monaco-editor
+                  #editorCmp
+                  [(ngModel)]="exception_process.default_outputs"
+                  objTypeValidator
+                  nonEmptyValidator
+                  [options]="editorOps"
+                  name="ignoreMsg"
+                  [uri]="editorUri"
+                  (blur)="handelChangeValue()"
+                ></ngx-monaco-editor>
+              </div>
+            </div>
+
+            <nz-form-control *ngIf="getContentError()" class="mt-[8px] w-full text-[#f23030]">
+              <span class="text-[#f23030]">{{ getContentError() }}</span>
+            </nz-form-control>
+            <div *ngIf="!getContentError()" class="mt-[8px] h-[18px] w-full"></div>
+          </form>
+        </div>
+      </div>
+
+    </ng-template>
+
+    <ng-template #right>
+      <div class="flex items-center justify-center">
+
+      </div>
+    </ng-template>
+  </meta-acc-block>
+</div>

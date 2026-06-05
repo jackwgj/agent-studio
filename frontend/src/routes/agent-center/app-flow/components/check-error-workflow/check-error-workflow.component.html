@@ -1,0 +1,69 @@
+<nz-drawer
+  #checkerrorworkflowDrawer
+  [nzVisible]="visible"
+  [nzPlacement]="'right'"
+  [nzWidth]="400"
+  [nzMaskClosable]="false"
+  [nzCloseOnNavigation]="false"
+  [nzClosable]="false"
+  [nzWrapClassName]="'check-error-workflow-drawer'"
+>
+  <ng-container *nzDrawerContent>
+    <div class="drawer-content">
+      <div class="header">
+        <div>{{ modalTitle }}</div>
+        <span class="close-icon" (click)="onClose()">
+          <nz-icon nzType="close" nzTheme="outline" />
+        </span>
+      </div>
+
+      <div class="body">
+        <nz-alert
+          *ngIf="errorTip"
+          class="!w-full"
+          nzType="error"
+          [nzMessage]="errorTipContent"
+        ></nz-alert>
+        <ng-template #errorTipContent>
+          <div [innerHTML]="errorTip"></div>
+        </ng-template>
+
+        <div
+          *ngFor="let item of errorList; let i = index"
+          class="card"
+          (click)="cardClick(item, i)"
+          [class]="clickItem.index === i ? 'card-click' : ''"
+        >
+          <div class="card-row">
+            <img alt="" [src]="item.node.img" class="card-row-title-icon-normal" />
+            <div class="card-row-title-text">{{ item.node.name }}</div>
+            <div style="margin-left: auto">
+              <nz-icon
+                *ngIf="!foldStatus[item.node.id]"
+                (click)="setFoldStatus($event, item.node.id, true)"
+                nzType="down"
+                nzTheme="outline"
+              ></nz-icon>
+              <nz-icon
+                *ngIf="foldStatus[item.node.id]"
+                (click)="setFoldStatus($event, item.node.id, false)"
+                nzType="up"
+                nzTheme="outline"
+              ></nz-icon>
+            </div>
+          </div>
+          <ng-container *ngIf="foldStatus[item.node.id]">
+            <div *ngFor="let itemError of item.error" class="card-row">
+              <nz-icon
+                class="card-row-title-icon-warring"
+                nzType="warning"
+                nzTheme="outline"
+              ></nz-icon>
+              <div class="card-row-text">{{ itemError.errtext }}</div>
+            </div>
+          </ng-container>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+</nz-drawer>

@@ -1,0 +1,168 @@
+#skill-config {
+  .common-inline-bolck {
+    display: inline-block;
+  }
+
+  .tool-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    line-height: 42px;
+    padding: 0px 12px 0px 12px;
+
+    &:hover {
+      background: #EEF0F5;
+    }
+
+    .left {
+      width: calc(100% - 54px);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+
+      .title-text {
+        font-weight: 600;
+      }
+
+      .skill-collapsed-icon {
+        font-size: 16px;
+      }
+    }
+
+    .right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+  }
+
+  .intelligent-add-border,
+  .add-skill-icon {
+    border-radius: 6px;
+    padding: 4px;
+    cursor: pointer;
+
+    &:hover {
+      border-radius: 4px;
+      background-color: #DFE1E6;
+    }
+  }
+
+  .create-icon {
+    color: #575D6C !important;
+  }
+
+  .skill-list {
+    display: flex !important;
+    flex-direction: column;
+    gap: 8px;
+    padding: 0 12px;
+
+    .skill-limit-tip {
+      color: #8A8E99;
+      font-size: 12px;
+    }
+
+    .no-skill-tip {
+      width: 100%;
+    }
+
+    .common-item {
+      padding: 10px 16px 10px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background-color: #FAFAFA;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .invalid-item {
+      background-color: #FFF;
+
+      .invalid-text {
+        color: #ADB0B8 !important;
+      }
+
+      .invalid-icon {
+        filter: grayscale(1);
+        opacity: .5;
+      }
+    }
+
+    .skill-item {
+      background-color: #FAFAFA;
+
+      &:hover {
+        background-color: #FFFFFF;
+      }
+    }
+    .skill-common-icon {
+      width: 28px !important;
+      height: 28px !important;
+      border-radius: 8px;
+    }
+
+    .right-icon {
+      display: inline-block;
+    }
+
+    .skill-item-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+    }
+
+    .skill-info {
+      flex: 1;
+      display: flex;
+      position: relative;
+      height: 36px;
+
+      .skill-name {
+        font-size: 12px;
+        font-weight: 400;
+        width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        line-height: 18px;
+        letter-spacing: 0;
+        text-align: left;
+        position: absolute;
+        flex: 1;
+        display: flex;
+        align-items: center;
+
+        .update-skill-icon {
+          cursor: pointer;
+          width: 40px;
+          height: 16px;
+        }
+
+        .warning-skill-icon {
+          cursor: pointer;
+          width: 24px;
+          height: 16px;
+        }
+      }
+
+      .skill-desc {
+        color: #575D6C;
+        font-size: 12px;
+        font-weight: 400;
+        line-height: 18px;
+        letter-spacing: 0;
+        text-align: left;
+        width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        position: absolute;
+        flex: 1;
+        top: 18px;
+        white-space: nowrap;
+      }
+    }
+  }
+}

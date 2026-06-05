@@ -1,0 +1,28 @@
+<svg width="64.000000" height="64.000000" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+	<desc>
+			Created with Pixso.
+	</desc>
+	<defs>
+		<clipPath id="clip1_388">
+			<rect width="36.000000" height="36.000000" transform="translate(14.000000 14.000000)" fill="white" fill-opacity="0"/>
+		</clipPath>
+		<linearGradient x1="63.999992" y1="-0.000004" x2="0.000008" y2="64.000000" id="paint_linear_1_387_0" gradientUnits="userSpaceOnUse">
+			<stop stop-color="#FE9237"/>
+			<stop offset="1.000000" stop-color="#F5BE69"/>
+		</linearGradient>
+	</defs>
+	<rect rx="10.909091" width="64.000000" height="64.000000" fill="url(#paint_linear_1_387_0)" fill-opacity="1.000000"/>
+	<g clip-path="url(#clip1_388)">
+		<mask id="mask1_390" mask-type="alpha" maskUnits="userSpaceOnUse" x="14.000000" y="14.000000" width="36.000000" height="36.000000">
+			<path d="M31.1 14L31.1 32.89L50 32.89L50 50L14 50L14 14L31.1 14ZM50 14L50 31.09L32.9 31.09L32.9 14L50 14Z" fill="#FFFFFF" fill-opacity="1.000000" fill-rule="nonzero"/>
+		</mask>
+		<g mask="url(#mask1_390)">
+			<circle cx="32.000122" cy="32.000000" r="16.650002" fill="#FFFFFF" fill-opacity="1.000000"/>
+			<circle cx="32.000122" cy="32.000000" r="16.650002" stroke="#FFFFFF" stroke-opacity="1.000000" stroke-width="1.995000" stroke-linejoin="round"/>
+		</g>
+		<path d="M30.19 31.98C30.28 20.94 30.27 15.43 30.18 15.44C21.84 16.35 15.35 23.41 15.35 32C15.35 41.19 22.8 48.65 32 48.65C40.58 48.65 47.65 42.14 48.55 33.79L31.99 33.79C31 33.79 30.19 32.97 30.19 31.98Z" fill="#FFFFFF" fill-opacity="0" fill-rule="evenodd"/>
+		<path d="M30.18 15.44C21.84 16.35 15.35 23.41 15.35 32C15.35 41.19 22.8 48.65 32 48.65C40.58 48.65 47.65 42.14 48.55 33.79L31.99 33.79C31 33.79 30.19 32.97 30.19 31.98C30.28 20.94 30.27 15.43 30.18 15.44Z" stroke="#FFFFFF" stroke-opacity="0" stroke-width="1.995000" stroke-linejoin="round"/>
+		<path d="M48.43 29.29C47.28 22.26 41.72 16.71 34.69 15.56L34.7 29.3L48.43 29.29Z" fill="#FFFFFF" fill-opacity="0" fill-rule="evenodd"/>
+		<path d="M34.69 15.56L34.7 29.3L48.43 29.29C47.28 22.26 41.72 16.71 34.69 15.56Z" stroke="#FFFFFF" stroke-opacity="0" stroke-width="1.995000" stroke-linejoin="round"/>
+	</g>
+</svg>

@@ -1,0 +1,35 @@
+<div class="experience-creation-modal">
+  <div class="modal-body">
+    <form [formGroup]="form">
+      <nz-form-item>
+        <nz-form-label nzRequired>{{ 'name' | i18nextEager }}</nz-form-label>
+        <nz-form-control>
+          <input
+            nz-input
+            formControlName="name"
+            [placeholder]="placeholders[0] | i18nextEager"
+            maxlength="50"
+            class="w-full"
+          />
+        </nz-form-control>
+      </nz-form-item>
+      <nz-form-item>
+        <nz-form-label>{{ 'description' | i18nextEager }}</nz-form-label>
+        <nz-form-control>
+          <textarea
+            nz-input
+            formControlName="description"
+            [placeholder]="placeholders[1] | i18nextEager"
+            maxlength="256"
+            [style.width]="'100%'"
+            [rows]="4"
+          ></textarea>
+        </nz-form-control>
+      </nz-form-item>
+    </form>
+  </div>
+  <div class="modal-footer">
+    <button type="button" nz-button (click)="dismiss()">{{ 'cancel' | i18nextEager }}</button>
+    <button type="button" nz-button nzType="primary" [nzLoading]="loading" (click)="close()" [disabled]="!this.form.get('name')?.value">{{ 'ok' | i18nextEager }}</button>
+  </div>
+</div>

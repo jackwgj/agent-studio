@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="16px" height="16px" viewBox="0 0 16 16" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 61.2 (89653) - https://sketch.com -->
+    <title>icon-16px-line</title>
+    <desc>Created with Sketch.</desc>
+    <g id="页面-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="摄像头-配置算法" transform="translate(-1533.000000, -366.000000)" fill="#C8C8C8" fill-rule="nonzero">
+            <g id="编组-15" transform="translate(1318.000000, 80.000000)">
+                <g id="编组-12" transform="translate(2.000000, 0.000000)">
+                    <g id="编组-6" transform="translate(205.000000, 280.000000)">
+                        <g id="编组-9">
+                            <g id="icon-16px-line" transform="translate(8.000000, 6.000000)">
+                                <path d="M8.54112554,15.9047619 C8.21645022,15.9047619 8,15.6883117 8,15.3636364 L8,-0.458874459 C8,-0.783549784 8.21645022,-1 8.54112554,-1 C8.86580087,-1 9.08225108,-0.783549784 9.08225108,-0.458874459 L9.08225108,15.3636364 C9.08225108,15.6341991 8.86580087,15.9047619 8.54112554,15.9047619 Z" id="路径" transform="translate(8.541126, 7.452381) rotate(-315.000000) translate(-8.541126, -7.452381) "></path>
+                            </g>
+                        </g>
+                    </g>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg>

@@ -1,0 +1,35 @@
+<header class="detail-header-container">
+  <div class="left">
+    <div class="left-title">
+      <div (click)="onClickBack()" class="back-icon-container">
+        <nz-icon nzType="left" nzTheme="outline" class="back-icon" />
+      </div>
+      <div
+        *ngIf="!!icon"
+        [ngClass]="{ 'animate-loading loading-cubic': loading }"
+      >
+        <img *ngIf="!loading" [src]="icon" alt="icon" />
+      </div>
+
+      <div class="title max-w-[calc(100%-40px)]">{{ title }}</div>
+
+      <div *ngIf="showLeftDivider" class="divider"></div>
+
+      <ng-container *ngIf="!!statusBarTemplate">
+        <ng-container *ngTemplateOutlet="statusBarTemplate"></ng-container>
+      </ng-container>
+    </div>
+  </div>
+
+  <div class="right">
+    <ng-container *ngIf="!!opLeftTemplate">
+      <ng-container *ngTemplateOutlet="opLeftTemplate"></ng-container>
+    </ng-container>
+
+    <div *ngIf="!!showDivider" class="divider"></div>
+
+    <ng-container *ngIf="!!opRightTemplate">
+      <ng-container *ngTemplateOutlet="opRightTemplate"></ng-container>
+    </ng-container>
+  </div>
+</header>

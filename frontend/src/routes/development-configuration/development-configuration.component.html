@@ -1,0 +1,32 @@
+<div class="h-full overflow-y-scroll">
+  <div id="development-configuration" style="height: 100%;">
+    <nz-tabset [(nzSelectedIndex)]="selectedIndex" (nzSelectedIndexChange)="handleTabChange($event)">
+      @for(tab of activeTabs; track tab.id) {
+        <nz-tab [nzTitle]="tab.i18nKey | i18nextEager">
+          @if(activeId === tab.id) {
+            @switch(activeId) {
+              @case ('custom-model') {
+                <meta-model-management></meta-model-management>
+              }
+              @case ('route-policy') {
+                <model-route></model-route>
+              }
+              @case ('model-test') {
+                <meta-online-test></meta-online-test>
+              }
+              @case ('message-template') {
+                <information-template></information-template>
+              }
+              @case ('mycredentials') {
+                <model-certification></model-certification>
+              }
+              @default {
+                <meta-model-management></meta-model-management>
+              }
+            }
+          }
+        </nz-tab>
+      }
+    </nz-tabset>
+  </div>
+</div>

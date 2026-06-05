@@ -1,0 +1,262 @@
+<div id="information-template" *ngIf="!isFullScreen">
+  <div class="top-title-area">
+    <div class="title-area-left">
+      <div class="page-title">{{ 'message_template' | i18nextEager }}</div>
+      <div *ngIf="srcData.data?.length > 0">（{{ totalNumber }}）</div>
+    </div>
+    <div class="btn-area">
+      <button nz-button nzType="text" class="guide-collapse-btn" *ngIf="!isShowNoDataGuide&&!isFirstLoading" (click)="isShowGuide = !isShowGuide">
+        <nz-icon [nzType]="isShowGuide ? 'down' : 'up'" />
+        {{ 'create_guide' | i18nextEager }}
+      </button>
+      <button nz-button nzType="default" (click)="importTemplate(importModal)" [disabled]="!subscribeBtnStatus">
+        {{ 'import'|i18nextEager }}
+      </button>
+      <button nz-button nzType="default" (click)="exportTemplate()" [disabled]="checkedList.length === 0 || !subscribeBtnStatus">
+        {{ 'export'|i18nextEager }}
+      </button>
+      <button nz-button nzType="primary" (click)="patchDeleteStructuredMessagesData()" [disabled]="checkedList.length === 0 || !subscribeBtnStatus" class="delete-btn">
+        {{ 'delete'|i18nextEager }}
+      </button>
+      <button nz-button nzType="primary" (click)="showModal('create')" [disabled]="checkedList.length !== 0 || !subscribeBtnStatus">
+        {{ 'create_message_template1'|i18nextEager }}
+      </button>
+    </div>
+  </div>
+
+  <div class="overflow-hidden guide-collapse-content shrink-0" *ngIf="!isShowNoDataGuide&&!isFirstLoading"
+       [ngClass]="{'h-[188px]': isShowGuide, 'h-[0px]': !isShowGuide,'mb-[24px]': isShowGuide}">
+    <app-no-data-guide [isSmall]="true" [type]="'messageTem'"></app-no-data-guide>
+  </div>
+
+  <div class="query-operate" *ngIf="!isShowNoDataGuide&&!isFirstLoading">
+    <nz-input-search class="search-input">
+      <input nz-input [(ngModel)]="searchValue" [placeholder]="'search_and_filter'|i18nextEager" (keyup.enter)="searchList()" />
+    </nz-input-search>
+    <button nz-button nzType="default" class="h-8 w-8 flex items-center justify-center p-0" (click)="getStructuredMessagesListData()">
+      <nz-icon nzType="redo" nzTheme="outline" />
+    </button>
+  </div>
+
+  <nz-spin [nzSpinning]="loading">
+    <div class="min-h-[200px]">
+      <nz-table #basicTable
+                *ngIf="!isFirstLoading"
+                [nzData]="srcData.data"
+                [nzFrontPagination]="false"
+                [nzShowPagination]="false"
+                [nzNoResult]="noDataTpl"
+                nzTableLayout="fixed"
+                class="table-style"
+                [ngStyle]="{'border':isShowNoDataGuide ? '' : '1px solid rgba(240, 240, 240, 1)'}">
+        <thead *ngIf="!isShowNoDataGuide">
+        <tr>
+          <th [nzChecked]="allChecked" [nzIndeterminate]="indeterminate" (nzCheckedChange)="onAllChecked($event)" nzWidth="50px"></th>
+          <th>{{ listColumns[1].title }}</th>
+          <th>{{ listColumns[2].title }}</th>
+          <th>{{ listColumns[3].title }}</th>
+          <th>{{ listColumns[4].title }}</th>
+          <th [nzWidth]="listColumns[5].width">{{ listColumns[5].title }}</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr *ngFor="let row of basicTable.data; trackBy: trackByFn;" style="height:64px;"
+            [ngClass]="{'ti3-selected-tr': checkedList.includes(row)}">
+          <td [nzChecked]="checkedList.includes(row)" [nzDisabled]="row.disabled" (nzCheckedChange)="onItemChecked(row, $event)"></td>
+          <td nzEllipsis>{{ row.name }}</td>
+          <td nzEllipsis>{{ row.content | json }}</td>
+          <td nzEllipsis>{{ row.category }}</td>
+          <td nzEllipsis>{{ row.visibility }}</td>
+          <td>
+            <button nz-button nzType="link"
+                    [disabled]="!subscribeBtnStatus"
+                    (click)="listAction({key: 'edit'}, row)"
+                    style="padding: 0;">
+              {{ 'edit' | i18nextEager }}
+            </button>
+
+            <nz-divider nzType="vertical"></nz-divider>
+
+            <button nz-button nzType="link"
+                    [disabled]="!subscribeBtnStatus"
+                    (click)="listAction({key: 'delete'}, row)"
+                    style="padding: 0;">
+              {{ 'delete' | i18nextEager }}
+            </button>
+          </td>
+        </tr>
+        </tbody>
+      </nz-table>
+
+      <ng-template #noDataTpl>
+        <div class="list-no-data flex items-center justify-center">
+          <app-new-common-no-data-with-btn
+            *ngIf="!searchNameIsEmpty"
+            [type]="'filterNoData'"
+            [firstLineData]="'no_data' | i18nextEager"
+            [tutorialType]="'messageTem'"
+            [noDataBtnStr]="'create_message_template1' | i18nextEager"
+            (create)="showModal('create')"
+            (clear)="handleClickClearSearch()"
+          />
+          <app-no-data-guide
+            *ngIf="searchNameIsEmpty"
+            [type]="'messageTem'"
+          ></app-no-data-guide>
+        </div>
+      </ng-template>
+      <div class="flex justify-end mt-[24px]" *ngIf="totalNumber > 10">
+         <nz-pagination [(nzPageIndex)]="currentPage"
+                        [nzTotal]="totalNumber"
+                        [(nzPageSize)]="pageSize.size"
+                        [nzPageSizeOptions]="pageSize.options"
+                        nzShowSizeChanger
+                        (nzPageIndexChange)="getStructuredMessagesListData()"
+                        (nzPageSizeChange)="searchList()">
+         </nz-pagination>
+      </div>
+    </div>
+  </nz-spin>
+</div>
+
+<nz-drawer [nzVisible]="isDrawerVisible" [nzWidth]="700" [nzTitle]="modalTypeName" [nzFooter]="drawerFooter" (nzOnClose)="hideModal()">
+  <ng-container *nzDrawerContent>
+    <form nz-form [formGroup]="formGroup" nzLayout="vertical">
+      <nz-form-item>
+        <nz-form-label nzRequired>{{ 'message_name'|i18nextEager }}</nz-form-label>
+        <nz-form-control [nzErrorTip]="nameErrorTpl">
+          <input nz-input formControlName="name" [placeholder]="'input_message_name'|i18nextEager" maxlength="64" />
+          <ng-template #nameErrorTpl let-control>
+            <ng-container *ngIf="control.hasError('required')">{{ 'validation_name_tip' | i18nextEager }}</ng-container>
+            <ng-container *ngIf="control.hasError('customVerify')">{{ 'validation_name_tip' | i18nextEager }}</ng-container>
+            <ng-container *ngIf="control.hasError('minlength') || control.hasError('maxlength')">{{ 'validation_name_tip' | i18nextEager }}</ng-container>
+          </ng-template>
+        </nz-form-control>
+      </nz-form-item>
+
+      <nz-form-item>
+        <nz-form-label>{{ 'message_category'|i18nextEager }}</nz-form-label>
+        <nz-form-control>
+          <nz-radio-group [(ngModel)]="messageClassSelectedText" [ngModelOptions]="{ standalone: true }" nzButtonStyle="solid">
+            <label nz-radio-button *ngFor="let item of messageClassItems" [nzValue]="item.text" [nzDisabled]="item.disabled"
+                   [nz-tooltip]="item.tipContent" [nzTooltipPlacement]="item.tipPosition || 'top'">
+              {{ item.text }}
+            </label>
+          </nz-radio-group>
+          <div *ngIf="messageClassSelectedText === ('exception'|i18nextEager)" class="exception-tip mt-2 text-gray-500">
+            {{ 'exception_referenced_tip'|i18nextEager }}
+          </div>
+        </nz-form-control>
+      </nz-form-item>
+
+      <nz-form-item>
+        <nz-form-label>{{ 'visible_scope'|i18nextEager }}</nz-form-label>
+        <nz-form-control>
+          <nz-radio-group [(ngModel)]="visibilitySelected" [ngModelOptions]="{ standalone: true }">
+            <label nz-radio *ngFor="let item of visibilityItems" [nzValue]="item.value">
+              {{ item.label }}
+            </label>
+          </nz-radio-group>
+        </nz-form-control>
+      </nz-form-item>
+
+      <nz-form-item>
+        <nz-form-label style="width: 100%;">
+          <div class="message-body flex justify-between items-center w-full">
+            <div>
+              {{ 'message_body'|i18nextEager }}
+              <nz-icon nzType="question-circle" nzTheme="outline" [nz-tooltip]="'json_message_body'|i18nextEager" class="ml-1" />
+            </div>
+            <nz-icon nzType="fullscreen" nzTheme="outline" (click)="expandScreen()" class="expand-icon cursor-pointer" />
+          </div>
+        </nz-form-label>
+        <nz-form-control>
+          <div class="json-content" style="height: 400px; border: 1px solid #d9d9d9; border-radius: 4px; padding: 4px;">
+            <ngx-monaco-editor
+              #editorCmp
+              *ngIf="showEdit"
+              style="height: 100%; width: 100%; display: block;"
+              [options]="editorOptions"
+              [(ngModel)]="jsonData"
+              [ngModelOptions]="{ standalone: true }">
+            </ngx-monaco-editor>
+          </div>
+        </nz-form-control>
+      </nz-form-item>
+    </form>
+  </ng-container>
+</nz-drawer>
+
+<ng-template #drawerFooter>
+  <div class="flex justify-end gap-2">
+    <button nz-button (click)="hideModal()">{{ 'cancel'|i18nextEager }}</button>
+    <button nz-button nzType="primary" (click)="createOrEdit()">{{ 'ok'|i18nextEager }}</button>
+  </div>
+</ng-template>
+
+<div class="full-screen-json-input" *ngIf="isFullScreen" style="background: #fff; padding: 20px;">
+  <div class="top-header flex justify-between items-center mb-4">
+    <div class="top-title text-lg font-bold">{{ 'message_body'|i18nextEager }}</div>
+    <div>
+      <nz-icon nzType="close" nzTheme="outline" (click)="closeScreen()" class="top-icon cursor-pointer"></nz-icon>
+    </div>
+  </div>
+  <div class="json-border" style="height: calc(100vh - 120px); border: 1px solid #d9d9d9; border-radius: 4px; padding: 4px;">
+    <ngx-monaco-editor
+      *ngIf="showEdit"
+      #jsonEditor
+      style="height: 100%; width: 100%; display: block;"
+      [options]="editorOptions"
+      [(ngModel)]="jsonData"
+      [ngModelOptions]="{ standalone: true }">
+    </ngx-monaco-editor>
+  </div>
+</div>
+
+<ng-template #importModal let-modalRef>
+  <div>
+    <nz-alert nzType="info" [nzMessage]="alertMsg" nzShowIcon></nz-alert>
+    <ng-template #alertMsg>
+      <span>{{ 'import_intent_pkg_desc_3'|i18nextEager }}</span>
+      <a class="pointer ml-2" (click)="downloadTemplate()">{{ 'download_template'|i18nextEager }}</a>
+    </ng-template>
+  </div>
+
+  <div style="margin-top: 12px">
+    <nz-upload [nzBeforeUpload]="beforeUpload" [nzAccept]="'.xlsx'" [nzShowUploadList]="false">
+      <button nz-button>
+        <nz-icon nzType="upload" />
+        {{ informationTemplateFile?.name || '选择文件' }}
+      </button>
+    </nz-upload>
+  </div>
+
+  <nz-table *ngIf="importSrcData.data.length > 0" style="margin-top: 12px"
+            [nzData]="importSrcData.data" [nzShowPagination]="false" nzSize="small">
+    <thead>
+    <tr>
+      <th *ngFor="let column of importColumns">{{ column.title }}</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr *ngFor="let row of importSrcData.data">
+      <td nzEllipsis>
+        <nz-badge [nzStatus]="row.status === 'success' ? 'success' : 'error'"
+                  [nzText]="uploadStatusMap.get(row.status)">
+        </nz-badge>
+      </td>
+      <td nzEllipsis>{{ row.name }}</td>
+      <td nzEllipsis>{{ row.content | json }}</td>
+      <td nzEllipsis>{{ row.category }}</td>
+      <td nzEllipsis>{{ row.visibility }}</td>
+    </tr>
+    </tbody>
+  </nz-table>
+
+  <div class="flex justify-end gap-2 mt-6">
+    <button nz-button (click)="modalRef.destroy()">{{ 'cancel'|i18nextEager }}</button>
+    <button nz-button nzType="primary" [disabled]="!informationTemplateFile" (click)="processImport(modalRef)">
+      {{ 'import'|i18nextEager }}
+    </button>
+  </div>
+</ng-template>

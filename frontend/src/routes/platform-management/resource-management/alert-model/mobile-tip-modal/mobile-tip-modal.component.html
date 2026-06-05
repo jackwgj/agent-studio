@@ -1,0 +1,23 @@
+<div>
+  <nz-alert
+    nzType="success"
+    *ngIf="open"
+    class="success_alert"
+    [nzShowIcon]="true"
+    [nzMessage]="'copy_url_success' |i18nextEager"
+  />
+  <span>{{'mobile_modal_title'| i18nextEager }}</span>
+</div>
+<div class="mobile_modal_body">
+  <span class="info">{{'mobile_modal_info'| i18nextEager }}</span>
+  <div class="mt16">
+    <button type="button" nzType="primary" class="button" nz-button (click)="close()">
+      {{'mobile_modal_btn_ok'| i18nextEager }}
+    </button>
+  </div>
+  <div class="mt16">
+    <button id="button-hasborder" class="text-button" type="button" nz-button (click)="copyUrl()">
+      {{'mobile_modal_btn_copy'| i18nextEager }}
+    </button>
+  </div>
+</div>

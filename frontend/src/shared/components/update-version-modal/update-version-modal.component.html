@@ -1,0 +1,15 @@
+<div>
+  <div class="flex items-center gap-[10px]">
+    <img alt="" [src]="changeUrl('assets/prompt/alert.svg')" />
+    {{ 'update_version_modal_header' | i18nextEager }}
+  </div>
+</div>
+<div>
+  <div class="text-[#808080]">{{ 'update_version_modal_body' | i18nextEager }}</div>
+</div>
+<div class="btn-group" style="margin-top: 16px">
+  <button type="button" tiButton (click)="dismiss()">{{ 'cancel' | i18nextEager }}</button>
+  <button type="button" tiButton color="danger" (click)="updateVersion()">
+    {{ 'update_version' | i18nextEager }}
+  </button>
+</div>

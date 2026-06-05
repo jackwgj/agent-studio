@@ -1,0 +1,327 @@
+<div id="knowledge-base-list">
+  <div class="h-full w-full" [ngClass]="kbAbilitiesService.isDevelopSpace ? 'develop-space-page' :''" style="padding: 0;">
+    <div class="main-content h-full">
+
+      <nz-tabset class="h-[30px]" [(nzSelectedIndex)]="currentSelectTabIndex" (nzSelectedIndexChange)="onTabIndexChange($event)">
+        <nz-tab class="text-[14px]" *ngFor="let tab of tabs" [nzTitle]="tab.title"></nz-tab>
+      </nz-tabset>
+
+      <div *ngIf="currentSelectTab===tabs[0].id" class="create-list mt-5">
+        <div class="mb-[24px] flex w-full" style="justify-content: space-between;align-items: center">
+          <span class="text-[20px] font-bold leading-[30px]">
+            {{ 'route_knowledge_management'|i18nextEager }}
+            <span class="ml-2" *ngIf="total">({{total}})</span>
+          </span>
+          <div class="flex gap-[16px]">
+            <div
+              *ngIf="!isNoDataGuideShow && !isFirstLoading"
+              class="guide-collapse-btn flex items-center cursor-pointer"
+              (click)="isShowGuide = !isShowGuide"
+            >
+              <span nz-icon [nzType]="isShowGuide ? 'down' : 'up'" class="mr-[4px]"></span>
+              {{ 'create_guide' | i18nextEager }}
+            </div>
+            <button nz-button nzType="primary" [disabled]="kbAbilitiesService.isResourceDisabled && !is_develop_space"
+                    (click)="newAddKnowledge()">{{ 'create_a_new_knowledge_base'|i18nextEager }}</button>
+          </div>
+        </div>
+
+        <div class="overflow-hidden guide-collapse-content shrink-0 " *ngIf="!isNoDataGuideShow&&!isFirstLoading"
+             [ngClass]="{'h-[188px]': isShowGuide, 'h-[0px]': !isShowGuide,'mb-[24px]': isShowGuide}">
+          <app-no-data-guide [isSmall]="true" [type]="'knowledge'"></app-no-data-guide>
+        </div>
+
+        <div class="create-top-operate" *ngIf="!isFirstLoading">
+          <ng-container *ngIf="!isNoDataGuideShow">
+            <nz-select style="width: 150px; margin-right: 8px;" [(ngModel)]="typeValue" (ngModelChange)="getKBInSearch()" [nzPlaceHolder]="'select_type'|i18nextEager">
+              <nz-option *ngFor="let opt of allTypeOptions" [nzValue]="opt" [nzLabel]="opt.label"></nz-option>
+            </nz-select>
+
+            <div class="create-search" style="flex: 1; display: flex; gap: 8px; margin-right: 8px;">
+              <nz-input-search (nzSearch)="getKBInSearch()" style="flex: 1;">
+                <input nz-input [(ngModel)]="searchName" (ngModelChange)="onSearchNameChange($event)" [placeholder]="emptyPlaceholder" />
+              </nz-input-search>
+            </div>
+
+            <button nz-button nzType="default" (click)="getData()">
+              <nz-icon nzType="redo" nzTheme="outline" />
+            </button>
+
+            <div class="create-switch-card">
+              <img alt="" (click)="getList()" [src]="changeUrl('assets/knowledge-center/listType.svg')"
+                   [class]="isList ? 'selected-img' : ''" />
+              <img alt="" (click)="getCard()" [src]="changeUrl('assets/knowledge-center/cardType.svg')"
+                   [class]="!isList ? 'selected-img' : ''" />
+            </div>
+          </ng-container>
+        </div>
+
+        <nz-spin [nzSpinning]="loading" class="h-full">
+          <div class="create-list-card-area min-h-[200px] h-full">
+            <div class="h-full flex items-center justify-center" *ngIf="!isFirstLoading && isNoDataGuideShow">
+              <ng-container *ngTemplateOutlet="noData"></ng-container>
+            </div>
+            <ng-container *ngIf="!isFirstLoading && !isNoDataGuideShow">
+              <div class="   overflow-y-auto max-h-[calc(100vh-550px)]">
+                <nz-table class="table-style"
+                          [ngClass]="{'table-border': !isNoDataGuideShow}"
+                          #listTable
+                          *ngIf="isList"
+                          [nzData]="srcData.data"
+                          [nzShowPagination]="false"
+                          [nzFrontPagination]="false"
+                          [nzNoResult]="noData">
+                  <thead>
+                  <tr *ngIf="!isNoDataGuideShow" style="height:48px;">
+                    <th *ngFor="let column of listColumns" [nzWidth]="column.width">{{ column.title }}</th>
+                  </tr>
+                  </thead>
+                  <tbody *ngIf="listTable.data.length > 0">
+                  <tr *ngFor="let row of listTable.data; trackBy: trackByFn" style="height:64px;">
+                    <td><img alt="" [src]="row.icon" class="icon-set"></td>
+                    <td>
+                      <span *ngIf="row.type === 'external'" class="flex items-center">
+                        <span nz-tooltip [nzTooltipTitle]="row.name" style="max-width: 150px;" class="truncate">
+                          {{row.name}}
+                        </span>
+                        <span  nz-typography nzCopyable [nzCopyText]="row.source?.detail_page_url" nz-tooltip [nzTooltipTitle]="'copy_knowledge_base_url'|i18nextEager" class="ml-1"></span>
+                      </span>
+                      <a class="cursor-pointer w-full" *ngIf="row.type !== 'external'" (click)="goKnowledgeDetail(row)">
+                        {{ row.name }}
+                      </a>
+                    </td>
+                    <td>
+                      <nz-tag [nzColor]="knowledgeBaseSourceMap.get(row.type)?.color">
+                        {{ knowledgeBaseSourceMap.get(row.type)?.label }}
+                      </nz-tag>
+                    </td>
+                    <td>{{ knowledgeBaseService.getKbSource(row) || '--' }}</td>
+                    <td *ngIf="configServ.isSupportSharedKb()">{{(KB_SHARE_SCOPE_NAME_MAP.get(row?.share_scope) ?? '--') | i18nextEager}}</td>
+                    <td>
+                      <div style="display: flex; align-items: center;">
+                        <span>{{ row.knowledge_base_id }}</span>
+                        <span nz-typography nzCopyable [nzCopyText]="row.knowledge_base_id" class="ml-1"></span>
+                      </div>
+                    </td>
+                    <td>{{ row.description || '--' }}</td>
+                    <td>
+                      <nz-badge *ngIf="knowledgeBaseStatusMap.get(row.status) && !isStatusError(row)"
+                                [nzStatus]="getBadgeStatus(knowledgeBaseStatusMap.get(row.status).icon)"
+                                [nzText]="knowledgeBaseStatusMap.get(row.status).text">
+                      </nz-badge>
+                      <nz-badge *ngIf="isStatusError(row)"
+                                nzStatus="error" nz-tooltip [nzTooltipTitle]="i18n.transform('knowledge_base_error_tip',{name:row.name})">
+                        <span style="border-bottom: 1px dashed #191919">{{ 'not_available'|i18nextEager }}</span>
+                      </nz-badge>
+                    </td>
+                    <td>{{ row.last_update_user_name }}</td>
+                    <td>{{ row.update_time | formateTime }}</td>
+                    <td>
+                      <button nz-button nzType="text" nz-dropdown [nzDropdownMenu]="menu">
+                        <span nz-icon nzType="more"></span>
+                      </button>
+                      <nz-dropdown-menu #menu="nzDropdownMenu">
+                        <ul nz-menu>
+                          <ng-container *ngFor="let item of row.menu">
+                            <li nz-menu-item [nzDisabled]="item.disabled" (click)="!item.disabled && listAction(item, row)">
+                              {{ item.label }}
+                            </li>
+                          </ng-container>
+                        </ul>
+                      </nz-dropdown-menu>
+                    </td>
+                  </tr>
+                  </tbody>
+                </nz-table>
+
+                <ng-container>
+                  <div class="show-card-list kb-cards" *ngIf="!isList">
+                    <kb-card-display
+                      [kbs]="normalizeKbs"
+                      [displayConfig]="cardDisplayConfig"
+                      (operationCallEmit)="queryCreateList()"/>
+                    <div class="card-no-data" *ngIf="srcData.data.length === 0 && loading === false">
+                      <ng-container *ngTemplateOutlet="noData"></ng-container>
+                    </div>
+                  </div>
+                </ng-container>
+              </div>
+              <div class="flex-right">
+                <nz-pagination class="page-area card-page"
+                               *ngIf="total > 10"
+                               [nzTotal]="total"
+                               [nzPageIndex]="isList ? knowledgeBaseService.listCurrentPage: knowledgeBaseService.cardCurrentPage"
+                               [nzPageSize]="isList ? listPageSize.size : cardPageSize.size"
+                               [nzPageSizeOptions]="isList ? listPageSize.options : cardPageSize.options"
+                               nzShowSizeChanger
+                               (nzPageIndexChange)="createPageUpdate({currentPage: $event, size: isList ? listPageSize.size : cardPageSize.size})"
+                               (nzPageSizeChange)="createPageUpdate({currentPage: 1, size: $event})" />
+              </div>
+            </ng-container>
+
+          </div>
+        </nz-spin>
+
+        <knowledge-base-edit (getList)="queryCreateList()" #knowledgeBaseEdit></knowledge-base-edit>
+        <select-create-type (openDefaultKnowledgeBase)="openHalfModel()"
+                            (openThirdPartyKnowledgeBase)="createThirdPartyRef.showDrawer()"
+                            (openAccessKnowledgeBase)="openAccessKnowledgeBase()"
+                            (openDefaultConfigModal)="openDefaultConfigModal($event)"
+                            #selectCreateType>
+        </select-create-type>
+        <create-third-party (openAccessKnowledgeBase)="openAccessKnowledgeBase()"
+                            (getList)="queryCreateList()"
+                            #createThirdPartyRef></create-third-party>
+        <meta-default-config-modal #defaultConfigModalRef></meta-default-config-modal>
+      </div>
+
+      <div *ngIf="currentSelectTab===tabs[1].id" class="access-list mt-5 h-full">
+        <div class="mb-[24px] flex w-full" style="justify-content: space-between">
+          <span class="text-[20px] font-bold leading-[30px]">
+            {{ 'external_knowledge_base_connection'|i18nextEager }}
+            <span class="ml-2" *ngIf="accessTotal">({{accessTotal}})</span>
+          </span>
+          <div class="flex gap-[16px]">
+            <div
+              *ngIf="!isNoDataGuideShow && !isFirstLoading"
+              class="guide-collapse-btn flex items-center cursor-pointer"
+              (click)="isShowGuide = !isShowGuide"
+            >
+              <span nz-icon [nzType]="isShowGuide ? 'down' : 'up'" class="mr-[4px]"></span>
+              {{ 'create_guide' | i18nextEager }}
+            </div>
+            <button nz-button nzType="primary" [disabled]="kbAbilitiesService.isResourceDisabled && !is_develop_space" (click)="connectExternal();">
+              {{ 'connect_external_knowledge_base'|i18nextEager }}
+            </button>
+          </div>
+        </div>
+
+        <div class="overflow-hidden guide-collapse-content shrink-0 " *ngIf="!isNoDataGuideShow&&!isFirstLoading"
+             [ngClass]="{'h-[188px]': isShowGuide, 'h-[0px]': !isShowGuide,'mb-[24px]': isShowGuide}">
+          <app-no-data-guide [isSmall]="true" [type]="'knowledge'"></app-no-data-guide>
+        </div>
+
+        <div class="access-top-operate" *ngIf="!isFirstLoading">
+          <ng-container *ngIf="!isNoDataGuideShow">
+            <div class="access-search" style="flex: 1; display: flex; gap: 8px; margin-right: 8px;">
+              <nz-input-search (nzSearch)="getKBAccessInSearch()" style="flex: 1;">
+                <input nz-input [(ngModel)]="accessSearchName" (ngModelChange)="onAccessSearchNameChange($event)" [placeholder]="accessPlaceholder" />
+              </nz-input-search>
+            </div>
+
+            <button nz-button nzType="default" (click)="queryAccessList()">
+              <span nz-icon nzType="reload"></span>
+            </button>
+
+            <div class="access-switch-card">
+              <img alt="" (click)="getAccessList()" [src]="changeUrl('assets/knowledge-center/listType.svg')"
+                   [class]="knowledgeBaseService.isAccessShowList ? 'selected-img' : ''" />
+              <img alt="" (click)="getAccessCard()" [src]="changeUrl('assets/knowledge-center/cardType.svg')"
+                   [class]="!knowledgeBaseService.isAccessShowList ? 'selected-img' : ''" />
+            </div>
+          </ng-container>
+        </div>
+
+        <nz-spin [nzSpinning]="accessLoading">
+          <div class="access-list-card-area min-h-[200px] h-full" [ngClass]="kbAbilitiesService.isDevelopSpace  ? '' :'knowledge-base-page-access'">
+            <div class="h-full flex items-center justify-center" *ngIf="!isFirstLoading && isNoDataGuideShow">
+              <ng-container *ngTemplateOutlet="noData"></ng-container>
+            </div>
+            <ng-container *ngIf="!isFirstLoading && !isNoDataGuideShow">
+              <div class="   overflow-y-auto max-h-[calc(100vh-550px)]">
+                <nz-table class="table-style"
+                          [ngClass]="{'table-border': !isNoDataGuideShow}"
+                          #accessListTable
+                          *ngIf="knowledgeBaseService.isAccessShowList"
+                          [nzData]="accessSrcData.data"
+                          [nzShowPagination]="false"
+                          [nzFrontPagination]="false"
+                          [nzNoResult]="noData">
+                  <thead>
+                  <tr *ngIf="!isNoDataGuideShow" style="height:48px;">
+                    <th *ngFor="let column of accessListColumns" [nzWidth]="column.width">{{ column.title }}</th>
+                  </tr>
+                  </thead>
+                  <tbody *ngIf="accessListTable.data.length > 0">
+                  <tr *ngFor="let row of accessListTable.data" style="height:64px;">
+                    <td><img alt="" [src]="row.icon" class="icon-set"></td>
+                    <td>{{ row.name }}</td>
+                    <td>{{ row.connector_name }}</td>
+                    <td>{{ row.description }}</td>
+                    <td>
+                      <nz-badge *ngIf="knowledgeBaseStatusMap.get(row.status)"
+                                [nzStatus]="getBadgeStatus(knowledgeBaseStatusMap.get(row.status).icon)"
+                                [nzText]="knowledgeBaseStatusMap.get(row.status).text">
+                      </nz-badge>
+                    </td>
+                    <td>{{ row.update_user_name }}</td>
+                    <td>{{ row.update_time | formateTime }}</td>
+                    <td>
+                      <button nz-button nzType="text" nz-dropdown [nzDropdownMenu]="accessMenu">
+                        <span nz-icon nzType="more"></span>
+                      </button>
+                      <nz-dropdown-menu #accessMenu="nzDropdownMenu">
+                        <ul nz-menu>
+                          <ng-container *ngFor="let item of row.menu" >
+                            <li nz-menu-item [nzDisabled]="item.disabled" (click)="!item.disabled && accessListAction(item, row)">
+                              {{ item.label }}
+                            </li>
+                          </ng-container>
+                        </ul>
+                      </nz-dropdown-menu>
+                    </td>
+                  </tr>
+                  </tbody>
+                </nz-table>
+
+                <ng-container>
+                  <div class="show-card-list" *ngIf="!knowledgeBaseService.isAccessShowList">
+                    <knowledge-base-access-card *ngIf="accessSrcData.data.length !==0"
+                                                [accessKnowledgeListData]="accessSrcData.data"
+                                                (editAccessKnowledgeBase)="editAccessKnowledgeBase($event)"
+                                                (deleteAccessKnowledgeBase)="deleteAccessKnowledgeBase($event)"
+                                                style="margin-top:20px" />
+                    <div class="card-no-data" *ngIf="accessSrcData.data.length === 0 && accessLoading === false">
+                      <ng-container *ngTemplateOutlet="noData"></ng-container>
+                    </div>
+                  </div>
+                </ng-container>
+              </div>
+              <div class="flex-right">
+                <nz-pagination *ngIf="accessTotal > 10" class="page-area card-page"
+                               [nzTotal]="accessTotal"
+                               [nzPageIndex]="knowledgeBaseService.isAccessShowList ? knowledgeBaseService.accessListCurrentPage: knowledgeBaseService.accessCardCurrentPage"
+                               [nzPageSize]="knowledgeBaseService.isAccessShowList ? accessListPageSize.size : accessCardPageSize.size"
+                               [nzPageSizeOptions]="knowledgeBaseService.isAccessShowList ? accessListPageSize.options : accessCardPageSize.options"
+                               nzShowSizeChanger
+                               (nzPageIndexChange)="accessPageUpdate({currentPage: $event, size: knowledgeBaseService.isAccessShowList ? accessListPageSize.size : accessCardPageSize.size})"
+                               (nzPageSizeChange)="accessPageUpdate({currentPage: 1, size: $event})" />
+              </div>
+            </ng-container>
+          </div>
+        </nz-spin>
+      </div>
+    </div>
+  </div>
+</div>
+
+<knowledge-base-exceed-modal #exceedModal></knowledge-base-exceed-modal>
+<kb-source-connection #kbSourceConnection (editSuccess)="queryAccessList()"></kb-source-connection>
+
+<ng-template #noData>
+  <div class="no-data-container">
+    <app-new-common-no-data-with-btn
+      *ngIf="!searchNameIsEmpty"
+      [type]="'filterNoData'"
+      [tutorialType]="'knowledgeBase'"
+      [noDataBtnStr]="createBtnStr"
+      [secondLineData]="noDataTip"
+      (create)="noDataCreate()"
+      (clear)="noDataSearch()"
+    />
+    <app-no-data-guide
+      *ngIf="searchNameIsEmpty"
+      [type]="'knowledge'"
+    ></app-no-data-guide>
+  </div>
+</ng-template>

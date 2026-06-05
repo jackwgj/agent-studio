@@ -1,0 +1,74 @@
+#add-memory-var-halfmodal {
+  .add-var-memory-button {
+    color: rgba(20, 118, 255, 1);
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 18px;
+    letter-spacing: 0px;
+    text-align: left;
+    margin-top: 10px;
+    cursor: pointer;
+    width: 100px;
+  }
+
+  .disable-var-memory {
+    color: rgba(128, 128, 128, 1);
+  }
+
+  .required-style {
+    color: #f23030;
+    padding-left: 4px;
+  }
+  .var-title {
+    line-height: 18px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    font-weight: 600;
+    margin-top: 16px;
+  }
+
+  .var-tips {
+    color: rgba(128, 128, 128, 1);
+    line-height: 18px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    font-size: 12px;
+    font-weight: 400;
+    text-align: left;
+    margin-top: 4px;
+  }
+
+  .create-list-card-area {
+    position: relative;
+
+    .icon-set {
+      height: 22px;
+      width: 22px;
+    }
+
+    .table-show-container {
+      max-height: calc(100vh - 370px);
+    }
+
+    .list-no-data {
+      height: calc(100vh - 390px);
+
+      .show-no-data-tr {
+        background-color: transparent;
+        transition: none;
+      }
+    }
+  }
+
+  .input-param-default {
+    color: rgb(242, 48, 48);
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    line-height: 14px;
+    margin-top: 8px;
+  }
+}
+

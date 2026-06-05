@@ -1,0 +1,619 @@
+<!-- <div class="flex w-full flex-col mb-4">
+  <meta-acc-block
+    class="block w-full"
+    [ngClass]="{'condition-modal':!showFold}"
+    [title]="title"
+  >
+    <ng-template #blockTitle>
+      <div [ngClass]="{'font-bold':showFold}">
+        {{ title }}
+      </div>
+    </ng-template>
+    <ng-template #content>
+      <div class="flex w-full gap-[8px] rounded-lg bg-[#fafafa] mt-4"
+           [ngClass]="{'p-4':entryCondition.conditions.length > 0}">
+        <div
+          *ngIf="entryCondition.conditions.length > 1"
+          class="mb-[22px] mt-[34px] flex w-[42px] flex-col"
+        >
+          <div class="relative flex-1">
+            <div
+              class="absolute bottom-0 left-1/2 right-0 top-2.5 rounded-tl-lg border-0 border-l border-t border-solid border-[#e1e1e1]"
+            ></div>
+          </div>
+          <div
+            (click)="onIfExpChange()"
+            class="relative flex cursor-pointer items-center justify-between rounded-[6px] bg-[#e6f2ff] px-[4px] py-[2px]"
+          >
+            <div class="select-none text-[#1476ff]">
+              {{ entryCondition.logic | i18nextEager }}
+            </div>
+            <tp-icon style="color: #1476ff" name="cloudx-action-switch" />
+          </div>
+          <div class="relative flex-1">
+            <div
+              class="absolute bottom-2.5 left-1/2 right-0 top-0 rounded-bl-lg border-0 border-b border-l border-solid border-[#e1e1e1]"
+            ></div>
+          </div>
+        </div>
+
+        <div class="flex-1">
+          <form #inputForm="ngForm">
+            <div class="flex w-full flex-col gap-2">
+              <div
+                class="w-full"
+                *ngFor="
+                      let con of entryCondition.conditions;
+                      index as i;
+                      last as isLast
+                    "
+                [ngClass]="isLast ? 'last-err-place' : ''"
+              >
+                <div class="flex h-fit w-full gap-2">
+                  <div class="mt-4 flex h-fit w-[64px]">
+                    <ti-select
+                      *ngIf="isStrType(con.left.value.content?.[0]?.type)"
+                      [name]="'inputFormCon' + i"
+                      [placeholder]="'select_placeholder' | i18nextEager"
+                      [options]="strConditionOptions"
+                      [(ngModel)]="con.operator"
+                      (ngModelChange)="opChange($event, con);onSave()"
+                      valueKey="value"
+                      panelWidth="auto"
+                      [panelAlign]="'right'"
+                      class="w-full !border-transparent"
+                    >
+                      <ng-template #selected let-item>
+                        <div
+                          class="flex h-full w-fit items-center justify-center"
+                        >
+                          <div
+                            [ngClass]="iconClassNameMap(item.value)"
+                          ></div>
+                        </div>
+                      </ng-template>
+                    </ti-select>
+
+                    <ti-select
+                      *ngIf="!con.left.value.content?.[0]"
+                      [name]="'inputFormCon' + i"
+                      [options]="emptyOps"
+                      [(ngModel)]="emptyModel"
+                      (ngModelChange)="opChange($event, con);onSave()"
+                      valueKey="value"
+                      panelWidth="auto"
+                      [panelAlign]="'right'"
+                      class="w-full !border-transparent"
+                    >
+                      <ng-template #selected let-item>
+                        <div
+                          class="flex h-full w-fit items-center justify-center"
+                        >
+                          <div
+                            [ngClass]="iconClassNameMap(item.value)"
+                          ></div>
+                        </div>
+                      </ng-template>
+                    </ti-select>
+
+                    <ti-select
+                      *ngIf="con.left.value.content?.[0]?.type.startsWith('array')"
+                      [name]="'inputFormCon' + i"
+                      [placeholder]="'select_placeholder' | i18nextEager"
+                      [options]="arrConditionOptions"
+                      [(ngModel)]="con.operator"
+                      (ngModelChange)="opChange($event, con);onSave()"
+                      valueKey="value"
+                      panelWidth="auto"
+                      [panelAlign]="'right'"
+                      class="w-full !border-transparent"
+                    >
+                      <ng-template #selected let-item>
+                        <div
+                          class="flex h-full w-fit items-center justify-center"
+                        >
+                          <div
+                            [ngClass]="iconClassNameMap(item.value)"
+                          ></div>
+                        </div>
+                      </ng-template>
+                    </ti-select>
+
+                    <ti-select
+                      *ngIf="['integer', 'number'].includes(con.left.value.content?.[0]?.type)"
+                      [name]="'inputFormCon' + i"
+                      [placeholder]="'select_placeholder' | i18nextEager"
+                      [options]="numConditionOptions"
+                      [(ngModel)]="con.operator"
+                      (ngModelChange)="opChange($event, con);onSave()"
+                      valueKey="value"
+                      panelWidth="auto"
+                      [panelAlign]="'right'"
+                      class="w-full !border-transparent"
+                    >
+                      <ng-template #selected let-item>
+                        <div
+                          class="flex h-full w-fit items-center justify-center"
+                        >
+                          <div
+                            [ngClass]="iconClassNameMap(item.value)"
+                          ></div>
+                        </div>
+                      </ng-template>
+                    </ti-select>
+
+                    <ti-select
+                      *ngIf="con.left.value.content?.[0]?.type === 'boolean'"
+                      [name]="'inputFormCon' + i"
+                      [placeholder]="'select_placeholder' | i18nextEager"
+                      [options]="boolConditionOptions"
+                      [(ngModel)]="con.operator"
+                      (ngModelChange)="opChange($event, con);onSave()"
+                      valueKey="value"
+                      panelWidth="auto"
+                      [panelAlign]="'right'"
+                      class="w-full !border-transparent"
+                    >
+                      <ng-template #selected let-item>
+                        <div
+                          class="flex h-full w-fit items-center justify-center"
+                        >
+                          <div
+                            [ngClass]="iconClassNameMap(item.value)"
+                          ></div>
+                        </div>
+                      </ng-template>
+                    </ti-select>
+
+                    <ti-select
+                      *ngIf="con.left.value.content?.[0]?.type === 'object'"
+                      [name]="'inputFormCon' + i"
+                      [placeholder]="'select_placeholder' | i18nextEager"
+                      [options]="objConditionOptions"
+                      [(ngModel)]="con.operator"
+                      (ngModelChange)="opChange($event, con);onSave()"
+                      valueKey="value"
+                      panelWidth="auto"
+                      [panelAlign]="'right'"
+                      class="w-full !border-transparent"
+                    >
+                      <ng-template #selected let-item>
+                        <div
+                          class="flex h-full w-fit items-center justify-center"
+                        >
+                          <div
+                            [ngClass]="iconClassNameMap(item.value)"
+                          ></div>
+                        </div>
+                      </ng-template>
+                    </ti-select>
+                  </div>
+
+                  <div class="flex w-[calc(100%-82px)] flex-col gap-2">
+                    <div class="w-full">
+                      <ti-treeselect
+                        style="width: 100%"
+                        [options]="con.left.refs"
+                        [(ngModel)]="con.left.value.content"
+                        (ngModelChange)="leftTypeChange($event, con);"
+                        [placeholder]="'select_placeholder' | i18nextEager"
+                        [name]="'inputFormValue' + i"
+                        [appendToBody]="false"
+                        refSelectedRequire
+                        panelWidth="auto"
+                        [panelAlign]="'right'"
+                        [searchable]="true"
+                        labelKey="name"
+                        (select)="treeSelect()"
+                      >
+                        <ng-template #item let-item let-i="index">
+                          <meta-param-tree [item]="item" />
+                        </ng-template>
+
+                        <ng-template #selected let-item>
+                          <meta-param-tree-selected [item]="item" />
+                        </ng-template>
+                      </ti-treeselect>
+                      <div class="w-full" #nameErrWrapper></div>
+                    </div>
+
+                    <div class="flex w-full">
+                      <div class="w-1/4">
+                        <ti-select
+                          class="combo-select-left h-[28px]"
+                          [name]="'inputFormObj' + i"
+                          style="width: 100%"
+                          [placeholder]="'select_placeholder' | i18nextEager"
+                          [options]="paramSourceOptions"
+                          [(ngModel)]="con.right.value.type"
+                          valueKey="value"
+                          [disabled]="!con.left.value.content?.[0] || ['is_empty', 'is_not_empty', 'eq_true', 'eq_false'].includes(con.operator)"
+                          (ngModelChange)="onTypeChange(con);onSave()"
+                        ></ti-select>
+                      </div>
+
+                      <div class="relative w-3/4">
+                        <input
+                          *ngIf="
+                                  [
+                                    'is_empty',
+                                    'is_not_empty',
+                                    'eq_true',
+                                    'eq_false'
+                                  ].includes(con.operator) || !con.left.value.content?.[0];
+                                  else double
+                                "
+                          class="combo-select-right"
+                          [name]="'inputFormLit' + i"
+                          style="width: 100%"
+                          [placeholder]="'input_placeholder' | i18nextEager"
+                          type="text"
+                          tiText
+                          [(ngModel)]="emptyModel"
+                          [disabled]="true"
+                          (ngModelChange)="changeInputUpdateTime()"
+                          (blur)="inputOnSave()"
+                        />
+
+                        <ng-template #double>
+                          <ng-container
+                            *ngIf="isStrType(con.left.value.content?.[0]?.type); else arr"
+                          >
+                            <ng-container
+                              *ngIf="
+                                    [
+                                      'longer_than',
+                                      'longer_than_or_eq',
+                                      'shorter_than',
+                                      'shorter_than_or_eq'
+                                    ].includes(con.operator)
+                                  "
+                            >
+                              <input
+                                *ngIf="con.right.value.type === 'literal'"
+                                class="combo-select-right"
+                                [name]="'inputFormLit' + i"
+                                style="width: 100%"
+                                [placeholder]="'input_placeholder' | i18nextEager"
+                                type="text"
+                                tiText
+                                [(ngModel)]="con.right.value.content"
+                                [title]="con.right.value.content"
+                                [tiValidation]="{ type: 'changeAlert' }"
+                                [disabled]="!con.left.value.content?.[0]"
+                                nonEmptyValidator
+                                positiveIntStr
+                                [errorMessageWrapper]="ifValueErrWrapper"
+                                (ngModelChange)="changeInputUpdateTime()"
+                                (blur)="inputOnSave()"
+                              />
+
+                              <ti-treeselect
+                                class="combo-select-right"
+                                style="width: 100%"
+                                *ngIf="con.right.value.type === 'ref'"
+                                [options]="con.right.refs"
+                                [(ngModel)]="con.right.value.content"
+                                [placeholder]="'select_placeholder' | i18nextEager"
+                                [name]="'inputFormRef' + i"
+                                [appendToBody]="false"
+                                refSelectedRequire
+                                panelWidth="auto"
+                                [panelAlign]="'right'"
+                                [searchable]="true"
+                                labelKey="name"
+                                (select)="treeSelect()"
+                              >
+                                <ng-template #item let-item let-i="index">
+                                  <meta-param-tree [item]="item" />
+                                </ng-template>
+                              </ti-treeselect>
+                            </ng-container>
+
+                            <ng-container
+                              *ngIf="
+                                    [
+                                      'eq',
+                                      'not_eq',
+                                      'contain',
+                                      'not_contain'
+                                    ].includes(con.operator)
+                                  "
+                            >
+                              <input
+                                *ngIf="con.right.value.type === 'literal'"
+                                class="combo-select-right"
+                                [name]="'inputFormLit' + i"
+                                style="width: 100%"
+                                [placeholder]="'input_placeholder' | i18nextEager"
+                                type="text"
+                                tiText
+                                [(ngModel)]="con.right.value.content"
+                                [title]="con.right.value.content"
+                                [tiValidation]="{ type: 'changeAlert' }"
+                                [disabled]="!con.left.value.content?.[0]"
+                                nonEmptyValidator
+                                [errorMessageWrapper]="ifValueErrWrapper"
+                                (ngModelChange)="changeInputUpdateTime()"
+                                (blur)="inputOnSave()"
+                              />
+
+                              <ti-treeselect
+                                class="combo-select-right"
+                                style="width: 100%"
+                                *ngIf="con.right.value.type === 'ref'"
+                                [options]="con.right.refs"
+                                [(ngModel)]="con.right.value.content"
+                                [placeholder]="'select_placeholder' | i18nextEager"
+                                [name]="'inputFormRef' + i"
+                                [appendToBody]="false"
+                                refSelectedRequire
+                                panelWidth="auto"
+                                [panelAlign]="'right'"
+                                [searchable]="true"
+                                labelKey="name"
+                                (select)="treeSelect()"
+                              >
+                                <ng-template #item let-item let-i="index">
+                                  <meta-param-tree [item]="item" />
+                                </ng-template>
+                              </ti-treeselect>
+                            </ng-container>
+                          </ng-container>
+
+                          <ng-template #arr>
+                            <ng-container
+                              *ngIf="con.left.value.content?.[0]?.type.startsWith('array'); else num"
+                            >
+                              <ng-container
+                                *ngIf="
+                                      [
+                                        'longer_than',
+                                        'longer_than_or_eq',
+                                        'shorter_than',
+                                        'shorter_than_or_eq'
+                                      ].includes(con.operator)
+                                    "
+                              >
+                                <input
+                                  *ngIf="con.right.value.type === 'literal'"
+                                  class="combo-select-right"
+                                  [name]="'inputFormLit' + i"
+                                  style="width: 100%"
+                                  [placeholder]="'input_placeholder' | i18nextEager"
+                                  type="text"
+                                  tiText
+                                  [(ngModel)]="con.right.value.content"
+                                  [title]="con.right.value.content"
+                                  [tiValidation]="{ type: 'changeAlert' }"
+                                  [disabled]="!con.left.value.content?.[0]"
+                                  nonEmptyValidator
+                                  positiveIntStr
+                                  [errorMessageWrapper]="ifValueErrWrapper"
+                                  (ngModelChange)="changeInputUpdateTime()"
+                                  (blur)="inputOnSave()"
+                                />
+
+                                <ti-treeselect
+                                  class="combo-select-right"
+                                  style="width: 100%"
+                                  *ngIf="con.right.value.type === 'ref'"
+                                  [options]="con.right.refs"
+                                  [(ngModel)]="con.right.value.content"
+                                  [placeholder]="'select_placeholder' | i18nextEager"
+                                  [name]="'inputFormRef' + i"
+                                  [appendToBody]="false"
+                                  refSelectedRequire
+                                  panelWidth="auto"
+                                  [panelAlign]="'right'"
+                                  [searchable]="true"
+                                  labelKey="name"
+                                  (select)="treeSelect()"
+                                >
+                                  <ng-template #item let-item let-i="index">
+                                    <meta-param-tree [item]="item" />
+                                  </ng-template>
+                                </ti-treeselect>
+                              </ng-container>
+
+                              <ng-container
+                                *ngIf="
+                                      ['contain', 'not_contain'].includes(
+                                        con.operator
+                                      )
+                                    "
+                              >
+                                <ng-container
+                                  *ngIf="con.right.value.type === 'literal'"
+                                >
+                                  <input
+                                    *ngIf="canFillStr(con.right.type)"
+                                    class="combo-select-right"
+                                    [name]="'inputFormLit' + i"
+                                    style="width: 100%"
+                                    [placeholder]="'input_placeholder' | i18nextEager"
+                                    type="text"
+                                    tiText
+                                    [(ngModel)]="con.right.value.content"
+                                    [title]="con.right.value.content"
+                                    [tiValidation]="{
+                                          type: 'changeAlert'
+                                        }"
+                                    [disabled]="!con.left.value.content?.[0]"
+                                    nonEmptyValidator
+                                    (ngModelChange)="changeInputUpdateTime()"
+                                    (blur)="inputOnSave()"
+                                    [errorMessageWrapper]="
+                                          ifValueErrWrapper
+                                        "
+                                  />
+
+                                  <input
+                                    *ngIf="con.right.type === 'number'"
+                                    class="combo-select-right"
+                                    [name]="'inputFormLit' + i"
+                                    style="width: 100%"
+                                    [placeholder]="'input_placeholder' | i18nextEager"
+                                    type="text"
+                                    tiText
+                                    [(ngModel)]="con.right.value.content"
+                                    (ngModelChange)="changeInputUpdateTime()"
+                                    (blur)="inputOnSave()"
+                                    [title]="con.right.value.content"
+                                    [tiValidation]="{
+                                          type: 'changeAlert'
+                                        }"
+                                    [disabled]="!con.left.value.content?.[0]"
+                                    nonEmptyValidator
+                                    numberStr
+                                    [errorMessageWrapper]="
+                                          ifValueErrWrapper
+                                        "
+                                  />
+
+                                  <input
+                                    *ngIf="con.right.type === 'integer'"
+                                    class="combo-select-right"
+                                    [name]="'inputFormLit' + i"
+                                    style="width: 100%"
+                                    [placeholder]="'input_placeholder' | i18nextEager"
+                                    type="text"
+                                    tiText
+                                    [(ngModel)]="con.right.value.content"
+                                    [title]="con.right.value.content"
+                                    [tiValidation]="{
+                                          type: 'changeAlert'
+                                        }"
+                                    [disabled]="!con.left.value.content?.[0]"
+                                    nonEmptyValidator
+                                    integerStr
+                                    [errorMessageWrapper]="
+                                          ifValueErrWrapper
+                                        "
+                                    (ngModelChange)="changeInputUpdateTime()"
+                                    (blur)="inputOnSave()"
+                                  />
+
+                                  <ti-select
+                                    *ngIf="con.right.type === 'boolean'"
+                                    class="combo-select-right"
+                                    style="width: 100%"
+                                    [name]="'inputFormLit' + i"
+                                    [options]="booleanOps"
+                                    [(ngModel)]="con.right.value.content"
+                                    [disabled]="!con.left.value.content?.[0]"
+                                    [placeholder]="'select_placeholder' | i18nextEager"
+                                    valueKey="value"
+                                    (ngModelChange)="onSave()"
+                                  >
+                                  </ti-select>
+                                </ng-container>
+
+                                <ti-treeselect
+                                  class="combo-select-right"
+                                  style="width: 100%"
+                                  *ngIf="con.right.value.type === 'ref'"
+                                  [options]="con.right.refs"
+                                  [(ngModel)]="con.right.value.content"
+                                  [placeholder]="'select_placeholder' | i18nextEager"
+                                  [name]="'inputFormRef' + i"
+                                  [appendToBody]="false"
+                                  refSelectedRequire
+                                  panelWidth="auto"
+                                  [panelAlign]="'right'"
+                                  [searchable]="true"
+                                  labelKey="name"
+                                  (select)="treeSelect()"
+                                >
+                                  <ng-template #item let-item let-i="index">
+                                    <meta-param-tree [item]="item" />
+                                  </ng-template>
+                                </ti-treeselect>
+                              </ng-container>
+                            </ng-container>
+                          </ng-template>
+
+                          <ng-template #num>
+                            <ng-container
+                              *ngIf="['integer', 'number'].includes(con.left.value.content?.[0]?.type)"
+                            >
+                              <input
+                                class="combo-select-right"
+                                *ngIf="con.right.value.type === 'literal'"
+                                style="width: 100%"
+                                type="text"
+                                tiText
+                                tiNumber
+                                format="n20"
+                                [localeable]="false"
+                                [name]="'inputFormLit' + i"
+                                [title]="con.right.value.content"
+                                [(ngModel)]="con.right.value.content"
+                                nonEmptyValidator
+                                [placeholder]="'input_placeholder' | i18nextEager"
+                                (ngModelChange)="changeInputUpdateTime()"
+                                (blur)="inputOnSave()"
+                              />
+
+                              <ti-treeselect
+                                class="combo-select-right"
+                                style="width: 100%"
+                                *ngIf="con.right.value.type === 'ref'"
+                                [options]="con.right.refs"
+                                [(ngModel)]="con.right.value.content"
+                                [placeholder]="'select_placeholder' | i18nextEager"
+                                [name]="'inputFormRef' + i"
+                                [appendToBody]="false"
+                                refSelectedRequire
+                                panelWidth="auto"
+                                [panelAlign]="'right'"
+                                [searchable]="true"
+                                labelKey="name"
+                                (select)="treeSelect()"
+                              >
+                                <ng-template #item let-item let-i="index">
+                                  <meta-param-tree [item]="item" />
+                                </ng-template>
+                              </ti-treeselect>
+                            </ng-container>
+                          </ng-template>
+                        </ng-template>
+
+                        <div class="ab-err w-full" #ifValueErrWrapper></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <tp-icon
+                    (click)="deleteIfExp(i)"
+                    [style.color]="'#191919'"
+                    [style.cursor]="'pointer'"
+                    class="mt-5 cursor-pointer !text-[16px] text-[#191919]"
+                    name="cloudx-action-delete"
+                  />
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </ng-template>
+
+    <ng-template #right>
+      <div class="flex items-center justify-center">
+        <button
+          (click)="addIfCondition()"
+          class="h-4 w-fit"
+          tiButton
+          [tiTip]="'add_conditions' | i18nextEager"
+          [hasBorder]="false"
+        >
+          <tp-icon
+            class="header-button-icon"
+            name="cloudx-action-create-1"
+          />
+        </button>
+      </div>
+    </ng-template>
+  </meta-acc-block>
+</div> -->

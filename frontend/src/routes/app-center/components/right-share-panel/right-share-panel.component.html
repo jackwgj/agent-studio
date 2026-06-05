@@ -1,0 +1,99 @@
+<div
+  class="wrap translate-[width] box-border flex h-full flex-col gap-1 overflow-auto bg-[#f0f0f0] duration-75 ease-linear"
+  [ngStyle]="{ width: isExpanded ? '460px' : '0' }"
+>
+  <div class="w-full h-full overflow-auto text-[12px] text-[#191919] leading-[18px]">
+    <div class="pt-[48px] pr-[32px] pb-[20px] pl-[32px]">
+      <div class="flex items-center gap-[12px]">
+        <img  class="w-[32px] h-[32px] rounded-lg" [src]="headInfo?.icon" alt="" />
+        <span class="text-[20px] font-semibold leading-[30px]">{{ title }}</span>
+      </div>
+    </div>
+
+    <div class="pr-[32px] pl-[32px] pb-1">
+      <div>{{ headInfo.resource_description }}</div>
+    </div>
+
+    <div class="pt-[20px] pr-[32px] pb-[32px] pl-[32px]">
+      <h3 class="font-semibold mb-[12px]">{{ 'rightsharepanel-1' | i18nextEager }}</h3>
+      <nz-descriptions [nzColumn]="1" [nzLayout]="'vertical'">
+        <nz-descriptions-item [nzTitle]="'rightsharepanel-2' | i18nextEager">{{ shareSource }}</nz-descriptions-item>
+        <nz-descriptions-item [nzTitle]="'rightsharepanel-3' | i18nextEager">{{ 'rightsharepanel-4' | i18nextEager }}</nz-descriptions-item>
+        <nz-descriptions-item [nzTitle]="'rightsharepanel-5' | i18nextEager">{{ shareWorkspace }}</nz-descriptions-item>
+        <nz-descriptions-item [nzTitle]="'rightsharepanel-6' | i18nextEager">{{ shareTime }}</nz-descriptions-item>
+      </nz-descriptions>
+    </div>
+
+    <div class="w-full h-[1px] bg-[#f0f0f0]"></div>
+  </div>
+</div>
+
+<div class="absolute left-[-10px] top-1/2 translate-y-[-50%] z-[999] cursor-pointer" (click)="onToggle()">
+  <!-- close -->
+  <div *ngIf="isExpanded">
+    <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="10.000000" height="60.000000" viewBox="0 0 10 60" fill="none">
+      <desc>Created with Pixso.</desc>
+      <defs>
+        <clipPath id="clip519_189028">
+          <rect id="收起" width="10.000000" height="60.000000" transform="matrix(-1 0 0 1 10 0)" fill="white" fill-opacity="0" />
+        </clipPath>
+      </defs>
+      <g clip-path="url(#clip519_189028)">
+        <path
+          id="形状结合"
+          d="M10 0C10 4 8.15 7.79 5 10.28L3.04 11.82C1.12 13.33 0 15.63 0 18.07L0 41.81C0 44.25 1.12 46.56 3.04 48.07L5 49.61C8.15 52.09 10 55.88 10 59.89L10 0Z"
+          fill="#FFFFFF"
+          fill-opacity="1.000000"
+          fill-rule="evenodd"
+        />
+        <path
+          id="矢量 6"
+          d="M7.89 29.52C8.11 29.74 8.12 30.08 7.94 30.31L7.89 30.37L4.81 33.44C4.64 33.61 4.35 33.61 4.18 33.44C4.02 33.28 4 33.03 4.13 32.86L4.18 32.8L7.04 29.94L4.18 27.08C4.02 26.93 4 26.68 4.13 26.5L4.18 26.45C4.33 26.29 4.58 26.28 4.76 26.4L4.81 26.45L7.89 29.52Z"
+          fill="#808080"
+          fill-opacity="1.000000"
+          fill-rule="evenodd"
+        />
+      </g>
+    </svg>
+  </div>
+
+  <!-- open -->
+  <div *ngIf="!isExpanded">
+    <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="10.000000" height="60.000000" viewBox="0 0 10 60" fill="none">
+      <desc>Created with Pixso.</desc>
+      <defs>
+        <clipPath id="clip519_189052">
+          <rect id="折叠" width="10.000000" height="60.000000" transform="matrix(-1 0 0 1 10 0)" fill="white" fill-opacity="0" />
+        </clipPath>
+      </defs>
+      <g clip-path="url(#clip519_189052)">
+        <path
+          id="形状结合"
+          d="M10 0C10 4 8.15 7.79 5 10.28L3.04 11.82C1.12 13.33 0 15.63 0 18.07L0 41.81C0 44.25 1.12 46.56 3.04 48.07L5 49.61C8.15 52.09 10 55.88 10 59.89L10 0Z"
+          fill="#FFFFFF"
+          fill-opacity="1.000000"
+          fill-rule="evenodd"
+        />
+        <path
+          id="矢量 6"
+          d="M4.1 30.37C3.88 30.15 3.87 29.81 4.05 29.58L4.1 29.52L7.18 26.45C7.35 26.27 7.64 26.27 7.81 26.45C7.97 26.61 7.99 26.85 7.86 27.03L7.81 27.08L4.95 29.94L7.81 32.8C7.97 32.96 7.99 33.21 7.86 33.38L7.81 33.44C7.66 33.6 7.41 33.61 7.23 33.48L7.18 33.44L4.1 30.37Z"
+          fill="#808080"
+          fill-opacity="1.000000"
+          fill-rule="evenodd"
+        />
+      </g>
+    </svg>
+  </div>
+</div>
+
+<ng-template #tipContent let-context="context">
+  <div class="flex flex-col w-[288px] max-h-[260px] p-[4px] bg-[#ffffff]">
+    <div class="mb-[12px]">{{ 'plugin' | i18nextEager }}（{{ headInfo?.tools?.length }}）</div>
+    <div class="flex-1 flex flex-wrap overflow-auto">
+      <div class="w-[calc(50%-8px)] flex items-center mr-[16px] mb-[16px] even:mr-[0px]" *ngFor="let item of headInfo?.tools">
+        <img  class="w-[14px] h-[14px] rounded-[3px] mr-[5px]" [src]="item?.tool_icon" alt="" />
+        <span class="inline-block max-w-[100px] text-ellipsis overflow-hidden whitespace-nowrap" [title]="item?.tool_name">{{ item?.tool_name }}</span>
+      </div>
+    </div>
+  </div>
+</ng-template>

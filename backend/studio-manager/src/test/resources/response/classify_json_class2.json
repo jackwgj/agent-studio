@@ -1,0 +1,18 @@
+{
+  "id": "dd0e41f5-7837-4989-88b3-d0beafe9d2b0",
+  "created": 1723886526,
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": null,
+        "content": "{\"keywords\": [\"今天\", \"天气\"], \"category_id\": \"125bb1fd-1a74-48a2-97a9-6416cc603191\", \"category_name\": \"食物\"}"
+      }
+    }
+  ],
+  "usage": {
+    "completion_tokens": 91,
+    "prompt_tokens": 1680,
+    "total_tokens": 1771
+  }
+}

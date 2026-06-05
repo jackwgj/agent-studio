@@ -1,0 +1,57 @@
+::ng-deep {
+  .tp-halfmodal-cotent meta-agent-var-modal {
+    display: block;
+    height: 100%;
+
+    tp-halfmodal-body {
+      margin-top: 0px;
+      padding-right: 20px;
+    }
+  }
+
+  #var-tree {
+    .ti3-tree-content-box {
+      padding-left: 0px;
+      cursor: default;
+      min-height: 28px;
+      line-height: 28px;
+      align-items: normal;
+
+      .ti3-icon-minus-square,
+      .ti3-icon-plus-square {
+        margin-top: 6px;
+      }
+
+      .ti3-tree-item-guide-line {
+        left: -16px;
+      }
+
+      .ti3-tree-node-text-wrapper {
+        &:hover {
+          background-color: #fff;
+        }
+
+        padding-left: 0px;
+        padding-right: 0px;
+        width: 100%;
+      }
+
+      .ti3-tree-item-active {
+        background: inherit;
+        font-weight: inherit;
+        color: inherit;
+      }
+    }
+  }
+
+  .a-form-checkbox {
+    .ti3-checkbox-skin {
+      margin-right: 0px !important;
+    }
+  }
+}
+
+.add-button-icon {
+  font-size: 16px;
+  color: #1476ff;
+}

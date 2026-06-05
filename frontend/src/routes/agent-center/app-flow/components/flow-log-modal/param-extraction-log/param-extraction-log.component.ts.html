@@ -1,0 +1,317 @@
+<!--import {-->
+<!--  ChangeDetectionStrategy,-->
+<!--  ChangeDetectorRef,-->
+<!--  Component,-->
+<!--  EventEmitter,-->
+<!--  Input,-->
+<!--  Output,-->
+<!--  TemplateRef,-->
+<!--  ViewChild,-->
+<!--} from '@angular/core';-->
+<!--import { AssetCopyIconComponent } from '@shared/components/assets/asset-copy-icon/asset-copy-icon.component';-->
+<!--import { AssetCopySuccessIconComponent } from '@shared/components/assets/asset-copy-success-icon/asset-copy-success-icon.component';-->
+<!--import { JsonViewerComponent } from '@shared/components/json-viewer/json-viewer.component';-->
+<!--import { NgForOf, NgIf, NgTemplateOutlet } from '@angular/common';-->
+<!--import { isArray, isEmpty, isNil } from 'lodash';-->
+<!--import { CopyType } from '@routes/agent-center/app-flow/node.type';-->
+<!--import { Clipboard } from '@angular/cdk/clipboard';-->
+<!--import {-->
+<!--  I18NEXT_NAMESPACE,-->
+<!--  I18NextEagerPipe,-->
+<!--  I18NextModule,-->
+<!--} from 'angular-i18next';-->
+<!--import {-->
+<!--  TiButtonModule,-->
+<!--  TiModalRef,-->
+<!--  TiModalService,-->
+<!--  TiSelectModule,-->
+<!--} from '@cloud/tiny3';-->
+<!--import { MODULES } from '@shared/modules';-->
+<!--import { I18nNamespace } from '@i18n';-->
+<!--import { FlowUtils } from "@routes/agent-center/app-flow/utils/flow-utils";-->
+
+<!--@Component({-->
+<!--  selector: 'meta-param-extraction-log',-->
+<!--  standalone: true,-->
+<!--  imports: [-->
+<!--    AssetCopyIconComponent,-->
+<!--    AssetCopySuccessIconComponent,-->
+<!--    JsonViewerComponent,-->
+<!--    NgIf,-->
+<!--    I18NextModule,-->
+<!--    NgTemplateOutlet,-->
+<!--    NgForOf,-->
+<!--    TiButtonModule,-->
+<!--    TiSelectModule,-->
+<!--    MODULES,-->
+<!--  ],-->
+<!--  providers: [-->
+<!--    {-->
+<!--      provide: I18NEXT_NAMESPACE,-->
+<!--      useValue: [I18nNamespace.AGENT_CENTER],-->
+<!--    },-->
+<!--  ],-->
+<!--  templateUrl: './param-extraction-log.component.html',-->
+<!--  styleUrls: [-->
+<!--    './param-extraction-log.component.scss',-->
+<!--    '../flow-log-modal.component.scss',-->
+<!--  ],-->
+<!--  changeDetection: ChangeDetectionStrategy.OnPush,-->
+<!--})-->
+<!--export class ParamExtractionLogComponent {-->
+<!--  @Input() callItem: any;-->
+
+<!--  @Output('showChildEvent') showChildEvent = new EventEmitter<any>();-->
+
+<!--  @ViewChild('flowDetail')-->
+<!--  flowDetail: TemplateRef<HTMLDivElement>;-->
+
+<!--  public roundOptions = [];-->
+
+<!--  public round = 0;-->
+<!--  public roundItem: any = {};-->
+<!--  public isShowContextCompare = false;-->
+<!--  public isShowDomainCompare = false;-->
+
+<!--  beforeWorkflowList = [];-->
+<!--  roundList = [];-->
+<!--  detailMap = new Map(); //记录数据详情-->
+
+<!--  executionTimingMap = {-->
+<!--    extension_before_entry: this.i18n.transform(-->
+<!--      'paramextractionlogcomponent_390',-->
+<!--    ),-->
+<!--    extension_before_judge_quit: this.i18n.transform(-->
+<!--      'paramextractionlogcomponent_391',-->
+<!--    ),-->
+<!--    extension_after_extraction: this.i18n.transform(-->
+<!--      'paramextractionlogcomponent_392',-->
+<!--    ),-->
+<!--  };-->
+
+<!--  constructor(-->
+<!--    private clipboard: Clipboard,-->
+<!--    private cdr: ChangeDetectorRef,-->
+<!--    private i18n: I18NextEagerPipe,-->
+<!--    private tiModal: TiModalService,-->
+<!--  ) {}-->
+
+<!--  ngOnInit() {-->
+<!--    this.initData();-->
+<!--  }-->
+
+<!--  initData() {-->
+<!--    if (!(this.callItem && this.callItem.metadata)) {-->
+<!--      return;-->
+<!--    }-->
+<!--    const nodeInfo = this.callItem.nodeInfo;-->
+<!--    const nestedWorkflows = this.callItem.nestedWorkflows ?? {};-->
+<!--    //补充信息-->
+<!--    if (nodeInfo) {-->
+<!--      (nodeInfo.configs?.extension_workflows || []).forEach((e) => {-->
+<!--        this.detailMap.set(`extension_workflows_${e.id}`, {-->
+<!--          name: e.name,-->
+<!--          description: e.description,-->
+<!--        });-->
+<!--      });-->
+<!--      (nodeInfo.configs?.domain_objects || []).forEach((d) => {-->
+<!--        (d.processing_workflows || []).forEach((p) => {-->
+<!--          this.detailMap.set(`processing_workflows_${d.name}_${p.id}`, {-->
+<!--            name: p.name,-->
+<!--            description: p.description,-->
+<!--          });-->
+<!--        });-->
+<!--      });-->
+<!--      const contextParam = nodeInfo.inputs?.find(-->
+<!--        (input) => input.name === 'intermediate_loop_var',-->
+<!--      );-->
+<!--      this.setParamDetail(contextParam, 'intermediate_loop_var');-->
+<!--      const domainParam = nodeInfo.inputs?.find(-->
+<!--        (input) => input.name === 'domain_objects',-->
+<!--      );-->
+<!--      this.setParamDetail(domainParam, 'domain_objects');-->
+<!--      const modelParam = nodeInfo.inputs?.find(-->
+<!--        (input) => input.name === 'model_output_var',-->
+<!--      );-->
+<!--      this.setParamDetail(modelParam, 'model_output_var');-->
+<!--    }-->
+
+<!--    let tempBeforeList = this.callItem.metadata.workflow_list;-->
+
+<!--    if (Object.prototype.toString.call(tempBeforeList) === '[object Object]') {-->
+<!--      tempBeforeList = [tempBeforeList];-->
+<!--    }-->
+<!--    this.beforeWorkflowList = [];-->
+
+<!--    tempBeforeList?.forEach((w) => {-->
+<!--      const fDetail = this.detailMap.get(`extension_workflows_${w.id}`);-->
+<!--      w.name = this.getFlowName(fDetail?.name, w.id, nestedWorkflows);-->
+<!--      w.description = fDetail?.description ?? '';-->
+<!--      this.beforeWorkflowList.push(w);-->
+<!--    });-->
+<!--    this.roundList = this.callItem.metadata.round_list;-->
+<!--    this.roundOptions = this.roundList.map((r, index) => {-->
+<!--      return {-->
+<!--        label: this.i18n.transform('paramextractionlogcomponent_393', {-->
+<!--          index: index + 1,-->
+<!--        }),-->
+<!--        value: index,-->
+<!--      };-->
+<!--    });-->
+<!--    const tempList = this.callItem.metadata.round_list ?? [];-->
+<!--    this.roundList = tempList.map((item) => {-->
+<!--      const contexts = [];-->
+<!--      const domainObjects = [];-->
+<!--      const exFlow = [];-->
+<!--      const domainFlowMap = {};-->
+<!--      item.workflow_list.forEach((w) => {-->
+<!--        if (w.timing !== 'domain_objects') {-->
+<!--          const fDetail = this.detailMap.get(`extension_workflows_${w.id}`);-->
+<!--          w.name = this.getFlowName(fDetail?.name, w.id, nestedWorkflows);-->
+<!--          w.description = fDetail?.description ?? '';-->
+<!--          exFlow.push(w);-->
+<!--        } else {-->
+<!--          const pDetail = this.detailMap.get(-->
+<!--            `processing_workflows_${w.domainObjectName}_${w.id}`,-->
+<!--          );-->
+<!--          w.name = this.getFlowName(pDetail?.name, w.id, nestedWorkflows);-->
+<!--          w.description = pDetail?.description ?? '';-->
+<!--          if (!domainFlowMap[w.domainObjectName]) {-->
+<!--            domainFlowMap[w.domainObjectName] = [w];-->
+<!--          } else {-->
+<!--            domainFlowMap[w.domainObjectName].push(w);-->
+<!--          }-->
+<!--        }-->
+<!--      });-->
+<!--      item.context_list.forEach((c) => {-->
+<!--        const cDetail = this.detailMap.get(c.name);-->
+<!--        c.description = cDetail?.description ?? '';-->
+<!--        c.type = cDetail?.type ?? '';-->
+<!--        if (cDetail?.originType === 'domain_objects') {-->
+<!--          c.workflow_list = domainFlowMap[c.name];-->
+<!--          domainObjects.push(c);-->
+<!--        } else {-->
+<!--          contexts.push(c);-->
+<!--        }-->
+<!--      });-->
+
+<!--      return {-->
+<!--        contexts,-->
+<!--        domainObjects,-->
+<!--        workflow_list: exFlow,-->
+<!--        module_input: JSON.stringify(item.module_input, null, 2),-->
+<!--        module_output: item?.module_output?.raw_output-->
+<!--          ? item.module_output.raw_output-->
+<!--          : JSON.stringify(item.module_output, null, 2),-->
+<!--      };-->
+<!--    });-->
+<!--    if (this.roundList.length) {-->
+<!--      this.roundItem = this.roundList[0];-->
+<!--    }-->
+<!--  }-->
+
+<!--  getFlowName(name, id, nestedWorkflows) {-->
+<!--    if (name) {-->
+<!--      return name;-->
+<!--    }-->
+<!--    const mapName = nestedWorkflows[id];-->
+<!--    if (mapName) {-->
+<!--      return mapName;-->
+<!--    }-->
+<!--    return 'extend_workflow';-->
+<!--  }-->
+
+<!--  showFlowDetail(flow): void {-->
+<!--    let context_list = flow?.context_list;-->
+<!--    if (Object.prototype.toString.call(context_list) === '[object Object]') {-->
+<!--      context_list = Object.keys(context_list).map((c) => {-->
+<!--        return context_list[c];-->
+<!--      });-->
+<!--    }-->
+<!--    const modal = this.tiModal.open(this.flowDetail, {-->
+<!--      id: 'flowDetail',-->
+<!--      modalClass: '!w-[700px]',-->
+<!--      context: {-->
+<!--        params: context_list ?? [],-->
+<!--        dismiss: (modalRef: TiModalRef): void => {-->
+<!--          modal.close();-->
+<!--        },-->
+<!--        close: (modalRef: TiModalRef): void => {-->
+<!--          modal.close();-->
+<!--        },-->
+<!--      },-->
+<!--    });-->
+<!--  }-->
+
+<!--  showFlowEvent(flow) {-->
+<!--    this.showChildEvent.emit(flow.event_list);-->
+<!--  }-->
+
+<!--  setParamDetail(params, originType) {-->
+<!--    params?.schema?.forEach((s) => {-->
+<!--      this.detailMap.set(s.name, {-->
+<!--        name: s.name,-->
+<!--        description: s.description,-->
+<!--        type: s.type,-->
+<!--        originType,-->
+<!--      });-->
+<!--    });-->
+<!--  }-->
+
+<!--  onRoundChange(e) {-->
+<!--    this.roundItem = this.roundList[e];-->
+<!--  }-->
+
+<!--  public isIOEmpty(IO: any): boolean {-->
+<!--    if (isNil(IO)) {-->
+<!--      return true;-->
+<!--    }-->
+
+<!--    if (isArray(IO)) {-->
+<!--      return IO.length === 0;-->
+<!--    }-->
+<!--    if (typeof IO === 'object') {-->
+<!--      return isEmpty(IO);-->
+<!--    }-->
+
+<!--    return false;-->
+<!--  }-->
+
+<!--  /** 获取metadata.llm_info中的模型输入和输出字段值 */-->
+<!--  public getLlmField(metadata: any, field: 'llm_inputs' | 'llm_outputs') {-->
+<!--    return FlowUtils.getLlmField(metadata,field)-->
+<!--  }-->
+
+<!--  public handleCopy(data: any, target: CopyType) {-->
+<!--    const copyInfoMap = {-->
+<!--      input: { content: data.inputs, icon: 'inputsCopyIcon' },-->
+<!--      output: { content: data.outputs, icon: 'outputsCopyIcon' },-->
+<!--      modelInput: {-->
+<!--        content: this.getLlmField(data?.metadata, 'llm_inputs'),-->
+<!--        icon: 'modelInputCopyIcon',-->
+<!--      },-->
+<!--      modelOutput: {-->
+<!--        content: this.getLlmField(data?.metadata, 'llm_outputs'),-->
+<!--        icon: 'modelOutputCopyIcon',-->
+<!--      },-->
+<!--    };-->
+
+<!--    const targetInfo = copyInfoMap[target];-->
+<!--    if (!targetInfo) {-->
+<!--      return;-->
+<!--    }-->
+
+<!--    const { content, icon } = targetInfo;-->
+<!--    if (typeof content === 'string') {-->
+<!--      this.clipboard.copy(content);-->
+<!--    } else {-->
+<!--      this.clipboard.copy(JSON.stringify(content) as string);-->
+<!--    }-->
+
+<!--    data[icon] = true;-->
+<!--    setTimeout(() => {-->
+<!--      data[icon] = false;-->
+<!--      this.cdr.markForCheck();-->
+<!--    }, 3000);-->
+<!--  }-->
+<!--}-->

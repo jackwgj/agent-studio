@@ -1,0 +1,96 @@
+<div class="model-square-list">
+  <nz-tabset class="h-[30px] top-level-tab" [nzSelectedIndex]="selectedTabIndex()" (nzSelectedIndexChange)="onTabIndexChange($event)">
+    <nz-tab *ngFor="let tab of appTabs" [nzTitle]="tab.name"></nz-tab>
+  </nz-tabset>
+  <div class="model-header flex">
+    <div class="model-header-left">
+      <div class="header-title">{{ pageTitle() }}</div>
+    </div>
+    <div class="model-header-right flex">
+      <div
+        class="flex-center mr-[16px] cursor-pointer text-btn"
+        [ngClass]="{ 'btn-disabled': !subscribeBtnStatus }"
+        nz-tooltip
+        [nzTooltipTitle]="subscribeBtnStatus ? ('square_btn.tip' | i18nextEager) : ''"
+      >
+        <div
+          class="flex-center"
+          nz-tooltip
+          [nzTooltipTitle]="tipContent"
+          nzTooltipTrigger="hover"
+          nzTooltipPlacement="bottom"
+          (click)="showAuthModal({})"
+        >
+          <nz-icon nzType="setting" nzTheme="outline" class="mr-[4px]" style="font-size: 16px" />
+          {{ 'square_btn.auth_management' | i18nextEager }}
+        </div>
+      </div>
+
+      <div class="flex-center mr-[24px] cursor-pointer"
+        [ngClass]="{ 'btn-disabled': !subscribeBtnStatus || !isTenantAdmin }"
+        (click)="toPlatform()"
+        *ngIf="!commonService.isSite()"
+      >
+        <span class="open-icon"></span>
+        {{ 'square_btn.open_list' | i18nextEager }}
+      </div>
+      <button nz-button nzType="primary"  [disabled]="!subscribeBtnStatus" type="button" (click)="openModel()" *ngIf="!commonService.isSite()">
+        {{ 'square_btn.open_all_model' | i18nextEager }}
+      </button>
+    </div>
+  </div>
+
+  <div class="model-square-list-content" [ngClass]="{ 'alert-height': showAlert }">
+    <div class="model-data-content-container">
+      <div class="model-data-list">
+        <div class="model-search-container">
+          <div class="model-searchbox flex gap-2">
+            <nz-input-group style="flex: 1; height: 28px">
+              <input nz-input [(ngModel)]="searchValue" (keyup.enter)="onAdvancdeSearchChange($event)" [placeholder]="'name_placeholder'|i18nextEager" />
+            </nz-input-group>
+            <button class="h-[28px] w-[28px]" nz-button nzType="default" (click)="handleRefresh()">
+              <nz-icon nzType="reload" nzTheme="outline" />
+            </button>
+          </div>
+        </div>
+        <div class="card-list-box">
+          <div class="loading-style" *ngIf="isLoading">
+            <nz-spin nzSimple></nz-spin>
+          </div>
+          <div *ngIf="!isLoading && templateList.length > 0" class="card-list">
+            <div class="card-render-box com-cards-wrapper">
+              <ng-container>
+                <card-render
+                  *ngFor="let item of templateList"
+                  [cardInfo]="item"
+                  [authStatus]="authStatus"
+                  (notifySubscribeStatus)="getSubscribeStatus($event)"
+                ></card-render>
+              </ng-container>
+            </div>
+          </div>
+          <ng-container *ngIf="!isLoading && templateList.length === 0">
+            <app-new-common-no-data-with-btn
+              [type]="searchTags?.length > 0 || searchValue.length > 0 ? 'filterNoData' : 'customeNodata'"
+              (clear)="handleClickClearSearch()"
+              [noDataStr]="noDataStr | i18nextEager"
+            />
+          </ng-container>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<ng-template #tipContent let-context="context">
+  <div>
+    <div class="flex">
+      <nz-icon nzType="check-circle" nzTheme="outline" style="color:#5db303;font-size: 16px" />
+      <div style="vertical-align: text-bottom">{{ authTipInfo.tip }}</div>
+    </div>
+
+    <div class="operation-container mt-[8px] text-right">
+      <button nz-button nzType="primary" (click)="handleAuthTip()">{{ authTipInfo.btn }}</button>
+    </div>
+  </div>
+</ng-template>

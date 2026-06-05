@@ -1,0 +1,101 @@
+<div class="export-modal-container">
+  <div *nzModalTitle>{{ selectedType?.text || 'export' | i18nextEager }}</div>
+
+  <nz-radio-group
+    *ngIf="exportTypeOptions?.length > 1"
+    [(ngModel)]="exportType"
+    (ngModelChange)="handleTypeChange()"
+    class="block mb-4"
+  >
+    <label
+      *ngFor="let option of exportTypeOptions"
+      nz-radio-button
+      [nzValue]="option.id"
+    >
+      {{ option.text }}
+    </label>
+  </nz-radio-group>
+
+  <nz-alert
+    *ngIf="selectedType?.desc"
+    nzType="info"
+    [nzMessage]="selectedType?.desc | i18nextEager"
+    nzShowIcon
+    class="mb-4"
+  ></nz-alert>
+
+  <div class="search-container mb-4">
+    <nz-input-group [nzSuffix]="suffixIconSearch">
+      <input
+        type="text"
+        nz-input
+        placeholder="{{ 'search' | i18nextEager }}"
+        [(ngModel)]="searchValue"
+        (keyup.enter)="onSearch()"
+      />
+    </nz-input-group>
+    <ng-template #suffixIconSearch>
+      <span nz-icon nzType="search"></span>
+    </ng-template>
+  </div>
+  <nz-table
+    #remoteTable
+    [nzData]="listOfData"
+    [nzTotal]="total"
+    [nzFrontPagination]="false"
+    [(nzPageIndex)]="pageIndex"
+    [(nzPageSize)]="pageSize"
+    [nzLoading]="loading"
+    [nzShowSizeChanger]="true"
+    [nzPageSizeOptions]="[10, 20, 50, 100]"
+    (nzQueryParams)="onQueryParamsChange($event)"
+    [nzScroll]="{ x: '500px', y: '400px' }"
+  >
+    <thead>
+    <tr>
+      <th
+        [nzChecked]="allChecked"
+        [nzWidth]="'50px'"
+        (nzCheckedChange)="onAllChecked($event)"
+      ></th>
+      <th
+        *ngFor="let column of listOfColumns"
+        [nzWidth]="column.width ? column.width + 'px' : null"
+      >
+        {{ column.title }}
+      </th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr *ngFor="let data of remoteTable.data">
+      <td
+        [nzChecked]="setOfCheckedId.has(data[selectedType.rowKey])"
+        (nzCheckedChange)="onItemChecked(data[selectedType.rowKey], $event)"
+      ></td>
+      <td
+        *ngFor="let column of listOfColumns"
+        nzEllipsis
+        nz-tooltip
+        [nzTooltipTitle]="data[column.dataIndex]"
+      >
+        {{ data[column.dataIndex] }}
+      </td>
+    </tr>
+    </tbody>
+  </nz-table>
+
+  <div *nzModalFooter>
+    <button type="button" nz-button (click)="dismiss()">
+      {{ 'cancel' | i18nextEager }}
+    </button>
+    <button
+      type="button"
+      nz-button
+      nzType="primary"
+      [disabled]="!selectedRows.length"
+      (click)="handleExport()"
+    >
+      {{ 'export' | i18nextEager }}
+    </button>
+  </div>
+</div>

@@ -1,0 +1,242 @@
+<!-- import { ChangeDetectorRef, Component, Input, OnInit } from '@angular/core';
+import { MODULES } from '@shared/modules';
+import { AppAgentRepoService } from '@services/agent-center/app-agent-repo.service';
+import {
+  TiMessageService,
+  TiTableColumns,
+  TiTableRowData,
+  TiTableSrcData,
+} from '@cloud/tiny3';
+import { IMemoParam } from '../create-memo/types';
+import { cdnAssetUrl } from 'src/single-spa/assets-url';
+import { NoDataIconComponent } from '@shared/components/no-data-icon/no-data-icon.component';
+import { Subject, takeUntil } from 'rxjs';
+import { AgentDataService } from '@services/agent-center/agent-data.service';
+import { isPlainObject, isEmpty } from 'lodash';
+import { I18NEXT_NAMESPACE ,I18NextEagerPipe} from 'angular-i18next';
+import { I18nNamespace } from '@i18n';
+export interface IMemoParamExt extends IMemoParam {
+  update_time: string;
+  value: string;
+}
+
+@Component({
+  selector: 'meta-preview-memos',
+  templateUrl: './preview-memos.component.html',
+  styleUrls: ['./preview-memos.component.less'],
+  imports: [MODULES, NoDataIconComponent],
+  providers: [
+    {
+      provide: I18NEXT_NAMESPACE,
+      useValue: [I18nNamespace.AGENT_CENTER],
+    },
+  ],
+})
+export class PreviewMemosComponent implements OnInit {
+  @Input('agentId') agentId = '';
+
+  @Input('conversationId') conversationId = '';
+
+  loading = false;
+
+  tabs = [
+    {
+      title: this.i18n.transform('memory_parameters'),
+      active: true,
+    },
+    {
+      title: this.i18n.transform('LTM'),
+      active: false,
+    },
+  ];
+
+  displayedData: TiTableRowData[] = [];
+
+  memosData: TiTableSrcData = {
+    data: [] as IMemoParamExt[],
+    state: undefined,
+  };
+
+  columns: TiTableColumns[] = [
+    {
+      title: this.i18n.transform('param_name'),
+    },
+    {
+      title: this.i18n.transform('value'),
+      width: '120px',
+    },
+    {
+      title: this.i18n.transform('memory_duration'),
+      width: '100px',
+    },
+    {
+      title: this.i18n.transform('description'),
+      width: '100px',
+    },
+    {
+      title: this.i18n.transform('last_update_time'),
+    },
+  ];
+
+  public memoryCards = [];
+
+  public hasHistory = false;
+
+  public changeUrl = cdnAssetUrl;
+
+  private destroy$ = new Subject<void>();
+
+  constructor(
+    private agentRepoServ: AppAgentRepoService,
+    private agentDataServe: AgentDataService,
+    private tiMessage: TiMessageService,
+    private cdr: ChangeDetectorRef,
+    private readonly i18n: I18NextEagerPipe,
+  ) {
+    this.agentDataServe
+      .hasQAFlagUpdate$()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((flag) => {
+        this.hasHistory = flag;
+      });
+  }
+
+  ngOnInit() {
+    this.init();
+    this.getLongMemorys();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  async init() {
+    this.loading = true;
+
+    try {
+      const data = await this.agentRepoServ.retrieveConversationMemory(
+        this.agentId,
+        this.conversationId,
+      );
+      this.memosData.data = data;
+    } finally {
+      this.loading = false;
+    }
+  }
+
+  async resetData() {
+    this.tiMessage.open({
+      type: 'warn',
+      content: this.i18n.transform('reset_data_text'),
+      title: this.i18n.transform('reset_data'),
+      okButton: {
+        text: this.i18n.transform('determined'),
+      },
+      close: async () => {
+        this.loading = true;
+
+        try {
+          const data = await this.agentRepoServ.resetConversationMemory(
+            this.agentId,
+            this.conversationId,
+          );
+          this.memosData.data = data;
+        } finally {
+          this.loading = false;
+        }
+      },
+    });
+  }
+
+  dismiss(): void {}
+
+  close(): void {}
+
+  public clearData() {
+    this.loading = true;
+    this.agentRepoServ.deleteLongMemory(this.agentId, this.conversationId).then(
+      () => {
+        this.loading = false;
+        this.memoryCards = [];
+        this.cdr.markForCheck();
+      },
+      () => {
+        this.loading = false;
+        this.cdr.markForCheck();
+      },
+    );
+  }
+
+  public generateLongMemory() {
+    this.loading = true;
+    this.agentRepoServ
+      .generateLongMemory(this.agentId, this.conversationId)
+      .then(
+        (res: any) => {
+          this.loading = false;
+          if (isPlainObject(res) && isEmpty(res)) {
+            return;
+          }
+          const { id, create_time, summary } = res || {};
+          const latestLongMemory = {
+            id: id,
+            time: create_time,
+            content: summary,
+          };
+          if (this.memoryCards.length >= 10) {
+            this.memoryCards = [
+              latestLongMemory,
+              ...this.memoryCards.slice(0, -1),
+            ];
+          } else {
+            this.memoryCards = [latestLongMemory, ...this.memoryCards];
+          }
+          this.cdr.markForCheck();
+        },
+        () => {
+          this.loading = false;
+          this.cdr.markForCheck();
+        },
+      );
+  }
+
+  public deleteMemoryCard(id: string) {
+    this.loading = true;
+    this.agentRepoServ
+      .deleteLongMemory(this.agentId, this.conversationId, id)
+      .then(
+        () => {
+          this.loading = false;
+          this.memoryCards = this.memoryCards.filter((card) => card.id !== id);
+          this.cdr.markForCheck();
+        },
+        () => {
+          this.loading = false;
+          this.cdr.markForCheck();
+        },
+      );
+  }
+
+  private getLongMemorys() {
+    this.loading = true;
+    this.agentRepoServ
+      .getLongMemoryList(this.agentId, this.conversationId)
+      .then(
+        (res: any) => {
+          this.loading = false;
+          const { memory_chunks } = res || {};
+          this.memoryCards = memory_chunks.map((item) => ({
+            id: item.id,
+            time: item.create_time,
+            content: item.summary,
+          }));
+          this.cdr.markForCheck();
+        },
+        () => {
+          this.loading = false;
+          this.cdr.markForCheck();
+        },
+      );
+  }
+} -->

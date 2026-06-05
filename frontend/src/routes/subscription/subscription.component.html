@@ -1,0 +1,44 @@
+<div class="subscription-outer">
+  <div class="header-div">
+    <div class="main-title">
+      Open Jiuwen
+    </div>
+    <div class="sub-title">
+      {{ 'jiuwen_create_agent'|i18nextEager }}
+    </div>
+    <div class="btn-div">
+      <div class="btn black" (click)="goToModelArts()">
+        {{ 'enter_jiuwen'|i18nextEager }}
+      </div>
+      <div class="btn" (click)="buyResource({})">
+        {{ 'apply_for_resources'|i18nextEager }}
+      </div>
+    </div>
+  </div>
+  <div class="bottom-div">
+    <div class="title-div">
+      {{ 'order_category'|i18nextEager }}
+    </div>
+    <div class="content-div">
+      <div class="card" *ngFor="let item of cards; let i = index">
+        <div class="tag green" *ngIf="item.status==='active'">{{ 'purchased'|i18nextEager }}</div>
+        <div class="tag default" *ngIf="item.status==='inactive'">{{ 'not_purchased'|i18nextEager }}</div>
+        <div class="card-body">
+          <div class="icon" [style]="'background:url(\''+item.icon+'\') 0 0 / 100% 100% no-repeat;'"></div>
+          <div class="title">
+            {{item.skuName}}
+            <nz-icon nzType="check-circle" nzTheme="outline" />
+          </div>
+          <div class="content">
+            {{item.content}}
+          </div>
+          <div class="bottom-btn">
+            <div class="btn" (click)="buyResource(item)">
+              {{item.status === 'active' ? ('statistics-9' | i18nextEager) : ('immediate_purchase' | i18nextEager)}}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

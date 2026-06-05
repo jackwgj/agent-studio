@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.agent.manager.mapper.ComplexIntentBranchMapper">
+    <resultMap id="BaseResultMap" type="com.openjiuwen.studio.agent.manager.entity.ComplexIntentBranchEntity">
+        <!--@mbg.generated-->
+        <!--@Table t_model-->
+        <id column="branch_id" jdbcType="VARCHAR" property="branchId" />
+        <result column="intent_id" jdbcType="VARCHAR" property="intentId" />
+        <result column="project_id" jdbcType="VARCHAR" property="projectId" />
+        <result column="workspace_id" jdbcType="VARCHAR" property="workspaceId" />
+        <result column="branch_index" jdbcType="INTEGER" property="branchIndex" />
+        <result column="branch_name" jdbcType="VARCHAR" property="branchName" />
+        <result column="content" jdbcType="VARCHAR" property="content" />
+        <result column="faq_ids" jdbcType="VARCHAR" property="faqIds" />
+        <result column="creator_id" jdbcType="VARCHAR" property="creatorId" />
+        <result column="created_on" jdbcType="TIMESTAMP" property="createdOn" />
+        <result column="updated_on" jdbcType="TIMESTAMP" property="updatedOn" />
+    </resultMap>
+    <sql id="Base_Column_List">
+        <!--@mbg.generated-->
+        branch_id,
+        intent_id,
+        project_id,
+        workspace_id,
+        branch_index,
+        branch_name,
+        content,
+        faq_ids,
+        creator_id,
+        created_on,
+        updated_on
+    </sql>
+    <insert id="createEntity" parameterType="com.openjiuwen.studio.agent.manager.entity.ComplexIntentBranchEntity">
+        insert into t_complex_intent_branch (branch_id, intent_id, project_id, workspace_id, branch_index, content,
+                                             creator_id, branch_name, created_on, updated_on)
+        values (#{ entity.branchId,jdbcType=VARCHAR }, #{ entity.intentId,jdbcType=VARCHAR },
+                #{ entity.projectId,jdbcType=VARCHAR }, #{ entity.workspaceId,jdbcType=VARCHAR },
+                #{ entity.branchIndex,jdbcType=INTEGER }, #{ entity.content,jdbcType=VARCHAR },
+                #{ entity.creatorId,jdbcType=VARCHAR }, #{ entity.branchName,jdbcType=VARCHAR },
+                #{entity.createdOn,jdbcType=TIMESTAMP}, #{entity.updatedOn,jdbcType=TIMESTAMP})
+    </insert>
+    <delete id="deleteByKey" parameterType="map">
+        delete
+        from t_complex_intent_branch
+        where branch_id = #{ branchId,jdbcType=VARCHAR }
+          and intent_id = #{ intentId,jdbcType=VARCHAR }
+          and project_id = #{ projectId,jdbcType=VARCHAR }
+    </delete>
+    <delete id="deleteByIntentId" parameterType="map">
+        delete
+        from t_complex_intent_branch
+        where intent_id = #{ intentId,jdbcType=VARCHAR }
+          and project_id = #{ projectId,jdbcType=VARCHAR }
+    </delete>
+    <select id="getEntities" parameterType="com.openjiuwen.studio.agent.manager.entity.ComplexIntentBranchEntity"
+        resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List" />
+        from t_complex_intent_branch
+        where 1 = 1
+        <if test="entity.intentId != null and entity.intentId != ''">
+            and intent_id=#{entity.intentId}
+        </if>
+        <if test="entity.projectId != null and entity.projectId != ''">
+            and project_id=#{entity.projectId}
+        </if>
+        <if test="entity.workspaceId != null and entity.workspaceId != ''">
+            and workspace_id=#{entity.workspaceId}
+        </if>
+        <if test="entity.branchId != null and entity.branchId != ''">
+            and branch_id=#{entity.branchId}
+        </if>
+        <if test="entity.branchName != null and entity.branchName != ''">
+            and branch_name like concat('%', #{entity.branchName,jdbcType=VARCHAR}, '%')
+        </if>
+        <if test="entity.createdOn != null">
+            and created_on=#{entity.createdOn}
+        </if>
+        <if test="entity.updatedOn != null">
+            and updated_on=#{entity.updatedOn}
+        </if>
+        order by branch_index asc
+    </select>
+    <select id="getByKey" parameterType="map"
+        resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List" />
+        from t_complex_intent_branch
+        where branch_id = #{branchId,jdbcType=VARCHAR}
+        and intent_id = #{intentId,jdbcType=VARCHAR}
+        and project_id = #{projectId,jdbcType=VARCHAR}
+    </select>
+    <select id="getByKeyAndWorkspaceId" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List" />
+        from t_complex_intent_branch
+        where branch_id = #{branchId,jdbcType=VARCHAR}
+        and intent_id = #{intentId,jdbcType=VARCHAR}
+        and project_id = #{projectId,jdbcType=VARCHAR}
+        and workspace_id = #{workspaceId,jdbcType=VARCHAR}
+    </select>
+    <update id="updateByKey"
+        parameterType="com.openjiuwen.studio.agent.manager.entity.ComplexIntentBranchEntity">
+        update t_complex_intent_branch
+        <set>
+            <if test="entity.content != null and entity.content != ''">
+                content = #{entity.content, jdbcType=VARCHAR},
+            </if>
+            <if test="entity.branchName != null and entity.branchName != ''">
+                branch_name = #{entity.branchName, jdbcType=VARCHAR},
+            </if>
+            <if test="entity.faqIds != null and entity.faqIds != ''">
+                faq_ids = #{ entity.faqIds, jdbcType=VARCHAR },
+            </if>
+        </set>
+        where branch_id = #{ entity.branchId, jdbcType=VARCHAR }
+        and intent_id = #{ entity.intentId, jdbcType=VARCHAR }
+        and project_id = #{ entity.projectId, jdbcType=VARCHAR }
+    </update>
+
+    <select id="maxBranchIndex" resultType="java.lang.Integer">
+        select max(branch_index)
+        from t_complex_intent_branch
+        where intent_id = #{ intentId,jdbcType=VARCHAR }
+          and project_id = #{ projectId,jdbcType=VARCHAR }
+          and workspace_id = #{ workspaceId,jdbcType=VARCHAR }
+    </select>
+
+    <select id="countBranch" resultType="int">
+        select count(1)
+        from t_complex_intent_branch
+        where intent_id = #{ intentId,jdbcType=VARCHAR }
+          and project_id = #{ projectId,jdbcType=VARCHAR }
+        <if test="workspaceId != null and workspaceId != ''">
+            and workspace_id = #{workspaceId,jdbcType=VARCHAR}
+        </if>
+    </select>
+
+    <update id="clearFaqIds"
+        parameterType="com.openjiuwen.studio.agent.manager.entity.ComplexIntentBranchEntity">
+        update t_complex_intent_branch set faq_ids = ''
+        where branch_id = #{ entity.branchId, jdbcType=VARCHAR }
+        and intent_id = #{ entity.intentId, jdbcType=VARCHAR }
+        and project_id = #{ entity.projectId, jdbcType=VARCHAR }
+    </update>
+
+    <select id="getEntitiesAccurate" parameterType="com.openjiuwen.studio.agent.manager.entity.ComplexIntentBranchEntity"
+            resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List" />
+        from t_complex_intent_branch
+        <where>
+            <if test="entity.intentId != null and entity.intentId != ''">
+                and intent_id=#{entity.intentId}
+            </if>
+            <if test="entity.projectId != null and entity.projectId != ''">
+                and project_id=#{entity.projectId}
+            </if>
+            <if test="entity.workspaceId != null and entity.workspaceId != ''">
+                and workspace_id=#{entity.workspaceId}
+            </if>
+            <if test="entity.branchId != null and entity.branchId != ''">
+                and branch_id=#{entity.branchId}
+            </if>
+            <if test="entity.branchName != null and entity.branchName != ''">
+                and branch_name=#{entity.branchName,jdbcType=VARCHAR}
+            </if>
+            <if test="entity.createdOn != null">
+                and created_on=#{entity.createdOn}
+            </if>
+            <if test="entity.updatedOn != null">
+                and updated_on=#{entity.updatedOn}
+            </if>
+        </where>
+    </select>
+</mapper>

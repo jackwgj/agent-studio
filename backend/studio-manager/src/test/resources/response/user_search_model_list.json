@@ -1,0 +1,15 @@
+{
+  "count": 1,
+  "services": [
+    {
+      "service_id": "c0426f47-fb34-40f6-954f-424d872d6598",
+      "service_name": "搜索模型",
+      "project_id": "test_project_id",
+      "status": "running",
+      "infer_type": "online",
+      "category": "agentBuilder",
+      "api_url": "https://xxxx:31004/v1/test_project_id/infer-api/proxy/service/c0426f47-fb34-40f6-954f-424d872d6598",
+      "model_name": ""
+    }
+  ]
+}

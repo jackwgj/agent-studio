@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.openjiuwen.studio.agent.manager.mapper.md.UserModelSubscribeSettingsMapper">
+    <sql id="columns">
+        `ID`,
+        `DOMAIN_ID`,
+        `PROJECT_ID`,
+        `IS_AUTO_SUBSCRIBE_NEW_MODEL`,
+        `CREATED_DATE`,
+        `LAST_UPDATED_DATE`
+    </sql>
+
+    <resultMap id="userModelSubscribeSettingsPo"
+               type="com.openjiuwen.studio.agent.manager.entity.md.UserModelSubscribeSettingPo">
+        <id column="ID" property="id" jdbcType="VARCHAR"/>
+        <result column="DOMAIN_ID" property="domainId" jdbcType="VARCHAR"/>
+        <result column="PROJECT_ID" property="projectId" jdbcType="VARCHAR"/>
+        <result column="IS_AUTO_SUBSCRIBE_NEW_MODEL" property="isAutoSubscribeNewModel" jdbcType="INTEGER"/>
+        <result column="CREATED_DATE" property="createdDate" jdbcType="BIGINT"/>
+        <result column="LAST_UPDATED_DATE" property="lastUpdatedDate" jdbcType="BIGINT"/>
+    </resultMap>
+
+    <insert id="save" parameterType="com.openjiuwen.studio.agent.manager.entity.md.UserModelSubscribeSettingPo">
+        INSERT INTO t_user_model_subscribe_settings(
+            <include refid="columns"/>
+        )
+        VALUES (
+        #{id},
+        #{domainId},
+        #{projectId},
+        #{isAutoSubscribeNewModel},
+        #{createdDate},
+        #{lastUpdatedDate}
+        );
+    </insert>
+
+    <select id="findByCons" resultMap="userModelSubscribeSettingsPo">
+        SELECT
+            <include refid="columns"/>
+        FROM
+            t_user_model_subscribe_settings
+        WHERE
+            <if test="DOMAIN_ID != null">
+                DOMAIN_ID = #{DOMAIN_ID}
+            </if>
+            <if test="IS_AUTO_SUBSCRIBE_NEW_MODEL != null">
+                IS_AUTO_SUBSCRIBE_NEW_MODEL = #{IS_AUTO_SUBSCRIBE_NEW_MODEL}
+            </if>
+    </select>
+
+    <update id="update">
+        UPDATE
+            t_user_model_subscribe_settings
+        SET
+        <if test="isAutoSubscribeNewModel != null">
+            IS_AUTO_SUBSCRIBE_NEW_MODEL = #{isAutoSubscribeNewModel},
+        </if>
+        <if test="lastUpdatedDate != null">
+            LAST_UPDATED_DATE = #{lastUpdatedDate}
+        </if>
+        WHERE
+            `ID` = #{id}
+    </update>
+</mapper>

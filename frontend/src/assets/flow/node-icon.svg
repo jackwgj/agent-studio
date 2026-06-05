@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="13.8564065px" height="15.0717968px" viewBox="0 0 13.8564065 15.0717968" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>对象 object</title>
+    <g id="页面-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="14/-数据清洗-创建任务-发布模板成功提示" transform="translate(-733.0718, -382.4641)">
+            <g id="编组备份" transform="translate(720, 270)">
+                <g id="算子-常态" transform="translate(0, 96)">
+                    <g id="对象-object" transform="translate(12, 16)">
+                        <path d="M9.5,0.866025404 L13.4282032,3.1339746 C14.3564065,3.66987298 14.9282032,4.66025404 14.9282032,5.73205081 L14.9282032,10.2679492 C14.9282032,11.339746 14.3564065,12.330127 13.4282032,12.8660254 L9.5,15.1339746 C8.57179677,15.669873 7.42820323,15.669873 6.5,15.1339746 L2.57179677,12.8660254 C1.64359354,12.330127 1.07179677,11.339746 1.07179677,10.2679492 L1.07179677,5.73205081 C1.07179677,4.66025404 1.64359354,3.66987298 2.57179677,3.1339746 L6.5,0.866025404 C7.42820323,0.330127019 8.57179677,0.330127019 9.5,0.866025404 Z" id="多边形" fill="#FCA51E"></path>
+                        <polyline id="路径-29" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" points="5 6.5 11 6.5 9 4.5"></polyline>
+                        <polyline id="路径-30" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" points="11 9.5 5 9.5 7 11.5"></polyline>
+                    </g>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg>

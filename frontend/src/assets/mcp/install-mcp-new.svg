@@ -1,0 +1,103 @@
+<svg viewBox="0 0 200 119" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="200.000000" height="119.000000" fill="none" clip-path="url(#clipPath_3)" customFrame="url(#clipPath_3)">
+	<defs>
+		<clipPath id="clipPath_3">
+			<rect width="200.000000" height="119.000000" x="0.000000" y="0.000000" rx="5.760000" fill="rgb(255,255,255)" />
+		</clipPath>
+		<clipPath id="clipPath_4">
+			<rect width="168.000000" height="111.000000" x="16.000000" y="22.000000" fill="rgb(255,255,255)" />
+		</clipPath>
+		<clipPath id="clipPath_5">
+			<rect width="172.000000" height="31.000000" x="16.000000" y="65.000000" fill="rgb(255,255,255)" />
+		</clipPath>
+		<clipPath id="clipPath_6">
+			<rect width="168.000000" height="31.000000" x="16.000000" y="102.000000" fill="rgb(255,255,255)" />
+		</clipPath>
+		<g id="pixso_custom_effect_1">
+			<effect x="0.000000" y="4.111111" visibility="visible" fill="rgb(138,121,198)" fill-opacity="0.349999994" effectType="dropShadow" stdDeviation="8.22222233" radius="0" />
+		</g>
+		<filter id="filter_1" width="49.000000" height="49.000000" x="76.000000" y="35.000000" filterUnits="userSpaceOnUse" customEffect="url(#pixso_custom_effect_1)" color-interpolation-filters="sRGB">
+			<feFlood flood-opacity="0" result="BackgroundImageFix" />
+			<feOffset dx="0.000000" dy="4.111111" in="SourceAlpha" />
+			<feGaussianBlur stdDeviation="2.74074078" />
+			<feColorMatrix type="matrix" values="0 0 0 0 0.541176 0 0 0 0 0.47451 0 0 0 0 0.776471 0 0 0 0.35 0 " />
+			<feBlend result="effect_dropShadow_1" in2="BackgroundImageFix" mode="normal" />
+			<feBlend result="shape" in="SourceGraphic" in2="effect_dropShadow_1" mode="normal" />
+		</filter>
+		<clipPath id="clipPath_7">
+			<rect width="22.000000" height="22.000000" x="89.499878" y="48.498047" fill="rgb(255,255,255)" />
+		</clipPath>
+	</defs>
+	<rect id="创建调优任务" width="200.000000" height="119.000000" x="0.000000" y="0.000000" rx="5.760000" fill="rgb(240,235,255)" />
+	<g id="组合 28779" customFrame="url(#clipPath_4)">
+		<rect id="组合 28779" width="168.000000" height="111.000000" x="16.000000" y="22.000000" />
+		<g id="组合 28775">
+			<rect id="矩形 6966" width="168.000000" height="37.000000" x="16.000000" y="22.000000" rx="2.000000" fill="rgb(255,255,255)" fill-opacity="0.5" />
+			<rect id="矩形 6970" width="27.348839" height="3.000000" x="23.813965" y="31.000000" rx="0.480000" opacity="0.800000012" fill="rgb(210,198,255)" />
+			<rect id="矩形 6971" width="116.232559" height="3.000000" x="23.813965" y="39.000000" rx="0.480000" opacity="0.800000012" fill="rgb(210,198,255)" />
+			<rect id="矩形 6972" width="93.767441" height="3.000000" x="23.813965" y="47.000000" rx="0.480000" opacity="0.800000012" fill="rgb(210,198,255)" />
+		</g>
+		<g id="组合 28777" customFrame="url(#clipPath_5)">
+			<rect id="组合 28777" width="172.000000" height="31.000000" x="16.000000" y="65.000000" />
+			<g id="组合 28765">
+				<rect id="矩形 6966" width="83.500000" height="31.000000" x="16.000000" y="65.000000" rx="0.960000" fill="rgb(255,255,255)" fill-opacity="0.5" />
+				<rect id="矩形 6970" width="12.999998" height="3.000000" x="36.000000" y="70.000000" rx="0.480000" fill="rgb(210,198,255)" />
+				<rect id="矩形 6974" width="9.000000" height="3.000000" x="36.000000" y="76.000000" rx="0.480000" fill="rgb(210,198,255)" />
+				<rect id="矩形 6973" width="9.000000" height="9.000000" x="24.000000" y="70.000000" rx="0.480000" fill="rgb(210,198,255)" />
+				<rect id="矩形 6972" width="68.000000" height="3.000000" x="24.000000" y="82.000000" rx="0.480000" fill="rgb(210,198,255)" />
+				<rect id="矩形 6975" width="38.000000" height="3.000000" x="24.000000" y="88.000000" rx="0.480000" fill="rgb(210,198,255)" />
+				<rect id="矩形 6976" width="10.000000" height="3.000000" x="0.000000" y="0.000000" rx="0.480000" fill="rgb(210,198,255)" transform="matrix(-1,0,0,1,92,88)" />
+			</g>
+			<g id="组合 28778">
+				<rect id="矩形 6966" width="83.500000" height="31.000000" x="104.500000" y="65.000000" rx="0.960000" fill="rgb(255,255,255)" fill-opacity="0.5" />
+				<rect id="矩形 6970" width="12.999998" height="3.000000" x="124.500000" y="70.000000" rx="0.480000" fill="rgb(210,198,255)" />
+				<rect id="矩形 6974" width="9.000000" height="3.000000" x="124.500000" y="76.000000" rx="0.480000" fill="rgb(210,198,255)" />
+				<rect id="矩形 6973" width="9.000000" height="9.000000" x="112.500000" y="70.000000" rx="0.480000" fill="rgb(210,198,255)" />
+				<rect id="矩形 6972" width="68.000000" height="3.000000" x="112.500000" y="82.000000" rx="0.480000" fill="rgb(210,198,255)" />
+				<rect id="矩形 6975" width="38.000000" height="3.000000" x="112.500000" y="88.000000" rx="0.480000" fill="rgb(210,198,255)" />
+				<rect id="矩形 6976" width="10.000000" height="3.000000" x="0.000000" y="0.000000" rx="0.480000" fill="rgb(210,198,255)" transform="matrix(-1,0,0,1,180.5,88)" />
+			</g>
+		</g>
+		<g id="组合 28778" customFrame="url(#clipPath_6)">
+			<rect id="组合 28778" width="168.000000" height="31.000000" x="16.000000" y="102.000000" />
+			<g id="组合 28765">
+				<rect id="矩形 6966" width="81.500000" height="31.000000" x="16.000000" y="102.000000" rx="2.000000" fill="rgb(255,255,255)" fill-opacity="0.5" />
+				<rect id="矩形 6970" width="12.688621" height="3.000000" x="36.497009" y="107.000000" rx="0.480000" fill="rgb(210,198,255)" fill-opacity="0.800000012" />
+				<rect id="矩形 6974" width="8.784431" height="3.000000" x="36.497009" y="113.000000" rx="0.480000" fill="rgb(210,198,255)" fill-opacity="0.800000012" />
+				<rect id="矩形 6973" width="8.784431" height="9.000000" x="23.808350" y="107.000000" rx="0.480000" fill="rgb(210,198,255)" fill-opacity="0.800000012" />
+				<rect id="矩形 6972" width="66.371262" height="3.000000" x="23.808350" y="120.000000" rx="0.480000" fill="rgb(210,198,255)" fill-opacity="0.800000012" />
+				<rect id="矩形 6975" width="37.089821" height="3.000000" x="23.808350" y="127.000000" rx="0.480000" fill="rgb(210,198,255)" fill-opacity="0.800000012" />
+				<rect id="矩形 6976" width="9.760479" height="3.000000" x="0.000000" y="0.000000" rx="0.480000" opacity="0" fill="rgb(210,198,255)" fill-opacity="0.800000012" transform="matrix(-1,0,0,1,90.1796,125)" />
+			</g>
+			<g id="组合 28778">
+				<rect id="矩形 6966" width="81.500000" height="31.000000" x="102.500000" y="102.000000" rx="2.000000" fill="rgb(255,255,255)" fill-opacity="0.5" />
+				<rect id="矩形 6970" width="12.688621" height="3.000000" x="122.997009" y="107.000000" rx="0.480000" fill="rgb(210,198,255)" fill-opacity="0.800000012" />
+				<rect id="矩形 6974" width="8.784431" height="3.000000" x="122.997009" y="113.000000" rx="0.480000" fill="rgb(210,198,255)" fill-opacity="0.800000012" />
+				<rect id="矩形 6973" width="8.784431" height="9.000000" x="110.308350" y="107.000000" rx="0.480000" fill="rgb(210,198,255)" fill-opacity="0.800000012" />
+				<rect id="矩形 6972" width="66.371262" height="3.000000" x="110.308350" y="120.000000" rx="0.480000" fill="rgb(210,198,255)" fill-opacity="0.800000012" />
+				<rect id="矩形 6975" width="37.089821" height="3.000000" x="110.308350" y="127.000000" rx="0.480000" fill="rgb(210,198,255)" fill-opacity="0.800000012" />
+				<rect id="矩形 6976" width="9.760479" height="3.000000" x="0.000000" y="0.000000" rx="0.480000" opacity="0" fill="rgb(210,198,255)" fill-opacity="0.800000012" transform="matrix(-1,0,0,1,176.68,125)" />
+			</g>
+		</g>
+	</g>
+	<g id="组合 28765">
+		<g id="组合 28781">
+			<g id="组合 28800">
+				<g filter="url(#filter_1)">
+					<rect id="矩形 6979" width="37.000000" height="37.000000" x="82.000000" y="41.000000" rx="18.500000" fill="rgb(110,81,224)" />
+					<rect id="矩形 6979" width="43.000000" height="43.000000" x="79.000000" y="38.000000" rx="21.500000" stroke="rgb(255,255,255)" stroke-width="6" />
+				</g>
+				<g id="操作/安装" customFrame="url(#clipPath_7)">
+					<rect id="操作/安装" width="22.000000" height="22.000000" x="89.499878" y="48.498047" />
+					<g id="组合 4583">
+						<path id="路径" d="M100.444 65.8987L99.9972 66.1565C99.6684 66.3464 99.2479 66.2337 99.0581 65.9049L96.2781 61.0899L93.3561 63.3344C93.055 63.5656 92.6234 63.509 92.3921 63.2078C92.2973 63.0843 92.2472 62.9323 92.25 62.7766L92.4475 51.9231C92.4545 51.5435 92.7678 51.2414 93.1474 51.2482C93.2609 51.2503 93.372 51.2804 93.471 51.3359L102.92 56.63C103.251 56.8156 103.369 57.2345 103.183 57.5658C103.108 57.6996 102.991 57.8045 102.849 57.8638L99.2547 59.3706L99.9498 60.5745" stroke="rgb(255,255,255)" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.2718749" />
+						<g id="组合 4584">
+							<ellipse id="path6" rx="3.781250" ry="3.781250" cx="105.656128" cy="63.691864" fill="rgb(255,255,255)" fill-opacity="0" />
+							<ellipse id="path6" rx="3.781250" ry="3.781250" cx="105.656128" cy="63.691864" stroke="rgb(255,255,255)" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.2718749" />
+							<path id="path7" d="M107.719 63.6902L103.594 63.6902M105.656 61.6277L105.656 65.7527" stroke="rgb(255,255,255)" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.13055551" />
+						</g>
+					</g>
+				</g>
+			</g>
+		</g>
+	</g>
+</svg>

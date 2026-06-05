@@ -1,0 +1,218 @@
+<div style="padding: 12px 10px;background-color: white" *ngIf="!isMarket">
+  <nz-breadcrumb style="margin-left: 20px">
+    <nz-breadcrumb-item *ngFor="let item of crumbItems">
+      <a *ngIf="item.key" (click)="crumbSelect(item)">{{ item.label }}</a>
+      <span *ngIf="!item.key">{{ item.label }}</span>
+    </nz-breadcrumb-item>
+  </nz-breadcrumb>
+</div>
+
+<header class="detail-header-container">
+  <div class="left-title">
+    <button
+      nz-button
+      nzType="text"
+      class="!h-[20px] !w-[20px] !p-0 flex items-center justify-center"
+      (click)="back()"
+    >
+      <span nz-icon nzType="arrow-left" class="!text-[20px]"></span>
+    </button>
+    <img class="h-[40px] w-[40px]" [src]="kb?.icon" alt=""/>
+    <div class="title truncate" [title]="kb?.display_name">
+      {{ kb?.display_name }}
+    </div>
+    <div class="divider"></div>
+    <div class="status-tag">
+      <span
+        class="status-icon"
+        [ngClass]="{ active: 'status_open' === statusDicts.tag }"
+      ></span>
+      <span>{{ statusDicts.tag | i18nextEager }}</span>
+    </div>
+  </div>
+
+  <div class="right">
+
+    <div
+      *ngIf="kb?.status && !isMarket"
+      class="flex cursor-pointer items-center gap-[4px]"
+      [ngClass]="{
+        disabled: kbOperationFilterService.opChangeStatus(kb).disabled,
+      }"
+      nz-tooltip
+      [nzTooltipTitle]="kbOperationFilterService.opChangeStatus(kb).tip"
+      (click)="handleStatusChange()"
+    >
+      <span nz-icon [nzType]="statusDicts.btnIcon" class="!text-[14px]"></span>
+      {{ statusDicts.btnName | i18nextEager }}
+    </div>
+
+    <div
+      *ngIf="!isMarket"
+      [ngClass]="{
+        disabled: kbOperationFilterService.opEdit(kb).disabled,
+      }"
+      nz-tooltip
+      [nzTooltipTitle]="kbOperationFilterService.opEdit(kb).tip"
+      class="flex cursor-pointer items-center gap-[4px]"
+      (click)="!kbOperationFilterService.opEdit(kb).disabled && openHalfmodal('edit')"
+    >
+      <span nz-icon nzType="edit" class="!text-[14px]"></span>
+      {{ 'edit' | i18nextEager }}
+    </div>
+
+    <div
+      *ngIf="!isMarket"
+      [ngClass]="{
+        disabled: kbOperationFilterService.opAdvanced(kb).disabled,
+      }"
+      nz-tooltip
+      [nzTooltipTitle]="kbOperationFilterService.opAdvanced(kb).tip"
+      class="flex cursor-pointer items-center gap-[4px]"
+      (click)="!kbOperationFilterService.opAdvanced(kb).disabled && openHalfmodal('advanced')"
+    >
+      <span nz-icon nzType="setting" class="!text-[14px]"></span>
+      {{ 'advanced_settings' | i18nextEager }}
+    </div>
+
+    <div
+      *ngIf="isMarket && isGlobal && kbAbilitiesService.isSameSpace(kb?.workspace_id)"
+      class="flex cursor-pointer items-center gap-[4px]"
+      [ngClass]="{
+        disabled: kbOperationFilterService.opCancelOperation(kb).disabled,
+      }"
+      nz-tooltip
+      [nzTooltipTitle]="kbOperationFilterService.opCancelOperation(kb).tip"
+      (click)="!kbOperationFilterService.opCancelOperation(kb).disabled && changeKbScope()"
+    >
+      <img class="w-[14px] h-[14px]" [src]="cdnAssetUrl('assets/images/cancel-share.svg')" alt=""/>
+      {{ 'kb_cancel_share_operation' | i18nextEager }}
+    </div>
+
+    <div
+      *ngIf="showObsConfig && !isMarket"
+      class="flex cursor-pointer items-center gap-[4px]"
+      [ngClass]="{
+        disabled: kbOperationFilterService.opObsSetting(kb).disabled,
+      }"
+      nz-tooltip
+      [nzTooltipTitle]="kbOperationFilterService.opObsSetting(kb).tip"
+      (click)="!kbOperationFilterService.opObsSetting(kb).disabled && openObsSettings()">
+      <span nz-icon nzType="setting" class="!text-[14px]"></span>
+      {{ 'obs_access_file'|i18nextEager }}
+    </div>
+
+    <div
+      *ngIf="!isMarket"
+      class="flex cursor-pointer items-center gap-[4px]"
+      [ngClass]="{
+        disabled: kbOperationFilterService.opKbReference(kb).disabled,
+      }"
+      nz-tooltip
+      [nzTooltipTitle]="kbOperationFilterService.opKbReference(kb).tip"
+      (click)="!kbOperationFilterService.opKbReference(kb).disabled && openReference()"
+    >
+      <span nz-icon nzType="link" class="!text-[14px]"></span>
+      {{ 'kb_reference_list'|i18nextEager }}
+    </div>
+
+    <div
+      [ngClass]="{
+        disabled: kbOperationFilterService.opHitTest(kb).disabled,
+      }"
+      nz-tooltip
+      [nzTooltipTitle]="kbOperationFilterService.opHitTest(kb).tip"
+      class="flex cursor-pointer items-center gap-[4px]"
+      (click)="!kbOperationFilterService.opHitTest(kb).disabled && toHitTesting()"
+    >
+      <div class="flex items-center">
+        <svg width="14" height="14" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="10.000000" cy="10.000000" r="8.125000" fill="#D8D8D8" fill-opacity="0" />
+          <circle cx="10.000000" cy="10.000000" r="8.125000" stroke="#191919" stroke-opacity="1.000000" stroke-width="1.000000" stroke-linejoin="round" />
+          <path d="M9.52 3.52L9.5 3.5C9.5 3.22 9.71 3 10 3C10.28 3 10.5 3.22 10.5 3.5L10.48 3.52L9.52 3.52ZM10.48 4.97L10.5 5C10.5 5.27 10.28 5.5 10 5.5C9.71 5.5 9.5 5.27 9.5 5L9.52 4.97L10.48 4.97Z" fill="#D8D8D8" fill-opacity="0" fill-rule="nonzero" />
+          <path d="M10 3.5L10 5" stroke="#191919" stroke-opacity="1.000000" stroke-width="1.000000" stroke-linecap="round" />
+          <path d="M16.48 9.52L16.5 9.5C16.78 9.5 17 9.72 17 10C17 10.27 16.78 10.5 16.5 10.5L16.48 10.48L16.48 9.52ZM15.02 10.48L15 10.5C14.72 10.5 14.5 10.27 14.5 10C14.5 9.72 14.72 9.5 15 9.5L15.02 9.52L15.02 10.48Z" fill="#D8D8D8" fill-opacity="0" fill-rule="nonzero" />
+          <path d="M16.5 10L15 10" stroke="#191919" stroke-opacity="1.000000" stroke-width="1.000000" stroke-linecap="round" />
+          <path d="M10.48 16.48L10.5 16.5C10.5 16.77 10.28 17 10 17C9.71 17 9.5 16.77 9.5 16.5L9.52 16.48L10.48 16.48ZM9.52 15.02L9.5 15C9.5 14.72 9.71 14.5 10 14.5C10.28 14.5 10.5 14.72 10.5 15L10.48 15.02L9.52 15.02Z" fill="#D8D8D8" fill-opacity="0" fill-rule="nonzero" />
+          <path d="M10 16.5L10 15" stroke="#191919" stroke-opacity="1.000000" stroke-width="1.000000" stroke-linecap="round" />
+          <path d="M3.52 10.48L3.5 10.5C3.21 10.5 3 10.27 3 10C3 9.72 3.21 9.5 3.5 9.5L3.52 9.52L3.52 10.48ZM4.97 9.52L5 9.5C5.28 9.5 5.5 9.72 5.5 10C5.5 10.27 5.28 10.5 5 10.5L4.97 10.48L4.97 9.52Z" fill="#D8D8D8" fill-opacity="0" fill-rule="nonzero" />
+          <path d="M3.5 10L5 10" stroke="#191919" stroke-opacity="1.000000" stroke-width="1.000000" stroke-linecap="round" />
+          <circle cx="10.000000" cy="10.000000" r="3.000000" fill="#D8D8D8" fill-opacity="0" />
+          <circle cx="10.000000" cy="10.000000" r="3.000000" stroke="#191919" stroke-opacity="1.000000" stroke-width="1.000000" stroke-linejoin="round" />
+        </svg>
+      </div>
+      <div>{{ 'hit_test' | i18nextEager }}</div>
+    </div>
+  </div>
+</header>
+<meta-obs-setting-modal (executeRes)="refreshDocument()" [kbId]="kbId" #obsSettingModal></meta-obs-setting-modal>
+
+<div class="h-[calc(100%-64px)] overflow-hidden flex flex-col pt-6 px-6 pb-0">
+  <nz-spin [nzSpinning]="isLoading" class="h-full w-full block overflow-y-auto">
+    <!-- 基本详情 -->
+    <div class="mb-4">
+      <div class="mb-4 text-[14px] font-bold leading-[22px]">
+        {{ 'base_info' | i18nextEager }}
+      </div>
+
+      <nz-descriptions [nzColumn]="4" [nzColon]="false">
+        <nz-descriptions-item [nzTitle]="'name' | i18nextEager">
+          <div class="basic-font truncate max-w-full" [title]="kb?.display_name || '--'">{{ kb?.display_name || '--' }}</div>
+        </nz-descriptions-item>
+        <nz-descriptions-item [nzTitle]="'knowledge_repo_id' | i18nextEager">
+          <div class="flex items-center gap-x-[10px]">
+            <span class="basic-font truncate max-w-[90%]" [title]="kb?.knowledge_repo_id || '--'">
+              {{ kb?.knowledge_repo_id || '--' }}
+            </span>
+            <button
+              nz-button
+              nzType="text"
+              nzSize="small"
+              (click)="copyKnowledgeRepoId()"
+            >
+              <span nz-icon nzType="copy"></span>
+            </button>
+          </div>
+        </nz-descriptions-item>
+        <nz-descriptions-item [nzTitle]="'knowledge_base_capacity' | i18nextEager">
+          <div class="basic-font truncate">{{ kb?.size | bytes }}</div>
+        </nz-descriptions-item>
+        <nz-descriptions-item [nzTitle]="'creator' | i18nextEager">
+          <div class="basic-font truncate">{{ kb?.creator || '--' }}</div>
+        </nz-descriptions-item>
+        <nz-descriptions-item [nzTitle]="'create_time' | i18nextEager">
+          <div class="basic-font truncate">
+            {{ kb?.create_time | formateTime }}
+          </div>
+        </nz-descriptions-item>
+        <nz-descriptions-item [nzTitle]="'update_user_name' | i18nextEager">
+          <div class="basic-font truncate">{{ kb?.update_user_name || '--' }}</div>
+        </nz-descriptions-item>
+        <nz-descriptions-item [nzTitle]="'updated_on' | i18nextEager">
+          <div class="basic-font truncate">
+            {{ kb?.update_time | formateTime }}
+          </div>
+        </nz-descriptions-item>
+        <nz-descriptions-item [nzTitle]="'description' | i18nextEager">
+          <div class="basic-font truncate" [title]="kb?.description || '--'">{{ kb?.description || '--' }}</div>
+        </nz-descriptions-item>
+      </nz-descriptions>
+    </div>
+
+    <!-- 标签页 -->
+    <div class="h-full mt-4">
+      <nz-tabset id="p-kb-tabs" [(nzSelectedIndex)]="selectedIndex" (nzSelectedIndexChange)="onTabChange($event)">
+        <nz-tab *ngFor="let tab of tabs" [nzTitle]="tab.title | i18nextEager"></nz-tab>
+      </nz-tabset>
+
+      <div class="mt-[16px] h-[calc(100%-55px)]">
+        <knowledge-document #documentCom [isMarket]="isMarket" (refreshDetail)="getKb()" (goToTagManage)="goToTagManage()" *ngIf="0 === type"
+                            [kbId]="kbId" [chunkMethod]="chunkMethod" [kb]="kb"/>
+        <knowledge-faq [isMarket]="isMarket" *ngIf="1 === type" [kbId]="kbId"/>
+        <knowledge-faq-document [isMarket]="isMarket" *ngIf="2 === type" [kbId]="kbId"/>
+        <knowledge-task-manage [isMarket]="isMarket" *ngIf="3 === type && !isMarket" [kbId]="kbId"/>
+        <kb-tag-manage [isMarket]="isMarket" *ngIf="4 === type && !isMarket" [kbId]="kbId"></kb-tag-manage>
+      </div>
+    </div>
+  </nz-spin>
+</div>

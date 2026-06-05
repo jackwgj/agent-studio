@@ -1,0 +1,55 @@
+.g-node {
+  box-sizing: border-box;
+  border-radius: 4px;
+  cursor: pointer;
+  position: relative;
+
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+
+  transition: box-shadow 0.3s ease;
+
+  &:hover {
+    background-color: #f5f5f5;
+  }
+}
+
+.g-node-disabled {
+  cursor: not-allowed;
+  filter: grayscale(100%);
+}
+
+.customize_node_box {
+  max-height: 580px !important;
+  min-height: 324px !important;
+  width: 248px !important;
+  overflow: scroll !important;
+  font-size: 12px !important;
+  padding: 0 !important;
+
+  .no-data {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+.doc-link{
+  margin-left: 4px;
+  color:#1476FF;
+  cursor: pointer;
+}
+
+
+::ng-deep {
+  .ti3-tab-pane {
+    padding-top: 0 !important;
+  }
+
+  .nodes-group {
+    .ti3-tabs-ul-content {
+      margin-left: 8px;
+    }
+  }
+}

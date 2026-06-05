@@ -1,0 +1,158 @@
+<div id="env-management-variables-list">
+  <div class="top-title-area">
+    <div class="title-area-left">
+      <div class="page-title">
+        {{ 'managing_environment_variables' | i18nextEager }}
+      </div>
+    </div>
+    <div class="btn-area"></div>
+  </div>
+
+  <div class="relative min-h-[200px]">
+    <nz-spin *ngIf="listLoading" nzSize="large" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50"></nz-spin>
+
+    <nz-table
+      #basicTable
+      [nzData]="srcData.data"
+      [nzShowPagination]="false"
+      [nzNoResult]="noDataTpl"
+      class="table-style"
+    >
+      <thead>
+      <tr>
+        <th nzWidth="60px"></th>
+        <th>{{ 'env_name' | i18nextEager }}</th>
+        <th>{{ 'env_description' | i18nextEager }}</th>
+        <th>{{ 'environment_variables_number' | i18nextEager }}</th>
+        <th [nzWidth]="isZH() ? '300px' : '400px'">{{ 'operation' | i18nextEager }}</th>
+      </tr>
+      </thead>
+      <tbody>
+      <ng-container *ngFor="let row of basicTable.data; index as i">
+        <tr>
+          <td [nzExpand]="row.expand" (nzExpandChange)="row.expand = $event" [nzShowExpand]="false" class="text-center">
+            <span nz-icon [nzType]="row.expand ? 'down' : 'right'" class="cursor-pointer text-gray-500 hover:text-blue-500 transition-colors" (click)="row.expand = !row.expand"></span>
+          </td>
+          <td nz-tooltip [nzTooltipTitle]="row.name" style="max-width: 200px;" class="truncate">{{ row.name || '--' }}</td>
+          <td nz-tooltip [nzTooltipTitle]="row.envDescription" style="max-width: 200px;" class="truncate">{{ row.envDescription || '--' }}</td>
+          <td>{{ row.count || 0 }}</td>
+          <td>
+            <div class="flex items-center gap-4 flex-nowrap whitespace-nowrap">
+              <a class="text-[#1476ff] hover:text-[#4096ff]"
+                 [ngClass]="{'!text-[#bfbfbf] !cursor-not-allowed': !subscribeBtnStatus}"
+                 (click)="subscribeBtnStatus && openConfigModal(row)">
+                {{ 'config_env_variables' | i18nextEager }}
+              </a>
+              <a class="text-[#1476ff] hover:text-[#4096ff]"
+                 [ngClass]="{'!text-[#bfbfbf] !cursor-not-allowed': !subscribeBtnStatus}"
+                 (click)="subscribeBtnStatus && confirmExport(row)">
+                {{ 'export_variables' | i18nextEager }}
+              </a>
+              <a class="text-[#1476ff] hover:text-[#4096ff]"
+                 [ngClass]="{'!text-[#bfbfbf] !cursor-not-allowed': !subscribeBtnStatus}"
+                 (click)="subscribeBtnStatus && listAction({id: 'import'}, row)">
+                {{ 'import_variables' | i18nextEager }}
+              </a>
+            </div>
+          </td>
+        </tr>
+        <tr [nzExpand]="row.expand">
+          <td [attr.colspan]="5" class="py-2 px-4 bg-transparent m-0">
+            <nested-table (configVariable)="openConfigModal(row)" [data]="row.variables"></nested-table>
+          </td>
+        </tr>
+
+      </ng-container>
+      </tbody>
+    </nz-table>
+
+    <nz-pagination
+      *ngIf="envTotalNumber > 10"
+      class="mt-6 block"
+      [(nzPageIndex)]="envCurrentPage"
+      [nzTotal]="envTotalNumber"
+      [(nzPageSize)]="envPageSize.size"
+      [nzPageSizeOptions]="envPageSize.options"
+      nzShowSizeChanger
+      (nzPageIndexChange)="pageIndexChange($event)"
+      (nzPageSizeChange)="pageSizeChange($event)"
+    ></nz-pagination>
+  </div>
+</div>
+
+<ng-template #noDataTpl>
+  <div class="flex flex-col items-center justify-center py-10">
+    <img [src]="changeUrl('assets/images/noData.svg')" alt="no-data" class="w-24 mb-4">
+    <div class="text-gray-500 font-medium text-sm">{{ noDataTitle }}</div>
+    <div class="text-gray-400 text-xs mt-1" [innerHTML]="noDataDesc[0].html"></div>
+  </div>
+</ng-template>
+
+<ng-template #importModal let-modal>
+  <div>
+    <nz-upload
+      [nzBeforeUpload]="beforeUpload"
+      [nzRemove]="removeFile"
+      nzAccept=".jsonl"
+      [nzLimit]="1"
+      [(nzFileList)]="fileList"
+    >
+      <button nz-button>
+        <span nz-icon nzType="upload"></span>
+        {{ 'upload' | i18nextEager }}
+      </button>
+    </nz-upload>
+    <div style="color: rgba(128, 128, 128, 1); font-size: 12px; margin-top: 4px">
+      {{ 'only_jsonl_file' | i18nextEager }}
+    </div>
+  </div>
+
+  <div *ngIf="duplicateImportData.length > 0" class="mt-[16px] relative">
+    <nz-spin *ngIf="importLoading" class="absolute inset-0 z-50 bg-white/50 flex items-center justify-center"></nz-spin>
+
+    <nz-alert nzType="warning" style="width: 100%" nzMessage="其中{{ duplicateImportData?.length }}条重名，请确认操作后导入"></nz-alert>
+
+    <div style="display: flex; margin: 16px 0 8px 0">
+      <button nz-button nzType="default" style="margin-right: 8px" (click)="selectAll()">全部覆盖</button>
+      <button nz-button nzType="default" (click)="deselectAll()">全部不覆盖</button>
+    </div>
+
+    <nz-table #duplicateTable [nzData]="duplicateImportData" [nzShowPagination]="false" nzSize="small" nzTableLayout="fixed" [nzScroll]="{ y: '300px' }">
+      <thead>
+      <tr>
+        <th nzWidth="120px">{{ 'check1' | i18nextEager }}</th>
+        <th>{{ 'variable_name' | i18nextEager }}</th>
+        <th nzWidth="150px">
+          <div class="flex items-center">
+            <span>{{ 'is_cover' | i18nextEager }}</span>
+            <span nz-icon nzType="question-circle" nzTheme="outline" class="ml-1 text-gray-400 cursor-pointer" nz-tooltip [nzTooltipTitle]="'variable_coverage_prompt' | i18nextEager"></span>
+          </div>
+        </th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr *ngFor="let row of duplicateTable.data">
+        <td>
+          <div class="flex items-center">
+            <span nz-icon nzType="warning" nzTheme="fill" style="color: orange; margin-right: 4px;"></span>
+            <span>{{ 'duplicate_names' | i18nextEager }}</span>
+          </div>
+        </td>
+        <td nz-tooltip [nzTooltipTitle]="row.variableName" class="truncate">{{ row.variableName }}</td>
+        <td>
+          <label nz-checkbox [(ngModel)]="row.checked"></label>
+        </td>
+      </tr>
+      </tbody>
+    </nz-table>
+  </div>
+
+  <div class="flex justify-end gap-2 mt-6 pt-4 border-t border-gray-100">
+    <button nz-button nzType="default" (click)="importModalRef?.destroy()">
+      {{ 'cancel' | i18nextEager }}
+    </button>
+    <button nz-button nzType="primary" nzDanger [disabled]="!importFile" (click)="closeImportantConfirm()">
+      {{ 'import' | i18nextEager }}
+    </button>
+  </div>
+</ng-template>

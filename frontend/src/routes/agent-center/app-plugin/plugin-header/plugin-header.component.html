@@ -1,0 +1,91 @@
+<div class="header-container">
+  <div class="header-content">
+    <div class="pb-3 pl-[34px] pt-2" *ngIf="showCrumb">
+      <span (click)="gotoPluginList()" class="cursor-pointer">{{
+        'plugin' | i18nextEager
+      }}</span>
+      <ng-container *ngIf="!isToolDetail;else ToolDetail">
+        <span class="ml-[5px] mr-[5px] text-[#808080]">/</span>
+        <span class="font-semibold">{{ 'plugin_details' | i18nextEager }}</span>
+      </ng-container>
+      <ng-template #ToolDetail>
+        <span class="ml-[5px] mr-[5px] text-[#808080]">/</span>
+        <span (click)="onPageBack()"  class="cursor-pointer">{{ 'plugin_details' | i18nextEager }}</span>
+        <span class="ml-[5px] mr-[5px] text-[#808080]">/</span>
+        <span class="font-semibold">{{ 'tool_details' | i18nextEager }}</span>
+      </ng-template>
+    </div>
+    <div class="flex h-[40px] justify-between">
+      <div class="header-left">
+        <div (click)="onPageBack()" class="back-icon-container">
+          <span nz-icon nzType="left" class="back-icon"></span>
+        </div>
+        <img alt="" class="mr-4 h-10 w-10 rounded-[10px]" [src]="pluginInfo.icon" />
+        <div class="flex items-center">
+          <div class="title">
+            {{ pluginInfo.plugin_chinese_name }}
+          </div>
+          <div class="px-2 text-[#f5f5f5]">|</div>
+          <div class="only-self" *ngIf="pluginInfo.visibility === 'user'">
+            {{ 'only_to_me_see' | i18nextEager }}
+          </div>
+          <div class="debug succ" *ngIf="test_status === 'SUCCESS'">
+            <nz-tag nzColor="success" style="margin-right: 8px">
+              {{ 'debug_success' | i18nextEager }}
+            </nz-tag>
+          </div>
+          <div class="debug fail" *ngIf="test_status === 'FAILED'">
+            <nz-tag nzColor="error" style="margin-right: 8px">
+              {{ 'debug_failed' | i18nextEager }}
+            </nz-tag>
+          </div>
+          <nz-tag
+            *ngIf="pluginInfo.last_version_id "
+            nzSize="small"
+            nzColor="#1476FF"
+            class="!rounded-[4px] py-[1px] pl-[2px] pr-[4px]"
+          >
+            <span nz-icon nzType="cloud-upload" style="margin-right: 4px"></span>
+            {{ 'published' | i18nextEager }}
+          </nz-tag>
+          <nz-tag
+            *ngIf="!pluginInfo.last_version_id"
+            nzSize="small"
+            class="!rounded-[4px] py-[1px] pl-[2px] pr-[4px]"
+          >
+            <span nz-icon nzType="cloud-upload" style="margin-right: 4px"></span>
+            {{ 'unpublished' | i18nextEager }}
+          </nz-tag>
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="px-4 text-[#dbdbdb]">|</div>
+        <div class="icon-border" (click)="!hasPermission() && getReference()" nz-tooltip [nzTooltipTitle]="'pluginheadercomponent_1139'| i18nextEager">
+          <meta-inline-svg
+            src="assets/agent-center/icons/public_link.svg"
+            [style.color]="'#000'"
+            [style.fontSize]="'16px'"
+            [isInline]="false"
+          />
+        </div>
+        <div class="icon-border" (click)="getHistory()"  nz-tooltip [nzTooltipTitle]="'release_history' | i18nextEager">
+          <img alt="" [src]="historyIcon" />
+        </div>
+        <button
+          *ngIf="!isPluginMarket"
+          type="button"
+          (click)="publishPlugin()"
+          nz-tooltip [nzTooltipTitle]="getPublishTip()"
+          [disabled]="!subscribeBtnStatus"
+          nz-button
+        >
+          {{
+            historyVersionList.length
+              ? ('update_release' | i18next)
+              : ('publish' | i18next)
+          }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

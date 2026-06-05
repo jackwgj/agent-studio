@@ -1,0 +1,147 @@
+// import {
+//   Component,
+//   EventEmitter,
+//   Input,
+//   OnInit,
+//   Output,
+//   ViewChild,
+// } from '@angular/core';
+// import { AccBlockComponent } from '@routes/agent-center/app-flow/components/acc-block/acc-block.component';
+// import { ParamTreeComponent } from '@routes/agent-center/app-flow/components/param-tree/param-tree.component';
+// import { RefSelectedRequireDirective } from '@shared/directives/common-validator.directive';
+// import {
+//   NonEmptyValidatorDirective,
+//   ValueValidityValidatorDirective,
+//   VariableNameValidatorDirective,
+// } from '@shared/directives/variable-name-validator.directive';
+// import { MODULES } from '@shared/modules';
+// import { I18nNamespace } from '@i18n';
+// import { I18NEXT_NAMESPACE } from 'angular-i18next';
+// import { ParamLabelPipe } from 'src/pipes/param-label.pipe';
+// import {
+//   IWFView,
+//   IWorkflowField,
+// } from '@routes/agent-center/app-flow/node.type';
+// import { NodeUtils } from '@routes/agent-center/app-flow/components/utils';
+// import {
+//   getInitOutputParamConfig,
+//   getNoneObjOutputParamTypes,
+//   getOutputParamTypes,
+// } from '@routes/agent-center/app-flow/flow.const';
+// import { TiTreeUtil, TiValidators } from '@cloud/tiny3';
+// import { NgForm } from '@angular/forms';
+// import { AddPropsIconComponent } from '@routes/agent-center/app-flow/components/add-props-icon/add-props-icon.component';
+// import { SetDefaultComponent } from '@routes/agent-center/app-flow/components/set-default/set-default.component';
+// 
+// @Component({
+//   selector: 'meta-agent-var-modal',
+//   templateUrl: './agent-var-modal.component.html',
+//   styleUrls: ['./agent-var-modal.component.scss'],
+//   standalone: true,
+//   imports: [
+//     MODULES,
+//     AccBlockComponent,
+//     VariableNameValidatorDirective,
+//     NonEmptyValidatorDirective,
+//     ValueValidityValidatorDirective,
+//     ParamLabelPipe,
+//     RefSelectedRequireDirective,
+//     ParamTreeComponent,
+//     AddPropsIconComponent,
+//     SetDefaultComponent,
+//   ],
+//   providers: [
+//     {
+//       provide: I18NEXT_NAMESPACE,
+//       useValue: [I18nNamespace.AGENT_CENTER],
+//     },
+//   ],
+// })
+// export class AgentVarModalComponent implements OnInit {
+//   @Input() vars: IWorkflowField[] = [];
+// 
+//   @Output('confirm') confirm = new EventEmitter<IWorkflowField[]>();
+// 
+//   @ViewChild('varForm') varForm: NgForm;
+// 
+//   viewVars: IWFView[] = [];
+// 
+//   isObjectLikeType = NodeUtils.isObjectLikeType;
+// 
+//   onTypeChange = NodeUtils.onOutputParamTypeChange;
+// 
+//   public noneObjDataTypes = getNoneObjOutputParamTypes();
+// 
+//   public outputDataTypes = getOutputParamTypes();
+// 
+//   public addChild = NodeUtils.addChild;
+// 
+//   constructor() {}
+// 
+//   ngOnInit() {
+//     this.viewVars = NodeUtils.fields2Views(this.vars);
+//   }
+// 
+//   public addViewVar() {
+//     this.viewVars.push({
+//       ...getInitOutputParamConfig(),
+//       depth: 0,
+//       parentType: 'none',
+//     });
+//   }
+// 
+//   public deleteViewVar(viewVar: IWFView) {
+//     TiTreeUtil.removeNode(this.viewVars, viewVar);
+// 
+//     const parentVar = TiTreeUtil.getParentNode(
+//       this.viewVars,
+//       viewVar,
+//     ) as IWFView;
+//     if (
+//       this.isObjectLikeType(parentVar?.type) &&
+//       parentVar?.children?.length === 0
+//     ) {
+//       delete parentVar.children;
+//     }
+//   }
+// 
+//   onNameChange() {
+//     window.setTimeout(() => {
+//       TiValidators.check(this.varForm?.form);
+//     });
+//   }
+// 
+//   getNames(param: IWFView): {
+//     existingValues: string[];
+//   } {
+//     let names = [];
+//     if (param.depth === 0) {
+//       names = this.viewVars.map((arg) => arg.name);
+//     } else {
+//       const parentNode = TiTreeUtil.getParentNode(this.viewVars, param);
+//       names = parentNode?.children.map((arg) => arg.name);
+//     }
+// 
+//     names.splice(names.indexOf(param.name), 1);
+//     return { existingValues: names };
+//   }
+// 
+//   onConfirm() {
+//     if (TiValidators.check(this.varForm.form)) {
+//       return;
+//     }
+// 
+//     this.confirm.emit(NodeUtils.views2Fields(this.viewVars));
+//     this.close();
+//   }
+// 
+//   getLayerIndexWidth(param: IWFView): string {
+//     return NodeUtils.getLayerIndexWidth(param, true, {
+//       widthArr: [165, 136],
+//     });
+//   }
+// 
+//   dismiss(): void {}
+// 
+//   close(): void {}
+// }

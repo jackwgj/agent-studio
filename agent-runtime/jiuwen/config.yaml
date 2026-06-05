@@ -1,0 +1,48 @@
+logging:
+  level: INFO  # The logging level can be set to one of the following: DEBUG, INFO, WARNING, ERROR, CRITICAL. The default value is WARNING.
+  backup_count: 20  # The number of retained logs is set to a default value of 20. This configuration option takes effect when the output is set to "log".
+  max_bytes: 20971520 # The default size of the log file is 20 MB. This configuration option takes effect when the output is set to "log".
+  format: '%(asctime)s|%(log_type)s|%(filename)s:%(lineno)d|%(funcName)s|%(trace_id)s|%(execution_id)s|%(request_id)s|%(levelname)s|%(message)s'
+  log_file: "run/jiuwen.log"  # Log file path setting. This configuration option takes effect when the output is set to "log".
+  output: console # output type, including: console and log. Supports simultaneous configuration: console,log.
+  interface_log_file: "interface/jiuwen_interface.log" # Request logging, used to record HTTP or HTTPS request information.
+  prompt_builder_interface_log_file: "interface/jiuwen_prompt_builder_interface.log" # Request logging, used to record HTTP or HTTPS request information.
+  performance_log_file: "performance/jiuwen_performance.log" # Request performance logging, used to record performance cost.
+  interface_output: log # output type, including: console and log. Supports simultaneous configuration: console,log.
+  performance_output: console # output type, including: console and log. Supports simultaneous configuration: console,log.
+  log_path: "./logs/"
+
+plugin:
+  store: "gaussdb"  # ["in_memory", "gaussdb"]
+  cache_maxsize: "1000"  # 1000条记录
+  default_dir: "./plugins"
+  recall:
+    emb_class:
+    emb_service_url: ""
+    app_code: ""
+    emb_dim: 256
+    infer_fields: [ "func_description" ]
+
+prompt:
+  default_dir: "./prompts"
+
+executor:
+  worker:
+    timeout: 300                # 默认执行超时，单位 s
+    conn_timeout: 300           # 默认连接超时，单位 s
+    read_timeout: 5             # 默认读取超时，单位 s
+    resume_interval: 15000      # 默认重试间隔，单位 s
+    max_retry: 2                # 默认最大失败重试次数
+    thread_num: 100             # 默认使用的线程数
+    stream_out_mode: mq         # 流式数据接收模式
+
+planner_config:
+  finish_triggers:
+    - "yes"
+    - "是"
+
+rails:
+  custom_rails_path:  # 自定义护栏路径
+
+restful_api:
+  skip_ssrf_check:  # 跳过ssrf检查，默认不跳过

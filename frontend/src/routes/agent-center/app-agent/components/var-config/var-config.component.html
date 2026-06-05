@@ -1,0 +1,169 @@
+<div class="panel flex flex-col gap-4 rounded-2xl bg-white p-6">
+  <div class="flex items-center justify-between">
+    <h2 class="text-sm font-bold text-label">
+      {{ 'var_conf' | i18nextEager }}
+    </h2>
+    <span
+      nz-icon
+      nzType="close"
+      class="cursor-pointer !text-2xl text-[#808080]"
+      (click)="close()"
+    ></span>
+  </div>
+
+  <form #varForm="ngForm">
+    <div
+      class="flex h-[350px] gap-2 flex-col overflow-y-auto"
+      (keydown)="$event.stopPropagation()"
+    >
+      @for (param of vars; track param; let i = $index) {
+        <div class="flex w-full flex-col gap-2">
+          <div class="flex items-center justify-between gap-[8px]">
+            <div class="flex items-center gap-2 text-xs">
+              <div>
+                {{ param.name }}
+                {{ param.required ? '' : ('optional' | i18nextEager) }}
+              </div>
+
+              <div class="rounded-[2px] bg-[#e6e6e6] px-[4px]">
+                {{ getTypeFunc(param) }}
+              </div>
+            </div>
+          </div>
+
+          <div class="w-full">
+            @if (isStr(param) || isMultiples(param)) {
+              <flexible-text-field
+                [(ngModel)]="param.val"
+                [name]="'param' + i"
+                [nonEmptyValidator]="param.required"
+                [placeholder]="'input_placeholder' | i18nextEager"
+              />
+
+              <div class="w-full" #paramErrwrapper></div>
+            }
+
+            @if (isInt(param)) {
+              <input
+                style="width: 100%"
+                type="text"
+                nz-input
+                nz-input-number
+                [name]="'param' + i"
+                [(ngModel)]="param.val"
+                [nonEmptyValidator]="param.required"
+                [placeholder]="'input_placeholder' | i18nextEager"
+              />
+
+              <div class="w-full" #paramErrwrapper></div>
+            }
+
+            @if (isNum(param)) {
+              <input
+                style="width: 100%"
+                type="text"
+                nz-input
+                nz-input-number
+                [name]="'param' + i"
+                [(ngModel)]="param.val"
+                [nonEmptyValidator]="param.required"
+                [placeholder]="'input_placeholder' | i18nextEager"
+              />
+
+              <div class="w-full" #paramErrwrapper></div>
+            }
+
+            @if (isBool(param)) {
+              <nz-switch [name]="'param' + i" [(ngModel)]="param.val"></nz-switch>
+
+              <div class="w-full" #paramErrwrapper></div>
+            }
+
+            @if (isArr(param)) {
+              <div
+                class="w-full rounded-[6px] border-[1px] border-solid border-[#ccc]"
+              >
+                <div
+                  class="flex items-center justify-between rounded-t-[6px] border-b-[1px] border-solid border-[#ccc] bg-[#f0f7ff] p-[10px]"
+                >
+                  <span class="font-bold text-[#333]">json</span>
+                  <asset-format-icon
+                    class="cursor-pointer"
+                    nz-tooltip
+                    [nzTooltipTitle]="'format' | i18nextEager"
+                    nzTooltipPlacement="top"
+                    (click)="formatDoc(param.uri)"
+                  ></asset-format-icon>
+                </div>
+                <div
+                  class="h-[134px] w-full rounded-b-[6px] bg-white py-[10px] pr-[10px]"
+                >
+                  <ngx-monaco-editor
+                    #jsonEditor
+                    [(ngModel)]="param.val"
+                    arrTypeValidator
+                    [nonEmptyValidator]="param.required"
+                    [param]="param"
+                    [options]="editorOps"
+                    [name]="'param' + i"
+                    [uri]="param.uri"
+                  ></ngx-monaco-editor>
+                </div>
+              </div>
+
+              @if (getComplexErr(i)) {
+                <div class="mt-[8px] w-full text-[#f23030]">
+                  {{ getComplexErr(i) }}
+                </div>
+              }
+            }
+
+            @if (isObj(param)) {
+              <div
+                class="w-full rounded-[6px] border-[1px] border-solid border-[#ccc]"
+              >
+                <div
+                  class="flex items-center justify-between rounded-t-[6px] border-b-[1px] border-solid border-[#ccc] bg-[#f0f7ff] p-[10px]"
+                >
+                  <span class="font-bold text-[#333]">json</span>
+                  <asset-format-icon
+                    class="cursor-pointer"
+                    nz-tooltip
+                    [nzTooltipTitle]="'format' | i18nextEager"
+                    nzTooltipPlacement="top"
+                    (click)="formatDoc(param.uri)"
+                  ></asset-format-icon>
+                </div>
+                <div
+                  class="h-[134px] w-full rounded-b-[6px] bg-white py-[10px] pr-[10px]"
+                >
+                  <ngx-monaco-editor
+                    #jsonEditor
+                    [(ngModel)]="param.val"
+                    objTypeValidator
+                    [options]="editorOps"
+                    [name]="'param' + i"
+                    [uri]="param.uri"
+                    [nonEmptyValidator]="param.required"
+                  ></ngx-monaco-editor>
+                </div>
+              </div>
+
+              @if (getComplexErr(i)) {
+                <div class="mt-[8px] w-full text-[#f23030]">
+                  {{ getComplexErr(i) }}
+                </div>
+              }
+            }
+          </div>
+        </div>
+      }
+    </div>
+  </form>
+
+  <div class="flex justify-end">
+    <button type="button" nz-button nzType="primary" (click)="onConfirm()">
+      {{ 'save' | i18nextEager }}
+    </button>
+  </div>
+</div>

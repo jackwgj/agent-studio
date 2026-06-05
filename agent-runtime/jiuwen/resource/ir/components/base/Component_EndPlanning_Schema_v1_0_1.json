@@ -1,0 +1,34 @@
+{
+  "type": "jiuwen.planner.components.plan_modules.end_planning:EndPlanning",
+  "version": "1.0.1",
+  "schemaVersion": "0.5",
+  "classInfo": {
+    "modulePath": "jiuwen.planner.components.plan_modules.end_planning",
+    "className": "EndPlanning",
+    "programLanguage": "python",
+    "filePath": "jiuwen/planner/components/planning_modules/end_planning.pyc"
+  },
+  "description": "后处理规划状态",
+  "inputs": [
+    {
+      "id": "skillOutputType",
+      "type": "String",
+      "description": "skill输出类型"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "output",
+      "description": "规划输出，包含对用户任务规划的最终结果;",
+      "type": "String",
+      "value": null
+    },
+    {
+      "id": "responseType",
+      "description": "如果planner最终输出是大模型生成的，则取值为LLMResponse，如果是workflow的输出，则取值为WorkflowResponse",
+      "type": "String",
+      "value": null
+    }
+  ],
+  "configs": []
+}

@@ -1,0 +1,48 @@
+{
+  "type": "jiuwen.planner.components.plan_modules.post_memory:PostMemory",
+  "version": "1.0.1",
+  "description": "长期记忆获取后的后处理",
+  "schemaVersion": "0.6",
+  "classInfo": {
+    "modulePath": "jiuwen.planner.components.plan_modules.post_memory",
+    "className": "PostMemory",
+    "programLanguage": "python",
+    "filePath": "jiuwen/planner/components/planning_modules/post_memory.pyc"
+  },
+  "inputs": [
+    {
+      "id": "query",
+      "type": "String",
+      "description": "用户的当前query，用于获取长期记忆"
+    },
+    {
+      "id": "memory",
+      "type": "List<Map<String, T>>",
+      "description": "长期记忆的输出"
+    }
+  ],
+  "outputs": [
+  ],
+  "configs": [
+    {
+      "id": "userFields",
+      "type": "Map<String, T>",
+      "description": "用户参数信息配置"
+    },
+    {
+      "id": "preDefinedFields",
+      "type": "Map<String, T>",
+      "description": "预定义参数信息配置"
+    },
+    {
+      "id": "longTermMemoryPromptSwitch",
+      "description": "长期记忆拼接到prompt的开关",
+      "type": "Boolean"
+    },
+    {
+      "id": "debugType",
+      "type": "Map<String, T>",
+      "description": "调测树配置"
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+<svg viewBox="0 0 120 118.411" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="120.000000" height="118.410645" fill="none" customFrame="#000000">
+	<defs>
+		<g id="pixso_custom_effect_0">
+			<effect x="0.000000" y="5.000000" visibility="visible" fill="rgb(250,191,118)" fill-opacity="0.699999988" effectType="dropShadow" stdDeviation="32" radius="0" />
+		</g>
+		<filter id="filter_0" width="120.000000" height="118.410645" x="0.000000" y="0.000000" filterUnits="userSpaceOnUse" customEffect="url(#pixso_custom_effect_0)" color-interpolation-filters="sRGB">
+			<feFlood flood-opacity="0" result="BackgroundImageFix" />
+			<feColorMatrix result="hardAlpha" in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0 " />
+			<feOffset dx="0.000000" dy="5.000000" in="hardAlpha" />
+			<feGaussianBlur stdDeviation="10.666667" />
+			<feComposite k2="-1" k3="1" in2="hardAlpha" operator="out" />
+			<feColorMatrix type="matrix" values="0 0 0 0 0.980392 0 0 0 0 0.74902 0 0 0 0 0.462745 0 0 0 0.7 0 " />
+			<feBlend result="effect_dropShadow_1" in2="BackgroundImageFix" mode="normal" />
+			<feBlend result="shape" in="SourceGraphic" in2="effect_dropShadow_1" mode="normal" />
+		</filter>
+		<radialGradient id="paint_radial_0" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="matrix(-63.0474,0,0,-62.4687,60,59.2053)">
+			<stop stop-color="rgb(249,183,102)" offset="0" stop-opacity="1" />
+			<stop stop-color="rgb(253,226,189)" offset="1" stop-opacity="1" />
+		</radialGradient>
+		<linearGradient id="paint_linear_0" x1="60" x2="60" y1="0" y2="118.41066" gradientUnits="userSpaceOnUse">
+			<stop stop-color="rgb(255,255,255)" offset="0" stop-opacity="1" />
+			<stop stop-color="rgb(255,255,255)" offset="1" stop-opacity="0" />
+		</linearGradient>
+	</defs>
+	<g id="ic_ict_vip_subscribers-VIP用户_质感图标" filter="url(#filter_0)">
+		<path id="路径-11" d="M52.1573 114.803L2.48687 56.8545C-0.217794 53.699 -0.767967 49.2299 1.09064 45.5127L20.992 5.70997C22.7417 2.21052 26.3184 0 30.2309 0L89.7691 0C93.6816 0 97.2582 2.21052 99.008 5.70997L118.909 45.5127C120.768 49.2299 120.218 53.699 117.513 56.8545L67.8427 114.803C64.1301 119.135 57.6091 119.636 53.2777 115.924C52.8761 115.579 52.5015 115.205 52.1573 114.803Z" fill="url(#paint_radial_0)" fill-rule="nonzero" />
+		<path id="路径-11" d="M2.48687 56.8545C-0.217794 53.699 -0.767967 49.2299 1.09064 45.5127L20.992 5.70997C22.7417 2.21052 26.3184 0 30.2309 0L89.7691 0C93.6816 0 97.2582 2.21052 99.008 5.70997L118.909 45.5127C120.768 49.2299 120.218 53.699 117.513 56.8545L67.8427 114.803C64.1301 119.135 57.6091 119.636 53.2777 115.924C52.8761 115.579 52.5015 115.205 52.1573 114.803L2.48687 56.8545Z" fill-rule="nonzero" stroke="url(#paint_linear_0)" stroke-width="13.7725697" />
+		<path id="path7" d="M39.3412 36.886L59.839 67.0222L80.6589 36.1292" fill-rule="evenodd" stroke="rgb(255,255,255)" stroke-linecap="round" stroke-linejoin="round" stroke-width="13.7725697" />
+	</g>
+</svg>

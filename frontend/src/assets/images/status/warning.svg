@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="12px" height="12px" viewBox="0 0 12 12" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <g id="模型管理" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="模型服务-有数据" transform="translate(-988.000000, -430.000000)">
+            <g id="表格" transform="translate(284.000000, 272.000000)">
+                <g id="编组-13" transform="translate(691.000000, 9.000000)">
+                    <g id="闲置" transform="translate(13.000000, 145.000000)">
+                        <g id="编组-27备份" transform="translate(0.000000, 4.000000)">
+                            <rect id="矩形" x="0" y="0" width="12" height="12"></rect>
+                            <path d="M5.93974477,3.51632883 L9.71681855,9.5 L2.28305684,9.5 L5.93974477,3.51632883 Z" id="三角形" stroke="#FF8800" stroke-width="2"></path>
+                        </g>
+                    </g>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg>

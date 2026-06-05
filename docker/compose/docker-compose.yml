@@ -1,0 +1,139 @@
+services:
+  studio-console:
+    image: ${STUDIO_CONSOLE_IMAGE}
+    privileged: true
+    restart: always
+    cpus: 0.5
+    mem_limit: 512m
+    volumes:
+      - ./config/nginx.conf:/home/conf/nginx.conf
+    # ---------------------    https请求方式证书挂载开始    ---------------------
+    #      - ./config/keypassfifo:/home/service/nginx/keypassfifo
+    #      - ./config/cert.pem:/home/secret/cert.pem
+    #      - ./config/pri_key.pem:/home/secret/pri_key.pem
+    # ---------------------    https请求方式证书挂载结束    ---------------------
+    ports:
+      # ---------------------    https启动需要把端口号替换为 443:443 ---------------------
+      - '80:80'
+    depends_on:
+      - studio-manager
+      - studio-service
+      - studio-runtime
+    networks:
+      - default
+
+  studio-manager:
+    image: ${STUDIO_MANAGER_IMAGE}
+    restart: always
+    privileged: true
+    cpus: 2
+    mem_limit: 4g
+    ports:
+      - "31111:31111"
+    environment:
+      # 数据库
+      spring_datasource_url: ${SPRING_DATASOURCE_URL:-}
+      spring_datasource_username: ${SPRING_DATASOURCE_USERNAME:-}
+      spring_datasource_password: ${SPRING_DATASOURCE_PASSWORD:-}
+      # redis
+      redis_host: ${REDIS_HOST:-}
+      redis_password: ${REDIS_PASSWORD:-}
+      redis_port: ${REDIS_PORT:-}
+      # obs
+      obs_url: ${OBS_URL:-}
+      obs_bucket: ${OBS_BUCKET:-agent-builder}
+      obs_staging_bucket: ${OBS_BUCKET:-agent-builder}
+      obs_ak: ${OBS_AK:-}
+      obs_sk: ${OBS_SK:-}
+      # https证书
+      server_ssl_enabled: ${SERVER_SSL_ENABLED:-false}
+      CB_CF_SERVER_KEYSTORE: ${CB_CF_SERVER_KEYSTORE:-}
+      CB_CF_TRUST_KEYSTORE: ${CB_CF_TRUST_KEYSTORE:-}
+      server_ssl_trust_store_password: ${SERVER_SSL_TRUST_STORE_PASSWORD:-}
+      server_ssl_key_store_password: ${SERVER_SSL_KEY_STORE_PASSWORD:-}
+      server_ssl_key_password: ${SERVER_SSL_KEY_PASSWORD:-}
+      # studio-service调用地址
+      agent_runtime_endpoint: ${AGENT_RUNTIME_ENDPOINT:-http://studio-service:31113}
+      # 鉴权配置
+      user_auth_endpoint: ${USER_AUTH_ENDPOINT:-http://studio-manager:31111}
+      front_page_block_nodes: Sql,DataQuery,ParamExtraction,ComplexIntentDetection,Agent,StreamTransform
+      share_knowledge_enabled: true
+    networks:
+      - default
+
+  studio-service:
+    image: ${STUDIO_SERVICE_IMAGE}
+    restart: always
+    privileged: true
+    cpus: 2
+    mem_limit: 4g
+    ports:
+      - "31113:31113"
+    environment:
+      # 数据库
+      spring_datasource_url: ${SPRING_DATASOURCE_URL:-}
+      spring_datasource_username: ${SPRING_DATASOURCE_USERNAME:-}
+      spring_datasource_password: ${SPRING_DATASOURCE_PASSWORD:-}
+      # redis
+      redis_host: ${REDIS_HOST:-}
+      redis_password: ${REDIS_PASSWORD:-}
+      redis_port: ${REDIS_PORT:-}
+      # obs
+      obs_url: ${OBS_URL:-}
+      obs_bucket: ${OBS_BUCKET:-agent-builder}
+      obs_staging_bucket: ${OBS_BUCKET:-agent-builder}
+      obs_ak: ${OBS_AK:-}
+      obs_sk: ${OBS_SK:-}
+      # https证书
+      server_ssl_enabled: ${SERVER_SSL_ENABLED:-false}
+      CB_CF_SERVER_KEYSTORE: ${CB_CF_SERVER_KEYSTORE:-}
+      CB_CF_TRUST_KEYSTORE: ${CB_CF_TRUST_KEYSTORE:-}
+      server_ssl_trust_store_password: ${SERVER_SSL_TRUST_STORE_PASSWORD:-}
+      server_ssl_key_store_password: ${SERVER_SSL_KEY_STORE_PASSWORD:-}
+      server_ssl_key_password: ${SERVER_SSL_KEY_PASSWORD:-}
+      # 鉴权配置
+      user_auth_endpoint: ${USER_AUTH_ENDPOINT:-http://studio-service:31113}
+      # studio-manager调用地址
+      agent_manager_endpoint: ${AGENT_MANAGER_ENDPOINT:-http://studio-manager:31111}
+      # 待确认
+      agent_base_runtime_endpoint: ${agent_base_runtime_endpoint:-http://agent-base:8008}
+      jiuwen_base_url: ${jiuwen_base_url:-http://studio-runtime:31014}
+      koosearch_endpoint:
+      model_manager_endpoint:
+      model_url:
+    networks:
+      - default
+
+  studio-runtime:
+    image: ${STUDIO_RUNTIME_IMAGE}
+    restart: always
+    privileged: true
+    cpus: 2
+    mem_limit: 4g
+    ports:
+      - "31014:31014"
+    environment:
+      PORT: 31014
+      MODEL_ROUTER_API: http://studio-service:31113/v1/agent-builder
+      HTTPS: ${SERVER_SSL_ENABLED:-false}
+      HTTPS_CERT_FILE: ${HTTPS_CERT_FILE:-}
+      HTTPS_KEY_FILE: ${HTTPS_KEY_FILE:-}
+      TLS_CERT_KEY_PASSWD: ${TLS_CERT_KEY_PASSWD:-}
+      TLS_CERT_KEY_PATH: /opt/cloud/agent-runtime/tls/key.pem
+      TLS_CERT_PATH: /opt/cloud/agent-runtime/tls/cert.pem
+      DATASOURCE_OBS_SERVER: ${OBS_URL:-}
+      DATASOURCE_OBS_BUCKET: ${OBS_BUCKET:-agent-builder}
+      DATASOURCE_OBS_AK: ${OBS_AK:-}
+      DATASOURCE_OBS_SK: ${OBS_SK:-}
+      REDIS_HOST: ${REDIS_HOST:-}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_PORT: ${REDIS_PORT:-}
+      JIUWEN_LOG_FILE: /opt/cloud/logs/tgf_python.log
+      JIUWEN_LOG_PATH: /opt/cloud/logs/jiuwen.log
+      JIUWEN_LOGGING_LOG_FILE: /opt/cloud/logs/jiuwen_python.log
+      LOGGING_LOG_PATH: /opt/cloud/logs/
+      TGF_LOG_DIR: /opt/cloud/logs/
+      PLUGIN_SSL_API_CERT: false
+      WORKFLOW_EXECUTE_TIMEOUT: 900
+    networks:
+      - default

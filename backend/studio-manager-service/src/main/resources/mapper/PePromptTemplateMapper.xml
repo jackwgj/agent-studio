@@ -1,0 +1,440 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.prompt.engineering.mapper.PePromptTemplateMapper">
+
+    <resultMap id="BaseResultMap" type="com.openjiuwen.studio.prompt.engineering.entity.PePromptTemplate">
+        <id property="id" column="id" jdbcType="VARCHAR"/>
+        <result property="name" column="name" jdbcType="VARCHAR"/>
+        <result property="content" column="content" jdbcType="VARCHAR"/>
+        <result property="source" column="source" jdbcType="VARCHAR"/>
+        <result property="variables" column="variables" jdbcType="VARCHAR"/>
+        <result property="ptType" column="pt_type" jdbcType="VARCHAR"/>
+        <result property="creator" column="creator" jdbcType="VARCHAR"/>
+        <result property="updater" column="updater" jdbcType="VARCHAR"/>
+        <result property="createdOn" column="created_on" jdbcType="TIMESTAMP"/>
+        <result property="updatedOn" column="updated_on" jdbcType="TIMESTAMP"/>
+        <result property="description" column="description" jdbcType="VARCHAR"/>
+        <result property="workspaceId" column="workspace_id" jdbcType="VARCHAR"/>
+        <result property="projectId" column="project_id" jdbcType="VARCHAR"/>
+        <result property="isShare" column="is_share" jdbcType="TINYINT"/>
+    </resultMap>
+
+    <resultMap id="fullTemplateMap" type="com.openjiuwen.studio.prompt.engineering.entity.PePromptTemplate"
+               extends="BaseResultMap">
+        <association property="industry"
+                     resultMap="com.openjiuwen.studio.prompt.engineering.mapper.PeIndustryMapper.BaseResultMap"
+                     javaType="com.openjiuwen.studio.prompt.engineering.entity.Industry"
+                     columnPrefix="tpi_"></association>
+        <collection property="tags" ofType="com.openjiuwen.studio.prompt.engineering.entity.PeTag"
+                    resultMap="com.openjiuwen.studio.prompt.engineering.mapper.PeTagMapper.TagResultMap"
+                    columnPrefix="tpt_"></collection>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,name,prompt,
+        source,variables,creator,
+        updater,created_on,updated_on
+    </sql>
+
+    <select id="selectAllIds" resultType="java.lang.String">
+        SELECT id
+        FROM t_pe_prompt_library
+    </select>
+
+    <insert id="bindingTemplateIdAndTagId">
+        insert into t_mapping_pe_template_tag(template_id, tag_id, workspace_id)
+        values
+        <foreach collection="tagIds" item="tagId" separator=",">
+            (#{templateId,jdbcType=VARCHAR},#{tagId,jdbcType=VARCHAR},#{workspaceId,jdbcType=VARCHAR})
+        </foreach>
+    </insert>
+
+    <insert id="insertOneTemplate">
+        insert into t_pe_prompt_library(`id`, `name`, `content`, `source`, `variables`, `pt_type`, `creator`, `updater`,
+                                        `project_id`, `description`, `industry_id`, `workspace_id`, `domain_id`)
+        values (#{template.id}, #{template.name}, #{template.content}, #{template.source}, #{template.variables},
+                #{template.ptType}, #{template.creator}, #{template.updater},
+                #{projectId}, #{template.description}, #{industryId}, #{template.workspaceId}, #{template.domainId})
+    </insert>
+
+    <update id="updateTemplate">
+        update t_pe_prompt_library
+        set name        = #{pePromptTemplate.name},
+            content     = #{pePromptTemplate.content},
+            source      = #{pePromptTemplate.source},
+            variables   = #{pePromptTemplate.variables},
+            pt_type     = #{pePromptTemplate.ptType},
+            updater     = #{pePromptTemplate.updater},
+            description = #{pePromptTemplate.description},
+            industry_id = #{industryId},
+            updated_on = CURRENT_TIMESTAMP
+        where id = #{pePromptTemplate.id} and workspace_id = #{pePromptTemplate.workspaceId}
+    </update>
+
+    <insert id="copyToHistory">
+        INSERT INTO t_history_prompt (
+            id, name, content, source, variables, pt_type, project_id, industry_id, description, creator, updater, created_on, workspace_id, domain_id, tag_ids)
+        SELECT
+            id, name, content, source, variables, pt_type, project_id, industry_id, description, creator, updater, created_on, workspace_id, domain_id, #{tagId}
+        FROM t_pe_prompt_library
+        WHERE id = #{templateId,jdbcType=VARCHAR}
+          AND workspace_id = #{workspaceId,jdbcType=VARCHAR};
+    </insert>
+
+    <select id="findTemplatesToBeDeleted" resultType="string">
+        SELECT id
+        FROM t_history_prompt
+        WHERE updated_on IS NOT NULL
+          AND updated_on &lt;= #{twoYearsAgo}
+    </select>
+
+    <delete id="deleteTemplatesPermanently">
+        DELETE FROM t_history_prompt
+        WHERE id IN
+        <foreach item="id" collection="templateIds" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <delete id="unbindTemplateIdAndTagId">
+        delete
+        from t_mapping_pe_template_tag
+        where template_id = #{templateId} and workspace_id = #{workspaceId}
+    </delete>
+
+    <delete id="unbindTemplateIdAndTagIdByTemplateIds">
+        DELETE FROM t_mapping_pe_template_tag
+        WHERE template_id IN
+        <foreach collection="templateIds" item="templateId" open="(" separator="," close=")">
+            #{templateId}
+        </foreach>
+    </delete>
+
+    <delete id="deleteTemplateByTemplateId">
+        delete
+        from t_pe_prompt_library
+        where id = #{templateId} and workspace_id = #{workspaceId}
+    </delete>
+
+    <delete id="batchUnbindTemplateIdAndTagId">
+        delete
+        from t_mapping_pe_template_tag
+        where workspace_id = #{workspaceId} and template_id in
+        <foreach collection="templateIds" item="item" open="(" close=")" separator=",">
+            #{item}
+        </foreach>
+    </delete>
+
+    <delete id="batchDeleteTemplateByTemplateId">
+        delete
+        from t_pe_prompt_library
+        where workspace_id = #{workspaceId} and id in
+        <foreach collection="templateIds" item="item" open="(" close=")" separator=",">
+            #{item}
+        </foreach>
+    </delete>
+
+    <select id="queryTemplateIdsByCondition" resultType="java.lang.String">
+        SELECT distinct tppl.id, tppl.updated_on
+        from t_pe_prompt_library tppl
+        left join t_mapping_pe_template_tag tmptt on tppl.id = tmptt.template_id
+        left join t_pe_tag tpt on tpt.id = tmptt.tag_id
+        <where>
+            <if test="body.source == null or body.source == ''">
+                AND tppl.project_id = #{projectId}
+                AND tppl.workspace_id = #{workspaceId}
+                AND ifnull(tppl.source,"") != 'PRESET'
+            </if>
+            <if test="body.source != null and body.source!=''">
+                AND tppl.source = #{body.source}
+            </if>
+            <if test="body.templateId != null and body.templateId!=''">
+                AND tppl.id = #{body.templateId}
+            </if>
+            <if test="body.templateName != null and body.templateName.length() > 0">
+                <bind name="nameKeyWordPattern" value="'%' + body.templateName + '%'"/>
+                AND tppl.name like #{nameKeyWordPattern}
+            </if>
+            <if test="body.content != null and body.content!=''">
+                <bind name="content" value="'%' + body.content + '%'"/>
+                AND tppl.content like #{content}
+            </if>
+            <if test="body.description != null and body.description!=''">
+                <bind name="description" value="'%' + body.description + '%'"/>
+                AND tppl.description like #{description}
+            </if>
+            <if test="body.tagList != null and body.tagList.size() > 0">
+                AND tmptt.tag_id in
+                <foreach collection="body.tagList" open="(" close=")" separator="," item="item">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="body.industryList != null and body.industryList.size() > 0">
+                AND tppl.industry_id in
+                <foreach collection="body.industryList" open="(" close=")" separator="," item="item">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="category != null">
+                and tppl.industry_id = #{category}
+            </if>
+        </where>
+        ORDER BY tppl.updated_on DESC, tppl.id
+    </select>
+
+    <select id="queryTemplateIdsByCondition2" resultType="java.lang.String">
+        SELECT distinct id, updated_on
+        from t_pe_prompt_library
+        where workspace_id = #{workspaceId}
+        AND project_id = #{projectId}
+        <if test="name != null and name != ''">
+            AND name LIKE CONCAT('%', #{name}, '%')
+        </if>
+        ORDER BY updated_on DESC, id
+    </select>
+
+    <select id="queryTemplateIds" resultMap="fullTemplateMap">
+        SELECT
+            tppl.*,
+            tpt.id            tpt_id,
+            tpt.name          tpt_name,
+            tpt.name_en       tpt_name_en,
+            tpi.id            tpi_id,
+            tpi.name          tpi_name,
+            tpi.name_en       tpi_name_en,
+            tpi.description   tpi_description,
+            tpi.created_on    tpi_created_on,
+            tpi.updated_on    tpi_updated_on
+        from t_pe_prompt_library tppl
+                 left join t_mapping_pe_template_tag tmptt on tppl.id = tmptt.template_id
+                 left join t_pe_tag tpt on tpt.id = tmptt.tag_id
+                 left join t_pe_industry tpi on tppl.industry_id = tpi.id
+        where tppl.workspace_id = #{workspaceId} and tppl.id = #{id}
+    </select>
+
+    <select id="queryTemplate" resultMap="fullTemplateMap">
+        SELECT
+            tppl.*,
+            tpt.id            tpt_id,
+            tpt.name          tpt_name,
+            tpt.name_en       tpt_name_en,
+            tpi.id            tpi_id,
+            tpi.name          tpi_name,
+            tpi.name_en       tpi_name_en,
+            tpi.description   tpi_description,
+            tpi.created_on    tpi_created_on,
+            tpi.updated_on    tpi_updated_on
+        from t_pe_prompt_library tppl
+                 left join t_mapping_pe_template_tag tmptt on tppl.id = tmptt.template_id
+                 left join t_pe_tag tpt on tpt.id = tmptt.tag_id
+                 left join t_pe_industry tpi on tppl.industry_id = tpi.id
+        where tppl.id = #{id}
+    </select>
+
+    <select id="queryTemplateDetailByTemplateIds"
+            resultMap="fullTemplateMap">
+        SELECT
+        tppl.*,
+        tpt.id            tpt_id,
+        tpt.name          tpt_name,
+        tpt.name_en       tpt_name_en,
+        tpi.id            tpi_id,
+        tpi.name          tpi_name,
+        tpi.name_en       tpi_name_en,
+        tpi.description   tpi_description,
+        tpi.created_on    tpi_created_on,
+        tpi.updated_on    tpi_updated_on
+        from t_pe_prompt_library tppl
+        left join t_mapping_pe_template_tag tmptt on tppl.id = tmptt.template_id
+        left join t_pe_tag tpt on tpt.id = tmptt.tag_id
+        left join t_pe_industry tpi on tppl.industry_id = tpi.id
+        where tppl.workspace_id = #{workspaceId} and tppl.id in
+        <foreach collection="resultIdsByCondition" open="(" close=")" separator="," item="item">
+            #{item}
+        </foreach>
+        ORDER BY
+        tppl.updated_on DESC
+    </select>
+
+    <select id="queryTemplateDetailByPersonTemplateIds"
+            resultMap="fullTemplateMap">
+        SELECT
+        tppl.*,
+        tpt.id            tpt_id,
+        tpt.name          tpt_name,
+        tpt.name_en       tpt_name_en,
+        tpi.id            tpi_id,
+        tpi.name          tpi_name,
+        tpi.name_en       tpi_name_en,
+        tpi.description   tpi_description,
+        tpi.created_on    tpi_created_on,
+        tpi.updated_on    tpi_updated_on
+        from t_pe_prompt_library tppl
+        left join t_mapping_pe_template_tag tmptt on tppl.id = tmptt.template_id
+        left join t_pe_tag tpt on tpt.id = tmptt.tag_id
+        left join t_pe_industry tpi on tppl.industry_id = tpi.id
+        where tppl.workspace_id = #{workspaceId} and tppl.source != 'PRESET' and tppl.id in
+        <foreach collection="resultIdsByCondition" open="(" close=")" separator="," item="item">
+            #{item}
+        </foreach>
+        ORDER BY
+        tppl.updated_on DESC
+    </select>
+
+    <select id="queryTemplateDetailByCreatorTemplateIds"
+            resultMap="fullTemplateMap">
+        SELECT
+        tppl.*,
+        tpt.id            tpt_id,
+        tpt.name          tpt_name,
+        tpt.name_en       tpt_name_en,
+        tpi.id            tpi_id,
+        tpi.name          tpi_name,
+        tpi.name_en       tpi_name_en,
+        tpi.description   tpi_description,
+        tpi.created_on    tpi_created_on,
+        tpi.updated_on    tpi_updated_on
+        from t_pe_prompt_library tppl
+        left join t_mapping_pe_template_tag tmptt on tppl.id = tmptt.template_id
+        left join t_pe_tag tpt on tpt.id = tmptt.tag_id
+        left join t_pe_industry tpi on tppl.industry_id = tpi.id
+        where tppl.source = 'PRESET' and tppl.id in
+        <foreach collection="resultIdsByCondition" open="(" close=")" separator="," item="item">
+            #{item}
+        </foreach>
+        ORDER BY
+        tppl.updated_on DESC
+    </select>
+
+    <select id="queryTemplateDetailByTemplateId"
+            resultMap="fullTemplateMap">
+        SELECT
+        tppl.*,
+        tpt.id            tpt_id,
+        tpt.name          tpt_name,
+        tpt.name_en       tpt_name_en,
+        tpi.id            tpi_id,
+        tpi.name          tpi_name,
+        tpi.name_en       tpi_name_en,
+        tpi.description   tpi_description,
+        tpi.created_on    tpi_created_on,
+        tpi.updated_on    tpi_updated_on
+        from t_pe_prompt_library tppl
+        left join t_mapping_pe_template_tag tmptt on tppl.id = tmptt.template_id
+        left join t_pe_tag tpt on tpt.id = tmptt.tag_id
+        left join t_pe_industry tpi on tppl.industry_id = tpi.id
+        where tppl.id in
+        <foreach collection="resultIdsByCondition" open="(" close=")" separator="," item="item">
+            #{item}
+        </foreach>
+        ORDER BY
+        tppl.updated_on DESC
+    </select>
+
+    <select id="isNameExist" resultType="java.lang.Boolean">
+        SELECT 1
+        FROM t_pe_prompt_library
+        WHERE name = #{name} AND workspace_id = #{workspaceId}
+        AND project_id = #{projectId}
+        <if test="id !=null and id !=''">
+            AND id != #{id}
+        </if>
+        LIMIT 1
+    </select>
+
+    <select id="isNameExist2" resultType="java.lang.Boolean">
+        SELECT 1
+        FROM t_pe_prompt_library
+        WHERE name = #{name} AND workspace_id = #{workspaceId}
+          AND project_id = #{projectId}
+            LIMIT 1
+    </select>
+
+    <select id="countTemplateByProjectId" resultType="java.lang.Integer">
+        select count(1)
+        from t_pe_prompt_library
+        where project_id = #{projectId} and workspace_id = #{workspaceId}
+          and source != 'PRESET'
+    </select>
+    <select id="countTemplateByIndustryId" resultType="java.lang.Integer">
+        select count(1)
+        from t_pe_prompt_library
+        where industry_id = #{industryId} and workspace_id = #{workspaceId} limit 1
+    </select>
+    <select id="countPresetTemplateByProjectId" resultType="java.lang.Integer">
+        select count(1)
+        from t_pe_prompt_library
+        where source = 'PRESET' and workspace_id = #{workspaceId}
+    </select>
+    <select id="queryTemplateNameByName" resultType="java.lang.String">
+        select name
+        from t_pe_prompt_library
+        where source = 'PRESET' and workspace_id = #{workspaceId}
+        and name in
+        <foreach collection="templateNames" open="(" close=")" separator="," item="item">
+            #{item}
+        </foreach>
+    </select>
+
+    <select id="queryTemplateNameByNameV2" resultType="java.lang.String">
+        select name
+        from t_pe_prompt_library
+        where (source = 'PRESET' or (project_id = #{projectId} and workspace_id = #{workspaceId}))
+        and name in
+        <foreach collection="templateNames" open="(" close=")" separator="," item="item">
+            #{item}
+        </foreach>
+    </select>
+
+    <select id="queryTemplateDetailById" resultMap="fullTemplateMap">
+        SELECT
+            tppl.*,
+            tpt.id            tpt_id,
+            tpt.name          tpt_name,
+            tpt.name_en       tpt_name_en,
+            tpi.id            tpi_id,
+            tpi.name          tpi_name,
+            tpi.name_en       tpi_name_en,
+            tpi.description   tpi_description,
+            tpi.created_on    tpi_created_on,
+            tpi.updated_on    tpi_updated_on
+        from t_pe_prompt_library tppl
+                 left join t_mapping_pe_template_tag tmptt on tppl.id = tmptt.template_id
+                 left join t_pe_tag tpt on tpt.id = tmptt.tag_id
+                 left join t_pe_industry tpi on tppl.industry_id = tpi.id
+        where tppl.workspace_id = #{workspaceId} and tppl.id = #{id}
+    </select>
+
+    <update id="updatePromptShareStatus">
+        update t_pe_prompt_library
+        set is_share = #{status,jdbcType=TINYINT}
+        where id = #{id,jdbcType=VARCHAR}
+    </update>
+
+    <select id="batchQueryTemplateByIds" resultMap="BaseResultMap">
+        SELECT
+            tppl.*,
+            tpt.id            tpt_id,
+            tpt.name          tpt_name,
+            tpt.name_en       tpt_name_en,
+            tpi.id            tpi_id,
+            tpi.name          tpi_name,
+            tpi.name_en       tpi_name_en,
+            tpi.description   tpi_description,
+            tpi.created_on    tpi_created_on,
+            tpi.updated_on    tpi_updated_on
+        from t_pe_prompt_library tppl
+                 left join t_mapping_pe_template_tag tmptt on tppl.id = tmptt.template_id
+                 left join t_pe_tag tpt on tpt.id = tmptt.tag_id
+                 left join t_pe_industry tpi on tppl.industry_id = tpi.id
+        where tppl.id in
+        <foreach collection="ids" open="(" close=")" separator="," item="item">
+            #{item}
+        </foreach>
+        AND project = #{projectId}
+        ORDER BY
+        tppl.updated_on DESC
+    </select>
+</mapper>

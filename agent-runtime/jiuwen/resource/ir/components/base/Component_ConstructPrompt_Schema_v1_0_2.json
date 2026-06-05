@@ -1,0 +1,73 @@
+{
+  "type": "jiuwen.planner.components.plan_modules.construct_prompt:ConstructPrompt",
+  "version": "1.0.2",
+  "schemaVersion": "0.6",
+  "classInfo": {
+    "modulePath": "jiuwen.planner.components.plan_modules.construct_prompt",
+    "className": "ConstructPrompt",
+    "programLanguage": "python",
+    "filePath": "jiuwen/planner/components/planning_modules/construct_prompt.pyc"
+  },
+  "description": "构建Prompt输入",
+  "inputs": [
+    {
+      "id": "postPluginList",
+      "description": "选择的id列表",
+      "type": "List[Map<String, T>]"
+    },
+    {
+      "id": "postWorkflowList",
+      "description": "选择的id列表",
+      "type": "List[Map<String, T>]"
+    },
+    {
+      "id": "knowledgeSegments",
+      "description": "知识库返回的检索片段",
+      "type": "List[String]"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "variables",
+      "type": "Map<String, T>",
+      "description": "需要向Prompt模板占位符中填充的变量，以字典的形式传入，键名为占位符变量名称，值为占位符变量的值"
+    },
+    {
+      "id": "history",
+      "type": "List<Map<String, T>>",
+      "description": "包含历史对话的消息列表"
+    },
+    {
+      "id": "query",
+      "type": "String",
+      "description": "用户的当前query，用于作为对话历史和插件列表优选的key"
+    },
+    {
+      "id": "tools",
+      "type": "String",
+      "description": "候选工具集"
+    }
+  ],
+  "configs": [
+    {
+      "id": "queryTemplateContent",
+      "type": "List<Map<String, T>>",
+      "description": "query改写的模版列表，如知识库检索片段需要改写"
+    },
+    {
+      "id": "userFields",
+      "type": "Map<String, T>",
+      "description": "用户参数信息配置"
+    },
+    {
+      "id": "preDefinedFields",
+      "type": "Map<String, T>",
+      "description": "预定义参数信息配置"
+    },
+    {
+      "id": "debugType",
+      "type": "Map<String, T>",
+      "description": "调测树配置"
+    }
+  ]
+}

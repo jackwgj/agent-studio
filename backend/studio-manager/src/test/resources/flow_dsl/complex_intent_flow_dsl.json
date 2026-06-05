@@ -1,0 +1,316 @@
+{
+  "id": "b440c5cf-711f-4f42-a2c8-24ae44a527bf",
+  "name": "t123",
+  "description": "t123",
+  "nodes": [{
+    "id": "node_start",
+    "type": "Start",
+    "name": "开始",
+    "outputs": [{
+      "description": "用户输入",
+      "field_type": "input",
+      "name": "query",
+      "reflection": false,
+      "required": true,
+      "source": "system",
+      "type": "string",
+      "value": {
+        "content": "",
+        "hint": "用户输入",
+        "type": "literal"
+      }
+    }, {
+      "description": "系统变量",
+      "field_type": "object",
+      "name": "sys",
+      "reflection": false,
+      "required": true,
+      "schema": [{
+        "name": "conversation_history",
+        "type": "array",
+        "description": "会话历史消息",
+        "required": true,
+        "source": "system",
+        "value": {
+          "content": [],
+          "hint": "会话历史消息",
+          "type": "literal"
+        },
+        "schema": {
+          "name": "",
+          "type": "object",
+          "schema": [{
+            "name": "role",
+            "type": "string",
+            "description": "角色",
+            "required": true,
+            "source": "system",
+            "value": {
+              "type": "literal",
+              "content": "",
+              "hint": "角色"
+            }
+          }, {
+            "name": "content",
+            "type": "string",
+            "description": "消息内容",
+            "required": true,
+            "source": "system",
+            "value": {
+              "type": "literal",
+              "content": "",
+              "hint": "消息内容"
+            }
+          }
+          ]
+        }
+      }, {
+        "name": "current_time",
+        "type": "string",
+        "required": true,
+        "description": "当前系统时间",
+        "field_type": "input",
+        "source": "system",
+        "value": {
+          "type": "literal",
+          "content": "",
+          "hint": "当前系统时间"
+        }
+      }, {
+        "name": "user_id",
+        "type": "string",
+        "required": true,
+        "description": "使用该工作流的唯一标识",
+        "field_type": "input",
+        "source": "system",
+        "value": {
+          "type": "literal",
+          "content": "",
+          "hint": "用户唯一标识"
+        }
+      }
+      ],
+      "source": "system",
+      "type": "object",
+      "value": {
+        "content": {},
+        "hint": "系统变量",
+        "type": "literal"
+      }
+    }
+    ]
+  }, {
+    "id": "node_1742453229938",
+    "type": "ComplexIntentDetection",
+    "name": "意图识别",
+    "inputs": [{
+      "name": "input",
+      "description": "",
+      "required": false,
+      "type": "string",
+      "value": {
+        "type": "ref",
+        "content": {
+          "ref_node_id": "node_start",
+          "ref_var_name": "query",
+          "source": "system"
+        },
+        "hint": ""
+      },
+      "source": "system"
+    }
+    ],
+    "outputs": [{
+      "name": "result",
+      "description": "输出的分类分支名",
+      "required": false,
+      "type": "string",
+      "value": {
+        "type": "generated",
+        "content": "",
+        "hint": ""
+      },
+      "source": "system"
+    }, {
+      "name": "reason",
+      "type": "string",
+      "required": true,
+      "source": "system",
+      "value": {
+        "type": "generated",
+        "hint": ""
+      }
+    }
+    ],
+    "configs": {
+      "prompt": "你是一个功能分类器，你可以根据用户的请求提问，和相应的功能类别描述，选择正确的功能帮助用户解决问题。",
+      "llm": {
+        "temperature": 0.5,
+        "top_p": 0.5,
+        "model": {
+          "model_name": "38b-v34",
+          "model_type": "poc_agentBuilder",
+          "model_deployment_id": "833774a6-fac0-4aa3-9c4c-b1e27b643bb2"
+        }
+      },
+      "intent": {
+        "id": "e19ec5a5-2d87-457c-b430-7e149361fd67",
+        "name": "l0324"},
+      "enable_history": false,
+      "enable_knowledge": false
+    },
+    "branches": []
+  }, {
+    "id": "node_1742453229938_c1",
+    "type": "IntentDetectionContainer",
+    "name": "意图识别容器",
+    "inputs": [{
+      "name": "query",
+      "type": "string",
+      "description": "用户输入",
+      "required": true,
+      "source": "system",
+      "value": {
+        "type": "ref",
+        "content": {
+          "ref_node_id": "node_start",
+          "ref_var_name": "query",
+          "source": "system"
+        },
+        "hint": ""
+      }}],
+    "outputs": [{
+      "name": "group1",
+      "type": "string",
+      "description": "各分支输出的聚合节点",
+      "required": true,
+      "reflection": false,
+      "value": {
+        "type": "generated",
+        "content": null,
+        "hint": "",
+        "default": ""
+      },
+      "source": "system"
+    }
+    ],
+    "configs": {
+      "groups": {
+        "group1": [{
+          "name": "branch_0",
+          "description": "",
+          "required": true,
+          "reflection": false,
+          "value": {
+            "type": "ref",
+            "content": {
+              "ref_node_id": "branch_0",
+              "ref_var_name": "response_content",
+              "source": "system"
+            },
+            "hint": ""
+          },
+          "source": "user",
+          "type": "string"
+        }, {
+          "name": "branch_1",
+          "description": "",
+          "required": true,
+          "reflection": false,
+          "value": {
+            "type": "ref",
+            "content": {
+              "ref_node_id": "branch_1",
+              "ref_var_name": "response_content",
+              "source": "system"
+            },
+            "hint": ""
+          },
+          "source": "user",
+          "type": "string"
+        }
+        ]
+      },
+      "model": "first-non-null"},
+    "branches": [{
+      "id": "branch_0",
+      "configs": {
+        "category": "不确定，其他的意图",
+        "description": "不确定，其他的意图",
+        "workflow_id": "12324",
+        "workflow_version_id": "56789",
+        "workflow_name": "2323",
+        "workflow_version_name": "23233"}},{
+      "id": "branch_1",
+      "configs": {
+        "category": "1",
+        "description": "1",
+        "workflow_id": "1",
+        "workflow_version_id": "1",
+        "workflow_name": "1",
+        "workflow_version_name": "1"}}]},{
+    "id": "node_end",
+    "type": "End",
+    "name": "结束",
+    "configs": {
+      "is_stream_out": true,
+      "response_template": "{{result}}",
+      "response_mode": "directResponse"
+    },
+    "inputs": [{
+      "description": "最终输出",
+      "name": "result",
+      "reflection": false,
+      "required": false,
+      "source": "user",
+      "type": "string",
+      "value": {
+        "content": {
+          "ref_node_id": "node_1742453229938_c1",
+          "ref_var_name": "group1",
+          "source": "user"
+        },
+        "type": "ref"
+      }
+    }
+    ],
+    "outputs": [{
+      "description": "最终输出",
+      "name": "response_content",
+      "reflection": false,
+      "required": true,
+      "source": "system",
+      "type": "string",
+      "value": {
+        "type": "generated"
+      }}]}],
+  "edges": [{
+    "source": "node_start",
+    "target": "node_1742453229938"
+  }, {
+    "source": "node_1742453229938",
+    "target": "node_1742453229938_c1"
+  }, {
+    "source": "node_1742453229938_c1",
+    "target": "node_end"
+  }
+  ],
+  "layouts": {
+    "node_start": {
+      "x": 252,
+      "y": 486
+    },
+    "node_1742453229938": {
+      "x": 450,
+      "y": 810
+    },
+    "node_1742453229938_c1": {
+      "x": 1620,
+      "y": 774
+    },
+    "node_end": {
+      "x": 2160,
+      "y": 774
+    }
+  }
+}

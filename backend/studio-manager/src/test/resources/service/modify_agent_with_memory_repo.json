@@ -1,0 +1,7 @@
+{
+  "memory_config": {
+    "memory_repo_id": "test_memory_repo_id"
+  },
+  "type": "agent",
+  "sub_type": "planexecute"
+}

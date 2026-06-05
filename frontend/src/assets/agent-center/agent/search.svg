@@ -1,0 +1,21 @@
+<svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="40.000000" height="40.000000" fill="none" mask="url(#mask_0)">
+	<defs>
+		<filter id="pixso_custom_mask_type_alpha">
+			<feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1 0 " />
+		</filter>
+		<image id="image_0" width="82.000000" height="86.000000" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFIAAABWCAYAAABcvcGNAAAABHNCSVQICAgIfAhkiAAABCBJREFUeJztnDFvGjEUx1+qwi2wRF06HHwFTsoEfJB0JMqG1LWfIWukbFEY0w8SmCrBVwCGLFEXUCtyQztERtad4Xz2//nM4Z+UBZHD+p3t9/zsu4s/f9N/FLDmU9UNqAtBJIggEkQQCSKIBBFEgggiQQSRIIJIEEEkiCASRBAJ4nNVP7xYpURE9DTb7D+bLXfU70ZERJTETSIiGg1a7htnwIXr6s9ildLTbEOz5U77f8bDNhH5LdWZSBOBKsbDtpdCnQztyXRLDy+b4i9qIK7jm0z2Hvn952/rXniIx29fqNdpsFy7LKxRm1MiEdHt8xvbtcvCJpJbovw7WRardP/nCpY5cjLdOpFI9JEyTaZbSuLoaDAbD9uUxBHbVACfIxer1Kshl4Ur6sOH9nztpiea8vCyUU4HtkBFLlYpLM3hZLbcwWVCRfreG2XQMqEiT6E3ysyWO1hkh4l0mWogkYsmNsBEntKwlhHpky1WeaRcCnOVN3KAWL8biURVcnzCVmaphLyOArP0uxHdX1+W/j9tkchSmO+YyNQSiZYoyl+LVUrz9c742v1uRDf9NvU6DXgbyy4lC6M2RwNF4aDXaVASR8bXur++3F9rNGjt93sQPLxsSqV0R0VyDOesuF6nYSRA7OPI3PTzn9lQJsc8KvJc5sRDlFn5HBSJSFLrgG6vVOaRNkNaBAAisgok8n4Moj2mAUn0yqKCMLweKQJAr9MwTm7lgERkt+JI4qZ1QNLplUqRpndfFQBQkdT0OtmbYBKQdBYgOZHouVEcPfHlOlyEQ1SaFEXvnMj5+p2tMXUmJ7LOBQkbiuqtYWhrUjRSg0hNioIdeBcRM78i5+lskODaEsmJtMn7VGtTk5xUNU+b5rau9pLgZ39un99oPGzTfP1uFbiu7l4h15FvgM21isp9OZFJ3LSO3OhDpSrm63ca5T5TtxvRntJrbZtCqw6qdavJjXOZpulMd7keKQqtXA0V+8ijQWu/mWaKWM4WHemzRWd5qtyzOaeNLh1+/fha+B1l+oPe/zhlVBUtFQfzSPT+R905KLLXaWjfjbpSZkv26Mrm3Ic4dF/7/vryLGWWHY2VHlkRN8i30p3JgX3tosVo0ILOmeJ8TR0kEhk+HlLl9ignNo+OWD1nM5lutQoBYggLgYKru1fTn4Zj+1wj7IElUT4ThQN5za5qoC+90fQ8ZBZYGU0+YaZD1Zts8hSDoJJXMbh8VlGm340oiZsszyRW9k4LDuR8V67YcD7MKahEpO2wlg9qEelPJ5xUIrLssJbF+SBNhXORugc30cGAG+cij+3qcQYDbrwINqfW+1RULtKnN6XYUMHQ/ojYvr4IyRTnIpO4efLDWIXzd6PVlXAaDUQQCSKIBBFEgggiQQSRIIJIEEEkiCASRBAJIogE8R9mZxff9hUiIgAAAABJRU5ErkJggg==" />
+		<pattern id="pattern_0" width="1.000000" height="1.000000" image-fill-type="fill" patternContentUnits="objectBoundingBox">
+			<use transform="matrix(0.0124031,0,0,0.0116279,-0.00852716,0)" xlink:href="#image_0" />
+		</pattern>
+	</defs>
+	<mask id="mask_0" width="40.000000" height="40.000000" x="0.000000" y="0.000000" maskUnits="userSpaceOnUse">
+		<g filter="url(#pixso_custom_mask_type_alpha)">
+			<rect id="BG" width="40.000000" height="40.000000" x="0.000000" y="0.000000" rx="6.666667" fill="rgb(246,247,251)" />
+			<rect id="BG" width="39.166668" height="39.166668" x="0.416667" y="0.416667" rx="6.250000" stroke="rgb(219,219,219)" stroke-width="0.833333313" />
+		</g>
+	</mask>
+	<rect id="预置插件" width="40.000000" height="40.000000" x="0.000000" y="0.000000" />
+	<rect id="BG" width="40.000000" height="40.000000" x="0.000000" y="0.000000" rx="6.666667" fill="rgb(246,247,251)" />
+	<rect id="BG" width="39.166668" height="39.166668" x="0.416667" y="0.416667" rx="6.250000" stroke="rgb(219,219,219)" stroke-width="0.833333313" />
+	<rect id="image 7" width="31.000000" height="33.066666" x="5.000000" y="3.999992" fill="url(#pattern_0)" />
+</svg>

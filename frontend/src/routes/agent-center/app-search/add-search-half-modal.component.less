@@ -1,0 +1,94 @@
+.search-title {
+  color: rgb(25, 25, 25);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  letter-spacing: 0;
+  text-align: left;
+}
+
+.search-description {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+  color: rgb(128, 128, 128);
+  margin-top: 16px;
+}
+
+.search-card {
+  padding: 16px;
+  background-color: rgb(250, 250, 250);
+  border-radius: 8px;
+  min-height: 72px;
+  margin-bottom: 16px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  .content {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    .title-text {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .open {
+      display: flex;
+      align-items: center;
+      color: rgb(20, 108, 255);
+      gap: 4px;
+      flex-shrink: 0;
+    }
+    .add {
+      border: 1px solid rgb(170, 170, 170);
+      padding: 0 2px;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+    .reduce {
+      border: 1px solid #1476ff;
+      padding: 0 2px;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+  }
+  .auth {
+    margin-top: 16px;
+    color: rgb(25, 25, 25);
+    .key {
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+      gap: 4px;
+      font-size: 12px;
+    }
+  }
+  .desc {
+    color: rgb(128, 128, 128);
+    font-size: 12px;
+    font-weight: 400;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .metadata {
+    position: absolute;
+    left: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: rgb(20, 118, 255);
+  }
+  &:hover {
+    border: 1px solid #1476ff;
+  }
+}
+.search-button {
+  position: relative;
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: right;
+  gap: 10px;
+}

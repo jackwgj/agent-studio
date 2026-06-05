@@ -1,0 +1,33 @@
+<div class="acc-blk-wrapper-new">
+  <div class="header">
+    <div class="flex items-center gap-4">
+      <div class="flex items-center gap-2">
+        <ng-container *ngIf="!!blockTitle; else txtTitle">
+          <ng-container *ngTemplateOutlet="blockTitle"></ng-container>
+        </ng-container>
+
+        <ng-template #txtTitle>
+          <div
+            class="cursor-pointer font-bold text-label"
+            (click)="open = !open"
+          >
+            {{ title }}
+          </div>
+        </ng-template>
+
+        <div class="cursor-pointer" (click)="open = !open">
+          <span *ngIf="open" nz-icon nzType="up" nzTheme="outline"></span>
+          <span *ngIf="!open" nz-icon nzType="down" nzTheme="outline"></span>
+        </div>
+      </div>
+    </div>
+
+    <ng-container *ngIf="!!right">
+      <ng-container *ngTemplateOutlet="right"></ng-container>
+    </ng-container>
+  </div>
+
+  <ng-container *ngIf="!!content && open">
+    <ng-container *ngTemplateOutlet="content"></ng-container>
+  </ng-container>
+</div>

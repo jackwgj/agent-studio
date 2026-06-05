@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) Huawei Technologies Co., Ltd. 2024-2024. All rights reserved.
+  -->
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.agent.manager.mapper.MappingAgentToolMapper">
+    <resultMap id="BaseResultMap"
+               type="com.openjiuwen.studio.agent.manager.dao.MappingAgentTool">
+        <id column="agent_id" jdbcType="VARCHAR" property="agentId"/>
+        <id column="tool_id" jdbcType="VARCHAR" property="toolId"/>
+        <id column="project_id" jdbcType="VARCHAR" property="projectId"/>
+        <result column="resident" jdbcType="BOOLEAN" property="resident"/>
+        <result column="created_on" jdbcType="TIMESTAMP" property="createdOn"/>
+        <result column="updated_on" jdbcType="TIMESTAMP" property="updatedOn"/>
+    </resultMap>
+    <sql id="Base_Column_List">
+        agent_id,
+        tool_id,
+        project_id,
+        resident,
+        created_on,
+        updated_on
+    </sql>
+    <select id="selectByPrimaryKey" parameterType="map" resultMap="BaseResultMap">
+        <!--@mbg.generated-->
+        select
+        <include refid="Base_Column_List"/>
+        from t_mapping_agent_tool
+        where agent_id = #{agentId,jdbcType=VARCHAR}
+          and tool_id = #{toolId,jdbcType=VARCHAR}
+          and project_id = #{projectId,jdbcType=VARCHAR}
+    </select>
+    <select id="selectBatchWithToolsOptional" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_mapping_agent_tool
+        where agent_id = #{agentId,jdbcType=VARCHAR}
+        and project_id = #{projectId,jdbcType=VARCHAR}
+        <if test="toolIds != null and toolIds.size() > 0">
+            and tool_id in
+            <foreach collection="toolIds" separator="," open="(" close=")" item="id">
+                #{id}
+            </foreach>
+        </if>
+        order by updated_on desc
+    </select>
+    <select id="selectBatchExcludeKnowledgeTool" parameterType="map"
+            resultType="com.openjiuwen.studio.agent.manager.dao.MappingAgentTool">
+        select tm.*
+        from t_mapping_agent_tool tm
+                 left join t_tool tt on tt.tool_id = tm.tool_id
+        where tm.agent_id = #{agentId,jdbcType=VARCHAR}
+          and tm.project_id = #{projectId,jdbcType=VARCHAR}
+          and tt.type <![CDATA[ <> ]]> 'knowledge'
+        order by tm.updated_on desc
+    </select>
+    <delete id="deleteByPrimaryKey" parameterType="map">
+        <!--@mbg.generated-->
+        delete
+        from t_mapping_agent_tool
+        where agent_id = #{agentId,jdbcType=VARCHAR}
+          and tool_id = #{toolId,jdbcType=VARCHAR}
+          and project_id = #{projectId,jdbcType=VARCHAR}
+    </delete>
+    <delete id="deleteBatch" parameterType="map">
+        delete
+        from t_mapping_agent_tool
+        where agent_id = #{agentId,jdbcType=VARCHAR}
+        and project_id = #{projectId,jdbcType=VARCHAR}
+        and tool_id in
+        <foreach collection="toolIds" separator="," open="(" close=")" item="id">
+            #{id}
+        </foreach>
+    </delete>
+    <delete id="deleteBatchByAgentIds" parameterType="map">
+        delete
+        from t_mapping_agent_tool
+        where tool_id = #{toolId,jdbcType=VARCHAR}
+        and project_id = #{projectId,jdbcType=VARCHAR}
+        and agent_id in
+        <choose>
+            <when test="agentIds != null and agentIds.size() > 0">
+                <foreach collection="agentIds" separator="," open="(" close=")" item="id">
+                    #{id}
+                </foreach>
+            </when>
+            <when test="agentIds == null or agentIds.size() == 0">
+                (null)
+            </when>
+        </choose>
+    </delete>
+    <insert id="insert" parameterType="com.openjiuwen.studio.agent.manager.dao.MappingAgentTool">
+        <!--@mbg.generated-->
+        insert into t_mapping_agent_tool (agent_id, tool_id, project_id, resident)
+        values (#{agentId,jdbcType=VARCHAR}, #{toolId,jdbcType=VARCHAR}, #{projectId,jdbcType=VARCHAR},
+                #{resident,jdbcType=BOOLEAN})
+    </insert>
+    <insert id="insertBatch"
+            parameterType="com.openjiuwen.studio.agent.manager.dao.MappingAgentTool">
+        <if test="records != null and records.size() > 0">
+            insert into t_mapping_agent_tool (agent_id, tool_id, project_id, resident)
+            values
+            <foreach collection="records" item="record" separator=",">
+                (#{record.agentId,jdbcType=VARCHAR}, #{record.toolId,jdbcType=VARCHAR},
+                #{record.projectId,jdbcType=VARCHAR}, #{record.resident,jdbcType=BOOLEAN})
+            </foreach>
+        </if>
+    </insert>
+    <insert id="insertSelective"
+            parameterType="com.openjiuwen.studio.agent.manager.dao.MappingAgentTool">
+        <!--@mbg.generated-->
+        insert into t_mapping_agent_tool
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="agentId != null">
+                agent_id,
+            </if>
+            <if test="toolId != null">
+                tool_id,
+            </if>
+            <if test="projectId != null">
+                project_id,
+            </if>
+            <if test="resident != null">
+                resident,
+            </if>
+            <if test="createdOn != null">
+                created_on,
+            </if>
+            <if test="updatedOn != null">
+                updated_on,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="agentId != null">
+                #{agentId,jdbcType=VARCHAR},
+            </if>
+            <if test="toolId != null">
+                #{toolId,jdbcType=VARCHAR},
+            </if>
+            <if test="projectId != null">
+                #{projectId,jdbcType=VARCHAR},
+            </if>
+            <if test="resident != null">
+                #{resident,jdbcType=BOOLEAN},
+            </if>
+            <if test="createdOn != null">
+                #{createdOn,jdbcType=TIMESTAMP},
+            </if>
+            <if test="updatedOn != null">
+                #{updatedOn,jdbcType=TIMESTAMP},
+            </if>
+        </trim>
+    </insert>
+    <update id="updateByPrimaryKeySelective"
+            parameterType="com.openjiuwen.studio.agent.manager.dao.MappingAgentTool">
+        <!--@mbg.generated-->
+        update t_mapping_agent_tool
+        <set>
+            <if test="resident != null">
+                resident = #{resident,jdbcType=BOOLEAN},
+            </if>
+            <if test="createdOn != null">
+                created_on = #{createdOn,jdbcType=TIMESTAMP},
+            </if>
+            <if test="updatedOn != null">
+                updated_on = #{updatedOn,jdbcType=TIMESTAMP},
+            </if>
+        </set>
+        where agent_id = #{agentId,jdbcType=VARCHAR}
+          and tool_id = #{toolId,jdbcType=VARCHAR}
+          and project_id = #{projectId,jdbcType=VARCHAR}
+    </update>
+</mapper>

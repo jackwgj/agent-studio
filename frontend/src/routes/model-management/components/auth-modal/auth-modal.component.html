@@ -1,0 +1,39 @@
+<div *nzModalTitle>
+  <div class="flex items-center gap-[8px]">
+    {{ (provider_info.id ? 'square_btn.auth_management' : 'auth_config') | i18nextEager }}
+  </div>
+</div>
+
+<div>
+  <nz-alert nzType="info" style="width: 100%; font-size: 12px" class="mb-[24px]" [nzMessage]="'auth_tip.tip_5'| i18nextEager"></nz-alert>
+  <ng-container *ngFor="let item of authsList">
+    <div style="margin: 8px 0 5px 0">
+      <span style="color: red;margin-right: 5px">*</span>
+      <label class="text-sm">{{item.labelName}}</label>
+    </div>
+    <nz-input-password *ngIf="item['hide']">
+      <input nz-input [(ngModel)]="authsInfo[item.key]" />
+    </nz-input-password>
+    <input class="w-full" *ngIf="!item['hide']" [readonly]="" nz-input [(ngModel)]="authsInfo[item.key]"/>
+  </ng-container>
+</div>
+
+<div *nzModalFooter>
+  <button
+    type="button"
+    (click)="dismiss()"
+    nz-button
+    nzType="default"
+  >
+    {{ 'cancel' | i18nextEager }}
+  </button>
+  <button
+    type="button"
+    (click)="handelAuth()"
+    nz-button
+    nzType="primary"
+    [nzLoading]="loading"
+  >
+    {{(authsInfo['auth_id'] ? 'remove': 'ok') | i18nextEager }}
+  </button>
+</div>

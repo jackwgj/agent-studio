@@ -1,0 +1,63 @@
+:host::ng-deep {
+  height: 16px;
+  width: 16px;
+  position: relative;
+
+  [class^='ti3-icon-']::before,
+  [class*=' ti3-icon-']::before {
+    display: inline-block;
+    vertical-align: middle;
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+  }
+
+  .ti3-icon-folder:before {
+    content: url('../../../../assets/editor/public_folder.svg');
+  }
+
+  .ti3-icon-folder-fold:before {
+    content: url('../../../../assets/editor/folder-fold.svg');
+  }
+
+  .ti3-icon-folder:before {
+    content: url('../../../../assets/editor/folder.svg');
+  }
+
+  .ti3-icon-md:before {
+    content: url('../../../../assets/editor/markdown.svg');
+  }
+
+  .ti3-icon-txt:before {
+    content: url('../../../../assets/editor/txt.svg');
+  }
+
+  .ti3-icon-gitignore:before {
+    content: url('../../../../assets/editor/gitignore.svg');
+  }
+
+  .ti3-icon-unknown:before {
+    content: url('../../../../assets/editor/code-file.svg');
+  }
+
+  .ti3-icon-json:before {
+    content: url('../../../../assets/editor/json.svg');
+  }
+
+  .ti3-icon-sh:before {
+    content: url('../../../../assets/editor/sh.svg');
+  }
+
+  .ti3-icon-py:before {
+    content: url('../../../../assets/editor/py.svg');
+  }
+
+  .ti3-icon-ini:before {
+    content: url('../../../../assets/editor/ini.svg');
+  }
+
+  .ti3-icon-docx:before {
+    content: url('../../../../assets/editor/ini.svg');
+  }
+}

@@ -1,0 +1,219 @@
+<div class="h-full flex flex-col">
+  <div class="mb-4 flex justify-between items-center" *ngIf="!isMarket">
+    <div class="flex gap-2">
+      <button nz-button nzType="primary" [disabled]="kbAbilitiesService.isResourceDisabled" (click)="openCreateModal()">
+        {{ 'create' | i18nextEager }}
+      </button>
+      <button nz-button nzType="primary" nzDanger [disabled]="operationDisableFn()" (click)="onBatchDelete()">
+        {{ 'delete' | i18nextEager }}
+      </button>
+    </div>
+
+    <div class="w-[300px]">
+      <nz-input-group [nzSuffix]="suffixIconSearch">
+        <input type="text" nz-input [placeholder]="'search_by_question' | i18nextEager" [(ngModel)]="searchQuestion" (ngModelChange)="onSearch()" />
+      </nz-input-group>
+      <ng-template #suffixIconSearch>
+        <span nz-icon nzType="search"></span>
+      </ng-template>
+    </div>
+  </div>
+
+  <nz-table
+    #faqTable
+    nzShowSizeChanger
+    [nzData]="tableData"
+    [nzFrontPagination]="false"
+    [nzLoading]="loading"
+    [nzTotal]="total"
+    [(nzPageIndex)]="pageIndex"
+    [(nzPageSize)]="pageSize"
+    [nzPageSizeOptions]="[10, 20, 50, 100]"
+    (nzQueryParams)="onQueryParamsChange($event)"
+    [nzScroll]="{ y: '350px' }"
+    [nzNoResult]="noDataTpl"
+  >
+    <thead>
+    <tr>
+      <th *ngIf="!isMarket" nzWidth="50px" [nzChecked]="allChecked" [nzIndeterminate]="indeterminate" (nzCheckedChange)="onAllChecked($event)"></th>
+      <th nzWidth="20%">ID</th>
+      <th nzWidth="25%">{{ 'question' | i18nextEager }}</th>
+      <th nzWidth="20%">{{ 'answer' | i18nextEager }}</th>
+      <th nzWidth="20%">{{ 'create_time' | i18nextEager }}</th>
+      <th *ngIf="!isMarket" nzWidth="15%">{{ 'operation' | i18nextEager }}</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr *ngFor="let data of faqTable.data">
+      <td *ngIf="!isMarket" [nzChecked]="setOfCheckedId.has(data.faq_id)" [nzDisabled]="kbAbilitiesService.isResourceDisabled" (nzCheckedChange)="onItemChecked(data.faq_id, $event)"></td>
+      <td class="truncate" [title]="data.faq_id">
+        <a (click)="openDetailModal(data)">{{ data.faq_id }}</a>
+      </td>
+      <td>
+        <div class="truncate w-full" [title]="data.question" [innerHTML]="data.question"></div>
+      </td>
+      <td>
+        <div class="truncate w-full" [title]="data.answer" [innerHTML]="data.answer"></div>
+      </td>
+      <td class="truncate" [title]="data.create_time">{{ data.create_time }}</td>
+      <td *ngIf="!isMarket">
+        <div class="flex items-center gap-2">
+          <a nz-typography [nzDisabled]="kbAbilitiesService.isResourceDisabled" (click)="openEditModal(data)">
+            {{ 'edit' | i18nextEager }}
+          </a>
+          <nz-divider nzType="vertical"></nz-divider>
+          <a nz-typography nzType="danger" [nzDisabled]="kbAbilitiesService.isResourceDisabled" (click)="onDelete(data)">
+            {{ 'delete' | i18nextEager }}
+          </a>
+        </div>
+      </td>
+    </tr>
+    </tbody>
+  </nz-table>
+</div>
+
+<ng-template #noDataTpl>
+  <nz-empty [nzNotFoundImage]="customEmptyImageTpl" [nzNotFoundContent]="'no_data' | i18nextEager"></nz-empty>
+</ng-template>
+
+<ng-template #customEmptyImageTpl>
+  <img [src]="emptyImage" alt="no data" class="mx-auto block" />
+</ng-template>
+
+<batch-delete #batchDeleteModal (confirm)="handleBatchDelete($event)"></batch-delete>
+
+<nz-drawer
+  [nzVisible]="faqModalVisible"
+  [nzWidth]="700"
+  [nzTitle]="faqModalTitle | i18nextEager"
+  [nzFooter]="faqModalFooter"
+  (nzOnClose)="closeHalfmodal('faqModal')"
+  [nzMaskClosable]="true"
+>
+  <ng-container *nzDrawerContent>
+    <form nz-form [formGroup]="form" nzLayout="vertical" class="mb-[20px]">
+      <nz-form-item>
+        <nz-form-label nzRequired>{{ 'standard_question' | i18nextEager }}</nz-form-label>
+        <nz-form-control>
+          <textarea
+            nz-input
+            maxlength="1000"
+            formControlName="question"
+            [placeholder]="'question_placeholder' | i18nextEager"
+            [rows]="4"
+            style="width: 636px; resize: vertical;"
+          ></textarea>
+        </nz-form-control>
+      </nz-form-item>
+
+      <nz-form-item>
+        <nz-form-label nzRequired>{{ 'answer' | i18nextEager }}</nz-form-label>
+        <nz-form-control>
+          <textarea
+            nz-input
+            maxlength="10000"
+            formControlName="answer"
+            [placeholder]="'answer_placeholder' | i18nextEager"
+            [rows]="4"
+            style="width: 636px; resize: vertical;"
+          ></textarea>
+        </nz-form-control>
+      </nz-form-item>
+
+      <div
+        class="mt-[20px] text-[12px] font-bold leading-[18px]"
+        [ngClass]="{ 'mb-[20px]': 0 !== similarCount }"
+      >
+        {{ 'similar_question_optional' | i18nextEager }}
+        <span nz-icon nzType="down" class="ml-1"></span>
+      </div>
+
+      <ng-container formArrayName="similarQuestions">
+        <nz-form-item *ngFor="let control of controls; let i = index">
+          <nz-form-label>
+            <div class="flex items-center justify-between" style="width: 636px;">
+              <span>{{ 'similar_question' | i18nextEager }}{{ i + 1 }}</span>
+              <button nz-button nzType="text" nzDanger (click)="deleteQuestion(i)" class="!p-0 !h-auto">
+                <span nz-icon nzType="delete"></span>
+              </button>
+            </div>
+          </nz-form-label>
+          <nz-form-control>
+            <textarea
+              nz-input
+              maxlength="1000"
+              [formControl]="$any(control)"
+              [placeholder]="'similar_question_placeholder' | i18nextEager"
+              [rows]="4"
+              style="width: 636px; resize: vertical;"
+            ></textarea>
+          </nz-form-control>
+        </nz-form-item>
+      </ng-container>
+    </form>
+
+    <nz-form-item *ngIf="similarCount < 4">
+      <nz-form-label>{{ ('similar_question' | i18nextEager) + (similarCount + 1) }}</nz-form-label>
+      <nz-form-control>
+        <textarea
+          nz-input
+          maxlength="1000"
+          [(ngModel)]="temp"
+          [placeholder]="'similar_question_placeholder' | i18nextEager"
+          [rows]="4"
+          style="width: 636px; resize: vertical;"
+          (change)="addQuestion()"
+        ></textarea>
+      </nz-form-control>
+    </nz-form-item>
+  </ng-container>
+</nz-drawer>
+<ng-template #faqModalFooter>
+  <div class="flex justify-end gap-2">
+    <button nz-button nzType="default" (click)="closeHalfmodal('faqModal')">
+      {{ 'cancel' | i18nextEager }}
+    </button>
+    <button nz-button nzType="primary" nzDanger [nzLoading]="createLoading" (click)="handleModalConfirm()">
+      {{ 'ok' | i18nextEager }}
+    </button>
+  </div>
+</ng-template>
+
+<nz-drawer
+  [nzVisible]="detailModalVisible"
+  [nzWidth]="700"
+  [nzTitle]="'faq_detail' | i18nextEager"
+  [nzFooter]="detailModalFooter"
+  (nzOnClose)="closeHalfmodal('detailModal')"
+  [nzMaskClosable]="true"
+>
+  <ng-container *nzDrawerContent>
+    <nz-descriptions [nzColumn]="1" nzLayout="vertical" [nzColon]="false">
+      <nz-descriptions-item [nzTitle]="'standard_question' | i18nextEager">
+        {{ selectedFaq?.question }}
+      </nz-descriptions-item>
+      <nz-descriptions-item [nzTitle]="'answer' | i18nextEager">
+        {{ selectedFaq?.answer }}
+      </nz-descriptions-item>
+      <nz-descriptions-item *ngIf="selectedFaq?.question1" [nzTitle]="('similar_question' | i18nextEager) + 1">
+        {{ selectedFaq?.question1 }}
+      </nz-descriptions-item>
+      <nz-descriptions-item *ngIf="selectedFaq?.question2" [nzTitle]="('similar_question' | i18nextEager) + 2">
+        {{ selectedFaq?.question2 }}
+      </nz-descriptions-item>
+      <nz-descriptions-item *ngIf="selectedFaq?.question3" [nzTitle]="('similar_question' | i18nextEager) + 3">
+        {{ selectedFaq?.question3 }}
+      </nz-descriptions-item>
+      <nz-descriptions-item *ngIf="selectedFaq?.question4" [nzTitle]="('similar_question' | i18nextEager) + 4">
+        {{ selectedFaq?.question4 }}
+      </nz-descriptions-item>
+    </nz-descriptions>
+  </ng-container>
+</nz-drawer>
+<ng-template #detailModalFooter>
+  <div class="text-right">
+    <button nz-button nzType="default" (click)="closeHalfmodal('detailModal')">
+      {{ 'close' | i18nextEager }}
+    </button>
+  </div>
+</ng-template>

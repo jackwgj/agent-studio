@@ -1,0 +1,42 @@
+::ng-deep {
+  .tp-halfmodal-cotent meta-intent-container-modal {
+    display: block;
+    height: 100%;
+  }
+
+  // 替换公共子组件的样式，避免修改公共组件，影响其他模块
+  #input-params-form .w-full.flex-class {
+    height: 100%;
+  }
+}
+
+#intent-container-modal-body {
+  .step {
+    display: flex !important;
+    justify-content: center;
+  }
+}
+
+.loading-icon {
+  position: absolute;
+  width: 100%;
+  height: calc(100% - 244px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+}
+
+.branch-searchbox {
+  width: 100% !important;
+  flex-shrink: 0;
+}
+
+.no-data-container {
+  width: 100%;
+  height: calc(100vh - 450px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}

@@ -1,0 +1,124 @@
+.detail-container {
+  width: 100%;
+  height: 100%;
+}
+
+.header-container {
+  width: 100%;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+  padding: 12px 40px 12px 20px;
+  background-color: #fff;
+  .header-left {
+    color: #191919;
+    display: flex;
+    align-items: center;
+    .back-icon-container {
+      width: 24px;
+      height: 24px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-right: 8px;
+      &:hover {
+        border-radius: 4px;
+        background-color: #f0f0f0;
+      }
+      .back-icon {
+        color: #191919;
+        cursor: pointer;
+        font-size: 18px;
+      }
+    }
+    .header-img-size {
+      height: 40px;
+      width: 40px;
+      border-radius: 8px;
+    }
+    .title-container {
+      font-size: 16px;
+      color: #191919;
+      .title {
+        line-height: 23px;
+        max-width: 200px;
+        margin-right: 10px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+    }
+    .edit-icon {
+      color: #191919;
+      cursor: pointer;
+      font-size: 16px;
+      padding: 4px 3px 0;
+    }
+  }
+}
+.main-container {
+  height: calc(100% - 104px);
+  margin: 16px 24px 24px;
+  .left-container {
+    padding: 24px 32px 16px 24px;
+    .add-intent-icon,
+    .del-intent-icon {
+      color: #191919;
+      font-size: 18px;
+    }
+    .not-add-intent-icon {
+      color: #808080;
+      font-size: 18px;
+    }
+    .list {
+      .item {
+        &:hover {
+          background: #F5F5F5;
+          & .delete {
+            display: block;
+          }
+        }
+        &.active {
+          background: #F5F5F5;
+        }
+        .delete {
+          display: none;
+        }
+      }
+    }
+    .left-line {
+      width: 1px;
+      height: calc(100% - 48px);
+    }
+  }
+  .right-container {
+    .question-list {
+      .item:last-child {
+        margin-bottom: 0;
+      }
+      .question-input {
+        border: none;
+        box-shadow: none;
+        &:focus {
+          box-shadow: none;
+        }
+      }
+    }
+    .add-icon {
+      font-size: 14px;
+    }
+  }
+  .arrow-icon,
+  .del-icon {
+    color: #808080;
+    font-size: 16px;
+    line-height: 10px;
+  }
+}
+
+.grey-disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}

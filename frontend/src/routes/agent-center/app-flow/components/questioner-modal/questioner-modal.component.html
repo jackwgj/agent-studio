@@ -1,0 +1,989 @@
+<div class="flex h-full w-full flex-col" (keydown)="handleKeyDown($event)">
+  <div class="tp-halfmodal-header mb-[16px] block">
+    <div class="flex w-[calc(100%-38px)] items-center justify-between">
+      <div class="flex items-center gap-[8px]">
+        <img class="model-config-icon" [src]="cdnUrl('assets/agent-center/flow/Questioner.svg')" alt="questioner-node" />
+
+        <edit-name [(name)]="nodeInfo.name" (onBlurConfirm)="updateName()"></edit-name>
+      </div>
+
+      <div class="flex items-center gap-[16px]" *ngIf="!isFlowReadonly">
+        <div (click)="onClickTest()" class="single-test-icon-modal" nz-tooltip [nzTooltipTitle]="'single-test' | i18nextEager"></div>
+        <div class="cursor-pointer" nz-tooltip [nzTooltipTitle]="'icon-more' | i18nextEager" nz-dropdown [nzDropdownMenu]="moreMenu" nzPlacement="bottomRight">
+          <span nz-icon nzType="ellipsis" nzTheme="outline" class="pw-three-dots-more-modal"></span>
+        </div>
+        <nz-dropdown-menu #moreMenu="nzDropdownMenu">
+          <ul nz-menu>
+            <li nz-menu-item *ngFor="let action of actions" (click)="onClickAction(action)">{{ action.label }}</li>
+          </ul>
+        </nz-dropdown-menu>
+        <div class="h-[16px] w-[1px] bg-[#dbdbdb]"></div>
+      </div>
+    </div>
+
+    <node-description [nodeInfo]="nodeInfo" (descriptionChange)="updateView()"></node-description>
+  </div>
+
+  <div class="tp-halfmodal-body" id="flow-ques-modal-body">
+    <div class="h-full w-full overflow-auto">
+      <nz-radio-group class="flow-questioner-modes" [(ngModel)]="selectMode" (ngModelChange)="onSave()" nzButtonStyle="solid">
+        <label nz-radio-button *ngFor="let item of modeButtons" [nzValue]="item">
+          <div class="mode-content">
+            <span>{{ item.text }}</span>
+            <span
+              *ngIf="item.value === 'speed'"
+              nz-icon
+              nzType="question-circle"
+              nzTheme="outline"
+              nz-tooltip
+              [nzTooltipTitle]="getQuesModesTip()"
+              class="mode-icon"
+            ></span>
+          </div>
+        </label>
+      </nz-radio-group>
+
+      <form class="mt-2" [formGroup]="configsFormGroup">
+        <meta-acc-block-new class="block w-[calc(100%-8px)]" [title]="'model_configuration' | i18nextEager">
+          <ng-template #right>
+            <div class="flex items-center gap-[4px]">
+              <div>
+                <span
+                  nz-icon
+                  nzType="setting"
+                  nzTheme="outline"
+                  #modelSettingsRef="nzPopover"
+                  class="settings-icon cursor-pointer"
+                  nz-popover
+                  [nzPopoverContent]="modelConfigTip"
+                  nzPopoverPlacement="bottomRight"
+                  [nzPopoverOverlayStyle]="{ 'max-width': '500px' }"
+                  [nzPopoverTrigger]="null"
+                  (click)="onShowModelSetTip()"
+                ></span>
+              </div>
+            </div>
+          </ng-template>
+          <ng-template #content>
+            <div class="mt-4">
+              <llm-select [selectedModel]="configsFormGroup.controls.model.value" [panelWidth]="'justified'" (update)="updateModel($event)"></llm-select>
+            </div>
+            <nz-select
+              *ngIf="false"
+              class="mt-[16px] !w-full"
+              formControlName="model"
+              [nzPlaceHolder]="'select_placeholder' | i18nextEager"
+              [nzNotFoundContent]="'no_models' | i18nextEager"
+            >
+              <nz-option *ngFor="let item of modelOptions; let i = index" [nzLabel]="item.merge_name" [nzValue]="item.model_deployment_id" nzCustomContent>
+                <div class="flex items-center justify-between gap-2">
+                  <div class="flex items-center gap-2" style="overflow: hidden">
+                    <img alt="" class="h-4 w-4 rounded" *ngIf="item.model_provider" [src]="getProviderIcon(item.model_provider)" />
+                    {{ item.merge_name }}
+                    <nz-tag class="ml-1" *ngIf="item.model_type === 'LLM'">{{ 'intentmodalcomponent_412' | i18nextEager }}</nz-tag>
+                    <nz-tag class="ml-1" *ngIf="item.model_type === 'IMAGE-TO-TEXT'">{{ 'intentmodalcomponent_413' | i18nextEager }}</nz-tag>
+                    <div *ngIf="item.model_tags" style="width: 50%; overflow: hidden; text-overflow: ellipsis">
+                      <nz-tag class="ml-1" *ngFor="let v of item.model_tags?.split(','); let i = index">{{ v }}</nz-tag>
+                    </div>
+                  </div>
+                  <nz-badge
+                    class="justify-items-end"
+                    [nzStatus]="item.is_connecting ? 'processing' : 'error'"
+                    [nzText]="getmodelStatus(item.is_connecting)"
+                  ></nz-badge>
+                </div>
+              </nz-option>
+            </nz-select>
+          </ng-template>
+        </meta-acc-block-new>
+        <ng-template #modelConfigTip>
+          <div class="model-config-tip">
+            <meta-param-selector [(modelParams)]="modelParams" />
+          </div>
+        </ng-template>
+      </form>
+
+      <meta-acc-block-new class="block w-[calc(100%-8px)]" [title]="'input_params' | i18nextEager">
+        <ng-template #blockTitle>
+          <span class="font-bold">{{ 'input_params' | i18nextEager }}</span>
+          <span nz-icon nzType="question-circle" nzTheme="outline" nz-tooltip [nzTooltipTitle]="'input_param_tip' | i18nextEager"></span>
+        </ng-template>
+        <ng-template #right>
+          <div class="flex items-center gap-[4px]">
+            <button
+              (click)="addInputParam()"
+              class="w-fit"
+              nz-button
+              nzType="text"
+              nz-tooltip
+              [nzTooltipTitle]="'add_params' | i18nextEager"
+              [disabled]="isReachedParamLimit(inputParams)"
+            >
+              <span nz-icon nzType="plus" nzTheme="outline" class="header-button-icon"></span>
+            </button>
+          </div>
+        </ng-template>
+        <ng-template #content>
+          <div class="mt-2 flex items-center gap-2">
+            <div class="w-1/4 text-label">
+              {{ 'param_name' | i18nextEager }}
+            </div>
+            <div class="flex w-2/3 items-center gap-2 text-label">
+              <div class="flex h-fit w-[calc(100%-16px)] items-center">
+                <div class="w-[35%]">{{ 'type' | i18nextEager }}</div>
+                <div class="w-[65%]">{{ 'value' | i18nextEager }}</div>
+              </div>
+              <div class="h-full w-[16px]"></div>
+            </div>
+          </div>
+
+          <form #inputForm="ngForm">
+            <div *ngFor="let param of inputParams; index as i" class="mt-2 flex gap-2">
+              <div class="w-1/4">
+                <input
+                  style="width: 100%"
+                  type="text"
+                  [name]="'inputFormName' + i"
+                  variableNameValidator
+                  [maxlength]="paramNameMaxLen"
+                  nz-input
+                  [(ngModel)]="param.name"
+                  [title]="param.name"
+                  [placeholder]="'input_placeholder' | i18nextEager"
+                  [valueValidityValidator]="getInputNames(i)"
+                  (input)="onNameChange()"
+                  (ngModelChange)="changeUpdateTime()"
+                  (blur)="inputOnSave()"
+                  [class.input-error]="
+                    inputForm?.controls['inputFormName' + i]?.invalid &&
+                    (inputForm?.controls['inputFormName' + i]?.dirty || inputForm?.controls['inputFormName' + i]?.touched)
+                  "
+                />
+
+                <div
+                  *ngIf="
+                    inputForm?.controls['inputFormName' + i]?.invalid &&
+                    (inputForm?.controls['inputFormName' + i]?.dirty || inputForm?.controls['inputFormName' + i]?.touched)
+                  "
+                  class="error-tip"
+                >
+                  {{ inputForm?.controls['inputFormName' + i]?.errors?.serviceName?.tiErrorMessage }}
+                </div>
+              </div>
+
+              <div class="flex w-3/4 gap-[8px]">
+                <div class="flex h-fit w-[calc(100%-16px)] items-center gap-2">
+                  <div class="flex w-full">
+                    <div class="w-[33%]">
+                      <nz-select
+                        class="combo-select-left"
+                        style="width: 100%"
+                        [name]="'inputFormType' + i"
+                        [(ngModel)]="param.value.type"
+                        (ngModelChange)="onInputValueTypeChange(param)"
+                      >
+                        <nz-option *ngFor="let op of inputSourceOptions" [nzLabel]="op.label" [nzValue]="op.value"></nz-option>
+                      </nz-select>
+                    </div>
+
+                    <div class="w-[67%]">
+                      <input
+                        class="combo-select-right"
+                        *ngIf="param.value.type === 'literal'"
+                        style="width: 100%"
+                        [name]="'inputFormValue' + i"
+                        type="text"
+                        nz-input
+                        nonEmptyValidator
+                        [placeholder]="'input_placeholder' | i18nextEager"
+                        [(ngModel)]="param.value.content"
+                        [title]="param.value.content"
+                        (ngModelChange)="changeUpdateTime()"
+                        (blur)="inputOnSave()"
+                        [class.input-error]="
+                          inputForm?.controls['inputFormValue' + i]?.invalid &&
+                          (inputForm?.controls['inputFormValue' + i]?.dirty || inputForm?.controls['inputFormValue' + i]?.touched)
+                        "
+                      />
+                      <input-tree-select
+                        *ngIf="param.value.type === 'ref'"
+                        style="width: 100%"
+                        [(ngModel)]="param.value.content"
+                        [options]="param.refs"
+                        [name]="'inputFormValue' + i"
+                        refSelectedRequire
+                        [placeholder]="'select_placeholder' | i18nextEager"
+                        (select)="treeSelect()"
+                      ></input-tree-select>
+                      <div
+                        *ngIf="
+                          inputForm?.controls['inputFormValue' + i]?.invalid &&
+                          (inputForm?.controls['inputFormValue' + i]?.dirty || inputForm?.controls['inputFormValue' + i]?.touched)
+                        "
+                        class="error-tip"
+                      >
+                        {{ inputForm?.controls['inputFormValue' + i]?.errors?.serviceName?.tiErrorMessage }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <span
+                  (click)="deleteInputParam(i)"
+                  style="font-size: 16px; color: #191919; cursor: pointer; padding-top: 6px"
+                  nz-icon
+                  nzType="delete"
+                  nzTheme="outline"
+                ></span>
+              </div>
+            </div>
+          </form>
+        </ng-template>
+      </meta-acc-block-new>
+
+      <form #outputForm="ngForm">
+        <meta-acc-block-new class="block w-[calc(100%-8px)]" [title]="'output_params' | i18nextEager">
+          <ng-template #right>
+            <div class="flex items-center">
+              <div>{{ 'parameter_extraction' | i18nextEager }}</div>
+              <span nz-icon nzType="question-circle" nzTheme="outline" nz-tooltip [nzTooltipTitle]="getParameterExtractionTip()"></span>
+
+              <form [formGroup]="configsFormGroup" class="ml-[4px] flex items-center justify-center">
+                <nz-switch formControlName="extract_fields_from_response"></nz-switch>
+              </form>
+
+              <button
+                *ngIf="isParamExtract"
+                (click)="addOutputParam()"
+                class="w-fit"
+                nz-button
+                nzType="text"
+                nz-tooltip
+                [nzTooltipTitle]="'add_params' | i18nextEager"
+                [disabled]="isReachedParamLimit(outputParams)"
+              >
+                <span nz-icon nzType="plus" nzTheme="outline" class="header-button-icon"></span>
+              </button>
+
+              <button
+                nz-popover
+                [nzPopoverContent]="pluginRefTipTemplate"
+                #pluginRefTipRef="nzPopover"
+                [nzPopoverOverlayStyle]="{ 'max-width': '500px', 'z-index': '999' }"
+                nzPopoverPlacement="bottom"
+                [nzPopoverTrigger]="null"
+                nz-button
+                nzType="text"
+                (click)="onShowPluginRefTip()"
+                style="padding: 0"
+              >
+                <div class="flex items-center gap-[4px]">
+                  <svg
+                    width="16.000000"
+                    height="16.000000"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    xmlns:xlink="http://www.w3.org/1999/xlink"
+                  >
+                    <path
+                      d="M12 13.5C13.3809 13.5 14.5 12.3809 14.5 11L14.5 4C14.5 3.72363 14.2754 3.5 14 3.5C13.7246 3.5 13.5 3.72363 13.5 4L13.5 11C13.5 11.8281 12.8281 12.5 12 12.5L5 12.5C4.72461 12.5 4.5 12.7236 4.5 13C4.5 13.2764 4.72461 13.5 5 13.5L12 13.5ZM11.5 3C11.5 3.27637 11.2754 3.5 11 3.5L4 3.5C3.17188 3.5 2.5 4.17188 2.5 5L2.5 12C2.5 12.2764 2.27539 12.5 2 12.5C1.72461 12.5 1.5 12.2764 1.5 12L1.5 5C1.5 3.61914 2.61914 2.5 4 2.5L11 2.5C11.2754 2.5 11.5 2.72363 11.5 3Z"
+                      clip-rule="evenodd"
+                      fill="#1476FF"
+                      fill-opacity="1.000000"
+                      fill-rule="evenodd"
+                    />
+                    <path
+                      d="M10.15 1.83L10.12 1.83C9.94 1.62 9.95 1.31 10.16 1.12C10.37 0.94 10.68 0.95 10.87 1.16L10.87 1.19L10.51 1.51L11.84 3L10.51 4.48L10.87 4.8L10.87 4.83C10.68 5.04 10.37 5.05 10.16 4.87C9.95 4.68 9.94 4.37 10.12 4.16L10.15 4.16L10.5 4.47L10.5 1.52L10.15 1.83Z"
+                      fill="#D8D8D8"
+                      fill-opacity="0"
+                      fill-rule="evenodd"
+                    />
+                    <path
+                      d="M10.5 1.5L11.84 3L10.5 4.5"
+                      stroke="#1476FF"
+                      stroke-opacity="1.000000"
+                      stroke-width="1.000000"
+                      stroke-linejoin="round"
+                      stroke-linecap="round"
+                    />
+                    <path
+                      d="M5.84 11.83L5.87 11.83C6.05 11.62 6.04 11.31 5.83 11.12C5.62 10.94 5.31 10.95 5.12 11.16L5.12 11.19L5.48 11.51L4.15 13L5.48 14.48L5.12 14.8L5.12 14.83C5.31 15.04 5.62 15.05 5.83 14.87C6.04 14.68 6.05 14.37 5.87 14.16L5.84 14.16L5.5 14.47L5.5 11.52L5.84 11.83Z"
+                      fill="#D8D8D8"
+                      fill-opacity="0"
+                      fill-rule="evenodd"
+                    />
+                    <path
+                      d="M5.5 11.5L4.15 13L5.5 14.5"
+                      stroke="#1476FF"
+                      stroke-opacity="1.000000"
+                      stroke-width="1.000000"
+                      stroke-linejoin="round"
+                      stroke-linecap="round"
+                    />
+                  </svg>
+                </div>
+              </button>
+
+              <ng-template #pluginRefTipTemplate>
+                <plugin-ref-tip (updated)="handlePluginUpdated($event)"></plugin-ref-tip>
+              </ng-template>
+            </div>
+          </ng-template>
+
+          <ng-template #content>
+            <ng-container *ngIf="!isParamExtract">
+              <div class="mt-2 flex items-center gap-1">
+                <div class="w-1/3 text-label">
+                  {{ 'param_name' | i18nextEager }}
+                </div>
+                <div class="w-1/3 text-label">
+                  {{ 'param_type' | i18nextEager }}
+                </div>
+                <div class="w-1/3 text-label">
+                  {{ 'description' | i18nextEager }}
+                </div>
+              </div>
+
+              <div *ngFor="let param of outputParams; index as i" class="mt-2 flex w-full gap-2">
+                <div class="w-1/3">
+                  <input
+                    style="width: 100%"
+                    type="text"
+                    nz-input
+                    [(ngModel)]="param.name"
+                    [title]="param.name"
+                    [disabled]="true"
+                    [name]="'outputFormName' + i"
+                    (ngModelChange)="changeUpdateTime()"
+                    (blur)="inputOnSave()"
+                  />
+                </div>
+
+                <div class="w-1/3">
+                  <nz-select style="width: 100%" [(ngModel)]="param.type" [disabled]="true" [name]="'outputFormTypes' + i" (ngModelChange)="onSave()">
+                    <nz-option *ngFor="let op of outputDataTypes" [nzLabel]="op.label" [nzValue]="op.value"></nz-option>
+                  </nz-select>
+                </div>
+
+                <div class="w-1/3">
+                  <input
+                    style="width: 100%"
+                    type="text"
+                    nz-input
+                    [(ngModel)]="param.description"
+                    [title]="param.description"
+                    [disabled]="true"
+                    [name]="'outputFormDesc' + i"
+                    (ngModelChange)="changeUpdateTime()"
+                    (blur)="inputOnSave()"
+                  />
+                </div>
+              </div>
+            </ng-container>
+
+            <ng-container *ngIf="isParamExtract">
+              <div class="mt-2 flex items-center gap-1">
+                <div class="w-[26%] text-label">
+                  {{ 'param_name' | i18nextEager }}
+                </div>
+                <div class="w-[26%] text-label">
+                  {{ 'display_name' | i18nextEager }}
+                </div>
+                <div class="w-[22%] text-label">
+                  {{ 'type' | i18nextEager }}
+                </div>
+                <div class="w-[4%] text-label"></div>
+                <div class="w-[5%] text-label"></div>
+                <ng-container *ngIf="outputParams.length > 2">
+                  <div class="w-[5%] text-label text-center nowrap">
+                    {{ 'check' | i18nextEager }}
+                  </div>
+                  <div class="w-[5%] text-label text-center nowrap">
+                    {{ 'extract' | i18nextEager }}
+                  </div>
+                </ng-container>
+              </div>
+              <ng-container *ngFor="let param of outputParams; index as i">
+                <div class="mt-2 flex w-full gap-1" [ngClass]="{ 'expend-more': param.expended }">
+                  <div class="w-[26%]">
+                    <input
+                      style="width: 100%"
+                      type="text"
+                      nz-input
+                      [(ngModel)]="param.name"
+                      [title]="param.name"
+                      [disabled]="i < 2 && ['user_response', 'status'].includes(param.name.toLowerCase())"
+                      [name]="'outputFormName' + i"
+                      [placeholder]="'input_placeholder' | i18nextEager"
+                      maxlength="200"
+                      [valueValidityValidator]="outputValidityValidator(i)"
+                      [flowParamIsUnique]="getOutputNames(i)"
+                      (input)="onOutputNameChange()"
+                      (ngModelChange)="changeUpdateTime()"
+                      (blur)="inputOnSave()"
+                      [class.input-error]="
+                        outputForm?.controls['outputFormName' + i]?.invalid &&
+                        (outputForm?.controls['outputFormName' + i]?.dirty || outputForm?.controls['outputFormName' + i]?.touched)
+                      "
+                    />
+                    <div
+                      *ngIf="
+                        outputForm?.controls['outputFormName' + i]?.invalid &&
+                        (outputForm?.controls['outputFormName' + i]?.dirty || outputForm?.controls['outputFormName' + i]?.touched)
+                      "
+                      class="error-tip"
+                    >
+                      {{ outputForm?.controls['outputFormName' + i]?.errors?.serviceName?.tiErrorMessage }}
+                    </div>
+                  </div>
+
+                  <div class="w-[26%]">
+                    <input
+                      style="width: 100%"
+                      type="text"
+                      nz-input
+                      [(ngModel)]="param.cn_name"
+                      [title]="param.cn_name"
+                      [disabled]="i < 2 && ['user_response', 'status'].includes(param.name.toLowerCase())"
+                      [name]="'outputFormCnName' + i"
+                      [placeholder]="getCNNamePlaceholder(param, i) | i18nextEager"
+                      maxlength="200"
+                      nonEmptyValidator
+                      (ngModelChange)="changeUpdateTime()"
+                      (blur)="inputOnSave()"
+                      [class.input-error]="
+                        outputForm?.controls['outputFormCnName' + i]?.invalid &&
+                        (outputForm?.controls['outputFormCnName' + i]?.dirty || outputForm?.controls['outputFormCnName' + i]?.touched)
+                      "
+                    />
+                    <div
+                      *ngIf="
+                        outputForm?.controls['outputFormCnName' + i]?.invalid &&
+                        (outputForm?.controls['outputFormCnName' + i]?.dirty || outputForm?.controls['outputFormCnName' + i]?.touched)
+                      "
+                      class="error-tip"
+                    >
+                      {{ outputForm?.controls['outputFormCnName' + i]?.errors?.serviceName?.tiErrorMessage }}
+                    </div>
+                  </div>
+
+                  <div class="w-[22%]">
+                    <nz-select
+                      style="width: 100%"
+                      [(ngModel)]="param.type"
+                      [disabled]="i < 2 && ['user_response', 'status'].includes(param.name.toLowerCase())"
+                      [name]="'outputFormType' + i"
+                      (ngModelChange)="onParamTypeChange(i)"
+                    >
+                      <nz-option *ngFor="let op of outputDataTypes" [nzLabel]="op.label" [nzValue]="op.value"></nz-option>
+                    </nz-select>
+                  </div>
+
+                  <div
+                    *ngIf="param.name.toLowerCase() !== 'user_response' && param.name.toLowerCase() !== 'status'"
+                    class="flex h-[28px] w-[4%] items-center justify-center"
+                  >
+                    <span
+                      class="cursor-pointer"
+                      nz-tooltip
+                      [nzTooltipTitle]="'expand_more_configurations' | i18nextEager"
+                      *ngIf="!param.expended"
+                      nz-icon
+                      nzType="more"
+                      nzTheme="outline"
+                      (click)="expendMore(param)"
+                    ></span>
+                    <span
+                      class="expend-icon cursor-pointer flex"
+                      (click)="expendMore(param)"
+                      nz-tooltip
+                      [nzTooltipTitle]="'collapse_more_configurations' | i18nextEager"
+                      *ngIf="param.expended"
+                    >
+                      <span nz-icon nzType="right" nzTheme="outline"></span>
+                      <span nz-icon nzType="right" nzTheme="outline"></span>
+                    </span>
+                  </div>
+
+                  <div class="flex h-[28px] w-[5%] items-center justify-center">
+                    <span *ngIf="i > 1" (click)="onDeleteOutput(i)" style="font-size: 16px; cursor: pointer" nz-icon nzType="delete" nzTheme="outline"></span>
+                  </div>
+
+                  <div class="a-form-checkbox flex h-[28px] w-[5%] items-center justify-center">
+                    <label
+                      *ngIf="param.name.toLowerCase() !== 'user_response' && param.name.toLowerCase() !== 'status'"
+                      nz-checkbox
+                      [id]="'outputFormParamCheckCheckbox' + i"
+                      [name]="'outputFormParamCheck' + i"
+                      [(ngModel)]="param.validated"
+                      [nzDisabled]="param.type === 'boolean'"
+                      (ngModelChange)="onChangeValidated(i)"
+                    ></label>
+                  </div>
+
+                  <div class="a-form-checkbox flex h-[28px] w-[5%] items-center justify-center">
+                    <label
+                      *ngIf="param.name.toLowerCase() !== 'user_response' && param.name.toLowerCase() !== 'status'"
+                      nz-checkbox
+                      [id]="'outputFormParamRequiredCheckbox' + i"
+                      [name]="'outputFormParamRequired' + i"
+                      [(ngModel)]="param.required"
+                      (ngModelChange)="changeUpdateTime()"
+                      (ngModelChange)="inputOnSave()"
+                    ></label>
+                  </div>
+
+                  <ng-container *ngIf="param.expended">
+                    <div class="mt-1 w-full">{{ 'default_v' | i18nextEager }}{{ 'optional' | i18nextEager }}</div>
+
+                    <div class="h-[28px] w-full">
+                      <input
+                        *ngIf="param.type === 'string'"
+                        style="width: 100%"
+                        type="text"
+                        nz-input
+                        [(ngModel)]="param.value.default"
+                        [title]="param.value.default"
+                        [disabled]="param.name.toLowerCase() === 'user_response' || param.name.toLowerCase() === 'status'"
+                        [name]="'outputFormDv' + i"
+                        [placeholder]="param.source === 'system' ? '' : ('input_placeholder' | i18nextEager)"
+                        (ngModelChange)="changeUpdateTime()"
+                        (blur)="inputOnSave()"
+                        maxlength="300"
+                      />
+
+                      <nz-input-number
+                        *ngIf="param.type === 'integer'"
+                        style="width: 100%"
+                        [nzDisabled]="param.name.toLowerCase() === 'user_response' || param.name.toLowerCase() === 'status'"
+                        [name]="'outputFormDv' + i"
+                        [(ngModel)]="param.value.default"
+                        [nzPlaceHolder]="param.source === 'system' ? '' : ('input_placeholder' | i18nextEager)"
+                        (ngModelChange)="changeUpdateTime()"
+                        (ngModelChange)="inputOnSave()"
+                      ></nz-input-number>
+
+                      <nz-input-number
+                        *ngIf="param.type === 'number'"
+                        style="width: 100%"
+                        [nzDisabled]="param.name.toLowerCase() === 'user_response' || param.name.toLowerCase() === 'status'"
+                        [name]="'outputFormDv' + i"
+                        [(ngModel)]="param.value.default"
+                        [nzPlaceHolder]="param.source === 'system' ? '' : ('input_placeholder' | i18nextEager)"
+                        (ngModelChange)="changeUpdateTime()"
+                        (ngModelChange)="inputOnSave()"
+                      ></nz-input-number>
+
+                      <nz-select
+                        *ngIf="param.type === 'boolean'"
+                        style="width: 100%"
+                        [name]="'outputFormDv' + i"
+                        [(ngModel)]="param.value.default"
+                        [nzAllowClear]="true"
+                        [nzPlaceHolder]="'select_placeholder' | i18nextEager"
+                        (ngModelChange)="onSave()"
+                      >
+                        <nz-option *ngFor="let op of booleanOps" [nzLabel]="op.label" [nzValue]="op.value"></nz-option>
+                      </nz-select>
+                    </div>
+
+                    <div class="mt-1 w-full">
+                      {{ 'description' | i18nextEager }}{{ 'optional' | i18nextEager }}
+                      <span nz-icon nzType="question-circle" nzTheme="outline" nz-tooltip [nzTooltipTitle]="'param_desc_tip' | i18nextEager"></span>
+                    </div>
+
+                    <div class="w-full">
+                      <flexible-text-field
+                        [(ngModel)]="param.description"
+                        [name]="'outputFormDesc' + i"
+                        [maxlength]="2000"
+                        [disabled]="param.name.toLowerCase() === 'user_response' || param.name.toLowerCase() === 'status'"
+                        (valueChange)="onSave()"
+                        [placeholder]="param.source === 'system' ? '' : ('input_placeholder' | i18nextEager)"
+                      />
+                    </div>
+                  </ng-container>
+                </div>
+              </ng-container>
+            </ng-container>
+          </ng-template>
+        </meta-acc-block-new>
+
+        <meta-acc-block-new *ngIf="outputParamValidates.length" class="mt-2 block w-full" [title]="'param_validate' | i18nextEager">
+          <ng-template #content>
+            <div class="mt-2 flex items-center gap-1">
+              <div class="w-[20%] text-label">
+                {{ 'param_name' | i18nextEager }}
+              </div>
+              <div class="w-[22%] text-label">
+                {{ 'validate_type' | i18nextEager }}
+              </div>
+              <div class="w-[58%] text-label">
+                {{ 'validate_rule' | i18nextEager }}
+              </div>
+            </div>
+
+            <div *ngFor="let param of outputParamValidates; index as i" class="mt-2 flex gap-1">
+              <div class="text-line w-[20%]">
+                {{ param.name }}
+              </div>
+
+              <div class="w-[22%]">
+                <nz-select
+                  *ngIf="param.type === 'string'; else numberBlock"
+                  style="width: 100%"
+                  [name]="'requestValidateType' + param.name"
+                  [(ngModel)]="param.validator[0].type"
+                  (ngModelChange)="onSave()"
+                >
+                  <nz-option *ngFor="let op of strValidateOps" [nzLabel]="op.label" [nzValue]="op.value"></nz-option>
+                </nz-select>
+
+                <ng-template #numberBlock>
+                  <nz-select style="width: 100%" [name]="'requestValidateType' + param.name" [(ngModel)]="param.validator[0].type" (ngModelChange)="onSave()">
+                    <nz-option *ngFor="let op of numberValidateOps" [nzLabel]="op.label" [nzValue]="op.value"></nz-option>
+                  </nz-select>
+                </ng-template>
+              </div>
+
+              <div class="w-[58%]">
+                <ng-container *ngIf="param.validator[0].type === 'length_limit_validate'">
+                  <input
+                    style="width: 100%"
+                    type="text"
+                    [name]="'requestValidateRule' + param.name"
+                    nonEmptyValidator
+                    positiveIntStr
+                    maxlength="7"
+                    nz-input
+                    [(ngModel)]="param.validator[0].params"
+                    [placeholder]="'input_placeholder' | i18nextEager"
+                    (ngModelChange)="changeUpdateTime()"
+                    (blur)="inputOnSave()"
+                  />
+                  <div class="w-full" #requestRuleWrapper></div>
+                </ng-container>
+
+                <ng-container *ngIf="param.validator[0].type === 'number_range_validate'">
+                  <number-range
+                    *ngIf="param.type === 'number'"
+                    [(ngModel)]="param.validator[0].params"
+                    [name]="'requestValidateRule' + param.name"
+                    nonEmptyValidator
+                    numberRange
+                    leftPlaceholder="{{ 'min' | i18nextEager }}"
+                    rightPlaceholder="{{ 'max' | i18nextEager }}"
+                    (valueChange)="onSave()"
+                  />
+
+                  <number-range
+                    *ngIf="param.type === 'integer'"
+                    [(ngModel)]="param.validator[0].params"
+                    [name]="'requestValidateRule' + param.name"
+                    nonEmptyValidator
+                    integerRange
+                    leftPlaceholder="{{ 'min' | i18nextEager }}"
+                    rightPlaceholder="{{ 'max' | i18nextEager }}"
+                    (valueChange)="onSave()"
+                  />
+                  <div class="w-full" #requestRuleWrapper></div>
+                </ng-container>
+
+                <ng-container *ngIf="param.validator[0].type === 'date_time_format'">
+                  <date-selector
+                    [(ngModel)]="param.validator[0].params"
+                    [name]="'requestValidateRule' + param.name"
+                    nonEmptyValidator
+                    (ngModelChange)="onSave()"
+                  />
+                  <div class="w-full pl-[30%]" #requestRuleWrapper></div>
+                </ng-container>
+
+                <ng-container *ngIf="param.validator[0].type === 'enum_legality_validate'">
+                  <input
+                    style="width: 100%"
+                    type="text"
+                    [name]="'requestValidateRule' + param.name"
+                    nonEmptyValidator
+                    enumStr
+                    nz-input
+                    [(ngModel)]="param.validator[0].params"
+                    [placeholder]="'validate_rule_placeholder' | i18nextEager"
+                    (ngModelChange)="changeUpdateTime()"
+                    (blur)="inputOnSave()"
+                  />
+                  <div class="w-full" #requestRuleWrapper></div>
+                </ng-container>
+
+                <ng-container *ngIf="param.validator[0].type === 'common_data_format_check'">
+                  <nz-select
+                    style="width: 100%"
+                    [name]="'requestValidateRule' + param.name"
+                    [(ngModel)]="param.validator[0].params"
+                    nonEmptyValidator
+                    (ngModelChange)="onSave()"
+                  >
+                    <nz-option *ngFor="let op of commonValidateOpts" [nzLabel]="op.label" [nzValue]="op.value"></nz-option>
+                  </nz-select>
+                </ng-container>
+              </div>
+            </div>
+          </ng-template>
+        </meta-acc-block-new>
+      </form>
+
+      <form [formGroup]="configsFormGroup">
+        <meta-acc-block-new class="mt-2 block w-full" [title]="'problem_configuration' | i18nextEager">
+          <ng-container *ngIf="configServ.isSupportUserPersona()">
+            <ng-template #right>
+              <div class="flex items-center gap-[4px]">
+                <div class="flex items-center gap-[4px]">
+                  <div class="flex items-center gap-[4px]">
+                    <div>{{ 'memory' | i18nextEager }}</div>
+                    <span nz-icon nzType="question-circle" nzTheme="outline" nz-tooltip [nzTooltipTitle]="'questioner_node_persona_tip' | i18nextEager"></span>
+                  </div>
+                </div>
+                <nz-switch formControlName="enableMemory"></nz-switch>
+              </div>
+            </ng-template>
+          </ng-container>
+          <ng-template #content>
+            <div class="mt-2">
+              <div class="flex flex-col gap-[8px]">
+                <div class="flex-between">
+                  <div class="flex items-center gap-[8px] text-[#191919]">
+                    <div>{{ 'problem' | i18nextEager }}</div>
+                    <span nz-icon nzType="question-circle" nzTheme="outline" nz-tooltip [nzTooltipTitle]="'ques_problem_tip' | i18nextEager"></span>
+                  </div>
+                  <div
+                    nz-tooltip
+                    [nzTooltipTitle]="'ref_args' | i18nextEager"
+                    (click)="agentDataServe.showVarList(showQuestionVarListSubject$)"
+                    class="icon-border"
+                  >
+                    <div class="ref-args-icon" (mousedown)="$event.preventDefault()" (click)="agentDataServe.showVarList(showQuestionVarListSubject$)"></div>
+                  </div>
+                </div>
+
+                <meta-cmd-textarea
+                  class="block w-full relative"
+                  formControlName="question_content"
+                  [variants]="variants"
+                  [variantsTrigger]="showQuestionVarListSubject$.asObservable()"
+                  [placeholder]="'var_input_placeholder' | i18nextEager"
+                  [maxLength]="3000"
+                />
+              </div>
+
+              <div class="mt-[16px] flex flex-col">
+                <div class="text-[#191919]">
+                  {{ 'maximum_number_of_reply_rounds' | i18nextEager }}
+                </div>
+                <div class="flex flex-1 items-center justify-between gap-4 pb-2">
+                  <nz-slider class="!my-[22px] flex-1" formControlName="max_response" [nzMin]="1" [nzMax]="20" [nzStep]="2"> </nz-slider>
+                  <nz-input-number
+                    class="w-[74px] !rounded-md"
+                    [nzMin]="1"
+                    [nzMax]="20"
+                    [(ngModel)]="getMaxResponse"
+                    (ngModelChange)="onSave()"
+                    [ngModelOptions]="{ standalone: true }"
+                  ></nz-input-number>
+                </div>
+              </div>
+            </div>
+          </ng-template>
+        </meta-acc-block-new>
+
+        <meta-acc-block-new class="mt-2 block w-full" [title]="'advanced_config' | i18nextEager">
+          <ng-template #content>
+            <div class="mt-2 flex flex-col gap-[16px]">
+              <div class="">
+                <div class="flex items-center gap-[6px]">
+                  <div>{{ 'exit_interaction' | i18nextEager }}</div>
+                  <span nz-icon nzType="question-circle" nzTheme="outline" nz-tooltip [nzTooltipTitle]="'ques_exit_interaction_tip' | i18nextEager"></span>
+                  <nz-switch class="ml-[8px]" formControlName="allow_node_break"></nz-switch>
+                </div>
+              </div>
+
+              <div>
+                <div class="flex items-center gap-[6px]">
+                  <div>
+                    {{ 'user_confirmation_extraction_param' | i18nextEager }}
+                  </div>
+                  <span
+                    nz-icon
+                    nzType="question-circle"
+                    nzTheme="outline"
+                    nz-tooltip
+                    [nzTooltipTitle]="'ques_user_confirmation_extraction_param_tip' | i18nextEager"
+                  ></span>
+                  <nz-switch class="ml-[8px]" formControlName="allow_node_confirm"></nz-switch>
+                </div>
+              </div>
+
+              <div class="flex flex-col gap-[8px]">
+                <div class="flex w-full items-center justify-between text-[#191919]">
+                  <div class="flex items-center gap-[8px]">
+                    <div>{{ 'extract_constraints' | i18nextEager }}</div>
+                    <span nz-icon nzType="question-circle" nzTheme="outline" nz-tooltip [nzTooltipTitle]="'ques_extract_constraints_tip' | i18nextEager"></span>
+                  </div>
+
+                  <div class="flex items-center gap-2">
+                    <div *ngIf="false" nz-tooltip [nzTooltipTitle]="'citation_template' | i18nextEager" (click)="openRefModal()" class="icon-border">
+                      <div class="ref-tmpl-icon"></div>
+                    </div>
+                    <div
+                      nz-tooltip
+                      [nzTooltipTitle]="'ref_args' | i18nextEager"
+                      (click)="agentDataServe.showVarList(showExtractionVarListSubject$)"
+                      class="icon-border"
+                    >
+                      <div
+                        class="ref-args-icon"
+                        (mousedown)="$event.preventDefault()"
+                        (click)="agentDataServe.showVarList(showExtractionVarListSubject$)"
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+                <meta-cmd-textarea
+                  class="block w-full relative"
+                  formControlName="extra_prompt_for_fields_extraction"
+                  [variants]="variants"
+                  [variantsTrigger]="showExtractionVarListSubject$.asObservable()"
+                  [placeholder]="'var_input_placeholder1' | i18nextEager"
+                  [maxLength]="3000"
+                />
+              </div>
+
+              <div class="flex flex-col gap-[8px]">
+                <div class="flex w-full items-center justify-between text-[#191919]">
+                  <div class="flex items-center gap-[8px]">
+                    <div>{{ 'follow_up_mode' | i18nextEager }}</div>
+                    <span
+                      nz-icon
+                      nzType="question-circle"
+                      nzTheme="outline"
+                      class="cursor-pointer"
+                      nz-tooltip
+                      [nzTooltipOverlayStyle]="{ 'max-width': '400px' }"
+                      [nzTooltipTitle]="'ques_follow_up_mode_tip' | i18nextEager"
+                    ></span>
+                  </div>
+                </div>
+                <div class="flex w-full items-center justify-between text-[#191919]">
+                  <nz-radio-group formControlName="auto_ask_mode">
+                    <label nz-radio *ngFor="let item of autoAskModes" [nzValue]="item.value">{{ item.label }}</label>
+                  </nz-radio-group>
+                </div>
+              </div>
+
+              <div class="flex flex-col gap-[8px]" *ngIf="customTemplateEnable">
+                <div class="flex w-full items-center justify-between text-[#191919]">
+                  <div class="flex items-center gap-[8px]">
+                    <div>{{ 'custom_inquiry_template' | i18nextEager }}</div>
+                  </div>
+                </div>
+                <textarea
+                  class="w-full min-w-full max-w-full"
+                  formControlName="auto_ask_template"
+                  rows="10"
+                  [placeholder]="'ques_custom_inquiry_template_placeholder' | i18nextEager"
+                  nz-input
+                  maxlength="1000"
+                ></textarea>
+              </div>
+
+              <div>
+                <div class="flex items-center gap-[6px]">
+                  <div>{{ 'enum_visible_label' | i18nextEager }}</div>
+                  <span
+                    nz-icon
+                    nzType="question-circle"
+                    nzTheme="outline"
+                    nz-tooltip
+                    [nzTooltipTitle]="'enum_visible_tip' | i18nextEager"
+                    [nzTooltipOverlayStyle]="{ 'max-width': '400px' }"
+                  ></span>
+                  <nz-switch class="ml-[8px]" formControlName="enum_visible"></nz-switch>
+                </div>
+              </div>
+
+              <div *ngIf="rewrite_chain?.length && false" class="flex flex-col gap-[8px]">
+                <ng-container *ngFor="let node of rewrite_chain; index as i">
+                  <div class="flex gap-[8px]">
+                    <div class="flex h-[28px] items-center gap-[8px] text-[#191919]">
+                      <div>
+                        {{ rewriteChainInfoMap[node.type].name }}
+                      </div>
+                      <span
+                        nz-icon
+                        nzType="question-circle"
+                        nzTheme="outline"
+                        class="cursor-pointer"
+                        nz-tooltip
+                        [nzTooltipOverlayStyle]="{ 'max-width': '400px' }"
+                        [nzTooltipTitle]="rewriteChainInfoMap[node.type].desc"
+                      ></span>
+                    </div>
+
+                    <div class="flex h-[28px] items-center">
+                      <nz-switch
+                        [name]="node.type + 'enabled'"
+                        [(ngModel)]="node.enabled"
+                        (ngModelChange)="onSave()"
+                        [ngModelOptions]="{ standalone: true }"
+                      ></nz-switch>
+                    </div>
+
+                    <div *ngIf="!isNil(node.args?.url) && node.enabled" class="w-[calc(100%-180px)]">
+                      <input
+                        style="width: 100%"
+                        type="text"
+                        urlValidator
+                        placeholder="{{ 'please_enter_url' | i18nextEager }}"
+                        [name]="node.type + 'url'"
+                        nz-input
+                        [(ngModel)]="node.args.url"
+                        [ngModelOptions]="{ standalone: true }"
+                        (ngModelChange)="changeUpdateTime()"
+                        (blur)="inputOnSave()"
+                      />
+
+                      <div class="w-full" #urlErrWrapper></div>
+                    </div>
+                  </div>
+                </ng-container>
+              </div>
+
+              <div class="flex flex-col gap-[8px]">
+                <div class="flex items-center gap-[8px]">
+                  <div>{{ 'example_configuration' | i18nextEager }}</div>
+                  <span
+                    nz-icon
+                    nzType="question-circle"
+                    nzTheme="outline"
+                    class="test cursor-pointer"
+                    nz-tooltip
+                    [nzTooltipTitle]="exampleConfigTips"
+                    [nzTooltipOverlayStyle]="{ 'max-width': '344px' }"
+                  ></span>
+                </div>
+                <textarea
+                  class="w-full min-w-full max-w-full"
+                  formControlName="example_content"
+                  rows="10"
+                  [placeholder]="'input_placeholder' | i18nextEager"
+                  nz-input
+                  maxlength="4000"
+                ></textarea>
+              </div>
+            </div>
+          </ng-template>
+        </meta-acc-block-new>
+      </form>
+    </div>
+  </div>
+</div>

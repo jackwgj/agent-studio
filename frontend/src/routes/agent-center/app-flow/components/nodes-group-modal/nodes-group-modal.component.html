@@ -1,0 +1,34 @@
+<div class="flex w-full flex-col gap-3 px-2 py-3 nodes-group">
+  <ng-container *ngFor="let group of nodeGroups">
+    <div *ngIf="group.visible">
+      <div class="ml-2 mb-[4px] mt-[8px] text-desc">{{ group.name }}</div>
+
+      <div class="flex flex-wrap">
+        <ng-container *ngFor="let node of group.nodes">
+          <div
+            class="g-node flex w-1/2 mb-[8px] items-center gap-2 px-2 py-1"
+            nz-tooltip
+            [nzTooltipTitle]="nodeDescription(node.data.type)"
+            nzTooltipPlacement="right"
+            [draggable]="true"
+            (dragstart)="onDragStart($event)"
+            (dragend)="onDragEnd($event, node.data)"
+            (click)="onClickAdd($event, node.data)"
+            *ngIf="node.visible"
+          >
+            <img alt=""
+              class="h-4 w-4"
+              [src]="nodeIcons[node.data.type]"
+              [alt]="node.data.type"
+            />
+
+            <div>
+              {{ node.data.name }}
+            </div>
+          </div>
+        </ng-container>
+      </div>
+    </div>
+  </ng-container>
+</div>
+

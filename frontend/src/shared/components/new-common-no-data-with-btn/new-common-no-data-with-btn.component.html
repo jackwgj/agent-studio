@@ -1,0 +1,75 @@
+<!--业务场景比较复杂，请仔细阅读，避免误伤-->
+<!--1.无订购资源时，需要订购资源按钮-->
+<!--2.有订购资源时，展示noDataBtnStr按钮-->
+<!--3.当无订购资源时，使用extraBuyResource自主排除不展示资源订购按钮 就需要展示创建业务按钮-->
+<!--4.搜索无数据时 清除按钮-->
+<div class="m-no-data-new">
+  <!--有订阅权限时-->
+  <ng-container *ngIf="subscribeBtnStatus">
+    <!--创建按钮为下拉框时-->
+    <div *ngIf="type === 'btn_list'" class="no-data-common-css">
+      <span class="noData-new" *ngIf="!isOnlyShowBtn"></span>
+      <p class="first-line-data" *ngIf="!isOnlyShowBtn">{{ firstLineData }}</p>
+      <div class="second-line-data" *ngIf="!isOnlyShowBtn">{{ secondLineData }}</div>
+      <button nz-button nz-dropdown [nzDropdownMenu]="btnListMenu" nzType="primary" *ngIf="noDataBtnStr" class="btn-css">{{ noDataBtnStr }}</button>
+      <nz-dropdown-menu #btnListMenu="nzDropdownMenu">
+        <ul nz-menu>
+          <li nz-menu-item *ngFor="let item of btn_list" (click)="btn_list_fn(item)">{{ item.label }}</li>
+        </ul>
+      </nz-dropdown-menu>
+    </div>
+    <div *ngIf="type === 'noData'" class="no-data-common-css">
+      <span class="noData-new" *ngIf="!isOnlyShowBtn"></span>
+      <p class="first-line-data" *ngIf="!isOnlyShowBtn">{{ firstLineData }}</p>
+      <div class="second-line-data" *ngIf="!isOnlyShowBtn">{{ secondLineData }}</div>
+      <button class="btn-css" *ngIf="noDataBtnStr" tiButton (click)="onCreate()">
+        {{ noDataBtnStr }}
+      </button>
+    </div>
+    <div *ngIf="type === 'filterNoData'" class="no-data-common-css">
+      <span class="filter-noData-new"></span>
+      <p class="first-line-data">{{ filterNoData }}</p>
+      <div class="second-line-data">{{ filterNoSecondData }}</div>
+      <button class="btn-css" *ngIf="filterBtn" tiButton (click)="onClear()">
+        {{ filterBtn }}
+      </button>
+    </div>
+    <div *ngIf="type === 'customeNodata'" class="no-data-common-css">
+      <span class="noData-new"></span>
+      <p class="second-line-data mt-2 empty-data">
+        {{ noDataStr }}
+        <span style="cursor: pointer; color: #1476ff" (click)="onCreate()">{{ createStr }}</span>
+        {{ extraStr }}
+      </p>
+    </div>
+  </ng-container>
+  <!--没有订阅权限时-->
+  <ng-container *ngIf="!subscribeBtnStatus">
+    <div *ngIf="type === 'filterNoData'; else other" class="no-data-common-css">
+      <span class="filter-noData-new"></span>
+      <p class="first-line-data">{{ filterNoData }}</p>
+      <div class="second-line-data">{{ filterNoSecondData }}</div>
+      <button class="btn-css" *ngIf="filterBtn" tiButton (click)="onClear()">
+        {{ filterBtn }}
+      </button>
+    </div>
+    <ng-template #other>
+      <div *ngIf="!extraBuyResource" class="no-data-common-css">
+        <span class="noData-new"></span>
+        <p class="first-line-data">{{ 'no_data' | i18nextEager }}</p>
+        <div class="second-line-data">{{ 'no_resource_available_please_purchase' | i18nextEager }}</div>
+        <button *ngIf="is_white_list" class="btn-css" tiButton (click)="goToBuy()">
+          {{ 'purchase_resources' | i18nextEager }}
+        </button>
+      </div>
+      <div *ngIf="extraBuyResource" class="no-data-common-css">
+        <span class="noData-new"></span>
+        <p class="first-line-data">{{ firstLineData }}</p>
+        <div class="second-line-data">{{ secondLineData }}</div>
+        <button class="btn-css" *ngIf="noDataBtnStr" tiButton (click)="onCreate()">
+          {{ noDataBtnStr }}
+        </button>
+      </div>
+    </ng-template>
+  </ng-container>
+</div>

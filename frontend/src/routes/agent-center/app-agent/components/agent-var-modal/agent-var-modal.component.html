@@ -1,0 +1,179 @@
+<!-- <div class="flex h-full w-full flex-col">
+  <tp-halfmodal-header class="mb-[16px] block">
+    <div class="flex w-[calc(100%-38px)] items-center justify-between">
+      <div class="flex items-center gap-[8px] text-[18px]">
+        {{ 'var' | i18nextEager }}
+      </div>
+    </div>
+  </tp-halfmodal-header>
+
+  <tp-halfmodal-body>
+    <div class="h-full w-full overflow-auto">
+      <meta-acc-block class="mt-2 block" [title]="'var_conf' | i18nextEager">
+        <ng-template #content>
+          <div class="mt-2 flex items-center gap-1">
+            <div class="w-[165px] text-label">
+              {{ 'name' | i18nextEager }}
+            </div>
+            <div class="w-[145px] text-label">
+              {{ 'type' | i18nextEager }}
+            </div>
+            <div class="w-[240px] text-label">
+              {{ 'description' | i18nextEager }}{{ 'optional' | i18nextEager }}
+            </div>
+            <div class="w-[50px] text-label">
+              {{ 'required' | i18nextEager }}
+            </div>
+          </div>
+
+          <form #varForm="ngForm">
+            <ti-tree id="var-tree" [data]="viewVars">
+              <ng-template let-param let-i="index">
+                <div class="mt-[8px] flex w-full gap-1 leading-none">
+                  <div
+                    [ngStyle]="{
+                      width: getLayerIndexWidth(param)
+                    }"
+                  >
+                    <input
+                      style="width: 100%"
+                      type="text"
+                      [name]="'varFormName' + i"
+                      (keydown)="$event.stopPropagation()"
+                      [tiValidation]="{ type: 'changeAlert' }"
+                      [errorMessageWrapper]="wrapper"
+                      maxlength="32"
+                      tiText
+                      [(ngModel)]="param.name"
+                      [title]="param.name"
+                      (input)="onNameChange()"
+                      [valueValidityValidator]="getNames(param)"
+                      [placeholder]="'input_placeholder' | i18nextEager"
+                    />
+                    <div class="w-full" #wrapper></div>
+                  </div>
+
+                  <div class="w-[145px]">
+                    <ti-select
+                      *ngIf="param.depth === 3; else otherTypes"
+                      style="width: 100%"
+                      [name]="'varFormValue' + i"
+                      [tiValidation]="{ type: 'changeAlert' }"
+                      [(ngModel)]="param.type"
+                      (ngModelChange)="onTypeChange(param)"
+                      [options]="noneObjDataTypes"
+                      valueKey="value"
+                      [disabled]="param.source === 'system'"
+                      [placeholder]="'select_placeholder' | i18nextEager"
+                    >
+                      <ng-template #selected let-item>
+                        <div tiOverflow>{{ item.label }}</div>
+                      </ng-template>
+                    </ti-select>
+
+                    <ng-template #otherTypes>
+                      <ti-select
+                        style="width: 100%"
+                        [name]="'varFormValue' + i"
+                        [tiValidation]="{ type: 'changeAlert' }"
+                        [(ngModel)]="param.type"
+                        [options]="outputDataTypes"
+                        (ngModelChange)="onTypeChange(param)"
+                        valueKey="value"
+                        [disabled]="param.source === 'system'"
+                        [placeholder]="'select_placeholder' | i18nextEager"
+                      >
+                        <ng-template #selected let-item>
+                          <div tiOverflow>{{ item.label }}</div>
+                        </ng-template>
+                      </ti-select>
+                    </ng-template>
+                  </div>
+
+                  <div class="w-[240px]">
+                    <input
+                      style="width: 100%"
+                      type="text"
+                      [name]="'varFormDesc' + i"
+                      (keydown)="$event.stopPropagation()"
+                      tiText
+                      [(ngModel)]="param.description"
+                      [title]="param.description"
+                      [placeholder]="'input_placeholder' | i18nextEager"
+                    />
+                  </div>
+
+                  <div
+                    class="a-form-checkbox ml-1 flex h-[28px] w-[16px] items-center justify-center"
+                  >
+                    <input
+                      [id]="'paramRequiredCheckbox' + i"
+                      type="checkbox"
+                      tiCheckbox
+                      [name]="'paramRequired' + i"
+                      [(ngModel)]="param.required"
+                      [disabled]="param.source === 'system'"
+                    />
+                  </div>
+
+                  <div class="h-[28px] w-[16px]">
+                    <meta-add-props-icon
+                      *ngIf="
+                        param.source === 'user' && isObjectLikeType(param.type)
+                      "
+                      (click)="addChild(param)"
+                    />
+                  </div>
+
+                  <div
+                    class="flex h-[28px] w-[16px] items-center justify-center"
+                  >
+                    <tp-icon
+                      (click)="deleteViewVar(param)"
+                      style="font-size: 16px; color: #191919; cursor: pointer"
+                      name="cloudx-action-delete"
+                    ></tp-icon>
+                  </div>
+
+                  <div class="h-[28px] w-[16px]">
+                    <meta-set-default
+                      *ngIf="param.depth === 0"
+                      [param]="param"
+                      [isShowDesc]="false"
+                      cmpWidth="620px"
+                    />
+                  </div>
+                </div>
+              </ng-template>
+            </ti-tree>
+          </form>
+        </ng-template>
+
+        <ng-template #right>
+          <div class="flex items-center justify-center">
+            <button
+              class="w-fit"
+              tiButton
+              (click)="addViewVar()"
+              [tiTip]="'add_var' | i18nextEager"
+              [hasBorder]="false"
+            >
+              <tp-icon class="add-button-icon" name="cloudx-action-create-1" />
+            </button>
+          </div>
+        </ng-template>
+      </meta-acc-block>
+    </div>
+  </tp-halfmodal-body>
+
+  <tp-halfmodal-footer>
+    <div class="flex justify-end gap-2">
+      <button type="button" tiButton (click)="dismiss()">
+        {{ 'cancel' | i18nextEager }}
+      </button>
+      <button (click)="onConfirm()" type="button" tiButton color="danger">
+        {{ 'ok' | i18nextEager }}
+      </button>
+    </div>
+  </tp-halfmodal-footer>
+</div> -->

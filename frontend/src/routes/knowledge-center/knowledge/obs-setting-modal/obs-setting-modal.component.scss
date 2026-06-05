@@ -1,0 +1,12 @@
+.var-title {
+  line-height: 18px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+::ng-deep .ant-drawer-body {
+  padding-bottom: 16px;
+}

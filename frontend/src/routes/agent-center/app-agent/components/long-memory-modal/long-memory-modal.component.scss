@@ -1,0 +1,37 @@
+#add-memory-var-halfmodal {
+  .add-var-memory-button {
+    color: rgba(20, 118, 255, 1);
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 18px;
+    letter-spacing: 0px;
+    text-align: left;
+    margin-top: 10px;
+    cursor: pointer;
+  }
+
+  .required-style {
+    color: #f23030;
+  }
+  .var-title {
+    line-height: 18px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    font-weight: 600;
+    margin-top: 16px;
+  }
+
+  .var-tips {
+    color: rgba(128, 128, 128, 1);
+    line-height: 18px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    font-size: 12px;
+    font-weight: 400;
+    text-align: left;
+    margin-top: 4px;
+  }
+}
+

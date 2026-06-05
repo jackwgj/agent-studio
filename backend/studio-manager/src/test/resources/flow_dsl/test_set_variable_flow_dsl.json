@@ -1,0 +1,250 @@
+{
+  "id": "5303a906-742d-4c55-b774-f30ade67d357",
+  "name": "jjw_llm",
+  "description": "jjw_llm",
+  "nodes": [
+    {
+      "id": "node_start",
+      "type": "Start",
+      "name": "开始",
+      "outputs": [
+        {
+          "name": "query",
+          "type": "string",
+          "description": "用户输入",
+          "required": true,
+          "source": "system",
+          "value": {
+            "type": "literal",
+            "content": "",
+            "hint": "用户输入"
+          }
+        }
+      ]
+    },
+    {
+      "id": "node_set_variable11111",
+      "type": "SetVariable",
+      "name": "设置变量节点",
+      "inputs": [
+        {
+          "name": "param1",
+          "type": "string",
+          "description": "循环之间共享参数",
+          "required": true,
+          "source": "user",
+          "value": {
+            "type": "ref",
+            "content": {
+              "ref_node_id": "node_loop",
+              "ref_var_name": "intermediate_loop_var.param1",
+              "source": "pre_defined"
+            },
+            "hint": ""
+          }
+        },
+        {
+          "name": "param2",
+          "type": "integer",
+          "description": "循环之间共享参数",
+          "required": true,
+          "source": "user",
+          "value": {
+            "type": "ref",
+            "content": {
+              "ref_node_id": "node_loop",
+              "ref_var_name": "intermediate_loop_var.param2",
+              "source": "pre_defined"
+            },
+            "hint": ""
+          }
+        },
+        {
+          "name": "param3",
+          "type": "object",
+          "description": "循环之间共享参数",
+          "required": true,
+          "source": "user",
+          "value": {
+            "type": "ref",
+            "content": {
+              "ref_node_id": "node_loop",
+              "ref_var_name": "intermediate_loop_var.param3",
+              "source": "pre_defined"
+            },
+            "hint": ""
+          },
+          "schema": [
+            {
+              "name": "key1",
+              "type": "string"
+            },
+            {
+              "name": "key2",
+              "type": "integer"
+            }
+          ]
+        }
+      ],
+      "configs": {
+        "settings": [
+          {
+            "left": {
+              "type": "string",
+              "value": {
+                "type": "ref",
+                "content": {
+                  "ref_node_id": "node_loop",
+                  "ref_var_name": "intermediate_loop_var.param1",
+                  "source": "pre_defined"
+                }
+              }
+            },
+            "right": {
+              "type": "string",
+              "value": {
+                "type": "ref",
+                "content": {
+                  "ref_node_id": "node_loop",
+                  "ref_var_name": "array_loop_var.param1.item",
+                  "source": "pre_defined"
+                },
+                "operator": "empty"
+              }
+            }
+          },
+          {
+            "left": {
+              "type": "integer",
+              "value": {
+                "type": "ref",
+                "content": {
+                  "ref_node_id": "node_loop",
+                  "ref_var_name": "intermediate_loop_var.param2",
+                  "source": "pre_defined"
+                }
+              }
+            },
+            "right": {
+              "type": "integer",
+              "value": {
+                "type": "literal",
+                "content": 11
+              }
+            }
+          },
+          {
+            "left": {
+              "type": "object",
+              "value": {
+                "type": "ref",
+                "content": {
+                  "ref_node_id": "node_loop",
+                  "ref_var_name": "intermediate_loop_var.param3",
+                  "source": "pre_defined"
+                }
+              },
+              "schema": [
+                {
+                  "name": "key1",
+                  "type": "string"
+                },
+                {
+                  "name": "key2",
+                  "type": "integer"
+                }
+              ]
+            },
+            "right": {
+              "type": "object",
+              "value": {
+                "type": "ref",
+                "content": {
+                  "ref_node_id": "node_start",
+                  "ref_var_name": "object_test",
+                  "source": "user"
+                }
+              },
+              "schema": [
+                {
+                  "name": "key1",
+                  "type": "string"
+                },
+                {
+                  "name": "key2",
+                  "type": "integer"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "node_end",
+      "type": "End",
+      "name": "结束",
+      "inputs": [
+        {
+          "name": "result",
+          "type": "string",
+          "description": "",
+          "required": true,
+          "source": "user",
+          "reflection": false,
+          "value": {
+            "type": "ref",
+            "content": {
+              "ref_node_id": "node_1740108902156",
+              "ref_var_name": "name",
+              "source": "user"
+            },
+            "hint": ""
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "response_content",
+          "type": "string",
+          "description": "最终输出",
+          "required": true,
+          "source": "system",
+          "reflection": false,
+          "value": {
+            "type": "generated"
+          }
+        }
+      ],
+      "configs": {
+        "is_stream_out": true,
+        "response_template": "{{result}}",
+        "response_mode": "directResponse"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "source": "node_set_variable11111",
+      "target": "node_end"
+    },
+    {
+      "source": "node_start",
+      "target": "node_set_variable11111"
+    }
+  ],
+  "layouts": {
+    "node_start": {
+      "x": -216,
+      "y": 234
+    },
+    "node_set_variable11111": {
+      "x": 342,
+      "y": 144
+    },
+    "node_end": {
+      "x": 864,
+      "y": 252
+    }
+  }
+}

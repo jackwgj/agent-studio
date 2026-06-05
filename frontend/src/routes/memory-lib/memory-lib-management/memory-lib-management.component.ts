@@ -1,0 +1,146 @@
+import { ChangeDetectionStrategy, Component, computed, inject, signal, OnInit } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
+import { I18NEXT_NAMESPACE, I18NextEagerPipe, I18NextModule } from 'angular-i18next';
+import { NzButtonModule } from 'ng-zorro-antd/button';
+import { NzIconModule } from 'ng-zorro-antd/icon';
+import { NzInputModule } from 'ng-zorro-antd/input';
+import { NzPaginationModule } from 'ng-zorro-antd/pagination';
+import { NzSpinModule } from 'ng-zorro-antd/spin';
+import { MemoryLibApiService } from '@routes/memory-lib/memory-lib-api.service';
+import { IMemoryLibItem } from '@routes/memory-lib/memory-lib-interfaces';
+import { I18nNamespace } from '@i18n';
+import { MemoryLibListComponent } from '@routes/memory-lib/memory-lib-management/memory-lib-list/memory-lib-list.component';
+import { AgentConfigService } from '@routes/agent-center/agent-config.service';
+import { MemoryLibService } from '@routes/memory-lib/memory-lib.service';
+import { NewCommonNoDataWithBtnComponent } from '@shared/components/new-common-no-data-with-btn/new-common-no-data-with-btn.component';
+import { NoDataGuideComponentComponent } from '@shared/components/no-data-guide/no-data-guide.component';
+import { NzMessageService } from 'ng-zorro-antd/message';
+
+@Component({
+  selector: 'memory-lib-management',
+  standalone: true,
+  imports: [
+    NoDataGuideComponentComponent,
+    I18NextModule,
+    NzButtonModule,
+    NzIconModule,
+    NzPaginationModule,
+    NzInputModule,
+    NzSpinModule,
+    NewCommonNoDataWithBtnComponent,
+    MemoryLibListComponent,
+    FormsModule,
+  ],
+  providers: [
+    {
+      provide: I18NEXT_NAMESPACE,
+      useValue: [I18nNamespace.COMMON, I18nNamespace.MEMORY_LIB],
+    },
+  ],
+  templateUrl: './memory-lib-management.component.html',
+  styleUrl: './memory-lib-management.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class MemoryLibManagementComponent implements OnInit {
+  readonly memoryLibService = inject(MemoryLibService);
+  readonly memoryLibApiService = inject(MemoryLibApiService);
+  readonly i18n = inject(I18NextEagerPipe);
+  readonly configServ = inject(AgentConfigService);
+  readonly router = inject(Router);
+  readonly route = inject(ActivatedRoute);
+  readonly message = inject(NzMessageService);
+
+  libs = signal<IMemoryLibItem[]>([]);
+  isShowGuide = signal(true);
+
+  // 搜索框绑定值
+  searchText = signal('');
+
+  guideClass = computed(() => {
+    return this.isShowGuide() ? ['h-[188px]', 'mb-[24px]'] : ['h-[0px]'];
+  });
+
+  currentPage = signal(1);
+  pageSize = signal({
+    size: 10,
+  });
+  totalNumber = signal(0);
+
+  loading = signal(false);
+  isFirstLoading = signal(true);
+
+  searchNameIsEmpty = computed(() => this.searchText().trim() === '');
+  isNoDataGuideShow = computed(() => this.libs().length === 0 && this.searchNameIsEmpty() && !this.loading());
+
+  ngOnInit() {
+    this.queryLibs();
+  }
+
+  searchKbs() {
+    this.currentPage.set(1);
+    this.queryLibs();
+  }
+
+  queryLibs() {
+    this.loading.set(true);
+    const params: any = {
+      offset: (this.currentPage() - 1) * this.pageSize().size,
+      limit: this.pageSize().size,
+    };
+
+    if (this.searchText()) {
+      params.name = this.searchText();
+    }
+
+    this.memoryLibApiService
+      .queryMemoryLibs(params)
+      .then(res => {
+        this.libs.set(res.items ?? []);
+        this.totalNumber.set(res.total ?? 0);
+      })
+      .catch(() => {
+        this.libs.set([]);
+        this.totalNumber.set(0);
+      })
+      .finally(() => {
+        this.loading.set(false);
+        this.isFirstLoading.set(false);
+      });
+  }
+
+  onPageIndexChange(index: number) {
+    this.currentPage.set(index);
+    this.queryLibs();
+  }
+
+  onPageSizeChange(size: number) {
+    this.pageSize.update(prev => ({ ...prev, size }));
+    this.searchKbs();
+  }
+
+  noDataSearch() {
+    this.searchText.set('');
+    this.queryLibs();
+  }
+
+  createMemoryLib() {
+    this.memoryLibService.createOrEditMemLib(res => {
+      const { reason, halfModalRef, data, setLoading } = res;
+      if (reason && data) {
+        setLoading(true);
+        this.memoryLibApiService
+          .createMemoryLibs(data)
+          .then(() => {
+            this.message.success(this.i18n.transform('memory.create.tip.success'));
+            setLoading(false);
+            halfModalRef.destroy?.(reason);
+            this.queryLibs();
+          })
+          .catch(() => setLoading(false));
+      } else {
+        halfModalRef.destroy?.(reason);
+      }
+    });
+  }
+}

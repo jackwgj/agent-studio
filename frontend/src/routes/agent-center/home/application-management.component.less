@@ -1,0 +1,87 @@
+.import-alert {
+  width: 100%;
+}
+
+.header-style {
+  padding: 0 !important;
+  height: 43px;
+  line-height: 43px;
+  margin-bottom: 12px;
+  ::ng-deep {
+    tp-descandbuy {
+      height: 43px;
+      line-height: 43px;
+    }
+    .tp-helptip-label {
+      font-size: 20px;
+      color: rgb(34,34,34);
+    }
+  }
+}
+
+.cards-wrapper {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(393px, 1fr));
+  width: 100%;
+  gap: 16px;
+  border-radius: 16px;
+  margin-bottom: 16px;
+  .ng-star-inserted{
+    background: #FFFFFF;
+    border:1px solid #E6E6E6;
+    &:hover{
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+      background-size: cover;
+    }
+  }
+}
+
+@media (min-width: 1921px) {
+  .cards-wrapper {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+::ng-deep {
+  .tp-descandbuy-title {
+    height: 43px;
+    line-height: 43px;
+    margin-top: 0px !important;
+    .tp-helptip-label {
+      font-size: 20px;
+    }
+  }
+}
+
+::ng-deep .modal-custom700-class {
+  width: 700px !important;
+}
+
+::ng-deep .modal-custom600-class {
+  width: 600px !important;
+}
+
+::ng-deep {
+  nz-tag + nz-tag {
+    margin-left: 3px !important;
+  }
+}
+
+.url-break {
+  word-wrap: break-word;
+}
+.tool-bar{
+  .common-btn{
+    min-width:84px !important;
+  }
+}
+
+:host {
+  font-family: PingFang SC !important;
+
+  .body-alert-tip {
+    ::ng-deep .ti3-alert-container {
+      border-radius: 0px !important;
+    }
+  }
+}

@@ -1,0 +1,100 @@
+<div class="add-plugin-modal-container">
+  <div class="flex-left" style="display: block">
+    <div class="plugin-personal">
+      <div class="plugin-desc-area">
+        {{ 'mcpLimit' | i18nextEager:{number:mcpLimit } }}
+      </div>
+      <div class="flex" style="align-items: center; margin-bottom: 16px; gap: 4px">
+        <nz-input-search nzAllowClear (nzSearch)="getMCPsBySearch('custom')">
+          <input
+            nz-input
+            id="searchbox-basic"
+            class="plugin-searchbox"
+            [placeholder]="emptyPlaceholder"
+            [(ngModel)]="searchPersonVal"
+          />
+        </nz-input-search>
+
+        <button
+          class="h-8 w-8 flex justify-center items-center"
+          nz-button
+          (click)="refreshData('custom')"
+        >
+          <span nz-icon nzType="reload"></span>
+        </button>
+      </div>
+      <nz-spin
+        *ngIf="customMcpServers.isLoading; else mainPersonalPlugins"
+        class="loading-icon"
+      ></nz-spin>
+      <ng-template #mainPersonalPlugins>
+        <div
+          class="scroll-container"
+          [ngClass]="isShowNoDataCustom() ? '' : 'no-data-scroll-container'"
+        >
+          <div
+            [ngClass]="{
+              'no-data-inner-container': isShowNoDataCustom(),
+              'market-container': isFromWorkflow
+            }"
+            [style]="{'grid-template-columns': isShowNoDataCustom() ? 'repeat(2, 1fr)' : 'auto'}"
+          >
+            <ng-container *ngIf="isShowNoDataCustom(); else noData">
+              <div *ngFor="let item of customMcpServers.list" [ngClass]="!isFromWorkflow ? 'w-full mcp-card' : ''">
+                <meta-skill-card *ngIf="!isFromWorkflow"
+                  [data]="item"
+                  [showFormServerId]="showFormServerId"
+                  (select)="selectMcp($event)"
+                  (createMcp)="createMcp($event, 'custom')"
+                  (showForm)="showForm($event)"
+                  (onRedeploy)="editMcpService($event)"
+                />
+                <mcp-server-card *ngIf="isFromWorkflow"
+                  [mcpServerData]="item"
+                  [type]="'custom'"
+                  [mcpToolPendingIds]="mcpToolPendingIds"
+                  [showFormServerId]="showFormServerId"
+                  [isFromWorkflow]="isFromWorkflow"
+                  [isClickMcpCard]="isClickMcpCard"
+                  [isClickAddMcpToWorkflow]="isClickAddMcpToWorkflow"
+                  (change)="handleSelectChange($event, 'custom')"
+                  (clickCard)="editMcpService($event)"
+                  [mcpCreateSub]="mcpCreateSub"
+                />
+              </div>
+            </ng-container>
+          </div>
+        </div>
+      </ng-template>
+      <div class="footer" *ngIf="!customMcpServers.isLoading && customMcpServers.list.length ">
+        <nz-pagination
+          [nzPageIndex]="curPagePersonal"
+          [nzTotal]="totalNumberPersonal"
+          nzSimple
+          (nzPageIndexChange)="getMCPListByPage('custom')"
+        ></nz-pagination>
+      </div>
+    </div>
+  </div>
+</div>
+
+<ng-template #noData>
+  <div class="no-data-container" *ngIf="activeTab === 'custom'">
+    <app-new-common-no-data-with-btn
+    [type]="searchNameIsEmpty ? 'noData' : 'filterNoData'"
+    [tutorialType]="'mcp'"
+    [noDataBtnStr]="'create_mcp'|i18nextEager"
+    (clear)="handleClickClearSearchWithCustom()"
+  />
+  </div>
+
+  <div class="no-data-container" *ngIf="activeTab === 'inner'">
+    <app-new-common-no-data-with-btn
+    [type]="searchNameIsEmpty ? 'btn_list' : 'filterNoData'"
+    [tutorialType]="'mcp'"
+    [btn_list]="create_items"
+    [noDataBtnStr]="'create_mcp' | i18nextEager"
+    (clear)="handleClickClearSearchWithInner()"
+  />
+  </div>
+</ng-template>

@@ -1,0 +1,44 @@
+<div
+  class="flex flex-col items-center justify-center pt-[10px]"
+>
+  <div class="flex items-center">
+    <img alt=""
+      class="mr-[14px] h-[48px] w-[48px] rounded-xl"
+      [src]="knowledgeExampleInfo.icon"
+      *ngIf="knowledgeExampleInfo.icon"
+    />
+    <div class="text-[32px] font-semibold leading-[56px]" tiOverflow>
+      {{ knowledgeExampleInfo.title }}
+    </div>
+  </div>
+</div>
+
+<div
+  *ngIf="
+    (knowledgeExampleInfo?.prologue || knowledgeExampleInfo?.cardList?.length) && showPanel
+  "
+  class="w-full rounded-[24px]"
+>
+  <div class="prologue-info" *ngIf="knowledgeExampleInfo.prologue">
+    <span
+      class="prologue-text font-semibold text-[16px]"
+      nz-tooltip
+      [nzTooltipTitle]="knowledgeExampleInfo.prologue"
+      nzTooltipPlacement="top"
+      >{{ knowledgeExampleInfo.prologue }}</span
+    >
+  </div>
+  <div class="question-section" *ngIf="knowledgeExampleInfo.cardList?.length">
+    <div
+      class="question-item"
+      *ngFor="let cardItem of knowledgeExampleInfo.cardList"
+      (click)="onCardClick(cardItem.question)"
+    >
+      <div #cardDivList class="question-text" tiOverflow tiTipMaxWidth="900px">
+        {{ cardItem.question }}
+      </div>
+    </div>
+  </div>
+</div>
+
+<ng-template #emptyPrologue> </ng-template>

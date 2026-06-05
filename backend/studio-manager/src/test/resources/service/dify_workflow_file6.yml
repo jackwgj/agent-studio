@@ -1,0 +1,470 @@
+app:
+  description: test
+  icon: 🤖
+  icon_background: '#FFEAD5'
+  mode: workflow
+  name: trigger
+  use_icon_as_answer_icon: false
+dependencies:
+  - current_identifier: null
+    type: marketplace
+    value:
+      marketplace_plugin_unique_identifier: langgenius/openai:0.2.8@aae2be0913b8c6f0b80cff58e08d7a8b4c214569b41778413fcaea204561ff16
+      version: null
+kind: app
+version: 0.6.0
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions:
+        - .JPG
+        - .JPEG
+        - .PNG
+        - .GIF
+        - .WEBP
+        - .SVG
+      allowed_file_types:
+        - image
+      allowed_file_upload_methods:
+        - local_file
+        - remote_url
+      enabled: false
+      fileUploadConfig:
+        attachment_image_file_size_limit: 2
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        file_upload_limit: 50
+        image_file_batch_limit: 10
+        image_file_size_limit: 10
+        single_chunk_attachment_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+          - local_file
+          - remote_url
+      number_limits: 3
+    opening_statement: ''
+    retriever_resource:
+      enabled: true
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+      - data:
+          isInLoop: false
+          sourceType: llm
+          targetType: end
+        id: 1772266334048-fail-branch-1772266418941-target
+        source: '1772266334048'
+        sourceHandle: fail-branch
+        target: '1772266418941'
+        targetHandle: target
+        type: custom
+        zIndex: 0
+      - data:
+          isInLoop: false
+          sourceType: question-classifier
+          targetType: llm
+        id: 1772441054893-1-1772266334048-target
+        source: '1772441054893'
+        sourceHandle: '1'
+        target: '1772266334048'
+        targetHandle: target
+        type: custom
+        zIndex: 0
+      - data:
+          isInLoop: false
+          sourceType: template-transform
+          targetType: list-operator
+        id: 1772441095655-source-1772441105657-target
+        source: '1772441095655'
+        sourceHandle: source
+        target: '1772441105657'
+        targetHandle: target
+        type: custom
+        zIndex: 0
+      - data:
+          isInLoop: false
+          sourceType: llm
+          targetType: end
+        id: 1772266334048-source-1770693483325-target
+        source: '1772266334048'
+        sourceHandle: source
+        target: '1770693483325'
+        targetHandle: target
+        type: custom
+        zIndex: 0
+      - data:
+          isInIteration: false
+          isInLoop: false
+          sourceType: question-classifier
+          targetType: llm
+        id: 1772441054893-2-1772442287110-target
+        source: '1772441054893'
+        sourceHandle: '2'
+        target: '1772442287110'
+        targetHandle: target
+        type: custom
+        zIndex: 0
+      - data:
+          isInIteration: false
+          isInLoop: false
+          sourceType: llm
+          targetType: template-transform
+        id: 1772442287110-source-1772441095655-target
+        source: '1772442287110'
+        sourceHandle: source
+        target: '1772441095655'
+        targetHandle: target
+        type: custom
+        zIndex: 0
+      - data:
+          isInIteration: false
+          isInLoop: false
+          sourceType: list-operator
+          targetType: end
+        id: 1772441105657-source-1772442518534-target
+        source: '1772441105657'
+        sourceHandle: source
+        target: '1772442518534'
+        targetHandle: target
+        type: custom
+        zIndex: 0
+      - data:
+          isInLoop: false
+          sourceType: trigger-schedule
+          targetType: question-classifier
+        id: 1772455645334-source-1772441054893-target
+        source: '1772455645334'
+        sourceHandle: source
+        target: '1772441054893'
+        targetHandle: target
+        type: custom
+        zIndex: 0
+    nodes:
+      - data:
+          outputs:
+            - value_selector:
+                - '1772266334048'
+                - structured_output
+                - test_obj
+                - sub_str
+              value_type: object
+              variable: sub_str
+          selected: false
+          title: 输出
+          type: end
+        height: 88
+        id: '1770693483325'
+        position:
+          x: 1912
+          y: 267
+        positionAbsolute:
+          x: 1912
+          y: 267
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 242
+      - data:
+          context:
+            enabled: true
+            variable_selector:
+              - '1772441054893'
+              - class_name
+          error_strategy: fail-branch
+          model:
+            completion_params:
+              temperature: 0.7
+            mode: chat
+            name: gpt-4
+            provider: langgenius/openai/openai
+          prompt_template:
+            - id: e5470f54-d174-420b-b998-8a52633f4eea
+              role: system
+              text: 系统提示词{{#1772163161885.text#}}{{#context#}}
+            - id: bbce7bf9-678b-4cb0-9afb-aa4ea8340124
+              role: user
+              text: 用户{{#1772163161885.selectors#}}
+            - id: a82d4e3a-6be3-4724-9d5c-1acc05d861f3
+              role: assistant
+              text: 助手{{#1772163161885.num#}}
+          selected: false
+          structured_output:
+            schema:
+              additionalProperties: false
+              properties:
+                test_obj:
+                  additionalProperties: false
+                  description: test_obj
+                  properties:
+                    sub_str:
+                      description: sub_str
+                      type: string
+                  required: []
+                  type: object
+              required: []
+              type: object
+          structured_output_enabled: true
+          title: LLM 2
+          type: llm
+          vision:
+            enabled: false
+        height: 124
+        id: '1772266334048'
+        position:
+          x: 1066
+          y: 167
+        positionAbsolute:
+          x: 1066
+          y: 167
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 242
+      - data:
+          outputs:
+            - value_selector:
+                - '1772266334048'
+                - error_message
+              value_type: string
+              variable: error_message
+          selected: false
+          title: 输出 2
+          type: end
+        height: 88
+        id: '1772266418941'
+        position:
+          x: 1561
+          y: 378
+        positionAbsolute:
+          x: 1561
+          y: 378
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 242
+      - data:
+          classes:
+            - id: '1'
+              name: 分类1{{#1772163161885.text#}}
+            - id: '2'
+              name: 分类2{{#1772163161885.selectors#}}
+          instruction: 高级设置{{#sys.app_id#}}
+          instructions: ''
+          model:
+            completion_params:
+              temperature: 0.7
+            mode: chat
+            name: gpt-4
+            provider: langgenius/openai/openai
+          query_variable_selector:
+            - '1772163161885'
+            - text
+          selected: false
+          title: 问题分类器
+          type: question-classifier
+          vision:
+            enabled: false
+        height: 178
+        id: '1772441054893'
+        position:
+          x: 644
+          y: 355
+        positionAbsolute:
+          x: 644
+          y: 355
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 242
+      - data:
+          selected: false
+          template: '{{ arg1 }}'
+          title: 模板转换
+          type: template-transform
+          variables:
+            - value_selector:
+                - '1772442287110'
+                - text
+              value_type: string
+              variable: arg1
+        height: 52
+        id: '1772441095655'
+        position:
+          x: 1368
+          y: 642
+        positionAbsolute:
+          x: 1368
+          y: 642
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 242
+      - data:
+          extract_by:
+            enabled: false
+            serial: '1'
+          filter_by:
+            conditions:
+              - comparison_operator: contains
+                key: ''
+                value: ''
+            enabled: false
+          item_var_type: string
+          limit:
+            enabled: false
+            size: 10
+          order_by:
+            enabled: false
+            key: ''
+            value: asc
+          selected: false
+          title: 列表操作
+          type: list-operator
+          var_type: string
+          variable: ''
+        height: 52
+        id: '1772441105657'
+        position:
+          x: 1693
+          y: 614
+        positionAbsolute:
+          x: 1693
+          y: 614
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 242
+      - data:
+          context:
+            enabled: false
+            variable_selector: []
+          default_value:
+            - key: text
+              type: string
+              value: 异常返回
+          error_strategy: default-value
+          model:
+            completion_params:
+              temperature: 0.7
+            mode: chat
+            name: gpt-4
+            provider: langgenius/openai/openai
+          prompt_template:
+            - id: ba1de98d-2d5a-4ebd-8286-264e698fe86d
+              role: system
+              text: ''
+          selected: false
+          title: LLM 2
+          type: llm
+          vision:
+            enabled: false
+        height: 124
+        id: '1772442287110'
+        position:
+          x: 1044
+          y: 608
+        positionAbsolute:
+          x: 1044
+          y: 608
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 242
+      - data:
+          outputs:
+            - value_selector:
+                - '1772441105657'
+                - first_record
+              value_type: file
+              variable: first_record
+            - value_selector:
+                - '1772441105657'
+                - result
+              value_type: array[file]
+              variable: result
+          selected: false
+          title: 输出 3
+          type: end
+        height: 114
+        id: '1772442518534'
+        position:
+          x: 1995
+          y: 614
+        positionAbsolute:
+          x: 1995
+          y: 614
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 242
+      - data:
+          config:
+            frequency: daily
+            mode: visual
+            timezone: UTC
+            visual_config:
+              monthly_days:
+                - 1
+              on_minute: 0
+              time: 12:00 AM
+              weekdays:
+                - sun
+          frequency: monthly
+          mode: visual
+          selected: false
+          timezone: America/New_York
+          title: 定时触发器
+          type: trigger-schedule
+          visual_config:
+            monthly_days:
+              - 1
+              - 24
+              - 16
+              - 10
+            on_minute: 0
+            time: 12:00 AM
+            weekdays:
+              - sun
+        height: 130
+        id: '1772455645334'
+        position:
+          x: 186
+          y: 392
+        positionAbsolute:
+          x: 186
+          y: 392
+        selected: true
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 242
+    viewport:
+      x: -100
+      y: 70
+      zoom: 1
+  rag_pipeline_variables: []

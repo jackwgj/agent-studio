@@ -1,0 +1,479 @@
+{
+  "id": "2046ecaa-60ec-4e6c-be56-b7d87f8ec2e7",
+  "name": "loop_test",
+  "description": "循环节点测试",
+  "nodes": [{
+    "id": "node_llm",
+    "type": "LLM",
+    "name": "大模型节点",
+    "configs": {
+      "top_p": 0.5,
+      "response_format": "text",
+      "template_content": "{{query}}",
+      "temperature": 0.5,
+      "model": {
+        "model_name": "deepseek_v3",
+        "model_type": "poc_agentBuilder",
+        "model_deployment_id": "deepseek_v3"
+      },
+      "enable_history": false
+    },
+    "inputs": [{
+      "description": "用户输入",
+      "name": "query",
+      "reflection": false,
+      "required": false,
+      "source": "user",
+      "type": "string",
+      "value": {
+        "content": {
+          "ref_node_id": "node_start",
+          "ref_var_name": "query",
+          "source": "system"
+        },
+        "type": "ref"
+      }
+    }
+    ],
+    "outputs": [{
+      "description": "该节点原始输出",
+      "name": "raw_output",
+      "reflection": false,
+      "required": false,
+      "source": "user",
+      "type": "string",
+      "value": {
+        "type": "generated"
+      }
+    }
+    ]
+  }, {
+    "id": "node_start",
+    "type": "Start",
+    "name": "开始",
+    "outputs": [{
+      "name": "query",
+      "type": "string",
+      "description": "用户输入",
+      "required": true,
+      "source": "system",
+      "value": {
+        "content": "",
+        "hint": "用户输入",
+        "type": "literal"
+      }
+    }, {
+      "name": "questions",
+      "type": "array",
+      "description": "aaa",
+      "required": true,
+      "source": "user",
+      "value": {
+        "type": "generated",
+        "content": null,
+        "hint": "",
+        "default": ""
+      },
+      "schema": {
+        "name": "",
+        "type": "string"
+      }
+    }, {
+      "name": "age",
+      "type": "integer",
+      "description": "age",
+      "required": true,
+      "source": "user",
+      "value": {
+        "type": "generated",
+        "content": null,
+        "hint": "",
+        "default": ""
+      }
+    }
+    ]
+  }, {
+    "id": "node_llm2",
+    "type": "LLM",
+    "name": "大模型节点",
+    "configs": {
+      "top_p": 0.5,
+      "response_format": "text",
+      "template_content": "{{query}}",
+      "temperature": 0.5,
+      "model": {
+        "model_name": "deepseek_v3",
+        "model_type": "poc_agentBuilder",
+        "model_deployment_id": "deepseek_v3"
+      },
+      "enable_history": false
+    },
+    "inputs": [{
+      "description": "用户输入",
+      "name": "query",
+      "reflection": false,
+      "required": false,
+      "source": "user",
+      "type": "string",
+      "value": {
+        "content": {
+          "ref_node_id": "node_loop",
+          "ref_var_name": "arr_loop_var.item",
+          "source": "pre_defined"
+        },
+        "type": "ref"
+      }
+    }
+    ],
+    "outputs": [{
+      "description": "该节点原始输出",
+      "name": "raw_output",
+      "reflection": false,
+      "required": false,
+      "source": "user",
+      "type": "string",
+      "value": {
+        "type": "generated"
+      }
+    }
+    ]
+  }, {
+    "id": "node_set_variable",
+    "type": "SetVariable",
+    "name": "设置变量节点",
+    "inputs": [{
+      "name": "age1",
+      "type": "integer",
+      "description": "循环之间共享参数",
+      "required": true,
+      "source": "user",
+      "value": {
+        "type": "ref",
+        "content": {
+          "ref_node_id": "node_loop",
+          "ref_var_name": "intermediate_loop_var.age1",
+          "source": "pre_defined"
+        },
+        "hint": ""
+      }
+    }, {
+      "name": "age2",
+      "type": "integer",
+      "description": "循环之间共享参数",
+      "required": true,
+      "source": "user",
+      "value": {
+        "type": "ref",
+        "content": {
+          "ref_node_id": "node_loop",
+          "ref_var_name": "intermediate_loop_var.age2",
+          "source": "pre_defined"
+        },
+        "hint": ""
+      }
+    }
+    ],
+    "configs": {
+      "settings": [{
+        "left": {
+          "type": "integer",
+          "value": {
+            "type": "ref",
+            "content": {
+              "ref_node_id": "node_loop",
+              "ref_var_name": "intermediate_loop_var.age1",
+              "source": "pre_defined"
+            }
+          }
+        },
+        "right": {
+          "type": "integer",
+          "value": {
+            "type": "ref",
+            "content": {
+              "ref_node_id": "node_loop",
+              "ref_var_name": "intermediate_loop_var.age2",
+              "source": "pre_defined"
+            }
+          }
+        }
+      }, {
+        "left": {
+          "type": "integer",
+          "value": {
+            "type": "ref",
+            "content": {
+              "ref_node_id": "node_loop",
+              "ref_var_name": "intermediate_loop_var.age2",
+              "source": "pre_defined"
+            }
+          }
+        },
+        "right": {
+          "type": "integer",
+          "value": {
+            "type": "literal",
+            "content": 111
+          }
+        }
+      }
+      ]
+    }
+  }, {
+    "id": "node_loop_input",
+    "type": "LoopInput",
+    "name": "循环输入节点",
+    "configs": {},
+    "inputs": [],
+    "outputs": []
+  }, {
+    "id": "node_loop_output",
+    "type": "LoopOutput",
+    "name": "循环输出节点",
+    "configs": {},
+    "inputs": [],
+    "outputs": []
+  }, {
+    "id": "node_loop",
+    "type": "Loop",
+    "name": "循环节点",
+    "configs": {
+      "loop_type": "array",
+      "loop_body": ["node_llm2", "node_set_variable"]
+    },
+    "inputs": [{
+      "description": "循环之间共享参数",
+      "name": "intermediate_loop_var",
+      "reflection": false,
+      "required": true,
+      "source": "pre_defined",
+      "type": "object",
+      "value": {
+        "type": "nested",
+        "content": null,
+        "hint": "",
+        "default": ""
+      },
+      "schema": [{
+        "name": "age1",
+        "type": "integer",
+        "description": "param1",
+        "required": true,
+        "source": "user",
+        "value": {
+          "type": "ref",
+          "content": {
+            "ref_node_id": "node_start",
+            "ref_var_name": "age",
+            "source": "system"
+          },
+          "hint": ""
+        }
+      }, {
+        "name": "age2",
+        "type": "integer",
+        "description": "age2",
+        "required": true,
+        "source": "user",
+        "value": {
+          "type": "literal",
+          "content": 11,
+          "hint": ""
+        }
+      }
+      ]
+    }, {
+      "description": "数组循环",
+      "name": "arr_loop_var",
+      "reflection": false,
+      "required": true,
+      "source": "pre_defined",
+      "type": "array",
+      "value": {
+        "type": "ref",
+        "content": {
+          "ref_node_id": "node_start",
+          "ref_var_name": "questions",
+          "source": "user"
+        },
+        "hint": "",
+        "default": ""
+      },
+      "schema": {
+        "name": "",
+        "type": "string"
+      }
+    }
+    ],
+    "outputs": [{
+      "description": "输出1",
+      "name": "result1",
+      "reflection": false,
+      "required": false,
+      "source": "user",
+      "type": "integer",
+      "value": {
+        "type": "ref",
+        "content": {
+          "ref_node_id": "node_loop",
+          "ref_var_name": "intermediate_loop_var.age1",
+          "source": "pre_defined"
+        }
+      }
+    }, {
+      "description": "输出2",
+      "name": "result2",
+      "reflection": false,
+      "required": false,
+      "source": "user",
+      "type": "integer",
+      "value": {
+        "type": "ref",
+        "content": {
+          "ref_node_id": "node_loop",
+          "ref_var_name": "intermediate_loop_var.age2",
+          "source": "pre_defined"
+        }
+      }
+    }, {
+      "description": "输出3",
+      "name": "result3",
+      "reflection": false,
+      "required": false,
+      "source": "user",
+      "type": "array",
+      "value": {
+        "type": "ref",
+        "content": {
+          "ref_node_id": "node_llm2",
+          "ref_var_name": "raw_output",
+          "source": "user"
+        }
+      },
+      "schema": {
+        "name": "",
+        "type": "string"
+      }
+    }
+    ]
+  }, {
+    "id": "node_end",
+    "type": "End",
+    "name": "结束",
+    "configs": {
+      "is_stream_out": true,
+      "response_template": "{{result1}}{{result2}}{{result}}",
+      "response_mode": "directResponse"
+    },
+    "inputs": [{
+      "description": "最终输出",
+      "name": "result",
+      "reflection": false,
+      "required": false,
+      "source": "user",
+      "type": "array",
+      "value": {
+        "content": {
+          "ref_node_id": "node_loop",
+          "ref_var_name": "result3",
+          "source": "user"
+        },
+        "type": "ref"
+      },
+      "schema": {
+        "name": "",
+        "type": "string"
+      }
+    }, {
+      "name": "result1",
+      "description": "",
+      "required": true,
+      "value": {
+        "type": "ref",
+        "content": {
+          "ref_node_id": "node_loop",
+          "ref_var_name": "result1",
+          "source": "user"
+        },
+        "hint": ""
+      },
+      "source": "user",
+      "type": "integer"
+    }, {
+      "name": "result2",
+      "description": "",
+      "required": true,
+      "value": {
+        "type": "ref",
+        "content": {
+          "ref_node_id": "node_loop",
+          "ref_var_name": "result2",
+          "source": "user"
+        },
+        "hint": ""
+      },
+      "source": "user",
+      "type": "integer"
+    }
+    ],
+    "outputs": [{
+      "description": "最终输出",
+      "name": "response_content",
+      "reflection": false,
+      "required": true,
+      "source": "system",
+      "type": "string",
+      "value": {
+        "type": "generated"
+      }
+    }
+    ]
+  }
+  ],
+  "edges": [{
+    "source": "node_start",
+    "target": "node_llm"
+  }, {
+    "source": "node_llm",
+    "target": "node_loop"
+  }, {
+    "source": "node_set_variable",
+    "target": "node_loop_output"
+  }, {
+    "source": "node_loop_input",
+    "target": "node_llm2"
+  }, {
+    "source": "node_llm2",
+    "target": "node_set_variable"
+  }, {
+    "source": "node_loop",
+    "target": "node_end"
+  }
+  ],
+  "layouts": {
+    "node_llm": {
+      "x": 576,
+      "y": 324
+    },
+    "node_start": {
+      "x": -90,
+      "y": 180
+    },
+    "node_end": {
+      "x": 1224,
+      "y": 234
+    },
+    "node_loop": {
+      "x": -90,
+      "y": 180
+    },
+    "node_llm2": {
+      "x": 1224,
+      "y": 234
+    },
+    "node_set_variable": {
+      "x": 1224,
+      "y": 234
+    }
+  }
+}

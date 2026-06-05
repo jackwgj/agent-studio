@@ -1,0 +1,42 @@
+{
+  "type": "jiuwen.planner.components.plan_modules.pre_executor:PreExecutor",
+  "version": "1.0.2",
+  "description": "插件或workflow执行前的预处理：当前仅用于传入参给workflow",
+  "schemaVersion": "0.6",
+  "classInfo": {
+    "modulePath": "jiuwen.planner.components.plan_modules.pre_executor",
+    "className": "PreExecutor",
+    "programLanguage": "python",
+    "filePath": "jiuwen/planner/components/planning_modules/pre_executor.pyc"
+  },
+  "inputs": [
+    {
+      "id": "arguments",
+      "description": "调用插件或workflow的输入参数",
+      "type": "Map<String, T>"
+    },
+    {
+      "id": "skillType",
+      "description": "技能类型，取值为plugin或者workflow",
+      "type": "String"
+    }
+  ],
+  "outputs": [],
+  "configs": [
+    {
+      "id": "userFields",
+      "type": "Map<String, T>",
+      "description": "用户参数信息配置"
+    },
+    {
+      "id": "preDefinedFields",
+      "type": "Map<String, T>",
+      "description": "预定义参数信息配置"
+    },
+    {
+      "id": "debugType",
+      "type": "Map<String, T>",
+      "description": "调测树配置"
+    }
+  ]
+}

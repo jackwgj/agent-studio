@@ -1,0 +1,30 @@
+.run-modal-wrapper {
+  background-color: #fff;
+  box-shadow: -4px 0px 16px 0px #00000014;
+  padding: 18px 16px;
+
+  .content {
+    flex: 1;
+    height: calc(100% - 47px);
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+.run-modal-show {
+  animation: show-modal-animation 150ms ease-in;
+  display: flex;
+  flex-direction: column;
+}
+
+@keyframes show-modal-animation {
+  from {
+    display: none;
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}

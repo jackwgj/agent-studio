@@ -1,0 +1,55 @@
+<div *nzModalTitle>{{ title }}</div>
+<div>
+  <div class="flex flex-col gap-4">
+    <div class="flex flex-col gap-4">
+      <nz-alert *ngIf="srcData.data.length" class="alert-text" nzType="warning" [nzShowIcon]="false" [nzDescription]="descriptionTemplate1">
+        <ng-template #descriptionTemplate1>
+          {{ alertText }}
+        </ng-template>
+      </nz-alert>
+      <div *ngIf="srcData.data.length" class="flex flex-col gap-2">
+        <span class="font-semibold">{{ 'reference_ist' | i18nextEager }}</span>
+        <nz-table
+          [nzData]="srcData.data"
+          [nzFrontPagination]="false"
+          [nzShowSizeChanger]="true"
+          [nzPageSizeOptions]="pageSize.options"
+          [nzPageSize]="pageSize.size"
+          [nzTotal]="totalNumber"
+          [(nzPageIndex)]="currentPage"
+          (nzPageIndexChange)="getMappingsByPage()"
+          (nzPageSizeChange)="getMappingsByPage()"
+        >
+          <thead>
+            <tr>
+              <th *ngFor="let column of columns">
+                {{ column.title }}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of srcData.data">
+              <td>
+                <a nz-tooltip class="cursor-pointer" (click)="navigateAppDetail(row)">
+                  {{ row.app_name }}
+                </a>
+              </td>
+              <td>{{ row.app_version || ('unpublished' | i18nextEager) }}</td>
+              <td>{{ row.app_type | refTypeToText }}</td>
+            </tr>
+          </tbody>
+        </nz-table>
+      </div>
+    </div>
+  </div>
+</div>
+<div *nzModalFooter>
+  <nz-space>
+    <button type="button" nz-button (click)="dismiss()">
+      {{ 'cancel' | i18nextEager }}
+    </button>
+    <button nzType="primary" nzDanger type="button" nz-button (click)="onConfirm()">
+      {{ 'ok' | i18nextEager }}
+    </button>
+  </nz-space>
+</div>

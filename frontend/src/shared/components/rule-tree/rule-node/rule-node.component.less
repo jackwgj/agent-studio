@@ -1,0 +1,145 @@
+.rule-node {
+  @guide-line-color: #dadadb;
+
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+
+  .basic-horizon-line-style() {
+    content: '';
+    display: block;
+    position: absolute;
+    width: 8px;
+    height: 1px;
+    background-color: @guide-line-color;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  .guide-line {
+    position: absolute;
+  }
+
+  .basic-vertical-line-style() {
+    width: 1px;
+    right: calc(100% + 8px);
+    background-color: @guide-line-color;
+  }
+
+  &:not(.root-node) {
+    & > .guide-line {
+      .basic-vertical-line-style();
+      top: -8px;
+      height: calc(100% + 16px);
+    }
+
+    &.first-node {
+      & > .guide-line {
+        top: 50%;
+        height: calc(50% + 8px);
+      }
+    }
+
+    &.last-node {
+      & > .guide-line {
+        bottom: 50%;
+        height: calc(50% + 8px);
+      }
+    }
+  }
+
+
+  .logic-operator-container {
+    position: relative;
+
+    &:not(.root-node-operator) {
+
+      &::before {
+        .basic-horizon-line-style();
+        right: 100%;
+      }
+    }
+
+    &::after {
+      .basic-horizon-line-style();
+      left: 100%;
+    }
+
+    .logic-operator-selector {
+      width: 66px;
+      height: 28px;
+    }
+  }
+
+  .rule-child-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .single-rule-container {
+    position: relative;
+
+    &::before {
+      .basic-horizon-line-style();
+      right: 100%;
+    }
+  }
+
+  .rule-add-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding-left: 8px;
+
+    &::before {
+      .basic-horizon-line-style();
+      right: 100%;
+    }
+
+    .rule-add,
+    .rule-group-add {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      color: #1476FF;
+      cursor: pointer;
+    }
+  }
+}
+
+::ng-deep {
+  @and-bg-color: #DEECFF;
+  @and-deep-color: #1476FF;
+  @or-bg-color: #D5F2DC;
+  @or-deep-color: #029931;
+
+  .logic-style(@bgColor, @hoverColor) {
+    background-color: @bgColor !important;
+    border-color: @bgColor !important;
+
+    &:hover {
+      border-color: @hoverColor !important;
+    }
+
+    .ti3-overflow-padding {
+      span {
+        color: @hoverColor;
+      }
+    }
+
+    .ti3-icon-accordion-unfold {
+      color: @hoverColor !important;
+    }
+  }
+
+  .logic-and {
+    .logic-style(@and-bg-color, @and-deep-color);
+  }
+
+  .logic-or {
+    .logic-style(@or-bg-color, @or-deep-color);
+  }
+}

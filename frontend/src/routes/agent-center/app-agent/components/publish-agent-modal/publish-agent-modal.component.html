@@ -1,0 +1,32 @@
+<div *nzModalTitle>{{ 'publish_to_app_box' | i18nextEager }}</div>
+<div>
+  <div class="publish-tag-title">{{ 'application_classification' | i18nextEager }}</div>
+  <div class="mb-[8px] text-[#808080]">
+    {{ 'app_published_modal_desc' | i18nextEager }}
+  </div>
+  <div class="publish-tag-container">
+    <span
+      class="single-tag"
+      *ngFor="let item of tagList"
+      [ngStyle]="getTagStyle(item)"
+      [ngClass]="publishTagsClass(item)"
+      (click)="selectTags(item)"
+    >
+      {{ lang === 'zh-cn' ? item.name : item.name_en }}
+    </span>
+  </div>
+</div>
+<div *nzModalFooter>
+  <button type="button" (click)="dismiss()" tiButton>
+    {{ 'cancel' | i18nextEager }}
+  </button>
+  <button
+    color="danger"
+    type="button"
+    (click)="submit()"
+    tiButton
+    [disabled]="!tagsSelected?.length"
+  >
+    {{ 'ok' | i18nextEager }}
+  </button>
+</div>

@@ -1,0 +1,239 @@
+<!--import {-->
+<!--  ChangeDetectorRef,-->
+<!--  Component,-->
+<!--  ElementRef,-->
+<!--  Input,-->
+<!--  NgZone,-->
+<!--  OnInit,-->
+<!--  SimpleChanges,-->
+<!--} from '@angular/core';-->
+<!--import { I18NEXT_NAMESPACE, I18NextEagerPipe } from 'angular-i18next';-->
+<!--import { I18nNamespace } from '@i18n';-->
+<!--import { AppFlowService } from '../../app-flow.service';-->
+<!--import type {-->
+<!--  ISingleAgentConfigs,-->
+<!--  ISingleAgentNode,-->
+<!--} from '../../node.type';-->
+<!--import { NodeService } from '../../node.service';-->
+<!--import { NodeBaseComponent } from '../base/node-base.component';-->
+<!--import { NodeDependencies } from '../modules';-->
+<!--import { NODE_TYPE, WORKFLOW_SVGS } from '../../flow.const';-->
+<!--import { cdnAssetUrl } from 'src/single-spa/assets-url';-->
+<!--import { Clipboard } from '@angular/cdk/clipboard';-->
+<!--import { NzModalService } from 'ng-zorro-antd/modal';-->
+<!--import { NzMessageService } from 'ng-zorro-antd/message';-->
+<!--import { NzSpinModule } from 'ng-zorro-antd/spin';-->
+<!--import { HttpService } from '@services/http.service';-->
+<!--import { ActivatedRoute } from '@angular/router';-->
+<!--import { takeUntil } from 'rxjs';-->
+<!--import {-->
+<!--  AGENT_MODE_CODE,-->
+<!--  URL_FROM_MULTI_AGENT,-->
+<!--} from '@routes/agent-center/app-agent/agent-bot-page/agent-bot-page.constant';-->
+<!--import { AppAgentRepoService } from '@services/agent-center/app-agent-repo.service';-->
+
+<!--enum ACTION_CODE {-->
+<!--  SingleAgentDetail = 'singleAgentDetail',-->
+<!--  CopySingleAgentId = 'copySingleAgentId',-->
+<!--}-->
+
+<!--@Component({-->
+<!--  selector: 'meta-single-agent-node',-->
+<!--  templateUrl: './single-agent-node.component.html',-->
+<!--  styleUrls: ['../common-styles.less', './single-agent-node.component.scss'],-->
+<!--  standalone: true,-->
+<!--  imports: [NodeDependencies, NzSpinModule],-->
+<!--  providers: [-->
+<!--    {-->
+<!--      provide: I18NEXT_NAMESPACE,-->
+<!--      useValue: [I18nNamespace.AGENT_CENTER],-->
+<!--    },-->
+<!--  ],-->
+<!--})-->
+<!--export class SingleAgentNodeComponent-->
+<!--  extends NodeBaseComponent-->
+<!--  implements OnInit-->
+<!--{-->
+<!--  @Input('nodeInfo') nodeInfo: ISingleAgentNode;-->
+
+<!--  public icon = WORKFLOW_SVGS.SingleAgent;-->
+
+<!--  public changeUrl = cdnAssetUrl;-->
+
+<!--  override actions = [-->
+<!--    {-->
+<!--      id: ACTION_CODE.SingleAgentDetail,-->
+<!--      label: this.i18n.transform('single_agent_details'),-->
+<!--      disabled: false,-->
+<!--    },-->
+<!--    {-->
+<!--      id: ACTION_CODE.CopySingleAgentId,-->
+<!--      label: this.i18n.transform('copy_single_agent_id'),-->
+<!--      disabled: false,-->
+<!--    },-->
+<!--  ];-->
+
+<!--  public updateFlowTip = '';-->
+
+<!--  public showUpdatedIcon = false;-->
+
+<!--  public latestVersionInfo = {-->
+<!--    name: '',-->
+<!--    version: '',-->
+<!--  };-->
+
+<!--  public description = '';-->
+
+<!--  public workspaceId = '';-->
+
+<!--  public apiImgUrl = WORKFLOW_SVGS.SingleAgent;-->
+
+<!--  constructor(-->
+<!--    protected override appFlowServ: AppFlowService,-->
+<!--    protected override nodeServ: NodeService,-->
+<!--    protected override cdr: ChangeDetectorRef,-->
+<!--    protected override elementRef: ElementRef<HTMLDivElement>,-->
+<!--    private clipboard: Clipboard,-->
+<!--    private ngZone: NgZone,-->
+<!--    private nzModal: NzModalService,-->
+<!--    private nzMessage: NzMessageService,-->
+<!--    private i18n: I18NextEagerPipe,-->
+<!--    private readonly http: HttpService,-->
+<!--    private activatedRoute: ActivatedRoute,-->
+<!--    private appAgentRepoServ: AppAgentRepoService,-->
+<!--  ) {-->
+<!--    super(nodeServ, appFlowServ, cdr, elementRef);-->
+<!--  }-->
+
+<!--  override ngOnChanges(changes: SimpleChanges): void {-->
+<!--    this.workspaceId = this.http.getWorkspaceId();-->
+<!--    super.ngOnChanges(changes);-->
+<!--    this.description = this.nodeInfo.configs?.intent?.description-->
+<!--      ? this.nodeInfo.configs?.intent?.description-->
+<!--      : this.nodeInfo.configs?.description;-->
+<!--  }-->
+
+<!--  override async ngOnInit(): Promise<void> {-->
+<!--    this.setNodeBase(this.nodeInfo);-->
+<!--    super.ngOnInit();-->
+
+<!--    this.initUpdateInfo();-->
+
+<!--    this.actions[0].disabled =-->
+<!--      this.activatedRoute.snapshot.queryParams.fromShare === 'true';-->
+<!--  }-->
+
+<!--  public get versionName(): string {-->
+<!--    return this.nodeInfo?.configs?.version_name;-->
+<!--  }-->
+<!--  public get versionId(): string {-->
+<!--    return this.nodeInfo?.configs?.version_id;-->
+<!--  }-->
+
+<!--  public openUpdateNodeModal(): void {-->
+<!--    this.ngZone.run(() => {-->
+<!--      this.nzModal.confirm({-->
+<!--        nzTitle: this.i18n.transform('update_flow_modal_title'),-->
+<!--        nzContent: this.i18n.transform('flowitemcomponent_25', {-->
+<!--          name: this.latestVersionInfo?.name,-->
+<!--        }),-->
+<!--        nzOkText: this.i18n.transform('update_flow_modal_btn'),-->
+<!--        nzOnOk: async () => {-->
+<!--          const modal = this.nzModal.create({-->
+<!--            nzContent: `<div class="text-center"><nz-spin></nz-spin></div>`,-->
+<!--            nzFooter: null,-->
+<!--            nzWidth: '500px',-->
+<!--            nzMaskClosable: false,-->
+<!--          });-->
+<!--          this.appAgentRepoServ-->
+<!--            .rollbackAgentVersion(-->
+<!--              this.nodeInfo.configs?.id,-->
+<!--              this.latestVersionInfo.version,-->
+<!--            )-->
+<!--            .then((newVersionData) => {-->
+<!--              const bodyParams: ISingleAgentNode = {-->
+<!--                ...this.nodeInfo,-->
+<!--                name: newVersionData.name,-->
+<!--                configs: {-->
+<!--                  ...(this.nodeInfo.configs || {}),-->
+<!--                  description: newVersionData.description,-->
+<!--                  model: {-->
+<!--                    id: newVersionData.model_deployment_id,-->
+<!--                    model_deployment_id: newVersionData.model_deployment_id,-->
+<!--                    model_name: newVersionData.model_name,-->
+<!--                    model_type: newVersionData.model_type,-->
+<!--                  },-->
+<!--                  name: newVersionData.name,-->
+<!--                  version: this.latestVersionInfo?.version,-->
+<!--                  version_id: this.latestVersionInfo?.version,-->
+<!--                  version_name: this.latestVersionInfo?.name,-->
+<!--                } as ISingleAgentConfigs,-->
+<!--              };-->
+<!--              this.showUpdatedIcon = false;-->
+<!--              this.appFlowServ.setChildFlowPutBody(bodyParams);-->
+<!--            })-->
+<!--            .finally(() => {-->
+<!--              modal.close();-->
+<!--            });-->
+<!--        },-->
+<!--      });-->
+<!--    });-->
+<!--  }-->
+
+<!--  override onClickAction(action: any): void {-->
+<!--    switch (action.id) {-->
+<!--      case ACTION_CODE.SingleAgentDetail: {-->
+<!--        this.onClickAgentDetail();-->
+<!--        break;-->
+<!--      }-->
+<!--      case ACTION_CODE.CopySingleAgentId: {-->
+<!--        this.onCopyWorkflowId();-->
+<!--        break;-->
+<!--      }-->
+<!--      default: {-->
+<!--        break;-->
+<!--      }-->
+<!--    }-->
+<!--  }-->
+
+<!--  public onClickAgentDetail(): void {-->
+<!--    const config = this.nodeInfo.configs;-->
+<!--    const prefixUrl = window.location.href?.split('/home')[0];-->
+<!--    const queryParams = `?agentId=${config.id}&versionId=${config.version_id}&versionName=${config.version_name}&from=${URL_FROM_MULTI_AGENT}&readonly_mode=true&workspace_id=${this.workspaceId}`;-->
+<!--    const newUrl = `${prefixUrl}/home/agent-center/app-agent/detail${queryParams}`;-->
+<!--    window.open(newUrl, '_blank');-->
+<!--  }-->
+
+<!--  public onCopyWorkflowId(): void {-->
+<!--    const config = this.nodeInfo.configs;-->
+<!--    this.clipboard.copy(config.id);-->
+<!--    this.nzMessage.success(-->
+<!--      this.i18n.transform('copy_single_agent_id_successfully'),-->
+<!--    );-->
+<!--  }-->
+
+<!--  private initUpdateInfo(): void {-->
+<!--    this.appFlowServ-->
+<!--      .appRefsUpdate()-->
+<!--      .pipe(takeUntil(this.destroy$))-->
+<!--      .subscribe((relations) => {-->
+<!--        const curRelations = relations.find(-->
+<!--          (item) => item.workflow_id === this.nodeInfo?.configs?.id,-->
+<!--        );-->
+<!--        if (curRelations) {-->
+<!--          this.showUpdatedIcon =-->
+<!--            curRelations.app_type?.toLowerCase() === NODE_TYPE.AGENT &&-->
+<!--            curRelations.latest_version_app_sub_type?.toLowerCase() ===-->
+<!--            AGENT_MODE_CODE.PLANNING_MODE &&-->
+<!--            this.nodeInfo.configs.version_id !== curRelations.last_version_id;-->
+<!--          this.latestVersionInfo = {-->
+<!--            name: curRelations.last_version_name,-->
+<!--            version: curRelations.last_version_id,-->
+<!--          };-->
+<!--          this.updateFlowTip = this.i18n.transform('update_flow_tip', {-->
+<!--            versionName: curRelations?.last_version_name,-->
+<!--          });-->
+<!--        }-->
+<!--      });-->
+<!--  }-->
+<!--}-->

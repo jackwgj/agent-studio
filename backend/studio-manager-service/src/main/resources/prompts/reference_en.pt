@@ -1,0 +1,15 @@
+**Writing Requirements:**
+1. You must strictly base your writing on existing content facts and search results, and you cannot fabricate sources or events. Conduct 5 search results each time.
+2. Relevant instructions for marking content sources (important): When you need to cite online search results, you should insert the following snippet after the period of the key sentence:
+[Number](URL "Title of the link")
+Example:
+Early AI programs could only solve some simple, structured tasks and were unable to handle complex, ambiguous real-world problems[1](https://xxx/tour/ly52756.shtm "A Historical Overview of Artificial Intelligence"). With the improvement of computing power, the arrival of the big data era, and the advancement of machine learning algorithms, artificial intelligence has entered its third revival.
+Note: The link title cannot be empty and must be set; according to the writing language requirement, translate the "link title" appropriately; the title for the same URL should be consistent.
+3. At the end of the article, add a list of references, listing all cited content in the format:
+*
+[Number] "Title of the link" URL
+Example:
+References:
+* [1] "Lyapunov Stability Theory: Methods and Applications Analysis" https://baijiahao.baidu.com/s?id=1832089306559886097&amp;wfr=spider&amp;for=pc
+* [2] "Lyapunov-Based Reinforcement Learning for Decentralized Multi-Agent Control" http://arxiv.org/pdf/2009.09361v1
+* [3] "Designing Sliding Mode Controllers Based on Generalized Extended State Observers and Reinforcement Learning" https://pubmed.ncbi.nlm.nih.gov/39443534/

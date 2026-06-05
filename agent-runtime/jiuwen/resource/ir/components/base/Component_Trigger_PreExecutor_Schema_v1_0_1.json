@@ -1,0 +1,42 @@
+{
+  "type": "jiuwen.planner.components.plan_modules.trigger_pre_executor:TriggerPreExecutor",
+  "version": "1.0.1",
+  "description": "执行触发器绑定的workflow前的预处理",
+  "schemaVersion": "0.6",
+  "classInfo": {
+    "modulePath": "jiuwen.planner.components.plan_modules.trigger_pre_executor",
+    "className": "TriggerPreExecutor",
+    "programLanguage": "python",
+    "filePath": "jiuwen/planner/components/planning_modules/trigger_pre_executor.pyc"
+  },
+  "inputs": [],
+  "outputs": [
+    {
+      "id": "id",
+      "description": "需要使用的插件/workflow的id+version",
+      "type": "String"
+    }
+  ],
+  "configs": [
+    {
+      "id": "triggers",
+      "type": "List<Map<String, T>>",
+      "description": "触发器相关的配置项，包含绑定的workflow等信息"
+    },
+    {
+      "id": "userFields",
+      "type": "Map<String, T>",
+      "description": "用户参数信息配置"
+    },
+    {
+      "id": "preDefinedFields",
+      "type": "Map<String, T>",
+      "description": "预定义参数信息配置"
+    },
+    {
+      "id": "debugType",
+      "type": "Map<String, T>",
+      "description": "调测树配置"
+    }
+  ]
+}

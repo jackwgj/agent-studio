@@ -1,0 +1,146 @@
+<div class="mcp-auth-modal-container">
+  <div *nzModalTitle class="header">
+    <span>{{'config_auth' | i18nextEager}}</span>
+  </div>
+
+  <div class="main-container">
+    <div style="color: rgb(25,25,25); font-size: 14px; font-weight: 600">
+      {{ 'api_auth_info' | i18nextEager }}
+    </div>
+    <nz-radio-group
+      class="mt-[4px]"
+      id="mcp-auth-config1"
+      [name]="'mcpAuth1'"
+      [(ngModel)]="mcpAuthConfigData.selectedAuthType"
+      (ngModelChange)="handleChangeAuthWay()"
+    >
+      <label nz-radio [nzValue]="item.value" *ngFor="let item of authConfigType">{{item.label}}</label>
+    </nz-radio-group>
+    <div style="margin: 16px 0 10px 0" *ngIf="isShowSecretPos()">
+      {{ 'request_secretKey' | i18nextEager }}
+    </div>
+    <nz-radio-group
+      *ngIf="isShowSecretPos()"
+      id="mcp-auth-config2"
+      [name]="'mcpAuth2'"
+      [(ngModel)]="mcpAuthConfigData.selectedAuthPos"
+      (ngModelChange)="handleChangeAPIKeyRadio()"
+    >
+      <label nz-radio [nzValue]="item.value" *ngFor="let item of authSecretPosition">{{item.label}}</label>
+    </nz-radio-group>
+    <div class="mcp-auth-list" *ngIf="isShowParamList()">
+      <span>{{ 'param_list' | i18nextEager }}</span>
+      <span class="add" (click)="handleClickAddAPIParams()">+</span>
+    </div>
+    <p class="mcp-auth-param-name" *ngIf="isShowAPIParams()">
+      <span style="display: inline-flex; gap: 8px">
+        {{ 'param_name' | i18nextEager }}
+        <span nz-icon nzType="question-circle" nz-tooltip [nzTooltipTitle]="'mcp_oauth_tip1' | i18nextEager" class="help-icon"></span>
+      </span>
+      <span class="mcp-auth-param-value" style="display: inline-flex; gap: 8px">
+      {{ 'param_value' | i18nextEager }}
+      <span nz-icon nzType="question-circle" nz-tooltip [nzTooltipTitle]="'mcp_oauth_tip2' | i18nextEager" class="help-icon"></span>
+    </span>
+    </p>
+    <div *ngIf="mcpAuthConfigData.selectedAuthType === 'SERVICE' && mcpAuthConfigData.selectedAuthPos === 'HEADERS'">
+      <ng-container *ngTemplateOutlet="authConfigParam; context: {data: mcpAuthConfigData.authHeaderParams}"></ng-container>
+    </div>
+    <div *ngIf="mcpAuthConfigData.selectedAuthType === 'SERVICE' && mcpAuthConfigData.selectedAuthPos === 'QUERY'">
+      <ng-container *ngTemplateOutlet="authConfigParam; context: {data: mcpAuthConfigData.authQueryParams}"></ng-container>
+    </div>
+    <!-- Oauth的配置 -->
+    <div *ngIf="isShowOauthConfig()">
+      <p style="display: flex; flex-direction: column; gap: 10px; margin-top: 16px">
+        <span style="display: inline-flex; gap: 8px; align-items: center">
+          <span>{{ 'mcp_oauth_tip3' | i18nextEager }}</span>
+          <span nz-icon nzType="question-circle" nz-tooltip [nzTooltipTitle]="'mcp_oauth_tip7' | i18nextEager" class="help-icon"></span>
+        </span>
+        <input
+          nz-input
+          [(ngModel)]="mcpAuthConfigData.authParams.url"
+          [placeholder]="'input_placeholder'| i18nextEager"
+        />
+      </p>
+      <p style="display: flex; flex-direction: column; gap: 10px; margin-top: 16px">
+        <span style="display: inline-flex; gap: 8px; align-items: center">
+          <span>{{ 'mcp_oauth_tip4' | i18nextEager }}</span>
+          <span nz-icon nzType="question-circle" nz-tooltip [nzTooltipTitle]="'mcp_oauth_tip8' | i18nextEager" class="help-icon"></span>
+        </span>
+        <nz-input-password>
+          <input nz-input [placeholder]="'input_placeholder'| i18nextEager" [(ngModel)]="mcpAuthConfigData.authParams.id" />
+        </nz-input-password>
+      </p>
+      <p style="display: flex; flex-direction: column; gap: 10px; margin-top: 16px">
+        <span style="display: inline-flex; gap: 8px; align-items: center">
+          <span>{{ 'mcp_oauth_tip5' | i18nextEager }}</span>
+          <span nz-icon nzType="question-circle" nz-tooltip [nzTooltipTitle]="'mcp_oauth_tip9' | i18nextEager" class="help-icon"></span>
+        </span>
+        <nz-input-password>
+          <input nz-input [placeholder]="'input_placeholder'| i18nextEager" [(ngModel)]="mcpAuthConfigData.authParams.secret" />
+        </nz-input-password>
+      </p>
+      <p style="display: flex; flex-direction: column; gap: 10px; margin-top: 16px; margin-bottom: 24px">
+        <span style="display: inline-flex; gap: 8px; align-items: center">
+          <span>{{ 'mcp_oauth_tip6' | i18nextEager }}</span>
+          <span nz-icon nzType="question-circle" nz-tooltip [nzTooltipTitle]="'mcp_oauth_tip10' | i18nextEager" class="help-icon"></span>
+        </span>
+        <nz-input-password>
+          <input nz-input [placeholder]="'input_placeholder'| i18nextEager" [(ngModel)]="mcpAuthConfigData.authParams.scope" />
+        </nz-input-password>
+      </p>
+    </div>
+  </div>
+  <div *nzModalFooter>
+    <button nz-button class="rounded" (click)="dismiss()">{{ 'cancel' | i18nextEager }}</button>
+    <button
+      nz-button
+      nzType="primary"
+      class="rounded"
+      (click)="confirm()">
+      {{ 'save' | i18nextEager }}
+    </button>
+  </div>
+</div>
+
+<ng-template #authConfigParam let-data="data">
+  <div
+    class="mcp-auth-params"
+    *ngFor="let item of data; index as i"
+    [style]="{'margin-bottom': i === data.length - 1 ? '24px' : '20px'}"
+  >
+    <div style="display: flex; flex-direction: column; width: 100%; position: relative">
+      <input
+        nz-input
+        [(ngModel)]="data[i].name"
+        [placeholder]="'input_placeholder'| i18nextEager"
+        style="margin-right: 4px"
+        [style]="{border: data[i].name === '' ? '1px solid #FF8A5B' : '', backgroundColor: data[i].name === '' ? '#FCE3E1' : ''}"
+        (ngModelChange)="handleChangeAPIKeyRadio()"
+      />
+      <p style="color: #f13132; font-size: 12px; position: absolute; left: 2px; top: 30px" *ngIf="data[i].name === ''">
+        <nz-icon nzType="close-circle" nzTheme="outline" style="color:#f13132; font-size: 14px" />
+        <span>{{ 'param_1' | i18nextEager }}</span>
+      </p>
+    </div>
+    <div style="display: flex; flex-direction: column; width: 100%; position: relative">
+      <nz-input-password>
+        <input
+          nz-input
+          [(ngModel)]="data[i].value"
+          [placeholder]="'input_placeholder'| i18nextEager"
+          style="margin-right: 4px"
+          [style]="{border: data[i].value === '' ? '1px solid #FF8A5B' : '', backgroundColor: data[i].value === '' ? '#FCE3E1' : ''}"
+          (ngModelChange)="handleChangeAPIKeyRadio()"
+        />
+      </nz-input-password>
+
+      <p style="color: #f13132; font-size: 12px; position: absolute; left: 2px; top: 30px" *ngIf="data[i].value === ''">
+        <nz-icon nzType="close-circle" nzTheme="outline" style="color:#f13132; font-size: 14px" />
+        <span>{{ 'param_1' | i18nextEager }}</span>
+      </p>
+    </div>
+    <div>
+      <nz-icon nzType="delete" nzTheme="outline" class="mcp-auth-param-delete" (click)="handleClickDeleteAPIParams(i)" />
+    </div>
+  </div>
+</ng-template>

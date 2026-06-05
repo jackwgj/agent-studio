@@ -1,0 +1,76 @@
+{
+  "function_id": "41bd8cb3-25e3-46af-9938-928fa10df565",
+  "function_input": {
+    "in": "body",
+    "name": "body",
+    "required": false,
+    "description": "default",
+    "schema": {
+      "properties": {
+        "idd": {
+          "description": "",
+          "default": "",
+          "x-hw-default": "",
+          "type": "string",
+          "x-hw-label": "",
+          "x-hw-visibility": "none",
+          "format": "input",
+          "x-hw-format": "input",
+          "x-hw-select-options": []
+        },
+        "namee": {
+          "description": "",
+          "default": "",
+          "x-hw-default": "",
+          "type": "string",
+          "x-hw-label": "",
+          "x-hw-visibility": "none",
+          "format": "input",
+          "x-hw-format": "input",
+          "x-hw-select-options": []
+        }
+      },
+      "required": [
+        "idd",
+        "namee"
+      ],
+      "type": "object"
+    },
+    "cdm-type": ""
+  },
+  "function_output": {
+    "description": "default",
+    "schema": {
+      "properties": {
+        "id": {
+          "description": "",
+          "default": "",
+          "x-hw-default": "",
+          "type": "string",
+          "x-hw-label": "",
+          "x-hw-visibility": "none",
+          "format": "input",
+          "x-hw-format": "input",
+          "x-hw-select-options": []
+        },
+        "name": {
+          "description": "",
+          "default": "",
+          "x-hw-default": "",
+          "type": "string",
+          "x-hw-label": "",
+          "x-hw-visibility": "none",
+          "format": "input",
+          "x-hw-format": "input",
+          "x-hw-select-options": []
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ],
+      "type": "object"
+    },
+    "cdm-type": ""
+  }
+}

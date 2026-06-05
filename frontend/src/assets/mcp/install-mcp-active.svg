@@ -1,0 +1,11 @@
+<svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="16.000000" height="16.000000" fill="none" customFrame="#000000">
+	<rect id="操作/安装" width="16.000000" height="16.000000" x="0.000000" y="0.000000" />
+	<g id="组合 4583">
+		<path id="路径" d="M7.95921 12.655L7.63445 12.8425C7.3953 12.9806 7.0895 12.8987 6.95143 12.6595L4.92963 9.15774L2.80454 10.79C2.58553 10.9582 2.27164 10.917 2.10344 10.698C2.03446 10.6082 1.99802 10.4976 2.00008 10.3844L2.14376 2.49098C2.14878 2.21489 2.37667 1.99514 2.65277 2.00008C2.73526 2.00167 2.8161 2.02356 2.88807 2.06389L9.75983 5.91412C10.0007 6.0491 10.0866 6.35381 9.95163 6.59472C9.89711 6.69202 9.81162 6.7683 9.70877 6.81142L7.09445 7.9073L7.59996 8.78286" stroke="#0c93fe" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.899999976" />
+		<g id="组合 4584">
+			<circle id="path6" cx="11.75" cy="11.0500488" r="2.75000024" fill="rgb(255,255,255)" fill-opacity="0" />
+			<circle id="path6" cx="11.75" cy="11.0500488" r="2.75000024" stroke="#0c93fe" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.899999976" />
+			<path id="path7" d="M13.25 11.0488L10.25 11.0488M11.75 9.54883L11.75 12.5488" stroke="#0c93fe" stroke-linecap="round" stroke-linejoin="round" stroke-width="0.800000012" />
+		</g>
+	</g>
+</svg>

@@ -1,0 +1,153 @@
+<div class="tool-title">
+  <div class="left" (click)="changeCollapseEvent(toolAdded)">
+    <span class="title-text">{{ toolAdded.title }}</span>
+    <nz-icon
+      nzType="right"
+      nzTheme="outline"
+      class="unfolded"
+      [ngClass]="toolAdded.collapsed ? 'collapsed-icon' : 'unfolded-icon'"
+    />
+  </div>
+  <div class="right">
+    <div
+      *ngIf="flowActionsVisible && isF1"
+      class="intelligent-add-border"
+      nz-tooltip
+      [nzTooltipTitle]="'auto_add_workflow_tip' | i18nextEager"
+      nzTooltipPlacement="top"
+      (click)="autoAddClickedEvent()"
+    >
+      <asset-intelligent-add></asset-intelligent-add>
+    </div>
+
+    <div class="icon-border" (click)="addBtnClickedEvent()">
+      <nz-icon nzType="plus" nzTheme="outline" />
+    </div>
+  </div>
+</div>
+<nz-spin *ngIf="loading" nzSimple class="loading-icon"></nz-spin>
+<div
+  *ngIf="toolAdded?.list?.length && !toolAdded.collapsed; else noText"
+  class="tool-list"
+  [class.mt-1]="!toolAdded.collapsed"
+>
+  <ng-container *ngFor="let item of toolAdded.list">
+    <div
+      class="tool-item"
+      (mouseenter)="item.hover = true"
+      (mouseleave)="item.hover = false"
+      [ngStyle]="{ 'background-color': getBgColor(item) }"
+    >
+      <div class="left" [style]="{width: item.hover ? 'calc(100% - 150px)' : 'calc(100% - 50px)'}">
+        <img
+          class="tool-common-icon"
+          [src]="!item.avatar ? defaultIcon : item.avatar.startsWith('data:image/') ? item.avatar : 'data:image/png;base64,' + item.avatar"
+          alt=""
+          [class]="isShowDescClassName(item) ? 'class-filter' : ''"
+        />
+        <div class="right">
+          <div class="flex w-full gap-1 items-center">
+            <div class="text-overflow" [class]="isShowDescClassName(item) ? 'class-filter' : ''">
+              {{ item.name }}
+            </div>
+            <span class="share-tag" *ngIf="item.isShare">{{ 'addpluginmodal_1' | i18nextEager }}</span>
+            <nz-icon
+              *ngIf="item.valid === false"
+              nzType="info-circle"
+              nzTheme="fill"
+              class="relative top-[2px] text-[#f23030]"
+              nz-tooltip
+              [nzTooltipTitle]="item.valid === false ? ('mcp_unavailable_tip' | i18nextEager) : ''"
+            />
+            <img alt=""
+              *ngIf="isShowUpdateIcon(item)"
+              [src]="changeUrl('assets/agent-center/icons/update-node-icon.svg')"
+              class="update-flow-icon"
+              nz-tooltip
+              [nzTooltipTitle]="'update_flow_tip' | i18nextEager : { versionName: item.app_last_version_obj.resource_latest_version_name }"
+              nzTooltipPlacement="top"
+              (click)="onConfirmUpdate(item)"
+            />
+            <img alt=""
+              *ngIf="isShowDescClassName(item)"
+              [src]="changeUrl('assets/agent-center/icons/public_warning.svg')"
+              class="warring-flow-icon"
+              nz-tooltip
+              [nzTooltipTitle]="'flowitemcomponent_21' | i18nextEager"
+              nzTooltipPlacement="top"
+            />
+          </div>
+          <div
+            class="w-full text-[#808080] text-overflow"
+            [class]="isShowDescClassName(item) ? 'class-filter' : ''"
+          >
+            {{ item?.desc || item.description }}
+          </div>
+        </div>
+
+      </div>
+      <div [hidden]="!item?.hover || isFlowReadonly" class="ml-[16px] flex-center gap-[12px]">
+        <nz-icon *ngIf="(type === 'workflow' || type === 'mcp') && curAgentModeCode !== AGENT_MODE_CODE.PLANNING_MODE"
+                 nzType="info-circle"
+                 nzTheme="outline"
+                 class="!text-[18px] right-icon mr-[4px]"
+        />
+        <nz-icon *ngIf="(type === 'workflow' || type === 'mcp') && curAgentModeCode !== AGENT_MODE_CODE.PLANNING_MODE"
+                 nzType="setting"
+                 nzTheme="outline"
+                 class="!text-[16px] right-icon mr-[6px]"
+                 nz-tooltip
+                 [nzTooltipTitle]="'param_conf' | i18nextEager"
+                 (click)="configPluginEvent(item)"
+        />
+        <nz-badge *ngIf="type !== 'workflow'" class="mr-[6px]"
+                  [nzCount]="item?.mcp_choose_tools?.length ?? item?.tools_num"
+                  (click)="toSelectTool(item)">
+          <img alt=""
+            class="w-[16px] h-[16px] select-tool"
+            nz-tooltip
+            [nzTooltipTitle]="'select_tool' | i18nextEager"
+            nzTooltipPlacement="top"
+          />
+        </nz-badge>
+        <nz-icon
+          class="!text-[16px] right-icon"
+          nzType="delete"
+          nzTheme="outline"
+          nz-tooltip
+          [nzTooltipTitle]="'delete' | i18nextEager"
+          (click)="deleteOneFlow(item)"
+        />
+      </div>
+    </div>
+  </ng-container>
+</div>
+
+<ng-template #noText>
+<!--  <div class="no-data-text" [class.mt-1]="!toolAdded.collapsed" [tiCollapse]="toolAdded.collapsed">-->
+<!--    {{ noDataText }}-->
+<!--  </div>-->
+</ng-template>
+
+<ng-template #inputParamsTipTmpl2 let-context="context">
+  <div style="width: 300px; max-height: 400px; overflow-y: scroll" (mouseenter)="handleHoverEnterTipContent()" (mouseleave)="handleHoverLeaveTipContent()">
+    <p class="skill-list-input-params-title">{{ 'input_params' | i18nextEager }}</p>
+    <div *ngIf="context.length <= 0" style="color: rgb(128, 128, 128)">
+      {{ 'no_data' | i18nextEager }}
+    </div>
+    <div *ngFor="let item of context; index as i" class="skill-list-input-params-content">
+      <p class="first-line">
+        <span>{{ item.name }}</span>
+        <span class="param-type">{{ getParamsType(item?.value?.type) ? ('reference_1' | i18nextEager) : item.type }}</span>
+        <span class="param-require" *ngIf="item.required">{{ 'required' | i18nextEager }}</span>
+      </p>
+      <div class="param-desc text-overflow">
+        {{ 'description' | i18nextEager }}: {{ (item.description || '--') }}
+      </div>
+      <div style="margin-bottom: 12px; color: rgb(128, 128, 128);" class="text-overflow">
+        {{ 'default_v' | i18nextEager }}: {{ getDefaultValue(item?.value) }}
+      </div>
+      <div style="width: 100%; height: 1px; background: #eee" *ngIf="context.length > 1 && i < (context.length - 1)"></div>
+    </div>
+  </div>
+</ng-template>

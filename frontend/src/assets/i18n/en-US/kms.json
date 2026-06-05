@@ -1,0 +1,17 @@
+{
+  "kms-tip4": "To change the encryption mode, copy the following address and contact the tenant administrator to modify it.",
+  "kms-btn1": "Copying and modifying the address",
+  "kms-btn2": "Changing the Encryption Mode",
+  "kms-modal-title": "Encryption Mode",
+  "kms-modal-type1": "KMS encryption",
+  "kms-modal-type2": "AgentsArts",
+  "kms-modal-tip1": "Use the user-selected key to derive the DEK",
+  "kms-modal-tip2": "Encryption key type",
+  "kms-modal-tip3": "The default key is Jiuwen. This instance is free of charge, and you can use it for 20,000 times per month for free. The decryption can be cached, but if there is a large amount of sensitive data, the number of decryption times may exceed 20,000.",
+  "kms-modal-tip4": "Custom key creation and usage are charged",
+  "kms-modal-tip5": "Free. Jiuwen generates a tenant master key for each tenant to derive a DEK. The tenant master key can be rotated, which is different from the customer master key (CMK) in KMS.",
+  "kms-modal-subType1": "Default key",
+  "kms-modal-subType2": "Custom Key",
+  "kms-modal-placeholder": "Select a key",
+  "kms-modal-link": "Viewing KMS keys"
+}

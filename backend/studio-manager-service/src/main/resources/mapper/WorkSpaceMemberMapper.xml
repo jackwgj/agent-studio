@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.agent.manager.mapper.workspace.WorkspaceMemberMapper">
+    <resultMap id="BaseResultMap" type="com.openjiuwen.studio.agent.manager.entity.WorkSpaceMemberEntity">
+        <!--@mbg.generated-->
+        <!--@Table t_agent_workflow-->
+        <id column="id" jdbcType="VARCHAR" property="id"/>
+        <result column="workspace_id" jdbcType="VARCHAR" property="workspaceId"/>
+        <result column="member_id" jdbcType="VARCHAR" property="memberId"/>
+        <result column="member_name" jdbcType="VARCHAR" property="memberName"/>
+        <result column="member_source" jdbcType="VARCHAR" property="memberSource"/>
+        <result column="domain_id" jdbcType="VARCHAR" property="domainId"/>
+        <result column="role" jdbcType="VARCHAR" property="role"/>
+        <result column="status" jdbcType="TINYINT" property="status"/>
+        <result column="creator" jdbcType="VARCHAR" property="creator"/>
+        <result column="creator_id" jdbcType="VARCHAR" property="creatorId"/>
+        <result column="updater" jdbcType="VARCHAR" property="updater"/>
+        <result column="updater_id" jdbcType="BIGINT" property="updaterId"/>
+        <result column="created_on" jdbcType="TIMESTAMP" property="createdOn"/>
+        <result column="updated_on" jdbcType="TIMESTAMP" property="updatedOn"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,
+        workspace_id,
+        member_id,
+        member_name,
+        member_source,
+        domain_id,
+        `role`,
+        status,
+        creator,
+        creator_id,
+        updater,
+        updater_id,
+        updated_on,
+        created_on
+    </sql>
+
+    <update id="deleteWorkspaceMemberByMemberIdWorkspaceId"
+            parameterType="com.openjiuwen.studio.agent.manager.entity.WorkSpaceMemberEntity">
+        UPDATE t_workspace_member
+        SET status     = 0,
+            updater    = #{workspaceMember.updater},
+            updater_id = #{workspaceMember.updaterId},
+            updated_on = NOW()
+        WHERE member_id = #{workspaceMember.memberId}
+          AND workspace_id = #{workspaceMember.workspaceId}
+          AND status = 1
+    </update>
+
+    <select id="selectWorkspaceMemberListByCondition" parameterType="java.lang.String" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM t_workspace_member
+        WHERE workspace_id = #{workspaceId}
+        <if test="memberName != null and memberName != ''">
+            AND member_name LIKE CONCAT('%', #{memberName}, '%')
+        </if>
+        <if test="role != null and role != ''">
+            AND role = #{role}
+        </if>
+        AND status = 1
+        ORDER BY created_on DESC
+    </select>
+
+    <select id="selectByMemberIdAndWorkspaceId"
+            resultType="com.openjiuwen.studio.agent.manager.entity.WorkSpaceMemberEntity">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM t_workspace_member
+        WHERE member_id = #{memberId}
+        AND workspace_id = #{workspaceId}
+        AND status = 1
+    </select>
+
+    <select id="selectAllWorkspaceByMemberId"
+            resultType="com.openjiuwen.studio.agent.manager.entity.WorkSpaceMemberEntity">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM t_workspace_member
+        WHERE member_id = #{memberId}
+        AND status = 1
+    </select>
+
+    <select id="countMemberByRoleAndWorkspaceId" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM t_workspace_member
+        WHERE workspace_id = #{workspaceId}
+          AND status = 1
+        <if test="role != null and role != ''">
+            AND role = #{role}
+        </if>
+    </select>
+
+    <select id="countMemberByWorkspaceIdAndDomainId" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM t_workspace_member
+        WHERE workspace_id = #{workspaceId}
+        AND domain_id = #{domainId}
+        AND status = 1
+    </select>
+
+    <insert id="batchInsertWorkspaceMember" parameterType="java.util.List">
+        INSERT INTO t_workspace_member (id, workspace_id, member_id, member_name, member_source, domain_id, `role`, status, creator, creator_id, updater, updater_id, created_on, updated_on)
+        VALUES
+        <foreach collection="workspaceMemberInfoList" item="member" separator=",">
+            (
+            #{member.id}, #{member.workspaceId}, #{member.memberId}, #{member.memberName},
+            #{member.memberSource}, #{member.domainId}, #{member.role}, 1, #{member.creator},
+            #{member.creatorId}, #{member.updater}, #{member.updaterId}, #{member.createdOn}, #{member.updatedOn}
+            )
+        </foreach>
+    </insert>
+    <insert id="insertWorkspaceMember">
+        INSERT INTO t_workspace_member (id, workspace_id, member_id, member_name, member_source, domain_id, `role`,
+                                        status, creator, creator_id, updater, updater_id, created_on, updated_on)
+        VALUES (#{workspaceMember.id}, #{workspaceMember.workspaceId}, #{workspaceMember.memberId},
+                #{workspaceMember.memberName},
+                #{workspaceMember.memberSource}, #{workspaceMember.domainId}, #{workspaceMember.role}, 1,
+                #{workspaceMember.creator},
+                #{workspaceMember.creatorId}, #{workspaceMember.updater}, #{workspaceMember.updaterId}, NOW(), NOW())
+    </insert>
+
+    <update id="batchDeleteWorkspaceMemberByIds" parameterType="java.util.List">
+        UPDATE t_workspace_member
+        SET status = '0',
+        updater = #{updater},
+        updater_id = #{updateId},
+        updated_on = NOW()
+        WHERE member_id IN
+        <foreach collection="memberIdList" item="memberId" open="(" separator="," close=")">
+            #{memberId}
+        </foreach>
+        AND workspace_id = #{workspaceId}
+        AND status = 1
+    </update>
+
+    <update id="batchUpdateWorkspaceMemberRole" parameterType="java.util.List">
+        <foreach collection="workspaceMemberInfoList" item="item" separator=";">
+            UPDATE t_workspace_member
+            SET role = #{item.role},
+            updater = #{item.updater},
+            updater_id = #{item.updaterId},
+            updated_on = NOW()
+            WHERE member_id = #{item.memberId}
+            AND workspace_id = #{item.workspaceId}
+            AND status = 1
+        </foreach>
+    </update>
+
+    <update id="updateMemberRole"
+            parameterType="com.openjiuwen.studio.agent.manager.entity.WorkSpaceMemberEntity">
+        UPDATE t_workspace_member
+        SET `role`     = #{member.role},
+            updater    = #{member.updater},
+            updater_id = #{member.updaterId},
+            updated_on = NOW()
+        WHERE workspace_id = #{member.workspaceId}
+          AND member_id = #{member.memberId}
+    </update>
+
+</mapper>

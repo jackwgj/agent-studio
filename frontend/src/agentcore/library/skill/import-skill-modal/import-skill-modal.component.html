@@ -1,0 +1,77 @@
+<div *nzModalTitle>
+  <span>{{ (importType === importTypeEnum.ZIP ? 'skill.import_zip_title' : 'skill.import_obs_title') | i18nextEager }}</span>
+</div>
+<div>
+  <div class="import-body">
+    <div class="import-tip">
+      <img class="h-4 w-4" [src]="changeUrl('assets/prompt/import-tip.svg')" alt="" />
+      <p class="tip-content">
+        <span [innerHTML]="(importType === importTypeEnum.ZIP ? 'skill.import_zip_tip' : 'skill.import_obs_tip') | i18nextEager"></span>
+        <a rel="noopener noreferrer" [href]="skillLink">{{ 'skill.import.docoument.link' | i18nextEager }}</a>
+      </p>
+    </div>
+    <div class="import-button">
+      @if (importType === importTypeEnum.ZIP) {
+        <nz-upload [nzAccept]="'.zip'" [nzLimit]="1" [nzShowUploadList]="true" (nzChange)="handleUploadChange($event)">
+          <button nz-button>
+            <span nz-icon nzType="upload"></span>
+            {{ (selectedFile ? 'skill.import.reselect.file' : 'skill.import_add_file') | i18nextEager }}
+          </button>
+        </nz-upload>
+      }
+      @if (importType === importTypeEnum.OBS) {
+        <form vertical [formGroup]="obsForm">
+          <nz-form-item class="flex">
+            <nz-form-label [nzSm]="6" [nzXs]="24" nzRequired>{{ 'skill.import.obs.label' | i18nextEager }}</nz-form-label>
+            <nz-form-control [nzSm]="14" [nzXs]="24" nzErrorTip="The input is not valid E-mail!">
+              <div>
+                <input
+                  type="text"
+                  nz-input
+                  formControlName="obsAddress"
+                  [placeholder]="'skill.import.obs.input.placeholder' | i18nextEager"
+                  (ngModelChange)="onObsAddressChange($event)"
+                />
+              </div>
+              <button
+                id="button-hasborder-disabled"
+                nz-button
+                [nzType]="'default'"
+                [nz-tooltip]="!obsAddressValue ? ('skill.import.obs.input.tip' | i18nextEager) : ''"
+                [disabled]="isButtonDisabled"
+                (click)="downloadAndUnzip()"
+              >
+                {{ 'skill.import.result.valid.unzip' | i18nextEager }}
+              </button>
+            </nz-form-control>
+          </nz-form-item>
+        </form>
+      }
+      @if (isShowResult) {
+        <div class="parse-result mt-[12px]">
+          <h5>{{ 'skill.import.result.label' | i18nextEager }}</h5>
+          @if (skillInfo?.name?.trim() && skillInfo?.description?.trim()) {
+            <div class="mb-[8px] mt-[8px]">
+              <span>{{ 'skill.import.result.name' | i18nextEager }}</span>
+              <div class="ml-[16px]">{{ skillInfo.name }}</div>
+            </div>
+            <div>
+              <span>{{ 'skill.import.result.description' | i18nextEager }}</span>
+              <div style="flex: 1" class="ml-[16px]">{{ skillInfo.description }}</div>
+            </div>
+          } @else {
+            <div class="error-info mt-[8px]">{{ importZipErrorTip }}</div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+</div>
+<div *nzModalFooter>
+  <nz-space>
+    <button (click)="dismiss()" nz-button>{{ 'cancel' | i18nextEager }}</button>
+    <button (click)="confirm()" nz-button nzType="primary" [disabled]="!isShowResult || !skillInfo?.name || !skillInfo?.description">
+      {{ 'import' | i18nextEager }}
+    </button>
+  </nz-space>
+</div>

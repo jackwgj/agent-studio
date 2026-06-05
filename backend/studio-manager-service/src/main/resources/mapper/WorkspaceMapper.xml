@@ -1,0 +1,266 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
+  -->
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.agent.manager.mapper.workspace.WorkspaceMapper">
+    <resultMap id="BaseResultMap" type="com.openjiuwen.studio.agent.manager.entity.WorkspaceEntity">
+        <id column="id" jdbcType="VARCHAR" property="id"/>
+        <result column="project_id" jdbcType="VARCHAR" property="projectId"/>
+        <result column="name" jdbcType="VARCHAR" property="name"/>
+        <result column="flag" jdbcType="VARCHAR" property="flag"/>
+        <result column="description" jdbcType="VARCHAR" property="description"/>
+        <result column="icon" jdbcType="VARCHAR" property="icon"/>
+        <result column="tenant_id" jdbcType="VARCHAR" property="tenantId"/>
+        <result column="type" jdbcType="VARCHAR" property="type"/>
+        <result column="status" jdbcType="VARCHAR" property="status"/>
+        <result column="created_on" jdbcType="TIMESTAMP" property="createdOn"/>
+        <result column="creator" jdbcType="VARCHAR" property="creator"/>
+        <result column="creator_id" jdbcType="VARCHAR" property="creatorId"/>
+        <result column="updated_on" jdbcType="TIMESTAMP" property="updatedOn"/>
+        <result column="updater" jdbcType="VARCHAR" property="updater"/>
+        <result column="updater_id" jdbcType="VARCHAR" property="updaterId"/>
+        <result column="is_preset_agent" jdbcType="TINYINT" property="isPresetAgent"/>
+    </resultMap>
+
+    <resultMap id="WorkspaceWithMappingsResultMap"
+               type="com.openjiuwen.studio.agent.manager.dto.WorkspaceInfo">
+        <id property="id" column="workspace_id"/>
+        <result property="projectId" column="project_id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="name" column="name"/>
+        <result property="icon" column="icon"/>
+        <result property="description" column="description"/>
+        <result property="type" column="type"/>
+        <result property="status" column="status"/>
+        <result property="createdOn" column="created_on"/>
+        <result property="creator" column="creator"/>
+        <result property="creatorId" column="creator_id"/>
+        <result property="updatedOn" column="updated_on"/>
+        <result property="updater" column="updater"/>
+        <result property="updaterId" column="updater_id"/>
+        <collection property="externalMappingInfo"
+                    ofType="com.openjiuwen.studio.agent.manager.entity.workspace.WorkspaceMappingEntity">
+            <id property="id" column="id"/>
+            <result property="workspaceId" column="workspace_id"/>
+            <result property="mappingId" column="mapping_id"/>
+            <result property="extensionContent" column="extension_content"/>
+            <result property="source" column="source"/>
+        </collection>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,project_id,name,flag,description,icon, tenant_id,type,status,created_on,creator,creator_id,updated_on,updater,updater_id,is_preset_agent
+    </sql>
+
+    <select id="getWorkspaceByProjectIdAndUserId"
+            parameterType="com.openjiuwen.studio.agent.manager.entity.WorkspaceEntity"
+            resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_workspace
+        where creator_id = #{creatorId} and project_id = #{projectId} and status = 'ENABLE'
+    </select>
+    <select id="getWorkspaceByWorkspaceId"
+            parameterType="com.openjiuwen.studio.agent.manager.entity.WorkspaceEntity"
+            resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_workspace
+        where project_id = #{projectId} and id = #{workspaceId} and status = 'ENABLE'
+    </select>
+    <select id="getWorkspaceByProjectIdAndWorkspaceIds"
+            parameterType="com.openjiuwen.studio.agent.manager.entity.WorkspaceEntity"
+            resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_workspace
+        where
+        project_id = #{projectId}
+        and
+        status = 'ENABLE'
+        <if test="type != null and type != ''">
+            and type = #{type}
+        </if>
+        <if test="workspaceIds != null">
+            and id IN
+            <foreach item="item" collection="workspaceIds" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        order by
+        case when type = 'PERSON' then 0 else 1 end asc,
+        name asc, id asc;
+    </select>
+
+    <select id="getWorkspaceByProjectId" parameterType="java.lang.String" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_workspace
+        where project_id = #{projectId,jdbcType=VARCHAR} and status = 'ENABLE'
+    </select>
+
+    <select id="getWorkspaceByTenantId" parameterType="java.lang.String" resultMap="BaseResultMap">
+        <!--@mbg.generated-->
+        select
+        <include refid="Base_Column_List"/>
+        from t_workspace
+        where tenant_id = #{tenantId,jdbcType=VARCHAR} and status = 'ENABLE' and type = 'TEAM'
+    </select>
+
+    <select id="countWorkspaceByDomainId" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM t_workspace
+        WHERE project_id = #{projectId}
+          AND tenant_id = #{domainId}
+          AND status = 'ENABLE'
+          AND type = 'TEAM'
+    </select>
+
+    <insert id="insert" parameterType="com.openjiuwen.studio.agent.manager.entity.WorkspaceEntity">
+        insert into t_workspace (id, project_id, name, flag, description, icon, tenant_id, type, status, created_on,
+                                 creator, creator_id, updated_on, updater, updater_id)
+        values (#{id}, #{projectId}, #{name}, #{flag}, #{description}, #{icon}, #{tenantId}, #{type}, #{status},
+                #{createdOn},
+                #{creator}, #{creatorId}, #{updatedOn}, #{updater}, #{updaterId})
+    </insert>
+    <update id="updateByPrimaryKeySelective"
+            parameterType="com.openjiuwen.studio.agent.manager.entity.WorkspaceEntity">
+        update t_workspace
+        <set>
+            <if test="name != null">
+                `name` = #{name,jdbcType=VARCHAR},
+            </if>
+            <if test="description != null">
+                `description` = #{description,jdbcType=VARCHAR},
+            </if>
+            <if test="icon != null">
+                `icon` = #{icon,jdbcType=VARCHAR},
+            </if>
+            <if test="updatedOn != null">
+                `updated_on` = #{updatedOn,jdbcType=VARCHAR},
+            </if>
+            <if test="updater != null">
+                `updater` = #{updater,jdbcType=VARCHAR},
+            </if>
+            <if test="updaterId != null">
+                `updater_id` = #{updaterId,jdbcType=VARCHAR},
+            </if>
+            <if test="status != null">
+                `status` = #{status,jdbcType=VARCHAR},
+            </if>
+            <if test="isPresetAgent != null">
+                `is_preset_agent` = #{isPresetAgent,jdbcType=TINYINT}
+            </if>
+        </set>
+        where id = #{id,jdbcType=VARCHAR}
+    </update>
+    <select id="getPersonalWorkspaceByProjectIdAndUserId"
+            parameterType="com.openjiuwen.studio.agent.manager.entity.WorkspaceEntity"
+            resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_workspace
+        where creator_id = #{creatorId} and project_id = #{projectId} and status = 'ENABLE' and type = 'PERSON'
+        order by name asc, id asc
+        limit 1
+    </select>
+
+    <select id="selectById" resultType="com.openjiuwen.studio.agent.manager.dto.WorkspaceInfo">
+        SELECT *
+        FROM t_workspace
+        WHERE id = #{id}
+          AND project_id = #{projectId}
+          AND status = 'ENABLE'
+    </select>
+
+    <select id="selectByProjectIdAndDomainIdAndWorkspaceId"
+            resultType="com.openjiuwen.studio.agent.manager.entity.WorkspaceEntity">
+        SELECT *
+        FROM t_workspace
+        WHERE id = #{workspaceId}
+          AND project_id = #{projectId}
+          AND tenant_id = #{domainId}
+          AND status = 'ENABLE'
+    </select>
+
+    <select id="selectWorkspaceListByDomainId"
+            resultType="com.openjiuwen.studio.agent.manager.entity.WorkspaceEntity">
+        SELECT *
+        FROM t_workspace
+        WHERE project_id = #{projectId}
+          AND tenant_id = #{domainId}
+          AND status = 'ENABLE'
+    </select>
+
+    <select id="countWorkspaceEntityByName"
+            resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM t_workspace
+        WHERE project_id = #{projectId}
+          AND name = #{name}
+          AND status = 'ENABLE'
+    </select>
+
+    <select id="selectWorkspaceEntityById"
+            resultType="com.openjiuwen.studio.agent.manager.entity.WorkspaceEntity">
+        SELECT *
+        FROM t_workspace
+        WHERE id = #{id}
+          AND project_id = #{projectId}
+          AND status = 'ENABLE'
+    </select>
+
+    <select id="selectWorkspaceWithMappingInfo"
+            resultMap="WorkspaceWithMappingsResultMap">
+        SELECT
+        t.id AS workspace_id,
+        t.project_id AS project_id,
+        t.tenant_id AS tenant_id,
+        t.name AS name,
+        t.icon AS icon,
+        t.description AS description,
+        t.type AS type,
+        t.status AS status,
+        t.created_on AS created_on,
+        t.creator AS creator,
+        t.creator_id AS creator_id,
+        t.updated_on AS updated_on,
+        t.updater AS updater,
+        t.updater_id AS updater_id,
+        m.mapping_id AS mapping_id,
+        m.source AS source
+        FROM t_workspace t
+        LEFT JOIN t_workspace_mapping m
+        ON t.id = m.workspace_id
+        <if test="source != null and source != ''">
+            AND m.source = #{source}
+        </if>
+        WHERE 1 = 1
+        <if test="projectId != null and projectId != ''">
+            AND t.project_id = #{projectId}
+        </if>
+        AND t.type = 'TEAM'
+        AND t.status = 'ENABLE'
+    </select>
+
+    <select id="selectWorkspaceByWorkspaceIdList"
+            resultType="com.openjiuwen.studio.agent.manager.entity.WorkspaceEntity">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM t_workspace
+        <where>
+            <if test="workspaceIdList != null and !workspaceIdList.isEmpty()">
+                AND id IN
+                <foreach item="workspaceId" collection="workspaceIdList" open="(" separator="," close=")">
+                    #{workspaceId}
+                </foreach>
+            </if>
+            <if test="workspaceIdList == null or workspaceIdList.isEmpty()">
+                AND 1 = 0
+            </if>
+            AND status = 'ENABLE'
+        </where>
+    </select>
+</mapper>

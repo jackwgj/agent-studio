@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
+  -->
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.agent.agentbase.mapper.CommonCleanMapper">
+
+    <!--
+      通用删除方法：根据 domainId 删除指定表的数据
+      - ${tableName}: 使用 ${} 直接替换表名，表名不能用单引号包裹
+      - #{domainId}: 使用 #{} 预编译参数，防止 SQL 注入
+    -->
+    <delete id="deleteDataByDomainId">
+        DELETE
+        FROM ${tableName}
+        WHERE domain_id = #{domainId}
+    </delete>
+
+</mapper>

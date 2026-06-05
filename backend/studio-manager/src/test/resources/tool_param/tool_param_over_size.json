@@ -1,0 +1,78 @@
+{
+  "type": "object",
+  "properties": {
+    "hasChildren": {
+      "type": "boolean",
+      "name_cn": "是否有子节点",
+      "location": "Body",
+      "description": "是否有子节点",
+      "default": "true",
+      "validated": false
+    },
+    "age": {
+      "type": "number",
+      "name_cn": "年龄",
+      "location": "Body",
+      "description": "年龄"
+    },
+    "name": {
+      "type": "string",
+      "name_cn": "姓名",
+      "location": "Body",
+      "description": "姓名"
+    },
+    "address1": {
+      "type": "string",
+      "name_cn": "住址1",
+      "location": "Body",
+      "description": "住址1"
+    },
+    "address2": {
+      "type": "string",
+      "name_cn": "住址2",
+      "location": "Body",
+      "description": "住址2"
+    },
+    "address3": {
+      "type": "string",
+      "name_cn": "住址3",
+      "location": "Body",
+      "description": "住址3"
+    },
+    "address4": {
+      "type": "string",
+      "name_cn": "住址4",
+      "location": "Body",
+      "description": "住址4"
+    },
+    "address5": {
+      "type": "string",
+      "name_cn": "住址5",
+      "location": "Body",
+      "description": "住址5"
+    },
+    "address6": {
+      "type": "string",
+      "name_cn": "住址6",
+      "location": "Body",
+      "description": "住址6"
+    },
+    "address7": {
+      "type": "string",
+      "name_cn": "住址7",
+      "location": "Body",
+      "description": "住址7"
+    },
+    "address8": {
+      "type": "string",
+      "name_cn": "住址8",
+      "location": "Body",
+      "description": "住址8"
+    }
+  },
+  "required": [
+    "hasChildren",
+    "age",
+    "name"
+  ]
+}

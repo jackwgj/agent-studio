@@ -1,0 +1,1313 @@
+app:
+  description: dify工作流导出文件
+  icon: 🤖
+  icon_background: '#FFEAD5'
+  mode: advanced-chat
+  name: dify_workflow_file
+  use_icon_as_answer_icon: false
+dependencies:
+  - current_identifier: null
+    type: marketplace
+    value:
+      marketplace_plugin_unique_identifier: langgenius/baichuan:0.0.6@0aafbd03371f0c216109a88deb76eb904874031116309327d5c698d9ea4629ee
+      version: null
+  - current_identifier: null
+    type: marketplace
+    value:
+      marketplace_plugin_unique_identifier: langgenius/maas:0.0.13@48ae20130047b9bc5ac860ed391d521ed23fffc3d928f1b503a4a85fa08109b1
+      version: null
+kind: app
+version: 0.5.0
+workflow:
+  conversation_variables:
+    - description: '111'
+      id: 3cac50dd-b151-4923-9f80-4f6f048d31c3
+      name: conversationArrayObject
+      selector:
+        - conversation
+        - conversationArrayObject
+      value: []
+      value_type: array[object]
+    - description: nnnn
+      id: 389c3e2d-bcfd-4a7e-a4e7-01455b0bbd44
+      name: conversationArrayStringEmpty
+      selector:
+        - conversation
+        - conversationArrayStringEmpty
+      value: []
+      value_type: array[string]
+    - description: ''
+      id: e43f904d-7dad-4310-bd05-6b83a7dafe82
+      name: conversationArrayString
+      selector:
+        - conversation
+        - conversationArrayString
+      value:
+        - '456324'
+        - dddd
+      value_type: array[string]
+    - description: nononono
+      id: 37fa50dc-1003-43dc-a884-5c96a5fa135e
+      name: conversationObjectEmpty
+      selector:
+        - conversation
+        - conversationObjectEmpty
+      value: {}
+      value_type: object
+    - description: '11'
+      id: 0558b95f-f9d2-4b88-901c-a2e692b4946a
+      name: conversationObject
+      selector:
+        - conversation
+        - conversationObject
+      value:
+        name: this is name
+        quantity: 1
+      value_type: object
+    - description: ffff
+      id: fe784c1c-6394-497c-8947-23f39a8661a8
+      name: conversationboolean
+      selector:
+        - conversation
+        - conversationboolean
+      value: false
+      value_type: boolean
+    - description: ''
+      id: 75e1cfd4-8391-4a65-9488-fa574ae77074
+      name: conversationNumber
+      selector:
+        - conversation
+        - conversationNumber
+      value: 1
+      value_type: integer
+    - description: '2'
+      id: af038540-17d9-44a6-8ef9-7b544e11fc95
+      name: conversationString2
+      selector:
+        - conversation
+        - conversationString2
+      value: '2'
+      value_type: string
+    - description: ''
+      id: e66fcd28-163f-4fee-abd9-b661b984985d
+      name: conversationString1
+      selector:
+        - conversation
+        - conversationString1
+      value: '1'
+      value_type: string
+  environment_variables:
+    - description: '222'
+      id: 8f1dd7c8-8681-4e57-8a54-b7d36c570cae
+      name: envsecret2
+      selector:
+        - env
+        - envsecret2
+      value: '2'
+      value_type: secret
+    - description: ''
+      id: 4095739a-a9a9-4b16-bbc1-da13fff445ee
+      name: envsecret1
+      selector:
+        - env
+        - envsecret1
+      value: '1'
+      value_type: secret
+    - description: '2'
+      id: 0125adf7-dd31-4275-91fc-f0667edc8e79
+      name: envnumber2
+      selector:
+        - env
+        - envnumber2
+      value: 2
+      value_type: integer
+    - description: ''
+      id: dc66e35d-ebb8-4374-b48f-bc1473082102
+      name: envnumber1
+      selector:
+        - env
+        - envnumber1
+      value: 1
+      value_type: integer
+    - description: ''
+      id: 4ae51957-45ee-4011-8e91-67d31440f820
+      name: envstring2
+      selector:
+        - env
+        - envstring2
+      value: '222'
+      value_type: string
+    - description: '1'
+      id: 8a8e542c-f7d6-4264-9ec2-7c2bce0ea520
+      name: envstring1
+      selector:
+        - env
+        - envstring1
+      value: '111'
+      value_type: string
+  features:
+    file_upload:
+      allowed_file_extensions:
+        - .JPG
+        - .JPEG
+        - .PNG
+        - .GIF
+        - .WEBP
+        - .SVG
+      allowed_file_types:
+        - image
+      allowed_file_upload_methods:
+        - local_file
+        - remote_url
+      enabled: false
+      fileUploadConfig:
+        attachment_image_file_size_limit: 2
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        file_upload_limit: 50
+        image_file_batch_limit: 10
+        image_file_size_limit: 10
+        single_chunk_attachment_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+          - local_file
+          - remote_url
+      number_limits: 3
+    opening_statement: ''
+    retriever_resource:
+      enabled: true
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+      - data:
+          isInLoop: false
+          sourceType: start
+          targetType: knowledge-retrieval
+        id: 1770294098568-source-1772075774285-target
+        source: '1770294098568'
+        sourceHandle: source
+        target: '1772075774285'
+        targetHandle: target
+        type: custom
+        zIndex: 0
+      - data:
+          isInLoop: false
+          sourceType: start
+          targetType: knowledge-retrieval
+        id: 1770294098568-source-17720759085450-target
+        source: '1770294098568'
+        sourceHandle: source
+        target: '17720759085450'
+        targetHandle: target
+        type: custom
+        zIndex: 0
+      - data:
+          isInLoop: false
+          sourceType: knowledge-retrieval
+          targetType: variable-aggregator
+        id: 1772075774285-source-1772075782816-target
+        source: '1772075774285'
+        sourceHandle: source
+        target: '1772075782816'
+        targetHandle: target
+        type: custom
+        zIndex: 0
+      - data:
+          isInLoop: false
+          sourceType: knowledge-retrieval
+          targetType: variable-aggregator
+        id: 17720759085450-source-1772075782816-target
+        source: '17720759085450'
+        sourceHandle: source
+        target: '1772075782816'
+        targetHandle: target
+        type: custom
+        zIndex: 0
+      - data:
+          isInLoop: false
+          sourceType: variable-aggregator
+          targetType: variable-aggregator
+        id: 1772075782816-source-1772076128525-target
+        source: '1772075782816'
+        sourceHandle: source
+        target: '1772076128525'
+        targetHandle: target
+        type: custom
+        zIndex: 0
+      - data:
+          isInLoop: false
+          sourceType: variable-aggregator
+          targetType: assigner
+        id: 1772076128525-source-1771989585304-target
+        source: '1772076128525'
+        sourceHandle: source
+        target: '1771989585304'
+        targetHandle: target
+        type: custom
+        zIndex: 0
+      - data:
+          isInLoop: false
+          sourceType: assigner
+          targetType: parameter-extractor
+        id: 1771989585304-source-1772075787832-target
+        source: '1771989585304'
+        sourceHandle: source
+        target: '1772075787832'
+        targetHandle: target
+        type: custom
+        zIndex: 0
+      - data:
+          isInLoop: false
+          sourceType: parameter-extractor
+          targetType: tool
+        id: 1772075787832-source-1772076714802-target
+        source: '1772075787832'
+        sourceHandle: source
+        target: '1772076714802'
+        targetHandle: target
+        type: custom
+        zIndex: 0
+      - data:
+          isInLoop: false
+          sourceType: tool
+          targetType: tool
+        id: 1772076714802-source-1772076740847-target
+        source: '1772076714802'
+        sourceHandle: source
+        target: '1772076740847'
+        targetHandle: target
+        type: custom
+        zIndex: 0
+      - data:
+          isInLoop: false
+          sourceType: tool
+          targetType: tool
+        id: 1772076740847-source-1772076846089-target
+        source: '1772076740847'
+        sourceHandle: source
+        target: '1772076846089'
+        targetHandle: target
+        type: custom
+        zIndex: 0
+      - data:
+          isInLoop: false
+          sourceType: tool
+          targetType: answer
+        id: 1772076846089-source-answer-target
+        source: '1772076846089'
+        sourceHandle: source
+        target: answer
+        targetHandle: target
+        type: custom
+        zIndex: 0
+    nodes:
+      - data:
+          selected: false
+          title: 用户输入
+          type: start
+          variables:
+            - default: hello
+              hint: ''
+              label: query
+              max_length: 256
+              options: []
+              placeholder: ''
+              required: true
+              type: text-input
+              variable: query
+        height: 108
+        id: '1770294098568'
+        position:
+          x: -76
+          y: 262
+        positionAbsolute:
+          x: -76
+          y: 262
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 242
+      - data:
+          answer: 回复：{{#1772076846089.text#}}
+          selected: false
+          title: 直接回复
+          type: answer
+          variables: []
+        height: 102
+        id: answer
+        position:
+          x: 1216
+          y: 305
+        positionAbsolute:
+          x: 1216
+          y: 305
+        selected: true
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 241
+      - data:
+          items:
+            - input_type: variable
+              operation: over-write
+              value:
+                - '1772075782816'
+                - output
+              variable_selector:
+                - conversation
+                - conversationString1
+              write_mode: over-write
+            - input_type: variable
+              operation: clear
+              value: ''
+              variable_selector:
+                - conversation
+                - conversationString2
+              write_mode: over-write
+            - input_type: constant
+              operation: set
+              value: true
+              variable_selector:
+                - conversation
+                - conversationboolean
+              write_mode: over-write
+            - input_type: constant
+              operation: +=
+              value: 222
+              variable_selector:
+                - conversation
+                - conversationNumber
+              write_mode: over-write
+            - input_type: constant
+              operation: '*='
+              value: 666
+              variable_selector:
+                - conversation
+                - conversationNumber
+              write_mode: over-write
+            - input_type: variable
+              operation: over-write
+              value:
+                - conversation
+                - conversationArrayStringEmpty
+              variable_selector:
+                - conversation
+                - conversationArrayString
+              write_mode: over-write
+            - input_type: variable
+              operation: clear
+              value: ''
+              variable_selector:
+                - conversation
+                - conversationArrayString
+              write_mode: over-write
+            - input_type: variable
+              operation: append
+              value:
+                - '1772075782816'
+                - output
+              variable_selector:
+                - conversation
+                - conversationArrayString
+              write_mode: over-write
+            - input_type: variable
+              operation: extend
+              value:
+                - conversation
+                - conversationArrayString
+              variable_selector:
+                - conversation
+                - conversationArrayStringEmpty
+              write_mode: over-write
+            - input_type: variable
+              operation: remove-first
+              value: ''
+              variable_selector:
+                - conversation
+                - conversationArrayString
+              write_mode: over-write
+            - input_type: variable
+              operation: remove-last
+              value: ''
+              variable_selector:
+                - conversation
+                - conversationArrayString
+              write_mode: over-write
+            - input_type: variable
+              operation: over-write
+              value:
+                - '17720759085450'
+                - result
+              variable_selector:
+                - conversation
+                - conversationArrayObject
+              write_mode: over-write
+          selected: false
+          title: 变量赋值
+          type: assigner
+          version: '2'
+        height: 369
+        id: '1771989585304'
+        position:
+          x: 550
+          y: 624
+        positionAbsolute:
+          x: 550
+          y: 624
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 241
+      - data:
+          dataset_ids:
+            - dXt1w2yUt3WmWTveFpC1Kdu6kOuZI06IfwRVJ/ixqFyB7/wUAhUvyfJ05i6pW7Vj
+          multiple_retrieval_config:
+            reranking_enable: false
+            reranking_mode: weighted_score
+            reranking_model:
+              model: bge-reranker-v2-m3
+              provider: langgenius
+            score_threshold: null
+            top_k: 4
+            weights:
+              keyword_setting:
+                keyword_weight: 0
+              vector_setting:
+                embedding_model_name: baichuan-text-embedding
+                embedding_provider_name: langgenius/baichuan/baichuan
+                vector_weight: 1
+              weight_type: customized
+          query_attachment_selector: []
+          query_variable_selector:
+            - '1770294098568'
+            - query
+          retrieval_mode: multiple
+          selected: false
+          title: 知识检索
+          type: knowledge-retrieval
+        height: 89
+        id: '1772075774285'
+        position:
+          x: 225
+          y: 236
+        positionAbsolute:
+          x: 225
+          y: 236
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 241
+      - data:
+          output_type: string
+          selected: false
+          title: 变量聚合器
+          type: variable-aggregator
+          variables:
+            - - sys
+              - user_id
+            - - conversation
+              - conversationString2
+            - - '1770294098568'
+              - query
+        height: 161
+        id: '1772075782816'
+        position:
+          x: 550
+          y: 185
+        positionAbsolute:
+          x: 550
+          y: 185
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 241
+      - data:
+          instruction: start! -> 中文 中文{{#1772075782816.output#}}{{#1770294098568.query#}}{{#env.envnumber2#}}//n//t{{#conversation.conversationNumber#}}!@#$%^&*()_+{{#sys.workflow_id#}}nice
+            nice nice!!!
+          memory:
+            query_prompt_template: '{{#sys.query#}}
+
+
+            {{#sys.files#}}'
+            role_prefix:
+              assistant: ''
+              user: ''
+            window:
+              enabled: true
+              size: 64
+          model:
+            completion_params:
+              frequency_penalty: 0.5
+              max_tokens: 2048
+              presence_penalty: 0.6
+              response_format: json_object
+              stop:
+                - '666'
+              temperature: 0.7
+              top_p: 0.85
+            mode: chat
+            name: DeepSeek-V3
+            provider: langgenius/maas/huaweicloud_maas
+          parameters:
+            - description: '1111'
+              name: extractVariable1
+              required: true
+              type: string
+            - description: '222'
+              name: extractVariable2
+              required: false
+              type: array[object]
+          query:
+            - '1770294098568'
+            - query
+          reasoning_mode: prompt
+          selected: false
+          title: 参数提取器
+          type: parameter-extractor
+          vision:
+            enabled: false
+        height: 87
+        id: '1772075787832'
+        position:
+          x: 878
+          y: 817
+        positionAbsolute:
+          x: 878
+          y: 817
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 241
+      - data:
+          dataset_ids:
+            - TDxZ7a/i/H7YZ4lTPG8XPugPnNhV49gR+POhQBvqqAYV8E4DSH38sr4/c9AX3nl7
+          multiple_retrieval_config:
+            reranking_enable: true
+            reranking_mode: reranking_model
+            reranking_model:
+              model: bge-reranker-v2-m3
+              provider: langgenius/maas/huaweicloud_maas
+            top_k: 4
+          query_attachment_selector: []
+          query_variable_selector:
+            - sys
+            - query
+          retrieval_mode: multiple
+          selected: false
+          title: 知识检索 (1)
+          type: knowledge-retrieval
+        height: 89
+        id: '17720759085450'
+        position:
+          x: 211
+          y: 380
+        positionAbsolute:
+          x: 211
+          y: 380
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 241
+      - data:
+          output_type: array[object]
+          selected: false
+          title: 变量聚合器 2
+          type: variable-aggregator
+          variables:
+            - - '1772075774285'
+              - result
+            - - '17720759085450'
+              - result
+            - - conversation
+              - conversationArrayObject
+        height: 160
+        id: '1772076128525'
+        position:
+          x: 555
+          y: 393
+        positionAbsolute:
+          x: 555
+          y: 393
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 241
+      - data:
+          is_team_authorization: true
+          paramSchemas:
+            - auto_generate: null
+              default: '%Y-%m-%d %H:%M:%S'
+              form: form
+              human_description:
+                en_US: Time format in strftime standard.
+                ja_JP: Time format in strftime standard.
+                pt_BR: Time format in strftime standard.
+                zh_Hans: strftime 标准的时间格式。
+              label:
+                en_US: Format
+                ja_JP: Format
+                pt_BR: Format
+                zh_Hans: 格式
+              llm_description: null
+              max: null
+              min: null
+              name: format
+              options: []
+              placeholder: null
+              precision: null
+              required: false
+              scope: null
+              template: null
+              type: string
+            - auto_generate: null
+              default: UTC
+              form: form
+              human_description:
+                en_US: Timezone
+                ja_JP: Timezone
+                pt_BR: Timezone
+                zh_Hans: 时区
+              label:
+                en_US: Timezone
+                ja_JP: Timezone
+                pt_BR: Timezone
+                zh_Hans: 时区
+              llm_description: null
+              max: null
+              min: null
+              name: timezone
+              options:
+                - icon: null
+                  label:
+                    en_US: UTC
+                    ja_JP: UTC
+                    pt_BR: UTC
+                    zh_Hans: UTC
+                  value: UTC
+                - icon: null
+                  label:
+                    en_US: America/New_York
+                    ja_JP: America/New_York
+                    pt_BR: America/New_York
+                    zh_Hans: 美洲/纽约
+                  value: America/New_York
+                - icon: null
+                  label:
+                    en_US: America/Los_Angeles
+                    ja_JP: America/Los_Angeles
+                    pt_BR: America/Los_Angeles
+                    zh_Hans: 美洲/洛杉矶
+                  value: America/Los_Angeles
+                - icon: null
+                  label:
+                    en_US: America/Chicago
+                    ja_JP: America/Chicago
+                    pt_BR: America/Chicago
+                    zh_Hans: 美洲/芝加哥
+                  value: America/Chicago
+                - icon: null
+                  label:
+                    en_US: America/Sao_Paulo
+                    ja_JP: America/Sao_Paulo
+                    pt_BR: América/São Paulo
+                    zh_Hans: 美洲/圣保罗
+                  value: America/Sao_Paulo
+                - icon: null
+                  label:
+                    en_US: Asia/Shanghai
+                    ja_JP: Asia/Shanghai
+                    pt_BR: Asia/Shanghai
+                    zh_Hans: 亚洲/上海
+                  value: Asia/Shanghai
+                - icon: null
+                  label:
+                    en_US: Asia/Ho_Chi_Minh
+                    ja_JP: Asia/Ho_Chi_Minh
+                    pt_BR: Ásia/Ho Chi Minh
+                    zh_Hans: 亚洲/胡志明市
+                  value: Asia/Ho_Chi_Minh
+                - icon: null
+                  label:
+                    en_US: Asia/Tokyo
+                    ja_JP: Asia/Tokyo
+                    pt_BR: Asia/Tokyo
+                    zh_Hans: 亚洲/东京
+                  value: Asia/Tokyo
+                - icon: null
+                  label:
+                    en_US: Asia/Dubai
+                    ja_JP: Asia/Dubai
+                    pt_BR: Asia/Dubai
+                    zh_Hans: 亚洲/迪拜
+                  value: Asia/Dubai
+                - icon: null
+                  label:
+                    en_US: Asia/Kolkata
+                    ja_JP: Asia/Kolkata
+                    pt_BR: Asia/Kolkata
+                    zh_Hans: 亚洲/加尔各答
+                  value: Asia/Kolkata
+                - icon: null
+                  label:
+                    en_US: Asia/Seoul
+                    ja_JP: Asia/Seoul
+                    pt_BR: Asia/Seoul
+                    zh_Hans: 亚洲/首尔
+                  value: Asia/Seoul
+                - icon: null
+                  label:
+                    en_US: Asia/Singapore
+                    ja_JP: Asia/Singapore
+                    pt_BR: Asia/Singapore
+                    zh_Hans: 亚洲/新加坡
+                  value: Asia/Singapore
+                - icon: null
+                  label:
+                    en_US: Europe/London
+                    ja_JP: Europe/London
+                    pt_BR: Europe/London
+                    zh_Hans: 欧洲/伦敦
+                  value: Europe/London
+                - icon: null
+                  label:
+                    en_US: Europe/Berlin
+                    ja_JP: Europe/Berlin
+                    pt_BR: Europe/Berlin
+                    zh_Hans: 欧洲/柏林
+                  value: Europe/Berlin
+                - icon: null
+                  label:
+                    en_US: Europe/Moscow
+                    ja_JP: Europe/Moscow
+                    pt_BR: Europe/Moscow
+                    zh_Hans: 欧洲/莫斯科
+                  value: Europe/Moscow
+                - icon: null
+                  label:
+                    en_US: Australia/Sydney
+                    ja_JP: Australia/Sydney
+                    pt_BR: Australia/Sydney
+                    zh_Hans: 澳大利亚/悉尼
+                  value: Australia/Sydney
+                - icon: null
+                  label:
+                    en_US: Pacific/Auckland
+                    ja_JP: Pacific/Auckland
+                    pt_BR: Pacific/Auckland
+                    zh_Hans: 太平洋/奥克兰
+                  value: Pacific/Auckland
+                - icon: null
+                  label:
+                    en_US: Africa/Cairo
+                    ja_JP: Africa/Cairo
+                    pt_BR: Africa/Cairo
+                    zh_Hans: 非洲/开罗
+                  value: Africa/Cairo
+              placeholder: null
+              precision: null
+              required: false
+              scope: null
+              template: null
+              type: select
+          params:
+            format: ''
+            timezone: ''
+          plugin_id: null
+          plugin_unique_identifier: ''
+          provider_icon: https://cloud.dify.ai/console/api/workspaces/current/tool-provider/builtin/time/icon
+          provider_id: time
+          provider_name: time
+          provider_type: builtin
+          selected: false
+          title: 获取当前时间
+          tool_configurations:
+            format:
+              type: mixed
+              value: '%Y-%m-%d %H:%M:%S'
+            timezone:
+              type: constant
+              value: UTC
+          tool_description: 一个用于获取当前时间的工具。
+          tool_label: 获取当前时间
+          tool_name: current_time
+          tool_node_version: '2'
+          tool_parameters: {}
+          type: tool
+        height: 113
+        id: '1772076714802'
+        position:
+          x: 867
+          y: 600
+        positionAbsolute:
+          x: 867
+          y: 600
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 241
+      - data:
+          is_team_authorization: true
+          paramSchemas:
+            - auto_generate: null
+              default: null
+              form: llm
+              human_description:
+                en_US: The programming language of the code
+                ja_JP: The programming language of the code
+                pt_BR: A linguagem de programação do código
+                zh_Hans: 代码的编程语言
+              label:
+                en_US: Language
+                ja_JP: Language
+                pt_BR: Idioma
+                zh_Hans: 语言
+              llm_description: language of the code, only "python3" and "javascript" are
+                supported
+              max: null
+              min: null
+              name: language
+              options:
+                - icon: null
+                  label:
+                    en_US: Python3
+                    ja_JP: Python3
+                    pt_BR: Python3
+                    zh_Hans: Python3
+                  value: python3
+                - icon: null
+                  label:
+                    en_US: JavaScript
+                    ja_JP: JavaScript
+                    pt_BR: JavaScript
+                    zh_Hans: JavaScript
+                  value: javascript
+              placeholder: null
+              precision: null
+              required: true
+              scope: null
+              template: null
+              type: string
+            - auto_generate: null
+              default: null
+              form: llm
+              human_description:
+                en_US: The code to be executed
+                ja_JP: The code to be executed
+                pt_BR: O código a ser executado
+                zh_Hans: 要执行的代码
+              label:
+                en_US: Code
+                ja_JP: Code
+                pt_BR: Código
+                zh_Hans: 代码
+              llm_description: code to be executed, only native packages are allowed,
+                network/IO operations are disabled.
+              max: null
+              min: null
+              name: code
+              options: []
+              placeholder: null
+              precision: null
+              required: true
+              scope: null
+              template: null
+              type: string
+          params:
+            code: ''
+            language: ''
+          plugin_id: null
+          plugin_unique_identifier: ''
+          provider_icon: https://cloud.dify.ai/console/api/workspaces/current/tool-provider/builtin/code/icon
+          provider_id: code
+          provider_name: code
+          provider_type: builtin
+          selected: false
+          title: 代码解释器
+          tool_configurations: {}
+          tool_description: 运行一段代码并返回结果。当您使用较低质量的模型时，请确保有一些提示帮助 LLM 理解如何编写代码。
+          tool_label: 代码解释器
+          tool_name: simple_code
+          tool_node_version: '2'
+          tool_parameters:
+            code:
+              type: mixed
+              value: '{{#env.envsecret2#}}'
+            language:
+              type: mixed
+              value: '{{#1772075787832.__is_success#}}'
+          type: tool
+        height: 51
+        id: '1772076740847'
+        position:
+          x: 872
+          y: 448
+        positionAbsolute:
+          x: 872
+          y: 448
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 241
+      - data:
+          is_team_authorization: true
+          paramSchemas:
+            - auto_generate: null
+              default: null
+              form: llm
+              human_description:
+                en_US: 查询日期，格式为 "yyyy-MM-dd"。如果用户提供的是相对日期（如“明天”），请务必先调用 `get-current-date`
+                  接口获取当前日期，并计算出目标日期。
+                ja_JP: 查询日期，格式为 "yyyy-MM-dd"。如果用户提供的是相对日期（如“明天”），请务必先调用 `get-current-date`
+                  接口获取当前日期，并计算出目标日期。
+                pt_BR: 查询日期，格式为 "yyyy-MM-dd"。如果用户提供的是相对日期（如“明天”），请务必先调用 `get-current-date`
+                  接口获取当前日期，并计算出目标日期。
+                zh_Hans: 查询日期，格式为 "yyyy-MM-dd"。如果用户提供的是相对日期（如“明天”），请务必先调用 `get-current-date`
+                  接口获取当前日期，并计算出目标日期。
+              label:
+                en_US: date
+                ja_JP: date
+                pt_BR: date
+                zh_Hans: date
+              llm_description: 查询日期，格式为 "yyyy-MM-dd"。如果用户提供的是相对日期（如“明天”），请务必先调用 `get-current-date`
+                接口获取当前日期，并计算出目标日期。
+              max: null
+              min: null
+              name: date
+              options: []
+              placeholder: null
+              precision: null
+              required: true
+              scope: null
+              template: null
+              type: string
+            - auto_generate: null
+              default: null
+              form: llm
+              human_description:
+                en_US: 出发地的 `station_code` 。必须是通过 `get-station-code-by-names` 或 `get-station-code-of-citys`
+                  接口查询得到的编码，严禁直接使用中文地名。
+                ja_JP: 出发地的 `station_code` 。必须是通过 `get-station-code-by-names` 或 `get-station-code-of-citys`
+                  接口查询得到的编码，严禁直接使用中文地名。
+                pt_BR: 出发地的 `station_code` 。必须是通过 `get-station-code-by-names` 或 `get-station-code-of-citys`
+                  接口查询得到的编码，严禁直接使用中文地名。
+                zh_Hans: 出发地的 `station_code` 。必须是通过 `get-station-code-by-names` 或 `get-station-code-of-citys`
+                  接口查询得到的编码，严禁直接使用中文地名。
+              label:
+                en_US: fromStation
+                ja_JP: fromStation
+                pt_BR: fromStation
+                zh_Hans: fromStation
+              llm_description: 出发地的 `station_code` 。必须是通过 `get-station-code-by-names`
+                或 `get-station-code-of-citys` 接口查询得到的编码，严禁直接使用中文地名。
+              max: null
+              min: null
+              name: fromStation
+              options: []
+              placeholder: null
+              precision: null
+              required: true
+              scope: null
+              template: null
+              type: string
+            - auto_generate: null
+              default: null
+              form: llm
+              human_description:
+                en_US: 到达地的 `station_code` 。必须是通过 `get-station-code-by-names` 或 `get-station-code-of-citys`
+                  接口查询得到的编码，严禁直接使用中文地名。
+                ja_JP: 到达地的 `station_code` 。必须是通过 `get-station-code-by-names` 或 `get-station-code-of-citys`
+                  接口查询得到的编码，严禁直接使用中文地名。
+                pt_BR: 到达地的 `station_code` 。必须是通过 `get-station-code-by-names` 或 `get-station-code-of-citys`
+                  接口查询得到的编码，严禁直接使用中文地名。
+                zh_Hans: 到达地的 `station_code` 。必须是通过 `get-station-code-by-names` 或 `get-station-code-of-citys`
+                  接口查询得到的编码，严禁直接使用中文地名。
+              label:
+                en_US: toStation
+                ja_JP: toStation
+                pt_BR: toStation
+                zh_Hans: toStation
+              llm_description: 到达地的 `station_code` 。必须是通过 `get-station-code-by-names`
+                或 `get-station-code-of-citys` 接口查询得到的编码，严禁直接使用中文地名。
+              max: null
+              min: null
+              name: toStation
+              options: []
+              placeholder: null
+              precision: null
+              required: true
+              scope: null
+              template: null
+              type: string
+            - auto_generate: null
+              default: null
+              form: llm
+              human_description:
+                en_US: 车次筛选条件，默认为空，即不筛选。支持多个标志同时筛选。例如用户说“高铁票”，则应使用 "G"。可选标志：[G(高铁/城际),D(动车),Z(直达特快),T(特快),K(快速),O(其他),F(复兴号),S(智能动车组)]
+                ja_JP: 车次筛选条件，默认为空，即不筛选。支持多个标志同时筛选。例如用户说“高铁票”，则应使用 "G"。可选标志：[G(高铁/城际),D(动车),Z(直达特快),T(特快),K(快速),O(其他),F(复兴号),S(智能动车组)]
+                pt_BR: 车次筛选条件，默认为空，即不筛选。支持多个标志同时筛选。例如用户说“高铁票”，则应使用 "G"。可选标志：[G(高铁/城际),D(动车),Z(直达特快),T(特快),K(快速),O(其他),F(复兴号),S(智能动车组)]
+                zh_Hans: 车次筛选条件，默认为空，即不筛选。支持多个标志同时筛选。例如用户说“高铁票”，则应使用 "G"。可选标志：[G(高铁/城际),D(动车),Z(直达特快),T(特快),K(快速),O(其他),F(复兴号),S(智能动车组)]
+              label:
+                en_US: trainFilterFlags
+                ja_JP: trainFilterFlags
+                pt_BR: trainFilterFlags
+                zh_Hans: trainFilterFlags
+              llm_description: 车次筛选条件，默认为空，即不筛选。支持多个标志同时筛选。例如用户说“高铁票”，则应使用 "G"。可选标志：[G(高铁/城际),D(动车),Z(直达特快),T(特快),K(快速),O(其他),F(复兴号),S(智能动车组)]
+              max: null
+              min: null
+              name: trainFilterFlags
+              options: []
+              placeholder: null
+              precision: null
+              required: false
+              scope: null
+              template: null
+              type: string
+            - auto_generate: null
+              default: null
+              form: llm
+              human_description:
+                en_US: 最早出发时间（0-24），默认为0。
+                ja_JP: 最早出发时间（0-24），默认为0。
+                pt_BR: 最早出发时间（0-24），默认为0。
+                zh_Hans: 最早出发时间（0-24），默认为0。
+              label:
+                en_US: earliestStartTime
+                ja_JP: earliestStartTime
+                pt_BR: earliestStartTime
+                zh_Hans: earliestStartTime
+              llm_description: 最早出发时间（0-24），默认为0。
+              max: null
+              min: null
+              name: earliestStartTime
+              options: []
+              placeholder: null
+              precision: null
+              required: false
+              scope: null
+              template: null
+              type: number
+            - auto_generate: null
+              default: null
+              form: llm
+              human_description:
+                en_US: 最迟出发时间（0-24），默认为24。
+                ja_JP: 最迟出发时间（0-24），默认为24。
+                pt_BR: 最迟出发时间（0-24），默认为24。
+                zh_Hans: 最迟出发时间（0-24），默认为24。
+              label:
+                en_US: latestStartTime
+                ja_JP: latestStartTime
+                pt_BR: latestStartTime
+                zh_Hans: latestStartTime
+              llm_description: 最迟出发时间（0-24），默认为24。
+              max: null
+              min: null
+              name: latestStartTime
+              options: []
+              placeholder: null
+              precision: null
+              required: false
+              scope: null
+              template: null
+              type: number
+            - auto_generate: null
+              default: null
+              form: llm
+              human_description:
+                en_US: 排序方式，默认为空，即不排序。仅支持单一标识。可选标志：[startTime(出发时间从早到晚), arriveTime(抵达时间从早到晚),
+                  duration(历时从短到长)]
+                ja_JP: 排序方式，默认为空，即不排序。仅支持单一标识。可选标志：[startTime(出发时间从早到晚), arriveTime(抵达时间从早到晚),
+                  duration(历时从短到长)]
+                pt_BR: 排序方式，默认为空，即不排序。仅支持单一标识。可选标志：[startTime(出发时间从早到晚), arriveTime(抵达时间从早到晚),
+                  duration(历时从短到长)]
+                zh_Hans: 排序方式，默认为空，即不排序。仅支持单一标识。可选标志：[startTime(出发时间从早到晚), arriveTime(抵达时间从早到晚),
+                  duration(历时从短到长)]
+              label:
+                en_US: sortFlag
+                ja_JP: sortFlag
+                pt_BR: sortFlag
+                zh_Hans: sortFlag
+              llm_description: 排序方式，默认为空，即不排序。仅支持单一标识。可选标志：[startTime(出发时间从早到晚), arriveTime(抵达时间从早到晚),
+                duration(历时从短到长)]
+              max: null
+              min: null
+              name: sortFlag
+              options: []
+              placeholder: null
+              precision: null
+              required: false
+              scope: null
+              template: null
+              type: string
+            - auto_generate: null
+              default: null
+              form: llm
+              human_description:
+                en_US: 是否逆向排序结果，默认为false。仅在设置了sortFlag时生效。
+                ja_JP: 是否逆向排序结果，默认为false。仅在设置了sortFlag时生效。
+                pt_BR: 是否逆向排序结果，默认为false。仅在设置了sortFlag时生效。
+                zh_Hans: 是否逆向排序结果，默认为false。仅在设置了sortFlag时生效。
+              label:
+                en_US: sortReverse
+                ja_JP: sortReverse
+                pt_BR: sortReverse
+                zh_Hans: sortReverse
+              llm_description: 是否逆向排序结果，默认为false。仅在设置了sortFlag时生效。
+              max: null
+              min: null
+              name: sortReverse
+              options: []
+              placeholder: null
+              precision: null
+              required: false
+              scope: null
+              template: null
+              type: boolean
+            - auto_generate: null
+              default: null
+              form: llm
+              human_description:
+                en_US: 返回的余票数量限制，默认为0，即不限制。
+                ja_JP: 返回的余票数量限制，默认为0，即不限制。
+                pt_BR: 返回的余票数量限制，默认为0，即不限制。
+                zh_Hans: 返回的余票数量限制，默认为0，即不限制。
+              label:
+                en_US: limitedNum
+                ja_JP: limitedNum
+                pt_BR: limitedNum
+                zh_Hans: limitedNum
+              llm_description: 返回的余票数量限制，默认为0，即不限制。
+              max: null
+              min: null
+              name: limitedNum
+              options: []
+              placeholder: null
+              precision: null
+              required: false
+              scope: null
+              template: null
+              type: number
+            - auto_generate: null
+              default: null
+              form: llm
+              human_description:
+                en_US: 返回结果格式，默认为text，建议使用text与csv。可选标志：[text, csv, json]
+                ja_JP: 返回结果格式，默认为text，建议使用text与csv。可选标志：[text, csv, json]
+                pt_BR: 返回结果格式，默认为text，建议使用text与csv。可选标志：[text, csv, json]
+                zh_Hans: 返回结果格式，默认为text，建议使用text与csv。可选标志：[text, csv, json]
+              label:
+                en_US: format
+                ja_JP: format
+                pt_BR: format
+                zh_Hans: format
+              llm_description: 返回结果格式，默认为text，建议使用text与csv。可选标志：[text, csv, json]
+              max: null
+              min: null
+              name: format
+              options: []
+              placeholder: null
+              precision: null
+              required: false
+              scope: null
+              template: null
+              type: string
+          params:
+            date: ''
+            earliestStartTime: ''
+            format: ''
+            fromStation: ''
+            latestStartTime: ''
+            limitedNum: ''
+            sortFlag: ''
+            sortReverse: ''
+            toStation: ''
+            trainFilterFlags: ''
+          plugin_id: ''
+          plugin_unique_identifier: ''
+          provider_icon:
+            background: '#6366F1'
+            content: 🔗
+          provider_id: mcp-test
+          provider_name: mcp测试
+          provider_type: mcp
+          selected: false
+          title: get-tickets
+          tool_configurations: {}
+          tool_description: 查询12306余票信息。
+          tool_label: get-tickets
+          tool_name: get-tickets
+          tool_node_version: '2'
+          tool_parameters:
+            date:
+              type: mixed
+              value: '{{#env.envsecret2#}}'
+            earliestStartTime:
+              type: constant
+              value: null
+            format:
+              type: mixed
+              value: ''
+            fromStation:
+              type: mixed
+              value: '{{#conversation.conversationString2#}}'
+            latestStartTime:
+              type: constant
+              value: null
+            limitedNum:
+              type: constant
+              value: null
+            sortFlag:
+              type: mixed
+              value: /11
+            sortReverse:
+              type: constant
+              value: null
+            toStation:
+              type: mixed
+              value: '{{#sys.app_id#}}'
+            trainFilterFlags:
+              type: mixed
+              value: '{{#env.envnumber1#}}'
+          type: tool
+        height: 83
+        id: '1772076846089'
+        position:
+          x: 884
+          y: 260
+        positionAbsolute:
+          x: 884
+          y: 260
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 241
+    viewport:
+      x: 56
+      y: 51
+      zoom: 1
+  rag_pipeline_variables: []

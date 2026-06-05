@@ -1,0 +1,141 @@
+<!-- <div class="h-full w-full">
+  <tp-halfmodal-header class="mb-[16px] block">
+    <div>{{'memory'|i18nextEager}}</div>
+  </tp-halfmodal-header>
+  <tp-halfmodal-body class="!mt-0">
+    <div class="h-full w-full overflow-y-hidden">
+      <ti-tabs id="memos-tabs">
+        <ti-tab
+          [header]="tabs[0].title"
+          [(active)]="tabs[0].active"
+          class="h-full"
+        >
+          <div class="flex h-full w-full flex-col gap-[16px]">
+            <button class="w-fit" type="button" tiButton (click)="resetData()">
+              {{'reset_data'|i18nextEager}}
+            </button>
+
+            <div
+              class="h-[calc(100%-20px)] w-full"
+              [tiLoading]="loading"
+              [backdrop]="false"
+            >
+              <ti-table
+                class="h-full"
+                [srcData]="memosData"
+                [(displayedData)]="displayedData"
+              >
+                <div class="ti3-table-fixed-head">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th
+                          *ngFor="let column of columns"
+                          width="{{ column?.width }}"
+                        >
+                          {{ column.title }}
+                        </th>
+                      </tr>
+                    </thead>
+                  </table>
+                </div>
+                <div
+                  class="ti3-table-container"
+                  style="max-height: calc(100% - 54px)"
+                >
+                  <table>
+                    <thead>
+                      <tr>
+                        <th
+                          *ngFor="let column of columns"
+                          width="{{ column?.width }}"
+                        ></th>
+                      </tr>
+                    </thead>
+                    <tbody *ngIf="displayedData.length > 0">
+                      <tr *ngFor="let row of displayedData">
+                        <td tiOverflow>{{ row.name }}</td>
+                        <td tiOverflow>
+                          {{ row?.value ?? row?.default_value ?? '--' }}
+                        </td>
+                        <td tiOverflow>
+                          {{(row.life_cycle === 'user' ? 'long_term' : 'single_session')|i18nextEager }}
+                        </td>
+                        <td tiOverflow>{{ row?.description || '--' }}</td>
+                        <td tiOverflow>
+                          {{
+                            (row?.update_time | date : 'yyyy-MM-dd HH:mm:ss') ||
+                              '--'
+                          }}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </ti-table>
+            </div>
+          </div>
+        </ti-tab>
+        <ti-tab
+          [header]="tabs[1].title"
+          [(active)]="tabs[1].active"
+          class="h-full"
+        >
+          <ti-loading
+            *ngIf="loading; else memoryCardList"
+            class="loading-icon"
+            [size]="'middle'"
+          ></ti-loading>
+          <ng-template #memoryCardList>
+            <div class="flex h-full w-full flex-col gap-[16px]">
+              <div class="flex items-center justify-between">
+                <button
+                  class="w-fit"
+                  type="button"
+                  tiButton
+                  (click)="clearData()"
+                >
+                  {{'clear_empty_data'|i18nextEager}}
+                </button>
+                <button
+                  class="w-fit"
+                  type="button"
+                  tiButton
+                  color="danger"
+                  (click)="generateLongMemory()"
+                  [disabled]="!hasHistory"
+                >
+                  {{'generate'|i18nextEager}}
+                </button>
+              </div>
+              <div
+                class="flex h-full flex-col items-center justify-center"
+                *ngIf="!memoryCards.length; else notEmptyCards"
+              >
+                <no-data-icon></no-data-icon>
+                <span>{{'no_long_memor'|i18nextEager}}</span>
+              </div>
+              <ng-template #notEmptyCards>
+                <div class="long-memory-container">
+                  <div *ngFor="let card of memoryCards" class="memory-card">
+                    <div class="flex items-center justify-between">
+                      <span class="time">{{'time_text'|i18nextEager}}{{ card.time }}</span>
+                      <img alt=""
+                        [src]="changeUrl('assets/prompt/delete.svg')"
+                        class="cursor-pointer"
+                        (click)="deleteMemoryCard(card.id)"
+                      />
+                    </div>
+                    <div class="bottom-area">
+                      {{ card.content }}
+                    </div>
+                  </div>
+                </div>
+              </ng-template>
+            </div>
+          </ng-template>
+        </ti-tab>
+      </ti-tabs>
+    </div>
+  </tp-halfmodal-body>
+</div> -->

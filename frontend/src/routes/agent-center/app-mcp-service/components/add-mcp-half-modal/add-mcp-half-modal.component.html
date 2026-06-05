@@ -1,0 +1,450 @@
+<div *nzModalTitle>
+  <div class="flex items-center gap-2">
+    <div class="title">{{ title }}</div>
+  </div>
+</div>
+
+<div class="drawer-body h-[700px] overflow-auto" style="margin-right: 16px">
+  <div *ngIf="teamplateType === 'blank-creation'">
+    <ng-container *ngTemplateOutlet="commonCreateMCPTemplate"></ng-container>
+  </div>
+  <div *ngIf="teamplateType === 'official-creation'">
+    <div class="flex w-full" style="flex-direction: column">
+      <nz-steps class="!justify-flex-start !flex" [nzCurrent]="activeMcpStep" nzSize="small">
+        <nz-step [nzTitle]="steps[0].label" *ngIf="steps[0]"></nz-step>
+        <nz-step [nzTitle]="steps[1].label" *ngIf="steps[1]"></nz-step>
+      </nz-steps>
+      <nz-tabs *ngIf="activeMcpStep <= 0" [(nzSelectedIndex)]="selectedTabIndex" (nzSelectedIndexChange)="onTabChange($event)">
+        <nz-tab *ngFor="let tab of appMcpTabs; let i = index" [nzTitle]="tab.name"></nz-tab>
+      </nz-tabs>
+      <div class="flex" style="align-items: center; margin-bottom: 16px; gap: 4px" *ngIf="activeMcpStep === 0">
+        <input nz-input [(ngModel)]="searchMcpModalName" class="w-[calc(100%-32px)]" (ngModelChange)="onSearchInnerMcp()" />
+        <button class="h-8 w-8" nz-button nzType="default" (click)="refreshData()">
+          <nz-icon nzType="reload" nzTheme="outline" />
+        </button>
+      </div>
+    </div>
+    <div class="mcp-container" *ngIf="activeMcpStep === 1 && mcpModalLoading">
+      <nz-spin nzSimple *ngIf="mcpModalLoading" class="loading-icon"></nz-spin>
+    </div>
+    <div class="mcp-container" *ngIf="activeMcpStep === 0">
+      <nz-spin nzSimple *ngIf="mcpModalLoading" class="loading-icon"></nz-spin>
+      <div *ngIf="mcpModalList.length <= 0 && !mcpModalLoading" class="flex w-full items-center justify-center" style="height: 90%">
+        <nz-empty />
+      </div>
+      <div class="card">
+        <div
+          *ngFor="let item of mcpModalList; index as i"
+          class="items"
+          [ngStyle]="{ border: item.isSelected ? '1px solid rgb(1, 126, 252)' : '' }"
+          (click)="handleClickMcpModalCard(item)"
+        >
+          <div class="flex items-center gap-3" style="font-weight: 600; font-size: 16px">
+            <img  class="h-10 w-10 rounded-lg" [src]="item.id === emptyTemplateId ? mockMcpList[0].icon : getIcon(item)" alt="" />
+            <div class="flex" style="flex-direction: column">
+              <p style="font-size: 12px">{{ isZH() ? item.name : item.name_en }}</p>
+              <div>
+                <nz-tag
+                  *ngIf="item.type === 'inner'"
+                  [ngStyle]="{ 'background-color': '#fff7e6', 'border-color': '#ffd591', 'color': '#fa8c16' }"
+                  class="!rounded-[4px] py-[1px] pl-[2px] pr-[4px]"
+                >
+                  {{ 'platform' | i18nextEager }}
+                </nz-tag>
+                <nz-tag
+                  *ngIf="item.type === 'inner' && getCategoryLabel(item.category)"
+                  [ngStyle]="{
+                    'background-color': 'rgb(245, 245, 245)',
+                    'color': 'rgb(25, 25, 25)',
+                    'border-color': 'rgb(245, 245, 245)',
+                    'font-weight': '400',
+                    'margin-left': '8px',
+                  }"
+                  class="!rounded-[4px] py-[1px] pl-[2px] pr-[4px]"
+                  >{{ getCategoryLabel(item.category) }}</nz-tag
+                >
+              </div>
+            </div>
+          </div>
+          <div
+            class="w-full break-words text-[12px] leading-[22px] text-[#595959]"
+            nz-tooltip
+            nzTooltipTitle="{{ (isZH() ? item.description : item.description_en) || '--' }}"
+            nzTooltipPlacement="bottom"
+            style="margin-top: 12px"
+          ></div>
+        </div>
+      </div>
+      <div class="pageNum" *ngIf="activeMcpStep === 0 && !mcpModalLoading">
+        <nz-pagination
+          *ngIf="mcpModalList.length > 0"
+          nzSize="small"
+          [(nzPageIndex)]="mcpModalCurrentPage"
+          [nzTotal]="mcpModalTotalNum"
+          [nzPageSize]="cardPageSize.size"
+          (nzPageIndexChange)="getMCPServerList()"
+        ></nz-pagination>
+      </div>
+    </div>
+    <div *ngIf="activeMcpStep === 1 && !mcpModalLoading">
+      <ng-container *ngTemplateOutlet="commonCreateMCPTemplate"></ng-container>
+    </div>
+  </div>
+</div>
+
+<div *nzModalFooter>
+  <div class="footer" *ngIf="teamplateType === 'official-creation'">
+    <button
+      type="button"
+      *ngIf="activeMcpStep === 0 || (activeMcpStep === 1 && (action === 'edit' || type === 'server'))"
+      (click)="dismiss()"
+      nz-button
+      nzType="default"
+    >
+      {{ 'to_cancel' | i18nextEager }}
+    </button>
+    <button
+      type="button"
+      *ngIf="activeMcpStep === 1 && type !== 'server' && action !== 'edit'"
+      (click)="handleClickMcpModalPreviousStep()"
+      nz-button
+      nzType="default"
+    >
+      {{ 'pre_step' | i18nextEager }}
+    </button>
+    <button
+      type="button"
+      *ngIf="activeMcpStep === 0 && type !== 'server'"
+      [disabled]="mcpModalList.length <= 0 || !mcpModalSelected"
+      (click)="handleClickMcpModalNextStep()"
+      nz-button
+      nzType="primary"
+    >
+      {{ 'next_step' | i18nextEager }}
+    </button>
+    <button type="button" *ngIf="activeMcpStep === 1" [disabled]="isCreating" (click)="handleClickMcpModalConfirm()" nz-button nzType="default">
+      {{ 'install' | i18nextEager }}
+    </button>
+  </div>
+  <div *ngIf="teamplateType === 'blank-creation'">
+    <button type="button" nz-button nzType="default" (click)="dismiss()">
+      {{ 'to_cancel' | i18nextEager }}
+    </button>
+    <button type="button" nz-button nzType="default" [disabled]="isCreating || isDisabledConfirmBtn" (click)="handleClickMcpModalConfirm()">
+      {{ 'install' | i18nextEager }}
+    </button>
+  </div>
+</div>
+
+<ng-template #commonCreateMCPTemplate let-context="context">
+  <div class="contentMcp" style="padding-right: 16px">
+    <p class="flex align-center gap-1 mb-[6px]">
+      <span>{{ 'service_icon' | i18nextEager }}</span>
+    </p>
+    <div class="service_icon">
+      <input type="file" id="fileUpload" #iconInput [accept]="iconAccept" class="file" (change)="handleClickUploadFile($event)" />
+      <label for="fileUpload" class="uploadLabel">
+        <span class="icon-btn" *ngIf="!mcpModalSelected?.icon">+</span>
+      </label>
+      <div #previewIcon *ngIf="mcpModalSelected?.icon" class="preview">
+        <img  [src]="getIcon(mcpModalSelected)" alt="" style="width: 100%; height: 100%; object-fit: contain" />
+      </div>
+    </div>
+    <div class="desc">
+      {{ 'addmcphalfmodalcomponent_695' | i18nextEager }}
+    </div>
+    <p class="flex align-center gap-1 mb-[6px]">
+      <span>{{ 'service_name' | i18nextEager }}</span>
+    </p>
+    <input nz-input [(ngModel)]="mcpModalSelected.name" [style]="{ border: mcpModalSelected.name === '' ? '1px solid red' : '' }" />
+    <p class="flex align-center gap-1 mb-[6px] mt-[16px]">
+      <span>{{ 'addmcphalfmodalcomponent_677' | i18nextEager }}</span>
+    </p>
+    <input nz-input [(ngModel)]="mcpModalSelected.name_en" [style]="{ border: mcpModalSelected.name_en === '' ? '1px solid red' : '' }" />
+    <p class="flex align-center gap-1 mb-[6px] mt-[16px]">
+      <span>{{ 'service_desc' | i18nextEager }}</span>
+    </p>
+    <textarea
+      nz-input
+      style="height: 48px; width: 100%"
+      [nzAutosize]="{ minRows: 1, maxRows: 4 }"
+      [ngClass]="{ 'redBorder': mcpModalSelected.description === '' }"
+      [placeholder]="'input_placeholder' | i18nextEager"
+      [(ngModel)]="mcpModalSelected.description"
+    ></textarea>
+    <p class="flex align-center gap-1 mb-[6px] mt-[16px]">
+      <span>{{ 'service_detail' | i18nextEager }}{{ 'addmcphalfmodalcomponent_697' | i18nextEager }}</span>
+    </p>
+    <textarea
+      nz-input
+      style="height: 120px !important; width: 100% !important"
+      [nzAutosize]="{ minRows: 3, maxRows: 8 }"
+      [(ngModel)]="mcpModalSelected.readme"
+      [placeholder]="'addmcpcomponent_654' | i18nextEager"
+    ></textarea>
+    <div class="mcp-base-line"></div>
+    <p
+      class="flex align-center gap-1 mb-[6px] mt-[16px]"
+      *ngIf="mcpModalSelected.id === emptyTemplateId || mcpModalSelected.org_type === 'SSE' || mcpModalSelected.org_type === 'STREAMABLE_HTTP'"
+    >
+      <span>{{ 'installType' | i18nextEager }}</span>
+    </p>
+    <p>
+      <span
+        class="orgType"
+        (click)="handleClickChangeOrgType('SSE')"
+        [style]="{
+          background: mcpModalSelected.org_type === 'SSE' ? 'rgb(20, 118, 255)' : '',
+          color: mcpModalSelected.org_type === 'SSE' ? '#fff' : '',
+          cursor: getMouseStatus('SSE'),
+        }"
+        *ngIf="mcpModalSelected.id === emptyTemplateId || mcpModalSelected.org_type === 'SSE'"
+        >SSE</span
+      >
+      <span
+        class="orgType"
+        (click)="handleClickChangeOrgType('STREAMABLE_HTTP')"
+        [style]="{
+          background: mcpModalSelected.org_type === 'STREAMABLE_HTTP' ? 'rgb(20, 118, 255)' : '',
+          color: mcpModalSelected.org_type === 'STREAMABLE_HTTP' ? '#fff' : '',
+          cursor: getMouseStatus('STREAMABLE_HTTP'),
+        }"
+        *ngIf="mcpModalSelected.id === emptyTemplateId || mcpModalSelected.org_type === 'STREAMABLE_HTTP'"
+        >Streamable HTTP</span
+      >
+    </p>
+    <nz-alert
+      nzType="info"
+      style="width: 100%; margin-top: 8px; font-size: 14px"
+      *ngIf="mcpModalSelected.url && this.isShowTokenAlert()"
+      nzMessage="{{ 'getServiceToken' | i18nextEager }}"
+      nzDescription="{{ mcpModalSelected.url }}"
+      nzShowIcon
+    ></nz-alert>
+    <p
+      class="flex align-center gap-1 mb-[8px] mt-[16px]"
+      style="font-size: 14px; color: rgb(25, 25, 25); font-weight: 600; align-items: center; cursor: pointer"
+      (click)="handleClickChangeCollapseMcpConfig()"
+    >
+      <span>{{ 'inputMcpConfig' | i18nextEager }}</span>
+      <nz-icon nzType="down" nzTheme="outline" *ngIf="!isCollapseMcpConfig" />
+      <nz-icon nzType="up" nzTheme="outline" *ngIf="isCollapseMcpConfig" />
+    </p>
+    <div [style]="{ display: !isCollapseMcpConfig ? 'block' : 'none' }">
+      <nz-alert nzType="warning" style="width: 100%; font-size: 14px" nzMessage="{{ 'attentionMcp' | i18nextEager }}" nzShowIcon></nz-alert>
+      <p style="margin: 12px 0 16px 0">
+        <span
+          class="orgType"
+          [style]="{
+            background: mcpModalDataType === 'form' ? 'rgb(20, 118, 255)' : '',
+            color: mcpModalDataType === 'form' ? '#fff' : '',
+            padding: '0 16px',
+          }"
+          (click)="handleClickChangeMode('form')"
+        >
+          {{ 'formEditor' | i18nextEager }}
+        </span>
+        <span
+          class="orgType"
+          [style]="{
+            background: mcpModalDataType === 'json' ? 'rgb(20, 118, 255)' : '',
+            color: mcpModalDataType === 'json' ? '#fff' : '',
+            padding: '0 16px',
+            'cursor': this.notChangeMode() ? 'not-allowed' : '',
+          }"
+          (click)="handleClickChangeMode('json')"
+        >
+          {{ 'jsonEditor' | i18nextEager }}
+        </span>
+      </p>
+      <div class="mb-[12px] mt-[12px]" *ngIf="mcpModalDataType === 'form'">
+        <p class="mb-[8px]" *ngIf="mcpModalSelected.org_type === 'NPX' || mcpModalSelected.org_type === 'UVX'">
+          <span style="font-weight: 400">{{ 'params' | i18nextEager }}: </span>
+          <span style="color: rgb(89, 89, 89)">{{ 'mcpParamLimit' | i18nextEager }}</span>
+        </p>
+        <p class="mb-[8px]" *ngIf="mcpModalSelected.org_type === 'SSE' || mcpModalSelected.org_type === 'STREAMABLE_HTTP'">
+          <span style="font-weight: 400">URL:</span>
+        </p>
+        <nz-input-password>
+          <input nz-input [disabled]="this.notChangeMode()" [(ngModel)]="mcpModalData.param.value" (ngModelChange)="mcpModalData.param.isVisible = $event" />
+        </nz-input-password>
+        <div *ngIf="mcpModalSelected.org_type !== 'SSE' && mcpModalSelected.org_type !== 'STREAMABLE_HTTP'" style="margin-top: 16px">
+          <p *ngFor="let item of mcpModalData.environments; index as i" class="flex mb-[8px]" style="align-items: center">
+            <input
+              nz-input
+              [(ngModel)]="mcpModalData.environments[i].key"
+              [placeholder]="isZH() ? ('addmcpcomponent_655' | i18nextEager) : 'Key'"
+              style="width: 45%; margin-right: 12px"
+              [disabled]="this.notChangeMode()"
+            />
+            <nz-input-password>
+              <input
+                nz-input
+                [(ngModel)]="mcpModalData.environments[i].value"
+                [placeholder]="isZH() ? ('addmcpcomponent_656' | i18nextEager) : 'Value'"
+                (ngModelChange)="mcpModalData.environments[i].isVisible = $event"
+                style="width: 45%; margin-right: 12px"
+                [disabled]="this.notChangeMode()"
+              />
+            </nz-input-password>
+            <span style="color: rgb(20, 118, 255); cursor: pointer" *ngIf="!this.notChangeMode()" (click)="handleClickDeleteEnvironmentData(i)">{{
+              'delete' | i18nextEager
+            }}</span>
+          </p>
+          <p style="color: rgb(20, 118, 255); cursor: pointer; display: inline-block" *ngIf="!this.notChangeMode()" (click)="handleClickAddEnvironmentData()">
+            <span style="padding-right: 4px">+</span>
+            <span>{{ 'addEnvParams' | i18nextEager }}</span>
+          </p>
+        </div>
+
+        <p *ngFor="let item of mcpModalData.headers; index as i" class="flex mb-[8px]" style="align-items: center">
+          <input
+            nz-input
+            [(ngModel)]="mcpModalData.headers[i].key"
+            [placeholder]="isZH() ? ('addmcpcomponent_657' | i18nextEager) : 'Key'"
+            style="width: 45%; margin-right: 12px"
+            [disabled]="this.notChangeMode()"
+          />
+          <nz-input-password>
+            <input
+              nz-input
+              [(ngModel)]="mcpModalData.headers[i].value"
+              [placeholder]="isZH() ? ('addmcpcomponent_658' | i18nextEager) : 'Value'"
+              (ngModelChange)="mcpModalData.headers[i].isVisible = $event"
+              style="width: 45%; margin-right: 12px"
+              [disabled]="this.notChangeMode()"
+            />
+          </nz-input-password>
+          <span style="color: rgb(20, 118, 255); cursor: pointer" *ngIf="!this.notChangeMode()" (click)="handleClickDeleteRequestData(i)">
+            {{ 'delete' | i18nextEager }}
+          </span>
+        </p>
+        <p style="color: rgb(20, 118, 255); cursor: pointer; display: inline-block" (click)="handleClickAddRequestData()" *ngIf="!this.notChangeMode()">
+          <span style="padding-right: 4px">+</span>
+          <span>{{ 'add_request_header' | i18nextEager }}</span>
+        </p>
+      </div>
+      <div class="mb-[12px] mt-12[12px] h-[200px]" *ngIf="mcpModalDataType === 'json'">
+        <ngx-monaco-editor [options]="editorOptions" [(ngModel)]="mcpModalData.editor"></ngx-monaco-editor>
+      </div>
+    </div>
+    <div *ngIf="mcpModalSelected.org_type === 'SSE' || mcpModalSelected.org_type === 'STREAMABLE_HTTP'" style="margin-top: 24px">
+      <ng-container *ngTemplateOutlet="authConfig"></ng-container>
+    </div>
+  </div>
+</ng-template>
+<ng-template #authConfig let-context="context">
+  <div style="margin: 8px 0 10px 0">
+    {{ 'auth_info' | i18nextEager }}
+  </div>
+  <nz-radio-group id="mcp-auth-config1" [(ngModel)]="mcpAuthConfigData.selectedAuthType" (ngModelChange)="handleChangeAuthWay()">
+    <label nz-radio *ngFor="let item of authConfigType" [nzValue]="item.value">{{ item.label }}</label>
+  </nz-radio-group>
+  <div style="margin: 16px 0 10px 0" *ngIf="isShowSecretPos()">
+    {{ 'request_secretKey' | i18nextEager }}
+  </div>
+  <nz-radio-group *ngIf="isShowSecretPos()" id="mcp-auth-config2" [(ngModel)]="mcpAuthConfigData.selectedAuthPos" (ngModelChange)="handleChangeAPIKeyRadio()">
+    <label nz-radio *ngFor="let item of authSecretPosition" [nzValue]="item.value">{{ item.label }}</label>
+  </nz-radio-group>
+  <div class="mcp-auth-list" *ngIf="isShowParamList()">
+    <span>{{ 'param_list' | i18nextEager }}</span>
+    <span class="add" (click)="handleClickAddAPIParams()">+</span>
+  </div>
+  <p class="mcp-auth-param-name" *ngIf="isShowAPIParams()">
+    <span style="display: inline-flex; gap: 8px">
+      {{ 'param_name' | i18nextEager }}
+      <span nz-tooltip nzTooltipTitle="{{ 'mcp_oauth_tip1' | i18nextEager }}" nzTooltipPlacement="right">
+        <img  [src]="changeUrl('assets/model/online-test-help.svg')" alt="" />
+      </span>
+    </span>
+    <span class="mcp-auth-param-value" style="display: inline-flex; gap: 8px">
+      {{ 'param_value' | i18nextEager }}
+      <span nz-tooltip nzTooltipTitle="{{ 'mcp_oauth_tip2' | i18nextEager }}" nzTooltipPlacement="right">
+        <img  [src]="changeUrl('assets/model/online-test-help.svg')" alt="" />
+      </span>
+    </span>
+  </p>
+  <div *ngIf="mcpAuthConfigData.selectedAuthType === 'SERVICE' && mcpAuthConfigData.selectedAuthPos === 'HEADERS'">
+    <ng-container *ngTemplateOutlet="authConfigParam; context: { data: mcpAuthConfigData.authHeaderParams }"></ng-container>
+  </div>
+  <div *ngIf="mcpAuthConfigData.selectedAuthType === 'SERVICE' && mcpAuthConfigData.selectedAuthPos === 'QUERY'">
+    <ng-container *ngTemplateOutlet="authConfigParam; context: { data: mcpAuthConfigData.authQueryParams }"></ng-container>
+  </div>
+  <div *ngIf="isShowOauthConfig()">
+    <p style="display: flex; flex-direction: column; gap: 10px; margin-top: 16px">
+      <span style="display: inline-flex; gap: 8px; align-items: center">
+        <span>{{ 'mcp_oauth_tip3' | i18nextEager }}</span>
+        <span nz-tooltip nzTooltipTitle="{{ 'mcp_oauth_tip7' | i18nextEager }}" nzTooltipPlacement="right">
+          <img  [src]="changeUrl('assets/model/online-test-help.svg')" alt="" />
+        </span>
+      </span>
+      <input nz-input [(ngModel)]="mcpAuthConfigData.authParams.url" [placeholder]="'input_placeholder' | i18nextEager" />
+    </p>
+    <p style="display: flex; flex-direction: column; gap: 10px; margin-top: 16px">
+      <span style="display: inline-flex; gap: 8px; align-items: center">
+        <span>{{ 'mcp_oauth_tip4' | i18nextEager }}</span>
+        <span nz-tooltip nzTooltipTitle="{{ 'mcp_oauth_tip8' | i18nextEager }}" nzTooltipPlacement="right">
+          <img  [src]="changeUrl('assets/model/online-test-help.svg')" alt="" />
+        </span>
+      </span>
+      <input nz-input [(ngModel)]="mcpAuthConfigData.authParams.id" [placeholder]="'input_placeholder' | i18nextEager" />
+    </p>
+    <p style="display: flex; flex-direction: column; gap: 10px; margin-top: 16px">
+      <span style="display: inline-flex; gap: 8px; align-items: center">
+        <span>{{ 'mcp_oauth_tip5' | i18nextEager }}</span>
+        <span nz-tooltip nzTooltipTitle="{{ 'mcp_oauth_tip9' | i18nextEager }}" nzTooltipPlacement="right">
+          <img  [src]="changeUrl('assets/model/online-test-help.svg')" alt="" />
+        </span>
+      </span>
+      <nz-input-password>
+        <input nz-input [(ngModel)]="mcpAuthConfigData.authParams.secret" [placeholder]="'input_placeholder' | i18nextEager" />
+      </nz-input-password>
+    </p>
+    <p style="display: flex; flex-direction: column; gap: 10px; margin-top: 16px; margin-bottom: 24px">
+      <span style="display: inline-flex; gap: 8px; align-items: center">
+        <span>{{ 'mcp_oauth_tip6' | i18nextEager }}</span>
+        <span nz-tooltip nzTooltipTitle="{{ 'mcp_oauth_tip10' | i18nextEager }}" nzTooltipPlacement="right">
+          <img  [src]="changeUrl('assets/model/online-test-help.svg')" alt="" />
+        </span>
+      </span>
+      <input nz-input [(ngModel)]="mcpAuthConfigData.authParams.scope" [placeholder]="'input_placeholder' | i18nextEager" />
+    </p>
+  </div>
+</ng-template>
+<ng-template #authConfigParam let-data="data">
+  <div class="mcp-auth-params" *ngFor="let item of data; index as i" [style]="{ 'margin-bottom': i === data.length - 1 ? '24px' : '20px' }">
+    <div style="display: flex; flex-direction: column; width: 100%; position: relative">
+      <input
+        nz-input
+        [(ngModel)]="data[i].name"
+        [placeholder]="'input_placeholder' | i18nextEager"
+        style="margin-right: 4px"
+        [style]="{ border: data[i].name === '' ? '1px solid #FF8A5B' : '', backgroundColor: data[i].name === '' ? '#FCE3E1' : '' }"
+        (ngModelChange)="handleChangeAPIKeyRadio()"
+      />
+      <p style="color: #f13132; font-size: 12px; position: absolute; left: 2px; top: 30px" *ngIf="data[i].name === ''">
+        <nz-icon nzType="close-circle" nzTheme="outline" style="color: #f13132; font-size: 14px" />
+        <span>{{ 'param_1' | i18nextEager }}</span>
+      </p>
+    </div>
+    <div style="display: flex; flex-direction: column; width: 100%; position: relative">
+      <nz-input-password>
+        <input
+          nz-input
+          [(ngModel)]="data[i].value"
+          [placeholder]="'input_placeholder' | i18nextEager"
+          style="margin-right: 4px"
+          [style]="{ border: data[i].value === '' ? '1px solid #FF8A5B' : '', backgroundColor: data[i].value === '' ? '#FCE3E1' : '' }"
+          (ngModelChange)="handleChangeAPIKeyRadio()"
+        />
+      </nz-input-password>
+      <p style="color: #f13132; font-size: 12px; position: absolute; left: 2px; top: 30px" *ngIf="data[i].value === ''">
+        <nz-icon nzType="close-circle" nzTheme="outline" style="color: #f13132; font-size: 14px" />
+        <span>{{ 'param_1' | i18nextEager }}</span>
+      </p>
+    </div>
+    <div>
+      <nz-icon nzType="delete" nzTheme="outline" (click)="handleClickDeleteAPIParams(i)" class="mcp-auth-param-delete" />
+    </div>
+  </div>
+</ng-template>

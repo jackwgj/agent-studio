@@ -1,0 +1,162 @@
+.apply-success-outer {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 24px;
+  box-sizing: border-box;
+
+  .info {
+    width: 100%;
+    height: calc(100% - 150px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    .info-content {
+      width: 539px;
+      height: 260px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: center;
+      gap: 24px;
+
+      .icon {
+        width: 64px;
+        height: 64px;
+        background: url('../../../assets/subscription/success.svg') 0 0 / 100% 100% no-repeat;
+      }
+
+      .main-title {
+        height: 60px;
+        color: rgba(25, 25, 25, 1);
+        font-family: PingFang SC, sans-serif;
+        font-size: 40px;
+        font-weight: 500;
+        line-height: 60px;
+        letter-spacing: 0;
+        text-align: center;
+      }
+
+      .sub-title {
+        height: 24px;
+        color: rgba(25, 25, 25, 1);
+        font-family: PingFang SC, sans-serif;
+        font-size: 16px;
+        font-weight: 400;
+        line-height: 24px;
+        letter-spacing: 0;
+        text-align: center;
+
+        .link-span {
+          color: rgba(20, 118, 255, 1);
+          font-size: 16px;
+          font-weight: 400;
+          letter-spacing: 0;
+          cursor: pointer;
+        }
+      }
+
+      .btn {
+        height: 40px;
+        display: flex;
+        padding: 9px 32px 9px 32px;
+        box-sizing: border-box;
+        cursor: pointer;
+        color: rgba(25, 25, 25, 1);
+        font-family: PingFang SC, sans-serif;
+        font-size: 14px;
+        font-weight: 400;
+        letter-spacing: 0;
+        border: 1px solid rgba(89, 89, 89, 1);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 1);
+      }
+    }
+  }
+
+  .footer {
+    width: 100%;
+    height: 150px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 24px;
+    border-radius: 8px;
+    box-sizing: border-box;
+    background: rgba(255, 255, 255, 1);
+
+    .top {
+      width: 100%;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      .info {
+        display: flex;
+        height: 24px;
+        color: rgba(25, 25, 25, 1);
+        font-family: PingFang SC, sans-serif;
+        font-size: 16px;
+        font-weight: 500;
+        line-height: 24px;
+        letter-spacing: 0;
+        justify-content: start;
+      }
+
+      .close {
+        width: 24px;
+        height: 24px;
+        background: url("src/assets/subscription/ic_public_close_border.svg") 0 0 / 100% 100% no-repeat;
+        cursor: pointer;
+      }
+    }
+
+    .bottom {
+      width: 100%;
+
+      .text-div {
+        width: 512px;
+        height: 22px;
+        display: flex;
+        justify-content: space-between;
+
+        span {
+          color: rgba(128, 128, 128, 1);
+          font-family: PingFang SC, sans-serif;
+          font-size: 14px;
+          font-weight: 400;
+          letter-spacing: 0;
+        }
+      }
+
+      .score {
+        margin-top: 8px;
+        width: 512px;
+        height: 32px;
+        display: flex;
+        justify-content: space-between;
+
+        .score-item {
+          width: 32px;
+          height: 32px;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          border-radius: 6px;
+          box-sizing: border-box;
+          background: rgba(245, 245, 245, 1);
+          color: rgba(89, 89, 89, 1);
+          font-family: Manrope,sans-serif;
+          font-size: 18px;
+          font-weight: 400;
+          letter-spacing: 0;
+          cursor: pointer;
+        }
+      }
+    }
+  }
+}

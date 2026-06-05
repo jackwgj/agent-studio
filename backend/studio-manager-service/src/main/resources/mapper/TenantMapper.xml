@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.common.service.mapper.TenantMapper">
+    <resultMap id="baseColumns" type="com.openjiuwen.studio.common.service.entity.TenantEntity">
+        <result column="domain_id" jdbcType="VARCHAR" property="id"/>
+        <result column="domain_name" jdbcType="VARCHAR" property="resourceId"/>
+        <result column="description" jdbcType="VARCHAR" property="skuCode"/>
+        <result column="created_date" jdbcType="VARCHAR" property="attrCode"/>
+        <result column="last_updated_date" jdbcType="VARCHAR" property="status"/>
+        <result column="status" jdbcType="VARCHAR" property="currentValue"/>
+        <result column="tenant_type" jdbcType="VARCHAR" property="maxValue"/>
+        <result column="ext_info" jdbcType="VARCHAR" property="type"/>
+    </resultMap>
+
+    <resultMap id="TenantResultMap" type="com.openjiuwen.studio.common.service.entity.TenantEntity">
+        <result column="domain_id" property="domainId"/>
+        <result column="domain_name" property="domainName"/>
+        <result column="description" property="description"/>
+        <result column="created_date" property="createdDate"/>
+        <result column="last_updated_date" property="lastUpdatedDate"/>
+        <result column="status" property="status"/>
+        <result column="tenant_type" property="tenantType"/>
+        <result column="ext_info" property="extInfo"/>
+    </resultMap>
+
+
+    <sql id="baseColumns">
+        `domain_id`
+        , `domain_name`,
+        `description`,
+        `created_date`,
+        `last_updated_date`,
+        `status`,
+        `tenant_type`,
+        `ext_info`
+    </sql>
+
+    <select id="selectById">
+        select *
+        from t_common_tenant
+        where domain_id = #{domainId}
+    </select>
+
+    <insert id="insert" keyProperty="domainId"
+            parameterType="com.openjiuwen.studio.common.service.entity.TenantEntity">
+        insert into t_common_tenant (<include refid="baseColumns"></include>)
+        values (
+        #{param.domainId},
+        #{param.domainName},
+        #{param.description},
+        #{param.createdDate},
+        #{param.lastUpdatedDate},
+        #{param.status},
+        #{param.tenantType},
+        #{param.extInfo}
+        )
+    </insert>
+
+    <update id="updateById">
+        update t_common_tenant
+        <set>
+            domain_name        = #{param.domainName},
+            description        = #{param.description},
+            last_updated_date = #{param.lastUpdatedDate},
+            status             = #{param.status},
+            tenant_type        = #{param.tenantType},
+            ext_info           = #{param.extInfo}
+        </set>
+            where domain_id = #{param.domainId}
+    </update>
+
+    <select id="queryTenantList" resultMap="TenantResultMap">
+        select *
+        from t_common_tenant
+        order by domain_id
+        limit #{offset},#{limit}
+    </select>
+    <select id="queryTenantConfigList"
+            resultType="com.openjiuwen.studio.common.service.entity.TenantConfigEntity">
+        select *
+        from t_ops_tenant_config
+    </select>
+</mapper>

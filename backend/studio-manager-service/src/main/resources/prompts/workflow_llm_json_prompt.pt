@@ -1,0 +1,27 @@
+根据提供 json_data 数据和用户问题生成 JSON 格式，<example></example>  xml标签内为示例。
+<example>
+requirements：
+- json的可以值为[category,name,code]
+- key为category，value类型为String，表示企业类别
+- key为name，value类型为String，表示企业名称
+- key为code，value类型为Integer，表示股票代码
+- 不要输出 JSON 内容以外的其它文本。
+
+User input:
+请告诉我贵州茅台的一些信息
+
+Assistant output:
+{"category": "国有企业", "name": "贵州茅台酒股份有限公司", "code": 600519}
+</example>
+
+Begin!
+
+requirements：
+- json的可以值为[%s]
+%s
+- 不要输出 JSON 内容以外的其它文本。
+
+User input:
+%s
+
+Assistant output:

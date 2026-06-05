@@ -1,0 +1,30 @@
+[
+  {
+    "api_type":"ei_agentBuilder",
+    "deployment_id":"8c6751d1-d10c-47de-a789-717e164968fe",
+    "is_preset":false,
+    "name":"user_model1",
+    "project_id":"test_project_id"
+  },
+  {
+    "api_type":"ei_agentBuilder",
+    "deployment_id":"b8a6eb5e-722f-462a-9c7d-a444f4620d16",
+    "is_preset":false,
+    "name":"user_model2",
+    "project_id":"test_project_id"
+  },
+  {
+    "api_type":"ei_agentBuilder",
+    "deployment_id":"66e94861-1cd9-4152-a897-4acd66b62e09",
+    "is_preset":false,
+    "name":"user_model3",
+    "project_id":"test_project_id"
+  },
+  {
+    "api_type":"ei_agentBuilder",
+    "deployment_id":"64c8e9bb-7ded-4fc9-b63e-9ff3f0e7a588",
+    "is_preset":true,
+    "name":"N1-4k-部署",
+    "project_id":"test_project_id"
+  }
+]

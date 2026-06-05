@@ -1,0 +1,953 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.agent.manager.mapper.AgentMapper">
+    <resultMap id="BaseResultMap" type="com.openjiuwen.studio.agent.manager.entity.Agent">
+        <id column="agent_id" jdbcType="VARCHAR" property="agentId"/>
+        <id column="project_id" jdbcType="VARCHAR" property="projectId"/>
+        <id column="domain_id" jdbcType="VARCHAR" property="domainId"/>
+        <id column="workspace_id" jdbcType="VARCHAR" property="workspaceId"/>
+        <id column="trace_id" jdbcType="VARCHAR" property="traceId"/>
+        <result column="name" jdbcType="VARCHAR" property="name"/>
+        <result column="description" jdbcType="VARCHAR" property="description"/>
+        <result column="icon" jdbcType="VARCHAR" property="icon"/>
+        <result column="icon_name" jdbcType="VARCHAR" property="iconName"/>
+        <result column="model_deployment_id" jdbcType="VARCHAR" property="modelDeploymentId"/>
+        <result column="model_name" jdbcType="VARCHAR" property="modelName"/>
+        <result column="model_config" jdbcType="VARCHAR" property="modelConfig"/>
+        <result column="model_type" jdbcType="VARCHAR" property="modelType"/>
+        <result column="model" jdbcType="VARCHAR" property="model"/>
+        <result column="plan_qa_independent" jdbcType="TINYINT" property="planQaIndependent"/>
+        <result column="plan_model_deployment_id" jdbcType="VARCHAR" property="planModelDeploymentId"/>
+        <result column="plan_model_name" jdbcType="VARCHAR" property="planModelName"/>
+        <result column="plan_model_config" jdbcType="VARCHAR" property="planModelConfig"/>
+        <result column="plan_model_type" jdbcType="VARCHAR" property="planModelType"/>
+        <result column="plan_model" jdbcType="VARCHAR" property="planModel"/>
+        <result column="instructions" jdbcType="LONGVARCHAR" property="instructions"/>
+        <result column="trigger_list" jdbcType="VARCHAR" property="triggerList" typeHandler="com.openjiuwen.studio.agent.manager.mapper.handler.TriggerConfigArrayHandler"/>
+        <result column="memory_variables" property="memoryVariables" typeHandler="com.openjiuwen.studio.agent.manager.mapper.handler.MemoryVariableArrayHandler"/>
+        <result column="prologue" jdbcType="VARCHAR" property="prologue"/>
+        <result column="suggest_queries" jdbcType="VARCHAR" property="suggestQueries"/>
+        <result column="additional_questions_config" jdbcType="VARCHAR" property="additionalQuestionsConfig" />
+        <result column="voice_interaction" jdbcType="VARCHAR" property="voiceInteraction" />
+        <result column="reference" jdbcType="VARCHAR" property="reference" />
+        <result column="knowledge_retrieve_policy" jdbcType="VARCHAR" property="knowledgeRetrievePolicy" />
+        <result column="agent_variables" property="agentVariables" typeHandler="com.openjiuwen.studio.agent.manager.mapper.handler.AgentVariableArrayHandler"/>
+        <result column="input_variables" property="inputVariables" typeHandler="com.openjiuwen.studio.agent.manager.mapper.handler.AgentInputVariableArrayHandler"/>
+        <result column="memory_config" jdbcType="VARCHAR" property="memoryConfig"/>
+        <result column="content_review" jdbcType="VARCHAR" property="contentReview" />
+        <result column="safety_barrier" jdbcType="TINYINT" property="safetyBarrier"/>
+        <result column="ir_path" jdbcType="VARCHAR" property="irPath"/>
+        <result column="dsl_path" jdbcType="VARCHAR" property="dslPath"/>
+        <result column="type" jdbcType="VARCHAR" property="type"/>
+        <result column="sub_type" jdbcType="VARCHAR" property="subType" />
+        <result column="status" jdbcType="VARCHAR" property="status"/>
+        <result column="creator" jdbcType="VARCHAR" property="creator"/>
+        <result column="creator_id" jdbcType="VARCHAR" property="creatorId"/>
+        <result column="workflow_switch_enabled" jdbcType="TINYINT" property="workflowSwitchEnabled"/>
+        <result column="scheduling_mode" jdbcType="VARCHAR" property="schedulingMode"/>
+        <result column="created_on" jdbcType="TIMESTAMP" property="createdOn"/>
+        <result column="updated_on" jdbcType="TIMESTAMP" property="updatedOn"/>
+        <result column="published_on" jdbcType="TIMESTAMP" property="publishedOn"/>
+        <result column="is_share" jdbcType="TINYINT" property="isShare"/>
+    </resultMap>
+    <resultMap id="AgentVersionItem" type="com.openjiuwen.studio.agent.manager.dto.AgentVersionListItem">
+        <id column="id" jdbcType="VARCHAR" property="id"/>
+        <result column="name" jdbcType="VARCHAR" property="name"/>
+        <result column="icon" jdbcType="VARCHAR" property="icon"/>
+        <result column="created_by" jdbcType="VARCHAR" property="createdBy"/>
+        <result column="version_id" jdbcType="VARCHAR" property="versionId"/>
+        <result column="version_name" jdbcType="VARCHAR" property="versionName"/>
+    </resultMap>
+
+
+    <resultMap id="agentBaseInfoMap" type="com.openjiuwen.studio.agent.manager.entity.AgentBaseInfo">
+        <result column="domain_id"  property="domainId"/>
+        <result column="project_id"  property="projectId"/>
+        <result column="workspace_id"  property="workspaceId"/>
+        <result column="name"  property="name"/>
+        <result column="status"  property="status"/>
+        <result column="created_on"  property="createdOn"/>
+        <result column="agent_id"  property="agentId"/>
+        <result column="tenant_id"  property="tenantId"/>
+    </resultMap>
+
+
+    <sql id="Sub_Column_List">
+        agent_id,
+        project_id,
+        domain_id,
+        trace_id,
+        workspace_id,
+        `name`,
+        description,
+        icon,
+        icon_name,
+        model_deployment_id,
+        model_name,
+        model_config,
+        model_type,
+        model,
+        plan_qa_independent,
+        plan_model,
+        plan_model_deployment_id,
+        plan_model_name,
+        plan_model_config,
+        plan_model_type,
+        instructions,
+        trigger_list,
+        memory_variables,
+        prologue,
+        suggest_queries,
+        additional_questions_config,
+        voice_interaction,
+        reference,
+        knowledge_retrieve_policy,
+        dsl_path,
+        ir_path,
+        `type`,
+        status,
+        creator,
+        creator_id,
+        workflow_switch_enabled,
+        scheduling_mode,
+        created_on,
+        updated_on,
+        published_on,
+        agent_variables,
+        input_variables,
+        memory_config,
+        sub_type,
+        is_share
+    </sql>
+    <sql id="Base_Column_List">
+        <include refid="Sub_Column_List" />,
+        content_review,
+        safety_barrier
+    </sql>
+    <insert id="insert" parameterType="com.openjiuwen.studio.agent.manager.entity.Agent">
+        insert into t_agent
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="instructions != null">
+                instructions,
+            </if>
+            <if test="triggerList != null">
+                trigger_list,
+            </if>
+            <if test="prologue != null">
+                prologue,
+            </if>
+            <if test="suggestQueries != null">
+                suggest_queries,
+            </if>
+            <if test="voiceInteraction != null">
+                voice_interaction,
+            </if>
+            <if test="modelDeploymentId != null">
+                model_deployment_id,
+            </if>
+            <if test="modelName != null">
+                model_name,
+            </if>
+            <if test="modelType != null">
+                model_type,
+            </if>
+            <if test="model != null">
+                model,
+            </if>
+            <if test="memoryVariables != null">
+                memory_variables,
+            </if>
+            <if test="knowledgeRetrievePolicy != null">
+                knowledge_retrieve_policy,
+            </if>
+            <if test="workflowSwitchEnabled != null">
+                workflow_switch_enabled,
+            </if>
+            <if test="schedulingMode != null">
+                scheduling_mode,
+            </if>
+            <if test="workspaceId != null">
+                workspace_id,
+            </if>
+            <if test="domainId != null">
+                domain_id,
+            </if>
+            <if test="traceId != null">
+                trace_id,
+            </if>
+            <if test="agentVariables != null">
+                agent_variables,
+            </if>
+            <if test="inputVariables != null">
+                input_variables,
+            </if>
+            <if test="memoryConfig != null">
+                memory_config,
+            </if>
+            <if test="subType != null">
+                sub_type,
+            </if>
+            <if test="planQaIndependent != null">
+                plan_qa_independent,
+            </if>
+            <if test="planModelDeploymentId != null">
+                plan_model_deployment_id,
+            </if>
+            <if test="planModelName != null">
+                plan_model_name,
+            </if>
+            <if test="planModelConfig != null">
+                plan_model_config,
+            </if>
+            <if test="planModelType != null">
+                plan_model_type,
+            </if>
+            <if test="planModel != null">
+                plan_model,
+            </if>
+            <if test="deleted != null">
+                deleted,
+            </if>
+            agent_id, project_id, `name`, description, icon, model_config, additional_questions_config, content_review, safety_barrier, dsl_path, ir_path, `type`, `status`, creator, creator_id, icon_name
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="instructions != null">
+                #{instructions,jdbcType=LONGVARCHAR},
+            </if>
+            <if test="triggerList != null">
+                #{triggerList,jdbcType=VARCHAR},
+            </if>
+            <if test="prologue != null">
+                #{prologue,jdbcType=VARCHAR},
+            </if>
+            <if test="suggestQueries != null">
+                #{suggestQueries,jdbcType=VARCHAR},
+            </if>
+            <if test="voiceInteraction != null">
+                #{voiceInteraction,jdbcType=VARCHAR},
+            </if>
+            <if test="modelDeploymentId != null">
+                #{modelDeploymentId,jdbcType=VARCHAR},
+            </if>
+            <if test="modelName != null">
+                #{modelName,jdbcType=VARCHAR},
+            </if>
+            <if test="modelType != null">
+                #{modelType,jdbcType=VARCHAR},
+            </if>
+            <if test="model != null">
+                #{model,jdbcType=VARCHAR},
+            </if>
+            <if test="memoryVariables != null">
+                #{memoryVariables,jdbcType=VARCHAR},
+            </if>
+            <if test="knowledgeRetrievePolicy != null">
+                #{knowledgeRetrievePolicy,jdbcType=VARCHAR},
+            </if>
+            <if test="workflowSwitchEnabled != null">
+                #{workflowSwitchEnabled,jdbcType=TINYINT},
+            </if>
+            <if test="schedulingMode != null">
+                #{schedulingMode,jdbcType=VARCHAR},
+            </if>
+            <if test="workspaceId != null">
+                #{workspaceId,jdbcType=VARCHAR},
+            </if>
+            <if test="domainId != null">
+                #{domainId,jdbcType=VARCHAR},
+            </if>
+            <if test="traceId != null">
+                #{traceId,jdbcType=VARCHAR},
+            </if>
+            <if test="agentVariables != null">
+                #{agentVariables,jdbcType=VARCHAR},
+            </if>
+            <if test="inputVariables != null">
+                #{inputVariables,jdbcType=VARCHAR},
+            </if>
+            <if test="memoryConfig != null">
+                #{memoryConfig,jdbcType=VARCHAR},
+            </if>
+            <if test="subType != null">
+                #{subType,jdbcType=VARCHAR},
+            </if>
+            <if test="planQaIndependent != null">
+                #{planQaIndependent,jdbcType=TINYINT},
+            </if>
+            <if test="planModelDeploymentId != null">
+                #{planModelDeploymentId,jdbcType=VARCHAR},
+            </if>
+            <if test="planModelName != null">
+                #{planModelName,jdbcType=VARCHAR},
+            </if>
+            <if test="planModelConfig != null">
+                #{planModelConfig,jdbcType=VARCHAR},
+            </if>
+            <if test="planModelType != null">
+                #{planModelType,jdbcType=VARCHAR},
+            </if>
+            <if test="planModel != null">
+                #{planModel,jdbcType=VARCHAR},
+            </if>
+            <if test="deleted != null">
+                #{deleted,jdbcType=TINYINT},
+            </if>
+            #{agentId,jdbcType=VARCHAR}, #{projectId,jdbcType=VARCHAR}, #{name,jdbcType=VARCHAR},
+            #{description,jdbcType=VARCHAR}, #{icon,jdbcType=VARCHAR}, #{modelConfig,jdbcType=VARCHAR}, #{additionalQuestionsConfig,jdbcType=VARCHAR},
+            #{contentReview,jdbcType=VARCHAR},#{safetyBarrier,jdbcType=TINYINT},#{dslPath,jdbcType=VARCHAR},#{irPath,jdbcType=VARCHAR}, #{type,jdbcType=VARCHAR},
+            #{status,jdbcType=VARCHAR}, #{creator,jdbcType=VARCHAR}, #{creatorId,jdbcType=VARCHAR}, #{iconName,jdbcType=VARCHAR}
+        </trim>
+    </insert>
+    <select id="selectByProjectIdWorkspaceIdAndSearchCriteria" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_agent
+        where project_id = #{projectId,jdbcType=VARCHAR}
+        and deleted = 0
+        <if test="workspaceId != null and workspaceId != ''">
+            and workspace_id = #{workspaceId,jdbcType=VARCHAR}
+        </if>
+        <if test="searchCriteria != null and searchCriteria.name != null">
+            and `name` like concat('%', #{searchCriteria.name,jdbcType=VARCHAR}, '%')
+        </if>
+        <if test="searchCriteria != null and searchCriteria.userId != null">
+            and `creator_id` = #{searchCriteria.userId,jdbcType=VARCHAR}
+        </if>
+        <if test="searchCriteria != null and searchCriteria.id != null">
+            and `agent_id` = #{searchCriteria.id,jdbcType=VARCHAR}
+        </if>
+        <if test="searchCriteria != null and searchCriteria.type != null">
+            and `type` = #{searchCriteria.type,jdbcType=VARCHAR}
+        </if>
+        order by updated_on desc
+    </select>
+    <select id="selectByPrimaryKey" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_agent
+        where agent_id = #{agentId,jdbcType=VARCHAR}
+        and project_id = #{projectId,jdbcType=VARCHAR}
+        and deleted = 0
+    </select>
+    <select id="selectByProjectIdAndWorkspaceId" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_agent
+        where agent_id = #{agentId,jdbcType=VARCHAR}
+        and project_id = #{projectId,jdbcType=VARCHAR}
+        and workspace_id = #{workspaceId,jdbcType=VARCHAR}
+        and deleted = 0
+    </select>
+    <select id="selectByProjectIdAndSearchCriteria" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Sub_Column_List"/>
+        from t_agent
+        where project_id = #{projectId,jdbcType=VARCHAR}
+        and deleted = 0
+        <if test="searchCriteria != null and searchCriteria.workspaceId != null">
+            and `workspace_id` = #{searchCriteria.workspaceId,jdbcType=VARCHAR}
+        </if>
+        <if test="searchCriteria != null and searchCriteria.name != null">
+            and `name` like concat('%', #{searchCriteria.name,jdbcType=VARCHAR}, '%') escape '!'
+        </if>
+        <if test="searchCriteria != null and searchCriteria.type != null">
+            and `type` = #{searchCriteria.type,jdbcType=VARCHAR}
+        </if>
+        <if test="searchCriteria != null and searchCriteria.userId != null">
+            and `creator_id` = #{searchCriteria.userId,jdbcType=VARCHAR}
+        </if>
+        <if test="searchCriteria != null and searchCriteria.id != null">
+            and `agent_id` = #{searchCriteria.id,jdbcType=VARCHAR}
+        </if>
+        <if test="searchCriteria != null and searchCriteria.status != null">
+            and `status` = #{searchCriteria.status,jdbcType=VARCHAR}
+        </if>
+        <if test="searchCriteria != null and searchCriteria.description != null">
+            and `description` like concat('%', #{searchCriteria.description,jdbcType=VARCHAR}, '%') escape '!'
+        </if>
+        <if test="searchCriteria != null and searchCriteria.creator != null">
+            and `creator` like concat('%', #{searchCriteria.creator,jdbcType=VARCHAR}, '%') escape '!'
+        </if>
+        order by updated_on desc
+    </select>
+
+    <select id="selectByProjectIdAndSearchKey" resultType="com.openjiuwen.studio.agent.manager.dto.AgentApplicationInfo">
+        SELECT * FROM
+        (
+        SELECT agent_id as id, `name`, icon, description, type, workspace_id, updated_on as updated_at, prologue FROM t_agent
+        where project_id = #{projectId,jdbcType=VARCHAR}
+        and deleted = 0
+        <if test="name != null and !name.equals('')">
+            and `name` like concat('%', #{name,jdbcType=VARCHAR}, '%')
+        </if>
+        <if test="ids != null">
+            and agent_id  in
+            <foreach item="id" collection="ids" open="(" separator="," close=")">
+                #{id}
+            </foreach>
+        </if>
+        <if test="status != null and !status.equals('')">
+            and `status` = #{status,jdbcType=VARCHAR}
+        </if>
+        <if test="workspaceId != null and !workspaceId.equals('')">
+            and `workspace_id` = #{workspaceId,jdbcType=VARCHAR}
+        </if>
+        <if test="types != null">
+            and type IN
+            <foreach item="item" collection="types" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        UNION ALL
+        SELECT id, `name`, avatar AS icon, description, workflow_type as type, workspace_id, FROM_UNIXTIME(updated_at / 1000) as updated_at, NULL AS prologue
+        FROM t_agent_workflow where project_id = #{projectId,jdbcType=VARCHAR} and deleted != 1
+        <if test="name != null and !name.equals('')">
+            and `name` like concat('%', #{name,jdbcType=VARCHAR}, '%')
+        </if>
+        <if test="ids != null">
+            and id  in
+            <foreach item="id" collection="ids" open="(" separator="," close=")">
+                #{id}
+            </foreach>
+        </if>
+        <if test="status != null and !status.equals('')">
+            and `status` = #{status,jdbcType=VARCHAR}
+        </if>
+        <if test="workspaceId != null and !workspaceId.equals('')">
+            and `workspace_id` = #{workspaceId,jdbcType=VARCHAR}
+        </if>
+        <if test="types != null">
+            and workflow_type IN
+            <foreach item="item" collection="types" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        ) AS combined
+        ORDER BY updated_at desc
+    </select>
+
+    <update id="updateByPrimaryKeySelective"
+        parameterType="com.openjiuwen.studio.agent.manager.entity.Agent">
+        update t_agent
+        <set>
+            <if test="name != null">
+                `name` = #{name,jdbcType=VARCHAR},
+            </if>
+            <if test="description != null">
+                description = #{description,jdbcType=VARCHAR},
+            </if>
+            <if test="icon != null">
+                icon = #{icon,jdbcType=VARCHAR},
+            </if>
+            <if test="iconName != null">
+                icon_name = #{iconName,jdbcType=VARCHAR},
+            </if>
+            <if test="modelDeploymentId != null">
+                model_deployment_id = #{modelDeploymentId,jdbcType=VARCHAR},
+            </if>
+            <if test="modelName != null">
+                model_name = #{modelName,jdbcType=VARCHAR},
+            </if>
+            <if test="modelConfig != null">
+                model_config = #{modelConfig,jdbcType=VARCHAR},
+            </if>
+            <if test="modelType != null">
+                model_type = #{modelType,jdbcType=VARCHAR},
+            </if>
+            <if test="planQaIndependent != null">
+                plan_qa_independent = #{planQaIndependent,jdbcType=TINYINT},
+            </if>
+            <if test="planModel != null">
+                plan_model = #{planModel,jdbcType=VARCHAR},
+            </if>
+            <if test="planModelDeploymentId != null">
+                plan_model_deployment_id = #{planModelDeploymentId,jdbcType=VARCHAR},
+            </if>
+            <if test="planModelName != null">
+                plan_model_name = #{planModelName,jdbcType=VARCHAR},
+            </if>
+            <if test="planModelConfig != null">
+                plan_model_config = #{planModelConfig,jdbcType=VARCHAR},
+            </if>
+            <if test="planModelType != null">
+                plan_model_type = #{planModelType,jdbcType=VARCHAR},
+            </if>
+            <if test="instructions != null">
+                instructions = #{instructions,jdbcType=LONGVARCHAR},
+            </if>
+            <if test="triggerList != null">
+                trigger_list = #{triggerList,jdbcType=VARCHAR},
+            </if>
+            <if test="memoryVariables != null">
+                memory_variables = #{memoryVariables,jdbcType=VARCHAR},
+            </if>
+            <if test="prologue != null">
+                prologue = #{prologue,jdbcType=VARCHAR},
+            </if>
+            <if test="suggestQueries != null">
+                suggest_queries = #{suggestQueries,jdbcType=VARCHAR},
+            </if>
+            <if test="additionalQuestionsConfig != null">
+                additional_questions_config = #{additionalQuestionsConfig,jdbcType=VARCHAR},
+            </if>
+            <if test="voiceInteraction != null">
+                voice_interaction = #{voiceInteraction,jdbcType=VARCHAR},
+            </if>
+            <if test="reference != null">
+                reference = #{reference,jdbcType=VARCHAR},
+            </if>
+            <if test="knowledgeRetrievePolicy != null">
+                knowledge_retrieve_policy = #{knowledgeRetrievePolicy,jdbcType=VARCHAR},
+            </if>
+            <if test="contentReview != null">
+                content_review = #{contentReview,jdbcType=VARCHAR},
+            </if>
+            <if test="safetyBarrier != null">
+                safety_barrier = #{safetyBarrier,jdbcType=TINYINT},
+            </if>
+            <if test="workflowSwitchEnabled != null">
+                workflow_switch_enabled = #{workflowSwitchEnabled,jdbcType=TINYINT},
+            </if>
+            <if test="schedulingMode != null">
+                scheduling_mode = #{schedulingMode,jdbcType=VARCHAR},
+            </if>
+            <if test="publishedOn != null">
+                published_on = #{publishedOn,jdbcType=VARCHAR},
+            </if>
+            <if test="type != null">
+                type = #{type,jdbcType=VARCHAR},
+            </if>
+            <if test="subType != null">
+                sub_type = #{subType,jdbcType=VARCHAR},
+            </if>
+            <if test="dslPath != null">
+                dsl_path = #{dslPath,jdbcType=VARCHAR},
+            </if>
+
+            <if test="updatedOn != null">
+                updated_on = #{updatedOn,jdbcType=VARCHAR},
+            </if>
+            <if test="agentVariables != null">
+                agent_variables = #{agentVariables,jdbcType=VARCHAR},
+            </if>
+            <if test="inputVariables != null">
+                input_variables = #{inputVariables,jdbcType=VARCHAR},
+            </if>
+            <if test="memoryConfig != null">
+                memory_config = #{memoryConfig,jdbcType=VARCHAR},
+            </if>
+            model = #{model,jdbcType=VARCHAR}, status = #{status,jdbcType=VARCHAR}
+        </set>
+        where agent_id = #{agentId,jdbcType=VARCHAR}
+        and project_id = #{projectId,jdbcType=VARCHAR}
+    </update>
+
+    <delete id="deleteByPrimaryKey" parameterType="map">
+        delete
+        from t_agent
+        where agent_id = #{agentId,jdbcType=VARCHAR}
+        and project_id = #{projectId,jdbcType=VARCHAR}
+        and deleted = 0
+    </delete>
+    <delete id="deleteByPrimaryKeys">
+        delete
+        from t_agent
+        where agent_id in
+        <foreach item="agentId" collection="agentIds" open="(" separator="," close=")">
+            #{agentId}
+        </foreach>
+    </delete>
+    <update id="softDeleteByPrimaryKey">
+        update t_agent
+        <set>
+            deleted = 1
+        </set>
+        where agent_id = #{agentId,jdbcType=VARCHAR}
+        and project_id = #{projectId,jdbcType=VARCHAR}
+    </update>
+    <select id="findAgentToBeDeleted" resultType="java.lang.String">
+        SELECT agent_id
+        FROM t_agent
+        WHERE deleted = 1
+          AND updated_on IS NOT NULL
+          AND updated_on &lt;= #{softDeleteTtl}
+    </select>
+    <select id="selectById" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_agent
+        where agent_id = #{agentId,jdbcType=VARCHAR}
+        and deleted = 0
+    </select>
+    <update id="updateOwnerById" parameterType="com.openjiuwen.studio.agent.manager.entity.Agent">
+        update t_agent
+        <set>
+            <if test="updateValue.updatedOn != null">
+                updated_on = #{updateValue.updatedOn,jdbcType=VARCHAR},
+            </if>
+            <if test="updateValue.projectId != null">
+                project_id = #{updateValue.projectId,jdbcType=VARCHAR},
+            </if>
+            <if test="updateValue.creator != null">
+                creator = #{updateValue.creator,jdbcType=VARCHAR},
+            </if>
+            <if test="updateValue.creatorId != null">
+                creator_id = #{updateValue.creatorId,jdbcType=VARCHAR},
+            </if>
+            agent_id = #{id,jdbcType=VARCHAR}
+        </set>
+        where agent_id = #{id,jdbcType=VARCHAR}
+    </update>
+
+    <update id="updateAgentById">
+        UPDATE t_agent
+        <set>
+            <if test="agentInfo.name != null">
+                `name` = #{agentInfo.name},
+            </if>
+            <if test="agentInfo.description != null">
+                description = #{agentInfo.description},
+            </if>
+            <if test="agentInfo.icon != null">
+                icon = #{agentInfo.icon},
+            </if>
+            <if test="agentInfo.iconName != null">
+                icon_name = #{agentInfo.iconName},
+            </if>
+            <if test="agentInfo.modelDeploymentId != null">
+                model_deployment_id = #{agentInfo.modelDeploymentId},
+            </if>
+            <if test="agentInfo.modelName != null">
+                model_name = #{agentInfo.modelName},
+            </if>
+            <if test="agentInfo.modelConfig != null">
+                model_config = #{agentInfo.modelConfig},
+            </if>
+            <if test="agentInfo.modelType != null">
+                model_type = #{agentInfo.modelType},
+            </if>
+            <if test="agentInfo.instructions != null">
+                instructions = #{agentInfo.instructions},
+            </if>
+            <if test="agentInfo.memoryVariables != null">
+                memory_variables = #{agentInfo.memoryVariables},
+            </if>
+            <if test="agentInfo.prologue != null">
+                prologue = #{agentInfo.prologue},
+            </if>
+            <if test="agentInfo.suggestQueries != null">
+                suggest_queries = #{agentInfo.suggestQueries},
+            </if>
+            <if test="agentInfo.additionalQuestionsConfig != null">
+                additional_questions_config = #{agentInfo.additionalQuestionsConfig},
+            </if>
+            <if test="agentInfo.voiceInteraction != null">
+                voice_interaction = #{agentInfo.voiceInteraction},
+            </if>
+            <if test="agentInfo.knowledgeRetrievePolicy != null">
+                knowledge_retrieve_policy = #{agentInfo.knowledgeRetrievePolicy},
+            </if>
+            <if test="agentInfo.contentReview != null">
+                content_review = #{agentInfo.contentReview},
+            </if>
+            <if test="agentInfo.safetyBarrier != null">
+                safety_barrier = #{agentInfo.safetyBarrier},
+            </if>
+            <if test="agentInfo.workflowSwitchEnabled != null">
+                workflow_switch_enabled = #{agentInfo.workflowSwitchEnabled},
+            </if>
+            <if test="agentInfo.schedulingMode != null">
+                scheduling_mode = #{agentInfo.schedulingMode},
+            </if>
+            <if test="agentInfo.publishedOn != null">
+                published_on = #{agentInfo.publishedOn},
+            </if>
+            <if test="agentInfo.type != null">
+                type = #{agentInfo.type},
+            </if>
+            <if test="agentInfo.subType != null">
+                sub_type = #{agentInfo.subType},
+            </if>
+            <if test="agentInfo.updatedOn != null">
+                updated_on = #{agentInfo.updatedOn},
+            </if>
+            <if test="agentInfo.dslPath != null">
+                dsl_path = #{agentInfo.dslPath},
+            </if>
+            model = #{agentInfo.model},
+        </set>
+        WHERE agent_id = #{agentId}
+        AND project_id = #{projectId}
+        AND workspace_id = #{workspaceId}
+    </update>
+
+    <update id="updateAgentByTraceId">
+        update t_agent
+        <set>
+            <if test="agentInfo.name != null">
+                `name` = #{agentInfo.name,jdbcType=VARCHAR},
+            </if>
+            <if test="agentInfo.description != null">
+                description = #{agentInfo.description,jdbcType=VARCHAR},
+            </if>
+            <if test="agentInfo.icon != null">
+                icon = #{agentInfo.icon,jdbcType=VARCHAR},
+            </if>
+            <if test="agentInfo.iconName != null">
+                icon_name = #{agentInfo.iconName,jdbcType=VARCHAR},
+            </if>
+            <if test="agentInfo.modelDeploymentId != null">
+                model_deployment_id = #{agentInfo.modelDeploymentId,jdbcType=VARCHAR},
+            </if>
+            <if test="agentInfo.modelName != null">
+                model_name = #{agentInfo.modelName,jdbcType=VARCHAR},
+            </if>
+            <if test="agentInfo.modelConfig != null">
+                model_config = #{agentInfo.modelConfig,jdbcType=VARCHAR},
+            </if>
+            <if test="agentInfo.modelType != null">
+                model_type = #{agentInfo.modelType,jdbcType=VARCHAR},
+            </if>
+            <if test="agentInfo.planQaIndependent != null">
+                plan_qa_independent = #{agentInfo.planQaIndependent,jdbcType=TINYINT},
+            </if>
+            <if test="agentInfo.planModel != null">
+                plan_model = #{agentInfo.planModel,jdbcType=VARCHAR},
+            </if>
+            <if test="agentInfo.planModelDeploymentId != null">
+                plan_model_deployment_id = #{agentInfo.planModelDeploymentId,jdbcType=VARCHAR},
+            </if>
+            <if test="agentInfo.planModelName != null">
+                plan_model_name = #{agentInfo.planModelName,jdbcType=VARCHAR},
+            </if>
+            <if test="agentInfo.planModelConfig != null">
+                plan_model_config = #{agentInfo.planModelConfig,jdbcType=VARCHAR},
+            </if>
+            <if test="agentInfo.planModelType != null">
+                plan_model_type = #{agentInfo.planModelType,jdbcType=VARCHAR},
+            </if>
+            <if test="agentInfo.instructions != null">
+                instructions = #{agentInfo.instructions,jdbcType=LONGVARCHAR},
+            </if>
+            <if test="agentInfo.triggerList != null">
+                trigger_list = #{agentInfo.triggerList,typeHandler=com.openjiuwen.studio.agent.manager.mapper.handler.TriggerConfigArrayHandler},
+            </if>
+            <if test="agentInfo.memoryVariables != null">
+                memory_variables = #{agentInfo.memoryVariables,typeHandler=com.openjiuwen.studio.agent.manager.mapper.handler.MemoryVariableArrayHandler},
+            </if>
+            <if test="agentInfo.prologue != null">
+                prologue = #{agentInfo.prologue,jdbcType=VARCHAR},
+            </if>
+            <if test="agentInfo.suggestQueries != null">
+                suggest_queries = #{agentInfo.suggestQueries,typeHandler=com.openjiuwen.studio.agent.manager.mapper.handler.ListHandler},
+            </if>
+            <if test="agentInfo.additionalQuestionsConfig != null">
+                additional_questions_config = #{agentInfo.additionalQuestionsConfig,typeHandler=com.openjiuwen.studio.agent.manager.mapper.handler.AdditionalQuestionsConfigHandler},
+            </if>
+            <if test="agentInfo.voiceInteraction != null">
+                voice_interaction = #{agentInfo.voiceInteraction,typeHandler=com.openjiuwen.studio.agent.manager.mapper.handler.VoiceInteractionHandler},
+            </if>
+            <if test="agentInfo.knowledgeRetrievePolicy != null">
+                knowledge_retrieve_policy = #{agentInfo.knowledgeRetrievePolicy,typeHandler=com.openjiuwen.studio.agent.manager.mapper.handler.JsonHandlerKnowledgeRetrievePolicy},
+            </if>
+            <if test="agentInfo.contentReview != null">
+                content_review = #{agentInfo.contentReview,jdbcType=VARCHAR},
+            </if>
+            <if test="agentInfo.safetyBarrier != null">
+                safety_barrier = #{agentInfo.safetyBarrier,jdbcType=TINYINT},
+            </if>
+            <if test="agentInfo.workflowSwitchEnabled != null">
+                workflow_switch_enabled = #{agentInfo.workflowSwitchEnabled,jdbcType=TINYINT},
+            </if>
+            <if test="agentInfo.schedulingMode != null">
+                scheduling_mode = #{agentInfo.schedulingMode,jdbcType=VARCHAR},
+            </if>
+            <if test="agentInfo.publishedOn != null">
+                published_on = #{agentInfo.publishedOn,jdbcType=VARCHAR},
+            </if>
+            <if test="agentInfo.type != null">
+                type = #{agentInfo.type,jdbcType=VARCHAR},
+            </if>
+            <if test="agentInfo.subType != null">
+                sub_type = #{agentInfo.subType,jdbcType=VARCHAR},
+            </if>
+            <if test="agentInfo.updatedOn != null">
+                updated_on = #{agentInfo.updatedOn,jdbcType=VARCHAR},
+            </if>
+            <if test="agentInfo.agentVariables != null">
+                agent_variables = #{agentInfo.agentVariables,typeHandler=com.openjiuwen.studio.agent.manager.mapper.handler.AgentVariableArrayHandler},
+            </if>
+            <if test="agentInfo.inputVariables != null">
+                agent_variables = #{agentInfo.inputVariables,typeHandler=com.openjiuwen.studio.agent.manager.mapper.handler.AgentInputVariableArrayHandler},
+            </if>
+            <if test="agentInfo.memoryConfig != null">
+                memory_config = #{agentInfo.memoryConfig,typeHandler=com.openjiuwen.studio.agent.manager.mapper.handler.ModelConfigHandler},
+            </if>
+            model = #{agentInfo.model,jdbcType=VARCHAR}
+        </set>
+        where trace_id = #{traceId,jdbcType=VARCHAR}
+        and project_id = #{projectId,jdbcType=VARCHAR}
+        <if test="workspaceId != null"> <!-- workspaceId 是独立 @Param，直接写即可 -->
+            and workspace_id = #{workspaceId,jdbcType=VARCHAR}
+        </if>
+    </update>
+
+    <select id="getAgentLastVersionBySearchCriteria" parameterType="map" resultMap="AgentVersionItem">
+        select
+        t1.agent_id as id,
+        t1.name,
+        t1.description,
+        t1.icon,
+        t1.creator,
+        t4.version_id,
+        t4.version_name
+        from (
+        select
+        agent_id,
+        name,
+        description,
+        icon,
+        creator
+        from t_agent
+        where project_id = #{projectId,jdbcType=VARCHAR}
+        and deleted = 0
+        <if test="searchCriteria != null and searchCriteria.id != null">
+            and agent_id = #{searchCriteria.id,jdbcType=VARCHAR}
+        </if>
+        <if test="searchCriteria != null and searchCriteria.workspaceId != null">
+            and workspace_id = #{searchCriteria.workspaceId,jdbcType=VARCHAR}
+        </if>
+        <if test="searchCriteria != null and searchCriteria.name != null">
+            and `name` like concat('%', #{searchCriteria.name,jdbcType=VARCHAR}, '%') escape '!'
+        </if>
+        <if test="searchCriteria != null and searchCriteria.type != null">
+            and `type` = #{searchCriteria.type,jdbcType=VARCHAR}
+        </if>
+        <if test="searchCriteria != null and searchCriteria.subType != null">
+            and `sub_type` = #{searchCriteria.subType,jdbcType=VARCHAR}
+        </if>
+        ) t1
+        inner join (
+        select
+        t2.app_id as id,
+        t2.version_id as version_id,
+        t2.version_name as version_name
+        from t_release_version t2
+        inner join (
+        select
+        app_id,
+        MAX(version_id) as max_version_id
+        from t_release_version
+        group by app_id
+        ) t3 on t2.app_id = t3.app_id and t2.version_id = t3.max_version_id
+        ) t4 on t1.agent_id = t4.id
+    </select>
+
+    <select id="selectByAgentIdAndResourceId" parameterType="map" resultType="int">
+        select count(*)
+        from t_agent a
+        left join t_mapping m on a.agent_id = m.app_id
+        where a.project_id = #{projectId,jdbcType=VARCHAR} and a.workspace_id = #{workspaceId,jdbcType=VARCHAR}
+        and m.resource_id = #{resourceId,jdbcType=VARCHAR} and m.resource_type = #{resourceType,jdbcType=VARCHAR}
+        and deleted = 0
+    </select>
+
+    <select id="selectAgentByTraceIdAndWorkspaceId"
+            resultType="com.openjiuwen.studio.agent.manager.entity.Agent">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM t_agent
+        WHERE trace_id = #{traceId}
+        AND project_id = #{projectId}
+        AND workspace_id = #{workspaceId}
+        AND deleted = 0
+    </select>
+
+    <select id="countAgentCountByDomainId" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM t_agent
+        WHERE domain_id = #{domainId}
+        and deleted = 0
+    </select>
+
+    <select id="selectByAgentIds" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_agent
+        where project_id = #{projectId,jdbcType=VARCHAR} and deleted = 0 and type = #{type,jdbcType=VARCHAR} and agent_id in
+        <choose>
+            <when test="agentIds != null and agentIds.size() > 0">
+                <foreach collection="agentIds" separator="," open="(" close=")" item="id">
+                    #{id}
+                </foreach>
+            </when>
+            <when test="agentIds == null or agentIds.size() == 0">
+                (null)
+            </when>
+        </choose>
+    </select>
+
+    <select id="selectByIdsAndProjectIdAndWorkspaceId" resultType="com.openjiuwen.studio.agent.manager.entity.Agent">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM t_agent
+        WHERE 1=1
+        <if test="agentIds != null and agentIds.size() > 0">
+            AND agent_id IN
+            <foreach collection="agentIds" item="agentId" open="(" separator="," close=")">
+                #{agentId, jdbcType=VARCHAR}
+            </foreach>
+        </if>
+        AND project_id = #{projectId, jdbcType=VARCHAR}
+        AND workspace_id = #{workspaceId, jdbcType=VARCHAR}
+        AND deleted = 0
+    </select>
+
+    <select id="queryAgentList" resultMap="agentBaseInfoMap">
+        SELECT t1.*, t2.tenant_id
+        FROM t_agent t1
+                 LEFT JOIN t_workspace t2 on t1.workspace_id = t2.id and t1.project_id = t2.project_id
+        where t1.type = #{agentType} and t1.deleted = 0
+        order by t1.workspace_id, t1.agent_id
+        limit #{limit} offset #{offset}
+    </select>
+
+    <select id="selectByDomainId" resultType="java.lang.Integer">
+        SELECT count(*) as total
+        FROM t_agent
+        where domain_id = #{domainId,jdbcType=VARCHAR} and status = #{status,jdbcType=VARCHAR} and published_on > #{publishedOn,jdbcType=TIMESTAMP}
+        and deleted = 0
+    </select>
+
+    <select id="countAgentIdInDb" resultType="java.lang.Integer">
+        SELECT count(*)
+        FROM t_agent
+        where agent_id = #{agentId,jdbcType=VARCHAR}
+    </select>
+
+    <update id="updateProjectIdByAgentIds" parameterType="java.util.Map">
+        UPDATE t_agent
+        SET project_id = #{opSvcProjectId}
+        WHERE agent_id IN
+        <foreach collection="agentIds" item="agentId" separator="," open="(" close=")">
+            #{agentId}
+        </foreach>
+    </update>
+
+    <update id="updateAgentShareStatus">
+        UPDATE t_agent
+        SET is_share = #{status}
+        WHERE agent_id = #{agentId}
+    </update>
+
+    <select id="countAgentMetric" resultType="double">
+        select count(*) from t_agent  where deleted = 0 and project_id = #{projectId} and workspace_id = #{workspaceId} and type = #{agentMetricRequest.agentType}
+
+        <if test="agentMetricRequest.agentStatus!=null and agentMetricRequest.agentStatus!=''">
+            and status = #{agentMetricRequest.agentStatus}
+        </if>
+        <if test="agentMetricRequest.metricType == 'created'">
+            and created_on >= #{startTime} and created_on &lt; #{endTime}
+        </if>
+    </select>
+</mapper>

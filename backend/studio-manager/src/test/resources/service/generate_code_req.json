@@ -1,0 +1,97 @@
+{
+  "dependencies": [],
+  "description": "add",
+  "function_input": {
+    "in": "body",
+    "name": "body",
+    "required": false,
+    "description": "default",
+    "schema": {
+      "properties": {
+        "a1": {
+          "description": "啊啊啊",
+          "default": "",
+          "x-hw-default": "",
+          "type": "string",
+          "x-hw-label": "",
+          "x-hw-visibility": "none",
+          "format": "input",
+          "x-hw-format": "input",
+          "x-hw-select-options": []
+        },
+        "a2": {
+          "description": "巴巴爸爸",
+          "default": "",
+          "x-hw-default": "",
+          "type": "string",
+          "x-hw-label": "",
+          "x-hw-visibility": "none",
+          "format": "input",
+          "x-hw-format": "input",
+          "x-hw-select-options": []
+        },
+        "a3": {
+          "description": "冲冲冲",
+          "default": "",
+          "x-hw-default": "",
+          "type": "string",
+          "x-hw-label": "",
+          "x-hw-visibility": "none",
+          "format": "input",
+          "x-hw-format": "input",
+          "x-hw-select-options": []
+        }
+      },
+      "required": [
+        "a1",
+        "a2",
+        "a3"
+      ],
+      "type": "object"
+    },
+    "cdm-type": ""
+  },
+  "function_name": "testLiuchengFunctionADD",
+  "function_output": {
+    "description": "default",
+    "schema": {
+      "properties": {
+        "result": {
+          "description": "热热热",
+          "default": "",
+          "x-hw-default": "",
+          "type": "string",
+          "x-hw-label": "",
+          "x-hw-visibility": "none",
+          "format": "input",
+          "x-hw-format": "input",
+          "x-hw-select-options": []
+        }
+      },
+      "required": [
+        "result"
+      ],
+      "type": "object"
+    },
+    "cdm-type": ""
+  },
+  "runtime": "Python3.9",
+  "status": 1,
+  "type": "function",
+  "handler": "entry.handler",
+  "memory_size": 128,
+  "time_out": 30,
+  "concurrent_num": 1,
+  "function_code": {
+    "code_file": "index.py",
+    "code_type": "inline",
+    "func_code": "AAAAAAVVVVVVV"
+  },
+  "stream": true,
+  "modelInfo": {
+    "model": "180",
+    "model_source": "LLM",
+    "model_name": "DeepSeek-V3",
+    "headers": {}
+  }
+}

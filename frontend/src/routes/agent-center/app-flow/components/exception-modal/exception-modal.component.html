@@ -1,0 +1,77 @@
+<div class="flex h-full w-full flex-col" (keydown)="handleKeyDown($event)">
+  <div class="mb-[16px] block">
+    <div class="flex w-[calc(100%-38px)] items-center justify-between">
+      <div class="flex items-center gap-[8px]">
+        <img class="model-config-icon" [src]="icon" alt="message-node" />
+
+        <edit-name
+        [(name)]="nodeInfo.name"
+        (onBlurConfirm)="updateName()"
+      ></edit-name>
+      </div>
+
+      <div class="flex items-center gap-[16px]" *ngIf="!isFlowReadonly">
+        <div class="cursor-pointer" nz-tooltip [nzTooltipTitle]="'icon-more'| i18nextEager">
+          <div nz-dropdown [nzDropdownMenu]="actionsMenu" nzTrigger="click" class="pw-three-dots-more-modal">
+            <span nz-icon nzType="more" nzTheme="outline"></span>
+          </div>
+          <nz-dropdown-menu #actionsMenu="nzDropdownMenu">
+            <ul nz-menu>
+              <li *ngFor="let action of actions" nz-menu-item (click)="onClickAction(action)">{{ action.label }}</li>
+            </ul>
+          </nz-dropdown-menu>
+        </div>
+        <div class="h-[16px] w-[1px] bg-[#dbdbdb]"></div>
+      </div>
+    </div>
+
+    <node-description [nodeInfo]="nodeInfo" (descriptionChange)="updateView()"></node-description>
+
+    <div class="mt-[16px] h-[1px] w-full bg-[#f0f0f0]"></div>
+  </div>
+
+  <div id="flow-llm-modal-body" class="relative h-full w-full overflow-auto flex-1 pr-[16px]">
+    <div class="h-full w-full overflow-auto">
+      <meta-acc-block class="block mb-3" [title]="'exceptionmodalcomponent_336' | i18nextEager">
+        <ng-template #right>
+          <div class="flex">
+            <div
+              nz-tooltip [nzTooltipTitle]="'exceptionmodalcomponent_337' | i18nextEager"
+              (click)="openFullScreen()"
+              class="icon-border"
+            >
+              <span nz-icon nzType="fullscreen" nzTheme="outline"></span>
+            </div>
+            <div
+              *ngIf="false"
+              nz-tooltip [nzTooltipTitle]="'extempcomponent_331' | i18nextEager"
+              (click)="openRefModal()"
+              class="icon-border ml-2"
+            >
+              <span nz-icon nzType="upload" nzTheme="outline"></span>
+            </div>
+          </div>
+
+        </ng-template>
+        <ng-template #content>
+          <div class="editor-wrapper mt-2 h-[400px]">
+            <form #tempForm="ngForm" class="h-full">
+              <ngx-monaco-editor
+                class="block h-full w-full"
+                [options]="editorOptions"
+                [(ngModel)]="responseTemplate"
+                [name]="'temp'"
+                objTypeValidator
+                nonEmptyValidator
+                (ngModelChange)="editorOnSave()"
+              ></ngx-monaco-editor>
+            </form>
+          </div>
+          <div *ngIf="validError" class="mt-2 text-red-500">{{ 'exceptionmodalcomponent_342' | i18nextEager }}</div>
+        </ng-template>
+      </meta-acc-block>
+    </div>
+  </div>
+</div>
+
+<code-full-screen-editor [(code)]="responseTemplate" [(isFullScreen)]="isFullScreen"></code-full-screen-editor>

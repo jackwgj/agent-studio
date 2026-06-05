@@ -1,0 +1,158 @@
+import { Component, Input, OnInit, Optional } from '@angular/core';
+import { MODULES } from '@shared/modules';
+import { I18NEXT_NAMESPACE, I18NextEagerPipe } from 'angular-i18next';
+import { I18nNamespace } from '@i18n';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { DataSourceManagementRepoService } from '@services/repositories/datasource-management-repo.service';
+import { IDatasourceDetail } from '@routes/agent-center/types/datasource.types';
+import { NzMessageService } from 'ng-zorro-antd/message';
+import { NzDrawerRef } from 'ng-zorro-antd/drawer';
+
+@Component({
+  selector: 'editable-datasource-halfmodal',
+  templateUrl: './editable-datasource-halfmodal.component.html',
+  standalone: true,
+  imports: [MODULES],
+  providers: [
+    {
+      provide: I18NEXT_NAMESPACE,
+      useValue: [I18nNamespace.COMMON, I18nNamespace.AGENT_CENTER],
+    },
+    NzMessageService
+  ],
+})
+export class EditableDatasourceHalfmodalComponent implements OnInit {
+  @Input() title = this.i18n.transform('connect_data_source');
+  @Input() id = '';
+
+  public form: FormGroup;
+
+  public typeOptions = [
+    {
+      label: 'MySQL',
+      value: 'MYSQL',
+    },
+  ];
+
+  public internetAccessOptions = [
+    { label: this.i18n.transform('public_network'), value: 'public' },
+  ];
+
+  public btnLoading = false;
+  public status = '';
+
+  constructor(
+    private i18n: I18NextEagerPipe,
+    private fb: FormBuilder,
+    private dataSourceRepoServe: DataSourceManagementRepoService,
+    private nzMessage: NzMessageService,
+    @Optional() private drawerRef: NzDrawerRef
+  ) {
+    this.form = this.fb.group({
+      name: ['', [Validators.required, Validators.maxLength(64)]],
+      desc: ['', [Validators.maxLength(2048)]],
+      type: [this.typeOptions[0], [Validators.required]],
+      internet_access: ['public'],
+      host: ['', [Validators.required, Validators.maxLength(64)]],
+      port: ['', [Validators.required, Validators.maxLength(16)]],
+      database_name: ['', [Validators.required, Validators.maxLength(64)]],
+      ssl_enabled: [true],
+      user: ['', [Validators.required, Validators.maxLength(64)]],
+      password: ['', [Validators.required, Validators.maxLength(64)]],
+    });
+  }
+
+  ngOnInit() {
+    if (this.id) {
+      this.getDatasourceDetail();
+    }
+  }
+
+  dismiss(): void {
+    this.drawerRef?.close();
+  }
+
+  close(): void {
+    this.drawerRef?.close();
+  }
+
+  public createDatasource() {
+    if (this.form.invalid) {
+      Object.values(this.form.controls).forEach(control => {
+        if (control.invalid) {
+          control.markAsDirty();
+          control.updateValueAndValidity({ onlySelf: true });
+        }
+      });
+      return;
+    }
+
+    this.btnLoading = true;
+    const raw = this.form.value;
+    const params = {
+      name: raw.name,
+      desc: raw.desc,
+      type: raw.type.value,
+      internet_access: raw.internet_access,
+      connection_info: {
+        host: raw.host,
+        port: raw.port,
+        ssl_enabled: raw.ssl_enabled,
+        database_name: raw.database_name,
+        user: raw.user,
+        password: raw.password,
+      },
+    };
+    if (this.id) {
+      this.dataSourceRepoServe
+        .modifyDatasource(this.id, params)
+        .then(() => {
+          this.nzMessage.success(
+            this.i18n.transform('successfully_modify_datasource'),
+          );
+          this.close();
+        })
+        .finally(() => {
+          this.btnLoading = false;
+        });
+    } else {
+      this.dataSourceRepoServe
+        .createDatasource(params)
+        .then(() => {
+          this.nzMessage.success(
+            this.i18n.transform('successfully_create_datasource'),
+          );
+          this.close();
+        })
+        .finally(() => {
+          this.btnLoading = false;
+        });
+    }
+  }
+
+  private getDatasourceDetail() {
+    this.dataSourceRepoServe
+      .getDatasourceDetail(this.id)
+      .then((res: IDatasourceDetail) => {
+        this.backfillData(res);
+      });
+  }
+
+  private backfillData(res: IDatasourceDetail) {
+    const selectedType = this.typeOptions.find((i) => i.value === res.type);
+
+    this.form.controls.name.setValue(res.name);
+    this.form.controls.desc.setValue(res.description);
+    this.form.controls.type.setValue(selectedType);
+    this.form.controls.internet_access.setValue(res.internet_access);
+    this.form.controls.host.setValue(res.connection_info?.host);
+    this.form.controls.port.setValue(res.connection_info?.port);
+    this.form.controls.database_name.setValue(
+      res.connection_info?.database_name,
+    );
+    this.form.controls.ssl_enabled.setValue(res.connection_info?.ssl_enabled);
+    this.form.controls.user.setValue(res.connection_info?.user);
+    this.form.controls.password.setValue(res.connection_info?.password);
+    this.status = res.status;
+  }
+}

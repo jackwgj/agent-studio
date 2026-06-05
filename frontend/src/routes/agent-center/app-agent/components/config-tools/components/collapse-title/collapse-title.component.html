@@ -1,0 +1,51 @@
+<div class="card-title">{{ cardConfig.title }}</div>
+<div class="collapse-box mb-[8px]">
+  @if (collapseLoading) {
+    <nz-spin></nz-spin>
+  }
+  <div class="collapse-top" (click)="changeCollapsedState()">
+    <div class="child-box w-[calc(100%-54px)]">
+      <span
+        class="font-semibold"
+        nz-tooltip
+        [nzTooltipTitle]="cardConfig.helpTip"
+        nzTooltipPlacement="top"
+      >{{ cardConfig.subTitle }}</span>
+      <span
+        nz-icon
+        class="unfolded"
+        [class.collapsed-icon]="collapsed"
+        [class.unfolded-icon]="!collapsed"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16">
+          <path d="M6 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </span>
+    </div>
+    <div class="flex items-center gap-[8px]">
+      @if (!isFlowReadonly) {
+        <div
+          class="icon-border"
+          [class.icon-border-disabled]="addDisabled"
+          nz-tooltip
+          [nzTooltipTitle]="addDisabled ? addDisabledTip : ''"
+          nzTooltipPlacement="top"
+          (click)="onAddBtnClick($event)"
+        >
+          <span nz-icon nzType="plus"></span>
+        </div>
+      }
+    </div>
+  </div>
+  @if (!collapsed) {
+    <div class="ml-[12px] mr-[12px] mt-1">
+      @if (cardConfig.description) {
+        <div class="collapse-desc">
+          {{ cardConfig.description }}
+        </div>
+      }
+      <ng-content select="[collapseContent]"></ng-content>
+    </div>
+  }
+</div>
+<div class="cut-line"></div>

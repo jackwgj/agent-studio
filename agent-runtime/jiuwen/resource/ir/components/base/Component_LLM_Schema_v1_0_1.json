@@ -1,0 +1,103 @@
+{
+  "schemaVersion": "0.5",
+  "type": "jiuwen.LLMComponent",
+  "version": "1.0.1",
+  "description": "大模型能力配置组件",
+  "classInfo": {
+    "programLanguage": "python",
+    "modulePath": "jiuwen.prompt.components.llm",
+    "className": "LLMComponent",
+    "filePath": "jiuwen/prompt/components/llm.pyc"
+  },
+  "configs": [
+    {
+      "id": "executeMode",
+      "description": "执行模式：批batch或流stream",
+      "type": "String"
+    },
+    {
+      "id": "mockResults",
+      "type": "List<Map<String, T>>",
+      "description": "mockResults"
+    },
+    {
+      "id": "model",
+      "type": "Map<String, T>",
+      "description": "模型名称"
+    },
+    {
+      "id": "cacheSize",
+      "type": "Int",
+      "description": "流式缓存区大小"
+    },
+    {
+      "id": "temperature",
+      "type": "Float",
+      "description": "温度系数"
+    },
+    {
+      "id": "stop",
+      "type": "String",
+      "description": "停止词"
+    },
+    {
+      "id": "topP",
+      "type": "Float",
+      "description": "topP参数"
+    },
+    {
+      "id": "topKNum",
+      "type": "Int",
+      "description": "topK参数"
+    },
+    {
+      "id": "maxTokens",
+      "type": "Int",
+      "description": "最大生成token数量"
+    },
+    {
+      "id": "parseMethod",
+      "type": "String",
+      "description": "指定对大模型结果的解析模式，function_call解析属于llm内置解析功能，不需要用户配置。在此基础上，用户可以配置null（不做额外解析）、expression（通过表达式解析）、prefixParse（前缀匹配动作解析）、funcDepParse（解析出function调用之间的依赖关系）"
+    },
+    {
+      "id": "parseConfig",
+      "description": "与parseMethod配套的解析配置参数",
+      "type": "Map<String, T>"
+    }
+  ],
+  "inputs": [
+    {
+      "id": "prompt",
+      "type": "List<Map<String, T>>",
+      "description": "组装后的Prompt"
+    },
+    {
+      "id": "tools",
+      "type": "List<Map<String, T>>",
+      "description": "用户自定义的工具"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "message",
+      "type": "Map<String, T>",
+      "description": "返回的助手message"
+    },
+    {
+      "id": "metadata",
+      "type": "Map<String, T>",
+      "description": "访问大模型相关的信息，如时延，消耗token数量等"
+    },
+    {
+      "id": "parsedData",
+      "type": "Map<String, T>",
+      "description": "解析后的大模型输出"
+    },
+    {
+      "id": "streamInfo",
+      "type": "Map<String, T>",
+      "description": "流式输出"
+    }
+  ]
+}

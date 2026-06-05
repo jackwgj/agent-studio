@@ -1,0 +1,125 @@
+<svg viewBox="0 0 42 42" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="42" height="42" fill="none" customFrame="url(#clipPath_3)">
+	<defs>
+		<clipPath id="clipPath_3">
+			<rect width="41.9999962" height="42" x="0" y="0" rx="8.02247047" fill="rgb(255,255,255)" />
+		</clipPath>
+		<radialGradient id="paint_radial_18" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="matrix(23.2245,0,0,23.2245,25.1848,7.87679)">
+			<stop stop-color="rgb(247,191,164)" offset="0" stop-opacity="1" />
+			<stop stop-color="rgb(247,187,159)" offset="0.0113075199" stop-opacity="1" />
+			<stop stop-color="rgb(230,0,18)" offset="0.426999986" stop-opacity="1" />
+			<stop stop-color="rgb(229,0,18)" offset="0.662800014" stop-opacity="1" />
+			<stop stop-color="rgb(225,0,17)" offset="0.757399976" stop-opacity="1" />
+			<stop stop-color="rgb(218,0,16)" offset="0.826799989" stop-opacity="1" />
+			<stop stop-color="rgb(207,0,14)" offset="0.88380003" stop-opacity="1" />
+			<stop stop-color="rgb(192,0,9)" offset="0.933099985" stop-opacity="1" />
+			<stop stop-color="rgb(174,0,3)" offset="0.976499975" stop-opacity="1" />
+			<stop stop-color="rgb(160,0,0)" offset="1" stop-opacity="1" />
+		</radialGradient>
+		<radialGradient id="paint_radial_19" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="matrix(23.2747,0,0,23.2747,25.1966,7.85686)">
+			<stop stop-color="rgb(247,191,164)" offset="0" stop-opacity="1" />
+			<stop stop-color="rgb(247,187,159)" offset="0.0113075199" stop-opacity="1" />
+			<stop stop-color="rgb(230,0,18)" offset="0.426999986" stop-opacity="1" />
+			<stop stop-color="rgb(229,0,18)" offset="0.662800014" stop-opacity="1" />
+			<stop stop-color="rgb(225,0,17)" offset="0.757399976" stop-opacity="1" />
+			<stop stop-color="rgb(218,0,16)" offset="0.826799989" stop-opacity="1" />
+			<stop stop-color="rgb(207,0,14)" offset="0.88380003" stop-opacity="1" />
+			<stop stop-color="rgb(192,0,9)" offset="0.933099985" stop-opacity="1" />
+			<stop stop-color="rgb(174,0,3)" offset="0.976499975" stop-opacity="1" />
+			<stop stop-color="rgb(160,0,0)" offset="1" stop-opacity="1" />
+		</radialGradient>
+		<radialGradient id="paint_radial_20" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="matrix(23.2693,0,0,23.2693,25.1987,7.85398)">
+			<stop stop-color="rgb(247,191,164)" offset="0" stop-opacity="1" />
+			<stop stop-color="rgb(247,187,159)" offset="0.0113075199" stop-opacity="1" />
+			<stop stop-color="rgb(230,0,18)" offset="0.426999986" stop-opacity="1" />
+			<stop stop-color="rgb(229,0,18)" offset="0.662800014" stop-opacity="1" />
+			<stop stop-color="rgb(225,0,17)" offset="0.757399976" stop-opacity="1" />
+			<stop stop-color="rgb(218,0,16)" offset="0.826799989" stop-opacity="1" />
+			<stop stop-color="rgb(207,0,14)" offset="0.88380003" stop-opacity="1" />
+			<stop stop-color="rgb(192,0,9)" offset="0.933099985" stop-opacity="1" />
+			<stop stop-color="rgb(174,0,3)" offset="0.976499975" stop-opacity="1" />
+			<stop stop-color="rgb(160,0,0)" offset="1" stop-opacity="1" />
+		</radialGradient>
+		<radialGradient id="paint_radial_21" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="matrix(23.2984,0,0,23.2984,25.2154,7.84549)">
+			<stop stop-color="rgb(247,191,164)" offset="0" stop-opacity="1" />
+			<stop stop-color="rgb(247,187,159)" offset="0.0113075199" stop-opacity="1" />
+			<stop stop-color="rgb(230,0,18)" offset="0.426999986" stop-opacity="1" />
+			<stop stop-color="rgb(229,0,18)" offset="0.662800014" stop-opacity="1" />
+			<stop stop-color="rgb(225,0,17)" offset="0.757399976" stop-opacity="1" />
+			<stop stop-color="rgb(218,0,16)" offset="0.826799989" stop-opacity="1" />
+			<stop stop-color="rgb(207,0,14)" offset="0.88380003" stop-opacity="1" />
+			<stop stop-color="rgb(192,0,9)" offset="0.933099985" stop-opacity="1" />
+			<stop stop-color="rgb(174,0,3)" offset="0.976499975" stop-opacity="1" />
+			<stop stop-color="rgb(160,0,0)" offset="1" stop-opacity="1" />
+		</radialGradient>
+		<radialGradient id="paint_radial_22" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="matrix(23.259,0,0,23.259,25.21,7.85626)">
+			<stop stop-color="rgb(247,191,164)" offset="0" stop-opacity="1" />
+			<stop stop-color="rgb(247,187,159)" offset="0.0113075199" stop-opacity="1" />
+			<stop stop-color="rgb(230,0,18)" offset="0.426999986" stop-opacity="1" />
+			<stop stop-color="rgb(229,0,18)" offset="0.662800014" stop-opacity="1" />
+			<stop stop-color="rgb(225,0,17)" offset="0.757399976" stop-opacity="1" />
+			<stop stop-color="rgb(218,0,16)" offset="0.826799989" stop-opacity="1" />
+			<stop stop-color="rgb(207,0,14)" offset="0.88380003" stop-opacity="1" />
+			<stop stop-color="rgb(192,0,9)" offset="0.933099985" stop-opacity="1" />
+			<stop stop-color="rgb(174,0,3)" offset="0.976499975" stop-opacity="1" />
+			<stop stop-color="rgb(160,0,0)" offset="1" stop-opacity="1" />
+		</radialGradient>
+		<radialGradient id="paint_radial_23" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="matrix(23.2725,0,0,23.2726,25.2114,7.84974)">
+			<stop stop-color="rgb(247,191,164)" offset="0" stop-opacity="1" />
+			<stop stop-color="rgb(247,187,159)" offset="0.0113075199" stop-opacity="1" />
+			<stop stop-color="rgb(230,0,18)" offset="0.426999986" stop-opacity="1" />
+			<stop stop-color="rgb(229,0,18)" offset="0.662800014" stop-opacity="1" />
+			<stop stop-color="rgb(225,0,17)" offset="0.757399976" stop-opacity="1" />
+			<stop stop-color="rgb(218,0,16)" offset="0.826799989" stop-opacity="1" />
+			<stop stop-color="rgb(207,0,14)" offset="0.88380003" stop-opacity="1" />
+			<stop stop-color="rgb(192,0,9)" offset="0.933099985" stop-opacity="1" />
+			<stop stop-color="rgb(174,0,3)" offset="0.976499975" stop-opacity="1" />
+			<stop stop-color="rgb(160,0,0)" offset="1" stop-opacity="1" />
+		</radialGradient>
+		<radialGradient id="paint_radial_24" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="matrix(23.2698,0,0,23.2698,25.192,7.90063)">
+			<stop stop-color="rgb(247,191,164)" offset="0" stop-opacity="1" />
+			<stop stop-color="rgb(247,187,159)" offset="0.0113075199" stop-opacity="1" />
+			<stop stop-color="rgb(230,0,18)" offset="0.426999986" stop-opacity="1" />
+			<stop stop-color="rgb(229,0,18)" offset="0.662800014" stop-opacity="1" />
+			<stop stop-color="rgb(225,0,17)" offset="0.757399976" stop-opacity="1" />
+			<stop stop-color="rgb(218,0,16)" offset="0.826799989" stop-opacity="1" />
+			<stop stop-color="rgb(207,0,14)" offset="0.88380003" stop-opacity="1" />
+			<stop stop-color="rgb(192,0,9)" offset="0.933099985" stop-opacity="1" />
+			<stop stop-color="rgb(174,0,3)" offset="0.976499975" stop-opacity="1" />
+			<stop stop-color="rgb(160,0,0)" offset="1" stop-opacity="1" />
+		</radialGradient>
+		<radialGradient id="paint_radial_25" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="matrix(23.2721,0,0,23.2721,25.2039,7.85987)">
+			<stop stop-color="rgb(247,191,164)" offset="0" stop-opacity="1" />
+			<stop stop-color="rgb(247,187,159)" offset="0.0113075199" stop-opacity="1" />
+			<stop stop-color="rgb(230,0,18)" offset="0.426999986" stop-opacity="1" />
+			<stop stop-color="rgb(229,0,18)" offset="0.662800014" stop-opacity="1" />
+			<stop stop-color="rgb(225,0,17)" offset="0.757399976" stop-opacity="1" />
+			<stop stop-color="rgb(218,0,16)" offset="0.826799989" stop-opacity="1" />
+			<stop stop-color="rgb(207,0,14)" offset="0.88380003" stop-opacity="1" />
+			<stop stop-color="rgb(192,0,9)" offset="0.933099985" stop-opacity="1" />
+			<stop stop-color="rgb(174,0,3)" offset="0.976499975" stop-opacity="1" />
+			<stop stop-color="rgb(160,0,0)" offset="1" stop-opacity="1" />
+		</radialGradient>
+	</defs>
+	<rect id="组合 4425" width="41.9999962" height="42" x="0" y="0" rx="8.02247047" fill="rgb(246,246,246)" />
+	<g id="Group">
+		<rect id="Rectangle" width="33.9775238" height="33.9775238" x="4.01123047" y="4.01123047" fill="rgb(255,255,255)" fill-opacity="0" />
+		<rect id="Rectangle" width="32.0898819" height="32.0898819" x="4.95505047" y="4.95505047" stroke="rgb(151,151,151)" stroke-opacity="0" stroke-width="1.88764024" />
+		<g id="logo上下排版">
+			<path id="Path" d="M19.2117 33.8335L18.4349 35.6634L18.4428 35.6634L18.3873 35.7833L20.044 35.7833L19.9964 35.6634L19.2117 33.8335Z" fill-rule="evenodd" />
+			<path id="Path" d="M8.51892 34.6565L6.03793 34.6565L6.03793 32.451L4.93616 32.451L4.93616 37.9088L6.03793 37.9088L6.03793 35.6954L8.51892 35.6954L8.51892 37.9088L9.61277 37.9088L9.61277 32.451L8.51892 32.451L8.51892 34.6565Z" fill="rgb(0,0,0)" fill-rule="evenodd" />
+			<path id="Path" d="M14.7095 35.5755C14.7095 36.4625 14.2735 36.9339 13.4809 36.9339C12.6803 36.9339 12.2444 36.4465 12.2444 35.5355L12.2444 32.451L11.1426 32.451L11.1426 35.5755C11.1426 37.1097 11.9907 37.9887 13.465 37.9887C14.9552 37.9887 15.8113 37.0938 15.8113 35.5275L15.8113 32.451L14.7095 32.451L14.7095 35.5755Z" fill="rgb(0,0,0)" fill-rule="evenodd" />
+			<path id="Path" d="M27.4077 36.2068L26.1791 32.451L25.2834 32.451L24.0548 36.2068L22.8579 32.451L21.6848 32.451L23.5713 37.9088L24.4829 37.9088L25.7115 34.3289L26.948 37.9088L27.8674 37.9088L29.746 32.451L28.6046 32.451L27.4077 36.2068Z" fill="rgb(0,0,0)" fill-rule="evenodd" />
+			<path id="Path" d="M31.7197 35.5595L33.7172 35.5595L33.7172 34.5686L31.7197 34.5686L31.7197 33.4499L34.6208 33.4499L34.6208 32.451L30.6338 32.451L30.6338 37.9088L34.7238 37.9088L34.7238 36.91L31.7197 36.91L31.7197 35.5595Z" fill="rgb(0,0,0)" fill-rule="evenodd" />
+			<path id="Rectangle" d="M36.0317 32.451L37.1177 32.451L37.1177 37.9008L36.0317 37.9008L36.0317 32.451Z" fill="rgb(0,0,0)" fill-rule="evenodd" />
+			<path id="Shape" d="M19.7112 32.451L18.7521 32.451L16.3662 37.9088L17.4839 37.9088L17.9436 36.854L17.9753 36.7741L20.4563 36.7741L20.9398 37.9088L22.0891 37.9088L19.7271 32.4829L19.7112 32.451ZM18.4349 35.6549L18.3794 35.7827L20.0439 35.7827L19.9963 35.6549L19.2117 33.825L18.4349 35.6549Z" fill="rgb(0,0,0)" fill-rule="evenodd" />
+			<path id="Path" d="M8.836 17.7957C11.2932 20.201 17.246 23.2375 18.6252 23.9248C18.641 23.9328 18.7124 23.9567 18.7599 23.9008C18.7599 23.9008 18.8154 23.8528 18.7837 23.7809L18.7837 23.7809C14.9949 15.4784 9.81888 9.18155 9.81888 9.18155C9.81888 9.18155 6.99706 11.8665 7.20315 14.5594C7.30619 16.5891 8.836 17.7957 8.836 17.7957Z" fill="url(#paint_radial_18)" fill-rule="evenodd" />
+			<path id="Path" d="M17.8325 25.9624C17.8087 25.8745 17.7057 25.8745 17.7057 25.8745L17.7057 25.8745L7.79761 26.2182C8.8756 28.144 10.6828 29.6383 12.5693 29.1748C13.8693 28.8472 16.8179 26.7855 17.7849 26.0903L17.7849 26.0903C17.8642 26.0184 17.8325 25.9624 17.8325 25.9624Z" fill="url(#paint_radial_19)" fill-rule="evenodd" />
+			<path id="Path" d="M8.55852 24.7239C9.50969 25.1154 10.4529 25.1394 10.4529 25.1394C10.6035 25.1634 16.3423 25.1394 17.88 25.1314C17.9434 25.1314 17.9831 25.0675 17.9831 25.0675C18.0306 24.9876 17.9434 24.9156 17.9434 24.9156L17.9434 24.9156C13.5997 21.967 5.166 17.4442 5.166 17.4442C4.39713 19.8254 5.4355 21.7433 5.4355 21.7433C6.50557 24.0287 8.55852 24.7239 8.55852 24.7239Z" fill="url(#paint_radial_20)" fill-rule="evenodd" />
+			<path id="Path" d="M34.1848 26.2182L24.2688 25.8746L24.2688 25.8746C24.2688 25.8746 24.1816 25.8826 24.1578 25.9545C24.1578 25.9545 24.134 26.0424 24.1974 26.0903L24.1974 26.0903C25.1486 26.7696 28.018 28.7913 29.4051 29.1828C29.4051 29.1828 31.9654 30.0538 34.1848 26.2182Z" fill="url(#paint_radial_21)" fill-rule="evenodd" />
+			<path id="Path" d="M23.2224 23.741C23.2224 23.741 23.1749 23.8369 23.2462 23.9008C23.2462 23.9008 23.3176 23.9487 23.381 23.9088L23.381 23.9088C24.7998 23.1976 30.705 20.185 33.1543 17.7957C33.1543 17.7957 34.6999 16.5492 34.7871 14.5434C34.9615 11.7546 32.1714 9.18155 32.1714 9.18155C32.1714 9.18155 27.0113 15.4544 23.2224 23.741L23.2224 23.741Z" fill="url(#paint_radial_22)" fill-rule="evenodd" />
+			<path id="Path" d="M21.8433 22.9978C21.8512 23.0857 21.9226 23.1097 21.9226 23.1097C22.0177 23.1497 22.0653 23.0538 22.0653 23.0538L22.0653 23.0538C23.0164 21.6714 27.2967 15.3026 28.1686 11.419C28.1686 11.419 28.6442 9.54116 28.1845 8.26262C28.1845 8.26262 27.5345 5.83338 24.9109 5.19411C24.9109 5.19411 24.1578 5.00233 23.3493 4.89045L23.3493 4.89045C23.3493 4.88246 20.4166 8.67814 21.8433 22.9978L21.8433 22.9978Z" fill="url(#paint_radial_23)" fill-rule="evenodd" />
+			<path id="Path" d="M19.9251 23.0697C19.9885 23.1337 20.044 23.1097 20.044 23.1097C20.147 23.0777 20.1391 22.9818 20.1391 22.9818L20.1391 22.9818C21.5658 8.67013 18.641 4.88245 18.641 4.88245C18.213 4.9224 17.0478 5.1861 17.0478 5.1861C14.4241 5.86533 13.8059 8.25461 13.8059 8.25461C13.3303 9.7569 13.8217 11.411 13.8217 11.411C14.6936 15.3106 18.9977 21.7193 19.9251 23.0697Z" fill="url(#paint_radial_24)" fill-rule="evenodd" />
+			<path id="Path" d="M36.8243 17.4282C36.8243 17.4282 28.4064 21.967 24.0548 24.9156L24.0548 24.9156C24.0548 24.9156 23.9755 24.9636 24.0072 25.0595C24.0072 25.0595 24.0469 25.1314 24.1103 25.1314L24.1103 25.1314C25.6718 25.1314 31.5691 25.1394 31.7197 25.1154C31.7197 25.1154 32.4806 25.0834 33.4239 24.7239C33.4239 24.7239 35.5244 24.0526 36.6103 21.6633C36.6024 21.6553 37.5773 19.7056 36.8243 17.4282Z" fill="url(#paint_radial_25)" fill-rule="evenodd" />
+		</g>
+	</g>
+</svg>

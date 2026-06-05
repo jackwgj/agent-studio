@@ -1,0 +1,30 @@
+<div class="card-wrapper w-full" [ngClass]="cardClass">
+  <img  [src]="icon" alt="icon" />
+  <div class="content-wrapper">
+    <div>
+      <div class="flex" style="align-items: center;">
+        <span class="inline-block" style="max-width: 150px;margin-right: 6px;color: #191919;" tiOverflow>{{ knowledge?.name }}</span>
+        <nz-icon nzType="message" nzTheme="outline" *ngIf="knowledge?.status === 'CLOSE'" class="prompt-icon text-[#f23030]"
+                 [nzTooltipTitle]="tipContent" nzTooltipPlacement="top" nz-button nz-tooltip
+        />
+        <nz-icon
+          *ngIf="knowledge?.status === 'CLOSE'"
+          nzType="info-circle"
+          nzTheme="outline"
+          class="prompt-icon text-[#f23030]"
+          nz-tooltip
+          [nzTooltipTitle]="tipContent"
+        />
+      </div>
+    </div>
+    <div>{{ knowledge?.description }}</div>
+  </div>
+
+
+  <nz-icon
+    class="cursor-pointer"
+    nzType="minus-circle" nzTheme="outline"
+    [class.disabled]="kbAbilitiesService.isResourceDisabled"
+    (click)="handleDelete($event)"
+  />
+</div>

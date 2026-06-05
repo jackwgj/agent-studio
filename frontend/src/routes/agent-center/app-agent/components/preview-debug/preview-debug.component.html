@@ -1,0 +1,217 @@
+<div id="debug-example-container">
+  <div class="debug-header-container">
+    <div class="title">{{ 'preview_debugging' | i18nextEager }}</div>
+    <div class="flex items-center gap-[8px]">
+      <div class="chat-header-icon" nz-tooltip [nzTooltipMouseEnterDelay]="0.5" [nzTooltipTitle]="'agent_clear' | i18nextEager" >
+        <span nz-icon nzType="rest" (click)="onClear()"></span>
+      </div>
+      @if (!isF1 && dispatchSelectedType === 'ReAct') {
+        <div class="chat-header-icon">
+          <img alt="" [src]="changeUrl('assets/agent-center/icons/memory-icon-new.svg')" nz-tooltip [nzTooltipMouseEnterDelay]="0.5" [nzTooltipTitle]="'memory' | i18nextEager" (click)="getVarModal()" />
+        </div>
+      }
+      <div class="chat-header-icon" (click)="openLogModal()" nz-tooltip [nzTooltipMouseEnterDelay]="0.5" [nzTooltipTitle]="'debugging' | i18nextEager" >
+        <img alt="" [src]="changeUrl('assets/agent-center/icons/agent-debug.svg')" />
+      </div>
+      @if (isF1) {
+        <div
+          (click)="openMemoModal()"
+          class="chat-header-icon"
+          nz-tooltip
+          [nzTooltipMouseEnterDelay]="0.5"
+          [nzTooltipTitle]="'memory' | i18nextEager"
+        >
+          <img alt="" [src]="changeUrl('assets/agent-center/icons/memory.svg')" nz-tooltip [nzTooltipMouseEnterDelay]="0.5" [nzTooltipTitle]="'memory' | i18nextEager" />
+        </div>
+      }
+
+      <div class="chat-header-icon" (click)="handleClickExpandDialog()" nz-tooltip [nzTooltipMouseEnterDelay]="0.5" [nzTooltipTitle]="getIsExpandDialog()">
+        <img [src]="isExpandDialog ? changeUrl('assets/images/full-collapse.svg') : changeUrl('assets/images/full-screen.svg')" alt="" >
+      </div>
+    </div>
+  </div>
+
+  <div class="main-wrapper-history">
+    <div class="left-container">
+      <div
+        class="main-container"
+        [class.main-container-full]="isExpandDialog"
+        cdkScrollable
+        #chatContainerRef
+        (scroll)="onScroll($event.target)"
+      >
+        <div
+          [ngClass]="
+            dialogHistory.length === 0
+              ? 'init-chat-content-container'
+              : 'chat-content-container gap-[24px]'
+          "
+        >
+          @if (dialogHistory.length === 0) {
+            <div class="initial-container">
+
+              <div class="initial-header-container">
+                <img alt="" class="avatar-icon" [src]="agentInfo?.icon" />
+                <span class="title-initial-state" nz-ellipsis>{{
+                  agentName
+                }}</span>
+              </div>
+
+              <div class="initial-prologue-container">
+                @if (getOpenTextAndQuestions.openText ||
+                  (getOpenTextAndQuestions.openQuestions &&
+                    getOpenTextAndQuestions.openQuestions.length > 0)) {
+                  <div
+                    class="initial-prologue-content"
+                  >
+                    @if (getOpenTextAndQuestions.openText) {
+                      <div
+                        class="prologue-text-style"
+                        nz-ellipsis
+                        nz-tooltip
+                        nzTooltipMaxWidth="500px"
+                      >
+                        {{ getOpenTextAndQuestions.openText }}
+                      </div>
+                    }
+                    @if (getOpenTextAndQuestions.openQuestions &&
+                      getOpenTextAndQuestions.openQuestions.length > 0) {
+                      <div
+                        class="flex flex-col gap-3 w-fit max-w-[100%]"
+                      >
+                        @for (item of getOpenTextAndQuestions.openQuestions; track item) {
+                          <span
+                            class="suggest-question-text-style"
+                            nz-ellipsis
+                            nz-tooltip
+                            nzTooltipMaxWidth="500px"
+                            (click)="submitQuestion(item)"
+                            >{{ item }}</span
+                          >
+                        }
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+          }
+          @if (dialogHistory.length > 0) {
+            @for (item of dialogHistory; track item; let i = $index) {
+              <div class="chat-content">
+                <chat-item-update
+                  #chatItem
+                  class="flex flex-col"
+                  [agentIcon]="agentInfo?.icon"
+                  [data]="item"
+                  [isLast]="i === dialogHistory.length-1"
+                  [conversationId]="uuid"
+                  [isFinished]="item[0].isFinished"
+                  [messageId]="item[0].messageId"
+                  [isError]="item[0].isError"
+                  [agentName]="agentName"
+                  [isQuestionsLoading]="isQuestionsLoading"
+                >
+                </chat-item-update>
+                @if (i === dialogHistory.length - 1) {
+                  @if (isQuestionsVisible) {
+                    <div class="probe-container text-[14px]">
+                      @if (isQuestionsLoading) {
+                        <nz-spin [nzSize]="'small'"></nz-spin>
+                      }
+                      @if (getFollowUpQuestions(item).length > 0) {
+                        @for (question of getFollowUpQuestions(item)[0].questions; track question; let first = $first) {
+                          <div
+                            class="w-fit cursor-pointer rounded-[16px] px-[16px] py-[5px] border border-solid border-[#DBDBDB]"
+                            [class.mt-[0px]]="first"
+                            [class.mt-[8px]]="!first"
+                            (click)="probeQuestions(question)"
+                          >
+                            {{ question }}
+                          </div>
+                        }
+                      }
+                    </div>
+                  }
+                }
+              </div>
+            }
+
+            @if (isLoading) {
+              <div class="chat-loading-message px-[20px]">
+                <img alt=""
+                  [src]="changeUrl('assets/agent-center/images/running.webp')"
+                  [alt]="'loading' | i18nextEager"
+                />
+                <span>{{ 'recognizing_user_intent' | i18nextEager }}</span>
+              </div>
+            }
+          }
+        </div>
+      </div>
+
+      <div class="bottom-container">
+        <div class="flex w-full items-center gap-4">
+          @if (agentParams.length) {
+            <div
+              (click)="showVarConfPanel()"
+              class="show-var-conf-btn flex cursor-pointer items-center justify-center gap-1 rounded-2xl bg-white px-3 py-[6px]"
+            >
+              <span nz-icon class="!text-label" nzType="setting"></span>
+              <div>{{ 'var_conf' | i18nextEager }}</div>
+            </div>
+          }
+
+          @if (isF1 && isCodeInterpreter) {
+            <div
+              class="code-interpreter"
+              [ngStyle]="{
+                'background-color': isCodeInterpreter ? '#ffffff' : '#f0f0f0',
+                cursor: isCodeInterpreter ? 'pointer' : 'not-allowed'
+              }"
+              (click)="toggleCodePlugin()"
+              (mouseenter)="onMouseEnter()"
+              (mouseleave)="onMouseLeave()"
+            >
+              @if (isHovered) {
+                <div class="code-interpreter-tip">
+                  {{ codeInterpretTip }}
+                </div>
+              }
+              @if (isHovered) {
+                <div class="arrow"></div>
+              }
+              @if (isCodeInterpreter && isCodeInterpreterActive) {
+                <div class="status-circle"></div>
+              }
+              <asset-interpreter-icon></asset-interpreter-icon>
+              <div>{{ 'code_interpreter' | i18nextEager }}</div>
+            </div>
+          }
+        </div>
+
+        <meta-sender
+          [sending]="isShowStopIcon"
+          [disabled]="sendDisabled"
+          [showClear]="false"
+          (disabledSender)="getDisableSender($event)"
+          [maxlength]="userQueryLimit"
+          (send)="sendQuestion($event)"
+          (stop)="stopChat()"
+        />
+      </div>
+    </div>
+
+    @if (!isCloseAgentParamsPanel && agentParams.length) {
+      <div class="absolute bottom-4 right-6 w-[calc(100%-48px)]">
+        <meta-var-config
+          #varConfRef
+          [params]="agentParams"
+          (confirm)="varConfConfirm($event)"
+        />
+      </div>
+    }
+  </div>
+  <meta-var-memory-modal [actionType]="'VIEW'" [agentId]="appId" #varMemoryModalView></meta-var-memory-modal>
+<!--  <meta-long-memory-modal [agentId]="appId" #longMemoryModalView></meta-long-memory-modal>-->
+</div>

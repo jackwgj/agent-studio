@@ -1,0 +1,9 @@
+{"tool_id":"reserve_meeting_room_9","project_id":"project_mock",
+  "tool_display_name":"qetqet1","tool_chinese_name":"eqt","tool_desc":"tqtqt",
+  "icon":"data:image/svg+xml;base123",
+  "request_info":{"url":"xxx","method":"GET","headers":{"Content-Type":"application/json"}},
+  "auth_info":{},"visibility":"project",
+  "input_schema":"",
+  "output_schema":"{\"type\":\"object\",\"properties\":{\"a\":{\"type\":\"string\",\"description\":\"\"}},\"required\":[\"a\"]}",
+  "is_input_list":false,"is_output_list":false,"type":"custom","intf_type":"blocking","creator":"2",
+  "creator_id":"2","created_on":"2025-07-09 12:12:55","updated_on":"2025-07-16 16:58:13","test_status":0}

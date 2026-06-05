@@ -1,0 +1,116 @@
+.drawer-header {
+  padding: 16px 24px;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.drawer-body {
+  padding: 24px;
+}
+
+.drawer-footer {
+  padding: 16px 24px;
+  border-top: 1px solid #f0f0f0;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.guide-card {
+  border-radius: 6px;
+  border: 1px solid #c2c2c2;
+  overflow: hidden;
+}
+
+.add-guide-box {
+  height: 42px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  border: 1px dashed #ADB0B8;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #8A8E99;
+
+  &:hover {
+    border: 1px dashed #575D6C;
+  }
+}
+
+.add-guide-box-disabled {
+  cursor: not-allowed;
+  color: #ADB0B8;
+
+  &:hover {
+    border: 1px dashed #ADB0B8 !important;
+  }
+}
+
+.w-fit-content {
+  width: fit-content;
+}
+
+.text-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.common-icon {
+  color: #575D6C;
+  font-size: 16px;
+}
+
+.collapsed-icon {
+  transform: rotate(90deg);
+}
+
+.unfolded-icon {
+  transform: rotate(-90deg);
+}
+
+.icon-border {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  font-size: 16px;
+
+  &:hover {
+    background-color: #e6e6e6;
+  }
+}
+
+.icon-border-disabled {
+  cursor: not-allowed;
+  background-color: unset !important;
+  color: #ADB0B8;
+}
+
+.global-cycle-error {
+  .error-icon {
+    font-size: 16px;
+    height: 16px;
+    color: #ff4d4f;
+  }
+  color: #ff4d4f;
+}
+
+.alert-width {
+  width: 100%;
+}
+
+:host ::ng-deep {
+  .ant-form-item {
+    margin-bottom: 12px;
+  }
+
+  .ant-form-item-label > label {
+    font-weight: 500;
+  }
+}

@@ -1,0 +1,27 @@
+<div class="main-edit-name">
+  <div
+    class="name-div"
+    [style]="{ display: shoNameDiv ? 'inline-block' : 'none' }"
+    nz-tooltip
+    [nzTooltipTitle]="name"
+    (click)="nameDivClice()"
+  >
+    {{ name }}
+  </div>
+  <div
+    [formGroup]="groupFormControl"
+    [style]="{ display: !shoNameDiv ? 'inline-block' : 'none' }"
+  >
+    <input
+      #nameInput
+      class="input-div"
+      type="text"
+      nz-input
+      formControlName="name"
+      (blur)="onBlur()"
+    />
+    <div *ngIf="groupFormControl.get('name')?.invalid && groupFormControl.get('name')?.touched" class="text-[#ff4d4f] text-[12px]">
+      {{ 'input_cannot_be_empty' | i18nextEager }}
+    </div>
+  </div>
+</div>

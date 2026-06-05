@@ -1,0 +1,25 @@
+::ng-deep {
+  #import-request-modal .ti3-modal-dialog {
+    width: 900px !important;
+  }
+}
+
+.example {
+  width: 304px;
+  height: 402px;
+  border-radius: 8px;
+  background: rgba(240, 247, 255, 1);
+}
+
+.monaco-placeholder {
+  position: absolute;
+  white-space: pre-wrap;
+  width: calc(100% - 64px); //减去左右边距
+  height: 100%;
+  top: 13px;
+  left: 32px;
+  font-size: 12px;
+  color: #808080;
+  pointer-events: none;
+  user-select: none;
+}

@@ -1,0 +1,149 @@
+<div class="flex">
+  <div class="w-[368px] h-[calc(100vh-260px)] pr-[35px] mr-[35px] border-r-[1px] border-[#EBEBEB] border-solid">
+    <div class="w-full font-semibold text-[14px] mb-[16px]">{{ 'call_api' | i18nextEager }}</div>
+    <div class="mb-[16px]" *ngFor="let info of requestInfo">
+      <div class="font-semibold">{{ info.part }}</div>
+      <div class="flex items-center justify-between my-[8px]" style="position: relative">
+        {{ info.field }}
+        <img alt=""
+          *ngIf="info.field === 'url'"
+          style="position: absolute; right: 26px"
+          [src]="changeUrl('assets/model/online-test-help.svg')"
+          nz-tooltip
+          [nzTooltipTitle]="urlTip"
+          nzTooltipPlacement="right"
+        >
+      </div>
+      <div class="rounded-[6px] bg-[#f5f5f5] px-[12px] py-[8px] break-all">{{ info.value }}</div>
+    </div>
+  </div>
+  <div class="grow h-[calc(100vh-260px)] overflow-y-auto flex-1">
+    <nz-tabs [nzSelectedIndex]="selectedTabIndex" (nzSelectedIndexChange)="onTabChange($event)">
+      <nz-tab [nzTitle]="tabs[0].title">
+        <div class="mb-[24px] w-full" *ngFor="let info of apiDoc">
+          <div class="font-semibold mb-[8px]">{{ info.field }}</div>
+          <div [ngSwitch]="info.type">
+            <div *ngSwitchCase="'slot'" class="text-[#595959]">
+              <ng-container *ngIf="info.slot==='version'">
+                <ng-container *ngTemplateOutlet="version"></ng-container>
+              </ng-container>
+              <ng-container *ngIf="info.slot==='apiDefine'">
+                <ng-container *ngTemplateOutlet="apiDefine"></ng-container>
+              </ng-container>
+              <ng-container *ngIf="info.slot==='token'">
+                <ng-container *ngTemplateOutlet="token"></ng-container>
+              </ng-container>
+              <ng-container *ngIf="info.slot==='image'">
+                <ng-container *ngTemplateOutlet="image"></ng-container>
+              </ng-container>
+              <ng-container *ngIf="info.slot==='request'">
+                <ng-container *ngTemplateOutlet="request"></ng-container>
+              </ng-container>
+              <ng-container *ngIf="info.slot==='response'">
+                <ng-container *ngTemplateOutlet="response"></ng-container>
+              </ng-container>
+            </div>
+            <div *ngSwitchDefault class="text-[#595959]">{{ info.value }}</div>
+          </div>
+        </div>
+      </nz-tab>
+      <nz-tab *ngIf="runtime_api_endpoint_prefix" [nzTitle]="tabs[1].title">
+        <div class="editor-wrapper">
+          <div class="h-[calc(100%-50px)]">
+            <ngx-monaco-editor [options]="editorOptions" [(ngModel)]="code"></ngx-monaco-editor>
+          </div>
+        </div>
+      </nz-tab>
+    </nz-tabs>
+  </div>
+</div>
+
+<ng-template #version>
+  <div>{{ 'version_id' | i18nextEager }}：{{versionId}}</div>
+  <div>{{ 'version_id_desc' | i18nextEager }}</div>
+</ng-template>
+
+<ng-template #token>
+  <div>{{ 'user_token' | i18nextEager }}
+    <ng-container *ngIf="!isHcsOrPoc && iamUrl">
+      {{ 'such_as' | i18nextEager }}
+      <a  tiNavIcon target="_blank" [href]="iamUrl" rel="noopener noreferrer">X-Auth-Token</a>
+    </ng-container>
+  </div>
+</ng-template>
+
+<ng-template #apiDefine>
+  <div class="border-t-[1px] border-[#dde2eb] border-solid">
+    <div class="flex w-full" *ngFor="let item of parameters">
+      <div class="item key" [style]="{'display': item.key === 'Path' ? 'flex' : '', 'align-items': item.key === 'Path' ? 'center' : '', gap: item.key === 'Path' ? '4px' : ''}">
+        {{item.key}}
+        <img alt=""
+          *ngIf="item.key === 'Path'"
+          [src]="changeUrl('assets/model/online-test-help.svg')"
+          nz-tooltip
+          [nzTooltipTitle]="pathTip"
+          nzTooltipPlacement="right"
+          style="width: 16px"
+        >
+      </div>
+      <div class="item grow value" [style]="{'flex': item.key === 'Path' ? '1' : ''}"> {{item.value}} </div>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #image>
+  <div style="color: rgb(89, 89, 89); margin-bottom: 4px" *ngIf="isDeepResearch">{{ 'request_structure_1' | i18nextEager }}</div>
+  <div class="overflow-x-auto rounded-[6px] bg-[#F9F9FA]">
+    <pre>
+      <code class="p-0" [innerHTML]="requestCode"></code>
+    </pre>
+  </div>
+  <div style="color: rgb(89, 89, 89); margin-bottom: 4px; margin-top: 16px" *ngIf="isDeepResearch">
+    {{ 'request_structure_2' | i18nextEager }}
+  </div>
+  <div class="overflow-x-auto rounded-[6px] bg-[#F9F9FA]" *ngIf="isDeepResearch">
+    <pre>
+      <code class="p-0" [innerHTML]="requestCodeDeepResearch"></code>
+    </pre>
+  </div>
+</ng-template>
+
+<ng-template #request>
+  <nz-table #requestTable [nzData]="requestTableData" [nzShowPagination]="false" [nzSize]="'small'">
+    <thead>
+      <tr>
+        <th>{{ fieldColDef.headerName }}</th>
+        <th>{{ typeColDef.headerName }}</th>
+        <th>{{ mandatoryColDef.headerName }}</th>
+        <th>{{ descColDef.headerName }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let row of requestTable.data">
+        <td>{{ row.field }}</td>
+        <td>{{ row.type }}</td>
+        <td>{{ row.mandatory }}</td>
+        <td>{{ row.desc }}</td>
+      </tr>
+    </tbody>
+  </nz-table>
+</ng-template>
+
+<ng-template #response>
+  <nz-table #responseTable [nzData]="responseTableData" [nzShowPagination]="false" [nzSize]="'small'">
+    <thead>
+      <tr>
+        <th>{{ fieldColDef.headerName }}</th>
+        <th>{{ typeColDef.headerName }}</th>
+        <th>{{ descColDef.headerName }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let row of responseTable.data">
+        <td>{{ row.field }}</td>
+        <td>{{ row.type }}</td>
+        <td>{{ row.desc }}</td>
+      </tr>
+    </tbody>
+  </nz-table>
+</ng-template>

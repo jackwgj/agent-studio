@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.prompt.engineering.mapper.PeVariableMapper">
+
+    <resultMap id="PeVariableResultMap" type="com.openjiuwen.studio.prompt.engineering.entity.PeVariable">
+        <id column="id" jdbcType="VARCHAR" property="id"/>
+        <result column="name" jdbcType="VARCHAR" property="name"/>
+        <result column="key" jdbcType="VARCHAR" property="key"/>
+        <result column="pe_task_id" jdbcType="VARCHAR" property="peTaskId"/>
+        <result column="relation_count" jdbcType="VARCHAR" property="relationCount"/>
+        <result column="create_time" jdbcType="BIGINT" property="createTime"/>
+        <result property="workspaceId" column="workspace_id" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <select id="countVariableNameByNameAndTaskId" resultType="java.lang.Integer">
+        select count(1)
+        from t_pe_variable
+        where task_id = #{taskId} and workspace_id = #{workspaceId}
+        <if test="variables != null and variables.size() > 0">
+            and name in
+            <foreach close=")" collection="variables" item="item" open="(" separator=",">
+                #{item}
+            </foreach>
+        </if>
+    </select>
+
+    <select id="queryVariablesByTaskId"
+            resultType="com.openjiuwen.studio.prompt.engineering.entity.PeVariable">
+        select *
+        from t_pe_variable
+        where pe_task_id = #{taskId} and workspace_id = #{workspaceId} ORDER BY create_time asc
+    </select>
+
+    <select id="queryVariablesById" resultMap="PeVariableResultMap">
+        select * from t_pe_variable
+        <if test="variableIdList != null and variableIdList.size() > 0">
+            where workspace_id = #{workspaceId} and id in
+            <foreach close=")" collection="variableIdList" item="item" open="(" separator=",">
+                #{item}
+            </foreach>
+        </if>
+    </select>
+
+    <update id="updateVariable">
+        update t_pe_variable
+        set name = #{needUpdateVariable.name}, relation_count = #{needUpdateVariable.relationCount}
+        where pe_task_id = #{needUpdateVariable.peTaskId} and workspace_id = #{workspaceId}
+          and t_pe_variable.key = #{needUpdateVariable.key}
+    </update>
+
+    <delete id="deleteVariablesByTaskId">
+        delete
+        from t_pe_variable
+        where pe_task_id = #{taskId}
+          and relation_count &lt;= 0 and workspace_id = #{workspaceId}
+    </delete>
+    <delete id="deleteAllVariablesByTaskId">
+        delete
+        from t_pe_variable
+        where pe_task_id = #{taskId} and workspace_id = #{workspaceId}
+    </delete>
+
+    <insert id="batchInsertVariable">
+        insert into t_pe_variable(`id`,`name`,`key`,`pe_task_id`,`relation_count`, `create_time`, `workspace_id`)
+        values
+        <foreach collection="variables" item="item" separator=",">
+            (#{item.id,jdbcType=VARCHAR},
+            #{item.name,jdbcType=VARCHAR},
+            #{item.key,jdbcType=VARCHAR},
+            #{item.peTaskId,jdbcType=VARCHAR},
+            #{item.relationCount,jdbcType=VARCHAR},
+            #{item.createTime,jdbcType=BIGINT},
+            #{workspaceId})
+        </foreach>
+    </insert>
+
+    <update id="updateVariableRelationCount">
+        update t_pe_variable
+        set relation_count = relation_count - 1
+        where id = #{id} and workspace_id = #{workspaceId}
+    </update>
+    <update id="batchReduceVariableRelationCount">
+        update t_pe_variable
+        set relation_count = relation_count - 1
+        where workspace_id = #{workspaceId} and id in
+        <foreach collection="needReduce" item="id" separator="," open="(" close=")">
+            #{id}
+        </foreach>
+    </update>
+
+    <update id="batchRaiseVariableRelationCount">
+        update t_pe_variable t
+        set relation_count = relation_count + 1
+        where
+        pe_task_id = #{taskId} and workspace_id = #{workspaceId}
+        and t.key in
+        <foreach collection="needRaise" item="key" separator="," open="(" close=")">
+            #{key}
+        </foreach>
+    </update>
+
+    <select id="queryVariableKeysByTaskId" resultType="java.lang.String">
+        SELECT `key` from t_pe_variable where pe_task_id = #{taskId} and workspace_id = #{workspaceId}
+    </select>
+
+    <select id="selectVariablesByIds" resultType="com.openjiuwen.studio.prompt.engineering.entity.PeVariable">
+        select * from t_pe_variable where workspace_id = #{workspaceId} and id in
+        <foreach collection="variableIds" separator="," item="item" close=")" open="(">
+            #{item}
+        </foreach>
+    </select>
+
+    <select id="queryVariablesByTaskIdAndKey"
+            resultType="com.openjiuwen.studio.prompt.engineering.entity.PeVariable">
+        select * from t_pe_variable where
+        pe_task_id = #{taskId} and workspace_id = #{workspaceId}
+        and t_pe_variable.key in
+        <foreach collection="variableKeys" separator="," item="item" close=")" open="(">
+            #{item}
+        </foreach>
+    </select>
+</mapper>

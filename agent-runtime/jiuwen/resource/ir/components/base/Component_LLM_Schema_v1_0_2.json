@@ -1,0 +1,103 @@
+{
+  "schemaVersion": "0.5",
+  "type": "jiuwen.LLMComponent",
+  "version": "1.0.2",
+  "description": "大模型能力配置组件",
+  "classInfo": {
+    "programLanguage": "python",
+    "modulePath": "jiuwen.prompt.agent_develop.components.prompt_llm",
+    "className": "PromptLLMComponent",
+    "filePath": "jiuwen/prompt/agent_develop/components/prompt_llm.pyc"
+  },
+  "configs": [
+    {
+      "id": "executeMode",
+      "description": "执行模式：批batch或流stream",
+      "type": "String"
+    },
+    {
+      "id": "mockResults",
+      "type": "List<Map<String, T>>",
+      "description": "mockResults"
+    },
+    {
+      "id": "model",
+      "type": "Map<String, T>",
+      "description": "模型名称"
+    },
+    {
+      "id": "cacheSize",
+      "type": "Int",
+      "description": "流式缓存区大小"
+    },
+    {
+      "id": "hyperParameters",
+      "type": "Map<String, T>",
+      "description": "模型生成相关超参"
+    },
+    {
+      "id": "templateContent",
+      "type": "List<Map<String, T>>",
+      "description": "用户定义的prompt模板，可以包含${}形式的占位符"
+    },
+    {
+      "id": "refinerConfig",
+      "type": "Map<String, T>",
+      "description": "配置Prompt压缩相关选项，需要提供refineMaxLength(压缩至的最大长度，超过长度时，默认对插件列表和对话历史进行压缩，如果不提供，默认最大长度是4096)"
+    },
+    {
+      "id": "variableFormatSchema",
+      "type": "Map<String, T>",
+      "description": "对于复杂数据类型的填充变量，可以通过此配置项指定具体填充方式"
+    },
+    {
+      "id": "toolCallFormat",
+      "type": "String",
+      "description": "standard|customized"
+    }
+  ],
+  "inputs": [
+    {
+      "id": "variables",
+      "type": "Map<String, T>",
+      "description": "需要向Prompt模板占位符中填充的变量，以字典的形式传入，键名为占位符变量名称，值为占位符变量的值"
+    },
+    {
+      "id": "history",
+      "type": "List<Map<String, T>>",
+      "description": "包含历史对话的消息列表"
+    },
+    {
+      "id": "query",
+      "type": "String",
+      "description": "用户的当前query，用于作为对话历史和插件列表优选的key"
+    },
+    {
+      "id": "templateContent",
+      "type": "List<Map<String, T>>",
+      "description": "用户定义的prompt模板，可以包含${}形式的占位符，如果传入，会覆盖configs中的模板"
+    },
+    {
+      "id": "variableFormatSchema",
+      "type": "Map<String, T>",
+      "description": "配置Prompt压缩相关选项，需要提供refineMaxLength(压缩至的最大长度，超过长度时，默认对插件列表和对话历史进行压缩，如果不提供，默认最大长度是4096)，当prompt模板中有占位符时，可以提供refineVariables字段(指定需要精炼的变量名列表)"
+    },
+    {
+      "id": "tools",
+      "type": "List<Map<String, T>>",
+      "description": "用户自定义的工具"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "message",
+      "type": "Map<String, T>",
+      "description": "返回的助手message"
+    },
+    {
+      "id": "metadata",
+      "type": "Map<String, T>",
+      "description": "访问大模型相关的信息，如时延，消耗token数量等"
+    }
+  ]
+}

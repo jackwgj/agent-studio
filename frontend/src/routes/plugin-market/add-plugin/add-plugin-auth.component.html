@@ -1,0 +1,70 @@
+<div *nzModalTitle>
+  <div class="flex items-center gap-[8px]">
+    <span>{{ 'set_auth_info' | i18nextEager }}</span>
+  </div>
+</div>
+<div>
+  <nz-alert
+    nzType="info"
+    style="width: 100%; font-size: 14px; margin-bottom: 16px"
+    *ngIf="pluginInfo.credential_status === 'UNAUTHENTICATED'"
+    [nzMessage]="'plugin_auth_binding_tip' | i18nextEager"
+  ></nz-alert>
+  <nz-alert
+    nzType="warning"
+    style="width: 100%; font-size: 14px; margin-bottom: 16px"
+    *ngIf="pluginInfo.credential_status != 'UNAUTHENTICATED'"
+    [nzMessage]="'plugin_auth_removal_impact' | i18nextEager"
+  ></nz-alert>
+  <nz-alert nzType="error" style="width: 100%; font-size: 14px; margin-bottom: 16px" *ngIf="pluginCredentialsMode === AuthMode.FORCE" [nzMessage]="errTip">
+  </nz-alert>
+  <div class="view-detail-button" *ngIf="pluginCredentialsMode === AuthMode.FORCE" (click)="showErrDetail = !showErrDetail">
+    <span>
+      {{ 'add_plugin_auth_1' | i18nextEager }}
+    </span>
+    <ng-container *ngIf="!showErrDetail; else unfoldTemplate">
+      <img [src]="changeUrl('assets/agent-center/flow/fold.svg')" alt="" class="h-4 w-4" />
+    </ng-container>
+    <ng-template #unfoldTemplate>
+      <img [src]="changeUrl('assets/agent-center/flow/unfold.svg')" alt="" class="h-4 w-4" />
+    </ng-template>
+  </div>
+  <div *ngIf="showErrDetail && pluginCredentialsMode === AuthMode.FORCE" style="margin-top: 8px">
+    {{ errDetail }}
+  </div>
+
+  <form [formGroup]="authFormControl" class="w-full">
+    <div class="w-full">
+      <div class="flex items-center gap-[8px] mb-[8px]">
+        <span class="text-[14px]">API key</span>
+        <span class="text-[#ff4d4f]">*</span>
+      </div>
+      <input class="w-full" type="password" nz-input formControlName="auth_key" [placeholder]="'input_password_login' | i18nextEager" />
+    </div>
+    <div class="a-link" *ngIf="pluginInfo?.metadata">
+      <a [href]="pluginInfo?.metadata" target="_blank">{{ 'get_auth_info' | i18nextEager }}</a
+      ><span class="share-icon"></span>
+    </div>
+  </form>
+</div>
+<div *nzModalFooter>
+  <nz-space>
+    <button type="button" nz-button class="btn" size="large" (click)="dismiss()">
+      {{ 'cancel' | i18nextEager }}
+    </button>
+    <button
+      (click)="handleClickOnSubmit()"
+      *ngIf="pluginCredentialsMode === AuthMode.NORMAL"
+      [nzLoading]="loading"
+      class="btn"
+      nz-button
+      type="button"
+      nzDanger
+    >
+      {{ (pluginInfo.credential_status === 'UNAUTHENTICATED' ? 'save' : 'remove') | i18nextEager }}
+    </button>
+    <button (click)="handleClickOnSubmit()" *ngIf="pluginCredentialsMode === AuthMode.FORCE" [nzLoading]="loading" class="btn" nz-button type="button" nzDanger>
+      {{ 'continue_saving' | i18nextEager }}
+    </button>
+  </nz-space>
+</div>

@@ -1,0 +1,48 @@
+{
+  "type": "jiuwen.planner.components.plan_modules.update_plan_output:UpdatePlanOutput",
+  "version": "1.0.2",
+  "description": "保存大模型输出并更新规划状态",
+  "schemaVersion": "0.6",
+  "classInfo": {
+    "modulePath": "jiuwen.planner.components.plan_modules.update_plan_output",
+    "className": "UpdatePlanOutput",
+    "programLanguage": "python",
+    "filePath": "jiuwen/planner/components/planning_modules/update_plan_output.pyc"
+  },
+  "inputs": [
+    {
+      "id": "message",
+      "type": "Map<String, T>",
+      "description": "返回的助手message"
+    },
+    {
+      "id": "metadata",
+      "type": "Map<String, T>",
+      "description": "访问大模型相关的信息，如时延，消耗token数量等"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "status_code",
+      "description": "保存更新规划状态的结果",
+      "type": "String"
+    }
+  ],
+  "configs": [
+    {
+      "id": "userFields",
+      "type": "Map<String, T>",
+      "description": "用户参数信息配置"
+    },
+    {
+      "id": "preDefinedFields",
+      "type": "Map<String, T>",
+      "description": "预定义参数信息配置"
+    },
+    {
+      "id": "debugType",
+      "type": "Map<String, T>",
+      "description": "调测树配置"
+    }
+  ]
+}

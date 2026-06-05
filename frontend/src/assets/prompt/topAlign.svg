@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="13px" height="12.5px" viewBox="0 0 13 12.5" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>顶对齐 justify-top</title>
+    <g id="页面-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="3-2-2横向比较-模版效果比较-关闭变量值详情备份" transform="translate(-953.5, -645.75)" stroke="#191919">
+            <g id="编组-16" transform="translate(948, 640)">
+                <g id="顶对齐-justify-top" transform="translate(6, 5.75)">
+                    <g id="编组" transform="translate(6, 6.25) rotate(90) translate(-6, -6.25)translate(-0.25, 0.25)">
+                        <g id="编组-2" transform="translate(7.25, 9) rotate(-90) translate(-7.25, -9)translate(4.75, 3.75)">
+                            <rect id="矩形" x="0.5" y="0.5" width="4" height="9.5" rx="1.5"></rect>
+                        </g>
+                        <g id="编组-2备份" transform="translate(5.5, 3) rotate(-90) translate(-5.5, -3)translate(3, -0.5)">
+                            <rect id="矩形" x="0.5" y="0.5" width="4" height="6" rx="1.5"></rect>
+                        </g>
+                        <line x1="-5.5" y1="6" x2="6.5" y2="6" id="直线" stroke-linecap="round" transform="translate(0.5, 6) rotate(90) translate(-0.5, -6)"></line>
+                    </g>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg>

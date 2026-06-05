@@ -1,0 +1,99 @@
+<div class="template-title">{{ 'upload_write_template' | i18nextEager }}</div>
+
+<div class="template-type">{{ 'template_type' | i18nextEager }}</div>
+<p style="display: flex; align-items: center; gap: 2px">
+  <span class="template-type-btn" (click)="handleClickChangeTemplateType('extract')"
+        [style]="{
+        backgroundColor: selectedType === 'extract' ? 'rgb(20, 118, 255)' : 'rgb(245, 245, 245)',
+        color: selectedType === 'extract' ? '#fff' : 'rgb(89, 89, 89)'
+        }">{{ 'extract_gen' | i18nextEager }}</span>
+  <span class="template-type-btn" (click)="handleClickChangeTemplateType('direct')"
+        [style]="{
+      backgroundColor: selectedType === 'direct' ? 'rgb(20, 118, 255)' : 'rgb(245, 245, 245)',
+      color: selectedType === 'direct' ? '#fff' : 'rgb(89, 89, 89)'
+    }">{{ 'direct_template' | i18nextEager }}</span>
+</p>
+<div style="margin-top: 24px; margin-bottom: 12px; font-size: 14px; font-weight: 600">
+  {{ 'template_upload' | i18nextEager }}
+</div>
+<nz-alert
+  *ngIf="selectedType === 'extract'"
+  nzType="info"
+  [nzMessage]="tips1"
+  [nzDescription]="tips2"
+  nzShowIcon
+  style="width: 100%; margin-bottom: 16px">
+</nz-alert>
+<nz-alert
+  *ngIf="selectedType === 'direct'"
+  nzType="info"
+  [nzMessage]="tips3"
+  [nzDescription]="tips2"
+  nzShowIcon
+  style="width: 100%; margin-bottom: 16px">
+</nz-alert>
+
+<div style="position: relative">
+  <nz-upload
+    *ngIf="selectedType === 'extract'"
+    [nzMultiple]="false"
+    [nzShowUploadList]="true"
+    (nzChange)="onAddFileSuccess($event.file)"
+    [nzAccept]="'.md,.html,.doc,.docx,.pdf'"
+  >
+    <button nz-button>
+      <span>{{ uploadName }}</span>
+    </button>
+  </nz-upload>
+
+  <nz-upload
+    *ngIf="selectedType === 'direct'"
+    [nzMultiple]="false"
+    [nzShowUploadList]="true"
+    (nzChange)="onAddFileSuccess($event.file)"
+    [nzAccept]="'.md'"
+  >
+    <button nz-button>
+      <span>{{ uploadNameDir }}</span>
+    </button>
+  </nz-upload>
+</div>
+
+@if (fileName && selectedType === 'extract' && isShowOldFile) {
+  <p class="selected-file"
+     (mouseenter)="isHoveUploadBtn = true"
+     (mouseleave)="isHoveUploadBtn = false">
+    <span style="color: rgb(89, 89, 89); font-size: 16px; display: inline-flex; align-items: center;">
+      <span style="font-size: 12px">{{ fileName }}</span>
+    </span>
+    @if (isHoveUploadBtn) {
+      <span style="font-size: 16px;color: #191919;cursor: pointer;padding-top: 6px;" (click)="onRemoveItems($event)">
+        <nz-icon nzType="delete"></nz-icon>
+      </span>
+    }
+  </p>
+}
+
+@if (fileNameDir && selectedType === 'direct' && isShowOldFileDir) {
+  <p class="selected-file"
+     (mouseenter)="isHoveUploadBtn = true"
+     (mouseleave)="isHoveUploadBtn = false">
+    <span style="color: rgb(89, 89, 89); font-size: 16px; display: inline-flex; align-items: center;">
+      <span style="font-size: 12px">{{ fileNameDir }}</span>
+    </span>
+    @if (isHoveUploadBtn) {
+      <span style="font-size: 16px;color: #191919;cursor: pointer;padding-top: 6px;" (click)="onRemoveItems($event)">
+        <nz-icon nzType="delete"></nz-icon>
+      </span>
+    }
+  </p>
+}
+
+<div class="search-button">
+  <button nz-button nzType="default" size="large" (click)="dismiss()">
+    {{ 'to_cancel' | i18nextEager }}
+  </button>
+  <button nz-button nzType="primary" size="large" [disabled]="confirmBtnDisabledStatus" (click)="close()">
+    {{ 'save' | i18nextEager }}
+  </button>
+</div>

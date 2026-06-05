@@ -1,0 +1,22 @@
+<div>
+  <div class="flex items-center gap-[10px]" *ngIf="type === 'APP_STORE'">
+    <img alt="" [src]="changeUrl('assets/prompt/alert.svg')" />
+    {{ 'delete_channel_modal_header' | i18nextEager:{name:name } }}
+  </div>
+</div>
+<div>
+  <div class="text-[#808080]" *ngIf="type === 'APP_STORE'">
+    {{ 'delete_channel_modal_body' | i18nextEager:{name:name } }}
+  </div>
+</div>
+<div class="btn-group" style="margin-top: 16px;">
+  <button type="button" nz-button (click)="dismiss()">{{ 'cancel' | i18nextEager }}</button>
+  <button
+    type="button"
+    nz-button
+    nzType="primary"
+    (click)="deletePublishedChannel()"
+  >
+    {{ 'stop_distribution' | i18nextEager }}
+  </button>
+</div>

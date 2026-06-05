@@ -1,0 +1,133 @@
+.run-modal-wrapper {
+  padding: 18px 24px;
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  animation: show-modal-animation 150ms ease-in;
+
+  .conversation-title {
+    height: 28px;
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+
+    .task-name {
+      color: rgba(25, 25, 25, 1);
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 22px;
+      letter-spacing: 0px;
+      text-align: left;
+    }
+  }
+
+  .run-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    max-width: 1080px;
+    height: calc(100% - 176px);
+
+    .empty-content {
+      height: fit-content;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      flex: 1;
+
+      .flow-avatar {
+        display: block;
+        width: auto;
+        height: 58px;
+        border-radius: 12px;
+      }
+      
+      .flow-name {
+        font-size: 32px;
+        font-weight: 600;
+        line-height: 45px;
+        word-break: break-all;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        white-space: nowrap;
+      }
+    }
+
+    .flow-content {
+      width: 100%;
+      height: 100%;
+      overflow: scroll;
+    }
+  }
+
+  .run-footer {
+    flex: 0;
+    width: 100%;
+    max-height: calc(100% - 80px);
+
+    .start-node-params-area {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      max-height: 100%;
+      gap: 8px;
+      padding: 24px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 1);
+
+      dynamic-node-params {
+        overflow-x: hidden;
+        flex: 0 1 auto;
+      }
+
+      .timeout-label {
+        height: 24px;
+        display: flex;
+        align-items: center;
+      }
+
+      .run-workflow-btn-box{
+        display: flex;
+        width: 100%;
+        justify-content: flex-end;
+        margin-top: 20px;
+      }
+
+      .run-workflow-btn {
+        width: fit-content;
+      }
+    }
+  }
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+
+    .title {
+      font-size: 16px;
+      line-height: 24px;
+      font-weight: 600;
+      color: #000000;
+    }
+
+    .close-icon {
+      font-size: 16px;
+      color: #000000;
+      cursor: pointer;
+    }
+  }
+
+
+}

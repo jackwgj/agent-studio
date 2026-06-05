@@ -1,0 +1,88 @@
+:host {
+  min-width: 393px;
+  padding: 24px;
+  background-color: #fff;
+  border-radius: 16px;
+  height: 196px;
+  box-sizing: border-box;
+  cursor: pointer;
+  font-family: PingFang SC;
+
+  &:hover {
+    .bottom-area {
+       display: none;
+    }
+    .bottom-area-menu {
+       display: inline-block;
+    }
+  }
+}
+
+.icon-and-name {
+  display: flex;
+  gap: 0 16px;
+  align-items: center;
+
+  .name {
+    font-size: 16px;
+    max-width: 100%;
+    line-height: 24px;
+    color: #191919;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+}
+
+.bottom-area {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  line-height: 24px;
+  color: #808080;
+}
+
+.bottom-area-menu {
+  display: flex;
+  font-size: 14px;
+  font-family: PingFang SC;
+  gap: 24px;
+  display: none;
+
+  .action-link {
+    font-weight: 600;
+  }
+
+  .disabled {
+    color: #999;
+    cursor: not-allowed !important;
+  }
+}
+
+.creator-agent {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.model-card-description {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  flex: 2;
+  color: #808080;
+}
+
+.model-card-name {
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+  overflow: hidden;
+  flex: 1;
+}
+.card-description {
+  margin: 16px 0 16px 0;
+  color: rgba(128, 128, 128, 1);
+  line-height: 22px;
+  font-size: 14px;
+}

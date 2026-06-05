@@ -1,0 +1,170 @@
+<div class="add-plugin-modal-container">
+  <div class="flex-left">
+    <nz-tabset class="add-plugin-tabs" [nzSelectedIndex]="getActivceIndex()">
+      <nz-tab [nzTitle]="tabs[0].title">
+        <div class="plugin-preset">
+          <div class="plugin-desc-area mt-2">
+            {{ 'plugin_limit' | i18nextEager: { number: pluginLimit } }}
+          </div>
+          <nz-tabset nzType="card" class="app-plugin-tabs">
+            <nz-tab *ngFor="let tab of appPluginTabs; let i = index" [nzTitle]="tab.name" (nzSelect)="changeAppTab(tab)">
+            </nz-tab>
+          </nz-tabset>
+          <div class="flex w-full items-center gap-2">
+            <nz-input-search nzAllowClear (nzSearch)="getPluginListBySearch('market')">
+              <input
+                nz-input
+                id="searchbox-basic"
+                class="plugin-searchbox"
+                [placeholder]="emptyPlaceholder"
+                [(ngModel)]="searchMarketVal"
+              />
+            </nz-input-search>
+            <button
+              (click)="getPluginListBySearch('market')"
+              class="h-8 w-8"
+              nz-button
+              nzType="default"
+            >
+              <nz-icon nzType="reload" nzTheme="outline" />
+            </button>
+          </div>
+          <nz-spin *ngIf="stateMarket.isLoading; else mainMarketPlugins"></nz-spin>
+          <ng-template #mainMarketPlugins>
+            <div class="scroll-container">
+              <ng-container *ngIf="isShowNoDataInner(); else noData">
+                <div *ngFor="let plugin of stateMarket.pluginList" class="w-full plugin-card">
+                  <meta-skill-card type="tool" [data]="plugin" (select)="selectTool($event)" />
+                </div>
+              </ng-container>
+            </div>
+          </ng-template>
+          <div class="footer">
+            <div class="page-div">
+              <div class="page-div-span"> {{ ('count_num' | i18nextEager) + totalNumberMarket }}</div>
+              <div class="page-div-select"> {{ ('select_num' | i18nextEager) + pluginSelected.length }}</div>
+            </div>
+            <nz-pagination
+              class="!w-fit"
+              id="add-plugin-pagination"
+              [(nzPageIndex)]="curPageMarket"
+              [nzTotal]="totalNumberMarket"
+              nzSimple
+              (nzPageIndexChange)="getPluginListByPage('market')"
+            ></nz-pagination>
+          </div>
+        </div>
+      </nz-tab>
+      <nz-tab [nzTitle]="tabs[1].title">
+        <div class="plugin-personal">
+          <div class="right-btn" *ngIf="tabs[1].active">
+            <button nz-button (click)="createPersonalPlugin()">{{ 'create_plugin' | i18nextEager }}</button>
+          </div>
+          <div class="plugin-desc-area  mt-2">
+            {{ 'plugin_limit' | i18nextEager: { number: pluginLimit } }}
+          </div>
+          <div class="flex w-full items-center gap-2">
+            <nz-input-search nzAllowClear (nzSearch)="getPluginListBySearch('personal')">
+              <input
+                nz-input
+                id="searchbox-personal"
+                class="plugin-searchbox"
+                [placeholder]="emptyPlaceholder"
+                [(ngModel)]="searchPersonVal"
+              />
+            </nz-input-search>
+            <button
+              (click)="getPluginListBySearch('personal')"
+              class="h-8 w-8"
+              nz-button
+              nzType="default"
+            >
+              <nz-icon nzType="reload" nzTheme="outline" />
+            </button>
+          </div>
+          <nz-spin *ngIf="statePersonal.isLoading; else mainPersonalPlugins" class="loading-icon"></nz-spin>
+          <ng-template #mainPersonalPlugins>
+            <div class="scroll-container">
+              <ng-container *ngIf="isShowNoDataPersonal(); else noData">
+                <div *ngFor="let plugin of statePersonal.pluginList" class="w-full plugin-card">
+                  <meta-skill-card type="tool" [data]="plugin" (select)="selectTool($event)" />
+                </div>
+              </ng-container>
+            </div>
+          </ng-template>
+          <div class="footer">
+            <div class="page-div">
+              <div class="page-div-span"> {{ ('count_num' | i18nextEager) + totalNumberPersonal }}</div>
+              <div class="page-div-select"> {{ ('select_num' | i18nextEager) + pluginSelected.length }}</div>
+            </div>
+
+            <nz-pagination
+              class="!w-fit"
+              id="add-plugin-pagination"
+              [(nzPageIndex)]="curPagePersonal"
+              [nzTotal]="totalNumberPersonal"
+              nzSimple
+              (nzPageIndexChange)="getPluginListByPage('personal')"
+            ></nz-pagination>
+          </div>
+        </div>
+      </nz-tab>
+
+      <nz-tab [nzTitle]="tabs[2].title">
+        <div class="plugin-personal">
+          <div class="plugin-desc-area  mt-2">
+            {{ 'plugin_limit' | i18nextEager: { number: pluginLimit } }}
+          </div>
+          <div class="flex w-full items-center gap-2">
+            <nz-input-search nzAllowClear (nzSearch)="getPluginListBySearch('share')">
+              <input
+                nz-input
+                id="searchbox-basic"
+                class="plugin-searchbox"
+                [placeholder]="emptyPlaceholder"
+                [(ngModel)]="searchShareVal"
+              />
+            </nz-input-search>
+          </div>
+          <nz-spin *ngIf="stateShare.isLoading; else mainSharePlugins" class="loading-icon"></nz-spin>
+          <ng-template #mainSharePlugins>
+            <div class="scroll-container">
+              <ng-container *ngIf="isShowNoDataShare(); else noData">
+                <div *ngFor="let plugin of stateShare.pluginList" class="w-full plugin-card">
+                  <meta-skill-card type="tool" [showWorkspace]="true" [data]="plugin" [shareToolHander]="updateShareTools" (select)="selectTool($event)" />
+                </div>
+              </ng-container>
+            </div>
+          </ng-template>
+          <div class="footer">
+            <div class="page-div">
+              <div class="page-div-span"> {{ ('count_num' | i18nextEager) + totalNumberShare }}</div>
+              <div class="page-div-select"> {{ ('select_num' | i18nextEager) + pluginSelected.length }}</div>
+            </div>
+            <nz-pagination
+              class="!w-fit"
+              id="add-plugin-pagination"
+              [(nzPageIndex)]="curPageShare"
+              [nzTotal]="totalNumberShare"
+              nzSimple
+              (nzPageIndexChange)="getPluginListByPage('share')"
+            ></nz-pagination>
+          </div>
+        </div>
+      </nz-tab>
+
+    </nz-tabset>
+  </div>
+</div>
+
+<ng-template #noData>
+  <div class="no-data-container">
+    <app-new-common-no-data-with-btn
+      [type]="searchNameIsEmpty ? 'noData' : 'filterNoData'"
+      [tutorialType]="'plugin'"
+      [noDataBtnStr]="(tabs[1].active ? 'create_plugin' : '') | i18nextEager"
+      (create)="createPersonalPlugin()"
+      (clear)="handleClickClearSearch()"
+    />
+  </div>
+</ng-template>

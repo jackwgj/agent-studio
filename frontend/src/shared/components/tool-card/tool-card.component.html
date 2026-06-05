@@ -1,0 +1,19 @@
+<div class="flex justify-between items-center p-[16px] rounded-[8px]" [ngClass]="hasBorder ? 'tool-border' : 'tool-border-none'">
+  <div class="mr-[16px] max-w-[360px]">
+    <p class="!mb-[4px] truncate" [title]="tool.name">{{ tool.name }}</p>
+    <p class="text-[12px] leading-[18px] text-[#808080] overflow-hidden line-clamp-2" [title]="tool.description">{{ tool.description || '--' }}</p>
+  </div>
+  <button
+    nz-button
+    nzSize="small"
+    [disabled]="!tool.canAdd"
+    [nzDanger]="isRiskBtn"
+    nz-tooltip
+    [nzTooltipTitle]="tool.tip"
+    (mouseenter)="updateBtn(true)"
+    (mouseleave)="updateBtn(false)"
+    (click)="selectTool()"
+  >
+    {{ btnConfig.text }}
+  </button>
+</div>

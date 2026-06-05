@@ -1,0 +1,15 @@
+.update-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  .alert {
+    width: 100%;
+  }
+
+  .line-clamp {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}

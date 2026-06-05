@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="32px" height="32px" viewBox="0 0 32 32" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>Prompt数据</title>
+    <defs>
+        <linearGradient x1="71.1075628%" y1="34.2175167%" x2="108.192868%" y2="109.487641%" id="linearGradient-1">
+            <stop stop-color="#DBF4EC" offset="0%"></stop>
+            <stop stop-color="#FFFFFF" offset="100%"></stop>
+        </linearGradient>
+        <linearGradient x1="81.017201%" y1="62.5%" x2="19.1656901%" y2="23.4187592%" id="linearGradient-2">
+            <stop stop-color="#FFFFFF" offset="0%"></stop>
+            <stop stop-color="#EBEEFA" offset="43.806245%"></stop>
+            <stop stop-color="#A1B0E7" offset="100%"></stop>
+        </linearGradient>
+    </defs>
+    <g id="0410版本" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="数据管理-创建-图" transform="translate(-506.000000, -295.000000)">
+            <g id="编组-37" transform="translate(164.000000, 284.000000)">
+                <g id="编组-21" transform="translate(330.000000, 0.000000)">
+                    <g id="编组-12" transform="translate(12.000000, 11.000000)">
+                        <rect id="矩形" fill="#000000" opacity="0" x="0" y="0" width="32" height="32"></rect>
+                        <g id="编组-8" transform="translate(2.000000, 2.000000)">
+                            <path d="M6.3,0 C9.68538162,0 12.447055,1.18675544 12.5938617,2.67527697 L12.6,2.8 L12.6,11.2 C12.6,12.74637 9.77942,14 6.3,14 C2.820608,14 0,12.74637 0,11.2 L0,2.8 C0,1.253602 2.820608,0 6.3,0 Z" id="形状结合" fill="url(#linearGradient-1)"></path>
+                            <path d="M12.6,2.8 L12.6,11.2 C12.6,12.74637 9.77942,14 6.3,14 C2.820608,14 0,12.74637 0,11.2 L0,2.8" id="路径" stroke="#5E7CE0" stroke-linecap="round" stroke-linejoin="round"></path>
+                            <path d="M12.6,7 C12.6,8.54637 9.77942,9.8 6.3,9.8 C2.820608,9.8 0,8.54637 0,7" id="路径" stroke="#5E7CE0" stroke-linecap="round" stroke-linejoin="round"></path>
+                            <path d="M12.6,2.8 C12.6,4.34637 9.77942,5.6 6.3,5.6 C2.820608,5.6 0,4.34637 0,2.8 C0,1.253602 2.820608,0 6.3,0 C9.77942,0 12.6,1.253602 12.6,2.8 Z" id="路径" stroke="#5E7CE0" stroke-linecap="round" stroke-linejoin="round"></path>
+                            <path d="M19.6,1.4 L23.8,1.4 C25.34637,1.4 26.6,2.653602 26.6,4.2 L26.6,8.4" id="路径" stroke="#5E7CE0" stroke-linecap="round" stroke-linejoin="round"></path>
+                            <path d="M8.4,26.6 L4.2,26.6 C2.653602,26.6 1.4,25.34637 1.4,23.8 L1.4,19.6" id="路径" stroke="#5E7CE0" stroke-linecap="round" stroke-linejoin="round"></path>
+                            <g id="编组-10" transform="translate(12.598892, 14.000000)">
+                                <path d="M6.3,7 C8.23299662,7 9.8,5.43299662 9.8,3.5 C9.8,1.56700338 8.23299662,0 6.3,0 C4.36700338,0 2.8,1.56700338 2.8,3.5 C2.8,5.43299662 4.36700338,7 6.3,7 Z" id="椭圆形" stroke="#5E7CE0" stroke-linecap="round" stroke-linejoin="round"></path>
+                                <path d="M12.6,14 L0,14 C0,10.52058 2.82058,7.7 6.3,7.7 C9.77942,7.7 12.6,10.52058 12.6,14 Z" id="路径" fill="url(#linearGradient-2)"></path>
+                                <path d="M12.6,14 L0,14 C0,10.52058 2.82058,7.7 6.3,7.7 C9.77942,7.7 12.6,10.52058 12.6,14 Z" id="路径" stroke="#5E7CE0" stroke-linecap="round" stroke-linejoin="round"></path>
+                                <path d="M12.3422884,6.393506 L14.4254326,8.67459894 L10.5833785,12.3555323 L8.41437134,12.3555323 L8.41437134,10.1581888 L12.3422884,6.393506 Z M13.7674431,5.47517316 C14.1597723,5.43595742 14.5459825,5.55010378 14.8604448,5.80670066 C15.2166672,6.17195056 15.3742446,6.53659969 15.411657,6.88557345 C15.4728199,7.45608665 15.2166096,7.99787981 14.7129423,8.32972999 L12.4033332,6.41836277 C12.7700801,5.81381114 13.2785189,5.52404419 13.7674431,5.47517316 Z" id="形状" stroke="#5E7CE0" fill="#FFFFFF" stroke-linecap="round" stroke-linejoin="round" transform="translate(11.922498, 8.908422) rotate(-361.000000) translate(-11.922498, -8.908422) "></path>
+                            </g>
+                        </g>
+                    </g>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg>

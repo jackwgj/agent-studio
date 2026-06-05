@@ -1,0 +1,39 @@
+<div class="custom-popconfirm-container">
+  <div class="title">{{ 'feedback_question' | i18nextEager }}</div>
+  <!-- content 区域, 包含 复选组 与 textarea -->
+  <div class="content-area">
+    <div class="flex flex-col gap-[8px]">
+      <span>{{ 'question_type' | i18nextEager }}</span>
+      <ng-container *ngIf="submitClicked">
+        <span class="text-[red]" *ngIf="!hasChecked && !suggestions">{{ 'feedback_empty_tips' | i18nextEager }}</span>
+      </ng-container>
+
+      <form [formGroup]="groupFormControl">
+        <nz-checkbox-group
+          class="w-[396px]"
+          id="dislike-options"
+          [ngClass]="{ en: language === 'en-us' }"
+          [nzOptions]="dislikeItems"
+          formControlName="checkboxGroup"
+        ></nz-checkbox-group>
+      </form>
+    </div>
+    <textarea
+      class="feedback-textarea"
+      style="width: 100%; min-width: 100%"
+      tiTextarea
+      maxlength="1000"
+      tiValidation
+      [(ngModel)]="suggestions"
+      [placeholder]="'input_placeholder' | i18nextEager"
+    ></textarea>
+  </div>
+
+  <!-- cancel 与 submit 按钮组 -->
+  <div class="bottom-btns-area">
+    <button nz-button (click)="onCancel()">{{ 'cancel' | i18nextEager }}</button>
+    <button class="ml-2" nz-button nzType="primary" nzDanger (click)="onSubmit()">
+      {{ 'submit' | i18nextEager }}
+    </button>
+  </div>
+</div>

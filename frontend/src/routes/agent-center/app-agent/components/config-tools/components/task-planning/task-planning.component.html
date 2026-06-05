@@ -1,0 +1,98 @@
+<collapse-title
+  [cardConfig]="cardConfig"
+  [collapseLoading]="collapseLoading"
+  [collapsed]="collapsed"
+  [addDisabled]="!skillSetOptions?.length || !resetGuideCount"
+  [isFlowReadonly]="isFlowReadonly"
+  [addDisabledTip]="
+    (!resetGuideCount ? 'guide_max_tip' : 'add_scenario_no_skill_disabled_tip')
+      | i18nextEager
+  "
+  (addBtnClickEvent)="addOrEditBtnClick()"
+>
+  <ng-container collapseContent>
+    @for (item of sceneList; track item.id) {
+      <div
+        class="scene-box mt-[8px]"
+        [class.scene-box-disabled]="item.isNoTool"
+      >
+        <div class="scene-left flex-left gap-[8px]">
+          @if (!item.isNoTool) {
+            <img alt=""
+              class="h-[28px] w-[28px]"
+              [src]="changeUrl('assets/agent/scene.svg')"
+            />
+          } @else {
+            <img alt=""
+              class="h-[28px] w-[28px]"
+              [src]="changeUrl('assets/agent/scene_disabled.svg')"
+            />
+          }
+          <div class="scene-title">
+            <div class="flex-left mb-[2px]">
+              <div
+                class="scene-name text-ellipsis"
+                [class.scene-sub-title]="item.isNoTool"
+                nz-tooltip
+                [nzTooltipTitle]="item.name"
+                nzTooltipPlacement="top"
+              >
+                {{ item.name }}
+              </div>
+              @if (item.isNoTool) {
+                <img alt=""
+                  class="ml-[4px] h-[14px] w-[14px]"
+                  [src]="changeUrl('assets/agent-center/icons/public_warning.svg')"
+                  nz-tooltip
+                  [nzTooltipTitle]="'scene_guide_no_skill_label' | i18nextEager"
+                />
+              }
+              @if (item.sceneExistToolInvalid) {
+                <img alt=""
+                  class="ml-[4px] h-[14px] w-[14px]"
+                  [src]="changeUrl('assets/agent-center/icons/warn_icon.svg')"
+                  nz-tooltip
+                  [nzTooltipTitle]="'scene_guide_skill_abnormal_label' | i18nextEager"
+                />
+              }
+            </div>
+            <div
+              class="scene-sub-title w-[100%] text-ellipsis"
+              [nz-tooltip]="item.description"
+              nzTooltipPlacement="top"
+            >
+              {{
+                'scene_guide_count_label'
+                  | i18nextEager : { count: item.guidelines?.length || 0 }
+              }}
+              @if (item.description) {
+                <span class="split-line-short"></span>
+                {{ item.description }}
+              }
+            </div>
+          </div>
+        </div>
+        @if (!isFlowReadonly) {
+          <div class="scene-right ml-[12px]">
+            <span
+              nz-icon
+              nzType="edit"
+              class="!text-[16px] icon-border mr-[12px]"
+              nz-tooltip
+              [nzTooltipTitle]="'edit' | i18nextEager"
+              (click)="addOrEditBtnClick(item)"
+            ></span>
+            <span
+              nz-icon
+              nzType="delete"
+              class="!text-[16px] icon-border"
+              nz-tooltip
+              [nzTooltipTitle]="'delete' | i18nextEager"
+              (click)="deleteBtnClick(item)"
+            ></span>
+          </div>
+        }
+      </div>
+    }
+  </ng-container>
+</collapse-title>

@@ -1,0 +1,12 @@
+<svg width="16.000000" height="16.000000" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+	<desc>
+			Created with Pixso.
+	</desc>
+	<defs/>
+	<path d="M9.09 1.5L9.11 1.52L9.11 2L11.81 2C13.02 2 14 2.97 14 4.18L14 11.81C14 13.02 13.02 14 11.81 14L4.18 14C2.97 14 2 13.02 2 11.81L2 9.11L1.52 9.11L1.5 9.09C1.5 8.81 1.72 8.59 2 8.59C2.14 8.59 2.26 8.64 2.35 8.73L8.73 2.35C8.64 2.26 8.59 2.14 8.59 2C8.59 1.72 8.81 1.5 9.09 1.5Z" fill="#D8D8D8" fill-opacity="0" fill-rule="evenodd"/>
+	<path d="M2 9.09C2 9.92 2 10.1 2 11.81C2 13.02 2.97 14 4.18 14L11.81 14C13.02 14 14 13.02 14 11.81L14 4.18C14 2.97 13.02 2 11.81 2C10.13 2 9.95 2 9.09 2" stroke="#191919" stroke-opacity="1.000000" stroke-width="1.000000" stroke-linejoin="round" stroke-linecap="round"/>
+	<path d="M2.53 5.4L2.51 5.38C2.23 5.38 2.01 5.6 2.01 5.88C2.01 6.16 2.23 6.38 2.51 6.38L2.53 6.36L2.53 5.88L6.01 5.88L6.01 2.4L6.49 2.4L6.51 2.38C6.51 2.1 6.29 1.88 6.01 1.88C5.73 1.88 5.51 2.1 5.51 2.38L5.53 2.4L5.99 2.4L2.53 5.86L2.53 5.4Z" fill="#D8D8D8" fill-opacity="0" fill-rule="evenodd"/>
+	<path d="M2.51 5.88L6.01 5.88L6.01 2.38" stroke="#191919" stroke-opacity="1.000000" stroke-width="1.000000" stroke-linejoin="round" stroke-linecap="round"/>
+	<path d="M2.7 1.9L2.7 1.87C2.5 1.68 2.19 1.68 2 1.87C1.8 2.07 1.8 2.38 1.99 2.58L2.02 2.58L2.7 1.9ZM5.53 6.09L5.53 6.12C5.73 6.32 6.04 6.32 6.24 6.12C6.44 5.92 6.44 5.61 6.24 5.41L6.21 5.41L5.53 6.09Z" fill="#D8D8D8" fill-opacity="0" fill-rule="nonzero"/>
+	<path d="M2.35 2.23L5.88 5.76" stroke="#191919" stroke-opacity="1.000000" stroke-width="1.000000" stroke-linecap="round"/>
+</svg>

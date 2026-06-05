@@ -1,0 +1,86 @@
+<div class="add-user-header">
+  <span>{{ 'add_user' | i18nextEager }}</span>
+  <span nz-icon nzType="question-circle" nzTheme="outline" nz-tooltip [nzTooltipTitle]="'add_user_tip' | i18nextEager" nzTooltipPlacement="right" class="ml-[10px] cursor-pointer"></span>
+</div>
+<div style="padding: 0 20px">
+  <div class="add-user flex">
+    <div class="left-con flex-1">
+      <nz-input-group [nzSuffix]="suffixIconSearch" class="mb-2 ml-[20px] mr-[20px] w-full">
+        <input
+          type="text"
+          nz-input
+          [placeholder]="'enter_user_nickname_to_search' | i18nextEager"
+          [(ngModel)]="search_value"
+          (ngModelChange)="onSelectChange($event)"
+        />
+      </nz-input-group>
+      <ng-template #suffixIconSearch>
+        <span nz-icon nzType="search"></span>
+      </ng-template>
+      <div class="user-list overflow-auto">
+        <div class="flex">
+          <label class="flex items-center gap-[10px] cursor-pointer">
+            <input
+              type="checkbox"
+              nz-checkbox
+              [(ngModel)]="checkAll"
+              (ngModelChange)="onNgcheckAll($event)"
+            />
+            <span>{{ 'all'|i18nextEager }}</span>
+          </label>
+        </div>
+        <div
+          *ngFor="let item of dataArray1; index as i"
+          class="user-item flex items-center"
+        >
+          <label class="flex items-center gap-[10px] cursor-pointer" [class.opacity-50]="item.disabled">
+            <input
+              type="checkbox"
+              nz-checkbox
+              [id]="'checkitem-temp-' + i"
+              [nzChecked]="checkedArray.includes(item)"
+              [nzDisabled]="item.disabled"
+            />
+            <span class="w-[240px] overflow-hidden text-ellipsis whitespace-nowrap">{{
+              item.memberName
+            }}</span>
+          </label>
+        </div>
+      </div>
+    </div>
+    <div class="right-con flex-1">
+      <p>{{ 'selected' | i18nextEager }}：{{ checkedArray.length }}</p>
+      <div class="user-list mt-3 overflow-auto">
+        <div *ngFor="let item of checkedArray" class="user-item">
+          <div class="mb-3 flex items-center gap-5">
+            <span class="w-[150px] overflow-hidden text-ellipsis whitespace-nowrap">{{ item.memberName }}</span>
+            <nz-select
+              style="width: 150px"
+              [nzOptions]="integrationTabsOption"
+              [(ngModel)]="item.value"
+              nzPlaceHolder="please_select_a_character"
+              [nzDisabled]="item.disabled"
+            >
+            </nz-select>
+            <span nz-icon nzType="delete" nzTheme="outline" (click)="deleteUser(item)" class="delete-box cursor-pointer" *ngIf="!item.disabled"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="add-user-footer flex justify-end gap-2 mt-4">
+  <button type="button" nz-button (click)="close()">
+    {{ 'cancel' | i18nextEager }}
+  </button>
+  <button
+    type="button"
+    nz-button
+    nzType="primary"
+    (click)="addUserFn()"
+    [nzLoading]="btnLoading"
+    [disabled]="btn_disabled"
+  >
+    {{ 'ok' | i18nextEager }}
+  </button>
+</div>

@@ -1,0 +1,396 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) Huawei Technologies Co., Ltd. 2024-2024. All rights reserved.
+  -->
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.agent.agentbase.mapper.KnowledgeRepoMapper">
+    <resultMap id="BaseResultMap" type="com.openjiuwen.studio.agent.agentbase.entity.KnowledgeRepoEntity">
+        <!--@Table t_knowledge_repo-->
+        <id column="knowledge_repo_id" jdbcType="VARCHAR" property="knowledgeRepoId"/>
+        <result column="project_id" jdbcType="VARCHAR" property="projectId"/>
+        <result column="display_name" jdbcType="VARCHAR" property="displayName"/>
+        <result column="desc" jdbcType="VARCHAR" property="desc"/>
+        <result column="type" jdbcType="VARCHAR" property="type"/>
+        <result column="source" jdbcType="VARCHAR" property="source"/>
+        <result column="icon" jdbcType="VARCHAR" property="icon"/>
+        <result column="icon_name" jdbcType="VARCHAR" property="iconName"/>
+        <result column="size" jdbcType="INTEGER" property="size"/>
+        <result column="file_num" jdbcType="INTEGER" property="fileNum"/>
+        <result column="domain_id" jdbcType="VARCHAR" property="domainId"/>
+        <result column="domain_name" jdbcType="VARCHAR" property="domainName"/>
+        <result column="creator" jdbcType="VARCHAR" property="creator"/>
+        <result column="creator_id" jdbcType="VARCHAR" property="creatorId"/>
+        <result column="status" jdbcType="VARCHAR" property="status"/>
+        <result column="metadata" jdbcType="VARCHAR" property="metadata"/>
+        <result column="created_on_timestamp" jdbcType="BIGINT" property="createdOn"/>
+        <result column="updated_on_timestamp" jdbcType="BIGINT" property="updatedOn"/>
+        <result column="workspace_id" jdbcType="VARCHAR" property="workspaceId"/>
+    </resultMap>
+    <sql id="Base_Column_List">
+        knowledge_repo_id
+        ,
+        project_id,
+        display_name,
+        `desc`,
+        `type`,
+        `source`,
+        icon,
+        icon_name,
+        `size`,
+        file_num,
+        domain_id,
+        domain_name,
+        creator,
+        creator_id,
+        status,
+        metadata,
+        created_on,
+        updated_on
+    </sql>
+    <sql id="Base_Column_List_Postgresql">
+        knowledge_repo_id
+        ,
+        project_id,
+        display_name,
+        "desc",
+        type,
+        source,
+        icon,
+        icon_name,
+        size,
+        file_num,
+        domain_id,
+        domain_name,
+        creator,
+        creator_id,
+        status,
+        metadata,
+        created_on,
+        updated_on
+    </sql>
+    <insert id="insert" parameterType="com.openjiuwen.studio.agent.agentbase.entity.KnowledgeRepoEntity">
+        insert into t_knowledge_repo (knowledge_repo_id, project_id, display_name,
+                                      `desc`, `type`, `source`, icon, `size`, file_num, domain_id, domain_name, creator,
+                                      creator_id, metadata,
+                                      icon_name, created_on, updated_on)
+        values (#{knowledgeRepoId,jdbcType=VARCHAR}, #{projectId,jdbcType=VARCHAR}, #{displayName,jdbcType=VARCHAR},
+                #{desc,jdbcType=VARCHAR}, #{type,jdbcType=VARCHAR}, #{source,jdbcType=VARCHAR},
+                #{icon,jdbcType=VARCHAR}, #{size,jdbcType=INTEGER}, #{fileNum}, #{domainId},
+                #{domainName}, #{creator,jdbcType=VARCHAR},
+                #{creatorId,jdbcType=VARCHAR}, #{metadata,jdbcType=VARCHAR}, #{iconName,jdbcType=VARCHAR},
+                FROM_UNIXTIME(#{createdOn}), FROM_UNIXTIME(#{updatedOn}))
+    </insert>
+    <insert id="insert" parameterType="com.openjiuwen.studio.agent.agentbase.entity.KnowledgeRepoEntity"
+            databaseId="postgresql">
+        insert into t_knowledge_repo (knowledge_repo_id, project_id, display_name,
+                                      "desc", type, source, icon, size, file_num, domain_id, domain_name, creator,
+                                      creator_id, metadata,
+                                      icon_name, created_on, updated_on)
+        values (#{knowledgeRepoId,jdbcType=VARCHAR}, #{projectId,jdbcType=VARCHAR}, #{displayName,jdbcType=VARCHAR},
+                #{desc,jdbcType=VARCHAR}, #{type,jdbcType=VARCHAR}, #{source,jdbcType=VARCHAR},
+                #{icon,jdbcType=VARCHAR}, #{size,jdbcType=INTEGER}, #{fileNum}, #{domainId},
+                #{domainName}, #{creator,jdbcType=VARCHAR},
+                #{creatorId,jdbcType=VARCHAR}, #{metadata,jdbcType=VARCHAR}, #{iconName,jdbcType=VARCHAR},
+                TO_TIMESTAMP(#{createdOn}) AT TIME ZONE 'UTC',
+                TO_TIMESTAMP(#{updatedOn}) AT TIME ZONE 'UTC')
+    </insert>
+    <insert id="insert" parameterType="com.openjiuwen.studio.agent.agentbase.entity.KnowledgeRepoEntity"
+            databaseId="gaussv5_M">
+        insert into t_knowledge_repo (knowledge_repo_id, project_id, display_name,
+                                      `desc`, type, source, icon, size, file_num, domain_id, domain_name, creator,
+                                      creator_id, metadata,
+                                      icon_name, created_on, updated_on)
+        values (#{knowledgeRepoId,jdbcType=VARCHAR}, #{projectId,jdbcType=VARCHAR}, #{displayName,jdbcType=VARCHAR},
+                #{desc,jdbcType=VARCHAR}, #{type,jdbcType=VARCHAR}, #{source,jdbcType=VARCHAR},
+                #{icon,jdbcType=VARCHAR}, #{size,jdbcType=INTEGER}, #{fileNum}, #{domainId},
+                #{domainName}, #{creator,jdbcType=VARCHAR},
+                #{creatorId,jdbcType=VARCHAR}, #{metadata,jdbcType=VARCHAR}, #{iconName,jdbcType=VARCHAR},
+                TO_TIMESTAMP(#{createdOn}) AT TIME ZONE 'UTC',
+                TO_TIMESTAMP(#{updatedOn}) AT TIME ZONE 'UTC')
+    </insert>
+    <delete id="deleteByPrimaryKey" parameterType="map">
+        delete
+        from t_knowledge_repo
+        where knowledge_repo_id = #{knowledgeRepoId,jdbcType=VARCHAR}
+          and project_id = #{project_id}
+    </delete>
+    <update id="updateByPrimaryKeySelective"
+            parameterType="com.openjiuwen.studio.agent.agentbase.entity.KnowledgeRepoEntity">
+        update t_knowledge_repo
+        <set>
+            <if test="displayName != null and displayName != ''">
+                display_name = #{displayName,jdbcType=VARCHAR},
+            </if>
+            <if test="desc != null and desc != ''">
+                `desc` = #{desc,jdbcType=VARCHAR},
+            </if>
+            <if test="icon != null and icon != ''">
+                icon = #{icon,jdbcType=VARCHAR},
+            </if>
+            <if test="iconName != null and iconName != ''">
+                icon_name = #{iconName,jdbcType=VARCHAR},
+            </if>
+            <if test="size != null">
+                `size` = #{size,jdbcType=INTEGER},
+            </if>
+            <if test="fileNum != null">
+                `file_num` = #{fileNum},
+            </if>
+            <if test="status != null">
+                status = #{status,jdbcType=VARCHAR},
+            </if>
+            <if test="createdOn != null">
+                created_on = FROM_UNIXTIME(#{createdOn}),
+            </if>
+            <if test="updatedOn != null">
+                updated_on = FROM_UNIXTIME(#{updatedOn}),
+            </if>
+        </set>
+        where knowledge_repo_id = #{knowledgeRepoId,jdbcType=VARCHAR}
+        and project_id = #{projectId}
+    </update>
+
+    <update id="updateByPrimaryKeySelective"
+            parameterType="com.openjiuwen.studio.agent.agentbase.entity.KnowledgeRepoEntity" databaseId="postgresql">
+        update t_knowledge_repo
+        <set>
+            <if test="displayName != null and displayName != ''">
+                display_name = #{displayName,jdbcType=VARCHAR},
+            </if>
+            <if test="desc != null and desc != ''">
+                "desc" = #{desc,jdbcType=VARCHAR},
+            </if>
+            <if test="icon != null and icon != ''">
+                icon = #{icon,jdbcType=VARCHAR},
+            </if>
+            <if test="iconName != null and iconName != ''">
+                icon_name = #{iconName,jdbcType=VARCHAR},
+            </if>
+            <if test="size != null">
+                size = #{size,jdbcType=INTEGER},
+            </if>
+            <if test="fileNum != null">
+                file_num = #{fileNum},
+            </if>
+            <if test="status != null">
+                status = #{status,jdbcType=VARCHAR},
+            </if>
+            <if test="metadata != null and metadata != ''">
+                metadata = #{metadata,jdbcType=VARCHAR},
+            </if>
+            <if test="createdOn != null">
+                created_on = TO_TIMESTAMP(#{createdOn}) AT TIME ZONE 'UTC',
+            </if>
+            <if test="updatedOn != null">
+                updated_on = TO_TIMESTAMP(#{updatedOn}) AT TIME ZONE 'UTC',
+            </if>
+        </set>
+        where knowledge_repo_id = #{knowledgeRepoId,jdbcType=VARCHAR}
+        and project_id = #{projectId}
+    </update>
+
+    <update id="updateByPrimaryKeySelective"
+            parameterType="com.openjiuwen.studio.agent.agentbase.entity.KnowledgeRepoEntity" databaseId="gaussv5_M">
+        update t_knowledge_repo
+        <set>
+            <if test="displayName != null and displayName != ''">
+                display_name = #{displayName,jdbcType=VARCHAR},
+            </if>
+            <if test="desc != null and desc != ''">
+                `desc` = #{desc,jdbcType=VARCHAR},
+            </if>
+            <if test="icon != null and icon != ''">
+                icon = #{icon,jdbcType=VARCHAR},
+            </if>
+            <if test="iconName != null and iconName != ''">
+                icon_name = #{iconName,jdbcType=VARCHAR},
+            </if>
+            <if test="size != null">
+                size = #{size,jdbcType=INTEGER},
+            </if>
+            <if test="fileNum != null">
+                file_num = #{fileNum},
+            </if>
+            <if test="status != null">
+                status = #{status,jdbcType=VARCHAR},
+            </if>
+            <if test="metadata != null and metadata != ''">
+                metadata = #{metadata,jdbcType=VARCHAR},
+            </if>
+            <if test="createdOn != null">
+                created_on = TO_TIMESTAMP(#{createdOn}) AT TIME ZONE 'UTC',
+            </if>
+            <if test="updatedOn != null">
+                updated_on = TO_TIMESTAMP(#{updatedOn}) AT TIME ZONE 'UTC',
+            </if>
+        </set>
+        where knowledge_repo_id = #{knowledgeRepoId,jdbcType=VARCHAR}
+        and project_id = #{projectId}
+    </update>
+
+    <select id="selectByPrimaryKey" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        , UNIX_TIMESTAMP(created_on) * 1000 as created_on_timestamp
+        , UNIX_TIMESTAMP(updated_on) * 1000 as updated_on_timestamp
+        from t_knowledge_repo
+        where knowledge_repo_id = #{knowledgeRepoId,jdbcType=VARCHAR}
+        <if test="project_id != null and project_id != ''">
+            and project_id = #{project_id}
+        </if>
+    </select>
+
+    <select id="selectByPrimaryKey" parameterType="map" resultMap="BaseResultMap" databaseId="postgresql">
+        select
+        <include refid="Base_Column_List_Postgresql"/>
+        , EXTRACT(EPOCH FROM created_on) * 1000 as created_on_timestamp
+        , EXTRACT(EPOCH FROM updated_on) * 1000 as updated_on_timestamp
+        from t_knowledge_repo
+        where knowledge_repo_id = #{knowledgeRepoId,jdbcType=VARCHAR}
+        <if test="project_id != null and project_id != ''">
+            and project_id = #{project_id}
+        </if>
+    </select>
+
+    <select id="selectByProjectIdAndSearchCriteria" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        , UNIX_TIMESTAMP(created_on) * 1000 as created_on_timestamp
+        , UNIX_TIMESTAMP(updated_on) * 1000 as updated_on_timestamp
+        from t_knowledge_repo
+        where project_id = #{project_id}
+        <if test="searchCriteria != null">
+            <if test="searchCriteria.type != null and searchCriteria.type != ''">
+                and type = #{searchCriteria.type,jdbcType=VARCHAR}
+            </if>
+            <if test="searchCriteria.source != null and searchCriteria.source != ''">
+                and source = #{searchCriteria.source,jdbcType=VARCHAR}
+            </if>
+            <if test="searchCriteria.id != null and searchCriteria.id != ''">
+                and knowledge_repo_id like concat('%', #{searchCriteria.id,jdbcType=VARCHAR}, '%')
+            </if>
+            <if test="searchCriteria.status != null and searchCriteria.status != ''">
+                and status = #{searchCriteria.status,jdbcType=VARCHAR}
+            </if>
+            <if test="searchCriteria.name != null and searchCriteria.name != ''">
+                and display_name like concat('%', #{searchCriteria.name,jdbcType=VARCHAR}, '%')
+            </if>
+        </if>
+        order by updated_on desc
+    </select>
+
+    <select id="selectByProjectIdAndSearchCriteria" parameterType="map" resultMap="BaseResultMap"
+            databaseId="postgresql">
+        select
+        <include refid="Base_Column_List_Postgresql"/>
+        , EXTRACT(EPOCH FROM created_on) * 1000 as created_on_timestamp
+        , EXTRACT(EPOCH FROM updated_on) * 1000 as updated_on_timestamp
+        from t_knowledge_repo
+        where project_id = #{project_id}
+        <if test="searchCriteria != null">
+            <if test="searchCriteria.type != null and searchCriteria.type != ''">
+                and type = #{searchCriteria.type,jdbcType=VARCHAR}
+            </if>
+            <if test="searchCriteria.source != null and searchCriteria.source != ''">
+                and source = #{searchCriteria.source,jdbcType=VARCHAR}
+            </if>
+            <if test="searchCriteria.id != null and searchCriteria.id != ''">
+                and knowledge_repo_id like concat('%', #{searchCriteria.id,jdbcType=VARCHAR}, '%')
+            </if>
+            <if test="searchCriteria.status != null and searchCriteria.status != ''">
+                and status = #{searchCriteria.status,jdbcType=VARCHAR}
+            </if>
+            <if test="searchCriteria.name != null and searchCriteria.name != ''">
+                and display_name like concat('%', #{searchCriteria.name,jdbcType=VARCHAR}, '%')
+            </if>
+        </if>
+        order by updated_on desc
+    </select>
+
+    <select id="selectByKnowledgeRepoIds" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_knowledge_repo
+        where project_id = #{project_id} and knowledge_repo_id in
+        <choose>
+            <when test="knowledgeRepoIds != null and knowledgeRepoIds.size() > 0">
+                <foreach collection="knowledgeRepoIds" separator="," open="(" close=")" item="id">
+                    #{id}
+                </foreach>
+            </when>
+            <when test="knowledgeRepoIds == null or knowledgeRepoIds.size() == 0">
+                (null)
+            </when>
+        </choose>
+    </select>
+
+    <select id="selectByKnowledgeRepoIds" parameterType="map" resultMap="BaseResultMap" databaseId="postgresql">
+        select
+        <include refid="Base_Column_List_Postgresql"/>
+        from t_knowledge_repo
+        where project_id = #{project_id} and knowledge_repo_id in
+        <choose>
+            <when test="knowledgeRepoIds != null and knowledgeRepoIds.size() > 0">
+                <foreach collection="knowledgeRepoIds" separator="," open="(" close=")" item="id">
+                    #{id}
+                </foreach>
+            </when>
+            <when test="knowledgeRepoIds == null or knowledgeRepoIds.size() == 0">
+                (null)
+            </when>
+        </choose>
+    </select>
+
+    <select id="selectByKnowledgeRepoIdsAndWorkspaceId" parameterType="map" resultMap="BaseResultMap">
+        select
+        t1.knowledge_repo_id,
+        t1.project_id,
+        t1.display_name,
+        t1.desc,
+        t1.type,
+        t1.source,
+        t1.icon,
+        t1.icon_name,
+        t1.size,
+        t1.creator,
+        t1.creator_id,
+        t1.status,
+        t1.metadata,
+        t1.created_on,
+        t1.updated_on,
+        t2.workspace_id
+        from t_knowledge_repo t1
+        left join t_knowledge_base t2 on t1.knowledge_repo_id = t2.id
+        where t1.project_id = #{project_id}
+        and t2.workspace_id = #{workspaceId,jdbcType=VARCHAR}
+        and t1.knowledge_repo_id in
+        <choose>
+            <when test="knowledgeRepoIds != null and knowledgeRepoIds.size() > 0">
+                <foreach collection="knowledgeRepoIds" separator="," open="(" close=")" item="id">
+                    #{id}
+                </foreach>
+            </when>
+            <when test="knowledgeRepoIds == null or knowledgeRepoIds.size() == 0">
+                (null)
+            </when>
+        </choose>
+    </select>
+    <select id="sumKnowledgeRepoSizeWithTenantType" resultType="java.lang.Long">
+        select sum(size)
+        from t_knowledge_repo
+                 LEFT JOIN t_knowledge_base ON t_knowledge_repo.knowledge_repo_id = t_knowledge_base.id
+                 LEFT JOIN t_kb_connection_router ON t_knowledge_base.knowledge_base_connection_id =
+                                                     t_kb_connection_router.knowledge_base_connection_id
+        where t_knowledge_base.domain_id = #{domainId}
+          AND tenant_type = #{tenantType}
+    </select>
+    <update id="atomicUpdateRepoSize"
+            parameterType="com.openjiuwen.studio.agent.agentbase.entity.KnowledgeRepoEntity">
+        update t_knowledge_repo
+        set size     = GREATEST(size + #{changedSize}, 0),
+            file_num = file_num + #{changeFileNums}
+        where knowledge_repo_id = #{knowledgeRepoId,jdbcType=VARCHAR}
+          and project_id = #{project_id}
+    </update>
+</mapper>

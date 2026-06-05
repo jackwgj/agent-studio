@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="13px" height="12.3976822px" viewBox="0 0 13 12.3976822" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>下载 download</title>
+    <g id="6月版本" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd" stroke-linecap="round">
+        <g id="模型训练-详情-日志" transform="translate(-1265.5, -456.1023)" stroke="#191919">
+            <g id="下载-download" transform="translate(1266, 456)">
+                <g id="编组" transform="translate(3.1716, 0)">
+                    <line x1="-1.50433655" y1="5.02" x2="7.03334564" y2="5.02" id="直线-12" transform="translate(2.8933, 5) rotate(90) translate(-2.8933, -5)"></line>
+                    <polyline id="路径" stroke-linejoin="round" transform="translate(2.8284, 7.3046) rotate(45) translate(-2.8284, -7.3046)" points="4.82842712 5.30458976 4.82842712 9.30458976 0.828427125 9.30458976"></polyline>
+                </g>
+                <path d="M12,9 L12,9 L12,10.2836673 C12,11.2315717 11.2315717,12 10.2836673,12 L1.71633267,12 C0.768428313,12 0,11.2315717 0,10.2836673 L0,9 L0,9" id="路径"></path>
+            </g>
+        </g>
+    </g>
+</svg>

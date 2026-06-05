@@ -1,0 +1,21 @@
+<div *nzModalTitle><span>{{ 'skill.detail.reference.title' | i18n }}</span></div>
+<div>
+  <nz-table nzShowSizeChanger [nzData]="ListData" [nzFrontPagination]="false" [nzTotal]="total"
+    [nzPageSize]="pageSize" [(nzPageIndex)]="pageIndex" [nzPageSizeOptions]="cardPageSizeoptions" nzShowSizeChanger
+    nzSize="small" (nzQueryParams)="onQueryParamsChange($event)">
+    <thead>
+      <tr>
+        <th>{{title[0]}}</th>
+        <th>{{title[1]}}</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (data of ListData; track data) {
+      <tr>
+        <td>{{ data.app_name }}</td>
+        <td>{{ data.app_version }}</td>
+      </tr>
+      }
+    </tbody>
+  </nz-table>
+</div>

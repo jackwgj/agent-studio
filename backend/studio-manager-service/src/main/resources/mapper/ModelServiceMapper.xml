@@ -1,0 +1,507 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  ~ Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
+  -->
+
+
+<mapper namespace="com.openjiuwen.studio.agent.manager.mapper.md.ModelServiceMapper">
+
+    <sql id="allColumns">
+        ID
+        ,PROVIDER_ID,SERVICE_NAME,SERVICE_KEY,MODEL_NAME,MODEL_VERSION,MODEL_TYPE,MODEL_TAGS,
+            MODEL_DESCRIPTION,MODEL_DEPLOY_TYPE,DOCUMENT_URL,MODEL_SIZE,CONTEXT_LENGTH,
+            MODEL_PRIORITY,DOMAIN_ID,PROJECT_ID, WORKSPACE_ID, CREATED_BY_USER,LAST_UPDATED_BY_USER,CREATED_DATE,
+            LAST_UPDATED_DATE,API_URL,IS_REASONING,IS_SUPPORT_CLOSE_REASONING,IS_SUPPORT_FUNCTION,INTERFACE_PROTOCOL,
+            IS_SUPPORT_STREAM,AUTH_METADATA_ID,PUBLISH_STATUS,IDENTITY_ID, SYSTEM_PROMPT, THROTTLING_POLICY,IS_NETWORK,
+            LOGO,STATUS, IS_PUBLIC, SYNC_STATUS, DISCLAIMER, DISCLAIMER_EN
+    </sql>
+
+    <insert id="insert" parameterType="com.openjiuwen.studio.agent.manager.entity.md.ModelServiceBase">
+        insert into t_model_service
+        (ID, PROVIDER_ID, SERVICE_NAME, SERVICE_KEY, MODEL_NAME, MODEL_VERSION, MODEL_TYPE, MODEL_TAGS,
+         MODEL_DESCRIPTION, MODEL_DEPLOY_TYPE, DOCUMENT_URL, MODEL_SIZE, CONTEXT_LENGTH,
+         MODEL_PRIORITY, DOMAIN_ID, PROJECT_ID, WORKSPACE_ID, CREATED_BY_USER, LAST_UPDATED_BY_USER, CREATED_DATE,
+         LAST_UPDATED_DATE, API_URL, IS_REASONING, IS_SUPPORT_CLOSE_REASONING,IS_SUPPORT_FUNCTION, INTERFACE_PROTOCOL,
+         IS_SUPPORT_STREAM, AUTH_METADATA_ID, PUBLISH_STATUS, IDENTITY_ID, SYSTEM_PROMPT, THROTTLING_POLICY, IS_NETWORK,
+         LOGO, STATUS, IS_PUBLIC, SYNC_STATUS)
+        values (#{id}, #{providerId}, #{serviceName}, #{serviceKey}, #{modelName}, #{modelVersion}, #{modelType},
+                #{modelTags},
+                #{modelDescription}, #{modelDeployType}, #{documentUrl}, #{modelSize}, #{contextLength},
+                #{modelPriority}, #{domainId}, #{projectId}, #{workspaceId}, #{createdByUser}, #{lastUpdatedByUser},
+                #{createdDate},
+                #{createdDate}, #{apiUrl}, #{isReasoning},#{isSupportCloseReasoning} ,#{isSupportFunction}, #{interfaceProtocol},
+                #{isSupportStream}, #{authMetadataId}, #{publishStatus}, #{identityId}, #{systemPrompt},
+                #{throttlingPolicy}, #{isNetwork}, #{logo}, #{status},
+                #{isPublic}, 'finish')
+    </insert>
+
+    <insert id="batchInsert" parameterType="java.util.List">
+        INSERT INTO t_model_service (
+        ID, PROVIDER_ID, SERVICE_NAME, SERVICE_KEY, MODEL_NAME, MODEL_VERSION, MODEL_TYPE, MODEL_TAGS,
+        MODEL_DESCRIPTION, MODEL_DEPLOY_TYPE, DOCUMENT_URL, MODEL_SIZE, CONTEXT_LENGTH,
+        MODEL_PRIORITY, DOMAIN_ID, PROJECT_ID, WORKSPACE_ID, CREATED_BY_USER, LAST_UPDATED_BY_USER, CREATED_DATE,
+        LAST_UPDATED_DATE, API_URL, IS_REASONING,IS_SUPPORT_CLOSE_REASONING ,IS_SUPPORT_FUNCTION, INTERFACE_PROTOCOL,
+        IS_SUPPORT_STREAM, AUTH_METADATA_ID, PUBLISH_STATUS, IDENTITY_ID, SYSTEM_PROMPT, THROTTLING_POLICY, IS_PUBLIC,
+        SYNC_STATUS
+        ) VALUES
+        <foreach collection="modelServices" item="model" separator=",">
+            (
+            #{model.id}, #{model.providerId}, #{model.serviceName}, #{model.serviceKey}, #{model.modelName},
+            #{model.modelVersion}, #{model.modelType}, #{model.modelTags},
+            #{model.modelDescription}, #{model.modelDeployType}, #{model.documentUrl}, #{model.modelSize},
+            #{model.contextLength},
+            #{model.modelPriority}, #{model.domainId}, #{model.projectId}, #{model.workspaceId}, #{model.createdByUser},
+            #{model.lastUpdatedByUser}, #{model.createdDate},
+            #{model.lastUpdatedDate}, #{model.apiUrl}, #{model.isReasoning}, #{model.isSupportCloseReasoning},#{model.isSupportFunction},
+            #{model.interfaceProtocol},
+            #{model.isSupportStream}, #{model.authMetadataId}, #{model.publishStatus}, #{model.identityId},
+            #{model.systemPrompt}, #{model.throttlingPolicy},
+            #{model.isPublic},'finish'
+            )
+        </foreach>
+    </insert>
+
+
+    <select id="filterProviderIdsByCondition" resultType="String"
+            parameterType="com.openjiuwen.studio.agent.manager.entity.md.ModelServiceCondition">
+        select distinct PROVIDER_ID from t_model_service
+        where
+        PROJECT_ID = #{projectId} and WORKSPACE_ID = #{workspaceId}
+        <if test="modelName != null and modelName != ''">
+            and MODEL_NAME like concat('%', #{modelName}, '%')
+        </if>
+        <if test="modelType != null and modelType != ''">
+            and model_type = #{modelType}
+        </if>
+        <if test="functioncall != null and functioncall != ''">
+            and IS_SUPPORT_FUNCTION = #{functioncall}
+        </if>
+    </select>
+
+    <select id="queryByName" resultType="com.openjiuwen.studio.agent.manager.entity.md.ModelServiceBase">
+        select *
+        from t_model_service
+        where PROJECT_ID = #{projectId}
+          and WORKSPACE_ID = #{workspaceId}
+          and SERVICE_NAME = #{name}
+        <if test="providerId != null and providerId != ''">
+            and PROVIDER_ID = #{providerId}
+        </if>
+    </select>
+
+    <select id="countByModelName" resultType="Integer">
+        select count(1)
+        from t_model_service
+        where PROJECT_ID = #{projectId}
+          and WORKSPACE_ID = #{workspaceId}
+          and MODEL_NAME = #{name}
+    </select>
+
+    <select id="queryByNames" resultType="com.openjiuwen.studio.agent.manager.entity.md.ModelServiceBase">
+        select * from t_model_service where PROJECT_ID = #{projectId} and WORKSPACE_ID = #{workspaceId}
+        <if test="serviceNames != null">
+            and SERVICE_NAME IN
+            <foreach item="name" collection="serviceNames" open="(" separator="," close=")">
+                #{name}
+            </foreach>
+        </if>
+    </select>
+
+    <select id="queryModelServiceDetail"
+            resultType="com.openjiuwen.studio.agent.manager.entity.md.ModelServiceBase">
+        SELECT *
+        FROM t_model_service s
+        WHERE s.ID = #{id}
+    </select>
+
+    <sql id="conditionSql">
+        <if test="condition.providerId != null and condition.providerId != ''">
+            and s.PROVIDER_ID = #{condition.providerId}
+        </if>
+        <if test="condition.modelType != null and condition.modelType != ''">
+            and s.MODEL_TYPE = #{condition.modelType}
+        </if>
+        <if test="condition.modelName != null and condition.modelName != ''">
+            and s. MODEL_NAME like concat('%', #{condition.modelName}, '%')
+        </if>
+        <if test="condition.functioncall != null and condition.functioncall != ''">
+            and s.IS_SUPPORT_FUNCTION = #{condition.functioncall}
+        </if>
+        <if test="condition.publishStatus != null and condition.publishStatus != ''">
+            and s.PUBLISH_STATUS = #{condition.publishStatus}
+        </if>
+        <if test="condition.serviceName != null and condition.serviceName != ''">
+            and s.SERVICE_NAME like concat('%', #{condition.serviceName}, '%')
+        </if>
+        <if test="condition.id != null and condition.id != ''">
+            and s.ID like concat('%', #{condition.id}, '%')
+        </if>
+        <if test="condition.modelTypes != null and condition.modelTypes.size() > 0">
+            and s.MODEL_TYPE in
+            <foreach collection="condition.modelTypes" item="mt" open="(" separator="," close=")">
+                #{mt}
+            </foreach>
+        </if>
+        <if test="condition.idList != null and condition.idList.size() > 0">
+            and s.ID in
+            <foreach collection="condition.idList" item="mid" open="(" separator="," close=")">
+                #{mid}
+            </foreach>
+        </if>
+    </sql>
+
+    <select id="queryByCondition" resultType="com.openjiuwen.studio.agent.manager.entity.md.ModelServiceData">
+        select s.* from t_model_service s
+        where (s.PROJECT_ID = #{condition.projectId} or s.PROJECT_ID = 'SYSTEM') and (s.WORKSPACE_ID =
+        #{condition.workspaceId} or s.WORKSPACE_ID = 'SYSTEM')
+        <include refid="conditionSql"></include>
+        order by s.LAST_UPDATED_DATE DESC
+        limit #{limit} offset #{offset}
+    </select>
+
+    <select id="queryAvailableServices"
+            resultType="com.openjiuwen.studio.agent.manager.entity.md.ModelServiceData">
+        select s.*, a.ID as auth_id from t_model_service s
+        left join t_provider_auth_info a
+        on a.PROVIDER_ID = s.PROVIDER_ID
+        and a.PROJECT_ID = #{condition.projectId} and (a.WORKSPACE_ID = #{condition.workspaceId} or
+        a.WORKSPACE_ID='SYSTEM')
+        where (s.PROJECT_ID = #{condition.projectId} or s.PROJECT_ID = 'SYSTEM') and (s.WORKSPACE_ID =
+        #{condition.workspaceId} or s.WORKSPACE_ID = 'SYSTEM')
+        <include refid="conditionSql"></include>
+        <if test="condition.freeProviderId != null">
+            and (s.PROVIDER_ID = #{condition.freeProviderId} or (a.ID is not null and a.AUTH_INFO is not null))
+        </if>
+        <if test="condition.freeProviderId == null">
+            and a.ID is not null and a.AUTH_INFO is not null
+        </if>
+        order by s.MODEL_PRIORITY
+    </select>
+
+    <select id="queryPublicAvailableServices"
+            resultType="com.openjiuwen.studio.agent.manager.entity.md.ModelServiceData">
+        select s.*, a.ID as auth_id from t_model_service s
+        left join t_provider_auth_info a
+        on a.PROVIDER_ID = s.PROVIDER_ID
+        and a.PROJECT_ID = s.PROJECT_ID and a.WORKSPACE_ID = s.WORKSPACE_ID
+        where (s.WORKSPACE_ID !=
+        #{condition.workspaceId} and s.WORKSPACE_ID != 'SYSTEM') and (s.PROJECT_ID != 'SYSTEM') and s.IS_PUBLIC = '1'
+        <include refid="conditionSql"></include>
+        and a.ID is not null and a.AUTH_INFO is not null
+        order by s.MODEL_PRIORITY
+    </select>
+
+    <select id="countByCondition" resultType="java.lang.Integer">
+        select count(*) from t_model_service s
+        where (s.PROJECT_ID = #{condition.projectId} or s.PROJECT_ID = 'SYSTEM') and (s.WORKSPACE_ID =
+        #{condition.workspaceId} or s.WORKSPACE_ID = 'SYSTEM')
+        <include refid="conditionSql"></include>
+    </select>
+
+    <update id="changePublishStatus">
+        update t_model_service
+        set PUBLISH_STATUS       = #{status},
+            LAST_UPDATED_BY_USER = #{user},
+            LAST_UPDATED_DATE    = #{time}
+        where ID = #{id}
+    </update>
+
+    <update id="updateModelService"
+            parameterType="com.openjiuwen.studio.agent.manager.entity.md.ModelServiceBase">
+        update t_model_service
+        set SERVICE_NAME         = #{serviceName},
+            SERVICE_KEY          = #{serviceKey},
+            MODEL_NAME           = #{modelName},
+            MODEL_VERSION        = #{modelVersion},
+            MODEL_TYPE           = #{modelType},
+            MODEL_TAGS           = #{modelTags},
+            MODEL_DESCRIPTION    = #{modelDescription},
+            MODEL_SIZE           = #{modelSize},
+            CONTEXT_LENGTH       = #{contextLength},
+            MODEL_PRIORITY       = #{modelPriority},
+            LAST_UPDATED_BY_USER = #{lastUpdatedByUser},
+            LAST_UPDATED_DATE    = #{lastUpdatedDate},
+            API_URL              = #{apiUrl},
+            IS_SUPPORT_FUNCTION  = #{isSupportFunction},
+            IS_REASONING         = #{isReasoning},
+            IS_SUPPORT_CLOSE_REASONING  = #{isSupportCloseReasoning},
+            IS_NETWORK           = #{isNetwork},
+            INTERFACE_PROTOCOL   = #{interfaceProtocol},
+            IS_SUPPORT_STREAM    = #{isSupportStream},
+            LOGO                 = #{logo},
+            THROTTLING_POLICY    = #{throttlingPolicy},
+            IS_PUBLIC            = #{isPublic},
+            STATUS               = #{status},
+            SYNC_STATUS          = 'finish'
+        where ID = #{id}
+    </update>
+
+    <delete id="deleteById">
+        delete
+        from t_model_service
+        where ID = #{id}
+    </delete>
+
+    <delete id="batchDeleteByIds">
+        delete from t_model_service
+        WHERE id IN
+        <foreach collection="ids" item="id"
+                 open="(" separator="," close=")" index="index">
+            #{id}
+        </foreach>
+    </delete>
+    <select id="queryAllPlatformModels"
+            resultType="com.openjiuwen.studio.agent.manager.entity.md.ModelServiceBase">
+        select *
+        from t_model_service
+        where PROJECT_ID = 'SYSTEM'
+        <if test="providerId != null">
+            AND PROVIDER_ID = #{providerId}
+        </if>
+    </select>
+
+    <select id="queryById" resultType="com.openjiuwen.studio.agent.manager.entity.md.ModelServiceBase">
+        select *
+        from t_model_service
+        where id = #{id}
+    </select>
+
+    <select id="queryAllModelByIds" resultType="com.openjiuwen.studio.agent.manager.entity.md.ModelServiceBase">
+        select * from t_model_service where id in
+        <foreach collection="modelIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <select id="queryByIds" resultType="com.openjiuwen.studio.agent.manager.entity.md.ModelServiceData">
+        select s.*, a.ID as auth_id from t_model_service s
+        left join t_provider_auth_info a
+        on a.PROVIDER_ID = s.PROVIDER_ID
+        and (a.PROJECT_ID = #{userProjectId} or a.PROJECT_ID is null)
+        and (a.WORKSPACE_ID = #{userWorkspaceId} or a.WORKSPACE_ID is null or a.WORKSPACE_ID = 'SYSTEM')
+        where s.ID in
+        <foreach collection="modelIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        and (s.PROJECT_ID = #{userProjectId} or s.PROJECT_ID = 'SYSTEM')
+        and (s.WORKSPACE_ID = #{userWorkspaceId} or s.WORKSPACE_ID = 'SYSTEM')
+    </select>
+    <select id="selectByIds" resultType="com.openjiuwen.studio.agent.manager.entity.md.ModelServiceData">
+        SELECT
+        *
+        FROM t_model_service
+        WHERE id IN
+        <foreach collection="modelIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+    <select id="getModelNamesByIds" resultType="string">
+        SELECT MODEL_NAME
+        FROM t_model_service
+        WHERE ID IN
+        <foreach item="id" collection="ids" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <select id="getModelNamesAndProviderIdsByIds"
+            resultType="com.openjiuwen.studio.agent.manager.entity.md.ModelServiceBase">
+        SELECT
+        id,
+        model_name,
+        service_name,
+        provider_id
+        FROM t_model_service
+        WHERE id IN
+        <foreach item="id" collection="ids" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        UNION ALL
+        SELECT
+        id,
+        model_name,
+        service_name,
+        provider_id
+        FROM t_free_model_service
+        WHERE id IN
+        <foreach item="id" collection="ids" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <select id="getLogosAndProviderNamesByProviderIds"
+            resultType="com.openjiuwen.studio.agent.manager.entity.md.ModelServiceProviderDetail">
+        SELECT
+        id,
+        logo,
+        provider_name,
+        provider_name_en,
+        'platform' as source,
+        priority,
+        LAST_UPDATED_DATE
+        FROM t_sys_model_service_provider
+        WHERE id IN
+        <foreach item="id" collection="providerIds" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        UNION
+        SELECT
+        id,
+        logo,
+        provider_name,
+        provider_name_en,
+        'user' as source,
+        -1000 as priority,
+        LAST_UPDATED_DATE
+        FROM t_user_model_service_provider
+        WHERE id IN
+        <foreach item="id" collection="providerIds" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        order by LAST_UPDATED_DATE desc, priority asc
+    </select>
+
+    <select id="countByProviderId" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM t_model_service
+        WHERE provider_id = #{providerId}
+    </select>
+
+    <select id="queryByIdentityId" resultType="com.openjiuwen.studio.agent.manager.entity.md.ModelServiceBase">
+        SELECT *
+        FROM t_model_service
+        WHERE PROJECT_ID = #{projectId}
+          and WORKSPACE_ID = #{workspaceId}
+          and IDENTITY_ID = #{identityId}
+    </select>
+
+    <select id="queryByProviders" resultType="com.openjiuwen.studio.agent.manager.entity.md.ModelServiceBase">
+        SELECT *
+        FROM t_model_service
+        WHERE (PROJECT_ID = #{projectId} or PROJECT_ID = 'SYSTEM')
+          and (WORKSPACE_ID = #{workspaceId} or WORKSPACE_ID = 'SYSTEM')
+          and PROVIDER_ID = #{providerId}
+        order by LAST_UPDATED_DATE desc
+    </select>
+
+    <select id="queryByProvidersInternal"
+            resultType="com.openjiuwen.studio.agent.manager.entity.md.ModelServiceBase">
+        SELECT *
+        FROM t_model_service
+        WHERE (PROJECT_ID = #{projectId} or PROJECT_ID = 'SYSTEM')
+          and (WORKSPACE_ID = #{workspaceId} or WORKSPACE_ID
+            = 'SYSTEM')
+          and PROVIDER_ID = #{providerId}
+          and MODEL_TAGS != 'external'
+        order by LAST_UPDATED_DATE desc
+    </select>
+
+    <select id="queryByProvidersExternal"
+            resultType="com.openjiuwen.studio.agent.manager.entity.md.ModelServiceBase">
+        SELECT *
+        FROM t_model_service
+        WHERE (PROJECT_ID = #{projectId} or PROJECT_ID = 'SYSTEM')
+          and (WORKSPACE_ID = #{workspaceId} or WORKSPACE_ID
+            = 'SYSTEM')
+          and PROVIDER_ID = #{providerId}
+          and MODEL_TAGS = 'external'
+        order by LAST_UPDATED_DATE desc
+    </select>
+
+    <select id="queryNotSyncModels" resultType="com.openjiuwen.studio.agent.manager.entity.md.ModelServiceBase">
+        SELECT *
+        FROM t_model_service
+        WHERE SYNC_STATUS != 'finish'
+    </select>
+
+    <update id="updateSyncStatus">
+        update t_model_service
+        set SYNC_STATUS = 'finish'
+        where ID = #{id}
+    </update>
+
+    <update id="updateModelTags">
+        update t_model_service
+        set MODEL_TAGS = #{modelTags}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateModelStatus">
+        update t_model_service
+        set STATUS = #{status}
+        where ID = #{id}
+          and PROJECT_ID = #{projectId}
+          and WORKSPACE_ID = #{workspaceId}
+    </update>
+
+    <update id="updateModelProvider">
+        update t_model_service
+        set PROVIDER_ID = #{providerId},
+            AUTH_METADATA_ID = #{authMetadataId}
+        where ID = #{id}
+    </update>
+
+    <insert id="insertBackup" parameterType="com.openjiuwen.studio.agent.manager.entity.md.ModelServiceBase">
+        insert into t_model_service_backup
+        (ID, PROVIDER_ID, SERVICE_NAME, SERVICE_KEY, MODEL_NAME, MODEL_VERSION, MODEL_TYPE, MODEL_TAGS,
+         MODEL_DESCRIPTION, MODEL_DEPLOY_TYPE, DOCUMENT_URL, MODEL_SIZE, CONTEXT_LENGTH,
+         MODEL_PRIORITY, DOMAIN_ID, PROJECT_ID, WORKSPACE_ID, CREATED_BY_USER, LAST_UPDATED_BY_USER, CREATED_DATE,
+         LAST_UPDATED_DATE, API_URL, IS_REASONING, IS_SUPPORT_FUNCTION, INTERFACE_PROTOCOL,
+         IS_SUPPORT_STREAM, AUTH_METADATA_ID, PUBLISH_STATUS, IDENTITY_ID, SYSTEM_PROMPT, THROTTLING_POLICY, IS_NETWORK,
+         LOGO, STATUS, IS_PUBLIC, SYNC_STATUS)
+        values (#{id}, #{providerId}, #{serviceName}, #{serviceKey}, #{modelName}, #{modelVersion}, #{modelType},
+                #{modelTags},
+                #{modelDescription}, #{modelDeployType}, #{documentUrl}, #{modelSize}, #{contextLength},
+                #{modelPriority}, #{domainId}, #{projectId}, #{workspaceId}, #{createdByUser}, #{lastUpdatedByUser},
+                #{createdDate},
+                #{createdDate}, #{apiUrl}, #{isReasoning}, #{isSupportFunction}, #{interfaceProtocol},
+                #{isSupportStream}, #{authMetadataId}, #{publishStatus}, #{identityId}, #{systemPrompt},
+                #{throttlingPolicy}, #{isNetwork}, #{logo}, #{status},
+                #{isPublic}, 'finish')
+    </insert>
+
+    <insert id="batchInsertBackup" parameterType="java.util.List">
+        INSERT INTO t_model_service_backup (
+        ID, PROVIDER_ID, SERVICE_NAME, SERVICE_KEY, MODEL_NAME, MODEL_VERSION, MODEL_TYPE, MODEL_TAGS,
+        MODEL_DESCRIPTION, MODEL_DEPLOY_TYPE, DOCUMENT_URL, MODEL_SIZE, CONTEXT_LENGTH,
+        MODEL_PRIORITY, DOMAIN_ID, PROJECT_ID, WORKSPACE_ID, CREATED_BY_USER, LAST_UPDATED_BY_USER, CREATED_DATE,
+        LAST_UPDATED_DATE, API_URL, IS_REASONING, IS_SUPPORT_FUNCTION, INTERFACE_PROTOCOL,
+        IS_SUPPORT_STREAM, AUTH_METADATA_ID, PUBLISH_STATUS, IDENTITY_ID, SYSTEM_PROMPT, THROTTLING_POLICY, IS_PUBLIC,
+        SYNC_STATUS
+        ) VALUES
+        <foreach collection="modelServices" item="model" separator=",">
+            (
+            #{model.id}, #{model.providerId}, #{model.serviceName}, #{model.serviceKey}, #{model.modelName},
+            #{model.modelVersion}, #{model.modelType}, #{model.modelTags},
+            #{model.modelDescription}, #{model.modelDeployType}, #{model.documentUrl}, #{model.modelSize},
+            #{model.contextLength},
+            #{model.modelPriority}, #{model.domainId}, #{model.projectId}, #{model.workspaceId}, #{model.createdByUser},
+            #{model.lastUpdatedByUser}, #{model.createdDate},
+            #{model.lastUpdatedDate}, #{model.apiUrl}, #{model.isReasoning}, #{model.isSupportFunction},
+            #{model.interfaceProtocol},
+            #{model.isSupportStream}, #{model.authMetadataId}, #{model.publishStatus}, #{model.identityId},
+            #{model.systemPrompt}, #{model.throttlingPolicy},
+            #{model.isPublic},'finish'
+            )
+        </foreach>
+    </insert>
+
+
+    <select id="queryBackupByUpdateTime"
+            resultType="com.openjiuwen.studio.agent.manager.entity.md.ModelServiceBase">
+        select *
+        from t_model_service_backup
+        where LAST_UPDATED_DATE &lt; #{lastUpdatedDate}
+    </select>
+
+    <delete id="deleteBackupByIds">
+        DELETE FROM t_model_service_backup
+        WHERE id IN
+        <foreach item="id" collection="ids" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+</mapper>

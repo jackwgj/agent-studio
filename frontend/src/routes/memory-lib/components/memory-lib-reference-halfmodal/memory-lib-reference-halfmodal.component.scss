@@ -1,0 +1,16 @@
+.memory-lib-reference-container {
+  height: 100%;
+  position: relative;
+
+  .memory-lib-reference-no-data {
+    height: calc(100% - 76px);
+    display: block;
+  }
+
+  .loading-icon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+}

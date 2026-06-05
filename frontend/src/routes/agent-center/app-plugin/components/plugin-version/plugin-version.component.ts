@@ -1,0 +1,124 @@
+import { Component, Input, inject } from '@angular/core';
+import { MODULES } from '@shared/modules';
+import { I18nNamespace } from '@i18n';
+import { I18NEXT_NAMESPACE, I18NextEagerPipe } from 'angular-i18next';
+import { AppAgentRepoService } from '@services/agent-center/app-agent-repo.service';
+import { MessageComponent } from '@shared/services/cfdata.service';
+import { DeleteRefsService } from '@shared/services/delete-refs.service';
+import { AgentDataService } from '@services/agent-center/agent-data.service';
+import { NoDataIconComponent } from '@shared/components//no-data-icon/no-data-icon.component';
+import { PipesModule } from '../../../../../pipes/pipes.module';
+import { NzIconModule } from 'ng-zorro-antd/icon';
+import { NzTypographyModule } from 'ng-zorro-antd/typography';
+import { NzModalRef } from 'ng-zorro-antd/modal';
+import { NzSpaceModule } from 'ng-zorro-antd/space';
+import { NzSpinModule } from 'ng-zorro-antd/spin';
+
+@Component({
+  selector: 'meta-plugin-version',
+  templateUrl: './plugin-version.component.html',
+  styleUrl: './plugin-version.component.scss',
+  standalone: true,
+  imports: [MODULES, NoDataIconComponent, PipesModule, NzIconModule, NzTypographyModule, NzSpaceModule, NzSpinModule],
+  providers: [
+    {
+      provide: I18NEXT_NAMESPACE,
+      useValue: [I18nNamespace.AGENT_CENTER, I18nNamespace.AGENT],
+    },
+    DeleteRefsService,
+  ],
+})
+export class PluginVersionComponent {
+  @Input() tool_id = '';
+
+  readonly modalRef = inject(NzModalRef);
+
+  isLoading = false;
+
+  publishedCards = [];
+
+  public selectedTab = -1;
+
+  constructor(
+    private i18n: I18NextEagerPipe,
+    private deleteRefsServe: DeleteRefsService,
+    private agentRepoServe: AppAgentRepoService,
+    private agentDataServe: AgentDataService,
+  ) {}
+
+  ngOnInit(): void {
+    this.getPluginVersionList();
+  }
+
+  getPluginVersionList() {
+    this.isLoading = true;
+    this.agentRepoServe
+      .getPluginVersionList(this.tool_id)
+      .then((res) => {
+        this.publishedCards = res.version_list;
+      })
+      .finally(() => {
+        this.isLoading = false;
+      });
+  }
+
+  deleteVersionModal(event, version_id) {
+    event.preventDefault();
+
+    const query = {
+      version: version_id,
+      resource_type :'tool'
+    };
+
+    this.deleteRefsServe.onDeleteRefs(
+      {
+        id: this.tool_id,
+        query,
+      },
+      {
+        title: this.i18n.transform('del_workflow_version'),
+        alertText: this.i18n.transform('del_plugin_version_tips'),
+        secondConfirmLabel: `${this.i18n.transform(
+          'del_sure_tips',
+        )} <strong>DELETE</strong>`,
+        tiMsgTitle: this.i18n.transform('del_plugin_version_title'),
+        tiMsgContent: this.i18n.transform('del_plugin_version_msg_content'),
+      },
+      () => {
+        this.deleteVersion(version_id);
+      },
+    );
+  }
+
+  deleteVersion(version_id) {
+    this.agentRepoServe
+      .deletePluginVersion(this.tool_id, version_id)
+      .then(() => {
+        this.isLoading = false;
+        this.publishedCards = this.publishedCards.filter(
+          (item) => item.version_id !== version_id,
+        );
+        this.getPluginVersionList();
+        MessageComponent.showSuccess(
+          this.i18n.transform('version_deleted_successfully'),
+          3000,
+        );
+      })
+      .finally(() => {
+        this.isLoading = false;
+      });
+  }
+
+  cardClick($event, { version_id, version_name }, index) {
+    this.selectedTab = index;
+    if ($event.target.nodeName !== 'A') {
+      this.agentDataServe.setPreviewVersion({ version_id, version_name });
+    }
+  }
+
+  exitPreview() {
+    this.selectedTab = -1;
+    this.agentDataServe.setPreviewVersion(undefined);
+    this.modalRef.destroy();
+  }
+}

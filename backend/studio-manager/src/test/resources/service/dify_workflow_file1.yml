@@ -1,0 +1,453 @@
+app:
+  description: 旅游规划
+  icon: 🤖
+  icon_background: '#FFEAD5'
+  mode: workflow
+  name: 旅游规划
+  use_icon_as_answer_icon: false
+dependencies: []
+kind: app
+version: 0.5.0
+workflow:
+  conversation_variables: []
+  environment_variables:
+  - description: ''
+    id: 07fbd6d9-c040-4961-960c-710cd7881122
+    name: url
+    selector:
+    - env
+    - url
+    value: https://test.com/path
+    value_type: string
+  - description: ''
+    id: 0bedf483-1c21-464a-afdc-31701d76f9a5
+    name: agekey
+    selector:
+    - env
+    - agekey
+    value: age
+    value_type: string
+  - description: ''
+    id: b92d785b-1c6f-4b1f-98f4-aaae980b6810
+    name: age
+    selector:
+    - env
+    - age
+    value: '25'
+    value_type: string
+  - description: ''
+    id: ff1592d8-8998-4d94-be2c-2ae8d57344bb
+    name: name
+    selector:
+    - env
+    - name
+    value: Elaine
+    value_type: string
+  - description: ''
+    id: 8024dc91-17e4-412a-8ae3-5f2c57162f04
+    name: sex
+    selector:
+    - env
+    - sex
+    value: female
+    value_type: string
+  - description: 密码
+    id: b77ba297-5b4c-493d-88f8-36c892da8c52
+    name: password
+    selector:
+    - env
+    - password
+    value: '123456'
+    value_type: secret
+  - description: 空间id
+    id: b3fbb665-aa98-4ced-bfde-35831115dbca
+    name: workspace_id
+    selector:
+    - env
+    - workspace_id
+    value: 1000000
+    value_type: integer
+  - description: 项目id
+    id: dbee40a6-3140-473c-9dd4-962fe8cd023f
+    name: project_id
+    selector:
+    - env
+    - project_id
+    value: '000001'
+    value_type: string
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - .JPG
+      - .JPEG
+      - .PNG
+      - .GIF
+      - .WEBP
+      - .SVG
+      allowed_file_types:
+      - image
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: false
+      fileUploadConfig:
+        attachment_image_file_size_limit: 2
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        file_upload_limit: 50
+        image_file_batch_limit: 10
+        image_file_size_limit: 10
+        single_chunk_attachment_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 3
+    opening_statement: ''
+    retriever_resource:
+      enabled: true
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInLoop: false
+        sourceType: agent
+        targetType: http-request
+      id: 1770277790491-source-1770278545233-target
+      source: '1770277790491'
+      sourceHandle: source
+      target: '1770278545233'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: http-request
+        targetType: llm
+      id: 1770278545233-source-1772094565968-target
+      source: '1770278545233'
+      sourceHandle: source
+      target: '1772094565968'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: end
+      id: 1772094565968-source-1770864600119-target
+      source: '1772094565968'
+      sourceHandle: source
+      target: '1770864600119'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: start
+        targetType: agent
+      id: 1770273293681-source-1770277790491-target
+      source: '1770273293681'
+      sourceHandle: source
+      target: '1770277790491'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: question-classifier
+        targetType: http-request
+      id: 1772094623762-1-1770278545233-target
+      source: '1772094623762'
+      sourceHandle: '1'
+      target: '1770278545233'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: document-extractor
+      id: 1770273293681-source-1772094704106-target
+      source: '1770273293681'
+      sourceHandle: source
+      target: '1772094704106'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: document-extractor
+        targetType: question-classifier
+      id: 1772094704106-source-1772094623762-target
+      source: '1772094704106'
+      sourceHandle: source
+      target: '1772094623762'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: question-classifier
+        targetType: agent
+      id: 1772094623762-2-1770277790491-target
+      source: '1772094623762'
+      sourceHandle: '2'
+      target: '1770277790491'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        selected: false
+        title: 用户输入
+        type: start
+        variables: []
+      height: 73
+      id: '1770273293681'
+      position:
+        x: -2.3722904233026725
+        y: 220.92940485839245
+      positionAbsolute:
+        x: -2.3722904233026725
+        y: 220.92940485839245
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        selected: false
+        title: TEST-Agent
+        tool_node_version: '2'
+        type: agent
+      height: 80
+      id: '1770277790491'
+      position:
+        x: 848.9095662228221
+        y: 262.25068615643187
+      positionAbsolute:
+        x: 848.9095662228221
+        y: 262.25068615643187
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        authorization:
+          config:
+            api_key: '111'
+            header: custom-api-header
+            type: custom
+          type: api-key
+        body:
+          data:
+          - id: key-value-114
+            key: ''
+            type: text
+            value: '{"test": "true"}'
+          type: json
+        default_value:
+        - key: body
+          type: string
+          value: ''
+        - key: status_code
+          type: number
+          value: 0
+        - key: headers
+          type: object
+          value: '{}'
+        error_strategy: default-value
+        headers: 'header1:{{#sys.workflow_id#}}
+
+          header2:{{#env.workspace_id#}}
+
+          {{#sys.workflow_run_id#}}:{{#1770277790491.text#}}
+
+          {{#1770277790491.text#}}:{{#1770277790491.text#}}
+
+          {{#env.url#}}:{{#sys.user_id#}}
+
+          111{{#env.name#}}222:{{#env.name#}}222'
+        method: head
+        params: 'params1:111
+
+          name:{{#env.name#}}
+
+          {{#env.agekey#}}:{{#env.age#}}
+
+          {{#sys.user_id#}}:{{#env.project_id#}}
+
+          {{#1770277790491.text#}}:{{#1770277790491.text#}}
+
+          {{#1770277790491.text#}}:{{#env.sex#}}
+
+          {{#env.project_id#}}222:{{#sys.app_id#}}'
+        retry_config:
+          max_retries: 3
+          retry_enabled: false
+          retry_interval: 100
+        selected: false
+        ssl_verify: false
+        timeout:
+          max_connect_timeout: 0
+          max_read_timeout: 0
+          max_write_timeout: 0
+        title: HTTP 请求
+        type: http-request
+        url: '{{#env.url#}}/{{#env.agekey#}}/{{#sys.user_id#}}?workspace={{#env.workspace_id#}}&project={{#env.project_id#}}'
+        variables: []
+      height: 192
+      id: '1770278545233'
+      position:
+        x: 1497.8650646557694
+        y: 175.17590057787237
+      positionAbsolute:
+        x: 1497.8650646557694
+        y: 175.17590057787237
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        outputs:
+        - value_selector:
+          - '1770278545233'
+          - body
+          value_type: string
+          variable: 回答
+        selected: false
+        title: 输出
+        type: end
+      height: 88
+      id: '1770864600119'
+      position:
+        x: 2390.4882764452223
+        y: 193.9589484532331
+      positionAbsolute:
+        x: 2390.4882764452223
+        y: 193.9589484532331
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        context:
+          enabled: true
+          variable_selector:
+          - '1770278545233'
+          - error_message
+        default_value:
+        - key: text
+          type: string
+          value: error
+        error_strategy: default-value
+        model:
+          completion_params:
+            temperature: 0.7
+          mode: chat
+          name: ''
+          provider: ''
+        prompt_template:
+        - role: system
+          text: ''
+        selected: false
+        title: LLM
+        type: llm
+        vision:
+          enabled: false
+      height: 88
+      id: '1772094565968'
+      position:
+        x: 1952.9412874444345
+        y: 183.5123416936796
+      positionAbsolute:
+        x: 1952.9412874444345
+        y: 183.5123416936796
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        classes:
+        - id: '1'
+          name: 旅游相关问题
+        - id: '2'
+          name: 其他问题
+        instructions: ''
+        model:
+          completion_params:
+            temperature: 0.7
+          mode: chat
+          name: ''
+          provider: ''
+        query_variable_selector:
+        - sys
+        - user_id
+        selected: false
+        title: 问题分类器
+        type: question-classifier
+        vision:
+          enabled: false
+      height: 146
+      id: '1772094623762'
+      position:
+        x: 832.2249686503434
+        y: -34.32890813584527
+      positionAbsolute:
+        x: 832.2249686503434
+        y: -34.32890813584527
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    - data:
+        is_array_file: true
+        selected: false
+        title: 文档提取器
+        type: document-extractor
+        variable_selector:
+        - sys
+        - files
+      height: 104
+      id: '1772094704106'
+      position:
+        x: 438.25054152669884
+        y: -34.32890813584527
+      positionAbsolute:
+        x: 438.25054152669884
+        y: -34.32890813584527
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+    viewport:
+      x: 283.96936037030457
+      y: 283.04415008751715
+      zoom: 0.659753955386448
+  rag_pipeline_variables: []

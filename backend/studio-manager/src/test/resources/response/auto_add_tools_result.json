@@ -1,0 +1,13 @@
+{
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "content": "```json[{\"reason\":\"fgpzshgw工具提供热点旅游景区介绍，旅游路线规划等信息，非常适合帮助推荐旅游目的地。\",\"tool\":\"fgpzshgw\"},{\"reason\":\"guihuashi工具是一个保姆级旅游规划师，可以帮助提供详细的旅游攻略，包括衣食住行等信息，为用户提供整体旅游解决方案。\",\"tool\":\"guihuashi\"},{\"reason\":\"search_site工具可以用来查询景点信息，帮助提供详细的旅游攻略，如景点特色等。\",\"tool\":\"search_site\"}]\n```",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1735637693783,
+  "usage": {}
+}

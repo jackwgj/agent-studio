@@ -1,0 +1,79 @@
+<div class="text-[16px]">
+  {{ 'import_data_json' | i18nextEager }}
+</div>
+<div class="w-full rounded-[6px] border-[1px] border-solid border-[#ccc]">
+  <form class="w-full" #paramForm="ngForm">
+    <div
+      class="flex items-center justify-between rounded-t-[6px] border-b-[1px] border-solid border-[#ccc] bg-[#f0f7ff] p-[10px]"
+    >
+      <span class="font-bold text-[#333]">json</span>
+      <asset-format-icon
+        class="cursor-pointer"
+        [tiTip]="'format' | i18nextEager"
+        tiTipPosition="top"
+        (click)="formatDoc()"
+      ></asset-format-icon>
+    </div>
+    <div
+      class="h-[436px] w-full rounded-b-[6px] bg-white py-[10px] pr-[10px]"
+    >
+      <ngx-monaco-editor
+        #exeEditor
+        [(ngModel)]="jsonData"
+        (ngModelChange)="onInputJSONChange()"
+        arrTypeValidator
+        nonEmptyValidator
+        [options]="editorOps"
+        name="jsonData"
+      ></ngx-monaco-editor>
+    </div>
+  </form>
+</div>
+
+<div class="relative flex items-center justify-between mt-4">
+  <div>
+    @if(showDefaultValue) {
+      <label nz-checkbox [(ngModel)]="isImportValue">
+        {{ 'import_default_value' | i18nextEager }}
+      </label>
+    }
+  </div>
+  <div class="flex items-center justify-end gap-2">
+    <button type="button" nz-button (click)="dismiss()">
+      {{ 'cancel' | i18nextEager }}
+    </button>
+    <button
+      type="button"
+      nz-button
+      nzType="primary"
+      [disabled]="!jsonData"
+      (click)="onJsonOkClick()"
+    >
+      {{ 'ok' | i18nextEager }}
+    </button>
+    <div
+      *ngIf="show"
+      class="sure-tips absolute bottom-[42px] right-0 rounded-lg bg-[#fff] p-[16px]"
+    >
+      <div class="flex text-left">
+        <span nz-icon nzType="exclamation-circle" nzTheme="outline" class="warn-icon"></span>
+        {{ (existNotMatchData ? 'json_data_not_match' : 'json_data_overlay') | i18nextEager }}
+      </div>
+      <div class="mt-[12px] flex justify-end">
+        <button type="button" nz-button (click)="show = false">
+          {{ 'cancel' | i18nextEager }}
+        </button>
+        <button
+          class="ml-[5px]"
+          type="button"
+          nz-button
+          nzType="primary"
+          [disabled]="!jsonData"
+          (click)="onConfirm()"
+        >
+          {{ 'ok' | i18nextEager }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,382 @@
+{
+  "id": "test_llm_id",
+  "name": "名称测试",
+  "description": "描述测试",
+  "nodes": [
+    {
+      "id": "node_start",
+      "name": "开始",
+      "type": "Start",
+      "outputs": [
+        {
+          "name": "query",
+          "type": "string",
+          "description": "用户输入",
+          "required": true,
+          "source": "system",
+          "field_type": "input",
+          "reflection": false,
+          "value": {
+            "type": "literal",
+            "content": "",
+            "hint": "用户输入"
+          }
+        },
+        {
+          "name": "user",
+          "type": "string",
+          "description": "用户名字",
+          "required": true,
+          "source": "user",
+          "field_type": "input",
+          "reflection": false,
+          "value": {
+            "type": "generated",
+            "content": "",
+            "hint": "用户输入"
+          }
+        },
+        {
+          "name": "test_object",
+          "type": "object",
+          "description": "对象测试",
+          "required": true,
+          "source": "user",
+          "schema": [
+            {
+              "name": "is_male",
+              "type": "boolean"
+            },
+            {
+              "name": "list_test",
+              "type": "array",
+              "schema": {
+                "name": "",
+                "type": "string"
+              }
+            },
+            {
+              "name": "list_object_test",
+              "type": "array",
+              "schema": {
+                "name": "",
+                "type": "object",
+                "schema": [
+                  {
+                    "name": "is_male",
+                    "type": "boolean"
+                  },
+                  {
+                    "name": "is_female",
+                    "type": "integer"
+                  }
+                ]
+              }
+            }
+          ],
+          "field_type": "input",
+          "reflection": false,
+          "value": {
+            "type": "generated",
+            "content": "",
+            "hint": "用户输入"
+          }
+        },
+        {
+          "name": "test_array",
+          "type": "array",
+          "description": "list测试",
+          "required": true,
+          "source": "user",
+          "schema": {
+            "name": "is_male",
+            "type": "boolean"
+          },
+          "field_type": "input",
+          "reflection": false,
+          "value": {
+            "type": "generated",
+            "content": "",
+            "hint": "用户输入"
+          }
+        },
+        {
+          "name": "sys",
+          "type": "object",
+          "description": "系统变量",
+          "required": true,
+          "source": "system",
+          "schema": [
+            {
+              "name": "conversation_history",
+              "type": "array",
+              "description": "会话历史消息",
+              "required": true,
+              "source": "system",
+              "value": {
+                "content": [],
+                "hint": "会话历史消息",
+                "type": "literal"
+              },
+              "schema": {
+                "name": "",
+                "type": "object",
+                "schema": [
+                  {
+                    "name": "role",
+                    "type": "string",
+                    "description": "角色",
+                    "required": true,
+                    "source": "system",
+                    "value": {
+                      "type": "literal",
+                      "content": "",
+                      "hint": "角色"
+                    }
+                  },
+                  {
+                    "name": "content",
+                    "type": "string",
+                    "description": "消息内容",
+                    "required": true,
+                    "source": "system",
+                    "value": {
+                      "type": "literal",
+                      "content": "",
+                      "hint": "消息内容"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "name": "current_time",
+              "type": "string",
+              "required": true,
+              "description": "当前系统时间",
+              "field_type": "input",
+              "source": "system",
+              "value": {
+                "type": "literal",
+                "content": "",
+                "hint": "当前系统时间"
+              }
+            },
+            {
+              "name": "user_id",
+              "type": "string",
+              "required": true,
+              "description": "使用该工作流的唯一标识",
+              "field_type": "input",
+              "source": "system",
+              "value": {
+                "type": "literal",
+                "content": "",
+                "hint": "用户唯一标识"
+              }
+            },
+            {
+              "name": "conversation_id",
+              "type": "string",
+              "required": true,
+              "description": "工作流对话id",
+              "field_type": "input",
+              "source": "system",
+              "value": {
+                "type": "literal",
+                "content": "",
+                "hint": "工作流对话id"
+              }
+            },
+            {
+              "name": "dialogue_count",
+              "type": "integer",
+              "required": true,
+              "description": "会话轮次",
+              "field_type": "input",
+              "source": "system",
+              "value": {
+                "type": "literal",
+                "content": "",
+                "hint": "会话轮次"
+              }
+            }
+          ],
+          "field_type": "object",
+          "reflection": false,
+          "value": {
+            "type": "literal",
+            "content": {},
+            "hint": "系统变量"
+          }
+        }
+      ]
+    },
+    {
+      "id": "node_llm",
+      "name": "大模型节点",
+      "type": "LLM",
+      "inputs": [
+        {
+          "name": "query",
+          "type": "string",
+          "description": "用户输入",
+          "required": false,
+          "source": "user",
+          "reflection": false,
+          "value": {
+            "type": "ref",
+            "content": {
+              "ref_node_id": "node_start",
+              "ref_var_name": "query",
+              "source": "system"
+            }
+          }
+        },
+        {
+          "name": "user",
+          "type": "string",
+          "description": "用户名字",
+          "required": true,
+          "source": "user",
+          "field_type": "input",
+          "reflection": false,
+          "value": {
+            "type": "ref",
+            "content": {
+              "ref_node_id": "node_start",
+              "ref_var_name": "query",
+              "source": "user"
+            }
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "raw_output",
+          "type": "string",
+          "description": "该节点原始输出",
+          "required": false,
+          "source": "system",
+          "reflection": false,
+          "value": {
+            "type": "generated"
+          }
+        }
+      ],
+      "configs": {
+        "history_size": 20,
+        "top_p": 0.5,
+        "vision": [
+          "test.jpg"
+        ],
+        "frequency_penalty": 0.5,
+        "max_tokens": 2048,
+        "template_content": "我叫{{user}}，{{query}}",
+        "temperature": 0.5,
+        "model": {
+          "model_name": "test_llm",
+          "model_type": "ei_agentBuilder",
+          "model_deployment_id": "test_llm_id"
+        },
+        "system_prompt": "我叫{{user}}，{{query}}",
+        "enable_history": false
+      }
+    },
+    {
+      "id": "node_end",
+      "name": "结束",
+      "type": "End",
+      "inputs": [
+        {
+          "name": "result",
+          "type": "string",
+          "description": "最终输出",
+          "required": false,
+          "source": "user",
+          "reflection": false,
+          "value": {
+            "type": "ref",
+            "content": {
+              "ref_node_id": "node_llm",
+              "ref_var_name": "raw_output",
+              "source": "system"
+            }
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "response_content",
+          "type": "string",
+          "description": "最终输出",
+          "required": true,
+          "source": "system",
+          "reflection": false,
+          "value": {
+            "type": "generated"
+          }
+        }
+      ],
+      "configs": {
+        "is_stream_out": true,
+        "response_template": "{{result}}",
+        "response_mode": "directResponse"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "source": "node_start",
+      "exception_branch": false,
+      "target": "node_llm"
+    },
+    {
+      "source": "node_llm",
+      "exception_branch": false,
+      "target": "node_end"
+    }
+  ],
+  "layouts": {
+    "node_llm": {
+      "x": 510,
+      "y": 440
+    },
+    "node_start": {
+      "x": 130,
+      "y": 440
+    },
+    "node_end": {
+      "x": 910,
+      "y": 440
+    }
+  },
+  "configs": {
+    "variables": [
+      {
+        "description": "用户名字",
+        "name": "user",
+        "scope": "request",
+        "type": "string"
+      },
+      {
+        "description": "对象测试",
+        "name": "test_object",
+        "scope": "request",
+        "type": "object"
+      },
+      {
+        "description": "list测试",
+        "name": "test_array",
+        "scope": "request",
+        "type": "array"
+      }
+    ],
+    "default_model_switch": true,
+    "default_model": {
+      "model_name": "test_llm",
+      "model_type": "ei_agentBuilder",
+      "model_deployment_id": "test_llm_id"
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "type": "object",
+  "properties": {
+    "arr1": {
+      "type": "array",
+      "name_cn": "数组1",
+      "location": "Body",
+      "description": "数组1",
+      "items":{
+        "type":"array",
+        "items":{
+          "type":"string"
+        }
+      }
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

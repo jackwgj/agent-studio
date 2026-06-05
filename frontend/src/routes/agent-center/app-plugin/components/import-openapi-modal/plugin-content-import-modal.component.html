@@ -1,0 +1,70 @@
+<ng-template nzModalTitle>
+  <div class="text-[16px]">
+    {{ (importContentType === 'OpenAPI' ? 'import_openapi_modal_1' : 'import_args') | i18nextEager }}
+  </div>
+</ng-template>
+<div nz-modal-content>
+  <div class="w-full rounded-[6px] border-[1px] border-solid border-[#ccc]">
+    <form #paramForm="ngForm" class="w-full">
+      <div class="flex items-center justify-between rounded-t-[6px] border-b-[1px] border-solid border-[#ccc] bg-[#f0f7ff] p-[10px]">
+        <div *ngIf="importContentType === 'args'" class="content-type-selector">
+          <div
+            (click)="selectContentType(contentType.id)"
+            *ngFor="let contentType of contentTypes"
+            [class]="{ 'is-selected': contentType.selected }"
+            class="content-type-option"
+          >
+            <div class="content-type-option-label">{{ contentType.title }}</div>
+          </div>
+        </div>
+
+        <span *ngIf="importContentType === 'OpenAPI'" class="font-bold text-[#333]">OpenAPI</span>
+        <asset-format-icon
+          (click)="formatDoc()"
+          nz-tooltip
+          nzTooltipTitle="{{ 'format' | i18nextEager }}"
+          nzTooltipPlacement="top"
+          class="cursor-pointer"
+        ></asset-format-icon>
+      </div>
+      <div class="h-[436px] w-full rounded-b-[6px] bg-white py-[10px] pr-[10px]">
+        <ngx-monaco-editor
+          #exeEditor
+          (ngModelChange)="onInputJSONChange()"
+          [(ngModel)]="editContent"
+          [options]="editorOps"
+          arrTypeValidator
+          name="openAPIData"
+          nonEmptyValidator
+        ></ngx-monaco-editor>
+      </div>
+    </form>
+  </div>
+  <div #valueWrapper class="w-full"></div>
+</div>
+<div *nzModalFooter>
+  <div class="relative flex items-center justify-end">
+    <div class="flex items-center justify-end gap-2">
+      <button (click)="dismiss()" nz-button type="button">
+        {{ 'cancel' | i18nextEager }}
+      </button>
+      <button (click)="onOk()" [disabled]="!editContent" nz-button nzType="primary" type="button">
+        {{ 'ok' | i18nextEager }}
+      </button>
+      <div *ngIf="show" class="sure-tips absolute bottom-[42px] right-0 rounded-lg bg-[#fff] p-[16px]">
+        <div class="flex text-left">
+          <span nz-icon nzType="exclamation-circle" nzTheme="fill" class="warn-icon"></span>
+          {{ 'import_tool_args_confirm' | i18nextEager }}
+        </div>
+        <div class="mt-[12px] flex justify-end">
+          <button (click)="show = false" nz-button type="button">
+            {{ 'cancel' | i18nextEager }}
+          </button>
+          <button (click)="onConfirm()" [disabled]="!editContent" class="ml-[5px]" nz-button nzType="primary" type="button">
+            {{ 'ok' | i18nextEager }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

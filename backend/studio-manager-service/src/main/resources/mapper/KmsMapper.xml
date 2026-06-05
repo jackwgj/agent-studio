@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.common.service.mapper.KmsMapper">
+    <resultMap id="baseColumns" type="com.openjiuwen.studio.common.service.entity.KmsEntity">
+        <result column="id" jdbcType="VARCHAR" property="id"/>
+        <result column="domain_id" jdbcType="VARCHAR" property="domainId"/>
+        <result column="main_key_id" jdbcType="VARCHAR" property="mainKeyId"/>
+        <result column="main_key_alias" jdbcType="VARCHAR" property="mainKeyAlias"/>
+        <result column="cipher_text" jdbcType="VARCHAR" property="cipherText"/>
+        <result column="version" jdbcType="INTEGER" property="version"/>
+        <result column="active" jdbcType="TINYINT" property="active"/>
+        <result column="latest" jdbcType="TINYINT" property="latest"/>
+        <result column="created_date" jdbcType="TIMESTAMP" property="createdDate"/>
+        <result column="created_by_user_id" jdbcType="VARCHAR" property="createdByUserId"/>
+        <result column="last_updated_date" jdbcType="TIMESTAMP" property="lastUpdatedDate"/>
+        <result column="last_updated_by_user_id" jdbcType="VARCHAR" property="lastUpdatedByUserId"/>
+    </resultMap>
+
+    <sql id="baseColumns">
+            `id`,
+            `domain_id`,
+            `main_key_id`,
+            `main_key_alias`,
+            `cipher_text`,
+            `version`,
+            `active`,
+            `latest`,
+            `created_date`,
+            `created_by_user_id`,
+            `last_updated_date`,
+            `last_updated_by_user_id`
+
+    </sql>
+
+    <select id="selectByDomainId" resultType="com.openjiuwen.studio.common.service.entity.KmsEntity">
+        select *
+        from t_common_kms_info
+        where domain_id = #{domainId}
+        <if test="mainKeyId != null and mainKeyId!= ''">
+            and main_key_id = #{mainKeyId}
+        </if>
+        <if test="active != null and active!= ''">
+            and active = #{active}
+        </if>
+        <if test="latest != null and latest!= ''">
+            and latest = #{latest}
+        </if>
+    </select>
+
+    <select id="selectById" resultType="com.openjiuwen.studio.common.service.entity.KmsEntity">
+        select *
+        from t_common_kms_info
+        where id = #{id}
+    </select>
+
+    <insert id="insert" parameterType="com.openjiuwen.studio.common.service.entity.KmsEntity">
+        insert into t_common_kms_info (<include refid="baseColumns"></include>)
+        values (
+        #{param.id},
+        #{param.domainId},
+        #{param.mainKeyId},
+        #{param.mainKeyAlias},
+        #{param.cipherText},
+        #{param.version},
+        #{param.active},
+        #{param.latest},
+        #{param.createdDate},
+        #{param.createdByUserId},
+        #{param.lastUpdatedDate},
+        #{param.lastUpdatedByUserId}
+        )
+    </insert>
+
+    <update id="update" parameterType="com.openjiuwen.studio.common.service.entity.KmsEntity">
+        update t_common_kms_info
+        set
+            active = #{param.active},
+            latest = #{param.latest},
+            last_updated_date = #{param.lastUpdatedDate},
+            last_updated_by_user_id = #{param.lastUpdatedByUserId}
+        where id = #{param.id}
+    </update>
+
+</mapper>

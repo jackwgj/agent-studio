@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  ~ Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
+  -->
+
+
+<mapper namespace="com.openjiuwen.studio.agent.manager.mapper.md.RouterStrategyMapper">
+    <resultMap id="BaseResultMap" type="com.openjiuwen.studio.agent.common.entity.RouterStrategyEntity">
+        <id property="id" column="ID" jdbcType="VARCHAR"/>
+        <result property="strategyName" column="STRATEGY_NAME" jdbcType="VARCHAR"/>
+        <result property="strategyType" column="STRATEGY_TYPE" jdbcType="VARCHAR"/>
+        <result property="strategyKey" column="STRATEGY_KEY" jdbcType="VARCHAR"/>
+        <result property="strategyDescription" column="STRATEGY_DESCRIPTION" jdbcType="VARCHAR"/>
+        <result property="serviceIdList" column="SERVICE_ID_LIST" jdbcType="VARCHAR"/>
+        <result property="strategyTimeout" column="STRATEGY_TIMEOUT" jdbcType="INTEGER"/>
+        <result property="strategyRetryCount" column="STRATEGY_RETRY_COUNT" jdbcType="INTEGER"/>
+        <result property="serviceCount" column="SERVICE_COUNT" jdbcType="INTEGER"/>
+        <result property="prepareAttribute" column="PREPARE_ATTRIBUTE" jdbcType="VARCHAR"/>
+        <result property="projectId" column="Project_ID" jdbcType="VARCHAR"/>
+        <result property="workspaceId" column="WORKSPACE_ID" jdbcType="VARCHAR"/>
+        <result property="domainId" column="DOMAIN_ID" jdbcType="VARCHAR"/>
+        <result property="createdByUserName" column="CREATED_BY_USER_NAME" jdbcType="VARCHAR"/>
+        <result property="lastUpdatedByUserName" column="LAST_UPDATED_BY_USER_NAME" jdbcType="VARCHAR"/>
+        <result property="createdDate" column="CREATED_DATE" jdbcType="BIGINT"/>
+        <result property="lastUpdatedDate" column="LAST_UPDATED_DATE" jdbcType="BIGINT"/>
+        <result property="traceId" column="TRACE_ID" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <sql id="conditionFilter">
+        WHERE
+        project_id = #{queryParameter.projectId}
+        AND workspace_id = #{queryParameter.workspaceId}
+        <if test="queryParameter.query != null">
+            and strategy_name like CONCAT('%',#{queryParameter.query},'%')
+        </if>
+    </sql>
+
+    <sql id="Base_Column_List">
+        ID,STRATEGY_NAME,STRATEGY_TYPE,
+        STRATEGY_KEY,
+        STRATEGY_DESCRIPTION,SERVICE_ID_LIST,
+        STRATEGY_TIMEOUT,STRATEGY_RETRY_COUNT,SERVICE_COUNT,
+        PREPARE_ATTRIBUTE,PROJECT_ID,WORKSPACE_ID,DOMAIN_ID,CREATED_BY_USER_NAME,
+        LAST_UPDATED_BY_USER_NAME,CREATED_DATE,LAST_UPDATED_DATE,TRACE_ID
+    </sql>
+
+    <insert id="insert" parameterType="com.openjiuwen.studio.agent.common.entity.RouterStrategyEntity">
+        insert into t_router_strategy
+        (ID,strategy_name,strategy_type,strategy_key,strategy_description,service_id_list,strategy_timeout,
+         strategy_retry_count,service_count,prepare_attribute,project_id,workspace_id,
+         domain_id,created_by_user_name,last_updated_by_user_name,created_date,last_updated_date,trace_id)
+        values(
+                  #{entity.id},#{entity.strategyName},#{entity.strategyType},#{entity.strategyKey},#{entity.strategyDescription},#{entity.serviceIdList},#{entity.strategyTimeout},
+                  #{entity.strategyRetryCount},#{entity.serviceCount},#{entity.prepareAttribute},#{entity.projectId},#{entity.workspaceId},
+                  #{entity.domainId},#{entity.createdByUserName},#{entity.lastUpdatedByUserName},#{entity.createdDate},#{entity.lastUpdatedDate},#{entity.traceId}
+              )
+    </insert>
+
+    <delete id="deleteById">
+        delete from t_router_strategy
+          where ID = #{id}
+    </delete>
+
+    <select id="selectTotalSizeByQueryParameter" parameterType="com.openjiuwen.studio.agent.manager.entity.md.RouterStrategyEntityCondition" resultType="int">
+        select count(1)
+        from t_router_strategy
+        <include refid="conditionFilter"/>
+    </select>
+
+    <select id="selectInfoByQueryParameter" parameterType="com.openjiuwen.studio.agent.manager.entity.md.RouterStrategyEntityCondition"
+            resultType="com.openjiuwen.studio.agent.common.entity.RouterStrategyEntity">
+        select
+        <include refid="Base_Column_List"/>
+        from t_router_strategy
+        <include refid="conditionFilter"/>
+        ORDER BY CREATED_DATE desc
+        LIMIT #{queryParameter.limit,jdbcType=INTEGER} OFFSET #{queryParameter.offset,jdbcType=INTEGER}
+    </select>
+
+    <update id="update">
+        update t_router_strategy
+        <set>
+            <if test="entity.strategyName != null">
+                STRATEGY_NAME = #{entity.strategyName},
+            </if>
+            <if test="entity.strategyType != null">
+                STRATEGY_TYPE = #{entity.strategyType},
+            </if>
+            <if test="entity.strategyKey != null">
+                STRATEGY_KEY = #{entity.strategyKey},
+            </if>
+            <if test="entity.strategyDescription != null">
+                STRATEGY_DESCRIPTION = #{entity.strategyDescription},
+            </if>
+            <if test="entity.serviceIdList != null">
+                SERVICE_ID_LIST = #{entity.serviceIdList},
+            </if>
+            <if test="entity.strategyTimeout != null">
+                STRATEGY_TIMEOUT = #{entity.strategyTimeout},
+            </if>
+            <if test="entity.strategyRetryCount != null">
+                STRATEGY_RETRY_COUNT = #{entity.strategyRetryCount},
+            </if>
+            <if test="entity.serviceCount != null">
+                SERVICE_COUNT = #{entity.serviceCount},
+            </if>
+            <if test="entity.prepareAttribute != null">
+                PREPARE_ATTRIBUTE = #{entity.prepareAttribute},
+            </if>
+            <if test="entity.projectId != null">
+                PROJECT_ID = #{entity.projectId},
+            </if>
+            <if test="entity.domainId != null">
+                DOMAIN_ID = #{entity.domainId},
+            </if>
+            <if test="entity.createdByUserName != null">
+                CREATED_BY_USER_Name = #{entity.createdByUserName},
+            </if>
+            <if test="entity.lastUpdatedByUserName != null">
+                LAST_UPDATED_BY_USER_Name = #{entity.lastUpdatedByUserName},
+            </if>
+            <if test="entity.createdDate != null">
+                CREATED_DATE = #{entity.createdDate},
+            </if>
+            <if test="entity.lastUpdatedDate != null">
+                LAST_UPDATED_DATE = #{entity.lastUpdatedDate},
+            </if>
+        </set>
+        WHERE ID = #{entity.id}
+    </update>
+
+    <select id = "selectInfoById" resultType="com.openjiuwen.studio.agent.common.entity.RouterStrategyEntity">
+        select
+        <include refid="Base_Column_List"/>
+        from t_router_strategy
+        where ID = #{id}
+    </select>
+
+    <select id="selectInfoByStrategyName"
+            resultType="com.openjiuwen.studio.agent.common.entity.RouterStrategyEntity">
+        select
+        <include refid="Base_Column_List"/>
+        from t_router_strategy
+        where PROJECT_ID = #{project_id}
+        and WORKSPACE_ID = #{workspace_id}
+        <if test="strategy_name != null and strategy_name != ''">
+            and strategy_name = #{strategy_name}
+        </if>
+    </select>
+
+    <select id="queryByIds" resultType="com.openjiuwen.studio.agent.common.entity.RouterStrategyEntity">
+        SELECT * FROM t_router_strategy
+        WHERE project_id = #{projectId}
+        AND workspace_id = #{workspaceId}
+        AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+    <select id="queryByRouterIds" resultType="com.openjiuwen.studio.agent.common.entity.RouterStrategyEntity">
+        SELECT * FROM t_router_strategy
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <insert id="insertBackup" parameterType="com.openjiuwen.studio.agent.common.entity.RouterStrategyEntity">
+        insert into t_router_strategy_backup
+        (ID,strategy_name,strategy_type,strategy_key,strategy_description,service_id_list,strategy_timeout,
+         strategy_retry_count,service_count,prepare_attribute,project_id,workspace_id,
+         domain_id,created_by_user_name,last_updated_by_user_name,created_date,last_updated_date)
+        values(
+                  #{entity.id},#{entity.strategyName},#{entity.strategyType},#{entity.strategyKey},#{entity.strategyDescription},#{entity.serviceIdList},#{entity.strategyTimeout},
+                  #{entity.strategyRetryCount},#{entity.serviceCount},#{entity.prepareAttribute},#{entity.projectId},#{entity.workspaceId},
+                  #{entity.domainId},#{entity.createdByUserName},#{entity.lastUpdatedByUserName},#{entity.createdDate},#{entity.lastUpdatedDate}
+              )
+    </insert>
+
+    <select id = "queryBackupByUpdateTime" resultType="com.openjiuwen.studio.agent.common.entity.RouterStrategyEntity">
+        select
+        <include refid="Base_Column_List"/>
+        from t_router_strategy_backup
+        where LAST_UPDATED_DATE &lt; #{lastUpdatedDate}
+    </select>
+
+    <delete id="deleteBackupByIds">
+        DELETE FROM t_router_strategy_backup
+        WHERE id IN
+        <foreach item="id" collection="ids" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <select id="queryStrategiesByModelId"
+            resultType="com.openjiuwen.studio.agent.common.entity.RouterStrategyEntity">
+        select
+        <include refid="Base_Column_List"/>
+        from t_router_strategy
+        where PROJECT_ID = #{project_id}
+        and WORKSPACE_ID = #{workspace_id}
+        and CONCAT(',', SERVICE_ID_LIST, ',') like CONCAT('%,', #{model_id}, ',%')
+    </select>
+</mapper>

@@ -1,0 +1,226 @@
+<div class="create-agent-container">
+  <nz-spin *ngIf="isLoading || isDeepResearchLoading" class="loading-icon" nzSimple></nz-spin>
+  <nz-alert
+    id="alert-messages-3"
+    nzType="success"
+    style="position: absolute; top: 8px; right: 24px; z-index: 9999"
+    [nzShowIcon]="true"
+    [nzMessage]="'agent-bot-1' | i18nextEager"
+    [nzDescription]="'agent-bot-2' | i18nextEager"
+    *ngIf="isShowSuccessAlert"
+  >
+  </nz-alert>
+  <nz-alert
+    id="alert-messages-4"
+    nzType="error"
+    style="position: absolute; top: 8px; right: 24px; z-index: 9999"
+    [nzShowIcon]="true"
+    [nzMessage]="'mcp_error' | i18nextEager"
+    *ngIf="isShowFailAlert"
+  >
+  </nz-alert>
+
+  <div class="header-container gap-[24px]">
+    <div class="header-left flex-1">
+      <div (click)="onPageBack()" class="back-icon-container">
+        <span nz-icon nzType="left" nzTheme="outline" class="back-icon"></span>
+      </div>
+      <img alt="" *ngIf="agentInfo.icon" class="header-img-size" [src]="agentInfo.icon" />
+      <div class="w-full absolute left-[72px]">
+        <div class="title ml-2 text-overflow" style="font-size: 14px; margin: 0 0 0 12px; line-height: 22px">
+          {{ agentInfo.name }}
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px; margin-top: 6px; margin-left: 12px">
+          <div class="mode-agent shrink-0" (click)="handleClickOpenMode($event)" *ngIf="isShowDREnter()">
+            <span>{{ agentMode[curAgentModeCode]?.name }}</span>
+            <span nz-icon nzType="down" nzTheme="outline" *ngIf="!isShowAgentModeSelector"></span>
+            <span nz-icon nzType="up" nzTheme="outline" *ngIf="isShowAgentModeSelector"></span>
+            <div class="change-mode" *ngIf="isShowAgentModeSelector">
+              <div class="arrow"></div>
+              @for (mode of agentModeList; track mode) {
+                @if (mode.showFn()) {
+                  <div class="mode" [class.selected]="curAgentModeCode === mode.value" (click)="handleClickSelectMode(mode.value, $event)">
+                    <img [src]="changeUrl(mode.icon)" alt="" />
+                    <div class="mode-content">
+                      <p class="mode-title">{{ mode.name }}</p>
+                      <p class="mode-desc">{{ mode.description }}</p>
+                    </div>
+                  </div>
+                }
+              }
+            </div>
+          </div>
+          <div class="flex items-center gap-[8px] shrink-0" style="color: rgba(89, 89, 89, 1)" *ngIf="!isFlowReadonly">
+            <div class="split-dot"></div>
+            <div *ngIf="!isFlowReadonly" class="flow-tag flex items-center gap-2 rounded-md">
+              <img [src]="statusBarInfo.icon" alt="status-icon" />
+              <div>{{ statusBarInfo?.text || '' | i18nextEager }}</div>
+            </div>
+            <div class="split-dot"></div>
+            <div class="auto-save-desc text-overflow" *ngIf="autoSaveTime; else noTime">
+              {{ 'automatically_saved_in' | i18nextEager }} {{ autoSaveTime | formateTime }}
+            </div>
+            <div *ngIf="releaseStatusBar" class="split-dot"></div>
+            <div *ngIf="releaseStatusBar" class="flow-tag flex items-center gap-2 rounded-md bg-[#f5f5f5ff] p-0.5 px-2">
+              <div class="shrink-0">{{ 'flow_unpublish_modify' | i18nextEager }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex-1 flex justify-center">
+      <tabs-header *ngIf="(isF1 || isOpAccount) && !isFlowReadonly && false" [tabs]="headerTabs" (activeChange)="tabActiveChange($event)" />
+      <tabs-header *ngIf="!isFlowReadonly" class="config-header-tabs" [tabs]="configHeaderTabs" (activeChange)="configTabActiveChange($event)" />
+    </div>
+    <div class="right-area flex-1 justify-end">
+      <span
+        class="h-[30px] w-[30px] inline-flex items-center justify-center cursor-pointer"
+        nz-tooltip
+        [nzTooltipTitle]="'trigger_setting' | i18nextEager"
+        nzTooltipPlacement="bottom"
+        (click)="openTriggerDrawer()"
+        *ngIf="!isShowDeepResearch"
+      >
+        <img alt="" [src]="changeUrl('assets/agent-center/icons/trigger.png')" />
+      </span>
+      <span
+        class="icon-border inline-flex items-center justify-center cursor-pointer"
+        nz-tooltip
+        [nzTooltipTitle]="'release_history' | i18nextEager"
+        nzTooltipPlacement="bottom"
+        (click)="openReleaseHistoryModal()"
+      >
+        <img alt="" [src]="changeUrl('assets/agent-center/icons/release-history.svg')" />
+      </span>
+      <button
+        *ngIf="!isFlowReadonly"
+        type="button"
+        (click)="publishAgent()"
+        nz-button
+        nzType="primary"
+        nzSize="large"
+        nz-tooltip
+        [nzTooltipTitle]="publishBtnTip"
+        [disabled]="this.isDisabledReleaseBtn ? this.isDisabledReleaseBtn : isPublishBtnDisabled || !subscribeBtnStatus"
+      >
+        {{ (historyVersionList.length > 0 ? 'update_version' : 'submit_version') | i18nextEager }}
+      </button>
+    </div>
+  </div>
+
+  <div class="history-preview" *ngIf="isFlowReadonly">
+    <div class="mr-[8px] text-[#1476FF]">
+      <span nz-icon nzType="info-circle" nzTheme="outline"></span>
+    </div>
+    {{ 'previewing_version_information' | i18nextEager }}：{{ versionName }}
+    <div class="exit" (click)="exitViewHistory()">
+      {{ 'exit_version_preview' | i18nextEager }}
+      <span nz-icon nzType="close" nzTheme="outline"></span>
+    </div>
+  </div>
+
+  <div
+    [ngStyle]="{
+      display: curActiveTabId === 'agent' && curActiveConfigTabId === 'appConfig' ? 'flex' : 'none',
+      height: isFlowReadonly ? 'calc(100vh - 96px)' : 'calc(100vh - 112px)',
+    }"
+    class="main-container"
+    id="agent-container"
+  >
+    <agent-deep-research
+      *ngIf="isShowDeepResearch"
+      [availableModels]="availableModels"
+      [modelConfig]="modelConfig"
+      [modelConfigTipService]="modelConfigTipService"
+      [knowledge]="knowledges"
+      [knowledge_retrieve_policy]="knowledge_retrieve_policy"
+      (isDeepLoading)="isDeepLoading($event)"
+      (onClickEvent)="onClick()"
+      (updateSearchEngine)="isDisabledUpdateBtn($event)"
+    />
+    <div
+      class="left-container gap-[16px]"
+      *ngIf="!isShowDeepResearch"
+      [style]="{ visibility: isExpandDialog ? 'hidden' : 'visible', width: isExpandDialog ? '0%' : '', padding: isExpandDialog ? '0px' : '' }"
+    >
+      <div class="builder">
+        <info-and-prompt-builder
+          [agentInfo]="agentInfo"
+          [dispatchSelectedType]="dispatchSelectedType"
+          [promptInputed]="promptInputed"
+          [curAgentModeCode]="curAgentModeCode"
+          (nameUpdated)="onUpdateName($event)"
+          (logoUpdated)="onUpdateLogo($event)"
+        ></info-and-prompt-builder>
+      </div>
+      <div class="configure">
+        <config-tools
+          (modelTrigger)="handleModelConfigTip($event)"
+          [availableModels]="availableModels"
+          [collapsed]="collapsed"
+          [modelSelected]="modelSelected"
+          [modelConfig]="modelConfig"
+          [showModelConfigTip]="showModelConfigTip"
+          [plugins]="plugins"
+          [flows]="workflows"
+          [skills]="skills"
+          [sceneList]="sceneList"
+          [workflowSwitchEnabled]="workflowSwitchEnabled"
+          [knowledges]="knowledges"
+          [trigger_list]="trigger_list"
+          [memos]="memos"
+          [openTextAndQuestions]="openTextAndQuestions"
+          [loadingFromParent]="isLoading"
+          [additional_questions_config]="additional_questions_config"
+          [knowledge_retrieve_policy]="knowledge_retrieve_policy"
+          [dispatchSelectedType]="dispatchSelectedType"
+          [agent_variables]="agent_variables"
+          [input_variables]="input_variables"
+          [memory_config]="memory_config"
+          [mcp_servers]="mcp_servers"
+          [content_review]="content_review"
+          [safety_barrier]="safety_barrier"
+          [curAgentModeCode]="curAgentModeCode"
+          (turnEnabled)="turnEnabledEvent($event)"
+          (createMcpRes)="createMcpResEmit($event)"
+          (deleteOneMcpEvent)="updateMcp($event)"
+          (saveAgent)="saveAgent($event)"
+          (addMcpEvent)="addMcpUpdateAgent($event)"
+        ></config-tools>
+      </div>
+    </div>
+    <div class="preview" *ngIf="curAgentModeCode === 'agent'" [style]="{ width: isExpandDialog ? '100%' : '' }">
+      <preview-debug [dispatchSelectedType]="dispatchSelectedType" [previewDebugData]="previewDebugData" (expandDialogEnv)="handleClickExpandDialog($event)" />
+    </div>
+    <div class="preview" *ngIf="curAgentModeCode === 'planexecute'" [style]="{ width: isExpandDialog ? '100%' : '' }">
+      <preview-debug-plan
+        [dispatchSelectedType]="dispatchSelectedType"
+        [previewDebugData]="previewDebugData"
+        (expandDialogEnv)="handleClickExpandDialog($event)"
+      />
+    </div>
+  </div>
+
+  <div class="h-[calc(100%-64px)] w-full release-manage-container" *ngIf="curActiveConfigTabId === 'releaseManage'">
+    <div class="manage-content">
+      <publish-channel-page [publishParams]="publishParams" #publishChannelPage></publish-channel-page>
+    </div>
+  </div>
+</div>
+<nz-drawer #triggerSettingModal nzWidth="500px" (nzOnClose)="triggerSettingModal.close()">
+  <ng-container *nzDrawerContent>
+    <span class="title-text">{{ 'trigger_setting' | i18nextEager }}</span>
+    <tool-list
+      [toolAdded]="triggerAdded"
+      [noDataText]="triggerEmptyText"
+      [isFlowReadonly]="isFlowReadonly"
+      (collapseRegionFlag)="changeCollapsedState($event)"
+      (addBtnClickedFlag)="openTriggerHalfmodal($event)"
+      (deleteTrigger)="deleteTrigger($event)"
+    ></tool-list>
+  </ng-container>
+</nz-drawer>
+<ng-template #noTime>
+  <div class="auto-save-desc">{{ 'auto_save' | i18nextEager }}</div>
+</ng-template>

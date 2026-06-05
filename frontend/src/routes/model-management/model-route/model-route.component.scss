@@ -1,0 +1,47 @@
+#route-policy {
+  background-color: white;
+
+  .top-title-area {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 12px;
+    margin-bottom: 24px;
+
+    .title-area-left {
+      display: flex;
+      margin-right: 8px;
+      color: rgba(25, 25, 25, 1);
+      font-size: 20px;
+      font-weight: 600;
+
+      .page-title {
+        margin-right: 6px;
+      }
+    }
+  }
+
+  .query-content {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+
+    .search-box {
+      width: 100% !important;
+    }
+  }
+
+  .list-no-data {
+    height: calc(100vh - 370px);
+
+    .show-no-data-tr {
+      background-color: transparent;
+      transition: none;
+    }
+  }
+
+  .table-style {
+    border-bottom: 0;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+}

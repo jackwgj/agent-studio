@@ -1,0 +1,64 @@
+<div class="ltm-retrieval-strategy" [formGroup]="strategyForm">
+  <ng-container formArrayName="strategyList">
+    @for (strategy of strategyList(); track strategy.type; let i = $index) {
+      <div class="strategy-container" [formGroupName]="i">
+        <div class="strategy-info-container">
+          <div class="checkbox-container">
+            <!-- 替换为 nz-checkbox -->
+            <label nz-checkbox formControlName="checked" (ngModelChange)="onTouch()"></label>
+          </div>
+          <div class="basic-info-container">
+            <div class="strategy-title">
+              {{ strategy.name }}
+            </div>
+            <div class="strategy-description">
+              {{ strategy.description }}
+            </div>
+          </div>
+        </div>
+
+        @if (getStrategyChecked(strategy.type)) {
+          <div class="strategy-prompt-container">
+            <div class="prompt-title-container">
+              <div class="title-content">{{ 'memory.create.customStrategy.promoteTemplate' | i18nextEager }}</div>
+              <div class="title-operation-container">
+                <!-- 替换 tp-copy：使用 nz-icon -->
+                <span
+                  class="copy-icon-btn"
+                  nz-icon
+                  nzType="copy"
+                  nzTheme="outline"
+                  [nz-tooltip]="'memory.create.copy.tip.success' | i18nextEager"
+                  nzTooltipTrigger="click"
+                  (click)="copyText(getStrategyPrompt(strategy.type))"
+                ></span>
+
+                <div class="split-line"></div>
+                <div class="reset-default-container" (click)="resetToDefaults()">
+                  {{ 'memory.customStrategy.promoteReset' | i18nextEager }}
+                </div>
+              </div>
+            </div>
+
+            <!-- 替换 tiTextarea -->
+            <textarea
+              nz-input
+              class="prompt-content"
+              formControlName="prompt"
+              [nzAutosize]="{ minRows: 4, maxRows: 8 }"
+              [maxLength]="1000"
+              (input)="onTouch()"
+            ></textarea>
+          </div>
+        }
+      </div>
+    }
+  </ng-container>
+
+  @if (hasError()) {
+    <div class="error-message-container mt-[4px]">
+      <span nz-icon nzType="close-circle" nzTheme="fill"></span>
+      <span class="ml-1">{{ getErrorMessage() }}</span>
+    </div>
+  }
+</div>

@@ -1,0 +1,79 @@
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
+ */
+
+package com.openjiuwen.studio.agent.manager.dto;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import io.swagger.annotations.ApiModel;
+import jakarta.validation.constraints.NotBlank;
+
+import org.hibernate.validator.constraints.Length;
+import org.springframework.validation.annotation.Validated;
+
+import java.io.Serializable;
+import java.util.Objects;
+
+/**
+ * 修改知识文档切片响应体
+ */
+@ApiModel(description = "修改知识文档切片响应体")
+
+@Validated
+
+public class UpdateFileChunkRsp implements Serializable {
+    private static final long serialVersionUID = 1L;
+
+    @JsonProperty("id")
+    @NotBlank
+    @Length(min = 1, max = 64)
+    private String id = null;
+
+    public String getId() {
+        return id;
+    }
+
+    public UpdateFileChunkRsp setId(String id) {
+        this.id = id;
+        return this;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("class UpdateFileChunkRsp {\n");
+
+        sb.append("    id: ").append(toIndentedString(id)).append("\n");
+        sb.append("}");
+        return sb.toString();
+    }
+
+    @Override
+    public boolean equals(java.lang.Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        UpdateFileChunkRsp updateFileChunkRsp = (UpdateFileChunkRsp) o;
+        return Objects.equals(this.id, updateFileChunkRsp.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
+    }
+
+    /**
+     * Convert the given object to string with each line indented by 4 spaces
+     * (except the first line).
+     */
+    private String toIndentedString(java.lang.Object o) {
+        if (o == null) {
+            return "null";
+        }
+        return o.toString().replace("\n", "\n    ");
+    }
+}

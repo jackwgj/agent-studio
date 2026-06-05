@@ -1,0 +1,57 @@
+<header class="detail-header-container">
+  <div class="left">
+    <div class="left-title">
+      <div
+        (click)="onClickBack()"
+        class="back-icon-container"
+        [class.flow-back-agent-builder]="isFromAgentBuilder"
+      >
+        <span nz-icon class="back-icon" nzType="left" nzTheme="outline"></span>
+      </div>
+      <div *ngIf="logo && !iconLoading" class="square-item">
+        <img *ngIf="!loading" [src]="logo" alt="icon" class="img"/>
+      </div>
+      <div *ngIf="iconLoading"
+           style="border-radius: 8px; width: 40px;height: 40px; background: rgba(230, 230, 230, 1); display: flex; align-items: center; justify-content: center;">
+        <img [src]="changeUrl('assets/agent-center/agent/model_icon_loading.svg')"
+             [class.rotate-icon]="iconLoading" alt=""
+             style="width: 20px;height: 20px;">
+      </div>
+      <div>
+        <div class="shrink-0">
+          <span nz-tooltip [nzTooltipTitle]="workflowDetail?.name" class="title" [ngClass]="{ 'multi-agent-title': type === 'multi' }">
+            {{ this.workflowDetail?.name }}
+          </span>
+          <span *ngIf="!isFromAgentBuilder">
+            <span *ngIf="!isFlowReadonly && workflowDetail" nz-icon nzType="edit" nzTheme="outline" style="cursor: pointer; margin-left: 2px;position: relative;top: 2px;"
+              (click)="onClickEditor()"></span>
+          </span>
+        </div>
+        <div>
+          <ng-container *ngIf="!!statusBarTemplate">
+            <ng-container *ngTemplateOutlet="statusBarTemplate"></ng-container>
+          </ng-container>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="flex-1 flex justify-center">
+    <ng-container *ngIf="!!centerTemplate">
+      <ng-container *ngTemplateOutlet="centerTemplate"></ng-container>
+    </ng-container>
+  </div>
+
+  <div class="right">
+    <ng-container *ngIf="!!opLeftTemplate">
+      <ng-container *ngTemplateOutlet="opLeftTemplate"></ng-container>
+    </ng-container>
+
+    <div *ngIf="!!showDivider" class="divider"></div>
+
+    <ng-container *ngIf="!!opRightTemplate">
+      <ng-container *ngTemplateOutlet="opRightTemplate"></ng-container>
+    </ng-container>
+  </div>
+</header>

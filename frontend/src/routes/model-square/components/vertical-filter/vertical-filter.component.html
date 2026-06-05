@@ -1,0 +1,20 @@
+<div class="vertical-filter-container">
+  <div class="filter-title">
+    {{ filterTitle }}
+    <button id="button-clear" tiButton *ngIf="showClear" [hasBorder]="false" (click)="clear()">{{ 'clear' | i18nextEager }}({{selectedNum}})</button>
+  </div>
+  <div class="filter-container-body">
+    <div class="filter-group" *ngFor="let filterGroup of displayData;index as groupIndex">
+      <div *ngIf="groupIndex !== 0" class="divider"></div>
+      <div *ngIf="filterGroup.groupTitle" class="filter-group-title">{{ filterGroup.groupTitle }}</div>
+      <ul class="filter-group-list" *ngFor="let groupOption of filterGroup.options;index as optionIndex">
+        <li class="filter-option-container">
+          <button type="button" class="filter-option" [ngClass]="{ active: groupOption.isSelect }" (click)="onGroupOptionClick(groupOption)">
+            {{ groupOption.label }}
+            <nz-icon nzType="close-circle" nzTheme="outline" *ngIf="isMultiSelect && groupOption.isSelect" class="cancel-icon" />
+          </button>
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,37 @@
+<div  class="editor-wrapper">
+  <div *ngIf="editorContainer.element.nativeElement.innerText==='\n'||editorContainer.element.nativeElement.innerText===''"
+       class="placeholder">
+    {{ 'prompt_with_variable'|i18nextEager }}
+  </div>
+  <div #editor
+       [style]="style"
+       (blur)="onblur()"
+       (click)="handleClick()"
+       (copy)="handleCopy($event)"
+       (cut)="handleCut($event)"
+       (input)="onInput($event)"
+       (keydown)="handleKeyDown($event)"
+       (paste)="handlePaste($event)"
+       [attr.contenteditable]="canEdit"
+       class="editor"
+  >
+    <div></div>
+  </div>
+  <div class="bottom" *ngIf="!onlyShowControl">
+    <div>
+      <span [style.color]="promptValue.length>maxLength?'red':''">
+        {{ promptValue.length }}
+      </span>
+      /{{ maxLength }}
+    </div>
+  </div>
+  <meta-variable-insert
+    #variableInsertRef
+    (onselect)="handleInsertVariable($event)"
+    [class]="{'hidden':!showInserterControl || promptType==='text'}"
+    class="absolute"
+    style="z-index: 5"
+  >
+  </meta-variable-insert>
+</div>
+

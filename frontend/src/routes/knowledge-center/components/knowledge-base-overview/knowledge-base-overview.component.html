@@ -1,0 +1,68 @@
+<div (click)="handleDetailView()" class="knowledge-base-overview"
+     [ngClass]="[
+     pageType ==='overview' ? 'overview-card-background' : 'develop-space-card-background',
+     knowledgeBaseData.type !== 'external' ? 'cursor-pointer' : '',
+     ]"
+     nz-tooltip [nzTooltipTitle]="isStatusError(knowledgeBaseData) ? i18n.transform('knowledge_base_error_tip',{name:knowledgeBaseData.name}) : ''">
+  <div class="icon-and-name">
+    <img alt="" class="icon" [src]="knowledgeBaseData.icon"/>
+    <div class="flex w-[calc(100%-64px)] flex-col">
+      <div class="flex items-center gap-x-[8px]">
+        <div class="name text-ellipsis" [title]="knowledgeBaseData.name">
+          {{ knowledgeBaseData.name }}
+        </div>
+        <span *ngIf="knowledgeBaseData.type === 'external'"
+              nz-icon nzType="copy" nzTheme="outline"
+              class="kb-url-copy cursor-pointer text-blue-500"
+              nz-tooltip [nzTooltipTitle]="'copy_knowledge_base_url'|i18nextEager"
+              (click)="copyUrl($event, knowledgeBaseData.source?.detail_page_url)">
+        </span>
+      </div>
+      <div class="flex flex-wrap gap-1 mt-1">
+        <nz-tag *ngIf="!isStatusError(knowledgeBaseData)" [nzColor]="knowledgeBaseStatusMap.get(knowledgeBaseData.status)?.cardTagColor || 'default'">
+          {{ knowledgeBaseStatusMap.get(knowledgeBaseData.status)?.text }}
+        </nz-tag>
+        <nz-tag *ngIf="isStatusError(knowledgeBaseData)" nzColor="error">
+          {{ 'not_available'|i18nextEager }}
+        </nz-tag>
+        <nz-tag [nzColor]="knowledgeBaseSourceMap.get(knowledgeBaseData.type)?.color || 'default'">
+          {{ knowledgeBaseSourceMap.get(knowledgeBaseData.type)?.label }}
+        </nz-tag>
+        <nz-tag *ngIf="kbBaseService.getKbSource(knowledgeBaseData)">
+          <div class="text-ellipsis" style="max-width: 76px;" [title]="kbBaseService.getKbSource(knowledgeBaseData)">
+            {{ kbBaseService.getKbSource(knowledgeBaseData) }}
+          </div>
+        </nz-tag>
+      </div>
+    </div>
+  </div>
+  <div
+    class="card-description line-clamp-2 mb-[16px] mt-[12px] h-[36px]"
+    [title]="knowledgeBaseData.description || '--'"
+    style="color: #808080"
+  > {{ knowledgeBaseData.description || '--' }}
+  </div>
+  <div class="card-bottom-area">
+    <div style="display: flex;width: calc(100% - 20px);" class="items-center">
+      <span nz-icon nzType="user" nzTheme="outline" class="mr-[4px] !text-[16px]"></span>
+      <div class="user-name text-ellipsis" [title]="knowledgeBaseData.last_update_user_name">
+        {{ knowledgeBaseData.last_update_user_name }}
+      </div>
+      <div class="update-time-icon flex items-center">
+        <span nz-icon nzType="clock-circle" nzTheme="outline" class="update-icon mr-1"></span>
+        <div class="update-time">{{ knowledgeBaseData.update_time | formateTime }}</div>
+      </div>
+    </div>
+    <a nz-dropdown [nzDropdownMenu]="menu" (click)="clickMenu($event)" class="action-menu text-gray-500 hover:text-blue-500">
+      <span nz-icon nzType="more" nzTheme="outline"></span>
+    </a>
+    <nz-dropdown-menu #menu="nzDropdownMenu">
+      <ul nz-menu>
+        <li nz-menu-item *ngFor="let action of dataToItemsFn(knowledgeBaseData)" [nzDisabled]="action.disabled" (click)="listAction(action, knowledgeBaseData)">
+          {{ action.label }}
+        </li>
+      </ul>
+    </nz-dropdown-menu>
+  </div>
+</div>
+<knowledge-base-edit (getList)="refreshList.emit({ action: 'edit' })" #knowledgeBaseEdit></knowledge-base-edit>

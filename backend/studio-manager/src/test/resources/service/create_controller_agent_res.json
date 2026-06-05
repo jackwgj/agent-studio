@@ -1,0 +1,58 @@
+{
+  "agent_id":"125bb1fd-1a74-48a2-97a9-6416cc603999",
+  "creator":"test_user_name",
+  "creator_id":"test_user_id",
+  "description":"测试agent描述",
+  "details":{
+    "description":"测试agent描述",
+    "edges":[
+
+    ],
+    "global_variables":[
+
+    ],
+    "id":"125bb1fd-1a74-48a2-97a9-6416cc603999",
+    "inputs":[
+
+    ],
+    "layouts":{
+      "controller":{
+        "x":190,
+        "y":300
+      }
+    },
+    "name":"测试agent",
+    "nodes":[
+      {
+        "configs":{
+          "chat_history_max_turn":10,
+          "enable_history":false,
+          "global_intents":[
+
+          ],
+          "max_iteration":9,
+          "model":{
+            "model_deployment_id":"testDeploymentId",
+            "model_name":"testDeployName",
+            "model_type":"openai"
+          },
+          "prompt":"",
+          "specify_workflow_order":false,
+          "workflows":[
+
+          ]
+        },
+        "id":"controller",
+        "name":"多Agent控制器",
+        "type":"Controller"
+      }
+    ],
+    "project_id":"test_project_id",
+    "workspace_id":"0"
+  },
+  "icon":"data:image/jpeg;base64,null",
+  "name":"测试agent",
+  "project_id":"test_project_id",
+  "status":"draft",
+  "type":"controller"
+}

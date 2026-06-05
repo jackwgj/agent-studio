@@ -1,0 +1,185 @@
+<div id="create-app-page" class="flex flex-col h-full">
+  <div class="create-app-header">
+    <button (click)="back()" class="back-button"
+            type="button" nz-button [nzType]="'text'" [nzBlock]="true"
+            [class.app-back-agent-builder]="isFromAgentBuilder">
+      <span nz-icon nzType="arrow-left" nzTheme="outline" class="back-icon"></span>
+    </button>
+    <div class="title ml-[12px]">
+      {{ backTitle }}
+    </div>
+  </div>
+
+  <main class="flex-1 p-[24px]">
+    <div class="main-content">
+      <div class="operation-area">
+        @if (isShowCardSelect) {
+          <div class="select-type-title">
+            <div class="select-type-title-left">{{ 'create_app_choose_type' | i18nextEager }}</div>
+            <ng-container *ngTemplateOutlet="toTemplate;"></ng-container>
+          </div>
+        }
+        <!--卡片选择-->
+        @if (isShowCardSelect) {
+          <div class="grid grid-cols-2 gap-[12px]">
+            @for (item of createTypes; track item.type) {
+              <div class="create-type-card" [ngClass]="{ selected: item.type === selectedType }" (click)="handleTypeSelect(item.type)">
+                @if (item.type === 'controller') {
+                  <span class="beta-tag">beta</span>
+                }
+                <img  class="h-[40px] w-[40px]" [src]="item.icon" alt=""/>
+                <div class="type-content">
+                  <div class="font-bold">{{ item.name | i18nextEager }}</div>
+                  <div style="height: 36px">
+                    <div class="text-[#808080] line-clamp-2" style="max-width: 100%;color: #808080;line-height: 22px;">{{ item.desc | i18nextEager }}</div>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        }
+
+        @if (highCodeTypes.length) {
+          <div class="select-type-title">
+            <div class="select-type-title-left">{{ 'create_app_choose_type_high_code' | i18nextEager }}</div>
+          </div>
+        }
+        <!--卡片选择-->
+        @if (highCodeTypes.length) {
+          <div class="grid grid-cols-2 gap-[12px]">
+            @for (item of highCodeTypes; track item.type) {
+              <div class="create-type-card" [ngClass]="{ selected: item.type === selectedType }" (click)="handleTypeSelect(item.type)">
+                @if (item.type === ApplicationType.AGENT_NEW) {
+                  <span class="new_tag">New</span>
+                }
+                <img  class="h-[40px] w-[40px]" [src]="item.icon" alt=""/>
+                <div class="type-content">
+                  <div class="font-bold">{{ item.name | i18nextEager }}</div>
+                  <div style="height: 36px">
+                    <div class="text-[#808080] line-clamp-2" style="max-width: 100%;color: #808080;line-height: 22px;">{{ item.desc | i18nextEager }}</div>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        }
+
+        <div class="config-area" [ngClass]="{'mt-[16px]':isShowCardSelect}">
+          @if (!isAi) {
+            <div class="config-area-title mb-[16px]">
+              <div class="flex h-full" style="align-items: center">
+                <div class="regular-create">{{ 'basic_information_config' | i18nextEager }}</div>
+              </div>
+              @if (!isShowCardSelect) {
+                <ng-container *ngTemplateOutlet="toTemplate;"></ng-container>
+              }
+            </div>
+          }
+          @if (isAi) {
+            <div class="config-area-ai">
+              <div class="regular-create">{{ 'natural_language_description' | i18nextEager }}</div>
+
+              <meta-input-file-text
+                (contentChange)="contentChange($event)"
+                [isCreate]="true"
+                [isErr]="isShowErr && !initialValue.pureText && !initialValue.tags.length"
+              ></meta-input-file-text>
+              @if (isShowErr && !initialValue.pureText && !initialValue.tags.length) {
+                <div style="font-size:12px;color:red">
+                  <span nz-icon nzType="close-circle" nzTheme="fill"></span>
+                  {{ 'input_can_not_empty' | i18nextEager }}
+                </div>
+              }
+            </div>
+          }
+
+          <!--配置表单-->
+          @if (!isAi) {
+            <form nz-form [formGroup]="form" class="form_tabel">
+              <nz-form-item class="mb-[12px]">
+                <nz-form-label [nzSpan]="24" [nzRequired]="true">{{ formLabels[0] | i18nextEager }}</nz-form-label>
+                <nz-form-control [nzSpan]="24" [nzErrorTip]="nameErrorTpl">
+                  <input formControlName="name" [placeholder]="placeholders[0] | i18nextEager"
+                         type="text" nz-input class="w-full"/>
+                  <ng-template #nameErrorTpl let-control>
+                    @if (control.hasError('required')) {
+                      {{ 'required' | i18nextEager }}
+                    }
+                    @if (control.hasError('serviceName') && !control.hasError('required')) {
+                      {{ control.getError('serviceName').tiErrorMessage }}
+                    }
+                  </ng-template>
+                </nz-form-control>
+              </nz-form-item>
+
+              <div class="mb-[12px]" hidden>
+                <div class="form-label mb-[8px]">{{ formLabels[1] | i18nextEager }}</div>
+                <input formControlName="code" [placeholder]="placeholders[1] | i18nextEager"
+                       type="text" nz-input class="w-full"/>
+              </div>
+
+              <nz-form-item class="mb-[12px]">
+                <nz-form-label [nzSpan]="24" [nzRequired]="true">{{ formLabels[2] | i18nextEager }}</nz-form-label>
+                <nz-form-control [nzSpan]="24" [nzErrorTip]="descErrorTpl">
+                  <textarea *ngIf="['agent', 'controller'].includes(this.type)" style="width: 100%;height: 94px" formControlName="description"
+                            [placeholder]="placeholders[2] | i18nextEager"
+                            [rows]="4" nz-input resize="vertical">
+                  </textarea>
+                  <textarea *ngIf="['chat'].includes(this.type)" style="width: 100%;height: 94px" formControlName="description" [placeholder]="placeholders[2] | i18nextEager"
+                            [rows]="4" nz-input resize="vertical">
+                  </textarea>
+                  <ng-template #descErrorTpl let-control>
+                    @if (control.hasError('required')) {
+                      {{ 'required' | i18nextEager }}
+                    }
+                    @if (control.hasError('maxlength')) {
+                      {{ '超过最大长度' + MAXLENGHT + '个字符' }}
+                    }
+                  </ng-template>
+                </nz-form-control>
+              </nz-form-item>
+
+              <nz-form-item class="mb-[12px]">
+                <nz-form-label [nzSpan]="24">{{ formLabels[3] | i18nextEager }}</nz-form-label>
+                <nz-form-control [nzSpan]="24">
+                  <div style="display: flex;margin-bottom: 8px;">
+                    <icon-upload formControlName="icon"
+                                 [accept]="iconConfig.accept"
+                                 [defaultIcon]="defaultIcon"
+                                 [upload_size]="iconConfig.upload_size"
+                                 [err_msg]="'maximum_img' | i18nextEager"
+                                 class="!h-[64px] !w-[64px] !rounded-[8px] mr-[8px]"/>
+                  </div>
+                  <div class="line-clamp-2 max-w-full overflow-hidden text-[#808080]">
+                    {{ iconConfig.desc | i18nextEager }}
+                  </div>
+                </nz-form-control>
+              </nz-form-item>
+            </form>
+          }
+        </div>
+      </div>
+      <div class="w-[1px] bg-[#f0f0f0]"></div>
+      <div class="app-introduction">
+        <div class="introduction-title">{{ selected.name | i18nextEager }}</div>
+        <div class="introduction-text">{{ selected.info | i18nextEager }}</div>
+        <img [src]="isZH() ? selected.imageUrl : selected.image_en" alt="" class="introduction-image"/>
+      </div>
+    </div>
+  </main>
+  <div class="create-app-footer">
+    <div class="footer-container">
+      <button (click)="handleCreate()" [nzLoading]="loading" type="button" nz-button nzType="primary" nzSize="large">
+        {{ 'agent_create' | i18nextEager }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<ng-template #toTemplate>
+  <div>
+    <span>{{ 'create_agent_tip1' | i18nextEager }}</span>
+    <span (click)="handleClickToTemplate()" class="find-template">{{ 'find_template' | i18nextEager }}</span>
+    <span>{{ 'create_agent_tip2' | i18nextEager }}</span>
+  </div>
+</ng-template>

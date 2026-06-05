@@ -1,0 +1,241 @@
+<div id="scenario-example-container">
+  <div class="scenario-header-container">
+    <div class="flex items-center">
+      <nz-icon nzType="left" nzTheme="outline"
+        *ngIf="showBackIcon"
+        class="mr-[8px] cursor-pointer text-[20px]"
+        (click)="onClickBack()"
+        style="color: #191919;"
+      />
+      <img alt=""
+        *ngIf="scenarioExampleInfo.icon"
+        class="mr-[12px] h-[32px] w-[32px] rounded-lg"
+        [src]="scenarioExampleInfo.icon"
+      />
+      <div class="title">{{ scenarioExampleInfo.title }}</div>
+      <div *ngIf="showBackIcon && isShare" class="ml-2">
+        {{ 'version' | i18nextEager }}:
+        <nz-select
+          [nzOptions]="visionsOptions"
+          nzBorderless
+          nzPopupClassName="version-select-panel"
+          [(ngModel)]="visionSelected"
+          (ngModelChange)="visionSelectedChange($event)"
+          [nzPlaceHolder]="placeholder1"
+          nzValueMember="version_id"
+          nzLabelMember="version_name"
+          nzId="myselect"
+        ></nz-select>
+      </div>
+    </div>
+    <button nz-button
+      *ngIf="showBackIcon && !isShare"
+      (click)="copyToWorkbench()"
+      [disabled]="hasPermission()"
+      nzType="primary"
+    >
+      {{ 'copyToWorkbench' | i18nextEager }}
+    </button>
+    <div *ngIf="showBackIcon && isShare && canEditShare">
+      <share-detail-btn [toolId]="appId" [versionId]="visionSelected" [toolType]="toolType" [pageType]="pageType" (changeVersion)="visionSelectedChange($event)" [visionsList]="visionsOptions" [shareInfo]="shareInfo"  (changeShearVersion)="visionSelectedChange($event)"></share-detail-btn>
+    </div>
+  </div>
+
+  <nz-alert
+    *ngIf="!!alertText?.trim()"
+    class="chat-alert-style"
+    nzType="error"
+    [nzMessage]="alertText"
+    nzCloseable
+    (nzOnClose)="open = false"
+  ></nz-alert>
+
+  <nz-spin
+    *ngIf="isLoading"
+    class="loading-icon"
+    nzSimple
+  ></nz-spin>
+  <div class="h-[calc(100%-64px)] flex">
+    <div class="h-full flex-[1] flex flex-col box-border overflow-hidden p-[24px] pt-[16px]">
+      <nz-alert *ngIf="usedUp" class="!w-[auto]" nzType="warning">
+        <span>{{'plugin_used_end_tip' | i18nextEager :{total: scenarioExampleInfo.free_trial_quota?.limit} }}</span>
+      </nz-alert>
+      <div class="h-full pt-[16px] flex-1 flex gap-[16px]">
+        <div class="left-form-area">
+          <div class="box-border flex-[1] pl-[24px] pr-[24px] pt-[24px] overflow-y-auto">
+            <dynamic-node-params
+              *ngIf="startNodeParams.length"
+              #dynamicNodeParams
+              [inputList]="startNodeParams"
+            ></dynamic-node-params>
+          </div>
+          <button nz-button
+            type="button"
+            nzType="primary"
+            class="op-btn-style"
+            (click)="runWorkflow()"
+            [disabled]="!!(canRunWorkflow() || dynamicNodeParams?.fileLoading) || usedUp"
+          >
+            {{
+              this.isRequesting
+                ? ('content_generating_desc' | i18nextEager)
+                : ('test_run' | i18nextEager)
+            }}
+          </button>
+          <div style="text-align: center;color: #c2c2c2;font-size:12px;padding: 20px">
+            <span class="line-clamp-3">{{'ai_generated_disclaimer_five' | i18nextEager}}</span>
+          </div>
+        </div>
+        <div class="middle-result-area">
+          <div class="top-area">
+            <div class="sub-title">{{ 'result_generation' | i18nextEager }}</div>
+            <div class="right-opr-btns">
+              <span *ngIf="canCopyAnswer()" style="color: #808080;">
+                {{ chatLoop[0].showAnswer[0]?.text?.length
+                }}{{ 'character' | i18nextEager }}
+              </span>
+              <div
+                class="chat-header-icon"
+                nz-tooltip [nzTooltipTitle]="chatLoop[0]?.showCopiedTip ? ('replicated_tip' | i18nextEager) : ('copy' | i18nextEager)"
+                [ngClass]="
+                  (!canCopyAnswer()) ? 'disabled-icon' : 'abled-icon'
+                "
+                (click)="copyAnswer(chatLoop)"
+              >
+                <nz-icon nzType="copy" nzTheme="outline"></nz-icon>
+              </div>
+            </div>
+          </div>
+          <div class="result-area">
+            <div
+              class="no-data-container"
+              *ngIf="
+                !this.isRequesting &&
+                  !chatLoop[0].showAnswer[0].text?.trim() &&
+                  !this.isStreamFail;
+                else timeoutOrErrorTmpl
+              "
+            >
+              <img alt=""
+                class="h-20 w-20"
+                [src]="changeUrl('assets/app-library/scene-no-data.png')"
+              />
+              <span class="img-desc">{{
+                'scenario_snd_placeholder' | i18nextEager
+              }}</span>
+            </div>
+            <ng-template #timeoutOrErrorTmpl>
+              <div
+                class="no-data-container"
+                *ngIf="
+                  !this.isRequesting &&
+                    !chatLoop[0].showAnswer[0].text?.trim() &&
+                    this.isStreamFail;
+                  else contentTmpl
+                "
+              >
+                <img alt=""
+                  class="h-20 w-20"
+                  [src]="changeUrl('assets/app-library/scene-error.png')"
+                />
+                <span class="img-desc">{{
+                  'creation_failed_tipContent' | i18nextEager
+                }}</span>
+              </div>
+            </ng-template>
+            <ng-template #contentTmpl>
+              <div class="answer-container" cdkScrollable #chatContainerRef>
+                <div class="flex flex-col gap-2">
+                  <div
+                    class="chat-loading-message"
+                    *ngIf="
+                      !chatLoop[0].showAnswer[0].text?.length &&
+                      !chatLoop[0].thinkValue
+                    "
+                  >
+                    <img alt=""
+                      [src]="changeUrl('assets/agent-center/images/running.webp')"
+                      [alt]="'loading' | i18nextEager"
+                    />
+                    <span>{{ 'recognizing_user_intent' | i18nextEager }}</span>
+                  </div>
+                  <!-- 深度思考的区域 -->
+                  <div class="answer-cards" *ngIf="chatLoop[0].thinkValue">
+                    <div class="flex justify-between gap-[48px]">
+                      <div class="flex gap-[12px]">
+                        <ng-container
+                          *ngIf="chatLoop[0].thinking; else completed"
+                        >
+                          <img alt=""
+                            [src]="
+                              changeUrl(
+                                'assets/agent-center/icons/deep-loading-icon.svg'
+                              )
+                            "
+                          />
+                          <span>{{ 'thinking_deeply' | i18nextEager }}</span>
+                        </ng-container>
+                      </div>
+
+                      <nz-icon nzType="right" nzTheme="outline"
+                        class="unfolded cursor-pointer"
+                        [ngClass]="
+                          chatLoop[0].collapsed
+                            ? 'collapsed-icon'
+                            : 'unfolded-icon'
+                        "
+                        (click)="changeCollapsedState(chatLoop[0])"
+                      />
+                    </div>
+                    <div
+                      class="deep-seek-area"
+                      *ngIf="!chatLoop[0].collapsed"
+                    >
+                      <div class="deep-seek-text mt-[12px]">
+                        {{ chatLoop[0].thinkValue }}
+                      </div>
+                    </div>
+                  </div>
+                  <!-- 大模型回答的区域 -->
+                  <app-markdown-answer
+                    class="published-task-md"
+                    style="width: 100%"
+                    *ngIf="chatLoop[0].showAnswer[0].text?.length"
+                    [(answer)]="chatLoop[0].showAnswer[0].text"
+                    [isSupKBResolver]="true"
+                    [isRuntime]="true"
+                  ></app-markdown-answer>
+                </div>
+              </div>
+              <div
+                *ngIf="isShowStopIcon"
+                class="stop-chat-container"
+                (click)="stopChat()"
+              >
+                <span class="stop-chat-icon abled-icon"></span>
+                <span class="stop-text">{{
+                  'stop_build_btn' | i18nextEager
+                }}</span>
+              </div>
+            </ng-template>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pop-modal" >
+      <right-op-panel
+      *ngIf="showBackIcon  && !isShare"
+        [sources]="'workflow_market' | i18nextEager"
+        [headInfo]="scenarioExampleInfo"
+      />
+      <right-share-panel *ngIf="showBackIcon && isShare" [headInfo]="shareInfo"></right-share-panel>
+    </div>
+  </div>
+</div>
+
+<app-exceed-modal #appExceedModalScenario></app-exceed-modal>
+
+<ng-template #completed>
+  <img alt="" [src]="changeUrl('assets/agent-center/icons/deep-completed-icon.svg')" />
+  <span>{{ 'deeply_pondered' | i18nextEager }}</span>
+</ng-template>

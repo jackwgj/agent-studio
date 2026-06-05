@@ -1,0 +1,39 @@
+.mobile_tip_modal {
+    background-color: rgba(0,0,0,0.5);
+    width: 100vw !important;
+    height: 100%;
+    padding: 0px 24px;
+    margin: 0 !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    .success_alert {
+        width: 100%;
+        font-size: 12px;
+    }
+
+    .info {
+        font-size: 14px;
+    }
+
+    .button {
+        font-size: 16px;
+        line-height: 40px;
+        height: 40px;
+        width: 100%;
+    }
+
+    .text-button {
+        font-size: 16px;
+    }
+
+    .mobile_modal_body {
+        text-align: center;
+        padding-bottom: 24px;
+    }
+
+    .ti3-modal-content {
+        border-radius: 24px;
+    }
+}

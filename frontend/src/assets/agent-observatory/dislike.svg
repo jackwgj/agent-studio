@@ -1,0 +1,8 @@
+<svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="16.000000" height="16.000000" fill="none">
+	<rect id="点赞" width="16.000000" height="16.000000" x="0.000000" y="0.000000" />
+	<rect id="矩形" width="15.000000" height="15.000000" x="0.500000" y="0.500000" stroke="rgb(151,151,151)" stroke-opacity="0" stroke-linecap="round" stroke-width="1" />
+	<g id="编组">
+		<path id="路径" d="M4.19522 1.79796C4.19522 0.80497 3.39027 0 2.39727 0L0 5.39387L0 11.9864L6.96407 11.9864C7.56176 11.9931 8.07311 11.5585 8.16271 10.9675L8.98976 5.57366C9.04254 5.22596 8.93995 4.87263 8.70922 4.60726C8.47845 4.3419 8.14279 4.19124 7.79113 4.19523L4.19522 4.19523L4.19522 1.79796Z" fill-rule="evenodd" stroke="rgb(25,25,25)" stroke-linejoin="round" stroke-width="1" transform="matrix(1,0,0,-1,4.99609,13.9863)" />
+		<path id="路径" d="M1.39641 0.000195298C0.694316 -0.0122239 0.0941262 0.569347 0 1.26519L0 5.46041C0.0941262 6.15629 0.694316 6.67147 1.39641 6.65905L2.99659 6.65905L2.99659 0.000195298L1.39641 0.000195298Z" fill-rule="evenodd" stroke="rgb(25,25,25)" stroke-linejoin="round" stroke-width="1" transform="matrix(1,0,0,-1,2,8.66016)" />
+	</g>
+</svg>

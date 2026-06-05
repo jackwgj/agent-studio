@@ -1,0 +1,18 @@
+{
+  "configs" : {
+    "default_model_switch" : false,
+    "default_model" : {
+      "model_deployment_id" : "f70bebc8-8411-4067-9169-4dca96671e0a",
+      "model_name" : "Pro/deepseek-ai/DeepSeek-V3",
+      "model_type" : "openai"
+    },
+    "model" : {
+      "model_deployment_id" : "f70bebc8-8411-4067-9169-4dca96671e0a",
+      "model_name" : "Pro/deepseek-ai/DeepSeek-V3",
+      "model_type" : "openai"
+    },
+    "prologue" : "",
+    "suggest_queries" : [],
+    "trigger_list": [{"trigger_id":"test_trigger_id","name":"触发器1","type":"TIMER","cron":"0/10 * * * * ?","prompt":"打车"}]
+  }
+}

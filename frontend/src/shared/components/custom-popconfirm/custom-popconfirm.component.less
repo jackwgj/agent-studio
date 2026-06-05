@@ -1,0 +1,40 @@
+.custom-popconfirm-container {
+  display: flex;
+  width: 396px;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 16px;
+
+  .title {
+    color: #191919;
+    font-size: 14px;
+    line-height: 22px;
+    font-weight: 600;
+    align-self: flex-start;
+  }
+
+  .content-area {
+    display: flex;
+    width: 100%;
+    gap: 8px;
+    flex-direction: column;
+  }
+
+  .bottom-btns-area {
+    display: flex;
+    align-items: center;
+  }
+}
+
+#dislike-options {
+  gap: 12px 35px;
+  &.en {
+    gap: 12px 0;
+    ::ng-deep .ti3-checkbox {
+      width: 25%;
+    }
+  }
+  ::ng-deep .ti3-checkbox {
+    margin-right: 0px !important;
+  }
+}

@@ -1,0 +1,27 @@
+<div class="modal-header text-[18px] bold"> {{ 'rename' | i18nextEager }} </div>
+<div class="modal-body mt-3">
+  <form
+    [formGroup]="modelFormGroup"
+    class="flex h-full flex-col gap-6"
+  >
+    <div class="flex flex-col gap-2">
+      <input
+        type="text"
+        nz-input
+        class="w-full"
+        [placeholder]="'input_placeholder' | i18nextEager"
+        [maxLength]="64"
+        formControlName="nodeName"
+      />
+      <div *ngIf="modelFormGroup.get('nodeName')?.invalid && modelFormGroup.get('nodeName')?.touched" class="text-[#ff4d4f] text-[12px]">
+        {{ i18n.transform('input_cannot_be_empty') }}
+      </div>
+    </div>
+  </form>
+</div>
+<div class="modal-footer mt-3 flex justify-end gap-2">
+  <button type="button" (click)="dismiss()" nz-button>{{ 'cancel' | i18nextEager }}</button>
+  <button type="button" nzType="primary" (click)="confirmValue($event)" nz-button>
+    {{ 'button_confirm' | i18nextEager }}
+  </button>
+</div>

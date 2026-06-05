@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="13px" height="12.5562712px" viewBox="0 0 13 12.5562712" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>操作/导入</title>
+    <g id="控件" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="倒入变量集" transform="translate(-1.7781, -6.1283)">
+            <g id="操作/导入" transform="translate(0, 4)">
+                <g id="撤销备份-10" transform="translate(8.2781, 8.4064) rotate(-270) translate(-8.2781, -8.4064)translate(2.5, 2.4064)" stroke="#191919" stroke-linecap="round">
+                    <path d="M8.18569208,1.09090909 L9.63022597,1.09090909 C10.6939514,1.09090909 11.5562712,2.17627939 11.5562712,3.51515152 L11.5562712,9.57575758 C11.5562712,10.9146297 10.6939514,12 9.63022597,12 L1.92604519,12 C0.862319806,12 1.24022005e-13,10.9146297 1.24022005e-13,9.57575758 L1.24022005e-13,3.51515152 C1.24022005e-13,2.17627939 0.862319806,1.09090909 1.92604519,1.09090909 L3.37057909,1.09090909 L3.37057909,1.09090909" id="路径"></path>
+                    <g id="编组-3" transform="translate(5.7781, 4.3787) scale(1, -1) translate(-5.7781, -4.3787)translate(3.0543, 0)">
+                        <line x1="2.72383924" y1="8.7573074" x2="2.72383924" y2="1.05312662" id="直线-10"></line>
+                        <polyline id="路径" stroke-linejoin="round" transform="translate(2.7238, 2.7238) rotate(45) translate(-2.7238, -2.7238)" points="0.797794041 4.64988443 0.797794041 0.797794041 4.64988443 0.797794041"></polyline>
+                    </g>
+                </g>
+                <rect id="矩形" x="0" y="0" width="16" height="16"></rect>
+            </g>
+        </g>
+    </g>
+</svg>

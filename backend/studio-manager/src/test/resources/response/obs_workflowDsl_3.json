@@ -1,0 +1,268 @@
+{
+  "id": "607059ef-585c-487e-beea-e0627fcb08d0",
+  "name": "tzy_test_001",
+  "description": "测试agent绑定workflow，workflow有复杂参数类型",
+  "nodes": [{
+    "id": "node_1736497568189",
+    "type": "Plugin",
+    "name": "reimbursement_guide_knowledge",
+    "inputs": [{
+      "name": "query",
+      "required": true,
+      "description": "用户询问报销政策相关的问题",
+      "type": "string",
+      "value": {
+        "type": "ref",
+        "content": {
+          "ref_node_id": "node_start",
+          "ref_var_name": "query",
+          "source": "system"
+        },
+        "hint": ""
+      },
+      "source": "user"
+    }
+    ],
+    "outputs": [{
+      "name": "doc_list",
+      "required": true,
+      "description": "查询结果列表",
+      "type": "array",
+      "value": {
+        "type": "generated",
+        "content": null,
+        "hint": "",
+        "default": ""
+      },
+      "source": "user",
+      "schema": {
+        "name": "",
+        "type": "object",
+        "schema": [{
+          "name": "file_id",
+          "required": true,
+          "description": "文件id",
+          "type": "string",
+          "value": {
+            "type": "generated",
+            "content": null,
+            "hint": "",
+            "default": ""
+          },
+          "source": "user"
+        }, {
+          "name": "document_name",
+          "required": true,
+          "description": "文件名",
+          "type": "string",
+          "value": {
+            "type": "generated",
+            "content": null,
+            "hint": "",
+            "default": ""
+          },
+          "source": "user"
+        }, {
+          "name": "content",
+          "required": true,
+          "description": "检索内容",
+          "type": "string",
+          "value": {
+            "type": "generated",
+            "content": null,
+            "hint": "",
+            "default": ""
+          },
+          "source": "user"
+        }, {
+          "name": "score",
+          "required": true,
+          "description": "匹配度得分",
+          "type": "number",
+          "value": {
+            "type": "generated",
+            "content": null,
+            "hint": "",
+            "default": ""
+          },
+          "source": "user"
+        }
+        ]
+      }
+    }
+    ],
+    "configs": {
+      "id": "ab8b4f7c-0d36-4daf-b669-85451f545a15"
+    }
+  }, {
+    "id": "node_start",
+    "type": "Start",
+    "name": "开始",
+    "outputs": [{
+      "name": "query",
+      "type": "string",
+      "description": "用户输入",
+      "required": true,
+      "source": "system",
+      "value": {
+        "content": "",
+        "hint": "用户输入",
+        "type": "literal"
+      }
+    }, {
+      "name": "input",
+      "type": "object",
+      "description": "特殊输入",
+      "required": true,
+      "source": "user",
+      "value": {
+        "type": "generated",
+        "content": null,
+        "hint": "",
+        "default": ""
+      },
+      "schema": [{
+        "name": "id",
+        "type": "number",
+        "description": "特殊输入id",
+        "required": true,
+        "source": "user",
+        "value": {
+          "type": "generated",
+          "content": null,
+          "hint": "",
+          "default": ""
+        }
+      }, {
+        "name": "target",
+        "type": "string",
+        "description": "特殊输入目标",
+        "required": true,
+        "source": "user",
+        "value": {
+          "type": "generated",
+          "content": null,
+          "hint": "",
+          "default": ""
+        }
+      }
+      ]
+    }
+    ]
+  }, {
+    "id": "node_end",
+    "type": "End",
+    "name": "结束",
+    "configs": {
+      "is_stream_out": true,
+      "response_template": "{{result}}",
+      "response_mode": "directResponse"
+    },
+    "inputs": [{
+      "description": "最终输出",
+      "name": "result",
+      "reflection": false,
+      "required": false,
+      "source": "user",
+      "type": "array",
+      "value": {
+        "content": {
+          "ref_node_id": "node_1736497568189",
+          "ref_var_name": "doc_list",
+          "source": "user"
+        },
+        "type": "ref"
+      },
+      "schema": {
+        "name": "",
+        "type": "object",
+        "schema": [{
+          "name": "file_id",
+          "required": true,
+          "description": "文件id",
+          "type": "string",
+          "value": {
+            "type": "generated",
+            "content": null,
+            "hint": "",
+            "default": ""
+          },
+          "source": "user"
+        }, {
+          "name": "document_name",
+          "required": true,
+          "description": "文件名",
+          "type": "string",
+          "value": {
+            "type": "generated",
+            "content": null,
+            "hint": "",
+            "default": ""
+          },
+          "source": "user"
+        }, {
+          "name": "content",
+          "required": true,
+          "description": "检索内容",
+          "type": "string",
+          "value": {
+            "type": "generated",
+            "content": null,
+            "hint": "",
+            "default": ""
+          },
+          "source": "user"
+        }, {
+          "name": "score",
+          "required": true,
+          "description": "匹配度得分",
+          "type": "number",
+          "value": {
+            "type": "generated",
+            "content": null,
+            "hint": "",
+            "default": ""
+          },
+          "source": "user"
+        }
+        ]
+      }
+    }
+    ],
+    "outputs": [{
+      "description": "最终输出",
+      "name": "response_content",
+      "reflection": false,
+      "required": true,
+      "source": "system",
+      "type": "string",
+      "value": {
+        "type": "generated"
+      }
+    }
+    ]
+  }
+  ],
+  "edges": [{
+    "source": "node_1736497568189",
+    "target": "node_end"
+  }, {
+    "source": "node_start",
+    "target": "node_1736497568189"
+  }
+  ],
+  "layouts": {
+    "node_1736497568189": {
+      "x": 576,
+      "y": 234
+    },
+    "node_start": {
+      "x": 90,
+      "y": 270
+    },
+    "node_end": {
+      "x": 1050,
+      "y": 300
+    }
+  }
+}

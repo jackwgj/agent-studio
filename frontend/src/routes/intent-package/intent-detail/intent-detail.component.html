@@ -1,0 +1,262 @@
+<div class="detail-container relative">
+  <nz-spin *ngIf="isPageLoading" nzSize="large" class="loading-icon !fixed !bg-black/10 !z-[1000] !inset-0"></nz-spin>
+
+  <div class="header-container">
+    <div class="header-left">
+      <div (click)="onPageBack()" class="back-icon-container">
+        <span nz-icon nzType="left" class="back-icon"></span>
+      </div>
+      <div class="title-container flex items-center">
+        <span *ngIf="!isEditTitle" nz-tooltip [nzTooltipTitle]="form.value.name" class="title">{{
+            form.value.name
+          }}</span>
+
+        <input
+          *ngIf="isEditTitle"
+          nz-input
+          class="w-[240px]"
+          [placeholder]="'input_placeholder' | i18nextEager"
+          [minlength]="1"
+          [maxlength]="33"
+          [formControl]="form.controls.name"
+        />
+
+        <div class="ml-[10px] flex items-center" *ngIf="isEditTitle">
+          <button
+            type="button"
+            nz-button
+            nzType="default"
+            [disabled]="isLoading"
+            (click)="cancelEditTitle()"
+          >
+            {{ 'cancel' | i18nextEager }}
+          </button>
+          <button
+            type="button"
+            class="ml-[10px]"
+            nz-button
+            nzType="primary"
+            nzDanger
+            [disabled]="!form.value.name"
+            [nzLoading]="isLoading"
+            (click)="savePackageName()"
+          >
+            {{ 'save' | i18nextEager }}
+          </button>
+        </div>
+      </div>
+      <div *ngIf="!isEditTitle" (click)="isEditTitle = true">
+        <nz-icon nzType="edit" nzTheme="outline" class="edit-icon" />
+      </div>
+    </div>
+  </div>
+
+  <div #mainContainer class="main-container flex rounded-lg bg-[#fff]">
+    <div class="left-container relative flex w-[426px] flex-col">
+      <div class="text-[14px]">{{ 'intent_package_name' | i18nextEager }}</div>
+      <input
+        nz-input
+        class="mt-[8px]"
+        [placeholder]="'input_placeholder' | i18nextEager"
+        [minlength]="1"
+        [maxlength]="33"
+        [formControl]="form.controls.name"
+      />
+      <div class="flex items-center justify-between mt-[16px]">
+        <div class="text-[14px] text-[#191919]">
+          {{ 'intent_management' | i18nextEager }}
+        </div>
+        <div class="flex items-center justify-end">
+          <span
+            *ngIf="isAdd"
+            class="mr-[8px] flex cursor-pointer items-center"
+            [ngClass]="{'grey-disabled':!subscribeBtnStatus}"
+            (click)="addIntent()"
+          >
+            <span nz-icon nzType="plus" class="add-intent-icon"></span>
+          </span>
+          <span
+            *ngIf="!isAdd"
+            class="mr-[8px] flex cursor-not-allowed items-center"
+            nz-tooltip [nzTooltipTitle]="'add_intent_tip' | i18nextEager"
+            nzTooltipPlacement="top"
+          >
+            <span nz-icon nzType="plus" class="not-add-intent-icon"></span>
+          </span>
+          <span class="cursor-pointer pt-[2px]" (click)="showImport()">
+            <img
+              [src]="changeUrl('assets/icons/import.svg')"
+              class="w-[18px]"
+              alt=""
+            />
+          </span>
+        </div>
+      </div>
+
+      <div class="search mt-[16px]">
+        <nz-input-group [nzSuffix]="suffixIconSearch">
+          <input type="text" nz-input [placeholder]="'search' | i18nextEager" [(ngModel)]="searchKeyword" (ngModelChange)="onSearch($event)" />
+        </nz-input-group>
+        <ng-template #suffixIconSearch>
+          <span nz-icon nzType="search"></span>
+        </ng-template>
+      </div>
+
+      <div
+        *ngIf="intentList.length"
+        class="list mt-[12px] w-[100%] grow overflow-y-auto"
+      >
+        <div
+          *ngFor="let item of intentList; let $index = index"
+          class="item relative flex h-[40px] cursor-pointer items-center rounded-sm pl-[8px] pr-[24px]"
+          [class]="{ active: isActive === $index }"
+          (click)="chooseIntent(item, $index)"
+        >
+          <span
+            class="grow-1 overflow-hidden text-ellipsis whitespace-nowrap"
+          >{{ item.name }}</span
+          >
+          <span
+            class="delete absolute right-[5px] top-[50%] translate-y-[-50%] p-[4px]"
+            (click)="delIntent($event, item)"
+          >
+            <span nz-icon nzType="delete" class="del-icon"></span>
+          </span>
+        </div>
+      </div>
+      <span
+        *ngIf="!intentList.length"
+        class="flex grow items-center justify-center text-[12px] text-[#808080]"
+      >{{ 'no_intent' | i18nextEager }}</span
+      >
+      <div class="left-line absolute right-0 top-[24px] bg-[#DBDBDB]"></div>
+    </div>
+
+    <div class="right-container relative h-full grow p-[24px]">
+      <div
+        *ngIf="activeItem"
+        class="ml-auto mr-auto flex h-full min-w-[400px] max-w-[800px] flex-col"
+      >
+        <h3
+          class="mr-[30px] min-h-[24px] text-[14px] font-semibold leading-[24px]"
+          nz-tooltip [nzTooltipTitle]="intentName"
+        >
+          {{ intentName }}
+        </h3>
+        <div class="mt-[24px] text-[12px] leading-[18px]">
+          <form nz-form nzLayout="vertical" [formGroup]="intentForm">
+            <nz-form-item>
+              <nz-form-label>{{ 'intent_name' | i18nextEager }}</nz-form-label>
+              <nz-form-control>
+                <input
+                  nz-input
+                  class="mt-[8px] w-[100%]"
+                  [placeholder]="'input_placeholder' | i18nextEager"
+                  [minlength]="1"
+                  [maxlength]="64"
+                  formControlName="name"
+                />
+              </nz-form-control>
+            </nz-form-item>
+          </form>
+        </div>
+
+        <div class="mt-[16px] flex items-center justify-between text-[12px]">
+          <div
+            class="flex cursor-pointer items-center"
+            (click)="toggleQuestion()"
+          >
+            <span class="mr-[2px] text-[#191919]"
+            >{{ 'intention_example' | i18nextEager
+              }}{{ 'optional' | i18nextEager }}</span
+            >
+            <span nz-icon [nzType]="isOpen ? 'up' : 'down'" class="arrow-icon ml-1"></span>
+          </div>
+          <div class="flex items-center leading-[18px]" [ngClass]="{'grey-disabled':!subscribeBtnStatus}">
+            <div
+              class="ml-[18px] flex cursor-pointer items-center text-[#1476FF]"
+              (click)="addQuestion()"
+            >
+              <span nz-icon nzType="plus-circle" class="add-icon"></span>
+              <span class="ml-[2px]">{{ 'batch_input' | i18nextEager }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div
+          *ngIf="isOpen && activeItem.examples.length"
+          class="mt-[12px] grow overflow-y-auto rounded-lg"
+        >
+          <form [formGroup]="intentForm">
+            <div
+              class="question-list box-border rounded-lg bg-[#FAFAFA] p-[16px]"
+              formArrayName="examples"
+            >
+              <div
+                *ngFor="let item of questions.controls; let $index = index"
+                class="item mb-[12px] flex items-center"
+              >
+                <span class="mr-[8px] min-w-[15px] text-[#808080]">{{
+                    $index + 1
+                  }}</span>
+                <input
+                  nz-input
+                  class="question-input mr-[10px] grow"
+                  [placeholder]="'add_example_placeholder' | i18nextEager"
+                  [minlength]="1"
+                  [maxlength]="64"
+                  (ngModelChange)="textChange($event, $index)"
+                  [formControlName]="$index"
+                  [name]="$index"
+                />
+                <span
+                  *ngIf="questions.controls.length - 1 !== $index"
+                  class="cursor-pointer"
+                  (click)="deleteQuestion($index)"
+                >
+                  <span nz-icon nzType="delete" class="del-icon"></span>
+                </span>
+                <span
+                  *ngIf="questions.controls.length - 1 === $index"
+                  class="cursor-pointer"
+                  [class]="{ 'w-[16px]': questions.controls.length > 1 }"
+                ></span>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <div
+          class="mt-[10px] flex justify-end border-t border-solid border-[#F0F0F0] pt-[20px]"
+        >
+          <button
+            type="button"
+            nz-button
+            nzType="primary"
+            [disabled]="!activeItem.name || !subscribeBtnStatus"
+            (click)="saveIntent()"
+          >
+            {{ 'save' | i18nextEager }}
+          </button>
+        </div>
+      </div>
+
+      <div
+        *ngIf="!activeItem"
+        class="z-9 absolute bottom-0 left-0 right-0 top-0 flex flex-col items-center justify-center"
+      >
+        <img
+          class="h-[80px] w-[80px]"
+          [src]="changeUrl('assets/prompt/noData.svg')"
+          alt=""
+        />
+        <span class="mb-[10px] text-[14px] leading-[24px] text-[#191919]">{{
+            'no_intent_tips' | i18nextEager
+          }}</span>
+        <button type="button" nz-button nzType="primary" (click)="addIntent()" [disabled]="!subscribeBtnStatus">
+          {{ 'add_intent' | i18nextEager }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

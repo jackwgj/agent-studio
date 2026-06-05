@@ -1,0 +1,116 @@
+@import '../../../../../routes/agent-center/app-agent/components/chat-item/chat-item.component.scss';
+
+.user-answer {
+  align-items: flex-end;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+
+  .msgImage {
+    margin-bottom: 10px;
+    width: auto;
+    height: 100px;
+  }
+
+  .content-text {
+    align-self: center;
+    max-width: 80%;
+    padding: 16px 24px;
+    background-color: #deecff;
+    border-radius: 16px 0px 16px 16px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    .uploaded-file {
+      padding: 12px 18px;
+      border-radius: 8px;
+      background: #fff;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .uploaded-image {
+      width: 52px;
+    }
+
+    .user-question-text {
+      flex-grow: 0;
+      color: #191919;
+      text-align: justify;
+      white-space: pre-wrap;
+      font-size: 14px;
+    }
+  }
+}
+
+.collapse-btn {
+  width: 100%;
+  color: #191919;
+  display: flex;
+  align-items: center;
+  font-size: 16px;
+  font-weight: bold;
+  padding-bottom: 16px;
+  margin-top: 24px;
+
+  img {
+    width: 20px;
+    height: 20px;
+    margin-right: 8px;
+  }
+
+  .fold-icon {
+    color: #999999; /* 替换掉原来的 --ti-color-text-placeholder 变量以适配一般环境，如果有自己的设计规范变量也可使用 */
+  }
+}
+
+.collapse-btn-border {
+  border-bottom: 1px solid #d9d9d9; /* 替换掉 --ti-color-border-disabled */
+}
+
+.error-answer-main {
+  display: flex;
+  flex-direction: column;
+}
+
+.error-answer-main-span {
+  margin-top: 8px;
+  cursor: pointer;
+}
+
+.error-answer-main-text {
+  margin-top: 8px;
+  padding: 8px;
+  background-color: #EAEAEA;
+  border-radius: 8px;
+}
+
+.error-answer-main-text-title {
+  display: flex;
+  margin-bottom: 8px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.error-answer-main-text-title-left {
+  font-weight: 600;
+  font-size: 12px;
+  color: #191919;
+}
+
+.error-answer-main-text-title-right {
+  height: 14px;
+  width: 14px;
+  color: #1979FE;
+  cursor: pointer;
+}
+
+.error-answer-main-text-content {
+  font-size: 12px;
+  color: #191919;
+  line-height: 18px;
+}

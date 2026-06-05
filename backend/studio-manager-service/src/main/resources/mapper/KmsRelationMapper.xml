@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.common.service.mapper.KmsRelationMapper">
+    <resultMap id="baseColumns" type="com.openjiuwen.studio.common.service.entity.KmsRelationEntity">
+        <result column="domain_id" jdbcType="VARCHAR" property="domainId"/>
+        <result column="main_key_id" jdbcType="VARCHAR" property="mainKeyId"/>
+        <result column="related_primary_key" jdbcType="VARCHAR" property="relatedPrimaryKey"/>
+        <result column="type" jdbcType="VARCHAR" property="type"/>
+        <result column="created_date" jdbcType="TIMESTAMP" property="createdDate"/>
+        <result column="created_by_user_id" jdbcType="VARCHAR" property="createdByUserId"/>
+        <result column="last_updated_date" jdbcType="TIMESTAMP" property="lastUpdatedDate"/>
+        <result column="last_updated_by_user_id" jdbcType="VARCHAR" property="lastUpdatedByUserId"/>
+    </resultMap>
+
+    <sql id="baseColumns">
+            `domain_id`,
+            `main_key_id`,
+            `related_primary_key`,
+            `type`,
+            `created_date`,
+            `created_by_user_id`,
+            `last_updated_date`,
+            `last_updated_by_user_id`
+
+    </sql>
+
+    <select id="selectByDomainId" resultType="com.openjiuwen.studio.common.service.entity.KmsRelationEntity">
+        select *
+        from t_common_kms_relation
+        where domain_id = #{domainId}
+        <if test="primaryKey != null and primaryKey!= ''">
+            and related_primary_key = #{primaryKey}
+        </if>
+        <if test="type != null and type!= ''">
+            and type = #{type}
+        </if>
+    </select>
+
+
+    <insert id="insert" parameterType="com.openjiuwen.studio.common.service.entity.KmsRelationEntity">
+        insert into t_common_kms_relation (<include refid="baseColumns"></include>)
+        values (
+        #{param.domainId},
+        #{param.mainKeyId},
+        #{param.relatedPrimaryKey},
+        #{param.type},
+        #{param.createdDate},
+        #{param.createdByUserId},
+        #{param.lastUpdatedDate},
+        #{param.lastUpdatedByUserId}
+        )
+    </insert>
+
+    <update id="update" parameterType="com.openjiuwen.studio.common.service.entity.KmsRelationEntity">
+        update t_common_kms_relation
+        set
+            main_key_id = #{param.mainKeyId},
+            last_updated_date = #{param.lastUpdatedDate},
+            last_updated_by_user_id = #{param.lastUpdatedByUserId}
+        where domain_id = #{param.domainId}
+        and related_primary_key = #{param.relatedPrimaryKey}
+        and type = #{param.type}
+    </update>
+
+</mapper>

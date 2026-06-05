@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) Huawei Technologies Co., Ltd. 2023-2023. All rights reserved.
+  -->
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.prompt.engineering.mapper.PeOptimizationTaskMapper">
+
+    <resultMap id="OptimizationTaskBaseMap" type="com.openjiuwen.studio.prompt.engineering.entity.PeOptimizationTask">
+        <id property="id" column="id" jdbcType="VARCHAR"/>
+        <result property="name" column="name" jdbcType="VARCHAR"/>
+        <result property="taskId" column="task_id" jdbcType="VARCHAR"/>
+        <result property="jiuwenTaskId" column="jiuwen_task_id" jdbcType="VARCHAR"/>
+        <result property="testSetId" column="test_set_id" jdbcType="VARCHAR"/>
+        <result property="modelConfig" column="model_config" jdbcType="OTHER"
+                typeHandler="com.openjiuwen.studio.prompt.engineering.mapper.handler.ModelConfigHandler"/>
+        <result property="assistantConfig" column="assistant_config" jdbcType="OTHER"
+                typeHandler="com.openjiuwen.studio.prompt.engineering.mapper.handler.ModelConfigHandler"/>
+        <result property="bestPrompt" column="best_prompt" jdbcType="VARCHAR"/>
+        <result property="numIter" column="num_iter" jdbcType="INTEGER"/>
+        <result property="description" column="description" jdbcType="VARCHAR"/>
+        <result property="type" column="type" jdbcType="VARCHAR"/>
+        <result property="createdOn" column="created_on" jdbcType="TIMESTAMP"/>
+        <result property="updatedOn" column="updated_on" jdbcType="TIMESTAMP"/>
+        <result property="runningOn" column="running_on" jdbcType="TIMESTAMP"/>
+        <result property="status" column="status"  jdbcType="OTHER"
+                typeHandler="com.openjiuwen.studio.prompt.engineering.mapper.handler.OptimizationTaskStatusHandler"/>
+        <result property="creator" column="creator" jdbcType="VARCHAR"/>
+        <result property="prompts" column="prompts" jdbcType="OTHER"
+                typeHandler="com.openjiuwen.studio.prompt.engineering.mapper.handler.JsonArrayPromptHandler"/>
+        <result property="workspaceId" column="workspace_id" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <select id="isIdExist" resultType="java.lang.Boolean">
+        SELECT 1
+        FROM t_pe_optimization_task
+        WHERE id = #{id} LIMIT 1
+    </select>
+
+    <select id="isNameExist" resultType="java.lang.Boolean">
+        SELECT 1
+        FROM t_pe_optimization_task
+        WHERE name = #{name}
+          AND task_id = #{taskId}  AND workspace_id = #{workspaceId} LIMIT 1
+    </select>
+
+    <insert id="insertOneOptimizationTask">
+        INSERT INTO t_pe_optimization_task(`id`, `project_id`, task_id, name, description, type, prompts,
+                                           test_set_id, model_config, assistant_config, num_iter,
+                                           status, creator, created_on, workspace_id)
+        VALUES (#{id}, #{projectId}, #{taskId}, #{name}, #{description}, #{type},
+                #{prompts,typeHandler=com.openjiuwen.studio.prompt.engineering.mapper.handler.JsonArrayPromptHandler},
+                #{testSetId}, #{modelConfig,typeHandler=com.openjiuwen.studio.prompt.engineering.mapper.handler.ModelConfigHandler},
+                #{assistantConfig,typeHandler=com.openjiuwen.studio.prompt.engineering.mapper.handler.ModelConfigHandler},
+                #{numIter},
+                #{status}, #{creator}, CURRENT_TIMESTAMP, #{workspaceId})
+    </insert>
+
+    <select id="isOptimizationTaskExist" resultType="java.lang.Boolean">
+        SELECT 1
+        FROM t_pe_optimization_task
+        WHERE id = #{id} AND workspace_id = #{workspaceId} LIMIT 1
+    </select>
+
+    <delete id="deleteOptimizationTaskById">
+        DELETE
+        FROM t_pe_optimization_task
+        WHERE id = #{id} AND workspace_id = #{workspaceId}
+    </delete>
+
+    <delete id="deleteByTaskId">
+        DELETE
+        FROM t_pe_optimization_task
+        WHERE task_id = #{taskId} AND workspace_id = #{workspaceId}
+    </delete>
+
+    <update id="updateOptimizationTaskResultById">
+        UPDATE t_pe_optimization_task
+        <set>
+            progress_rate = #{progressRate},
+            best_prompt = #{bestPrompt},
+            error_msg = #{errorMsg},
+            status = #{status},
+            updated_on = CURRENT_TIMESTAMP
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateOptimizationTaskRuningStatusById">
+        update t_pe_optimization_task
+        set status     = #{status},
+            running_on = CURRENT_TIMESTAMP,
+            updated_on = CURRENT_TIMESTAMP
+        where id = #{id} AND workspace_id = #{workspaceId}
+    </update>
+
+    <update id="updateOptimizationTaskById">
+        update t_pe_optimization_task
+        set status         = #{status},
+            jiuwen_task_id = #{jiuwenTaskId},
+            updated_on     = CURRENT_TIMESTAMP
+        where id = #{id} AND workspace_id = #{workspaceId}
+    </update>
+
+    <update id="modifyOptimizationTaskInfo">
+        UPDATE t_pe_optimization_task
+        <set>
+            name        = #{name},
+            status      = #{status},
+            description = #{description},
+            <if test="status != null and status.getCode() == 'running'.toString()">
+                running_on = CURRENT_TIMESTAMP,
+            </if>
+            updated_on = CURRENT_TIMESTAMP
+        </set>
+        WHERE id = #{id} AND workspace_id = #{workspaceId}
+    </update>
+
+    <select id="queryOptimizationTaskIdsByQO" resultType="java.lang.String">
+        SELECT distinct tpet.id, tpet.created_on
+        FROM t_pe_optimization_task tpet
+        WHERE 1=1 AND tpet.workspace_id = #{workspaceId}
+        <if test="taskId != null and taskId.length() > 0">
+            AND tpet.task_id = #{taskId}
+        </if>
+        <if test="optimizationTaskName != null and optimizationTaskName.length() > 0">
+            <bind name="optimizationTaskName" value="'%' + optimizationTaskName + '%'"/>
+            AND tpet.name LIKE #{optimizationTaskName}
+        </if>
+        <if test="status != null and status.length() > 0">
+            AND tpet.status = #{status}
+        </if>
+        ORDER BY tpet.created_on DESC
+    </select>
+
+    <select id="queryOptimizationTaskDetailsById"
+            resultMap="OptimizationTaskBaseMap">
+        SELECT *
+        FROM t_pe_optimization_task tpet
+        WHERE id = #{id} AND workspace_id = #{workspaceId}
+        ORDER BY tpet.created_on DESC
+    </select>
+
+    <select id="queryOptimizationTaskDetailsByIds"
+            resultMap="OptimizationTaskBaseMap">
+        SELECT *
+        FROM t_pe_optimization_task tpet
+        WHERE 1=1
+        <if test="ids != null and !ids.isEmpty()">
+            AND tpet.id IN
+            <foreach collection='ids' item='id' open='(' separator=',' close=')'>
+                #{id}
+            </foreach>
+        </if>
+        ORDER BY tpet.created_on DESC
+    </select>
+
+    <select id="queryOptimizationTaskStatusByTaskId"
+            resultType="com.openjiuwen.studio.prompt.engineering.enums.OptimizationTaskStatus">
+        SELECT status
+        FROM t_pe_optimization_task
+        where task_id = #{taskId}
+    </select>
+
+    <select id="queryOptimizationTaskStatusById"
+            resultType="com.openjiuwen.studio.prompt.engineering.enums.OptimizationTaskStatus">
+        SELECT status
+        FROM t_pe_optimization_task
+        where id = #{id}
+    </select>
+    <select id="getOptimizationTask"
+            resultMap="OptimizationTaskBaseMap">
+        SELECT *
+        FROM t_pe_optimization_task tpet
+        WHERE project_id = #{projectId}
+          AND  task_id = #{taskId} AND workspace_id = #{workspaceId}
+        <if test="statusList != null and !statusList.isEmpty()">
+            AND tpet.status IN
+            <foreach collection='statusList' item='status' open='(' separator=',' close=')'>
+                #{status}
+            </foreach>
+        </if>
+        limit 1
+    </select>
+    <select id="countByTaskIdAndStatus" resultType="java.lang.Integer">
+        SELECT count(1)
+        FROM t_pe_optimization_task tpet
+        WHERE tpet.task_id = #{taskId} AND workspace_id = #{workspaceId}
+        <if test="statusList != null and !statusList.isEmpty()">
+            AND tpet.status IN
+            <foreach collection='statusList' item='status' open='(' separator=',' close=')'>
+                #{status}
+            </foreach>
+        </if>
+    </select>
+
+    <select id="queryOptimizationTaskListByStatus" resultMap="OptimizationTaskBaseMap">
+        SELECT *
+        FROM t_pe_optimization_task
+        WHERE status = #{status}
+        order by created_on asc
+    </select>
+</mapper>

@@ -1,0 +1,75 @@
+<div class="kb-tag-manage-container h-full flex flex-col">
+  <div *ngIf="!isMarket">
+    <div class="flex gap-2">
+      <button
+        nz-button
+        nzType="primary"
+        [disabled]="operationItems[0].disabled"
+        (click)="operationItems[0].click()"
+        nz-tooltip
+        [nzTooltipTitle]="operationItems[0].tip"
+      >
+        {{ operationItems[0].label }}
+      </button>
+    </div>
+
+    <div style="margin: 16px 0;display: flex;gap: 4px">
+      <nz-input-group [nzSuffix]="suffixIconSearch">
+        <input type="text" nz-input  [(ngModel)]="searchValue" (ngModelChange)="onSearchChange($event)" />
+      </nz-input-group>
+      <ng-template #suffixIconSearch>
+        <span nz-icon nzType="search"></span>
+      </ng-template>
+
+      <button nz-button nzType="default" (click)="refreshGridData()">
+        <nz-icon nzType="redo" nzTheme="outline" />
+      </button>
+    </div>
+  </div>
+
+  <nz-table
+    #tagTable
+    [nzData]="filteredData"
+    [nzLoading]="loading"
+    [nzFrontPagination]="true"
+    [nzShowPagination]="totalCount > 10"
+    [nzPageSizeOptions]="[10, 20, 50, 100]"
+    nzShowSizeChanger
+    [nzScroll]="{ y: '350px' }"
+    [nzNoResult]="noDataTpl"
+  >
+    <thead>
+    <tr>
+      <th nzWidth="40%">{{ 'tag_name' | i18nextEager }}</th>
+      <th nzWidth="40%" [nzSortOrder]="sortOrder" (nzSortOrderChange)="onSortChange($event)" [nzSortDirections]="['ascend', 'descend', null]">{{ 'create_time' | i18nextEager }}</th>
+      <th *ngIf="!isMarket" nzWidth="20%">{{ 'operation' | i18nextEager }}</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr *ngFor="let data of tagTable.data">
+      <td>
+        <span class="truncate block w-full" [title]="data.name">{{ data.name }}</span>
+      </td>
+      <td>{{ data.create_time }}</td>
+      <td *ngIf="!isMarket">
+        <a nz-typography nzType="danger" [nzDisabled]="kbAbilitiesService.isResourceDisabled" (click)="onDeleteTag(data)">
+          {{ 'delete' | i18nextEager }}
+        </a>
+      </td>
+    </tr>
+    </tbody>
+  </nz-table>
+
+  <ng-template #noDataTpl>
+    <nz-empty
+      [nzNotFoundImage]="customEmptyImageTpl"
+      [nzNotFoundContent]="'no_data' | i18nextEager"
+    ></nz-empty>
+  </ng-template>
+
+  <ng-template #customEmptyImageTpl>
+    <img [src]="emptyImage" alt="no data" class="mx-auto block" />
+  </ng-template>
+</div>
+
+<tag-creation #tagCreationComponent [existedTagsQuantities]="totalCount" [kbId]="kbId"></tag-creation>

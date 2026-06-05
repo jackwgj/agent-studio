@@ -1,0 +1,30 @@
+<div class="mb-[24px] flex" style="justify-content: space-between">
+  <span class="text-[20px] font-bold leading-[30px]">
+    {{ skillsHeaderConfig.helptip.label }}
+    <span class="ml-2" *ngIf="totalCardNumber">({{totalCardNumber}})</span>
+  </span>
+  <meta-import-skill-button type="danger" #skillMenu></meta-import-skill-button>
+</div>
+<div class="mb-[24px] mt-[24px] flex items-center gap-2">
+  <input nz-input [(ngModel)]="searchName" class="w-[calc(100%-32px)]" (ngModelChange)="onSearchContentChange()" />
+  <button nz-button nzType="default" (click)="querySkillList()" class="h-8 w-8">
+    <nz-icon nzType="reload" />
+  </button>
+</div>
+@if (isLoading) {
+  <nz-spin nzSimple  class="flex-column flex justify-center items-center mt-[20%]"/>
+}
+<div class="h-full overflow-hidden">
+
+  @if (!isLoadingCard && cards.length && !isLoading) {
+  <div class="mb-[16px] max-h-[calc(100%-40px)] overflow-y-auto" tiScroll>
+    <div class="cards-wrapper com-cards-wrapper">
+      <component-card class="component-library-card-background" *ngFor="let card of cards" [type]="cardListType.SKILL" [data]="card" [isFromDevelopSpace]="isFromDevelopSpace"
+        [isFromAgentBuilder]="isFromAgentBuilder" [workSpaceId]="workSpaceId" />
+    </div>
+  </div>
+  }
+  @if (cards.length && !isLoading) {
+    <nz-pagination [(nzPageIndex)]="currentCardPage" [nzTotal]="totalCardNumber" nzSize="small" class="mb-[8px]" [(nzPageSize)]="cardPageSize.size" [nzPageSizeOptions]="cardPageSize.options" nzAlign="end" nzShowSizeChanger (nzPageIndexChange)="querySkillList()"  (nzPageSizeChange)="querySkillList()"/>
+  }
+</div>

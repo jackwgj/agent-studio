@@ -1,0 +1,384 @@
+<div class="publish-channel-container">
+  <nz-spin nzSimple
+           *ngIf="isLoading"
+           class="loading-icon"
+  />
+  <div class="config-container" *ngIf="resourceConfigData.isShow"
+       [style]="{left: resourceConfigData.left + 'px', top: resourceConfigData.top + 'px'}"
+  >
+    <div class="arrow"></div>
+    <p style="font-weight: 600; font-size: 14px; margin-bottom: 16px">{{ 'source_config' | i18nextEager }}</p>
+    <p>{{ 'daily_call_limit'|i18nextEager }}</p>
+    <input
+      nz-input
+      [(ngModel)]="resourceConfigData.selectedWebPageData.call_count"
+      style="width: 100%"
+      [style]="{border: !isPositiveNumber(resourceConfigData.selectedWebPageData.call_count) ? '1px solid red' : ''}"
+    />
+    <div style="position: relative">
+      <p
+        *ngIf="!isPositiveNumber(resourceConfigData.selectedWebPageData.call_count)"
+        style="position: absolute; left: 0; top: -16px; color: red; font-size: 12px"
+      >{{ 'call_limit_input_rule'|i18nextEager }}</p>
+      <p style="margin-top: 16px;">{{ 'share_scope'|i18nextEager }}</p>
+      <nz-select
+        id="select"
+        class="resourceConfig"
+        style="width: 100%"
+        [nzOptions]="resourceConfigOptions"
+        [(ngModel)]="resourceConfigData.configOptions"
+      ></nz-select>
+
+    </div>
+    <p style="margin: 16px 0 0 0; text-align: right">
+      <button nz-button (click)="handleClickCancelSourceConfig()">{{ 'cancel'|i18nextEager }}</button>
+      <button
+        nz-button
+        nzType="primary"
+        style="margin-left: 8px"
+        [disabled]="!isPositiveNumber(resourceConfigData.selectedWebPageData.call_count)"
+        (click)="handleClickUpdateResourceConfig()"
+        [nzLoading]="resourceConfigData.isLoading"
+      >{{ 'ok'|i18nextEager }}</button>
+    </p>
+  </div>
+  <nz-alert
+    nzType="warning"
+    class="page-alert"
+    *ngIf="alertShow && alertShowTip"
+  >
+    {{ 'publish-c-page-1' | i18nextEager }}
+    <span (click)="deploy()">{{ 'publish-c-page-2' | i18nextEager }}</span>
+  </nz-alert>
+
+
+  <div class="main-container">
+    <div class="manage-item">
+      <div class="label">{{'triggermodalcomponent_130' | i18nextEager}}</div>
+      <div class="desc">{{'publish_api_tip' | i18nextEager}}</div>
+      <div class="table-content">
+        <nz-table
+          class="h-full"
+          [nzData]="transferTableData"
+          [nzShowPagination]="false"
+          [nzSize]="'middle'"
+        >
+          <thead>
+            <tr style="height: 40px;">
+              <th width="30%">{{'triggermodalcomponent_130' | i18nextEager}}</th>
+              <th>{{'status' | i18nextEager}}</th>
+              <th width="12%">{{'operation' | i18nextEager}}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of transferTableData; let i = index" style="height: 62px;">
+              <td>
+                <div class="cell items-center gap-[16px]">
+                  <img alt="" [src]="item.icon" style="width: 36px; height: 36px" />
+                  <div
+                    class="flex h-full w-[calc(100%-48px)] flex-col justify-between gap-[4px]"
+                  >
+                    <div class="font-semibold text-[#191919]">
+                      {{item.name }}
+                      <nz-icon
+                        [nzTooltipTitle]="item.tip"
+                        nzTooltipPlacement="top"
+                        nz-button
+                        nz-tooltip
+                        style="font-size: 16px; cursor: pointer;margin-left: 5px"
+                        nzType="question-circle" nzTheme="outline"
+                        *ngIf="item.tip"
+                      />
+                    </div>
+                    <span class="text-[#808080] overflow-hidden text-ellipsis whitespace-nowrap">
+                      {{item.desc }}
+                    </span>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <div class="cell flex-col justify-between gap-[4px]">
+                  <div class="flex gap-[8px]">
+                    {{item.status }}
+                  </div>
+                  <span *ngIf="item?.publish_time">
+                      {{ 'releasehistoryhalfmodalcomponent_76' | i18nextEager }}{{ item.publish_time | formateTime}}
+                    </span>
+                </div>
+              </td>
+              <td>
+                <div class="cell items-center gap-[12px]">
+                  <button
+                    class="!text-left"
+                    nz-button
+                    (click)="showApiInfo()"
+                  >
+                    {{'view_api' | i18nextEager}}
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </nz-table>
+      </div>
+    </div>
+    <div class="manage-item" *ngIf="!isMultiAgent">
+      <div class="label">{{'share_chanel' | i18nextEager}}</div>
+      <div class="desc">{{'share_chanel_tip' | i18nextEager}}</div>
+      <div class="table-content">
+        <nz-table
+          class="h-full"
+          [nzData]="tableData"
+          [nzShowPagination]="false"
+          [nzSize]="'middle'"
+        >
+          <thead>
+            <tr style="height: 40px;">
+              <th *ngFor="let column of columns" nzWidth="{{ column?.width }}">
+                {{ column.title }}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of tableData; let i = index" style="height: 62px;">
+              <td>
+                <div class="cell items-center gap-[16px]">
+                  <img alt="" [src]="item.icon" style="width: 36px; height: 36px" />
+                  <div
+                    class="flex h-full w-[calc(100%-48px)] flex-col justify-between gap-[4px]"
+                  >
+                    <div class="font-semibold text-[#191919]">
+                      {{item.name }}
+                      <nz-icon
+                        *ngIf="item.tip"
+                        [nzTooltipTitle]="item.tip"
+                        nzTooltipPlacement="top"
+                        nz-button
+                        nz-tooltip
+                        style="font-size: 16px; cursor: pointer;margin-left: 5px"
+                        nzType="question-circle" nzTheme="outline"
+                      />
+                    </div>
+                    <span class="text-[#808080] overflow-hidden text-ellipsis whitespace-nowrap">{{ item.desc }}</span>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <div class="cell flex-col justify-between gap-[4px]">
+                  <div class="flex gap-[8px]">
+                    {{ item.status }}
+                    <span
+                      class="single-tag"
+                      *ngFor="let item of item.tagList"
+                    >
+                        {{ lang === 'zh-cn' ? item.name : item.name_en }}
+                      </span>
+                  </div>
+                  <span *ngIf="item?.release_time">
+                      {{ 'distribution_time' | i18nextEager }}：{{ item.release_time | formateTime }}
+                    </span>
+                </div>
+              </td>
+              <td>
+                <div class="cell items-center">
+                    <span
+                      *ngIf="
+                        item?.version_id && item.version_id !== '';
+                        else empty
+                      "
+                      class="flex flex-col justify-between gap-[4px]"
+                    >
+                      <span>{{ item.version_id }}</span>
+                      <span
+                        *ngIf="item.isUpdated; else latestVersion"
+                        [ngClass]="{ 'new-version': item.isUpdated }"
+                      >
+                        {{ 'new_version' | i18nextEager }}
+                      </span>
+                      <ng-template #latestVersion>
+                        <span [ngClass]="{ 'latest-version': !item.isUpdated }">
+                          {{ 'latest_version' | i18nextEager }}
+                        </span>
+                      </ng-template>
+                    </span>
+                </div>
+              </td>
+              <td>
+                <div class="cell items-center">
+                  <button
+                    *ngIf="item?.isUpdated; else empty"
+                    nz-button
+                    (click)="updateVersion(item)"
+                  >
+                    {{ 'update_version' | i18nextEager }}
+                  </button>
+                </div>
+              </td>
+              <td>
+                <div *ngIf="((item.type === 'WEB_PAGE' || item.type === 'CLOUD_STORE') && item.statusIcon === 'active') else empty"
+                     style="position: relative; display: flex; gap: 8px; align-items: center"
+                >
+                  <div *ngIf="item.call_count >= -1">
+                    <p>{{ (item.call_count.toString() === '-1' ? ('daily_limit'|i18nextEager) : ('daily_limit1'|i18nextEager:{times:item.call_count}) )  }}</p>
+                    <p>{{  (item.visibility_scope === 'TENANT' ? 'share_scope1' : 'share_scope2')|i18nextEager }}</p>
+                  </div>
+                  <div class="resource-config" (click)="handleClickResourceConfigBtn($event, item)" *ngIf="item.call_count >= -1">
+                    <img [src]="changeUrl('assets/agent/resource_config.svg')" alt="" style="cursor: pointer" />
+                  </div>
+                </div>
+              </td>
+              <td>
+                <div
+                  class="cell flex-col justify-between gap-[4px]"
+                  *ngIf="(item?.type === 'WEB_PAGE' || item.type === 'CLOUD_STORE') && (item?.link || item?.url); else empty"
+                >
+                  <span>{{ 'webpage' | i18nextEager }}URL：</span>
+                  <span class="overflow-hidden text-ellipsis whitespace-nowrap">{{ item.url || item.link }}</span>
+                </div>
+              </td>
+              <td>
+                <div
+                  class="cell items-center gap-[12px]"
+                  *ngIf="item?.status && item.status !== ''; else empty"
+                >
+                  <!-- 未发布状态 -->
+                  <ng-container
+                    *ngIf="item?.statusIcon === 'cancel'; else publishedAction"
+                  >
+                    <button
+                      class="!text-left"
+                      nz-button
+                      (click)="publish(item)"
+                      nzType="default"
+                    >
+                      {{ 'publish' | i18nextEager }}
+                    </button>
+                  </ng-container>
+                  <!-- 已发布状态 -->
+                  <ng-template #publishedAction>
+                    <ng-container *ngIf="(item?.type === 'WEB_PAGE'|| item.type === 'CLOUD_STORE') && !isFromAgentBuilder">
+                      <button
+                        class="!text-left"
+                        nz-button
+                        *ngIf="!isFromAgentBuilder"
+                        (click)="visitNow(item)"
+                        nzType="default"
+                      >
+                        {{ 'immediate_access' | i18nextEager }}
+                      </button>
+                      <button
+                        class="!text-left"
+                        nz-button
+                        (click)="copyUrl(item.url || item.link)"
+                        nzType="default"
+                      >
+                        {{ 'copy_link' | i18nextEager }}
+                      </button>
+                      <button
+                        class="!text-left"
+                        nz-button
+                        (click)="regenerate(item.version_id)"
+                        nzType="default"
+                        *ngIf="item?.type !== 'CLOUD_STORE'"
+                      >
+                        {{ 'regenerate' | i18nextEager }}
+                      </button>
+                      <button
+                        class="!text-left"
+                        nz-button
+                        nzType="default"
+                        (click)="stopDistribution(item)"
+                      >{{ 'cancel_publish'|i18nextEager }}</button>
+                    </ng-container>
+
+                    <ng-container *ngIf="item?.type.startsWith('WECHAT')">
+                      <button
+                        class="!text-left"
+                        nz-button
+                        (click)="showManage(item, templateContent)"
+                        nzType="default"
+                      >
+                        {{ 'manage' | i18nextEager }}
+                      </button>
+                      <button
+                        class="!text-left"
+                        nz-button
+                        (click)="stopDistribution(item)"
+                        nzType="default"
+                      >
+                        {{ 'stop_distribution' | i18nextEager }}
+                      </button>
+                    </ng-container>
+
+                    <ng-container *ngIf="item?.type === 'APP_STORE' && !isFromAgentBuilder">
+                      <button
+                        class="!text-left"
+                        nz-button
+                        (click)="visitNow(item)"
+                        nzType="default"
+                      >
+                        {{ 'immediate_access' | i18nextEager }}
+                      </button>
+                      <button
+                        class="!text-left"
+                        nz-button
+                        nzType="default"
+                        (click)="editConfig(item)"
+                      >
+                        {{ 'modify_configuration' | i18nextEager }}
+                      </button>
+                      <button
+                        class="!text-left"
+                        nz-button
+                        nzType="default"
+                        (click)="stopDistribution(item)"
+                      >
+                        {{ 'stop_distribution' | i18nextEager }}
+                      </button>
+                    </ng-container>
+                  </ng-template>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </nz-table>
+      </div>
+    </div>
+  </div>
+
+  <nz-drawer
+    [nzVisible]="drawerVisible"
+    [nzPlacement]="'right'"
+    [nzWidth]="isHalfModelExpand ? drawerWidth : 1000"
+    [nzClosable]="false"
+    [nzMaskClosable]="false"
+    (nzOnClose)="closeHalfModel()"
+  >
+    <ng-container *nzDrawerContent>
+      <div class="header-content-container">
+        <div class="btn-container flex gap-2">
+          <div>{{'api_detail' | i18nextEager}}</div>
+          <span class="btn" style="cursor: pointer; font-size: 20px; line-height: 1" (click)="closeHalfModel()">×</span>
+        </div>
+      </div>
+      <API-call-page
+        [versionId]="versionId"
+        [id]="id"
+        [pageType]="pageType"
+        [isMultiAgent]="isMultiAgent"
+      ></API-call-page>
+    </ng-container>
+  </nz-drawer>
+</div>
+<ng-template #empty>--</ng-template>
+
+<ng-template let-context="context" #templateContent>
+  <div class="mb-2 flex w-full">
+    <span class="w-[60px]">URL: </span>
+    <span class="flex-1">{{ context.entry_point }}</span>
+  </div>
+  <div class="mb-2 flex w-full">
+    <span class="w-[60px]">API_KEY: </span>
+    <span class="flex-1">{{ context.short_code }}</span>
+  </div>
+</ng-template>

@@ -1,0 +1,59 @@
+<div class="editor-wrapper"
+  (click)="checkAndRestoreCursorPosition()"
+>
+  <div
+    #cmdEditor
+    class="editor"
+    [ngClass]="{ 'editor-disabled': disabled }"
+    [style]="{'max-height':maxHeight,'min-height':minHeight}"
+    (keydown)="onKeyDown($event)"
+    (paste)="handlePaste($event)"
+    (click)="updateSelection()"
+    (input)="onContentChange()"
+    (compositionstart)="onCompositionStart($event)"
+    (compositionend)="onCompositionEnd($event)"
+    (blur)="onBlur()"
+    [innerHTML]="content"
+    [attr.contenteditable]="!disabled"
+    [attr.placeholder]="getLength() ? null : placeholder"
+  >
+    <br>
+  </div>
+  <div *ngIf="maxLength" class="counter">
+    {{getLength()}}/{{maxLength}}
+  </div>
+</div>
+<div
+  *ngIf="showList"
+  #list
+  [ngStyle]="{ left: left + 'px', top: top + 'px' }"
+  [style.width]="innerVariantsItems.length?'240px':''"
+  class="list"
+  (clickOutside)="clickOutsideOfList()"
+>
+  <ng-container *ngIf="innerVariantsItems.length;else empty">
+    <div
+      *ngFor="let group of innerVariants; let i=index "
+      class="group"
+    >
+      <ng-container *ngIf="group.items.length">
+        <div class="group-label">{{ group.label }}</div>
+        <div
+          (click)="insertSelectedTemplate(item)"
+          *ngFor="let item of group.items; let j=index"
+          [ngStyle]="{ backgroundColor: getCandidateBGColor(i,j) }"
+          class="item"
+          tiOverflow
+        >
+          {{ item.label }}
+        </div>
+      </ng-container>
+
+    </div>
+  </ng-container>
+  <ng-template #empty>
+    <div class="empty-item">
+      {{ 'no_variable'|i18nextEager }}
+    </div>
+  </ng-template>
+</div>

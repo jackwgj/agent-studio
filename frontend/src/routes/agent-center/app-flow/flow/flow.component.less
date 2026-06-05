@@ -1,0 +1,761 @@
+.icon-bg {
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  cursor: pointer;
+}
+
+tp-halfmodal#tp {
+  top: var(--modal-top) !important;
+}
+
+.icon-border {
+  border-radius: 4px;
+  border: 1px solid #c2c2c2ff;
+  padding: 6px;
+  cursor: pointer;
+}
+
+.title-text {
+  color: #191919;
+  font-weight: 1000;
+  font-size: 16px
+}
+
+.disabled {
+  cursor: not-allowed;
+  background-color: #f0f0f0;
+  border-color: #dbdbdb;
+}
+
+.enabled {
+  cursor: pointer;
+  background-color: #fff;
+}
+
+.flow-right-panel {
+  height: 100%;
+  width: 100%;
+
+  .header {
+    display: flex;
+    height: 42px;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #fff;
+    box-sizing: border-box;
+    padding: 0 16px;
+    border-top-right-radius: 8px;
+  }
+
+  .hide-left-op-header {
+    border-top-left-radius: 8px;
+  }
+
+  .content {
+    height: 100%;
+    width: 100vw;
+    position: relative;
+  }
+
+  .minimap-box {
+    position: absolute;
+    left: 16px;
+    bottom: 16px;
+    width: 200px;
+    background: #fff;
+    box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 1%);
+    border-radius: 8px;
+    overflow: hidden;
+    height: 148px;
+  }
+
+  .minimap-position {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px;
+  }
+
+  .minimap {
+    display: flex;
+    justify-content: center;
+    padding-top: 7px;
+  }
+
+  .scale {
+    border: 1px solid #c2c2c2;
+    border-radius: 4px;
+    padding: 2px 6px;
+  }
+
+  .icon-common {
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+  }
+
+  .position {
+    margin-right: 0;
+    width: 16px;
+    height: 16px;
+    background-image: url('../../../../assets/agent-center/flow/position1.svg');
+  }
+
+  .optimize {
+    margin-right: 0;
+    width: 16px;
+    height: 16px;
+    background-image: url('../../../../assets/agent-center/flow/Optimize.svg');
+  }
+
+  .annotate {
+    margin-right: 0;
+    width: 16px;
+    height: 16px;
+    background-image: url('../../../../assets/agent-center/flow/annotate.svg');
+  }
+
+  .add {
+    width: 12px;
+    height: 12px;
+    margin-left: 16px;
+    background-image: url('../../../../assets/agent-center/flow/add-minimap.svg');
+  }
+
+  .sub {
+    width: 12px;
+    height: 12px;
+    margin-right: 16px;
+    background-image: url('../../../../assets/agent-center/flow/sup-minimap.svg');
+  }
+
+  .expand {
+    margin-right: 0;
+    width: 16px;
+    height: 16px;
+    background-image: url('../../../../assets/agent-center/flow/expand-all-nodes.svg');
+  }
+
+  .show-thumb {
+    .icon-bg;
+    width: 16px;
+    height: 16px;
+    background-image: url('../../../../assets/agent-center/flow/show-thumb.svg');
+  }
+
+  .show-nodes {
+    .icon-bg;
+    width: 16px;
+    height: 16px;
+    background-image: url('../../../../assets/agent-center/flow/show-nodes.svg');
+  }
+
+  ::ng-deep .x6-widget-minimap {
+    background-color: #fafafa;
+  }
+
+  ::ng-deep .x6-widget-minimap-viewport {
+    border: 1px solid #1476ff;
+    border-radius: 4px;
+  }
+
+  ::ng-deep .node-box {
+    width: 260px;
+    height: 40px;
+    margin-bottom: 3px;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    cursor: pointer;
+    background: #fff;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #191919;
+    overflow: hidden;
+    border: 1px solid transparent;
+
+    .node-name {
+      display: flex;
+      align-items: center;
+
+      &::before {
+        content: '';
+        display: inline-block;
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
+        width: 16px;
+        height: 16px;
+        margin-right: 8px;
+        background-image: url('../../../../assets/agent-center/flow/node-icon.svg');
+      }
+    }
+
+    .out-port {
+      position: absolute;
+      left: calc(50% - 10px);
+      top: calc(100% - 10px);
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      background-color: #fff;
+      border-radius: 50%;
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+      background-image: url('../../../../assets/agent-center/flow/node-point-bottom.svg');
+    }
+
+    .delete-node {
+      background-image: url('../../../../assets/agent-center/flow/delete-node.svg');
+      width: 15px;
+      height: 15px;
+      position: absolute;
+      top: calc(50% - 7px);
+      left: calc(100% - 28px);
+      display: none;
+      background-size: contain;
+    }
+  }
+
+  // 输入输出节点样式
+  ::ng-deep .circle-box {
+    width: 100px;
+    height: 40px;
+    background: rgba(20, 118, 255, 0.15);
+    border-radius: 8px;
+    margin-bottom: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 14px;
+    color: #191919;
+    border: 1px solid transparent;
+
+    .out-port {
+      position: absolute;
+      left: calc(50% - 10px);
+      top: calc(100% - 10px);
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      background-color: #fff;
+      border-radius: 50%;
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+      background-image: url('../../../../assets/agent-center/flow/node-point-bottom.svg');
+    }
+  }
+}
+
+.hide-left-op-flow-panel {
+  width: 100%;
+}
+
+.divider {
+  width: 1px;
+  height: 16px;
+  background-color: #dbdbdb;
+}
+
+.icon-border {
+  border-radius: 4px;
+  border: 1px solid #c2c2c2ff;
+  padding: 6px;
+  cursor: pointer;
+}
+
+.up-down-divider {
+  width: 100%;
+  height: 1px;
+  background-color: #e1e5eb;
+}
+
+.preview {
+  width: 100%;
+  height: 32px;
+  line-height: 32px;
+  padding: 0 16px;
+  display: flex;
+  background: #deecff;
+
+  .exit {
+    margin-left: 10px;
+    cursor: pointer;
+    color: #1476ff;
+  }
+}
+
+.btn-layout {
+  background-color: white;
+  border-radius: 10px;
+  color: black;
+  padding: 15px 32px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 16px;
+  margin: 4px 2px;
+  cursor: pointer;
+}
+
+.show-left-panel-icon {
+  transform: rotate(180deg);
+}
+
+.hide-left-op-panel {
+  width: 0px;
+}
+
+.flow-left-op {
+  transition: width 0.1s ease;
+}
+
+.flow-right-panel-full {
+  width: 100%;
+}
+
+.flow-right-panel-with-op {
+  animation: flow-with-panel 300ms ease-in-out;
+}
+
+@keyframes flow-full {
+  0% {
+    width: calc(100% - 260px);
+  }
+  30% {
+    width: calc(100% - 180px);
+  }
+  50% {
+    width: calc(100% - 130px);
+  }
+  80% {
+    width: calc(100% - 50px);
+  }
+  80% {
+    width: 100%;
+  }
+}
+
+@keyframes flow-with-panel {
+  0% {
+    width: 100%;
+  }
+  30% {
+    width: calc(100% - 50px);
+  }
+  50% {
+    width: calc(100% - 130px);
+  }
+  80% {
+    width: calc(100% - 180px);
+  }
+  80% {
+    width: calc(100% - 260px);
+  }
+}
+
+.full-flow-content {
+  height: 100%;
+}
+
+.status-bar-divider {
+  width: 1px;
+  height: 16px;
+  background-color: #dbdbdb;
+}
+
+.status-bar {
+  display: flex;
+  width: fit-content;
+  align-items: center;
+  gap: 16px;
+  font-size: 12px !important;
+  color: rgba(89, 89, 89, 1);
+}
+
+.poweredBy {
+  font-size: 14px;
+  color: #808080;
+  padding: 5px;
+  display: flex;
+}
+
+.icon-powerby {
+  width: 14px;
+  height: 14px;
+  margin-top: 5px;
+  margin-right: 4px;
+  display: flex;
+}
+
+::ng-deep {
+  .add-api-modal {
+    width: 700px !important;
+  }
+
+  .flow-common-half-modal {
+    padding: 0 !important;
+    box-shadow: -4px 0 6px 0 rgb(0 0 0 / 5%) !important;
+    border-left: 1px solid #e1e5eb;
+    overflow: hidden;
+  }
+
+  .flow-common-half-modal .ant-drawer-header {
+    border-bottom: none;
+    padding: 18px 10px !important;
+    position: absolute;
+    right: 0;
+  }
+
+  .flow-common-half-modal .ant-drawer-body {
+    padding: 16px 20px 16px 20px !important;
+    height: calc(100% - 56px) !important;
+  }
+
+  .flow-common-half-modal .ant-drawer-close {
+    line-height: 1;
+    color: #191919;
+    font-size: 20px;
+    right: 20px;
+  }
+
+  #checkerrorworkflow-half-modal {
+    padding: 0 !important;
+
+    .ant-drawer-header {
+      padding: 16px 8px !important;
+      border-bottom: none;
+    }
+
+    .ant-drawer-body {
+      padding: 0 8px 16px 8px !important;
+      height: calc(100% - 56px) !important;
+    }
+
+    .ant-drawer-close {
+      line-height: 1;
+      color: #191919;
+      font-size: 18px;
+      right: 16px;
+    }
+  }
+
+  #addMCPServiceModalComponent {
+    padding: 24px;
+
+    tp-halfmodal-body {
+      padding-right: 0;
+    }
+  }
+}
+
+button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+::ng-deep {
+  // 后续 flow-common-half-modal 调整为该样式
+  #global-config-half-modal {
+    padding: 0 !important;
+
+    .ant-drawer-header {
+      padding: 16px 20px 0 !important;
+      border-bottom: none;
+    }
+
+    .ant-drawer-body {
+      padding: 0 !important;
+      margin: 0 !important;
+      height: calc(100% - 56px) !important;
+    }
+
+    .ant-drawer-footer {
+      padding: 0 !important;
+
+      .ant-drawer-footer-line {
+        width: 100%;
+        left: 0;
+      }
+    }
+
+    .ant-drawer-close {
+      top: 18px;
+    }
+  }
+}
+
+.save-time {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  @media screen and (max-width: 2000px) {
+    font-size: 12px;
+  }
+}
+
+.split-dot {
+  flex-shrink: 0;
+  width: 3px;
+  height: 3px;
+  background: rgba(194, 194, 194, 1);
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.flow-tag {
+  @media screen and (max-width: 1400px) {
+    font-size: 12px;
+  }
+}
+
+.custom-resources-icon {
+  font-size: 16px;
+}
+
+::ng-deep {
+  .ltm-modal-confirm {
+    width: 400px !important;
+  }
+}
+
+.tool-bar-item {
+  background-color: #fff;
+  border-radius: 8px;
+  box-sizing: border-box;
+  border: 1px solid #e1e5eb;
+  padding: 8px 12px;
+  height: 100%;
+}
+
+.nodes-panel {
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0px 4px 16px 0px #00000014;
+}
+
+.op-icon {
+  border-radius: 4px;
+
+  &:hover {
+    background-color: #f5f5f5;
+  }
+}
+
+.task-select {
+  ::ng-deep {
+    .ti3-dropdown-container {
+      z-index: 1000 !important;
+    }
+  }
+}
+
+::ng-deep .add-workflow-modal-class {
+  width: 400px !important;
+  max-height: 180px !important;
+  margin-top: 200px !important;
+}
+
+::ng-deep #addPluginModalComponent {
+  padding: 24px;
+
+  tp-halfmodal-body {
+    overflow: hidden;
+    margin-top: 16px;
+    padding-right: 0;
+  }
+}
+
+::ng-deep {
+  //增加选择器限制，防止影响全局样式
+  .ti3-tooltip:has(.mode-container) {
+    padding: 8px !important;
+  }
+}
+
+.mode-container {
+  display: flex;
+  flex-direction: column;
+  height: 64px;
+
+  .mode-item {
+    width: 104px;
+    height: 32px;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 7px 0;
+
+    &:hover {
+      background: #F5F5F5;;
+    }
+
+    cursor: pointer;
+
+    .mode-item-key {
+      width: 24px;
+      height: 24px;
+      padding: 3px 4px 3px 4px;
+      border-radius: 4px;
+      font-size: 12px;
+      line-height: 18px;
+      text-align: center;
+    }
+  }
+}
+
+.accelerator-container {
+  display: flex;
+  flex-direction: column;
+  height: 344px;
+  width: 327px;
+  gap: 10px;
+
+  .accelerator-item {
+    width: 100%;
+    height: 20px;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+
+    .accelerator-item-key {
+      width: 24px;
+      height: 24px;
+      padding: 3px 4px 3px 4px;
+      background: #F5F5F5;
+      border-radius: 4px;
+      font-size: 12px;
+      line-height: 18px;
+      text-align: center;
+      margin-right: 4px;
+
+      img {
+        display: inline;
+      }
+
+      &:last-child {
+        margin-right: 0;
+      }
+    }
+  }
+}
+
+.history-tip-container {
+
+  .history-tip-item {
+    width: 100%;
+    height: 20px;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+
+    .history-tip-item-key {
+      width: 24px;
+      height: 24px;
+      padding: 3px 4px 3px 4px;
+      background: #F5F5F5;
+      border-radius: 4px;
+      font-size: 12px;
+      line-height: 18px;
+      text-align: center;
+      margin-right: 4px;
+
+      img {
+        display: inline;
+      }
+
+      &:last-child {
+        margin-right: 0;
+      }
+    }
+  }
+}
+
+.nodes-add-tip-panel {
+  position: absolute;
+  background: white;
+  border-radius: 6px;
+  font-size: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  width: fit-content;
+  height: 54px;
+  pointer-events: auto;
+  padding: 6px 8px;
+
+  p {
+    margin: 2px;
+
+    span {
+      color: #808080;
+    }
+  }
+}
+
+.nodes-add-tip-panel-arrow {
+  position: absolute;
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid #fff;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.nodes-add-tip-panel::before {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 0;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-top: 7px solid #d9d9d9;
+  bottom: -7px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+::ng-deep .config-header-tabs {
+  .ti3-tabs-header {
+    border: none !important;
+  }
+  a {
+    background-color: #fff!important;
+  }
+}
+
+.nodes-selection-tip-panel {
+  position: absolute;
+  width: 186px;
+  height: 40px;
+  top: 125px;
+  left: calc(50% - 93px);
+  font-size: 14px;
+  padding-right: 6px;
+
+  .nodes-selection-tip-panel-line {
+    width: 2px;
+    height: 16px;
+    background: #F5F5F5;
+  }
+}
+
+.check-warring-class {
+  color: rgba(255, 136, 0, 1);
+}

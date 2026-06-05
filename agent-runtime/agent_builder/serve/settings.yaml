@@ -1,0 +1,20 @@
+host: 127.0.0.1
+port: 8000
+https: True
+tls:
+  cert: # cert.pem file path
+  key: # ssl.key file path
+  # Key file must be protected by a password, set the encrypted password to the environment variable
+  # TLS_CERT_KEY_PASSWD or add config field `password` with encrypted password.
+  # clientRoot validation not supported, expected to accept a list of str(file_path)
+  ca_cert:  #ca cert by ssl two-way communication
+
+# If the server listening port is unreachable to the SDK (for example, after NAT mapping), enable
+# this configuration and set the port information to the corresponding listening port of the NAT
+# service. (If a parameter remains unchanged after mapping, you do not need to set it.)
+
+apps:
+  prompt:
+    manager: true
+  mmapo:
+    manager: true

@@ -1,0 +1,14 @@
+flight_hotel_book:
+  description: "template for flight hotel book"
+
+flight_hotel_book_extend:
+  description: "template for flight hotel book (parameter expansion scenario)"
+
+flight_hotel_book_cancel:
+  description: "template for flight hotel book (parameter expansion scenario) and cancel"
+
+flight_hotel_book_crk:
+  description: "template for flight hotel book (crk scenario)"
+
+flight_hotel_book_crk_##1:
+  description: "template for flight hotel book (crk scenario), this is a backup prompt(##1) to retry after an error is reported."

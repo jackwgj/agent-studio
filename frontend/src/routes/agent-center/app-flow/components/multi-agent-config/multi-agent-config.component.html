@@ -1,0 +1,299 @@
+<div class="flex h-full w-full flex-col">
+  <div class="global-config-head mb-[16px] block">
+    <span>{{ 'global_configuration' | i18nextEager }}</span>
+  </div>
+
+  <div class="block h-full">
+    <div class="relative h-full w-full overflow-auto">
+      <div class="flex flex-col gap-2">
+        <meta-acc-block class="block" [title]="'input_params' | i18nextEager">
+          <ng-template #right>
+            <div class="flex items-center justify-center">
+              <button class="w-fit rounded-full" nz-button nz-tooltip [nzTooltipTitle]="'add_params' | i18nextEager" (click)="addInput()">
+                <span nz-icon nzType="plus" class="!text-base !text-[#1476FF]"></span>
+              </button>
+            </div>
+          </ng-template>
+
+          <ng-template #content>
+            <div class="mt-2 flex items-center gap-1">
+              <div class="w-1/3 text-label">{{ 'param_name' | i18nextEager }}</div>
+              <div class="w-1/3 text-label">{{ 'type' | i18nextEager }}</div>
+              <div class="w-1/3 text-label">{{ 'description' | i18nextEager }}</div>
+              <div class="text-label" [ngStyle]="{ width: isNormalView ? '80px' : '70px' }">
+                {{ 'required' | i18nextEager }}
+              </div>
+            </div>
+
+            <form #inputsForm="ngForm">
+              <div id="node-param-tree">
+                <ng-container *ngFor="let param of removeSysFromInputs; let i = index">
+                  <div class="mt-[8px] flex w-full gap-1 leading-none">
+                    <div class="w-1/3">
+                      <nz-input-group [nzSuffix]="inputNameCountSuffix">
+                        <input
+                          style="width: 100%"
+                          nz-input
+                          type="text"
+                          [name]="'inputFormName' + i"
+                          (keydown)="$event.stopPropagation()"
+                          [disabled]="param.name === 'rawQuery'"
+                          [(ngModel)]="param.name"
+                          [title]="param.name"
+                          (input)="onNameChange()"
+                          [valueValidityValidator]="getInputNames(param)"
+                          maxlength="32"
+                          [placeholder]="'input_placeholder' | i18nextEager"
+                          [class.input-error]="
+                            inputsForm?.controls['inputFormName' + i]?.invalid &&
+                            (inputsForm?.controls['inputFormName' + i]?.dirty || inputsForm?.controls['inputFormName' + i]?.touched)
+                          "
+                        />
+                      </nz-input-group>
+
+                      <ng-template #inputNameCountSuffix>
+                        <span style="color: #bfbfbf; font-size: 12px; pointer-events: none;">
+                          {{ param.name?.length || 0 }}/32
+                        </span>
+                      </ng-template>
+
+                      <div
+                        *ngIf="
+                          inputsForm?.controls['inputFormName' + i]?.invalid &&
+                          (inputsForm?.controls['inputFormName' + i]?.dirty || inputsForm?.controls['inputFormName' + i]?.touched)
+                        "
+                        class="error-tip"
+                      >
+                        {{ inputsForm?.controls['inputFormName' + i]?.errors?.serviceName?.tiErrorMessage }}
+                      </div>
+                    </div>
+
+                    <div class="w-1/3">
+                      <nz-select
+                        style="width: 100%"
+                        [name]="'inputFormValue' + i"
+                        [(ngModel)]="param.type"
+                        [nzOptions]="paramTypes"
+                        nzValue="value"
+                        [nzDisabled]="param.name === 'rawQuery'"
+                        [nzPlaceHolder]="'select_placeholder' | i18nextEager"
+                        (ngModelChange)="onSelectParams($event, i)"
+                      >
+                        <ng-template #nzSelectSelected let-item>
+                          <div nz-typography nzEllipsis>{{ item.label }}</div>
+                        </ng-template>
+                      </nz-select>
+                    </div>
+
+                    <div class="w-1/3">
+                      <input
+                        style="width: 100%"
+                        nz-input
+                        type="text"
+                        [name]="'inputFormDesc' + i"
+                        (keydown)="$event.stopPropagation()"
+                        maxlength="256"
+                        [disabled]="param.name === 'rawQuery'"
+                        [(ngModel)]="param.description"
+                        [title]="param.description"
+                        [placeholder]="'input_placeholder' | i18nextEager"
+                        [class.input-error]="
+                        inputsForm?.controls['inputFormDesc' + i]?.invalid &&
+                        (inputsForm?.controls['inputFormDesc' + i]?.dirty || inputsForm?.controls['inputFormDesc' + i]?.touched)
+                      "
+                    />
+                    <div
+                      *ngIf="
+                        inputsForm?.controls['inputFormDesc' + i]?.invalid &&
+                        (inputsForm?.controls['inputFormDesc' + i]?.dirty || inputsForm?.controls['inputFormDesc' + i]?.touched)
+                      "
+                      class="error-tip"
+                    >
+                      {{ inputsForm?.controls['inputFormDesc' + i]?.errors?.serviceName?.tiErrorMessage }}
+                    </div>
+
+                    </div>
+
+                    <div
+                      class="a-form-checkbox flex h-[28px] w-[16px] items-center justify-center"
+                      [ngStyle]="{
+                        'margin-left': opMarginLeft,
+                      }"
+                    >
+                      <label
+                        [id]="'paramRequiredCheckbox' + i"
+                        nz-checkbox
+                        [name]="'paramRequired' + i"
+                        [(ngModel)]="param.required"
+                        [nzDisabled]="param.name === 'rawQuery'"
+                      ></label>
+                    </div>
+
+                    <div
+                      class="flex h-[28px] w-[16px] items-center justify-center"
+                      [ngStyle]="{
+                        'margin-left': opMarginLeft,
+                      }"
+                    >
+                      <span (click)="deleteInput(param)" style="font-size: 16px; color: #191919; cursor: pointer" nz-icon nzType="delete"></span>
+                    </div>
+
+                    <div
+                      class="h-[28px] w-[16px]"
+                      [ngStyle]="{
+                        'margin-left': opMarginLeft,
+                      }"
+                    >
+                      <meta-set-default *ngIf="param.name !== 'rawQuery'" [param]="param" [isShowDesc]="false" />
+                    </div>
+                  </div>
+                </ng-container>
+              </div>
+            </form>
+          </ng-template>
+        </meta-acc-block>
+
+        <div class="my-[16px] h-[1px] bg-[#f0f0f0]"></div>
+
+        <meta-acc-block class="block" [title]="'global_variable' | i18nextEager">
+          <ng-template #right>
+            <div class="flex items-center justify-center">
+              <button class="w-fit rounded-full" nz-button nz-tooltip (click)="addVar()" [nzTooltipTitle]="'add_variables' | i18nextEager">
+                <span nz-icon nzType="plus" class="!text-base !text-[#1476FF]"></span>
+              </button>
+            </div>
+          </ng-template>
+
+          <ng-template #content>
+            <div class="mt-2 flex items-center gap-1">
+              <div class="w-1/3 text-label">{{ 'param_name' | i18nextEager }}</div>
+              <div class="w-1/3 text-label">{{ 'type' | i18nextEager }}</div>
+              <div class="w-1/3 text-label">{{ 'description' | i18nextEager }}</div>
+              <div [ngStyle]="{ width: isNormalView ? '50px' : '40px' }"></div>
+            </div>
+
+            <form #globalValForm="ngForm">
+              <div id="node-param-tree">
+                <ng-container *ngFor="let param of variables; let i = index">
+                  <div class="mt-[8px] flex w-full gap-1 leading-none">
+                    <div class="w-1/3">
+                      <input
+                        style="width: 100%"
+                        nz-input
+                        type="text"
+                        [name]="'variablesFormName' + i"
+                        (keydown)="$event.stopPropagation()"
+                        [lengthValidator]="[0,64]"
+                        [(ngModel)]="param.name"
+                        [title]="param.name"
+                        (input)="onNameChange()"
+                        [valueValidityValidator]="getVarNames(param)"
+                        [placeholder]="'input_placeholder' | i18nextEager"
+                        [class.input-error]="
+                          globalValForm?.controls['variablesFormName' + i]?.invalid &&
+                          (globalValForm?.controls['variablesFormName' + i]?.dirty || globalValForm?.controls['variablesFormName' + i]?.touched)
+                        "
+                      />
+                      <div
+                        *ngIf="
+                          globalValForm?.controls['variablesFormName' + i]?.invalid &&
+                          (globalValForm?.controls['variablesFormName' + i]?.dirty || globalValForm?.controls['variablesFormName' + i]?.touched)
+                        "
+                        class="error-tip"
+                      >
+                        {{ globalValForm?.controls['variablesFormName' + i]?.errors?.serviceName?.tiErrorMessage }}
+                      </div>
+                    </div>
+
+                    <div class="w-1/3">
+                      <nz-select
+                        style="width: 100%"
+                        [name]="'variablesFormValue' + i"
+                        [(ngModel)]="param.type"
+                        [nzOptions]="paramTypes"
+                        nzValue="value"
+                        [nzPlaceHolder]="'select_placeholder' | i18nextEager"
+                        (ngModelChange)="onSelectGlobal($event, i)"
+                      >
+                        <ng-template #nzSelectSelected let-item>
+                          <div nz-typography nzEllipsis>{{ item.label }}</div>
+                        </ng-template>
+                      </nz-select>
+                    </div>
+
+                    <div class="w-1/3">
+                      <input
+                        style="width: 100%"
+                        nz-input
+                        type="text"
+                        [name]="'variablesFormDesc' + i"
+                        (keydown)="$event.stopPropagation()"
+                        [lengthValidator]="[0,256]"
+                        [(ngModel)]="param.description"
+                        [title]="param.description"
+                        nonEmptyValidator
+                        [placeholder]="'input_placeholder' | i18nextEager"
+                        [class.input-error]="
+                        globalValForm?.controls['variablesFormDesc' + i]?.invalid &&
+                        (globalValForm?.controls['variablesFormDesc' + i]?.dirty || globalValForm?.controls['variablesFormDesc' + i]?.touched)
+                      "
+                    />
+                    <div
+                      *ngIf="
+                        globalValForm?.controls['variablesFormDesc' + i]?.invalid &&
+                        (globalValForm?.controls['variablesFormDesc' + i]?.dirty || globalValForm?.controls['variablesFormDesc' + i]?.touched)
+                      "
+                      class="error-tip"
+                    >
+                      {{ globalValForm?.controls['variablesFormDesc' + i]?.errors?.serviceName?.tiErrorMessage }}
+                    </div>
+                    </div>
+
+                    <div
+                      class="flex h-[28px] w-[16px] items-center justify-center"
+                      [ngStyle]="{
+                        'margin-left': opMarginLeft,
+                      }"
+                    >
+                      <span (click)="deleteVar(i)" style="font-size: 16px; color: #191919; cursor: pointer" nz-icon nzType="delete"></span>
+                    </div>
+
+                    <div
+                      class="h-[28px] w-[16px]"
+                      [ngStyle]="{
+                        'margin-left': opMarginLeft,
+                      }"
+                    >
+                      <meta-set-default [param]="param" [isShowDesc]="false" />
+                    </div>
+                  </div>
+                </ng-container>
+              </div>
+            </form>
+          </ng-template>
+        </meta-acc-block>
+
+        <div class="my-[16px] h-[1px] bg-[#f0f0f0]"></div>
+
+        @if (configServ.isSupportUserPersona()) {
+          <memory-lib-selector
+            [isNeedPadding]="false"
+            [memoryLibs]="memoryLibData.data"
+            [tipType]="memoryLibSelectorTipType.ICON"
+            [loading]="memoryLibData.isLoading"
+            (memoryLibSelectChange)="memoryLibSelectChange($event)"
+          ></memory-lib-selector>
+        }
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="flex justify-end gap-2 pr-[20px]">
+      <button type="button" nz-button (click)="dismiss()">{{ 'cancel' | i18nextEager }}</button>
+      <button type="button" nz-button nzType="primary" (click)="onConfirm()">
+        {{ 'ok' | i18nextEager }}
+      </button>
+    </div>
+  </div>
+</div>

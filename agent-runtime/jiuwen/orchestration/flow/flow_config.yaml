@@ -1,0 +1,6 @@
+workflow:
+  bpmn2: "http://www.omg.org/spec/BPMN/20100524/MODEL"
+  bpmndi: "http://www.omg.org/spec/BPMN/20100524/DI"
+  dc: "http://www.omg.org/spec/DD/20100524/DC"
+  xsi: "http://www.w3.org/2001/XMLSchema-instance"
+  target_namespace: "http://example.org/mock"

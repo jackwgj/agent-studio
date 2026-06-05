@@ -1,0 +1,21 @@
+`#user#`
+
+{{user_prompt}}
+
+当前可供选择的功能分类如下：
+{{category_info}}
+
+用户与助手的对话历史：
+{{chat_history}}
+
+当前输入：
+{{input}}
+
+请根据当前输入和对话历史分析并输出最适合的功能分类。输出格式为JSON，包含以下字段：
+class: 代表分类结果, 如分类几
+例如:{"class": "分类xx"}。
+请参考以下示例：
+{{example_content}}
+如果没有合适的分类，请输出 {{default_class}}。
+
+只需输出JSON格式的分类结果，无需任何其他信息。

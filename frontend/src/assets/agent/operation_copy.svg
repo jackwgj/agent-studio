@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="14px" height="13.9956665px" viewBox="0 0 14 13.9956665" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>操作/复制</title>
+    <g id="页面-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="1列表" transform="translate(-442, -378.0043)" stroke="#808080">
+            <g id="操作/复制" transform="translate(442, 378)">
+                <rect id="矩形" transform="translate(5.5, 8.5) scale(-1, 1) translate(-5.5, -8.5)" x="0.5" y="3.5" width="10" height="10" rx="2"></rect>
+                <path d="M6.5,7.5043335 L6.5,2.5043335 C6.5,1.399764 7.3954305,0.504333496 8.5,0.504333496 L13.5,0.504333496" id="路径" stroke-linecap="round" transform="translate(10, 4.0043) scale(-1, 1) translate(-10, -4.0043)"></path>
+            </g>
+        </g>
+    </g>
+</svg>

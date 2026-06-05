@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.agent.manager.mapper.StructuredMessageMapper">
+    <resultMap id="BaseResultMap" type="com.openjiuwen.studio.agent.manager.entity.StructuredMessageEntity">
+        <!--@mbg.generated-->
+        <!--@Table t_structured_message-->
+        <id column="id" jdbcType="VARCHAR" property="id" />
+        <result column="name" jdbcType="VARCHAR" property="name" />
+        <result column="category" jdbcType="VARCHAR" property="category" />
+        <result column="content" jdbcType="LONGVARCHAR" property="content"  typeHandler="com.openjiuwen.studio.agent.manager.mapper.handler.StructuredMessageContentHandler"/>
+        <result column="status" jdbcType="VARCHAR" property="status" />
+        <result column="import_method" jdbcType="VARCHAR" property="importMethod" />
+        <result column="visibility" jdbcType="VARCHAR" property="visibility" />
+        <result column="workspace_id" jdbcType="VARCHAR" property="workspaceId" />
+        <result column="domain_id" jdbcType="VARCHAR" property="domainId" />
+        <result column="user_id" jdbcType="VARCHAR" property="userId" />
+        <result column="project_id" jdbcType="VARCHAR" property="projectId" />
+        <result column="created_on" jdbcType="TIMESTAMP" property="createdOn" />
+        <result column="creator_id" jdbcType="VARCHAR" property="creatorId" />
+        <result column="updated_on" jdbcType="TIMESTAMP" property="updatedOn" />
+        <result column="updater_id" jdbcType="VARCHAR" property="updaterId" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        <!--@mbg.generated-->
+        id,
+        name,
+        category,
+        content,
+        status,
+        import_method,
+        visibility,
+        workspace_id,
+        domain_id,
+        user_id,
+        project_id,
+        created_on,
+        creator_id,
+        updated_on,
+        updater_id
+    </sql>
+
+    <insert id="createStructuredMessage" parameterType="com.openjiuwen.studio.agent.manager.entity.StructuredMessageEntity">
+        INSERT INTO t_structured_message (
+            id,
+            name,
+            category,
+            content,
+            status,
+            import_method,
+            visibility,
+            workspace_id,
+            domain_id,
+            user_id,
+            project_id,
+            created_on,
+            creator_id,
+            updated_on,
+            updater_id
+        ) VALUES (
+                     #{structuredMessageEntity.id,jdbcType=VARCHAR},
+                     #{structuredMessageEntity.name,jdbcType=VARCHAR},
+                     #{structuredMessageEntity.category,jdbcType=VARCHAR},
+                     #{structuredMessageEntity.content,jdbcType=LONGVARCHAR,typeHandler=com.openjiuwen.studio.agent.manager.mapper.handler.StructuredMessageContentHandler},
+                     #{structuredMessageEntity.status,jdbcType=VARCHAR},
+                     #{structuredMessageEntity.importMethod,jdbcType=VARCHAR},
+                     #{structuredMessageEntity.visibility,jdbcType=VARCHAR},
+                     #{structuredMessageEntity.workspaceId,jdbcType=VARCHAR},
+                     #{structuredMessageEntity.domainId,jdbcType=VARCHAR},
+                     #{structuredMessageEntity.userId,jdbcType=VARCHAR},
+                     #{structuredMessageEntity.projectId,jdbcType=VARCHAR},
+                     #{structuredMessageEntity.createdOn,jdbcType=TIMESTAMP},
+                     #{structuredMessageEntity.creatorId,jdbcType=VARCHAR},
+                     #{structuredMessageEntity.updatedOn,jdbcType=TIMESTAMP},
+                     #{structuredMessageEntity.updaterId,jdbcType=VARCHAR}
+                 )
+    </insert>
+    <delete id="deleteByIds" parameterType="map">
+        delete from t_structured_message where id in
+        <foreach close=")" collection="ids" item="deploymentId" open="(" separator=",">
+            #{deploymentId,jdbcType=VARCHAR}
+        </foreach>
+        and project_id = #{projectId,jdbcType=VARCHAR}
+    </delete>
+    <select id="getStructuredMessageEntity"
+        parameterType="com.openjiuwen.studio.agent.manager.entity.StructuredMessageEntity"
+        resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List" />
+        from t_structured_message
+        where 1 = 1
+        <if test="structuredMessageEntity.id != null and structuredMessageEntit.id != ''">
+            and id=#{structuredMessageEntity.id}
+        </if>
+        <if test="structuredMessageEntity.projectId != null and structuredMessageEntity.projectId != ''">
+            and project_id=#{structuredMessageEntity.projectId}
+        </if>
+        <!-- 新增插件可见性过滤条件 -->
+        AND (
+        /* 租户可见性：domainId匹配 */
+        visibility = 'tenant' AND domain_id = #{structuredMessageEntity.domainId}
+        OR
+        /* 空间可见性：workspaceId匹配且在该空间授权 */
+        visibility = 'workspace' AND workspace_id = #{structuredMessageEntity.workspaceId}
+        OR
+        /* 个人可见性：userid匹配 */
+        visibility = 'personal' AND creator_id = #{structuredMessageEntity.userId}
+        )
+        <!-- 其他原有条件 -->
+        <if test="structuredMessageEntity.name != null and structuredMessageEntity.name != ''">
+            and `name` like concat('%', #{structuredMessageEntity.name,jdbcType=VARCHAR}, '%') escape '!'
+        </if>
+        <if test="structuredMessageEntity.category != null and structuredMessageEntity.category != ''">
+            and `category`=#{structuredMessageEntity.category}
+        </if>
+        <if test="structuredMessageEntity.status != null and structuredMessageEntity.status != ''">
+            and status=#{structuredMessageEntity.status}
+        </if>
+        <if test="structuredMessageEntity.importMethod != null and structuredMessageEntity.importMethod != ''">
+            and import_method=#{structuredMessageEntity.importMethod}
+        </if>
+        <if test="structuredMessageEntity.visibility != null and structuredMessageEntity.visibility != ''">
+            and visibility=#{structuredMessageEntity.visibility}
+        </if>
+        <if test="structuredMessageEntity.creatorId != null and structuredMessageEntity.creatorId != ''">
+            and creator_id=#{structuredMessageEntity.creatorId}
+        </if>
+        <if test="structuredMessageEntity.createdOn != null">
+            and created_on=#{structuredMessageEntity.createdOn}
+        </if>
+        <if test="structuredMessageEntity.updaterId != null and structuredMessageEntity.updaterId != ''">
+            and updater_id=#{structuredMessageEntity.updaterId}
+        </if>
+        <if test="structuredMessageEntity.updatedOn != null">
+            and updated_on=#{structuredMessageEntity.updatedOn}
+        </if>
+        order by updated_on
+        <choose>
+            <when test="order != null and order == 'asc'">
+                asc
+            </when>
+            <otherwise>
+                desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <update id="updateByPrimaryKey"
+        parameterType="com.openjiuwen.studio.agent.manager.entity.StructuredMessageEntity">
+        update t_structured_message
+        <set>
+            <if test="structuredMessageEntity.name != null">
+                `name` = #{structuredMessageEntity.name, jdbcType=VARCHAR},
+            </if>
+            <if test="structuredMessageEntity.category != null">
+                `category` = #{structuredMessageEntity.category, jdbcType=VARCHAR},
+            </if>
+            <if test="structuredMessageEntity.content != null">
+                content =
+                #{structuredMessageEntity.content, jdbcType=LONGVARCHAR,typeHandler=com.openjiuwen.studio.agent.manager.mapper.handler.StructuredMessageContentHandler},
+            </if>
+            <if test="structuredMessageEntity.status != null">
+                status = #{structuredMessageEntity.status, jdbcType=VARCHAR},
+            </if>
+            <if test="structuredMessageEntity.importMethod != null">
+                `import_method` = #{structuredMessageEntity.importMethod, jdbcType=VARCHAR},
+            </if>
+            <if test="structuredMessageEntity.visibility != null">
+                `visibility` = #{structuredMessageEntity.visibility, jdbcType=VARCHAR},
+            </if>
+            <if test="structuredMessageEntity.updaterId != null">
+                updater_id = #{structuredMessageEntity.updaterId, jdbcType=VARCHAR},
+            </if>
+            <if test="structuredMessageEntity.updatedOn != null">
+                updated_on = #{structuredMessageEntity.updatedOn, jdbcType=VARCHAR},
+            </if>
+        </set>
+        where id = #{structuredMessageEntity.id, jdbcType=VARCHAR} and project_id =
+        #{structuredMessageEntity.projectId, jdbcType=VARCHAR}
+    </update>
+
+    <select id="getByIds" parameterType="com.openjiuwen.studio.agent.manager.entity.DatasourceEntity"
+        resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List" />
+        from t_structured_message
+        where id in
+        <foreach collection="ids" item="deploymentId" open="(" separator="," close=")">
+            #{deploymentId,jdbcType=VARCHAR}
+        </foreach>
+        and (
+        /* 租户可见性：domainId匹配 */
+        visibility = 'tenant' AND domain_id = #{domainId}
+        or
+        /* 空间可见性：workspaceId匹配且在该空间授权 */
+        visibility = 'workspace' AND workspace_id = #{workspaceId}
+        or
+        /* 个人可见性：userid匹配 */
+        visibility = 'personal' AND creator_id = #{userId}
+        )
+        order by updated_on desc
+    </select>
+</mapper>

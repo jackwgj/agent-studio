@@ -1,0 +1,9 @@
+export const BOX_HEIGHT_EXP = 260;
+export const BOX_HEIGHT = 158;
+export const RING_BG_COLOR_ACTIVED = '#1576ff';
+export const RING_BG_COLOR = '#787878';
+export const CARD_BORDER_ACTIVED = '1px solid #1476ff';
+export const CARD_BORDER_DELETE = '1px solid #000000';
+export const CARD_BORDER = '1px solid transparent';
+export const CONTENT_HEIGHT_EXP = 128;
+export const CONTENT_HEIGHT = 26;

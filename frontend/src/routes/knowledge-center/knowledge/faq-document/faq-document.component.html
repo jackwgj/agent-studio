@@ -1,0 +1,110 @@
+<div class="h-full flex flex-col">
+  <div class="mb-4 flex justify-between items-center" *ngIf="!isMarket">
+    <div class="flex gap-2">
+      <button
+        nz-button
+        nzType="primary"
+        [disabled]="kbAbilitiesService.isResourceDisabled"
+        (click)="openUploadFileHalfmodal()"
+      >
+        <span nz-icon nzType="upload"></span>
+        {{ 'upload' | i18nextEager }}
+      </button>
+      <button
+        nz-button
+        nzType="primary"
+        nzDanger
+        [disabled]="operationDisableFn()"
+        (click)="onBatchDelete()"
+      >
+        {{ 'delete' | i18nextEager }}
+      </button>
+    </div>
+
+    <div class="flex gap-2 w-[350px]">
+      <nz-select
+        [(ngModel)]="searchStatus"
+        nzAllowClear
+        [nzPlaceHolder]="'all_status' | i18nextEager"
+        (ngModelChange)="onSearch()"
+        class="w-[150px]"
+      >
+        <nz-option nzValue="PENDING" [nzLabel]="'pending' | i18nextEager"></nz-option>
+        <nz-option nzValue="RUNNING" [nzLabel]="'running' | i18nextEager"></nz-option>
+        <nz-option nzValue="SUCCESS" [nzLabel]="'success' | i18nextEager"></nz-option>
+        <nz-option nzValue="ERROR" [nzLabel]="'error' | i18nextEager"></nz-option>
+        <nz-option nzValue="IMPORT_EXCEPTION" [nzLabel]="'import_exception' | i18nextEager"></nz-option>
+        <nz-option nzValue="FILE_ENCODING_ERROR" [nzLabel]="'file_encoding_error' | i18nextEager"></nz-option>
+      </nz-select>
+
+      <nz-input-group [nzSuffix]="suffixIconSearch" class="flex-1">
+        <input type="text" nz-input [placeholder]="'search_by_name' | i18nextEager" [(ngModel)]="searchName" (ngModelChange)="onSearch()" />
+      </nz-input-group>
+      <ng-template #suffixIconSearch>
+        <span nz-icon nzType="search"></span>
+      </ng-template>
+    </div>
+  </div>
+
+  <nz-table
+    #filesTable
+    nzShowSizeChanger
+    [nzData]="tableData"
+    [nzFrontPagination]="false"
+    [nzLoading]="loading"
+    [nzTotal]="total"
+    [(nzPageIndex)]="pageIndex"
+    [(nzPageSize)]="pageSize"
+    [nzPageSizeOptions]="[10, 20, 50, 100]"
+    (nzQueryParams)="onQueryParamsChange($event)"
+    [nzScroll]="{ y: '350px' }"
+    [nzNoResult]="noDataTpl"
+  >
+    <thead>
+    <tr>
+      <th *ngIf="!isMarket" nzWidth="50px" [nzChecked]="allChecked" [nzIndeterminate]="indeterminate" (nzCheckedChange)="onAllChecked($event)"></th>
+      <th nzWidth="25%">{{ 'file_name' | i18nextEager }}</th>
+      <th nzWidth="10%">{{ 'file_type' | i18nextEager }}</th>
+      <th nzWidth="15%">{{ 'file_size' | i18nextEager }}</th>
+      <th nzWidth="20%">{{ 'status' | i18nextEager }}</th>
+      <th nzWidth="15%">{{ 'create_time' | i18nextEager }}</th>
+      <th nzWidth="15%">{{ 'operation' | i18nextEager }}</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr *ngFor="let data of filesTable.data">
+      <td *ngIf="!isMarket" [nzChecked]="setOfCheckedId.has(data.file_id)" [nzDisabled]="kbAbilitiesService.isResourceDisabled" (nzCheckedChange)="onItemChecked(data.file_id, $event)"></td>
+      <td class="truncate" [title]="data.file_name">
+        <a *ngIf="!isMarket" [routerLink]="['/home/knowledge-center/knowledge', kbId, 'faq-files', data.file_id]">{{ data.file_name }}</a>
+        <span *ngIf="isMarket">{{ data.file_name }}</span>
+      </td>
+      <td class="truncate" [title]="getFileType(data.file_name)">{{ getFileType(data.file_name) }}</td>
+      <td class="truncate">{{ data.file_size | bytes }}</td>
+      <td>
+        <nz-badge [nzStatus]="getStatusIcon(data.file_status)" [nzText]="getStatusText(data.file_status)"></nz-badge>
+      </td>
+      <td class="truncate" [title]="data.create_time">{{ data.create_time }}</td>
+      <td>
+        <div class="flex items-center gap-2">
+          <a nz-typography [nzDisabled]="data.file_status !== 'SUCCESS' || kbAbilitiesService.isResourceDisabled" (click)="onDownload(data)">
+            {{ 'download' | i18nextEager }}
+          </a>
+          <nz-divider *ngIf="!isMarket" nzType="vertical"></nz-divider>
+          <a *ngIf="!isMarket" nz-typography nzType="danger" [nzDisabled]="kbAbilitiesService.isResourceDisabled" (click)="onDelete(data)">
+            {{ 'delete' | i18nextEager }}
+          </a>
+        </div>
+      </td>
+    </tr>
+    </tbody>
+  </nz-table>
+</div>
+
+<ng-template #noDataTpl>
+  <div class="flex flex-col items-center justify-center w-full py-[60px] text-[#808080]">
+    <img [src]="emptyImage" alt="no data" class="w-[120px] mb-[16px] mx-auto block" />
+    <span>{{ 'no_data' | i18nextEager }}</span>
+  </div>
+</ng-template>
+
+<batch-delete #batchDeleteModal (confirm)="handleBatchDelete($event)"></batch-delete>

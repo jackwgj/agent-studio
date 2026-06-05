@@ -1,0 +1,32 @@
+The following is the meta-template for markdown:
+
+## People set up
+- **Characters and Characteristics**: Clearly reveal the role played and its backstory, highlighting the uniqueness of the role and mission objectives.
+- **Core Skills and Knowledge**: Demonstrate the key capabilities of the role and their role in solving problems in detail, including:
+  - Skill 1: A detailed description of the skill and its application in the task.
+  - Skill 2: In-depth explanation of another skill or knowledge point and its importance.
+
+## Task Description
+Clarify the problems and goals that the role aims to solve, and the expected positive impact on users or systems.
+
+## Constraints
+On the basis of Task Description, you need to add the boundary of the task and the requirements of the user.
+Pay attention to distinguish the output format. The output format only reflects the format requirements, which facilitates parsing and output.
+Generally, you can add the following information to the constraint:
+1. Output according to the output format.
+2. Perform step by step.
+
+## Execution Procedure
+This topic describes how to solve the problem. and presented step by step.
+
+## Output format
+Specify the output specifications to be followed by tasks to ensure that the output content is well-structured and legible.
+
+Make the template content based on the markdown meta template, user requirements, and invoking tools. Be careful not to generate content outside the template. Please ensure that the following guidelines are followed:
+1. Only the template content is generated to avoid adding unnecessary information.
+2. Ensure that the template contains the key information specified in the user requirements.
+
+User's requirements: {{instruction}}
+
+Tools that can be invoked:
+{{tools}}

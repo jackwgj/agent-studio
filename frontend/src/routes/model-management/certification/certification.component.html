@@ -1,0 +1,69 @@
+<div id="model-certification">
+  <div class="top-title-area">
+    <div class="title-area-left">
+      <div class="page-title">{{ descandbuyConfig.helptip.label }}</div>
+    </div>
+    <div class="btn-area">
+      <button nz-button nzType="primary" [disabled]="!subscribeBtnStatus" style="margin-bottom: 16px" (click)="addCertification()">
+        {{'add_platform_api_key'| i18nextEager}}
+      </button>
+    </div>
+  </div>
+
+  <div class="query-operate">
+    <div style="overflow-y: auto">
+      <nz-alert
+        style="margin-bottom: 18px"
+        nzType="info"
+        [nzMessage]="'user_app_platform_auth_check' | i18nextEager">
+      </nz-alert>
+      <nz-alert
+        style="margin-bottom: 16px"
+        nzType="info"
+        [nzMessage]="'api_key_display_once_save_immediately' | i18nextEager">
+      </nz-alert>
+
+      <nz-table #basicTable
+                [nzData]="srcData.data"
+                [nzLoading]="loading"
+                [nzFrontPagination]="false"
+                [nzShowPagination]="false"
+                [nzNoResult]="noDataTpl"
+                nzTableLayout="fixed">
+        <thead>
+        <tr>
+          <th *ngFor="let column of columns"
+              [nzWidth]="column.width || null"
+              [nzRight]="column.fixed === 'right'">
+            {{column.title}}
+          </th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr *ngFor="let row of basicTable.data; index as i">
+          <td nzEllipsis>{{row.api_key_name}}</td>
+          <td nzEllipsis>{{row.description}}</td>
+          <td nzEllipsis>{{row.created_date}}</td>
+          <td nzRight>
+            <button nz-button nzType="link" [disabled]="!subscribeBtnStatus" (click)="deleteModal(row)" style="padding: 0;">
+              {{ 'delete' | i18nextEager }}
+            </button>
+          </td>
+        </tr>
+        </tbody>
+      </nz-table>
+
+      <ng-template #noDataTpl>
+        <div style="height: 430px; display: flex; align-items: center; justify-content: center;">
+          <app-new-common-no-data-with-btn
+            [type]="searchName === '' ? 'noData' : 'filterNoData'"
+            [firstLineData]="'no_data' | i18nextEager"
+            [secondLineData]="'no_data_available' | i18nextEager"
+            [noDataBtnStr]="'add_platform_api_key' | i18nextEager"
+            (create)="addCertification()"
+          />
+        </div>
+      </ng-template>
+    </div>
+  </div>
+</div>

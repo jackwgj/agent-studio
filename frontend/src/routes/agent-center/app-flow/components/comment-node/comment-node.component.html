@@ -1,0 +1,39 @@
+<div
+  #nodeWrapper
+  class="pw-common-node-wrapper"
+  [ngClass]="{
+    'pw-common-node-error': alertContent.length > 0,
+    'pw-common-node-selected': alertContent.length === 0 && (isSelected || isSelection),
+    'pw-common-node-hover': alertContent.length === 0 && !(isSelected || isSelection),
+    'pw-common-node-extra': alertContent.length === 0
+  }"
+>
+
+  <div class="relative annotation-wrapper pw-common-node">
+    <div
+      #annotationEl
+      (blur)="onBlur()"
+      class="annotation"
+      [ngClass]="isEditing ? 'text-touch' : 'move-touch'"
+      [attr.contenteditable]="isEditing"
+      [attr.placeholder]="!annotationEl.innerText.trim()?('double-click_to_input_comment'|i18nextEager):''"
+      (dblclick)="handleDbClick($event)"
+    >{{content}}</div>
+    <!-- 右侧resize -->
+    <div (mousedown)="startResizeWidth($event)"
+         class="resize-right"
+    ></div>
+    <!-- 下方resize -->
+    <div (mousedown)="startResizeHeight($event)"
+         class="resize-bottom"
+    ></div>
+    <!-- 右下下方resize -->
+    <div (mousedown)="startResizeBoth($event);"
+         class="resize-right-bottom"
+    ></div>
+
+  </div>
+</div>
+
+
+

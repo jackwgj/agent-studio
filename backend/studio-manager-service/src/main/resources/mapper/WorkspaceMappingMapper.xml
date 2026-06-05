@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.agent.manager.mapper.workspace.WorkspaceMappingMapper">
+    <resultMap id="BaseResultMap"
+               type="com.openjiuwen.studio.agent.manager.entity.workspace.WorkspaceMappingEntity">
+        <id column="id" jdbcType="VARCHAR" property="id"/>
+        <result column="workspace_id" jdbcType="VARCHAR" property="workspaceId"/>
+        <result column="mapping_id" jdbcType="VARCHAR" property="mappingId"/>
+        <result column="extension_content" jdbcType="VARCHAR" property="extensionContent"/>
+        <result column="source" jdbcType="VARCHAR" property="source"/>
+    </resultMap>
+
+    <insert id="insert">
+        INSERT INTO t_workspace_mapping (id,
+                                         workspace_id,
+                                         mapping_id,
+                                         extension_content,
+                                         source)
+        VALUES (#{id},
+                #{workspaceId},
+                #{mappingId},
+                #{extensionContent},
+                #{source})
+    </insert>
+
+    <delete id="deleteWorkspaceMappingEntityByWorkspaceId">
+        DELETE
+        FROM t_workspace_mapping
+        WHERE workspace_id #{workspaceId}
+        AND source = #{source}
+    </delete>
+
+    <select id="selectWorkspaceMappingEntityByWorkspaceIdAndSource" parameterType="java.lang.String"
+            resultMap="BaseResultMap">
+        SELECT id,
+               workspace_id,
+               mapping_id,
+               extension_content,
+               source
+        FROM t_workspace_mapping
+        WHERE workspace_id = #{workspaceId}
+          AND source = #{source}
+    </select>
+
+    <update id="updateByPrimaryKey"
+            parameterType="com.openjiuwen.studio.agent.manager.entity.workspace.WorkspaceMappingEntity">
+        UPDATE t_workspace_mapping
+        SET workspace_id      = #{workspaceId},
+            mapping_id        = #{mappingId},
+            extension_content = #{extensionContent},
+            source            = #{source}
+        WHERE id = #{id}
+    </update>
+
+    <select id="selectWorkspaceMappingEntityByWorkspaceId" parameterType="java.lang.String" resultMap="BaseResultMap">
+        SELECT id, workspace_id, mapping_id, extension_content, source
+        FROM t_workspace_mapping
+        WHERE workspace_id = #{workspaceId}
+    </select>
+
+</mapper>

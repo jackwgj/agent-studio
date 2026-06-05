@@ -1,0 +1,219 @@
+<div class="detail-container">
+  <div class="loading-icon flex items-center justify-center w-full h-full" *ngIf="pageloading; else loadingContent">
+    <nz-spin nzSize="large"></nz-spin>
+  </div>
+  <ng-template #loadingContent>
+    <div class="header-container" [class]="'h-[90px]'">
+      <div class="header-bg"></div>
+      <div class="header-content">
+        <div class="mb-[12px] ml-[54px] mt-[12px]">
+          <span (click)="onPageBack()" class="cursor-pointer">
+            {{ 'model_service' | i18nextEager }}
+          </span>
+          <span class="ml-[5px] mr-[5px] text-[#808080]">/</span>
+          <span (click)="onPageBack()" class="cursor-pointer">{{
+            activeName === 'PLATFORM' ? ('platform_preset' | i18nextEager) : ('custom' | i18nextEager)
+          }}</span>
+          <span class="ml-[5px] mr-[5px] text-[#808080]">/</span>
+          <span class="font-semibold">{{ 'supplier_detail' | i18nextEager }}</span>
+        </div>
+        <div class="header-left">
+          <div class="flex items-center">
+            <div (click)="onPageBack()" class="back-icon-container">
+              <nz-icon nzType="left" nzTheme="outline" />
+            </div>
+            <ng-container *ngIf="basicData.logo; else logoBasicOtherTemplate">
+              <img alt="" class="model-card-title-icon" [src]="basicData.logo" />
+            </ng-container>
+            <ng-template #logoBasicOtherTemplate>
+              <img alt="" class="model-card-title-icon" [src]="iconBasicNoneEmpty" />
+            </ng-template>
+            <div class="flex h-[40px] items-center">
+              <div class="title mr-[16px] text-truncate">
+                {{ basicData?.provider_name }}
+              </div>
+              <nz-tag id="tag-color" [nzColor]="basicData?.tagStatus?.type">
+                {{ basicData?.tagStatus?.text }}
+              </nz-tag>
+            </div>
+          </div>
+
+          <div class="opearte-area" *ngIf="subscribeBtnStatus">
+            <ng-container *ngIf="activeName === 'CUSTOM'; else elseTemplate">
+              <div
+                *ngFor="let item of itemsTab2"
+                class="flex items-center gap-[4px]"
+                (click)="onSelectTop(item)"
+                [ngClass]="{ 'cursor-pointer': !item.disabled, 'cursor-disable': item.disabled }"
+              >
+                <img [src]="item.disabled ? item.disIcon : item.icon" alt="" srcset="" class="size20" />
+                <span [ngStyle]="{ 'color': item.disabled ? '#808080' : '#191919' }">{{ item.label }}</span>
+              </div>
+            </ng-container>
+            <ng-template #elseTemplate>
+              <div *ngIf="basicData && basicData['auth_configs'] && basicData['auth_configs'][0].auth_type != 'IAM'">
+                <div
+                  *ngFor="let item of itemsTab1"
+                  class="flex items-center gap-[4px]"
+                  [ngClass]="{ 'cursor-pointer': !item.disabled, 'cursor-disable': item.disabled }"
+                  (click)="onSelectTop(item)"
+                >
+                  <img [src]="item.disabled ? item.disIcon : item.icon" alt="" srcset="" class="size20" />
+                  <span [ngStyle]="{ 'color': item.disabled ? '#808080' : '#191919' }">{{ item.label }}</span>
+                </div>
+              </div>
+            </ng-template>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="main-container">
+      <div class="basicInfo">
+        <p class="top-basic-title">{{ 'basic_info_1' | i18nextEager }}</p>
+        <div class="flex justify-start gap-x-12 gap-y-4 flex-wrap">
+          <div class="info-col">
+            <div class="info-title">{{ 'description' | i18nextEager }}</div>
+            <div class="info-content cursor-pointer text-truncate" nz-tooltip [nzTooltipTitle]="basicData?.description">
+              {{ basicData?.description || '-' }}
+            </div>
+          </div>
+          <div class="info-col">
+            <div class="info-title">{{ 'updater' | i18nextEager }}</div>
+            <div class="info-content text-truncate">{{ basicData?.last_updated_by_user || '-' }}</div>
+          </div>
+
+          <div class="info-col">
+            <div class="info-title">{{ 'update_time_1' | i18nextEager }}</div>
+            <div class="info-content text-truncate">
+              {{ basicData?.last_updated_date || '-' }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="main-container flex-1" [ngClass]="{ 'loading-class': loading }" style="margin-bottom: 16px">
+      <div class="basicInfo height100">
+        <div class="btn-list" *ngIf="activeName === 'CUSTOM'">
+          <button
+            *ngIf="provider_boolean; else newModelTemplate"
+            [disabled]="!subscribeBtnStatus"
+            nz-button
+            nzType="primary"
+            (click)="synchronizeModelService()"
+          >
+            {{ 'synchronize-model-service' | i18nextEager }}
+          </button>
+          <ng-template #newModelTemplate>
+            <button [disabled]="basicData?.id?.startsWith('cdi-') || !subscribeBtnStatus" nz-button nzType="primary" (click)="openHalfModel()">
+              {{ 'add_model_service' | i18nextEager }}
+            </button>
+          </ng-template>
+        </div>
+
+        <div class="mb-[16px] flex items-center gap-2">
+          <nz-input-group [nzSuffix]="suffixIconSearch" class="flex h-[32px] w-[calc(100%-32px)]">
+            <input
+              type="text"
+              nz-input
+              [placeholder]="'search_by_service_name' | i18nextEager"
+              [(ngModel)]="searchString"
+              (ngModelChange)="onSearchStringChange($event)"
+            />
+          </nz-input-group>
+          <ng-template #suffixIconSearch>
+            <span nz-icon nzType="search"></span>
+          </ng-template>
+
+          <button class="h-8 w-8 flex items-center justify-center" nz-button nzType="default" (click)="freshData()">
+            <nz-icon nzType="redo" nzTheme="outline" />
+          </button>
+        </div>
+        <nz-spin *ngIf="loading" class="loading-icon" nzSize="large"></nz-spin>
+        <div *ngIf="!loading">
+          <div class="model-card-main-tab2 model-card-main" *ngIf="pageData.length > 0; else epmtyTemp">
+            <div class="model-card" *ngFor="let dataItem of pageData" (click)="toDetail(dataItem)">
+              <div class="model-card-title">
+                <ng-container *ngIf="dataItem.logo; else logoOtherTemplate">
+                  <img alt="" class="model-card-title-icon" [src]="dataItem.logo" />
+                </ng-container>
+                <ng-template #logoOtherTemplate>
+                  <img alt="" class="model-card-title-icon" [src]="iconNoneEmpty" />
+                </ng-template>
+
+                <div class="model-card-title-content">
+                  <div class="model-card-title-content-title text-truncate">
+                    {{ dataItem.service_name }}
+                  </div>
+
+                  <div class="model-card-title-content-tips">
+                    <nz-tag [nzColor]="dataItem.publish_status === 'online' ? 'success' : 'warning'"
+                      >{{ (dataItem.publish_status === 'online' ? 'published' : 'not_published') | i18nextEager }}
+                    </nz-tag>
+                    <nz-tag *ngIf="dataItem.is_support_function">
+                      {{ tagMap['is_support_function'].name }}
+                    </nz-tag>
+
+                    <nz-tag *ngIf="dataItem.is_reasoning">
+                      {{ tagMap['is_reasoning'].name }}
+                    </nz-tag>
+
+                    <nz-tag *ngIf="dataItem.is_network">
+                      {{ tagMap['is_network'].name }}
+                    </nz-tag>
+
+                    <nz-tag *ngFor="let item of dataItem.modelTags">{{ item }} </nz-tag>
+                  </div>
+                </div>
+              </div>
+              <div class="model-card-description text-truncate" nz-tooltip [nzTooltipTitle]="dataItem.model_description">
+                {{ dataItem.model_description }}
+              </div>
+              <div class="model-card-bottom">
+                <div class="model-card-bottom-url text-truncate" style="max-width: calc(100% - 200px)">
+                  {{ 'model_name' | i18nextEager }} {{ dataItem.model_name }}
+                </div>
+                <div class="model-card-bottom-url">{{ 'modify_time' | i18nextEager }} {{ dataItem.last_updated_date }}</div>
+
+                <div class="model-card-bottom-icons" (click)="clickstopProp($event)">
+                  <a nz-dropdown [nzDropdownMenu]="menu" nzTrigger="click" (nzVisibleChange)="onBeforeOpen($event, dataItem)">
+                    <span nz-icon nzType="ellipsis" style="font-size: 20px; color: #191919"></span>
+                  </a>
+                  <nz-dropdown-menu #menu="nzDropdownMenu">
+                    <ul nz-menu>
+                      <li nz-menu-item *ngFor="let item of options2" [nzDisabled]="item.disabled" (click)="!item.disabled && onSelect(item, dataItem)">
+                        <div class="operate-item-card">{{ item.label }}</div>
+                      </li>
+                    </ul>
+                  </nz-dropdown-menu>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <ng-template #epmtyTemp>
+          <app-new-common-no-data-with-btn
+            [type]="this.searchName.length === 0 ? 'noData' : 'filterNoData'"
+            [firstLineData]="'no_data' | i18nextEager"
+            [secondLineData]="(activeName === 'CUSTOM' ? 'no_data_1' : 'no_data') | i18nextEager"
+            [noDataBtnStr]="(provider_boolean ? 'synchronize-model-service' : 'add_model_service') | i18nextEager"
+            (create)="createModelService()"
+            (clear)="onClearSearchContentChange()"
+          />
+        </ng-template>
+
+        <nz-pagination
+          style="margin-top: 13px"
+          *ngIf="totalNumber >= 10"
+          [(nzPageIndex)]="currentPage"
+          [nzTotal]="totalNumber"
+          [(nzPageSize)]="pageSize.size"
+          [nzPageSizeOptions]="pageSize.options"
+          nzShowSizeChanger
+          (nzPageIndexChange)="getPublisherListFn()"
+          (nzPageSizeChange)="getPublisherListFn()"
+        ></nz-pagination>
+      </div>
+    </div>
+  </ng-template>
+</div>

@@ -1,0 +1,293 @@
+<!--<div class="flex h-full w-full flex-col" (keydown)="handleKeyDown($event)">-->
+<!--  <tp-halfmodal-header class="mb-[16px] block">-->
+<!--    <div class="flex items-center gap-[8px]">-->
+<!--      <edit-name-->
+<!--      [(name)]="nodeInfo.name"-->
+<!--      (onBlurConfirm)="updateName()"-->
+<!--    ></edit-name>-->
+<!--    </div>-->
+<!--    <node-description [nodeInfo]="nodeInfo" (descriptionChange)="updateView()"></node-description>-->
+<!--  </tp-halfmodal-header>-->
+
+<!--  <tp-halfmodal-body id="intent-container-modal-body">-->
+<!--    <div class="h-full w-full overflow-hidden">-->
+<!--      <ti-steps-->
+<!--        class="step"-->
+<!--        [steps]="steps"-->
+<!--        [(activeStep)]="curStepIndex"-->
+<!--      ></ti-steps>-->
+<!--      &lt;!&ndash; 动作配置 &ndash;&gt;-->
+<!--      <div-->
+<!--        class="flex h-[calc(100%-84px)] flex-col gap-[16px]"-->
+<!--        *ngIf="curStepIndex === 0"-->
+<!--      >-->
+<!--        <div class="flex gap-[12px]">-->
+<!--          <button-->
+<!--            type="button"-->
+<!--            tiButton-->
+<!--            [disabled]="!hasSelectedBranch()"-->
+<!--            [tiTip]="batchBindRefCmp"-->
+<!--            #batchBindRef="tiTip"-->
+<!--            tiTipTrigger="manual"-->
+<!--            tiTipMaxWidth="500px"-->
+<!--            [tiTipZIndex]="999"-->
+<!--            [tiTipContext]="batchBindTipCtx"-->
+<!--            tiTipPosition="bottom-left"-->
+<!--            (click)="batchBindFlows()"-->
+<!--          >-->
+<!--            {{ 'batch_configuration' | i18nextEager }}-->
+<!--          </button>-->
+<!--          <button-->
+<!--            type="button"-->
+<!--            tiButton-->
+<!--            [disabled]="!hasSelectedBranch()"-->
+<!--            (click)="batchUnbindFlows()"-->
+<!--          >-->
+<!--            {{ 'batch_unbinding' | i18nextEager }}-->
+<!--          </button>-->
+<!--        </div>-->
+
+<!--        <ti-searchbox-->
+<!--          [placeholder]="'enter_intent_name' | i18nextEager"-->
+<!--          class="branch-searchbox"-->
+<!--          [(ngModel)]="searchBranchName"-->
+<!--          (ngModelChange)="searchBranches($event)"-->
+<!--          (search)="searchBranches($event)"-->
+<!--        >-->
+<!--        </ti-searchbox>-->
+<!--        <div class="flex h-[calc(100%-40px)] flex-col gap-[12px]">-->
+<!--          <div class="flex items-center pl-[24px] text-[#595959]">-->
+<!--            <div class="w-[130px] flex-shrink-0">{{ 'intent_name' | i18nextEager }}</div>-->
+<!--            <div>{{ 'jump_to' | i18nextEager }}</div>-->
+<!--          </div>-->
+
+<!--          <ti-loading-->
+<!--            *ngIf="isLoading; else branchListTmpl"-->
+<!--            class="loading-icon"-->
+<!--            size="small"-->
+<!--          ></ti-loading>-->
+
+<!--          <ng-template #branchListTmpl>-->
+<!--            <div-->
+<!--              class="flex h-[calc(100%-76px)] flex-col gap-[12px] overflow-y-auto overflow-x-hidden"-->
+<!--              (scroll)="onScroll()"-->
+<!--            >-->
+<!--              <div-->
+<!--                *ngFor="let param of branchListDynamic; index as i"-->
+<!--                class="flex w-full items-center gap-2"-->
+<!--              >-->
+<!--                <div class="a-form-checkbox flex items-center justify-center">-->
+<!--                  <input-->
+<!--                    [id]="'outputFormParamCheckCheckbox' + i"-->
+<!--                    type="checkbox"-->
+<!--                    tiCheckbox-->
+<!--                    [name]="'outputFormParamCheck' + i"-->
+<!--                    [(ngModel)]="param.selected"-->
+<!--                  />-->
+<!--                </div>-->
+<!--                <div class="w-[122px] flex-shrink-0" lineClamp>-->
+<!--                  {{ param.name }}-->
+<!--                </div>-->
+
+<!--                <form #boundFlowListForm="ngForm" class="w-full">-->
+<!--                  <ti-select-->
+<!--                    #select-->
+<!--                    style="width: 100%"-->
+<!--                    [name]="'requestValidateType' + param.branch_id"-->
+<!--                    [options]="flowList"-->
+<!--                    [(ngModel)]="param.workflow_id"-->
+<!--                    idKey="workflow_id"-->
+<!--                    [placeholder]="'please_select_workflow' | i18nextEager"-->
+<!--                    [tiValidation]="requestValidation"-->
+<!--                    [noDataText]="'no_workflow' | i18nextEager"-->
+<!--                    tipPosition="left"-->
+<!--                    tipMaxWidth="170px"-->
+<!--                    selectedTipPosition="right"-->
+<!--                    [searchable]="true"-->
+<!--                    [clearable]="true"-->
+<!--                    (beforeOpen)="onBeforeOpenFlowList($event)"-->
+<!--                    (beforeSearch)="onBeforeSearch($event)"-->
+<!--                    (scrollToBottom)="loadMore($event, select)"-->
+<!--                  >-->
+<!--                    <ng-template #item let-item>-->
+<!--                      <ng-container *ngIf="isObject(item); else stringTmpl">-->
+<!--                        {{ item.name }}-->
+<!--                      </ng-container>-->
+
+<!--                      <ng-template #stringTmpl>-->
+<!--                        {{ nodeInfo?.branches?.[i]?.configs?.workflow_name }}-->
+<!--                      </ng-template>-->
+<!--                    </ng-template>-->
+<!--                  </ti-select>-->
+<!--                </form>-->
+<!--              </div>-->
+<!--            </div>-->
+<!--          </ng-template>-->
+<!--        </div>-->
+<!--      </div>-->
+
+<!--      <div *ngIf="curStepIndex === 1" class="h-[calc(100%-84px)]">-->
+<!--        <meta-acc-block-->
+<!--          id="input-params-form"-->
+<!--          class="mt-2 block h-full"-->
+<!--          [title]="'input_params' | i18nextEager"-->
+<!--          [isNewStyle]="true"-->
+<!--        >-->
+<!--          <ng-template #content>-->
+<!--            <div class="mt-2 flex items-center gap-2">-->
+<!--              <div class="w-[82px] text-sm text-label">{{ 'param_name' | i18nextEager }}</div>-->
+<!--              <div class="flex items-center gap-2 text-sm text-label">-->
+<!--                <div class="flex h-fit w-[calc(100%-16px)] items-center">-->
+<!--                  <div class="w-[90px]">{{ 'type' | i18nextEager }}</div>-->
+<!--                  <div>{{ 'value' | i18nextEager }}</div>-->
+<!--                </div>-->
+<!--                <div class="h-full w-[16px]"></div>-->
+<!--              </div>-->
+<!--            </div>-->
+
+<!--            <ti-loading-->
+<!--              *ngIf="isFlowsLoading; else inputListTmpl"-->
+<!--              class="loading-icon"-->
+<!--              size="small"-->
+<!--            ></ti-loading>-->
+
+<!--            <div-->
+<!--              *ngIf="!isFlowsLoading && !inputParams.length"-->
+<!--              class="no-data-container"-->
+<!--            >-->
+<!--              <no-data-icon></no-data-icon>-->
+<!--              <span>{{ 'no_parameter_information' | i18nextEager }}</span>-->
+<!--            </div>-->
+
+<!--            <ng-template #inputListTmpl>-->
+<!--              <form-->
+<!--                #inputForm="ngForm"-->
+<!--                class="h-[calc(100%-46px)] overflow-y-auto"-->
+<!--              >-->
+<!--                <div-->
+<!--                  *ngFor="let param of inputParams; index as i"-->
+<!--                  class="mt-2 flex gap-2"-->
+<!--                >-->
+<!--                  <div class="w-1/5">-->
+<!--                    <input-->
+<!--                      style="width: 100%"-->
+<!--                      type="text"-->
+<!--                      [name]="'inputFormName' + i"-->
+<!--                      [maxlength]="paramNameMaxLen"-->
+<!--                      tiText-->
+<!--                      [(ngModel)]="param.name"-->
+<!--                      [title]="param.name"-->
+<!--                      [disabled]="true"-->
+<!--                      [placeholder]="'input_placeholder' | i18nextEager"-->
+<!--                    />-->
+<!--                  </div>-->
+<!--                  <div class="w-1/5">-->
+<!--                    <input-->
+<!--                      style="width: 100%"-->
+<!--                      type="text"-->
+<!--                      [name]="'inputFormFType' + i"-->
+<!--                      [maxlength]="paramNameMaxLen"-->
+<!--                      tiText-->
+<!--                      [(ngModel)]="param.type"-->
+<!--                      [title]="param.type"-->
+<!--                      [disabled]="true"-->
+<!--                      [placeholder]="'input_placeholder' | i18nextEager"-->
+<!--                    />-->
+<!--                  </div>-->
+<!--                  <div class="flex w-3/5 gap-[8px]">-->
+<!--                    <div class="flex h-fit w-full items-center gap-2">-->
+<!--                      <div class="flex w-full">-->
+<!--                        <div class="w-[34%]">-->
+<!--                          <ti-select-->
+<!--                            class="combo-select-left"-->
+<!--                            style="width: 100%"-->
+<!--                            [options]="sourceOptions"-->
+<!--                            [name]="'inputFormType' + i"-->
+<!--                            [(ngModel)]="param.value.type"-->
+<!--                            valueKey="value"-->
+<!--                            (ngModelChange)="onTypeChange(param)"-->
+<!--                          ></ti-select>-->
+<!--                        </div>-->
+
+<!--                        <div class="w-[66%]">-->
+<!--                          <input-->
+<!--                            class="combo-select-right"-->
+<!--                            *ngIf="param.value.type === 'literal'"-->
+<!--                            style="width: 100%"-->
+<!--                            type="text"-->
+<!--                            [name]="'inputFormValue' + i"-->
+<!--                            [tiValidation]="{ type: 'changeAlert' }"-->
+<!--                            nonEmptyValidator-->
+<!--                            [errorMessageWrapper]="valueWrapper"-->
+<!--                            tiText-->
+<!--                            [placeholder]="'input_placeholder' | i18nextEager"-->
+<!--                            [(ngModel)]="param.value.content"-->
+<!--                            [title]="param.value.content"-->
+<!--                          />-->
+
+<!--                          <input-tree-select-->
+<!--                          *ngIf="param.value.type === 'ref'"-->
+<!--                          style="width: 100%"-->
+<!--                          [(ngModel)]="param.value.content"-->
+<!--                          [options]="param.refs"-->
+<!--                          [name]="'inputFormValue' + i"-->
+<!--                          refSelectedRequire-->
+<!--                          [tiValidation]="{ type: 'changeAlert' }"-->
+<!--                          [errorMessageWrapper]="valueWrapper"-->
+<!--                          [placeholder]="'select_placeholder' | i18nextEager"-->
+<!--                        ></input-tree-select>-->
+
+<!--                          <div class="w-full" #valueWrapper></div>-->
+<!--                        </div>-->
+<!--                      </div>-->
+<!--                    </div>-->
+<!--                  </div>-->
+<!--                </div>-->
+<!--              </form>-->
+<!--            </ng-template>-->
+<!--          </ng-template>-->
+<!--        </meta-acc-block>-->
+<!--      </div>-->
+<!--    </div>-->
+<!--  </tp-halfmodal-body>-->
+
+<!--  <tp-halfmodal-footer>-->
+<!--    <div class="flex justify-end gap-2">-->
+<!--      <button-->
+<!--        *ngIf="this.curStepIndex === 0"-->
+<!--        type="button"-->
+<!--        tiButton-->
+<!--        (click)="dismiss()"-->
+<!--      >-->
+<!--        {{ 'cancel' | i18nextEager }}-->
+<!--      </button>-->
+<!--      <button-->
+<!--        *ngIf="this.curStepIndex === 0"-->
+<!--        type="button"-->
+<!--        tiButton-->
+<!--        (click)="nextStep()"-->
+<!--        color="danger"-->
+<!--      >-->
+<!--        {{ 'next_step' | i18nextEager }}-->
+<!--      </button>-->
+<!--      <button-->
+<!--        *ngIf="this.curStepIndex === 1"-->
+<!--        type="button"-->
+<!--        tiButton-->
+<!--        (click)="lastStep()"-->
+<!--      >-->
+<!--        {{ 'pre_step' | i18nextEager }}-->
+<!--      </button>-->
+<!--      <button-->
+<!--        *ngIf="this.curStepIndex === 1"-->
+<!--        type="button"-->
+<!--        tiButton-->
+<!--        color="danger"-->
+<!--        (click)="onConfirm()"-->
+<!--        [loading]="isConfirmLoading"-->
+<!--      >-->
+<!--        {{ 'ok' | i18nextEager }}-->
+<!--      </button>-->
+<!--    </div>-->
+<!--  </tp-halfmodal-footer>-->
+<!--</div>-->

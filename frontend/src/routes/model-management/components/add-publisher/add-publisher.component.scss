@@ -1,0 +1,41 @@
+ti-select {
+  width: 100% !important;
+}
+.event-log-container {
+  position: relative;
+  width: fit-content;
+
+  .upload-avatar {
+    width: 64px;
+    height: 64px;
+    position: relative;
+  }
+  &:hover {
+    .delete-box {
+      display: flex;
+    }
+  }
+}
+
+.delete-box {
+  background: #efefef80;
+  width: 100%;
+  height: 100%;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.bold-black {
+  color: #191919;
+  font-weight: bold;
+}
+
+.name-rule {
+  margin-top: 10px;
+  color: gray;
+  font-size: 12px;
+}

@@ -1,0 +1,69 @@
+<div class="h-full w-full">
+  <meta-plugin-header-new
+    (update)="getPluginDetails()"
+    [pluginInfo]="plugin"
+    (visionSelectedChangeEvent)="visionSelectedChange($event)"
+  ></meta-plugin-header-new>
+  <div class="preview" *ngIf="previewVersionId">
+    <div class="mr-[8px] text-[#1476FF]">
+      <nz-icon nzType="info-circle" nzTheme="outline" />
+    </div>
+    {{ 'previewing_version_information' | i18nextEager }}：{{previewVersionName}}
+    <div class="exit" (click)="exitViewHistory()">
+      {{ 'exit_version_preview' | i18nextEager }}
+      <nz-icon nzType="edit" nzTheme="outline" />
+    </div>
+  </div>
+  <div class="h-[calc(100%-110px)]" style="overflow:scroll;padding:0px 24px" adaptive>
+    <div style="padding:12px 0px 0px 0px">
+      <nz-tabset class="tab-wrapper">
+        <nz-tab [nzTitle]="'plugin_info'|i18nextEager" class="h-[80vh]">
+          <div class="relative !flex flex-col gap-4 text-[14px]" style="background: #fff; padding: 16px 24px; border-radius: 16px">
+            <div class="text-[18px] font-bold text-label">
+              {{ 'basic_info' | i18nextEager }}
+            </div>
+            <div class="flex">
+              <div class="text-label text-color">{{ 'update_time'|i18nextEager }}</div>
+              <span class="w-full text-[#191919]">{{ plugin?.updated_on|formateTime }}</span>
+            </div>
+            <div class="flex">
+              <div class="text-label text-color">{{ 'creator'|i18nextEager }}</div>
+              <span class="w-full  text-[#191919]">{{ plugin?.creator }}</span>
+            </div>
+            <div class="flex">
+              <div class="text-label text-color">{{ 'plugin_description'|i18nextEager }}</div>
+              <span class="w-full  text-[#191919]">{{ plugin.plugin_desc }}</span>
+            </div>
+          </div>
+        </nz-tab>
+        <nz-tab [nzTitle]="'tool_info'|i18nextEager" class="h-[80vh]">
+          <div class="!flex flex-col gap-4" style="background: #fff; padding: 16px 24px; border-radius: 16px">
+            <div class="text-xs text-[#595959]">
+              {{ 'Tools'|i18nextEager }}
+            </div>
+            <div>
+              <nz-table [nzData]="displayedData" nzSize="small" [nzShowPagination]="false">
+                <thead>
+                  <tr>
+                    <th *ngFor="let column of toolsColumns">{{column.title}}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let row of displayedData">
+                    <td>{{row.toolName}}</td>
+                    <td>{{row.tool_info.tool_desc}}</td>
+                    <td>{{row.toolDependency?.dependency_on_agent}}</td>
+                    <td>{{row.toolDependency?.dependency_on_workflow}}</td>
+                    <td>
+                      <a nz-button nzType="link" nzSize="small" (click)="handleToolsAction(row)">{{ 'view_details'|i18nextEager }}</a>
+                    </td>
+                  </tr>
+                </tbody>
+              </nz-table>
+            </div>
+          </div>
+        </nz-tab>
+      </nz-tabset>
+    </div>
+  </div>
+</div>

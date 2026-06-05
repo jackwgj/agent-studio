@@ -1,0 +1,6 @@
+{
+  "result_code": 0,
+  "code": "",
+  "cot_string": "<<RESULT_START>>{\"result_1\": \"hello world\", \"result_2\": \"1\"}<<RESULT_END>>\n",
+  "success": true
+}

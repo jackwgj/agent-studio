@@ -1,0 +1,136 @@
+<div class="h-full w-full">
+  <div class="mb-[16px] block">
+    <span class="text-[14px] leading-[22px] text-label">{{'add_memory_parameters'|i18nextEager}}</span>
+  </div>
+
+  <div class="h-full w-full overflow-auto">
+    <div class="text-[14px] leading-[22px] text-label">{{'params'|i18nextEager}}</div>
+    <div class="mt-2 w-full rounded-[8px] bg-[#fafafa] py-[16px]">
+      <div class="mb-[4px] mt-2 flex items-center gap-2 px-[16px]">
+        <div class="w-[140px] text-sm text-label">{{'param_name'|i18nextEager}}</div>
+        <div class="w-[140px] text-sm text-label">{{'default_v'|i18nextEager}}</div>
+        <div class="flex w-[140px] items-center gap-[4px] text-sm text-label">
+          <div>{{'memory_duration'|i18nextEager}}</div>
+          <span
+            nz-icon
+            nzType="question-circle"
+            nz-tooltip
+            [nzTooltipTitle]="'long_term_text'|i18nextEager"
+            class="cursor-pointer"
+          ></span>
+        </div>
+        <div class="w-[140px] text-sm text-label">{{'description'|i18nextEager}}</div>
+      </div>
+
+      <form #inputForm="ngForm">
+        @for (param of memos; track param; let i = $index) {
+          <div
+            class="flex gap-2 px-[16px] py-[4px]"
+            [class.highlight]="
+              memoInput?.selectedName && param.name === memoInput.selectedName
+            "
+          >
+            <div class="w-[140px]">
+              <input
+                style="width: 100%"
+                type="text"
+                [id]="'memoName' + i + 'id'"
+                spellcheck="false"
+                [name]="'memoName' + i"
+                maxlength="32"
+                nz-input
+                [(ngModel)]="param.name"
+                [placeholder]="'input_placeholder'|i18nextEager"
+                [disabled]="isFlowReadonly"
+                [noDupParamName]="getExistingValues(i)"
+              />
+            </div>
+
+            <div class="w-[140px]">
+              <input
+                style="width: 100%"
+                type="text"
+                [name]="'memoDv' + i"
+                maxlength="32"
+                nz-input
+                [(ngModel)]="param.default_value"
+                [placeholder]="'input_placeholder'|i18nextEager"
+                [disabled]="isFlowReadonly"
+              />
+            </div>
+
+            <div class="w-[140px]">
+              <nz-select
+                style="width: 100%"
+                [name]="'memoType' + i"
+                [(ngModel)]="param.life_cycle"
+                [disabled]="isFlowReadonly"
+              >
+                @for (type of memoTypes; track type) {
+                  <nz-option [nzValue]="type.value" [nzLabel]="type.label"></nz-option>
+                }
+              </nz-select>
+            </div>
+
+            <div class="w-[140px]">
+              <input
+                style="width: 100%"
+                type="text"
+                [name]="'memoDesc' + i"
+                maxlength="32"
+                nz-input
+                [(ngModel)]="param.description"
+                [placeholder]="'input_placeholder'|i18nextEager"
+                [disabled]="isFlowReadonly"
+              />
+            </div>
+
+            <span
+              nz-icon
+              nzType="delete"
+              (click)="deleteMemo(i)"
+              class="delete-icon"
+            ></span>
+          </div>
+        }
+      </form>
+
+      @if (memos.length < 10) {
+        <button
+          (click)="addMemo()"
+          class="ml-[16px] mt-2"
+          nz-button
+          nzType="default"
+        >
+          + {{'add_params'|i18nextEager}}
+        </button>
+      }
+
+      @if (memos.length === 10) {
+        <button
+          class="ml-[16px] mt-2"
+          nz-button
+          nzType="default"
+          disabled
+          nz-tooltip
+          [nzTooltipTitle]="'maximum_number_additions'|i18nextEager"
+        >
+          + {{'add_params'|i18nextEager}}
+        </button>
+      }
+    </div>
+  </div>
+
+  <div class="flex justify-end gap-2">
+    <button type="button" nz-button (click)="dismiss()">{{'cancel'|i18nextEager}}</button>
+    <button
+      [nzLoading]="loading"
+      type="button"
+      nz-button
+      nzType="primary"
+      (click)="onComfirm()"
+    >
+      {{'ok'|i18nextEager}}
+    </button>
+  </div>
+</div>

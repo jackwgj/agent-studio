@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
+  -->
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.agent.agentbase.mapper.KnowledgeSegmentRuleMapper">
+    <resultMap id="BaseResultMap" type="com.openjiuwen.studio.agent.agentbase.entity.KnowledgeSegmentRuleEntity">
+        <!--@Table t_knowledge_repo-->
+        <id column="id" jdbcType="VARCHAR" property="id"/>
+        <result column="project_id" jdbcType="VARCHAR" property="projectId"/>
+        <result column="domain_id" jdbcType="VARCHAR" property="domainId"/>
+        <result column="domain_name" jdbcType="VARCHAR" property="domainName"/>
+        <result column="rule" jdbcType="VARCHAR" property="rule"/>
+        <result column="creator" jdbcType="VARCHAR" property="creator"/>
+        <result column="creator_id" jdbcType="VARCHAR" property="creatorId"/>
+        <result column="created_on_timestamp" jdbcType="BIGINT" property="createdOn"/>
+        <result column="updated_on_timestamp" jdbcType="BIGINT" property="updatedOn"/>
+    </resultMap>
+    <sql id="Base_Column_List">
+        id
+        ,
+        project_id,
+        domain_id,
+        domain_name,
+        rule,
+        creator,
+        creator_id,
+        created_on,
+        updated_on
+    </sql>
+    <insert id="insert" parameterType="com.openjiuwen.studio.agent.agentbase.entity.KnowledgeSegmentRuleEntity">
+        insert into t_knowledge_segment_rule (id, project_id, domain_id, domain_name, rule, creator, creator_id,
+                                              created_on, updated_on,
+                                              workspace_id, knowledge_base_connection_id)
+        values (#{id,jdbcType=VARCHAR}, #{projectId,jdbcType=VARCHAR}, #{domainId},
+                #{domainName}, #{rule,jdbcType=VARCHAR},
+                #{creator,jdbcType=VARCHAR}, #{creatorId,jdbcType=VARCHAR},
+                FROM_UNIXTIME(#{createdOn}), FROM_UNIXTIME(#{updatedOn}),
+                #{workspaceId,jdbcType=VARCHAR}, #{knowledgeBaseConnectionId,jdbcType=VARCHAR})
+    </insert>
+    <insert id="insert" parameterType="com.openjiuwen.studio.agent.agentbase.entity.KnowledgeSegmentRuleEntity"
+            databaseId="gaussv5_M">
+        insert into t_knowledge_segment_rule (id, project_id, domain_id, domain_name, rule, creator, creator_id,
+                                              created_on, updated_on,
+                                              workspace_id, knowledge_base_connection_id)
+        values (#{id,jdbcType=VARCHAR}, #{projectId,jdbcType=VARCHAR}, #{domainId},
+                #{domainName}, #{rule,jdbcType=VARCHAR},
+                #{creator,jdbcType=VARCHAR}, #{creatorId,jdbcType=VARCHAR},
+                TO_TIMESTAMP(#{createdOn}) AT TIME ZONE 'UTC',
+                TO_TIMESTAMP(#{updatedOn}) AT TIME ZONE 'UTC',
+                #{workspaceId,jdbcType=VARCHAR}, #{knowledgeBaseConnectionId,jdbcType=VARCHAR})
+    </insert>
+    <delete id="deleteByPrimaryKey" parameterType="map">
+        delete
+        from t_knowledge_segment_rule
+        where id = #{id,jdbcType=VARCHAR}
+          and project_id = #{project_id}
+    </delete>
+    <update id="updateByPrimaryKeySelective"
+            parameterType="com.openjiuwen.studio.agent.agentbase.entity.KnowledgeSegmentRuleEntity">
+        update t_knowledge_segment_rule
+        <set>
+            <if test="rule != null and rule != ''">
+                rule = #{rule,jdbcType=VARCHAR},
+            </if>
+            <if test="updatedOn != null">
+                updated_on = FROM_UNIXTIME(#{updatedOn}),
+            </if>
+        </set>
+        where id = #{id,jdbcType=VARCHAR}
+        and project_id = #{projectId}
+    </update>
+    <update id="updateByPrimaryKeySelective"
+            parameterType="com.openjiuwen.studio.agent.agentbase.entity.KnowledgeSegmentRuleEntity"
+            databaseId="gaussv5_M">
+        update t_knowledge_segment_rule
+        <set>
+            <if test="rule != null and rule != ''">
+                rule = #{rule,jdbcType=VARCHAR},
+            </if>
+            <if test="updatedOn != null">
+                updated_on = TO_TIMESTAMP(#{updatedOn}) AT TIME ZONE 'UTC',
+            </if>
+        </set>
+        where id = #{id,jdbcType=VARCHAR}
+        and project_id = #{projectId}
+    </update>
+    <select id="selectByPrimaryKey" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        , UNIX_TIMESTAMP(created_on) * 1000 as created_on_timestamp
+        , UNIX_TIMESTAMP(updated_on) * 1000 as updated_on_timestamp
+        from t_knowledge_segment_rule
+        where id = #{id,jdbcType=VARCHAR}
+        and project_id = #{project_id}
+    </select>
+    <select id="selectByDomainId" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        , UNIX_TIMESTAMP(created_on) * 1000 as created_on_timestamp
+        , UNIX_TIMESTAMP(updated_on) * 1000 as updated_on_timestamp
+        from t_knowledge_segment_rule
+        where project_id = #{project_id}
+        <if test="workspaceId != null and workspaceId != ''">
+            and workspace_id = #{workspaceId}
+        </if>
+        <if test="connectionId != null and connectionId != ''">
+            and knowledge_base_connection_id = #{connectionId}
+        </if>
+    </select>
+    <select id="selectByIdAndWorkspaceId" parameterType="map" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from t_knowledge_segment_rule
+        where id = #{id,jdbcType=VARCHAR}
+        and workspace_id = #{workspaceId,jdbcType=VARCHAR}
+    </select>
+</mapper>

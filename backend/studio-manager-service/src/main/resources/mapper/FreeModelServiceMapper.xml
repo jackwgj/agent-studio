@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  ~ Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
+  -->
+
+
+<mapper namespace="com.openjiuwen.studio.agent.manager.mapper.md.FreeModelServiceMapper">
+
+    <select id="queryAllFreeModels" resultType="com.openjiuwen.studio.agent.manager.entity.md.ModelServiceData">
+        select *, 'NA' as auth_id from t_free_model_service
+        where 1 = 1
+        <if test="condition.modelType != null and condition.modelType != ''">
+            and MODEL_TYPE = #{condition.modelType}
+        </if>
+        <if test="condition.modelName != null and condition.modelName != ''">
+            and MODEL_NAME like concat('%', #{condition.modelName}, '%')
+        </if>
+        <if test="condition.publishStatus != null and condition.publishStatus != ''">
+            and PUBLISH_STATUS = #{condition.publishStatus}
+        </if>
+        <if test="condition.serviceName != null and condition.serviceName != ''">
+            and SERVICE_NAME like concat('%', #{condition.serviceName}, '%')
+        </if>
+        <if test="condition.modelTypes != null and condition.modelTypes.size() > 0">
+            and MODEL_TYPE in
+            <foreach collection="condition.modelTypes" item="mt" open="(" separator="," close=")">
+                #{mt}
+            </foreach>
+        </if>
+        <if test="condition.id != null and condition.id != ''">
+            and id = #{condition.id}
+        </if>
+        order by LAST_UPDATED_DATE DESC
+    </select>
+
+    <select id="countByModelId" resultType="int">
+        SELECT COUNT(*) FROM t_free_model_service
+        WHERE id = #{modelId}
+    </select>
+
+    <select id="queryById" resultType="com.openjiuwen.studio.agent.manager.entity.md.ModelServiceBase">
+        SELECT PROJECT_ID, WORKSPACE_ID FROM `t_free_model_service` WHERE ID = #{modelId}
+    </select>
+
+</mapper>

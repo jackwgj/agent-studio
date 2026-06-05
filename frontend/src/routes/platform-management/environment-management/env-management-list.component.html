@@ -1,0 +1,220 @@
+<div id="env-management-list">
+  <div class="top-title-area">
+    <div class="title-area-left">
+      <div class="page-title">
+        {{ 'environment_management' | i18nextEager }}
+      </div>
+      <div *ngIf="totalNumber > 0">（{{ totalNumber }}）</div>
+    </div>
+    <div class="btn-area">
+      <button
+        *ngIf="isHasPermission"
+        [disabled]="!subscribeBtnStatus"
+        (click)="createEnvWithEntrust()"
+        nz-button
+        nzType="primary"
+      >
+        {{ 'create_env' | i18nextEager }}
+      </button>
+    </div>
+  </div>
+
+  <div class="query-operate flex items-center">
+    <nz-input-search class="search-input" (nzSearch)="searchList()">
+      <input
+        nz-input
+        [(ngModel)]="searchValue"
+        [placeholder]="'input_name' | i18nextEager"
+        [maxLength]="64"
+        (keyup.enter)="searchList()"
+      />
+    </nz-input-search>
+
+    <button
+      nz-button
+      nzType="default"
+      class="flex items-center justify-center w-[32px] h-[32px] p-0"
+      (click)="getEnvironmentListData()"
+    >
+      <nz-icon nzType="redo" nzTheme="outline" />
+    </button>
+  </div>
+
+  <nz-table
+    #basicTable
+    [nzData]="srcData.data"
+    [nzLoading]="loading"
+    [nzScroll]="{ y: 'calc(100vh - 320px)' }"
+    [nzShowPagination]="false"
+    [nzNoResult]="noData"
+    class="table-style"
+    nzTableLayout="fixed"
+  >
+    <thead>
+    <tr>
+      <th nzWidth="20%">{{ listColumns[0].title }}</th>
+      <th nzWidth="20%">{{ listColumns[1].title }}</th>
+      <th nzWidth="15%">{{ listColumns[2].title }}</th>
+      <th nzWidth="20%">{{ listColumns[3].title }}</th>
+      <th nzWidth="15%">{{ listColumns[4].title }}</th>
+      <th [nzWidth]="isZH() ? listColumns[5].width : '160px'">
+        {{ listColumns[5].title }}
+      </th>
+    </tr>
+    </thead>
+    <tbody *ngIf="srcData.data.length > 0">
+    <tr *ngFor="let row of basicTable.data; trackBy: trackByFn">
+      <td>
+        <div nz-tooltip [nzTooltipTitle]="row.name" style="display: flex; align-items: center; width: 100%;">
+          <button
+            (click)="openComponent(row.id); $event.stopPropagation();"
+            nz-button
+            nzType="link"
+            class="!px-0"
+            style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; max-width: calc(100% - 60px);"
+          >
+            {{ row.name }}
+          </button>
+          <nz-tag
+            *ngIf="row.isDefault"
+            [nzColor]="'green'"
+            class="default-tag !m-0"
+            style="margin-left: 8px; flex-shrink: 0;"
+          >{{ 'default' | i18nextEager }}</nz-tag>
+        </div>
+      </td>
+
+      <td nz-tooltip [nzTooltipTitle]="row.description || '--'" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+        {{ row.description || '--' }}
+      </td>
+
+      <td nz-tooltip [nzTooltipTitle]="(environmentStatusMap.get(row.status)?.text | i18nextEager)">
+        <div style="display: flex; align-items: center;">
+          <nz-tag [nzColor]="getNzTagColor(environmentStatusMap.get(row.status)?.type)" class="status-tag">
+            {{ environmentStatusMap.get(row.status)?.text | i18nextEager }}
+          </nz-tag>
+          <span
+            *ngIf="row?.statusReason"
+            nz-icon
+            nzType="question-circle"
+            nzTheme="outline"
+            class="text-gray-400 cursor-pointer"
+            nz-tooltip
+            [nzTooltipTitle]="row?.statusReason"
+          ></span>
+        </div>
+      </td>
+
+      <td nz-tooltip [nzTooltipTitle]="row.vpcName + ' / ' + row.subnetCidr" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+        <span>{{ row.vpcName }}</span>
+        <span style="margin: 0 4px">/</span>
+        <span>{{ row.subnetCidr }}</span>
+      </td>
+
+      <td nz-tooltip [nzTooltipTitle]="formatTime(row.updatedOn)">{{ formatTime(row.updatedOn) }}</td>
+
+      <td>
+        <a nz-dropdown [nzDropdownMenu]="menu" nzTrigger="click">
+          <span nz-icon nzType="ellipsis" style="font-size: 20px; color: #191919; cursor: pointer;"></span>
+        </a>
+        <nz-dropdown-menu #menu="nzDropdownMenu">
+          <ul nz-menu>
+            <li nz-menu-item *ngFor="let item of row.actionItems" [nzDisabled]="item.disabled" (click)="listAction(item, row)">
+              {{ item.label }}
+            </li>
+          </ul>
+        </nz-dropdown-menu>
+      </td>
+    </tr>
+    </tbody>
+  </nz-table>
+
+  <nz-pagination
+    style="margin-top: 24px; display: block;"
+    *ngIf="totalNumber > 10"
+    [(nzPageIndex)]="currentPage"
+    [nzTotal]="totalNumber"
+    [(nzPageSize)]="pageSize.size"
+    nzShowSizeChanger
+    [nzPageSizeOptions]="pageSize.options"
+    (nzPageIndexChange)="onPageIndexChange($event)"
+    (nzPageSizeChange)="onPageSizeChange($event)"
+  ></nz-pagination>
+
+  <nz-drawer
+    [nzVisible]="isDrawerVisible"
+    [nzTitle]="modalTypeName"
+    [nzWidth]="600"
+    [nzFooter]="drawerFooter"
+    (nzOnClose)="hideModal()"
+  >
+    <ng-container *nzDrawerContent>
+      <ng-template #authorizeMessage>
+        {{ 'authorize_immediately_tip' | i18nextEager }}
+        <button nz-button nzType="link" (click)="toAgentRun()">
+          {{ 'editcardmodal_88' | i18nextEager }}
+        </button>
+      </ng-template>
+
+      <ng-template #errorTpl let-control>
+        <ng-container *ngIf="control.errors?.customPattern">{{ control.errors.customPattern.tiErrorMessage }}</ng-container>
+        <ng-container *ngIf="control.errors?.customVerify">{{ control.errors.customVerify.tiErrorMessage }}</ng-container>
+        <ng-container *ngIf="control.hasError('required')">{{ 'required_field' | i18nextEager }}</ng-container>
+        <ng-container *ngIf="control.hasError('maxlength')">{{ 'length_exceed' | i18nextEager }}</ng-container>
+        <ng-container *ngIf="control.hasError('minlength')">{{ 'length_short' | i18nextEager }}</ng-container>
+      </ng-template>
+
+      <form nz-form [formGroup]="formGroup" nzLayout="vertical">
+        <nz-form-item>
+          <nz-form-label nzRequired>{{ 'env_name' | i18nextEager }}</nz-form-label>
+          <nz-form-control [nzErrorTip]="errorTpl">
+            <input
+              nz-input
+              formControlName="name"
+              [placeholder]="'env_name_input' | i18nextEager"
+              maxlength="48"
+              style="width: 100%"
+            />
+          </nz-form-control>
+        </nz-form-item>
+
+        <nz-form-item>
+          <nz-form-label>{{ 'base_desc_optional' | i18nextEager }}</nz-form-label>
+          <nz-form-control [nzErrorTip]="errorTpl">
+            <textarea
+              nz-input
+              formControlName="description"
+              [placeholder]="'enter_desc' | i18nextEager"
+              maxlength="128"
+              style="width: 100%; min-height: 80px;"
+            ></textarea>
+          </nz-form-control>
+        </nz-form-item>
+      </form>
+    </ng-container>
+
+    <ng-template #drawerFooter>
+      <div class="flex justify-end gap-[8px]">
+        <button nz-button nzType="default" (click)="hideModal()">
+          {{ 'cancel' | i18nextEager }}
+        </button>
+        <button nz-button nzType="primary" (click)="createEnvironment()" class="confirm-button">
+          {{ 'ok' | i18nextEager }}
+        </button>
+      </div>
+    </ng-template>
+  </nz-drawer>
+</div>
+
+<ng-template #noData>
+  <div class="no-data-container">
+    <app-new-common-no-data-with-btn
+      [type]="searchNameIsEmpty ? 'noData' : 'filterNoData'"
+      [tutorialType]="'env'"
+      [noDataBtnStr]="noDataBtnStr"
+      [secondLineData]="noDataDescTip"
+      (create)="createEnvWithEntrust()"
+      (clear)="searchList()"
+    />
+  </div>
+</ng-template>

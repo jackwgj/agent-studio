@@ -1,0 +1,19 @@
+<!-- 节点半屏弹窗显示/修改描述 -->
+<div *ngIf="!isEdit" class="mt-[8px] text-[12px] font-normal leading-[20px] text-[#808080] node-description overflow-hidden text-ellipsis whitespace-nowrap" (click)="changeEdit()">
+  {{ description }}
+</div>
+
+<form *ngIf="isEdit" class="w-full mt-[8px]" [formGroup]="descriptionForm">
+  <nz-form-item class="w-full">
+    <nz-form-control>
+      <input
+        class="w-full font-normal"
+        type="text"
+        nz-input
+        autofocus
+        formControlName="description"
+        (blur)="onBlur()"
+      />
+    </nz-form-control>
+  </nz-form-item>
+</form>

@@ -1,0 +1,124 @@
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2026-2026. All rights reserved.
+ */
+
+package com.openjiuwen.studio.agent.manager.dto;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import io.swagger.annotations.ApiModel;
+import jakarta.validation.constraints.NotBlank;
+
+import org.hibernate.validator.constraints.Length;
+import org.hibernate.validator.constraints.Range;
+import org.springframework.validation.annotation.Validated;
+
+import java.io.Serializable;
+import java.util.Objects;
+
+/**
+ * 知识文件分片请求
+ */
+@ApiModel(description = "知识文件分片请求")
+
+@Validated
+
+public class FaqFileChunkReq implements Serializable {
+    private static final long serialVersionUID = 1L;
+
+    @JsonProperty("title")
+    @Length(max = 10000)
+    private String title = null;
+
+    @JsonProperty("content")
+    @NotBlank
+    @Length(min = 1, max = 10000)
+    private String content = null;
+
+    @JsonProperty("page_num")
+    @Range(min = 1L, max = 65535L)
+    private Long pageNum = null;
+
+    @JsonProperty("component_num")
+    @Range(min = 1L, max = 65535L)
+    private Long componentNum = null;
+
+    public String getTitle() {
+        return title;
+    }
+
+    public FaqFileChunkReq setTitle(String title) {
+        this.title = title;
+        return this;
+    }
+
+    public String getContent() {
+        return content;
+    }
+
+    public FaqFileChunkReq setContent(String content) {
+        this.content = content;
+        return this;
+    }
+
+    public Long getPageNum() {
+        return pageNum;
+    }
+
+    public FaqFileChunkReq setPageNum(Long pageNum) {
+        this.pageNum = pageNum;
+        return this;
+    }
+
+    public Long getComponentNum() {
+        return componentNum;
+    }
+
+    public FaqFileChunkReq setComponentNum(Long componentNum) {
+        this.componentNum = componentNum;
+        return this;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("class FaqFileChunkReq {\n");
+
+        sb.append("    title: ").append(toIndentedString(title)).append("\n");
+        sb.append("    content: ").append(toIndentedString(content)).append("\n");
+        sb.append("    pageNum: ").append(toIndentedString(pageNum)).append("\n");
+        sb.append("    componentNum: ").append(toIndentedString(componentNum)).append("\n");
+        sb.append("}");
+        return sb.toString();
+    }
+
+    @Override
+    public boolean equals(java.lang.Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        FaqFileChunkReq faqFileChunkReq = (FaqFileChunkReq) o;
+        return Objects.equals(this.title, faqFileChunkReq.title) && Objects.equals(this.content,
+            faqFileChunkReq.content) && Objects.equals(this.pageNum, faqFileChunkReq.pageNum) && Objects.equals(
+            this.componentNum, faqFileChunkReq.componentNum);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(title, content, pageNum, componentNum);
+    }
+
+    /**
+     * Convert the given object to string with each line indented by 4 spaces
+     * (except the first line).
+     */
+    private String toIndentedString(java.lang.Object o) {
+        if (o == null) {
+            return "null";
+        }
+        return o.toString().replace("\n", "\n    ");
+    }
+}

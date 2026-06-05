@@ -1,0 +1,245 @@
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2023-2023. All rights reserved.
+ */
+
+package com.openjiuwen.studio.prompt.engineering.service;
+
+import static com.openjiuwen.studio.prompt.engineering.constant.CommonConstant.LOCAL_NAME_EVALUATION_TASK;
+import static com.openjiuwen.studio.prompt.engineering.constant.CommonConstant.LOCAL_NAME_EXPORT_RESULT;
+
+import com.openjiuwen.studio.agent.common.enums.StudioError;
+import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
+import com.openjiuwen.studio.agent.common.utils.RequestContextUtils;
+import com.openjiuwen.studio.prompt.engineering.constant.CommonConstant;
+import com.openjiuwen.studio.prompt.engineering.dto.DatasetDto;
+import com.openjiuwen.studio.prompt.engineering.dto.FileInfoVo;
+import com.openjiuwen.studio.prompt.engineering.dto.PeEvaluationResultVo;
+import com.openjiuwen.studio.prompt.engineering.dto.PeEvaluationResultsVo;
+import com.openjiuwen.studio.prompt.engineering.dto.PePromptResultVo;
+import com.openjiuwen.studio.prompt.engineering.dto.PromptEvaluationResult;
+import com.openjiuwen.studio.prompt.engineering.dto.VariableVo;
+import com.openjiuwen.studio.prompt.engineering.entity.EvaluationResultsExportExcel;
+import com.openjiuwen.studio.prompt.engineering.entity.PeEvaluationResult;
+import com.openjiuwen.studio.prompt.engineering.entity.PeEvaluationTask;
+import com.openjiuwen.studio.prompt.engineering.entity.PePrompt;
+import com.openjiuwen.studio.prompt.engineering.enums.EvaluationTaskStatus;
+import com.openjiuwen.studio.prompt.engineering.mapper.DatasetMapper;
+import com.openjiuwen.studio.prompt.engineering.mapper.PeEvaluationTaskMapper;
+import com.openjiuwen.studio.prompt.engineering.utils.DateUtil;
+import com.openjiuwen.studio.prompt.engineering.utils.ExcelI18nHandler;
+import com.openjiuwen.studio.prompt.engineering.utils.ExcelUtil;
+import com.openjiuwen.studio.prompt.engineering.utils.PromptUtil;
+import com.openjiuwen.studio.prompt.engineering.vo.ResultNumCount;
+
+import cn.afterturn.easypoi.excel.ExcelExportUtil;
+import cn.afterturn.easypoi.excel.entity.ExportParams;
+import cn.afterturn.easypoi.excel.entity.enmus.ExcelType;
+import cn.afterturn.easypoi.handler.inter.II18nHandler;
+import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
+
+import org.apache.poi.ss.usermodel.Workbook;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.MessageSource;
+import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+
+/**
+ * 功能描述
+ *
+ */
+@Slf4j
+@Service
+public class EvaluationResultService {
+    @Autowired
+    private MessageSource messageSource;
+
+    @Resource
+    private PeEvaluationTaskMapper peEvaluationTaskMapper;
+
+    @Resource
+    private DatasetMapper datasetMapper;
+
+    @Resource
+    private PromptObsService promptObsService;
+
+    @Resource
+    private EvaluationMethodService evaluationMethodService;
+
+    @Resource
+    private PromptService promptService;
+
+    @Autowired
+    private ExcelUtil excelUtil;
+
+    @Autowired
+    private HttpServletResponse response;
+
+    private static List<PromptEvaluationResult> getPePromptEvaluationResultVOS(List<Map<String, String>> list,
+                                                                               Map<Integer, List<PeEvaluationResult>> splitMap, Map<String, PePrompt> pePromptMap) {
+        List<PromptEvaluationResult> resultList = new ArrayList<>();
+        for (int testNum = 1; testNum <= list.size(); testNum++) {
+            List<VariableVo> variableVos = new ArrayList<>();
+            Map<String, String> variables = list.get(testNum - 1);
+            for (Map.Entry<String, String> variable : variables.entrySet()) {
+                String variableKey = variable.getKey();
+                String variableValue = variable.getValue();
+                if (!"result".equals(variableKey)) {
+                    VariableVo variableVo = new VariableVo();
+                    variableVo.setKey(variableKey);
+                    variableVo.setValue(variableValue);
+                    variableVos.add(variableVo);
+                }
+            }
+            List<PeEvaluationResultVo> resultVOS = new ArrayList<>();
+            for (Map.Entry<String, PePrompt> pePromptEntry : pePromptMap.entrySet()) {
+                String pePromptEntryKey = pePromptEntry.getKey();
+                PePrompt pePromptEntryValue = pePromptEntry.getValue();
+                PeEvaluationResultVo resultVO = new PeEvaluationResultVo();
+                resultVO.setPromptId(pePromptEntryKey);
+                resultVO.setPromptName(pePromptEntryValue.getName());
+                if (splitMap.containsKey(testNum)) {
+                    for (PeEvaluationResult item : splitMap.get(testNum)) {
+                        if (item.getPromptId().equals(pePromptEntryKey)) {
+                            resultVO.setId(item.getId());
+                            resultVO.setGenerateResult(item.getGenerateResult());
+                            resultVO.setEvalResult(item.getEvalResult());
+                            resultVO.setEvalFailedReason(item.getEvalFailedReason());
+                        }
+                    }
+                }
+                resultVOS.add(resultVO);
+            }
+            PromptEvaluationResult promptEvaluationResult = new PromptEvaluationResult();
+            promptEvaluationResult.setTestNum(testNum);
+            promptEvaluationResult.setVariables(variableVos);
+            promptEvaluationResult.setExpectResult(variables.get("result"));
+            promptEvaluationResult.setPromptResultList(resultVOS);
+            resultList.add(promptEvaluationResult);
+        }
+        return resultList;
+    }
+
+    /**
+     * 通过行号分隔结果，相同行号的结果存到一起
+     *
+     * @param results 总结果
+     * @return map 分隔好的结果
+     */
+    private static Map<Integer, List<PeEvaluationResult>> splitResultList(List<PeEvaluationResult> results) {
+        Map<Integer, List<PeEvaluationResult>> splitMap = new HashMap<>();
+        results.forEach(item -> {
+            Integer testNum = item.getTestNum();
+            if (!splitMap.containsKey(testNum)) {
+                splitMap.put(testNum, new ArrayList<>());
+            }
+            splitMap.get(testNum).add(item);
+        });
+        return splitMap;
+    }
+
+    public PeEvaluationResultsVo showEvaluationResults(String projectId, String evaluationTaskId, String workspaceId) {
+        if (!Boolean.TRUE.equals(peEvaluationTaskMapper.isEvaluationTaskExist(evaluationTaskId, workspaceId))) {
+            throw new AgentStudioException(StudioError.EVALUATION_TASK_IS_NOT_EXIST);
+        }
+        PeEvaluationResultsVo resultsVO = new PeEvaluationResultsVo();
+        PeEvaluationTask peEvaluationTask = peEvaluationTaskMapper.queryEvaluationTaskDetailsByIds(
+            Collections.singletonList(evaluationTaskId), workspaceId).get(0);
+        Map<String, PePrompt> pePromptMap = peEvaluationTask.getPrompts()
+            .stream()
+            .collect(Collectors.toMap(PePrompt::getId, Function.identity(), (k, v) -> k));
+        List<PeEvaluationResult> results = peEvaluationTaskMapper.queryEvalResultsByEvalTaskId(evaluationTaskId, workspaceId);
+        DatasetDto datasetById = datasetMapper.getDatasetById(projectId, peEvaluationTask.getTestSetId(), workspaceId);
+        if (datasetById == null) {
+            throw new AgentStudioException(StudioError.READ_DATASET_CACHE_EXCEPTION);
+        }
+        String path = datasetById.getObsPath();
+        String bucket = path.split(CommonConstant.FOLDER_SEPARATOR)[0];
+        String filePath = path.substring(path.indexOf('/') + 1);
+        List<Map<String, String>> list = excelUtil.obtainCasesByObsFile(RequestContextUtils.getRequestAuthToken(), bucket, filePath);
+        List<PePromptResultVo> promptVOS = getPePromptVOs(peEvaluationTask, results, list.size());
+        resultsVO.setPrompts(promptVOS);
+        if (EvaluationTaskStatus.success.equals(peEvaluationTask.getStatus())) {
+            Comparator<PePromptResultVo> comparator = Comparator.comparing(PePromptResultVo::getScore)
+                .reversed()
+                .thenComparing(PePromptResultVo::getToken)
+                .thenComparing(PePromptResultVo::getTime);
+            promptVOS.sort(comparator);
+            resultsVO.setOptimalPromptId(promptVOS.get(0).getId());
+        }
+        resultsVO.setName(peEvaluationTask.getName());
+        resultsVO.setTotal(list.size());
+        resultsVO.setStatus(peEvaluationTask.getStatus().name());
+        Map<Integer, List<PeEvaluationResult>> splitMap = splitResultList(results);
+        resultsVO.setCount(splitMap.size());
+        resultsVO.setMethod(peEvaluationTask.getMethod().name());
+
+        List<PromptEvaluationResult> resultList = getPePromptEvaluationResultVOS(list, splitMap, pePromptMap);
+
+        resultsVO.setResultList(resultList);
+        return resultsVO;
+    }
+
+    public List<PePromptResultVo> getPePromptVOs(PeEvaluationTask peEvaluationTask, List<PeEvaluationResult> results,
+        int resultNum) {
+        List<PePromptResultVo> promptVOS = new ArrayList<>();
+        Map<String, ResultNumCount> promptMap = new HashMap<>();
+        if (EvaluationTaskStatus.success.equals(peEvaluationTask.getStatus())) {
+            promptMap = evaluationMethodService.parsePromptResult(results);
+        }
+        List<PePrompt> prompts = peEvaluationTask.getPrompts();
+        for (PePrompt item : prompts) {
+            PePromptResultVo pePromptVO = item.convertToPePromptResultVO();
+            pePromptVO.setVariableVo(promptService.getVariableVos(item.getVariables(), peEvaluationTask.getWorkspaceId()));
+            if (item.getFileId() != null) pePromptVO.setFileInfo(new FileInfoVo().setFileId(item.getFileId()).setTempUrl(promptObsService.getObsTempUrl(String.format("%s/%s", "image", item.getFileId()), 3600L)));
+            if (EvaluationTaskStatus.success.equals(peEvaluationTask.getStatus())) {
+                ResultNumCount numCount = promptMap.getOrDefault(item.getId(), new ResultNumCount());
+                pePromptVO.setScore(numCount.getScore());
+                pePromptVO.setToken(numCount.getToken());
+                pePromptVO.setCorrectNum(numCount.getCorrect());
+                pePromptVO.setErrorNum(resultNum - numCount.getCorrect());
+                pePromptVO.setTime(PromptUtil.formatDouble(numCount.getTime()));
+            }
+            promptVOS.add(pePromptVO);
+        }
+        return promptVOS;
+    }
+
+    public String exportEvaluationResults(String projectId, String evaluationTaskId, String workspaceId) {
+        PeEvaluationResultsVo resultList = showEvaluationResults(projectId, evaluationTaskId, workspaceId);
+        EvaluationTaskStatus status = EvaluationTaskStatus.getEvaluationTaskStatus(resultList.getStatus());
+        if (!EvaluationTaskStatus.canExport(status)) {
+            throw new AgentStudioException(StudioError.EXPORT_EVALUATION_RESULT_FAILED);
+        }
+        String evaluationTaskName = resultList.getName();
+
+        II18nHandler i18nHandler = new ExcelI18nHandler(messageSource);
+        List<EvaluationResultsExportExcel> rows = EvaluationResultsExportExcel.convertToEvaluationResultsExcelRows(
+            resultList, i18nHandler);
+
+        String time = DateUtil.format(new Date());
+
+        String fileName = "EvaluationResultExport_" + evaluationTaskName + "_" + time + ".xlsx";
+        String fileNameHeader = "EvaluationResultExport_" + time + ".xlsx";
+        response.setContentType("application/octet-stream;charset=utf-8");
+        response.setHeader("Content-Disposition", "attachment;filename=" + fileNameHeader);
+        String sheetName = i18nHandler.getLocaleName(LOCAL_NAME_EVALUATION_TASK) + " " + evaluationTaskName + " "
+            + i18nHandler.getLocaleName(LOCAL_NAME_EXPORT_RESULT);
+        ExportParams exportParams = new ExportParams(fileName, sheetName, ExcelType.XSSF);
+        exportParams.setI18nHandler(i18nHandler);
+        Workbook workbook = ExcelExportUtil.exportExcel(exportParams, EvaluationResultsExportExcel.class, rows);
+        ExcelUtil.exportExcelFile(workbook, response, StudioError.EXPORT_EVALUATION_RESULT_FAILED);
+        return null;
+    }
+}

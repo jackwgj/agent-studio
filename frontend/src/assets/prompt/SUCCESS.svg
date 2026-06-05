@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="8px" height="8px" viewBox="0 0 8 8" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>评估成功</title>
+    <g id="页面-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="9评估记录" transform="translate(-366, -364)">
+            <g id="评估成功" transform="translate(362, 360)">
+                <rect id="矩形" fill-opacity="0" fill="#FFFFFF" x="0" y="0" width="16" height="16"></rect>
+                <rect id="矩形" fill-opacity="0" fill="#FFFFFF" x="2" y="2" width="12" height="12"></rect>
+                <circle id="椭圆形备份-9" stroke="#5CB300" stroke-width="2" cx="8" cy="8" r="3"></circle>
+            </g>
+        </g>
+    </g>
+</svg>

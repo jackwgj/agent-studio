@@ -1,0 +1,52 @@
+<div id="create-entrust">
+  <div class="create-entrust-header">
+    <span> {{ 'create_delegate' | i18nextEager }}</span>
+  </div>
+  <div class="create-entrust-body">
+    <div style="color: rgba(25, 25, 25, 1)">
+      {{ 'entrust_title' | i18nextEager }}
+    </div>
+    <div style="max-height: 500px; margin-top: 8px">
+      <nz-table
+        [nzData]="srcData.data"
+        [nzShowPagination]="false"
+        nzTableLayout="fixed"
+      >
+        <thead>
+          <tr>
+            <th *ngFor="let column of listColumns" [nzWidth]="column.width + 'px'">
+              {{ column.title }}
+            </th>
+          </tr>
+        </thead>
+        <tbody *ngIf="srcData.data.length > 0">
+          <tr *ngFor="let row of srcData.data; trackBy: trackByFn">
+            <td>{{ row?.roleName }}</td>
+            <td>{{ row?.description }}</td>
+          </tr>
+        </tbody>
+      </nz-table>
+    </div>
+    <div style="margin-top: 8px; color: rgba(25, 25, 25, 1)">
+      {{ 'entrust_title_b' | i18nextEager : { name: data[0].agencyName } }}
+    </div>
+    <nz-alert nzType="warning" [nzShowIcon]="false" class="modal-alert">
+      {{ 'entrust_title_c' | i18nextEager }}
+    </nz-alert>
+  </div>
+  <div class="create-entrust-footer">
+    <div *ngIf="type==='create'">
+      <button type="button" nz-button (click)="dismiss()">
+        {{ 'cancel' | i18nextEager }}
+      </button>
+      <button type="button" nz-button nzType="primary" nzDanger (click)="close()">
+        {{ 'agree' | i18nextEager }}
+      </button>
+    </div>
+    <div *ngIf="type==='readOnly'">
+      <button type="button" nz-button nzType="primary" nzDanger (click)="dismiss()">
+        {{ 'ok' | i18nextEager }}
+      </button>
+    </div>
+  </div>
+</div>

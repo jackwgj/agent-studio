@@ -1,0 +1,12 @@
+`#user#`
+<system-hint>
+执行步骤：
+{{steps_text}}
+{{current_step_info}}
+
+你可以：
+{{actions}}
+
+重要：当你确认当前步骤已完成时，必须总结当前步骤结果并在回复末尾输出 [STEP_DONE] 标记。
+重要：当你需要向用户收集信息或确认时，必须总结当前步骤结果并在回复末尾输出 [ASK_USER] 标记。
+</system-hint>

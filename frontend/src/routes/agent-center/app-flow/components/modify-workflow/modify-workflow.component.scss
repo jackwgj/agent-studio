@@ -1,0 +1,23 @@
+.modal-container {
+  display: flex;
+  flex-direction: column;
+
+  .modal-header-style {
+    padding-bottom: 24px;
+    .modal-header-text {
+      font-size: 20px;
+      color: #191919;
+      line-height: 30px;
+      font-weight: bold;
+    }
+  }
+}
+
+::ng-deep .ti3-form-content {
+  padding-bottom: 16px !important;
+}
+
+.ti3-modal-footer {
+  text-align: right;
+  padding-top: 24px;
+}

@@ -1,0 +1,66 @@
+{
+  "schemaVersion": "0.5",
+  "type": "jiuwen.PromptComponent",
+  "version": "1.0.1",
+  "description": "根据模板组装Prompt并进行压缩",
+  "classInfo": {
+    "programLanguage": "python",
+    "modulePath": "jiuwen.prompt.components.prompt",
+    "className": "PromptComponent",
+    "filePath": "jiuwen/prompt/components/prompt.pyc"
+  },
+  "configs": [
+    {
+      "id": "templateContent",
+      "type": "List<Map<String, T>>",
+      "description": "用户定义的prompt模板，可以包含${}形式的占位符",
+      "constraint": {
+        "required": true
+      }
+    },
+    {
+      "id": "refinerConfig",
+      "type": "Map<String, T>",
+      "description": "配置Prompt压缩相关选项，需要提供refineMaxLength(压缩至的最大长度，超过长度时，默认对插件列表和对话历史进行压缩，如果不提供，默认最大长度是4096)，当prompt模板中有占位符时，可以提供refineVariables字段(指定需要精炼的变量名列表)"
+    },
+    {
+      "id": "variableFormatSchema",
+      "type": "Map<String, T>",
+      "description": "配置Prompt压缩相关选项，需要提供refineMaxLength(压缩至的最大长度，超过长度时，默认对插件列表和对话历史进行压缩，如果不提供，默认最大长度是4096)，当prompt模板中有占位符时，可以提供refineVariables字段(指定需要精炼的变量名列表)"
+    }
+  ],
+  "inputs": [
+    {
+      "id": "variables",
+      "type": "Map<String, T>",
+      "description": "需要向Prompt模板占位符中填充的变量，以字典的形式传入，键名为占位符变量名称，值为占位符变量的值"
+    },
+    {
+      "id": "history",
+      "type": "List<Map<String, T>>",
+      "description": "包含历史对话的消息列表"
+    },
+    {
+      "id": "query",
+      "type": "String",
+      "description": "用户的当前query，用于作为对话历史和插件列表优选的key"
+    },
+    {
+      "id": "templateContent",
+      "type": "List<Map<String, T>>",
+      "description": "用户定义的prompt模板，可以包含${}形式的占位符，如果传入，会覆盖configs中的模板"
+    },
+    {
+      "id": "variableFormatSchema",
+      "type": "Map<String, T>",
+      "description": "配置Prompt压缩相关选项，需要提供refineMaxLength(压缩至的最大长度，超过长度时，默认对插件列表和对话历史进行压缩，如果不提供，默认最大长度是4096)，当prompt模板中有占位符时，可以提供refineVariables字段(指定需要精炼的变量名列表)"
+    }
+  ],
+  "outputs": [
+    {
+      "id": "prompt",
+      "type": "List<Map<String, T>>",
+      "description": "组装后的Prompt"
+    }
+  ]
+}

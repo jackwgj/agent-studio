@@ -1,0 +1,228 @@
+<div class="detail-container">
+  <div class="header-container" [class]="'h-[140px]'">
+    <div class="header-bg"></div>
+    <div class="header-content">
+      <!-- 这里不要调整格式，插值前的空格会影响页面    -->
+      <div class="mb-[26px] ml-[54px] mt-[12px]">
+        <ng-container *ngIf=" infoDetail?.domain_id !== 'SYSTEM'">
+          <span  (click)="gotoModelList()" class="cursor-pointer">
+          {{ 'model_service' | i18nextEager }}
+        </span>
+          <span class="ml-[5px] mr-[5px] text-[#808080]">/</span>
+        </ng-container>
+
+        <span (click)="gotoModelList()" class="cursor-pointer">{{
+            infoDetail?.domain_id === 'SYSTEM'
+              ? ('model' | i18nextEager)
+              : ('functioneditbasiccomponent_878' | i18nextEager)
+          }}</span>
+        <span class="ml-[5px] mr-[5px] text-[#808080]">/</span>
+        <ng-container *ngIf=" infoDetail?.domain_id !== 'SYSTEM'">
+          <span (click)="onPageBack()" class="cursor-pointer">{{
+              getProviderName() || ('model_supplier'|i18nextEager)
+            }}</span>
+          <span class="ml-[5px] mr-[5px] text-[#808080]">/</span>
+        </ng-container>
+
+        <span class="font-semibold">{{ 'model_service_detail'|i18nextEager }}</span>
+      </div>
+      <div class="flex-between" style="padding-right: 50px">
+        <div class="header-left">
+          <div (click)="onPageBack()" class="back-icon-container">
+            <nz-icon nzType="left" nzTheme="outline" class="back-icon" />
+          </div>
+          <img alt=""
+            [class]="'h-[60px] w-[60px] mr-[16px] rounded-[10px]'"
+            [src]="infoDetail.logo || iconNoneEmpty "
+          />
+          <div class="h-[60px]">
+            <div class="flex items-center">
+              <div class="title truncate" nz-tooltip [nzTooltipTitle]="infoDetail?.service_name">
+                {{ infoDetail?.service_name }}
+              </div>
+              <ng-container *ngIf="infoDetail?.is_subscribed">
+                <nz-tag class="type-tag" nzColor="green">{{ 'tags.isOpen' | i18nextEager}}</nz-tag>
+              </ng-container>
+              <div
+                *ngIf="infoDetail?.is_subscribed && infoDetail?.domain_id === 'SYSTEM'"
+                class="h-[20px] rounded-sm bg-[#d5f2dc] pb-[2px] pl-[4px] pr-[4px] pt-[2px] text-[#029931]"
+              >
+                {{ 'published'|i18nextEager }}
+              </div>
+
+              <div
+                *ngIf="infoDetail.is_subscribed ==='online' && infoDetail?.domain_id !== 'SYSTEM'"
+                class="h-[20px] rounded-sm bg-[#d5f2dc] pb-[2px] pl-[4px] pr-[4px] pt-[2px] text-[#029931]"
+              >
+                {{ 'published'|i18nextEager }}
+              </div>
+              <div
+                *ngIf="infoDetail.publish_status ==='offline' && infoDetail?.domain_id !== 'SYSTEM'"
+                class="h-[20px] rounded-sm bg-[#e6e6e6] pb-[2px] pl-[4px] pr-[4px] pt-[2px]"
+              >
+                {{ 'not_published'|i18nextEager }}
+              </div>
+            </div>
+            <div class="mt-[6px] flex items-center text-[#595959]">
+            <span class="text-[#595959]">
+              {{ 'create_time' | i18nextEager }}：{{ infoDetail?.created_date }}
+            </span>
+              <span style="display: inline-block; padding: 0 6px">|</span>
+              <span class="text-[#595959]">
+              {{ 'update_time' | i18nextEager }}：{{
+                  infoDetail?.last_updated_date
+                }}
+            </span>
+            </div>
+          </div>
+        </div>
+        <div class="right-area" *ngIf="subscribeBtnStatus">
+          <div class="opearte-area">
+            <ng-container >
+              <div
+                *ngFor="let item of options2"
+                class="flex items-center gap-[4px]"
+                (click)="onSelect(item,infoDetail)"
+                [ngClass]="{ 'cursor-pointer': !item.disabled,'cursor-disable':item.disabled }"
+              >
+                <img [src]="item.disabled?item.disIcon:item.icon" alt="" srcset="" class="size20" />
+                <text [ngStyle]="{ 'color': item.disabled?'#808080':'#191919' }">{{ item.label }}</text>
+              </div>
+            </ng-container>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  <div class="main-container">
+    <div class="basicInfo">
+      <p class="top-basic-title">{{ 'basic_info'|i18nextEager }}</p>
+      <div>
+        <div class="grid-layout" [style.--item-min-width]="'300px'" [style.--max-cols]="2">
+          <div class="info-col">
+            <span class="info-title">{{ 'model_service_name'|i18nextEager }}</span>
+            <span class="info-content"> {{ infoDetail?.service_name || '-' }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="main-container">
+    <div class="basicInfo">
+      <p class="top-basic-title">{{ 'config_info'|i18nextEager }}</p>
+      <div style="display: flex; flex-direction: column">
+        <div class="grid-layout" [style.--item-min-width]="'300px'" [style.--max-cols]="2">
+          <div class="info-col">
+            <span class="info-title">{{ 'model_name'|i18nextEager }}</span>
+            <span class="info-content">{{
+                infoDetail.model_name || '-'
+              }}</span>
+          </div>
+          <div class="info-col">
+            <span class="info-title">{{ 'model_type'|i18nextEager }}</span>
+            <span class="info-content">{{newTypeMeta[infoDetail?.model_type] || '-'}}</span>
+          </div>
+        </div>
+        <div class="grid-layout" [style.--item-min-width]="'300px'" [style.--max-cols]="2">
+          <div class="info-col">
+            <span class="info-title truncate" nz-tooltip [nzTooltipTitle]="'service_url'|i18nextEager">{{ 'service_url'|i18nextEager }}</span>
+            <span class="info-content truncate" nz-tooltip [nzTooltipTitle]="infoDetail.api_url || '-'">{{ infoDetail.api_url || '-' }}</span>
+          </div>
+          <div class="info-col">
+            <span class="info-title"> {{ 'platform_throttling_policy_id'|i18nextEager }}</span>
+            <span class="info-content">{{ infoDetail.throttling_policy>0?('times_per_second'|i18nextEager:{limit:infoDetail.throttling_policy}):('no_limit'|i18nextEager) }}</span>
+          </div>
+        </div>
+
+        <div class="grid-layout" [style.--item-min-width]="'300px'" [style.--max-cols]="2">
+          <div class="info-col">
+            <span class="info-title">{{ 'tag'|i18nextEager }}</span>
+            <div class="flex"  *ngIf="infoDetail.is_network || infoDetail.is_support_function || infoDetail.is_reasoning"
+            >
+              <div
+                *ngIf="infoDetail.is_support_function"
+                class="item flex"
+                [style]="{
+              background: tagMap['is_support_function'].color,
+              color: tagMap['is_support_function'].text_color
+            }"
+              >
+                <img alt=""
+                  class="icon"
+                  [src]="changeUrl(tagMap['is_support_function'].icon)"
+                />{{tagMap['is_support_function'].name }}
+              </div>
+              <div
+                *ngIf="infoDetail.is_reasoning"
+                class="item flex"
+                [style]="{
+              background: tagMap['is_reasoning'].color,
+              color: tagMap['is_reasoning'].text_color
+            }"
+              >
+                <img alt=""
+                  class="icon"
+                  [src]="changeUrl(tagMap['is_reasoning'].icon)"
+                />{{tagMap['is_reasoning'].name }}
+              </div>
+              <div
+                *ngIf="infoDetail.is_network"
+                class="item flex"
+                [style]="{
+              background: tagMap['is_network'].color,
+              color: tagMap['is_network'].text_color
+            }"
+              >
+                <img alt=""
+                  class="icon"
+                  [src]="changeUrl(tagMap['is_network'].icon)"
+                />{{tagMap['is_network'].name }}
+              </div>
+            </div>
+            <span class="info-content truncate" nz-tooltip [nzTooltipTitle]="infoDetail?.model_tags ? infoDetail.model_tags.replaceAll(',', '，') : ''">{{ infoDetail?.model_tags ?infoDetail.model_tags.replaceAll(',', '，'):'' }}</span>
+            <span class="info-content truncate" *ngIf="!infoDetail.model_tags && !infoDetail.is_network && !infoDetail.is_support_function && !infoDetail.is_reasoning" nz-tooltip nzTooltipTitle="-">-</span>
+          </div>
+
+          <div class="info-col" *ngIf=" infoDetail?.domain_id != 'SYSTEM'">
+            <span class="info-title">{{ 'interface_protocol'|i18nextEager }}</span>
+            <span class="info-content">{{ protocolMap[infoDetail?.interface_protocol] || (infoDetail?.model_type === 'RERANK'?('ai_engine_standard_protocol'|i18nextEager):('standard_openai_protocol'|i18nextEager)) }}</span>
+          </div>
+        </div>
+        <div class="grid-layout" [style.--item-min-width]="'300px'" [style.--max-cols]="1">
+          <div class="info-col">
+            <span class="info-title truncate" style="width: 150px" nz-tooltip [nzTooltipTitle]="'model_service_description'|i18nextEager">{{ 'model_service_description'|i18nextEager }}</span>
+            <span style="flex:1" class="info-content-description">{{ infoDetail.model_description|| '-' }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="main-container" *ngIf="false">
+    <div class="basicInfo">
+      <p class="top-basic-title">{{ 'model_filing'|i18nextEager }}</p>
+      <div style="display: flex; flex-direction: column">
+        <div class="grid-layout" [style.--item-min-width]="'300px'" [style.--max-cols]="3">
+          <div class="info-col">
+            <span class="info-title">{{ 'filing_entity'|i18nextEager }}</span>
+            <span class="info-content"></span>
+          </div>
+          <div class="info-col">
+            <span class="info-title">{{ 'filing_number'|i18nextEager }}</span>
+            <span class="info-content"></span>
+          </div>
+          <div class="info-col">
+            <span class="info-title">{{ 'filing_date'|i18nextEager }}</span>
+            <span class="info-content"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="main-container"  *ngIf="infoDetail.disclaimer">
+    <div class="basicInfo">
+      <p class="top-basic-title" style="margin-bottom: 12px;">{{ 'filing_disclaimer'|i18nextEager }}</p>
+      <markdown [data]="infoDetail.disclaimer" class="markdown-body"></markdown>
+    </div>
+  </div>
+</div>

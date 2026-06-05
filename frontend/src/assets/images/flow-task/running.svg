@@ -1,0 +1,5 @@
+<svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="16.000000" height="16.000000" fill="none" customFrame="#000000">
+	<rect id="状态=过程中" width="16.000000" height="16.000000" x="0.000000" y="0.000000" />
+	<path id="path" d="M11 11L5 11L5 9.02997L3 9.02997L3 11C3 12.1 3.9 13 5 13L11 13C12.1 13 13 12.1 13 11L13 9.02997L11 9.02997L11 11Z" fill="rgb(11,184,178)" fill-rule="nonzero" />
+	<path id="path" d="M11 3L5 3C3.9 3 3 3.9 3 5L3 7.03L5 7.03L5 5L11 5L11 7.03L13 7.03L13 5C13 3.9 12.1 3 11 3Z" fill="rgb(11,184,178)" fill-rule="nonzero" />
+</svg>

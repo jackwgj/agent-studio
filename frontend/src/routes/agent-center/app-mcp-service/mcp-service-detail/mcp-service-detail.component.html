@@ -1,0 +1,429 @@
+<div class="detail-container">
+  <nz-spin
+    *ngIf="isLoading"
+    nzSize="large"
+    class="loading-icon"
+  ></nz-spin>
+  <div class="header-container" *ngIf="isKmsError" style="position: relative">
+    <div class="header-bg"></div>
+    <div class="header-content" style="height: 80px">
+      <div class="header-left" style="height: 80px; line-height: 80px">
+        <div (click)="onPageBack()" class="back-icon-container">
+          <nz-icon nzType="left" nzTheme="outline" />
+        </div>
+      </div>
+    </div>
+    <div class="error-message">
+      {{ 'mcp_error_1' | i18nextEager }}
+    </div>
+  </div>
+  <div
+    class="header-container"
+    *ngIf="mcpServiceDetail && !isLoading && !isKmsError"
+  >
+    <div class="header-bg"></div>
+    <div class="header-content">
+      <div class="ml-[54px] mt-[8px] mb-[12px]">
+        <span *ngIf="type === 'service'" (click)="onPageBack()" class="cursor-pointer">
+          {{ 'my_mcp' | i18nextEager }}
+        </span>
+        <span *ngIf="type === 'server' || type === 'third'" (click)="onPageBack()" class="cursor-pointer">
+          {{ 'mcp_service_market' | i18nextEager }}
+        </span>
+        <span class="ml-[5px] mr-[5px] text-[#808080]">/</span>
+        <span *ngIf="mcpServiceDetail.name" class="font-semibold">
+          {{ mcpServiceDetail.name }}
+        </span>
+      </div>
+      <div class="header-left">
+        <div (click)="onPageBack()" class="back-icon-container">
+          <nz-icon nzType="left" nzTheme="outline" />
+        </div>
+        <img alt="" class="h-[40px] w-[40px] mr-[16px]" [src]="getIcon(mcpServiceDetail)"/>
+        <div>
+          <div class="flex items-center">
+            <div class="title" nz-tooltip [nzTooltipTitle]="mcpServiceDetail.name">
+              {{ mcpServiceDetail.name }}
+            </div>
+            <div *ngIf="mcpServiceDetail.fc_instance_status === 'success' && queryParamType !== 'server'"
+              class="h-[20px] rounded-sm bg-[#d5f2dc] pb-[2px] pl-[4px] pr-[4px] pt-[2px] text-[#029931]"
+            >
+              {{ 'deployed' | i18nextEager }}
+            </div>
+            <div *ngIf="mcpServiceDetail.fc_instance_status === 'pendingTools' && queryParamType !== 'server'"
+                 class="h-[20px] rounded-sm bg-[#FFEBD1] pb-[2px] pl-[4px] pr-[4px] pt-[2px] text-[#D96900]"
+            >
+              {{ 'pendingTools' | i18nextEager }}
+            </div>
+            <div *ngIf="mcpServiceDetail.fc_instance_status === 'creatingStack' && queryParamType !== 'server'"
+                 class="h-[20px] rounded-sm bg-[#FFEBD1] pb-[2px] pl-[4px] pr-[4px] pt-[2px] text-[#D96900]"
+            >
+              {{ 'deploying' | i18nextEager }}
+            </div>
+            <div
+              *ngIf="mcpServiceDetail.fc_instance_status !== 'success' &&
+              mcpServiceDetail.fc_instance_status !== 'creatingStack' &&
+              mcpServiceDetail.fc_instance_status !== 'pendingTools' && queryParamType !== 'server' && type !== 'third'"
+              class="h-[20px] rounded-sm bg-[#FCE3E0] pb-[2px] pl-[4px] pr-[4px] pt-[2px] text-[#F23030]"
+            >
+                {{ 'deployFailed' | i18nextEager }}
+            </div>
+          </div>
+          <div class="flex items-center mt-[8px]" *ngIf="queryParamType === 'server' && false">
+            <span class="text-[#595959]">
+              {{ 'type' | i18nextEager }}: {{ isCN() ? mcpServiceDetail.type_cn : mcpServiceDetail.type_en }}
+            </span>
+          </div>
+          <div class="flex items-center mt-[8px]" *ngIf="queryParamType !== 'server' && false">
+            <span class="text-[#595959]">
+              {{ 'type' | i18nextEager }}: {{ isCN() ? mcpServiceDetail.type_cn : mcpServiceDetail.type_en }}
+            </span>
+            <span style="display: inline-block; padding: 0 6px">|</span>
+            <span class="text-[#595959]">
+              {{ 'status' | i18nextEager }}:
+            </span>
+            <span class="status" *ngIf="mcpServiceDetail.fc_instance_status === 'success'"></span>
+            <span class="status-installing" *ngIf="mcpServiceDetail.fc_instance_status === 'creatingStack'"></span>
+            <span class="status-fail" *ngIf="mcpServiceDetail.fc_instance_status === 'stackFail'"></span>
+            <span class="text-[#595959]">
+              {{ isCN() ? mcpServiceDetail.status_cn : mcpServiceDetail.status_en }}
+            </span>
+            <span style="display: inline-block; padding: 0 6px" *ngIf="false">|</span>
+            <span class="text-[#595959]" *ngIf="false">
+              {{ 'create_time' | i18nextEager }}：{{ mcpServiceDetail.created_date || '--' }}
+            </span>
+          </div>
+          <div
+            *ngIf="subscribeBtnStatus"
+            class="operator-icon"
+            (click)="!hasPermission() && handleClickActionMcpServer($event, mcpServiceDetail, type === 'server' ? 'create' : 'edit')"
+            [class]="{'disabled-container': currentPermissions && currentPermissions.hasOwnProperty('OPERATOR')}"
+            nz-tooltip [nzTooltipTitle]="hasPermission() ? ('mcpservicedetailcomponent_705'| i18nextEager) : ''"
+          >
+            <div
+              *ngIf="type === 'server'"
+              class="flex items-center"
+              (mouseenter)="handleMouseEnterInstallMcp(mcpServiceDetail)"
+              (mouseleave)="handleMouseLeaveInstallMcp(mcpServiceDetail)"
+              [style]="{
+                cursor: !hasPermission() ? 'pointer' : 'not-allowed',
+                color: !hasPermission() ? mcpServiceDetail['isHoverInstall'] ? '#0c93fe' : 'rgb(25,25,25)' : 'rgb(25,25,25)'
+              }"
+            >
+              <img  [src]="changeUrl('assets/mcp/install-mcp.svg')" alt="" style="width: 16px; height: 16px;" *ngIf="!mcpServiceDetail['isHoverInstall']">
+              <img
+                [src]="changeUrl('assets/mcp/install-mcp-active.svg')" alt=""
+                *ngIf="mcpServiceDetail['isHoverInstall'] && !hasPermission()"
+                style="width: 16px; height: 16px;"
+              >
+              <span style="padding-left: 4px; font-size: 14px">{{ 'install' | i18nextEager }}</span>
+            </div>
+
+            <div *ngIf="type === 'service'&& !mcpServiceDetail.third_resource" class="flex items-center gap-2">
+              <button type="button" nz-button nzType="default" (click)="getDetail()" *ngIf="mcpServiceDetail.fc_instance_status === 'creatingStack' && queryParamType !== 'server'">
+                {{ 'refresh' | i18nextEager }}
+              </button>
+              <button type="button" nz-button nzType="default" *ngIf="mcpServiceDetail.fc_instance_status === 'stackFail'" (click)="redeployMcp()">
+                {{ 'redeploy' | i18nextEager }}
+              </button>
+              <button type="button" nz-button nzType="primary" (click)="handleClickActionMcpServer($event, mcpServiceDetail, 'edit')">{{ 'edit' | i18nextEager }}</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mcp-detail-fail-info" *ngIf="mcpServiceDetail && !isLoading && type === 'service' && mcpServiceDetail.fc_instance_status === 'stackFail'">
+    <div style="display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; margin-bottom: 8px">
+      <img  [src]="changeUrl('assets/agent-center/images/error.svg')" alt="">
+      <span>{{ mcpServiceDetail.name }} {{ 'deployFailed' | i18nextEager }}</span>
+    </div>
+    <div style="font-size: 14px">
+      <p style="margin-bottom: 4px;">
+        <span style="font-weight: 600">{{ 'reason' | i18nextEager }}:</span>
+        {{ isZH() ? mcpFailInfo.reason_cn : mcpFailInfo.reason_en }}
+      </p>
+      <p style="margin-bottom: 4px;">
+        <span style="font-weight: 600">{{ 'suggestion' | i18nextEager }}: </span>
+        {{ isZH() ? mcpFailInfo.suggestion_cn : mcpFailInfo.suggestion_en }}
+      </p>
+      <p style="margin-bottom: 4px; display: flex; align-items: center; gap: 4px;">
+        <span style="font-weight: 600">{{ 'errorCode' | i18nextEager }}: </span>
+        <span>{{ mcpFailInfo.code }}</span>
+        <nz-icon nzType="copy" nzTheme="outline" (click)="copyData()" style="cursor: pointer" />
+      </p>
+      <p>
+        <span style="font-weight: 600">{{ 'errorMes' | i18nextEager }}: </span>
+        {{ isZH() ? mcpFailInfo.message_cn : mcpFailInfo.message_en }}
+      </p>
+    </div>
+  </div>
+
+  <div class="main-container" *ngIf="mcpServiceDetail && !isLoading && type === 'service'">
+    <nz-tabset [nzAnimated]="false">
+      <nz-tab [nzTitle]="tabs[0].title">
+        <div
+          class="content"
+          [style]="{height: mcpServiceDetail.fc_instance_status === 'stackFail' ? 'calc(100vh - 420px)' : 'calc(100vh - 232px)'}"
+        >
+          <p class="desc">{{ 'service_desc' | i18nextEager }}</p>
+          <p class="detail">
+            {{ isCN() ? mcpServiceDetail.description : mcpServiceDetail.description_en }}
+          </p>
+          <p *ngIf="false" style="font-size: 18px; font-weight: 600; margin-bottom: 12px;">{{ 'service_detail' | i18nextEager }}</p>
+          <p>
+            <markdown [data]="mcpServiceDetail.readme" class="markdown-body"></markdown>
+          </p>
+        </div>
+      </nz-tab>
+      <nz-tab [nzTitle]="tabs[1].title">
+        <div
+          *ngIf="isPendingToolLoading"
+          style="background: #fff; border-radius: 16px; position: relative"
+          [style]="{height: mcpServiceDetail.fc_instance_status === 'stackFail' ? 'calc(100vh - 420px)' : 'calc(100vh - 232px)'}"
+        >
+          <nz-spin
+            nzSize="large"
+            class="loading-icon"
+            style="height: 400px"
+          ></nz-spin>
+          <p style="position: absolute; font-size: 16px; top: 240px; left: calc(50% - 120px)">
+            {{'mcpservicedetailcomponent_711'| i18nextEager}}
+          </p>
+        </div>
+        <div
+          class="tool"
+          *ngIf="!isPendingToolLoading"
+          [style]="{height: mcpServiceDetail.fc_instance_status === 'stackFail' ? 'calc(100vh - 420px)' : 'calc(100vh - 232px)'}"
+        >
+          <div *ngIf="!mcpServiceDetail.tools" style="display: flex; justify-content: center; width: 100%">
+            <app-common-no-data-with-btn [noDataStr]="'no_data' | i18nextEager" />
+          </div>
+          <div class="left" *ngIf="mcpServiceDetail.tools">
+            <div style="margin: 0 0 16px; font-size: 18px; font-weight: 600">
+              {{ 'Tools' | i18nextEager }}
+            </div>
+            <!-- 折叠面板 -->
+            <div class="mcp-tool-accordion-item" (click)="handleClickTools(item)"
+                 *ngFor="let item of mcpServiceDetail.tools; let i = index"
+            >
+              <button
+                class="mcp-tool-accordion-header"
+                [ngStyle]="{'border-radius': item.isCollapsed ? '16px' : '16px 16px 0 0'}"
+              >
+                <span>{{ item.name }}</span>
+                <nz-icon nzType="right" nzTheme="outline" [ngClass]="{isRotate: item.isCollapsed}" />
+              </button>
+              <div
+                class="mcp-tool-accordion-content"
+                [ngStyle]="{
+                  'max-height': item.isCollapsed ? null : '180px',
+                  'padding': item.isCollapsed ? '0 16px' : '0 16px 16px 16px'
+                }"
+              >
+                <p>{{ 'toolDetails' | i18nextEager }}: {{ item.description }}</p>
+              </div>
+            </div>
+          </div>
+          <div class="right" *ngIf="mcpServiceDetail.tools">
+            <div class="top">
+              <div style="margin: 0 0 16px; font-size: 18px; font-weight: 600">
+                {{ 'params' | i18nextEager }}
+              </div>
+              <div class="mcp-tool-param">
+                <div
+                  class="item"
+                  [ngStyle]="{'border-radius': toolParamCollapsed ? '16px' : '16px 16px 0 0'}"
+                  (click)="toolParamCollapsed = !toolParamCollapsed"
+                >
+                  <span>{{ selectedMcpTool.name }}</span>
+                  <nz-icon nzType="down" nzTheme="outline" [ngClass]="{isRotate: !toolParamCollapsed}" />
+                </div>
+                <div
+                  class="params"
+                  [ngStyle]="{
+                    'max-height': toolParamCollapsed ? null : '100%',
+                    'padding': toolParamCollapsed ? '0 16px' : '0 16px 16px 16px',
+                    'overflow': toolParamCollapsed ? 'hidden' : 'auto',
+                  }"
+                >
+                  <p style="border-bottom: 1px solid #eee; margin-bottom: 16px; padding: 0 0 8px 0">
+                    {{ selectedMcpTool.description }}
+                  </p>
+
+                  <div *ngFor="let item of selectedMcpToolParams; let i = index">
+                    <p style="display: flex">
+                      <span class="required" *ngIf="item.value.isRequired">*</span>
+                      <span>{{ item.key }}</span>
+                    </p>
+                    <div class="flex items-center mb-[16px]" style="position: relative">
+                      <span class="prefix">{{ item.value.type }}</span>
+                      <input
+                        tiText
+                        [placeholder]="item.value.description || ''"
+                        [(ngModel)]="item.value.value"
+                        [id]="i + ''"
+                        [title]="item.value.description || ''"
+                        [style]="{'border': item.value.isRight ? '' : '1px solid red !important'}"
+                      />
+                      <span class="errorDesc" *ngIf="!item.value.isRight">
+                        {{ 'errorMessage' | i18nextEager }}
+                      </span>
+                      <nz-icon
+                        nzType="reload"
+                        nzTheme="outline"
+                        style="font-size: 18px; cursor: pointer"
+                        [title]="isCN() ? ('mcpservicedetailcomponent_710'| i18nextEager) : 'Data Recovery'"
+                        (click)="recoveryParamsData(i)"
+                      />
+                    </div>
+                  </div>
+                  <button nz-button  nzType="primary" style="margin: 8px 0 8px 0" (click)="testMcpTool()" [nzLoading]="testMcpLoading">
+                    {{ 'test' | i18nextEager }}
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="bottom">
+              <div style="margin: 0 0 16px; font-size: 18px; font-weight: 600">
+                {{ 'result' | i18nextEager }}
+              </div>
+              <div class="editor">
+                <ngx-monaco-editor
+                  [options]="editorOptions"
+                  [(ngModel)]="testMcpToolRes"
+                ></ngx-monaco-editor>
+              </div>
+            </div>
+          </div>
+        </div>
+      </nz-tab>
+    </nz-tabset>
+  </div>
+  <div class="main-container-service" *ngIf="mcpServiceDetail && !isLoading && (type === 'server' || type === 'third')" style="margin-top: 16px;">
+    <div style="display: flex; flex-direction: row; gap: 24px;">
+      <div class="service-detail-1">
+        <p *ngIf="mcpServiceDetail.view_times" style="font-size: 16px; font-weight: 600; margin-bottom: 12px">{{'mcpservicedetailcomponent_707'| i18nextEager}}</p>
+        <div *ngIf="mcpServiceDetail.view_times" class="read-install-num">
+          <span style="padding-right: 16px">{{ 'readNum' | i18nextEager }}: {{ mcpServiceDetail.view_times }}</span>
+          <span style="padding-right: 24px;">
+            {{ 'installNum' | i18nextEager }}: {{ mcpServiceDetail.install_times }}
+          </span>
+          <span style="height: 14px; width: 1px; background: rgb(196,196,196); margin-right: 24px"></span>
+          <span style="padding-right: 16px">{{'mcpservicedetailcomponent_713'| i18nextEager}}</span>
+          <div style="display: flex; align-items: center; gap: 16px">
+            <app-custom-star [canClick]="false" [score]="mcpServiceDetail.score" style="margin-bottom: 3px"></app-custom-star>
+            <button tiButton (click)="updateScore(uploadScore)" style="font-size: 12px">{{'mcpservicedetailcomponent_708'| i18nextEager}}</button>
+          </div>
+        </div>
+        <p *ngIf="false" style="font-size: 16px; font-weight: 600; margin-bottom: 12px;">{{ 'service_desc' | i18nextEager }}</p>
+        <p *ngIf="false" style="font-size: 14px; margin-bottom: 24px">
+          {{ isCN() ? mcpServiceDetail.description : mcpServiceDetail.description_en }}
+        </p>
+        <div class="service-detail-1" *ngIf="false">
+          <span style="padding-right: 16px">{{ 'readNum' | i18nextEager }}: {{ mcpServiceDetail.view_times }}</span>
+          <span>{{ 'installNum' | i18nextEager }}: {{ mcpServiceDetail.install_times }}</span>
+          <div class="flex" style="right: 0; top: 0; position: absolute; gap: 8px; align-items: center">
+            <span>{{'mcpservicedetailcomponent_713'| i18nextEager}}</span>
+            <app-custom-star [canClick]="false" [score]="mcpServiceDetail.score" style="margin-bottom: 3px"></app-custom-star>
+            <button tiButton color="primary" (click)="updateScore(uploadScore)">{{'mcpservicedetailcomponent_708'| i18nextEager}}</button>
+          </div>
+        </div>
+        <p >
+          <markdown [data]="mcpServiceDetail.readme" class="markdown-body"></markdown>
+        </p>
+      </div>
+      <div style="flex: 1; min-height: 500px;">
+        <p style="font-size: 18px; color: #000; font-weight: 600; margin-bottom: 8px;" class="flex items-center gap-1">
+          <img  [src]="changeUrl('assets/mcp/hot.png')" alt="" style="width: 18px; height: 18px;" />
+          {{ 'MCPRecommend' | i18nextEager }}
+        </p>
+        <div *ngFor="let item of recommendMCPList; let i = index" class="recommendCard" (click)="handleClickMcpServer(item)"
+             (mouseenter)="item.isHover = true"
+             (mouseleave)="item.isHover = false"
+        >
+          <div class="flex items-center" style="gap: 0 16px">
+            <img alt="" class="h-11 w-11 rounded-lg"
+                 [src]="getIcon(item)"
+            />
+            <div class="flex w-[calc(100%-64px)] gap-x-[8px]" style="flex-direction: column">
+              <div class="name max-w-[calc(100%-72px)]">
+                {{ isZH() ?  item.name : (item.name_en || item.name)  }}
+              </div>
+              <div class="flex items-center gap-x-[8px]">
+                <nz-tag
+                  nzColor="orange"
+                  nzSize="small"
+                  class="!rounded-[4px] py-[1px] pl-[2px] pr-[4px]"
+                >
+                  {{ 'platform' | i18nextEager }}
+                </nz-tag>
+              </div>
+            </div>
+          </div>
+          <div class="mb-[16px] h-[36px] mt-[12px]" style="height: 36px">
+            <div
+              class="w-full break-words text-[12px] leading-[22px] text-[#595959]"
+              nz-tooltip
+              [nzTooltipTitle]="isZH() ? (item.description || '--') : (item.description_en || '--')"
+              style="color: gray; font-weight: 400"
+            ></div>
+          </div>
+          <div class="bottom-area" style="position: relative">
+            <span style="padding-right: 8px; margin-right: 8px; border-right: 1px solid rgba(0,0,0,0.08)">
+              {{ 'readNum' | i18nextEager }}: {{ item.view_times }}
+            </span>
+            <span style="padding-right: 8px; margin-right: 8px; border-right: 1px solid rgba(0,0,0,0.08)">
+              {{ 'installNum' | i18nextEager }}: {{ item.install_times }}
+            </span>
+            <span style="position: relative">
+              <span>{{'mcpservicedetailcomponent_713'|i18nextEager}}{{ item.score }}</span>
+              <img  [src]="changeUrl('assets/images/common/hover-star.png')" alt="" style="width: 16px; position: absolute; left: 45px; top: -6px">
+            </span>
+            <span
+              *ngIf="subscribeBtnStatus"
+              class="mcp-install"
+              (mouseenter)="handleMouseEnterInstallMcp(item)"
+              (mouseleave)="handleMouseLeaveInstallMcp(item)"
+              [style]="{cursor: !hasPermission() ? 'pointer' : 'not-allowed', color: !hasPermission() ? item['isHoverInstall'] ? '#0c93fe' : 'rgb(25,25,25)' : 'rgb(25,25,25)'}"
+              (click)="handleClickInstallMcpServer($event, item)"
+            >
+              <img  [src]="changeUrl('assets/mcp/install-mcp.svg')" alt="" *ngIf="!item['isHoverInstall']">
+              <img  [src]="changeUrl('assets/mcp/install-mcp-active.svg')" alt="" *ngIf="item['isHoverInstall'] && !hasPermission()">
+              <span>{{ 'install' | i18nextEager }}</span>
+            </span>
+          </div>
+          <div class="bottom-area h-[36px]" *ngIf="item.isHover && false" style="border-top: none; padding-left: 16px;"
+               (click)="handleClickInstallMcpServer($event, item)"
+          >
+            <button class="mb-3 mr-3" id="button-color-primary" nz-button nzType="primary" [disabled]="hasPermission()">
+              {{ 'install' | i18nextEager }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <ng-template #uploadScore let-context="context" class="uploadScore">
+    <div class="flex items-center" style="padding: 16px; border-bottom: 1px solid #f0f0f0">
+      <span>{{ 'mcpservicedetailcomponent_708'|i18nextEager }}</span>
+    </div>
+    <div style="padding: 24px">
+      <app-custom-star
+        [iconSize]="36"
+        [canClick]="true"
+        [score]="mcpServiceDetail.score"
+        (childPropertyStarEvent)="getChildStar($event)"
+      />
+    </div>
+    <div style="padding: 16px; border-top: 1px solid #f0f0f0; text-align: right">
+      <button type="button" nz-button nzType="default" (click)="scoreModalRef?.close()" style="margin-right: 8px">{{ 'cancel' | i18nextEager }}</button>
+      <button type="button" nz-button nzType="default" nzDanger autofocus (click)="updateMCPRatingFunc(context)">
+        {{ 'ok' | i18nextEager}}
+      </button>
+    </div>
+  </ng-template>
+
+</div>

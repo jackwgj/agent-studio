@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="8px" height="8px" viewBox="0 0 8 8" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>告警</title>
+    <g id="页面-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="1模型部署-在线部署" transform="translate(-575, -925)">
+            <g id="告警" transform="translate(571, 921)">
+                <rect id="矩形" x="0" y="0" width="16" height="16"></rect>
+                <rect id="矩形" x="2" y="2" width="12" height="12"></rect>
+                <circle id="椭圆形备份-10" stroke="#FCBE1E" stroke-width="2" cx="8" cy="8" r="3"></circle>
+            </g>
+        </g>
+    </g>
+</svg>

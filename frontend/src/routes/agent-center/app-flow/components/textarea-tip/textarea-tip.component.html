@@ -1,0 +1,55 @@
+<div class="editor-area">
+  <!-- prompt 可见区 -->
+  <div #styledContent class="styled-content flex-1 border-text">
+    <ng-container *ngFor="let promptChunk of promptChunks">
+      <ng-container [ngSwitch]="promptChunk.type">
+        <span *ngSwitchCase="'txt'">{{ promptChunk.content }}</span>
+
+        <ng-container *ngSwitchCase="'val'">
+          <span
+            #snippetOrigin="cdkOverlayOrigin"
+            cdkOverlayOrigin
+            class="py-1"
+            >{{ promptChunk.content }}</span
+          >
+          <ng-template
+            cdkConnectedOverlay
+            [cdkConnectedOverlayOrigin]="snippetOrigin"
+            [cdkConnectedOverlayOpen]="variants.length > 0"
+          >
+            <div
+              #candidateBox
+              class="snippet-list max-h-52 w-32 rounded-md bg-white py-2 shadow-md"
+            >
+              <div #candidateList class="flex w-full flex-col">
+                <div
+                  (click)="onSelect(variant)"
+                  [ngStyle]="{ backgroundColor: getCandidateBGColor(i) }"
+                  class="snippet-item h-8 w-32 px-4 py-1 hover:bg-[#f2f2f2]"
+                  *ngFor="let variant of variants; index as i"
+                >
+                  {{ variant }}
+                </div>
+              </div>
+            </div>
+          </ng-template>
+        </ng-container>
+      </ng-container>
+    </ng-container>
+  </div>
+
+  <!-- 实际编辑的textarea -->
+  <textarea
+    #textarea
+    class="prompt-editor"
+    [(ngModel)]="prompt"
+    spellcheck="false"
+    (input)="onInput($event)"
+    (scroll)="onScroll($event)"
+    (compositionstart)="onCompositionstart()"
+    (compositionupdate)="onCompositionupdate($event)"
+    (compositionend)="onCompositionend()"
+    [placeholder]="placeholder"
+    [maxlength]="100_000"
+  ></textarea>
+</div>
