@@ -190,7 +190,6 @@ Temporary Items
 !.staging/poc_index.html
 !.staging/poc_custom_index.html
 /package-lock.json
-/angular.json
 /config/hds.config.js
 .idea
 package-lock.json

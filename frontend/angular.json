@@ -1,0 +1,153 @@
+{
+  "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
+  "version": 1,
+  "cli": {
+    "packageManager": "pnpm",
+    "cache": {
+      "path": ".cache/.angular/"
+    },
+    "analytics": false
+  },
+  "newProjectRoot": "projects",
+  "projects": {
+    "openjiuwen-agent": {
+      "projectType": "application",
+      "schematics": {
+        "@schematics/angular:component": {
+          "style": "scss",
+          "skipTests": true,
+          "standalone": true,
+          "changeDetection": "OnPush"
+        },
+        "@schematics/angular:class": {
+          "skipTests": true
+        },
+        "@schematics/angular:directive": {
+          "skipTests": true,
+          "standalone": true
+        },
+        "@schematics/angular:guard": {
+          "skipTests": true
+        },
+        "@schematics/angular:interceptor": {
+          "skipTests": true
+        },
+        "@schematics/angular:pipe": {
+          "skipTests": true,
+          "standalone": true
+        },
+        "@schematics/angular:resolver": {
+          "skipTests": true
+        },
+        "@schematics/angular:service": {
+          "skipTests": true
+        }
+      },
+      "root": "",
+      "sourceRoot": "src",
+      "prefix": "meta",
+      "architect": {
+        "build": {
+          "builder": "@angular/build:application",
+          "options": {
+            "outputPath": {
+              "base": "dist/hws",
+              "browser": "."
+            },
+            "index": ".staging/index.html",
+            "polyfills": [
+              "zone.js"
+            ],
+            "tsConfig": "tsconfig.app.json",
+            "inlineStyleLanguage": "scss",
+            "baseHref": "/openjiuwen/",
+            "allowedCommonJsDependencies": [
+              "@shared/services/cfdata.service",
+              "lodash",
+              "@babel/runtime/regenerator",
+              "regl",
+              "jquery"
+            ],
+            "assets": [
+              "src/assets",
+              {
+                "glob": "**/*",
+                "input": "src/agentcore/i18n",
+                "output": "/assets/agentcore/i18n/"
+              },
+              {
+                "glob": "**/*",
+                "input": "node_modules/monaco-editor",
+                "output": "/assets/monaco-editor/"
+              },
+              {
+                "glob": "**/*",
+                "input": "src/agentcore/assets",
+                "output": "/assets/agentcore/"
+              },
+              {
+                "glob": "**/*",
+                "input": "./node_modules/@ant-design/icons-angular/src/inline-svg/",
+                "output": "/assets/"
+              }
+            ],
+            "styles": [
+              "src/styles/main.scss",
+              "src/styles/global.css",
+              "node_modules/@angular/cdk/overlay-prebuilt.css",
+              "node_modules/@angular/cdk/text-field-prebuilt.css",
+              "src/styles/console.css",
+              "node_modules/ng-zorro-antd/ng-zorro-antd.min.css"
+            ],
+            "scripts": []
+          },
+          "configurations": {
+            "production": {
+              "outputHashing": "all",
+              "baseHref": "/openjiuwen/",
+              "sourceMap": false
+            },
+            "development": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true,
+              "namedChunks": false
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular/build:dev-server",
+          "options": {
+            "buildTarget": "openjiuwen-agent:build",
+            "proxyConfig": ".staging/proxy.json"
+          },
+          "configurations": {
+            "production": {
+              "buildTarget": "openjiuwen-agent:build:production"
+            },
+            "development": {
+              "buildTarget": "openjiuwen-agent:build:development"
+            }
+          },
+          "defaultConfiguration": "development"
+        },
+        "test": {
+          "builder": "@angular/build:karma",
+          "options": {
+            "main": "src/test/test.ts",
+            "tsConfig": "src/test/tsconfig.spec.json",
+            "karmaConfig": "src/test/karma.conf.js",
+            "assets": [
+              "src/favicon.ico",
+              "src/assets"
+            ],
+            "styles": [],
+            "scripts": []
+          }
+        }
+      }
+    }
+  },
+  "defaultProject": "openjiuwen-agent"
+}
