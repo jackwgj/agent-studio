@@ -20,7 +20,7 @@ import java.util.Collections;
 public class ModelServiceManagerTest {
     @Test
     public void syncUpgradeModelsTest() {
-        com.openjiuwen.studio.agent.manager.service.md.ModelServiceManager manager = new ModelServiceManager();
+        ModelServiceManager manager = new ModelServiceManager();
 
         RedisClient redisClient = Mockito.mock(RedisClient.class);
         Mockito.doNothing().when(redisClient).set(Mockito.anyString(), Mockito.anyString());

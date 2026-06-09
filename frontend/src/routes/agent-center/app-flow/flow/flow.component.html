@@ -474,6 +474,7 @@
     [nzClosable]="true"
     [nzWidth]="globalConfigDrawerWidth || '480px'"
     (nzOnClose)="showGlobalConfigDrawer = false"
+    [nzTitle]="'global_configuration' | i18nextEager"
   >
     <ng-container *nzDrawerContent>
     @if (type === 'multi') {

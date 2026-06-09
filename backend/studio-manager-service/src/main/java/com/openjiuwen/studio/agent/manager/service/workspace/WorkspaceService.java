@@ -75,7 +75,7 @@ public class WorkspaceService implements IWorkspaceService {
     private WorkspaceMapper workspaceMapper;
 
     @Autowired
-    private com.openjiuwen.studio.agent.manager.service.workspace.WorkspaceMappingService workspaceMappingService;
+    private WorkspaceMappingService workspaceMappingService;
 
     @Resource
     private WorkspaceMemberService workspaceMemberService;

@@ -49,7 +49,7 @@ class MemoryRepoManagementServiceTest {
     private MemoryServiceClient memoryServiceClient;
 
     @InjectMocks
-    private com.openjiuwen.studio.agent.manager.service.memory.MemoryRepoManagementService memoryRepoManagementService;
+    private MemoryRepoManagementService memoryRepoManagementService;
 
 
     MockedStatic<RequestContextUtils> mockedStaticRequestContextUtils;

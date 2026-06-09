@@ -122,7 +122,7 @@ public class AgentImportService {
     private ReleaseVersionMapper releaseVersionMapper;
 
     @Autowired
-    private com.openjiuwen.studio.agent.manager.service.ShareResourceManagerService shareResourceManagerService;
+    private ShareResourceManagerService shareResourceManagerService;
 
     @Autowired
     private MappingMapper mappingMapper;

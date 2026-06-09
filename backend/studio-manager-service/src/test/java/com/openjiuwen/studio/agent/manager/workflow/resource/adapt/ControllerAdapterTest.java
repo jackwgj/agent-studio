@@ -60,7 +60,7 @@ class ControllerAdapterTest {
     private AgentCommonService agentCommonService;
 
     @InjectMocks
-    private com.openjiuwen.studio.agent.manager.workflow.resource.adapt.ControllerAdapter controllerAdapter;
+    private ControllerAdapter controllerAdapter;
 
     private AutoCloseable mockitoCloseable;
 

@@ -19,7 +19,7 @@ public class ThreadPoolConfigurationTest {
 
     @Test
     void testKnowledgeRepoCopyExecutor() {
-        com.openjiuwen.studio.agent.agentbase.config.ThreadPoolConfiguration config = new ThreadPoolConfiguration();
+        ThreadPoolConfiguration config = new ThreadPoolConfiguration();
         Executor executor = config.instanceInitialExecutor();
         assertTrue(executor instanceof ThreadPoolTaskExecutor);
         ThreadPoolTaskExecutor taskExecutor = (ThreadPoolTaskExecutor) executor;

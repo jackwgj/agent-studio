@@ -27,7 +27,7 @@ public class ValidatorConfig implements WebMvcConfigurer {
         PlatformResourceBundleLocator resourceBundleLocator =
             new PlatformResourceBundleLocator("ValidationMessages");
 
-        com.openjiuwen.studio.agent.manager.filter.CustomMessageInterpolator messageInterpolator =
+        CustomMessageInterpolator messageInterpolator =
             new CustomMessageInterpolator(resourceBundleLocator);
 
 

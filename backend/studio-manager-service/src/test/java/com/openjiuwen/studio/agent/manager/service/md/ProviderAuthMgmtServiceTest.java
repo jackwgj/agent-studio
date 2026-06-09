@@ -21,7 +21,7 @@ public class ProviderAuthMgmtServiceTest {
     @Test
     public void removeAuthConfigTest() {
         ProviderAuthDataMapper authDataMapper = Mockito.mock(ProviderAuthDataMapper.class);
-        com.openjiuwen.studio.agent.manager.service.md.ProviderAuthService authService = Mockito.mock(ProviderAuthService.class);
+        ProviderAuthService authService = Mockito.mock(ProviderAuthService.class);
         Mockito.doNothing().when(authService).deleteByProvider(Mockito.any(), Mockito.any(), Mockito.any());
         Mockito.doNothing().when(authService).deleteById(Mockito.any(), Mockito.any(), Mockito.any());
 

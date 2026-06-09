@@ -39,7 +39,7 @@ public class CommonMeta {
 
     private String workspaceId;
 
-    public static Map<String, CommonMeta> fromAgents(List<com.openjiuwen.studio.agent.manager.entity.Agent> entities) {
+    public static Map<String, CommonMeta> fromAgents(List<Agent> entities) {
         Map<String, CommonMeta> map = new HashMap<String, CommonMeta>();
         if (!CollectionUtils.isEmpty(entities)) {
             for (Agent entity : entities) {

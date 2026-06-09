@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AgentNodeConverterTest {
 
-    private com.openjiuwen.studio.agent.manager.workflow.convert.adapt.difyadapter.AgentNodeConverter converter;
+    private AgentNodeConverter converter;
     private Map<String, WorkflowNodeVO> workflowNodeMap;
 
     @BeforeEach

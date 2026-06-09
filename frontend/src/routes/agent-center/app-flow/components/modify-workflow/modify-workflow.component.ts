@@ -64,6 +64,8 @@ export class ModifyWorkflowComponent implements OnInit, DoCheck {
 
   public loading = false;
 
+  MAXLENGHT = 1024;
+
   // 表单label
   public createAppFormLabel = {
     name: this.i18n.transform('name'),
@@ -84,13 +86,20 @@ export class ModifyWorkflowComponent implements OnInit, DoCheck {
     private appFlowServe: AppFlowService,
     private fb: FormBuilder,
     private elementRef: ElementRef,
-  ) {}
+  ) {
+  }
 
   ngOnInit() {
     this.avatar =
       this.type === 'multi'
         ? this.workflowDetail?.icon
         : this.workflowDetail?.avatar;
+
+    if (this.type === 'multi') {
+      this.MAXLENGHT = 256;
+    } else {
+      this.MAXLENGHT = 1024;
+    }
 
     if (this.type === 'multi') {
       this.modalTitle = this.i18n.transform(
@@ -115,11 +124,12 @@ export class ModifyWorkflowComponent implements OnInit, DoCheck {
         Validators.required,
         Validators.pattern(/\S/),
         Validators.minLength(1),
-        Validators.maxLength(1024),
+        Validators.maxLength(this.MAXLENGHT),
       ]),
     });
 
-    if (this.type === 'multi') {}
+    if (this.type === 'multi') {
+    }
   }
 
   ngDoCheck(): void {
@@ -132,7 +142,7 @@ export class ModifyWorkflowComponent implements OnInit, DoCheck {
       Object.values(this.groupFormControl.controls).forEach(control => {
         if (control.invalid) {
           control.markAsDirty();
-          control.updateValueAndValidity({ onlySelf: true });
+          control.updateValueAndValidity({onlySelf: true});
         }
       });
       const firstControlName = Object.keys(this.groupFormControl.controls).find(
@@ -198,24 +208,24 @@ export class ModifyWorkflowComponent implements OnInit, DoCheck {
         const response =
           this.type === 'multi'
             ? await this.multiAgentServ.modifyMultiAgent({
-                ...this.getFormData(),
-                details: this.workflowDetail.details,
-                project_id: this.workflowDetail.project_id,
-                type: 'controller',
-                agent_id: this.workflowDetail.agent_id,
-              })
+              ...this.getFormData(),
+              details: this.workflowDetail.details,
+              project_id: this.workflowDetail.project_id,
+              type: 'controller',
+              agent_id: this.workflowDetail.agent_id,
+            })
             : await this.appFlowRepoServ.modifyFlow({
-                ...this.getFormData(),
-                workflow_id: this.workflowDetail.workflow_id,
-                update_time: this.appFlowServe.getVersionInfo(),
-              });
+              ...this.getFormData(),
+              workflow_id: this.workflowDetail.workflow_id,
+              update_time: this.appFlowServe.getVersionInfo(),
+            });
 
         if (this.type === 'multi') {
           this.workflowDetail.icon = response.icon;
           this.workflowDetail.avatar = response.icon;
         } else {
           // 设置version信息
-          const { update_time } = response;
+          const {update_time} = response;
           this.appFlowServe.setVersionInfo(update_time);
           this.workflowDetail.code = this.getFormData().code.trim();
           this.workflowDetail.avatar = response.avatar;

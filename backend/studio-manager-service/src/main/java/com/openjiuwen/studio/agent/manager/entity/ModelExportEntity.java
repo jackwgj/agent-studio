@@ -21,6 +21,6 @@ public class ModelExportEntity {
     private List<ModelServiceData> modelMetadata;
 
     @JsonProperty("provider_metadata")
-    private com.openjiuwen.studio.agent.manager.entity.ProviderExportMetadata providerMetadata;
+    private ProviderExportMetadata providerMetadata;
 
 }

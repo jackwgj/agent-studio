@@ -34,7 +34,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 public class TenantCleanKnowledgeTableSubtaskTest {
 
     @InjectMocks
-    private com.openjiuwen.studio.agent.agentbase.service.clean.pipeline.subtask.TenantCleanKnowledgeTableSubtask
+    private TenantCleanKnowledgeTableSubtask
         subtask;
 
     @Mock

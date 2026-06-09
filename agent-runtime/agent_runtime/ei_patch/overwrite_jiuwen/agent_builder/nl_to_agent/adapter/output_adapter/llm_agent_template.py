@@ -2,7 +2,7 @@
 #  Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
 
 
-# 华为云LLM Agent模板
+# LLM Agent模板
 CLOUD_LLMAGENT_TEMPLATE = {
     "agent_id": "",
     "project_id": "5236296cb4c44cec867a42644ea6aa3a",

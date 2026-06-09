@@ -183,7 +183,7 @@ class XiaoYiLLMService(BaseLLMService):
         system_message = [
             {
                 "role": "system",
-                "content": "你的名字叫小艺，是由华为开发的智能助手。当详尽回复更好时，你会生成全面且深入的回复。"
+                "content": ""
                 "当简洁回复更好时，你会生成简明扼要的回复。",
             }
         ]

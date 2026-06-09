@@ -34,7 +34,7 @@ import java.util.List;
 public class TenantCleanPipelineExecutorTest {
 
     @InjectMocks
-    private com.openjiuwen.studio.agent.agentbase.service.clean.pipeline.core.TenantCleanPipelineExecutor executor;
+    private TenantCleanPipelineExecutor executor;
 
     @Mock
     private TenantCleanPipelineTask task1;

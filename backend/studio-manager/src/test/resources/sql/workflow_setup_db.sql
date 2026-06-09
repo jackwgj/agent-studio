@@ -46,7 +46,7 @@ VALUES ('test_questions_workflow_id', 'questions测试', 'questions', 'questions
 
 INSERT
  INTO t_agent_workflow(id, name, code, description, avatar, dsl_path, ir_path, status, visibility, created_at, updated_at, published_at, created_by, creator_id, updated_by, updater_id, project_id, domain_id, workspace_id, deploy_wf_version, deleted, workflow_type, last_version_id, ref_workflows, test_status, icon_name)
-VALUES ('test_workflow_scene_id', 'test0326', 'test0326', 'test0326', 'data:image/png;base64,123', 'workflow-ir/workflow/flow/test_workflow_scene_id.json', 'workflow-ir/workflow/ir/test_workflow_scene_id.json', 'published', 'global', 1742995277672, 1748412180770, 1748503257221, '华为官方', 'test_project_id', '官方预置', 'test_project_id', 'test_project_id', 'default', 'default', 1748412180770, 0, 'chat', '1748400865320', '', 0, NULL);
+VALUES ('test_workflow_scene_id', 'test0326', 'test0326', 'test0326', 'data:image/png;base64,123', 'workflow-ir/workflow/flow/test_workflow_scene_id.json', 'workflow-ir/workflow/ir/test_workflow_scene_id.json', 'published', 'global', 1742995277672, 1748412180770, 1748503257221, '官方', 'test_project_id', '官方预置', 'test_project_id', 'test_project_id', 'default', 'default', 1748412180770, 0, 'chat', '1748400865320', '', 0, NULL);
 
 INSERT
  INTO t_agent_workflow(id, name, code, description, avatar, status, created_at, updated_at, published_at, created_by, creator_id, updated_by, updater_id, project_id, domain_id, workspace_id, deploy_wf_version, deleted, dsl_path, workflow_type)

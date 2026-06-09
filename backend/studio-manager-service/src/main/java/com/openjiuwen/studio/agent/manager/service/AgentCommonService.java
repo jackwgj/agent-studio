@@ -123,7 +123,7 @@ public class AgentCommonService {
     private HistoryReleaseVersionRepository historyReleaseVersionRepository;
 
     @Autowired
-    private com.openjiuwen.studio.agent.manager.service.RelationManagementService relationManagementService;
+    private RelationManagementService relationManagementService;
 
     @Value("${agent.default-icon}")
     private String agentDefaultIcon;

@@ -47,6 +47,9 @@ from jiuwen.extension.workflow_node.sub_workflow import (
     GLOBAL_VARIABLES,
     REQUEST_VARIABLES,
     QUESTIONER_STATE_KEY,
+    FLOW_QA_STATE_KEY,
+    FLOW_INPUT_STATE_KEY,
+    CHILD_INTERRUPT_STATE_KEYS,
 )
 from jiuwen.extension.workflow_node.utils import (
     JiuWenBaseException,
@@ -968,6 +971,14 @@ class TestSubWorkflowInteraction:
         self.config = _create_sub_workflow_config()
         self.component = SubWorkflow(self.config)
 
+    def test_child_interrupt_state_keys_cover_session_persisted_components(self):
+        """CHILD_INTERRUPT_STATE_KEYS 应覆盖所有 session.update_state 持久化中断组件。"""
+        assert CHILD_INTERRUPT_STATE_KEYS == (
+            QUESTIONER_STATE_KEY,
+            FLOW_QA_STATE_KEY,
+            FLOW_INPUT_STATE_KEY,
+        )
+
     def test_detect_child_interrupt_from_questioner_state_in_comp_state(self):
         """comp_state 嵌套树中应能识别子 Questioner 的 user_interact 状态。"""
         session = _create_mock_session_with_workflow_instance()
@@ -989,6 +1000,94 @@ class TestSubWorkflowInteraction:
         assert detected is not None
         assert detected[1] == "你想吃什么水果？"
         assert self.component._interrupt_child_node_id == "questioner_node"
+
+    def test_detect_child_interrupt_from_flow_qa_state_in_comp_state(self):
+        """comp_state 嵌套树中应能识别子 FlowQA 的 user_interact 状态。"""
+        session = _create_mock_session_with_workflow_instance()
+        session.dump_state = MagicMock(
+            return_value={
+                "comp_state": {
+                    "parent.sub": {
+                        "node_1780713262733": {
+                            FLOW_QA_STATE_KEY: {
+                                "status": ExecutionStatus.USER_INTERACT.value,
+                                "question": "打招呼",
+                            }
+                        }
+                    }
+                }
+            }
+        )
+        detected = self.component._detect_child_interrupt(session)
+        assert detected is not None
+        assert detected[1] == "打招呼"
+        assert self.component._interrupt_child_node_id == "node_1780713262733"
+
+    def test_should_resume_child_workflow_from_flow_qa_comp_state(self):
+        """组件重建后 node_state=START，仍应从 FlowQA comp_state 识别恢复。"""
+        session = _create_mock_session_with_workflow_instance()
+        session.dump_state = MagicMock(
+            return_value={
+                "comp_state": {
+                    "node_sub.sub": {
+                        "node_1780713262733": {
+                            FLOW_QA_STATE_KEY: {
+                                "status": ExecutionStatus.USER_INTERACT.value,
+                                "question": "打招呼",
+                            }
+                        }
+                    }
+                }
+            }
+        )
+        assert self.component.node_state.status == ExecutionStatus.START
+        assert self.component._should_resume_child_workflow(session) is True
+        assert self.component._interrupt_child_node_id == "node_1780713262733"
+
+    def test_prepare_child_inputs_routes_flow_qa_interrupt_node_on_resume(self):
+        session = _create_mock_session_with_workflow_instance()
+        session.dump_state = MagicMock(
+            return_value={
+                "comp_state": {
+                    "sub": {
+                        "node_1780713262733": {
+                            FLOW_QA_STATE_KEY: {
+                                "status": ExecutionStatus.USER_INTERACT.value,
+                                "question": "打招呼",
+                            }
+                        }
+                    }
+                }
+            }
+        )
+        inputs = {SYSTEM_FIELDS: {"query": "你好"}, USER_FIELDS: {}}
+        child_inputs = self.component._prepare_child_inputs(
+            inputs, session, None, for_stream=True
+        )
+        assert isinstance(child_inputs, InteractiveInput)
+        assert child_inputs.user_inputs.get("node_1780713262733") == "你好"
+
+    def test_detect_child_interrupt_from_flow_input_state_in_comp_state(self):
+        """comp_state 嵌套树中应能识别子 FlowInput 的 user_interact 状态。"""
+        session = _create_mock_session_with_workflow_instance()
+        session.dump_state = MagicMock(
+            return_value={
+                "comp_state": {
+                    "parent.sub": {
+                        "node_input": {
+                            FLOW_INPUT_STATE_KEY: {
+                                "status": ExecutionStatus.USER_INTERACT.value,
+                                "question": "请输入姓名",
+                            }
+                        }
+                    }
+                }
+            }
+        )
+        detected = self.component._detect_child_interrupt(session)
+        assert detected is not None
+        assert detected[1] == "请输入姓名"
+        assert self.component._interrupt_child_node_id == "node_input"
 
     def test_detect_child_interrupt_returns_none_when_idle(self):
         session = _create_mock_session_with_workflow_instance()

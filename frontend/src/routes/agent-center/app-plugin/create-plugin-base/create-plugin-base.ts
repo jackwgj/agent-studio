@@ -545,6 +545,9 @@ export class CreatePluginBaseComponent implements OnInit {
         return true;
       }
       if (form.pluginAuthMethod.value === 'pluginApiKey') {
+        if (this.apiAuthForm.invalid) {
+          return true;
+        }
         return this.apiKeyAuthArgs.some(param => !param.name || !param.value);
       }
 

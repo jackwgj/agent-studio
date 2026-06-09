@@ -46,7 +46,7 @@ public class KnowledgeBaseConfigManagementService implements IKnowledgeBaseConfi
 
     private final KnowledgeConnectionRouterService knowledgeConnectionRouterService;
 
-    private final com.openjiuwen.studio.agent.agentbase.service.KnowledgeBaseResourceManagementService
+    private final KnowledgeBaseResourceManagementService
         resourceManagementService;
 
     public KnowledgeBaseConfigManagementService(ResourceValidateService validateService,

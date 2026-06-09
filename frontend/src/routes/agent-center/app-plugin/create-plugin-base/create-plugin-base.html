@@ -98,7 +98,7 @@
                   <div class="text-label flex justify-between items-center">
                     <p>{{createPluginFormLabel.host }}</p>
                     <button nz-button nzType="default" nzSize="small" (click)="showInserter()" (mousedown)="$event.preventDefault()">
-                      <img  [src]="changeUrl('assets/prompt/insert_variable.svg')" alt="" class="h-4 w-4" />
+                      <img [src]="changeUrl('assets/prompt/insert_variable.svg')" alt="" class="h-4 w-4" />
                     </button>
                   </div>
                 </nz-form-label>
@@ -123,7 +123,7 @@
                   <div class="text-label flex justify-between items-center">
                     <p>{{createPluginFormLabel.baseURL }}</p>
                     <button nz-button nzType="default" nzSize="small" (click)="showInserterBase()" (mousedown)="$event.preventDefault()">
-                      <img  [src]="changeUrl('assets/prompt/insert_variable.svg')" alt="" class="h-4 w-4" />
+                      <img [src]="changeUrl('assets/prompt/insert_variable.svg')" alt="" class="h-4 w-4" />
                     </button>
                   </div>
                 </nz-form-label>
@@ -255,9 +255,14 @@
                           pluginAuthNameValidator
                           maxlength="100"
                           [(ngModel)]="param.name"
-                          [ngModelOptions]="{standalone: true}"
                           [placeholder]="'input_placeholder' | i18nextEager"
+                          [class.input-error]="apiAuthForm?.controls['apiKeyAuthName' + i]?.invalid"
                         />
+
+                        <div *ngIf="apiAuthForm?.controls['apiKeyAuthName' + i]?.invalid" class="error-tip">
+                          {{apiAuthForm?.controls['apiKeyAuthName' + i]?.errors?.serviceName?.tiErrorMessage}}
+                        </div>
+
                       </div>
 
                       <div class="w-[48%]">
@@ -269,8 +274,8 @@
                           [name]="'apiKeyAuthVale' + i"
                           noCn
                           [(ngModel)]="param.value"
-                          [ngModelOptions]="{standalone: true}"
                           [placeholder]="'input_placeholder' | i18nextEager"
+                          [class.input-error]="apiAuthForm?.controls['apiKeyAuthVale' + i]?.invalid"
                         />
 
                         <input
@@ -282,9 +287,12 @@
                           nonEmptyValidator
                           noCn
                           [(ngModel)]="param.value"
-                          [ngModelOptions]="{standalone: true}"
                           [placeholder]="'input_placeholder' | i18nextEager"
+                          [class.input-error]="apiAuthForm?.controls['apiKeyAuthVale' + i]?.invalid"
                         />
+                        <div *ngIf="apiAuthForm?.controls['apiKeyAuthVale' + i]?.invalid" class="error-tip">
+                          {{apiAuthForm?.controls['apiKeyAuthVale' + i]?.errors?.serviceName?.tiErrorMessage}}
+                        </div>
                       </div>
 
                       <span *ngIf="i > 0" (click)="deleteArgs('apiAuth', i)" style="font-size: 16px; cursor: pointer; padding-top: 6px">

@@ -92,7 +92,7 @@ public class OptimizationPromptHandler extends AbstractJobHandler {
             .build(), Case.builder()
             .role("system")
             .content(
-                "你的名字叫智子，是由华为开发的智能助手。当详尽回复更好时，你会生成全面且深入的回复。当简洁回复更好时，你会生成简明扼要的回复。")
+                "你的名字叫智子。当详尽回复更好时，你会生成全面且深入的回复。当简洁回复更好时，你会生成简明扼要的回复。")
             .build());
         try {
             List<ModelCase> cases = new ArrayList<>();

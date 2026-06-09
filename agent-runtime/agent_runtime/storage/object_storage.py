@@ -6,7 +6,7 @@
 对象存储工具 — 用于从对象存储读取 IR 文件
 
 提供可插拔的 ObjectStorageProvider 抽象类，内置实现：
-- S3StorageProvider — 基于 boto3 的 S3 兼容存储（华为 OBS S3 端口、AWS S3、MinIO 等）
+- S3StorageProvider — 基于 boto3 的 S3 兼容存储（ OBS S3 端口、AWS S3、MinIO 等）
 - LocalStorageProvider — 本地文件系统读取
 
 配置项（通过 settings.object_storage 或环境变量）:
@@ -34,7 +34,7 @@ from openjiuwen.core.common.logging import workflow_logger
 class S3StorageProvider(ObjectStorageProvider):
     """基于 boto3 的 S3 兼容存储提供者
 
-    支持华为 OBS S3 端口、AWS S3、MinIO 等兼容 S3 协议的对象存储。
+    支持OBS S3 端口、AWS S3、MinIO 等兼容 S3 协议的对象存储。
     使用 boto3 client.get_object() + 线程池异步读取对象内容。
     """
 

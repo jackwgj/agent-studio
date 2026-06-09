@@ -30,7 +30,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class TenantCleanKnowledgeBaseRouterTaskTest {
 
     @InjectMocks
-    private com.openjiuwen.studio.agent.agentbase.service.clean.pipeline.task.TenantCleanKnowledgeBaseRouterTask task;
+    private TenantCleanKnowledgeBaseRouterTask task;
 
     @Mock
     private CommonCleanMapper commonCleanMapper;

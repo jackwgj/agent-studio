@@ -18,7 +18,7 @@ import org.mockito.quality.Strictness;
 public class KnowledgeBaseDatasetResourceUsageQueryServiceTest {
 
     @InjectMocks
-    private com.openjiuwen.studio.agent.agentbase.service.resource.KnowledgeBaseDatasetResourceUsageQueryService
+    private KnowledgeBaseDatasetResourceUsageQueryService
         knowledgeBaseDatasetResourceUsageQueryService;
 
     @Test

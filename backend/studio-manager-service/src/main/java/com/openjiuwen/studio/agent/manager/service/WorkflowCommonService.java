@@ -43,7 +43,7 @@ public class WorkflowCommonService {
     private HistoryWorkflowMapper historyWorkflowMapper;
 
     @Autowired
-    com.openjiuwen.studio.agent.manager.service.IrAdapterService irAdapterService;
+    IrAdapterService irAdapterService;
 
     @Autowired
     MgObsService mgObsService;

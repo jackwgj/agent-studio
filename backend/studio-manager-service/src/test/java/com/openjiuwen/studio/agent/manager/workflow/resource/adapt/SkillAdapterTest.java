@@ -51,7 +51,7 @@ class SkillAdapterTest {
     private I18nUtil i18nUtil;
 
     @InjectMocks
-    private com.openjiuwen.studio.agent.manager.workflow.resource.adapt.SkillAdapter skillAdapter;
+    private SkillAdapter skillAdapter;
 
     private AutoCloseable mockitoCloseable;
 

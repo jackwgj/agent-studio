@@ -700,6 +700,7 @@ export class CreateToolComponent implements OnInit {
 
   onResponseInput() {
     window.setTimeout(() => {
+      this.responseArgs = mapTreeAddKeyIndex(this.responseArgs, 0);
       if (!this.responseForm) {
         return;
       }
@@ -709,6 +710,7 @@ export class CreateToolComponent implements OnInit {
 
   onInput() {
     window.setTimeout(() => {
+      this.requestArgs = mapTreeAddKeyIndex(this.requestArgs, 0);
       if (!this.inputForm) {
         return;
       }

@@ -53,7 +53,7 @@ public class PluginDTO {
     private String iconName;
 
     @JsonProperty("request_info")
-    private com.openjiuwen.studio.agent.manager.dto.plugin.ToolRequestInfo toolRequestInfo;
+    private ToolRequestInfo toolRequestInfo;
 
     @JsonProperty("auth_info")
     private AuthInfo authInfo;

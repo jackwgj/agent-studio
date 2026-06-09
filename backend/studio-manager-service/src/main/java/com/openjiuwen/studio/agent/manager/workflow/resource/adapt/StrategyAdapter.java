@@ -81,7 +81,7 @@ public class StrategyAdapter extends ResourceAdapter {
 
         Map<String, List<String>> modelParentIdMap = getModelParentMap(modelStrategyEntities);
         // 构造导出数据
-        List<ModelServiceBase> modelServiceBases = com.openjiuwen.studio.agent.manager.workflow.resource.adapt.ModelAdapter.buildModelProviderInfos(modelParentIdMap, exportResp,
+        List<ModelServiceBase> modelServiceBases = ModelAdapter.buildModelProviderInfos(modelParentIdMap, exportResp,
             modelExportEntities);
         // 构造策略中模型导出结果
         exportResp.getExportResults().addAll(getExportModelResults(modelServiceBases));

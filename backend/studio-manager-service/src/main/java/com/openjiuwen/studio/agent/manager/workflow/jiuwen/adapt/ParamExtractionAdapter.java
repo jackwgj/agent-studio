@@ -202,7 +202,7 @@ public class ParamExtractionAdapter extends AbstractIRNodeAdapter {
     private String adaptCondition(Object conditionObj) {
         WorkflowBranchConfigVO condition = JsonUtils.objectToClassType(conditionObj, WorkflowBranchConfigVO.class);
         if (condition != null) {
-            return new com.openjiuwen.studio.agent.manager.workflow.jiuwen.adapt.BranchNodeAdapter().adaptExpression(condition);
+            return new BranchNodeAdapter().adaptExpression(condition);
         } else {
             return StringUtils.EMPTY;
         }

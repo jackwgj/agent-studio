@@ -249,7 +249,7 @@ public class McpServiceManager implements IMcpServiceManagerService {
     private ApiMcpService apigMcpService;
 
     @Resource
-    private com.openjiuwen.studio.agent.manager.service.mcp.McpClientService mcpClientService;
+    private McpClientService mcpClientService;
 
     @Autowired
     private MappingMapper mappingMapper;
@@ -1661,7 +1661,7 @@ public class McpServiceManager implements IMcpServiceManagerService {
                 throw new AgentStudioException(StudioError.MCP_NETWORK_TIMEOUT,
                         "Connect timed out (2s limit) to " + CommonUtil.maskUrlCredentials(targetUrl));
 
-            } catch (java.net.UnknownHostException e) {
+            } catch (UnknownHostException e) {
                 log.error("[NetworkCheck] Unknown Host: {}", e.getMessage());
                 throw new AgentStudioException(StudioError.MCP_UNKNOWN_HOST,
                         "Unknown Host: " + e.getMessage());
@@ -1824,7 +1824,7 @@ public class McpServiceManager implements IMcpServiceManagerService {
         String message = root.getMessage();
 
         // 3. 针对常见网络错误的特殊优化
-        if (root instanceof java.net.UnknownHostException) {
+        if (root instanceof UnknownHostException) {
             return "Unknown Host: " + message;
         }
         if (root instanceof java.net.ConnectException) {

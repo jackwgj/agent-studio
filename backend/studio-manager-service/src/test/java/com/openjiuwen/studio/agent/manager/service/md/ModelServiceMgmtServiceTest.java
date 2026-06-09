@@ -52,7 +52,7 @@ import java.util.stream.Collectors;
 public class ModelServiceMgmtServiceTest {
     @Test
     public void queryFreeModelTest() {
-        com.openjiuwen.studio.agent.manager.service.md.ModelServiceMgmtService service = new ModelServiceMgmtService();
+        ModelServiceMgmtService service = new ModelServiceMgmtService();
         Assertions.assertNull(service.queryFreeModel("null"));
 
         FreeModelServiceMapper freeModelMapper = Mockito.mock(FreeModelServiceMapper.class);

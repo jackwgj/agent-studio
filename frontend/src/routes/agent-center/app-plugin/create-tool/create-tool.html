@@ -64,7 +64,7 @@
       <collapse-text [title]="createPluginFormLabel.requestArguments">
         <ng-template #icons>
           <div class="flex cursor-pointer items-center gap-[4px]" (click)="openDebugModal()">
-            <img  [src]="debugIcon" alt="" />
+            <img [src]="debugIcon" alt="" />
             <span class="text-[#1476ff]">{{ 'tool_debug' | i18nextEager }}</span>
           </div>
         </ng-template>
@@ -95,11 +95,11 @@
                   <collapse-text [title]="'param_list' | i18nextEager" [classType]="'style3'">
                     <ng-template #icons>
                       <button *ngIf="selectedTab==='Body'" (click)="openImportArgsModal('req')" class="mt-2 w-fit gap-1 mr-2" style="display: flex" nz-button nzType="default">
-                        <img  class="w-4 h-4" [src]="changeUrl('assets/agent-center/images/import.svg')" alt="" />
+                        <img class="w-4 h-4" [src]="changeUrl('assets/agent-center/images/import.svg')" alt="" />
                         {{ 'create_tool_import_args' | i18nextEager }}
                       </button>
                       <button (click)="addArgs('requestArgs')" class="mt-2 w-fit gap-1" style="display: flex" nz-button nzType="default">
-                        <img  class="w-4 h-4" [src]="changeUrl('assets/agent-center/icons/add-param.svg')" alt="" />
+                        <img class="w-4 h-4" [src]="changeUrl('assets/agent-center/icons/add-param.svg')" alt="" />
                         {{ 'add_params' | i18nextEager }}
                       </button>
                     </ng-template>
@@ -413,11 +413,11 @@
           <collapse-text [title]="'param_list' | i18nextEager" [classType]="'style2'">
             <ng-template #icons>
               <button (click)="openImportArgsModal('res')" class="mt-2 w-fit gap-1 mr-2" style="display: flex" nz-button nzType="default">
-                <img  class="w-4 h-4" [src]="changeUrl('assets/agent-center/images/import.svg')" alt="" />
+                <img class="w-4 h-4" [src]="changeUrl('assets/agent-center/images/import.svg')" alt="" />
                 {{ 'create_tool_import_args' | i18nextEager }}
               </button>
               <button (click)="addArgs('responseArgs')" class="mt-2 w-fit gap-1" style="display: flex" nz-button nzType="default">
-                <img  class="w-4 h-4" [src]="changeUrl('assets/agent-center/icons/add-param.svg')" alt="" />
+                <img class="w-4 h-4" [src]="changeUrl('assets/agent-center/icons/add-param.svg')" alt="" />
                 {{ 'add_params' | i18nextEager }}
               </button>
             </ng-template>

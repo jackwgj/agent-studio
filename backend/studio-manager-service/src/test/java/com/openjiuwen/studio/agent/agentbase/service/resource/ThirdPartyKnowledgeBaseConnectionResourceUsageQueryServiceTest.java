@@ -18,7 +18,7 @@ import org.mockito.quality.Strictness;
 public class ThirdPartyKnowledgeBaseConnectionResourceUsageQueryServiceTest {
 
     @InjectMocks
-    private com.openjiuwen.studio.agent.agentbase.service.resource.ThirdPartyKnowledgeBaseConnectionResourceUsageQueryService
+    private ThirdPartyKnowledgeBaseConnectionResourceUsageQueryService
         service;
 
     @Test

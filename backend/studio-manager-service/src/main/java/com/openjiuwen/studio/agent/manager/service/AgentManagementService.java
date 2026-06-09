@@ -285,7 +285,7 @@ public class AgentManagementService implements IAgentManagementService {
 
     private final MgObsService mgObsService;
 
-    private final com.openjiuwen.studio.agent.manager.service.RelationManagementService relationManagementService;
+    private final RelationManagementService relationManagementService;
 
     private final IrAdapterService irAdapterService;
 

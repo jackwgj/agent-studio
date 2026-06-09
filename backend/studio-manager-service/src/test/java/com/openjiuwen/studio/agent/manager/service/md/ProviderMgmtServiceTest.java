@@ -60,7 +60,7 @@ public class ProviderMgmtServiceTest {
     private UserModelServiceProviderMapper userProviderMapper;
 
     @Mock
-    private com.openjiuwen.studio.agent.manager.service.md.ProviderAuthService authService;
+    private ProviderAuthService authService;
 
     @Mock
     private ProviderAuthMetadataMapper metadataMapper;

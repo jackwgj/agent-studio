@@ -95,10 +95,10 @@ class ClientServiceTest {
 
     @Test
     void test_queryIamUserDetail() {
-        com.alibaba.fastjson2.JSONObject jsonObject = new JSONObject();
-        ResponseEntity<com.alibaba.fastjson2.JSONObject> response = new ResponseEntity<>(jsonObject, HttpStatus.OK);
+        JSONObject jsonObject = new JSONObject();
+        ResponseEntity<JSONObject> response = new ResponseEntity<>(jsonObject, HttpStatus.OK);
         when(iamClient.queryIamUserDetail(anyString(), anyString())).thenReturn(response);
-        ResponseEntity<com.alibaba.fastjson2.JSONObject> result = clientService.queryIamUserDetail("token", "abc");
+        ResponseEntity<JSONObject> result = clientService.queryIamUserDetail("token", "abc");
         assertNotNull(result);
     }
 }

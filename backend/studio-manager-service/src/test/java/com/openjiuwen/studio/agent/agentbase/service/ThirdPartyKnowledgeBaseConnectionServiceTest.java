@@ -127,7 +127,7 @@ class ThirdPartyKnowledgeBaseConnectionServiceTest {
     private RetrieveProcessor retrieveProcessor;
 
     @InjectMocks
-    private com.openjiuwen.studio.agent.agentbase.service.ThirdPartyKnowledgeBaseConnectionService
+    private ThirdPartyKnowledgeBaseConnectionService
         thirdPartyKnowledgeBaseConnectionService;
 
     private AutoCloseable mockitoCloseable;

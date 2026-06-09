@@ -27,7 +27,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 public class KnowledgeBaseFaqServiceImplTest {
 
     @InjectMocks
-    private com.openjiuwen.studio.agent.agentbase.service.KnowledgeBaseFaqServiceImpl knowledgeBaseFaqService;
+    private KnowledgeBaseFaqServiceImpl knowledgeBaseFaqService;
 
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
     private KnowledgeBaseMapper knowledgeBaseMapper;

@@ -15,7 +15,7 @@ import java.util.Map;
 public class EnumConverterFactory implements ConverterFactory<String, IEnum<?>> {
     @Override
     public <T extends IEnum<?>> Converter<String, T> getConverter(Class<T> targetType) {
-        return new EnumConverterFactory.EnumConverter<>(targetType);
+        return new EnumConverter<>(targetType);
     }
 
     private static class EnumConverter<T extends IEnum<?>> implements Converter<String, T> {

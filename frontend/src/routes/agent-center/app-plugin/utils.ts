@@ -63,7 +63,7 @@ export const isResObjSchema = (prop: IResArgProps): prop is IResObjProps => {
 };
 
 export const isSimpleType = (type: string) => {
-  return type !== 'object' && !type.startsWith('array');
+  return type !== 'object' && type?.startsWith && !type?.startsWith('array');
 };
 
 const getDefaultValue = (item: any) => {

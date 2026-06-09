@@ -46,7 +46,7 @@ class AgentImportServiceTest {
     private MemoryRepoMapper memoryRepoMapper;
 
     @InjectMocks
-    private com.openjiuwen.studio.agent.manager.service.AgentImportService agentImportService;
+    private AgentImportService agentImportService;
 
     private AutoCloseable mockitoCloseable;
 

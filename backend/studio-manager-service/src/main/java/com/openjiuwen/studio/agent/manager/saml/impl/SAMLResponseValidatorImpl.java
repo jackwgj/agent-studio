@@ -37,7 +37,7 @@ public class SAMLResponseValidatorImpl implements SAMLResponseValidator {
     private final ServiceProvider provider;
 
     public SAMLResponseValidatorImpl(String response) throws SAMLException {
-        this.response = new com.openjiuwen.studio.agent.manager.saml.impl.SAMLResponseImpl(response);
+        this.response = new SAMLResponseImpl(response);
         this.provider = ServiceProviderImpl.getInstance();
     }
 

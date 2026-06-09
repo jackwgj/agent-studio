@@ -71,7 +71,7 @@ class LicenseControlScheduleTest {
     private RedisClient redisClient;
 
     @InjectMocks
-    private com.openjiuwen.studio.agent.manager.license.LicenseControlSchedule licenseControlSchedule;
+    private LicenseControlSchedule licenseControlSchedule;
 
     private AutoCloseable mockitoCloseable;
 

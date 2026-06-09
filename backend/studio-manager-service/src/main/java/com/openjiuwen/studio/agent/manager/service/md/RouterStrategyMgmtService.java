@@ -75,7 +75,7 @@ public class RouterStrategyMgmtService implements IRouterStrategyMgmtService {
     private ModelServiceMapper modelServiceMapper;
 
     @Autowired
-    private com.openjiuwen.studio.agent.manager.service.md.ModelServiceManager modelServiceManager;
+    private ModelServiceManager modelServiceManager;
 
     @Autowired
     private ModelLicenseCtrlService licenseCtrlService;

@@ -228,7 +228,7 @@ public class WorkflowValidationService {
     private IPluginBase pluginDomain;
 
     @Autowired
-    private com.openjiuwen.studio.agent.manager.service.ShareResourceManagerService shareResourceManagerService;
+    private ShareResourceManagerService shareResourceManagerService;
 
     @Autowired
     private ShareResourceMapper shareResourceMapper;

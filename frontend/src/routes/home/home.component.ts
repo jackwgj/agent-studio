@@ -419,7 +419,7 @@ export class HomeComponent implements OnInit, OnDestroy {
                       'environment_management',
                     ),
                     icon: cdnAssetUrl('assets/images/menu/env_mgt.svg'),
-                    iconSelected: cdnAssetUrl('assets/env/env-memu-active.svg'),
+                    iconSelected: cdnAssetUrl('assets/env-manager/env-memu-active.svg'),
                     router: [
                       'platform-management/environment-management-home',
                     ],

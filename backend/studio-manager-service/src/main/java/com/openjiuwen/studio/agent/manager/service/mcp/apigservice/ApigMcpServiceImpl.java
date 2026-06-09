@@ -46,7 +46,7 @@ import java.util.ArrayList;
  */
 @Slf4j
 @Service
-public class ApigMcpServiceImpl implements com.openjiuwen.studio.agent.manager.service.mcp.apigservice.ApiMcpService {
+public class ApigMcpServiceImpl implements ApiMcpService {
     @Autowired
     private ApigApisMapper apigApisMapper;
 

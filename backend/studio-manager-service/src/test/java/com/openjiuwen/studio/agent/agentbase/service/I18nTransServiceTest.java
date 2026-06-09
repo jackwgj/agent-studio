@@ -46,7 +46,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class I18nTransServiceTest {
 
     @InjectMocks
-    private com.openjiuwen.studio.agent.agentbase.service.I18nTransService i18nTransService;
+    private I18nTransService i18nTransService;
 
     @Mock
     private KnowledgeBaseI18nResourceMapper i18nMapper;

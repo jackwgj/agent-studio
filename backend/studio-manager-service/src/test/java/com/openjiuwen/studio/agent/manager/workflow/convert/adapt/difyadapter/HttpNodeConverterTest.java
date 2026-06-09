@@ -29,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class HttpNodeConverterTest {
 
-    private com.openjiuwen.studio.agent.manager.workflow.convert.adapt.difyadapter.HttpNodeConverter converter;
+    private HttpNodeConverter converter;
     private Map<String, WorkflowNodeVO> workflowNodeMap;
     private final CheckUrlService checkUrlService = new CheckUrlService();
 

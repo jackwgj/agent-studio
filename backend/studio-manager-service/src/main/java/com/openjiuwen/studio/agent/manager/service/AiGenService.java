@@ -32,7 +32,7 @@ import java.util.List;
 @Slf4j
 public class AiGenService {
     @Autowired
-    private com.openjiuwen.studio.agent.manager.service.AgentCommonService agentCommonService;
+    private AgentCommonService agentCommonService;
 
     @Autowired
     private JiuWenService jiuWenService;

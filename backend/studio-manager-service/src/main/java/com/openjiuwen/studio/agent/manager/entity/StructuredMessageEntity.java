@@ -41,7 +41,7 @@ public class StructuredMessageEntity {
      * JSON格式的消息体
      */
     @JsonProperty("content")
-    private com.openjiuwen.studio.agent.manager.entity.JsonMap content;
+    private JsonMap content;
 
     public Map<String, Object> getContentMap() {
         return content != null ? content.toMap() : null;

@@ -194,7 +194,7 @@ public class ToolManagementService implements IToolManagementService {
 
     private final UrlCheckUtils urlCheckUtils;
 
-    private final com.openjiuwen.studio.agent.manager.service.AgentCommonService agentCommonService;
+    private final AgentCommonService agentCommonService;
 
     private final MessageSource messageSource;
 

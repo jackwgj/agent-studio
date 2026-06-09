@@ -65,7 +65,7 @@ public class RouterStrategyMgmtServiceTest {
     private ModelServiceMapper modelServiceMapperMock;
 
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
-    private com.openjiuwen.studio.agent.manager.service.md.ModelServiceManager modelServiceManagerMock;
+    private ModelServiceManager modelServiceManagerMock;
 
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
     private ModelServiceMapper modelServiceMapper;

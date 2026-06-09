@@ -18,7 +18,7 @@ def collect_resource_list(resource_type, id_list, resource_list):
     resource_type: 资源类型（plugin、knowledge、workflow、mcp）
     id_list: Agent集成的某类资源id列表。
     resource_list: 完整的某类原始的资源信息列表。
-    返回华为元格式的资源列表。
+    返回元格式的资源列表。
     """
     if not id_list:
         return []
@@ -32,7 +32,7 @@ def collect_resource_list(resource_type, id_list, resource_list):
 
 
 def transform_to_cloud(input_json: dict, full_resource_dict: dict):
-    """转换成华为云格式"""
+    """转换成格式"""
     payload = request_json.get({})  # 从上下文变量中获取用户请求的模型配置
     knowledge_list = full_resource_dict.get("knowledge", [])
 
@@ -50,7 +50,7 @@ def transform_to_cloud(input_json: dict, full_resource_dict: dict):
     data["model_deployment_id"] = extension.get("deploymentId")
     data["model_name"] = model_info.get("modelExplicitName")
 
-    data["tools"] = input_json["tools_id_parse"]  # 优化华为云格式插件
+    data["tools"] = input_json["tools_id_parse"]  # 优化格式插件
 
     knowledge_id_parse = input_json["knowledge_id_parse"]
     data["knowledge_repos"] = collect_resource_list(
@@ -62,7 +62,7 @@ def transform_to_cloud(input_json: dict, full_resource_dict: dict):
         )
 
     # @override(jiuwen) workflows not yet adapted
-    data["workflows"] = []  # 优化华为云格式工作流
+    data["workflows"] = []  # 优化格式工作流
 
     data["mcp_servers"] = []
 

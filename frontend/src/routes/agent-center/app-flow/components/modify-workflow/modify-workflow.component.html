@@ -52,6 +52,9 @@
             @if (control.hasError('required')) {
               {{ 'required' | i18nextEager }}
             }
+            @if (control.hasError('maxlength')) {
+              {{ '超过最大长度' + MAXLENGHT + '个字符' }}
+            }
           </ng-template>
         </nz-form-control>
       </nz-form-item>

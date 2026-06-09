@@ -21,7 +21,7 @@ import java.util.HashMap;
 public class ResourceUsageFactoryTest {
 
     @InjectMocks
-    private com.openjiuwen.studio.agent.agentbase.service.resource.ResourceUsageFactory resourceUsageFactory;
+    private ResourceUsageFactory resourceUsageFactory;
 
     @Test
     void test_queryResourceUsageCountInKnowledgeBase_throw_exception() {

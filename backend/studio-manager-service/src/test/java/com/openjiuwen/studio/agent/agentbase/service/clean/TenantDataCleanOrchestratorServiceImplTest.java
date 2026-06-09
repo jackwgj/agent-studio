@@ -38,7 +38,7 @@ class TenantDataCleanOrchestratorServiceImplTest {
     @Mock
     private TenantCleanPipelineExecutor pipelineExecutor;
 
-    private com.openjiuwen.studio.agent.agentbase.service.clean.TenantDataCleanOrchestratorServiceImpl
+    private TenantDataCleanOrchestratorServiceImpl
         tenantDataCleanOrchestratorService;
 
     private static final String TEST_DOMAIN_ID = "testDomain123";

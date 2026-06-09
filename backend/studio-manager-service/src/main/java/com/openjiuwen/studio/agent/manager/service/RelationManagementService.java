@@ -176,7 +176,7 @@ public class RelationManagementService implements IRelationManagementService {
     private ModelServiceManager modelServiceManager;
 
     @Autowired
-    private com.openjiuwen.studio.agent.manager.service.ShareResourceManagerService shareResourceManagerService;
+    private ShareResourceManagerService shareResourceManagerService;
 
     @Autowired
     private MgObsService mgObsService;
@@ -185,7 +185,7 @@ public class RelationManagementService implements IRelationManagementService {
     private IPluginBase pluginBase;
 
     @Autowired
-    private com.openjiuwen.studio.agent.manager.service.ResourceService resourceService;
+    private ResourceService resourceService;
 
     @Autowired
     private ShareInnerService shareInnerService;

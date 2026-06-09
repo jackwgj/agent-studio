@@ -54,7 +54,7 @@ public class TenantCleanKnowledgeBaseTaskTest {
     @Mock
     private KnowledgeRepoService knowledgeRepoService;
 
-    private com.openjiuwen.studio.agent.agentbase.service.clean.pipeline.task.TenantCleanKnowledgeBaseTask
+    private TenantCleanKnowledgeBaseTask
         tenantCleanKnowledgeBaseTask;
 
     @BeforeEach

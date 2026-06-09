@@ -77,7 +77,7 @@ public class SyncAgentWorkflowObsTask implements CommandLineRunner {
     private ReleaseChannelMapper releaseChannelMapper;
 
     @Autowired
-    private com.openjiuwen.studio.agent.manager.service.startup.McpUpdateService mcpUpdateService;
+    private McpUpdateService mcpUpdateService;
 
     @Autowired
     private UpdatePromptService updatePromptService;

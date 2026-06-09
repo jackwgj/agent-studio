@@ -118,7 +118,7 @@ class CssUniSearchServiceTest {
     @Mock
     private KooSearchConnectionProvider kooSearchConnectionProvider;
 
-    private com.openjiuwen.studio.agent.agentbase.service.knowledgerepo.CssUniSearchService cssUniSearchService;
+    private CssUniSearchService cssUniSearchService;
 
     @BeforeEach
     void init() {

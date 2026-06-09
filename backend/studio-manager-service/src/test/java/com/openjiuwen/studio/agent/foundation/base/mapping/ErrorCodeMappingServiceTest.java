@@ -14,7 +14,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 public class ErrorCodeMappingServiceTest {
 
     @InjectMocks
-    private com.openjiuwen.studio.agent.foundation.base.mapping.ErrorCodeMappingService errorCodeMappingService;
+    private ErrorCodeMappingService errorCodeMappingService;
 
     @BeforeEach
     void setUp() {

@@ -23,7 +23,7 @@ import java.util.List;
 @Component
 public class ModelInterfaceProtocolMgmtService implements IModelInterfaceProtocolMgmtService {
     @Autowired
-    private com.openjiuwen.studio.agent.manager.service.md.ModelInterfaceProtocolService service;
+    private ModelInterfaceProtocolService service;
 
     @Override
     public ModelInterfaceProtocolListRsp queryMdInterfaceProtocol(String projectId, QueryMdInterfaceProtocolQo qo) {

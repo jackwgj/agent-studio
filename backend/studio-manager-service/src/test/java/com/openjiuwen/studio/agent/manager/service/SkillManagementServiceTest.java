@@ -73,7 +73,7 @@ public class SkillManagementServiceTest {
     private MappingMapper mappingMapper;
 
     @InjectMocks
-    private com.openjiuwen.studio.agent.manager.service.SkillManagementService skillManagementService;
+    private SkillManagementService skillManagementService;
 
 
     @BeforeEach

@@ -29,7 +29,7 @@ public class KnowledgeBaseLicenseService {
 
     private final static long BASE_UNIT = 1024L * 1024 * 1024;
 
-    private final com.openjiuwen.studio.agent.agentbase.service.config.KnowledgeBaseSystemConfigService configService;
+    private final KnowledgeBaseSystemConfigService configService;
 
     private final Cache<String, Long> licenseCache;
 

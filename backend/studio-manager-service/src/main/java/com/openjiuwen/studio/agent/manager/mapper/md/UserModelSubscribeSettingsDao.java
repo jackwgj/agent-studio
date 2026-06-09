@@ -23,7 +23,7 @@ import java.util.List;
 @Repository
 @RequiredArgsConstructor(onConstructor_ = {@Autowired})
 public class UserModelSubscribeSettingsDao {
-    private final com.openjiuwen.studio.agent.manager.mapper.md.UserModelSubscribeSettingsMapper
+    private final UserModelSubscribeSettingsMapper
         userModelSubscribeSettingsMapper;
 
     private static final String DOMAIN_ID_FILTER_KEY = "DOMAIN_ID";

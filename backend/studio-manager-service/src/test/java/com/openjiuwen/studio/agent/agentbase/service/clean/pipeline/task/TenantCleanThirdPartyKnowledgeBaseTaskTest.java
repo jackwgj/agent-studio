@@ -33,7 +33,7 @@ import java.lang.reflect.Field;
 public class TenantCleanThirdPartyKnowledgeBaseTaskTest {
 
     @InjectMocks
-    private com.openjiuwen.studio.agent.agentbase.service.clean.pipeline.task.TenantCleanThirdPartyKnowledgeBaseTask
+    private TenantCleanThirdPartyKnowledgeBaseTask
         task;
 
     @Mock

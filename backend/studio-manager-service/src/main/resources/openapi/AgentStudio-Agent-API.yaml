@@ -4312,6 +4312,7 @@ definitions:
         type: string
         description: 智能体名称。
         pattern: ^[\u4e00-\u9fa5a-zA-Z0-9_\-（）()！!](?:[\u4e00-\u9fa5a-zA-Z0-9_\-（）()！! ]*[\u4e00-\u9fa5a-zA-Z0-9_\-（）()！!])?$
+        minLength: 2
         maxLength: 64
       type:
         type: string
@@ -4324,6 +4325,7 @@ definitions:
       description:
         type: string
         description: 智能体描述。
+        minLength: 1
         maxLength: 256
       icon:
         type: string

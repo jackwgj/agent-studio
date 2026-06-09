@@ -57,7 +57,7 @@ public class UserInfoBean implements Serializable {
     public final static String KEY_OBJECTCLASS = "objectclass";
 
     /**
-     * 用户id 华为员工为姓名第一字母＋5位工号；
+     * 用户id
      */
     public final static String KEY_UID = "uid";
 
@@ -67,12 +67,12 @@ public class UserInfoBean implements Serializable {
     public final static String KEY_CN = "cn";
 
     /**
-     * 姓氏，华为员工为5位工号
+     * 姓氏
      */
     public final static String KEY_SN = "sn";
 
     /**
-     * First name (English and Chinese)，华为员工为姓名全拼
+     * First name (English and Chinese)
      */
     public final static String KEY_GIVENNAME = "givenname";
 
@@ -97,7 +97,7 @@ public class UserInfoBean implements Serializable {
     public final static String KEY_STREET = "street";
 
     /**
-     * 办公地点，预留用于华为员工。
+     * 办公地点
      */
     public final static String KEY_LOCATIONNAME = "locationname";
 
@@ -324,7 +324,7 @@ public class UserInfoBean implements Serializable {
     public final static String KEY_BINDIP = "bindip";
 
     /**
-     * 华为客户、合作方服务号。
+     * 服务号。
      */
     public final static String KEY_SERVICENUMBER = "servicenumber";
 

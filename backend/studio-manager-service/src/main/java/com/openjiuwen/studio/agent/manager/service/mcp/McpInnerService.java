@@ -29,7 +29,7 @@ import java.util.List;
 
 @Slf4j
 @Service
-public class McpInnerService implements com.openjiuwen.studio.agent.manager.service.mcp.IMcpInnerService {
+public class McpInnerService implements IMcpInnerService {
 
     @Autowired
     private EncryptionAdapter encryptionAdapter;

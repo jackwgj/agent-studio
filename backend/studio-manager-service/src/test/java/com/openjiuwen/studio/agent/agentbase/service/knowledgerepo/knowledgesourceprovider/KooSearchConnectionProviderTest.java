@@ -34,7 +34,7 @@ class KooSearchConnectionProviderTest {
     @Mock
     private KnowledgeBaseConnectionMapper knowledgeBaseConnectionMapper;
 
-    private com.openjiuwen.studio.agent.agentbase.service.knowledgerepo.knowledgesourceprovider.KooSearchConnectionProvider
+    private KooSearchConnectionProvider
         kooSearchConnectionProvider;
 
     Cache<String, KnowledgeBaseConnectionEntity> knowledgeBaseConnectionEntityCacheByConnectionId

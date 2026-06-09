@@ -518,7 +518,7 @@ public class IrAdapterService {
     private ModelServiceManager modelServiceManager;
 
     @Autowired
-    private com.openjiuwen.studio.agent.manager.service.RelationManagementService relationManagementService;
+    private RelationManagementService relationManagementService;
 
     @Autowired
     private MgObsService mgObsService;

@@ -96,7 +96,7 @@ class PromptEngineerServiceTest {
         + "        \"top_p\": 1,\n" + "        \"temperature\": 0,\n" + "        \"max_tokens\": 1000\n" + "    },\n"
         + "    \"maxIterNum\": 3,\n" + "    \"targetAcc\": \"90\",\n" + "    \"showCaseNum\": 3,\n"
         + "    \"targetType\": \"objective\",\n" + "    \"scoreStandard\": \"内容相关性:30分,语言流畅度:20分,创新性:50分\",\n"
-        + "    \"backKnowledge\": \"华为手机是最吊的\"\n" + "}";
+        + "    \"backKnowledge\": \"\"\n" + "}";
 
     @BeforeEach
     void setUp() throws Exception {

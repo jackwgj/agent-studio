@@ -35,7 +35,7 @@ class AgentMemoryConfigServiceTest {
     private AgentCommonService agentCommonService;
 
     @InjectMocks
-    private com.openjiuwen.studio.agent.manager.service.memory.AgentMemoryConfigService agentMemoryConfigService;
+    private AgentMemoryConfigService agentMemoryConfigService;
 
     private AutoCloseable mockitoCloseable;
 

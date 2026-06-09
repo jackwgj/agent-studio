@@ -72,7 +72,7 @@ class LakeSearchClientTest {
     @Mock
     private KnowledgeConnectionRouterService knowledgeConnectionRouterService;
 
-    private com.openjiuwen.studio.agent.agentbase.client.AgentBaseLakeSearchClient agentBaseLakeSearchClient;
+    private AgentBaseLakeSearchClient agentBaseLakeSearchClient;
 
     @BeforeEach
     void init() {

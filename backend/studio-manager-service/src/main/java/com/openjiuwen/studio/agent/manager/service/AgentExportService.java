@@ -65,7 +65,7 @@ public class AgentExportService {
     private int importMaxLen;
 
     @Autowired
-    com.openjiuwen.studio.agent.manager.service.SkuManageService skuManageService;
+    SkuManageService skuManageService;
 
     @Autowired
     private ResourceAdapterFactory resourceAdapterFactory;

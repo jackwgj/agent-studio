@@ -34,7 +34,7 @@ class LakeSearchConnectionProviderTest {
     @Mock
     private KnowledgeBaseConnectionMapper knowledgeBaseConnectionMapper;
 
-    private com.openjiuwen.studio.agent.agentbase.service.knowledgerepo.knowledgesourceprovider.LakeSearchConnectionProvider
+    private LakeSearchConnectionProvider
         lakeSearchConnectionProvider;
 
     Cache<String, KnowledgeBaseConnectionEntity> knowledgeBaseConnectionEntityCacheByConnectionId

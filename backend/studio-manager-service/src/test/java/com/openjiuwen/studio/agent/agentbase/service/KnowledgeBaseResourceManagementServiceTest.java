@@ -46,7 +46,7 @@ class KnowledgeBaseResourceManagementServiceTest {
     private KnowledgeBaseMapper knowledgeBaseMapper;
 
     @InjectMocks
-    private com.openjiuwen.studio.agent.agentbase.service.KnowledgeBaseResourceManagementService
+    private KnowledgeBaseResourceManagementService
         knowledgeBaseResourceManagementService;
 
     private AutoCloseable mockitoCloseable;

@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -xe
 
+# 兼容 Docker Daemon API 版本（当 client 版本高于 daemon 时需要设置）
+# 可通过 docker version 查看 daemon 的 API version，按需修改
+export DOCKER_API_VERSION=1.43
+
 # java基础镜像 (Debian-based, for manager/service)
 BASE_IMAGE_JAVA="eclipse-temurin:17-jre"
 # java基础镜像 (公共标准镜像，yum-based，for runtime)

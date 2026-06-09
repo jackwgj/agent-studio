@@ -27,7 +27,7 @@ class KnowledgeBaseResourceUsageQueryServiceTest {
     @Mock
     private KnowledgeBaseMapper knowledgeBaseMapper;
 
-    private com.openjiuwen.studio.agent.agentbase.service.resource.KnowledgeBaseResourceUsageQueryService
+    private KnowledgeBaseResourceUsageQueryService
         knowledgeBaseResourceUsageQueryService;
 
     @BeforeEach

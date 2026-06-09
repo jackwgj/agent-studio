@@ -470,7 +470,7 @@ public class WorkflowManagementService implements IWorkflowManagementService {
 
     @Resource
     @Lazy
-    private com.openjiuwen.studio.agent.manager.service.AgentManagementService agentManagementService;
+    private AgentManagementService agentManagementService;
 
     @Autowired
     private WorkflowCommonService workflowCommonService;

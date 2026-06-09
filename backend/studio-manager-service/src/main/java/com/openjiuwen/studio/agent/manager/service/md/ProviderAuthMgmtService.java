@@ -46,7 +46,7 @@ public class ProviderAuthMgmtService implements IProviderAuthMgmtService {
     private ProviderAuthMetadataMapper metadataMapper;
 
     @Autowired
-    private com.openjiuwen.studio.agent.manager.service.md.ModelServiceManager serviceManager;
+    private ModelServiceManager serviceManager;
 
     @Value("${model.soft.delete.enable:false}")
     private boolean modelSoftDelete;

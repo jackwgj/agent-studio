@@ -36,7 +36,7 @@ public class AgentBaseExceptionHandler {
      * @param agentBaseException AgentBaseException
      * @return Return result
      */
-    @ExceptionHandler(com.openjiuwen.studio.agent.foundation.base.exception.AgentBaseException.class)
+    @ExceptionHandler(AgentBaseException.class)
     @ResponseBody
     public ResponseEntity<ErrorResponse> handleAgentBaseException(AgentBaseException agentBaseException) {
         log.error("throw AgentBaseException exception: {}", agentBaseException.getMessage(), agentBaseException);

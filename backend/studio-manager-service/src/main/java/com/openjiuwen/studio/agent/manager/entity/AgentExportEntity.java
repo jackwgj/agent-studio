@@ -41,7 +41,7 @@ public class AgentExportEntity {
     /**
      * 工作流导出封装对象
      */
-    private List<com.openjiuwen.studio.agent.manager.entity.WorkflowExportEntity> workflows;
+    private List<WorkflowExportEntity> workflows;
 
     /**
      * mcp服务元数据

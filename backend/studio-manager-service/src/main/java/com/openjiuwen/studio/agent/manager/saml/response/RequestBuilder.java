@@ -40,7 +40,7 @@ public class RequestBuilder {
         AuthnRequest authnRequest = new AuthnRequest(this.issuer, this.issuer, this.serviceUrl);
         authnRequest.setDigestAlgorithm(digestAlgorithm);
         authnRequest.setSignatureAlgorithm(signatureAlgorithm);
-        com.openjiuwen.studio.agent.manager.saml.response.Request request = new Request(authnRequest, this.privateKeyEntry);
+        Request request = new Request(authnRequest, this.privateKeyEntry);
         Document doc = DocumentHelper.createDocument();
         doc.setRootElement(request.toXML());
         return doc.asXML();

@@ -177,7 +177,7 @@ public class ControllerManagementService {
     private ShareResourceMapper shareResourceMapper;
 
     @Autowired
-    private com.openjiuwen.studio.agent.manager.service.RelationManagementService relationManagementService;
+    private RelationManagementService relationManagementService;
 
     @Autowired
     private AgentMemoryConfigService agentMemoryConfigService;

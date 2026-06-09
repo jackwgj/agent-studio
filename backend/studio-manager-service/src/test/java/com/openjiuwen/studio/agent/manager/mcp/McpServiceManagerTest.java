@@ -191,7 +191,7 @@ class McpServiceManagerTest {
     }
 
     private int findAvailablePort() {
-        try (java.net.ServerSocket socket = new java.net.ServerSocket(0)) {
+        try (ServerSocket socket = new ServerSocket(0)) {
             return socket.getLocalPort();
         } catch (Exception e) {
             return 8080;

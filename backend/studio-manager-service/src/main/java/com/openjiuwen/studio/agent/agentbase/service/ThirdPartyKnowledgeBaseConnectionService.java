@@ -123,7 +123,7 @@ public class ThirdPartyKnowledgeBaseConnectionService implements IThirdPartyKnow
 
     final ResourceValidateService resourceValidateService;
 
-    private final com.openjiuwen.studio.agent.agentbase.service.I18nTransService i18nTransService;
+    private final I18nTransService i18nTransService;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 

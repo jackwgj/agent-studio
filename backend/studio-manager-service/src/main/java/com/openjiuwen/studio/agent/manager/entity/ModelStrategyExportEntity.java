@@ -16,7 +16,7 @@ import java.util.List;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class ModelStrategyExportEntity {
     @JsonProperty("model_export_entity")
-    private List<com.openjiuwen.studio.agent.manager.entity.ModelExportEntity> modelExportEntity;
+    private List<ModelExportEntity> modelExportEntity;
 
     @JsonProperty("router_strategy_entity_metadata")
     private RouterStrategyEntity routerStrategyEntityMetadata;

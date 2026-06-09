@@ -37,14 +37,14 @@ public class ModifyAgentReq implements Serializable {
     @JsonProperty("name")
     @Pattern(
         regexp = "^[\\u4e00-\\u9fa5a-zA-Z0-9_\\-（）()！!](?:[\\u4e00-\\u9fa5a-zA-Z0-9_\\-（）()！! ]*[\\u4e00-\\u9fa5a-zA-Z0-9_\\-（）()！!])?$")
-    @Length(max = 64)
+    @Length(min = 2, max = 64)
     private String name = null;
 
     @JsonProperty("type")
     private TypeEnum type = null;
 
     @JsonProperty("description")
-    @Length(max = 256)
+    @Length(min = 1, max = 256)
     private String description = null;
 
     @JsonProperty("icon")
@@ -815,7 +815,7 @@ public class ModifyAgentReq implements Serializable {
     }
 
     @Override
-    public boolean equals(java.lang.Object o) {
+    public boolean equals(Object o) {
         if (this == o) {
             return true;
         }
@@ -878,7 +878,7 @@ public class ModifyAgentReq implements Serializable {
      * Convert the given object to string with each line indented by 4 spaces
      * (except the first line).
      */
-    private String toIndentedString(java.lang.Object o) {
+    private String toIndentedString(Object o) {
         if (o == null) {
             return "null";
         }

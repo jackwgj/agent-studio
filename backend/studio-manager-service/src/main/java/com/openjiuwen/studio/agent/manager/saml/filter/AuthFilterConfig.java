@@ -30,7 +30,7 @@ public class AuthFilterConfig {
      * 用于拦截未认证请求并重定向到SAML IDP
      */
     @Bean
-    public FilterRegistrationBean<com.openjiuwen.studio.agent.manager.saml.filter.SamlAuthFilter> samlAuthFilterRegistration(SamlAuthFilter samlAuthFilter) {
+    public FilterRegistrationBean<SamlAuthFilter> samlAuthFilterRegistration(SamlAuthFilter samlAuthFilter) {
         FilterRegistrationBean<SamlAuthFilter> registrationBean = new FilterRegistrationBean<>();
         log.info("=== SamlAuthFilterConfig init finish  ===");
         registrationBean.setFilter(samlAuthFilter);

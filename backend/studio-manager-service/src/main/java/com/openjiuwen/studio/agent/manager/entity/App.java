@@ -130,7 +130,7 @@ public class App {
      *
      * @param agent agent
      */
-    public App(com.openjiuwen.studio.agent.manager.entity.Agent agent) {
+    public App(Agent agent) {
         this.appId = UUID.randomUUID().toString();
         this.projectId = agent.getProjectId();
         this.workspaceId = agent.getWorkspaceId();

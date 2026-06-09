@@ -14,7 +14,7 @@ class AgentBaseRagConnectionTest {
 
     @Test
     void isValid() {
-        com.openjiuwen.studio.agent.agentbase.service.knowledgerepo.connection.AgentBaseRagConnection
+        AgentBaseRagConnection
             agentBaseRagConnection = new AgentBaseRagConnection();
         agentBaseRagConnection.setEndpoint("http://127.0.0.1");
         Assertions.assertTrue(agentBaseRagConnection.isValid());

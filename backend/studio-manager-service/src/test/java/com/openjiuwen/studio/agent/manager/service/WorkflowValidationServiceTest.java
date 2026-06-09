@@ -73,12 +73,12 @@ class WorkflowValidationServiceTest {
     private I18nUtil i18nUtil;
 
     @InjectMocks
-    private com.openjiuwen.studio.agent.manager.service.WorkflowValidationService workflowValidationService;
+    private WorkflowValidationService workflowValidationService;
 
     @InjectMocks
     private WorkflowValidationService validator;
 
-    private WorkflowValidationService.Node node;
+    private Node node;
 
     private AutoCloseable mockitoCloseable;
 
@@ -330,7 +330,7 @@ class WorkflowValidationServiceTest {
         configs.put("enable_history", true);
         nodeInfo.setConfigs(configs);
         
-        WorkflowValidationService.Node node = new WorkflowValidationService.Node(nodeInfo);
+        Node node = new Node(nodeInfo);
         
         IRConfig irConfig = new IRConfig();
         irConfig.setBlank(true);
@@ -356,7 +356,7 @@ class WorkflowValidationServiceTest {
         configs.put("enable_history", true);
         nodeInfo.setConfigs(configs);
         
-        WorkflowValidationService.Node node = new WorkflowValidationService.Node(nodeInfo);
+        Node node = new Node(nodeInfo);
         
         IRConfig irConfig = new IRConfig();
         irConfig.setBlank(true);  // 允许为空
@@ -383,7 +383,7 @@ class WorkflowValidationServiceTest {
         nodeInfo.setConfigs(configs);
         nodeInfo.setType("HTTP");  // 非MESSAGE节点
         
-        WorkflowValidationService.Node node = new WorkflowValidationService.Node(nodeInfo);
+        Node node = new Node(nodeInfo);
         
         IRConfig irConfig = new IRConfig();
         irConfig.setBlank(false);  // 不允许为空
@@ -410,7 +410,7 @@ class WorkflowValidationServiceTest {
         nodeInfo.setConfigs(configs);
         nodeInfo.setType("Message");  // MESSAGE节点
         
-        WorkflowValidationService.Node node = new WorkflowValidationService.Node(nodeInfo);
+        Node node = new Node(nodeInfo);
         
         IRConfig irConfig = new IRConfig();
         irConfig.setBlank(false);  // 不允许为空
@@ -437,7 +437,7 @@ class WorkflowValidationServiceTest {
         nodeInfo.setConfigs(configs);
         nodeInfo.setType("HTTP");
         
-        WorkflowValidationService.Node node = new WorkflowValidationService.Node(nodeInfo);
+        Node node = new Node(nodeInfo);
         
         IRConfig irConfig = new IRConfig();
         irConfig.setBlank(true);  // 允许为空
@@ -465,7 +465,7 @@ class WorkflowValidationServiceTest {
         nodeInfo.setConfigs(configs);
         nodeInfo.setType("HTTP");
         
-        WorkflowValidationService.Node node = new WorkflowValidationService.Node(nodeInfo);
+        Node node = new Node(nodeInfo);
         
         IRConfig irConfig = new IRConfig();
         irConfig.setBlank(true);  // 允许为空
@@ -494,7 +494,7 @@ class WorkflowValidationServiceTest {
         nodeInfo.setConfigs(configs);
         nodeInfo.setType("Message");  // 注意：这里应该是"Message"，不是"MESSAGE"
         
-        WorkflowValidationService.Node node = new WorkflowValidationService.Node(nodeInfo);
+        Node node = new Node(nodeInfo);
         
         IRConfig irConfig = new IRConfig();
         irConfig.setBlank(false);  // 表面上不允许为空
@@ -521,7 +521,7 @@ class WorkflowValidationServiceTest {
         nodeInfo.setConfigs(configs);
         nodeInfo.setType("HTTP");
         
-        WorkflowValidationService.Node node = new WorkflowValidationService.Node(nodeInfo);
+        Node node = new Node(nodeInfo);
         
         IRConfig irConfig = new IRConfig();
         irConfig.setBlank(true);

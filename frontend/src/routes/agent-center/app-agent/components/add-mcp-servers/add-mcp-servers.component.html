@@ -68,7 +68,7 @@
       </ng-template>
       <div class="footer" *ngIf="!customMcpServers.isLoading && customMcpServers.list.length ">
         <nz-pagination
-          [nzPageIndex]="curPagePersonal"
+        [(nzPageIndex)]="curPagePersonal"
           [nzTotal]="totalNumberPersonal"
           nzSimple
           (nzPageIndexChange)="getMCPListByPage('custom')"

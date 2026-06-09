@@ -40,7 +40,7 @@ import java.util.List;
 class KbRepoTemplateMgmtServiceTest {
 
     @InjectMocks
-    private com.openjiuwen.studio.agent.agentbase.service.KbRepoTemplateMgmtService kbRepoTemplateMgmtService;
+    private KbRepoTemplateMgmtService kbRepoTemplateMgmtService;
 
     @Mock
     private KnowledgeConnectionRouterService knowledgeConnectionRouterService;

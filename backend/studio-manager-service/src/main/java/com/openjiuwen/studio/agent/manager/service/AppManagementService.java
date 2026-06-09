@@ -87,7 +87,7 @@ public class AppManagementService implements IAppManagementService {
     IrAdapterService irAdapterService;
 
     @Autowired
-    com.openjiuwen.studio.agent.manager.service.RelationManagementService relationManagementService;
+    RelationManagementService relationManagementService;
 
     @Autowired
     AgentImportExportService agentImportExportService;

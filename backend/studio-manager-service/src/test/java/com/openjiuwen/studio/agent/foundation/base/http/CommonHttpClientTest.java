@@ -34,7 +34,7 @@ import java.util.Map;
 public class CommonHttpClientTest {
 
     @InjectMocks
-    private com.openjiuwen.studio.agent.foundation.base.http.CommonHttpClient commonHttpClient;
+    private CommonHttpClient commonHttpClient;
 
     @Mock
     private SmartRestTemplate smartRestTemplate;

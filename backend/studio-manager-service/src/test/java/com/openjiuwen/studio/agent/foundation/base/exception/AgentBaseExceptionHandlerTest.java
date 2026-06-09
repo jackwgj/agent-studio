@@ -31,7 +31,7 @@ public class AgentBaseExceptionHandlerTest {
     private I18nUtils i18nUtils;
 
     @InjectMocks
-    private com.openjiuwen.studio.agent.foundation.base.exception.AgentBaseExceptionHandler agentBaseExceptionHandler;
+    private AgentBaseExceptionHandler agentBaseExceptionHandler;
 
     @BeforeEach
     public void setUp() {

@@ -20,7 +20,7 @@ import java.util.Map;
 public class IterationNodeConverter extends AbstractSDSLNodeConverter {
 
     @Autowired
-    private com.openjiuwen.studio.agent.manager.workflow.convert.adapt.difyadapter.LoopNodeConverter loopNodeConverter;
+    private LoopNodeConverter loopNodeConverter;
 
     @Override
     public Boolean supportNodeType(NodeType nodeType) {

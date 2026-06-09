@@ -51,7 +51,7 @@ public class ApigApiService {
     private boolean pkiEnabled;
 
     @Autowired
-    private com.openjiuwen.studio.agent.manager.service.mcp.apigservice.apig.ApigRequestService apigRequestService;
+    private ApigRequestService apigRequestService;
 
     @Autowired
     private IamServiceUtils iamServiceUtils;

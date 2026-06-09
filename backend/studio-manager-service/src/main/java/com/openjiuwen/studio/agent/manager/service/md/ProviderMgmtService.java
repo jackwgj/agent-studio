@@ -75,7 +75,7 @@ public class ProviderMgmtService implements IProviderMgmtService {
     private ProviderAuthDataMapper authMapper;
 
     @Autowired
-    private com.openjiuwen.studio.agent.manager.service.md.ProviderAuthService authService;
+    private ProviderAuthService authService;
 
     @Autowired
     private ModelServiceMapper modelServiceMapper;

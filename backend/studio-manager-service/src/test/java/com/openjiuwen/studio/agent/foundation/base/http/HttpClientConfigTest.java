@@ -32,7 +32,7 @@ class HttpClientConfigTest {
     private UserProxyConfig userProxyConfig;
 
     @InjectMocks
-    private com.openjiuwen.studio.agent.foundation.base.http.HttpClientConfig httpClientConfig;
+    private HttpClientConfig httpClientConfig;
 
     @BeforeEach
     void setUp() {

@@ -146,7 +146,7 @@ public class DatasourceManagementService implements IDatasourceManagementService
     private DatasourceMapper datasourceMapper;
 
     @Autowired
-    private com.openjiuwen.studio.agent.manager.service.DatasourceStatusCheckService datasourceStatusCheckService;
+    private DatasourceStatusCheckService datasourceStatusCheckService;
 
     @Value("${datasource.ir-path}")
     private String datasourceIrPath;

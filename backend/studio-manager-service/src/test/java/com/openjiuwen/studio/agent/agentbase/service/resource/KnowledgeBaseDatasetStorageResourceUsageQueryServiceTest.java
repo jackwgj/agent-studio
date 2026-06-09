@@ -25,7 +25,7 @@ public class KnowledgeBaseDatasetStorageResourceUsageQueryServiceTest {
     private KnowledgeRepoMapper knowledgeRepoMapper;
 
     @InjectMocks
-    private com.openjiuwen.studio.agent.agentbase.service.resource.KnowledgeBaseDatasetStorageResourceUsageQueryService
+    private KnowledgeBaseDatasetStorageResourceUsageQueryService
         knowledgeBaseDatasetStorageResourceUsageQueryService;
 
     @Test

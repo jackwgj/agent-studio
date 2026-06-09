@@ -58,7 +58,7 @@ class KnowledgeBaseConfigManagementServiceTest {
     private KnowledgeBaseConnectionMapper knowledgeBaseConnectionMapper;
 
     @Mock
-    private com.openjiuwen.studio.agent.agentbase.service.KnowledgeBaseResourceManagementService
+    private KnowledgeBaseResourceManagementService
         resourceManagementService;
 
     @InjectMocks

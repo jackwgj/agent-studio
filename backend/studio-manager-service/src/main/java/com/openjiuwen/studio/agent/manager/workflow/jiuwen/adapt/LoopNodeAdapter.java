@@ -81,7 +81,7 @@ public class LoopNodeAdapter extends AbstractIRNodeAdapter {
             WorkflowBranchConfigVO breakCondition =
                 JsonUtils.objectToClassType(nodeConfigs.get(BREAK_CONDITION), WorkflowBranchConfigVO.class);
             if (breakCondition != null) {
-                configs.put(IRUtils.adaptKey(BREAK_CONDITION), new com.openjiuwen.studio.agent.manager.workflow.jiuwen.adapt.BranchNodeAdapter().adaptExpression(breakCondition));
+                configs.put(IRUtils.adaptKey(BREAK_CONDITION), new BranchNodeAdapter().adaptExpression(breakCondition));
             }
         }
         return configs;

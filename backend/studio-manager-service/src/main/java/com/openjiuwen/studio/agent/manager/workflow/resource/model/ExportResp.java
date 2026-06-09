@@ -20,5 +20,5 @@ public class ExportResp {
     private List<ExportInfo> exportInfos;
 
     @JsonProperty("exportResults")
-    private List<com.openjiuwen.studio.agent.manager.workflow.resource.model.ExportResult> exportResults;
+    private List<ExportResult> exportResults;
 }

@@ -80,6 +80,15 @@ CHILD_INTERRUPT_STATE_KEYS: tuple[str, ...] = (
     FLOW_QA_STATE_KEY,
     FLOW_INPUT_STATE_KEY,
 )
+
+# 子工作流 stream 结束时 comp_state 兜底扫描：需 session.update_state 写入
+# {key: {status, question, ...}} 且 status=user_interact 的组件 state key。
+# 新增同类中断组件时，在此 tuple 追加一项即可。
+CHILD_INTERRUPT_STATE_KEYS: tuple[str, ...] = (
+    QUESTIONER_STATE_KEY,
+    FLOW_QA_STATE_KEY,
+    FLOW_INPUT_STATE_KEY,
+)
 from openjiuwen.core.session.utils import is_ref_path, extract_origin_key
 GLOBAL_REF_PREFIX = "MEMORY_VARIABLE."
 
@@ -1268,8 +1277,8 @@ class SubWorkflow(WorkflowComponent):
                     USER_FIELDS: user_fields,
                 },
             })
-        except Exception:
-            pass
+        except Exception as e:
+            workflow_logger.warning(f"_trace_interrupt_marker error: {e}")
 
     def get_stream_output(self) -> Output:
         """Get the cached stream output for batch retrieval."""

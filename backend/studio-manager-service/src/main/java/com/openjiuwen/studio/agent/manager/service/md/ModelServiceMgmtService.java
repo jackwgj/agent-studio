@@ -147,7 +147,7 @@ public class ModelServiceMgmtService implements IModelServiceMgmtService {
     private ProviderAuthDataMapper authDataMapper;
 
     @Autowired
-    private com.openjiuwen.studio.agent.manager.service.md.ModelServiceManager modelServiceManager;
+    private ModelServiceManager modelServiceManager;
 
     @Autowired
     private MappingMapper mappingMapper;
@@ -1193,12 +1193,12 @@ public class ModelServiceMgmtService implements IModelServiceMgmtService {
     }
 
     public List<ModelServiceData> getValidatedModels(String projectId, String workspaceId, List<String> modelIds) {
-        if (org.apache.commons.collections4.CollectionUtils.isEmpty(modelIds)) {
+        if (CollectionUtils.isEmpty(modelIds)) {
             log.warn("No found modelIds: {}", modelIds);
             return Collections.emptyList();
         }
         List<ModelServiceData> models = modelServiceMapper.selectByIds(modelIds);
-        if (org.apache.commons.collections4.CollectionUtils.isEmpty(models)) {
+        if (CollectionUtils.isEmpty(models)) {
             log.warn("Models not found for Ids: {}", modelIds);
             return Collections.emptyList();
         }
@@ -1272,7 +1272,7 @@ public class ModelServiceMgmtService implements IModelServiceMgmtService {
             }
             List<ModelServiceBase> existMS = modelServiceMapper.queryByName(projectId, workspaceId,
                 modelData.getServiceName(), modelData.getProviderId());
-            if (org.apache.commons.collections4.CollectionUtils.isNotEmpty(existMS)) {
+            if (CollectionUtils.isNotEmpty(existMS)) {
                 log.warn("Model service {} already exists in project {}, skipping.", modelData.getServiceName(),
                     projectId);
                 continue;

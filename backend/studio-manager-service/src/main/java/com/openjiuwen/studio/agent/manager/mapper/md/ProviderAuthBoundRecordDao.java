@@ -28,7 +28,7 @@ import java.util.Map;
 @Repository
 @RequiredArgsConstructor(onConstructor_ = {@Autowired})
 public class ProviderAuthBoundRecordDao {
-    private final com.openjiuwen.studio.agent.manager.mapper.md.ProviderAuthBoundRecordMapper
+    private final ProviderAuthBoundRecordMapper
         providerAuthBoundRecordMapper;
 
     private static final String DOMAIN_ID_FILTER_KEY = "DOMAIN_ID";

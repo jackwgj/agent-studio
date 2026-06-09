@@ -1179,7 +1179,7 @@ class StatusCode(Enum):
     )
 
     # 自定义组件预留，请不要使用该范围内的错误码     120000~129999
-    # 迁移华为云本地执行代码节点的错误码
+    # 迁移本地执行代码节点的错误码
     WORKFLOW_CODE_RETURN_VALUE_UNEXPECTED_ERROR = (
         120007,
         "output keys should be in code return values",
