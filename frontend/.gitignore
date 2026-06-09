@@ -184,21 +184,12 @@ Network Trash Folder
 Temporary Items
 .apdisk
 
-# Console Framework
-.staging/*
-!.staging/proxy.js
-!.staging/poc_index.html
-!.staging/poc_custom_index.html
 /package-lock.json
 /angular.json
-/config/hds.config.js
 .idea
-package-lock.json
 /pnpm-lock.yaml
 .codemate
 
-# tinylint output
-.tinylint/*
 
 .ai/
 .relay/

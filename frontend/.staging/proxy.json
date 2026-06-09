@@ -1,0 +1,18 @@
+{
+  "/v1": {
+    "target": "",
+    "changeOrigin": true,
+    "pathRewrite": {
+      "/v1": ""
+    },
+    "secure": false
+  },
+  "/v2": {
+    "target": "",
+    "changeOrigin": true,
+    "pathRewrite": {
+      "/v2": ""
+    },
+    "secure": false
+  }
+}
