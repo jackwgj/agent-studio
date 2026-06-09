@@ -7,10 +7,12 @@ import json
 import os
 import re
 import secrets
+import copy
 from collections import defaultdict
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, AsyncIterator, Dict, Iterable, List, Optional
 
 from agent_runtime.extension.workflow_node.flow_code import FlowCode
+from agent_runtime.extension.workflow_node.ParamOutput import ParamOutput
 from agent_runtime.extension.workflow_node.questioner import (
     FieldInfo,
     Questioner,
@@ -92,6 +94,7 @@ apply_workflow_sub_stream_patch()
 from jiuwen.extension.workflow_node.utils import WorkflowMetadata
 
 from jiuwen.serve.controllers.execution.ir_parallel_utils import (
+    build_parallel_join_plan,
     collect_parallel_join_nodes,
 )
 from agent_runtime.common.ir_exceptions import IRBuildException
@@ -141,6 +144,265 @@ _SPECIAL_REF_ROOTS = frozenset(
     }
 )
 
+# Global variable reference pattern: ${node_start.memory.xxx}
+_GLOBAL_REF_PATTERN_OLD = "${node_start.memory."
+_GLOBAL_REF_PATTERN_NEW = "${MEMORY_VARIABLE."
+_START_MEMORY_REF_TOKEN = re.compile(r"\$\{node_start\.memory\.([^{}]+)}")
+_MEMORY_VARIABLE_REF_TOKEN = re.compile(r"\$\{MEMORY_VARIABLE\.([^{}]+)}")
+
+
+def _convert_global_variable_refs_in_ir(ir_data: dict) -> dict:
+    """Convert old global variable references to new format in IR data.
+
+    Old format: ${node_start.memory.xxx}
+    New format: ${global.xxx}
+
+    For start nodes, the memory dict in inputs contains actual values (not references),
+    so it should be kept as-is.
+
+    **IMPORTANT**: This function creates a deep copy of ir_data to avoid modifying
+    cached IR data in-place, which would cause cache pollution across test cases.
+
+    Args:
+        ir_data: IR data dictionary containing workflow configuration.
+
+    Returns:
+        dict: IR data with converted global variable references (deep copy).
+    """
+    if not ir_data or not isinstance(ir_data, dict):
+        return ir_data
+
+    # Create deep copy to avoid modifying cached IR data
+    ir_data = copy.deepcopy(ir_data)
+
+    # Only process workflow IR data (has 'components' field)
+    components = ir_data.get("components", [])
+    if not components:
+        return ir_data
+
+    for component in components:
+        component_type = component.get("type", "")
+        # Skip start nodes - their memory inputs contain actual values, not references
+        if component_type == NodeType.START.value:
+            continue
+
+        if component_type == NodeType.SET_VARIABLE.value:
+            config_settings = component.get("configs", {}).get("settings", {})
+            if isinstance(config_settings, list):
+                for setting in config_settings:
+                    if isinstance(setting, dict):
+                        _convert_refs_in_schema(setting)
+
+        branch_configs = component.get("configs", {}).get("branches", {})
+        if branch_configs:
+            _convert_refs_in_schema(branch_configs)
+
+        # Convert references in io_configs.inputs_schema
+        io_configs = component.get("configs", {}).get("io_configs", {})
+        if io_configs:
+            inputs_schema = io_configs.get("inputs_schema", {})
+            if inputs_schema:
+                _convert_refs_in_schema(inputs_schema)
+
+        # Also convert references in component.inputs (legacy format)
+        inputs = component.get("inputs", {})
+        if inputs:
+            _convert_refs_in_schema(inputs)
+
+    return ir_data
+
+
+def _extract_start_memory_var(ref_str: str) -> str | None:
+    if not isinstance(ref_str, str) or not ref_str.endswith("}"):
+        return None
+    if ref_str.startswith(_GLOBAL_REF_PATTERN_OLD):
+        return ref_str[len(_GLOBAL_REF_PATTERN_OLD):-1]
+    return None
+
+
+def _convert_start_memory_refs_in_string(value: str) -> str:
+    return _START_MEMORY_REF_TOKEN.sub(
+        lambda match: f"${{MEMORY_VARIABLE.{match.group(1)}}}",
+        value,
+    )
+
+
+def _convert_refs_in_schema(schema: dict | list) -> None:
+    """Recursively convert ${node_start.memory.xxx} to ${global.xxx} in schema.
+
+    Args:
+        schema: Input schema dict or list, modified in-place.
+    """
+    if isinstance(schema, dict):
+        for key, value in schema.items():
+            if isinstance(value, str):
+                schema[key] = _convert_start_memory_refs_in_string(value)
+            elif isinstance(value, (dict, list)):
+                _convert_refs_in_schema(value)
+    elif isinstance(schema, list):
+        for item in schema:
+            if isinstance(item, (dict, list)):
+                _convert_refs_in_schema(item)
+
+
+def _extract_global_var_mappings_from_schema(schema: dict) -> dict:
+    """Extract global variable mappings from SubWorkflow input_schema.
+
+    input_schema format: {"userFields": {"child_key": "${global.parent_var"}, ...}
+    Returns mapping: {"child_key": "parent_var", ...}
+
+    Args:
+        schema: Input schema dict (e.g., userFields section).
+
+    Returns:
+        dict: Mapping from child key name to parent global variable name.
+    """
+    mappings = {}
+    if not isinstance(schema, dict):
+        return mappings
+
+    for child_key, value in schema.items():
+        if isinstance(value, str) and value.startswith("${MEMORY_VARIABLE.") and value.endswith("}"):
+            # Extract parent variable name: ${global.parent_var} -> parent_var
+            parent_var = value[len("${MEMORY_VARIABLE."):-1]  # len("${global.") = 9
+            mappings[child_key] = parent_var
+        elif isinstance(value, dict):
+            # Recursively extract from nested dicts (e.g., userFields section)
+            nested_mappings = _extract_global_var_mappings_from_schema(value)
+            mappings.update(nested_mappings)
+
+    return mappings
+
+
+def _convert_subworkflow_global_var_refs(
+        ir_data: dict,
+        global_var_mappings: dict,
+) -> dict:
+    """Convert global variable references in sub-workflow IR using parent mappings.
+
+    When SubWorkflow input_schema defines mappings like:
+      {"sub_val": "${global.parent_var}"}
+    The child workflow's internal operations should use parent variable names.
+
+    This function converts all ${global.child_key} references to ${global.parent_var}
+    in the sub-workflow IR.
+
+    **IMPORTANT**: This function creates a deep copy of ir_data to avoid modifying
+    cached IR data in-place, which would cause cache pollution across test cases.
+
+    Args:
+        ir_data: Sub-workflow IR data.
+        global_var_mappings: Mapping from child key to parent global var name.
+
+    Returns:
+        dict: Converted sub-workflow IR data (deep copy).
+    """
+    if not ir_data or not isinstance(ir_data, dict) or not global_var_mappings:
+        return ir_data
+
+    # Create deep copy to avoid modifying cached IR data
+    ir_data = copy.deepcopy(ir_data)
+
+    components = ir_data.get("components", [])
+    if not components:
+        return ir_data
+
+    for component in components:
+        component_type = component.get("type", "")
+
+        # Skip start nodes - they receive values, not references
+        if component_type == NodeType.START.value:
+            continue
+
+        # Convert in SET_VARIABLE settings (left.value field)
+        # IR structure: settings = [{"left": {"value": "${global.xxx}"}, "right": {"value": "yyy"}}]
+        if component_type == NodeType.SET_VARIABLE.value:
+            config_settings = component.get("configs", {}).get("settings", {})
+            if isinstance(config_settings, list):
+                for setting in config_settings:
+                    if isinstance(setting, dict):
+                        # Handle nested left.value structure
+                        left_obj = setting.get("left", {})
+                        if isinstance(left_obj, dict) and "value" in left_obj:
+                            left_obj["value"] = _apply_global_var_mapping(left_obj["value"], global_var_mappings)
+                        elif isinstance(left_obj, str):
+                            setting["left"] = _apply_global_var_mapping(left_obj, global_var_mappings)
+
+        branch_configs = component.get("configs", {}).get("branches", {})
+        if branch_configs:
+            _apply_global_var_mapping_to_schema(branch_configs, global_var_mappings)
+
+        # Convert in io_configs.inputs_schema
+        io_configs = component.get("configs", {}).get("io_configs", {})
+        if io_configs:
+            inputs_schema = io_configs.get("inputs_schema", {})
+            if inputs_schema:
+                _apply_global_var_mapping_to_schema(inputs_schema, global_var_mappings)
+
+        # Convert in component.inputs (legacy format)
+        inputs = component.get("inputs", {})
+        if inputs:
+            _apply_global_var_mapping_to_schema(inputs, global_var_mappings)
+
+    return ir_data
+
+
+def _apply_global_var_mapping(ref_str: str, mappings: dict) -> str:
+    """Apply global variable name mapping to a reference string.
+
+    If ref_str is ${global.child_key} and mappings[child_key] = parent_var,
+    return ${global.parent_var}.
+
+    Args:
+        ref_str: Reference string (e.g., "${global.child_var}").
+        mappings: Mapping from child key to parent var name.
+
+    Returns:
+        str: Converted reference string or original if no mapping exists.
+    """
+    if not isinstance(ref_str, str):
+        return ref_str
+
+    def replace_memory_var(match: re.Match) -> str:
+        child_var = match.group(1)
+        parent_var = mappings.get(child_var)
+        if parent_var:
+            return f"${{MEMORY_VARIABLE.{parent_var}}}"
+        return match.group(0)
+
+    child_start_memory_var = _extract_start_memory_var(ref_str)
+    if child_start_memory_var is not None:
+        parent_var = mappings.get(child_start_memory_var)
+        if parent_var:
+            return f"${{MEMORY_VARIABLE.{parent_var}}}"
+
+    mapped_ref = _MEMORY_VARIABLE_REF_TOKEN.sub(replace_memory_var, ref_str)
+    if mapped_ref != ref_str:
+        return mapped_ref
+
+    return ref_str
+
+
+def _apply_global_var_mapping_to_schema(schema: dict | list, mappings: dict) -> None:
+    """Recursively apply global var mapping to schema.
+
+    Args:
+        schema: Input schema dict or list, modified in-place.
+        mappings: Mapping from child key to parent var name.
+    """
+    if isinstance(schema, dict):
+        for key, value in schema.items():
+            if isinstance(value, str):
+                schema[key] = _apply_global_var_mapping(value, mappings)
+            elif isinstance(value, (dict, list)):
+                _apply_global_var_mapping_to_schema(value, mappings)
+    elif isinstance(schema, list):
+        for i, item in enumerate(schema):
+            if isinstance(item, str):
+                schema[i] = _apply_global_var_mapping(item, mappings)
+            elif isinstance(item, (dict, list)):
+                _apply_global_var_mapping_to_schema(item, mappings)
+
 
 def _extract_source_component_ids(
     schema: dict, component_by_id: dict[str, Any]
@@ -167,6 +429,42 @@ class _LoopPassThroughComponent(WorkflowComponent):
 
     async def invoke(self, inputs, session, context):
         return {}
+
+
+class _ParallelInvokeLaneDoneComponent(WorkflowComponent):
+    """Control marker emitted when one parallel lane has completed."""
+
+    async def invoke(self, inputs, session, context):
+        return {}
+
+
+class _ParallelTransformLaneDoneComponent(WorkflowComponent):
+    """Stream-preserving control marker for a completed parallel lane."""
+
+    async def transform(
+        self, inputs: Any, session: Any, context: Any
+    ) -> AsyncIterator[Any]:
+        async for chunk in _iter_parallel_stream_inputs(inputs):
+            yield chunk
+
+
+async def _iter_parallel_stream_inputs(inputs: Any) -> AsyncIterator[Any]:
+    if hasattr(inputs, "__aiter__"):
+        async for chunk in inputs:
+            yield chunk
+        return
+    if isinstance(inputs, dict):
+        for value in inputs.values():
+            async for chunk in _iter_parallel_stream_inputs(value):
+                yield chunk
+        return
+    if isinstance(inputs, (list, tuple)):
+        for value in inputs:
+            async for chunk in _iter_parallel_stream_inputs(value):
+                yield chunk
+        return
+    if inputs is not None:
+        yield inputs
 
 
 class _RoutedIntentDetection(IntentDetection):
@@ -688,7 +986,10 @@ class IRConverter:
         :param kwargs: Reserved for compatibility.
         :return: openjiuwen Workflow instance.
         """
-        return await IRConverter._build_openjiuwen_workflow_from_ir(ir_data, **kwargs)
+        # Convert old global variable references to new format
+        converted_ir_data = _convert_global_variable_refs_in_ir(ir_data)
+        logger.debug(f"param extra: parent converted_ir_data: {converted_ir_data}")
+        return await IRConverter._build_openjiuwen_workflow_from_ir(converted_ir_data, **kwargs)
 
     @staticmethod
     async def async_ir_to_workflow(ir_data: dict, **kwargs) -> Workflow:
@@ -706,7 +1007,9 @@ class IRConverter:
         Returns:
             Workflow: openjiuwen Workflow instance.
         """
-        return await IRConverter._build_openjiuwen_workflow_from_ir(ir_data, **kwargs)
+        # Convert old global variable references to new format
+        converted_ir_data = _convert_global_variable_refs_in_ir(ir_data)
+        return await IRConverter._build_openjiuwen_workflow_from_ir(converted_ir_data, **kwargs)
 
     @staticmethod
     async def _build_openjiuwen_workflow_from_ir(ir_data: dict, **kwargs) -> Workflow:
@@ -740,6 +1043,7 @@ class IRConverter:
         node_by_id = {node.get("id"): node for node in components if node.get("id")}
         connections = _normalize_list(ir_data.get("connections") or [])
         parallel_join_nodes = collect_parallel_join_nodes(connections, node_by_id)
+        parallel_join_plan = build_parallel_join_plan(connections, node_by_id)
 
         component_by_id: dict[str, Any] = {}
 
@@ -773,6 +1077,8 @@ class IRConverter:
             branch_id = ((connection.get("source") or {}).get("branchId") or "").strip()
             if not source or not target or branch_id:
                 continue
+            if parallel_join_plan.rewrite_target(source, target):
+                continue
             target_type = node_by_id.get(target, {}).get("type", "")
             is_stream_capable = (
                 target_type in IRConverter._STREAM_INPUT_CAPABLE_TARGET_TYPES
@@ -786,6 +1092,27 @@ class IRConverter:
         logger.info(
             f"[PERF-IR] Stream targets computed: {(_time.time() - t_stream_targets) * 1000:.1f}ms"
         )
+
+        parallel_stream_done_inputs: dict[str, dict] = {}
+        for connection in connections:
+            source = ((connection.get("source") or {}).get("componentId") or "").strip()
+            target = ((connection.get("target") or {}).get("componentId") or "").strip()
+            branch_id = ((connection.get("source") or {}).get("branchId") or "").strip()
+            if not source or not target or branch_id:
+                continue
+            done_node = parallel_join_plan.rewrite_target(source, target)
+            if not done_node:
+                continue
+            target_type = node_by_id.get(target, {}).get("type", "")
+            is_stream_join_edge = (
+                source in ir_stream_source_ids
+                and target_type in IRConverter._STREAM_INPUT_CAPABLE_TARGET_TYPES
+                and target_type not in IRConverter._AGGREGATE_TYPES
+            )
+            if is_stream_join_edge:
+                parallel_stream_done_inputs[done_node] = {
+                    "userFields": {"stream": "${" + source + "}"}
+                }
 
         t_prep = _time.time()
         # Pre-collect all loop body component IDs so that root-level connection
@@ -830,12 +1157,30 @@ class IRConverter:
             f"[PERF-IR] All components creation total: {(_time.time() - t_components_start) * 1000:.1f}ms"
         )
 
+        for done_node_id in parallel_join_plan.done_nodes:
+            if done_node_id in component_by_id:
+                continue
+            stream_inputs_schema = parallel_stream_done_inputs.get(done_node_id)
+            if stream_inputs_schema:
+                lane_done = _ParallelTransformLaneDoneComponent()
+                workflow.add_workflow_comp(
+                    done_node_id,
+                    lane_done,
+                    stream_inputs_schema=stream_inputs_schema,
+                    comp_ability=[ComponentAbility.TRANSFORM],
+                    wait_for_all=True,
+                )
+            else:
+                lane_done = _ParallelInvokeLaneDoneComponent()
+                workflow.add_workflow_comp(done_node_id, lane_done, inputs_schema={})
+            component_by_id[done_node_id] = lane_done
+
         t_connections_start = _time.time()
         end_node_ids = {p["node_id"] for p in pending_end_nodes}
         stream_connection_targets: set[str] = set()
         batch_connection_targets: set[str] = set()
         deferred_connections: list[tuple[str, str, bool]] = []
-        default_branch_connections: list[tuple[str, str, str]] = []
+        branch_connections: list[tuple[str, str, str]] = []
         existing_connections: set[tuple[str, str]] = set()
 
         # Phase 1: wire branch routes before BranchComponent/IntentDetection join the
@@ -852,20 +1197,17 @@ class IRConverter:
                 continue
             if not branch_id or "@@" in branch_id:
                 continue
+            target = (
+                parallel_join_plan.rewrite_target(source, target, branch_id) or target
+            )
             # Branch connections (default/non-default) are batch paths
             if target in end_node_ids:
                 batch_connection_targets.add(target)
-            if branch_id.endswith("default"):
-                default_branch_connections.append((source, target, branch_id))
-            else:
-                IRConverter._add_branch_connection(
-                    component_by_id, node_by_id, source, target, branch_id
-                )
+            branch_connections.append((source, target, branch_id))
 
-        for source, target, branch_id in default_branch_connections:
-            IRConverter._add_branch_connection(
-                component_by_id, node_by_id, source, target, branch_id
-            )
+        IRConverter._add_branch_connections_with_default_last(
+            component_by_id, node_by_id, branch_connections
+        )
 
         IRConverter._register_pending_branch_nodes(workflow, pending_branch_nodes)
 
@@ -883,8 +1225,13 @@ class IRConverter:
                 continue
             if branch_id:
                 continue
-            existing_connections.add((source, target))
             is_stream = IRConverter._is_stream_connection(components, source, target)
+            rewritten_target = None
+            rewritten_target = parallel_join_plan.rewrite_target(source, target)
+            if rewritten_target:
+                existing_connections.add((source, target))
+                target = rewritten_target
+            existing_connections.add((source, target))
             if is_stream:
                 stream_connection_targets.add(target)
             if target in end_node_ids:
@@ -915,6 +1262,11 @@ class IRConverter:
         for _src_id, _branches in error_branch_groups.items():
             _branch_comp = BranchComponent()
             _branch_node_id = f"{_src_id}_error_branch"
+            _branches.sort(
+                key=lambda item: IRConverter._branch_registration_sort_key(
+                    _src_id, item[1], node_by_id
+                )
+            )
             for _target, _branch_id in _branches:
                 _source_node = node_by_id.get(_src_id) or {}
                 _source_type = _source_node.get("type", "")
@@ -930,6 +1282,10 @@ class IRConverter:
             workflow.add_connection(_src_id, _branch_node_id)
 
         t_end_comp = _time.time()
+        for join_spec in parallel_join_plan.joins.values():
+            if join_spec.join_target in end_node_ids:
+                batch_connection_targets.add(join_spec.join_target)
+
         for pending in pending_end_nodes:
             node_id = pending["node_id"]
             end = pending["end"]
@@ -970,6 +1326,10 @@ class IRConverter:
                 workflow.add_stream_connection(source, target)
             else:
                 workflow.add_connection(source, target)
+        for join_spec in parallel_join_plan.joins.values():
+            lane_done_nodes = [lane.done_node for lane in join_spec.lanes]
+            if len(lane_done_nodes) >= 2:
+                workflow.add_connection(lane_done_nodes, join_spec.join_target)
         logger.info(
             f"[PERF-IR] Deferred connections: {(_time.time() - t_deferred) * 1000:.1f}ms"
         )
@@ -1030,8 +1390,11 @@ class IRConverter:
         return workflow
 
     @staticmethod
-    async def _try_load_sub_workflow(configs: dict) -> Optional["Workflow"]:
-        reference = configs.get("reference") or {}
+    async def _try_load_sub_workflow(
+            configs: dict,
+            parent_global_var_mappings: dict | None = None,
+    ) -> Optional[Workflow]:
+        reference = configs.get("reference", {})
         child_path = reference.get("path", "")
         if not child_path:
             return None
@@ -1045,7 +1408,15 @@ class IRConverter:
             child_ir = json.loads(ir_json_str)
         except json.JSONDecodeError as e:
             raise IRBuildException(f"IR 文件 JSON 格式错误: {child_path}, {e}") from e
-        return await IRConverter._build_openjiuwen_workflow_from_ir(child_ir)
+        # First convert old refs to new format
+        converted_child_ir = _convert_global_variable_refs_in_ir(child_ir)
+        logger.debug(f"param extra: child converted ir: {converted_child_ir}")
+        # Then apply parent's global variable mappings
+        if parent_global_var_mappings:
+            converted_child_ir = _convert_subworkflow_global_var_refs(
+                converted_child_ir, parent_global_var_mappings
+            )
+        return await IRConverter._build_openjiuwen_workflow_from_ir(converted_child_ir)
 
     @staticmethod
     async def _create_component(
@@ -1135,6 +1506,9 @@ class IRConverter:
         if node_type == "EI.qa":
             return FlowQA(configs), node_type, configs
 
+        if node_type == "EI.ParamOutput":
+            return ParamOutput(configs), node_type, configs
+
         if node_type == "jiuwen.code":
             return FlowCode(configs), node_type, configs
 
@@ -1191,6 +1565,10 @@ class IRConverter:
                 ]
             loop_body_by_id = {n.get("id"): n for n in loop_body if n.get("id")}
 
+            # Defer branch/intentDetection registration until loop body branch routes
+            # are wired, so add_workflow_comp → register_branch_targets sees full routers.
+            pending_loop_branch_nodes: list[dict] = []
+
             # Add loop body components
             loop_component_by_id = {}
             for body_node in loop_body:
@@ -1198,12 +1576,18 @@ class IRConverter:
                     loop_group,
                     body_node,
                     global_model,
+                    pending_branch_nodes=pending_loop_branch_nodes,
+                    node_by_id=node_by_id,
+                    ir_connections=ir_connections,
                 )
                 if body_comp is not None:
                     loop_component_by_id[body_node.get("id")] = body_comp
 
-            # Process loop body connections from configs (if any)
+            # Collect loop body branch connections from configs and top-level IR.
             loop_body_connections = configs.get("connections") or []
+            loop_body_ids = set(loop_body_by_id.keys())
+            loop_branch_connections: list[tuple[str, str, str]] = []
+            loop_regular_connections: list[tuple[str, str]] = []
             for conn in loop_body_connections:
                 src = ((conn.get("source") or {}).get("componentId") or "").strip()
                 tgt = ((conn.get("target") or {}).get("componentId") or "").strip()
@@ -1211,20 +1595,12 @@ class IRConverter:
                 if not src or not tgt:
                     continue
                 if bid:
-                    IRConverter._add_branch_connection(
-                        loop_component_by_id,
-                        loop_body_by_id,
-                        src,
-                        tgt,
-                        bid,
-                    )
+                    loop_branch_connections.append((src, tgt, bid))
                     continue
-                loop_group.add_connection(src, tgt)
+                loop_regular_connections.append((src, tgt))
 
-            # Also extract connections between loop body components from top-level IR connections.
             # The IR stores loop body inter-component connections at the root level, NOT inside
             # the loop node's configs. Without this, body components are disconnected in LoopGroup.
-            loop_body_ids = set(loop_body_by_id.keys())
             for conn in ir_connections or []:
                 src = ((conn.get("source") or {}).get("componentId") or "").strip()
                 tgt = ((conn.get("target") or {}).get("componentId") or "").strip()
@@ -1238,14 +1614,20 @@ class IRConverter:
                 if src not in loop_body_ids or tgt not in loop_body_ids:
                     continue
                 if bid:
-                    IRConverter._add_branch_connection(
-                        loop_component_by_id,
-                        loop_body_by_id,
-                        src,
-                        tgt,
-                        bid,
-                    )
+                    loop_branch_connections.append((src, tgt, bid))
                     continue
+                loop_regular_connections.append((src, tgt))
+
+            IRConverter._add_branch_connections_with_default_last(
+                loop_component_by_id,
+                loop_body_by_id,
+                loop_branch_connections,
+            )
+            IRConverter._register_pending_branch_nodes(
+                loop_group, pending_loop_branch_nodes
+            )
+
+            for src, tgt in loop_regular_connections:
                 loop_group.add_connection(src, tgt)
 
             # Auto-determine start/end nodes
@@ -1450,7 +1832,14 @@ class IRConverter:
         # subWorkflow 加载子工作流
         if node_type in {"jiuwen.subWorkflow", "jiuwen.workflowComposite"}:
             configs = dict(node.get("configs") or {})
-            child_workflow = await IRConverter._try_load_sub_workflow(configs)
+            # Extract global var mappings from input_schema
+            # Format: {"userFields": {"child_key": "${global.parent_var}"}}
+            # Maps child key to parent global variable name
+            inputs_schema = _convert_schema(node.get("inputs") or {})
+            global_var_mappings = _extract_global_var_mappings_from_schema(inputs_schema)
+            child_workflow = await IRConverter._try_load_sub_workflow(
+                configs, parent_global_var_mappings=global_var_mappings
+            )
             component = SubWorkflow(
                 {**configs, "node_id": node_id},
                 sub_workflow=child_workflow,
@@ -1709,11 +2098,102 @@ class IRConverter:
         return component
 
     @staticmethod
+    def _is_default_branch_id(branch_id: str) -> bool:
+        return branch_id.endswith("default")
+
+    @staticmethod
+    def _is_error_branch_id(branch_id: str, source: str = "") -> bool:
+        if "@@" in branch_id:
+            suffix = branch_id.split("@@", 1)[1]
+            idx = suffix.split("_")[1] if "_" in suffix else "0"
+            return idx == "1"
+
+        normalized_suffix = branch_id
+        prefix = f"{source}-"
+        if source and branch_id.startswith(prefix):
+            normalized_suffix = branch_id[len(prefix) :]
+        return (
+            normalized_suffix == "errorBranch"
+            or branch_id.endswith("-errorBranch")
+            or branch_id.endswith("errorBranch")
+        )
+
+    @staticmethod
+    def _branch_connection_sort_key(
+        source: str, branch_id: str, node_by_id: dict[str, dict]
+    ) -> int:
+        """Order if/elseIf branches using IR configs."""
+        source_node = node_by_id.get(source) or {}
+        branches = (source_node.get("configs") or {}).get("branches") or []
+        normalized_suffix = branch_id
+        prefix = f"{source}-"
+        if branch_id.startswith(prefix):
+            normalized_suffix = branch_id[len(prefix) :]
+
+        for idx, branch in enumerate(branches):
+            if not isinstance(branch, dict):
+                continue
+            current_id = str(branch.get("id") or "")
+            if current_id in (branch_id, normalized_suffix):
+                return idx
+
+        if branch_id.endswith("-if") or normalized_suffix == "if":
+            return 0
+        match = re.search(r"-elseIf-(\d+)$", branch_id)
+        if match:
+            return int(match.group(1))
+        return len(branches)
+
+    @staticmethod
+    def _branch_registration_sort_key(
+        source: str, branch_id: str, node_by_id: dict[str, dict]
+    ) -> tuple[int, int]:
+        """Order branches as if, elseIf-1..N, errorBranch, default."""
+        if IRConverter._is_default_branch_id(branch_id):
+            return (2, 0)
+        if IRConverter._is_error_branch_id(branch_id, source):
+            return (1, 0)
+        return (
+            0,
+            IRConverter._branch_connection_sort_key(source, branch_id, node_by_id),
+        )
+
+    @staticmethod
+    def _add_branch_connections_with_default_last(
+        component_by_id: dict[str, Any],
+        node_by_id: dict[str, dict],
+        branch_connections: list[tuple[str, str, str]],
+    ) -> None:
+        """Wire branch routes in if/elseIf/errorBranch/default order."""
+        grouped: dict[tuple[str, str], list[str]] = defaultdict(list)
+        for source, target, branch_id in branch_connections:
+            key = (source, branch_id)
+            if target not in grouped[key]:
+                grouped[key].append(target)
+
+        ordered_items = [
+            (source, branch_id, targets)
+            for (source, branch_id), targets in grouped.items()
+        ]
+        ordered_items.sort(
+            key=lambda item: (
+                item[0],
+                IRConverter._branch_registration_sort_key(
+                    item[0], item[1], node_by_id
+                ),
+            )
+        )
+        for source, branch_id, targets in ordered_items:
+            IRConverter._add_branch_connection(
+                component_by_id, node_by_id, source, targets, branch_id
+            )
+
+    @staticmethod
     def _add_branch_connection(
         component_by_id: dict[str, Any],
         node_by_id: dict[str, dict],
         source: str,
-        target: str,
+        target: str | list[str],
         branch_id: str,
     ) -> None:
         component = component_by_id.get(source)
@@ -1727,11 +2207,12 @@ class IRConverter:
 
     @staticmethod
     def _register_pending_branch_nodes(
-        workflow: Workflow, pending_branch_nodes: list[dict]
+        workflow: Workflow | LoopGroup, pending_branch_nodes: list[dict]
     ) -> None:
         """Register branch routers after IR branch connections are wired."""
         for pending in pending_branch_nodes:
-            workflow.add_workflow_comp(
+            _add_workflow_comp_with_exception(
+                workflow,
                 pending["node_id"],
                 pending["component"],
                 inputs_schema=pending["inputs_schema"],

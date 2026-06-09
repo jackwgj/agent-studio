@@ -77,6 +77,8 @@ class WorkflowStreamDataWrapper:
         self._loop_parent_cache: dict[str, str] = {}
         self._loop_workflow_id: dict[str, str] = {}
         self._loop_iter_count: dict[str, int] = {}
+        # 子工作流中断 trace 缓存列表
+        self._interrupt_trace_cache: list[TraceSchema] = []
 
     @staticmethod
     def _serialize_datetime(value: Any) -> Any:
@@ -107,12 +109,51 @@ class WorkflowStreamDataWrapper:
         if isinstance(chunk, TraceSchema):
             if not self._is_debug:
                 return []
+
+            payload = chunk.payload if isinstance(chunk.payload, dict) else {}
+            ts_status = payload.get("status", "")
+            ts_comp_type = payload.get("componentType", "")
+
+            # 子工作流的 running trace 含中断标记 → 缓存，不立即发送
+            is_sub_workflow = (
+                ts_comp_type == "SubWorkflow"
+                or _DEBUG_EVENT_RETURN_TO_SERVICE.get(ts_comp_type, "")
+                == "jiuwen.workflowComposite"
+            )
+            if (
+                is_sub_workflow
+                and ts_status == "running"
+                and self._has_interrupt_marker(payload)
+            ):
+                self._interrupt_trace_cache.append(chunk)
+                return []
+
             trace_event = self._convert_trace_schema_to_stream_data(chunk)
             if not trace_event:
                 return []
             # 调试事件去除openjiuwen的总帧
             if trace_event and not trace_event.get("data", {}).get("componentId", ""):
                 return []
+
+            # 当前 trace 为中断/异常状态时，刷出缓存列表中的中断标记帧，
+            # 将它们转换为 finish 后追加到返回值末尾
+            if (
+                ts_status in ("interrupted", "error")
+                and self._interrupt_trace_cache
+            ):
+                events = [trace_event]
+                for cached_chunk in self._interrupt_trace_cache:
+                    cached_event = self._convert_trace_schema_to_stream_data(
+                        cached_chunk
+                    )
+                    if cached_event and cached_event.get("data", {}).get(
+                        "componentId", ""
+                    ):
+                        cached_event["data"]["status"] = "finish"
+                        events.append(cached_event)
+                self._interrupt_trace_cache.clear()
+                return events
+
             return [trace_event]
 
         stream_data = self._convert_chunk_to_stream_data(chunk)
@@ -730,6 +771,106 @@ class WorkflowStreamDataWrapper:
             result["is_break"] = False
         return result
 
+    # ---------- 子工作流中断 trace 缓存 ----------
+
+    @staticmethod
+    def _has_interrupt_marker(payload: dict) -> bool:
+        """检查 TraceSchema payload 的 on_invoke_data 是否包含中断标记。"""
+        on_invoke_data = payload.get("onInvokeData", [])
+        if not isinstance(on_invoke_data, list):
+            return False
+        for item in on_invoke_data:
+            if isinstance(item, dict) and item.get("_sub_interrupt_marker"):
+                return True
+        return False
+
     def get_last_node(self) -> dict:
         """获取最后执行的节点信息"""
         return self._last_node.copy()
+
+
+def _register_jiuwen_callbacks() -> None:
+    """模块级一次性注册 jiuwen 回调到 openjiuwen CallbackFramework。
+
+    Python 模块导入机制保证模块级代码只执行一次，天然满足"只注册一次"。
+    回调闭包不引用任何 WorkflowWrapper 实例成员（无 self），通过
+    session.state().get_global("__node_defs__") 读取节点定义数据。
+
+    注册三类回调：
+    1. resolve_global_vars_transform (transform, priority=10)
+       — 解析 ${global.xxx} 引用，在 type_convert_inputs 之前执行
+    2. type_convert_inputs / type_convert_outputs (transform)
+       — 从 session global_state 读取节点 configs，做类型强转
+    3. notify_start_trace_resolved (regular)
+       — 通过 CustomSchema 通知 WorkflowWrapper 发送缓存的 start trace
+    """
+    try:
+        from openjiuwen.core.runner.callback.events import WorkflowEvents
+        from openjiuwen.core.runner.callback.utils import get_callback_framework
+        from openjiuwen.core.session.utils import is_ref_path, extract_origin_key
+        from openjiuwen.core.session.internal.workflow import NodeSession
+
+        _fw = get_callback_framework()
+        if _fw is None:
+            return
+
+        GLOBAL_REF_PREFIX = "MEMORY_VARIABLE."
+
+        def _resolve_global_refs(schema, inputs, session_state, global_updates):
+            """Recursively resolve ${global.xxx} references in nested input_schema."""
+            if not isinstance(schema, dict) or not isinstance(inputs, dict):
+                return
+            for key, schema_value in schema.items():
+                if isinstance(schema_value, str) and is_ref_path(schema_value):
+                    origin_key = extract_origin_key(schema_value)
+                    if origin_key.startswith(GLOBAL_REF_PREFIX):
+                        var_name = origin_key[len(GLOBAL_REF_PREFIX):]
+                        var_value = session_state.get_global(origin_key)
+                        if var_value is None:
+                            global_updates[var_name] = None
+                        inputs[key] = var_value
+                elif isinstance(schema_value, dict):
+                    if key not in inputs or not isinstance(inputs[key], dict):
+                        inputs[key] = {}
+                    _resolve_global_refs(schema_value, inputs[key], session_state, global_updates)
+
+        @_fw.on(WorkflowEvents.COMPONENT_BATCH_INPUT, callback_type="transform", priority=10)
+        async def resolve_global_vars_transform(*args, **kwargs):
+            """Transform-type callback: resolve ${global.xxx} references in inputs.
+
+            Runs with priority=10 so it executes before type_convert_inputs (priority=0)
+            within trigger_transform. Returns (new_args, new_kwargs) format as required
+            by transform_io's _input_from_events.
+            """
+            session = kwargs.get("session")
+            if session is None and len(args) >= 2:
+                session = args[1]
+            if session is None or not isinstance(session, NodeSession):
+                return (args, kwargs)
+
+            inputs = args[0] if len(args) >= 1 else kwargs.get("inputs")
+            if not isinstance(inputs, dict):
+                return (args, kwargs)
+
+            node_config = session.node_config()
+            if not node_config or not node_config.io_configs:
+                return (args, kwargs)
+
+            input_schema = node_config.io_configs.inputs_schema
+            if not isinstance(input_schema, dict):
+                return (args, kwargs)
+
+            global_updates = {}
+            _resolve_global_refs(input_schema, inputs, session.state(), global_updates)
+
+            if global_updates:
+                session.state().update_global(global_updates)
+
+            return (args, kwargs)
+    except Exception:
+        pass
+
+    # 模块首次导入时自动注册回调（Python 保证只执行一次）
+
+
+_register_jiuwen_callbacks()

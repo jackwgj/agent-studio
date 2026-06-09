@@ -30,9 +30,12 @@ from openjiuwen.core.session.node import Session
 from openjiuwen.core.workflow.components.flow.loop.loop_comp import (
     LoopSetVariableComponent,
 )
+from openjiuwen.core.session.utils import is_ref_path
 
 # Redis存储相关常量
 REDIS_GLOBAL_VALS_NAME = "global.vals"  # Redis全局值存储键名前缀
+# ${MEMORY_VARIABLE.xxx} 引用前缀
+GLOBAL_REF_PREFIX = "MEMORY_VARIABLE."
 
 
 class LoopSetVariable(LoopSetVariableComponent):
@@ -67,6 +70,33 @@ class LoopSetVariable(LoopSetVariableComponent):
 
         for left, right in self._variable_mapping.items():
             left_ref_str = extract_origin_key(left)
+            # 获取原始值
+            value = LoopSetVariableComponent.generate_value(session, right)
+
+            # Handle ${global.xxx} references: write directly to global_state
+            if is_ref_path(left) and left_ref_str.startswith(GLOBAL_REF_PREFIX):
+                # Handle increment/decrement for global vars
+                operator = self._operator_mapping.get(left, "")
+                if operator == "increment":
+                    current = session.state().get_global(left_ref_str) or 0
+                    if isinstance(current, str):
+                        current = int(current)
+                    value = current + 1
+                elif operator == "decrement":
+                    current = session.state().get_global(left_ref_str) or 0
+                    if isinstance(current, str):
+                        current = int(current)
+                    value = current - 1
+                elif operator == "empty":
+                    value = None
+                elif operator == "empty_str":
+                    value = ""
+                elif operator == "empty_arr":
+                    value = []
+                # Use left_ref_str (e.g. "global.is_valid") as key so update_dict
+                # stores at state["global"]["is_valid"] matching get_global path
+                root_session.state().update_global({left_ref_str: value})
+                continue
             keys = left_ref_str.split(NESTED_PATH_SPLIT)
 
             if len(keys) == 0:

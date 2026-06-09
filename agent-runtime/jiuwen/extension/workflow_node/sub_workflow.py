@@ -67,9 +67,21 @@ DEFAULT_SUB_WORKFLOW_TIMEOUT = 300
 DEFAULT_STREAM_FRAME_TIMEOUT = 120
 DEFAULT_FIRST_FRAME_TIMEOUT = 10
 
-# 与 agent_runtime Questioner 持久化到 session 的 key 保持一致
+# 与各交互组件 session.update_state 持久化 key 保持一致（见 ir_converter 支持的组件）
 QUESTIONER_STATE_KEY = "questioner_state"
+FLOW_QA_STATE_KEY = "flow_qa_state"
+FLOW_INPUT_STATE_KEY = "flow_input_state"
 
+# 子工作流 stream 结束时 comp_state 兜底扫描：需 session.update_state 写入
+# {key: {status, question, ...}} 且 status=user_interact 的组件 state key。
+# 新增同类中断组件时，在此 tuple 追加一项即可。
+CHILD_INTERRUPT_STATE_KEYS: tuple[str, ...] = (
+    QUESTIONER_STATE_KEY,
+    FLOW_QA_STATE_KEY,
+    FLOW_INPUT_STATE_KEY,
+)
+from openjiuwen.core.session.utils import is_ref_path, extract_origin_key
+GLOBAL_REF_PREFIX = "MEMORY_VARIABLE."
 
 class ExecutionStatus(str, Enum):
     """执行状态枚举"""
@@ -208,6 +220,59 @@ class SubWorkflow(WorkflowComponent):
         self._stream_state = None
         self._interrupt_child_node_id: Optional[str] = None
         self._pending_interact_prompt: str = ""
+        self._global_var_names = None
+
+    @staticmethod
+    def _collect_global_refs_from_schema(schema, inputs, result, global_var_names):
+        """Recursively collect ${global.xxx} references from nested input_schema."""
+        if not isinstance(schema, dict) or not isinstance(inputs, dict):
+            return
+        for key, schema_value in schema.items():
+            if isinstance(schema_value, str) and is_ref_path(schema_value):
+                origin_key = extract_origin_key(schema_value)
+                if origin_key.startswith(GLOBAL_REF_PREFIX):
+                    var_name = origin_key[len(GLOBAL_REF_PREFIX):]
+                    result[var_name] = inputs.get(key)
+                    global_var_names.append(var_name)
+            elif isinstance(schema_value, dict):
+                nested_inputs = inputs.get(key, {})
+                if not isinstance(nested_inputs, dict):
+                    nested_inputs = {}
+                SubWorkflow._collect_global_refs_from_schema(
+                    schema_value, nested_inputs, result, global_var_names,
+                )
+
+    def _collect_global_vars(self, inputs: Input, session: Session) -> dict | None:
+        """从 inputs 中提取全局变量值，用于调试信息记录。支持嵌套 input_schema。"""
+        if not isinstance(session, Session):
+            return None
+        node_config = session.get_node_config()
+        if not node_config or not node_config.io_configs:
+            return None
+        input_schema = node_config.io_configs.inputs_schema
+        if not isinstance(input_schema, dict):
+            return None
+        if not isinstance(inputs, dict):
+            return None
+
+        result = {}
+        global_var_names = []
+        self._collect_global_refs_from_schema(input_schema, inputs, result, global_var_names)
+
+        self._global_var_names = global_var_names if global_var_names else None
+        return result if result else None
+
+    def _collect_updated_memory(self, session: Session) -> dict | None:
+        if not self._global_var_names:
+            return None
+
+        updated_memory = {}
+        for var_name in self._global_var_names:
+            val = session.get_global_state(f"{GLOBAL_REF_PREFIX}{var_name}")
+            if val is None:
+                val = session.get_global_state(var_name)
+            updated_memory[var_name] = val
+        return updated_memory
 
     def _validate_config(self):
         """使用 Pydantic 校验配置"""
@@ -251,7 +316,7 @@ class SubWorkflow(WorkflowComponent):
         return str(status)
 
     def _extract_interact_prompt(self, node_state: dict) -> str:
-        for key in (QUESTIONER_STATE_KEY, "question"):
+        for key in (*CHILD_INTERRUPT_STATE_KEYS, "question"):
             q_state = node_state.get(key)
             if isinstance(q_state, dict):
                 prompt = q_state.get("question") or ""
@@ -268,19 +333,20 @@ class SubWorkflow(WorkflowComponent):
         if self._status_value(node_state.get("status")) == user_interact:
             return node_id, self._extract_interact_prompt(node_state)
 
-        q_state = node_state.get(QUESTIONER_STATE_KEY)
-        if (
-            isinstance(q_state, dict)
-            and self._status_value(q_state.get("status")) == user_interact
-        ):
-            return node_id, q_state.get("question") or ""
+        for state_key in CHILD_INTERRUPT_STATE_KEYS:
+            comp_state = node_state.get(state_key)
+            if (
+                isinstance(comp_state, dict)
+                and self._status_value(comp_state.get("status")) == user_interact
+            ):
+                return node_id, comp_state.get("question") or ""
 
         return None
 
     def _find_interrupt_in_state_tree(
         self, state_root: Any
     ) -> Optional[tuple[str, str]]:
-        """在 comp_state 嵌套树中查找 Questioner / USER_INTERACT 状态。"""
+        """在 comp_state 嵌套树中查找 CHILD_INTERRUPT_STATE_KEYS 对应的 USER_INTERACT 状态。"""
         if not isinstance(state_root, dict):
             return None
 
@@ -381,7 +447,7 @@ class SubWorkflow(WorkflowComponent):
         """是否应向子工作流传递 InteractiveInput 以恢复 checkpoint。
 
         SubWorkflow 组件每次请求都会重新实例化，node_state 不会从中断自动恢复；
-        需从 session / comp_state 识别子 Questioner 仍处于 USER_INTERACT。
+        需从 session / comp_state 识别子交互组件仍处于 USER_INTERACT。
         """
         if self.node_state.status == ExecutionStatus.USER_INTERACT:
             return True
@@ -408,18 +474,23 @@ class SubWorkflow(WorkflowComponent):
             resume_query = self._extract_parent_resume_query(session)
             query = resume_query if resume_query is not None else params["query"]
             return self._build_child_interactive_input(query)
-        if for_stream:
-            return {"query": params["query"]}
-        return {
+        memory_fields = inputs.get("memory", {})
+        if not isinstance(memory_fields, dict):
+            memory_fields = {}
+        child_inputs = {
+            **memory_fields,
+            **inputs.get(USER_FIELDS, {}),
             "query": params["query"],
+            "global_variables": params["global_variables"],
             "_REQUEST": params["global_variables"],
         }
+        return child_inputs
 
     def _detect_child_interrupt(self, session: Session) -> Optional[tuple[str, str]]:
-        """从 session 状态检测子工作流内组件（如 Questioner）是否处于 USER_INTERACT。
+        """从 session 状态检测子工作流内交互组件是否处于 USER_INTERACT。
 
         子工作流 stream(is_sub=True) 的中断信号会写入父 StreamEmitter，但不会出现在
-        子 stream 迭代器中；需要通过 session 状态兜底识别。
+        子 stream 迭代器中；需要通过 comp_state 中 CHILD_INTERRUPT_STATE_KEYS 兜底识别。
         """
         if self._pending_interact_prompt:
             return (
@@ -688,6 +759,9 @@ class SubWorkflow(WorkflowComponent):
         """
         system_fields = inputs.get(SYSTEM_FIELDS, {})
         user_fields = inputs.get(USER_FIELDS, {})
+        memory_fields = inputs.get("memory", {})
+        if not isinstance(memory_fields, dict):
+            memory_fields = {}
 
         query = system_fields.get("query", "")
         if self._interrupt_child_node_id:
@@ -695,9 +769,10 @@ class SubWorkflow(WorkflowComponent):
             if resume_query is not None:
                 query = resume_query
 
-        global_variables = get_workflow_param(session, GLOBAL_VARIABLES) or {}
+        global_variables = dict(get_workflow_param(session, GLOBAL_VARIABLES) or {})
         user_id = global_variables.get("userId", "")
 
+        global_variables.update(memory_fields)
         global_variables.update(user_fields)
         global_variables["userId"] = user_id
 
@@ -753,7 +828,10 @@ class SubWorkflow(WorkflowComponent):
         child_inputs = self._prepare_child_inputs(
             inputs, session, context, for_stream=False
         )
-
+        # 记录传入的全局变量值（调试信息）
+        global_vars = self._collect_global_vars(inputs, session)
+        if global_vars:
+            await session.trace(data={"memory": global_vars})
         try:
             invoke_timeout = self._get_timeout(session)
             result = await asyncio.wait_for(
@@ -767,6 +845,8 @@ class SubWorkflow(WorkflowComponent):
             )
 
             self._sync_sub_request_to_parent(session)
+            # 获取更新后的全局变量值
+            updated_memory = self._collect_updated_memory(session)
 
             if isinstance(result, dict):
                 if "error_code" in result and "error_message" in result:
@@ -801,6 +881,7 @@ class SubWorkflow(WorkflowComponent):
             return {
                 "responseContent": response_content,
                 USER_FIELDS: user_fields,
+                "memory": updated_memory,
             }
 
         except asyncio.TimeoutError:
@@ -824,6 +905,12 @@ class SubWorkflow(WorkflowComponent):
         except JiuWenBaseException:
             raise
         except GraphInterrupt:
+            partial_state = getattr(self, '_stream_state', {}) or {}
+            await self._trace_interrupt_marker(
+                session,
+                partial_state.get("responseContent", ""),
+                partial_state.get(USER_FIELDS, {}),
+            )
             raise
         except Exception as e:
             workflow_logger.error(
@@ -873,7 +960,10 @@ class SubWorkflow(WorkflowComponent):
         child_inputs = self._prepare_child_inputs(
             inputs, session, context, for_stream=True
         )
-
+        # 记录传入的全局变量值（调试信息）
+        global_vars = self._collect_global_vars(inputs, session)
+        if global_vars:
+            await session.trace(data={"memory": global_vars})
         final_res = ""
         final_val = {}
         messages = []
@@ -963,7 +1053,8 @@ class SubWorkflow(WorkflowComponent):
             self._sync_sub_request_to_parent(session)
 
             final_res = messages[-1] if messages else final_res
-
+            # 获取更新后的全局变量值
+            updated_memory = self._collect_updated_memory(session)
             self.node_state.status = ExecutionStatus.END
 
             workflow_logger.info(
@@ -982,10 +1073,13 @@ class SubWorkflow(WorkflowComponent):
             await session.write_custom_stream(
                 CustomSchema(type=MESSAGE_NODE_END, index=1, data=end_payload)
             )
-            yield {
+            result = {
                 "responseContent": final_res,
                 USER_FIELDS: final_val,
             }
+            if updated_memory:
+                result["memory"] = updated_memory
+            yield result
 
         except asyncio.TimeoutError:
             # 首帧/帧超时：子 _sub_stream 可能阻塞在 sub_workflow_stream.receive，用 session 识别中断
@@ -1009,6 +1103,9 @@ class SubWorkflow(WorkflowComponent):
         except JiuWenBaseException:
             raise
         except GraphInterrupt:
+            await self._trace_interrupt_marker(
+                session, final_res, final_val
+            )
             raise
         except Exception as e:
             workflow_logger.error(
@@ -1077,6 +1174,13 @@ class SubWorkflow(WorkflowComponent):
                 return {"is_final": True, "user_fields": payload.get("user_fields", {})}
 
             if chunk_type == "message_end":
+                if payload.get("should_interrupt"):
+                    self._pending_interact_prompt = (
+                        payload.get("answer") or payload.get("result") or ""
+                    )
+                    node_id = payload.get("node_id")
+                    if node_id:
+                        self._interrupt_child_node_id = node_id
                 return {"is_message_end": True}
 
             if chunk_type in ["end node stream", "partial_content"]:
@@ -1142,6 +1246,30 @@ class SubWorkflow(WorkflowComponent):
                 event_type=LogEventType.WORKFLOW_COMPONENT_ERROR,
                 component_type_str="SubWorkflow",
             )
+
+    async def _trace_interrupt_marker(
+        self,
+        session: Session,
+        response_content: str,
+        user_fields: dict,
+    ) -> None:
+        """向 trace span 写入中断标记和部分输出。
+
+        session.trace() 将数据写入 on_invoke_data，生成一条 status="running"
+        的 TraceSchema。wrapper 层检测到 on_invoke_data 中的 _sub_interrupt_marker
+        后会缓存此帧，等 status="interrupted" 的 TraceSchema 到达后，
+        以 status="finish" 合并发送。
+        """
+        try:
+            await session.trace(data={
+                "_sub_interrupt_marker": True,
+                "interrupt_outputs": {
+                    "responseContent": response_content,
+                    USER_FIELDS: user_fields,
+                },
+            })
+        except Exception:
+            pass
 
     def get_stream_output(self) -> Output:
         """Get the cached stream output for batch retrieval."""
