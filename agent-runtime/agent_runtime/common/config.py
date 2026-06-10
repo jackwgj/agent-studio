@@ -118,6 +118,13 @@ class SecuritySandboxSettings(BaseSettings):
     ssl_verify: bool = Field(
         default=False, validation_alias="SECURITY_SANDBOX_SSL_VERIFY"
     )
+    idle_ttl_seconds: int = Field(
+        default=600, validation_alias="SECURITY_SANDBOX_IDLE_TTL"
+    )
+    timeout_seconds: int = Field(
+        default=300, validation_alias="SECURITY_SANDBOX_TIMEOUT"
+    )
+    scope: str = Field(default="system", validation_alias="SECURITY_SANDBOX_SCOPE")
 
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore"

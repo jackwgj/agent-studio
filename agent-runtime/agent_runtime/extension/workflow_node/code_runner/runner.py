@@ -11,7 +11,6 @@ the corresponding runner instance.
 from abc import ABC, abstractmethod
 from typing import Any, Dict
 
-from agent_runtime.common.config import settings
 from openjiuwen.core.sys_operation.code import BaseCodeOperation
 
 from .local_code_runner import create_local_code_runner
@@ -72,6 +71,8 @@ class LocalRunner(Runner):
 class SandboxRunner(Runner):
     """Runner for sandbox code execution."""
 
+    SANDBOX_SYS_OP_ID = "flow_code_sandbox_sys_op"
+
     def create(self, code_operation: BaseCodeOperation) -> Any:
         """Create a SandboxCodeRunner instance.
 
@@ -82,18 +83,17 @@ class SandboxRunner(Runner):
             SandboxCodeRunner instance.
 
         Raises:
-            RuntimeError: If SECURITY_SANDBOX_SERVER is not configured.
+            RuntimeError: If sandbox SysOperation is not registered.
         """
-        sandbox_server = settings.security_sandbox.server
-        ssl_verify = settings.security_sandbox.ssl_verify
+        from openjiuwen.core.runner import Runner as CoreRunner
 
-        if not sandbox_server:
-            raise RuntimeError("SECURITY_SANDBOX_SERVER not configured")
-
-        return SandboxCodeRunner(
-            sandbox_server=sandbox_server,
-            ssl_verify=ssl_verify,
-        )
+        sys_op = CoreRunner.resource_mgr.get_sys_operation(self.SANDBOX_SYS_OP_ID)
+        if sys_op is None:
+            raise RuntimeError(
+                f"Sandbox SysOperation '{self.SANDBOX_SYS_OP_ID}' not registered. "
+                "Configure SECURITY_SANDBOX_SERVER to enable sandbox mode."
+            )
+        return SandboxCodeRunner(sys_op)
 
     def name(self) -> str:
         """Return runner name.
@@ -142,5 +142,4 @@ class CodeRunnerFactory:
         }
 
 
-# Initialize default runners on module load
 CodeRunnerFactory.init_default_runners()

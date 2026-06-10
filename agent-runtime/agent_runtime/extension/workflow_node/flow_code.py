@@ -346,7 +346,7 @@ class FlowCode(WorkflowComponent):
         sys_op = Runner.resource_mgr.get_sys_operation(sys_op_id)
         if sys_op is None:
             raise build_error(
-                StatusCode.WORKFLOW_COMPONENT_INIT_ERROR,
+                StatusCode.WORKFLOW_COMPONENT_EXECUTION_ERROR,
                 comp_id="flow_code",
                 reason=f"SysOperation '{sys_op_id}' not found. Must be registered at startup.",
                 workflow="n/a",
@@ -378,7 +378,7 @@ class FlowCode(WorkflowComponent):
         sys_op = Runner.resource_mgr.get_sys_operation(sys_op_id)
         if sys_op is None:
             raise build_error(
-                StatusCode.WORKFLOW_COMPONENT_INIT_ERROR,
+                StatusCode.WORKFLOW_COMPONENT_EXECUTION_ERROR,
                 comp_id="flow_code",
                 reason=f"SysOperation '{sys_op_id}' not found. Must be registered at startup.",
                 workflow="n/a",
@@ -446,7 +446,7 @@ class FlowCode(WorkflowComponent):
                 # Sandbox execution failed, fallback to local
                 exec_env = self._conf.exec_env or "local"
                 if exec_env == "sandbox":
-                    workflow_logger.debug(
+                    workflow_logger.warning(
                         f"Sandbox execution failed: {e}, fallback to local"
                     )
                     local_runner_instance = self._get_local_runner()

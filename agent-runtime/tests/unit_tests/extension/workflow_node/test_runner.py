@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
-"""Runner pattern unit tests."""
+"""Runner pattern unit tests — LocalRunner, SandboxRunner, CodeRunnerFactory."""
 
 from unittest.mock import patch, MagicMock
 
@@ -10,96 +10,108 @@ from agent_runtime.extension.workflow_node.code_runner.runner import (
     SandboxRunner,
     CodeRunnerFactory,
 )
+from agent_runtime.extension.workflow_node.code_runner.local_code_runner import (
+    LocalCodeRunner,
+)
+from agent_runtime.extension.workflow_node.code_runner.sandbox_code_runner import (
+    SandboxCodeRunner,
+)
 
 
 class TestLocalRunner:
-    """Tests for LocalRunner."""
+    @staticmethod
+    def test_name_returns_local():
+        assert LocalRunner().name() == "local"
 
-    def test_name_returns_local(self):
-        """Test name returns 'local'."""
-        runner = LocalRunner()
-        assert runner.name() == "local"
-
-    def test_create_returns_local_code_runner(self):
-        """Test create returns LocalCodeRunner instance."""
+    @staticmethod
+    def test_create_returns_local_code_runner():
         runner = LocalRunner()
         mock_code_op = MagicMock()
-
-        created_runner = runner.create(mock_code_op)
-
-        from agent_runtime.extension.workflow_node.code_runner.local_code_runner import (
-            LocalCodeRunner,
-        )
-
-        assert isinstance(created_runner, LocalCodeRunner)
+        created = runner.create(mock_code_op)
+        assert isinstance(created, LocalCodeRunner)
 
 
 class TestSandboxRunner:
-    """Tests for SandboxRunner."""
+    @staticmethod
+    def test_name_returns_sandbox():
+        assert SandboxRunner().name() == "sandbox"
 
-    def test_name_returns_sandbox(self):
-        """Test name returns 'sandbox'."""
+    @staticmethod
+    def test_create_returns_sandbox_code_runner_when_registered():
         runner = SandboxRunner()
-        assert runner.name() == "sandbox"
-
-    def test_create_raises_when_server_not_configured(self):
-        """Test create raises RuntimeError when SECURITY_SANDBOX_SERVER is empty."""
-        runner = SandboxRunner()
-        mock_code_op = MagicMock()
+        mock_sys_op = MagicMock()
 
         with patch(
-            "agent_runtime.extension.workflow_node.code_runner.runner.settings"
-        ) as mock_settings:
-            mock_settings.security_sandbox.server = ""
-            with pytest.raises(
-                RuntimeError, match="SECURITY_SANDBOX_SERVER not configured"
-            ):
-                runner.create(mock_code_op)
+            "openjiuwen.core.runner.Runner.resource_mgr"
+        ) as mock_resource_mgr:
+            mock_resource_mgr.get_sys_operation.return_value = mock_sys_op
+            created = runner.create(MagicMock())
+            assert isinstance(created, SandboxCodeRunner)
 
-    def test_create_returns_sandbox_code_runner_when_configured(self):
-        """Test create returns SandboxCodeRunner when server is configured."""
+    @staticmethod
+    def test_create_raises_when_not_registered():
         runner = SandboxRunner()
-        mock_code_op = MagicMock()
 
         with patch(
-            "agent_runtime.extension.workflow_node.code_runner.runner.settings"
-        ) as mock_settings:
-            mock_settings.security_sandbox.server = "https://sandbox.example.com/api"
-            mock_settings.security_sandbox.ssl_verify = False
+            "openjiuwen.core.runner.Runner.resource_mgr"
+        ) as mock_resource_mgr:
+            mock_resource_mgr.get_sys_operation.return_value = None
+            with pytest.raises(RuntimeError, match="not registered"):
+                runner.create(MagicMock())
 
-            created_runner = runner.create(mock_code_op)
+    @staticmethod
+    def test_create_uses_sandbox_sys_op_id():
+        runner = SandboxRunner()
+        mock_sys_op = MagicMock()
 
-            from agent_runtime.extension.workflow_node.code_runner.sandbox_code_runner import (
-                SandboxCodeRunner,
+        with patch(
+            "openjiuwen.core.runner.Runner.resource_mgr"
+        ) as mock_resource_mgr:
+            mock_resource_mgr.get_sys_operation.return_value = mock_sys_op
+            runner.create(MagicMock())
+            mock_resource_mgr.get_sys_operation.assert_called_once_with(
+                "flow_code_sandbox_sys_op"
             )
-
-            assert isinstance(created_runner, SandboxCodeRunner)
 
 
 class TestCodeRunnerFactory:
-    """Tests for CodeRunnerFactory."""
-
-    def test_get_runner_returns_local_for_unknown_env(self):
-        """Test get_runner returns local runner for unknown environment."""
-        runner = CodeRunnerFactory.get_runner("unknown")
-        assert isinstance(runner, LocalRunner)
-
-    def test_get_runner_returns_local_for_local_env(self):
-        """Test get_runner returns local runner for 'local' environment."""
+    @staticmethod
+    def test_get_runner_local():
         runner = CodeRunnerFactory.get_runner("local")
         assert isinstance(runner, LocalRunner)
 
-    def test_get_runner_returns_sandbox_for_sandbox_env(self):
-        """Test get_runner returns sandbox runner for 'sandbox' environment."""
+    @staticmethod
+    def test_get_runner_sandbox():
         runner = CodeRunnerFactory.get_runner("sandbox")
         assert isinstance(runner, SandboxRunner)
 
-    def test_init_default_runners_registers_all_runners(self):
-        """Test init_default_runners registers all built-in runners."""
-        # Clear existing runners
-        CodeRunnerFactory._runners = {}
+    @staticmethod
+    def test_get_runner_unknown_falls_back_to_local():
+        runner = CodeRunnerFactory.get_runner("docker")
+        assert isinstance(runner, LocalRunner)
 
+    @staticmethod
+    def test_init_default_runners():
+        setattr(CodeRunnerFactory, "_runners", {})
         CodeRunnerFactory.init_default_runners()
+        assert CodeRunnerFactory.get_runner("local") is not None
+        assert CodeRunnerFactory.get_runner("sandbox") is not None
+        assert isinstance(CodeRunnerFactory.get_runner("local"), LocalRunner)
+        assert isinstance(CodeRunnerFactory.get_runner("sandbox"), SandboxRunner)
 
-        assert "local" in CodeRunnerFactory._runners
-        assert "sandbox" in CodeRunnerFactory._runners
+    @staticmethod
+    def test_register_custom_runner():
+        class CustomRunner(LocalRunner):
+            def name(self):
+                return "custom"
+
+        custom = CustomRunner()
+        CodeRunnerFactory.register(custom)
+        assert CodeRunnerFactory.get_runner("custom") is custom
+
+    @staticmethod
+    def test_get_runner_returns_none_for_empty_runners():
+        setattr(CodeRunnerFactory, "_runners", {})
+        result = CodeRunnerFactory.get_runner("local")
+        assert result is None
+        CodeRunnerFactory.init_default_runners()

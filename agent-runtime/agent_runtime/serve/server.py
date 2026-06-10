@@ -22,6 +22,14 @@ from openjiuwen.core.common.logging.log_config import configure_log_config
 from openjiuwen.core.runner import Runner
 from openjiuwen.core.session.checkpointer.checkpointer import CheckpointerFactory
 from openjiuwen.core.sys_operation import SysOperationCard, OperationMode
+from openjiuwen.core.sys_operation.config import (
+    SandboxGatewayConfig,
+    SandboxIsolationConfig,
+    ContainerScope,
+    PreDeployLauncherConfig,
+)
+
+from openjiuwen.extensions.sys_operation.sandbox import providers as _  # noqa: F401
 
 # 导入 redis checkpointer 模块以触发 @CheckpointerFactory.register("redis") 装饰器
 from openjiuwen.extensions.checkpointer.redis import checkpointer as _  # noqa: F401
@@ -88,7 +96,6 @@ async def lifespan(app: FastAPI):  # noqa: redefined-outer-name
     logger.info("Redis checkpointer initialized and set as default")
 
     # 注册 flow_code 专用的 SysOperation（local mode）
-    # 这是唯一的注册点，FlowCode 只负责获取，不再重复注册
     sys_op_id = "flow_code_sys_op"
     if Runner.resource_mgr.get_sys_operation(sys_op_id) is None:
         card = SysOperationCard(id=sys_op_id, mode=OperationMode.LOCAL)
@@ -99,6 +106,35 @@ async def lifespan(app: FastAPI):  # noqa: redefined-outer-name
             )
         else:
             logger.error(f"Failed to register flow_code_sys_op: {add_res}")
+
+    # 注册 SANDBOX SysOperation（根据 SECURITY_SANDBOX_SERVER 配置）
+    sandbox_server = settings.security_sandbox.server
+    if sandbox_server:
+        sandbox_sys_op_id = "flow_code_sandbox_sys_op"
+        if Runner.resource_mgr.get_sys_operation(sandbox_sys_op_id) is None:
+            scope = ContainerScope.SYSTEM
+            if settings.security_sandbox.scope == "session":
+                scope = ContainerScope.SESSION
+            sandbox_card = SysOperationCard(
+                id=sandbox_sys_op_id,
+                mode=OperationMode.SANDBOX,
+                gateway_config=SandboxGatewayConfig(
+                    isolation=SandboxIsolationConfig(container_scope=scope),
+                    launcher_config=PreDeployLauncherConfig(
+                        base_url=sandbox_server,
+                        sandbox_type="aio",
+                        idle_ttl_seconds=settings.security_sandbox.idle_ttl_seconds,
+                    ),
+                    timeout_seconds=settings.security_sandbox.timeout_seconds,
+                ),
+            )
+            sandbox_res = Runner.resource_mgr.add_sys_operation(sandbox_card)
+            if sandbox_res.is_ok():
+                logger.info(
+                    f"Registered SysOperation: {sandbox_sys_op_id} (mode={OperationMode.SANDBOX})"
+                )
+            else:
+                logger.error(f"Failed to register sandbox SysOperation: {sandbox_res}")
 
     try:
         yield

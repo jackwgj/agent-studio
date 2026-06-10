@@ -1,87 +1,207 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
-"""SandboxCodeRunner unit tests."""
+"""SandboxCodeRunner unit tests — SysOperation SANDBOX mode."""
 
-from unittest.mock import AsyncMock, patch, MagicMock
+import json
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from agent_runtime.extension.workflow_node.code_runner.sandbox_code_runner import (
     SandboxCodeRunner,
 )
+from openjiuwen.core.common.exception.codes import StatusCode
 
 
-class TestSandboxCodeRunner:
-    """Tests for SandboxCodeRunner."""
+def make_mock_sys_op(
+    exit_code=0, stdout='{"result": 42}', stderr="", status_code="SUCCESS"
+):
+    mock_raw_result = MagicMock()
+    if status_code == "SUCCESS":
+        mock_raw_result.code = StatusCode.SUCCESS.code
+        mock_raw_result.message = "ok"
+    else:
+        mock_raw_result.code = "ERROR"
+        mock_raw_result.message = "execution error"
 
-    @pytest.fixture
-    def mock_httpx_client(self):
-        """Mock httpx AsyncClient."""
-        with patch("httpx.AsyncClient") as mock_client:
-            yield mock_client
+    mock_raw_result.data.exit_code = exit_code
+    mock_raw_result.data.stdout = stdout
+    mock_raw_result.data.stderr = stderr
 
-    def test_init_with_server_and_ssl_verify(self):
-        """Test initialization with server URL and SSL verify setting."""
-        runner = SandboxCodeRunner(
-            sandbox_server="https://sandbox.example.com/api",
-            ssl_verify=True,
-        )
-        assert runner.sandbox_server == "https://sandbox.example.com/api"
-        assert runner.ssl_verify is True
+    mock_code_op = AsyncMock()
+    mock_code_op.execute_code = AsyncMock(return_value=mock_raw_result)
 
-    def test_init_with_default_ssl_verify(self):
-        """Test initialization with default SSL verify (False)."""
-        runner = SandboxCodeRunner(sandbox_server="https://sandbox.example.com/api")
-        assert runner.ssl_verify is False
+    mock_sys_op = MagicMock()
+    mock_sys_op.code.return_value = mock_code_op
+    return mock_sys_op
 
+
+class TestSandboxCodeRunnerInit:
+    @staticmethod
+    def test_init_assigns_sys_operation():
+        mock_sys_op = MagicMock()
+        runner = SandboxCodeRunner(mock_sys_op)
+        assert getattr(runner, "_sys_operation") is mock_sys_op
+
+
+class TestSandboxCodeRunnerRun:
+    @staticmethod
     @pytest.mark.asyncio
-    async def test_run_success(self, mock_httpx_client):
-        """Test successful code execution."""
-        mock_response = MagicMock()
-        mock_response.json.return_value = {
-            "output": {"return": {"result": 42}, "error": None}
-        }
-        mock_response.raise_for_status = MagicMock()
-
-        mock_client_instance = AsyncMock()
-        mock_client_instance.post = AsyncMock(return_value=mock_response)
-        mock_httpx_client.return_value.__aenter__ = AsyncMock(
-            return_value=mock_client_instance
+    async def test_run_success():
+        mock_sys_op = make_mock_sys_op(
+            exit_code=0, stdout='{"result": 42}'
         )
-        mock_httpx_client.return_value.__aexit__ = AsyncMock()
-
-        runner = SandboxCodeRunner(sandbox_server="https://sandbox.example.com/api")
-
+        runner = SandboxCodeRunner(mock_sys_op)
         result = await runner.run(
-            user_code="def main(args):\n    return {'result': 42}",
+            user_code="def main(args): return {'result': 42}",
             inputs={"x": 1},
             timeout=300,
         )
-
         assert result == {"result": 42}
-        mock_client_instance.post.assert_called_once()
 
+    @staticmethod
     @pytest.mark.asyncio
-    async def test_run_with_error(self, mock_httpx_client):
-        """Test execution with sandbox returning an error."""
-        mock_response = MagicMock()
-        mock_response.json.return_value = {
-            "output": {"return": None, "error": "Syntax error in code"}
-        }
-
-        mock_client_instance = AsyncMock()
-        mock_client_instance.post = AsyncMock(return_value=mock_response)
-        mock_httpx_client.return_value.__aenter__ = AsyncMock(
-            return_value=mock_client_instance
-        )
-        mock_httpx_client.return_value.__aexit__ = AsyncMock()
-
-        runner = SandboxCodeRunner(sandbox_server="https://sandbox.example.com/api")
-
-        with pytest.raises(
-            RuntimeError, match="Sandbox run error: Syntax error in code"
-        ):
+    async def test_run_status_code_not_success():
+        mock_sys_op = make_mock_sys_op(status_code="ERROR")
+        runner = SandboxCodeRunner(mock_sys_op)
+        with pytest.raises(Exception, match="execution error"):
             await runner.run(
-                user_code="invalid code",
+                user_code="def main(args): return {}",
                 inputs={},
                 timeout=300,
             )
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_run_exit_code_nonzero():
+        mock_sys_op = make_mock_sys_op(
+            exit_code=1, stderr="NameError: name 'x' is not defined"
+        )
+        runner = SandboxCodeRunner(mock_sys_op)
+        with pytest.raises(Exception, match="NameError"):
+            await runner.run(
+                user_code="def main(args): return {}",
+                inputs={},
+                timeout=300,
+            )
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_run_stdout_not_json():
+        mock_sys_op = make_mock_sys_op(exit_code=0, stdout="not json")
+        runner = SandboxCodeRunner(mock_sys_op)
+        with pytest.raises(Exception, match="Failed to parse sandbox code output as JSON"):
+            await runner.run(
+                user_code="def main(args): return {}",
+                inputs={},
+                timeout=300,
+            )
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_run_stdout_is_string_not_dict():
+        mock_sys_op = make_mock_sys_op(exit_code=0, stdout='"string_value"')
+        runner = SandboxCodeRunner(mock_sys_op)
+        with pytest.raises(Exception, match="must return a dict"):
+            await runner.run(
+                user_code="def main(args): return {}",
+                inputs={},
+                timeout=300,
+            )
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_run_stdout_is_list_not_dict():
+        mock_sys_op = make_mock_sys_op(exit_code=0, stdout="[1, 2, 3]")
+        runner = SandboxCodeRunner(mock_sys_op)
+        with pytest.raises(Exception, match="must return a dict"):
+            await runner.run(
+                user_code="def main(args): return {}",
+                inputs={},
+                timeout=300,
+            )
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_run_decimal_default_str():
+        mock_sys_op = make_mock_sys_op(
+            exit_code=0, stdout='{"val": "123.45"}'
+        )
+        runner = SandboxCodeRunner(mock_sys_op)
+        result = await runner.run(
+            user_code="def main(args): return {}",
+            inputs={},
+            timeout=300,
+        )
+        assert result == {"val": "123.45"}
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_run_execute_code_exception_propagates():
+        mock_sys_op = MagicMock()
+        mock_code_op = AsyncMock()
+        mock_code_op.execute_code = AsyncMock(side_effect=RuntimeError("sandbox unreachable"))
+        mock_sys_op.code.return_value = mock_code_op
+
+        runner = SandboxCodeRunner(mock_sys_op)
+        with pytest.raises(RuntimeError, match="sandbox unreachable"):
+            await runner.run(
+                user_code="def main(args): return {}",
+                inputs={},
+                timeout=300,
+            )
+
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_run_logs_warning():
+        mock_sys_op = make_mock_sys_op(exit_code=0, stdout='{"result": 1}')
+        runner = SandboxCodeRunner(mock_sys_op)
+
+        with patch(
+            "agent_runtime.extension.workflow_node.code_runner.sandbox_code_runner.workflow_logger"
+        ) as mock_logger:
+            await runner.run(
+                user_code="def main(args): return {'result': 1}",
+                inputs={},
+                timeout=300,
+            )
+            mock_logger.warning.assert_called_once()
+            call_args = mock_logger.warning.call_args[0][0]
+            assert "[SandboxCodeRunner]" in call_args
+
+
+class TestSandboxCodeRunnerWrapUserCode:
+    @staticmethod
+    def test_wrap_contains_user_code():
+        wrapped = SandboxCodeRunner.wrap_user_code("def main(args): return {}", {"x": 1})
+        assert "def main(args): return {}" in wrapped
+        assert "args = {'x': 1}" in wrapped
+        assert "json.dumps(result, default=str)" in wrapped
+
+    @staticmethod
+    def test_wrap_embeds_inputs():
+        wrapped = SandboxCodeRunner.wrap_user_code("pass", {"x": 1, "y": "hello"})
+        assert "args = {'x': 1, 'y': 'hello'}" in wrapped
+
+    @staticmethod
+    def test_wrap_empty_inputs():
+        wrapped = SandboxCodeRunner.wrap_user_code("pass", {})
+        assert "args = {}" in wrapped
+
+
+class TestSandboxCodeRunnerExecuteWrappedCode:
+    @staticmethod
+    @pytest.mark.asyncio
+    async def test_execute_passes_correct_params():
+        mock_sys_op = MagicMock()
+        mock_code_op = AsyncMock()
+        mock_code_op.execute_code = AsyncMock(return_value=MagicMock())
+        mock_sys_op.code.return_value = mock_code_op
+
+        runner = SandboxCodeRunner(mock_sys_op)
+        wrapped_code = "print('hello')"
+        execute_fn = getattr(runner, "_execute_wrapped_code")
+        await execute_fn(wrapped_code, timeout=300)
+
+        mock_code_op.execute_code.assert_called_once_with(
+            code=wrapped_code, language="python", timeout=300
+        )

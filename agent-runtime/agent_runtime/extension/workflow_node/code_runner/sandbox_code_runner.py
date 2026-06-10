@@ -1,94 +1,87 @@
-"""Sandbox code runner module - executes code via remote sandbox service."""
+"""Sandbox code runner module - executes code via SysOperation SANDBOX mode."""
 
-import httpx
+import json
+from typing import Any
 
 from openjiuwen.core.common.exception.codes import StatusCode
 from openjiuwen.core.common.exception.errors import build_error
+from openjiuwen.core.common.logging import workflow_logger
 
 
 class SandboxCodeRunner:
-    """Sandbox code runner - executes code via remote HTTP sandbox service.
+    """Sandbox code runner - executes code via SysOperation SANDBOX mode.
 
-    This runner sends code to a remote sandbox service for isolated execution.
-    The sandbox service is expected to accept POST requests with JSON payload
-    containing language, code, inputs, and timeout fields.
-
-    Note: This class does NOT inherit from CodeRunner because it uses a
-    completely different execution model (HTTP vs subprocess).
+    Uses AIO sandbox container for isolated code execution.
+    The SysOperation must be registered at startup with SANDBOX mode.
     """
 
-    def __init__(self, sandbox_server: str, ssl_verify: bool = False):
-        """Initialize sandbox runner.
-
-        Args:
-            sandbox_server: URL of the sandbox service endpoint.
-            ssl_verify: Whether to verify SSL certificates. Defaults to False.
-        """
-        self.sandbox_server = sandbox_server
-        self.ssl_verify = ssl_verify
+    def __init__(self, sys_operation):
+        self._sys_operation = sys_operation
 
     async def run(self, user_code: str, inputs: dict, timeout: int = 300) -> dict:
-        """Execute user code via sandbox service.
+        wrapped_code = self.wrap_user_code(user_code, inputs)
+        workflow_logger.warning("[SandboxCodeRunner] Executing code in sandbox mode")
+        result = await self._execute_wrapped_code(wrapped_code, timeout)
+        return self.parse_result(result)
 
-        Args:
-            user_code: User's Python code (must define main function).
-            inputs: Input parameters passed to main function.
-            timeout: Execution timeout in seconds.
+    @staticmethod
+    def wrap_user_code(user_code: str, inputs: dict) -> str:
+        inputs_literal = repr(inputs)
 
-        Returns:
-            dict: Result from main function.
+        return f"""
+import sys
+import json
 
-        Raises:
-            RuntimeError: If sandbox execution fails.
-            BuildError: If result format is invalid.
-        """
-        payload = {
-            "language": "python",
-            "code": user_code,
-            "inputs": inputs,
-            "timeout": timeout,
-        }
+# ===== 用户代码开始 =====
+{user_code}
+# ===== 用户代码结束 =====
 
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                self.sandbox_server,
-                json=payload,
-                headers={"Content-Type": "application/json"},
-                timeout=timeout,
-                verify=self.ssl_verify,
+# 输入参数（直接嵌入脚本，避免 stdin 通信问题）
+args = {inputs_literal}
+
+# 调用 main 函数
+result = main(args)
+
+# 输出 JSON 结果到 stdout（default=str 处理 Decimal 等非标准 JSON 类型）
+print(json.dumps(result, default=str))
+"""
+
+    async def _execute_wrapped_code(self, wrapped_code: str, timeout: int) -> Any:
+        code_op = self._sys_operation.code()
+        return await code_op.execute_code(
+            code=wrapped_code, language="python", timeout=timeout
+        )
+
+    @staticmethod
+    def parse_result(raw_result: Any) -> dict:
+        if raw_result.code != StatusCode.SUCCESS.code:
+            raise build_error(
+                StatusCode.WORKFLOW_COMPONENT_EXECUTION_ERROR,
+                comp="flow_code",
+                ability="execute",
+                reason=raw_result.message,
+                workflow="n/a",
             )
 
-        response.raise_for_status()
-        return self._parse_result(response.json())
+        if raw_result.data.exit_code != 0:
+            raise build_error(
+                StatusCode.WORKFLOW_COMPONENT_EXECUTION_ERROR,
+                comp="flow_code",
+                ability="execute",
+                reason=f"Sandbox code exited with status {raw_result.data.exit_code}: {raw_result.data.stderr}",
+                workflow="n/a",
+            )
 
-    def _parse_result(self, raw_result: dict) -> dict:
-        """Parse sandbox response to extract result.
-
-        Expected response format:
-        {
-            "output": {
-                "return": {...},  # Result dict from code execution
-                "error": None     # Error message if execution failed
-            }
-        }
-
-        Args:
-            raw_result: Raw response dict from sandbox service.
-
-        Returns:
-            Parsed result dict.
-
-        Raises:
-            RuntimeError: If sandbox reports an error.
-            BuildError: If result is not a dict.
-        """
-        output = raw_result.get("output", {})
-        error = output.get("error")
-
-        if error:
-            raise RuntimeError(f"Sandbox run error: {error}")
-
-        result_dict = output.get("return")
+        try:
+            result_dict = json.loads(raw_result.data.stdout.strip())
+        except json.JSONDecodeError as e:
+            raise build_error(
+                StatusCode.WORKFLOW_COMPONENT_EXECUTION_ERROR,
+                comp="flow_code",
+                ability="execute",
+                reason=f"Failed to parse sandbox code output as JSON: {e}",
+                workflow="n/a",
+            ) from e
 
         if not isinstance(result_dict, dict):
             raise build_error(

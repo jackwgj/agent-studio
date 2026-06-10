@@ -507,13 +507,15 @@ export class CodeModalComponent extends ModalBaseComponent implements OnInit {
   }
 
   radiomodeChange(event) {
+    this.selectedExecutionMethod = event;
     if (this.inputParams.length < 1) {
       this.addInputParam();
     }
     if (this.outputParams.length < 1) {
       this.addOutputParam();
     }
-    this.onSave();
+    this.changeUpdateTime();
+    this.handelSave();
   }
 
   handelSave() {
