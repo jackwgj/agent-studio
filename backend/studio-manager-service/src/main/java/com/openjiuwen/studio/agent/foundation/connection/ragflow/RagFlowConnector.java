@@ -60,6 +60,8 @@ public class RagFlowConnector extends AbstractKnowledgeBaseConnector {
 
     public static final int QUERY_DATASET_COUNT = 10000;
 
+    private final static String PAGE = "page";
+
     public RagFlowConnector(ConnectorClient connectorClient) {
         super(connectorClient, new RagFlowAuthHandler());
     }
@@ -70,7 +72,7 @@ public class RagFlowConnector extends AbstractKnowledgeBaseConnector {
         Map<String, Object> queryParam = Maps.newHashMap();
         queryParam.put(RequestParamConstants.NAME, name);
         // RagFlow的数据集查询接口响应消息中没有总数，所以此处尽量查询出RagFLow中所有知识库，然后在内存中自己分页
-        queryParam.put(RequestParamConstants.PAGE, 1);
+        queryParam.put(PAGE, 1);
         queryParam.put(RequestParamConstants.PAGE_SIZE, QUERY_DATASET_COUNT);
 
         RequestEntity requestEntity = RequestEntity.builder().requestParams(queryParam).build();
