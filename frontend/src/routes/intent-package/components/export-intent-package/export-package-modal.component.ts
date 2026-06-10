@@ -14,23 +14,13 @@ import { NzInputModule } from 'ng-zorro-antd/input';
 import { NzToolTipModule } from 'ng-zorro-antd/tooltip';
 import { NzEmptyModule } from 'ng-zorro-antd/empty';
 import { NzModalRef } from 'ng-zorro-antd/modal';
-
+import { agentCommonLogic } from '@routes/agent-center/app-agent/common-logic-agent';
 @Component({
   selector: 'export-intent-package-modal',
   templateUrl: './export-package-modal.component.html',
   styleUrls: ['./export-package-modal.component.less'],
   standalone: true,
-  imports: [
-    CommonModule,
-    MODULES,
-    FormsModule,
-    NzTableModule,
-    NzPaginationModule,
-    NzButtonModule,
-    NzInputModule,
-    NzToolTipModule,
-    NzEmptyModule
-  ],
+  imports: [CommonModule, MODULES, FormsModule, NzTableModule, NzPaginationModule, NzButtonModule, NzInputModule, NzToolTipModule, NzEmptyModule],
   providers: [
     {
       provide: I18NEXT_NAMESPACE,
@@ -54,7 +44,8 @@ export class ExportPackageModalComponent implements OnInit {
   constructor(
     private readonly api: IntentPackageService,
     private readonly i18n: I18NextEagerPipe,
-    @Optional() private modalRef: NzModalRef
+    @Optional() private modalRef: NzModalRef,
+    private commonLogic: agentCommonLogic
   ) {}
 
   ngOnInit(): void {
@@ -67,19 +58,22 @@ export class ExportPackageModalComponent implements OnInit {
     const params = {
       limit: this.pageSize,
       offset: (this.currentPage - 1) * this.pageSize,
-      name: this.searchName || undefined
+      name: this.searchName || undefined,
     };
 
-    this.api.getIntentGroupList(params).then((res: any) => {
-      this.displayData = res?.intents ?? [];
-      this.totalNumber = res.count ?? 0;
-      this.loading = false;
-      this.refreshCheckedStatus();
-    }).catch(() => {
-      this.displayData = [];
-      this.totalNumber = 0;
-      this.loading = false;
-    });
+    this.api
+      .getIntentGroupList(params)
+      .then((res: any) => {
+        this.displayData = res?.intents ?? [];
+        this.totalNumber = res.count ?? 0;
+        this.loading = false;
+        this.refreshCheckedStatus();
+      })
+      .catch(() => {
+        this.displayData = [];
+        this.totalNumber = 0;
+        this.loading = false;
+      });
   }
 
   /** 搜索 */
@@ -132,12 +126,12 @@ export class ExportPackageModalComponent implements OnInit {
     const params = {
       ids: Array.from(this.setOfCheckedId),
     };
-    this.api.exportIntent(params).then((res) => {
+    this.api.exportIntent(params).then(res => {
       CommonUtils.downloadFile(
-        new Blob([res.data], {
+        new Blob([res], {
           type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         }),
-        res.headers.get('Content-Disposition'),
+        `${this.commonLogic.getFormattedDateTime()}.xlsx`
       );
       this.dismiss();
     });

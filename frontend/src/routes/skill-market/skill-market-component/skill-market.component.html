@@ -1,0 +1,55 @@
+<div class="skill-resource">
+  <nz-tabset [(nzSelectedIndex)]="activeTabIndex" (nzSelectedIndexChange)="onActiveChange($event)">
+    @for (tab of tabs; track $index) {
+      <nz-tab [nzTitle]="tab.title"> </nz-tab>
+    }
+  </nz-tabset>
+  <div class="type-title">{{ getTitleLabel() }}</div>
+  <div class="search-box">
+    <input nz-input [(ngModel)]="searchValue" class="w-[calc(100%-32px)]" (ngModelChange)="onNgModelChange($event)" />
+    <button nz-button nzType="default" (click)="refresh()" class="h-8 w-8">
+      <nz-icon nzType="reload" />
+    </button>
+  </div>
+  @if (!cards.length && !loading) {
+    <div class="center">
+      @if (hasFilter) {
+        <nz-empty [nzNotFoundImage]="null" [nzNotFoundContent]="'common.noData' | i18n"></nz-empty>
+      } @else {
+        <nz-empty [nzNotFoundImage]="null" [nzNotFoundContent]="'common.noData' | i18n"></nz-empty>
+      }
+    </div>
+  }
+  <div [hidden]="!cards.length || loading" class="card-list" #scrollContainer>
+    @if (loading) {
+      <nz-spin></nz-spin>
+    }
+    @for (card of cards; track card.skillId || $index) {
+      <div class="card" (click)="gotoDetail(card)">
+        <div class="title">
+          <div class="icon">
+            <img [src]="card.icon" alt="" />
+          </div>
+          <div class="ml-[16px]">
+            <div class="label mb-[4px]">{{ card.skillName }}</div>
+            <div>
+              @if (card.tagId && resourceConfig[card.tagId]?.id) {
+                <nz-tag>{{ resourceConfig[card.tagId].i18key | i18n }}</nz-tag>
+              }
+            </div>
+          </div>
+        </div>
+        <div class="custom-tip" nz-ellipsis>
+          {{ card.description }}
+        </div>
+        <div class="footer">
+          <div class="footer-icon">
+            <span nz-icon nzType="user"></span>
+          </div>
+          <div class="custom-tip footer-text">{{ 'skill.resource.tag.officialTip' | i18n }}</div>
+        </div>
+      </div>
+    }
+    <div #anchor class="scroll-anchor"></div>
+  </div>
+</div>

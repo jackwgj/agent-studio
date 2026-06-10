@@ -5,7 +5,7 @@
   <div class="w-full h-full overflow-auto text-[12px] text-[#191919] leading-[18px]">
     <div class="pt-[48px] pr-[32px] pb-[20px] pl-[32px]">
       <div class="flex items-center gap-[12px]">
-        <img  class="w-[32px] h-[32px] rounded-lg" [src]="headInfo?.icon" alt="" />
+        <img class="w-[32px] h-[32px] rounded-lg" [src]="headInfo?.icon" alt="" />
         <span class="text-[20px] font-semibold leading-[30px]">{{ title }}</span>
       </div>
     </div>
@@ -91,7 +91,7 @@
     <div class="mb-[12px]">{{ 'plugin' | i18nextEager }}（{{ headInfo?.tools?.length }}）</div>
     <div class="flex-1 flex flex-wrap overflow-auto">
       <div class="w-[calc(50%-8px)] flex items-center mr-[16px] mb-[16px] even:mr-[0px]" *ngFor="let item of headInfo?.tools">
-        <img  class="w-[14px] h-[14px] rounded-[3px] mr-[5px]" [src]="item?.tool_icon" alt="" />
+        <img class="w-[14px] h-[14px] rounded-[3px] mr-[5px]" [src]="item?.tool_icon" alt="" />
         <span class="inline-block max-w-[100px] text-ellipsis overflow-hidden whitespace-nowrap" [title]="item?.tool_name">{{ item?.tool_name }}</span>
       </div>
     </div>

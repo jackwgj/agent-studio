@@ -55,7 +55,7 @@
       [nzFrontPagination]="false"
       class="table-style"
       [nzNoResult]="noDataTemplate"
-      [ngStyle]="{'border': isShowNoDataGuide ? '' : '1px solid rgba(240, 240, 240, 1)'}"
+      [ngStyle]="{'border': isShowNoDataGuide ? '' : '1px solid rgba(240, 240, 240, 1)' ,'overflow':'auto','height':'calc(100vh - 530px)'}"
     >
       <thead *ngIf="!isShowNoDataGuide">
       <tr>

@@ -59,15 +59,15 @@
     height: 32px;
   }
 
-  .ti3-tree-leaf-node > .ti3-tree-content-box > .ti3-tree-item-guide-line {
+  .ti3-tree-leaf-node>.ti3-tree-content-box>.ti3-tree-item-guide-line {
     z-index: 30;
   }
 
-  .ti3-tree-leaf-node:not(.ti3-tree-virtual-scroll-node):not(:last-child) > .ti3-tree-parent-node:after {
+  .ti3-tree-leaf-node:not(.ti3-tree-virtual-scroll-node):not(:last-child)>.ti3-tree-parent-node:after {
     z-index: 30;
   }
 
-  .ti3-tree-space-left .ti3-tree-leaf-node > .ti3-tree-content-box > .ti3-tree-item-guide-line {
+  .ti3-tree-space-left .ti3-tree-leaf-node>.ti3-tree-content-box>.ti3-tree-item-guide-line {
     left: var(--ti-tree-guidline-space-padding-left);
   }
 
@@ -81,4 +81,8 @@
     background-color: #f0f7ff;
     z-index: -1;
   }
+}
+
+.tree-node-label {
+  margin-left: 20px;
 }

@@ -1,0 +1,34 @@
+.footer-container{
+  height: 72px;
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 40px 12px 20px;
+  box-sizing: border-box;
+  border-top: 1px solid rgba(225, 229, 235, 1);
+  background: rgba(255, 255, 255, 1);
+  .right-area{
+    display: flex;
+    gap:8px;
+    .button{
+      width: 96px;
+      height: 32px;
+      display: flex;
+      flex-direction: row;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      padding: 7px 24px 7px 24px;
+      border-radius: 999px;
+      //文本
+      font-family: PingFang SC;
+      font-size: 12px;
+      font-weight: 400;
+      line-height: 18px;
+      letter-spacing: 0;
+      text-align: center;
+    }
+  }
+}

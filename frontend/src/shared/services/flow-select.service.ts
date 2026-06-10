@@ -44,4 +44,8 @@ export class FlowSelectService extends PublishedFlowSelectBaseComponent {
   public set flowTypeSetter(value: string) {
     this.workflowType = value;
   }
+
+  public updateFlowList(list: any[]) {
+    (this as any).flowList = list;
+  }
 }

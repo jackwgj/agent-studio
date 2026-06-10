@@ -230,6 +230,7 @@ export class PluginConfigModalComponent implements OnInit, OnDestroy {
   }
 
   handleSubmitParamers(inputs) {
+    //todo 需确认有多余字段是否可以，在此进行处理
     inputs.forEach(input => {
       if (
         input.value.type === 'literal' &&

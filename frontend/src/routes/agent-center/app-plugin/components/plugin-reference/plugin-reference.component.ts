@@ -141,7 +141,7 @@ export class PluginReferenceComponent {
   }
 
   public tabActiveChange(e: any) {
-    const id =this.tabs[e.index]?.id
+    const id =this.tabs[e.index]?.id;
     this.curActiveTabId = id;
     this.getReferenceList();
   }

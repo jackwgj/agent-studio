@@ -827,7 +827,7 @@ export class LoopModalComponent extends ModalBaseComponent implements OnInit {
     this.helpCenterService.hideHelpPanel();
   }
 
-  // merge with system feat
+  // TODO merge with system feat
   private getChildrenRefs(id: string): IParamRef[] {
     const cell = this.graph.getCellById(id);
     if (cell) {

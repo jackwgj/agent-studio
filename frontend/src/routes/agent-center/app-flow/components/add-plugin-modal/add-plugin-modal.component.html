@@ -68,17 +68,17 @@
                         {{ getPluginName(plugin) }}
                       </div>
                       <div>
-                        <nz-tag *ngIf="plugin?.quotaTag"
+                        <nz-tag *ngIf="plugin?.quotaTag" 
                                 nz-tooltip nzTooltipPlacement="bottomLeft" [nzTooltipTitle]="plugin.quotaTag.tip"
                                 class="!rounded-[4px] py-[1px] pl-[2px] pr-[4px]"  [style.color]="plugin.quotaTag.color" [style.background-color]="plugin.quotaTag.bgColor" size="small">
                           {{plugin.quotaTag.text}}
                         </nz-tag>
                         <nz-tag
                           *ngIf="plugin['credential_status'] === PluginCredentialStatus.UNAUTHENTICATED"
-
+                    
                           nz-tooltip
                           [nzTooltipTitle]="tipContent"
-
+                     
                           [style.color]="'rgba(25, 25, 25, 1)'"
                           [style.background-color]="'rgba(230, 230, 230, 1)'"
                           size="small"
@@ -88,7 +88,7 @@
                         </nz-tag>
                         <nz-tag
                           *ngIf="plugin['credential_status'] === PluginCredentialStatus.AUTHENTICATED"
-
+                      
                           [style.color]="'rgba(2, 153, 49, 1)'"
                           [style.background-color]="'rgba(213, 242, 220, 1)'"
                           size="small"

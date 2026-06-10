@@ -1,0 +1,111 @@
+<div #container class="main-container">
+  <div class="header">
+    <div class="title">
+      {{ 'use_cases' | i18nextEager }}
+    </div>
+    <img alt="" [src]="changeUrl('assets/prompt/optimize-tip.svg')" nz-tooltip [nzTooltipTitle]="'use_cases_tip' | i18nextEager" style="cursor: pointer" />
+  </div>
+
+  <div *ngIf="!variables.length" class="no-data">
+    <img [src]="changeUrl('assets/prompt/noData.svg')" alt="" />
+    <div class="tip-area">
+      <div class="title">{{ 'no_case_available' | i18nextEager }}</div>
+      <div class="content">{{ 'no_variable_available' | i18nextEager }}</div>
+    </div>
+  </div>
+  <div *ngIf="variables.length" class="button-area">
+    <button nz-button (click)="addOneRow()" [disabled]="!taskId || isEditing">{{ 'add_case' | i18nextEager }}</button>
+    <button nz-button (click)="openImportModal()" [disabled]="!taskId">{{ 'import' | i18nextEager }}</button>
+  </div>
+  <div *ngIf="variables.length" class="content">
+    <nz-table [nzData]="useCasesData.data" class="w-full" style="max-height: calc(100% - 24px)">
+      <thead>
+        <tr>
+          <th *ngFor="let column of columns" [style.width]="column.width">{{ column.title }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let useCase of useCasesData.data">
+          <ng-container *ngIf="!useCase.isEdit; else editTmpl">
+            <td>{{ useCase.id }}</td>
+            <td *ngFor="let variable of variables">
+              <ng-container *ngIf="variable.type === 'text'; else imageTmpl">
+                {{ useCase.variables[variable.value] }}
+              </ng-container>
+              <ng-template #imageTmpl>
+                <nz-upload [nzDisabled]="true" [nzLimit]="1" nzListType="picture"></nz-upload>
+              </ng-template>
+            </td>
+            <td>{{ useCase.expectedOutput }}</td>
+          </ng-container>
+          <ng-template #editTmpl>
+            <td>{{ useCase.id }}</td>
+            <td *ngFor="let variable of variables">
+              <ng-container *ngIf="variable.type === 'text'; else imageTmpl">
+                <textarea
+                  (blur)="updateActionState()"
+                  (ngModelChange)="changeModel($event, useCase)"
+                  [(ngModel)]="useCase.variables[variable.value]"
+                  [placeholder]="'input_variable_content' | i18nextEager"
+                  nz-required
+                  style="width: 200px; height: 100px"
+                  nz-input
+                ></textarea>
+              </ng-container>
+              <ng-template #imageTmpl>
+                <nz-upload (nzChange)="onAddFileSuccess($event, useCase, variable.value)" [nzLimit]="1" nzListType="picture"> </nz-upload>
+              </ng-template>
+            </td>
+            <td>
+              <textarea
+                (ngModelChange)="changeModel($event, useCase)"
+                (blur)="updateActionState()"
+                [(ngModel)]="useCase.expectedOutput"
+                [placeholder]="'input_variable_content' | i18nextEager"
+                nz-required
+                style="width: 320px; height: 100px"
+                nz-input
+              ></textarea>
+            </td>
+          </ng-template>
+          <td>
+            @for (action of useCase?.action; track action) {
+              <button nz-button nzType="link" (click)="onSelect(action, useCase)">
+                {{ action.label }}
+              </button>
+            }
+
+          </td>
+        </tr>
+      </tbody>
+    </nz-table>
+    <nz-pagination
+      (nzPageIndexChange)="changePage({ currentPage: $event, size: pageSize.size })"
+      *ngIf="useCases.length"
+      [(nzPageIndex)]="currentPage"
+      [nzTotal]="totalNumber"
+      [nzPageSize]="pageSize.size"
+      [nzShowSizeChanger]="true"
+      [nzPageSizeOptions]="[10, 20, 50, 100]"
+    ></nz-pagination>
+    <div *ngIf="!useCasesData.data.length" class="no-data">
+      <img [src]="changeUrl('assets/prompt/noData.svg')" alt="" />
+      <div class="tip-area">
+        <div class="title">{{ 'no_case_available' | i18nextEager }}</div>
+        <div class="content">{{ 'manual_add_or_template_import_cases' | i18nextEager }}</div>
+        <div class="button-area">
+          <button nz-button (click)="addOneRow()" [disabled]="!taskId || isEditing">{{ 'add_case' | i18nextEager }}</button>
+          <button nz-button (click)="openImportModal()" [disabled]="!taskId">{{ 'import' | i18nextEager }}</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<ng-template #use_cases_tip>
+  <span [innerHTML]="'evaluation_set_expected_output_guide' | i18nextEager"></span>
+  <br />
+  <span>
+    <strong [innerHTML]="'security_recommendation_no_sensitive_data' | i18nextEager"> </strong>
+  </span>
+</ng-template>

@@ -13,7 +13,9 @@ import { MODULES } from '@shared/modules';
 import { SetSidebarVisibilityService } from '@shared/services/set-sidebar-visibility.service';
 import { I18NEXT_NAMESPACE, I18NextEagerPipe } from 'angular-i18next';
 import { ComponentLibraryComponent } from '../component-library/component-library.component';
+import { PromptTemplateComponent } from '@routes/prompt/prompt-template/prompt-template.component';
 import { NzTabsModule } from 'ng-zorro-antd/tabs';
+import { SkillComponent } from '@agentcore/library/skill/skill.component';
 @Component({
   selector: 'library-home-component',
   templateUrl: './library-home.component.html',
@@ -26,7 +28,9 @@ import { NzTabsModule } from 'ng-zorro-antd/tabs';
     KnowledgeBaseListComponent,
     LayoutPageComponent,
     MemoryLibManagementComponent,
-    NzTabsModule
+    NzTabsModule,
+    PromptTemplateComponent,
+    SkillComponent,
   ],
   providers: [
     SkillCommonService,
@@ -44,8 +48,13 @@ import { NzTabsModule } from 'ng-zorro-antd/tabs';
   ],
 })
 export class LibraryHomeComponent implements OnInit, OnDestroy {
-
-  public tabs: any[] = [
+  activeTabs: any[] = [
+    {
+      show: true,
+      id: 'skill',
+      title: this.i18n.transform('skill_market'),
+      active: true,
+    },
     {
       show: true,
       id: 'plugin',
@@ -56,6 +65,12 @@ export class LibraryHomeComponent implements OnInit, OnDestroy {
       show: true,
       id: 'mcp',
       title: 'MCP',
+      active: false,
+    },
+    {
+      show: true,
+      id: 'prompt',
+      title: this.i18n.transform('route_prompt'),
       active: false,
     },
     {
@@ -77,6 +92,9 @@ export class LibraryHomeComponent implements OnInit, OnDestroy {
       active: false,
     },
   ];
+
+  public tabs: any[] = this.activeTabs.filter(t => t.show);
+
   public currentTabId = this.tabs[0].id;
   subscribeBtnStatus = this.commonService.getSubscribeStatus();
 
@@ -137,7 +155,7 @@ export class LibraryHomeComponent implements OnInit, OnDestroy {
   public handleTabChange(index: number) {
     this.tabs.forEach((item, i) => {
       item.active = i === index;
-    })
+    });
     const tab = this.tabs[index];
     if (tab.active) {
       this.currentTabId = tab.id;

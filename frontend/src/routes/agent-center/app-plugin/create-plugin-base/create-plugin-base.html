@@ -258,7 +258,6 @@
                           [placeholder]="'input_placeholder' | i18nextEager"
                           [class.input-error]="apiAuthForm?.controls['apiKeyAuthName' + i]?.invalid"
                         />
-
                         <div *ngIf="apiAuthForm?.controls['apiKeyAuthName' + i]?.invalid" class="error-tip">
                           {{apiAuthForm?.controls['apiKeyAuthName' + i]?.errors?.serviceName?.tiErrorMessage}}
                         </div>
@@ -290,6 +289,7 @@
                           [placeholder]="'input_placeholder' | i18nextEager"
                           [class.input-error]="apiAuthForm?.controls['apiKeyAuthVale' + i]?.invalid"
                         />
+
                         <div *ngIf="apiAuthForm?.controls['apiKeyAuthVale' + i]?.invalid" class="error-tip">
                           {{apiAuthForm?.controls['apiKeyAuthVale' + i]?.errors?.serviceName?.tiErrorMessage}}
                         </div>

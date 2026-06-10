@@ -1,10 +1,10 @@
 <div class="h-full overflow-y-scroll">
-  <div id="development-configuration" style="height: 100%;">
+  <div id="development-configuration" style="height: 100%">
     <nz-tabset [(nzSelectedIndex)]="selectedIndex" (nzSelectedIndexChange)="handleTabChange($event)">
-      @for(tab of activeTabs; track tab.id) {
+      @for (tab of activeTabs; track tab.id) {
         <nz-tab [nzTitle]="tab.i18nKey | i18nextEager">
-          @if(activeId === tab.id) {
-            @switch(activeId) {
+          @if (activeId === tab.id) {
+            @switch (activeId) {
               @case ('custom-model') {
                 <meta-model-management></meta-model-management>
               }
@@ -14,8 +14,14 @@
               @case ('model-test') {
                 <meta-online-test></meta-online-test>
               }
+              @case ('intent-manage') {
+                <intent-package></intent-package>
+              }
               @case ('message-template') {
                 <information-template></information-template>
+              }
+              @case ('object-manage') {
+                <object-manage></object-manage>
               }
               @case ('mycredentials') {
                 <model-certification></model-certification>

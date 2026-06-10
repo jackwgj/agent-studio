@@ -16,7 +16,8 @@ import { HttpService } from '@services/http.service';
 import { NzTabsModule } from 'ng-zorro-antd/tabs';
 import { NzMessageService } from 'ng-zorro-antd/message';
 import { NzModalService } from 'ng-zorro-antd/modal';
-
+import { IntentPackageComponent } from '@routes/intent-package/intent-package/intent-package.component';
+import { ObjectManageComponent } from '@routes/object-manage/object-manage.component';
 @Component({
   selector: 'development-configuration',
   templateUrl: './development-configuration.component.html',
@@ -31,6 +32,8 @@ import { NzModalService } from 'ng-zorro-antd/modal';
     InformationTemplateComponent,
     CertificationComponent,
     NzTabsModule,
+    IntentPackageComponent,
+    ObjectManageComponent,
   ],
   providers: [
     {
@@ -47,9 +50,11 @@ export class DevelopmentConfigurationComponent implements OnInit, OnDestroy {
 
   tabs = [
     { id: 'custom-model', i18nKey: 'custom_model', active: false, show: true },
-    { id: 'route-policy', i18nKey: 'route_policy', active: false, show: false },
+    { id: 'route-policy', i18nKey: 'route_policy', active: false, show: true },
     { id: 'model-test', i18nKey: 'model_test', active: false, show: true },
-    { id: 'message-template', i18nKey: 'message_template', active: false, show: false },
+    { id: 'intent-manage', i18nKey: 'intent_management', active: false, show: true },
+    { id: 'message-template', i18nKey: 'message_template', active: false, show: true },
+    { id: 'object-manage', i18nKey: 'object_manage', active: false, show: true },
   ];
 
   activeId = 'custom-model';

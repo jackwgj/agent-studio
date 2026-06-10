@@ -1,0 +1,45 @@
+.header-container{
+  height: 64px;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 24px 12px 20px;
+  box-sizing: border-box;
+  border-bottom: 1px solid rgba(225, 229, 235, 1);
+  background: rgba(255, 255, 255, 1);
+  .left-area{
+
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    .back-icon{
+      padding: 4px;
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
+      cursor: pointer;
+      &:hover{
+        background-color: #f0f0f0;
+      }
+    }
+    .title{
+      height: 24px;
+      color: rgba(25, 25, 25, 1);
+      font-family: PingFang SC;
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 24px;
+      letter-spacing: 0px;
+      text-align: left;
+    }
+    .auto_save_tip{
+      color: rgba(89, 89, 89, 1);
+      font-family: PingFang SC;
+    }
+  }
+  .right-area{
+
+  }
+}

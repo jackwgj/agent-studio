@@ -265,13 +265,13 @@ export class ModelRouteComponent implements OnInit {
           title: this.i18n.transform('delete_route_policy'),
           tip: this.i18n.transform('confirm_delete_route_policy',{strategy_name: item.strategy_name}),
           fnName: 'deleteModelRouterStrategies',
-        },
-        close: () => {
-          this.getModelRouterStrategiesListFn(true);
-          this.message.success(
-            this.i18n.transform('del_route_policy_success'),
-          );
-          modal.close();
+          close: () => {
+            this.getModelRouterStrategiesListFn(true);
+            this.message.success(
+              this.i18n.transform('del_route_policy_success'),
+            );
+            modal.close();
+          },
         },
       } as any
     });

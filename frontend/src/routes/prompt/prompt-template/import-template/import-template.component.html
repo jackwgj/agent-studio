@@ -1,0 +1,34 @@
+<div class="h-[660px] flex flex-col">
+  <div *nzModalTitle class="import-header">
+    {{ importModal | i18nextEager }}
+  </div>
+
+  <div class="flex-1">
+    <meta-system-template
+      [isImportModal]="importModal"
+      [isShowCheckgroup]="false"
+      (setContent)="setPromptContent($event)"
+    />
+  </div>
+
+  <div *nzModalFooter class="import-footer">
+    <button
+      type="button"
+      color="danger"
+      class="import-button"
+      autofocus
+      nz-button
+      (click)="setPromptOK()"
+    >
+      {{ 'ok' | i18nextEager }}
+    </button>
+    <button
+      type="button"
+      class="import-button"
+      nz-button
+      (click)="setPromptCancel()"
+    >
+      {{ 'cancel' | i18nextEager }}
+    </button>
+  </div>
+</div>

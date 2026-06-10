@@ -1,4 +1,4 @@
-<!-- <div
+<div
   (clickOutside)="onClickOutside($event)"
   [ngStyle]="{ width: width }"
   class="flex flex-col gap-[8px] py-[4px]"
@@ -8,14 +8,14 @@
       {{ 'type' | i18nextEager }}
     </div>
 
-    <ti-select
+    <nz-select
       (ngModelChange)="onParamTypeChange(param)"
       [(ngModel)]="param.value.type"
       [name]="'paramType'"
-      [options]="sourceOptions"
+      [nzOptions]="sourceOptions"
+      nzLabelKey="value"
       style="width: 100%"
-      valueKey="value"
-    ></ti-select>
+    ></nz-select>
   </div>
 
   <div [ngClass]="isMulti ? 'flex justify-between' : ''" class="text-label">
@@ -23,24 +23,15 @@
   </div>
 
   <div class="w-full">
-    <ti-treeselect
+    <input-tree-select
       *ngIf="field.value.type === 'ref'"
       [(ngModel)]="field.value.content"
-      [appendToBody]="true"
-      [name]="'paramValue'"
-      [options]="field.refs"
-      [panelAlign]="'right'"
       [placeholder]="'select_placeholder' | i18nextEager"
-      [searchable]="true"
-      labelKey="name"
-      panelWidth="auto"
+      [options]="$any(field.refs)"
       refSelectedRequire
       style="width: 100%"
     >
-      <ng-template #item let-i="index" let-item>
-        <meta-param-tree [item]="item" />
-      </ng-template>
-    </ti-treeselect>
+    </input-tree-select>
     <form #valueForm="ngForm" *ngIf="param.value.type === 'literal'">
       <ng-container *ngIf="field.type === 'string'">
         <textarea
@@ -50,7 +41,7 @@
           class="!w-full"
           name="defaultValue"
           rows="5"
-          tiTextarea
+          nz-input
         ></textarea>
       </ng-container>
 
@@ -58,48 +49,39 @@
         <input
           (ngModelChange)="debounceInput()"
           [(ngModel)]="value"
-          [errorMessageWrapper]="paramErrwrapper"
           [placeholder]="'input_placeholder' | i18nextEager"
-          [tiValidation]="{ type: 'changeAlert' }"
           integerStr
           name="defaultValue"
           style="width: 100%"
-          tiText
+          nz-input
           type="text"
         />
-
-        <div #paramErrwrapper class="w-full"></div>
       </ng-container>
 
       <ng-container *ngIf="field.type === 'number'">
         <input
           (ngModelChange)="debounceInput()"
           [(ngModel)]="value"
-          [errorMessageWrapper]="paramErrwrapper"
           [placeholder]="'input_placeholder' | i18nextEager"
-          [tiValidation]="{ type: 'changeAlert' }"
           name="defaultValue"
           numberStr
           style="width: 100%"
-          tiText
+          nz-input
           type="text"
         />
-
-        <div #paramErrwrapper class="w-full"></div>
       </ng-container>
 
       <ng-container *ngIf="field.type === 'boolean'">
-        <ti-select
+        <nz-select
           [(ngModel)]="value"
-          [options]="booleanOps"
-          [placeholder]="'select_placeholder' | i18nextEager"
+          [nzOptions]="booleanOps"
+          [nzPlaceHolder]="'select_placeholder' | i18nextEager"
           name="defaultValue"
+          nzLabelKey="value"
+          nzValueKey="value"
           style="width: 100%"
-          valueKey="value"
         >
-        </ti-select>
-
-        <div #paramErrwrapper class="w-full"></div>
+        </nz-select>
       </ng-container>
 
       <ng-container
@@ -117,9 +99,8 @@
             <span class="font-bold text-[#333]">json</span>
             <asset-format-icon
               (click)="formatContent()"
-              [tiTip]="'format' | i18nextEager"
+              nz-tooltip [nzTooltipTitle]="'format' | i18nextEager"
               class="cursor-pointer"
-              tiTipPosition="top"
             ></asset-format-icon>
           </div>
           <div
@@ -138,11 +119,12 @@
           </div>
         </div>
 
-        <ti-error-msg
+        <div
           *ngIf="getError()"
-          [errorMessage]="getError()"
           class="mt-[8px] w-full text-[#f23030]"
-        ></ti-error-msg>
+        >
+          {{ getError() }}
+        </div>
       </ng-container>
 
       <ng-container *ngIf="field.type === 'object'">
@@ -155,9 +137,8 @@
             <span class="font-bold text-[#333]">json</span>
             <asset-format-icon
               (click)="formatContent()"
-              [tiTip]="'format' | i18nextEager"
+              nz-tooltip [nzTooltipTitle]="'format' | i18nextEager"
               class="cursor-pointer"
-              tiTipPosition="top"
             ></asset-format-icon>
           </div>
           <div
@@ -175,13 +156,14 @@
           </div>
         </div>
 
-        <ti-error-msg
+        <div
           *ngIf="getError()"
-          [errorMessage]="getError()"
           class="mt-[8px] w-full text-[#f23030]"
-        ></ti-error-msg>
+        >
+          {{ getError() }}
+        </div>
       </ng-container>
 
     </form>
   </div>
-</div> -->
+</div>

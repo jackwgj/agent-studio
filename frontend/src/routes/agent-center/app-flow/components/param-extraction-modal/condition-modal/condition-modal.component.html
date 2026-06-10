@@ -1,4 +1,4 @@
-<!-- <div class="flex w-full flex-col mb-4">
+<div class="flex w-full flex-col mb-4">
   <meta-acc-block
     class="block w-full"
     [ngClass]="{'condition-modal':!showFold}"
@@ -28,7 +28,7 @@
             <div class="select-none text-[#1476ff]">
               {{ entryCondition.logic | i18nextEager }}
             </div>
-            <tp-icon style="color: #1476ff" name="cloudx-action-switch" />
+            <span nz-icon nzType="swap" nzTheme="outline" style="color: #1476ff"></span>
           </div>
           <div class="relative flex-1">
             <div
@@ -51,196 +51,142 @@
               >
                 <div class="flex h-fit w-full gap-2">
                   <div class="mt-4 flex h-fit w-[64px]">
-                    <ti-select
+                    <nz-select
                       *ngIf="isStrType(con.left.value.content?.[0]?.type)"
                       [name]="'inputFormCon' + i"
-                      [placeholder]="'select_placeholder' | i18nextEager"
-                      [options]="strConditionOptions"
+                      [nzPlaceHolder]="'select_placeholder' | i18nextEager"
+                      [nzOptions]="strConditionOptions"
                       [(ngModel)]="con.operator"
                       (ngModelChange)="opChange($event, con);onSave()"
-                      valueKey="value"
-                      panelWidth="auto"
-                      [panelAlign]="'right'"
-                      class="w-full !border-transparent"
+                      [nzDropdownMatchSelectWidth]="false"
+                      nzShowSearch
+                      class="w-full"
                     >
-                      <ng-template #selected let-item>
-                        <div
-                          class="flex h-full w-fit items-center justify-center"
-                        >
-                          <div
-                            [ngClass]="iconClassNameMap(item.value)"
-                          ></div>
-                        </div>
-                      </ng-template>
-                    </ti-select>
+                    </nz-select>
 
-                    <ti-select
+                    <nz-select
                       *ngIf="!con.left.value.content?.[0]"
                       [name]="'inputFormCon' + i"
-                      [options]="emptyOps"
+                      [nzOptions]="emptyOps"
                       [(ngModel)]="emptyModel"
                       (ngModelChange)="opChange($event, con);onSave()"
-                      valueKey="value"
-                      panelWidth="auto"
-                      [panelAlign]="'right'"
-                      class="w-full !border-transparent"
+                      [nzDropdownMatchSelectWidth]="false"
+                      nzShowSearch
+                      class="w-full"
                     >
-                      <ng-template #selected let-item>
-                        <div
-                          class="flex h-full w-fit items-center justify-center"
-                        >
-                          <div
-                            [ngClass]="iconClassNameMap(item.value)"
-                          ></div>
-                        </div>
-                      </ng-template>
-                    </ti-select>
+                    </nz-select>
 
-                    <ti-select
+                    <nz-select
                       *ngIf="con.left.value.content?.[0]?.type.startsWith('array')"
                       [name]="'inputFormCon' + i"
-                      [placeholder]="'select_placeholder' | i18nextEager"
-                      [options]="arrConditionOptions"
+                      [nzPlaceHolder]="'select_placeholder' | i18nextEager"
+                      [nzOptions]="arrConditionOptions"
                       [(ngModel)]="con.operator"
                       (ngModelChange)="opChange($event, con);onSave()"
-                      valueKey="value"
-                      panelWidth="auto"
-                      [panelAlign]="'right'"
-                      class="w-full !border-transparent"
+                      [nzDropdownMatchSelectWidth]="false"
+                      nzShowSearch
+                      class="w-full"
                     >
-                      <ng-template #selected let-item>
-                        <div
-                          class="flex h-full w-fit items-center justify-center"
-                        >
-                          <div
-                            [ngClass]="iconClassNameMap(item.value)"
-                          ></div>
-                        </div>
-                      </ng-template>
-                    </ti-select>
+                    </nz-select>
 
-                    <ti-select
+                    <nz-select
                       *ngIf="['integer', 'number'].includes(con.left.value.content?.[0]?.type)"
                       [name]="'inputFormCon' + i"
-                      [placeholder]="'select_placeholder' | i18nextEager"
-                      [options]="numConditionOptions"
+                      [nzPlaceHolder]="'select_placeholder' | i18nextEager"
+                      [nzOptions]="numConditionOptions"
                       [(ngModel)]="con.operator"
                       (ngModelChange)="opChange($event, con);onSave()"
-                      valueKey="value"
-                      panelWidth="auto"
-                      [panelAlign]="'right'"
-                      class="w-full !border-transparent"
+                      [nzDropdownMatchSelectWidth]="false"
+                      nzShowSearch
+                      class="w-full"
                     >
-                      <ng-template #selected let-item>
-                        <div
-                          class="flex h-full w-fit items-center justify-center"
-                        >
-                          <div
-                            [ngClass]="iconClassNameMap(item.value)"
-                          ></div>
-                        </div>
-                      </ng-template>
-                    </ti-select>
+                    </nz-select>
 
-                    <ti-select
+                    <nz-select
                       *ngIf="con.left.value.content?.[0]?.type === 'boolean'"
                       [name]="'inputFormCon' + i"
-                      [placeholder]="'select_placeholder' | i18nextEager"
-                      [options]="boolConditionOptions"
+                      [nzPlaceHolder]="'select_placeholder' | i18nextEager"
+                      [nzOptions]="boolConditionOptions"
                       [(ngModel)]="con.operator"
                       (ngModelChange)="opChange($event, con);onSave()"
-                      valueKey="value"
-                      panelWidth="auto"
-                      [panelAlign]="'right'"
-                      class="w-full !border-transparent"
+                      [nzDropdownMatchSelectWidth]="false"
+                      nzShowSearch
+                      class="w-full"
                     >
-                      <ng-template #selected let-item>
-                        <div
-                          class="flex h-full w-fit items-center justify-center"
-                        >
-                          <div
-                            [ngClass]="iconClassNameMap(item.value)"
-                          ></div>
-                        </div>
-                      </ng-template>
-                    </ti-select>
+                    </nz-select>
 
-                    <ti-select
+                    <nz-select
                       *ngIf="con.left.value.content?.[0]?.type === 'object'"
                       [name]="'inputFormCon' + i"
-                      [placeholder]="'select_placeholder' | i18nextEager"
-                      [options]="objConditionOptions"
+                      [nzPlaceHolder]="'select_placeholder' | i18nextEager"
+                      [nzOptions]="objConditionOptions"
                       [(ngModel)]="con.operator"
                       (ngModelChange)="opChange($event, con);onSave()"
-                      valueKey="value"
-                      panelWidth="auto"
-                      [panelAlign]="'right'"
-                      class="w-full !border-transparent"
+                      [nzDropdownMatchSelectWidth]="false"
+                      nzShowSearch
+                      class="w-full"
                     >
-                      <ng-template #selected let-item>
-                        <div
-                          class="flex h-full w-fit items-center justify-center"
-                        >
-                          <div
-                            [ngClass]="iconClassNameMap(item.value)"
-                          ></div>
-                        </div>
-                      </ng-template>
-                    </ti-select>
+                    </nz-select>
                   </div>
 
                   <div class="flex w-[calc(100%-82px)] flex-col gap-2">
                     <div class="w-full">
-                      <ti-treeselect
-                        style="width: 100%"
-                        [options]="con.left.refs"
-                        [(ngModel)]="con.left.value.content"
+                      <input-tree-select
+                        [radiusLeft]="true"
                         (ngModelChange)="leftTypeChange($event, con);"
-                        [placeholder]="'select_placeholder' | i18nextEager"
+                        style="width: 100%"
+                        [(ngModel)]="con.left.value.content"
+                        [options]="con.left.refs"
                         [name]="'inputFormValue' + i"
-                        [appendToBody]="false"
                         refSelectedRequire
-                        panelWidth="auto"
-                        [panelAlign]="'right'"
-                        [searchable]="true"
-                        labelKey="name"
+                        [placeholder]="'select_placeholder' | i18nextEager"
                         (select)="treeSelect()"
-                      >
-                        <ng-template #item let-item let-i="index">
-                          <meta-param-tree [item]="item" />
-                        </ng-template>
-
-                        <ng-template #selected let-item>
-                          <meta-param-tree-selected [item]="item" />
-                        </ng-template>
-                      </ti-treeselect>
-                      <div class="w-full" #nameErrWrapper></div>
+                      ></input-tree-select>
                     </div>
 
                     <div class="flex w-full">
                       <div class="w-1/4">
-                        <ti-select
+                        <nz-select
                           class="combo-select-left h-[28px]"
                           [name]="'inputFormObj' + i"
                           style="width: 100%"
-                          [placeholder]="'select_placeholder' | i18nextEager"
-                          [options]="paramSourceOptions"
+                          [nzPlaceHolder]="'select_placeholder' | i18nextEager"
+                          [nzOptions]="paramSourceOptions"
                           [(ngModel)]="con.right.value.type"
-                          valueKey="value"
-                          [disabled]="!con.left.value.content?.[0] || ['is_empty', 'is_not_empty', 'eq_true', 'eq_false'].includes(con.operator)"
+                          [nzDisabled]="!con.left.value.content?.[0] || ['is_empty', 'is_not_empty', 'eq_true', 'eq_false'].includes(con.operator)"
                           (ngModelChange)="onTypeChange(con);onSave()"
-                        ></ti-select>
+                        ></nz-select>
                       </div>
 
                       <div class="relative w-3/4">
                         <input
                           *ngIf="
                                   [
-                                    'is_empty',
-                                    'is_not_empty',
                                     'eq_true',
                                     'eq_false'
-                                  ].includes(con.operator) || !con.left.value.content?.[0];
+                                  ].includes(con.operator);
+                                "
+                          class="combo-select-right"
+                          [name]="'inputFormLit' + i"
+                          style="width: 100%"
+                          [placeholder]="'input_placeholder' | i18nextEager"
+                          type="text"
+                          nz-input
+                          (ngModelChange)="changeInputUpdateTime()"
+                          (blur)="inputOnSave()"
+                          [(ngModel)]="con.right.value.content"
+                          [disabled]="true"
+                        />
+
+                        <input
+                          *ngIf="
+                                  ([
+                                    'is_empty',
+                                    'is_not_empty',
+                                  ].includes(con.operator) || !con.left.value.content?.[0]) && ![
+                                    'eq_true',
+                                    'eq_false'
+                                  ].includes(con.operator);
                                   else double
                                 "
                           class="combo-select-right"
@@ -248,11 +194,11 @@
                           style="width: 100%"
                           [placeholder]="'input_placeholder' | i18nextEager"
                           type="text"
-                          tiText
+                          nz-input
                           [(ngModel)]="emptyModel"
-                          [disabled]="true"
                           (ngModelChange)="changeInputUpdateTime()"
                           (blur)="inputOnSave()"
+                          [disabled]="true"
                         />
 
                         <ng-template #double>
@@ -276,38 +222,30 @@
                                 style="width: 100%"
                                 [placeholder]="'input_placeholder' | i18nextEager"
                                 type="text"
-                                tiText
+                                nz-input
                                 [(ngModel)]="con.right.value.content"
                                 [title]="con.right.value.content"
-                                [tiValidation]="{ type: 'changeAlert' }"
                                 [disabled]="!con.left.value.content?.[0]"
                                 nonEmptyValidator
                                 positiveIntStr
-                                [errorMessageWrapper]="ifValueErrWrapper"
                                 (ngModelChange)="changeInputUpdateTime()"
                                 (blur)="inputOnSave()"
+                                [class.input-error]="inputForm?.controls['inputFormLit' + i]?.invalid && (inputForm?.controls['inputFormLit' + i]?.dirty || inputForm?.controls['inputFormLit' + i]?.touched)"
                               />
+                              <div *ngIf="inputForm?.controls['inputFormLit' + i]?.invalid && (inputForm?.controls['inputFormLit' + i]?.dirty || inputForm?.controls['inputFormLit' + i]?.touched)" class="error-tip">
+                                {{inputForm?.controls['inputFormLit' + i]?.errors?.serviceName?.tiErrorMessage}}
+                              </div>
 
-                              <ti-treeselect
-                                class="combo-select-right"
+                              <input-tree-select
                                 style="width: 100%"
                                 *ngIf="con.right.value.type === 'ref'"
-                                [options]="con.right.refs"
                                 [(ngModel)]="con.right.value.content"
-                                [placeholder]="'select_placeholder' | i18nextEager"
+                                [options]="con.right.refs"
                                 [name]="'inputFormRef' + i"
-                                [appendToBody]="false"
                                 refSelectedRequire
-                                panelWidth="auto"
-                                [panelAlign]="'right'"
-                                [searchable]="true"
-                                labelKey="name"
+                                [placeholder]="'select_placeholder' | i18nextEager"
                                 (select)="treeSelect()"
-                              >
-                                <ng-template #item let-item let-i="index">
-                                  <meta-param-tree [item]="item" />
-                                </ng-template>
-                              </ti-treeselect>
+                              ></input-tree-select>
                             </ng-container>
 
                             <ng-container
@@ -327,37 +265,29 @@
                                 style="width: 100%"
                                 [placeholder]="'input_placeholder' | i18nextEager"
                                 type="text"
-                                tiText
+                                nz-input
                                 [(ngModel)]="con.right.value.content"
                                 [title]="con.right.value.content"
-                                [tiValidation]="{ type: 'changeAlert' }"
                                 [disabled]="!con.left.value.content?.[0]"
                                 nonEmptyValidator
-                                [errorMessageWrapper]="ifValueErrWrapper"
                                 (ngModelChange)="changeInputUpdateTime()"
                                 (blur)="inputOnSave()"
+                                [class.input-error]="inputForm?.controls['inputFormLit' + i]?.invalid && (inputForm?.controls['inputFormLit' + i]?.dirty || inputForm?.controls['inputFormLit' + i]?.touched)"
                               />
+                              <div *ngIf="inputForm?.controls['inputFormLit' + i]?.invalid && (inputForm?.controls['inputFormLit' + i]?.dirty || inputForm?.controls['inputFormLit' + i]?.touched)" class="error-tip">
+                                {{inputForm?.controls['inputFormLit' + i]?.errors?.serviceName?.tiErrorMessage}}
+                              </div>
 
-                              <ti-treeselect
-                                class="combo-select-right"
+                              <input-tree-select
                                 style="width: 100%"
                                 *ngIf="con.right.value.type === 'ref'"
-                                [options]="con.right.refs"
                                 [(ngModel)]="con.right.value.content"
-                                [placeholder]="'select_placeholder' | i18nextEager"
+                                [options]="con.right.refs"
                                 [name]="'inputFormRef' + i"
-                                [appendToBody]="false"
                                 refSelectedRequire
-                                panelWidth="auto"
-                                [panelAlign]="'right'"
-                                [searchable]="true"
-                                labelKey="name"
+                                [placeholder]="'select_placeholder' | i18nextEager"
                                 (select)="treeSelect()"
-                              >
-                                <ng-template #item let-item let-i="index">
-                                  <meta-param-tree [item]="item" />
-                                </ng-template>
-                              </ti-treeselect>
+                              ></input-tree-select>
                             </ng-container>
                           </ng-container>
 
@@ -382,38 +312,30 @@
                                   style="width: 100%"
                                   [placeholder]="'input_placeholder' | i18nextEager"
                                   type="text"
-                                  tiText
+                                  nz-input
                                   [(ngModel)]="con.right.value.content"
                                   [title]="con.right.value.content"
-                                  [tiValidation]="{ type: 'changeAlert' }"
                                   [disabled]="!con.left.value.content?.[0]"
                                   nonEmptyValidator
                                   positiveIntStr
-                                  [errorMessageWrapper]="ifValueErrWrapper"
                                   (ngModelChange)="changeInputUpdateTime()"
                                   (blur)="inputOnSave()"
+                                  [class.input-error]="inputForm?.controls['inputFormLit' + i]?.invalid && (inputForm?.controls['inputFormLit' + i]?.dirty || inputForm?.controls['inputFormLit' + i]?.touched)"
                                 />
+                                <div *ngIf="inputForm?.controls['inputFormLit' + i]?.invalid && (inputForm?.controls['inputFormLit' + i]?.dirty || inputForm?.controls['inputFormLit' + i]?.touched)" class="error-tip">
+                                  {{inputForm?.controls['inputFormLit' + i]?.errors?.serviceName?.tiErrorMessage}}
+                                </div>
 
-                                <ti-treeselect
-                                  class="combo-select-right"
+                                <input-tree-select
                                   style="width: 100%"
                                   *ngIf="con.right.value.type === 'ref'"
-                                  [options]="con.right.refs"
                                   [(ngModel)]="con.right.value.content"
-                                  [placeholder]="'select_placeholder' | i18nextEager"
+                                  [options]="con.right.refs"
                                   [name]="'inputFormRef' + i"
-                                  [appendToBody]="false"
                                   refSelectedRequire
-                                  panelWidth="auto"
-                                  [panelAlign]="'right'"
-                                  [searchable]="true"
-                                  labelKey="name"
+                                  [placeholder]="'select_placeholder' | i18nextEager"
                                   (select)="treeSelect()"
-                                >
-                                  <ng-template #item let-item let-i="index">
-                                    <meta-param-tree [item]="item" />
-                                  </ng-template>
-                                </ti-treeselect>
+                                ></input-tree-select>
                               </ng-container>
 
                               <ng-container
@@ -433,20 +355,18 @@
                                     style="width: 100%"
                                     [placeholder]="'input_placeholder' | i18nextEager"
                                     type="text"
-                                    tiText
+                                    nz-input
                                     [(ngModel)]="con.right.value.content"
                                     [title]="con.right.value.content"
-                                    [tiValidation]="{
-                                          type: 'changeAlert'
-                                        }"
-                                    [disabled]="!con.left.value.content?.[0]"
-                                    nonEmptyValidator
                                     (ngModelChange)="changeInputUpdateTime()"
                                     (blur)="inputOnSave()"
-                                    [errorMessageWrapper]="
-                                          ifValueErrWrapper
-                                        "
+                                    [disabled]="!con.left.value.content?.[0]"
+                                    nonEmptyValidator
+                                    [class.input-error]="inputForm?.controls['inputFormLit' + i]?.invalid && (inputForm?.controls['inputFormLit' + i]?.dirty || inputForm?.controls['inputFormLit' + i]?.touched)"
                                   />
+                                  <div *ngIf="inputForm?.controls['inputFormLit' + i]?.invalid && (inputForm?.controls['inputFormLit' + i]?.dirty || inputForm?.controls['inputFormLit' + i]?.touched)" class="error-tip">
+                                    {{inputForm?.controls['inputFormLit' + i]?.errors?.serviceName?.tiErrorMessage}}
+                                  </div>
 
                                   <input
                                     *ngIf="con.right.type === 'number'"
@@ -455,21 +375,19 @@
                                     style="width: 100%"
                                     [placeholder]="'input_placeholder' | i18nextEager"
                                     type="text"
-                                    tiText
+                                    nz-input
                                     [(ngModel)]="con.right.value.content"
                                     (ngModelChange)="changeInputUpdateTime()"
                                     (blur)="inputOnSave()"
                                     [title]="con.right.value.content"
-                                    [tiValidation]="{
-                                          type: 'changeAlert'
-                                        }"
                                     [disabled]="!con.left.value.content?.[0]"
                                     nonEmptyValidator
                                     numberStr
-                                    [errorMessageWrapper]="
-                                          ifValueErrWrapper
-                                        "
+                                    [class.input-error]="inputForm?.controls['inputFormLit' + i]?.invalid && (inputForm?.controls['inputFormLit' + i]?.dirty || inputForm?.controls['inputFormLit' + i]?.touched)"
                                   />
+                                  <div *ngIf="inputForm?.controls['inputFormLit' + i]?.invalid && (inputForm?.controls['inputFormLit' + i]?.dirty || inputForm?.controls['inputFormLit' + i]?.touched)" class="error-tip">
+                                    {{inputForm?.controls['inputFormLit' + i]?.errors?.serviceName?.tiErrorMessage}}
+                                  </div>
 
                                   <input
                                     *ngIf="con.right.type === 'integer'"
@@ -478,57 +396,44 @@
                                     style="width: 100%"
                                     [placeholder]="'input_placeholder' | i18nextEager"
                                     type="text"
-                                    tiText
+                                    nz-input
                                     [(ngModel)]="con.right.value.content"
                                     [title]="con.right.value.content"
-                                    [tiValidation]="{
-                                          type: 'changeAlert'
-                                        }"
                                     [disabled]="!con.left.value.content?.[0]"
                                     nonEmptyValidator
                                     integerStr
-                                    [errorMessageWrapper]="
-                                          ifValueErrWrapper
-                                        "
                                     (ngModelChange)="changeInputUpdateTime()"
                                     (blur)="inputOnSave()"
+                                    [class.input-error]="inputForm?.controls['inputFormLit' + i]?.invalid && (inputForm?.controls['inputFormLit' + i]?.dirty || inputForm?.controls['inputFormLit' + i]?.touched)"
                                   />
+                                  <div *ngIf="inputForm?.controls['inputFormLit' + i]?.invalid && (inputForm?.controls['inputFormLit' + i]?.dirty || inputForm?.controls['inputFormLit' + i]?.touched)" class="error-tip">
+                                    {{inputForm?.controls['inputFormLit' + i]?.errors?.serviceName?.tiErrorMessage}}
+                                  </div>
 
-                                  <ti-select
+                                  <nz-select
                                     *ngIf="con.right.type === 'boolean'"
                                     class="combo-select-right"
                                     style="width: 100%"
                                     [name]="'inputFormLit' + i"
-                                    [options]="booleanOps"
+                                    [nzOptions]="booleanOps"
                                     [(ngModel)]="con.right.value.content"
-                                    [disabled]="!con.left.value.content?.[0]"
-                                    [placeholder]="'select_placeholder' | i18nextEager"
-                                    valueKey="value"
+                                    [nzDisabled]="!con.left.value.content?.[0]"
+                                    [nzPlaceHolder]="'select_placeholder' | i18nextEager"
                                     (ngModelChange)="onSave()"
                                   >
-                                  </ti-select>
+                                  </nz-select>
                                 </ng-container>
 
-                                <ti-treeselect
-                                  class="combo-select-right"
+                                <input-tree-select
                                   style="width: 100%"
                                   *ngIf="con.right.value.type === 'ref'"
-                                  [options]="con.right.refs"
                                   [(ngModel)]="con.right.value.content"
-                                  [placeholder]="'select_placeholder' | i18nextEager"
+                                  [options]="con.right.refs"
                                   [name]="'inputFormRef' + i"
-                                  [appendToBody]="false"
                                   refSelectedRequire
-                                  panelWidth="auto"
-                                  [panelAlign]="'right'"
-                                  [searchable]="true"
-                                  labelKey="name"
+                                  [placeholder]="'select_placeholder' | i18nextEager"
                                   (select)="treeSelect()"
-                                >
-                                  <ng-template #item let-item let-i="index">
-                                    <meta-param-tree [item]="item" />
-                                  </ng-template>
-                                </ti-treeselect>
+                                ></input-tree-select>
                               </ng-container>
                             </ng-container>
                           </ng-template>
@@ -542,10 +447,7 @@
                                 *ngIf="con.right.value.type === 'literal'"
                                 style="width: 100%"
                                 type="text"
-                                tiText
-                                tiNumber
-                                format="n20"
-                                [localeable]="false"
+                                nz-input
                                 [name]="'inputFormLit' + i"
                                 [title]="con.right.value.content"
                                 [(ngModel)]="con.right.value.content"
@@ -553,44 +455,38 @@
                                 [placeholder]="'input_placeholder' | i18nextEager"
                                 (ngModelChange)="changeInputUpdateTime()"
                                 (blur)="inputOnSave()"
+                                [class.input-error]="inputForm?.controls['inputFormLit' + i]?.invalid && (inputForm?.controls['inputFormLit' + i]?.dirty || inputForm?.controls['inputFormLit' + i]?.touched)"
                               />
+                              <div *ngIf="inputForm?.controls['inputFormLit' + i]?.invalid && (inputForm?.controls['inputFormLit' + i]?.dirty || inputForm?.controls['inputFormLit' + i]?.touched)" class="error-tip">
+                                {{inputForm?.controls['inputFormLit' + i]?.errors?.serviceName?.tiErrorMessage}}
+                              </div>
 
-                              <ti-treeselect
-                                class="combo-select-right"
+                              <input-tree-select
                                 style="width: 100%"
                                 *ngIf="con.right.value.type === 'ref'"
-                                [options]="con.right.refs"
                                 [(ngModel)]="con.right.value.content"
-                                [placeholder]="'select_placeholder' | i18nextEager"
+                                [options]="con.right.refs"
                                 [name]="'inputFormRef' + i"
-                                [appendToBody]="false"
                                 refSelectedRequire
-                                panelWidth="auto"
-                                [panelAlign]="'right'"
-                                [searchable]="true"
-                                labelKey="name"
+                                [placeholder]="'select_placeholder' | i18nextEager"
                                 (select)="treeSelect()"
-                              >
-                                <ng-template #item let-item let-i="index">
-                                  <meta-param-tree [item]="item" />
-                                </ng-template>
-                              </ti-treeselect>
+                              ></input-tree-select>
                             </ng-container>
                           </ng-template>
                         </ng-template>
-
-                        <div class="ab-err w-full" #ifValueErrWrapper></div>
                       </div>
                     </div>
                   </div>
 
-                  <tp-icon
+                  <span
                     (click)="deleteIfExp(i)"
                     [style.color]="'#191919'"
                     [style.cursor]="'pointer'"
                     class="mt-5 cursor-pointer !text-[16px] text-[#191919]"
-                    name="cloudx-action-delete"
-                  />
+                    nz-icon
+                    nzType="delete"
+                    nzTheme="outline"
+                  ></span>
                 </div>
               </div>
             </div>
@@ -604,16 +500,13 @@
         <button
           (click)="addIfCondition()"
           class="h-4 w-fit"
-          tiButton
-          [tiTip]="'add_conditions' | i18nextEager"
-          [hasBorder]="false"
+          nz-button
+          nzType="text"
+          nz-tooltip [nzTooltipTitle]="'add_conditions' | i18nextEager"
         >
-          <tp-icon
-            class="header-button-icon"
-            name="cloudx-action-create-1"
-          />
+          <span nz-icon nzType="plus" nzTheme="outline"></span>
         </button>
       </div>
     </ng-template>
   </meta-acc-block>
-</div> -->
+</div>

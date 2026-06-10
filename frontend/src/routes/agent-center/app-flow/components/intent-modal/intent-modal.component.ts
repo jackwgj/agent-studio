@@ -160,6 +160,13 @@ export class IntentModalComponent extends ModalBaseComponent implements OnInit, 
 
   public intentGroupOptions: any[] = [];
 
+  get intentGroupSelectOptions() {
+    return this.intentGroupOptions.map(item => ({
+      label: item.merge_name,
+      value: item.intent_id,
+    }));
+  }
+
   public classList: IIntentBranch[] = [];
 
   public otherClass: IIntentBranch = {
@@ -177,7 +184,7 @@ export class IntentModalComponent extends ModalBaseComponent implements OnInit, 
     chat_history_max_turn: [0],
     enable_knowledge: [false],
     recall_threshold: [0.8],
-    intent_group: [null as IIntentGroupConfig | IIntentGroupItem],
+    intent_group: [null as string | null],
     enableMemory: [false],
     tags: [],
   });
@@ -358,12 +365,7 @@ export class IntentModalComponent extends ModalBaseComponent implements OnInit, 
     };
 
     const intentGroupConfig = this.nodeInfo.configs?.intent;
-    const intentGroupFormValue = intentGroupConfig
-      ? {
-          ...intentGroupConfig,
-          intent_id: intentGroupConfig?.id,
-        }
-      : null;
+    const intentGroupFormValue = intentGroupConfig?.id ?? null;
 
     this.selectedModelSubscription = this.modelFormGroup.get('model').valueChanges.subscribe(value => {
       this.modelSetTipCtx.selectedModel = this.modelOptions.find(model => model.model_deployment_id === value);
@@ -502,35 +504,34 @@ export class IntentModalComponent extends ModalBaseComponent implements OnInit, 
   }
 
   /** 后台搜索 */
-  public onBeforeSearch(selectComp: any) {
-    const name = selectComp.getSearchWord();
-    this.getIntentGroups({ offset: 0, name }, selectComp);
+  public searchWord = '';
+
+  public onBeforeSearch(searchValue: string) {
+    this.searchWord = searchValue;
+    this.getIntentGroups({ offset: 0, name: searchValue });
   }
 
-  /** 懒加载意图包 */
-  public loadMore(scrollLoadInfo: any, selectComp: any) {
-    const currentOptions = selectComp.getSearchResult();
-    if (currentOptions.length >= this.totalIntentGroups) {
+  public loadMore() {
+    if (this.intentGroupOptions.length >= this.totalIntentGroups) {
       return;
     }
 
     const offset = this.intentGroupOptions.length;
-    const name: string = selectComp.getSearchWord();
-    scrollLoadInfo.loading = true;
+    this.isLoadingIntentGroups = true;
 
     this.intentRepoServe
       .getIntentGroupList({
         offset,
         limit: LAZY_LOAD_LIMIT,
-        name,
+        name: this.searchWord,
       })
       .then(result => {
-        this.intentGroupOptions = [...currentOptions, ...result.intents].map(item => ({
+        this.intentGroupOptions = [...this.intentGroupOptions, ...result.intents].map(item => ({
           ...item,
           merge_name: `${item.name}（${item.branches_cnt}${this.i18n.transform('intentions')}）`,
         }));
         this.totalIntentGroups = result.count;
-        scrollLoadInfo.loading = false;
+        this.isLoadingIntentGroups = false;
       });
   }
 
@@ -618,16 +619,21 @@ export class IntentModalComponent extends ModalBaseComponent implements OnInit, 
     }, 0);
   }
 
-  public onBeforeOpenIntentGroup(selectComp: any) {
-    this.getIntentGroups({ offset: 0 }, selectComp, {
+  public isLoadingIntentGroups = false;
+
+  public onBeforeOpenIntentGroup(isOpen: boolean) {
+    if (!isOpen) {
+      return;
+    }
+    this.isLoadingIntentGroups = true;
+    this.getIntentGroups({ offset: 0 }, null, {
       successCb: () => {
-        selectComp.open();
+        this.isLoadingIntentGroups = false;
       },
       failCb: () => {
         this.intentGroupOptions = [];
         this.totalIntentGroups = 0;
-        selectComp.setLoading(false);
-        selectComp.open();
+        this.isLoadingIntentGroups = false;
       },
     });
   }
@@ -708,7 +714,7 @@ export class IntentModalComponent extends ModalBaseComponent implements OnInit, 
 
   private getIntentGroups(
     params: { offset: number; name?: string },
-    selectComp: any,
+    selectComp?: any,
     configs: ICallbackFn = {
       successCb: () => {},
       failCb: () => {},
@@ -834,8 +840,7 @@ export class IntentModalComponent extends ModalBaseComponent implements OnInit, 
         nodeData.configs.recall_threshold = this.modelFormGroup.controls.recall_threshold.value;
       }
     } else {
-      const intentGroupFormValue = this.modelFormGroup.controls.intent_group.value || {};
-      const intentGroupId = (intentGroupFormValue as IIntentGroupItem).intent_id || (intentGroupFormValue as IIntentGroupConfig).id;
+      const intentGroupId = this.modelFormGroup.controls.intent_group.value;
       const intentGroupInfo = this.intentGroupOptions.find(item => item.intent_id === intentGroupId);
       if (!nodeData.configs.intent) {
         nodeData.configs.intent = {
@@ -844,9 +849,9 @@ export class IntentModalComponent extends ModalBaseComponent implements OnInit, 
           branches_cnt: 0,
         };
       }
-      nodeData.configs.intent.id = intentGroupId;
-      nodeData.configs.intent.name = intentGroupInfo?.name ?? (intentGroupFormValue as IIntentGroupItem).name;
-      nodeData.configs.intent.branches_cnt = intentGroupInfo?.branches_cnt ?? (intentGroupFormValue as IIntentGroupItem).branches_cnt;
+      nodeData.configs.intent.id = intentGroupId ?? '';
+      nodeData.configs.intent.name = intentGroupInfo?.name ?? '';
+      nodeData.configs.intent.branches_cnt = intentGroupInfo?.branches_cnt ?? 0;
       nodeData.branches = [this.otherClass];
     }
 
@@ -964,12 +969,7 @@ export class IntentModalComponent extends ModalBaseComponent implements OnInit, 
                 name: intent.name,
                 branches_cnt: intent.branches_cnt,
               };
-              const intentGroupFormValue = intentGroupConfig
-                ? {
-                    ...intentGroupConfig,
-                    intent_id: intentGroupConfig?.id,
-                  }
-                : null;
+              const intentGroupFormValue = intentGroupConfig?.id ?? null;
 
               this.modelFormGroup.controls.intent_group.setValue(intentGroupFormValue);
             })

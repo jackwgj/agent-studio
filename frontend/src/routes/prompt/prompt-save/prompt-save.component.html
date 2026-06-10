@@ -1,0 +1,107 @@
+<div class="nz-modal-custom-header">
+  {{ title }}
+  <div style="font-size: 12px; font-weight: 400; color: #808080">
+    {{ 'save_prompt_desc' | i18nextEager }}
+  </div>
+</div>
+<div style="height: calc(100vh - 180px);">
+  <div class="flex flex-col gap-4" style="height: calc(100vh - 210px); overflow: auto;">
+    <form nz-form nzLayout="vertical" [formGroup]="savePromptForm">
+    <nz-form-item>
+      <nz-form-label [nzRequired]="true">{{ savePromptFormLabel.name }}</nz-form-label>
+      <nz-form-control>
+        <input [placeholder]="'input_placeholder' | i18nextEager" class="w-full" formControlName="name" nz-input />
+      </nz-form-control>
+    </nz-form-item>
+    <nz-form-item>
+      <nz-form-label [nzRequired]="true">{{ savePromptFormLabel.industry }}</nz-form-label>
+      <nz-form-control>
+        <nz-select [nzPlaceHolder]="'prompt_tmpl_apply2task_industry_placeholder' | i18nextEager" formControlName="industry" style="width: 100%">
+          @for (item of industryList; track item) {
+            <nz-option [nzLabel]="item.label" [nzValue]="item.id" />
+          }
+        </nz-select>
+      </nz-form-control>
+    </nz-form-item>
+    <nz-form-item>
+      <nz-form-label [nzRequired]="true">{{ savePromptFormLabel.type }}</nz-form-label>
+      <nz-form-control>
+        <nz-select
+          (ngModelChange)="handleTypeSelect($event)"
+          formControlName="type"
+          [nzPlaceHolder]="'select_type' | i18nextEager"
+          style="width: 100%"
+        >
+          @for (item of promptTypeOptions; track item) {
+            <nz-option [nzLabel]="item.label" [nzValue]="item.value" />
+          }
+        </nz-select>
+      </nz-form-control>
+    </nz-form-item> 
+    <nz-form-item>
+      <nz-form-label>{{ savePromptFormLabel.tags }}</nz-form-label>
+      <nz-form-control>
+        <nz-select nzMode="multiple" [nzPlaceHolder]="'prompt_tmpl_apply2task_tag_placeholder' | i18nextEager" formControlName="tags" style="width: 100%">
+          @for (item of tagOptions; track item) {
+            <nz-option [nzLabel]="item.label" [nzValue]="item.id" />
+          }
+        </nz-select>
+      </nz-form-control>
+    </nz-form-item>
+    <nz-form-item>
+      <nz-form-label>{{ savePromptFormLabel.desc }}</nz-form-label>
+      <nz-form-control>
+        <textarea [placeholder]="'prompt_tmpl_apply2task_desc_placeholder' | i18nextEager" formControlName="desc" style="width: 100%" nz-input> </textarea>
+      </nz-form-control>
+    </nz-form-item>
+    <nz-form-item>
+      <nz-form-control>
+        <div class="flex gap-2 flex-col">
+          <div class="prompt-label">
+            <div class="prompt-title">
+              {{ savePromptFormLabel.prompt }}
+            </div>
+            <div class="prompt-action">
+              <button (click)="showInserter()" (mousedown)="$event.preventDefault()" nz-button nzType="default">
+                <img [src]="changeUrl('assets/prompt/insert_variable.svg')" alt="" class="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+          <div class="prompt-editor">
+            <meta-prompt-editor
+              (afterInsertVariable)="hideInserter()"
+              (blur)="validatePrompt()"
+              (variablesChange)="undateVariables($event)"
+              [backgroundColor]="'#ffffff'"
+              [initVariables]="initVariables"
+              [maxLength]="promptMaxLength"
+              [promptType]="savePromptForm.value.type.value"
+              [showInserter]="isShowInserter"
+              [style]="'max-height:640px;min-height:400px'"
+              [variables]="variables"
+              formControlName="prompt"
+            ></meta-prompt-editor>
+          </div>
+        </div>
+      </nz-form-control>
+    </nz-form-item>
+  </form>
+  </div>
+</div>
+<!-- 页脚结构 -->
+<div class="nz-modal-custom-footer">
+  <div class="flex gap-2 flex-right">
+    <button (click)="dismiss()" nz-button nzType="default">{{ 'cancel' | i18nextEager }}</button>
+    <ng-container *ngIf="isOptimize && promptSaveInitInfo.promptId; else common_save">
+      <button (click)="savePrompt(true)" [disabled]="confirmDisabled" nz-button nzType="default">
+        {{ 'save_as' | i18nextEager }}
+      </button>
+      <button (click)="savePrompt()" [disabled]="confirmDisabled" nz-button nzType="primary">
+        {{ 'save_and_replace_prompt' | i18nextEager }}
+      </button>
+    </ng-container>
+    <ng-template #common_save>
+      <button (click)="savePrompt()" [disabled]="confirmDisabled" nz-button nzType="primary">{{ 'ok' | i18nextEager }}</button>
+    </ng-template>
+  </div>
+</div>

@@ -53,7 +53,7 @@
   "iam_tip": {
     "iam_url": "获取IAM用户Token信息的接口； 示例 https://{iam_host}/v3/auth/tokens",
     "iam_domain": "IAM用户所属账号信息，即账号名。",
-    "iam_project": "该服务所属区域信息",
+    "iam_project": "该服务所属区域信息，如cn-southwest-2。",
     "iam_user": "IAM用户名称。",
     "iam_password": "IAM用户的登录密码。",
     "iam_ak": "访问密钥ID。",

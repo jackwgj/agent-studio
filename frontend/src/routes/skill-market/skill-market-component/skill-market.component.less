@@ -1,0 +1,135 @@
+.skill-resource {
+  background-color: var(--ti-color-bg-container-secondary);
+  width: 100%;
+  height: calc(100%);
+  padding: 32px 48px;
+  display: flex;
+  flex-direction: column;
+  background-color: #ffffff;
+
+  ::ng-deep {
+    .ant-tabs-nav {
+      padding-top: 0px !important;
+    }
+  }
+}
+
+.type-title {
+  padding: 24px 0px;
+  color: #191919;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 30px;
+}
+
+.center {
+  height: 100%;
+  align-items: center;
+  display: flex;
+  justify-content: center;
+}
+
+.card-list {
+  display: grid;
+  flex: 1;
+  min-height: 0; // 替代 height: 0，确保在 flex 容器中能正常滚动
+  width: 100%;
+  margin-top: 24px;
+  padding-right: 16px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+  gap: 16px;
+  align-content: start;
+
+  // --- 响应式列数控制 ---
+
+  // 1. 默认情况（小于 800px）：强制 2 列
+  grid-template-columns: repeat(2, 1fr);
+
+  // 2. 中等屏幕（比如 800px - 1200px）：显示 3 列
+  @media (min-width: 1480px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  // 3. 大屏幕（大于 1200px）：强制锁定 4 列
+  // 这样即便在 4K 屏上，也绝对不会超过 4 个
+  @media (min-width: 1980px) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  // --- 卡片样式 ---
+  .card {
+    height: 196px;
+    border: 1px solid rgb(230, 230, 230);
+    border-radius: 9px;
+    padding: 24px;
+    position: relative;
+    cursor: pointer;
+    background: #fff; // 建议加上背景色，防止悬浮阴影效果不明显
+
+    &:hover {
+      box-shadow: 0px 4px 16px 0px rgba(0, 0, 0, 0.08);
+    }
+
+    .title {
+      display: flex;
+      align-items: center;
+      height: max-content;
+      margin-bottom: 16px;
+
+      .label {
+        font-size: 16px;
+        font-weight: 600;
+        line-height: 24px;
+      }
+
+      .icon img {
+        width: 48px;
+        height: 48px;
+      }
+    }
+
+    .footer {
+      position: absolute;
+      bottom: 24px;
+      display: flex;
+      align-items: flex-end; // Less 中建议写全名
+
+      &-icon {
+        font-size: 16px;
+        color: #c2c2c3;
+      }
+
+      &-text {
+        display: flex;
+        align-items: flex-end;
+        line-height: 24px;
+        margin-left: 8px;
+      }
+    }
+  }
+}
+
+.scroll-anchor {
+  position: absolute;
+  bottom: 100;
+  left: 0;
+  right: 0;
+  height: 1px;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.search-box {
+  display: flex;
+  width: 100%;
+
+  &-bar {
+    width: stretch;
+  }
+
+  button {
+    border-radius: 4px;
+  }
+}

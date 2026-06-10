@@ -1,14 +1,12 @@
-<nz-tree [nzData]="treeData" (nzClick)="onSelect($event)" [nzTreeTemplate]="nzTreeTemplate">
-  <ng-template #nzTreeTemplate let-node let-i="index">
-    @if (node.isDir) {
-      @if (node.expanded) {
-        <custom-editor-icon [name]="'folder-fold'"></custom-editor-icon>
-      } @else {
-        <custom-editor-icon [name]="'folder'"></custom-editor-icon>
-      }
+<nz-tree [nzData]="treeData" style="padding: 10px 8px" (nzClick)="onSelect($event)" [nzTreeTemplate]="nzTreeTemplate" nzBlockNode>
+  <ng-template #nzTreeTemplate let-node let-origin="origin">
+    @if (origin.isDir) { @if (origin.expanded) {
+    <custom-editor-icon [name]="'folder-fold'"></custom-editor-icon>
     } @else {
-      <custom-editor-icon [name]="node.fileIcon"></custom-editor-icon>
+    <custom-editor-icon [name]="'folder'"></custom-editor-icon>
+    } } @else {
+    <custom-editor-icon [name]="origin.fileIcon"></custom-editor-icon>
     }
-    <span class="tree-node-label">{{ node.label }}</span>
+    <span class="tree-node-label">{{ origin.label }}</span>
   </ng-template>
 </nz-tree>

@@ -130,14 +130,14 @@ export class MemoryLibSelectorHalfmodalComponent implements OnInit {
           .then(() => {
             this.message.success(this.i18n.transform('memory.create.tip.success'));
             setLoading(false);
-            halfModalRef.destroy?.(reason);
+            halfModalRef.close?.(reason);
             this.queryData();
           })
           .catch(() => {
             setLoading(false);
           });
       } else {
-        halfModalRef.destroy?.(reason);
+        halfModalRef.close?.(reason);
       }
     });
   }

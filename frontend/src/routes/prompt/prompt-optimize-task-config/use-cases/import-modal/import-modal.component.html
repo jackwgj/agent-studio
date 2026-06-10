@@ -1,0 +1,37 @@
+<div *nzModalTitle>
+  <span>{{ 'import_case_set' | i18nextEager }}</span>
+</div>
+<div>
+  <div class="import-body">
+    <div class="import-tip">
+      <img [src]="changeUrl('assets/prompt/import-tip.svg')" alt="" class="h-4 w-4" />
+      <p class="tip-content">
+        <span [innerHTML]="(promptType === 'text' ? 'import_case_set_tips' : 'import_case_set_tips1') | i18nextEager: { variables }"></span>
+        <a (click)="downloadTemplate()" class="pointer">{{ 'download_template' | i18nextEager }}</a>
+      </p>
+    </div>
+    <div class="import-button">
+      <nz-upload
+        (nzChange)="onAddFileSuccess($event)"
+        [nzAccept]="accept"
+        [nzShowUploadList]="true"
+        [nzLimit]="1"
+        [nzMultiple]="false"
+        action="/"
+      >
+        <button nz-button>
+          <span>{{ selectedFile ? ('reselect_file' | i18nextEager) : ('add_file' | i18nextEager) }}</span>
+        </button>
+      </nz-upload>
+    </div>
+    <div *ngIf="errMsg" class="err-msg">
+      <span>
+        {{ errMsg }}
+      </span>
+    </div>
+  </div>
+</div>
+<div *nzModalFooter>
+  <button nz-button (click)="handleCancel()" type="button">{{ 'cancel' | i18nextEager }}</button>
+  <button nz-button nzType="primary" (click)="confirm()" type="button">{{ 'import' | i18nextEager }}</button>
+</div>

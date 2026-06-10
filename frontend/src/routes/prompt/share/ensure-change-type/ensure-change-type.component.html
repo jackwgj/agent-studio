@@ -1,0 +1,29 @@
+<div *nzModalTitle>
+  <div class='title'>
+    <img
+      [src]="changeUrl('assets/prompt/import-tip.svg')"
+      alt=""
+      class="h-6 w-6"
+    /> {{ 'confirm_switch_prompt_type_desc'|i18nextEager }}
+  </div>
+</div>
+<div>
+  <div class="body">{{ 'switch_prompt_type_warning'|i18nextEager }}</div>
+</div>
+<div *nzModalFooter>
+  <div class="footer">
+    <div>
+      <button (click)="dismiss()" nz-button nzType="default" type="button">{{ 'cancel'|i18nextEager }}</button>
+      <button
+        (click)="confirm()"
+        nzType="primary"
+        nz-button
+        type="button"
+      >
+        {{ 'ok'|i18nextEager }}
+      </button>
+    </div>
+
+  </div>
+
+</div>

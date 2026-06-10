@@ -40,7 +40,7 @@
           (click)="handleClickMcpModalCard(item)"
         >
           <div class="flex items-center gap-3" style="font-weight: 600; font-size: 16px">
-            <img  class="h-10 w-10 rounded-lg" [src]="item.id === emptyTemplateId ? mockMcpList[0].icon : getIcon(item)" alt="" />
+            <img class="h-10 w-10 rounded-lg" [src]="item.id === emptyTemplateId ? mockMcpList[0].icon : getIcon(item)" alt="" />
             <div class="flex" style="flex-direction: column">
               <p style="font-size: 12px">{{ isZH() ? item.name : item.name_en }}</p>
               <div>
@@ -147,7 +147,7 @@
         <span class="icon-btn" *ngIf="!mcpModalSelected?.icon">+</span>
       </label>
       <div #previewIcon *ngIf="mcpModalSelected?.icon" class="preview">
-        <img  [src]="getIcon(mcpModalSelected)" alt="" style="width: 100%; height: 100%; object-fit: contain" />
+        <img [src]="getIcon(mcpModalSelected)" alt="" style="width: 100%; height: 100%; object-fit: contain" />
       </div>
     </div>
     <div class="desc">
@@ -354,13 +354,13 @@
     <span style="display: inline-flex; gap: 8px">
       {{ 'param_name' | i18nextEager }}
       <span nz-tooltip nzTooltipTitle="{{ 'mcp_oauth_tip1' | i18nextEager }}" nzTooltipPlacement="right">
-        <img  [src]="changeUrl('assets/model/online-test-help.svg')" alt="" />
+        <img [src]="changeUrl('assets/model/online-test-help.svg')" alt="" />
       </span>
     </span>
     <span class="mcp-auth-param-value" style="display: inline-flex; gap: 8px">
       {{ 'param_value' | i18nextEager }}
       <span nz-tooltip nzTooltipTitle="{{ 'mcp_oauth_tip2' | i18nextEager }}" nzTooltipPlacement="right">
-        <img  [src]="changeUrl('assets/model/online-test-help.svg')" alt="" />
+        <img [src]="changeUrl('assets/model/online-test-help.svg')" alt="" />
       </span>
     </span>
   </p>
@@ -375,7 +375,7 @@
       <span style="display: inline-flex; gap: 8px; align-items: center">
         <span>{{ 'mcp_oauth_tip3' | i18nextEager }}</span>
         <span nz-tooltip nzTooltipTitle="{{ 'mcp_oauth_tip7' | i18nextEager }}" nzTooltipPlacement="right">
-          <img  [src]="changeUrl('assets/model/online-test-help.svg')" alt="" />
+          <img [src]="changeUrl('assets/model/online-test-help.svg')" alt="" />
         </span>
       </span>
       <input nz-input [(ngModel)]="mcpAuthConfigData.authParams.url" [placeholder]="'input_placeholder' | i18nextEager" />
@@ -384,7 +384,7 @@
       <span style="display: inline-flex; gap: 8px; align-items: center">
         <span>{{ 'mcp_oauth_tip4' | i18nextEager }}</span>
         <span nz-tooltip nzTooltipTitle="{{ 'mcp_oauth_tip8' | i18nextEager }}" nzTooltipPlacement="right">
-          <img  [src]="changeUrl('assets/model/online-test-help.svg')" alt="" />
+          <img [src]="changeUrl('assets/model/online-test-help.svg')" alt="" />
         </span>
       </span>
       <input nz-input [(ngModel)]="mcpAuthConfigData.authParams.id" [placeholder]="'input_placeholder' | i18nextEager" />
@@ -393,7 +393,7 @@
       <span style="display: inline-flex; gap: 8px; align-items: center">
         <span>{{ 'mcp_oauth_tip5' | i18nextEager }}</span>
         <span nz-tooltip nzTooltipTitle="{{ 'mcp_oauth_tip9' | i18nextEager }}" nzTooltipPlacement="right">
-          <img  [src]="changeUrl('assets/model/online-test-help.svg')" alt="" />
+          <img [src]="changeUrl('assets/model/online-test-help.svg')" alt="" />
         </span>
       </span>
       <nz-input-password>
@@ -404,7 +404,7 @@
       <span style="display: inline-flex; gap: 8px; align-items: center">
         <span>{{ 'mcp_oauth_tip6' | i18nextEager }}</span>
         <span nz-tooltip nzTooltipTitle="{{ 'mcp_oauth_tip10' | i18nextEager }}" nzTooltipPlacement="right">
-          <img  [src]="changeUrl('assets/model/online-test-help.svg')" alt="" />
+          <img [src]="changeUrl('assets/model/online-test-help.svg')" alt="" />
         </span>
       </span>
       <input nz-input [(ngModel)]="mcpAuthConfigData.authParams.scope" [placeholder]="'input_placeholder' | i18nextEager" />

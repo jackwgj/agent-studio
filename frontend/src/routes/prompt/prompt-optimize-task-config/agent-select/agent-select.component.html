@@ -1,0 +1,14 @@
+<nz-select
+  #select
+  id="select-sroll-load"
+  [nzOptions]="options"
+  [(ngModel)]="value"
+  [nzPlaceHolder]="placeholderStr"
+  [nzShowSearch]="isSearchable"
+  (nzOnSearch)="beforeSearch($event)"
+  (nzScrollToBottom)="loadMore()"
+>
+  <ng-template #nzOptionTemplate let-item>
+    <span>{{ item.name }}</span>
+  </ng-template>
+</nz-select>

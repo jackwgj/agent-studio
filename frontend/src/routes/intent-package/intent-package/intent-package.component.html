@@ -2,47 +2,34 @@
   <div class="top-title-area">
     <div class="title-area-left">
       <div class="page-title">{{ 'intent_management' | i18nextEager }}</div>
-      <div *ngIf="srcData.data?.length > 0">（{{ totalNumber  }}）</div>
+      <div *ngIf="srcData.data?.length > 0">（{{ totalNumber }}）</div>
     </div>
     <div class="btn-area">
-      <div *ngIf="!isShowNoDataGuide && !isFirstLoading"
-          class="guide-collapse-btn flex items-center cursor-pointer"
-          (click)="isShowGuide = !isShowGuide">
-          <span nz-icon [nzType]="isShowGuide ? 'down' : 'up'" class="mr-[4px]"></span>
-          <span>{{ 'create_guide' | i18nextEager }}</span>
+      <div *ngIf="!isShowNoDataGuide && !isFirstLoading" class="guide-collapse-btn flex items-center cursor-pointer" (click)="isShowGuide = !isShowGuide">
+        <span nz-icon [nzType]="isShowGuide ? 'down' : 'up'" class="mr-[4px]"></span>
+        <span>{{ 'create_guide' | i18nextEager }}</span>
       </div>
-      <button nz-button nzType="default"
-              (click)="importTool()"
-              [disabled]="!subscribeBtnStatus">
-        {{ 'import'|i18nextEager }}
+      <button nz-button nzType="default" (click)="importTool()" [disabled]="!subscribeBtnStatus">
+        {{ 'import' | i18nextEager }}
       </button>
-      <button nz-button nzType="default"
-              (click)="exportTool()"
-              [disabled]="!subscribeBtnStatus"
-              class="delete-btn">
-        {{ 'export'|i18nextEager }}
+      <button nz-button nzType="default" (click)="exportTool()" [disabled]="!subscribeBtnStatus" class="delete-btn">
+        {{ 'export' | i18nextEager }}
       </button>
-      <button nz-button nzType="primary"
-              (click)="toCreate()"
-              [disabled]="!subscribeBtnStatus">
-        {{ 'create_package'|i18nextEager }}
+      <button nz-button nzType="primary" (click)="toCreate()" [disabled]="!subscribeBtnStatus">
+        {{ 'create_package' | i18nextEager }}
       </button>
     </div>
   </div>
-  <div class="overflow-hidden guide-collapse-content shrink-0 " *ngIf="!isShowNoDataGuide&&!isFirstLoading"
-       [ngClass]="{'h-[188px]': isShowGuide, 'h-[0px]': !isShowGuide,'mb-[24px]': isShowGuide}"
+  <div
+    class="overflow-hidden guide-collapse-content shrink-0"
+    *ngIf="!isShowNoDataGuide && !isFirstLoading"
+    [ngClass]="{ 'h-[188px]': isShowGuide, 'h-[0px]': !isShowGuide, 'mb-[24px]': isShowGuide }"
   >
-    <app-no-data-guide
-      [isSmall]="true"
-      [type]="'intentPackage'"
-    ></app-no-data-guide>
+    <app-no-data-guide [isSmall]="true" [type]="'intentPackage'"></app-no-data-guide>
   </div>
-  <div class="query-operate" *ngIf="!isShowNoDataGuide&&!isFirstLoading">
+  <div class="query-operate" *ngIf="!isShowNoDataGuide && !isFirstLoading">
     <nz-input-search class="search-input" (nzSearch)="searchList()">
-      <input nz-input
-             [(ngModel)]="searchValue"
-             [placeholder]="'search_and_filter'|i18nextEager"
-             (keyup.enter)="searchList()" />
+      <input nz-input [(ngModel)]="searchValue" [placeholder]="'search_and_filter' | i18nextEager" (keyup.enter)="searchList()" />
     </nz-input-search>
 
     <button nz-button nzType="default" class="h-8 w-8 flex items-center justify-center p-0" (click)="getIntentManagementListData()">
@@ -50,45 +37,41 @@
     </button>
   </div>
   <div class="min-h-[200px]">
-    <nz-table #basicTable
-              *ngIf="!isFirstLoading"
-              [nzData]="srcData.data"
-              [nzLoading]="loading"
-              [nzFrontPagination]="false"
-              [nzShowPagination]="false"
-              [nzNoResult]="noDataTpl"
-              nzTableLayout="fixed"
-              class="table-style"
-              [ngStyle]="{'border':isShowNoDataGuide ? '' : '1px solid rgba(240, 240, 240, 1)'}">
+    <nz-table
+      #basicTable
+      *ngIf="!isFirstLoading"
+      [nzData]="srcData.data"
+      [nzLoading]="loading"
+      [nzFrontPagination]="false"
+      [nzShowPagination]="false"
+      [nzNoResult]="noDataTpl"
+      nzTableLayout="fixed"
+      class="table-style"
+      [ngStyle]="{ 'border': isShowNoDataGuide ? '' : '1px solid rgba(240, 240, 240, 1)', 'overflow': 'auto', 'max-height': 'calc(100vh - 540px)' }"
+    >
       <thead *ngIf="!isShowNoDataGuide">
-      <tr>
-        <th *ngFor="let column of listColumns" [nzWidth]="column.width || null">{{ column.title }}</th>
-      </tr>
+        <tr>
+          <th *ngFor="let column of listColumns" [nzWidth]="column.width || null">{{ column.title }}</th>
+        </tr>
       </thead>
       <tbody>
-      <tr *ngFor="let row of basicTable.data; trackBy: trackByFn;" style="height:64px;">
-        <td nzEllipsis>
-          <span style="color: rgba(20, 118, 255, 1);cursor: pointer" (click)="toDetail(row)">{{ row.name }}</span>
-        </td>
-        <td nzEllipsis>{{ row.branches_cnt }}</td>
-        <td nzEllipsis>{{ row.creator_id }}</td>
-        <td nzEllipsis>{{ row.create_time | formateTime }}</td>
-        <td>
-          <button nz-button nzType="link"
-                  [disabled]="!subscribeBtnStatus"
-                  (click)="listAction({key: 'edit'}, row)"
-                  style="padding: 0;">
-            {{ 'edit' | i18nextEager }}
-          </button>
-          <nz-divider nzType="vertical"></nz-divider>
-          <button nz-button nzType="link"
-                  [disabled]="!subscribeBtnStatus"
-                  (click)="listAction({key: 'delete'}, row)"
-                  style="padding: 0;">
-            {{ 'delete' | i18nextEager }}
-          </button>
-        </td>
-      </tr>
+        <tr *ngFor="let row of basicTable.data; trackBy: trackByFn" style="height: 64px">
+          <td nzEllipsis>
+            <span style="color: rgba(20, 118, 255, 1); cursor: pointer" (click)="toDetail(row)">{{ row.name }}</span>
+          </td>
+          <td nzEllipsis>{{ row.branches_cnt }}</td>
+          <td nzEllipsis>{{ row.creator_id }}</td>
+          <td nzEllipsis>{{ row.create_time | formateTime }}</td>
+          <td>
+            <button nz-button nzType="link" [disabled]="!subscribeBtnStatus" (click)="listAction({ key: 'edit' }, row)" style="padding: 0">
+              {{ 'edit' | i18nextEager }}
+            </button>
+            <nz-divider nzType="vertical"></nz-divider>
+            <button nz-button nzType="link" [disabled]="!subscribeBtnStatus" (click)="listAction({ key: 'delete' }, row)" style="padding: 0">
+              {{ 'delete' | i18nextEager }}
+            </button>
+          </td>
+        </tr>
       </tbody>
     </nz-table>
 
@@ -101,23 +84,25 @@
           [secondLineData]="'no_data_tip' | i18nextEager"
           [noDataBtnStr]="'create_package' | i18nextEager"
           (create)="toCreate()"
-          (clear)="handleClickClearSearch()"/>
-        <app-no-data-guide
-          *ngIf="searchNameIsEmpty"
-          [type]="'intentPackage'"
-        ></app-no-data-guide>
+          (clear)="handleClickClearSearch()"
+        />
+        <app-no-data-guide *ngIf="searchNameIsEmpty" [type]="'intentPackage'"></app-no-data-guide>
       </div>
     </ng-template>
 
-    <nz-pagination style="margin-top: 24px; display: block;"
-                   *ngIf="totalNumber > 0"
-                   [(nzPageIndex)]="currentPage"
-                   [nzTotal]="totalNumber"
-                   [(nzPageSize)]="pageSize.size"
-                   [nzPageSizeOptions]="pageSize.options"
-                   nzShowSizeChanger
-                   (nzPageIndexChange)="getIntentManagementListData()"
-                   (nzPageSizeChange)="searchList()">
-    </nz-pagination>
+    <div class="flex justify-end mt-[24px]" *ngIf="totalNumber > 10">
+      <nz-pagination
+        style="margin-top: 24px; display: block"
+        nzAlign="end"
+        [(nzPageIndex)]="currentPage"
+        [nzTotal]="totalNumber"
+        [(nzPageSize)]="pageSize.size"
+        [nzPageSizeOptions]="pageSize.options"
+        nzShowSizeChanger
+        (nzPageIndexChange)="getIntentManagementListData()"
+        (nzPageSizeChange)="searchList()"
+      >
+      </nz-pagination>
+    </div>
   </div>
 </div>

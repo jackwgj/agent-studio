@@ -1,0 +1,81 @@
+<ti-modal-header>
+  <span>{{ 'object_template' | i18nextEager }}</span>
+</ti-modal-header>
+<tp-modal-body>
+  <div class="flex object-template">
+    <div class="search-bar">
+      <ti-searchbox
+        [placeholder]="'input_object_name' | i18nextEager"
+        [(ngModel)]="searchValue"
+        (clear)="searchList()"
+        (search)="searchList()"
+        class="search-input"
+      ></ti-searchbox>
+      <button (click)="getObjectList()" [onlyIcon]="true" tiButton>
+        <ti-icon name="refresh-1"></ti-icon>
+      </button>
+    </div>
+    <div class="flex">
+      <div class="template-list">
+        <div *ngFor="let template of objectTemplates" (click)="selectTemplate(template, $event)">
+          <div class="template-item" [class]="{ itemChecked: template.checked }">
+            <span tiOverflow>{{ template.name }}</span>
+            <input type="checkbox" tiCheckbox [(ngModel)]="template.checked" />
+          </div>
+        </div>
+      </div>
+      <div class="template-detail">
+        <div *ngIf="selectedTemplate" class="card">
+          <div class="template-name mb-4">
+            <p>{{ selectedTemplate.name }}</p>
+          </div>
+          <div class="param-tree-table">
+            <div class="table-header">
+              <div class="table-col col-name">
+                {{ 'variable_name' | i18nextEager }}
+              </div>
+              <div class="table-col col-type">
+                {{ 'variable_type' | i18nextEager }}
+              </div>
+              <div class="table-col col-default">
+                {{ 'default_v' | i18nextEager }}
+              </div>
+              <div class="table-col col-desc">
+                {{ 'description' | i18nextEager }}
+              </div>
+            </div>
+            <ti-tree id="node-param-tree" [data]="selectedParams" class="tree-content">
+              <ng-template tiTreeNode let-param>
+                <div class="table-row">
+                  <div class="table-col col-name" [style.width]="getParamNameWidth(param) + 'px'" tiOverflow>
+                    {{ param.name }}
+                  </div>
+                  <div class="table-col col-type" tiOverflow>{{ formatType(param.type) }}</div>
+                  <div class="table-col col-default" tiOverflow>
+                    <span [class.unset]="!param.value?.default && param.depth === 0">
+                      {{ param.depth === 0 ? param.value?.default || ('not_configured' | i18nextEager) : '' }}
+                    </span>
+                  </div>
+                  <div class="table-col col-desc" tiOverflow>
+                    <span [class.unset]="!param.description">{{ param.description || ('not_configured' | i18nextEager) }}</span>
+                  </div>
+                </div>
+              </ng-template>
+            </ti-tree>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</tp-modal-body>
+<ti-modal-footer>
+  <div class="flex justify-between items-center">
+    <div>
+      {{ 'selected_objects' | i18nextEager: { count: selectedTemplates?.length || 0 } }}
+    </div>
+    <div class="flex gap-2">
+      <button type="button" tiButton (click)="cancel()">{{ 'cancel' | i18nextEager }}</button>
+      <button type="button" tiButton (click)="importTemplates()" style="margin-left: 8px" color="danger">{{ 'import' | i18nextEager }}</button>
+    </div>
+  </div>
+</ti-modal-footer>

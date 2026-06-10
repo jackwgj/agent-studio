@@ -1,0 +1,447 @@
+.pe-tmpl-tabs {
+  height: calc(100% - 98px);
+
+  ::ng-deep &>.ti3-tab-content {
+    height: calc(100% - 52px);
+  }
+}
+
+.content-background {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 1);
+  flex-grow: 1;
+}
+
+.contentBody {
+  min-height: calc(100vh - 209px);
+  padding-bottom: 0 !important;
+
+  .deleteBtn {
+    margin-bottom: 16px;
+  }
+
+  .refresh {
+    margin-left: 10px;
+  }
+
+  .mb10 {
+    margin-bottom: 16px;
+  }
+}
+
+::ng-deep {
+  .borderNone {
+    border-bottom: 0 !important;
+  }
+
+  .promptTagsStyles {
+    .ti3-select-dominator-text {
+      overflow-y: hidden !important;
+    }
+  }
+
+  .ti3-menu-toggle-menu {
+    width: 100% !important;
+    text-align: center !important;
+    padding-bottom: 6px !important;
+    color: rgba(25, 25, 25, 1) !important;
+  }
+
+  .ti3-menu-toggle-menu:hover {
+    color: rgba(25, 25, 25, 1) !important;
+    text-decoration: none !important;
+  }
+}
+
+.tableTop {
+  display: flex;
+  justify-content: space-between;
+}
+
+.noDataBox {
+  height: 300px;
+  pointer-events: none;
+}
+
+.loading {
+  left: 50%;
+  position: absolute;
+  top: 50%;
+}
+
+.ti3-table-container {
+  position: relative;
+}
+
+.tag-industry {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 64px;
+  height: 18px;
+  background-color: #FFF;
+  padding: 0 8px 0 4px;
+  border: 1px solid rgba(131, 47, 214, 10%);
+  border-radius: 4px;
+}
+
+.ind-default {
+  display: inline-block;
+  vertical-align: middle;
+  background: url('../../../assets/icons/ind-default.svg') no-repeat center;
+  background-size: 12px 12px;
+  cursor: pointer;
+  width: 12px;
+  height: 12px;
+}
+
+.ind-industry {
+  display: inline-block;
+  vertical-align: middle;
+  background: url('../../../assets/icons/ind-industry.svg') no-repeat center;
+  background-size: 12px 12px;
+  cursor: pointer;
+  width: 12px;
+  height: 12px;
+}
+
+.ind-finance {
+  display: inline-block;
+  vertical-align: middle;
+  background: url('../../../assets/icons/ind-finance.svg') no-repeat center;
+  background-size: 12px 12px;
+  cursor: pointer;
+  width: 12px;
+  height: 12px;
+}
+
+.ind-government {
+  display: inline-block;
+  vertical-align: middle;
+  background: url('../../../assets/icons/ind-government.svg') no-repeat center;
+  background-size: 12px 12px;
+  cursor: pointer;
+  width: 12px;
+  height: 12px;
+}
+
+.ind-medical {
+  display: inline-block;
+  vertical-align: middle;
+  background: url('../../../assets/icons/ind-medical.svg') no-repeat center;
+  background-size: 12px 12px;
+  cursor: pointer;
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
+.ind-make {
+  display: inline-block;
+  vertical-align: middle;
+  background: url('../../../assets/icons/ind-make.svg') no-repeat center;
+  background-size: 12px 12px;
+  cursor: pointer;
+  width: 12px;
+  height: 12px;
+}
+
+.ind-it {
+  display: inline-block;
+  vertical-align: middle;
+  background: url('../../../assets/icons/ind-it.svg') no-repeat center;
+  background-size: 12px 12px;
+  cursor: pointer;
+  width: 12px;
+  height: 12px;
+}
+
+.ind-education {
+  display: inline-block;
+  vertical-align: middle;
+  background: url('../../../assets/icons/ind-education.svg') no-repeat center;
+  background-size: 12px 12px;
+  cursor: pointer;
+  width: 12px;
+  height: 12px;
+}
+
+.tag-basic {
+  margin-left: 8px;
+  padding: 1px 4px;
+  display: inline-block;
+  height: 24px;
+  background: rgba(89, 89, 89, 10%);
+  font-family: PingFangSC;
+  font-size: 14px;
+  color: #595959;
+  text-align: center;
+  line-height: 22px;
+  font-weight: normal;
+  border-radius: 4px;
+}
+
+.item-button {
+  float: right;
+  margin-right: 8px;
+}
+
+.header-card {
+  height: 22px;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+
+  .name-card {
+    width: 90%;
+    color: #191919;
+    text-align: left;
+    line-height: 24px;
+    font-family: PingFangSC;
+    font-size: 16px;
+    font-weight: 600;
+  }
+}
+
+.custom-menu {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  border-radius: 4px;
+}
+
+.custom-menu:hover {
+
+  background: rgba(245, 245, 245, 1);
+}
+
+.custom-menu>a {
+  color: black !important;
+  font-size: 18px !important;
+}
+
+::ng-deep .custom-menu>a {
+  &::after {
+    display: none;
+  }
+}
+
+::ng-deep {
+  .custom-menu {
+    .ti3-icon {
+      display: none;
+    }
+  }
+}
+
+:host::ng-deep.ti3-tab-content {
+  max-height: 100%;
+  display: inline;
+}
+
+.card-box {
+  max-height: calc(100vh - 580px);
+  overflow-y: auto;
+  display: grid;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.no-data-prompt {
+  gap: 16px;
+  flex-wrap: wrap;
+  width: 100%;
+  text-align: center;
+  height: 100%;
+}
+
+.card {
+  height: 194px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  padding: 24px;
+  box-sizing: border-box;
+  border: 1px solid rgba(230, 230, 230, 1);
+  border-radius: 16px;
+}
+
+.card:hover {
+  box-shadow: 0px 4px 16px 0px rgba(0, 0, 0, 0.08);
+
+  .footer-action-container {
+    display: block !important;
+  }
+}
+
+.content-card {
+  width: 100%;
+  overflow-wrap: break-word;
+  color: rgba(25, 25, 25, 0.6);
+  font-family: PingFang SC;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 22px;
+  letter-spacing: 0;
+}
+
+.span-line {
+  display: flex;
+  gap: 8px;
+}
+
+.vertical-line-pseudo-after {
+  margin-left: 8px;
+  width: 1px;
+  border-left: 1px solid #ebebeb;
+}
+
+.footer-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  line-height: 24px;
+  color: rgba(128, 128, 128, 1);
+  position: relative;
+
+  .create-time {
+    max-width: calc(100% - 24px);
+    height: 18px;
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 4px;
+    color: rgba(128, 128, 128, 1);
+    font-family: PingFang SC;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 18px;
+    letter-spacing: 0;
+    text-align: left;
+  }
+
+  .footer-content {
+    flex: 1;
+    gap: 8px;
+
+    .footer-item {
+      display: flex;
+      align-items: center;
+      flex: 1;
+      gap: 4px;
+    }
+  }
+
+  .creator-plugin {
+    padding-right: 8px;
+    margin-right: 8px;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .footer-action-container {
+    display: none;
+    position: absolute;
+    background-color: #ffffff;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1;
+
+    .custom-action-item {
+      font-weight: 600;
+      font-size: 14px;
+    }
+  }
+}
+
+.button-area {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 8px;
+
+  button {
+    min-width: 84px;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    padding: 5px 24px 5px 24px;
+    box-sizing: border-box;
+  }
+}
+
+.prompt-market-banner {
+  height: 200px;
+  width: 100%;
+  background: url('../../../assets/app-library/banner-bg.png') no-repeat;
+  background-size: 100% 100%;
+  padding: 62px 64px;
+  position: relative;
+
+  .prompt-market-banner-title {
+    color: #191919ff;
+    font-size: 32px;
+    line-height: 48px;
+    text-align: left;
+    font-family: PingFang SC;
+    margin-bottom: 8px;
+    font-weight: 500;
+  }
+}
+
+.tag-span {
+  height: 20px;
+  display: flex;
+
+}
+
+.prompt-type-tag {
+  height: 18px;
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 4px;
+  padding: 0px 4px 0px 4px;
+  border-radius: 2px;
+  background: rgba(213, 242, 220, 1);
+  color: rgba(2, 153, 49, 1);
+  font-family: PingFang SC;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+  letter-spacing: 0px;
+  text-align: left;
+}
+
+.layout-content-padding {
+  padding: 16px 48px !important;
+}
+
+.no-padding {
+  padding: 0 !important;
+}
+
+.tab-min-width {
+  min-width: 190px;
+}
+
+.footer-flexend {
+  justify-content: flex-end;
+}

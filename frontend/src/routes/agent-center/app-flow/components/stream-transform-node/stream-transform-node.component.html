@@ -1,4 +1,4 @@
-<!-- <div
+<div
   class="pw-common-node-wrapper"
   [ngClass]="{
     'pw-common-node-error': alertContent.length > 0,
@@ -14,11 +14,11 @@
     </div>
     <button
       class="detail-tip"
-      tiButton
-      [hasBorder]="false"
-      [tiTip]="customTipTmpl"
-      [tiTipContext]="alertContent"
-      tiTipPosition="top"
+      nz-button
+      nzType="text"
+      nz-tooltip
+      [nzTooltipTitle]="alertContent.join('\n')"
+      nzTooltipPlacement="top"
     >
       {{ 'details' | i18nextEager }}
     </button>
@@ -54,15 +54,19 @@
         </div>
       </div>
 
-      <div class="node-oprs">
-        <div *ngIf="!isFlowReadonly" class="cursor-pointer">
-          <ti-menu
-            class="pw-three-dots-more"
-            [items]="actions"
-            (select)="onClickAction($event)"
-            ellipsis
-          ></ti-menu>
+      <div class="node-oprs" *ngIf="!isFlowReadonly">
+        <div class="cursor-pointer" nz-dropdown [nzDropdownMenu]="actionMenu" nzTrigger="click" nzPlacement="bottomRight">
+          <nz-icon nzType="more" nzTheme="outline"></nz-icon>
         </div>
+        <nz-dropdown-menu #actionMenu="nzDropdownMenu">
+          <ul nz-menu>
+            @for (action of actions; track action.label) {
+              <li nz-menu-item (click)="onClickAction(action)">
+                <span>{{ action.label }}</span>
+              </li>
+            }
+          </ul>
+        </nz-dropdown-menu>
       </div>
     </div>
     <node-card-description *ngIf="isExpand" [description]="nodeInfo.configs?.descriptionText" [nodeInfo]="nodeInfo"></node-card-description>
@@ -78,7 +82,3 @@
     </div>
   </div>
 </div>
-
-<ng-template #customTipTmpl let-context="context">
-  <div *ngFor="let item of context">{{ item }}</div>
-</ng-template> -->

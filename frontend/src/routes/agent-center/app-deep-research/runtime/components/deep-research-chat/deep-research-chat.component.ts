@@ -264,6 +264,7 @@ export class DeepResearchChatComponent {
     this.isTimeoutOrError = false;
     this.isUserScrolling = false;
     const param = this.getDebugRunParam(messages, true);
+    //todo
     if (!this.isRuntime) {
       this.postStream(param);
     } else {
@@ -379,7 +380,7 @@ export class DeepResearchChatComponent {
         this.pushMessageInfo('outline', item)
         break;
       case "feedback_handler":
-        // 等待用户输入
+        //todo 等待用户输入
         this.sendDisable = false;
         this.isLoading = false;
         this.placeholder = '';
@@ -420,7 +421,7 @@ export class DeepResearchChatComponent {
     const key2 = 'sections'
     const id = Number(item.section_idx) - 1
     if (!this.originMessageMap[key]) {
-      // 无outline
+      //todo 无outline
       return
     }
     let index = this.originMessageMap[key].index
@@ -446,7 +447,7 @@ export class DeepResearchChatComponent {
     const key2 = 'sections'
     const id = Number(item.section_idx) - 1
     if (!this.originMessageMap[key]) {
-      // 无outline
+      //todo 无outline
       return
     }
     let index = this.originMessageMap[key].index
@@ -488,7 +489,7 @@ export class DeepResearchChatComponent {
           sections[id][type] = [item]
         }
       } else {
-        // 判断map里有没有  塞 还是push
+        //todo 判断map里有没有  塞 还是push
         if (sections[id][type]) {
           const collectorInfoRetrievalIndex = this.collectorInfoRetrievalMap[id][item.content.query].index
           //找到index
@@ -514,7 +515,7 @@ export class DeepResearchChatComponent {
     const key2 = 'sections'
     const id = Number(item.section_idx) - 1
     if (!this.originMessageMap[key]) {
-      // 无outline
+      //todo 无outline
       return
     }
     let index = this.originMessageMap[key].index
@@ -547,7 +548,7 @@ export class DeepResearchChatComponent {
     const key2 = 'sections'
     const id = Number(item.section_idx) - 1
     if (!this.originMessageMap[key]) {
-      // 无outline
+      //todo 无outline
       return
     }
     let index = this.originMessageMap[key].index

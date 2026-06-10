@@ -1,384 +1,359 @@
-<!--<div>-->
-<!--  <div class="call-card" *ngIf="!isIOEmpty(callItem.inputs); else noInputs">-->
-<!--    <div class="call-card-header call-card-line flex justify-between">-->
-<!--      <p>{{ 'input' | i18nextEager }}</p>-->
-<!--      <asset-copy-icon-->
-<!--        *ngIf="!callItem.inputsCopyIcon"-->
-<!--        class="cursor-pointer"-->
-<!--        (click)="handleCopy(callItem, 'input')"-->
-<!--      ></asset-copy-icon>-->
-<!--      <asset-copy-success-icon-->
-<!--        *ngIf="callItem.inputsCopyIcon"-->
-<!--        class="cursor-pointer"-->
-<!--      ></asset-copy-success-icon>-->
-<!--    </div>-->
-<!--    <div class="call-card-body ">-->
-<!--      <json-viewer [jsonData]="callItem.inputs"></json-viewer>-->
-<!--    </div>-->
-<!--  </div>-->
+<div>
+  <div class="call-card" *ngIf="!isIOEmpty(callItem.inputs); else noInputs">
+    <div class="call-card-header call-card-line flex justify-between">
+      <p>{{ 'input' | i18nextEager }}</p>
+      <asset-copy-icon
+        *ngIf="!callItem.inputsCopyIcon"
+        class="cursor-pointer"
+        (click)="handleCopy(callItem, 'input')"
+      ></asset-copy-icon>
+      <asset-copy-success-icon
+        *ngIf="callItem.inputsCopyIcon"
+        class="cursor-pointer"
+      ></asset-copy-success-icon>
+    </div>
+    <div class="call-card-body ">
+      <json-viewer [jsonData]="callItem.inputs"></json-viewer>
+    </div>
+  </div>
 
-<!--  <div class="call-card mt-3" *ngIf="!isIOEmpty(callItem.outputs); else noOutputs">-->
-<!--    <div class="call-card-header call-card-line flex justify-between">-->
-<!--      <p>{{ 'output' | i18nextEager }}</p>-->
-<!--      <asset-copy-icon-->
-<!--        *ngIf="!callItem.outputsCopyIcon"-->
-<!--        class="cursor-pointer"-->
-<!--        (click)="handleCopy(callItem, 'output')"-->
-<!--      ></asset-copy-icon>-->
-<!--      <asset-copy-success-icon-->
-<!--        *ngIf="callItem.outputsCopyIcon"-->
-<!--        class="cursor-pointer"-->
-<!--      ></asset-copy-success-icon>-->
-<!--    </div>-->
-<!--    <div class="call-card-body ">-->
-<!--      <json-viewer [jsonData]="callItem.outputs"></json-viewer>-->
-<!--    </div>-->
-<!--  </div>-->
-<!--  <div class="call-card mt-3">-->
-<!--    <div class="call-card-header call-card-line">-->
-<!--      <p>{{'paramextractionlogcomponent_363'| i18nextEager}}</p>-->
-<!--    </div>-->
-<!--    <div class="call-card-body" *ngIf="beforeWorkflowList.length; else noFlows">-->
-<!--      <ng-container-->
-<!--        *ngTemplateOutlet="-->
-<!--          childFlowTmpl;-->
-<!--          context: {-->
-<!--            workflow_list:beforeWorkflowList-->
-<!--          }-->
-<!--        "-->
-<!--      ></ng-container>-->
-<!--    </div>-->
-<!--  </div>-->
-<!--  <div class="call-card mt-3">-->
-<!--    <div class="w-full">-->
-<!--      <div class="call-card-header ">-->
-<!--        <p>{{'paramextractionlogcomponent_364'| i18nextEager}}</p>-->
-<!--      </div>-->
-<!--      <div class="call-card-item-body call-card-line">-->
-<!--        <ti-select-->
-<!--          style="width: 100%"-->
-<!--          [options]="roundOptions"-->
-<!--          [(ngModel)]="round"-->
-<!--          valueKey="value"-->
-<!--          (ngModelChange)="onRoundChange($event)"-->
-<!--        ></ti-select>-->
-<!--      </div>-->
-<!--    </div>-->
-<!--    <ng-container *ngIf="roundItem ; else noRound">-->
-<!--      <div class="w-full">-->
-<!--        <div class="call-card-header flex justify-between">-->
-<!--          <p>{{'paramextractionlogcomponent_352'| i18nextEager}}</p>-->
-<!--          <div class="flex justify-end gap-2">-->
-<!--            <p>{{'paramextractionlogcomponent_365'| i18nextEager}}</p>-->
-<!--            <ti-switch-->
-<!--              [(ngModel)]="isShowContextCompare"-->
-<!--            ></ti-switch>-->
-<!--          </div>-->
-<!--        </div>-->
-<!--        <div class="call-card-item-body call-card-line">-->
-<!--          <ng-container-->
-<!--            *ngTemplateOutlet="-->
-<!--          paramsTmpl;-->
-<!--          context: {-->
-<!--            params:roundItem?.contexts,-->
-<!--            diff:isShowContextCompare-->
-<!--          }-->
-<!--        "-->
-<!--          ></ng-container>-->
-<!--        </div>-->
-<!--      </div>-->
+  <div class="call-card mt-3" *ngIf="!isIOEmpty(callItem.outputs); else noOutputs">
+    <div class="call-card-header call-card-line flex justify-between">
+      <p>{{ 'output' | i18nextEager }}</p>
+      <asset-copy-icon
+        *ngIf="!callItem.outputsCopyIcon"
+        class="cursor-pointer"
+        (click)="handleCopy(callItem, 'output')"
+      ></asset-copy-icon>
+      <asset-copy-success-icon
+        *ngIf="callItem.outputsCopyIcon"
+        class="cursor-pointer"
+      ></asset-copy-success-icon>
+    </div>
+    <div class="call-card-body ">
+      <json-viewer [jsonData]="callItem.outputs"></json-viewer>
+    </div>
+  </div>
+  <div class="call-card mt-3">
+    <div class="call-card-header call-card-line">
+      <p>{{'paramextractionlogcomponent_363'| i18nextEager}}</p>
+    </div>
+    <div class="call-card-body" *ngIf="beforeWorkflowList.length; else noFlows">
+      <ng-container
+        *ngTemplateOutlet="
+          childFlowTmpl;
+          context: {
+            workflow_list:beforeWorkflowList
+          }
+        "
+      ></ng-container>
+    </div>
+  </div>
+  <div class="call-card mt-3">
+    <div class="w-full">
+      <div class="call-card-header ">
+        <p>{{'paramextractionlogcomponent_364'| i18nextEager}}</p>
+      </div>
+      <div class="call-card-item-body call-card-line">
+        <nz-select
+          style="width: 100%"
+          [nzOptions]="roundOptions"
+          [(ngModel)]="round"
+          nzValueKey="value"
+          (ngModelChange)="onRoundChange($event)"
+        ></nz-select>
+      </div>
+    </div>
+    <ng-container *ngIf="roundItem ; else noRound">
+      <div class="w-full">
+        <div class="call-card-header flex justify-between">
+          <p>{{'paramextractionlogcomponent_352'| i18nextEager}}</p>
+          <div class="flex justify-end gap-2">
+            <p>{{'paramextractionlogcomponent_365'| i18nextEager}}</p>
+            <nz-switch
+              [(ngModel)]="isShowContextCompare"
+            ></nz-switch>
+          </div>
+        </div>
+        <div class="call-card-item-body call-card-line">
+          <ng-container
+            *ngTemplateOutlet="
+          paramsTmpl;
+          context: {
+            params:roundItem?.contexts,
+            diff:isShowContextCompare
+          }
+        "
+          ></ng-container>
+        </div>
+      </div>
 
-<!--      <div class="w-full">-->
-<!--        <div class="call-card-header flex justify-between">-->
-<!--          <p>{{'paramextractionlogcomponent_366'| i18nextEager}}</p>-->
-<!--          <div class="flex justify-end gap-2">-->
-<!--            <p>{{'paramextractionlogcomponent_365'| i18nextEager}}</p>-->
-<!--            <ti-switch-->
-<!--              [(ngModel)]="isShowDomainCompare"-->
-<!--            ></ti-switch>-->
-<!--          </div>-->
-<!--        </div>-->
-<!--        <div class="call-card-item-body">-->
-<!--          <ng-container-->
-<!--            *ngTemplateOutlet="-->
-<!--          paramsTmpl;-->
-<!--          context: {-->
-<!--            params:roundItem?.domainObjects,-->
-<!--            diff:isShowDomainCompare-->
-<!--          }-->
-<!--        "-->
-<!--          ></ng-container>-->
-<!--        </div>-->
-<!--      </div>-->
-<!--      <div class="w-full">-->
-<!--        <div class="call-card-header flex justify-between">-->
-<!--          <p>{{'paramextractionlogcomponent_367'| i18nextEager}}</p>-->
-<!--        </div>-->
-<!--        <div class="call-card-item-body">-->
-<!--          <pre>{{ roundItem.module_input }}</pre>-->
-<!--        </div>-->
-<!--      </div>-->
-<!--      <div class="w-full">-->
-<!--        <div class="call-card-header flex justify-between">-->
-<!--          <p>{{'paramextractionlogcomponent_368'| i18nextEager}}</p>-->
-<!--        </div>-->
-<!--        <div class="call-card-item-body">-->
-<!--          {{ roundItem.module_output }}-->
-<!--        </div>-->
-<!--      </div>-->
-<!--      &lt;!&ndash;    <div class="w-full">&ndash;&gt;-->
-<!--      &lt;!&ndash;      <div class="call-card-header flex justify-between">&ndash;&gt;-->
-<!--      &lt;!&ndash;        <p>模型参数提取</p>&ndash;&gt;-->
-<!--      &lt;!&ndash;      </div>&ndash;&gt;-->
-<!--      &lt;!&ndash;      <div class="call-card-item-body call-card-line">&ndash;&gt;-->
-<!--      &lt;!&ndash;        <ng-container&ndash;&gt;-->
-<!--      &lt;!&ndash;          *ngTemplateOutlet="&ndash;&gt;-->
-<!--      &lt;!&ndash;          modelParamsTmpl;&ndash;&gt;-->
-<!--      &lt;!&ndash;          context: {&ndash;&gt;-->
-<!--      &lt;!&ndash;            params:roundItem?.context&ndash;&gt;-->
-<!--      &lt;!&ndash;          }&ndash;&gt;-->
-<!--      &lt;!&ndash;        "&ndash;&gt;-->
-<!--      &lt;!&ndash;        ></ng-container>&ndash;&gt;-->
-<!--      &lt;!&ndash;      </div>&ndash;&gt;-->
-<!--      &lt;!&ndash;    </div>&ndash;&gt;-->
-<!--      <div class="w-full">-->
-<!--        <div class="call-card-header flex justify-between">-->
-<!--          <p>{{'paramextractionlogcomponent_363'| i18nextEager}}</p>-->
-<!--        </div>-->
-<!--        <div class="call-card-item-body call-card-line" *ngIf="roundItem?.workflow_list?.length; else noFlows">-->
-<!--          <ng-container-->
-<!--            *ngTemplateOutlet="-->
-<!--          childFlowTmpl;-->
-<!--          context: {-->
-<!--            workflow_list:roundItem?.workflow_list ?? []-->
-<!--          }-->
-<!--        "-->
-<!--          ></ng-container>-->
-<!--        </div>-->
-<!--      </div>-->
-<!--    </ng-container>-->
+      <div class="w-full">
+        <div class="call-card-header flex justify-between">
+          <p>{{'paramextractionlogcomponent_366'| i18nextEager}}</p>
+          <div class="flex justify-end gap-2">
+            <p>{{'paramextractionlogcomponent_365'| i18nextEager}}</p>
+            <nz-switch
+              [(ngModel)]="isShowDomainCompare"
+            ></nz-switch>
+          </div>
+        </div>
+        <div class="call-card-item-body">
+          <ng-container
+            *ngTemplateOutlet="
+          paramsTmpl;
+          context: {
+            params:roundItem?.domainObjects,
+            diff:isShowDomainCompare
+          }
+        "
+          ></ng-container>
+        </div>
+      </div>
+      <div class="w-full">
+        <div class="call-card-header flex justify-between">
+          <p>{{'paramextractionlogcomponent_367'| i18nextEager}}</p>
+        </div>
+        <div class="call-card-item-body">
+          <pre>{{ roundItem.module_input }}</pre>
+        </div>
+      </div>
+      <div class="w-full">
+        <div class="call-card-header flex justify-between">
+          <p>{{'paramextractionlogcomponent_368'| i18nextEager}}</p>
+        </div>
+        <div class="call-card-item-body">
+          {{ roundItem.module_output }}
+        </div>
+      </div>
+      <div class="w-full">
+        <div class="call-card-header flex justify-between">
+          <p>{{'paramextractionlogcomponent_363'| i18nextEager}}</p>
+        </div>
+        <div class="call-card-item-body call-card-line" *ngIf="roundItem?.workflow_list?.length; else noFlows">
+          <ng-container
+            *ngTemplateOutlet="
+          childFlowTmpl;
+          context: {
+            workflow_list:roundItem?.workflow_list ?? []
+          }
+        "
+          ></ng-container>
+        </div>
+      </div>
+    </ng-container>
 
-<!--  </div>-->
+  </div>
 
-<!--  <ng-template #noInputs>-->
-<!--    <div class="call-card ">-->
-<!--      <div class="call-card-header call-card-line flex justify-between">-->
-<!--        <p>{{ 'input' | i18nextEager }}</p>-->
-<!--      </div>-->
-<!--      <div class="mt-2 mb-2">{{ 'no_input' | i18nextEager }}</div>-->
-<!--    </div>-->
-<!--  </ng-template>-->
-<!--  <ng-template #noOutputs>-->
-<!--    <div class="call-card mt-3">-->
-<!--      <div class="call-card-header call-card-line flex justify-between">-->
-<!--        <p>{{ 'output' | i18nextEager }}</p>-->
-<!--      </div>-->
-<!--      <div class="mt-2 mb-2">{{ 'no_output' | i18nextEager }}</div>-->
-<!--    </div>-->
-<!--  </ng-template>-->
-<!--  <ng-template #noFlows>-->
-<!--    <div class="mt-2 mb-2">{{'paramextractionlogcomponent_346'| i18nextEager}}</div>-->
-<!--  </ng-template>-->
-<!--  <ng-template #noObjFlows>-->
-<!--    <div class="mt-2 mb-2">{{ 'param_extraction_log_1' | i18nextEager }}</div>-->
-<!--  </ng-template>-->
-<!--  <ng-template #noRound>-->
-<!--    <div class="mt-2 mb-2">{{'paramextractionlogcomponent_347'| i18nextEager}}</div>-->
-<!--  </ng-template>-->
-<!--  <ng-template-->
-<!--    #modelIOTmpl-->
-<!--    let-callItem="callItem"-->
-<!--    let-fieldType="fieldType"-->
-<!--    let-title="title"-->
-<!--    let-copyType="copyType"-->
-<!--    let-iconFlag="iconFlag"-->
-<!--  >-->
-<!--    <div-->
-<!--      *ngIf="!isIOEmpty(getLlmField(callItem?.metadata, fieldType))"-->
-<!--      class="mt-[12px]"-->
-<!--    >-->
-<!--      <div class="node-inputs-area">-->
-<!--        <span class="text-[#191919]">{{ title }}</span>-->
-<!--        <asset-copy-icon-->
-<!--          *ngIf="!callItem?.[iconFlag]"-->
-<!--          class="cursor-pointer"-->
-<!--          (click)="handleCopy(callItem, copyType)"-->
-<!--        ></asset-copy-icon>-->
-<!--        <asset-copy-success-icon-->
-<!--          *ngIf="callItem?.[iconFlag]"-->
-<!--          class="cursor-pointer"-->
-<!--        ></asset-copy-success-icon>-->
-<!--      </div>-->
-<!--      <div class="json-wrap">-->
-<!--        <json-viewer-->
-<!--          [jsonData]="getLlmField(callItem?.metadata, fieldType)"-->
-<!--        ></json-viewer>-->
-<!--      </div>-->
-<!--    </div>-->
-<!--  </ng-template>-->
+  <ng-template #noInputs>
+    <div class="call-card ">
+      <div class="call-card-header call-card-line flex justify-between">
+        <p>{{ 'input' | i18nextEager }}</p>
+      </div>
+      <div class="mt-2 mb-2">{{ 'no_input' | i18nextEager }}</div>
+    </div>
+  </ng-template>
+  <ng-template #noOutputs>
+    <div class="call-card mt-3">
+      <div class="call-card-header call-card-line flex justify-between">
+        <p>{{ 'output' | i18nextEager }}</p>
+      </div>
+      <div class="mt-2 mb-2">{{ 'no_output' | i18nextEager }}</div>
+    </div>
+  </ng-template>
+  <ng-template #noFlows>
+    <div class="mt-2 mb-2">{{'paramextractionlogcomponent_346'| i18nextEager}}</div>
+  </ng-template>
+  <ng-template #noObjFlows>
+    <div class="mt-2 mb-2">{{ 'param_extraction_log_1' | i18nextEager }}</div>
+  </ng-template>
+  <ng-template #noRound>
+    <div class="mt-2 mb-2">{{'paramextractionlogcomponent_347'| i18nextEager}}</div>
+  </ng-template>
+  <ng-template
+    #modelIOTmpl
+    let-callItem="callItem"
+    let-fieldType="fieldType"
+    let-title="title"
+    let-copyType="copyType"
+    let-iconFlag="iconFlag"
+  >
+    <div
+      *ngIf="!isIOEmpty(getLlmField(callItem?.metadata, fieldType))"
+      class="mt-[12px]"
+    >
+      <div class="node-inputs-area">
+        <span class="text-[#191919]">{{ title }}</span>
+        <asset-copy-icon
+          *ngIf="!callItem?.[iconFlag]"
+          class="cursor-pointer"
+          (click)="handleCopy(callItem, copyType)"
+        ></asset-copy-icon>
+        <asset-copy-success-icon
+          *ngIf="callItem?.[iconFlag]"
+          class="cursor-pointer"
+        ></asset-copy-success-icon>
+      </div>
+      <div class="json-wrap">
+        <json-viewer
+          [jsonData]="getLlmField(callItem?.metadata, fieldType)"
+        ></json-viewer>
+      </div>
+    </div>
+  </ng-template>
 
-<!--  <ng-template-->
-<!--    #childFlowTmpl-->
-<!--    let-workflowList="workflow_list"-->
-<!--  >-->
-<!--    <div class="w-full">-->
-<!--      <div class="flex items-center gap-2">-->
-<!--        <div class="w-1/3 text-label">-->
-<!--          {{'paramextractionlogcomponent_348'| i18nextEager}}-->
-<!--        </div>-->
-<!--        <div class="w-1/3 text-label">{{'paramextractionlogcomponent_349'| i18nextEager}}</div>-->
-<!--        <div class="w-1/3 text-label">{{'paramextractionlogcomponent_375'| i18nextEager}}</div>-->
-<!--      </div>-->
-<!--      <div *ngFor="let flow of workflowList">-->
-<!--        <div class="mt-2 flex items-center gap-2">-->
-<!--          <div class="w-1/3 text-label" tiOverflow>-->
-<!--            {{ flow.name || '-' }}-->
-<!--          </div>-->
-<!--          <div class="w-1/3 text-label" tiOverflow>{{ executionTimingMap[flow["timing"]] || '-' }}</div>-->
-<!--&lt;!&ndash;          <div class="w-1/4 text-label" tiOverflow>{{ flow.description || '-' }}</div>&ndash;&gt;-->
-<!--          <div class="w-1/3 text-label">-->
-<!--            <button-->
-<!--              class="detail-tip"-->
-<!--              tiButton-->
-<!--              (click)="showFlowDetail(flow)"-->
-<!--              [hasBorder]="false"-->
-<!--            >-->
-<!--            {{'paramextractionlogcomponent_352'| i18nextEager}}-->
-<!--            </button>-->
-<!--            <button-->
-<!--              class="detail-tip ml-2"-->
-<!--              tiButton-->
-<!--              (click)="showFlowEvent(flow)"-->
-<!--              [hasBorder]="false"-->
-<!--            >-->
-<!--            {{'paramextractionlogcomponent_353'| i18nextEager}}-->
-<!--            </button>-->
-<!--          </div>-->
-<!--        </div>-->
-<!--      </div>-->
-<!--    </div>-->
-<!--  </ng-template>-->
+  <ng-template
+    #childFlowTmpl
+    let-workflowList="workflow_list"
+  >
+    <div class="w-full">
+      <div class="flex items-center gap-2">
+        <div class="w-1/3 text-label">
+          {{'paramextractionlogcomponent_348'| i18nextEager}}
+        </div>
+        <div class="w-1/3 text-label">{{'paramextractionlogcomponent_349'| i18nextEager}}</div>
+        <div class="w-1/3 text-label">{{'paramextractionlogcomponent_375'| i18nextEager}}</div>
+      </div>
+      <div *ngFor="let flow of workflowList">
+        <div class="mt-2 flex items-center gap-2">
+          <div class="w-1/3 text-label overflow-hidden text-ellipsis whitespace-nowrap">
+            {{ flow.name || '-' }}
+          </div>
+          <div class="w-1/3 text-label overflow-hidden text-ellipsis whitespace-nowrap">{{ executionTimingMap[flow["timing"]] || '-' }}</div>
+          <div class="w-1/3 text-label">
+            <button
+              class="detail-tip"
+              nz-button
+              nzType="text"
+              (click)="showFlowDetail(flow)"
+            >
+            {{'paramextractionlogcomponent_352'| i18nextEager}}
+            </button>
+            <button
+              class="detail-tip ml-2"
+              nz-button
+              nzType="text"
+              (click)="showFlowEvent(flow)"
+            >
+            {{'paramextractionlogcomponent_353'| i18nextEager}}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </ng-template>
 
-<!--  <ng-template-->
-<!--    #paramsTmpl-->
-<!--    let-params="params"-->
-<!--    let-diff="diff"-->
-<!--  >-->
-<!--    <div class="w-full">-->
-<!--      <div class="flex items-center gap-2">-->
-<!--        <div class="w-1/3 text-label">-->
-<!--          {{'paramextractionlogcomponent_378'| i18nextEager}}-->
-<!--        </div>-->
-<!--&lt;!&ndash;        <div class="w-1/5 text-label">{{ '类型' | i18nextEager }}</div>&ndash;&gt;-->
-<!--        <div class="w-1/3 text-label">{{'paramextractionlogcomponent_356'| i18nextEager}}</div>-->
-<!--        <div class="w-1/3 text-label">{{'paramextractionlogcomponent_357'| i18nextEager}}</div>-->
-<!--&lt;!&ndash;        <div class="w-1/5 text-label">{{ '备注' | i18nextEager }}</div>&ndash;&gt;-->
-<!--      </div>-->
-<!--      <div *ngFor="let param of params">-->
-<!--        <div class="mt-2 mb-3 flex items-center gap-2">-->
-<!--          <div class="w-1/3 text-label" tiOverflow>-->
-<!--            {{ param.name }}-->
-<!--          </div>-->
-<!--&lt;!&ndash;          <div class="w-1/5 text-label" tiOverflow>{{ param.type || '-' }}</div>&ndash;&gt;-->
-<!--          <div class="w-1/3 text-label diff-text" tiOverflow-->
-<!--               [ngClass]="{ 'diff-text1': diff&&(param.value_before!==param.value_after)  }">{{ param.value_before || '-' }}-->
-<!--          </div>-->
-<!--          <div class="w-1/3 text-label diff-text" tiOverflow-->
-<!--               [ngClass]="{ 'diff-text2': diff&&(param.value_before!==param.value_after)  }">{{ param.value_after || '-' }}-->
-<!--          </div>-->
-<!--&lt;!&ndash;          <div class="w-1/5 text-label" tiOverflow>{{ param.description || '-' }}</div>&ndash;&gt;-->
-<!--        </div>-->
+  <ng-template
+    #paramsTmpl
+    let-params="params"
+    let-diff="diff"
+  >
+    <div class="w-full">
+      <div class="flex items-center gap-2">
+        <div class="w-1/3 text-label">
+          {{'paramextractionlogcomponent_378'| i18nextEager}}
+        </div>
+        <div class="w-1/3 text-label">{{'paramextractionlogcomponent_356'| i18nextEager}}</div>
+        <div class="w-1/3 text-label">{{'paramextractionlogcomponent_357'| i18nextEager}}</div>
+      </div>
+      <div *ngFor="let param of params">
+        <div class="mt-2 mb-3 flex items-center gap-2">
+          <div class="w-1/3 text-label overflow-hidden text-ellipsis whitespace-nowrap">
+            {{ param.name }}
+          </div>
+          <div class="w-1/3 text-label diff-text overflow-hidden text-ellipsis whitespace-nowrap"
+               [ngClass]="{ 'diff-text1': diff&&(param.value_before!==param.value_after)  }">{{ param.value_before || '-' }}
+          </div>
+          <div class="w-1/3 text-label diff-text overflow-hidden text-ellipsis whitespace-nowrap"
+               [ngClass]="{ 'diff-text2': diff&&(param.value_before!==param.value_after)  }">{{ param.value_after || '-' }}
+          </div>
+        </div>
 
-<!--        <div *ngIf="param?.workflow_list?.length;">-->
-<!--          <p class="mt-2 mb-2">{{'paramextractionlogcomponent_382'| i18nextEager}}</p>-->
-<!--          <ng-container-->
-<!--            *ngTemplateOutlet="-->
-<!--          childFlowTmpl;-->
-<!--          context: {-->
-<!--            workflow_list:param?.workflow_list ?? []-->
-<!--          }-->
-<!--        "-->
-<!--          ></ng-container>-->
-<!--        </div>-->
+        <div *ngIf="param?.workflow_list?.length;">
+          <p class="mt-2 mb-2">{{'paramextractionlogcomponent_382'| i18nextEager}}</p>
+          <ng-container
+            *ngTemplateOutlet="
+          childFlowTmpl;
+          context: {
+            workflow_list:param?.workflow_list ?? []
+          }
+        "
+          ></ng-container>
+        </div>
 
-<!--      </div>-->
-<!--    </div>-->
-<!--  </ng-template>-->
+      </div>
+    </div>
+  </ng-template>
 
-<!--  <ng-template-->
-<!--    #modelParamsTmpl-->
-<!--    let-params="params"-->
-<!--  >-->
-<!--    <div class="w-full">-->
-<!--      <div class="flex items-center gap-2">-->
-<!--        <div class="w-1/4 text-label">-->
-<!--          {{'paramextractionlogcomponent_378'| i18nextEager}}-->
-<!--        </div>-->
-<!--        <div class="w-1/4 text-label">{{'paramextractionlogcomponent_379'| i18nextEager}}</div>-->
-<!--        <div class="w-1/4 text-label">{{ 'value' | i18nextEager }}</div>-->
-<!--        <div class="w-1/4 text-label">{{'paramextractionlogcomponent_350'| i18nextEager}}</div>-->
-<!--      </div>-->
-<!--      <div *ngFor="let param of params">-->
-<!--        <div class="mt-2 flex items-center gap-2">-->
-<!--          <div class="w-1/4 text-label">-->
-<!--            {{ param.name }}-->
-<!--          </div>-->
-<!--          <div class="w-1/4 text-label" tiOverflow>{{ param.type ?? '-' }}</div>-->
-<!--          <div class="w-1/4 text-label" tiOverflow>{{ param.value ?? '-' }}</div>-->
-<!--          <div class="w-1/4 text-label" tiOverflow>{{ param.description ?? '-' }}</div>-->
-<!--        </div>-->
-<!--      </div>-->
-<!--    </div>-->
-<!--  </ng-template>-->
+  <ng-template
+    #modelParamsTmpl
+    let-params="params"
+  >
+    <div class="w-full">
+      <div class="flex items-center gap-2">
+        <div class="w-1/4 text-label">
+          {{'paramextractionlogcomponent_378'| i18nextEager}}
+        </div>
+        <div class="w-1/4 text-label">{{'paramextractionlogcomponent_379'| i18nextEager}}</div>
+        <div class="w-1/4 text-label">{{ 'value' | i18nextEager }}</div>
+        <div class="w-1/4 text-label">{{'paramextractionlogcomponent_350'| i18nextEager}}</div>
+      </div>
+      <div *ngFor="let param of params">
+        <div class="mt-2 flex items-center gap-2">
+          <div class="w-1/4 text-label">
+            {{ param.name }}
+          </div>
+          <div class="w-1/4 text-label overflow-hidden text-ellipsis whitespace-nowrap">{{ param.type ?? '-' }}</div>
+          <div class="w-1/4 text-label overflow-hidden text-ellipsis whitespace-nowrap">{{ param.value ?? '-' }}</div>
+          <div class="w-1/4 text-label overflow-hidden text-ellipsis whitespace-nowrap">{{ param.description ?? '-' }}</div>
+        </div>
+      </div>
+    </div>
+  </ng-template>
 
-<!--  <ng-template #flowDetail let-context="context">-->
-<!--    <ti-modal-header> {{ 'paramextractionlogcomponent_352' | i18nextEager }}</ti-modal-header>-->
-<!--    <div class="flex justify-end gap-2 mr-8 mb-3">-->
-<!--      <p>{{'paramextractionlogcomponent_365'| i18nextEager}}</p>-->
-<!--      <ti-switch-->
-<!--        [(ngModel)]="context.diff"-->
-<!--      ></ti-switch>-->
-<!--    </div>-->
-<!--    <ti-modal-body class="">-->
-<!--      <div class="w-full">-->
-<!--        <div class="flex items-center gap-2">-->
-<!--          <div class="w-1/3 text-label">-->
-<!--            {{ 'paramextractionlogcomponent_378' | i18nextEager }}-->
-<!--          </div>-->
-<!--&lt;!&ndash;          <div class="w-1/5 text-label">{{ '类型' | i18nextEager }}</div>&ndash;&gt;-->
-<!--          <div class="w-1/3 text-label">{{'paramextractionlogcomponent_359'| i18nextEager}}</div>-->
-<!--          <div class="w-1/3 text-label">{{'paramextractionlogcomponent_360'| i18nextEager}}</div>-->
-<!--&lt;!&ndash;          <div class="w-1/5 text-label">{{ '备注' | i18nextEager }}</div>&ndash;&gt;-->
-<!--        </div>-->
-<!--        <div *ngFor="let param of context.params">-->
-<!--          <div class="mt-2 flex items-center gap-2">-->
-<!--            <div class="w-1/3 text-label" tiOverflow>-->
-<!--              {{ param.name }}-->
-<!--            </div>-->
-<!--&lt;!&ndash;            <div class="w-1/5 text-label" tiOverflow>{{ param.type || '-' }}</div>&ndash;&gt;-->
-<!--            <div class="w-1/3 text-label diff-text" tiOverflow-->
-<!--                 [ngClass]="{ 'diff-text1': context.diff&&(param.value_before!==param.value_after)  }">{{ param.value_before || '-' }}-->
-<!--            </div>-->
-<!--            <div class="w-1/3 text-label diff-text" tiOverflow-->
-<!--                 [ngClass]="{ 'diff-text2': context.diff&&(param.value_before!==param.value_after)  }">{{ param.value_after || '-' }}-->
-<!--            </div>-->
-<!--&lt;!&ndash;            <div class="w-1/5 text-label" tiOverflow>{{ param.description || '-' }}</div>&ndash;&gt;-->
-<!--          </div>-->
-<!--        </div>-->
-<!--      </div>-->
-<!--    </ti-modal-body>-->
-<!--    <ti-modal-footer>-->
-<!--      <button type="button" (click)="context.dismiss()" tiButton>-->
-<!--        {{ 'cancel' | i18nextEager }}-->
-<!--      </button>-->
-<!--      <button-->
-<!--        type="button"-->
-<!--        color="danger"-->
-<!--        autofocus-->
-<!--        (click)="context.dismiss()"-->
-<!--        tiButton-->
-<!--      >-->
-<!--        {{ 'ok' | i18nextEager }}-->
-<!--      </button>-->
-<!--    </ti-modal-footer>-->
-<!--  </ng-template>-->
+  <ng-template #flowDetail let-context="context">
+    <div class="text-lg font-bold mb-4"> {{ 'paramextractionlogcomponent_352' | i18nextEager }}</div>
+    <div class="flex justify-end gap-2 mb-3">
+      <p>{{'paramextractionlogcomponent_365'| i18nextEager}}</p>
+      <nz-switch
+        [(ngModel)]="context.diff"
+      ></nz-switch>
+    </div>
+    <div class="mb-4">
+      <div class="w-full">
+        <div class="flex items-center gap-2">
+          <div class="w-1/3 text-label">
+            {{ 'paramextractionlogcomponent_378' | i18nextEager }}
+          </div>
+          <div class="w-1/3 text-label">{{'paramextractionlogcomponent_359'| i18nextEager}}</div>
+          <div class="w-1/3 text-label">{{'paramextractionlogcomponent_360'| i18nextEager}}</div>
+        </div>
+        <div *ngFor="let param of context.params">
+          <div class="mt-2 flex items-center gap-2">
+            <div class="w-1/3 text-label overflow-hidden text-ellipsis whitespace-nowrap">
+              {{ param.name }}
+            </div>
+            <div class="w-1/3 text-label diff-text overflow-hidden text-ellipsis whitespace-nowrap"
+                 [ngClass]="{ 'diff-text1': context.diff&&(param.value_before!==param.value_after)  }">{{ param.value_before || '-' }}
+            </div>
+            <div class="w-1/3 text-label diff-text overflow-hidden text-ellipsis whitespace-nowrap"
+                 [ngClass]="{ 'diff-text2': context.diff&&(param.value_before!==param.value_after)  }">{{ param.value_after || '-' }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="mt-4 flex justify-end gap-2">
+      <button type="button" (click)="context.dismiss()" nz-button nzType="default">
+        {{ 'cancel' | i18nextEager }}
+      </button>
+      <button
+        type="button"
+        nz-button
+        nzType="primary"
+        (click)="context.dismiss()"
+      >
+        {{ 'ok' | i18nextEager }}
+      </button>
+    </div>
+  </ng-template>

@@ -1,0 +1,28 @@
+<div style="display: flex; flex-flow: wrap">
+  <ng-container *ngIf="statusConfigMap[status].isProgressBar; else statusTmpl">
+    <div class="w-full">
+      <div class="inline-block w-[calc(100%-27px)]">
+        <nz-progress [nzPercent]="progressRate * 100"> </nz-progress>
+      </div>
+      <span *ngIf="statusConfigMap[status].showProgress" class="w-[27px]">{{ (progressRate * 100).toFixed(2) }}%</span>
+      <span *ngIf="!statusConfigMap[status].showProgress" class="w-[27px]">{{ statusConfigMap[status].label }}</span>
+    </div>
+  </ng-container>
+  <ng-template #statusTmpl>
+    <nz-tag
+      *ngIf="status !== 'waiting'"
+      [nz-tooltip]="tip"
+      nzTooltipPlacement="top"
+      [nzColor]="getStatusColor(statusConfigMap[status].type)"
+      style="margin-right: 8px;"
+    >
+      {{ statusConfigMap[status].label }}
+    </nz-tag>
+    <div *ngIf="status === 'waiting'" class="custom-status-waiting">
+      <div>
+        <img [src]="changeUrl('assets/prompt/task-waiting.svg')" alt="" class="h-4 w-4" />
+      </div>
+      <div>{{ 'wait_optimize' | i18nextEager }}</div>
+    </div>
+  </ng-template>
+</div>

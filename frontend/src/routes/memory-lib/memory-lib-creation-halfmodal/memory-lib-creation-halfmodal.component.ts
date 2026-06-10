@@ -1,9 +1,7 @@
-import { ChangeDetectionStrategy, Component, computed, inject, Input, OnDestroy, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, Input, OnDestroy, OnInit, signal, Optional, Inject } from '@angular/core';
 import { AbstractControl, FormBuilder, FormsModule, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
 import { I18NEXT_NAMESPACE, I18NextEagerPipe, I18NextModule } from 'angular-i18next';
-
-// NG-ZORRO 导入
 import { NzFormModule } from 'ng-zorro-antd/form';
 import { NzInputModule } from 'ng-zorro-antd/input';
 import { NzButtonModule } from 'ng-zorro-antd/button';
@@ -22,7 +20,8 @@ import { IMemoryStrategy } from '@routes/memory-lib/memory-lib-interfaces';
 import { CommonService } from '@services/common.service';
 import { HttpService } from '@services/http.service';
 import { SetSidebarVisibilityService } from '@shared/services/set-sidebar-visibility.service';
-
+import { NzDrawerRef, NZ_DRAWER_DATA } from 'ng-zorro-antd/drawer';
+import { NzModalRef } from 'ng-zorro-antd/modal';
 @Component({
   selector: 'memory-lib-creation-halfmodal',
   standalone: true,
@@ -88,7 +87,11 @@ export class MemoryLibCreationHalfmodalComponent implements OnInit, OnDestroy {
     return this.basicInfoFormGroup.get('name')?.value?.length ?? 0;
   }
 
-  constructor() {
+  constructor(
+    @Optional() private drawerRef: NzDrawerRef,
+    @Optional() private modalRef: NzModalRef,
+    @Inject(NZ_DRAWER_DATA) public nzData: any
+  ) {
     this.http.getCurrentUserResourceStatus().pipe(takeUntil(this.destroy$)).subscribe();
   }
 
@@ -147,15 +150,27 @@ export class MemoryLibCreationHalfmodalComponent implements OnInit, OnDestroy {
       const value = control.value;
       return !value || value.length < 1
         ? {
-          isStrategyRequired: {
-            value: control.value,
-            errorMsg: this.i18n.transform('memory.create.errorTip.strategyNeed'),
-          },
-        }
+            isStrategyRequired: {
+              value: control.value,
+              errorMsg: this.i18n.transform('memory.create.errorTip.strategyNeed'),
+            },
+          }
         : null;
     };
   }
 
-  dismiss(): void {}
-  close(): void {}
+  dismiss(): void {
+    if (this.nzData.beforeHide && typeof this.nzData.beforeHide === 'function') {
+      this.nzData.beforeHide({
+        reason: false,
+      });
+    }
+  }
+  close(): void {
+    if (this.nzData.beforeHide && typeof this.nzData.beforeHide === 'function') {
+      this.nzData.beforeHide({
+        reason: true,
+      });
+    }
+  }
 }

@@ -1,0 +1,154 @@
+<div class="h-full mt-2">
+  <div class="pb-[12px] h-full">
+    <div *ngIf="false " class="flex h-8 items-center gap-2">
+      <input
+        #fileInput
+        (change)="onFileSelected($event)"
+        accept=".xlsx"
+        class="hidden"
+        type="file"
+      />
+      <button
+        (click)="exportCardData()"
+        [disabled]="hasPermission() || isExportDisabled()"
+        nz-button
+      >
+        {{ 'base_export' | i18nextEager }}
+      </button>
+
+      <ng-container *ngIf="isOpAccount">
+        <button (click)="importCardData()" nz-button>
+          {{ 'base_import' | i18nextEager }}
+        </button>
+        <button (click)="downloadImportCase()" nz-button>
+          {{ 'prompt_tmpl_download_import_case' | i18nextEager }}
+        </button>
+      </ng-container>
+    </div>
+    @if(isLibrary) {
+      <nz-tabset class="h-[30px]" [(nzSelectedIndex)]="selectedTabIndex" (nzSelectedIndexChange)="changeAppTab(appPromptTabs[selectedTabIndex])">
+        <nz-tab *ngFor="let tab of appPromptTabs; let i = index" [nzTitle]="tab.name"></nz-tab>
+      </nz-tabset>
+      <div class="com-center-title mt-[24px] mb-6">{{ pageTitle() }}<ng-container *ngIf="totalCount">{{totalCount}}</ng-container></div>
+    }
+    <div class="headerStyle mb-6" id="headerDom">
+      <div style="display: flex; align-items: center; gap: 8px; width: 100%">
+      <!--        组件问题，百分比，最大值都会导致tabs自动缩小-->
+        <div *ngIf="!isLibrary" style="width: 650px">
+          <nz-tabset id="tab-sub" class="h-[30px]" [(nzSelectedIndex)]="selectedTabIndex" (nzSelectedIndexChange)="changeAppTab(appPromptTabs[selectedTabIndex])">
+            <nz-tab *ngFor="let tab of appPromptTabs; let i = index" [nzTitle]="tab.name"></nz-tab>
+          </nz-tabset>
+        </div>
+        <nz-input-group style="flex: 1; height: 28px" [nzSuffix]="suffixIconSearch">
+          <input nz-input [(ngModel)]="searchKey" (keyup.enter)="handleSearch($event)"  />
+        </nz-input-group>
+        <ng-template #suffixIconSearch>
+          <div class="flex items-center gap-1">
+          <span *ngIf="searchKey" class="cursor-pointer" (click)="handleClickClearData()">
+            <nz-icon nzType="close" nzTheme="outline" />
+          </span>
+            <span class="cursor-pointer" (click)="handleSearch($event)">
+            <nz-icon nzType="search" nzTheme="outline" />
+          </span>
+          </div>
+        </ng-template>
+        <div style="width: 30px">
+          <button (click)="handleClickRefreshBtn()" class="h-8 w-8" nz-button>
+            <nz-icon nzType="reload" nzTheme="outline" />
+          </button>
+        </div>
+      </div>
+    </div>
+    <div *ngIf="!isLodingCard && !cards.length" style="margin: 10% 45%">
+      <app-new-common-no-data-with-btn
+      [type]="!searchedItems?.length ? 'noData' : 'filterNoData'"
+        [firstLineData]="'no_data' | i18nextEager"
+        [noDataBtnStr]="!searchedItems?.length ? '' : ('clear_filters'|i18nextEager)"
+        [noDataBtnStr]="''"
+        (clear)="handleClickClearData()"
+      />
+    </div>
+    <nz-spin *ngIf="isLodingCard && !cards?.length" class="loading-icon" [nzSimple]="true"></nz-spin>
+    <div *ngIf="cards?.length > 0" class="card-container overflow-y-auto" style="max-height: calc(100% - 180px);" (scroll)="onScroll()">
+      <div class="card-box com-cards-wrapper mb-[14px]" style="padding-right: 16px">
+        <div
+          (click)="openCardDetail(card)"
+          *ngFor="let card of cards"
+          [id]="card.template_id"
+          class="com-card-box !cursor-default"
+        >
+          <div class="header-card mb-1">
+            <div (click)="stopCheckItemPropagation($event)" class="flex items-center">
+              <div (click)="stopCheckItemPropagation($event)" class="flex com-card-name-box items-center">
+                <div [textContent]="card.template_name" class="com-card-name text-ellipsis overflow-hidden whitespace-nowrap"></div>
+              </div>
+            </div>
+            <div class="com-card-tag-box">
+              <nz-tag
+                style="background-color: rgb(245, 245, 245); color: rgb(25, 25, 25); height: 22px"
+              >
+                <span>{{ language === 'en-us' ? card.industry.name_en : card.industry?.name || ('base_none' | i18nextEager) }}</span>
+              </nz-tag>
+              <div class="tag-span text-ellipsis overflow-hidden whitespace-nowrap">
+                <nz-tag
+                  *ngFor="let tag of card.tag_list"
+                  style="background-color: rgb(245, 245, 245); color: rgb(25, 25, 25)"
+                >{{language === 'en-us' ? tag.name_en : tag.name }}</nz-tag>
+              </div>
+            </div>
+            <div
+              [textContent]="card.content || '--'"
+              nz-tooltip
+              [nzTooltipTitle]="card.content"
+              class="com-card-description text-ellipsis overflow-hidden whitespace-nowrap"
+            ></div>
+            <div class="footer-info bottom-area-have-menu">
+              <div class="create-time gap-2" >
+                <img [src]="changeUrl('assets/prompt/time.svg')" alt="" class="h-4 w-4">
+                <span class="text-ellipsis overflow-hidden whitespace-nowrap">
+                  {{ card.created_on|formateTime }}
+                </span>
+              </div>
+            </div>
+            <div class="com-card-bottom-menu">
+              <ul style="display: flex; gap: 24px; color: #0c93fe">
+                @for (item of items; track item.id) {
+                  <li class="text-[14px]" style="font-weight: 600; cursor: pointer" (click)="onClick($event, item, card)">{{ item.title }}</li>
+                }
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+      <nz-spin *ngIf="isLodingCard && cards?.length" class="loading-icon !mt-0" [nzSimple]="true"></nz-spin>
+      <div class="flex justify-center text-[#e6e6e6]" *ngIf="!hasMore && !isLodingCard">——— · ———</div>
+    </div>
+  </div>
+</div>
+
+<!-- 导入错误信息提示框 -->
+<ng-template #importErrInfoModal let-context="context">
+  <div class="h-[360px] w-full">
+    <nz-table
+      [nzData]="iErrInfodisplayedData"
+      [nzBordered]="false"
+    >
+      <thead>
+        <tr>
+          <th
+            *ngFor="let column of importErrInfoColumns"
+            [ngStyle]="{ width: column.width }"
+          >
+            {{ column.title }}
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let row of iErrInfodisplayedData">
+          <td style="text-align: center; width: 80px;">{{ row.index + 1 }}</td>
+          <td style="color: #df4840;">{{ row.content }}</td>
+        </tr>
+      </tbody>
+    </nz-table>
+  </div>
+</ng-template>

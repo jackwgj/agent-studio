@@ -1,8 +1,8 @@
-<h1 align="center"><img alt="" height="150" src="https://driverjs.com/driver.svg" /><br> Driver.js</h1>
+<h1 align="center"><img height="150" src="https://driverjs.com/driver.svg" /><br> Driver.js</h1>
 
 <p align="center">
   <a href="https://github.com/kamranahmedse/driver.js/blob/master/license">
-    <img alt="" src="https://img.shields.io/badge/License-MIT-yellow.svg" />
+    <img src="https://img.shields.io/badge/License-MIT-yellow.svg" />
   </a>
   <a href="https://npmjs.org/package/driver.js">
     <img src="https://img.shields.io/npm/v/driver.js.svg" alt="version" />

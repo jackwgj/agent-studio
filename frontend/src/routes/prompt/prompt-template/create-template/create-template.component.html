@@ -1,0 +1,93 @@
+<div class="m-edit-modal">
+  <div *nzModalTitle>
+    {{ modalTitle | i18nextEager }}
+  </div>
+  <div>
+    <div class="content">
+      <form [formGroup]="groupFormControl">
+        <nz-form-item>
+          <nz-form-label [nzRequired]="true" [nzSpan]="4">{{ prompt.name }}</nz-form-label>
+          <nz-form-control>
+            <input
+              nz-input
+              formControlName="promptName"
+              style="width: 600px"
+              [placeholder]="'create_tmpl_name_placeholder' | i18nextEager"
+            />
+          </nz-form-control>
+        </nz-form-item>
+        <nz-form-item>
+          <nz-form-label [nzRequired]="true" [nzSpan]="4">{{ prompt.industry }}</nz-form-label>
+          <nz-form-control>
+            <nz-select
+              formControlName="industry"
+              [nzAllowClear]="true"
+              style="width: 600px"
+              [nzPlaceHolder]="
+                'prompt_tmpl_apply2task_industry_placeholder' | i18nextEager
+              "
+            >
+            @for (item of industryList; track item) {
+              <nz-option [nzLabel]="item.label" [nzValue]="item.id" />
+            }
+            </nz-select>
+          </nz-form-control>
+        </nz-form-item>
+        <nz-form-item>
+          <nz-form-label [nzRequired]="false" [nzSpan]="4">{{ prompt.tag }}</nz-form-label>
+          <nz-form-control>
+            <nz-select
+              formControlName="tag"
+              nzLabelKey="label"
+              nzValueKey
+              nzMode="multiple"
+              [nzAllowClear]="true"
+              style="width: 600px"
+              [nzPlaceHolder]="
+                'prompt_tmpl_apply2task_tag_placeholder' | i18nextEager
+              "
+            >
+            @for (item of tagList; track item) {
+              <nz-option [nzLabel]="item.label" [nzValue]="item.id" />
+            }
+            </nz-select>
+          </nz-form-control>
+        </nz-form-item>
+        <nz-form-item>
+          <nz-form-label [nzRequired]="false" [nzSpan]="4" [nzOffset]="0">{{ prompt.content }}</nz-form-label>
+          <nz-form-control>
+            <textarea
+              nz-input
+              [nzAutosize]="{ minRows: 4, maxRows: 8 }"
+              maxlength="4000"
+              formControlName="content"
+              style="width: 600px; height: 200px; max-height: 400px"
+              [placeholder]="'create_tmpl_content_placeholder' | i18nextEager"
+            ></textarea>
+          </nz-form-control>
+        </nz-form-item>
+        <nz-form-item>
+          <nz-form-label [nzRequired]="false" [nzSpan]="4" [nzOffset]="0">{{ prompt.description }}</nz-form-label>
+          <nz-form-control>
+            <textarea
+              nz-input
+              [nzAutosize]="{ minRows: 2, maxRows: 5 }"
+              maxlength="100"
+              formControlName="description"
+              style="width: 600px; height: 100px; max-height: 240px"
+              [placeholder]="'create_tmpl_desc_placeholder' | i18nextEager"
+            ></textarea>
+          </nz-form-control>
+        </nz-form-item>
+      </form>
+    </div>
+  </div>
+  <div *nzModalFooter>
+    <button nz-button type="button" nzType="primary" (click)="submit()">
+      {{ 'ok' | i18nextEager }}
+    </button>
+    <button nz-button type="button" (click)="dismiss()">
+      {{ 'cancel' | i18nextEager }}
+    </button>
+  </div>
+</div>

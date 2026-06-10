@@ -1,0 +1,25 @@
+<div class="header-container">
+  <div class="left-area">
+    <div (click)="onBack()">
+      <span nz-icon class="back-icon" nzType="left"></span>
+    </div>
+    <div class="title">
+      {{ 'prompt_optimize_task_detail'|i18nextEager }}
+    </div>
+    <div class="task-status" *ngIf="taskStatus">
+      <nz-tag *ngIf="taskStatus==='RUNNING'" style="margin-right:8px" nzColor="processing">
+        {{ ('optimizing'|i18nextEager) + ('progress_completed'|i18nextEager:{progress:(progress*100).toFixed(0)}) }}
+      </nz-tag>
+      <nz-tag *ngIf="taskStatus==='PAUSE'" style="margin-right:8px" nzColor="error">
+        {{ ('paused'|i18nextEager) + ('progress_completed'|i18nextEager:{progress:(progress*100).toFixed(0)}) }}
+      </nz-tag>
+      <nz-tag *ngIf="taskStatus==='SUCCESS'" style="margin-right:8px" nzColor="success">{{ 'optimize_success'|i18nextEager }}</nz-tag>
+    </div>
+  </div>
+  <div class="right-area">
+    <button nz-button (click)="stop()" *ngIf="taskStatus==='RUNNING'" class="mr-4 w-[96px]">{{ 'pause_optimization'|i18nextEager }}</button>
+    <button nz-button (click)="continue()" *ngIf="taskStatus==='PAUSE'" class="mr-4 w-[96px]">{{ 'resume_optimization'|i18nextEager }}</button>
+    <button nz-button (click)="retry()" *ngIf="taskStatus==='SUCCESS'" class="mr-4 w-[96px]">{{ 'optimize_repair'|i18nextEager }}</button>
+    <button nz-button nzType="primary" (click)="complete()" class="w-[96px]">{{ 'complete'|i18nextEager }}</button>
+  </div>
+</div>

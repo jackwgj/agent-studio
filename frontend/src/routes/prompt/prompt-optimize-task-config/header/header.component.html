@@ -1,0 +1,22 @@
+<div class="header-container">
+  <div class="left-area">
+    <div (click)="onBack()" class="back-icon">
+      <span nz-icon nzType="left"></span>
+    </div>
+    <div class="title mr-4">
+      {{'prompt_tmpl_optimize'|i18nextEager}}
+    </div>
+    <div *ngIf="saveTime" class="auto_save_tip">
+      {{'auto_save_tip'|i18nextEager:{time:saveTime| formateTime } }}
+    </div>
+  </div>
+  <div class="right-area">
+    <nz-steps
+      id="steps-base"
+      [nzCurrent]="activeStep"
+      (nzIndexChange)="handleStepChange($event)"
+    >
+      <nz-step *ngFor="let step of steps" [nzTitle]="step.label"></nz-step>
+    </nz-steps>
+  </div>
+</div>

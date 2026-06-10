@@ -1,11 +1,4 @@
-import {
-  Component,
-  Output,
-  EventEmitter,
-  ViewChild,
-  ElementRef,
-  Optional
-} from '@angular/core';
+import { Component, Output, EventEmitter, ViewChild, ElementRef, Optional } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MODULES } from '@shared/modules';
 import { I18nNamespace } from '@i18n';
@@ -18,19 +11,13 @@ import { NzIconModule } from 'ng-zorro-antd/icon';
 import { NzSpinModule } from 'ng-zorro-antd/spin';
 import { NzModalRef } from 'ng-zorro-antd/modal';
 import { NzMessageService } from 'ng-zorro-antd/message';
-
+import { agentCommonLogic } from '@routes/agent-center/app-agent/common-logic-agent';
 @Component({
   selector: 'import-intent-package-modal',
   templateUrl: './import-package-modal.component.html',
   styleUrls: ['./import-package-modal.component.less'],
   standalone: true,
-  imports: [
-    CommonModule,
-    MODULES,
-    NzButtonModule,
-    NzIconModule,
-    NzSpinModule
-  ],
+  imports: [CommonModule, MODULES, NzButtonModule, NzIconModule, NzSpinModule],
   providers: [
     {
       provide: I18NEXT_NAMESPACE,
@@ -52,16 +39,17 @@ export class ImportPackageModalComponent {
     private readonly intentPackageServ: IntentPackageService,
     private readonly i18n: I18NextEagerPipe,
     private message: NzMessageService,
-    @Optional() private modalRef: NzModalRef
+    @Optional() private modalRef: NzModalRef,
+    private commonLogic: agentCommonLogic
   ) {}
 
   downloadTemplate(): void {
-    this.intentPackageServ.downloadTemlate().then((res) => {
+    this.intentPackageServ.downloadTemlate().then(res => {
       CommonUtils.downloadFile(
-        new Blob([res.data], {
+        new Blob([res], {
           type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         }),
-        res.headers.get('Content-Disposition'),
+        `${this.commonLogic.getFormattedDateTime()}.xlsx`
       );
     });
   }

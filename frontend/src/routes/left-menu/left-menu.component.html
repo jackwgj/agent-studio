@@ -30,7 +30,7 @@
         </div>
         <p class="left-menu-title-line" *ngIf="false"></p>
         <div class="my-space flex my-space-box" *ngIf="!isMarket" style="margin-bottom: 16px">
-          <img  [src]="this.space_icon" alt="" class="space_icon"/>
+          <img [src]="this.space_icon" alt="" class="space_icon"/>
           <p class="left_menu_work_space">
             <span class="left_menu_space_name">{{ space_name }}</span>
             <nz-icon nzType="down" nzTheme="outline" class="left_menu_space_name-foldI" *ngIf="!isRotate"/>
@@ -63,7 +63,7 @@
                 <div class="flex items-center my-space-select"
                      style="justify-content: space-between; width: calc(100% - 12px);">
                   <p class="flex align-center gap-2 mb-0">
-                    <img  [src]="item.icon" alt="" style="width: 24px; height: 24px; border-radius: 50%;">
+                    <img [src]="item.icon" alt="" style="width: 24px; height: 24px; border-radius: 50%;">
                     <span
                       [title]="item.name"
                       class="name-txt inline-block w-[110px] overflow-hidden text-ellipsis whitespace-nowrap pl-[3px] pr-[3px]"
@@ -88,7 +88,7 @@
             <div class="flex items-center my-space-select"
                  style="justify-content: space-between; width: calc(100% - 12px);">
               <p class="flex align-center gap-2 mb-0">
-                <img  [src]="item.icon" alt="" style="width: 24px; height: 24px; border-radius: 50%;">
+                <img [src]="item.icon" alt="" style="width: 24px; height: 24px; border-radius: 50%;">
                 <span
                   [title]="item.name"
                   class="name-txt inline-block w-[110px] overflow-hidden text-ellipsis whitespace-nowrap pl-[3px] pr-[3px]"
@@ -151,7 +151,7 @@
                     [src]="menuItem.tipIcon"
                     style="position: absolute; right: 30px"
                   />
-                  <img  [src]="menuItem.rightIcon" alt="" *ngIf="menuItem.rightIcon"/>
+                  <img [src]="menuItem.rightIcon" alt="" *ngIf="menuItem.rightIcon"/>
                 </div>
                 <nz-icon nzType="down" nzTheme="outline" *ngIf="menuItem.collapseStatus === 1"
                          class="left_menu_space_name-foldI"/>

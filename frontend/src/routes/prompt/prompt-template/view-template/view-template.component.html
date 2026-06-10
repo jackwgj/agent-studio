@@ -1,0 +1,85 @@
+<div class="modal-container">
+  <div *nzModalTitle class="modal-header-style">
+    <span class="modal-header-text">{{
+      'view_tmpl_title' | i18nextEager
+    }}</span>
+  </div>
+  <div class="modal-body-container">
+    <div class="body-tmpl-name">
+      <div class="label-text">
+        {{ 'candidate_template_templateName' | i18nextEager }}：
+      </div>
+      <span id="inputnumber-basic" class="text-sm">{{ templateName }}</span>
+    </div>
+    <div class="body-create-time">
+      <div class="label-text">
+        {{ 'candidate_template_createTime' | i18nextEager }}：
+      </div>
+      <span class="create-time-text">{{ currentTmpl.created_on }}</span>
+    </div>
+    <div class="body-tmpl-label">
+      <div class="label-text">
+        {{ 'candidate_template_templateLabel' | i18nextEager }}：
+      </div>
+      <div id="tmpl-tags">
+        <nz-tag
+          [nzMode]="'default'"
+          nzSize="small"
+          nzColor="blue"
+          class="!rounded-[4px] py-[1px] pl-[2px] pr-[4px]"
+        >
+          {{ language === 'en-us'
+          ? currentTmpl.industry.name_en
+          : currentTmpl.industry?.name || ('base_none' | i18nextEager) }}
+        </nz-tag>
+        <nz-tag *ngIf="currentTmpl?.pt_type"
+                [nzMode]="'default'"
+                nzSize="small"
+                nzColor="purple"
+                class="!rounded-[4px] py-[1px] pl-[2px] pr-[4px]"
+        >
+          {{ (currentTmpl.pt_type === 'text' ? 'text' : 'multimodal')|i18nextEager }}
+        </nz-tag>
+        <nz-tag *ngFor="let item of tags"
+                nzColor="default"
+                [nzMode]="'default'"
+                nzSize="small"
+                class="!rounded-[4px] py-[1px] pl-[2px] pr-[4px]">
+          {{item}}
+        </nz-tag>
+      </div>
+    </div>
+    <div class="body-tmpl-content">
+      <div class="tmpl-content-label label-text w-[70px]">
+        {{ 'candidate_template_templateContent' | i18nextEager }}：
+      </div>
+      <div class="tmpl-content-text w-[calc(100%-82px)]">
+        <ng-container *ngFor="let promptChunk of modalContent">
+          <ng-container [ngSwitch]="promptChunk.type">
+            <span *ngSwitchCase="'COMMON'">{{ promptChunk.value }}</span>
+            <tmpl-variant-tag
+              [varChunkProps]="promptChunk"
+              *ngSwitchCase="'VARIANT'"
+            />
+            <span *ngSwitchDefault></span>
+          </ng-container>
+        </ng-container>
+      </div>
+    </div>
+  </div>
+  <div *nzModalFooter class="modal-footer-style">
+    <button type="button" nz-button (click)="dismiss()">
+      {{ 'base_close' | i18nextEager }}
+    </button>
+    <button
+      type="button"
+      class="!mr-0"
+      nz-button
+      nzDanger
+      (click)="onCopy()"
+    >
+      {{ 'base_copy' | i18nextEager }}
+    </button>
+
+  </div>
+</div>

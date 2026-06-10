@@ -1,34 +1,44 @@
-<!-- <div
+<ng-template #tipContent>
+  <meta-set-value-tip
+    [param]="param"
+    [isNormalWidth]="isNormalWidth"
+    [isShowDesc]="isShowDesc"
+    [host]="host"
+    [cmpWidth]="cmpWidth"
+    [nameRefOptions]="nameRefOptions"
+    [close]="tipContext.outputs.close"
+    [valueChange]="tipContext.outputs.valueChange"
+  ></meta-set-value-tip>
+</ng-template>
+
+<div
   class="flex h-[28px] items-center justify-center"
   [ngClass]="{ 'h-full w-full': host !== 'default' }"
 >
-  <tp-icon
+  <span
     *ngIf="host === 'default'; else jsonInput"
-    [tiTip]="setValueTipCmp"
-    #setDefaultTipRef="tiTip"
-    tiTipTrigger="manual"
-    [tiTipMaxWidth]="tiTipMaxWidth"
-    [tiTipZIndex]="999"
-    [tiTipContext]="tipContext"
-    tiTipPosition="bottom-right"
-    (click)="onSetDefault()"
-    title="{{ 'set_default_values' | i18nextEager }}"
+    nz-popover
+    [nzPopoverContent]="tipContent"
+    nzPopoverTrigger="click"
+    nzPopoverPlacement="bottomRight"
+    [nzPopoverTitle]="'set_default_values' | i18nextEager"
     class="!text-[16px] hover:cursor-pointer"
-    name="cloudx-action-more-rimless"
-  />
+    nz-icon
+    nzType="more"
+    nzTheme="outline"
+  ></span>
 
   <ng-template #jsonInput>
     <div
-      [tiTip]="setValueTipCmp"
-      #setDefaultTipRef="tiTip"
-      tiTipTrigger="manual"
-      [tiTipMaxWidth]="tiTipMaxWidth"
-      [tiTipZIndex]="999"
-      [tiTipContext]="tipContext"
-      tiTipPosition="bottom-right"
-      (click)="onSetDefault()"
+      nz-popover
+      [nzPopoverContent]="tipContent"
+      nzPopoverTrigger="click"
+      nzPopoverPlacement="bottomRight"
       [title]="tooltipStr"
       class="h-full w-full bg-transparent !text-[16px] hover:cursor-pointer"
+      nz-icon
+      nzType="edit"
+      nzTheme="outline"
     ></div>
   </ng-template>
-</div> -->
+</div>

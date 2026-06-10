@@ -20,7 +20,7 @@ export interface IAgentConfigs {
   user_query_limit?: number;
   stream_first_chunk_timeout?: number;
   stream_interval_timeout?: number;
-  site?: string;
+  site?: string; // 表示站点名，工行配置为icbc
   agent_tool_bound_limit?: number;
   agent_workflow_bound_limit?: number;
   agent_knowledge_bound_limit?: number;
@@ -130,7 +130,7 @@ export class AgentConfigService {
 
   public isSupportUserPersona() {
     const { memory_user_profile_enable } = this.getConfigs();
-    return false;
+    return true;
   }
 
   /** 后续版本开放 */

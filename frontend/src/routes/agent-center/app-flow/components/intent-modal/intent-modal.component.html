@@ -546,15 +546,16 @@
           <span>{{ 'select_intent_package' | i18nextEager }}</span>
           <div class="flex items-center mt-[8px]">
             <nz-select
-              #select
               class="!w-[436px]"
-              [nzOptions]="intentGroupOptions"
+              [nzOptions]="intentGroupSelectOptions"
               formControlName="intent_group"
               [nzPlaceHolder]="'select_placeholder' | i18nextEager"
               nzShowSearch
+              nzServerSearch
+              [nzLoading]="isLoadingIntentGroups"
               (nzOnSearch)="onBeforeSearch($event)"
               (nzOpenChange)="onBeforeOpenIntentGroup($event)"
-              (nzScrollToBottom)="loadMore($event, select)"
+              (nzScrollToBottom)="loadMore()"
             >
             </nz-select>
             <button nz-button class="ml-[8px]" (click)="getIntentSelectList()"><img alt="" [src]="changeUrl('assets/prompt/refresh.svg')" /></button>

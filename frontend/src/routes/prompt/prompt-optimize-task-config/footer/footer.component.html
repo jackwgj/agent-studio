@@ -1,0 +1,31 @@
+<div class="footer-container">
+  <div class="left-area">
+  </div>
+  <div class="right-area">
+
+    <button nz-button class="button"
+            nz-tooltip
+            [nzTooltipTitle]="tip"
+            nzType="default"
+            *ngIf="activeStep===0;else step1"
+            [disabled]="disabled"
+            (click)="handleNextStepClick()">
+      {{ 'next_step'|i18nextEager }}
+    </button>
+    <ng-template #step1>
+      <button nz-button class="button"
+              nzType="default"
+              (click)="handlePreviousStepClick()">
+        {{ 'previous_step'|i18nextEager }}
+      </button>
+      <button nz-button class="button"
+              nz-tooltip
+              [nzTooltipTitle]="tip"
+              nzType="primary"
+              [disabled]="disabled"
+              (click)="handleConfirmClick()">
+        {{ 'new_now'|i18nextEager }}
+      </button>
+    </ng-template>
+  </div>
+</div>

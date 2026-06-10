@@ -12,8 +12,10 @@
       <div class="main-container" [class.has-sub-tab]="['prompt', 'knowledge'].includes(currentTabId)">
         <meta-component-library style="height: 100%" *ngIf="currentTabId==='plugin'" [appType]="'Plugin'"></meta-component-library>
         <meta-component-library style="height: 100%" *ngIf="currentTabId==='mcp'" [appType]="'MCP'"></meta-component-library>
+        <meta-prompt-template style="height: 100%" *ngIf="currentTabId==='prompt'"></meta-prompt-template>
         <knowledge-base-list style="height: 100%" *ngIf="currentTabId==='knowledge'"></knowledge-base-list>
         <memory-lib-management class="h-full" *ngIf="currentTabId === 'memoryLib'"></memory-lib-management>
+        <component-lib-skill style="height: 100%" *ngIf="currentTabId ==='skill'"></component-lib-skill>
       </div>
     </div>
   </div>

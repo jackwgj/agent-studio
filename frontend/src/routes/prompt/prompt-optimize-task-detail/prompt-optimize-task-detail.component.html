@@ -1,0 +1,97 @@
+<div class="config-container">
+  <nz-spin [nzSpinning]="isSpinning">
+    <div class="config-header">
+      <meta-header
+        (completeTask)="handleCompleteTask()"
+        (continueTask)="handleContinueTask()"
+        (retryTask)="handleRetryTask()"
+        (stopTask)="handleStopTask()"
+        [progress]="taskDetail?.progress_rate"
+        [taskStatus]="taskDetail?.status"
+      ></meta-header>
+    </div>
+    <div class="config-body">
+      <div class="task-info">
+        <nz-form-item class="w-full">
+          <nz-form-label [nzSpan]="24">{{ basicInfoConfig.title }}</nz-form-label>
+          <nz-form-control>
+            <div *ngFor="let basicInfoItem of basicInfoData" nz-col>
+              <nz-form-item>
+                <nz-form-label [nzSpan]="basicInfoItem.colspan * 12">{{ basicInfoItem.label }}</nz-form-label>
+                <nz-form-control>
+                  <span nz-ellipsis nz-tooltip [nzTooltipTitle]="basicInfoItem.value">{{ basicInfoItem.value }}</span>
+                </nz-form-control>
+              </nz-form-item>
+            </div>
+          </nz-form-control>
+        </nz-form-item>
+        <div class="dividing-line"></div>
+        <nz-form-item class="w-full">
+          <nz-form-label [nzSpan]="24">{{ optimizeConfig.title }}</nz-form-label>
+          <nz-form-control>
+            <div *ngFor="let optimizeItem of optimizeData" nz-col>
+              <nz-form-item style="margin-bottom: 20px">
+                <nz-form-label [nzSpan]="optimizeItem.colspan * 12">{{ optimizeItem.label }}</nz-form-label>
+                <nz-form-control>
+                  <span nz-ellipsis nz-tooltip [nzTooltipTitle]="optimizeItem.value">{{ optimizeItem.value }}</span>
+                </nz-form-control>
+              </nz-form-item>
+            </div>
+          </nz-form-control>
+        </nz-form-item>
+        <div class="dividing-line"></div>
+        <div class="w-full h-52 flex-shrink-0 flex flex-col gap-4">
+          <div class="trends-title">{{ 'optimization_rate_trend' | i18nextEager }}</div>
+          <div class="w-full h-full" id="optimization-rate-trends"></div>
+        </div>
+      </div>
+      <div class="compare-info">
+        <div class="top-area">
+          <div class="left">
+            <span class="compare-title">{{ 'compare_effect' | i18nextEager }}</span>
+          </div>
+          <div class="right">
+            {{ 'highlight_difference' | i18nextEager }}
+            <nz-switch [nzDisabled]="optimizedPrompt.length === 0" [(ngModel)]="diffHighLight"></nz-switch>
+          </div>
+        </div>
+        <div class="body-area">
+          <meta-prompt-comparator
+            (savePrompt)="openSaveModal($event)"
+            (showAssessDetail)="openAssessDetailModal($event)"
+            [highlight]="diffHighLight"
+            [optimizedPrompt]="optimizedPrompt"
+            [originAcc]="originAcc"
+            [originPrompt]="originPrompt"
+            [variables]="variableList"
+          ></meta-prompt-comparator>
+        </div>
+      </div>
+    </div>
+  </nz-spin>
+</div>
+<ng-template #completeModal let-context="context">
+  <div *nzModalTitle>
+    <div class="complete-title">
+      <img [src]="changeUrl('assets/prompt/import-tip.svg')" alt="" class="h-6 w-6" /> {{ 'confirm_save_best_prompt' | i18nextEager }}
+    </div>
+  </div>
+  <div>
+    <div class="complete-body">{{ 'confirm_save_best_prompt_to_my_template' | i18nextEager }}</div>
+  </div>
+  <div *nzModalFooter>
+    <div class="complete-footer">
+      <div>
+        <label nz-checkbox [(ngModel)]="notShowCompleteModal">
+          {{ 'not_prompt' | i18nextEager }}
+        </label>
+      </div>
+      <div>
+        <button nz-button (click)="context.nzOnOk()" type="button">{{ 'continue_exit' | i18nextEager }}</button>
+        <button nz-button nzType="primary" (click)="context.confirm()" type="button">
+          {{ 'save' | i18nextEager }}
+        </button>
+      </div>
+    </div>
+  </div>
+</ng-template>

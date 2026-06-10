@@ -1,0 +1,202 @@
+<div class="bg-[#ffffff] pb-6 h-full w-full" [ngClass]="{ 'layout-content-padding': currActiveTab === 0, 'no-padding': currActiveTab === 1 }">
+  <!-- 内容头部 -->
+  <meta-system-template
+    #systemTemplate
+    *ngIf="currActiveTab === 0"
+    [isShowCheckgroup]="true"
+    [isLibrary]="true"
+    style="height: calc(100% - 140px)"
+    class="mt-4"
+    (setCardTotalNumber)="setTotalCardNumber($event)"
+    [ngClass]="{ '!mt-2': !subscribeBtnStatus }"
+  ></meta-system-template>
+  <div *ngIf="currActiveTab === 1" class="content-background">
+    <div class="h-full">
+      <div class="flex flex-col h-full">
+        <nz-tabset level2 class="h-[30px]" [(nzSelectedIndex)]="tabSelectedIndex" (nzSelectedIndexChange)="handleTabChange($event)">
+          <nz-tab class="text-[14px]" *ngFor="let tab of subTabs" [nzTitle]="tab.title"></nz-tab>
+        </nz-tabset>
+        <div *ngIf="buttonGroupSelected === subTabs[0]?.id" class="flex flex-col h-full mt-6">
+          <div class="flex mb-[24px]" style="justify-content: space-between">
+            <span class="text-[20px] font-bold leading-[30px]">
+              {{ 'prompt' | i18nextEager }}
+              <span class="ml-2" *ngIf="totalCardNumber">({{ totalCardNumber }})</span>
+            </span>
+            <div class="button-area align-center">
+              <button
+                *ngIf="!isShowNoDataGuide && !isFirstLoading"
+                class="guide-collapse-btn mr-[16px]"
+                nz-button
+                nzType="default"
+                (click)="isShowGuide = !isShowGuide"
+              >
+                <span>{{ 'create_guide' | i18nextEager }}</span>
+              </button>
+              <button (click)="importTemplate()" [disabled]="!subscribeBtnStatus" nz-button>
+                {{ 'base_import' | i18nextEager }}
+              </button>
+              <button (click)="exportTemplate()" [disabled]="!subscribeBtnStatus" nz-button>
+                {{ 'base_export' | i18nextEager }}
+              </button>
+              <button (click)="openSaveModal()" [disabled]="!subscribeBtnStatus" nz-button nzType="primary">
+                {{ 'create_prompt' | i18nextEager }}
+              </button>
+            </div>
+          </div>
+          <div
+            class="overflow-hidden guide-collapse-content shrink-0"
+            *ngIf="!isShowNoDataGuide && !isFirstLoading"
+            [ngClass]="{ 'h-[188px]': isShowGuide, 'h-[0px]': !isShowGuide, 'mb-[24px]': isShowGuide }"
+          >
+            <app-no-data-guide [isSmall]="true" [type]="'prompt'" (clickDesc)="handleGuideClick($event)"></app-no-data-guide>
+          </div>
+
+          <div *ngIf="!isFirstLoading" [hidden]="isHideCard" class="headerStyle mb-[24px]" id="headerDom">
+            <ng-container *ngIf="!isShowNoDataGuide && !isFirstLoading">
+              <nz-select
+                (ngModelChange)="handleSearch()"
+                [(ngModel)]="selectedIndustry"
+                [nzAllowClear]="true"
+                [nzMaxTagCount]="1"
+                [nzMode]="'multiple'"
+                [nzPlaceHolder]="'prompt_tmpl_apply2task_industry_placeholder' | i18nextEager"
+                [nzShowSearch]="false"
+                class="promptTagsStyles mr-2 w-[200px]"
+                id="select-industry"
+              >
+                @for (item of industryOptions; track item) {
+                  <nz-option [nzLabel]="item.label" [nzValue]="item.id" />
+                }
+              </nz-select>
+              <nz-select
+                (ngModelChange)="handleSearch()"
+                [(ngModel)]="selectedtags"
+                [nzAllowClear]="true"
+                [nzMaxTagCount]="1"
+                [nzMode]="'multiple'"
+                [nzPlaceHolder]="'prompt_tmpl_apply2task_tag_placeholder' | i18nextEager"
+                [nzShowSearch]="false"
+                class="promptTagsStyles mr-2 w-[200px]"
+                id="select-selectall"
+              >
+                @for (item of tagOptions; track item) {
+                  <nz-option [nzLabel]="item.label" [nzValue]="item.id" />
+                }
+              </nz-select>
+              <div class="flex-1 flex gap-2">
+                <input nz-input [(ngModel)]="searchedItems" class="w-[calc(100%-32px)]" (ngModelChange)="handleSearch()" />
+                <button nz-button nzType="default" class="h-8 w-8" (click)="getCardData()">
+                  <span nz-icon nzType="reload"></span>
+                </button>
+              </div>
+            </ng-container>
+          </div>
+          <div [hidden]="cards?.length || isLodingCard || searchNameIsEmpty" class="no-data-prompt mb-[24px]">
+            <app-new-common-no-data-with-btn
+              (clear)="handleClickClearSearch()"
+              (create)="openSaveModal()"
+              [firstLineData]="'no_data' | i18nextEager"
+              [noDataBtnStr]="'create_prompt' | i18nextEager"
+              [tutorialType]="'prompt'"
+              [type]="'filterNoData'"
+            />
+          </div>
+          <div class="no-data-prompt" *ngIf="isShowNoDataGuide">
+            <app-no-data-guide [type]="'prompt'" (clickDesc)="handleGuideClick($event)"></app-no-data-guide>
+          </div>
+          <div class="w-full flex h-full justify-center items-center" *ngIf="isLodingCard && !cards?.length">
+            <nz-spin class="loading-icon"></nz-spin>
+          </div>
+          <div [hidden]="isHideCard" class="card-box com-cards-wrapper mb-[24px]">
+            <div *ngFor="let card of cards" (click)="openCardDetail(card)" [hidden]="isLodingCard" class="card">
+              <div class="header-card mb-1">
+                <div class="flex w-4/5 items-center">
+                  <div [textContent]="card.template_name" class="name-card" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap"></div>
+                </div>
+              </div>
+              <div class="span-line mb-[16px]">
+                <nz-tag [nzMode]="'default'" nzColor="blue" style="margin: 0; padding: 0" class="!rounded-[4px] py-[1px] pl-[2px] pr-[4px]">
+                  {{ language === 'en-us' ? card.industry.name_en : card.industry?.name || ('base_none' | i18nextEager) }}
+                </nz-tag>
+                <nz-tag
+                  *ngIf="card?.pt_type"
+                  style="margin: 0; padding: 0"
+                  [nzMode]="'default'"
+                  nzColor="purple"
+                  class="!rounded-[4px] py-[1px] pl-[2px] pr-[4px]"
+                >
+                  {{ (card.pt_type === 'text' ? 'text' : 'multimodal') | i18nextEager }}
+                </nz-tag>
+                <nz-tag
+                  *ngFor="let tag of card.tag_list"
+                  style="margin: 0; padding: 0"
+                  nzColor="default"
+                  [nzMode]="'default'"
+                  class="!rounded-[4px] py-[1px] pl-[2px] pr-[4px]"
+                >
+                  {{ language === 'en-us' ? tag.name_en : tag.name }}
+                </nz-tag>
+              </div>
+              <div class="mb-[16px] h-[44px]">
+                <div
+                  [textContent]="card.content"
+                  class="content-card cursor-pointer overflow-hidden"
+                  style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical"
+                ></div>
+              </div>
+              <div class="footer-info">
+                <span class="flex items-center footer-content" style="gap: 24px">
+                  <div class="footer-item" style="gap: 0">
+                    <span nz-icon nzType="user" class="mr-[8px] !text-[16px]"></span>
+                    <span class="creator-plugin">
+                      {{ card.creator }}
+                    </span>
+                  </div>
+                  <div class="footer-item" style="gap: 0; position: relative">
+                    <span nz-icon nzType="clock-circle" class="mr-[8px] !text-[16px]" style="position: absolute; top: 3px"></span>
+                    <span style="padding-left: 24px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">
+                      {{ card.created_on | formateTime }}
+                    </span>
+                  </div>
+                </span>
+                <div class="footer-action-container">
+                  @for (item of items; track item.id) {
+                    @if (item.disabled) {
+                      <a nz-button nzType="link" nz-tooltip class="disabled">
+                        {{ item.title }}
+                      </a>
+                    } @else {
+                      <a nz-button nzType="link" class="action-link" (click)="$event.stopPropagation();onSelect(item, card)">
+                        {{ item.title }}
+                      </a>
+                    }
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+          <div [hidden]="isHideCard" class="footer-card footer-flexend">
+            <nz-pagination
+              (nzPageIndexChange)="onPageUpdate()"
+              *ngIf="totalCardNumber"
+              [nzShowTotal]="null"
+              [(nzPageIndex)]="currentCardPage"
+              [nzTotal]="totalCardNumber"
+              [nzPageSize]="cardPageSize.size"
+              [nzPageSizeOptions]="cardPageSize.options"
+              id="pagination-event"
+            ></nz-pagination>
+          </div>
+        </div>
+        <meta-prompt-optimize-task-list
+          class="h-full mt-6"
+          [isLibraryPrompt]="true"
+          [hidden]="buttonGroupSelected !== subTabs[1]?.id"
+          #promptOptimizeList
+          (changePromptButton)="changePromptButton()"
+          (clickGuideDesc)="handleGuideClick($event)"
+        ></meta-prompt-optimize-task-list>
+      </div>
+    </div>
+  </div>
+</div>

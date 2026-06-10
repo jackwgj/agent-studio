@@ -5,22 +5,13 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { I18NextModule } from 'angular-i18next';
 import { catchError, from, mergeMap } from 'rxjs';
 import { SkillApi } from '@agentcore/api/skill.api';
-import {
-  SkillDetail,
-  SkillDetailFromPage,
-  skillDetailSignal,
-  SkillSourceTag,
-  SkillStatusTag
-} from '@agentcore/constants/skill.model';
+import { SkillDetail, SkillDetailFromPage, skillDetailSignal, SkillSourceTag, SkillStatusTag } from '@agentcore/constants/skill.model';
 import { I18nService } from '@agentcore/core/i18n.service';
 import { CustomHeaderComponent } from '@agentcore/shared/components/custom-header/custom-header.component';
 import { CustomHeaderParam } from '@agentcore/shared/components/custom-header/model';
 import { CopyTextRenderComponent } from '@agentcore/shared/components/operator/copy-text-render.component';
 import { HeaderButtonOperator } from '@agentcore/shared/components/operator/header-button-operator.component';
-import {
-  OperatorWithSpaceComponent,
-  OperatorWithSpaceParams
-} from '@agentcore/shared/components/operator/operator-with-space.component';
+import { OperatorWithSpaceComponent, OperatorWithSpaceParams } from '@agentcore/shared/components/operator/operator-with-space.component';
 import { SimpleModalComponent } from '@agentcore/shared/components/simple-modal/simple-modal.component';
 import { I18nPipe } from '@agentcore/shared/pipes/i18n.pipe';
 import { CustomEditorService } from '@agentcore/shared/services/custom-editor.service';
@@ -48,7 +39,7 @@ import { SkillSingleEditorComponent } from './skill-single-editor/skill-single-e
     SimpleModalComponent,
     CopyTextRenderComponent,
     CustomHeaderComponent,
-    MODULES
+    MODULES,
   ],
   providers: [I18nService, CustomEditorService],
 })
@@ -61,9 +52,9 @@ export class SkillDetailComponent {
   packageUrl = computed(() => skillDetailSignal()?.obsUrl);
   historyModalInstance;
   headerParams: Signal<CustomHeaderParam> = computed(() => {
-    this.skillDetail = skillDetailSignal();
 
-    return {
+    this.skillDetail = skillDetailSignal();
+    const res = {
       crumb: [
         {
           label: this._i18n.transform('common.agentArts.crumb'),
@@ -83,6 +74,8 @@ export class SkillDetailComponent {
       tags: this.getTitleTag(),
       operators: this.generateOperator(),
     };
+
+    return res;
   });
   private destoryRef = inject(DestroyRef);
 
@@ -94,7 +87,7 @@ export class SkillDetailComponent {
     private _i18n: I18nService,
     private _customEditorService: CustomEditorService,
     private _setSidebarVisibilityService: SetSidebarVisibilityService
-  ) { }
+  ) {}
 
   ngOnInit() {
     this._setSidebarVisibilityService.setSidebarsVisibilityByState('init');
@@ -152,10 +145,9 @@ export class SkillDetailComponent {
       const D = (date.getDate() < 10 ? '0' + date.getDate() : date.getDate()) + ' ';
       const h = (date.getHours() < 10 ? '0' + date.getHours() : date.getHours()) + ':';
       const m = (date.getMinutes() < 10 ? '0' + date.getMinutes() : date.getMinutes()) + ':';
-      const s = (date.getSeconds() < 10 ? '0' + date.getSeconds() : date.getSeconds());
+      const s = date.getSeconds() < 10 ? '0' + date.getSeconds() : date.getSeconds();
       return Y + M + D + h + m + s;
-    }
-    else {
+    } else {
       return '';
     }
   }
@@ -167,10 +159,10 @@ export class SkillDetailComponent {
       })
       .pipe(takeUntilDestroyed(this.destoryRef))
       .subscribe({
-        next: (data) => {
+        next: data => {
           skillDetailSignal.set(data);
         },
-        error: (err) => {
+        error: err => {
           this._router.navigateByUrl(this.fromUrl.replace(/^(\/#|#)/, ''));
         },
       });
@@ -251,17 +243,17 @@ export class SkillDetailComponent {
       return [
         this.skillDetail.status
           ? {
-            ...statusConfig,
-            label: statusConfig?.labelKey ? this._i18n.transform(statusConfig.labelKey) : this.skillDetail.status,
-          }
+              ...statusConfig,
+              label: statusConfig?.labelKey ? this._i18n.transform(statusConfig.labelKey) : this.skillDetail.status,
+            }
           : undefined,
         this.skillDetail.source
           ? {
-            ...sourceConfig,
-            label: sourceConfig?.labelKey ? this._i18n.transform(sourceConfig.labelKey) : this.skillDetail.source,
-          }
+              ...sourceConfig,
+              label: sourceConfig?.labelKey ? this._i18n.transform(sourceConfig.labelKey) : this.skillDetail.source,
+            }
           : undefined,
-      ].filter((e) => e);
+      ].filter(e => e);
     }
     return [];
   }

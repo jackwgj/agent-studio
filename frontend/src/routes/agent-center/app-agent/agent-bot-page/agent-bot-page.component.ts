@@ -237,7 +237,7 @@ export class AgentBotPageComponent implements OnInit, OnDestroy {
       description: this.i18n.transform("agent_planning_mode_desc"),
       icon: "assets/agent/planning_mode.svg",
       value: AGENT_MODE_CODE.PLANNING_MODE,
-      showFn: () => this.isShowDREnter()
+      showFn: () => this.isShowDREnter() // 当前规划模式暂时只上工行，与深度模式一样
     },
     {
       name: this.i18n.transform("agent_mode_deep"),

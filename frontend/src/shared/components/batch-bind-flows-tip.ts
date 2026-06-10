@@ -8,6 +8,7 @@ import { I18nNamespace } from '@i18n';
 import { PublishedFlowSelectBaseComponent } from '@shared/base/published-flow-select-base.service';
 import { NzSelectModule } from 'ng-zorro-antd/select';
 import { FormsModule } from '@angular/forms';
+import { LAZY_LOAD_LIMIT } from '@routes/agent-center/app-flow/flow.const';
 
 @Component({
   selector: 'model-settings',
@@ -19,16 +20,17 @@ import { FormsModule } from '@angular/forms';
       <div class="flex flex-col gap-[8px]">
         <span>{{ 'bind_go_to' | i18nextEager }}</span>
         <nz-select
-          #select
           style="width: 100%"
-          [nzOptions]="flowList"
+          [nzOptions]="flowSelectOptions"
           [(ngModel)]="flowSelected"
           [nzPlaceHolder]="'select_placeholder' | i18nextEager"
           nzShowSearch
           nzAllowClear
-          [nzServerSearch]="true"
-          (nzOnSearch)="onBeforeSearch($event)"
-          (nzScrollToBottom)="loadMore($event, select)"
+          nzServerSearch
+          [nzLoading]="isLoading"
+          (nzOpenChange)="onOpenChange($event)"
+          (nzOnSearch)="onSearch($event)"
+          (nzScrollToBottom)="onLoadMore()"
         >
         </nz-select>
       </div>
@@ -71,6 +73,10 @@ export class batchBindFlowsComponent extends PublishedFlowSelectBaseComponent {
 
   public flowSelected = '';
 
+  public isLoading = false;
+
+  public searchWord = '';
+
   @Output() flowInfoSelected = new EventEmitter<string>();
 
   constructor(
@@ -83,6 +89,73 @@ export class batchBindFlowsComponent extends PublishedFlowSelectBaseComponent {
     this.route.queryParams.subscribe((params) => {
       this.workflowId = params.id;
     });
+  }
+
+  get flowSelectOptions() {
+    return (this.getFlowList || []).map(item => ({
+      label: item.name ?? '',
+      value: item,
+    }));
+  }
+
+  get getFlowList() {
+    return (this as any).flowList as any[];
+  }
+
+  onOpenChange(isOpen: boolean) {
+    if (!isOpen) return;
+    this.isLoading = true;
+    this.appFlowRepoServe
+      .getPublishedFlows({ offset: 0, limit: LAZY_LOAD_LIMIT })
+      .then(result => {
+        (this as any).flowList = (result?.workflow_version_list || []).filter(
+          (item) => item.workflow_id !== this.workflowId,
+        );
+        this.isLoading = false;
+      })
+      .catch(() => {
+        (this as any).flowList = [];
+        this.isLoading = false;
+      });
+  }
+
+  onSearch(searchValue: string) {
+    this.searchWord = searchValue;
+    this.isLoading = true;
+    this.appFlowRepoServe
+      .getPublishedFlows({ offset: 0, limit: LAZY_LOAD_LIMIT, name: searchValue })
+      .then(result => {
+        (this as any).flowList = (result?.workflow_version_list || []).filter(
+          (item) => item.workflow_id !== this.workflowId,
+        );
+        this.isLoading = false;
+      })
+      .catch(() => {
+        (this as any).flowList = [];
+        this.isLoading = false;
+      });
+  }
+
+  onLoadMore() {
+    const currentList = this.getFlowList || [];
+    if (currentList.length >= (this as any).totalIntentBranches) return;
+    this.isLoading = true;
+    this.appFlowRepoServe
+      .getPublishedFlows({
+        offset: currentList.length,
+        limit: LAZY_LOAD_LIMIT,
+        name: this.searchWord,
+      })
+      .then(result => {
+        (this as any).flowList = [
+          ...currentList,
+          ...result.workflow_version_list,
+        ].filter((item) => item.workflow_id !== this.workflowId);
+        this.isLoading = false;
+      })
+      .catch(() => {
+        this.isLoading = false;
+      });
   }
 
   public dismiss() {

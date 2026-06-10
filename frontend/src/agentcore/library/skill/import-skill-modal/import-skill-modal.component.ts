@@ -1,25 +1,25 @@
-import {HttpClient} from '@angular/common/http';
-import {Component, EventEmitter, inject, Input, Output} from '@angular/core';
-import {AbstractControl, FormBuilder, FormControl, FormGroup, ValidationErrors} from '@angular/forms';
-import {I18NEXT_NAMESPACE, I18NextModule} from 'angular-i18next';
-import {Unzipped, unzipSync} from 'fflate';
-import {lastValueFrom} from 'rxjs';
-import {debounceTime, distinctUntilChanged} from 'rxjs/operators';
-import {SkillApi} from '@agentcore/api/skill.api';
-import {I18N_NAMESPACE} from '@agentcore/constants/common';
-import {IMPORT_TYPE} from '@agentcore/constants/skill';
-import {i18nProviderValue, I18nService} from '@agentcore/core/i18n.service';
-import {HelpDocKey} from '@constants/support-topic.const';
-import {MODULES} from '@shared/modules';
-import {HelpLinksService} from '@shared/services/help-links.service';
-import {NzModalRef} from 'ng-zorro-antd/modal';
-import {NzUploadChangeParam, NzUploadFile} from 'ng-zorro-antd/upload';
-import {NzMessageService} from 'ng-zorro-antd/message';
-import {NzToolTipModule} from 'ng-zorro-antd/tooltip';
-import {NzButtonModule} from 'ng-zorro-antd/button';
-import {cdnAssetUrl} from '../../../../single-spa/assets-url';
-import {SkillInfo} from '../interface/skill.interface';
-import {SkillCommonService} from '../services/skill.common.service';
+import { HttpClient } from '@angular/common/http';
+import { Component, EventEmitter, inject, Input, Output } from '@angular/core';
+import { AbstractControl, FormBuilder, FormControl, FormGroup, ValidationErrors } from '@angular/forms';
+import { I18NEXT_NAMESPACE, I18NextModule } from 'angular-i18next';
+import { Unzipped, unzipSync } from 'fflate';
+import { lastValueFrom } from 'rxjs';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { SkillApi } from '@agentcore/api/skill.api';
+import { I18N_NAMESPACE } from '@agentcore/constants/common';
+import { IMPORT_TYPE } from '@agentcore/constants/skill';
+import { i18nProviderValue, I18nService } from '@agentcore/core/i18n.service';
+import { HelpDocKey } from '@constants/support-topic.const';
+import { MODULES } from '@shared/modules';
+import { HelpLinksService } from '@shared/services/help-links.service';
+import { NzModalRef } from 'ng-zorro-antd/modal';
+import { NzUploadFile } from 'ng-zorro-antd/upload';
+import { NzMessageService } from 'ng-zorro-antd/message';
+import { NzToolTipModule } from 'ng-zorro-antd/tooltip';
+import { NzButtonModule } from 'ng-zorro-antd/button';
+import { cdnAssetUrl } from '../../../../single-spa/assets-url';
+import { SkillInfo } from '../interface/skill.interface';
+import { SkillCommonService } from '../services/skill.common.service';
 
 @Component({
   selector: 'meta-import-skill',
@@ -76,13 +76,11 @@ export class ImportSkillModalComponent {
 
   ngOnInit(): void {
     this.skillLink = this.helpLinksService.getHelpCenterLink(HelpDocKey.MODELARTS_PRICES);
-    this.obsForm.controls.obsAddress?.valueChanges
-      .pipe(debounceTime(300), distinctUntilChanged())
-      .subscribe((value) => this.onObsAddressChange(value));
+    this.obsForm.controls.obsAddress?.valueChanges.pipe(debounceTime(300), distinctUntilChanged()).subscribe(value => this.onObsAddressChange(value));
     this.skillCommonService.initObsEndpoint();
   }
 
-  async onAddFileSuccess(fileItem: NzUploadFile) {
+  async onAddFileSuccess(fileItem: any) {
     this.importZipErrorTip = '';
     this.selectedFile = fileItem;
     const file = this.selectedFile as any;
@@ -117,7 +115,7 @@ export class ImportSkillModalComponent {
     }
 
     this.skillApi.importSkill(formData).subscribe({
-      next: (res) => {
+      next: res => {
         this.close();
         const msg =
           this.importType === IMPORT_TYPE.OBS
@@ -126,7 +124,7 @@ export class ImportSkillModalComponent {
         this.message.success(msg);
         this.importSuccess.emit();
         this.modalRef.destroy();
-      }
+      },
     });
   }
 
@@ -165,7 +163,7 @@ export class ImportSkillModalComponent {
     this.modalRef.destroy();
   }
 
-  close(): void { }
+  close(): void {}
 
   private parseSkillMd(content: string): { name: string; description: string } {
     const skill = { name: '', description: '' };
@@ -192,7 +190,7 @@ export class ImportSkillModalComponent {
     }
     const rootFiles = Object.keys(fileMap);
     const hasSingleFolder = this.hasSingleFolder(rootFiles);
-    const folders = rootFiles.filter((path) => path.includes('/'));
+    const folders = rootFiles.filter(path => path.includes('/'));
     this.isShowResult = true;
     if (!hasSingleFolder) {
       this.importZipErrorTip = this.i18n.transform('skill.import.result.valid.tip1');
@@ -220,17 +218,22 @@ export class ImportSkillModalComponent {
   }
 
   private hasSingleFolder(zipFiles: string[]): boolean {
-    const rootFolders = new Set(zipFiles.map((file) => file.split('/')[0]));
+    const rootFolders = new Set(zipFiles.map(file => file.split('/')[0]));
     return rootFolders.size === 1;
   }
 
-  handleUploadChange(info: NzUploadChangeParam): void {
-    if (info.file.status === 'done') {
-      this.onAddFileSuccess(info.file);
-    } else if (info.file.status === 'removed') {
+  handleUploadChange(fileItem: any): void {
+    if (fileItem.type === 'removed') {
       this.onRemoveItems();
-    } else if (info.file.response?.error) {
-      this.onAddItemFailed({ validResults: ['type'] });
+      return;
     }
+    if (fileItem.type !== 'start') {
+      return;
+    }
+    if (fileItem.file.name.lastIndexOf('.zip') < 0) {
+      this.onAddItemFailed({ validResults: ['type'] });
+      return;
+    }
+    this.onAddFileSuccess(fileItem.file.originFileObj);
   }
 }

@@ -145,6 +145,7 @@ export class AppComponent implements OnInit {
     if(this.judgeHostAndPathName()){
       StorageService.setSessionStorage('CUR_SPACE_OPTIONS', '{}')
     }
+    this.#initTiny();
     this.#initFurion();
 
     this.initPocServiceType();
@@ -328,6 +329,12 @@ export class AppComponent implements OnInit {
       this.http.confirmFn();
     }
   }
+
+  /**
+   * 初始化 Tiny
+   */
+  // TODO 是不是要删除
+  #initTiny() {}
 
   /**
    * 订阅

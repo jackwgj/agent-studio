@@ -1,0 +1,195 @@
+.object-template {
+  flex-direction: column;
+  gap: 10px;
+  height: 100%;
+  overflow-y: auto;
+
+  .search-bar {
+    display: flex;
+    margin: 0 0 12px 0;
+    width: 100%;
+  }
+
+  .search-input {
+    flex: 1;
+    margin-right: 8px;
+  }
+
+  .flex {
+    gap: 16px;
+  }
+
+  .template-list {
+    height: 450px;
+    width: 214px;
+    display: flex;
+    overflow-y: scroll;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: flex-start;
+    gap: 8px;
+
+  }
+
+  .template-item {
+    width: 200px;
+    height: 54px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-direction: row;
+    justify-content: flex-start;
+    padding: 16px 24px 16px 24px;
+    box-sizing: border-box;
+    border: 1px solid rgba(240, 240, 240, 1);
+    border-radius: 8px;
+    background: #FAFAFA;
+
+    span {
+      width: 120px;
+      height: 22px;
+      color: rgba(25, 25, 25, 1);
+
+      font-family: "PingFang SC";
+      font-size: 14px;
+      font-weight: 400;
+      line-height: 22px;
+      letter-spacing: 0;
+      text-align: left;
+    }
+
+    input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      box-sizing: border-box;
+      border: 1px solid rgba(194, 194, 194, 1);
+      border-radius: 4px;
+    }
+  }
+
+  .itemChecked {
+    border: 1px solid rgba(20, 118, 255, 1);
+    background: rgba(255, 255, 255, 1);
+  }
+
+  .template-detail {
+    flex: 1;
+    padding: 0;
+
+    .card {
+      height: 450px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      background-color: #fff;
+      padding: 16px;
+      overflow-y: auto;
+    }
+
+    .template-name {
+      p {
+        font-size: 14px;
+        font-weight: bold;
+        line-height: 22px;
+        letter-spacing: 0;
+        text-align: left;
+      }
+
+    }
+
+    .param-tree-table {
+      font-family: "Microsoft Yahei", sans-serif;
+      font-size: 14px;
+      border-radius: 4px;
+      overflow: hidden;
+      width: 100%;
+
+      .table-header {
+        display: flex;
+        background-color: #f5f5f5;
+
+        .table-col {
+          padding: 5px 10px !important;
+          font-size: 12px;
+        }
+
+        &:last-child {
+          border-right: none;
+        }
+      }
+
+      .table-col {
+        padding: 5px 10px;
+        box-sizing: border-box;
+      }
+
+      .col-name {
+        width: 180px;
+      }
+
+      .col-type {
+        width: 120px;
+      }
+
+      .col-default {
+        width: 120px;
+      }
+
+      .col-desc {
+        width: 150px;
+      }
+
+      .table-row {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        border-bottom: 1px solid #eee;
+      }
+
+      .table-row:last-child {
+        border-bottom: none;
+      }
+
+      .col-name {
+        position: relative;
+        display: flex;
+        align-items: center;
+      }
+
+      .indent {
+        display: inline-flex;
+        align-items: center;
+        margin-right: 4px;
+      }
+
+      .tree-content .ti-tree-node-switcher {
+        display: none !important;
+      }
+
+      .tree-content .ti-tree-node {
+        padding: 0 !important;
+      }
+    }
+  }
+}
+
+.warn-icon {
+  font-size: 16px;
+  color: var(--ti-message-warn-icon-color);
+  margin-right: 9px;
+}
+
+.unset {
+  color: rgba(194, 194, 194, 1);
+}
+
+.ti-tree-node.is-leaf .ti-tree-node-folder {
+  display: none;
+}
+
+.ti3-modal-header {
+  padding: 32px 32px 24px 32px;
+}
+
+.ti3-modal-footer {
+  padding: 24px 32px;
+}

@@ -90,7 +90,7 @@ export class IntentPackageService {
   }
 
   public downloadTemlate(): Promise<any> {
-    return this.http.getBlobAsync({
+    return this.http.postBlobAsync({
       method: 'POST',
       url: `${this.prefix}/complex-intent/export-template`,
       dataType: 'blob',
@@ -98,7 +98,7 @@ export class IntentPackageService {
   }
 
   public exportIntent(params: any): Promise<any> {
-    return this.http.getBlobAsync({
+    return this.http.postBlobAsync({
       method: 'POST',
       url: `${this.prefix}/complex-intent/export`,
       dataType: 'blob',

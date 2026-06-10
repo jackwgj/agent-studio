@@ -113,7 +113,7 @@
   <nz-modal [(nzVisible)]="mcpFailTemplateVisible" (nzOnCancel)="closeMcpFailBox()">
     <div *nzModalTitle>
       <div style="display: flex; align-items: center; gap: 8px">
-        <img  [src]="changeUrl('assets/agent-center/images/error.svg')" alt="" />
+        <img [src]="changeUrl('assets/agent-center/images/error.svg')" alt="" />
         <span>{{ name }} {{ 'deployFailed' | i18nextEager }}</span>
       </div>
     </div>

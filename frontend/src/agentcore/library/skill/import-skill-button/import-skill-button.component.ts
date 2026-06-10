@@ -49,6 +49,6 @@ export class ImportSkillButtonComponent implements OnInit {
       } else {
         this.importCompleted.emit();
       }
-    })
+    });
   }
 }

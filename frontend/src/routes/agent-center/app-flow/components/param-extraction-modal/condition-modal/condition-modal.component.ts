@@ -1,12 +1,255 @@
-import { Component } from '@angular/core';
+import {
+  Component,
+  EventEmitter,
+  Input,
+  OnInit,
+  Output,
+  SimpleChanges,
+} from '@angular/core';
+import { I18NEXT_NAMESPACE, I18NextEagerPipe } from 'angular-i18next';
+import { I18nNamespace } from '@i18n';
+import { MODULES } from '@shared/modules';
+import { IBranchCondition, IWorkflowFieldType } from '../../../node.type';
+import { AccBlockComponent } from '@routes/agent-center/app-flow/components/acc-block/acc-block.component';
+import { ExceptionHandlingComponent } from '@routes/agent-center/app-flow/components/exception-handling/exception-handling.component';
+import {
+  IntegerStrValidatorDirective,
+  NumberStrValidatorDirective,
+  PositiveIntValidatorDirective,
+  RefSelectedRequireDirective,
+} from '@shared/directives/common-validator.directive';
+import { NonEmptyValidatorDirective } from '@shared/directives/variable-name-validator.directive';
+import { ParamTreeComponent } from '@routes/agent-center/app-flow/components/param-tree/param-tree.component';
+import { TypedJsonInputComponent } from '@shared/components/typed-json-input/typed-json-input.component';
+import { ReadonlyParamsTreeComponent } from '@routes/agent-center/app-flow/components/readonly-params/readonly-params-tree.component';
+import * as nodeType from '@routes/agent-center/app-flow/node.type';
+import { NODE_ACTIONS } from '@routes/agent-center/constants/workflow-common.const';
+import { NodeService } from '@routes/agent-center/app-flow/node.service';
+import { AppFlowService } from '@routes/agent-center/app-flow/app-flow.service';
+import { NodeUtils } from '@routes/agent-center/app-flow/components/utils';
 import { ModalBaseComponent } from '@routes/agent-center/app-flow/components/base/modal-base.component';
+import { BranchUtils } from '@routes/agent-center/app-flow/components/branch.utils';
+import { ParamTreeSelectedComponent } from '@routes/agent-center/app-flow/components/param-tree/param-tree-selected.component';
+import { cloneDeep } from 'lodash';
+import { InputTreeSelect } from 'src/routes/agent-center/app-flow/components/input-tree-select/input-tree-select';
 
 @Component({
   selector: 'condition-modal',
   templateUrl: './condition-modal.component.html',
   styleUrls: ['./condition-modal.component.less', '../../common-styles.less'],
   standalone: true,
-  imports: [],
-  providers: [],
+  imports: [
+    MODULES,
+    AccBlockComponent,
+    NonEmptyValidatorDirective,
+    RefSelectedRequireDirective,
+    ReadonlyParamsTreeComponent,
+    ParamTreeComponent,
+    TypedJsonInputComponent,
+    ExceptionHandlingComponent,
+    IntegerStrValidatorDirective,
+    ParamTreeSelectedComponent,
+    NumberStrValidatorDirective,
+    PositiveIntValidatorDirective,
+    InputTreeSelect,
+  ],
+  providers: [
+    {
+      provide: I18NEXT_NAMESPACE,
+      useValue: [
+        I18nNamespace.AGENT_CENTER,
+        I18nNamespace.AGENT,
+        I18nNamespace.KNOWLEDGE,
+        I18nNamespace.COMMON,
+      ],
+    },
+  ],
 })
-export class ConditionModalComponent extends ModalBaseComponent {}
+export class ConditionModalComponent
+  extends ModalBaseComponent
+  implements OnInit {
+  @Input('showFold') showFold: boolean = true;
+
+  @Input('title') title: string;
+
+  @Input('titleTip') titleTip: string;
+
+  @Input('entryCondition') entryCondition: nodeType.IBranchConfigs;
+
+  @Output('confirm') confirm = new EventEmitter<any>();
+
+  @Output('valueChange') valueChange = new EventEmitter<any>();
+  @Output('inputChange') inputChange = new EventEmitter<any>();
+  @Output('inputChangeUpdateTime') inputChangeUpdateTime = new EventEmitter<any>();
+
+
+  @Input('conditionRefOptions') conditionRefOptions: nodeType.IParamRef[] = [];
+
+  public validationRules: any[] = [];
+
+  public validation: any = {
+    type: 'change',
+  };
+
+  override actions = [
+    {
+      id: 'detail',
+      label: this.i18n.transform('sub_workflow_details'),
+    },
+    ...NODE_ACTIONS,
+  ];
+
+  public isValidated = false;
+
+  public emptyModel = '';
+
+  public paramSourceOptions = [
+    { label: this.i18n.transform('ref'), value: 'ref' },
+    { label: this.i18n.transform('literal'), value: 'literal' },
+  ];
+
+  public strConditionOptions = BranchUtils.getStrConditionOptions(this.i18n);
+
+  public arrConditionOptions = BranchUtils.getArrConditionOptions(this.i18n);
+
+  public numConditionOptions = BranchUtils.getNumConditionOptions(this.i18n);
+
+  public boolConditionOptions = BranchUtils.getBoolConditionOptions(this.i18n);
+
+  public objConditionOptions = BranchUtils.getObjConditionOptions(this.i18n);
+
+  public booleanOps = BranchUtils.getBooleanOps();
+
+  public emptyOps = [];
+
+  public iconClassNameMap = BranchUtils.getConditionOpIconClassName;
+
+  constructor(
+    private i18n: I18NextEagerPipe,
+    protected override nodeServ: NodeService,
+    private appFlowServe: AppFlowService,
+  ) {
+    super(nodeServ, appFlowServe);
+  }
+
+  getType = NodeUtils.getFieldTypeView;
+
+  public override ngOnInit() {
+    super.ngOnInit();
+    if (this.isInit) {
+      this.initConditionRefs();
+    }
+    this.isInit = false;
+  }
+
+  ngOnChanges(changes: SimpleChanges) {
+    if (
+      changes.conditionRefOptions &&
+      changes.conditionRefOptions.currentValue
+    ) {
+      this.setCondition();
+    }
+  }
+
+  public leftTypeChange = BranchUtils.leftTypeChange;
+
+  public opChange = BranchUtils.opChange;
+  public onTypeChange = BranchUtils.onTypeChange;
+
+  setCondition() {
+    if (!this.entryCondition) {
+      this.entryCondition = {
+        logic: 'and',
+        conditions: [],
+      };
+    }
+    this.entryCondition.conditions.forEach((con) => {
+      NodeUtils.reSelectRefWithNewOps(con.left, this.conditionRefOptions);
+
+      if (con.right?.value?.type === 'ref') {
+        NodeUtils.reSelectRefWithNewOps(con.right, this.conditionRefOptions);
+      }
+    });
+  }
+
+  public initConditionRefs() {
+    const conditionConfCopy = cloneDeep(this.entryCondition);
+    if (conditionConfCopy) {
+      conditionConfCopy.conditions = conditionConfCopy.conditions.map(
+        (condition) => {
+          return BranchUtils.buildViewCondition(
+            condition,
+            this.conditionRefOptions,
+          );
+        },
+      );
+      this.entryCondition = conditionConfCopy;
+    } else {
+      this.entryCondition = {
+        logic: 'and',
+        conditions: [],
+      };
+    }
+  }
+
+  public onIfExpChange(): void {
+    BranchUtils.onExpChange(this.entryCondition);
+    this.onSave();
+  }
+
+  public addIfCondition() {
+    this.entryCondition.conditions.push(this.getBranchConditionObj());
+    this.onSave();
+  }
+
+  public deleteIfExp(index: number): void {
+    this.entryCondition.conditions.splice(index, 1);
+    this.onSave();
+  }
+
+  public isStrType(type: IWorkflowFieldType) {
+    if (type === 'string' || type?.startsWith('file')) {
+      return true;
+    }
+
+    return false;
+  }
+
+  public canFillStr(type: IWorkflowFieldType) {
+    if (
+      ['string', 'object'].includes(type) ||
+      type.toLowerCase().startsWith('file')
+    ) {
+      return true;
+    }
+
+    return false;
+  }
+
+  private getBranchConditionObj(): IBranchCondition {
+    return BranchUtils.getBranchConditionObj(this.conditionRefOptions);
+  }
+
+  dismiss(): void { }
+
+  close(): void { }
+
+  onSave() {
+    this.changeUpdateTime();
+    this.valueChange.emit();
+  }
+
+  treeSelect() {
+    setTimeout(() => {
+      this.onSave();
+    });
+  }
+
+  inputOnSave() {
+    this.inputChange.emit();
+  }
+
+  changeInputUpdateTime() {
+    this.inputChangeUpdateTime.emit();
+  }
+}

@@ -1,11 +1,4 @@
-import {
-  Component,
-  Output,
-  EventEmitter,
-  ViewChild,
-  ElementRef,
-  Input,
-} from '@angular/core';
+import { Component, Output, EventEmitter, ViewChild, ElementRef, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MODULES } from '@shared/modules';
 import { I18nNamespace } from '@i18n';
@@ -14,7 +7,7 @@ import { CommonUtils } from 'src/utils/common.util';
 import { cdnAssetUrl } from 'src/single-spa/assets-url';
 import { MessageComponent } from '@shared/services/cfdata.service';
 import { IntentPackageService } from '../../intent-package.service';
-
+import { agentCommonLogic } from '@routes/agent-center/app-agent/common-logic-agent';
 @Component({
   selector: 'import-intent-modal',
   templateUrl: './import-intent.component.html',
@@ -42,6 +35,7 @@ export class ImportIntentModalComponent {
   constructor(
     private readonly i18n: I18NextEagerPipe,
     private readonly api: IntentPackageService,
+    private commonLogic: agentCommonLogic
   ) {}
 
   public changeUrl = cdnAssetUrl;
@@ -49,12 +43,12 @@ export class ImportIntentModalComponent {
   public uplaodFile: any = {};
 
   downTemplate(): void {
-    this.api.downloadTemlate().then((res) => {
+    this.api.downloadTemlate().then(res => {
       CommonUtils.downloadFile(
-        new Blob([res.data], {
+        new Blob([res], {
           type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         }),
-        res.headers.get('Content-Disposition'),
+        `${this.commonLogic.getFormattedDateTime()}.xlsx`
       );
     });
   }
@@ -96,16 +90,11 @@ export class ImportIntentModalComponent {
       .then((res: any) => {
         if (res.success) {
           this.dismiss();
-          MessageComponent.showSuccess(
-            this.i18n.transform('upload_success'),
-            3000,
-          );
+          MessageComponent.showSuccess(this.i18n.transform('upload_success'), 3000);
           this.refreshTable.emit(res.intent_ids);
         }
       })
-      .finally(() => {
-
-      });
+      .finally(() => {});
   }
 
   public dismiss() {}

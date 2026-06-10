@@ -1,0 +1,26 @@
+<div *nzModalTitle>
+  <span>{{ 'import_prompt_template' | i18nextEager }}</span>
+</div>
+<div>
+  <div class="import-body">
+    <div class="import-tip">
+      <img class="h-4 w-4" [src]="changeUrl('assets/prompt/import-tip.svg')" alt="" />
+      <p class="tip-content">
+        <span [innerHTML]="'import_template' | i18nextEager"></span>
+        <a (click)="downloadTemplate()">{{ 'download_template' | i18nextEager }}</a>
+      </p>
+    </div>
+    <div class="import-button">
+      <nz-upload nzAccept=".xls,.xlsx" nzListType="text" [nzShowUploadList]="true" (nzChange)="onAddFileSuccess($event)" (nzOnRemove)="onRemoveItems()">
+        <button nz-button>
+          <span nz-icon nzType="upload"></span>
+          {{ (selectedFile ? 'reselect_file' : 'add_file') | i18nextEager }}
+        </button>
+      </nz-upload>
+    </div>
+  </div>
+</div>
+<div *nzModalFooter>
+  <button (click)="dismiss()" nz-button type="button">{{ 'cancel' | i18nextEager }}</button>
+  <button (click)="confirm()" nz-button type="button" nzType="primary">{{ 'import' | i18nextEager }}</button>
+</div>

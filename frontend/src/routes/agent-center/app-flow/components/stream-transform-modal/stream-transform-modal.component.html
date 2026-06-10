@@ -1,5 +1,5 @@
-<!-- <div class="flex h-full w-full flex-col" (keydown)="handleKeyDown($event)">
-  <tp-halfmodal-header class="mb-[16px] block">
+<div class="flex h-full w-full flex-col" (keydown)="handleKeyDown($event)">
+  <div class="mb-[16px] block">
     <div class="flex w-[calc(100%-38px)] items-center justify-between">
       <div class="flex items-center gap-[8px]">
         <img class="model-config-icon" [src]="icon" alt="message-node" />
@@ -8,9 +8,14 @@
       </div>
 
       <div class="flex items-center gap-[16px]" *ngIf="!isFlowReadonly">
-        <div class="cursor-pointer" [tiTip]="'icon-more' | i18nextEager">
-          <ti-menu class="pw-three-dots-more-modal" [items]="actions" (select)="onClickAction($event)" ellipsis></ti-menu>
+        <div class="cursor-pointer" nz-dropdown [nzDropdownMenu]="actionsMenu" nzTrigger="click">
+          <span nz-icon nzType="more" nzTheme="outline"></span>
         </div>
+        <nz-dropdown-menu #actionsMenu="nzDropdownMenu">
+          <ul nz-menu>
+            <li *ngFor="let action of actions" nz-menu-item (click)="onClickAction(action)">{{ action.label }}</li>
+          </ul>
+        </nz-dropdown-menu>
         <div class="h-[16px] w-[1px] bg-[#dbdbdb]"></div>
       </div>
     </div>
@@ -18,9 +23,9 @@
     <node-description [nodeInfo]="nodeInfo" (descriptionChange)="updateView()"></node-description>
 
     <div class="mt-[16px] h-[1px] w-full bg-[#f0f0f0]"></div>
-  </tp-halfmodal-header>
+  </div>
 
-  <tp-halfmodal-body id="flow-llm-modal-body">
+  <div id="flow-llm-modal-body" class="relative h-full w-full overflow-auto flex-1 pr-[16px]">
     <div class="h-full w-full overflow-auto">
       <meta-acc-block class="mt-2 block" [title]="'input_params' | i18nextEager">
         <ng-template #content>
@@ -45,11 +50,9 @@
                   style="width: 100%"
                   type="text"
                   [name]="'inputFormName' + i"
-                  [tiValidation]="{ type: 'changeAlert' }"
                   variableNameValidator
-                  [errorMessageWrapper]="wrapper"
                   [maxlength]="paramNameMaxLen"
-                  tiText
+                  nz-input
                   [(ngModel)]="param.name"
                   [title]="param.name"
                   (input)="onNameChange()"
@@ -57,43 +60,49 @@
                   [placeholder]="'input_placeholder' | i18nextEager"
                   (ngModelChange)="changeUpdateTime()"
                   (blur)="inputOnSave()"
+                  [class.input-error]="inputForm?.controls['inputFormName' + i]?.invalid && (inputForm?.controls['inputFormName' + i]?.dirty || inputForm?.controls['inputFormName' + i]?.touched)"
                 />
-                <div class="w-full" #wrapper></div>
+                <div *ngIf="inputForm?.controls['inputFormName' + i]?.invalid && (inputForm?.controls['inputFormName' + i]?.dirty || inputForm?.controls['inputFormName' + i]?.touched)" class="error-tip">
+                  {{inputForm?.controls['inputFormName' + i]?.errors?.serviceName?.tiErrorMessage}}
+                </div>
               </div>
 
               <div class="flex w-2/3 gap-[8px]">
                 <div class="flex h-fit w-[calc(100%-16px)] items-center gap-2">
                   <div class="flex w-full">
                     <div class="w-[35%]">
-                      <ti-select
+                      <nz-select
                         *ngIf="param.value?.type"
                         class="combo-select-left"
                         style="width: 100%"
-                        [options]="sourceOptions"
+                        [nzOptions]="$any(sourceOptions)"
                         [name]="'inputFormType' + i"
                         [(ngModel)]="param.value.type"
-                        valueKey="value"
-                        [disabled]="true"
-                      ></ti-select>
+                        nzLabelKey="value"
+                        [nzDisabled]="true"
+                      ></nz-select>
                     </div>
 
                     <div class="w-[65%]">
-                      <input
-                        class="combo-select-right"
-                        *ngIf="param.value?.type === 'literal'"
-                        style="width: 100%"
-                        type="text"
-                        [name]="'inputFormValue' + i"
-                        [tiValidation]="{ type: 'changeAlert' }"
-                        nonEmptyValidator
-                        [errorMessageWrapper]="valueWrapper"
-                        tiText
-                        [placeholder]="'input_placeholder' | i18nextEager"
-                        [(ngModel)]="param.value.content"
-                        [title]="param.value.content"
-                        (ngModelChange)="changeUpdateTime()"
-                        (blur)="inputOnSave()"
-                      />
+                      <ng-container *ngIf="param.value?.type === 'literal'">
+                        <input
+                          class="combo-select-right"
+                          style="width: 100%"
+                          type="text"
+                          [name]="'inputFormValue' + i"
+                          nonEmptyValidator
+                          nz-input
+                          [placeholder]="'input_placeholder' | i18nextEager"
+                          [(ngModel)]="param.value.content"
+                          [title]="param.value.content"
+                          (ngModelChange)="changeUpdateTime()"
+                          (blur)="inputOnSave()"
+                          [class.input-error]="inputForm?.controls['inputFormValue' + i]?.invalid && (inputForm?.controls['inputFormValue' + i]?.dirty || inputForm?.controls['inputFormValue' + i]?.touched)"
+                        />
+                        <div *ngIf="inputForm?.controls['inputFormValue' + i]?.invalid && (inputForm?.controls['inputFormValue' + i]?.dirty || inputForm?.controls['inputFormValue' + i]?.touched)" class="error-tip">
+                          {{inputForm?.controls['inputFormValue' + i]?.errors?.serviceName?.tiErrorMessage}}
+                        </div>
+                      </ng-container>
 
                       <input-tree-select
                         *ngIf="param.value?.type === 'ref'"
@@ -102,8 +111,6 @@
                         [options]="param.refs"
                         [name]="'inputFormValue' + i"
                         refSelectedRequire
-                        [tiValidation]="{ type: 'changeAlert' }"
-                        [errorMessageWrapper]="valueWrapper"
                         [placeholder]="'select_placeholder' | i18nextEager"
                         (select)="treeSelect()"
                       ></input-tree-select>
@@ -123,7 +130,12 @@
       <div>{{'stream_transform_2'|i18nextEager}}</div>
       <div class="desc-text">{{'stream_transform_3'|i18nextEager}}</div>
       <form [formGroup]="modelFormGroup">
-        <ti-code-editor id="code-modal-code-editor" [config]="editorConfig" formControlName="code" height="300px"></ti-code-editor>
+        <textarea
+          nz-input
+          formControlName="code"
+          [placeholder]="'input_placeholder' | i18nextEager"
+          style="width: 100%; min-height: 300px; font-family: monospace;"
+        ></textarea>
       </form>
 
       <div class="assemble-title">
@@ -131,12 +143,12 @@
         <button
           (click)="addAssembleParam()"
           class="w-fit"
-          tiButton
-          [tiTip]="'add_params' | i18nextEager"
+          nz-button
+          nzType="text"
+          nz-tooltip [nzTooltipTitle]="'add_params' | i18nextEager"
           [disabled]="isReachedParamLimit(assembleParams)"
-          [hasBorder]="false"
         >
-          <tp-icon class="header-button-icon" name="cloudx-action-create-1" />
+          <span nz-icon nzType="plus" nzTheme="outline"></span>
         </button>
       </div>
       <div class="desc-text">{{'stream_transform_5'|i18nextEager}}</div>
@@ -147,11 +159,9 @@
               style="width: 100%"
               type="text"
               [name]="'assembleFormName' + i"
-              [tiValidation]="{ type: 'changeAlert' }"
               NonEmptyValidator
-              [errorMessageWrapper]="assembleWrapper"
               [maxlength]="500"
-              tiText
+              nz-input
               [(ngModel)]="param.name"
               [title]="param.name"
               (input)="onAssembleChange()"
@@ -159,12 +169,21 @@
               [placeholder]="'input_placeholder' | i18nextEager"
               (ngModelChange)="changeUpdateTime()"
               (blur)="inputOnSave()"
+              [class.input-error]="assembleForm?.controls['assembleFormName' + i]?.invalid && (assembleForm?.controls['assembleFormName' + i]?.dirty || assembleForm?.controls['assembleFormName' + i]?.touched)"
             />
-            <div class="w-full" #assembleWrapper></div>
+            <div *ngIf="assembleForm?.controls['assembleFormName' + i]?.invalid && (assembleForm?.controls['assembleFormName' + i]?.dirty || assembleForm?.controls['assembleFormName' + i]?.touched)" class="error-tip">
+              {{assembleForm?.controls['assembleFormName' + i]?.errors?.serviceName?.tiErrorMessage}}
+            </div>
           </div>
-          <tp-icon (click)="deleteAssembleParam(i)" style="font-size: 16px; color: #191919; cursor: pointer; padding-top: 6px" name="cloudx-action-delete" />
+          <span
+            (click)="deleteAssembleParam(i)"
+            style="font-size: 16px; color: #191919; cursor: pointer; padding-top: 6px"
+            nz-icon
+            nzType="delete"
+            nzTheme="outline"
+          ></span>
         </div>
       </form>
     </div>
-  </tp-halfmodal-body>
-</div> -->
+  </div>
+</div>

@@ -27,7 +27,7 @@ $editor-head-height: 40px;
 .file-editor ::ng-deep {
   display: flex;
   height: 650px;
-  border: 2px solid var(--ti-color-border-divider-1);
+  border: 1px solid #F0F0F0;
   border-radius: 9px;
   --sidebar-width: 330px;
   position: relative;
@@ -36,7 +36,7 @@ $editor-head-height: 40px;
 .header {
   height: $editor-head-height;
   align-items: center;
-  border-bottom: 1px solid var(--ti-color-border-divider-1);
+  border-bottom: 1px solid #DBDBDB;
   display: flex;
   overflow: hidden;
 }
@@ -51,14 +51,14 @@ $editor-head-height: 40px;
   width: var(--sidebar-width);
 
   .header {
-    border-right: 1px solid var(--ti-color-border-divider-1);
+    border-right: 1px solid #F0F0F0;
   }
 
   .file-tree {
     overflow-x: hidden;
     height: calc(100% - $editor-head-height);
     overflow-y: overlay;
-    border-right: 1px solid var(--ti-color-border-divider-1);
+    border-right: 1px solid #F0F0F0;
   }
 }
 
@@ -90,7 +90,7 @@ $editor-head-height: 40px;
   }
 
   .code-box {
-    height: calc(100% - $editor-head-height);
+    height: calc(100% - 40px);
   }
 
   .monaco-editor,
@@ -104,7 +104,7 @@ $editor-head-height: 40px;
   }
 
   .md-box {
-    height: calc(100% - $editor-head-height);
+    height: calc(100% - 40px);
     padding: 24px;
     padding-top: 0px;
     overflow: overlay;

@@ -67,7 +67,7 @@
       overflow-x: hidden;
       padding-right: 4px;
       flex: 1;
-
+      max-height: calc(100vh - 530px);
       .model-card {
         height: 196px;
         cursor: pointer;

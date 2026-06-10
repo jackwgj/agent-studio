@@ -5,7 +5,7 @@
   <div class="w-full h-full overflow-auto text-[12px] text-[#191919] leading-[18px]">
     <div class="pt-[48px] pr-[32px] pb-[20px] pl-[32px]">
       <div class="flex items-center gap-[12px] mb-[24px]">
-        <img  class="w-[32px] h-[32px] rounded-lg" [src]="headInfo?.icon" *ngIf="headInfo?.icon" alt=""/>
+        <img class="w-[32px] h-[32px] rounded-lg" [src]="headInfo?.icon" *ngIf="headInfo?.icon" alt=""/>
         <span class="text-[20px] font-semibold leading-[30px]">{{ headInfo?.title }}</span>
       </div>
       <div *ngIf="headInfo?.description" class="mb-[24px] line-clamp-3">{{headInfo?.description}}</div>
@@ -29,7 +29,7 @@
       <div *ngIf="headInfo?.model_name" class="flex items-start mb-[16px]">
         <div class="w-[50px] text-[#595959] mr-[20px]">{{ 'model' | i18nextEager }}</div>
         <div class="flex items-center">
-          <img  class="w-[14px] h-[14px] rounded-[3px] mr-[5px]" [src]="changeUrl('assets/app-library/model.svg')" alt="" />
+          <img class="w-[14px] h-[14px] rounded-[3px] mr-[5px]" [src]="changeUrl('assets/app-library/model.svg')" alt="" />
           <span>{{headInfo?.model_name}}</span>
         </div>
       </div>
@@ -37,7 +37,7 @@
         <div class="w-[50px] text-[#595959] mr-[20px]">{{ 'plugin' | i18nextEager }}</div>
         <div class="flex-1 flex flex-wrap">
           <div class="flex items-center mr-[16px] mb-[6px]" *ngFor="let item of filterPlugIn">
-            <img  class="w-[14px] h-[14px] rounded-[3px] mr-[5px]" [src]="item?.tool_icon" *ngIf="item?.tool_icon" alt="" />
+            <img class="w-[14px] h-[14px] rounded-[3px] mr-[5px]" [src]="item?.tool_icon" *ngIf="item?.tool_icon" alt="" />
             <span class="inline-block max-w-[100px] overflow-hidden whitespace-nowrap text-overflow-ellipsis">{{item?.tool_name}}</span>
           </div>
           <div
@@ -54,7 +54,7 @@
         <div class="w-[50px] text-[#595959] mr-[20px]">{{ 'workflow' | i18nextEager }}</div>
         <div class="flex-1 flex flex-wrap">
           <div class="flex items-center mr-[16px] mb-[6px]" *ngFor="let item of headInfo?.workflows">
-            <img  class="w-[14px] h-[14px] rounded-[3px] mr-[5px]" [src]="item?.workflow_icon" *ngIf="item?.workflow_icon" alt="" />
+            <img class="w-[14px] h-[14px] rounded-[3px] mr-[5px]" [src]="item?.workflow_icon" *ngIf="item?.workflow_icon" alt="" />
             <span class="inline-block max-w-[100px] overflow-hidden whitespace-nowrap text-overflow-ellipsis">{{item?.workflow_name}}</span>
           </div>
         </div>
@@ -67,7 +67,7 @@
         <div class="w-[50px] text-[#595959] mr-[20px]">{{ 'knowledge' | i18nextEager }}</div>
         <div class="flex-1 flex flex-wrap">
           <div class="flex items-center mr-[16px] mb-[6px]" *ngFor="let item of headInfo?.knowledge_repos">
-            <img  class="w-[14px] h-[14px] rounded-[3px] mr-[5px]" [src]="item?.knowledge_repo_icon" *ngIf="item?.knowledge_repo_icon" alt="" />
+            <img class="w-[14px] h-[14px] rounded-[3px] mr-[5px]" [src]="item?.knowledge_repo_icon" *ngIf="item?.knowledge_repo_icon" alt="" />
             <span class="inline-block max-w-[100px] overflow-hidden whitespace-nowrap text-overflow-ellipsis">{{item?.name || item?.knowledge_repo_name }}</span>
           </div>
         </div>

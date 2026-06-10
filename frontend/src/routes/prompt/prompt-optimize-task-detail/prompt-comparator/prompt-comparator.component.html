@@ -1,0 +1,105 @@
+<div class="comparator-container">
+  <div class="origin-prompt">
+    <div class="header">
+      <div class="left">{{ 'optimize_before'|i18nextEager }}</div>
+      <div *ngIf="originAcc!==undefined" class="right">{{ 'prompt_optimize_task_target_accuracy'|i18nextEager }}<strong>{{ originAcc * 100 }}%</strong></div>
+    </div>
+    <div class="body">
+      <div class="top-area">
+        <div class="left">
+          <div class="title">{{ 'original_prompt'|i18nextEager }}</div>
+        </div>
+        <div class="right">
+          <button nz-button nzType="default" nzSize="small" (click)="openAssessDetailModal('0')" nz-tooltip [nzTooltipTitle]="showDetailTip" class="mr-2">
+            <img alt="" [src]="changeUrl('assets/prompt/show-detail.svg')" class="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+      <div class="dividing-line"></div>
+      <div class="prompt-area">
+        <meta-prompt-editor
+          [(ngModel)]="originPrompt"
+          [compareContent]="comparePrompt?.optimized_prompt"
+          [diffColor]="'#fff4e8'"
+          [highlight]="highlight"
+          [initVariables]="initVariables"
+          [onlyShow]='true'
+          [style]="'height:100%'"
+          [variables]="variables"
+        ></meta-prompt-editor>
+      </div>
+    </div>
+  </div>
+  <div class="optimized-prompt">
+    <div class="header">
+      <div class="left">{{ 'optimize_after'|i18nextEager }}</div>
+      <div *ngIf="comparePrompt" class="right">
+        {{ 'prompt_optimize_task_target_accuracy'|i18nextEager }}
+        <span
+          [style.color]="comparePrompt.success_rate > originAcc ? '#5CB300' : '#F13529'"
+        >
+          <strong>{{ comparePrompt.success_rate * 100 }}%</strong>
+        </span>
+      </div>
+    </div>
+    <div class="body">
+      <div class="top-area">
+        <ng-container *ngIf="comparePrompt ;else noComparePrompt">
+          <div class="left" >
+            <div class="title">V{{ comparePrompt.iteration_round }}</div>
+            <nz-tag
+              *ngIf="comparePrompt.is_best"
+              nzColor="green"
+            >{{ 'optimal_prompt'|i18nextEager }}
+            </nz-tag>
+            <div class="prompt-switch">
+              <nz-pagination
+                (nzPageIndexChange)="handlePageChange({currentPage: $event})"
+                [(nzPageIndex)]="optimizedPromptPageInfo.current"
+                [nzTotal]="optimizedPromptPageInfo.total"
+                [nzPageSize]="1"
+                [nzSize]="'small'"
+              ></nz-pagination>
+            </div>
+          </div>
+          <div class="right">
+            <button nz-button nzType="default" nzSize="small" (click)="openAssessDetailModal(comparePrompt.iteration_round)" nz-tooltip [nzTooltipTitle]="showDetailTip" class="mr-2">
+              <img alt="" [src]="changeUrl('assets/prompt/show-detail.svg')" class="w-4 h-4" />
+            </button>
+            <button nz-button nzType="default" nzSize="small" (click)="handleCopy()" nz-tooltip [nzTooltipTitle]="'copy'|i18nextEager" class="mr-2">
+              <img alt="" [src]="changeUrl('assets/prompt/copy-grey.svg')" class="w-4 h-4" />
+            </button>
+            <button nz-button nzType="default" nzSize="small" (click)="openSaveModal()" nz-tooltip [nzTooltipTitle]="'candidate_template_saveTemplateLibrary'|i18nextEager" class="save-button">
+              <img alt="" [src]="changeUrl('assets/prompt/prompt-save.svg')" class="w-4 h-4 inline mr-1" />
+              <span class="save-button-text">{{ 'save_prompt'|i18nextEager }}</span>
+            </button>
+          </div>
+        </ng-container>
+        <ng-template #noComparePrompt>
+          <div class="left" >
+            <div class="title">{{ 'promptcomparator_no_compare_prompt'|i18nextEager }}</div>
+          </div>
+        </ng-template>
+      </div>
+      <div class="dividing-line"></div>
+      <ng-container *ngIf="originPrompt">
+        <div *ngIf="comparePrompt;else earlyTerminationPrompt" class="prompt-area">
+          <meta-prompt-editor
+            [(ngModel)]="comparePrompt.optimized_prompt"
+            [compareContent]="originPrompt"
+            [diffColor]="'#e4f7e9'"
+            [highlight]="highlight"
+            [initVariables]="initVariables"
+            [onlyShow]='true'
+            [style]="'height:100%'"
+            [variables]="variables"
+          ></meta-prompt-editor>
+        </div>
+        <ng-template #earlyTerminationPrompt>
+          <div><nz-alert nzType="warning" [nzCloseable]="false" class="early-termination-tip">{{ 'promptcomparator_early_termination_tip'|i18nextEager }}</nz-alert></div>
+        </ng-template>
+      </ng-container>
+
+    </div>
+  </div>
+</div>

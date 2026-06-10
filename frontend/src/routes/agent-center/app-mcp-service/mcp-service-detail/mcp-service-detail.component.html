@@ -110,7 +110,7 @@
                 color: !hasPermission() ? mcpServiceDetail['isHoverInstall'] ? '#0c93fe' : 'rgb(25,25,25)' : 'rgb(25,25,25)'
               }"
             >
-              <img  [src]="changeUrl('assets/mcp/install-mcp.svg')" alt="" style="width: 16px; height: 16px;" *ngIf="!mcpServiceDetail['isHoverInstall']">
+              <img [src]="changeUrl('assets/mcp/install-mcp.svg')" alt="" style="width: 16px; height: 16px;" *ngIf="!mcpServiceDetail['isHoverInstall']">
               <img
                 [src]="changeUrl('assets/mcp/install-mcp-active.svg')" alt=""
                 *ngIf="mcpServiceDetail['isHoverInstall'] && !hasPermission()"
@@ -136,7 +136,7 @@
 
   <div class="mcp-detail-fail-info" *ngIf="mcpServiceDetail && !isLoading && type === 'service' && mcpServiceDetail.fc_instance_status === 'stackFail'">
     <div style="display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; margin-bottom: 8px">
-      <img  [src]="changeUrl('assets/agent-center/images/error.svg')" alt="">
+      <img [src]="changeUrl('assets/agent-center/images/error.svg')" alt="">
       <span>{{ mcpServiceDetail.name }} {{ 'deployFailed' | i18nextEager }}</span>
     </div>
     <div style="font-size: 14px">
@@ -336,7 +336,7 @@
       </div>
       <div style="flex: 1; min-height: 500px;">
         <p style="font-size: 18px; color: #000; font-weight: 600; margin-bottom: 8px;" class="flex items-center gap-1">
-          <img  [src]="changeUrl('assets/mcp/hot.png')" alt="" style="width: 18px; height: 18px;" />
+          <img [src]="changeUrl('assets/mcp/hot.png')" alt="" style="width: 18px; height: 18px;" />
           {{ 'MCPRecommend' | i18nextEager }}
         </p>
         <div *ngFor="let item of recommendMCPList; let i = index" class="recommendCard" (click)="handleClickMcpServer(item)"
@@ -379,7 +379,7 @@
             </span>
             <span style="position: relative">
               <span>{{'mcpservicedetailcomponent_713'|i18nextEager}}{{ item.score }}</span>
-              <img  [src]="changeUrl('assets/images/common/hover-star.png')" alt="" style="width: 16px; position: absolute; left: 45px; top: -6px">
+              <img [src]="changeUrl('assets/images/common/hover-star.png')" alt="" style="width: 16px; position: absolute; left: 45px; top: -6px">
             </span>
             <span
               *ngIf="subscribeBtnStatus"
@@ -389,8 +389,8 @@
               [style]="{cursor: !hasPermission() ? 'pointer' : 'not-allowed', color: !hasPermission() ? item['isHoverInstall'] ? '#0c93fe' : 'rgb(25,25,25)' : 'rgb(25,25,25)'}"
               (click)="handleClickInstallMcpServer($event, item)"
             >
-              <img  [src]="changeUrl('assets/mcp/install-mcp.svg')" alt="" *ngIf="!item['isHoverInstall']">
-              <img  [src]="changeUrl('assets/mcp/install-mcp-active.svg')" alt="" *ngIf="item['isHoverInstall'] && !hasPermission()">
+              <img [src]="changeUrl('assets/mcp/install-mcp.svg')" alt="" *ngIf="!item['isHoverInstall']">
+              <img [src]="changeUrl('assets/mcp/install-mcp-active.svg')" alt="" *ngIf="item['isHoverInstall'] && !hasPermission()">
               <span>{{ 'install' | i18nextEager }}</span>
             </span>
           </div>

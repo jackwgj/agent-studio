@@ -104,7 +104,7 @@ export class SkillSingleEditorComponent {
   constructor(
     private markdownService: MarkdownService,
     private _i18n: I18nService,
-    private _customEditorService: CustomEditorService,
+    private _customEditorService: CustomEditorService
   ) {
     effect(() => {
       const url = this.packageUrl();
@@ -311,7 +311,7 @@ export class SkillSingleEditorComponent {
     this.code = decoder.decode(event.content);
     if (language === 'markdown') {
       this.markdownContent = this.code;
-      this.tabs.forEach((e) => {
+      this.tabs.forEach(e => {
         e.active = e.id === SkillEditorTab.MD;
         e.disabled = false;
       });
@@ -320,7 +320,7 @@ export class SkillSingleEditorComponent {
       const element = this.scrollContainer.nativeElement;
       element.scrollTop = 0;
     } else {
-      this.tabs.forEach((e) => {
+      this.tabs.forEach(e => {
         e.active = e.id === SkillEditorTab.CODE;
         e.disabled = true;
         if (e.id === SkillEditorTab.CODE) {

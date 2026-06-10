@@ -8,7 +8,7 @@
     <div class="search-card" (click)="handleClickAddSearchCard(item)">
       <div class="content gap-[10px]">
         <div class="overflow-hidden flex-left gap-[10px]">
-          <img  [src]="item.icon" alt="" class="w-[40px] h-[40px] rounded-[6px]">
+          <img [src]="item.icon" alt="" class="w-[40px] h-[40px] rounded-[6px]">
           <div class="overflow-hidden flex flex-col gap-[10px]">
             <p class="title-text">{{ isZH() ? item.plugin_chinese_name : item.plugin_display_name }}</p>
             <p class="desc">{{ item.plugin_desc }}</p>
@@ -42,7 +42,7 @@
           <div class="search-button">
             <span class="metadata">
               {{ 'how_to_get' | i18nextEager }}
-              <img  [src]="changeUrl('assets/images/how_to_get.svg')" alt="">
+              <img [src]="changeUrl('assets/images/how_to_get.svg')" alt="">
             </span>
             <button nz-button nzSize="small" (click)="handleClickCardBtn($event, item, 'cancel')">
               {{ 'to_cancel' | i18nextEager }}

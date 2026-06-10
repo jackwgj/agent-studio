@@ -1,0 +1,90 @@
+<div class="status-container">
+  <div class="status-header">
+    <meta-header
+    ></meta-header>
+  </div>
+  <div class="status-body">
+
+    <div class="waiting" *ngIf="currentStatus==='waiting'">
+      <div class="content">
+        <div class="img-area">
+          <img [src]="changeUrl('assets/prompt/task-status-waiting.svg')" alt="">
+        </div>
+        <div class="title">
+          任务创建成功，等待执行
+        </div>
+        <div class="detail">
+          任务将于今晚19:30开始执行，预计需要20分钟
+        </div>
+
+      </div>
+      <div class="button-area">
+        <button nz-button>删除任务</button>
+        <button nz-button>返回</button>
+      </div>
+    </div>
+
+    <div class="optimizing" *ngIf="currentStatus==='optimizing'">
+      <div class="content">
+        <div class="title">
+          优化任务执行中
+        </div>
+        <div class="detail">
+          模型正在基于当前数据对提示词进行优化，优化后你将得到：
+          <br>
+          1. 所有迭代完成后的最优提示词，以及每一轮迭代后的提示词；2. 提示词的得分以及评分原因
+        </div>
+      </div>
+      <div class="step">
+        <div class="progressbar-area">
+          <div class="w-full">
+            <div class="inline-block w-[calc(100%-27px)]">
+              <nz-progress
+                style="height: 12px"
+                [nzPercent]="30"
+                nzDirection="horizontal"
+              ></nz-progress>
+            </div>
+            <span class="w-[27px]">{{ 100 * 30 / 100 }}%</span>
+          </div>
+          <div class="tip">
+            努力加载中，预计需要<b>10</b>分钟,离开后不会中断任务…
+          </div>
+        </div>
+        <div class="step-area">
+          <nz-steps
+            id="steps-steps-verticallayout"
+            [nzCurrent]="currentStep"
+            [nzDirection]="'vertical'"
+          >
+            <nz-step *ngFor="let step of steps" [nzTitle]="step.label" [nzDescription]="step.description?.text"></nz-step>
+          </nz-steps>
+        </div>
+      </div>
+      <div class="button-area">
+        <button nz-button>暂停任务</button>
+        <button nz-button>查看优化结果</button>
+        <button nz-button>返回</button>
+      </div>
+    </div>
+
+    <div class="success" *ngIf="currentStatus==='success'">
+      <div class="content">
+        <div class="img-area">
+          <img [src]="changeUrl('assets/prompt/task-status-success.svg')" alt="">
+        </div>
+        <div class="title">
+          优化任务执行成功
+        </div>
+        <div class="detail">
+          提示词优化任务已完成，(5s)后自动跳转至优化结果页
+        </div>
+      </div>
+      <div class="button-area">
+        <button nz-button>查看优化结果</button>
+      </div>
+    </div>
+
+  </div>
+
+</div>

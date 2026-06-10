@@ -1,12 +1,280 @@
-import { Component } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output, ViewChild, ElementRef } from '@angular/core';
+
+import { FormBuilder, NgForm, Validators } from '@angular/forms';
+import { I18nNamespace } from '@i18n';
+import { EditNameComponent } from '@routes/agent-center/app-flow/components/edit-name/edit-name.component';
+import { NodeTypeTopic } from '@routes/agent-center/types/common.types';
+import { AgentDataService } from '@services/agent-center/agent-data.service';
+import { CommonService } from '@services/common.service';
+import { HelpCenterService } from '@services/help-center.service';
+import { RefSelectedRequireDirective } from '@shared/directives/common-validator.directive';
+import {
+  NonEmptyValidatorDirective,
+  ValueExitValidityValidatorDirective,
+  ValueValidityValidatorDirective,
+  VariableNameValidatorDirective,
+} from '@shared/directives/variable-name-validator.directive';
+import { MODULES } from '@shared/modules';
+import { CommonValidation } from '@shared/validation/commonValidation';
+import { I18NEXT_NAMESPACE, I18NextEagerPipe } from 'angular-i18next';
+import { BehaviorSubject, debounceTime, Subscription } from 'rxjs';
+import { InputTreeSelect } from 'src/routes/agent-center/app-flow/components/input-tree-select/input-tree-select';
+import { CommonUtils } from 'src/utils/common.util';
+import { AppFlowService } from '../../app-flow.service';
+import { NODE_SAVE_DEBOUNCE_TIME, WORKFLOW_SVGS } from '../../flow.const';
+import { NodeService } from '../../node.service';
+import type { IParamRef, IStreamTransformNode, IWorkflowField } from '../../node.type';
+import { AccBlockComponent } from '../acc-block/acc-block.component';
 import { ModalBaseComponent } from '../base/modal-base.component';
+import { CmdTextareaComponent } from '../cmd-textarea/cmd-textarea.component';
+import { NodeDescriptionComponent } from '../node-description/node-description.component';
+import { ParamTreeComponent } from '../param-tree/param-tree.component';
+import { NodeUtils } from '../utils';
 
 @Component({
   selector: 'stream-transform-modal',
   templateUrl: './stream-transform-modal.component.html',
   styleUrls: ['./stream-transform-modal.component.less', '../common-styles.less'],
   standalone: true,
-  imports: [],
-  providers: [],
+  imports: [
+    MODULES,
+    AccBlockComponent,
+    VariableNameValidatorDirective,
+    NonEmptyValidatorDirective,
+    ValueValidityValidatorDirective,
+    ValueExitValidityValidatorDirective,
+    RefSelectedRequireDirective,
+    ParamTreeComponent,
+    CmdTextareaComponent,
+    EditNameComponent,
+    NodeDescriptionComponent,
+    InputTreeSelect,
+  ],
+  providers: [
+    {
+      provide: I18NEXT_NAMESPACE,
+      useValue: [I18nNamespace.AGENT_CENTER],
+    },
+  ],
 })
-export class StreamTransformModalComponent extends ModalBaseComponent {}
+export class StreamTransformModalComponent extends ModalBaseComponent implements OnInit {
+  @Input('names') names: string[];
+
+  @Input('nodeInfo') nodeInfo: IStreamTransformNode;
+
+  @Output('confirm') confirm = new EventEmitter<any>();
+
+  @ViewChild('inputForm') inputForm: NgForm;
+
+  public icon = WORKFLOW_SVGS.StreamTransform;
+
+  public inputParams: IWorkflowField[] = [];
+
+  @ViewChild('assembleForm') assembleForm: NgForm;
+
+  public assembleParams = [];
+
+  public disabledSwitch = true;
+
+  public sourceOptions = [
+    { label: this.i18n.transform('ref'), value: 'ref' },
+    { label: this.i18n.transform('literal'), value: 'literal' },
+  ];
+
+  public nameRefOptions: IParamRef[] = [];
+
+  public validationRules: any[] = [];
+
+  readonly showVarListSubject$ = new BehaviorSubject<boolean>(false);
+
+  public modelFormGroup = this.fb.group({
+    code: ['', Validators.required],
+  });
+
+  formCode$: Subscription;
+
+  updateTimeout: any = null;
+
+  constructor(
+    private fb: FormBuilder,
+    protected override nodeServ: NodeService,
+    private i18n: I18NextEagerPipe,
+    protected override appFlowServ: AppFlowService,
+    private helpCenterService: HelpCenterService,
+    protected commonService: CommonService,
+    protected agentDataServe: AgentDataService,
+    private elementRef: ElementRef<HTMLDivElement>,
+  ) {
+    super(nodeServ, appFlowServ);
+  }
+
+  public override ngOnInit() {
+    this.setNodeBase(this.nodeInfo);
+    super.ngOnInit();
+    this.validationRules.push(CommonValidation.nameUniquenessVerify(this.names, this.i18n.transform('name_uniqueness'), this.nodeInfo?.name));
+
+    const parentNode = this.getParentNodeInfo(this.appFlowServ.getGraph());
+    if (parentNode) {
+      this.getLoopInnerNodeRefs(parentNode).subscribe(info => {
+        this.onRefUpdate(info);
+      });
+    } else {
+      this.getSelfRefs().subscribe(info => {
+        this.onRefUpdate(info);
+      });
+    }
+
+    this.modelFormGroup.controls.code.setValue(this.nodeInfo.configs.transformer?.frame_template || '');
+
+    if (this.nodeInfo.configs.concat) {
+      (this.nodeInfo.configs.concat || []).forEach(item => {
+        this.assembleParams.push({ name: item });
+      });
+    }
+
+    this.formCode$ = this.modelFormGroup.valueChanges.pipe(debounceTime(NODE_SAVE_DEBOUNCE_TIME)).subscribe(value => {
+      this.onSave();
+    });
+  }
+
+  public onRefUpdate(info: IParamRef[]) {
+    this.nameRefOptions = info.filter(item => item.type === 'Plugin');
+
+    if (this.isInit) {
+      this.inputParams = NodeUtils.initInputs(this.nodeInfo?.inputs, this.nameRefOptions);
+    } else {
+      NodeUtils.reSelectRefsWithNewOps(this.inputParams, this.nameRefOptions);
+    }
+
+    this.isInit = false;
+  }
+
+  public addAssembleParam(): void {
+    this.assembleParams.push({
+      name: '',
+    });
+    this.onSave();
+  }
+
+  public deleteAssembleParam(index: number): void {
+    this.assembleParams.splice(index, 1);
+    this.onSave();
+  }
+
+  onAssembleChange() {
+    window.setTimeout(() => {
+      this.assembleForm?.form?.markAsDirty();
+    });
+  }
+
+  getAssembleNames(index: number): {
+    existingValues: string[];
+  } {
+    const names = this.assembleParams.map(p => p.name);
+    names.splice(index, 1);
+    return { existingValues: names };
+  }
+
+  toggleHelpCenter() {
+  }
+
+  public trackByFn(index: number) {
+    return index;
+  }
+  close(): void {}
+  dismiss(): void {}
+
+  validateNode() {
+    CommonUtils.checkAndFocusFirstError(this.elementRef, this.modelFormGroup);
+    this.inputForm?.form?.markAsDirty();
+    this.assembleForm?.form?.markAsDirty();
+  }
+
+  ngAfterViewInit() {
+    if (this.appFlowServ.testRunVerificationError) {
+      setTimeout(() => {
+        this.validateNode();
+      });
+    }
+  }
+
+  getInputNames(index: number): {
+    existingValues: string[];
+  } {
+    const names = this.inputParams.map(p => p.name);
+    names.splice(index, 1);
+    return { existingValues: names };
+  }
+
+  onNameChange() {
+    window.setTimeout(() => {
+      this.inputForm?.form?.markAsDirty();
+    });
+  }
+
+  modelCloseSave() {
+    if (!this.tagCompareNoChange()) {
+      this.appFlowServ.setNodeModalCloseMonitor({ id: this.nodeInfo.id });
+    }
+    this.handelSave();
+  }
+
+  onSave() {
+    this.changeUpdateTime();
+    if (this.appFlowServ.testRunVerificationError) {
+      this.handelSave();
+    }
+  }
+
+  treeSelect() {
+    setTimeout(() => {
+      this.onSave();
+    });
+  }
+
+  inputOnSave() {
+    if (this.appFlowServ.testRunVerificationError) {
+      this.handelSave();
+    }
+  }
+
+  handelSave() {
+    if (this.tagCompareNoChange()) {
+      return;
+    }
+    let concat = [];
+    if (this.assembleParams && this.assembleParams.length > 0) {
+      this.assembleParams.forEach(item => {
+        if (item.name) {
+          concat.push(item.name);
+        }
+      });
+    }
+    this.appFlowServ.setNodeSaveMonitor({
+      nodeData: {
+        ...this.nodeInfo,
+        inputs: NodeUtils.getDtoInputs(this.inputParams),
+        configs: {
+          transformer: {
+            frame_template: this.modelFormGroup.controls.code.value,
+          },
+          concat: concat,
+        },
+      },
+    });
+    if (this.updateTimeout) {
+      clearTimeout(this.updateTimeout);
+      this.updateTimeout = null;
+    }
+    this.updateTimeout = setTimeout(() => {
+      this.updateChangeAndInitTime();
+    }, 200);
+  }
+
+  override ngOnDestroy() {
+    super.ngOnDestroy();
+    this.modelCloseSave();
+    this.helpCenterService.hideHelpPanel();
+    this.formCode$.unsubscribe();
+  }
+}

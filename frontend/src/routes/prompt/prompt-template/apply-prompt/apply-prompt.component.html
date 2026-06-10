@@ -1,0 +1,154 @@
+<div>
+  <div *nzModalTitle>
+    {{ 'prompt_tmpl_apply2task' | i18nextEager }}
+  </div>
+
+  <div>
+    <div class="content mt-2">
+      <label class="w-[363px] text-sm text-[#595959]">{{
+        'prompt_tmpl_apply2task_desc' | i18nextEager
+      }}</label>
+      <form [formGroup]="groupFormControl" style="width: 363px; margin-top: 4%">
+        <nz-form-item verticalAlign="middle">
+          <nz-form-control [nzErrorTip]="createTypeErrorTpl">
+            <nz-form-label [nzRequired]="true">{{ task.createType }}</nz-form-label>
+            <nz-radio-group
+              id="create-task-button-g"
+              formControlName="createType"
+              (ngModelChange)="createTypeChange($event)"
+            >
+              <ng-container *ngFor="let item of createTypes">
+                <label nz-radio-button [nzValue]="item">{{ item.text }}</label>
+              </ng-container>
+            </nz-radio-group>
+            <ng-template #createTypeErrorTpl let-control>
+              <span *ngIf="control.hasError('required')">{{
+                'prompt_tmpl_create_task_label' | i18nextEager
+              }}</span>
+            </ng-template>
+          </nz-form-control>
+        </nz-form-item>
+
+        <nz-form-item [ngStyle]="{ 'margin-top': '20px' }">
+          <nz-form-control [nzErrorTip]="taskErrorTpl">
+            <nz-form-label [nzRequired]="true">{{ isAddToTask() ? task.task : task.name }}</nz-form-label>
+            <!-- 选择已有工程 -->
+            <nz-select
+              *ngIf="isAddToTask(); else createNewTask"
+              formControlName="tasks"
+              [nzAllowClear]="true"
+              style="width: 363px"
+              [nzPlaceHolder]="
+                'prompt_tmpl_apply2task_task_placeholder' | i18nextEager
+              "
+              [nzShowSearch]="true"
+            >
+            @for (item of tasks; track item) {
+              <nz-option [nzLabel]="item.label" [nzValue]="item.id" />
+            }
+            </nz-select>
+
+            <!-- 新建工程 -->
+            <ng-template #createNewTask>
+              <input
+                *ngIf="!isAddToTask(); else createNewTask"
+                nz-input
+                formControlName="taskName"
+                style="width: 363px"
+                [placeholder]="
+                  'prompt_tmpl_apply2task_taskname_placeholder' | i18nextEager
+                "
+              />
+            </ng-template>
+            <ng-template #taskErrorTpl let-control>
+              <span *ngIf="control.hasError('required')">{{
+                'prompt_tmpl_apply2task_task_placeholder' | i18nextEager
+              }}</span>
+            </ng-template>
+          </nz-form-control>
+        </nz-form-item>
+
+        <nz-form-item [ngStyle]="{ 'margin-top': '20px' }">
+          <nz-form-control [nzErrorTip]="industryErrorTpl">
+            <nz-form-label [nzRequired]="true">{{ task.industry }}</nz-form-label>
+            <nz-select
+              id="select"
+              formControlName="industry"
+              [nzAllowClear]="true"
+              style="width: 363px"
+              [nzPlaceHolder]="
+                'prompt_tmpl_apply2task_industry_placeholder' | i18nextEager
+              "
+            >
+            @for (item of industryList; track item) {
+              <nz-option [nzLabel]="item.label" [nzValue]="item.id" />
+            }
+            </nz-select>
+            <ng-template #industryErrorTpl let-control>
+              <span *ngIf="control.hasError('required')">{{
+                'base_industry_placeholder' | i18nextEager
+              }}</span>
+            </ng-template>
+          </nz-form-control>
+        </nz-form-item>
+
+        <nz-form-item [ngStyle]="{ 'margin-top': '20px' }">
+          <nz-form-control>
+            <nz-form-label [nzRequired]="false">{{ task.tag }}</nz-form-label>
+            <nz-select
+              id="select-multiple"
+              formControlName="tag"
+              [nzMode]="'multiple'"
+              [nzAllowClear]="true"
+              style="width: 363px"
+              [nzPlaceHolder]="
+                'prompt_tmpl_apply2task_tag_placeholder' | i18nextEager
+              "
+            >
+            @for (item of tagList; track item) {
+              <nz-option [nzLabel]="item.label" [nzValue]="item.id" />
+            }
+            </nz-select>
+          </nz-form-control>
+        </nz-form-item>
+
+        <nz-form-item [ngStyle]="{ 'margin-top': '20px' }">
+          <nz-form-control [nzErrorTip]="despErrorTpl">
+            <nz-form-label [nzRequired]="false" >{{ task.desp }}</nz-form-label>
+            <textarea
+              nz-input
+              formControlName="desp"
+              style="width: 363px; height: 140px; max-height: 240px"
+              [nzAutosize]="{ minRows: 3, maxRows: 6 }"
+              [placeholder]="
+                'prompt_tmpl_apply2task_desc_placeholder' | i18nextEager
+              "
+              maxlength="100"
+            ></textarea>
+            <ng-template #despErrorTpl let-control>
+              <span *ngIf="control.hasError('maxlength')">{{
+                'prompt_tmpl_apply2task_desc_placeholder' | i18nextEager
+              }}</span>
+            </ng-template>
+          </nz-form-control>
+        </nz-form-item>
+      </form>
+    </div>
+  </div>
+
+  <div *nzModalFooter>
+    <button
+      type="button"
+      class="!mr-0"
+      nz-button
+      nzType="primary"
+      autofocus
+      (click)="submit()"
+    >
+      {{ 'ok' | i18nextEager }}
+    </button>
+    <button type="button" class="!ml-2" nz-button (click)="dismiss()">
+      {{ 'cancel' | i18nextEager }}
+    </button>
+  </div>
+</div>

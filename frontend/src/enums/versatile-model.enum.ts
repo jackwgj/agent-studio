@@ -1,0 +1,10 @@
+export enum ModelType {
+  LLM = 'LLM',
+  Text_Embedding = 'Text-Embedding',
+  RERANK = 'RERANK',
+  TEXT_TO_IMAGE = 'TEXT-TO-IMAGE',
+  IMAGE_TO_TEXT = 'IMAGE-TO-TEXT',
+  AUDIO_TO_TEXT = 'AUDIO-TO-TEXT',
+  TEXT_TO_AUDIO = 'TEXT-TO-AUDIO',
+  TEXT_IMAGE_EMBEDDING = 'TEXT-IMAGE-EMBEDDING',
+}

@@ -173,12 +173,12 @@ export class MemoryLibDetailComponent implements OnInit, OnDestroy {
             .then(() => {
               this.message.success(this.i18n.transform('memory.patch.tip.success'));
               setLoading(false);
-              halfModalRef.destroy?.(reason);
+              halfModalRef.close?.(reason);
               this.#getResourceInfo();
             })
             .catch(() => setLoading(false));
         } else {
-          halfModalRef.destroy?.(reason);
+          halfModalRef.close?.(reason);
         }
       }, repoId);
     }

@@ -91,34 +91,32 @@ export const getInputParamTypes = () => [
 ];
 
 export const getOutputParamTypes = () => [
-  { label: 'String', value: 'string' },
-  { label: 'Integer', value: 'integer' },
-  { label: 'Number', value: 'number' },
-  { label: 'Boolean', value: 'boolean' },
-  { label: 'Object', value: 'object' },
-  { label: 'Array<String>', value: 'array<string>' },
-  { label: 'Array<Number>', value: 'array<number>' },
-  { label: 'Array<Integer>', value: 'array<integer>' },
-  { label: 'Array<Boolean>', value: 'array<boolean>' },
-  { label: 'Array<Object>', value: 'array<object>' },
+  { label: 'String', value: 'string', isLeaf: true },
+  { label: 'Integer', value: 'integer', isLeaf: true },
+  { label: 'Number', value: 'number', isLeaf: true },
+  { label: 'Boolean', value: 'boolean', isLeaf: true },
+  { label: 'Object', value: 'object', isLeaf: true },
+  { label: 'Array<String>', value: 'array<string>', isLeaf: true },
+  { label: 'Array<Number>', value: 'array<number>', isLeaf: true },
+  { label: 'Array<Integer>', value: 'array<integer>', isLeaf: true },
+  { label: 'Array<Boolean>', value: 'array<boolean>', isLeaf: true },
+  { label: 'Array<Object>', value: 'array<object>', isLeaf: true },
 ];
 
 export const getNoneObjOutputParamTypes = () => [
-  { label: 'String', value: 'string' },
-  { label: 'Integer', value: 'integer' },
-  { label: 'Number', value: 'number' },
-  { label: 'Boolean', value: 'boolean' },
-  { label: 'Object', value: 'object', disabled: true },
-  { label: 'Array<String>', value: 'array<string>', disabled: true },
-  { label: 'Array<Number>', value: 'array<number>', disabled: true },
-  { label: 'Array<Integer>', value: 'array<integer>', disabled: true },
-  { label: 'Array<Boolean>', value: 'array<boolean>', disabled: true },
-  { label: 'Array<Object>', value: 'array<object>', disabled: true },
+  { label: 'String', value: 'string', isLeaf: true },
+  { label: 'Integer', value: 'integer', isLeaf: true },
+  { label: 'Number', value: 'number', isLeaf: true },
+  { label: 'Boolean', value: 'boolean', isLeaf: true },
+  { label: 'Object', value: 'object', disabled: true, isLeaf: true },
+  { label: 'Array<String>', value: 'array<string>', disabled: true, isLeaf: true },
+  { label: 'Array<Number>', value: 'array<number>', disabled: true, isLeaf: true },
+  { label: 'Array<Integer>', value: 'array<integer>', disabled: true, isLeaf: true },
+  { label: 'Array<Boolean>', value: 'array<boolean>', disabled: true, isLeaf: true },
+  { label: 'Array<Object>', value: 'array<object>', disabled: true, isLeaf: true },
 ];
 
-export const getInitInputParamConfig = (
-  source: IParamSource = 'user',
-): IWorkflowField => {
+export const getInitInputParamConfig = (source: IParamSource = 'user'): IWorkflowField => {
   return {
     name: '',
     description: '',
@@ -132,9 +130,7 @@ export const getInitInputParamConfig = (
   };
 };
 
-export const getInitInputParamRefConfig = (
-  source: IParamSource = 'user',
-): IWorkflowField => {
+export const getInitInputParamRefConfig = (source: IParamSource = 'user'): IWorkflowField => {
   return {
     name: '',
     description: '',
@@ -148,9 +144,7 @@ export const getInitInputParamRefConfig = (
   };
 };
 
-export const getInitGeneratedInputParamConfig = (
-  source: IParamSource = 'user',
-): IWorkflowField => {
+export const getInitGeneratedInputParamConfig = (source: IParamSource = 'user'): IWorkflowField => {
   return {
     name: '',
     description: '',
@@ -257,15 +251,11 @@ export const WORKFLOW_SVGS = {
   Loading: cdnAssetUrl('assets/agent-center/flow/call-node-loading.svg'),
   Succeeded: cdnAssetUrl('assets/agent-center/flow/call-node-success.svg'),
   Failed: cdnAssetUrl('assets/agent-center/flow/call-node-error.svg'),
-  ComplexIntentDetection: cdnAssetUrl(
-    'assets/agent-center/flow/Controller.svg',
-  ),
+  ComplexIntentDetection: cdnAssetUrl('assets/agent-center/flow/Controller.svg'),
   DataAcquisition: cdnAssetUrl('assets/agent-center/flow/DataObtain.svg'),
   DataProcess: cdnAssetUrl('assets/agent-center/flow/DataProcess.svg'),
   Card: cdnAssetUrl('assets/agent-center/flow/Card.svg'),
-  StructuredMessagesException: cdnAssetUrl(
-    'assets/agent-center/flow/Exception.svg',
-  ),
+  StructuredMessagesException: cdnAssetUrl('assets/agent-center/flow/Exception.svg'),
   environment: cdnAssetUrl('assets/agent-center/flow/env.svg'),
   exception: cdnAssetUrl('assets/agent-center/flow/exception_triangle.svg'),
   ParamExtraction: cdnAssetUrl('assets/agent-center/flow/param-extraction.svg'),
@@ -279,19 +269,13 @@ export const WF_MAX_PARAMS_NUM = 100;
 
 export const LAZY_LOAD_LIMIT = 100;
 
-export const EXCEPTION_PORT_NODE = [
-  'Workflow',
-  'LLM',
-  'Plugin',
-  'Code',
-  'IntentDetection',
-];
+export const EXCEPTION_PORT_NODE = ['Workflow', 'LLM', 'Plugin', 'Code', 'IntentDetection'];
 
 export const NODE_TYPE = {
   AGENT: 'agent',
   SUB_CONTROLLER: 'sub_controller',
   CONTROLLER: 'controller',
-}
+};
 
 export const flowConfig = {
   default_model: {
@@ -341,13 +325,13 @@ export const getFlowMcpNodeData = (apiNodeData: IMcpNode) => {
     name: apiNodeData.name,
     type: apiNodeData.type,
     shape: `op-${apiNodeData.type.toLowerCase()}-node`,
-  }
+  };
 };
 
 export const appFlowOutput = {
   name: 'summary',
   type: 'string',
-  description: i18next.t('summary_description_content', {ns: [I18nNamespace.AGENT_CENTER]}),
+  description: i18next.t('summary_description_content', { ns: [I18nNamespace.AGENT_CENTER] }),
   required: false,
   source: 'user',
   reflection: false,
@@ -359,6 +343,6 @@ export const appFlowOutput = {
   },
 };
 
-export const HOVER_TOOLS_NAME = "edge-hover-tools";
+export const HOVER_TOOLS_NAME = 'edge-hover-tools';
 
 export const NODE_SAVE_DEBOUNCE_TIME = 300;

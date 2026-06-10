@@ -1,0 +1,358 @@
+.contentBody {
+  min-height: calc(100vh - 209px);
+  padding-bottom: 0 !important;
+
+  .deleteBtn {
+    margin-bottom: 16px;
+  }
+
+  .refresh {
+    margin-left: 10px;
+  }
+
+  .mb10 {
+    margin-bottom: 16px;
+  }
+}
+
+.loading-icon {
+  width: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 15%;
+}
+
+
+
+::ng-deep {
+  .borderNone {
+    border-bottom: 0 !important;
+  }
+
+  .promptTagsStyles {
+    .ti3-select-dominator-text {
+      overflow-y: hidden !important;
+    }
+  }
+
+  .custom-menu {
+    .ti3-icon {
+      display: none;
+    }
+  }
+  .ti3-menu-toggle-menu {
+    padding-bottom: 6px !important;
+    color: rgba(25, 25, 25, 1) !important;
+    width: 100% !important;
+    text-align: center !important;
+  }
+
+  .ti3-menu-toggle-menu:hover{
+    color:rgba(25, 25, 25, 1)!important;
+    text-decoration: none !important;
+  }
+}
+
+
+
+
+.tableTop {
+  display: flex;
+  justify-content: space-between;
+}
+
+.noDataBox {
+  height: 300px;
+  pointer-events: none;
+}
+
+.loading {
+  left: 50%;
+  position: absolute;
+  top: 50%;
+}
+
+.ti3-table-container {
+  position: relative;
+}
+
+.tag-industry {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 64px;
+  height: 18px;
+  padding: 0 8px 0 4px;
+  background-color: #FFFFFF;
+  border: 1px solid rgba(131, 47, 214, 0.10);
+  border-radius: 4px;
+}
+
+.font-industry {
+  width: 28px;
+  font-family: PingFangSC;
+  font-size: 14px;
+  color: #191919;
+  font-weight: normal;
+  text-align: right;
+}
+
+.ind-default {
+  display: inline-block;
+  vertical-align: middle;
+  background: url('../../../../assets/icons/ind-default.svg') no-repeat center;
+  background-size: 12px 12px;
+  cursor: pointer;
+  width: 12px;
+  height: 12px;
+}
+
+.ind-industry {
+  display: inline-block;
+  vertical-align: middle;
+  background: url('../../../../assets/icons/ind-industry.svg') no-repeat center;
+  background-size: 12px 12px;
+  cursor: pointer;
+  width: 12px;
+  height: 12px;
+}
+
+.ind-finance {
+  display: inline-block;
+  vertical-align: middle;
+  background: url('../../../../assets/icons/ind-finance.svg') no-repeat center;
+  background-size: 12px 12px;
+  cursor: pointer;
+  width: 12px;
+  height: 12px;
+}
+
+.ind-make {
+  display: inline-block;
+  vertical-align: middle;
+  background: url('../../../../assets/icons/ind-make.svg') no-repeat center;
+  background-size: 12px 12px;
+  cursor: pointer;
+  width: 12px;
+  height: 12px;
+}
+
+.ind-it {
+  display: inline-block;
+  vertical-align: middle;
+  background: url('../../../../assets/icons/ind-it.svg') no-repeat center;
+  background-size: 12px 12px;
+  cursor: pointer;
+  width: 12px;
+  height: 12px;
+}
+
+.ind-education {
+  display: inline-block;
+  vertical-align: middle;
+  background: url('../../../../assets/icons/ind-education.svg') no-repeat center;
+  background-size: 12px 12px;
+  cursor: pointer;
+  width: 12px;
+  height: 12px;
+}
+
+.ind-government {
+  display: inline-block;
+  vertical-align: middle;
+  background: url('../../../../assets/icons/ind-government.svg') no-repeat center;
+  background-size: 12px 12px;
+  cursor: pointer;
+  width: 12px;
+  height: 12px;
+}
+
+.ind-medical {
+  display: inline-block;
+  vertical-align: middle;
+  background: url('../../../../assets/icons/ind-medical.svg') no-repeat center;
+  background-size: 12px 12px;
+  cursor: pointer;
+  width: 12px;
+  height: 12px;
+}
+
+.tag-basic {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 4px;
+  height: 24px;
+  background: rgba(89, 89, 89, 0.10);
+  font-family: PingFangSC;
+  font-size: 14px;
+  color: #595959;
+  text-align: center;
+  line-height: 22px;
+  font-weight: normal;
+  border-radius: 4px;
+}
+
+.item-button {
+  float: right;
+  margin-right: 8px;
+}
+
+.header-card {
+  height: 24px;
+  width: 100%;
+
+  .name-card {
+    width: 90%;
+    color: #191919;
+    text-align: left;
+    font-size: 16px;
+    line-height: 24px;
+    font-family: PingFangSC;
+    font-weight: 600;
+  }
+}
+
+.custom-menu {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  border-radius: 4px;
+}
+.custom-menu:hover{
+
+  background: rgba(245, 245, 245, 1);
+}
+
+.custom-menu>a {
+  color: black !important;
+  font-size: 18px !important;
+}
+
+::ng-deep .custom-menu>a {
+  &:after {
+    display: none !important;
+  }
+}
+.card-box{
+  flex-wrap: wrap;
+  .card {
+    height: 196px;
+    padding: 24px;
+    border-radius: 16px;
+    border: 1px solid rgba(230, 230, 230, 1);
+  }
+  .card:hover{
+    box-shadow: 0px 4px 16px 0px rgba(0, 0, 0, 0.08);
+    .footer-info {
+      display: none;
+    }
+    .bottom-area-menu {
+      display: inline-block;
+    }
+  }
+}
+
+.content-card {
+  width: 100%;
+  overflow-wrap: break-word;
+  color: rgba(25, 25, 25, 0.6);
+  font-family: PingFang SC;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 22px;
+  letter-spacing: 0;
+  word-wrap: break-word;
+}
+
+
+.vertical-line-pseudo-after {
+  margin-left: 8px;
+  height: 24px;
+  width: 1px;
+  border-left: 1px solid #ebebeb;
+}
+
+.err-info-msg {
+  width: 450px;
+  height: fit-content;
+}
+.footer-info {
+  height: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  .create-time {
+    max-width: calc(100% - 24px);
+    height: 18px;
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    color: #808080;
+    font-family: PingFang SC;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 24px;
+    letter-spacing: 0;
+    text-align: left;
+  }
+}
+.button-area{
+  width: 360px;
+  height: 36px;
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 4px 0 4px 0;
+  button{
+    width: 84px;
+    height: 28px;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    padding: 5px 24px 5px 24px;
+    box-sizing: border-box;
+    border: 1px solid rgba(89, 89, 89, 1);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 1);
+  }
+}
+.prompt-market-banner {
+  height: 200px;
+  width: 100%;
+  background: url('../../../../assets/app-library/banner-bg.png')
+  no-repeat;
+  background-size: 100% 100%;
+  padding: 62px 64px;
+  position: relative;
+  .prompt-market-banner-title {
+    color: #191919ff;
+    font-size: 32px;
+    line-height: 48px;
+    text-align: left;
+    font-family: PingFang SC;
+    margin-bottom: 8px;
+    font-weight: 500;
+  }
+}
+
+.prompt-market-search {
+  background-color: white;
+}
+
+.bottom-area-menu {
+  font-size: 14px;
+  font-size: PingFang SC;
+  gap: 24px;
+  display: none;
+}

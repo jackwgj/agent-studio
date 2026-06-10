@@ -116,10 +116,13 @@ export class SetDefaultComponent implements OnInit, OnDestroy {
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes.param?.currentValue) {
-      this.tooltipStr = changes.param.currentValue.value.content
-        ?.replace(/\r?\n/g, '')
-        ?.replace(/\\/g, '')
-        ?.replace(/^"(.*)"$/, '$1');
+      const content = changes.param.currentValue.value.content;
+      this.tooltipStr = typeof content === 'string'
+        ? content
+            .replace(/\r?\n/g, '')
+            .replace(/\\/g, '')
+            .replace(/^"(.*)"$/, '$1')
+        : '';
       this.tipContext.param = changes.param.currentValue;
     }
   }

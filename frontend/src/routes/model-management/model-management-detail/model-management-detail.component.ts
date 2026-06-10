@@ -325,11 +325,11 @@ export class ModalManagementDetailComponent {
           title: this.i18n.transform('del_providers'),
           tip: this.i18n.transform('confirm_delete_supplier_desc', { provider_name: item.provider_name }),
           fnName: 'deleteProvider',
-        },
-        close: () => {
-          this.nzMessageService.success(this.i18n.transform('model_supplier_delete_success_tip'));
-          this.onPageBack();
-          modal.close();
+          close: () => {
+            this.nzMessageService.success(this.i18n.transform('model_supplier_delete_success_tip'));
+            this.onPageBack();
+            modal.close();
+          },
         },
       } as any,
     });
@@ -453,11 +453,11 @@ export class ModalManagementDetailComponent {
           title: this.i18n.transform('delete_model'),
           tip: `${this.i18n.transform('confirm_delete_model_service')} ${item.service_name}`,
           fnName: 'deleteModel',
-        },
-        close: () => {
-          this.getData();
-          this.nzMessageService.success(this.i18n.transform('model_service_delete_success'), { nzDuration: 3000 });
-          modal.close();
+          close: () => {
+            this.getData();
+            this.nzMessageService.success(this.i18n.transform('model_service_delete_success'), { nzDuration: 3000 });
+            modal.close();
+          },
         },
       } as any,
     });
@@ -617,22 +617,22 @@ export class ModalManagementDetailComponent {
     const drawer = this.nzDrawerService.create({
       nzTitle: provider
         ? this.i18n.transform('edit-model-publisher', {
-          ns: I18nNamespace.MODEL_ACCESS,
-        })
+            ns: I18nNamespace.MODEL_ACCESS,
+          })
         : this.i18n.transform('add-model-publisher', {
-          ns: I18nNamespace.MODEL_ACCESS,
-        }),
+            ns: I18nNamespace.MODEL_ACCESS,
+          }),
       nzContent: AddPublisherComponent,
       nzWidth: '700px',
       nzPlacement: 'right',
       nzContentParams: {
         title: provider
           ? this.i18n.transform('edit-model-publisher', {
-            ns: I18nNamespace.MODEL_ACCESS,
-          })
+              ns: I18nNamespace.MODEL_ACCESS,
+            })
           : this.i18n.transform('add-model-publisher', {
-            ns: I18nNamespace.MODEL_ACCESS,
-          }),
+              ns: I18nNamespace.MODEL_ACCESS,
+            }),
         source: this.activeName === 'PLATFORM' ? 'platform' : 'integration',
         provider_id: provider?.id,
         context: {},

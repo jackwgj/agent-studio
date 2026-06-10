@@ -37,13 +37,16 @@ export class MemoryLibService {
    * @param memoryLibId
    */
   createOrEditMemLib(callBack: (data: IMemoryLibCreationData) => void, memoryLibId = '') {
-    this.nzDrawerService.create({
+    const drawerRef = this.nzDrawerService.create({
       nzContent: MemoryLibCreationHalfmodalComponent,
       nzWidth: '700px',
       nzMask: true,
+      nzContentParams: {
+        libId: memoryLibId,
+      },
       nzData: {
         libId: memoryLibId,
-        beforeHide: (drawerRef: NzDrawerRef, reason: boolean) => {
+        beforeHide: ({ reason }) => {
           const creatioComp: MemoryLibCreationHalfmodalComponent = drawerRef.getContentComponent();
           const { basicInfoFormGroup, ltmRetrievalStrategyFormGroup, setLoading } = creatioComp;
           if (reason) {

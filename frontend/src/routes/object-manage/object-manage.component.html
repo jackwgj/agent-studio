@@ -1,0 +1,244 @@
+<div id="object-manage">
+  <div class="top-title-area">
+    <div class="title-area-left">
+      <div class="page-title">{{ 'object_manage' | i18nextEager }}</div>
+      <div *ngIf="srcData.data?.length > 0">（{{ totalNumber }}）</div>
+    </div>
+    <div class="flex gap-[16px]">
+      <button nz-button nzType="text" class="guide-collapse-btn" *ngIf="!isShowNoDataGuide && !isFirstLoading" (click)="isShowGuide = !isShowGuide">
+        <nz-icon [nzType]="isShowGuide ? 'down' : 'up'" />
+        {{ 'create_guide' | i18nextEager }}
+      </button>
+      <button nz-button nzType="primary" [disabled]="!subscribeBtnStatus" (click)="showModal('create')">
+        {{ 'create_object' | i18nextEager }}
+      </button>
+    </div>
+  </div>
+
+  <div
+    class="overflow-hidden guide-collapse-content shrink-0"
+    *ngIf="!isShowNoDataGuide && !isFirstLoading"
+    [ngClass]="{ 'h-[188px]': isShowGuide, 'h-[0px]': !isShowGuide, 'mb-[24px]': isShowGuide }"
+  >
+    <app-no-data-guide [isSmall]="true" [type]="'objectTem'"></app-no-data-guide>
+  </div>
+
+  <div class="query-operate" *ngIf="!isShowNoDataGuide && !isFirstLoading">
+    <nz-input-search class="search-input" (nzSearch)="searchList()">
+      <input nz-input [(ngModel)]="searchValue" [placeholder]="'search_and_filter' | i18nextEager" (keyup.enter)="searchList()" />
+    </nz-input-search>
+    <button nz-button nzType="default" class="h-8 w-8 flex items-center justify-center p-0" (click)="getObjectsListData()">
+      <nz-icon nzType="redo" nzTheme="outline" />
+    </button>
+  </div>
+
+  <nz-spin [nzSpinning]="loading">
+    <div class="min-h-[200px]">
+      <div style="height: calc(100vh - 530px); overflow: auto">
+        <nz-table
+          #basicTable
+          *ngIf="!isFirstLoading"
+          [nzData]="srcData.data"
+          [nzFrontPagination]="false"
+          [nzShowPagination]="false"
+          [nzNoResult]="noDataTpl"
+          nzTableLayout="fixed"
+          class="table-style"
+          [ngStyle]="{ 'border': isShowNoDataGuide ? '' : '1px solid rgba(240, 240, 240, 1)' }"
+        >
+          <thead *ngIf="!isShowNoDataGuide">
+            <tr>
+              <th *ngFor="let column of listColumns" [nzWidth]="column.width || null">{{ column.title }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of basicTable.data; trackBy: trackByFn" style="height: 64px">
+              <td nzEllipsis>{{ row.name }}</td>
+              <td nzEllipsis nz-tooltip [nzTooltipTitle]="customTipTmpl" [nzTooltipTitleContext]="{ $implicit: row.schemasFormat }">
+                {{ row.schemasFormat }}
+              </td>
+              <td nzEllipsis>{{ row.creator_id }}</td>
+              <td nzEllipsis>{{ row.update_time | formateTime }}</td>
+              <td>
+                <button nz-button nzType="link" [disabled]="!subscribeBtnStatus" (click)="listAction({ key: 'edit' }, row)" style="padding: 0">
+                  {{ 'edit' | i18nextEager }}
+                </button>
+                <nz-divider nzType="vertical"></nz-divider>
+                <button nz-button nzType="link" [disabled]="!subscribeBtnStatus" (click)="listAction({ key: 'delete' }, row)" style="padding: 0">
+                  {{ 'delete' | i18nextEager }}
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </nz-table>
+
+        <ng-template #noDataTpl>
+          <div class="list-no-data flex items-center justify-center">
+            <app-new-common-no-data-with-btn
+              *ngIf="!searchNameIsEmpty"
+              [type]="'filterNoData'"
+              [firstLineData]="'no_data' | i18nextEager"
+              [tutorialType]="'objectTem'"
+              [noDataBtnStr]="'create_object_template' | i18nextEager"
+              (create)="showModal('create')"
+              (clear)="handleClickClearSearch()"
+            />
+            <app-no-data-guide *ngIf="searchNameIsEmpty" [type]="'objectTem'"></app-no-data-guide>
+          </div>
+        </ng-template>
+      </div>
+      <div style="display: flex; justify-content: flex-end">
+        <nz-pagination
+          style="margin-top: 24px; display: block"
+          *ngIf="totalNumber > 0"
+          [(nzPageIndex)]="currentPage"
+          [nzTotal]="totalNumber"
+          [(nzPageSize)]="pageSize.size"
+          [nzPageSizeOptions]="pageSize.options"
+          nzShowSizeChanger
+          (nzPageIndexChange)="getObjectsListData()"
+          (nzPageSizeChange)="getObjectsListData()"
+        >
+        </nz-pagination>
+      </div>
+    </div>
+  </nz-spin>
+</div>
+
+<nz-drawer [nzVisible]="showEdit" [nzWidth]="900" [nzTitle]="modalTypeName" [nzFooter]="drawerFooterTpl" (nzOnClose)="hideModal()">
+  <ng-container *nzDrawerContent>
+    <form nz-form [formGroup]="formGroup" nzLayout="vertical">
+      <nz-form-item>
+        <nz-form-label nzRequired>{{ 'object_name' | i18nextEager }}</nz-form-label>
+        <nz-form-control [nzErrorTip]="nameErrorTpl">
+          <input nz-input formControlName="name" [placeholder]="'input_object_name' | i18nextEager" maxlength="50" style="width: 100%" />
+          <ng-template #nameErrorTpl let-control>
+            <ng-container *ngIf="control.hasError('required')">{{ 'validation_name_tip' | i18nextEager }}</ng-container>
+            <ng-container *ngIf="control.hasError('customVerify')">{{ 'validation_name_tip' | i18nextEager }}</ng-container>
+            <ng-container *ngIf="control.hasError('minlength') || control.hasError('maxlength')">{{ 'validation_name_tip' | i18nextEager }}</ng-container>
+          </ng-template>
+        </nz-form-control>
+      </nz-form-item>
+
+      <nz-form-item>
+        <nz-form-label>{{ 'object_variable' | i18nextEager }}</nz-form-label>
+        <nz-form-control>
+          <div class="h-full w-full overflow-auto mt-2 rounded-2">
+            <div class="flex items-center gap-2 mb-2 w-full">
+              <div class="text-label text-gray-500 text-xs font-medium" style="flex: 1; min-width: 0">{{ 'variable_name' | i18nextEager }}</div>
+              <div class="text-label text-gray-500 text-xs font-medium shrink-0" style="width: 150px">{{ 'variable_type' | i18nextEager }}</div>
+              <div class="text-label text-gray-500 text-xs font-medium shrink-0" style="width: 200px">
+                {{ 'description' | i18nextEager }}{{ 'optional' | i18nextEager }}
+              </div>
+              <div class="shrink-0 w-[80px]"></div>
+            </div>
+
+            <form #objectForm="ngForm">
+              <ng-container *ngTemplateOutlet="nodeListTpl; context: { $implicit: objectsParams }"></ng-container>
+
+              <ng-template #nodeListTpl let-nodes let-parent="parent">
+                <ng-container *ngFor="let param of nodes; let i = index">
+                  <div class="mt-[8px] flex w-full gap-2 items-start leading-none">
+                    <div style="flex: 1; min-width: 0; padding-top: 4px" [style.padding-left.px]="param.depth * 20">
+                      <nz-form-item style="margin-bottom: 0">
+                        <nz-form-control>
+                          <input
+                            nz-input
+                            type="text"
+                            [name]="'objectsFormName_' + param.depth + '_' + i"
+                            maxlength="32"
+                            [(ngModel)]="param.name"
+                            [title]="param.name"
+                            (input)="onObjectNameChange()"
+                            [valueValidityValidator]="getObjectInputNames(param)"
+                            [placeholder]="'input_placeholder' | i18nextEager"
+                          />
+                        </nz-form-control>
+                      </nz-form-item>
+                    </div>
+
+                    <div class="shrink-0 pt-1" style="width: 150px">
+                      <nz-cascader
+                        *ngIf="param.depth === 0; else otherTypes"
+                        [name]="'objectFormType_' + param.depth + '_' + i"
+                        [(ngModel)]="param.type"
+                        (ngModelChange)="onObjectParamTypeChange(param)"
+                        [nzOptions]="startTypeOptions"
+                        [nzPlaceHolder]="'select_placeholder' | i18nextEager"
+                        style="width: 100%"
+                      >
+                      </nz-cascader>
+
+                      <ng-template #otherTypes>
+                        <nz-cascader
+                          *ngIf="param.depth === 5; else subTypes"
+                          [name]="'objectFormType_' + param.depth + '_' + i"
+                          [(ngModel)]="param.type"
+                          (ngModelChange)="onObjectParamTypeChange(param)"
+                          [nzOptions]="startTypeOp"
+                          [nzPlaceHolder]="'select_placeholder' | i18nextEager"
+                          style="width: 100%"
+                        >
+                        </nz-cascader>
+                        <ng-template #subTypes>
+                          <nz-cascader
+                            [name]="'objectFormType_' + param.depth + '_' + i"
+                            [(ngModel)]="param.type"
+                            (ngModelChange)="onObjectParamTypeChange(param)"
+                            [nzOptions]="standTypeOps"
+                            [nzPlaceHolder]="'select_placeholder' | i18nextEager"
+                            style="width: 100%"
+                          >
+                          </nz-cascader>
+                        </ng-template>
+                      </ng-template>
+                    </div>
+
+                    <div class="shrink-0 pt-1" style="width: 200px">
+                      <input
+                        nz-input
+                        type="text"
+                        [name]="'objectFormDesc_' + param.depth + '_' + i"
+                        [(ngModel)]="param.description"
+                        [title]="param.description"
+                        [placeholder]="'input_placeholder' | i18nextEager"
+                      />
+                    </div>
+
+                    <div class="flex items-center justify-end gap-2 shrink-0 w-[80px] pt-1.5">
+                      <meta-add-props-icon *ngIf="isObjectLikeType(param.type)" class="cursor-pointer" (click)="addChild(param)" />
+                      <nz-icon
+                        *ngIf="showDelete(param, objectsParams)"
+                        (click)="deleteObjectNodeParam(param)"
+                        nzType="delete"
+                        nzTheme="outline"
+                        style="font-size: 16px; cursor: pointer"
+                        class="text-gray-500 hover:text-red-500"
+                      ></nz-icon>
+                      <meta-set-default *ngIf="showSetDefault(param)" [param]="param" [isShowDesc]="false" class="cursor-pointer"></meta-set-default>
+                    </div>
+                  </div>
+
+                  <ng-container *ngIf="param.expanded && param.children && param.children.length > 0">
+                    <ng-container *ngTemplateOutlet="nodeListTpl; context: { $implicit: param.children, parent: param }"></ng-container>
+                  </ng-container>
+                </ng-container>
+              </ng-template>
+            </form>
+          </div>
+        </nz-form-control>
+      </nz-form-item>
+    </form>
+  </ng-container>
+</nz-drawer>
+
+<ng-template #drawerFooterTpl>
+  <div class="flex justify-end gap-2">
+    <button nz-button nzType="default" (click)="hideModal()">{{ 'cancel' | i18nextEager }}</button>
+    <button nz-button nzType="primary" (click)="createOrEdit()">{{ 'ok' | i18nextEager }}</button>
+  </div>
+</ng-template>
+
+<ng-template #customTipTmpl let-context>
+  <div style="max-height: 400px; white-space: pre-wrap">{{ context }}</div>
+</ng-template>

@@ -1,4 +1,3 @@
-/* eslint-disable @cloud/tinylint/interface-define-rule */
 import {AlgorithmEnum, SortByField} from "@routes/model-square/enums";
 
 

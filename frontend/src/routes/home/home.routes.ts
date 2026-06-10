@@ -2,7 +2,7 @@ import { Routes } from '@angular/router';
 import { I18NEXT_NAMESPACE_RESOLVER } from 'angular-i18next';
 import { I18nNamespace } from '@i18n';
 import { AGENT_CORE, I18N_NAMESPACE } from '@agentcore/constants/common';
-
+import { agentCoreRoutes, cfServiceGuard } from '@agentcore/routes';
 /**
  * 主页路由
  */
@@ -37,6 +37,17 @@ export const HOME_ROUTES: Routes = [
     path: '',
     pathMatch: 'full',
     redirectTo: 'overview',
+  },
+  {
+    path: 'prompt',
+    loadChildren: () =>
+      import('@routes/prompt').then((m) => m.PromptRoutingModule),
+    data: {
+      i18nextNamespaces: [I18nNamespace.PROMPT_PLATFORM],
+    },
+    resolve: {
+      i18next: I18NEXT_NAMESPACE_RESOLVER,
+    },
   },
   {
     path: 'agent-center',
@@ -98,6 +109,17 @@ export const HOME_ROUTES: Routes = [
       ),
     data: {
       i18nextNamespaces: [I18nNamespace.AGENT_CENTER],
+    },
+    resolve: {
+      i18next: I18NEXT_NAMESPACE_RESOLVER,
+    },
+  },
+  {
+    path: 'skill-market',
+    loadChildren: () => import('@routes/skill-market').then(module => module.SkillMarketRoutingModule),
+    canActivate: [cfServiceGuard],
+    data: {
+      i18nextNamespaces: [I18N_NAMESPACE.Skill, I18N_NAMESPACE.Common].map(v => `${AGENT_CORE}.${v}`),
     },
     resolve: {
       i18next: I18NEXT_NAMESPACE_RESOLVER,
@@ -192,6 +214,7 @@ export const HOME_ROUTES: Routes = [
       i18next: I18NEXT_NAMESPACE_RESOLVER,
     },
   },
+  ...agentCoreRoutes,
   {
     path: 'memory-lib',
     loadChildren: () => import('@routes/memory-lib/memory-lib-routing.module').then(module => module.MemoryLibRoutingModule),

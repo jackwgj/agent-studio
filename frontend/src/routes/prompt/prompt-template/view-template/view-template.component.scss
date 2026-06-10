@@ -1,0 +1,121 @@
+.modal-container {
+  display: flex;
+  flex-direction: column;
+
+  .modal-header-style {
+    margin-bottom: 8px;
+
+    .modal-header-text {
+      font-size: 20px;
+      color: #191919;
+      line-height: 30px;
+      font-weight: bold;
+    }
+  }
+
+  .body-tmpl-name, .body-create-time, .body-tmpl-label, .body-tmpl-content, .body-model-params {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 17px;
+  }
+
+  .label-text {
+    font-size: 14px;
+    color: #595959;
+    line-height: 22px;
+    font-weight: 400;
+  }
+
+  #tmpl-tags {
+    height: 24px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+
+  .single-tag {
+    display: inline-block;
+    padding: 0 4px;
+    text-align: center;
+    font-size: 12px;
+    margin-left: 4px;
+    height: 18px;
+    background : rgba( 89,89,89,0.10 ) ;
+    color : #595959 ;
+    line-height : 18px ;
+    font-weight : normal ;
+    border-radius : 4px ;
+  }
+
+  .tmpl-name-input {
+    width: 328px;
+    height: 32px;
+    border: 1px solid #C2C2C2;
+    border-radius: 6px;
+  }
+
+  .create-time-text {
+    font-size: 14px;
+    color: #191919;
+    letter-spacing: 0;
+    line-height: 22px;
+    font-weight: 400;
+  }
+
+  .tmpl-content-text {
+    font-size:14px;
+    letter-spacing:0;
+    white-space: break-spaces;
+    font-weight: 400;
+    max-height: 500px;
+    padding-bottom: var(--ti-space-base);
+    overflow: auto;
+  }
+
+  .body-tmpl-content {
+    align-items: flex-start;
+  }
+
+  .tmpl-content-label, .model-params-label {
+    flex-shrink: 0;
+  }
+
+  .model-params-value {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    font-size: 14px;
+    color: #131415;
+    letter-spacing: 0;
+    line-height: 22px;
+    font-weight: 400;
+
+    .pangu-nlp-icon {
+      width: 16px;
+      height: 16px;
+      position: relative;
+      bottom: 2px;
+    }
+
+    .remark-platform {
+      flex-shrink: 0;
+    }
+
+    .remark-split-line {
+      height: 14px;
+      width: 1px;
+      background-color: rgb(0 0 0 / 50%);
+    }
+  }
+  .modal-footer-style {
+    padding-top: 7px !important;
+  }
+}
+::ng-deep{
+  .modal-view-template{
+    width: 700px !important;
+  }
+}

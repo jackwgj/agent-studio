@@ -24,9 +24,10 @@ import { CustomEditorIconComponent } from '../custom-editor-icon/custom-editor-i
 })
 export class CustomFileTreeComponent {
   @Input('treeData') treeData: any[];
+  @Input('seletcIndex') seletcIndex: any[];
   onNodeSelect = output<CustomTreeNode>();
 
   onSelect(event: any): void {
-    this.onNodeSelect.emit(event);
+    this.onNodeSelect.emit(event.node.origin);
   }
 }
