@@ -393,13 +393,9 @@
         </dependency>
 
         <dependency>
-            <groupId>org.postgresql</groupId>
-            <artifactId>postgresql</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.opengauss</groupId>
-            <artifactId>opengauss-jdbc</artifactId>
-            <version>${org.opengauss.version}</version>
+            <groupId>com.huaweicloud.gaussdb</groupId>
+            <artifactId>opengaussjdbc</artifactId>
+            <version>506.0.T35</version>
         </dependency>
         <dependency>
             <groupId>org.mapstruct</groupId>

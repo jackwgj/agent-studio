@@ -67,7 +67,7 @@
         <hibernate.version>6.6.8.Final</hibernate.version>
         <hibernate-annotations.version>7.0.3.Final</hibernate-annotations.version>
         <hibernate-validator.version>8.0.2.Final</hibernate-validator.version>
-        <org.opengauss.version>5.0.0</org.opengauss.version>
+        <org.opengauss.version>5.0.0-og</org.opengauss.version>
         <bcprov-jdk18on.version>1.84</bcprov-jdk18on.version>
         <avro.version>1.11.4</avro.version>
         <commons-lang3.version>3.18.0</commons-lang3.version>
@@ -158,11 +158,6 @@
                 <groupId>org.bouncycastle</groupId>
                 <artifactId>bcprov-jdk18on</artifactId>
                 <version>${bcprov-jdk18on.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.opengauss</groupId>
-                <artifactId>opengauss-jdbc</artifactId>
-                <version>${org.opengauss.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.hadoop</groupId>

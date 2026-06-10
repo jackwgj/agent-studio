@@ -85,8 +85,9 @@
             <version>${jose4j.version}</version>
         </dependency>
         <dependency>
-            <groupId>org.opengauss</groupId>
-            <artifactId>opengauss-jdbc</artifactId>
+            <groupId>com.huaweicloud.gaussdb</groupId>
+            <artifactId>opengaussjdbc</artifactId>
+            <version>506.0.T35</version>
         </dependency>
         <dependency>
             <groupId>org.mybatis.spring.boot</groupId>

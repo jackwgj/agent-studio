@@ -99,7 +99,7 @@ INSERT INTO t_knowledge_i18n_resource VALUES (64, 'connector.KooSearch.param.App
 INSERT INTO t_knowledge_i18n_resource VALUES (65, 'connector.KooSearch.param.AppCode.remark', 'en-us', 'AppCode of the APIG credential bound to the KooSearch interface, used for authentication.');
 INSERT INTO t_knowledge_i18n_resource VALUES (66, 'connector.KooSearch.param.knowledge_base_detail_url.name', 'en-us', 'Knowledge Base Detail URL');
 INSERT INTO t_knowledge_i18n_resource VALUES (67, 'connector.KooSearch.param.knowledge_base_detail_url.remark', 'en-us', 'Link to the knowledge base detail page, e.g., https://xxxx?id={{id}}. Note: use {{id}} as a placeholder to ensure correct redirection.');
-INSERT INTO t_knowledge_i18n_resource VALUES (68, 'connector.His.description', 'en-us', 'Users connect to Agent Builder\'s internal platform knowledge base.');
+INSERT INTO t_knowledge_i18n_resource VALUES (68, 'connector.His.description', 'en-us', 'Users connect to Agent Builders internal platform knowledge base.');
 INSERT INTO t_knowledge_i18n_resource VALUES (69, 'ability.RETRIEVE.search_mode.doc.name', 'en-us', 'Semantic Retrieval');
 INSERT INTO t_knowledge_i18n_resource VALUES (70, 'ability.RETRIEVE.search_mode.doc.summary', 'en-us', 'Using vector retrieval technology to retrieve knowledge documents.');
 INSERT INTO t_knowledge_i18n_resource VALUES (71, 'ability.RETRIEVE.search_mode.doc.description', 'en-us', 'Using vector retrieval technology to search for knowledge within documents and structured data, it retrieves slices of content that are highly relevant to user intent. This method is recommended for scenarios where contextual relevance needs to be integrated and a deep understanding of user intent is required.');
