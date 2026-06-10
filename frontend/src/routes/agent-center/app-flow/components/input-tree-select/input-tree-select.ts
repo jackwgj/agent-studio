@@ -209,8 +209,7 @@ export class InputTreeSelect implements ControlValueAccessor {
     }
 
     const oTop = targetItem.offsetTop;
-    const viewportBottom = window.innerHeight - (this.el.nativeElement.getBoundingClientRect()?.top || 0);
-    const isTop = viewportBottom - oTop < 300;
+    const isTop = window.innerHeight - oTop < 300;
     if (isTop) {
       this.treeDivPosition = {
         top: `${oTop - this.selectDivDom.nativeElement.scrollTop + 40}px`,
@@ -377,8 +376,7 @@ export class InputTreeSelect implements ControlValueAccessor {
   treeNodeEnter(e, i) {
     this.treeSelectIndex = i;
     this.treeSelectIndexList = this.options[i].children || [];
-    const viewportBottom = window.innerHeight - (this.el.nativeElement.getBoundingClientRect()?.top || 0);
-    const isTop = viewportBottom - e.currentTarget.offsetTop < 300;
+    const isTop = window.innerHeight - e.clientY < 300;
     if (isTop) {
       this.treeDivPosition = {
         top: `${e.currentTarget.offsetTop - this.selectDivDom.nativeElement.scrollTop + 40}px`,
@@ -418,14 +416,14 @@ export class InputTreeSelect implements ControlValueAccessor {
   }
 
   get domSelectTreeTop() {
-    return `${this.inputDom?.nativeElement?.offsetHeight || 0}px`;
+    return `${(this.inputDom?.nativeElement?.getBoundingClientRect().top || 0) + (this.inputDom?.nativeElement?.getBoundingClientRect().height || 0)}px`;
   }
   get domSelectTreeWidth() {
-    return `${this.inputDom?.nativeElement?.offsetWidth || 0}px`;
+    return `${this.inputDom?.nativeElement?.getBoundingClientRect().width || 0}px`;
   }
 
   get domSearchDivWidth() {
-    return `${(this.inputDom?.nativeElement?.offsetWidth || 0) - 32}px`;
+    return `${this.inputDom?.nativeElement?.getBoundingClientRect().width - 32 || 0}px`;
   }
 
   handelSelect() {

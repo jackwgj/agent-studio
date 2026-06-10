@@ -737,11 +737,11 @@ export class GlobalConfigComponent
 
   public addAssignmentMemos() {
     const child = {
+      ...getInitOutputParamConfig(),
       title: "",
       key: this.treeNodes.length + "-",
       depth: 0,
       source: "pre_defined",
-      ...getInitOutputParamConfig(),
       aging_level: "session",
       storage_method: "assignment",
       parentType: "none",
