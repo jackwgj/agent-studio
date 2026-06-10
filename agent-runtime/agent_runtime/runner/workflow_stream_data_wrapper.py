@@ -42,6 +42,7 @@ _SKIP_COMPONENT_KEY: list[str] = [
     "_loop_end_",
     "_input",
     "_output",
+    "_parallel_done"
 ]
 
 
@@ -191,6 +192,7 @@ class WorkflowStreamDataWrapper:
             "workflow_start": self._convert_workflow_start,
             "workflow_exception": self._convert_workflow_exception,
             "component_execute_error": self._convert_error,
+            "partial_content": self._convert_partial_content_from_output,
         }
 
         converter = type_converters.get(chunk.type)
@@ -383,6 +385,31 @@ class WorkflowStreamDataWrapper:
             "data": payload,
             "executionId": self._execution_id,
             "index": chunk.index,
+            "createdTime": int(time.time()),
+        }
+
+    def _convert_partial_content_from_output(self, chunk: OutputSchema) -> dict:
+        """转换 partial_content (OutputSchema) → message"""
+        data = chunk.payload if hasattr(chunk, "payload") else chunk.model_dump()
+        if not isinstance(data, dict):
+            data = {"result": data}
+
+        result_data = {
+            "answer": data.get("answer", data.get("result", "")),
+            "node_id": data.get("node_id", ""),
+            "node_name": data.get("node_name", ""),
+            "node_type": data.get("node_type", ""),
+            "should_interrupt": data.get("should_interrupt", False),
+        }
+        for key in ("think", "output_mode"):
+            if key in data:
+                result_data[key] = data[key]
+
+        return {
+            "event": "message",
+            "data": result_data,
+            "executionId": self._execution_id,
+            "index": getattr(chunk, "index", 0),
             "createdTime": int(time.time()),
         }
 

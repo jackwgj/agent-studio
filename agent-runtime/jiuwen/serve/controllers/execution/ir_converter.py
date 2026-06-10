@@ -13,6 +13,7 @@ from typing import Any, AsyncIterator, Dict, Iterable, List, Optional
 
 from agent_runtime.extension.workflow_node.flow_code import FlowCode
 from agent_runtime.extension.workflow_node.ParamOutput import ParamOutput
+from agent_runtime.extension.workflow_node.complex_intent_detection import ComplexIntentDetection
 from agent_runtime.extension.workflow_node.questioner import (
     FieldInfo,
     Questioner,
@@ -110,6 +111,7 @@ UNSUPPORTED_COMPONENT_DEBUG_LIST = [
     "jiuwen.message",
     "jiuwen.branch",
     "jiuwen.taskFlow",
+    "EI.ComplexIntentDetection",
 ]
 
 _REFERENCE_PATTERN = re.compile(r"^\{([^{}]+)}$")
@@ -1546,6 +1548,13 @@ class IRConverter:
         if node_type in {"jiuwen.subWorkflow", "jiuwen.workflowComposite"}:
             return SubWorkflow({**configs, "node_id": node_id}), node_type, configs
 
+        if node_type == "EI.ComplexIntentDetection":
+            return (
+                ComplexIntentDetection(configs, node_id=node_id, node_name=configs.get("name", "")),
+                node_type,
+                configs,
+            )
+
         if node_type == "jiuwen.loop":
             loop_group = LoopGroup()
             loop_body = configs.get("loopBody") or []
@@ -1845,6 +1854,27 @@ class IRConverter:
             )
             logger.info(
                 f"[PERF-IR] _add_component '{node_id}' (subWorkflow) total: {(_time.time() - t_start) * 1000:.1f}ms"
+            )
+            return component
+
+        # ComplexIntentDetection 组件
+        if node_type in {"EI.ComplexIntentDetection", "EI.complexIntentDetection"}:
+            t_create = _time.time()
+            configs = dict(node.get("configs") or {})
+            component = ComplexIntentDetection(
+                configs,
+                node_id=node_id,
+                node_name=configs.get("name", ""),
+            )
+            logger.debug(
+                f"[PERF-IR] _add_component '{node_id}' (ComplexIntentDetection): {(_time.time() - t_create) * 1000:.1f}ms"
+            )
+            _add_workflow_comp_with_exception(
+                workflow,
+                node_id,
+                component,
+                inputs_schema=inputs_schema,
+                **_comp_reg,
             )
             return component
 

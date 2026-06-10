@@ -356,6 +356,10 @@ class FlowQA(WorkflowComponent):
             user_fields = inputs.get(USER_FIELDS, inputs) if inputs else {}
 
             if self._conf.need_reply:
+                # 中断结束重新开始
+                if self._node_state.status == ExecutionStatus.END:
+                    self._node_state = QAState()
+
                 if self._node_state.status == ExecutionStatus.START:
                     query = self._get_qa_by_strategy(user_fields)
                     # 先设置 inputs，再调用 _write_interaction_stream（因为模板渲染依赖 inputs）
