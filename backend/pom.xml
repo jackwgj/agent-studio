@@ -45,14 +45,13 @@
         <quartz.version>2.5.2</quartz.version>
         <commons.collections.version>4.5.0-M1</commons.collections.version>
         <quartz-springboot.version>3.5.14</quartz-springboot.version>
-        <poi.version>5.4.1</poi.version>
+        <poi.version>5.2.3</poi.version>
         <swagger-parser.version>2.1.24</swagger-parser.version>
         <swagger-core.version>2.2.25</swagger-core.version>
         <jaxb.version>2.3.9</jaxb.version>
         <runtime.version>0.0.1-SNAPSHOT</runtime.version>
         <studio.common.version>1.19.3</studio.common.version>
         <jose4j.version>0.9.6</jose4j.version>
-        <poi.version>5.4.1</poi.version>
         <redisson.version>3.39.0</redisson.version>
         <mcp.sdk.version>0.16.0</mcp.sdk.version>
         <tomcat-embed-core.version>10.1.54</tomcat-embed-core.version>
