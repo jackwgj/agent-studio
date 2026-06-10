@@ -11,9 +11,9 @@ from agent_runtime.runner.controller_stream_data_adapter import (
     ControllerStreamDataAdapter,
 )
 from agent_runtime.schemas.orchestration_mgr import ExecutionRequest
-from agent_runtime.storage import get_storage_provider
 from jiuwen.serve.controllers.execution.enum import IRType
 from jiuwen.serve.controllers.execution.ir_converter import IRConverter
+from jiuwen.serve.controllers.execution.open_utils import async_ir_load
 from jiuwen.serve.controllers.execution.manager import AsyncStateManager
 from jiuwen.serve.controllers.execution.types import ExecutionData
 from jiuwen.serve.controllers.execution.utils import (
@@ -40,27 +40,6 @@ class ControllerRunner:
         if self._api_base:
             os.environ["IR_LLM_API_BASE"] = self._api_base
 
-    async def _load_ir_json(self, ir_path: str) -> dict:
-        """Load IR JSON from object storage."""
-        provider = get_storage_provider()
-        try:
-            ir_json_str = await provider.get_content(ir_path)
-        except Exception as e:
-            workflow_logger.error(
-                f"Failed to read IR file from storage: {ir_path}, {e}"
-            )
-            raise RuntimeError(
-                f"Failed to read IR file from storage: {ir_path}, {e}"
-            ) from e
-
-        import json
-
-        try:
-            return json.loads(ir_json_str)
-        except json.JSONDecodeError as e:
-            workflow_logger.error(f"IR file JSON format error: {ir_path}, {e}")
-            raise RuntimeError(f"IR file JSON format error: {ir_path}, {e}") from e
-
     async def run_streaming(
         self,
         req: ExecutionRequest,
@@ -79,21 +58,17 @@ class ControllerRunner:
         exec_id = execution_id or session_id or str(uuid.uuid4())
         adapter = ControllerStreamDataAdapter(execution_id=exec_id)
 
-        # 1. Use cached IR (if exists) or load from storage
-        cached_ir = getattr(req.params, "ir_cache", None)
-        if cached_ir is not None:
-            ir_json = cached_ir
-        else:
-            try:
-                ir_json = await self._load_ir_json(req.ir_path)
-            except Exception as e:
-                workflow_logger.error(
-                    f"Failed to load IR from {req.ir_path}: {e}", exc_info=True
-                )
-                yield adapter.adapt_error(
-                    f"Failed to load workflow configuration: {e}", exec_id
-                )
-                return
+        # 1. Load IR from cache or storage
+        try:
+            ir_json = await async_ir_load(req.ir_path)
+        except Exception as e:
+            workflow_logger.error(
+                f"Failed to load IR from {req.ir_path}: {e}", exc_info=True
+            )
+            yield adapter.adapt_error(
+                f"Failed to load workflow configuration: {e}", exec_id
+            )
+            return
 
         # 2. Build PlanRuntimeContext (reuse commercial logic)
         try:

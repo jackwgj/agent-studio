@@ -141,6 +141,36 @@ class WorkflowLogSettings(BaseSettings):
     )
 
 
+class CacheSettings(BaseSettings):
+    """多级缓存配置（L1 内存 LRU + L2 Redis）。"""
+
+    max_ir_cache_num: int = Field(default=100, validation_alias="MAX_IR_CACHE_NUM")
+    max_workflow_cache_num: int = Field(
+        default=100, validation_alias="MAX_WORKFLOW_CACHE_NUM"
+    )
+    max_agent_cache_num: int = Field(
+        default=100, validation_alias="MAX_AGENT_CACHE_NUM"
+    )
+    max_agent_group_cache_num: int = Field(
+        default=100, validation_alias="MAX_AGENT_GROUP_CACHE_NUM"
+    )
+    max_intent_rule_cache_num: int = Field(
+        default=100, validation_alias="MAX_AGENT_RULE_CACHE_NUM"
+    )
+    cache_ttl_seconds: int = Field(default=3600, validation_alias="CACHE_TTL_SECONDS")
+    mem_cache_ttl_seconds: int = Field(
+        default=3600, validation_alias="MEM_CACHE_TTL_SECONDS"
+    )
+    max_cache_data_size: int = Field(
+        default=2 * 1024 * 1024, validation_alias="MAX_CACHE_DATA_SIZE"
+    )
+    ir_cache_enable: bool = Field(default=True, validation_alias="IR_CACHE_ENABLE")
+
+    model_config = SettingsConfigDict(
+        env_file=".env", env_file_encoding="utf-8", extra="ignore"
+    )
+
+
 class Settings:
     server = ServerSettings()
     redis = RedisSettings()
@@ -149,6 +179,7 @@ class Settings:
     health_check = HealthCheckSettings()
     security_sandbox = SecuritySandboxSettings()
     workflow_log = WorkflowLogSettings()
+    cache = CacheSettings()
 
 
 settings = Settings()

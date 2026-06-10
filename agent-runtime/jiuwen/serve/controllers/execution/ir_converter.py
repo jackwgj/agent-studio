@@ -98,8 +98,6 @@ from jiuwen.serve.controllers.execution.ir_parallel_utils import (
     collect_parallel_join_nodes,
 )
 from agent_runtime.common.ir_exceptions import IRBuildException
-from agent_runtime.common.ir_interfaces import StorageConfigError, StorageReadError
-from agent_runtime.storage import get_storage_provider
 
 _AGENT_VERSION = "agentVersion"
 _WORKFLOW_VERSION = "workflowVersion"
@@ -1398,16 +1396,10 @@ class IRConverter:
         child_path = reference.get("path", "")
         if not child_path:
             return None
-        provider = get_storage_provider()
         try:
-            ir_json_str = await provider.get_content(child_path)
-        except (StorageConfigError, StorageReadError) as e:
-            raise IRBuildException(f"从存储读取 IR 文件失败: {child_path}, {e}") from e
-
-        try:
-            child_ir = json.loads(ir_json_str)
-        except json.JSONDecodeError as e:
-            raise IRBuildException(f"IR 文件 JSON 格式错误: {child_path}, {e}") from e
+            child_ir = await async_ir_load(child_path)
+        except Exception as e:
+            raise IRBuildException(f"从缓存或存储读取 IR 文件失败: {child_path}, {e}") from e
         # First convert old refs to new format
         converted_child_ir = _convert_global_variable_refs_in_ir(child_ir)
         logger.debug(f"param extra: child converted ir: {converted_child_ir}")

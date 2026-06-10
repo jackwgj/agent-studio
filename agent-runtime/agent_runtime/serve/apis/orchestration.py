@@ -30,7 +30,7 @@ from fastapi.responses import JSONResponse, StreamingResponse, PlainTextResponse
 from jiuwen.common.exception import JiuWenBaseException
 from jiuwen.common.exception.status_code import StatusCode
 from jiuwen.serve.controllers.execution.manager import AsyncStateManager
-from jiuwen.serve.controllers.execution.open_utils import cache_workflow_queue
+from jiuwen.serve.controllers.execution.open_utils import async_ir_load, cache_workflow_queue
 from openjiuwen.core.common.logging import workflow_logger
 from pydantic import ValidationError
 
@@ -141,7 +141,7 @@ async def ir_execute(req_json: dict, request: Request):
     exec_id = execution_id
     ir_path = req.ir_path
     try:
-        ir_json = await _load_ir_json(ir_path)
+        ir_json = await async_ir_load(ir_path)
     except Exception as e:
         workflow_logger.error(f"Failed to load IR from {ir_path}: {e}", exc_info=True)
         return JSONResponse(

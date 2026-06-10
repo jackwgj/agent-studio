@@ -2,18 +2,13 @@
 
 from __future__ import annotations
 
-import json
 import os
 import time
 from enum import Enum
 from typing import AsyncGenerator
 
 from agent_runtime.common.ir_exceptions import IRBuildException
-from agent_runtime.common.ir_interfaces import (
-    StorageConfigError,
-    StorageReadError,
-    ModelConfigProvider,
-)
+from agent_runtime.common.ir_interfaces import ModelConfigProvider
 from agent_runtime.common.model_providers import (
     EnvVarModelConfigProvider,
     IRModelConfigProvider,
@@ -25,8 +20,8 @@ from agent_runtime.schemas.orchestration_mgr import (
     ComponentDebugRequest,
     ExecutionRequest,
 )
-from agent_runtime.storage import get_storage_provider
 from jiuwen.serve.controllers.execution.ir_converter import IRConverter
+from jiuwen.serve.controllers.execution.open_utils import async_ir_load
 from openjiuwen.core.common.exception.errors import WorkflowError
 from openjiuwen.core.common.logging import workflow_logger
 from openjiuwen.core.session.checkpointer.checkpointer import CheckpointerFactory
@@ -71,33 +66,6 @@ class WorkflowRunner:
             case ModelConfigStrategy.IR:
                 return IRModelConfigProvider()
 
-    async def _load_ir_json(self, ir_path: str) -> dict:
-        """从对象存储读取 IR JSON，返回解析后的 dict
-
-        ir_runner 只做 dict → workflow；存储读取由 Runner 编排。
-        """
-        if self._api_key:
-            os.environ["IR_LLM_API_KEY"] = self._api_key
-        if self._api_base:
-            os.environ["IR_LLM_API_BASE"] = self._api_base
-
-        provider = get_storage_provider()
-        try:
-            ir_json_str = await provider.get_content(ir_path)
-        except (StorageConfigError, StorageReadError) as e:
-            workflow_logger.error(
-                f"Failed to read IR file from storage: {ir_path}, {e}"
-            )
-            raise IRBuildException(
-                f"Failed to read IR file from storage: {ir_path}, {e}"
-            ) from e
-
-        try:
-            return json.loads(ir_json_str)
-        except json.JSONDecodeError as e:
-            workflow_logger.error(f"IR file JSON format error: {ir_path}, {e}")
-            raise IRBuildException(f"IR file JSON format error: {ir_path}, {e}") from e
-
     async def _is_session_interrupted(self, session_id: str) -> bool:
         """检查指定 session 是否存在已保存的 checkpoint（即处于中断状态）"""
         checkpointer = CheckpointerFactory.get_checkpointer()
@@ -122,32 +90,24 @@ class WorkflowRunner:
 
         # 2. 使用缓存的 IR（如果存在）或从存储读取
         ir_path = req.ir_path
-        t0 = time.time()
-        cached_ir = getattr(req.params, "ir_cache", None)
-        if cached_ir is not None:
+        t_load_start = time.time()
+        try:
+            ir_json = await async_ir_load(ir_path)
             workflow_logger.info(
-                f"[PERF] IR cache hit: {(time.time() - t0) * 1000:.1f}ms"
+                f"[PERF] IR load (cache+storage): {(time.time() - t_load_start) * 1000:.1f}ms"
             )
-            ir_json = cached_ir
-        else:
-            t_load_start = time.time()
-            try:
-                ir_json = await self._load_ir_json(ir_path)
-                workflow_logger.info(
-                    f"[PERF] IR file read: {(time.time() - t_load_start) * 1000:.1f}ms"
-                )
-            except Exception as e:
-                workflow_logger.error(
-                    f"Failed to load IR from {ir_path}: {e}", exc_info=True
-                )
-                yield {
-                    "event": "error",
-                    "data": {"response": "Failed to load workflow configuration"},
-                    "executionId": exec_id,
-                    "index": 0,
-                    "createdTime": int(time.time()),
-                }
-                return
+        except Exception as e:
+            workflow_logger.error(
+                f"Failed to load IR from {ir_path}: {e}", exc_info=True
+            )
+            yield {
+                "event": "error",
+                "data": {"response": "Failed to load workflow configuration"},
+                "executionId": exec_id,
+                "index": 0,
+                "createdTime": int(time.time()),
+            }
+            return
 
         # 3. 构建工作流（纯 dict → workflow，无存储）, 构建node_id与node_name映射
         t_node_map = time.time()
@@ -350,7 +310,7 @@ class WorkflowRunner:
         # 1. 从存储读取 IR
         ir_path = req.ir_path
         try:
-            ir_json = await self._load_ir_json(ir_path)
+            ir_json = await async_ir_load(ir_path)
         except Exception as e:
             workflow_logger.error(
                 f"Failed to load IR from {ir_path}: {e}", exc_info=True
