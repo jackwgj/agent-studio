@@ -12,8 +12,7 @@ import time
 from typing import Any, Optional
 
 from cachetools import LRUCache
-from jiuwen.common.store.async_redis import get_async_redis_instance
-from jiuwen.common.store.redis import get_redis_instance
+from agent_runtime.common.redis_manager import get_redis_client
 
 from jiuwen.common.store.obs import OBSUtil
 from agent_runtime.common.config import settings
@@ -21,6 +20,7 @@ from jiuwen.common.exception.base import JiuWenBaseException
 from jiuwen.common.exception.status_code import StatusCode
 from jiuwen.common.log.base import logger
 from jiuwen.common.utils.utils import safe_json_loads_raise_exception
+
 from jiuwen.serve.common.logger.request_logger import log_function_timing
 
 
@@ -36,12 +36,26 @@ class CacheUtils:
         redis_ttl: int = -1,
     ):
         self.memory_cache = LRUCache(capacity)
-        self.redis_cache = get_redis_instance()
-        self.async_redis_cache = get_async_redis_instance()
+        self._redis_cache = None
+        self._async_redis_cache = None
         self.should_serialize = should_serialize
         self.cache_name = cache_name
         self.memory_ttl = memory_ttl
         self.redis_ttl = redis_ttl
+
+    @property
+    def redis_cache(self):
+        """惰性获取 Redis 客户端"""
+        if self._redis_cache is None:
+            self._redis_cache = get_redis_client()
+        return self._redis_cache
+
+    @property
+    def async_redis_cache(self):
+        """惰性获取异步 Redis 客户端"""
+        if self._async_redis_cache is None:
+            self._async_redis_cache = get_redis_client()
+        return self._async_redis_cache
 
     async def aput(self, key: str, value: Any):
         """异步刷新内存和redis缓存"""
@@ -185,7 +199,7 @@ class CacheUtils:
 
     def _generate_unique_key(self, key: str) -> str:
         """生成key"""
-        return f"ei:engine:{self.cache_name}:{key}"
+        return f"agent_runtime:{self.cache_name}:{key}"
 
 
 # 缓存队列实例
