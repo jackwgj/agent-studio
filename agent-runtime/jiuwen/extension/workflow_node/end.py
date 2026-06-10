@@ -587,11 +587,7 @@ class End(BaseEnd):
         inner_session = getattr(session, "_inner", None)
         node_id = getattr(inner_session.state(), "_node_id", None)
         query = session.get_global_state("query") or ""
-        envs = get_workflow_param(session, "_REQUEST") or {}
-        user_fields = {**outputs, **{"query": query}}
-        for k, v in user_fields.items():
-            if envs.get(k):
-                user_fields[k] = envs.get(k)
+        user_fields = {**outputs, **inputs, **{"query": query}}
 
         # 构建带有 think 的 result（用于 message_end）
         result_with_think = get_output_data_with_metadata(
@@ -690,11 +686,7 @@ class End(BaseEnd):
             getattr(inner_session.state(), "_node_id", None) if inner_session else None
         )
         query = session.get_global_state("query") or ""
-        envs = get_workflow_param(session, "_REQUEST") or {}
-        user_fields = {**outputs, **{"query": query}}
-        for k, v in user_fields.items():
-            if envs.get(k):
-                user_fields[k] = envs.get(k)
+        user_fields = {**outputs, **inputs, **{"query": query}}
         last_end_node_stream = None
         first_end_node_stream = True
         async for output in super().stream(inputs, session, context):
@@ -804,11 +796,7 @@ class End(BaseEnd):
             getattr(inner_session.state(), "_node_id", None) if inner_session else None
         )
         query = session.get_global_state("query") or ""
-        envs = get_workflow_param(session, "_REQUEST") or {}
-        user_fields = {**outputs, **{"query": query}}
-        for k, v in user_fields.items():
-            if envs.get(k):
-                user_fields[k] = envs.get(k)
+        user_fields = {**outputs, **inputs, **{"query": query}}
 
         # 构建带有 think 的 result（用于 message_end）
         result_with_think = get_output_data_with_metadata(
@@ -941,11 +929,7 @@ class End(BaseEnd):
         inner_session = getattr(session, "_inner", None)
         node_id = getattr(inner_session.state(), "_node_id", None)
         query = session.get_global_state("query") or ""
-        envs = get_workflow_param(session, "_REQUEST") or {}
-        user_fields = {**outputs, **{"query": query}}
-        for k, v in user_fields.items():
-            if envs.get(k):
-                user_fields[k] = envs.get(k)
+        user_fields = {**outputs, **final_inputs, **{"query": query}}
 
         # 构建带有 think 的 result（用于 message_end）
         result_with_think = get_output_data_with_metadata(
@@ -1093,6 +1077,11 @@ class End(BaseEnd):
         if _should_wrap:
             self._wrap_template_variable_values(inputs, max(_meta_count - 1, 0))
 
+        # 在 _wrap 之前保存干净的输入值（排除 AsyncGenerator，用于构建 user_fields）
+        clean_input_values = {
+            k: v for k, v in inputs.items()
+            if not inspect.isasyncgen(v) and not hasattr(v, "__aiter__")
+        }
         # 调用父类的 transform 方法处理流式输入，缓冲输出
         response_parts = []
         inner_session = getattr(session, "_inner", None)
@@ -1100,11 +1089,8 @@ class End(BaseEnd):
             getattr(inner_session.state(), "_node_id", None) if inner_session else None
         )
         query = session.get_global_state("query") or ""
-        envs = get_workflow_param(session, "_REQUEST") or {}
-        user_fields = {**outputs, **{"query": query}}
-        for k, v in user_fields.items():
-            if envs.get(k):
-                user_fields[k] = envs.get(k)
+        user_fields = {**outputs, **clean_input_values, **{"query": query}}
+
         last_end_node_stream = None
         buffered_outputs = []
         first_end_node_stream = True
@@ -1274,11 +1260,7 @@ class End(BaseEnd):
             getattr(inner_session.state(), "_node_id", None) if inner_session else None
         )
         query = session.get_global_state("query") or ""
-        envs = get_workflow_param(session, "_REQUEST") or {}
-        user_fields = {**outputs, **{"query": query}}
-        for k, v in user_fields.items():
-            if envs.get(k):
-                user_fields[k] = envs.get(k)
+        user_fields = {**outputs, **clean_input_values, **{"query": query}}
 
         # 构建带有 think 的 result（用于 message_end）
         result_with_think = get_output_data_with_metadata(
