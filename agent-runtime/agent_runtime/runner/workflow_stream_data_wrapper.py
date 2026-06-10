@@ -655,9 +655,8 @@ class WorkflowStreamDataWrapper:
         # 名字转换
         name = payload.get("componentName", "")
         if self._node_id_to_name:
-            name = self._node_id_to_name.get(
-                payload.get("componentName", "unknown"), name
-            )
+            node_def = self._node_id_to_name.get(payload.get("workflowId"), {}).get(payload.get("componentId", ""), {})
+            name = node_def.get("node_name", name)
 
         # 提问器无用帧
         if (

@@ -528,6 +528,62 @@ class IRConverter:
         return result
 
     @staticmethod
+    async def extract_node_defs(ir_data: dict) -> dict[str, dict[str, dict]]:
+        """从 workflow IR 数据中递归提取节点定义：{workflow_id: {node_id: {node_name, configs}}}。
+
+        合并节点显示名称和类型定义（configs），存入 session global_state 后
+        供回调通过 session.state().get_global("__node_defs__") 读取。
+
+        configs 结构直接透传 IR 中的组件 configs（含 userFields.inputs/outputs、
+        systemFields.inputs/outputs），不再拆分为独立注册表。
+
+        返回两层 dict，按 workflow_id 隔离，避免父子/嵌套工作流中
+        相同 node_id 的映射互相覆盖。
+
+        遇到 SubWorkflow 组件时，会递归加载子工作流 IR 并提取其内部节点定义，
+        子工作流的定义以子工作流自身 workflowId 为 key 存储。
+
+        Args:
+            ir_data: Workflow IR 数据字典，包含 components 数组。
+
+        Returns:
+            dict: {workflow_id: {node_id: {node_name: str, configs: dict}}} 两层映射字典。
+        """
+        workflow_id = ir_data.get("workflowId", "")
+        result: dict[str, dict[str, dict]] = {}
+        current_wf_defs: dict[str, dict] = {}
+        components = ir_data.get("components") or []
+        for comp in components:
+            comp_id = comp.get("id")
+            if not comp_id:
+                continue
+            # 合并 node_name 和 configs
+            node_def: dict = {"node_name": comp.get("name", "")}
+            configs = comp.get("configs")
+            if configs:
+                node_def["configs"] = configs
+            current_wf_defs[comp_id] = node_def
+            # 递归提取 SubWorkflow 子工作流内部节点
+            ir_type = comp.get("type", "")
+            if ir_type in {"jiuwen.subWorkflow", "jiuwen.workflowComposite"}:
+                comp_configs = configs or {}
+                reference = comp_configs.get("reference") or {}
+                child_path = reference.get("path", "")
+                if child_path:
+                    try:
+                        child_ir = await async_ir_load(child_path)
+                        child_defs = await IRConverter.extract_node_defs(child_ir)
+                        result.update(child_defs)
+                    except Exception:
+                        logger.debug(
+                            "Failed to load sub workflow IR from %s for node defs extraction",
+                            child_path,
+                        )
+        if current_wf_defs and workflow_id:
+            result[workflow_id] = current_wf_defs
+        return result
+
+    @staticmethod
     def validate_ir_version(ir_data: dict, ir_type: IRType):
         """
         Validate whether the IR data if of the supported version.

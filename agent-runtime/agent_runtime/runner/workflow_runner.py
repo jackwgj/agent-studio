@@ -111,11 +111,7 @@ class WorkflowRunner:
 
         # 3. 构建工作流（纯 dict → workflow，无存储）, 构建node_id与node_name映射
         t_node_map = time.time()
-        node_id_to_name = {}
-        for components in ir_json.get("components", []):
-            node_id_to_name[components.get("id", "unknown")] = components.get(
-                "name", "unknown"
-            )
+        node_defs = await IRConverter.extract_node_defs(ir_json)
         workflow_logger.info(
             f"[PERF] Node ID mapping build: {(time.time() - t_node_map) * 1000:.1f}ms"
         )
@@ -230,7 +226,7 @@ class WorkflowRunner:
                 execution_id=exec_id,
                 is_debug=is_debug,
                 conversation_id=req.conversation_id,
-                node_id_to_name=node_id_to_name,
+                node_id_to_name=node_defs,
                 history=req.params.conversation_history,
                 query=req.query or "",
                 is_resuming=is_resuming,
