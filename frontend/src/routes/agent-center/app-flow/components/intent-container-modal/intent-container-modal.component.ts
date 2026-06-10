@@ -1,4 +1,5 @@
 import {
+  ChangeDetectorRef,
   Component,
   EventEmitter,
   HostListener,
@@ -81,6 +82,11 @@ export class IntentContainerModalComponent
   @Input('workflowType') workflowType: string = '';
 
   @Output('confirm') confirm = new EventEmitter<any>();
+
+  @Input() outputs: {
+    confirm?: (data: any) => void;
+    closeDrawer?: () => void;
+  } = {};
 
   @ViewChild('batchBindRef')
   batchBindRef: any;
@@ -259,6 +265,7 @@ export class IntentContainerModalComponent
     private flowSelecServe: FlowSelectService,
     private route: ActivatedRoute,
     private intentRepoServe: IntentPackageService,
+    private cdr: ChangeDetectorRef,
   ) {
     super(nodeServ, appFlowServ);
 
@@ -323,9 +330,10 @@ export class IntentContainerModalComponent
           return { ...item, workflow_id: '' };
         }
       });
+      this.cdr.markForCheck();
     } else {
       // 未配置过容器节点，查询意图分支列表
-      this.getBranchList();
+      this.getBranchList().then(() => this.cdr.markForCheck());
     }
 
     // 搜索意图分支
@@ -339,9 +347,14 @@ export class IntentContainerModalComponent
     this.subscription?.unsubscribe();
   }
 
-  dismiss(): void {}
+  dismiss(): void {
+    this.appFlowServ.setNodeModalCloseMonitor({ id: this.nodeInfo.id });
+    this.outputs?.closeDrawer?.();
+  }
 
-  close(): void {}
+  close(): void {
+    this.outputs?.closeDrawer?.();
+  }
 
   onConfirm(): void {
     this.inputForm?.form?.markAllAsTouched();
@@ -367,17 +380,21 @@ export class IntentContainerModalComponent
     const branches = this.getBranches(this.branchList);
     const response_content = this.getGroupsOfConfigs();
 
-    this.confirm.emit({
-      ...this.nodeInfo,
-      inputs,
-      branches,
-      configs: {
-        groups: {
-          response_content,
+    this.appFlowServ.setNodeSaveMonitor({
+      nodeData: {
+        ...this.nodeInfo,
+        inputs,
+        branches,
+        configs: {
+          groups: {
+            response_content,
+          },
+          model: 'first-non-null',
         },
-        model: 'first-non-null',
       },
     });
+    this.appFlowServ.setNodeModalCloseMonitor({ id: this.nodeInfo.id });
+    this.outputs?.closeDrawer?.();
   }
 
   /** 是否存在选中的分支。若存在，批量按钮可点击 */
@@ -417,11 +434,13 @@ export class IntentContainerModalComponent
 
       this.curStepIndex += 1;
       this.showBatchBindRef = false;
+      this.cdr.markForCheck();
     }
   }
 
   public lastStep(): void {
     this.curStepIndex -= 1;
+    this.cdr.markForCheck();
   }
 
   public subNodeActions() {
@@ -487,6 +506,7 @@ export class IntentContainerModalComponent
       ];
     } finally {
       this.isLoading = false;
+      this.cdr.markForCheck();
     }
   }
 
@@ -607,6 +627,7 @@ export class IntentContainerModalComponent
       this.updateInputs();
     } finally {
       this.isFlowsLoading = false;
+      this.cdr.markForCheck();
     }
   }
 
