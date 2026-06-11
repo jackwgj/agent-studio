@@ -20,7 +20,7 @@ FlowStreamTransform - 流式转换组件
 - 使用 OutputSchema 作为流式数据结构
 """
 
-import json
+import ast
 from typing import (
     Any,
     AsyncGenerator,
@@ -277,7 +277,7 @@ class FlowStreamTransform(WorkflowComponent):
                 if s.startswith("data:"):
                     s = s[5:].strip()
                 try:
-                    obj = json.loads(s)
+                    obj = ast.literal_eval(s)
                 except Exception as e:
                     workflow_logger.warning("Failed to parse JSON string: %s", e)
                     continue
