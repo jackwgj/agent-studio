@@ -73,9 +73,11 @@ import com.openjiuwen.studio.agent.manager.dto.runtime.RankDocumentsRequest;
 import com.openjiuwen.studio.agent.manager.dto.runtime.StsTextResp;
 import com.openjiuwen.studio.agent.manager.dto.runtime.interfaces.SecurityCheck;
 import com.openjiuwen.studio.agent.manager.entity.Agent;
+import com.openjiuwen.studio.agent.manager.entity.ReleaseVersion;
 import com.openjiuwen.studio.agent.manager.entity.WorkflowEntity;
 import com.openjiuwen.studio.agent.manager.mapper.AgentMapper;
 import com.openjiuwen.studio.agent.manager.mapper.AppMapper;
+import com.openjiuwen.studio.agent.manager.mapper.ReleaseVersionMapper;
 import com.openjiuwen.studio.agent.manager.mapper.WorkflowMapper;
 import com.openjiuwen.studio.agent.manager.rce.client.AgentRuntimeClient;
 import com.openjiuwen.studio.agent.manager.service.ShareResourceManagerService;
@@ -155,10 +157,12 @@ public class AgentServiceProxyController {
 
     private AppMapper appMapper;
 
+    private ReleaseVersionMapper releaseVersionMapper;
+
     public AgentServiceProxyController(AgentRuntimeClient runtimeClient, RedisClient redisClient,
         AgentMapper agentMapper, WorkflowMapper workflowMapper, AgentServiceProxyService agentServiceProxyService,
         ShareResourceManagerService shareResourceManagerService, AppMapper appMapper,
-        AssetFreeTrialMgmtService assetFreeTrialMgmtService) {
+        AssetFreeTrialMgmtService assetFreeTrialMgmtService, ReleaseVersionMapper releaseVersionMapper) {
         this.runtimeClient = runtimeClient;
         this.redisClient = redisClient;
         this.agentMapper = agentMapper;
@@ -167,6 +171,7 @@ public class AgentServiceProxyController {
         this.shareResourceManagerService = shareResourceManagerService;
         this.appMapper = appMapper;
         this.assetFreeTrialMgmtService = assetFreeTrialMgmtService;
+        this.releaseVersionMapper = releaseVersionMapper;
     }
 
     private Object runningAgent(String projectId, String workspaceId, String agentType, String agentId,
@@ -273,7 +278,7 @@ public class AgentServiceProxyController {
         @RequestHeader(value = "stream", required = false) Boolean stream,
         @NotNull @ApiParam(value = "输入参数", required = true) @Valid @RequestBody ServiceRunAgentReq body,
         @RequestHeader HttpHeaders httpHeaders) {
-        checkAgentPermission(projectId, workspaceId, agentId);
+        checkAgentPermission(projectId, workspaceId, agentId, version);
         return runningAgent(projectId, workspaceId, agentType, agentId, conversationId, version, type, stream, body,
             httpHeaders);
     }
@@ -302,7 +307,7 @@ public class AgentServiceProxyController {
         @RequestHeader(value = "stream", required = false) Boolean stream,
         @NotNull @ApiParam(value = "输入参数", required = true) @Valid @RequestBody ServiceRunAgentReq body,
         @RequestHeader HttpHeaders httpHeaders) {
-        checkAgentPermission(projectId, workspaceId, agentId);
+        checkAgentPermission(projectId, workspaceId, agentId, version);
 
         if (apiKeyEnable) {
             httpHeaders.set(CommonConstant.AUTHORIZATION, getApiCode(projectId, workspaceId));
@@ -1336,9 +1341,20 @@ public class AgentServiceProxyController {
     }
 
     private void checkAgentPermission(String projectId, String workspaceId, String agentId) {
+        checkAgentPermission(projectId, workspaceId, agentId, null);
+    }
+
+    private void checkAgentPermission(String projectId, String workspaceId, String agentId, String version) {
         Agent agent = agentMapper.selectById(agentId);
         if (agent == null) {
             throw new AgentStudioException(StudioError.AGENT_NOT_EXIST);
+        }
+
+        if (version != null && !Constants.LATEST_PUBLISH_VERSION.equals(version)) {
+            ReleaseVersion releaseVersion = releaseVersionMapper.selectByAppIdAndVersionId(agentId, version);
+            if (releaseVersion == null) {
+                throw new AgentStudioException(StudioError.AGENT_OR_VERSION_NOT_EXIST);
+            }
         }
 
         boolean hasShareResourcePermission = shareResourceManagerService.checkWorkspaceAuthByResourceOrNot(workspaceId,

@@ -9,6 +9,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.openjiuwen.studio.agent.common.dto.auth.AuthInfo;
 import io.swagger.annotations.ApiModel;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Pattern;
 
 import org.hibernate.validator.constraints.Length;
@@ -33,6 +34,7 @@ public class McpServiceModifyReq implements Serializable {
     private String id = null;
 
     @JsonProperty("name")
+    @NotEmpty
     private String name = null;
 
     @JsonProperty("name_en")
@@ -40,11 +42,11 @@ public class McpServiceModifyReq implements Serializable {
     private String nameEn = null;
 
     @JsonProperty("description")
-    @Length(max = 1024)
+    @Length(min = 1, max = 1024)
     private String description = null;
 
     @JsonProperty("description_en")
-    @Length(max = 2048)
+    @Length(min = 1, max = 2048)
     private String descriptionEn = null;
 
     @JsonProperty("icon")

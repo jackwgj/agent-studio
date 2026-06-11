@@ -2032,6 +2032,14 @@ paths:
           maxLength: 64
           description: mcp 服务 id
           pattern: ^[a-zA-Z0-9_-]+$
+        - name: workspace_id
+          in: query
+          required: true
+          type: string
+          description: 项目空间ID
+          pattern: ^[a-zA-Z0-9_()\-]+$
+          maxLength: 64
+          minLength: 1
         - name: McpServerConfig
           in: body
           required: true
@@ -2335,6 +2343,7 @@ definitions:
       name:
         type: string
         description: mcp 服务名称
+        pattern: ^(?!_)(?!-)(?!\d)[a-zA-Z0-9_\-\u4e00-\u9fa5()（）\s.]{2,64}$
       name_en:
         type: string
         description: mcp服务英文名称
@@ -2342,10 +2351,12 @@ definitions:
       description:
         type: string
         description: mcp 服务描述
+        minLength: 1
         maxLength: 1024
       description_en:
         type: string
         description: mcp 服务英文描述
+        minLength: 1
         maxLength: 2048
       icon:
         type: string
