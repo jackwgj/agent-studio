@@ -111,7 +111,6 @@ UNSUPPORTED_COMPONENT_DEBUG_LIST = [
     "jiuwen.message",
     "jiuwen.branch",
     "jiuwen.taskFlow",
-    "EI.ComplexIntentDetection",
 ]
 
 _REFERENCE_PATTERN = re.compile(r"^\{([^{}]+)}$")

@@ -654,8 +654,13 @@ class WorkflowStreamDataWrapper:
 
         # 名字转换
         name = payload.get("componentName", "")
-        if self._node_id_to_name:
+        if payload.get("componentId", "") and self._node_id_to_name:
             node_def = self._node_id_to_name.get(payload.get("workflowId"), {}).get(payload.get("componentId", ""), {})
+            if not node_def:
+                for workflow_id, nodes in self._node_id_to_name.items():
+                    if payload.get("componentId", "") in nodes:
+                        name = nodes[payload.get("componentId", "")].get("node_name", name)
+                        break
             name = node_def.get("node_name", name)
 
         # 提问器无用帧
