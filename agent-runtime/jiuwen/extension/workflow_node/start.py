@@ -151,7 +151,17 @@ class Start(WorkflowComponent):
         start_result = self._assemble_output(inputs_with_defaults, session)
         start_result["memory"] = memory
 
-        # 9. user_input_memory有值，更新redis
+        # 9. 将 userFields 写入 global_state，供下游交互组件（如 Questioner）中断时读取
+        # 匹配旧框架 final_output 累积行为：旧框架中 Start 写入 final_output 后，
+        # Questioner 中断不会覆盖，FINISH 保留了 Start 的 userFields
+        user_fields = self._config.get(USER_FIELDS, {}).get("outputs", {})
+        start_user_fields = {}
+        if user_fields:
+            for field in user_fields:
+                start_user_fields[field.get("id", "")] = field.get("default_value", "")
+            session.update_global_state({"start_user_fields": start_user_fields})
+
+        # 10. user_input_memory有值，更新redis
         if user_input_memory:
             await self._save_redis_session_vars(
                 workflow_id, conversation_id, session_var_defs, user_input_memory

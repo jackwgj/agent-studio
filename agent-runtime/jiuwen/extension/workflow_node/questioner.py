@@ -1111,6 +1111,12 @@ class Questioner(WorkflowComponent):
 
     def __init__(self, conf: Union[QuestionerConfig, dict]):
         super().__init__()
+        if isinstance(conf, dict):
+            self._outputs = conf.get("userFields", {}).get("outputs", [])
+            conf.pop("userFields", None)
+            conf.pop("systemFields", None)
+        else:
+            self._outputs = []
         self._config = (
             conf if isinstance(conf, QuestionerConfig) else QuestionerConfig(**conf)
         )
@@ -1248,6 +1254,21 @@ class Questioner(WorkflowComponent):
                 parent_id = None
                 if getattr(getattr(session, "_inner", None), "_parent_id"):
                     parent_id = getattr(getattr(session, "_inner", None), "_parent_id")
+                # 构建 user_fields，包含配置的 outputs 字段和当前提取的 key_fields
+                user_fields = {}
+                for output_def in self._outputs:
+                    field_id = output_def.get("id") if isinstance(output_def, dict) else output_def
+                    if field_id:
+                        if field_id == "USER_RESPONSE" or field_id == "QUESTION" and\
+                            not current_state.extracted_key_fields.get(field_id, ""):
+                            continue
+                        user_fields[field_id] = current_state.extracted_key_fields.get(field_id, "")
+                # 合并 Start 节点写入 global_state 的 userFields
+                # 匹配旧框架 final_output 累积行为：Start 写入 card_id 后，
+                # Questioner 中断不会覆盖 final_output，所以 FINISH 保留了 Start 的 userFields
+                start_user_fields = session.get_global_state("start_user_fields") or {}
+                if isinstance(start_user_fields, dict):
+                    user_fields = {**start_user_fields, **user_fields}
                 custom_data = {
                     "answer": invoke_result.get("question", ""),
                     "result": invoke_result.get("question", ""),
@@ -1255,9 +1276,11 @@ class Questioner(WorkflowComponent):
                     "node_name": self._node_name or node_id,
                     "node_type": JIUWEN_QUESTIONER_TYPE,
                     "should_interrupt": True,
+                    "userFields": user_fields,
                 }
                 if parent_id:
                     custom_data["parentNodeId"] = parent_id
+                    custom_data["workflow_id"] = session.get_workflow_id()
                 await session.write_custom_stream(
                     CustomSchema(
                         type=PARTIAL_CONTENT, index=0, data=custom_data
@@ -1272,6 +1295,8 @@ class Questioner(WorkflowComponent):
                 self._node_state.status = ExecutionStatus.END
                 # 使用 session.interact() 替代手动 raise GraphInterrupt
                 # session.interact() 会自动执行 commit_cmp() + OutputSchema(INTERACTION) + raise GraphInterrupt
+                if not parent_id:
+                    session.update_global_state({"has_interaction": True})
                 await session.interact(invoke_result.get("question", ""))
             else:
                 new_state = QuestionerState()

@@ -39,6 +39,7 @@ from jiuwen.extension.workflow_node.utils import (
 from openjiuwen.core.common.constants.constant import INTERACTIVE_INPUT, INTERACTION
 from openjiuwen.core.common.logging import workflow_logger, LogEventType
 from openjiuwen.core.context_engine import ModelContext
+from openjiuwen.core.foundation.llm import UserMessage
 from openjiuwen.core.graph.executable import Input, Output
 from openjiuwen.core.graph.pregel import GraphInterrupt
 from openjiuwen.core.session import (
@@ -467,7 +468,7 @@ class SubWorkflow(WorkflowComponent):
             return True
         return self._session_has_interactive_input(session)
 
-    def _prepare_child_inputs(
+    async def _prepare_child_inputs(
         self,
         inputs: Input,
         session: Session,
@@ -477,7 +478,7 @@ class SubWorkflow(WorkflowComponent):
     ) -> Any:
         """构建子工作流输入：恢复场景使用 InteractiveInput，否则使用普通 dict。"""
         is_resume = self._should_resume_child_workflow(session)
-        params = self._build_invoke_params(inputs, session, context)
+        params = await self._build_invoke_params(inputs, session, context)
         if is_resume:
             self.node_state.status = ExecutionStatus.USER_INTERACT
             resume_query = self._extract_parent_resume_query(session)
@@ -491,6 +492,7 @@ class SubWorkflow(WorkflowComponent):
             **inputs.get(USER_FIELDS, {}),
             "query": params["query"],
             "global_variables": params["global_variables"],
+            "conversation_history": params["conversation_history"],
             "_REQUEST": params["global_variables"],
         }
         return child_inputs
@@ -753,10 +755,14 @@ class SubWorkflow(WorkflowComponent):
 
         return workflow_instance
 
-    def _build_invoke_params(
+    async def _build_invoke_params(
         self, inputs: dict, session: Session, context: ModelContext
     ) -> dict:
-        """构建子工作流调用参数
+        """构建子工作流调用参数，并将 query 作为用户消息写入对话历史。
+
+        在调用子工作流前，将当前 query 以 UserMessage 形式追加到 context 中，
+        使子工作流内各组件（如 LLM）通过 context.get_messages() 即可获取完整对话历史。
+        同时将对话历史序列化后放入返回的 params，便于子工作流通过 inputs 显式获取。
 
         Args:
             inputs: 输入数据
@@ -764,7 +770,7 @@ class SubWorkflow(WorkflowComponent):
             context: 模型上下文
 
         Returns:
-            dict: 调用参数
+            dict: 调用参数，包含 query、global_variables、conversation_history
         """
         system_fields = inputs.get(SYSTEM_FIELDS, {})
         user_fields = inputs.get(USER_FIELDS, {})
@@ -785,9 +791,21 @@ class SubWorkflow(WorkflowComponent):
         global_variables.update(user_fields)
         global_variables["userId"] = user_id
 
+        if context and query:
+            user_msg = UserMessage(content=query)
+            await context.add_messages(user_msg)
+
+            all_messages = context.get_messages()
+            conversation_history = [msg.model_dump() for msg in all_messages]
+        else:
+            conversation_history = []
+
+        self._current_query = query
+
         return {
             "query": query,
             "global_variables": global_variables,
+            "conversation_history": conversation_history,
         }
 
     def _build_child_interactive_input(self, user_response: str) -> InteractiveInput:
@@ -834,7 +852,7 @@ class SubWorkflow(WorkflowComponent):
 
         self._workflow_instance = await self._get_workflow_instance(session)
 
-        child_inputs = self._prepare_child_inputs(
+        child_inputs = await self._prepare_child_inputs(
             inputs, session, context, for_stream=False
         )
         # 记录传入的全局变量值（调试信息）
@@ -966,7 +984,7 @@ class SubWorkflow(WorkflowComponent):
 
         self._workflow_instance = await self._get_workflow_instance(session)
 
-        child_inputs = self._prepare_child_inputs(
+        child_inputs = await self._prepare_child_inputs(
             inputs, session, context, for_stream=True
         )
         # 记录传入的全局变量值（调试信息）
@@ -1079,6 +1097,7 @@ class SubWorkflow(WorkflowComponent):
             end_payload = dict(last_processed or {})
             end_payload["is_sub"] = True
             end_payload["parentNodeId"] = session.get_component_id()
+            end_payload["sub_workflow_query"] = getattr(self, '_current_query', '')
             await session.write_custom_stream(
                 CustomSchema(type=MESSAGE_NODE_END, index=1, data=end_payload)
             )
