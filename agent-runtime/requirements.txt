@@ -16,3 +16,4 @@ pydantic-core==2.46.3
 elasticsearch==8.19.3
 jieba==0.42.1
 openjiuwen==0.1.13.post2
+agent-sandbox==0.0.30
