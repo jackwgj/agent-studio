@@ -1,0 +1,22 @@
+.optimize-loading {
+  height: 385px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.optimize-content {
+  height: 385px;
+  white-space: pre-line;
+}
+
+::ng-deep {
+  #optimize-scroll-body {
+    scroll-behavior: smooth;
+  }
+
+  #optimize-modal-footer {
+    text-align: right;
+  }
+}

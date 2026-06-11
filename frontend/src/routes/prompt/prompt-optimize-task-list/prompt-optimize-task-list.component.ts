@@ -94,12 +94,11 @@ interface PaginationEvent {
   styleUrl: './prompt-optimize-task-list.component.scss',
 })
 export class PromptOptimizeTaskListComponent {
-
   @Input() isLibraryPrompt = false;
   isLoading = false;
   displayedData: Array<TableRowData> = [];
   taskList = {
-    data : [],
+    data: [],
     state: undefined,
   };
   columns: Array<TableColumn> = [
@@ -195,11 +194,7 @@ export class PromptOptimizeTaskListComponent {
   }
 
   get searchNameIsEmpty() {
-    return (
-      this.filterOption.statusFilter.value?.value === '' &&
-      this.filterOption.typeFilter.value?.value === '' &&
-      !this.filterOption.searchText.value
-    );
+    return this.filterOption.statusFilter.value?.value === '' && this.filterOption.typeFilter.value?.value === '' && !this.filterOption.searchText.value;
   }
 
   constructor(
@@ -208,10 +203,9 @@ export class PromptOptimizeTaskListComponent {
     private commonService: CommonService,
     private cdr: ChangeDetectorRef,
     private i18n: I18NextEagerPipe,
-    private readonly http: HttpService,
+    private readonly http: HttpService
   ) {
-    this.http.getCurrentUserResourceStatus().subscribe((res) => {
-    });
+    this.http.getCurrentUserResourceStatus().subscribe(res => {});
   }
 
   ngOnInit() {
@@ -220,11 +214,9 @@ export class PromptOptimizeTaskListComponent {
     }
 
     this.listTasks();
-    this.listDebounceSubject
-      .pipe(debounceTime(300), takeUntil(this.destroy$))
-      .subscribe(() => {
-        this.listTasks();
-      });
+    this.listDebounceSubject.pipe(debounceTime(300), takeUntil(this.destroy$)).subscribe(() => {
+      this.listTasks();
+    });
   }
 
   ngOnDestroy() {
@@ -234,10 +226,8 @@ export class PromptOptimizeTaskListComponent {
   }
 
   handleClickClearSearch() {
-    this.filterOption.statusFilter.value =
-      this.filterOption.statusFilter.options[0];
-    this.filterOption.typeFilter.value =
-      this.filterOption.typeFilter.options[0];
+    this.filterOption.statusFilter.value = this.filterOption.statusFilter.options[0];
+    this.filterOption.typeFilter.value = this.filterOption.typeFilter.options[0];
     this.filterOption.searchText.value = '';
     this.listTasks();
   }
@@ -295,9 +285,7 @@ export class PromptOptimizeTaskListComponent {
       });
     }
 
-    if (
-      ['draft', 'pause', 'success', 'waiting', 'failed'].includes(data.status)
-    ) {
+    if (['draft', 'pause', 'success', 'waiting', 'failed'].includes(data.status)) {
       items.push({
         id: 'del',
         label: this.i18n.transform('base_remove'),
@@ -326,34 +314,34 @@ export class PromptOptimizeTaskListComponent {
       });
     } else if (action.id === 'del') {
     } else if (action.id === 'retry') {
-      this.promptOptimizeService.retryTask(task.id).then((res) => {
+      this.promptOptimizeService.retryTask(task.id).then(res => {
         MessageComponent.showSuccess(
           this.i18n.transform('start_retry', {
             task: task.taskName,
-          }),
+          })
         );
         this.listTasks();
       });
     } else if (action.id === 'stop') {
-      this.promptOptimizeService.stopTask(task.id).then((res) => {
+      this.promptOptimizeService.stopTask(task.id).then(res => {
         MessageComponent.showSuccess(
           this.i18n.transform('task_pause', {
             task: task.taskName,
-          }),
+          })
         );
         this.listTasks();
       });
     } else if (action.id === 'continue') {
-      this.promptOptimizeService.continueTask(task.id).then((res) => {
+      this.promptOptimizeService.continueTask(task.id).then(res => {
         MessageComponent.showSuccess(
           this.i18n.transform('task_resume', {
             task: task.taskName,
-          }),
+          })
         );
         this.listTasks();
       });
     } else if (action.id === 'copy') {
-      this.promptOptimizeService.copyTask(task.id).then((res) => {
+      this.promptOptimizeService.copyTask(task.id).then(res => {
         MessageComponent.showSuccess(this.i18n.transform('task_copy_success'));
         this.router.navigate(['/home/prompt/optimize/edit'], {
           queryParams: { id: res.task_id },
@@ -442,31 +430,21 @@ export class PromptOptimizeTaskListComponent {
     }
     this.promptOptimizeService
       .listTasks(params, pageSize, page)
-      .then((res) => {
+      .then(res => {
         const statusStatics = JSON.parse(res.message);
-        this.filterOption.statusFilter.options[1].num =
-          statusStatics.DRAFT ?? 0;
-        this.filterOption.statusFilter.options[2].num =
-          statusStatics.RUNNING ?? 0;
-        this.filterOption.statusFilter.options[3].num =
-          statusStatics.SUCCESS ?? 0;
-        this.filterOption.statusFilter.options[4].num =
-          statusStatics.WAITING ?? 0;
-        this.filterOption.statusFilter.options[5].num =
-          statusStatics.FAILED ?? 0;
-        this.filterOption.statusFilter.options[6].num =
-          statusStatics.PAUSE ?? 0;
-        this.filterOption.statusFilter.options[0].num =
-          statusStatics.TOTAL ?? 0;
-        this.filterOption.statusFilter.value =
-          this.filterOption.statusFilter.options.find(
-            (item) => item.value === this.filterOption.statusFilter.value.value,
-          );
+        this.filterOption.statusFilter.options[1].num = statusStatics.DRAFT ?? 0;
+        this.filterOption.statusFilter.options[2].num = statusStatics.RUNNING ?? 0;
+        this.filterOption.statusFilter.options[3].num = statusStatics.SUCCESS ?? 0;
+        this.filterOption.statusFilter.options[4].num = statusStatics.WAITING ?? 0;
+        this.filterOption.statusFilter.options[5].num = statusStatics.FAILED ?? 0;
+        this.filterOption.statusFilter.options[6].num = statusStatics.PAUSE ?? 0;
+        this.filterOption.statusFilter.options[0].num = statusStatics.TOTAL ?? 0;
+        this.filterOption.statusFilter.value = this.filterOption.statusFilter.options.find(item => item.value === this.filterOption.statusFilter.value.value);
         this.currentPage = res.data?.pageNum ?? 1;
         this.pageSize.size = res.data?.pageSize ?? 10;
         this.totalNumber = res.data?.total ?? 0;
         this.taskList.data =
-          res.data?.list?.map((item) => {
+          res.data?.list?.map(item => {
             return this.convertTask(item);
           }) ?? [];
         this.cdr.markForCheck();
@@ -478,14 +456,14 @@ export class PromptOptimizeTaskListComponent {
   }
 
   public delTask(id: string) {
-    this.promptOptimizeService.deleteTask(id).then((res) => {
+    this.promptOptimizeService.deleteTask(id).then(res => {
       MessageComponent.showSuccess(this.i18n.transform('delete_task_success'));
       this.listTasks();
     });
   }
 
   public handleTabChange(e: any) {
-    const tab =this.subTabs[e.index];
+    const tab = this.subTabs[e.index];
     if (tab.active) {
       this.buttonGroupSelected = tab.id;
       if (this.buttonGroupSelected === this.subTabs[0].id) {

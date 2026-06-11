@@ -25,8 +25,7 @@
     <div class="w-full flex items-center">
       <div class="tab-min-width mr-2" *ngIf="!isLibraryPrompt">
         <nz-tabset sub class="h-[30px]" [(nzSelectedIndex)]="selectTableIndex" (nzSelectChange)="handleTabChange($event)">
-          <nz-tab class="text-[14px]" *ngFor="let tab of subTabs" [nzTitle]="tab.title" >
-          </nz-tab>
+          <nz-tab class="text-[14px]" *ngFor="let tab of subTabs" [nzTitle]="tab.title"> </nz-tab>
         </nz-tabset>
       </div>
       <ng-container *ngIf="!isShowNoDataGuide && !isFirstLoading">
@@ -47,12 +46,7 @@
         <nz-select class="mr-2" (ngModelChange)="handleSearch()" [(ngModel)]="filterOption.typeFilter.value" [nzOptions]="filterOption.typeFilter.options">
         </nz-select>
         <nz-input-search (ngModelChange)="handleSearch()" [(ngModel)]="filterOption.searchText.value" class="flex-grow mr-2"> </nz-input-search>
-        <button
-          (click)="listTasks()"
-          [nz-tooltip]="'prompt_task_refresh' | i18nextEager"
-          nz-button
-          nzType="default"
-        >
+        <button (click)="listTasks()" [nz-tooltip]="'prompt_task_refresh' | i18nextEager" nz-button nzType="default">
           <img alt="" [src]="changeUrl('assets/prompt/refresh.svg')" />
         </button>
       </ng-container>

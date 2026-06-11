@@ -1,13 +1,4 @@
-import {
-  Component,
-  ElementRef,
-  EventEmitter,
-  Input,
-  OnDestroy,
-  OnInit,
-  Output,
-  ViewChild,
-} from '@angular/core';
+import { Component, ElementRef, EventEmitter, Input, OnDestroy, OnInit, Output, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, NgForm } from '@angular/forms';
 import { I18nNamespace } from '@i18n';
 import { RefSelectedRequireDirective } from '@shared/directives/common-validator.directive';
@@ -35,22 +26,14 @@ import {
   WORKFLOW_SVGS,
 } from '../../flow.const';
 import { NodeService } from '../../node.service';
-import type {
-  ILLMNode,
-  IParamRef,
-  IWFView,
-  IWorkflowField,
-} from '../../node.type';
+import type { ILLMNode, IParamRef, IWFView, IWorkflowField } from '../../node.type';
 import { AccBlockComponent } from '../acc-block/acc-block.component';
 import { AddPropsIconComponent } from '../add-props-icon/add-props-icon.component';
 import { ModalBaseComponent } from '../base/modal-base.component';
 import { ParamSelectorComponent } from '../param-selector/param-selector.component';
 import { NodeUtils } from '../utils';
 import { CmdTextareaComponent } from '../cmd-textarea/cmd-textarea.component';
-import {
-  type IModelParam,
-  modelSettingsComponent,
-} from '@shared/components/model-settings-tip';
+import { type IModelParam, modelSettingsComponent } from '@shared/components/model-settings-tip';
 import { AgentDataService } from '@services/agent-center/agent-data.service';
 import { ExceptionHandlingComponent } from '@routes/agent-center/app-flow/components/exception-handling/exception-handling.component';
 import { ModelType } from '@enums/jiuwen-model.enum';
@@ -65,8 +48,15 @@ import { HelpCenterService } from '@services/help-center.service';
 import { CommonService } from '@services/common.service';
 import { NzModalService } from 'ng-zorro-antd/modal';
 import { NzMessageService } from 'ng-zorro-antd/message';
-import { MessageComponent } from "@shared/services/cfdata.service";
-
+import { MessageComponent } from '@shared/services/cfdata.service';
+import { AssetIntelligentAddComponent } from '@shared/components/assets/asset-intelligent-add/asset-intelligent-add.component';
+import { AssetIntelligentAddDisabledComponent } from '@shared/components/assets/asset-intelligent-add-disabled/asset-intelligent-add-disabled.component';
+import { RefPromptComponent } from '@routes/agent-center/ref-prompt/ref-prompt.component';
+import { OptimizePromptModalComponent } from '@routes/agent-center/app-agent/components/optimize-prompt-modal/optimize-prompt-modal.component';
+import { SaveTmplLibraryModalComponent } from '@routes/prompt/prompt-candidate-template/save-tmpl-library-modal/save-tmpl-library-modal.component';
+import { ITmpl } from '@services/prompt.service';
+import moment from 'moment';
+import { CandidateTemplateListService } from '@services/candidate-template-list.service';
 function removeNodeFromTree(nodes: any[], target: any): boolean {
   for (let i = 0; i < nodes.length; i++) {
     if (nodes[i] === target) {
@@ -115,6 +105,8 @@ function getParentNodeFromTree(nodes: any[], target: any, parent: any = null): a
     NodeDescriptionComponent,
     InputTreeSelect,
     modelSettingsComponent,
+    AssetIntelligentAddComponent,
+    AssetIntelligentAddDisabledComponent,
   ],
   providers: [
     {
@@ -125,9 +117,7 @@ function getParentNodeFromTree(nodes: any[], target: any, parent: any = null): a
     NzMessageService,
   ],
 })
-export class LLMModalComponent
-  extends ModalBaseComponent
-  implements OnInit, OnDestroy {
+export class LLMModalComponent extends ModalBaseComponent implements OnInit, OnDestroy {
   @Input('names') names: string[];
 
   @Input('nodeInfo') nodeInfo: ILLMNode;
@@ -152,7 +142,7 @@ export class LLMModalComponent
   public validationRules: any[] = [];
 
   get tipVals() {
-    return this.inputParams.map((param) => param.name);
+    return this.inputParams.map(param => param.name);
   }
 
   public originFormats: any[] = [
@@ -308,6 +298,8 @@ export class LLMModalComponent
     public configServ: AgentConfigService,
     private helpCenterService: HelpCenterService,
     protected commonService: CommonService,
+    private candidateTemplateListServe: CandidateTemplateListService,
+    private cdr: ChangeDetectorRef
   ) {
     super(nodeServ, appFlowServ);
   }
@@ -330,11 +322,10 @@ export class LLMModalComponent
   }
 
   public override ngOnInit() {
-    this.route.queryParams.subscribe((params) => {
+    this.route.queryParams.subscribe(params => {
       this.paramsId = params.id;
     });
-    this.showSafetyBarrier =
-      !!this.configServ.getConfigs()?.safety_barrier_display;
+    this.showSafetyBarrier = !!this.configServ.getConfigs()?.safety_barrier_display;
     this.setNodeBase(this.nodeInfo);
     super.ngOnInit();
 
@@ -342,35 +333,24 @@ export class LLMModalComponent
 
     const parentNode = this.getParentNodeInfo(this.appFlowServ.getGraph());
     if (parentNode) {
-      this.getLoopInnerNodeRefs(parentNode).subscribe((info) => {
+      this.getLoopInnerNodeRefs(parentNode).subscribe(info => {
         this.onRefUpdate(info);
       });
     } else {
-      this.getSelfRefs().subscribe((info) => {
+      this.getSelfRefs().subscribe(info => {
         this.onRefUpdate(info);
       });
     }
 
-    this.validationRules.push(
-      CommonValidation.nameUniquenessVerify(
-        this.names,
-        this.i18n.transform('name_uniqueness'),
-        this.nodeInfo.name,
-      ),
-    );
+    this.validationRules.push(CommonValidation.nameUniquenessVerify(this.names, this.i18n.transform('name_uniqueness'), this.nodeInfo.name));
 
     this.modelListSubscription = this.appFlowServ
       .modelListUpdate()
       .pipe(takeUntil(this.destroy$))
-      .subscribe((models) => {
+      .subscribe(models => {
         this.modelOptions = models ?? []; // 接收新的模型列表
-        const selectedModel = this.modelOptions.find(
-          (model) =>
-            model.model_deployment_id ===
-            this.nodeInfo.configs?.model?.model_deployment_id,
-        );
-        this.isVisionModel =
-          selectedModel?.model_type === ModelType.IMAGE_TO_TEXT;
+        const selectedModel = this.modelOptions.find(model => model.model_deployment_id === this.nodeInfo.configs?.model?.model_deployment_id);
+        this.isVisionModel = selectedModel?.model_type === ModelType.IMAGE_TO_TEXT;
         this.safety_barrier = !!this.nodeInfo.configs?.safety_barrier;
       });
     this.outputParams = NodeUtils.fields2Views(this.nodeInfo.outputs);
@@ -385,26 +365,12 @@ export class LLMModalComponent
     this.prompt = this.nodeInfo.configs.template_content;
     this.systemPrompt = this.nodeInfo.configs.system_prompt || '';
 
-    NodeUtils.checkModelExistence(
-      this.nodeInfo.name,
-      this.nodeInfo.configs?.model?.model_deployment_id ?? '',
-      this.modelOptions,
-    );
+    NodeUtils.checkModelExistence(this.nodeInfo.name, this.nodeInfo.configs?.model?.model_deployment_id ?? '', this.modelOptions);
 
-    this.modelSetTipCtx.selectedModel = this.modelOptions.find(
-      (model) =>
-        model.model_deployment_id === this.modelFormGroup.get('model').value,
-    );
+    this.modelSetTipCtx.selectedModel = this.modelOptions.find(model => model.model_deployment_id === this.modelFormGroup.get('model').value);
 
     // 初始化模型参数信息
-    const {
-      top_p,
-      temperature,
-      history_size = 3,
-      max_tokens,
-      frequency_penalty = 0,
-      enable_thinking = true,
-    } = this.nodeInfo.configs;
+    const { top_p, temperature, history_size = 3, max_tokens, frequency_penalty = 0, enable_thinking = true } = this.nodeInfo.configs;
     this.modelParams = {
       top_p,
       temperature,
@@ -414,10 +380,7 @@ export class LLMModalComponent
       enable_thinking,
     };
 
-    this.outputFormat =
-      this.outputFormats.find(
-        (format) => format.id === this.nodeInfo.configs.response_format,
-      ) ?? this.outputFormat;
+    this.outputFormat = this.outputFormats.find(format => format.id === this.nodeInfo.configs.response_format) ?? this.outputFormat;
 
     if (this.outputFormat.id === 'json') {
       this.modelFormGroup.controls.stream.setValue(false);
@@ -428,38 +391,32 @@ export class LLMModalComponent
       modelConfig: this.nodeInfo.configs?.model,
     });
 
-    this.modelFormGroup.get('model').valueChanges.subscribe((value) => {
-      const selectedModel = this.modelOptions.find(
-        (model) => model.model_deployment_id === value,
-      );
+    this.modelFormGroup.get('model').valueChanges.subscribe(value => {
+      const selectedModel = this.modelOptions.find(model => model.model_deployment_id === value);
       this.modelSetTipCtx.selectedModel = selectedModel;
       this.agentDataServe.setPromptAndModelConfig({
         modelConfig: selectedModel,
       });
-      this.isVisionModel =
-        selectedModel?.model_type === ModelType.IMAGE_TO_TEXT;
+      this.isVisionModel = selectedModel?.model_type === ModelType.IMAGE_TO_TEXT;
       if (!this.isVisionModel) {
         this.visionInputParams = [];
       }
     });
 
-    this.modelFormGroup.get('stream').valueChanges.subscribe((value) => {
+    this.modelFormGroup.get('stream').valueChanges.subscribe(value => {
       this.exceptionHandling.changeStream(value);
     });
   }
 
   ngAfterViewInit(): void {
-    this.exceptionHandling.changeStream(
-      this.modelFormGroup.controls.stream.value,
-    );
+    this.exceptionHandling.changeStream(this.modelFormGroup.controls.stream.value);
     this.exceptionHandling.changeResponseFormat(this.outputFormat.id);
-   // 表单下有隐藏节点的渲染，异步加0.1秒再加入监听事件，否则隐藏节点渲染前加入监听会导致初始化就触发自动保存
-   setTimeout(()=>{
-    this.modelFormGroup.valueChanges.pipe(debounceTime(NODE_SAVE_DEBOUNCE_TIME)).subscribe(values => {
-
-      this.onSave();
-    });
-  }, 100);
+    // 表单下有隐藏节点的渲染，异步加0.1秒再加入监听事件，否则隐藏节点渲染前加入监听会导致初始化就触发自动保存
+    setTimeout(() => {
+      this.modelFormGroup.valueChanges.pipe(debounceTime(NODE_SAVE_DEBOUNCE_TIME)).subscribe(values => {
+        this.onSave();
+      });
+    }, 100);
     if (this.appFlowServ.testRunVerificationError) {
       setTimeout(() => {
         this.validateNode();
@@ -484,7 +441,7 @@ export class LLMModalComponent
       const visionInput = [];
       const input = [];
       const visionList: string[] = this.nodeInfo.configs?.vision ?? [];
-      this.nodeInfo.inputs.forEach((i) => {
+      this.nodeInfo.inputs.forEach(i => {
         if (visionList.includes(i.name)) {
           visionInput.push(i);
         } else {
@@ -492,17 +449,11 @@ export class LLMModalComponent
         }
       });
       this.inputParams = NodeUtils.initInputs(input, this.nameRefOptions);
-      this.visionInputParams = NodeUtils.initInputs(
-        visionInput,
-        this.visionNameRefOptions,
-      );
+      this.visionInputParams = NodeUtils.initInputs(visionInput, this.visionNameRefOptions);
       this.resetVisionLastId();
     } else {
       NodeUtils.reSelectRefsWithNewOps(this.inputParams, this.nameRefOptions);
-      NodeUtils.reSelectRefsWithNewOps(
-        this.visionInputParams,
-        this.visionNameRefOptions,
-      );
+      NodeUtils.reSelectRefsWithNewOps(this.visionInputParams, this.visionNameRefOptions);
     }
     this.isInit = false;
   }
@@ -532,12 +483,8 @@ export class LLMModalComponent
   }
 
   resetVisionLastId() {
-    this.visionInputParams.forEach((i) => {
-      if (
-        i.name.startsWith('_vision_') ||
-        i.name.startsWith('_image_vision_') ||
-        i.name.startsWith('_video_vision_')
-      ) {
+    this.visionInputParams.forEach(i => {
+      if (i.name.startsWith('_vision_') || i.name.startsWith('_image_vision_') || i.name.startsWith('_video_vision_')) {
         let curId = Number(i.name.split('_vision_')[1] ?? '1');
         if (isNaN(curId)) {
           curId = 1;
@@ -549,10 +496,7 @@ export class LLMModalComponent
   }
 
   isModelReachedParamLimit() {
-    return this.isReachedParamLimit([
-      ...this.inputParams,
-      ...this.visionInputParams,
-    ]);
+    return this.isReachedParamLimit([...this.inputParams, ...this.visionInputParams]);
   }
 
   public deleteInputParam(index: number): void {
@@ -572,14 +516,8 @@ export class LLMModalComponent
   public onDeleteOutput(param: IWFView) {
     removeNodeFromTree(this.outputParams, param);
 
-    const parentNodeParam = getParentNodeFromTree(
-      this.outputParams,
-      param,
-    ) as IWFView;
-    if (
-      this.isObjectLikeType(parentNodeParam?.type) &&
-      parentNodeParam?.children?.length === 0
-    ) {
+    const parentNodeParam = getParentNodeFromTree(this.outputParams, param) as IWFView;
+    if (this.isObjectLikeType(parentNodeParam?.type) && parentNodeParam?.children?.length === 0) {
       delete parentNodeParam.children;
     }
     this.outputParams = [...this.outputParams];
@@ -596,16 +534,12 @@ export class LLMModalComponent
 
   getVisionNameRefOptions() {
     const visionNameRefOptions = [];
-    const visionParmaTypes = [
-      'array<file/image>',
-      'array<file/video>',
-      'array<string>',
-    ];
-    this.nameRefOptions.forEach((o) => {
+    const visionParmaTypes = ['array<file/image>', 'array<file/video>', 'array<string>'];
+    this.nameRefOptions.forEach(o => {
       const target = cloneDeep(o);
       if (target.type !== 'System') {
         const children = [];
-        target.children.forEach((c) => {
+        target.children.forEach(c => {
           if (visionParmaTypes.includes(c.type)) {
             children.push(c);
           }
@@ -633,24 +567,22 @@ export class LLMModalComponent
     setTimeout(() => {
       let newVisionInputParams: IWorkflowField[] = [];
       newVisionInputParams = this.visionInputParams;
-      inputs.forEach((item,j)=>{
-        const name = 'ref_var_name'
-        if(item.value.content && item.value.content[name]){
-          if ( j !== i && item.value.content[name] === $event.ref_var_name) {
+      inputs.forEach((item, j) => {
+        const name = 'ref_var_name';
+        if (item.value.content && item.value.content[name]) {
+          if (j !== i && item.value.content[name] === $event.ref_var_name) {
             newVisionInputParams[i].value.content = '';
-            MessageComponent.showError(
-              this.i18n.transform('llmmodalcomponent_423'),
-            );
+            MessageComponent.showError(this.i18n.transform('llmmodalcomponent_423'));
           }
         }
-      })
+      });
       this.visionInputParams = newVisionInputParams;
       this.onSave();
     }, 0);
   }
 
   handelDuplicateInputName() {
-    const names = this.inputParams.map((p) => p.name);
+    const names = this.inputParams.map(p => p.name);
     let name = '_vision_' + this.visionLastId;
     //重复直接加上时间戳
     if (names.includes(name)) {
@@ -690,9 +622,9 @@ export class LLMModalComponent
     this.onSave();
   }
 
-  dismiss(): void { }
+  dismiss(): void {}
 
-  close(): void { }
+  close(): void {}
 
   changeFormat(format: any) {
     this.outputFormat = format;
@@ -703,7 +635,6 @@ export class LLMModalComponent
       delete param?.children;
 
       this.outputParams = [param];
-
     }
     if (format.id === 'json') {
       this.modelFormGroup.controls.stream.setValue(false);
@@ -733,9 +664,9 @@ export class LLMModalComponent
   getInputNames(index: number): {
     existingValues: string[];
   } {
-    const names = this.inputParams.map((p) => p.name);
+    const names = this.inputParams.map(p => p.name);
     names.splice(index, 1);
-    const visionNames = this.visionInputParams.map((p) => p.name);
+    const visionNames = this.visionInputParams.map(p => p.name);
     return { existingValues: [...names, ...visionNames] };
   }
 
@@ -744,10 +675,10 @@ export class LLMModalComponent
   } {
     let names = [];
     if (param.depth === 0) {
-      names = this.outputParams.map((arg) => arg.name);
+      names = this.outputParams.map(arg => arg.name);
     } else {
       const parentNode = getParentNodeFromTree(this.outputParams, param);
-      names = parentNode?.children.map((arg) => arg.name);
+      names = parentNode?.children.map(arg => arg.name);
     }
 
     if (names && names.indexOf(param.name) > -1) {
@@ -766,6 +697,96 @@ export class LLMModalComponent
     });
   }
 
+  public onIntelligentAdd(role) {
+    if (this.isFlowReadonly) return;
+    if (role === 'system' && !this.systemPrompt) return;
+    if (role === 'user' && !this.prompt) return;
+    this.nzModal.create({
+      nzContent: OptimizePromptModalComponent,
+      nzWidth: 600,
+      nzData: {
+        instruct: role === 'system' ? this.systemPrompt : this.prompt,
+        isWorkflow: true,
+        tipsChange: value => {
+          if (role === 'system') {
+            this.systemPrompt = value ?? '';
+          } else {
+            this.prompt = value ?? '';
+          }
+          this.onSave();
+          this.cdr.markForCheck();
+        },
+      },
+    });
+  }
+
+  public openRefModal(type) {
+    const myModal = this.nzModal.create({
+      nzContent: RefPromptComponent,
+      nzWidth: 1000,
+      nzData: {
+        select: (tmpl: ITmpl) => {
+          const content = tmpl.content;
+          if (type === 'user') {
+            this.prompt = content;
+          }
+          if (type === 'system') {
+            this.systemPrompt = content;
+          }
+          this.onSave();
+          this.cdr.markForCheck();
+        },
+      },
+    });
+  }
+
+  public showSaveTmplModal(type: 'user' | 'system') {
+    let prompt = '';
+    if (type === 'system' && this.systemPrompt && this.systemPrompt.length > 0) {
+      prompt = this.systemPrompt;
+    } else if (type === 'user' && this.prompt && this.prompt.length > 0) {
+      prompt = this.prompt;
+    } else {
+      return;
+    }
+    const thisMOdal = this.nzModal.create({
+      nzContent: SaveTmplLibraryModalComponent,
+      nzWidth: 600,
+      nzData: {
+        currentTmpl: {
+          is_workflow: true,
+          created_on: moment().format('YYYY-MM-DD HH:mm:ss'),
+          content: prompt,
+          model_config: {
+            temperature: null,
+            top_p: null,
+            max_tokens: null,
+            presence_penalty: null,
+          },
+        },
+        // 调用接口，保存候选模板作为正式模板
+        modalClose: form => {
+          const params = {
+            task_id: this.paramsId,
+            id: '',
+            name: form.value.templateName,
+            tags: form.value.tags,
+            industry_id: form.value.industrys,
+            content: this.systemPrompt,
+            source: 'PLAYGROUND',
+            variables: this.processString(this.systemPrompt),
+          };
+          this.candidateTemplateListServe.saveFormalTmpl(params).subscribe({
+            next: res => {
+              MessageComponent.showSuccess(this.i18n.transform('single_tmpl_save_success_tip'));
+            },
+          });
+          this.cdr.markForCheck();
+        },
+      },
+    });
+  }
+
   public updateModel(modelInfo: any) {
     this.modelFormGroup.controls.model.setValue(modelInfo.id);
     this.modelParams.enable_thinking = true;
@@ -776,7 +797,7 @@ export class LLMModalComponent
   public processString(input: string): string {
     const matches = input.match(GETVARIANT_REG);
     if (matches) {
-      const extractedValues = matches.map((match) => match.slice(2, -2));
+      const extractedValues = matches.map(match => match.slice(2, -2));
       return extractedValues.join(',');
     }
     return '';
@@ -792,21 +813,14 @@ export class LLMModalComponent
     if (this.tagCompareNoChange()) {
       return;
     }
-    const selectedModel = this.modelOptions.find(
-      (model) =>
-        model.model_deployment_id === this.modelFormGroup.controls.model.value,
-    );
+    const selectedModel = this.modelOptions.find(model => model.model_deployment_id === this.modelFormGroup.controls.model.value);
     const vision = [];
     const targetInputParams = [...this.inputParams, ...this.visionInputParams];
 
     const inputs = NodeUtils.getDtoInputs(targetInputParams);
-    inputs.forEach((i) => {
+    inputs.forEach(i => {
       const schema: IWorkflowField = i.schema as IWorkflowField;
-      if (
-        i.name.startsWith('_vision_') ||
-        i.name.startsWith('_image_vision_') ||
-        i.name.startsWith('_video_vision_')
-      ) {
+      if (i.name.startsWith('_vision_') || i.name.startsWith('_image_vision_') || i.name.startsWith('_video_vision_')) {
         const index = i.name.split('_vision_')[1] ?? '1';
         if (schema?.type === 'file/video') {
           i.name = `_video_vision_${index}`;
@@ -818,7 +832,7 @@ export class LLMModalComponent
       }
     });
 
-    let modelType = selectedModel?.type === 'router' ? 'strategy' : selectedModel?.model_type ?? ModelType.LLM;
+    let modelType = selectedModel?.type === 'router' ? 'strategy' : (selectedModel?.model_type ?? ModelType.LLM);
     const nodeData: ILLMNode = {
       id: this.nodeInfo.id,
       name: this.nodeInfo.name,
@@ -848,12 +862,10 @@ export class LLMModalComponent
         enable_thinking: this.modelParams.enable_thinking,
         vision,
         safety_barrier: !!this.safety_barrier,
-        ...(this.configServ.isSupportUserPersona()
-          ? { enable_memory: this.modelFormGroup.get('enableMemory').value }
-          : {}),
+        ...(this.configServ.isSupportUserPersona() ? { enable_memory: this.modelFormGroup.get('enableMemory').value } : {}),
       },
     };
-    if(!selectedModel?.is_support_close_reasoning) {
+    if (!selectedModel?.is_support_close_reasoning) {
       delete nodeData.configs.enable_thinking;
     }
     this.appFlowServ.setNodeSaveMonitor({

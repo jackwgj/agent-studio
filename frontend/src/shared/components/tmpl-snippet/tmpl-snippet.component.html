@@ -1,0 +1,28 @@
+<div class="relative inline-block">
+  <span #snippetOrigin="cdkOverlayOrigin" cdkOverlayOrigin class="py-1">{{
+    snippetChunkProps.value
+  }}</span>
+
+  <!-- snippet panel -->
+  <ng-template
+    cdkConnectedOverlay
+    [cdkConnectedOverlayOrigin]="snippetOrigin"
+    [cdkConnectedOverlayOpen]="candidates.length > 0"
+  >
+    <div
+      #candidateBox
+      class="snippet-list max-h-52 w-32 rounded-md bg-white py-2 shadow-md"
+    >
+      <div #candidateList class="flex w-full flex-col">
+        <div
+          [ngStyle]="{ backgroundColor: getCandidateBGColor(i) }"
+          class="snippet-item h-8 w-32 py-1 px-4 hover:bg-[#f2f2f2]"
+          *ngFor="let candidate of candidates; index as i"
+          (click)="onSelected(candidate)"
+        >
+          {{ candidate.key }}
+        </div>
+      </div>
+    </div>
+  </ng-template>
+</div>

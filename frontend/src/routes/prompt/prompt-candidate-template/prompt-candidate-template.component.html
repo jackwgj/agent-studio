@@ -1,0 +1,104 @@
+<div class="candidate-template-list-container">
+  <div class="alert-wrapper" *ngIf="isShowAlter">
+    <nz-alert nzType="info" class="alert-style" [nzMessage]="'candidate_tmpl_evaluating_tip' | i18nextEager" nzCloseable (nzOnClose)="onOpenChange(false)">
+      <span class="alert-link-text" (click)="toEvaluationProgress()">{{ 'base_view_details' | i18nextEager }}</span>
+    </nz-alert>
+  </div>
+
+  <!-- 主体部分 -->
+  <div class="main-style" [ngStyle]="isShowAlter ? { height: 'calc(100% - 105px)' } : { height: 'calc(100% - 45px)' }">
+    <div class="fixed-style-wrapper">
+      <div class="fixed-style">
+        <div class="sub-title">{{ 'candidate_template_candidateTemplateList' | i18nextEager }}({{ tmplCount }})</div>
+        <!-- 横向比较&创建评估&评估记录按钮组 -->
+        <div class="operation-sec">
+          <button nz-button nzType="default" [disabled]="checked.length !== 2" (click)="toHorizontalComparison()">
+            {{ 'candidate_template_horizontalComparison' | i18nextEager }}({{ checked.length }}/2)
+          </button>
+          <div class="split-line"></div>
+          <div class="evaluation-btns">
+            <button
+              class="create-evaluate-btn"
+              nz-button
+              nzType="default"
+              (click)="toCreateEvaluation()"
+              [disabled]="!checked.length || createEvaluationState"
+              *ngIf="false"
+            >
+              {{ 'candidate_template_createEvaluation' | i18nextEager }}
+            </button>
+            <button class="evaluate-history-btn" nz-button nzType="default" (click)="toEvaluationRecord()" *ngIf="false">
+              {{ 'candidate_template_evaluationHistory' | i18nextEager }}
+            </button>
+          </div>
+        </div>
+        <!-- 全选&好评优先选择框&搜索框&刷新 -->
+        <div class="select-search-sec">
+          <div class="select-all-style">
+            <div class="select-all-text">
+              <nz-checkbox-wrapper (nzOnChange)="checked = $event" style="margin: 0 !important">
+                <label nz-checkbox [nzChecked]="isAllChecked">{{ 'candidate_template_selectAll' | i18nextEager }}</label>
+              </nz-checkbox-wrapper>
+            </div>
+          </div>
+          <nz-select
+            id="select-template"
+            class="select-mode w-64"
+            [nzOptions]="options"
+            [(ngModel)]="selectValue"
+            (ngModelChange)="handleSortChange($event)"
+            [nzPlaceHolder]="'create_time' | i18nextEager"
+          >
+          </nz-select>
+          <div class="search-style">
+            <nz-select
+              class="search-nz-select"
+              [nzMode]="'multiple'"
+              [nzPlaceHolder]="emptyPlaceholder"
+              [nzAllowClear]="true"
+              [(ngModel)]="tags"
+              (ngModelChange)="onNgModelChange($event)"
+            >
+              <nz-option *ngFor="let item of searchboxItems" [nzLabel]="item.label" [nzValue]="item.field"></nz-option>
+            </nz-select>
+          </div>
+          <div class="refresh-div">
+            <button
+              nz-button
+              nzType="default"
+              [nzType]="'text'"
+              nz-tooltip
+              [nzTooltipTitle]="'candidate_tmpl_refresh' | i18nextEager"
+              nzTooltip
+              id="action-refresh"
+              (click)="refreshAllData()"
+            >
+              <span nz-icon nzType="reload"></span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- 卡片区域 -->
+    <div class="card-layout-content-wrapper">
+      <div class="card-layout-content" *ngIf="selectAllData.length !== 0 && !loading; else elseLoadingOrEmpty">
+        <div class="card-layout-content-body">
+          <div class="card-body" *ngFor="let item of selectAllData; index as idx">
+            <meta-single-template [idx]="idx" [item]="item" [promptTmplIds]="promptTmplIds" (deleteCurrentTmpl)="refreshAllData()"></meta-single-template>
+          </div>
+        </div>
+      </div>
+    </div>
+    <ng-template #elseLoadingOrEmpty>
+      <div style="margin-top: 170px">
+        <div *ngIf="loading">
+          <div class="loading-style">
+            <nz-spin nzSimple></nz-spin>
+          </div>
+        </div>
+        <!-- 空状态 -->
+        <nz-empty *ngIf="selectAllData.length === 0 && !loading" [nzNotFoundContent]="noDataInfo"></nz-empty>
+      </div>
+    </ng-template>
+  </div>
+</div>

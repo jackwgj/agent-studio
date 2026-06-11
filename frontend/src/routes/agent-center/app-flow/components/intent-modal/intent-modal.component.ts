@@ -1,4 +1,4 @@
-import { Component, ElementRef, EventEmitter, HostListener, Input, OnDestroy, OnInit, Output, ViewChild } from '@angular/core';
+import { Component, ElementRef, EventEmitter, HostListener, Input, OnDestroy, OnInit, Output, ChangeDetectorRef, ViewChild } from '@angular/core';
 import { FormBuilder, NgForm } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { NzModalService } from 'ng-zorro-antd/modal';
@@ -46,6 +46,13 @@ import { InputTreeSelect } from 'src/routes/agent-center/app-flow/components/inp
 import { HelpCenterService } from '@services/help-center.service';
 import { CommonService } from '@services/common.service';
 import { CmdTextareaComponent } from '@routes/agent-center/app-flow/components/cmd-textarea/cmd-textarea.component';
+import { AssetIntelligentAddComponent } from '@shared/components/assets/asset-intelligent-add/asset-intelligent-add.component';
+import { AssetIntelligentAddDisabledComponent } from '@shared/components/assets/asset-intelligent-add-disabled/asset-intelligent-add-disabled.component';
+import { OptimizePromptModalComponent } from '@routes/agent-center/app-agent/components/optimize-prompt-modal/optimize-prompt-modal.component';
+import { SaveTmplLibraryModalComponent } from '@routes/prompt/prompt-candidate-template/save-tmpl-library-modal/save-tmpl-library-modal.component';
+import moment from 'moment';
+import { CandidateTemplateListService } from '@services/candidate-template-list.service';
+import { MessageComponent } from '@shared/services/cfdata.service';
 @Component({
   selector: 'meta-intent-modal',
   templateUrl: './intent-modal.component.html',
@@ -68,6 +75,8 @@ import { CmdTextareaComponent } from '@routes/agent-center/app-flow/components/c
     CmdTextareaComponent,
     NzPopoverModule,
     modelSettingsComponent,
+    AssetIntelligentAddComponent,
+    AssetIntelligentAddDisabledComponent,
   ],
   providers: [
     {
@@ -266,7 +275,9 @@ export class IntentModalComponent extends ModalBaseComponent implements OnInit, 
     public kbAbilitiesService: KbAbilitiesService,
     private knowledgeRepoService: KnowledgeRepoService,
     private helpCenterService: HelpCenterService,
-    protected commonService: CommonService
+    protected commonService: CommonService,
+    private candidateTemplateListServe: CandidateTemplateListService,
+    private cdr: ChangeDetectorRef
   ) {
     super(nodeServ, appFlowServ);
   }
@@ -580,6 +591,62 @@ export class IntentModalComponent extends ModalBaseComponent implements OnInit, 
     instance.select.subscribe((tmpl: ITmpl) => {
       this.modelFormGroup.controls.prompt.setValue(tmpl.content);
     });
+  }
+
+  public onIntelligentAdd() {
+    if (!this.modelFormGroup.controls.prompt.value || this.isFlowReadonly) return;
+    this.nzModal.create({
+      nzContent: OptimizePromptModalComponent,
+      nzWidth: 600,
+      nzData: {
+        instruct: this.modelFormGroup.controls.prompt.value,
+        isWorkflow: true,
+        tipsChange: value => {
+          this.modelFormGroup.controls.prompt.setValue(value);
+          this.cdr.markForCheck();
+        },
+      },
+    });
+  }
+
+  public showSaveTmplModal() {
+    if (this.modelFormGroup?.controls?.prompt?.value?.length > 0) {
+      const thisMOdal = this.nzModal.create({
+        nzContent: SaveTmplLibraryModalComponent,
+        nzWidth: 600,
+        nzData: {
+          currentTmpl: {
+            is_workflow: true,
+            created_on: moment().format('YYYY-MM-DD HH:mm:ss'),
+            content: this.modelFormGroup?.controls?.prompt?.value,
+            model_config: {
+              temperature: null,
+              top_p: null,
+              max_tokens: null,
+              presence_penalty: null,
+            },
+          },
+          // 调用接口，保存候选模板作为正式模板
+          modalClose: form => {
+            const params = {
+              task_id: this.paramsId,
+              id: '',
+              name: form.value.templateName,
+              tags: form.value.tags,
+              industry_id: form.value.industrys,
+              content: this.modelFormGroup?.controls?.prompt?.value,
+              source: 'PLAYGROUND',
+              variables: this.processString(this.modelFormGroup?.controls?.prompt?.value),
+            };
+            this.candidateTemplateListServe.saveFormalTmpl(params).subscribe({
+              next: res => {
+                MessageComponent.showSuccess(this.i18n.transform('single_tmpl_save_success_tip'));
+              },
+            });
+          },
+        },
+      });
+    }
   }
 
   public openAddKbModal() {

@@ -1,0 +1,157 @@
+.editor-wrapper {
+  width: 100%;
+  border: 1px solid #c2c2c2;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  .prompt-editor-header {
+    box-sizing: border-box;
+    border-bottom: 1px solid #e6e6e6;
+    padding: 14px 16px;
+    cursor: default;
+    z-index: 10;
+    height: 48px;
+    width: 100%;
+
+    ::ng-deep .pe-we-labeleditor > tp-icon {
+      color: #191919;
+    }
+  }
+
+  .editor-area-wrapper {
+    height: calc(100% - 96px);
+    width: 100%;
+    overflow: hidden;
+    padding-top: 8px;
+
+    .editor-area {
+      position: relative;
+      height: 100%;
+      width: 100%;
+      overflow: auto;
+      padding: 0 16px;
+    }
+  }
+}
+
+.styled-content {
+  position: absolute;
+  width: calc(100% - 32px);
+  height: 100%;
+  white-space: pre-wrap;
+  overflow: auto;
+  user-select: none;
+
+  &::-webkit-scrollbar-thumb {
+    background: transparent;
+  }
+}
+
+.prompt-editor {
+  position: relative;
+  outline-width: 0;
+  box-sizing: border-box;
+  height: 100%;
+  width: 100%;
+  background-color: transparent;
+  color: transparent;
+  caret-color: #000;
+  resize: none;
+  overflow: auto;
+  border-width: 0;
+
+  &::placeholder {
+    color: #808080;
+  }
+}
+
+.footer-button-group {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+::ng-deep .ant-tooltip.ti3-tip-white-theme {
+  z-index: 1000 !important;
+
+  .ant-popconfirm-header {
+    min-height: 36px;
+    height: auto;
+  }
+}
+
+.errorTips {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  top: 4px;
+  height: 24px;
+}
+
+.errorTipsText {
+  position: relative;
+  top: 1px;
+}
+
+.file-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px;
+  width: 200px;
+  height: 60px;
+  position: relative;
+  background: #ffffff;
+  box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+
+  .file-info {
+    display: flex;
+    align-items: center;
+  }
+
+  .file-icon1 {
+    height: 34px;
+    max-width: 34px;
+    margin-right: 8px;
+  }
+
+  .file-details {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .file-name {
+    font-weight: bold;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 10em;
+  }
+
+  .delete-button {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background-color: rgb(193 193 193);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+::ng-deep {
+  .ant-tooltip:has(#newVar_nobutton) {
+    z-index: 900 !important;
+  }
+}

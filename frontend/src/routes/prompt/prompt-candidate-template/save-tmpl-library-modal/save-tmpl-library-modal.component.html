@@ -1,0 +1,102 @@
+<div *nzModalTitle>
+  <span class="modal-header-text">{{ 'candidate_template_saveTemplateLibrary' | i18nextEager }}</span>
+</div>
+<div class="modal-body-style">
+  <form [formGroup]="formName" class="template-name">
+    <div class="body-tmpl-name">
+      <nz-form-item>
+        <nz-form-label [nzSpan]="6">
+          <div class="label-text">
+            {{ 'candidate_template_templateName' | i18nextEager }}
+          </div>
+        </nz-form-label>
+        <nz-form-control>
+          <input id="inputnumber-basic" class="tmpl-name-input" type="text" nz-input formControlName="templateName" />
+        </nz-form-control>
+      </nz-form-item>
+    </div>
+    <div class="body-tmpl-name">
+      <nz-form-item>
+        <nz-form-label [nzSpan]="6">
+          <div class="label-text">
+            {{ 'candidate_template_createTime' | i18nextEager | i18nextEager }}
+          </div>
+        </nz-form-label>
+        <nz-form-control>
+          <span class="create-time-text">{{ currentTmpl.created_on }}</span>
+        </nz-form-control>
+      </nz-form-item>
+    </div>
+    <div class="body-tmpl-label-select" *ngIf="currentTmpl?.is_workflow; else ElseWorkFlow">
+      <nz-form-item>
+        <nz-form-label [nzSpan]="6">
+          <div class="label-text-select">
+            {{ 'prompt_tmpl_industry_label' | i18nextEager }}
+          </div>
+        </nz-form-label>
+        <nz-form-control>
+          <nz-select class="tmpl-name-input" [nzOptions]="industryOptions" [nzAllowClear]="true" formControlName="industrys"></nz-select>
+        </nz-form-control>
+      </nz-form-item>
+
+      <nz-form-item>
+        <nz-form-label [nzSpan]="6">
+          <div class="label-text-select">
+            {{ 'prompt_tmpl_tag_label' | i18nextEager }}
+          </div>
+        </nz-form-label>
+        <nz-form-control>
+          <nz-select class="tmpl-name-input" [nzOptions]="labelOptions" [nzMode]="'multiple'" [nzAllowClear]="true" formControlName="tags"></nz-select>
+        </nz-form-control>
+      </nz-form-item>
+    </div>
+    <ng-template #ElseWorkFlow>
+      <div class="body-tmpl-label">
+        <div class="label-text text-sm leading-[22x] text-[#595959]">{{ 'candidate_template_templateLabel' | i18nextEager }}：</div>
+
+        <div id="tmpl-tags">
+          <span class="single-tag" *ngFor="let item of tags">{{ item }}</span>
+        </div>
+      </div>
+    </ng-template>
+  </form>
+  <div class="body-tmpl-content">
+    <div class="tmpl-content-label label-text text-sm leading-[22x] text-[#595959]">{{ 'candidate_template_templateContent' | i18nextEager }}：</div>
+    <div class="tmpl-content-text">
+      <ng-container *ngFor="let promptChunk of modalContent">
+        <ng-container [ngSwitch]="promptChunk.type">
+          <span *ngSwitchCase="'COMMON'">{{ promptChunk.value }}</span>
+          <tmpl-variant-tag [varChunkProps]="promptChunk" *ngSwitchCase="'VARIANT'" />
+          <span *ngSwitchDefault></span>
+        </ng-container>
+      </ng-container>
+    </div>
+  </div>
+  <div class="body-model-params" *ngIf="!currentTmpl?.is_workflow">
+    <div class="model-params-label label-text text-sm leading-[22x] text-[#595959]">{{ 'candidate_template_modelParams' | i18nextEager }}：</div>
+    <div>
+      <span class="remark-platform m-0 mr-2">{{ currentTmpl.model }}</span>
+      <div class="remark-split-line"></div>
+      <span class="remark-platform m-0 mx-2" *ngIf="isNotNil(currentTmpl?.model_config?.temperature)"
+        >{{ 'model_temperature' | i18nextEager }}：{{ currentTmpl?.model_config?.temperature }}</span
+      >
+      <span class="remark-platform m-0 mx-2" *ngIf="isNotNil(currentTmpl?.model_config?.top_p)"
+        >{{ 'model_top_p' | i18nextEager }}：{{ currentTmpl?.model_config?.top_p }}</span
+      >
+      <div class="remark-split-line"></div>
+      <span class="remark-platform m-0 mx-2">{{ 'model_max_tokens' | i18nextEager }}：{{ currentTmpl.model_config.max_tokens }}</span>
+      <div class="remark-split-line last-line"></div>
+      <span class="remark-platform m-0"
+        >{{ 'model_presence_penalty' | i18nextEager }}：<span>{{ currentTmpl.model_config.presence_penalty }}</span></span
+      >
+    </div>
+  </div>
+</div>
+<div *nzModalFooter>
+  <button nz-button nzType="primary" (click)="submit()">
+    {{ 'ok' | i18nextEager }}
+  </button>
+  <button nz-button nzType="default" (click)="dismiss()">
+    {{ 'cancel' | i18nextEager }}
+  </button>
+</div>

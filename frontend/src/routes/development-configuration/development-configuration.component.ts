@@ -54,7 +54,7 @@ export class DevelopmentConfigurationComponent implements OnInit, OnDestroy {
     { id: 'model-test', i18nKey: 'model_test', active: false, show: true },
     { id: 'intent-manage', i18nKey: 'intent_management', active: false, show: true },
     { id: 'message-template', i18nKey: 'message_template', active: false, show: true },
-    { id: 'object-manage', i18nKey: 'object_manage', active: false, show: false },
+    { id: 'object-manage', i18nKey: 'object_manage', active: false, show: true },
   ];
 
   activeId = 'custom-model';

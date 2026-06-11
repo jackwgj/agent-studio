@@ -1,0 +1,214 @@
+.candidate-template-list-container {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+
+  .btn-style {
+    width: 134px;
+    height: 40px;
+    color: #191919;
+    background: #fff;
+  }
+
+  .main-style {
+    height: calc(100% - 165px);
+    margin: 24px;
+    margin-top: 22px;
+    overflow: hidden;
+    background: #fff;
+    border-radius: 8px;
+
+    .fixed-style-wrapper {
+      width: calc(100% - 48px);
+      padding: 0 16px 0 32px;
+      height: 160px;
+      position: absolute;
+      z-index: 200;
+      background-color: #fff;
+      border-radius: 8px;
+    }
+  }
+}
+
+// 主体部分
+.fixed-style {
+  position: absolute;
+  z-index: 100;
+  background-color: #fff;
+  width: calc(100% - 70px);
+  padding-top: 27px;
+}
+
+.sub-title {
+  font-size: 18px;
+  color: #191919;
+  line-height: 28px;
+  font-weight: bold;
+}
+
+// 横向比较&创建评估&评估记录按钮组
+.operation-sec {
+  margin-top: 17px;
+  display: flex;
+  gap: 24px;
+  height: 32px;
+  align-items: center;
+
+  .split-line {
+    height: 24px;
+    width: 1px;
+    background-color: rgba($color: #000, $alpha: 10%);
+  }
+
+  .evaluation-btns {
+    display: flex;
+    gap: 8px;
+  }
+}
+
+// 全选&好评优先选择框&搜索框&刷新
+.select-search-sec {
+  margin-top: 17px;
+  display: flex;
+  height: 32px;
+  align-items: center;
+  gap: 8px;
+
+  .select-all-style {
+    height: var(--ti-input-height);
+    background-color: transparent;
+    color: transparent;
+    border-radius: 6px;
+    border: 1px solid #c2c2c2;
+    display: flex;
+    align-items: center;
+
+    .select-all-text {
+      position: relative;
+      margin: 0 9px;
+
+      ::ng-deep .ti3-checkbox {
+        width: max-content;
+      }
+    }
+  }
+
+  .select-mode {
+    width: 227px;
+    background-color: transparent;
+    color: transparent;
+    border-radius: 6px;
+    border: 1px solid #c2c2c2;
+
+    ::ng-deep span.placehoder.pr-2.pl-2 {
+      position: relative;
+      top: 1px;
+    }
+  }
+
+  .search-style {
+    background-color: transparent !important;
+    color: transparent !important;
+    border-radius: 6px !important;
+    border: 1px solid #c2c2c2 !important;
+    width: 100% !important;
+    ;
+
+    ::ng-deep ti-dominator {
+      .ti3-box-cell-key>span {
+        display: block;
+      }
+    }
+  }
+
+  .refresh-div {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+// card样式
+.tp-layout-content {
+  padding: 0 !important;
+  margin-left: 12px;
+  margin-top: 12px;
+}
+
+.card-layout-content-wrapper {
+  width: 100%;
+  padding: 0 21px 0 30px;
+  height: calc(100% - 170px);
+  overflow: scroll;
+  margin-top: 170px;
+}
+
+.card-layout-content {
+  max-width: 100%;
+}
+
+.card-body {
+  box-sizing: border-box !important;
+}
+
+.loading-style {
+  height: 600px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.alert-wrapper {
+  margin: 16px 24px;
+
+  .alert-style {
+    width: 100%;
+    font-size: 14px;
+    color: #191919;
+    text-align: left;
+    line-height: 22px;
+    font-weight: 400;
+
+    .alert-link-text {
+      font-size: 14px;
+      color: #131415;
+      letter-spacing: 0;
+      line-height: 26px;
+      font-weight: 400;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+  }
+}
+
+.card-layout-content-body {
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 16px;
+  overflow: hidden;
+  max-width: 100%;
+}
+
+@media screen and (max-width: 1280px) {
+  .card-body {
+    flex-basis: calc((100% - 16px) / 2);
+    width: calc((100% - 16px) / 2);
+    height: 272px;
+  }
+}
+
+@media screen and (min-width: 1280px) and (max-width: 1600px) {
+  .card-body {
+    flex-basis: calc((100% - 16px) / 2);
+    width: calc((100% - 16px) / 2);
+    height: 272px;
+  }
+}
+
+@media screen and (min-width: 1600px) {
+  .card-body {
+    flex-basis: calc((100% - 32px) / 3);
+    width: calc((100% - 32px) / 3);
+    height: 312px;
+  }
+}

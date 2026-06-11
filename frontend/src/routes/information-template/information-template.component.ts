@@ -4,26 +4,13 @@ import { Router } from '@angular/router';
 import { I18nNamespace } from '@i18n';
 import { I18NEXT_NAMESPACE, I18NextEagerPipe } from 'angular-i18next';
 import { MODULES } from '@shared/modules';
-import {
-  UntypedFormControl,
-  UntypedFormGroup,
-  Validators,
-  FormsModule,
-  ReactiveFormsModule
-} from '@angular/forms';
-import {
-  MonacoEditorComponent,
-  MonacoEditorConstructionOptions,
-  MonacoEditorModule,
-} from '@materia-ui/ngx-monaco-editor';
+import { UntypedFormControl, UntypedFormGroup, Validators, FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { MonacoEditorComponent, MonacoEditorConstructionOptions, MonacoEditorModule } from '@materia-ui/ngx-monaco-editor';
 import { InformationTemplateService } from '@routes/information-template/information-template.service';
 import { SetSidebarVisibilityService } from '@shared/services/set-sidebar-visibility.service';
 import { CommonUtils } from '../../utils/common.util';
 import { agentCommonLogic } from '@routes/agent-center/app-agent/common-logic-agent';
-import {
-  visibilityItemsMap,
-  uploadStatusMap,
-} from '@routes/information-template/information-template.map';
+import { visibilityItemsMap, uploadStatusMap } from '@routes/information-template/information-template.map';
 import { CommonValidation } from '@shared/validation/commonValidation';
 import { CommonService } from '@services/common.service';
 import { NewCommonNoDataWithBtnComponent } from '@shared/components/new-common-no-data-with-btn/new-common-no-data-with-btn.component';
@@ -80,14 +67,9 @@ import { NzMessageService } from 'ng-zorro-antd/message';
   providers: [
     {
       provide: I18NEXT_NAMESPACE,
-      useValue: [
-        I18nNamespace.KNOWLEDGE,
-        I18nNamespace.AGENT_CENTER,
-        I18nNamespace.COMMON,
-        I18nNamespace.GUIDE
-      ],
+      useValue: [I18nNamespace.KNOWLEDGE, I18nNamespace.AGENT_CENTER, I18nNamespace.COMMON, I18nNamespace.GUIDE],
     },
-    NzModalService
+    NzModalService,
   ],
 })
 export class InformationTemplateComponent implements OnInit, OnDestroy {
@@ -122,7 +104,7 @@ export class InformationTemplateComponent implements OnInit, OnDestroy {
   totalNumber = 0;
   readonly pageSize = {
     options: [10, 20, 50, 100],
-    size: 10
+    size: 10,
   };
   searchValue = '';
   modalTypeName = '';
@@ -131,10 +113,7 @@ export class InformationTemplateComponent implements OnInit, OnDestroy {
   formGroup = new UntypedFormGroup({
     name: new UntypedFormControl({ value: '', disabled: false }, [
       Validators.required,
-      CommonValidation.customVerify(
-        /^[A-Za-z0-9\u4e00-\u9fa5][A-Za-z0-9\u4e00-\u9fa5_-]{1,64}$/,
-        this.i18n.transform('validation_name_tip'),
-      ),
+      CommonValidation.customVerify(/^[A-Za-z0-9\u4e00-\u9fa5][A-Za-z0-9\u4e00-\u9fa5_-]{1,64}$/, this.i18n.transform('validation_name_tip')),
       Validators.minLength(2),
       Validators.maxLength(64),
     ]),
@@ -149,7 +128,7 @@ export class InformationTemplateComponent implements OnInit, OnDestroy {
     {
       title: this.i18n.transform('operation'),
       fixed: 'right' as const,
-      width: '120px'
+      width: '120px',
     },
   ];
 
@@ -180,6 +159,7 @@ export class InformationTemplateComponent implements OnInit, OnDestroy {
       value: 'personal',
     },
   ];
+  importModalRef = null;
 
   readonly importColumns = [
     { title: this.i18n.transform('check1') },
@@ -216,7 +196,7 @@ export class InformationTemplateComponent implements OnInit, OnDestroy {
     private commonLogic: agentCommonLogic,
     private readonly commonService: CommonService,
     private readonly http: HttpService,
-    private i18n: I18NextEagerPipe,
+    private i18n: I18NextEagerPipe
   ) {}
 
   ngOnInit(): void {
@@ -298,13 +278,13 @@ export class InformationTemplateComponent implements OnInit, OnDestroy {
       nzOkType: 'primary',
       nzCancelText: this.i18n.transform('cancel'),
       nzOnOk: () => {
-         this.informationTemplateService.deleteStructuredMessages([data]).then(() => {
+        this.informationTemplateService.deleteStructuredMessages([data]).then(() => {
           this.message.success(this.i18n.transform('delete_success'));
           this.searchList();
           this.checkedList = [];
           this.refreshCheckedStatus();
         });
-      }
+      },
     });
   }
 
@@ -323,7 +303,7 @@ export class InformationTemplateComponent implements OnInit, OnDestroy {
           this.checkedList = [];
           this.refreshCheckedStatus();
         });
-      }
+      },
     });
   }
 
@@ -337,9 +317,7 @@ export class InformationTemplateComponent implements OnInit, OnDestroy {
       this.modalTypeName = this.i18n.transform('edit_message_template');
       this.structuredMessagesId = data.id || '';
       this.formGroup.setValue({ name: data.name });
-      this.messageClassSelectedText = this.messageClassItems.find(
-        item => item.text === data.category
-      )?.text || this.messageClassItems[0].text;
+      this.messageClassSelectedText = this.messageClassItems.find(item => item.text === data.category)?.text || this.messageClassItems[0].text;
       this.jsonData = typeof data.content === 'string' ? data.content : JSON.stringify(data.content, null, 2);
       this.visibilitySelected = visibilityItemsMap.get(data.visibility) || 'workspace';
     }
@@ -443,14 +421,11 @@ export class InformationTemplateComponent implements OnInit, OnDestroy {
   }
 
   importTemplate(content: TemplateRef<any>): void {
-    this.nzModal.create({
+    this.importModalRef = this.nzModal.create({
       nzTitle: this.i18n.transform('import_info_template'),
       nzContent: content,
       nzFooter: null,
       nzWidth: 800,
-      nzOnCancel: () => {
-        this.cleanupImport();
-      }
     });
   }
 
@@ -469,7 +444,7 @@ export class InformationTemplateComponent implements OnInit, OnDestroy {
     const formData = new FormData();
     formData.append('file', this.informationTemplateFile as any);
 
-    this.informationTemplateService.importStructuredMessages(formData).then((res) => {
+    this.informationTemplateService.importStructuredMessages(formData).then(res => {
       this.importSrcData.data = [];
 
       const successList = res.success_list.map(item => ({ ...item, status: 'success' }));
@@ -481,14 +456,16 @@ export class InformationTemplateComponent implements OnInit, OnDestroy {
       this.showUpload = !this.showUpload;
       this.informationTemplateFile = null;
       this.searchList();
+      this.importModalRef?.destroy();
     });
   }
 
-  private cleanupImport(): void {
+  cleanupImport(): void {
     this.checkedList = [];
     this.refreshCheckedStatus();
     this.informationTemplateFile = null;
     this.importSrcData.data = [];
+    this.importModalRef?.destroy();
   }
 
   exportTemplate(): void {
@@ -496,24 +473,16 @@ export class InformationTemplateComponent implements OnInit, OnDestroy {
       messages_ids: this.checkedList.map(item => item.id),
     };
 
-    this.informationTemplateService.exportStructuredMessages(params).then((res) => {
-      CommonUtils.downloadFile(
-        new Blob([res], { type: 'application/json' }),
-        `${this.commonLogic.getFormattedDateTime()}.xlsx`,
-        true,
-      );
+    this.informationTemplateService.exportStructuredMessages(params).then(res => {
+      CommonUtils.downloadFile(new Blob([res], { type: 'application/json' }), `${this.commonLogic.getFormattedDateTime()}.xlsx`, true);
       this.checkedList = [];
       this.refreshCheckedStatus();
     });
   }
 
   downloadTemplate() {
-    this.informationTemplateService.downloadTemplate().then((res) => {
-      CommonUtils.downloadFile(
-        new Blob([res], { type: 'application/json' }),
-        `${this.i18n.transform('message_template')}.xlsx`,
-        true,
-      );
+    this.informationTemplateService.downloadTemplate().then(res => {
+      CommonUtils.downloadFile(new Blob([res], { type: 'application/json' }), `${this.i18n.transform('message_template')}.xlsx`, true);
     });
   }
 

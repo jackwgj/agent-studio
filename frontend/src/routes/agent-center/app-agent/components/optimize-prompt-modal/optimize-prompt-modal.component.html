@@ -1,0 +1,30 @@
+<div *nzModalTitle>{{ 'prompt_optimization' | i18nextEager }}</div>
+<div id="optimize-scroll-body">
+  <div *ngIf="state.isLoading" class="optimize-loading">
+    <nz-spin />
+    <span>{{ 'intelligent_generation' | i18nextEager }}</span>
+  </div>
+  <div *ngIf="!state.isLoading" class="optimize-content">
+    {{ state.optimizeResult }}
+  </div>
+</div>
+<div *nzModalFooter id="optimize-modal-footer">
+  <button
+    type="button"
+    nz-button
+    (click)="dismissStream()"
+    class="optimize-dismiss"
+  >
+    {{ 'cancel' | i18nextEager }}
+  </button>
+  <button
+    type="button"
+    nz-button
+    nzType="primary"
+    nzDanger
+    (click)="confirm()"
+    [disabled]="state.fetching"
+  >
+    {{ 'optimize_prompt_modal_1' | i18nextEager }}
+  </button>
+</div>

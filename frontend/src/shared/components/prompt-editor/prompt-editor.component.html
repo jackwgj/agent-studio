@@ -1,0 +1,156 @@
+<div
+  [ngStyle]="{
+    border: editorBorderStyle,
+    backgroundColor: getBGColor(),
+    height: setDiffHeight(),
+  }"
+  class="editor-wrapper relative h-full overflow-auto"
+>
+  <!-- 头部操作栏 -->
+  <div class="prompt-editor-header flex items-center justify-between gap-4">
+    <div class="w-[calc(100%-60px)] flex-1 truncate text-sm text-desc">
+      <form [formGroup]="candidateformName">
+        <nz-form-control>
+          @if (isNameEditor) {
+            <div>
+              <input validationRules validation nz-input [maxlength]="20" formControlName="candidateNameInput" (input)="onEditTitle($event)" />
+              <button nz-button nzType="primary" nzShape="circle" (click)="onChangeCandNameConfirm()">
+                <nz-icon nzType="check" />
+              </button>
+              <button nz-button nzType="primary" nzShape="circle" (click)="cancelTitleChange()">
+                <nz-icon nzType="close" />
+              </button>
+            </div>
+          } @else {
+            <div>
+              <div>{{ candidateformName.controls.candidateNameInput.value }}</div>
+              <button nz-button nzType="primary" nzShape="circle" (click)="editName()">
+                <nz-icon nzType="edit" />
+              </button>
+            </div>
+          }
+        </nz-form-control>
+      </form>
+    </div>
+
+    <input type="file" #fileInput class="hidden" [accept]="fileAccept" [multiple]="false" (change)="onUploadFile($event)" />
+
+    <div class="flex gap-4">
+      <div
+        class="flex cursor-pointer items-center"
+        (click)="uploadFile()"
+        nz-tooltip
+        [nzTooltipTitle]="isEditorDisabled ? ('upload_image_disabled_tip' | i18nextEager) : ''"
+      >
+        <ng-container *ngIf="isEditorDisabled">
+          <img class="w-4" [src]="changeUrl('assets/agent-center/icons/attachment-grey.svg')" alt="upload-icon" />
+          <span style="color: #808080">{{ 'upload_image' | i18nextEager }}</span>
+        </ng-container>
+        <ng-container *ngIf="!isEditorDisabled">
+          <img class="w-4" [src]="changeUrl('assets/agent-center/icons/attachment.svg')" alt="upload-icon" />
+          <span>{{ 'upload_image' | i18nextEager }}</span>
+        </ng-container>
+      </div>
+      <div class="flex cursor-pointer items-center gap-2" (click)="onClear()">
+        <img [src]="changeUrl('assets/prompt/clear-prompt.svg')" alt="clear-prompt-icon" />
+        <span>{{ 'base_clear' | i18nextEager }}</span>
+      </div>
+      <div class="flex cursor-pointer items-center gap-2" [cdkCopyToClipboard]="value" (click)="onCopy()">
+        <img [src]="changeUrl('assets/prompt/copy.svg')" alt="copy-icon" />
+        <span>{{ 'base_copy' | i18nextEager }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 编辑区 -->
+  <div class="editor-area-wrapper">
+    <!--图片显示区域-->
+    <div class="border-b-[1px] pt-2 pb-4 pl-4 mb-2" *ngIf="uploadData.length">
+      <div *ngFor="let file of uploadData" class="file-card">
+        <div class="file-info">
+          <div>
+            <img class="file-icon1" [src]="file.url" />
+          </div>
+          <div class="file-details">
+            <span class="file-name">{{ file.name || file.fileId }}</span>
+            <span class="file-size">{{ 'prompteditorcomponent_66' | i18nextEager }}</span>
+          </div>
+        </div>
+        <button *ngIf="!isEditorDisabled" class="delete-button" (click)="clearFile()">×</button>
+      </div>
+    </div>
+    <div class="editor-area">
+      <!-- prompt可见区 -->
+      <div #styledContent class="styled-content flex-1 border-text text-sm">
+        <ng-container *ngFor="let promptChunk of promptChunks">
+          <ng-container [ngSwitch]="promptChunk.type">
+            <span class="whitespace-pre-wrap text-sm break-words" *ngSwitchCase="'COMMON'">{{ promptChunk.value }}</span>
+            <tmpl-variant-tag [varChunkProps]="promptChunk" *ngSwitchCase="'VARIANT'" />
+            <tmpl-snippet [snippetChunkProps]="promptChunk" *ngSwitchCase="'SNIPPET'" />
+            <span *ngSwitchDefault></span>
+          </ng-container>
+        </ng-container>
+      </div>
+
+      <!-- 实际编辑的textarea -->
+      <textarea
+        #textarea
+        class="prompt-editor text-sm"
+        [(ngModel)]="value"
+        spellcheck="false"
+        (input)="onInput($event)"
+        (compositionstart)="onCompositionstart()"
+        (compositionupdate)="onCompositionupdate($event)"
+        (compositionend)="onCompositionend()"
+        (focus)="onFocus()"
+        (blur)="onBlur()"
+        (scroll)="onScroll($event)"
+        [placeholder]="'writing_editor_placeholder' | i18nextEager"
+        [disabled]="isEditorDisabled"
+        maxlength="4000"
+      ></textarea>
+    </div>
+  </div>
+
+  <!-- 确认取消按钮组 -->
+  <div class="footer-button-group h-12 w-full px-4 py-2">
+    <div [ngSwitch]="isConfirmVisible">
+      <ng-container *ngSwitchCase="'CONFIRMVISIBLE_WITHPOP'">
+        <button
+          nz-button
+          nzType="primary"
+          nzDanger
+          (click)="onConfirm()"
+          nz-popconfirm
+          [nzPopconfirmTitle]="newVarPop.content"
+          (nzOnConfirm)="popConfirm()"
+          (nzOnCancel)="popCancel()"
+        >
+          {{ 'base_confirm' | i18nextEager }}
+        </button>
+        <button class="ml-2" nz-button (click)="onCancel()">
+          {{ 'base_cancel' | i18nextEager }}
+        </button>
+      </ng-container>
+      <ng-container *ngSwitchCase="'CONFIRMVISIBLE_WITHOUTPOP'">
+        <button nz-button nzType="primary" nzDanger>
+          {{ 'base_confirm' | i18nextEager }}
+        </button>
+        <button class="ml-2" nz-button (click)="onCancel()">
+          {{ 'base_cancel' | i18nextEager }}
+        </button>
+      </ng-container>
+      <ng-container *ngSwitchCase="'CONFIRMHIDDEN'">
+        <div class="h-4 w-4"></div>
+      </ng-container>
+    </div>
+
+    <!-- 字数统计 -->
+    <div class="right-3 text-xs text-desc">{{ value.length }} / 4000</div>
+  </div>
+</div>
+
+<div class="errorTips" style="color: red" *ngIf="uniqueFailToVerify.length">
+  <span nz-icon nzType="close" class="errorTipsIcon"></span>
+  <span class="errorTipsText text-sm">{{ 'editor_illegal_var_name' | i18nextEager }}</span>
+</div>

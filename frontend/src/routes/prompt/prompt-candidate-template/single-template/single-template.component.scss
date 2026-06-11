@@ -1,0 +1,317 @@
+.single-card-body {
+  box-sizing: border-box !important;
+  padding: 0 !important;
+  box-shadow: 0 0 0 0 rgb(0 0 0 / 8%);
+  background:#FAFAFA;
+  border: 2px solid #FAFAFA;
+  border-radius: 8px;
+  backdrop-filter: blur(50px);
+  height: 100%;
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.single-card-body:hover {
+  border-color: #ADCFFF;
+  border-radius:8px;
+}
+
+// 标题行
+.card-title-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 20px;
+
+  .card-title-left {
+    display: flex;
+    align-items: center;
+  }
+
+  .card-title-right {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+  }
+
+  #evaluation-scores {
+    height: 24px;
+    background:#1BAF49;
+    border-radius:7px;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+
+    // 自动评估分数框中的通用字体样式
+    color: #FFF;
+    letter-spacing: 0;
+    line-height: 18px;
+    font-weight: 500;
+  }
+
+  .evaluation-scores-number {
+    display: inline-block;
+    padding-left: 10px;
+    font-size: 16px;
+  }
+
+  .evaluation-scores-char {
+    display: inline-block;
+    padding-right: 10px;
+    font-size: 12px;
+    position: relative;
+    top: 1px;
+  }
+}
+
+.card-title-edit {
+  display: flex;
+  position: relative;
+  top: 1px;
+  width: calc(100% - 22px);
+
+  ::ng-deep{
+    span:first-child{
+      font-size: 16px;
+      color: #191919;
+      letter-spacing: 0;
+      line-height: 24px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .ti3-icon-edit{
+      position: absolute;
+      right:0;
+      top:2px;
+      width: 20px;
+      height: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    input{
+      width: 100%!important;
+    }
+  }
+}
+
+.rate {
+  display: flex;
+  align-items: center;
+  width: 112px;
+  position: relative;
+  bottom: 1px;
+}
+
+.remarks-row-wrapper {
+  display: flex;
+  gap: 8px;
+  margin: 0 15px 16px 20px;
+  align-items: flex-start;
+
+  .pangu-nlp-icon {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    position: relative;
+    top: 1px;
+  }
+}
+
+// 备注信息行
+.remarks-row {
+  gap: 8px;
+  align-items: center;
+
+  .remark-platform {
+    font-size: 12px;
+    color: #808080;
+    letter-spacing: 0;
+    line-height: 18px;
+    font-weight: 400;
+  }
+
+  .remark-split-line {
+    display: inline-block;
+    height: 14px;
+    width: 1px;
+    background-color: rgb(0 0 0 / 8%);
+    position: relative;
+    top: 3px;
+  }
+
+  .last-line {
+    margin-right: 8px;
+  }
+}
+
+// 展示内容行
+.single-template-text {
+  font-size:14px;
+  color:#131415;
+  letter-spacing:0;
+  text-align:justify;
+  line-height:26px;
+  font-weight:400;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+
+  .single-template-text-container {
+    margin: 0 20px;
+  }
+}
+
+.single-select-style {
+  position: relative;
+  bottom: -2px;
+}
+
+// 编辑&删除&保存到模板库按钮组
+.card-btns {
+  gap: 20px;
+  align-items: center;
+  margin-right: 20px;
+
+  .icon-text {
+    font-size: 14px;
+    color: #191919;
+    letter-spacing: 0;
+    line-height: 22px;
+    font-weight: 400;
+  }
+
+  .save-bottom-btn {
+    height: 32px;
+    width: fit-content;
+  }
+}
+
+.delete-style {
+  display: flex;
+}
+
+// 不带边框的tiButton，如果点击按钮，清除会变成蓝色和出现下边框
+.clear-defaultStyle {
+  ::ng-deep {
+    .ti3-btn-noborder:hover,
+    .ti3-btn-noborder:active,
+    .ti3-btn-noborder:focus {
+      color: #191919 !important;
+      text-decoration: none !important;
+      border-bottom-color: transparent !important;
+    }
+  }
+}
+
+.edit-btn, .del-btn {
+  position: relative;
+  bottom: 1px;
+}
+
+// 调整样式：单个候选模板左上角的选中按钮
+.card-select {
+  padding-right: 6px;
+
+  ::ng-deep .single-select-style {
+    .ti3-checkbox {
+      position: relative;
+      bottom: 2px;
+    }
+  }
+}
+
+@media screen and (min-width: 1280px) and (max-width: 1600px) {
+  .card-title-row {
+    gap: 16px;
+  }
+  .card-title-left {
+    min-width: 50%;
+  }
+  .card-title-right {
+    gap: 16px;
+    min-width: 48%;
+  }
+  .single-template-text {
+    -webkit-line-clamp: 4;
+  }
+  .hasImage{
+    -webkit-line-clamp: 1!important;
+  }
+}
+
+@media screen and (max-width: 1280px) {
+  .card-title-row {
+    gap: 10px;
+  }
+  .card-title-left {
+    min-width: 44%;
+  }
+  .card-title-right {
+    gap: 10px;
+    min-width: 55%;
+  }
+  .single-template-text {
+    -webkit-line-clamp: 3;
+  }
+  .hasImage{
+    -webkit-line-clamp: 1!important;
+  }
+}
+
+@media screen and (min-width: 1600px) {
+  .card-title-row {
+    gap: 16px;
+  }
+  .card-title-left {
+    min-width: 47%;
+  }
+  .card-title-right {
+    gap: 16px;
+    min-width: 50%;
+  }
+  .single-template-text {
+    -webkit-line-clamp: 5;
+  }
+  .hasImage{
+    -webkit-line-clamp: 2!important;
+  }
+}
+
+.displayTitleAndIcon {
+  display: flex !important;
+  position: relative;
+  top: 1px;
+
+  .displayTitle {
+    font-size: 16px;
+    color: #191919;
+    letter-spacing: 0;
+    line-height: 24px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.shape0 {
+  max-width: 300px;
+  max-height: 96px;
+}
+
+.shape1 {
+  max-width: 96px;
+  max-height: 96px;
+}
+
+.shape2 {
+  max-width: 96px;
+  max-height: 96px;
+}
+
+.chat-image{
+  max-height: 96px;
+  margin: 0 20px;
+}

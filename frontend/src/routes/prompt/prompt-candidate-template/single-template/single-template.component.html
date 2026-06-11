@@ -1,0 +1,162 @@
+<div
+  class="single-card-body tp-col-xs-12 tp-col-sm-8 tp-col-md-8 tp-col-lg-8"
+  [ngStyle]="{ cursor: isMoveToCard ? 'pointer' : 'default' }"
+  #currentCandidateTmpl
+>
+  <!-- 标题行 -->
+  <section class="card-title-row">
+    <div class="card-title-left">
+      <div class="card-select">
+        <span class="single-select-style">
+          <label nz-checkbox [nzChecked]="item?.checked"></label>
+        </span>
+      </div>
+      <div class="displayTitleAndIcon" nz-text-overflow [nzTooltip]="item.name">
+        <div
+          class="displayTitle"
+          [style.display]="isEditing ? 'none' : 'block'"
+        >
+          {{ item.name }}
+        </div>
+        <span nz-icon nzType="edit" class="ml-[6px] cursor-pointer text-sm" [style.display]="isEditing ? 'none' : 'block'" (click)="openLabelEditor()"></span>
+      </div>
+      <div class="card-title-edit" [style.display]="isEditing ? 'block' : 'none'">
+        <input
+          nz-input
+          class="title-edit-input"
+          [(ngModel)]="item.name"
+          (blur)="confirmTitleChange()"
+          (keyup.enter)="confirmTitleChange()"
+          [maxlength]="20"
+        />
+      </div>
+    </div>
+    <div class="card-title-right">
+      <div id="evaluation-scores" *ngIf="isShowEvaluation">
+        <span class="evaluation-scores-number">{{ item.evaluation_avg }}</span>
+        <span class="evaluation-scores-char">{{
+          'single_tmpl_score' | i18nextEager
+        }}</span>
+      </div>
+      <div class="rate">
+        <nz-rate [nzDisabled]="true" [(ngModel)]="item.manual_score"></nz-rate>
+      </div>
+    </div>
+  </section>
+
+  <!-- 备注信息行 -->
+  <div class="remarks-row-wrapper">
+    <img
+      class="pangu-nlp-icon"
+      [src]="changeUrl('assets/icons/Pangu-NLP_icon.svg')"
+      alt="pangu-nlp-icon"
+    />
+    <div class="remarks-row">
+      <span class="remark-platform m-0 mr-2">{{ item.model }}</span>
+      <div class="remark-split-line"></div>
+      <span
+        class="remark-platform m-0 mx-2"
+        *ngIf="isNotNil(item.model_config?.temperature)"
+        >{{ 'model_temperature' | i18nextEager }}：{{
+          item.model_config.temperature
+        }}</span
+      >
+      <span
+        class="remark-platform m-0 mx-2"
+        *ngIf="isNotNil(item.model_config?.top_p)"
+        >{{ 'model_top_p' | i18nextEager }}：{{ item.model_config.top_p }}</span
+      >
+      <div class="remark-split-line"></div>
+      <span class="remark-platform m-0 mx-2"
+        >{{ 'model_max_tokens' | i18nextEager }}：{{
+          item.model_config.max_tokens
+        }}</span
+      >
+      <div class="remark-split-line last-line"></div>
+      <span class="remark-platform m-0"
+        >{{ 'model_presence_penalty' | i18nextEager }}：<span>{{
+          item.model_config.presence_penalty
+        }}</span></span
+      >
+    </div>
+  </div>
+
+  <!-- 展示内容行 -->
+  <section class="single-template-text" [class]="item?.file_info?.tempUrl?'hasImage':''">
+    <div
+      class="single-template-text-container"
+      (click)="toPromptCandidate()"
+      [style.pointer-events]="isTaskInProgress ? 'none' : 'auto'"
+    >
+      <ng-container *ngFor="let promptChunk of singleTmplContent">
+        <ng-container [ngSwitch]="promptChunk.type">
+          <span *ngSwitchCase="'COMMON'">{{ promptChunk.value }}</span>
+          <tmpl-variant-tag
+            [varChunkProps]="promptChunk"
+            *ngSwitchCase="'VARIANT'"
+          />
+          <span *ngSwitchDefault></span>
+        </ng-container>
+      </ng-container>
+    </div>
+    <img *ngIf="item?.file_info?.tempUrl" [src]="item?.file_info?.tempUrl" class="chat-image">
+    <!-- 编辑&删除&保存到模板库按钮组 -->
+    <div
+      *ngIf="isMoveToCard"
+      class="card-btns fixed bottom-[20px] right-0 z-10 flex"
+    >
+      <div
+        class="edit-btn clear-defaultStyle cursor-pointer text-sm"
+        (click)="toPromptWriting()"
+      >
+        <button
+          nz-button
+          [nzType]="'text'"
+          [nzDanger]="false"
+          [disabled]="isTaskInProgress"
+        >
+          <span nz-icon nzType="edit" class="mr-[4px]"></span>
+        </button>
+        <button
+          class="icon-text"
+          nz-button
+          [nzType]="'text'"
+          [disabled]="isTaskInProgress"
+        >
+          {{ 'base_edit' | i18nextEager }}
+        </button>
+      </div>
+      <div
+        class="del-btn delete-style clear-defaultStyle cursor-pointer text-sm"
+        (click)="deleteSingleTmplButton()"
+      >
+        <button
+          nz-button
+          [nzType]="'text'"
+          [disabled]="isTaskInProgress"
+        >
+          <img
+            class="my-[5px] mr-[3px]"
+            [src]="changeUrl('assets/icons/candidate_list_delete.svg')"
+            alt="candidate-delete-icon"
+          />
+        </button>
+        <button
+          class="icon-text"
+          nz-button
+          [nzType]="'text'"
+          [disabled]="isTaskInProgress"
+        >
+          {{ 'delete' | i18nextEager }}
+        </button>
+      </div>
+      <button
+        nz-button
+        class="icon-text save-bottom-btn"
+        (click)="showSaveTmplModal()"
+      >
+        {{ 'candidate_template_saveTemplateLibrary' | i18nextEager }}
+      </button>
+    </div>
+  </section>
+</div>
