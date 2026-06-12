@@ -931,7 +931,6 @@ docker/
 ├── studio-service/                     # 通用服务Docker配置
 ├── build.sh                            # Docker镜像构建脚本
 ├── package.sh                          # 打包脚本
-├── init.sql                            # Docker环境初始化SQL
 ├── README.md                           # Docker部署说明
 └── .gitattributes                      # Git属性配置
 ```
