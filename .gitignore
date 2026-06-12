@@ -52,4 +52,5 @@ env/
 /agent-runtime/logs
 /agent-runtime/agent_builder/nl_to_agent/adapter/logs/*
 /agent-runtime/agent_builder/serve/logs/*
+/agent-runtime/open_agentBuilder_engine.egg-info
 *.mmap
