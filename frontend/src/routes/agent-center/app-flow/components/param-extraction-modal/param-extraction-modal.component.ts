@@ -83,6 +83,7 @@ import { InputTreeSelect } from 'src/routes/agent-center/app-flow/components/inp
 import { NodeTypeTopic } from '@routes/agent-center/types/common.types';
 import { HelpCenterService } from '@services/help-center.service';
 import { MessageComponent } from "@shared/services/cfdata.service";
+import { ObjectTemplateComponent } from "@routes/object-manage/component/object-template/object-template.component";
 
 interface IWFViewP extends IWFView {
   processing_workflows?: IProcessingWorkflow[];
@@ -1652,11 +1653,43 @@ export class ParamExtractionModalComponent
   }
 
   midChooseTemplate() {
-    this.nzMessage.info('功能暂不可用');
+    const modalRef = this.nzModal.create<ObjectTemplateComponent>({
+      nzContent: ObjectTemplateComponent,
+      nzClassName: 'modal-custom900-class',
+      nzFooter: null,
+      nzTitle: this.i18n.transform('object_template'),
+      nzData: {
+        templatesSelected: (data) => {
+          this.midParams = [
+            ...this.midParams,
+            ...FlowUtils.objectTempIWFields2Views(data),
+          ];
+          modalRef.close();
+          this.onMidNameChange();
+          this.onSave();
+        },
+      },
+    });
   }
 
   domainObjectChooseTemplate() {
-    this.nzMessage.info('功能暂不可用');
+    const modalRef = this.nzModal.create<ObjectTemplateComponent>({
+      nzContent: ObjectTemplateComponent,
+      nzClassName: 'modal-custom900-class',
+      nzFooter: null,
+      nzTitle: this.i18n.transform('object_template'),
+      nzData: {
+        templatesSelected: (data) => {
+          this.domainObjectsParams = [
+            ...this.domainObjectsParams,
+            ...FlowUtils.objectTempIWFields2Views(data),
+          ];
+          modalRef.close();
+          this.onDomainNameChange();
+          this.onSave();
+        },
+      },
+    });
   }
 
   public addPreDefinedParam(arr: IWFView[], ops: IParamRef[]) {
