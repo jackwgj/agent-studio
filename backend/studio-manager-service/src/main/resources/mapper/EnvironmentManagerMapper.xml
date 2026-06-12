@@ -1,14 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.openjiuwen.studio.agent.manager.mapper.EnvironmentManagerMapper">
+
+    <sql id="Base_Column_List">
+        id, project_id, name, description, is_default, status, resources,
+        created_on, creator_id, updated_on, updater_id, domain_id
+    </sql>
+
     <resultMap id="BaseResultMap" type="com.openjiuwen.studio.agent.manager.entity.EnvironmentManagerEntity">
         <id column="id" jdbcType="VARCHAR" property="id"/>
-        <id column="project_id" jdbcType="VARCHAR" property="projectId"/>
+        <result column="project_id" jdbcType="VARCHAR" property="projectId"/>
         <result column="name" jdbcType="VARCHAR" property="name"/>
         <result column="description" jdbcType="VARCHAR" property="description"/>
         <result column="is_default" jdbcType="TINYINT" property="isDefault"/>
         <result column="status" jdbcType="VARCHAR" property="status"/>
-        <result column="resources" jdbcType="VARCHAR" property="resources"/>
         <result column="resources" jdbcType="VARCHAR" property="resources"/>
         <result column="created_on" jdbcType="TIMESTAMP" property="createdOn"/>
         <result column="creator_id" jdbcType="VARCHAR" property="creatorId"/>
@@ -18,19 +23,7 @@
     </resultMap>
 
     <select id="selectAll" resultMap="BaseResultMap">
-        SELECT
-        id,
-        project_id,
-        name,
-        description,
-        is_default,
-        status,
-        resources,
-        created_on,
-        creator_id,
-        updated_on,
-        updater_id,
-        domain_id
+        SELECT <include refid="Base_Column_List"/>
         FROM t_environment_manager_info
         WHERE project_id = #{projectId}
         ORDER BY created_on DESC
@@ -38,24 +31,154 @@
     </select>
 
     <select id="selectAllByStatus" resultMap="BaseResultMap">
-        SELECT
-            id,
-            project_id,
-            name,
-            description,
-            is_default,
-            status,
-            resources,
-            created_on,
-            creator_id,
-            updated_on,
-            updater_id,
-            domain_id
+        SELECT <include refid="Base_Column_List"/>
         FROM t_environment_manager_info
         WHERE project_id = #{projectId}
-              AND status = #{status}
+        AND status = #{status}
         ORDER BY created_on DESC
-            LIMIT #{pageOffset}, #{pageSize}
+        LIMIT #{pageOffset}, #{pageSize}
+    </select>
+
+    <select id="findByProjectId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM t_environment_manager_info
+        WHERE project_id = #{projectId}
+        ORDER BY created_on DESC
+    </select>
+
+    <select id="findByProjectIdAndIsDefaultTrue" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM t_environment_manager_info
+        WHERE project_id = #{projectId} AND is_default = 1
+        ORDER BY created_on DESC
+    </select>
+
+    <select id="findByProjectIdAndIsDefaultFalseAndStatus" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM t_environment_manager_info
+        WHERE project_id = #{projectId} AND is_default = 0 AND status = #{status}
+        ORDER BY created_on DESC
+    </select>
+
+    <select id="findByNameAndProjectId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM t_environment_manager_info
+        WHERE name = #{name} AND project_id = #{projectId}
+        ORDER BY created_on DESC
+    </select>
+
+    <select id="findByIdAndProjectId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM t_environment_manager_info
+        WHERE id = #{id} AND project_id = #{projectId}
+        ORDER BY created_on DESC
+    </select>
+
+    <select id="countByProjectId" resultType="int">
+        SELECT count(*) FROM t_environment_manager_info
+        WHERE project_id = #{projectId}
+    </select>
+
+    <select id="findById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM t_environment_manager_info
+        WHERE id = #{id}
+        LIMIT 1
+    </select>
+
+    <select id="findAllWithGroupByProjectId" resultType="java.lang.String">
+        SELECT DISTINCT project_id
+        FROM t_environment_manager_info
+    </select>
+
+    <update id="batchUpdateIsDefaultByIds">
+        UPDATE t_environment_manager_info
+        SET is_default = #{isDefault}, updater_id = #{updaterId}, updated_on = CURRENT_TIMESTAMP
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+    <update id="updateIsDefaultById">
+        UPDATE t_environment_manager_info
+        SET is_default = #{isDefault}, updater_id = #{updaterId}, updated_on = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateStatusById">
+        UPDATE t_environment_manager_info
+        SET status = #{status}, updater_id = #{updaterId}, updated_on = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateStatusAndIsDefaultById">
+        UPDATE t_environment_manager_info
+        SET status = #{status}, is_default = #{isDefault}, updater_id = #{updaterId}, updated_on = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <insert id="insert" parameterType="com.openjiuwen.studio.agent.manager.entity.EnvironmentManagerEntity">
+        INSERT INTO t_environment_manager_info (
+            id, project_id, name, description, is_default, status, resources,
+            created_on, creator_id, updated_on, updater_id, domain_id
+        ) VALUES (
+            #{id}, #{projectId}, #{name}, #{description}, #{isDefault}, #{status}, #{resources},
+            #{createdOn}, #{creatorId}, #{updatedOn}, #{updaterId}, #{domainId}
+        )
+    </insert>
+
+    <update id="updateById" parameterType="com.openjiuwen.studio.agent.manager.entity.EnvironmentManagerEntity">
+        UPDATE t_environment_manager_info
+        SET name = #{name},
+            description = #{description},
+            is_default = #{isDefault},
+            status = #{status},
+            resources = #{resources},
+            updater_id = #{updaterId},
+            updated_on = #{updatedOn}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM t_environment_manager_info
+        WHERE id = #{id}
+    </delete>
+
+    <select id="selectByConditionWithPage" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM t_environment_manager_info
+        WHERE project_id = #{projectId}
+        <if test="name != null and name != ''">
+            AND name LIKE CONCAT('%', #{name}, '%')
+        </if>
+        ORDER BY created_on DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="selectByStatusConditionWithPage" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM t_environment_manager_info
+        WHERE project_id = #{projectId} AND status = #{status}
+        ORDER BY created_on DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countByCondition" resultType="int">
+        SELECT count(*) FROM t_environment_manager_info
+        WHERE project_id = #{projectId}
+        <if test="name != null and name != ''">
+            AND name LIKE CONCAT('%', #{name}, '%')
+        </if>
+    </select>
+
+    <select id="countByStatus" resultType="int">
+        SELECT count(*) FROM t_environment_manager_info
+        WHERE project_id = #{projectId} AND status = #{status}
+        WHERE project_id = #{projectId}
+        <if test="name != null and name != ''">
+            AND name LIKE CONCAT('%', #{name}, '%')
+        </if>
     </select>
 
 </mapper>

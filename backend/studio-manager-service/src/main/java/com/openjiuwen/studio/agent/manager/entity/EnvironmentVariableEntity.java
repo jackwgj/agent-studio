@@ -5,25 +5,18 @@
 package com.openjiuwen.studio.agent.manager.entity;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
 import lombok.Data;
 
 import java.util.Date;
 import java.util.UUID;
 
 @Data
-@Entity
-@Table(name = "t_environment_variable_info")
 public class EnvironmentVariableEntity {
 
     /**
      * 主键ID UUID
      */
     @JsonProperty("id")
-    @Id
     private String id;
 
     /**

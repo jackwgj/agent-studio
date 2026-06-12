@@ -20,28 +20,32 @@ import com.openjiuwen.studio.agent.common.redis.RedisLock;
 import com.openjiuwen.studio.agent.manager.constant.Constants;
 import com.openjiuwen.studio.agent.manager.entity.EnvironmentManagerEntity;
 import com.openjiuwen.studio.agent.manager.entity.EnvironmentVariableEntity;
-import com.openjiuwen.studio.agent.manager.repository.EnvironmentManagerRepository;
-import com.openjiuwen.studio.agent.manager.repository.EnvironmentVariableRepository;
+import com.openjiuwen.studio.agent.manager.mapper.EnvironmentManagerMapper;
+import com.openjiuwen.studio.agent.manager.mapper.EnvironmentVariableMapper;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
 import java.time.Duration;
 import java.util.List;
 
+import org.junit.jupiter.api.extension.ExtendWith;
+
+@ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 public class EnvironmentCacheUtilTest {
 
     private static final String PROJECT_ENVIRONMENT = "environment:%s:workspaceId:%s";
 
     @Mock
-    private EnvironmentManagerRepository environmentManagerRepository;
+    private EnvironmentManagerMapper environmentManagerMapper;
 
     @Mock
-    private EnvironmentVariableRepository environmentVariableRepository;
+    private EnvironmentVariableMapper environmentVariableMapper;
 
     @Mock
     private RedisClient redisClient;
@@ -84,13 +88,13 @@ public class EnvironmentCacheUtilTest {
         entity.setId("e1");
         entity.setName("env1");
 
-        when(environmentManagerRepository.findAllWithGroupByProjectId()).thenReturn(List.of("p1"));
-        when(environmentManagerRepository.findByProjectId("p1")).thenReturn(List.of(entity));
+        when(environmentManagerMapper.findAllWithGroupByProjectId()).thenReturn(List.of("p1"));
+        when(environmentManagerMapper.findByProjectId("p1")).thenReturn(List.of(entity));
         EnvironmentVariableEntity environmentVariableEntity = new EnvironmentVariableEntity();
         environmentVariableEntity.setEnvVariable("{\"k\":\"v\"}");
         environmentVariableEntity.setEnvId("env_id");
         environmentVariableEntity.setWorkspaceId("workspace_id");
-        when(environmentVariableRepository.findByProjectIdAndEnvId(any(), any())).thenReturn(List.of(environmentVariableEntity));
+        when(environmentVariableMapper.findByProjectIdAndEnvId(any(), any())).thenReturn(List.of(environmentVariableEntity));
 
         environmentCacheUtil.refreshCachedEnvironmentVariables();
 
@@ -100,7 +104,7 @@ public class EnvironmentCacheUtilTest {
         verify(redisLock, times(1)).unlock();
 
         // ===== 分支2：获取不到锁 =====
-        reset(redisClient, redisLock, environmentManagerRepository);
+        reset(redisClient, redisLock, environmentManagerMapper);
 
         when(redisClient.getLock(anyString())).thenReturn(redisLock);
         when(redisLock.tryLock(any(Duration.class))).thenReturn(false);
@@ -108,16 +112,16 @@ public class EnvironmentCacheUtilTest {
         environmentCacheUtil.refreshCachedEnvironmentVariables();
 
         // 数据库查询不应该执行
-        verify(environmentManagerRepository, never()).findAllWithGroupByProjectId();
+        verify(environmentManagerMapper, never()).findAllWithGroupByProjectId();
         // 仍然会调用 unlock()
         verify(redisLock, times(1)).unlock();
 
         // ===== 分支3：执行中异常 =====
-        reset(redisClient, redisLock, environmentManagerRepository);
+        reset(redisClient, redisLock, environmentManagerMapper);
 
         when(redisClient.getLock(anyString())).thenReturn(redisLock);
         when(redisLock.tryLock(any(Duration.class))).thenReturn(true);
-        when(environmentManagerRepository.findAllWithGroupByProjectId()).thenThrow(new RuntimeException("DB error"));
+        when(environmentManagerMapper.findAllWithGroupByProjectId()).thenThrow(new RuntimeException("DB error"));
 
         assertThrows(AgentStudioException.class, () -> environmentCacheUtil.refreshCachedEnvironmentVariables());
 

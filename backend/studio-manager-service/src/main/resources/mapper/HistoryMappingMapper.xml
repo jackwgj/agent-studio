@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.agent.manager.mapper.HistoryMappingMapper">
+
+    <sql id="Base_Column_List">
+        history_id, mapping_id, app_id, app_version, app_type, app_name, resource_id,
+          resource_type, resource_name, resource_version, resource_desc, valid, created_on, updated_on,
+          reference_type, app_workspace_id, resource_workspace_id, extends, sub_type
+    </sql>
+
+    <resultMap id="BaseResultMap" type="com.openjiuwen.studio.agent.manager.entity.HistoryMappingEntity">
+        <id column="history_id" jdbcType="VARCHAR" property="historyId"/>
+        <result column="mapping_id" jdbcType="VARCHAR" property="mappingId"/>
+        <result column="app_id" jdbcType="VARCHAR" property="appId"/>
+        <result column="app_version" jdbcType="VARCHAR" property="appVersion"/>
+        <result column="app_type" jdbcType="VARCHAR" property="appType"/>
+        <result column="app_name" jdbcType="VARCHAR" property="appName"/>
+        <result column="resource_id" jdbcType="VARCHAR" property="resourceId"/>
+        <result column="resource_type" jdbcType="VARCHAR" property="resourceType"/>
+        <result column="resource_name" jdbcType="VARCHAR" property="resourceName"/>
+        <result column="resource_version" jdbcType="VARCHAR" property="resourceVersion"/>
+        <result column="resource_desc" jdbcType="VARCHAR" property="resourceDesc"/>
+        <result column="valid" jdbcType="TINYINT" property="valid"/>
+        <result column="created_on" jdbcType="TIMESTAMP" property="createdOn"/>
+        <result column="updated_on" jdbcType="TIMESTAMP" property="updatedOn"/>
+        <result column="reference_type" jdbcType="VARCHAR" property="referenceType"/>
+        <result column="app_workspace_id" jdbcType="VARCHAR" property="appWorkspaceId"/>
+        <result column="resource_workspace_id" jdbcType="VARCHAR" property="resourceWorkspaceId"/>
+        <result column="extends" jdbcType="VARCHAR" property="extendInfo"/>
+        <result column="sub_type" jdbcType="VARCHAR" property="subType"/>
+    </resultMap>
+
+    <select id="findByAppId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM t_history_mapping
+        WHERE app_id = #{appId}
+    </select>
+
+    <delete id="deleteByAppId">
+        DELETE FROM t_history_mapping
+        WHERE app_id = #{appId}
+    </delete>
+
+    <insert id="insert" parameterType="com.openjiuwen.studio.agent.manager.entity.HistoryMappingEntity">
+        INSERT INTO t_history_mapping (
+            history_id, mapping_id, app_id, app_version, app_type, app_name, resource_id,
+            resource_type, resource_name, resource_version, resource_desc, valid, created_on, updated_on,
+            reference_type, app_workspace_id, resource_workspace_id, extends, sub_type
+        ) VALUES (
+                     #{historyId}, #{mappingId}, #{appId}, #{appVersion}, #{appType}, #{appName}, #{resourceId},
+                     #{resourceType}, #{resourceName}, #{resourceVersion}, #{resourceDesc}, #{valid}, #{createdOn}, #{updatedOn},
+                     #{referenceType}, #{appWorkspaceId}, #{resourceWorkspaceId}, #{extendInfo}, #{subType}
+                 )
+    </insert>
+
+    <insert id="insertBatch" parameterType="java.util.List">
+        INSERT INTO t_history_mapping (
+        history_id, mapping_id, app_id, app_version, app_type, app_name, resource_id,
+        resource_type, resource_name, resource_version, resource_desc, valid, created_on, updated_on,
+        reference_type, app_workspace_id, resource_workspace_id, extends, sub_type
+        ) VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+            #{item.historyId}, #{item.mappingId}, #{item.appId}, #{item.appVersion}, #{item.appType},
+            #{item.appName},
+            #{item.resourceId}, #{item.resourceType}, #{item.resourceName}, #{item.resourceVersion},
+            #{item.resourceDesc},
+            #{item.valid}, #{item.createdOn}, #{item.updatedOn}, #{item.referenceType}, #{item.appWorkspaceId},
+            #{item.resourceWorkspaceId}, #{item.extendInfo}, #{item.subType}
+            )
+        </foreach>
+    </insert>
+
+</mapper>

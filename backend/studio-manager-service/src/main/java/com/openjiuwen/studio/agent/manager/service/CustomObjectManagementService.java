@@ -7,17 +7,11 @@ import com.openjiuwen.studio.agent.common.enums.StudioError;
 import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
 import com.openjiuwen.studio.agent.common.utils.RequestContextUtils;
 import com.openjiuwen.studio.agent.manager.constant.CommonConstant;
-import com.openjiuwen.studio.agent.manager.dto.ListCustomObjectQo;
-import com.openjiuwen.studio.agent.manager.dto.ObjectBriefRsp;
-import com.openjiuwen.studio.agent.manager.dto.ObjectInfoReq;
-import com.openjiuwen.studio.agent.manager.dto.ObjectListRsp;
-import com.openjiuwen.studio.agent.manager.dto.ObjectRsp;
+import com.openjiuwen.studio.agent.manager.dto.*;
 import com.openjiuwen.studio.agent.manager.entity.CustomObjectEntity;
-import com.openjiuwen.studio.agent.manager.repository.CustomObjectRepository;
-
+import com.openjiuwen.studio.agent.manager.mapper.CustomObjectMapper;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
-
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -27,19 +21,14 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 @Slf4j
 @Service
 public class CustomObjectManagementService implements ICustomObjectManagementService {
 
     @Autowired
-    CustomObjectRepository customObjectRepository;
+    CustomObjectMapper customObjectMapper;
 
     @Value("${env.type}")
     private String envType;
@@ -69,7 +58,7 @@ public class CustomObjectManagementService implements ICustomObjectManagementSer
         // 检验对象名称是否重复
         checkObjectNameRepeat(body.getName(), projectId, workspaceId);
         log.info("Create custom object, {}", customObjectEntity);
-        customObjectRepository.save(customObjectEntity);
+        customObjectMapper.insert(customObjectEntity);
         return new ObjectBriefRsp().setId(customObjectEntity.getId());
     }
 
@@ -83,7 +72,7 @@ public class CustomObjectManagementService implements ICustomObjectManagementSer
         if (StringUtils.isEmpty(name)) {
             return;
         }
-        if (customObjectRepository.countByNameAndProjectIdAndWorkspaceId(name, projectId, workspaceId) > 0) {
+        if (customObjectMapper.countByNameAndProjectIdAndWorkspaceId(name, projectId, workspaceId) > 0) {
             throw new AgentStudioException(StudioError.RESOURCE_OP_ERROR);
         }
     }
@@ -99,7 +88,7 @@ public class CustomObjectManagementService implements ICustomObjectManagementSer
     @Transactional
     public ObjectBriefRsp deleteCustomObject(String projectId, String objectId, String workspaceId) {
         log.info("Delete custom object, projectId: {}, objectId: {}, workspaceId: {}", projectId, objectId, workspaceId);
-        customObjectRepository.deleteByIdAndProjectIdAndWorkspaceId(objectId, projectId,workspaceId);
+        customObjectMapper.deleteByIdAndProjectIdAndWorkspaceId(objectId, projectId,workspaceId);
         return new ObjectBriefRsp().setId(objectId);
     }
 
@@ -118,14 +107,14 @@ public class CustomObjectManagementService implements ICustomObjectManagementSer
         Pageable pageable = PageRequest.of(offset / limit, limit);
 
         if (StringUtils.isNotEmpty(listCustomObjectQo.getName())) {
-            List<CustomObjectEntity> customObjectEntityList = customObjectRepository.findByProjectIdAndWorkspaceIdAndNameContaining(
+            List<CustomObjectEntity> customObjectEntityList = customObjectMapper.findByProjectIdAndWorkspaceIdAndNameContaining(
                 projectId, listCustomObjectQo.getWorkspaceId(), listCustomObjectQo.getName(), limit, offset);
-            customObjectEntityPage = new PageImpl<>(customObjectEntityList, pageable, customObjectRepository.countByProjectIdAndWorkspaceIdAndNameContaining(
+            customObjectEntityPage = new PageImpl<>(customObjectEntityList, pageable, customObjectMapper.countByProjectIdAndWorkspaceIdAndNameContaining(
                 projectId, listCustomObjectQo.getWorkspaceId(), listCustomObjectQo.getName()));
         } else {
-            List<CustomObjectEntity> customObjectEntityList = customObjectRepository.findByProjectIdAndWorkspaceId(
+            List<CustomObjectEntity> customObjectEntityList = customObjectMapper.findByProjectIdAndWorkspaceId(
                 projectId, listCustomObjectQo.getWorkspaceId(), limit, offset);
-            customObjectEntityPage = new PageImpl<>(customObjectEntityList, pageable, customObjectRepository.countByProjectIdAndWorkspaceIdAndNameContaining(
+            customObjectEntityPage = new PageImpl<>(customObjectEntityList, pageable, customObjectMapper.countByProjectIdAndWorkspaceIdAndNameContaining(
                 projectId, listCustomObjectQo.getWorkspaceId(), null));
         }
         List<ObjectRsp> objectRspList = new ArrayList<>();
@@ -154,7 +143,7 @@ public class CustomObjectManagementService implements ICustomObjectManagementSer
     @Override
     public ObjectBriefRsp modifyCustomObject(String projectId, String objectId, String workspaceId,
         ObjectInfoReq body) {
-        CustomObjectEntity customObjectEntity = customObjectRepository.findByIdAndProjectIdAndWorkspaceId(objectId, projectId, workspaceId);
+        CustomObjectEntity customObjectEntity = customObjectMapper.findByIdAndProjectIdAndWorkspaceId(objectId, projectId, workspaceId);
         if (customObjectEntity == null) {
             log.error("Custom object does not exist, projectId: {}, objectId: {}, workspaceId: {}", projectId, objectId, workspaceId);
             throw new AgentStudioException(StudioError.STATIC_RESOURCE_NOT_EXIST);
@@ -172,7 +161,7 @@ public class CustomObjectManagementService implements ICustomObjectManagementSer
         }
         customObjectEntity.setUpdatedOn(new Date());
         log.info("Modify custom object, {}", customObjectEntity);
-        customObjectRepository.save(customObjectEntity);
+        customObjectMapper.updateById(customObjectEntity);
         return new ObjectBriefRsp().setId(objectId);
     }
 
@@ -185,7 +174,7 @@ public class CustomObjectManagementService implements ICustomObjectManagementSer
      */
     @Override
     public ObjectRsp retrieveCustomObject(String projectId, String objectId, String workspaceId) {
-        CustomObjectEntity customObjectEntity = customObjectRepository.findByIdAndProjectIdAndWorkspaceId(objectId, projectId, workspaceId);
+        CustomObjectEntity customObjectEntity = customObjectMapper.findByIdAndProjectIdAndWorkspaceId(objectId, projectId, workspaceId);
 
         // 自定义对象不存在
         if (Objects.isNull(customObjectEntity)) {

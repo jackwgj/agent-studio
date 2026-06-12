@@ -9,8 +9,8 @@ import com.openjiuwen.studio.agent.common.redis.RedisClient;
 import com.openjiuwen.studio.agent.common.redis.RedisLock;
 import com.openjiuwen.studio.agent.manager.entity.EnvironmentManagerEntity;
 import com.openjiuwen.studio.agent.manager.entity.EnvironmentVariableEntity;
-import com.openjiuwen.studio.agent.manager.repository.EnvironmentManagerRepository;
-import com.openjiuwen.studio.agent.manager.repository.EnvironmentVariableRepository;
+import com.openjiuwen.studio.agent.manager.mapper.EnvironmentManagerMapper;
+import com.openjiuwen.studio.agent.manager.mapper.EnvironmentVariableMapper;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -44,10 +44,10 @@ public class EnvironmentCacheUtil {
     private static final String LOCK_STR = "_lock";
 
     @Autowired
-    private EnvironmentManagerRepository environmentManagerRepository;
+    private EnvironmentManagerMapper environmentManagerMapper;
 
     @Autowired
-    private EnvironmentVariableRepository environmentVariableRepository;
+    private EnvironmentVariableMapper environmentVariableMapper;
 
     @Autowired
     private RedisClient redisClient;
@@ -101,10 +101,10 @@ public class EnvironmentCacheUtil {
             }
             log.info("Environment variables refresh start.");
             // 按projectId刷新环境变量
-            List<String> projectIds = environmentManagerRepository.findAllWithGroupByProjectId();
+            List<String> projectIds = environmentManagerMapper.findAllWithGroupByProjectId();
             if (!CollectionUtils.isEmpty(projectIds)) {
                 projectIds.forEach(projectId -> {
-                    List<EnvironmentManagerEntity> environmentEntities = environmentManagerRepository.findByProjectId(
+                    List<EnvironmentManagerEntity> environmentEntities = environmentManagerMapper.findByProjectId(
                         projectId);
                     if (CollectionUtils.isEmpty(environmentEntities)) {
                         return;
@@ -113,7 +113,7 @@ public class EnvironmentCacheUtil {
                         log.info("Environment variables refresh, projectId: {}, envName: {}.", projectIds,
                             entity.getName());
                         List<EnvironmentVariableEntity> environmentVariableEntities
-                            = this.environmentVariableRepository.findByProjectIdAndEnvId(projectId, entity.getId());
+                            = this.environmentVariableMapper.findByProjectIdAndEnvId(projectId, entity.getId());
                         if (CollectionUtils.isEmpty(environmentVariableEntities)) {
                             return;
                         }
