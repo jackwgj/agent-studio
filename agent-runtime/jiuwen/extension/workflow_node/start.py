@@ -145,6 +145,17 @@ class Start(WorkflowComponent):
         node_session.state().set_outputs(
             {"userFields": {**inputs_with_defaults, "memory": memory}}
         )
+        # 将 memory 变量写入 global_state，使 ${MEMORY_VARIABLE.xxx} 引用可解析
+        # 只写入 preDefinedFields 中定义的记忆变量，排除输入参数
+        if memory:
+            memory_var_keys = self._get_predefined_var_keys()
+            memory_global = {
+                f"MEMORY_VARIABLE.{k}": v
+                for k, v in memory.items()
+                if k in memory_var_keys
+            }
+            if memory_global:
+                node_session.state().update_global(memory_global)
         node_session.state().commit()
 
         # 8. 组装输出
@@ -185,6 +196,25 @@ class Start(WorkflowComponent):
         if "inputs" not in self._config[PRE_DEFINED_FIELDS]:
             return {}
         return self._config[PRE_DEFINED_FIELDS]["inputs"]
+
+    def _get_predefined_var_keys(self) -> set[str]:
+        """
+        从 preDefinedFields.inputs 中提取所有顶层记忆变量名
+
+        遍历 preDefinedFields.inputs，对于 id 为 "memory" 的对象类型，
+        提取其 schema 中每个字段的顶层 id（不递归展开 object 子字段）。
+
+        Returns:
+            set[str]: 记忆变量名集合
+        """
+        keys = set()
+        assignment_inputs = self._get_assignment_inputs()
+        for item in assignment_inputs:
+            if isinstance(item, dict) and item.get("id") == MEMORY:
+                for field in item.get("schema", []):
+                    if isinstance(field, dict) and "id" in field:
+                        keys.add(field["id"])
+        return keys
 
     @staticmethod
     def _extract_assignment_values(data, time_type: str) -> dict:
