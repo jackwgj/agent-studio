@@ -61,7 +61,7 @@ function frontend_build_copy() {
   CONSOLE_TARGET_PATH=${WORKSPACE}/docker/studio-console
 
   echo "[PACKAGE] 安装 pnpm..."
-  npm install -g pnpm@8.13.1 --registry=${NPM_CENTRAL_REPO}
+  npm install -g pnpm --registry=${NPM_CENTRAL_REPO}
 
   echo "[PACKAGE] 安装前端依赖 (pnpm install)..."
   pnpm install --ignore-scripts
