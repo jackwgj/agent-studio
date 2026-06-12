@@ -1,9 +1,4 @@
-import {
-  Component,
-  OnInit,
-  ViewEncapsulation,
-  OnDestroy
-} from '@angular/core';
+import { Component, OnInit, ViewEncapsulation, OnDestroy, ViewChild, ElementRef } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { I18nNamespace } from '@i18n';
 import { Router } from '@angular/router';
@@ -49,7 +44,7 @@ import { NzDrawerModule, NzDrawerService } from 'ng-zorro-antd/drawer';
     NzDropDownModule,
     NzIconModule,
     NzModalModule,
-    NzDrawerModule
+    NzDrawerModule,
   ],
   providers: [
     {
@@ -59,7 +54,7 @@ import { NzDrawerModule, NzDrawerService } from 'ng-zorro-antd/drawer';
     FormateTimePipe,
     NzModalService,
     NzMessageService,
-    NzDrawerService
+    NzDrawerService,
   ],
   encapsulation: ViewEncapsulation.None,
 })
@@ -95,6 +90,13 @@ export class IntentPackageComponent implements OnInit, OnDestroy {
   public isShowGuide = true;
   public isShowNoDataGuide = false;
   public isFirstLoading = true;
+
+  @ViewChild('mainContent') mainContent: ElementRef;
+
+  get tableHeight() {
+    const top = this.mainContent?.nativeElement?.getBoundingClientRect()?.top + 100 || 0;
+    return `calc(100vh - ${top}px)`;
+  }
 
   constructor(
     private intentPackageService: IntentPackageService,
@@ -142,15 +144,10 @@ export class IntentPackageComponent implements OnInit, OnDestroy {
           nzOkText: this.i18n.transform('determined'),
           nzOkType: 'primary',
           nzOnOk: () => {
-            return this.intentPackageService
-              .deleteIntentPackage(row.intent_id)
-              .then(() => {
-                this.searchList();
-                this.nzMessageService.success(
-                  this.i18n.transform('deleted_successfully'),
-                  { nzDuration: 3000 }
-                );
-              });
+            return this.intentPackageService.deleteIntentPackage(row.intent_id).then(() => {
+              this.searchList();
+              this.nzMessageService.success(this.i18n.transform('deleted_successfully'), { nzDuration: 3000 });
+            });
           },
         });
       }
@@ -162,7 +159,7 @@ export class IntentPackageComponent implements OnInit, OnDestroy {
     this.nzDrawerService.create({
       nzContent: ExportPackageModalComponent,
       nzWidth: '700px',
-      nzPlacement: 'right'
+      nzPlacement: 'right',
     });
   }
 
@@ -179,7 +176,7 @@ export class IntentPackageComponent implements OnInit, OnDestroy {
             this.searchList();
           },
         },
-      }
+      },
     });
   }
 

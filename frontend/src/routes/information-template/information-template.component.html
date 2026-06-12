@@ -130,9 +130,9 @@
         <nz-form-control [nzErrorTip]="nameErrorTpl">
           <input nz-input formControlName="name" [placeholder]="'input_message_name' | i18nextEager" maxlength="64" />
           <ng-template #nameErrorTpl let-control>
-            <ng-container *ngIf="control.hasError('required')">{{ 'validation_name_tip' | i18nextEager }}</ng-container>
-            <ng-container *ngIf="control.hasError('customVerify')">{{ 'validation_name_tip' | i18nextEager }}</ng-container>
-            <ng-container *ngIf="control.hasError('minlength') || control.hasError('maxlength')">{{ 'validation_name_tip' | i18nextEager }}</ng-container>
+            <div>
+              {{ control?.errors?.nameChAllow?.tiErrorMessage }}
+            </div>
           </ng-template>
         </nz-form-control>
       </nz-form-item>

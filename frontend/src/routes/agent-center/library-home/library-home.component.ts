@@ -50,7 +50,7 @@ import { SkillComponent } from '@agentcore/library/skill/skill.component';
 export class LibraryHomeComponent implements OnInit, OnDestroy {
   activeTabs: any[] = [
     {
-      show: true,
+      show: false,
       id: 'skill',
       title: this.i18n.transform('skill_market'),
       active: true,
@@ -68,7 +68,7 @@ export class LibraryHomeComponent implements OnInit, OnDestroy {
       active: false,
     },
     {
-      show: true,
+      show: false,
       id: 'prompt',
       title: this.i18n.transform('route_prompt'),
       active: false,
@@ -80,7 +80,7 @@ export class LibraryHomeComponent implements OnInit, OnDestroy {
       active: false,
     },
     {
-      show: true,
+      show: false,
       id: 'memoryLib',
       title: this.i18n.transform('memory.management.title'),
       active: false,

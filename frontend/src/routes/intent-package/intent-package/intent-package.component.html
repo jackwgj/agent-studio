@@ -36,7 +36,7 @@
       <nz-icon nzType="redo" nzTheme="outline" />
     </button>
   </div>
-  <div class="min-h-[200px]">
+  <div class="min-h-[200px]"    #mainContent>
     <nz-table
       #basicTable
       *ngIf="!isFirstLoading"
@@ -47,7 +47,7 @@
       [nzNoResult]="noDataTpl"
       nzTableLayout="fixed"
       class="table-style"
-      [ngStyle]="{ 'border': isShowNoDataGuide ? '' : '1px solid rgba(240, 240, 240, 1)', 'overflow': 'auto', 'max-height': 'calc(100vh - 540px)' }"
+      [ngStyle]="{ 'border': isShowNoDataGuide ? '' : '1px solid rgba(240, 240, 240, 1)', 'overflow': 'auto', 'max-height': tableHeight }"
     >
       <thead *ngIf="!isShowNoDataGuide">
         <tr>

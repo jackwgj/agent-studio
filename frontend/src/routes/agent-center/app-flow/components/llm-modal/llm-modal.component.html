@@ -527,49 +527,12 @@
                 </div>
                 <div class="flex items-center gap-2">
                   <div
-                    (click)="onIntelligentAdd('system')"
-                    class="intelligent-add-border"
-                    [ngClass]="{
-                      disabled: !systemPrompt,
-                      enabled: systemPrompt,
-                    }"
-                    nz-tooltip
-                    [nzTooltipTitle]="systemPrompt ? ('intelligent_prompt' | i18nextEager) : ''"
-                  >
-                    <ng-container *ngIf="systemPrompt; else disabledIconTmpl">
-                      <asset-intelligent-add></asset-intelligent-add>
-                    </ng-container>
-                    <ng-template #disabledIconTmpl>
-                      <asset-intelligent-add-disabled></asset-intelligent-add-disabled>
-                    </ng-template>
-                  </div>
-                  <div nz-tooltip [nzTooltipTitle]="'citation_template' | i18nextEager" (click)="openRefModal('system')" class="icon-border">
-                    <div class="ref-tmpl-icon"></div>
-                  </div>
-                  <div
                     nz-tooltip
                     [nzTooltipTitle]="'ref_args' | i18nextEager"
                     (click)="agentDataServe.showVarList(showSystemVarListSubject$)"
                     class="icon-border"
                   >
                     <div class="ref-args-icon" (mousedown)="$event.preventDefault()" (click)="agentDataServe.showVarList(showSystemVarListSubject$)"></div>
-                  </div>
-                  <div [class]="systemPrompt && systemPrompt.length > 0 ? 'save-tmp-link' : 'save-tmp-link-disabled'" (click)="showSaveTmplModal('system')">
-                    <button
-                      nz-tooltip
-                      [nzTooltipTitle]="'save_tmp' | i18nextEager"
-                      [disabled]="!(systemPrompt && systemPrompt.length > 0)"
-                      nz-button
-                      nzType="text"
-                      style="justify-items: center"
-                    >
-                      <img
-                        [src]="
-                          changeUrl(!(systemPrompt && systemPrompt.length > 0) ? 'assets/prompt/prompt-save-disabled.svg' : 'assets/prompt/prompt-save.svg')
-                        "
-                        alt=""
-                      />
-                    </button>
                   </div>
                 </div>
               </div>
@@ -605,53 +568,12 @@
                 </div>
                 <div class="flex items-center gap-2">
                   <div
-                    (click)="onIntelligentAdd('user')"
-                    class="intelligent-add-border"
-                    [ngClass]="{
-                      disabled: !prompt,
-                      enabled: prompt,
-                    }"
-                    nz-tooltip
-                    [nzTooltipTitle]="systemPrompt ? ('intelligent_prompt' | i18nextEager) : ''"
-                  >
-                    <ng-container *ngIf="prompt; else disabledIconTmpl">
-                      <asset-intelligent-add></asset-intelligent-add>
-                    </ng-container>
-                    <ng-template #disabledIconTmpl>
-                      <asset-intelligent-add-disabled></asset-intelligent-add-disabled>
-                    </ng-template>
-                  </div>
-                  <div
-                    nz-tooltip
-                    [nzTooltipTitle]="systemPrompt ? ('citation_template' | i18nextEager) : ''"
-                    (click)="openRefModal('user')"
-                    class="icon-border"
-                  >
-                    <div class="ref-tmpl-icon"></div>
-                  </div>
-                  <div
                     nz-tooltip
                     [nzTooltipTitle]="'ref_args' | i18nextEager"
                     (click)="agentDataServe.showVarList(showUserVarListSubject$)"
                     class="icon-border"
                   >
                     <div class="ref-args-icon" (mousedown)="$event.preventDefault()" (click)="agentDataServe.showVarList(showUserVarListSubject$)"></div>
-                  </div>
-
-                  <div [class]="prompt && prompt.length > 0 ? 'save-tmp-link' : 'save-tmp-link-disabled'" (click)="showSaveTmplModal('user')">
-                    <button
-                      [disabled]="!(prompt && prompt.length > 0)"
-                      nz-button
-                      nzType="text"
-                      nz-tooltip
-                      [nzTooltipTitle]="systemPrompt ? ('save_tmp' | i18nextEager) : ''"
-                      style="justify-items: center"
-                    >
-                      <img
-                        [src]="changeUrl(!(prompt && prompt.length > 0) ? 'assets/prompt/prompt-save-disabled.svg' : 'assets/prompt/prompt-save.svg')"
-                        alt=""
-                      />
-                    </button>
                   </div>
                 </div>
               </div>
