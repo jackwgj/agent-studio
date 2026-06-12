@@ -330,6 +330,10 @@ class ComplexIntentDetection(WorkflowComponent):
                                         else {str(k): v for k, v in inputs.items()})
 
             intent_result, intent_branch = await self._get_intent_result(inputs_dict, **kwargs)
+            # 单节点执行仅返回意图
+            if inputs_dict.get("__single_debug_recovery__", False):
+                return intent_result
+
             wf_id, wf_result = await self._execute_branch_workflow(inputs_dict, intent_branch, **kwargs)
 
             intent_result[_RESPONSE_CONTENT] = wf_result.get(_RESPONSE_CONTENT, "") if wf_result else ""

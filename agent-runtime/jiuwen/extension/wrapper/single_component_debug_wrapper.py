@@ -158,7 +158,7 @@ class SingleComponentDebugWrapper:
     def _preprocess_inputs(self, inputs: dict) -> dict:
         """精确复刻 bpmn_workflow:1201-1229 + 1119-1125 的逻辑。"""
         # 确定参数字段 (line 1120-1125)
-        if self._node_type == "jiuwen.questioner":
+        if self._node_type == "jiuwen.questioner" or self._node_type == "EI.ComplexIntentDetection":
             inputs["__single_debug_recovery__"] = True
             return inputs
         elif self._node_type == "jiuwen.intentDetection":
