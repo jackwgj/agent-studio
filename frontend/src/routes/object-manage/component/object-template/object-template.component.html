@@ -1,81 +1,84 @@
-<ti-modal-header>
-  <span>{{ 'object_template' | i18nextEager }}</span>
-</ti-modal-header>
-<tp-modal-body>
-  <div class="flex object-template">
-    <div class="search-bar">
-      <ti-searchbox
+<div class="flex object-template">
+  <div class="search-bar">
+    <nz-input-group [nzSearch]="true" [nzAddOnAfter]="searchSuffix" class="search-input">
+      <input
+        nz-input
         [placeholder]="'input_object_name' | i18nextEager"
         [(ngModel)]="searchValue"
-        (clear)="searchList()"
-        (search)="searchList()"
-        class="search-input"
-      ></ti-searchbox>
-      <button (click)="getObjectList()" [onlyIcon]="true" tiButton>
-        <ti-icon name="refresh-1"></ti-icon>
+        (keydown.enter)="searchList()"
+      />
+    </nz-input-group>
+    <ng-template #searchSuffix>
+      <button nz-button nzType="primary" nzSearch (click)="searchList()">
+        <span nz-icon nzType="search"></span>
       </button>
-    </div>
-    <div class="flex">
-      <div class="template-list">
-        <div *ngFor="let template of objectTemplates" (click)="selectTemplate(template, $event)">
-          <div class="template-item" [class]="{ itemChecked: template.checked }">
-            <span tiOverflow>{{ template.name }}</span>
-            <input type="checkbox" tiCheckbox [(ngModel)]="template.checked" />
-          </div>
+    </ng-template>
+    <button nz-button nzType="default" (click)="getObjectList()">
+      <span nz-icon nzType="reload"></span>
+    </button>
+  </div>
+  <div class="flex">
+    <div class="template-list pr-[8px]">
+      <div *ngFor="let template of objectTemplates" (click)="selectTemplate(template, $event)">
+        <div class="template-item" [class]="{ itemChecked: template.checked }">
+          <span class="template-name-text" nz-typography nzEllipsis>{{ template.name }}</span>
+          <label nz-checkbox [(ngModel)]="template.checked"></label>
         </div>
       </div>
-      <div class="template-detail">
-        <div *ngIf="selectedTemplate" class="card">
-          <div class="template-name mb-4">
-            <p>{{ selectedTemplate.name }}</p>
-          </div>
-          <div class="param-tree-table">
-            <div class="table-header">
-              <div class="table-col col-name">
-                {{ 'variable_name' | i18nextEager }}
-              </div>
-              <div class="table-col col-type">
-                {{ 'variable_type' | i18nextEager }}
-              </div>
-              <div class="table-col col-default">
-                {{ 'default_v' | i18nextEager }}
-              </div>
-              <div class="table-col col-desc">
-                {{ 'description' | i18nextEager }}
-              </div>
+    </div>
+    <div class="template-detail">
+      <div *ngIf="selectedTemplate" class="card">
+        <div class="template-name mb-4">
+          <p>{{ selectedTemplate.name }}</p>
+        </div>
+        <div class="param-tree-table">
+          <div class="table-header">
+            <div class="table-col col-name">
+              {{ 'variable_name' | i18nextEager }}
             </div>
-            <ti-tree id="node-param-tree" [data]="selectedParams" class="tree-content">
-              <ng-template tiTreeNode let-param>
-                <div class="table-row">
-                  <div class="table-col col-name" [style.width]="getParamNameWidth(param) + 'px'" tiOverflow>
-                    {{ param.name }}
-                  </div>
-                  <div class="table-col col-type" tiOverflow>{{ formatType(param.type) }}</div>
-                  <div class="table-col col-default" tiOverflow>
-                    <span [class.unset]="!param.value?.default && param.depth === 0">
-                      {{ param.depth === 0 ? param.value?.default || ('not_configured' | i18nextEager) : '' }}
-                    </span>
-                  </div>
-                  <div class="table-col col-desc" tiOverflow>
-                    <span [class.unset]="!param.description">{{ param.description || ('not_configured' | i18nextEager) }}</span>
-                  </div>
-                </div>
-              </ng-template>
-            </ti-tree>
+            <div class="table-col col-type">
+              {{ 'variable_type' | i18nextEager }}
+            </div>
+            <div class="table-col col-default">
+              {{ 'default_v' | i18nextEager }}
+            </div>
+            <div class="table-col col-desc">
+              {{ 'description' | i18nextEager }}
+            </div>
           </div>
+          <nz-tree [nzData]="nzTreeParams" nzBlockNode [nzTreeTemplate]="nzTreeTemplate" class="tree-content">
+            <ng-template #nzTreeTemplate let-node let-origin="origin">
+              <div class="table-row">
+                <div class="table-col col-name" [style.width]="getParamNameWidth(origin) + 'px'">
+                  <span class="col-name-text" nz-tooltip [nzTooltipTitle]="origin.name">{{ origin.name }}</span>
+                </div>
+                <div class="table-col col-type">
+                  <span class="col-text" nz-tooltip [nzTooltipTitle]="formatType(origin.type)">{{ formatType(origin.type) }}</span>
+                </div>
+                <div class="table-col col-default">
+                  <span class="col-text" [class.unset]="!origin.value?.default && origin.depth === 0">
+                    {{ origin.depth === 0 ? origin.value?.default || ('not_configured' | i18nextEager) : '' }}
+                  </span>
+                </div>
+                <div class="table-col col-desc">
+                  <span class="col-text" [class.unset]="!origin.description" nz-tooltip [nzTooltipTitle]="origin.description">{{ origin.description || ('not_configured' | i18nextEager) }}</span>
+                </div>
+              </div>
+            </ng-template>
+          </nz-tree>
         </div>
       </div>
     </div>
   </div>
-</tp-modal-body>
-<ti-modal-footer>
+</div>
+<div class="modal-footer">
   <div class="flex justify-between items-center">
     <div>
       {{ 'selected_objects' | i18nextEager: { count: selectedTemplates?.length || 0 } }}
     </div>
     <div class="flex gap-2">
-      <button type="button" tiButton (click)="cancel()">{{ 'cancel' | i18nextEager }}</button>
-      <button type="button" tiButton (click)="importTemplates()" style="margin-left: 8px" color="danger">{{ 'import' | i18nextEager }}</button>
+      <button type="button" nz-button (click)="cancel()">{{ 'cancel' | i18nextEager }}</button>
+      <button type="button" nz-button nzType="primary" (click)="importTemplates()">{{ 'import' | i18nextEager }}</button>
     </div>
   </div>
-</ti-modal-footer>
+</div>

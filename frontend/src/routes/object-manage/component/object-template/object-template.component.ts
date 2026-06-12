@@ -1,9 +1,11 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Inject, Input, Output } from '@angular/core';
 import { MODULES } from '@shared/modules';
 import { I18NEXT_NAMESPACE } from 'angular-i18next';
 import { I18nNamespace } from '@i18n';
 import { ObjectManageService } from '@routes/object-manage/object-manage.service';
 import { ObjectField, ObjectParentType, ObjectType } from '@routes/object-manage/object.type';
+import { NzModalRef, NZ_MODAL_DATA } from 'ng-zorro-antd/modal';
+import { NzTreeNodeOptions } from 'ng-zorro-antd/tree';
 
 @Component({
   selector: 'object-template',
@@ -26,6 +28,7 @@ export class ObjectTemplateComponent {
   selectedTemplates: any[] = [];
   selectedTemplate: any;
   selectedParams: ObjectType[] = [];
+  nzTreeParams: NzTreeNodeOptions[] = [];
   currentPage: number = 1;
   pageSize: { options: Array<number>; size: number } = {
     options: [10, 20, 50, 100],
@@ -44,9 +47,15 @@ export class ObjectTemplateComponent {
 
   public isLoading = false;
 
-  private tiModal: any;
-
-  constructor(private objectManageService: ObjectManageService) {}
+  constructor(
+    private objectManageService: ObjectManageService,
+    private modalRef: NzModalRef,
+    @Inject(NZ_MODAL_DATA) private nzModalData: any,
+  ) {
+    if (this.nzModalData?.templatesSelected) {
+      this.templatesSelected.subscribe(this.nzModalData.templatesSelected);
+    }
+  }
 
   ngOnInit() {
     this.getObjectList().then(() => {
@@ -65,6 +74,7 @@ export class ObjectTemplateComponent {
     template.checked = !template.checked;
     this.selectedTemplate = template;
     this.selectedParams = this.objectTemplateFields2Views(JSON.parse(template.schemas));
+    this.nzTreeParams = this.toNzTreeNodes(this.selectedParams);
     this.toggleSelection(template, template.checked);
   }
 
@@ -106,7 +116,7 @@ export class ObjectTemplateComponent {
 
   cancel() {
     this.templatesSelected.emit([]);
-    this.tiModal.close();
+    this.modalRef.close();
   }
 
   importTemplates() {
@@ -175,12 +185,22 @@ export class ObjectTemplateComponent {
 
   getParamNameWidth(param) {
     let width = 180 - (param.depth || 0) * 24;
-    if (['Array<object>', 'Object'].includes(this.formatType(param.type))) {
-      width -= 20;
-    }
 
     return width;
   }
 
   protected readonly JSON = JSON;
+
+  private toNzTreeNodes(params: ObjectType[]): NzTreeNodeOptions[] {
+    return params.map((param, index) => {
+      const { children, ...rest } = param;
+      const node: NzTreeNodeOptions = {
+        key: param.name + '_' + index,
+        title: param.name || '',
+        ...rest,
+        ...(children?.length ? { children: this.toNzTreeNodes(children) } : {}),
+      };
+      return node;
+    });
+  }
 }
