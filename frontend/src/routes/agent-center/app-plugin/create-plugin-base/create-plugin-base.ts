@@ -594,7 +594,25 @@ export class CreatePluginBaseComponent implements OnInit {
         return;
       }
     }
-
+    if (this.step === 0) {
+      const form = this.groupFormControl.controls;
+      if (form.host.value.includes('\n')) {
+        form.host.setValue(form.host.value.replaceAll('\n', ''));
+      }
+      if (form.baseURL.value.includes('\n')) {
+        form.baseURL.setValue(form.baseURL.value.replaceAll('\n', ''));
+      }
+      if (form.host.errors) {
+        this.hostError = form.host.errors.serviceName?.tiErrorMessage ?? 'Error';
+      } else {
+        this.hostError = '';
+      }
+      if (form.baseURL.errors) {
+        this.baseURLError = form.baseURL.errors.serviceName?.tiErrorMessage ?? 'Error';
+      } else {
+        this.baseURLError = '';
+      }
+    }
     this.step += 1;
     this.activeStep = this.steps[this.step];
   }

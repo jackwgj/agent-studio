@@ -206,16 +206,7 @@
                               <flexible-text-field (keydown)="$event.stopPropagation()" [(ngModel)]="origin.description" [title]="origin.description"
                                 [name]="'inputFormDesc' + origin.keyindex" [maxlength]="2000" [placeholder]="
                                         'input_placeholder' | i18nextEager
-                                      " [nonEmptyValidator]="origin?.name.trim() !== ''" [class.input-error]="
-                                inputForm?.controls['inputFormDesc' + origin.keyindex]?.invalid &&
-                                (inputForm?.controls['inputFormDesc' +origin.keyindex]?.dirty || inputForm?.controls['inputFormDesc' + origin.keyindex]?.touched)
-                              " />
-                              <div *ngIf="
-                            inputForm?.controls['inputFormDesc' +  origin.keyindex]?.invalid &&
-                            (inputForm?.controls['inputFormDesc' +  origin.keyindex]?.dirty || inputForm?.controls['inputFormDesc' +  origin.keyindex]?.touched)
-                          " class="error-tip">
-                                {{inputForm?.controls['inputFormDesc' + origin.keyindex]?.errors?.serviceName?.tiErrorMessage}}
-                              </div>
+                                      "/>
                             </div>
                             <!-- 参数校验 -->
                             <div class="a-form-checkbox flex h-[28px] w-[60px] items-center justify-center">
@@ -344,19 +335,10 @@
                           </nz-select>
                         </div>
                         <div class="w-[400px]">
-                          <input style="width: 100%" type="text" [name]="'responseFormDesc' + origin.keyindex" maxlength="2000" nonEmptyValidator nz-input
+                          <input style="width: 100%" type="text" [name]="'responseFormDesc' + origin.keyindex" maxlength="2000" nz-input
                             [(ngModel)]="origin.description" [title]="origin.description" [placeholder]="
                                   'input_placeholder' | i18nextEager
-                                " [class.input-error]="
-                                pathForm?.controls['responseFormDesc' +  origin.keyindex]?.invalid &&
-                                (pathForm?.controls['responseFormDesc' +  origin.keyindex]?.dirty || pathForm?.controls['responseFormDesc' +  origin.keyindex]?.touched)
-                              " />
-                          <div *ngIf="
-                          pathForm?.controls['responseFormDesc' +  origin.keyindex]?.invalid &&
-                          (pathForm?.controls['responseFormDesc' +  origin.keyindex]?.dirty || pathForm?.controls['responseFormDesc' +  origin.keyindex]?.touched)
-                        " class="error-tip">
-                            {{pathForm?.controls['responseFormDesc' + origin.keyindex]?.errors?.serviceName?.tiErrorMessage}}
-                          </div>
+                                "/>
                         </div>
                       </div>
                     </ng-template>
