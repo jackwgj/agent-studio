@@ -93,7 +93,7 @@
   "base_desc_optional": "description(optional)",
   "prompt_language": "this is English {{value}}",
   "agent_app_dev": "Agent App Dev",
-  "jiuwen_devops_head_title": "Open Jiuwen",
+  "jiuwen_devops_head_title": "openJiuwen ",
   "plugin-prompt": {
     "label": "Plugin prompt",
     "management": { "label": "Plugin prompt management" },

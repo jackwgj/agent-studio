@@ -2174,7 +2174,7 @@ export class ConfigToolsComponent implements OnInit, AfterViewInit, OnDestroy {
     const text =
       language === "chinese"
         ? `我是${name}，适用于${scene}`
-        : "Welcome to Open JIuwen, a one-stop development platform for big models. Here, you can develop models and Agent applications without any barriers";
+        : "Welcome to openJiuwen , a one-stop development platform for big models. Here, you can develop models and Agent applications without any barriers";
     this.ttsPlayerServe.play(text, {
       property
     });

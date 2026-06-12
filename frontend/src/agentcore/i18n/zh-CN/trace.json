@@ -302,7 +302,7 @@
   "trace.add_deploy_ip_info": "如需创建新的弹性公网IP，请再新建完成后点击“刷新”按钮进行选择。",
   "trace.add_deploy_nat_info": "VPC需绑定Nat网关，使部署实例能访问大模型的公网地址，如没有可用Nat网关，请先为当前环境的VPC创建。",
   "trace.entrust_title": "创建委托",
-  "trace.entrust_title_info": "评测功能是为了帮助开发者在效果、性能和成本方面优化 AI Agent，为实现该功能，您授权Open jiuwen调用新建评测任务步骤3界面您所选择的Agent服务应用对话功能，该操作涉及对您所拥有的tokens资源的消耗。您了解并同意Open jiuwen在您授权下的操作所产生的后果和责任将由您自行承担。",
+  "trace.entrust_title_info": "评测功能是为了帮助开发者在效果、性能和成本方面优化 AI Agent，为实现该功能，您授权openJiuwen 调用新建评测任务步骤3界面您所选择的Agent服务应用对话功能，该操作涉及对您所拥有的tokens资源的消耗。您了解并同意openJiuwen 在您授权下的操作所产生的后果和责任将由您自行承担。",
   "trace.entrust_a_title": "委托其他云服务管理资源",
   "trace.entrust_example_title": "详情参考：",
   "trace.agree_entrust": "同意授权",

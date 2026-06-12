@@ -93,7 +93,7 @@
   "base_desc_optional": "描述（非必填）",
   "prompt_language": "这是中文 {{value}}",
   "agent_app_dev": "Agent 开发",
-  "jiuwen_devops_head_title": "Open Jiuwen",
+  "jiuwen_devops_head_title": "openJiuwen ",
   "plugin-prompt": {
     "label": "Plugin prompt",
     "management": {
