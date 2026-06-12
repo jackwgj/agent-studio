@@ -4,10 +4,7 @@
 
 package com.openjiuwen.studio.agent.manager.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -23,121 +20,118 @@ import java.util.Date;
 @AllArgsConstructor
 @Data
 @Builder
-@Entity
-@Table(name = "t_history_mapping")
 public class HistoryMappingEntity {
     /**
      * 已删除资源关系表唯一标识
      */
-    @Id
-    @Column(name = "history_id")
+    @JsonProperty("history_id")
     private String historyId;
 
     /**
      * mapping_id
      */
-    @Column(name = "mapping_id")
+    @JsonProperty("mapping_id")
     private String mappingId;
 
     /**
      * app_id
      */
-    @Column(name = "app_id")
+    @JsonProperty("app_id")
     private String appId;
 
     /**
      * app_version
      */
-    @Column(name = "app_version")
+    @JsonProperty("app_version")
     private String appVersion;
 
     /**
      * app_type
      */
-    @Column(name = "app_type")
+    @JsonProperty("app_type")
     private String appType;
 
     /**
      * app_name
      */
-    @Column(name = "app_name")
+    @JsonProperty("app_name")
     private String appName;
 
     /**
      * resource_id
      */
-    @Column(name = "resource_id")
+    @JsonProperty("resource_id")
     private String resourceId;
 
     /**
      * resource_type
      */
-    @Column(name = "resource_type")
+    @JsonProperty("resource_type")
     private String resourceType;
 
     /**
      * resource_name
      */
-    @Column(name = "resource_name")
+    @JsonProperty("resource_name")
     private String resourceName;
 
     /**
      * resource_版本
      */
-    @Column(name = "resource_version")
+    @JsonProperty("resource_version")
     private String resourceVersion;
 
     /**
      * resource描述
      */
-    @Column(name = "resource_desc")
+    @JsonProperty("resource_desc")
     private String resourceDesc;
 
     /**
      * valid，关联是否有效
      */
-    @Column(name = "valid")
-    private boolean valid;
+    @JsonProperty("valid")
+    private Boolean valid;
 
     /**
      * 创建时间
      */
-    @Column(name = "created_on")
+    @JsonProperty("created_on")
     private Date createdOn;
 
     /**
      * 更新时间
      */
-    @Column(name = "updated_on")
+    @JsonProperty("updated_on")
     private Date updatedOn;
 
     /**
      * share表示跨空间共享引用，direct表示本空间直接引用
      */
-    @Column(name = "reference_type")
+    @JsonProperty("reference_type")
     private String referenceType;
 
     /**
      * 被引用元素所属的来源空间
      */
-    @Column(name = "app_workspace_id")
+    @JsonProperty("app_workspace_id")
     private String appWorkspaceId;
 
     /**
      * 被引用元素所属的来源空间
      */
-    @Column(name = "resource_workspace_id")
+    @JsonProperty("resource_workspace_id")
     private String resourceWorkspaceId;
 
     /**
      * 被引用资源的输入参数
      */
-    @Column(name = "extends")
+    @JsonProperty("extends")
     private String extendInfo;
 
     /**
      * 发布版本子类型
      */
-    @Column(name = "sub_type")
+    @JsonProperty("sub_type")
     private String subType;
 }

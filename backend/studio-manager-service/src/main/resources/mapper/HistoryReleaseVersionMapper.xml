@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.agent.manager.mapper.HistoryReleaseVersionMapper">
+
+    <sql id="Base_Column_List">
+        history_id, id, version_id, version_name, version_note, app_id, app_type, sub_type,
+          status, dsl_path, ir_path, creator, creator_id, released_on
+    </sql>
+
+    <resultMap id="BaseResultMap" type="com.openjiuwen.studio.agent.manager.entity.HistoryReleaseVersionEntity">
+        <id column="history_id" property="historyId"/>
+        <result column="id" property="id"/>
+        <result column="version_id" property="versionId"/>
+        <result column="version_name" property="versionName"/>
+        <result column="version_note" property="versionNote"/>
+        <result column="app_id" property="appId"/>
+        <result column="app_type" property="appType"/>
+        <result column="sub_type" property="subType"/>
+        <result column="status" property="status"/>
+        <result column="dsl_path" property="dslPath"/>
+        <result column="ir_path" property="irPath"/>
+        <result column="creator" property="creator"/>
+        <result column="creator_id" property="creatorId"/>
+        <result column="released_on" property="releasedOn"/>
+    </resultMap>
+
+    <select id="findByAppIdAndVersionId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM t_history_release_version
+        WHERE app_id = #{appId}
+        AND version_id = #{versionId}
+        LIMIT 1
+    </select>
+
+    <delete id="deleteByAppId">
+        DELETE FROM t_history_release_version
+        WHERE app_id = #{appId}
+    </delete>
+
+    <insert id="insert" parameterType="com.openjiuwen.studio.agent.manager.entity.HistoryReleaseVersionEntity">
+        INSERT INTO t_history_release_version (
+            history_id, id, version_id, version_name, version_note, app_id, app_type, sub_type,
+            status, dsl_path, ir_path, creator, creator_id, released_on
+        ) VALUES (
+                     #{historyId}, #{id}, #{versionId}, #{versionName}, #{versionNote}, #{appId}, #{appType}, #{subType},
+                     #{status}, #{dslPath}, #{irPath}, #{creator}, #{creatorId}, #{releasedOn}
+                 )
+    </insert>
+
+    <insert id="insertBatch" parameterType="java.util.List">
+        INSERT INTO t_history_release_version (
+        history_id, id, version_id, version_name, version_note, app_id, app_type, sub_type,
+        status, dsl_path, ir_path, creator, creator_id, released_on
+        ) VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+            #{item.historyId}, #{item.id}, #{item.versionId}, #{item.versionName}, #{item.versionNote},
+            #{item.appId}, #{item.appType}, #{item.subType}, #{item.status}, #{item.dslPath}, #{item.irPath},
+            #{item.creator}, #{item.creatorId}, #{item.releasedOn}
+            )
+        </foreach>
+    </insert>
+
+</mapper>

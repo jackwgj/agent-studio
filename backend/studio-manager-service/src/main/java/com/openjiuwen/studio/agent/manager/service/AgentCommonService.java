@@ -42,19 +42,12 @@ import com.openjiuwen.studio.agent.manager.entity.md.ModelServiceCondition;
 import com.openjiuwen.studio.agent.manager.entity.md.ModelServiceData;
 import com.openjiuwen.studio.agent.manager.enums.AgentStatus;
 import com.openjiuwen.studio.agent.manager.enums.AgentType;
-import com.openjiuwen.studio.agent.manager.mapper.AgentMapper;
-import com.openjiuwen.studio.agent.manager.mapper.MappingMapper;
-import com.openjiuwen.studio.agent.manager.mapper.ReleaseVersionMapper;
-import com.openjiuwen.studio.agent.manager.mapper.ToolMapper;
-import com.openjiuwen.studio.agent.manager.mapper.WorkflowMapper;
+import com.openjiuwen.studio.agent.manager.mapper.*;
 import com.openjiuwen.studio.agent.manager.mapper.md.FreeModelServiceMapper;
 import com.openjiuwen.studio.agent.manager.mapper.md.ModelServiceMapper;
 import com.openjiuwen.studio.agent.manager.obs.MgObsService;
 import com.openjiuwen.studio.agent.manager.rce.models.AskModelReq;
 import com.openjiuwen.studio.agent.manager.rce.models.assistant.KnowledgeRepoListRsp;
-import com.openjiuwen.studio.agent.manager.repository.HistoryAgentRepository;
-import com.openjiuwen.studio.agent.manager.repository.HistoryMappingRepository;
-import com.openjiuwen.studio.agent.manager.repository.HistoryReleaseVersionRepository;
 import com.openjiuwen.studio.agent.manager.service.plugin.IPlugin;
 import com.openjiuwen.studio.agent.manager.utils.IconNameCheckUtils;
 import com.openjiuwen.studio.agent.manager.utils.ImageBase64Utils;
@@ -114,13 +107,14 @@ public class AgentCommonService {
     private ReleaseVersionMapper releaseVersionMapper;
 
     @Autowired
-    private HistoryMappingRepository historyMappingRepository;
+    private HistoryMappingMapper historyMappingMapper;
 
     @Autowired
-    private HistoryAgentRepository historyAgentRepository;
+    private HistoryAgentMapper historyAgentMapper;
 
     @Autowired
-    private HistoryReleaseVersionRepository historyReleaseVersionRepository;
+    private HistoryReleaseVersionMapper historyReleaseVersionMapper;
+
 
     @Autowired
     private RelationManagementService relationManagementService;
@@ -481,7 +475,7 @@ public class AgentCommonService {
 
     /**
      * 校验插件权限
-     * 
+     *
      * @param projectId projectId
      * @param workspaceId workspaceId
      * @param toolIds toolIds
@@ -506,7 +500,9 @@ public class AgentCommonService {
             historyMapping.setHistoryId(UuidUtils.getUUID());
             historyMappingList.add(historyMapping);
         });
-        historyMappingRepository.saveAll(historyMappingList);
+        if (!historyMappingList.isEmpty()) {
+            historyMappingMapper.insertBatch(historyMappingList);
+        }
         mappingMapper.deleteBatchByAppId(appId, null, true);
     }
 
@@ -518,17 +514,20 @@ public class AgentCommonService {
         List<ReleaseVersion> releaseVersions = releaseVersionMapper.selectByAppId(appId);
         List<HistoryReleaseVersionEntity> historyReleaseVersions = new ArrayList<>();
         releaseVersions.forEach(releaseVersion -> {
-            Optional<HistoryReleaseVersionEntity> historyReleaseVersion
-                = historyReleaseVersionRepository.findByAppIdAndVersionId(releaseVersion.getAppId(), releaseVersion.getVersionId());
+            HistoryReleaseVersionEntity existingHistory
+                    = historyReleaseVersionMapper.findByAppIdAndVersionId(releaseVersion.getAppId(), releaseVersion.getVersionId());
             // 防止重复导入资源时，由于id与version相同而导致失败
-            if (!historyReleaseVersion.isPresent()) {
+            if (existingHistory == null) {
                 HistoryReleaseVersionEntity historyReleaseVersionEntity = new HistoryReleaseVersionEntity();
                 BeanUtils.copyProperties(releaseVersion, historyReleaseVersionEntity);
                 historyReleaseVersionEntity.setHistoryId(UuidUtils.getUUID());
                 historyReleaseVersions.add(historyReleaseVersionEntity);
             }
         });
-        historyReleaseVersionRepository.saveAll(historyReleaseVersions);
+        if (!historyReleaseVersions.isEmpty()) {
+            historyReleaseVersionMapper.insertBatch(historyReleaseVersions);
+        }
+
         releaseVersionMapper.deleteByAppId(appId);
     }
 
@@ -540,7 +539,7 @@ public class AgentCommonService {
         HistoryReleaseVersionEntity historyReleaseVersion = new HistoryReleaseVersionEntity();
         BeanUtils.copyProperties(releaseVersion, historyReleaseVersion);
         historyReleaseVersion.setHistoryId(UUID.randomUUID().toString());
-        historyReleaseVersionRepository.save(historyReleaseVersion);
+        historyReleaseVersionMapper.insert(historyReleaseVersion);
         releaseVersionMapper.deleteByPrimaryKey(releaseVersion.getId());
     }
 
@@ -551,11 +550,15 @@ public class AgentCommonService {
      */
     public void softDeleteAgent(String projectId, String agentId) {
         Agent agent = agentMapper.selectByPrimaryKey(projectId, agentId);
+        if (agent == null) {
+            log.warn("agent does not exist, skip soft delete, projectId = {}, agentId = {}", projectId, agentId);
+            return;
+        }
         HistoryAgentEntity historyAgent = new HistoryAgentEntity();
         BeanUtils.copyProperties(agent, historyAgent);
         historyAgent.setHistoryId(UuidUtils.getUUID());
         historyAgent.setDeleted(0);
-        historyAgentRepository.save(historyAgent);
+        historyAgentMapper.insert(historyAgent);
         agentMapper.deleteByPrimaryKey(agentId, projectId);
     }
 

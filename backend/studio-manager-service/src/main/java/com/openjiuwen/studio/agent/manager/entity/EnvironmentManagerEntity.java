@@ -5,24 +5,17 @@
 package com.openjiuwen.studio.agent.manager.entity;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
 import lombok.Data;
 
 import java.util.Date;
 
 @Data
-@Entity
-@Table(name = "t_environment_manager_info")
 public class EnvironmentManagerEntity {
 
     /**
      * 主键ID UUID
      */
     @JsonProperty("id")
-    @Id
     private String id;
 
     /**
@@ -41,7 +34,7 @@ public class EnvironmentManagerEntity {
      * 是否默认
      */
     @JsonProperty("is_default")
-    private boolean isDefault;
+    private Boolean isDefault;
 
     /**
      * 资源对象

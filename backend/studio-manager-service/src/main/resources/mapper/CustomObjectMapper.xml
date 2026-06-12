@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.agent.manager.mapper.CustomObjectMapper">
+
+    <sql id="Base_Column_List">
+        id, project_id, workspace_id, name, description, object_schema,
+          creator_id, created_on, updated_on
+    </sql>
+
+    <resultMap id="BaseResultMap" type="com.openjiuwen.studio.agent.manager.entity.CustomObjectEntity">
+        <id column="id" jdbcType="VARCHAR" property="id"/>
+        <result column="project_id" jdbcType="VARCHAR" property="projectId"/>
+        <result column="workspace_id" jdbcType="VARCHAR" property="workspaceId"/>
+        <result column="name" jdbcType="VARCHAR" property="name"/>
+        <result column="description" jdbcType="VARCHAR" property="description"/>
+        <result column="object_schema" jdbcType="VARCHAR" property="objectSchema"/>
+        <result column="creator_id" jdbcType="VARCHAR" property="creatorId"/>
+        <result column="created_on" jdbcType="TIMESTAMP" property="createdOn"/>
+        <result column="updated_on" jdbcType="TIMESTAMP" property="updatedOn"/>
+    </resultMap>
+
+    <!-- 简单等值查询 -->
+    <select id="findByIdAndProjectIdAndWorkspaceId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM t_custom_object
+        WHERE id = #{id}
+        AND project_id = #{projectId}
+        AND workspace_id = #{workspaceId}
+        LIMIT 1
+    </select>
+
+    <!-- 分页+名称模糊搜索 -->
+    <select id="findByProjectIdAndWorkspaceIdAndNameContaining" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM t_custom_object
+        WHERE project_id = #{projectId}
+        AND workspace_id = #{workspaceId}
+        AND name LIKE CONCAT('%', #{name}, '%')
+        ORDER BY updated_on DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <!-- 统计数量（动态SQL，用于XML） -->
+    <select id="countByProjectIdAndWorkspaceIdAndNameContaining" resultType="long">
+        SELECT COUNT(*)
+        FROM t_custom_object
+        WHERE project_id = #{projectId}
+        AND workspace_id = #{workspaceId}
+        <if test="name != null and name != ''">
+            AND name LIKE CONCAT('%', #{name}, '%')
+        </if>
+    </select>
+
+    <!-- 分页查询所有 -->
+    <select id="findByProjectIdAndWorkspaceId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM t_custom_object
+        WHERE project_id = #{projectId}
+        AND workspace_id = #{workspaceId}
+        ORDER BY updated_on DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <!-- 插入 -->
+    <insert id="insert" parameterType="com.openjiuwen.studio.agent.manager.entity.CustomObjectEntity">
+        INSERT INTO t_custom_object (
+            id, project_id, workspace_id, name, description, object_schema,
+            creator_id, created_on, updated_on
+        ) VALUES (
+                     #{id}, #{projectId}, #{workspaceId}, #{name}, #{description}, #{objectSchema},
+                     #{creatorId}, #{createdOn}, #{updatedOn}
+                 )
+    </insert>
+
+    <!-- 更新 -->
+    <update id="updateById" parameterType="com.openjiuwen.studio.agent.manager.entity.CustomObjectEntity">
+        UPDATE t_custom_object
+        SET name = #{name},
+            description = #{description},
+            object_schema = #{objectSchema},
+            updated_on = #{updatedOn}
+        WHERE id = #{id}
+    </update>
+
+</mapper>

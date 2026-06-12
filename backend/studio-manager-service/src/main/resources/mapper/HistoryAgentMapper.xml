@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.agent.manager.mapper.HistoryAgentMapper">
+
+    <sql id="Base_Column_List">
+        history_id, agent_id, project_id, trace_id, deleted, workspace_id, domain_id,
+          name, description, icon, model_deployment_id, model_name, model_config, model_type, model,
+          plan_qa_independent, plan_model, plan_model_deployment_id, plan_model_name, plan_model_config,
+          plan_model_type, instructions, trigger_list, memory_variables, prologue, suggest_queries,
+          additional_questions_config, voice_interaction, knowledge_retrieve_policy, content_review,
+          safety_barrier, dsl_path, ir_path, type, sub_type, status, creator, creator_id,
+          workflow_switch_enabled, scheduling_mode, created_on, updated_on, published_on, icon_name,
+          agent_variables, memory_config, is_share
+    </sql>
+
+    <resultMap id="BaseResultMap"
+               type="com.openjiuwen.studio.agent.manager.entity.HistoryAgentEntity">
+        <id column="history_id" property="historyId"/>
+        <result column="agent_id" property="agentId"/>
+        <result column="project_id" property="projectId"/>
+        <result column="trace_id" property="traceId"/>
+        <result column="deleted" property="deleted"/>
+        <result column="workspace_id" property="workspaceId"/>
+        <result column="domain_id" property="domainId"/>
+        <result column="name" property="name"/>
+        <result column="description" property="description"/>
+        <result column="icon" property="icon"/>
+        <result column="model_deployment_id" property="modelDeploymentId"/>
+        <result column="model_name" property="modelName"/>
+        <result column="model_type" property="modelType"/>
+        <result column="model" property="model"/>
+        <result column="plan_qa_independent" property="planQaIndependent"/>
+        <result column="plan_model" property="planModel"/>
+        <result column="plan_model_deployment_id" property="planModelDeploymentId"/>
+        <result column="plan_model_name" property="planModelName"/>
+        <result column="plan_model_type" property="planModelType"/>
+        <result column="instructions" property="instructions"/>
+        <result column="prologue" property="prologue"/>
+        <result column="content_review" property="contentReview"/>
+        <result column="safety_barrier" property="safetyBarrier"/>
+        <result column="dsl_path" property="dslPath"/>
+        <result column="ir_path" property="irPath"/>
+        <result column="type" property="type"/>
+        <result column="sub_type" property="subType"/>
+        <result column="status" property="status"/>
+        <result column="creator" property="creator"/>
+        <result column="creator_id" property="creatorId"/>
+        <result column="workflow_switch_enabled" property="workflowSwitchEnabled"/>
+        <result column="scheduling_mode" property="schedulingMode"/>
+        <result column="created_on" property="createdOn"/>
+        <result column="updated_on" property="updatedOn"/>
+        <result column="published_on" property="publishedOn"/>
+        <result column="icon_name" property="iconName"/>
+        <result column="is_share" property="isShare"/>
+
+        <!-- 复杂类型字段，使用 TypeHandler -->
+        <result column="model_config" property="modelConfig"
+                typeHandler="com.openjiuwen.studio.agent.manager.mapper.handler.ModelConfigHandler"/>
+        <result column="plan_model_config" property="planModelConfig"
+                typeHandler="com.openjiuwen.studio.agent.manager.mapper.handler.ModelConfigHandler"/>
+        <result column="trigger_list" property="triggerList"
+                typeHandler="com.openjiuwen.studio.agent.manager.mapper.handler.TriggerConfigArrayHandler"/>
+        <result column="memory_variables" property="memoryVariables"
+                typeHandler="com.openjiuwen.studio.agent.manager.mapper.handler.MemoryVariableArrayHandler"/>
+        <result column="suggest_queries" property="suggestQueries"
+                typeHandler="com.openjiuwen.studio.agent.manager.mapper.handler.ListHandler"/>
+        <result column="additional_questions_config" property="additionalQuestionsConfig"
+                typeHandler="com.openjiuwen.studio.agent.manager.mapper.handler.AdditionalQuestionsConfigHandler"/>
+        <result column="voice_interaction" property="voiceInteraction"
+                typeHandler="com.openjiuwen.studio.agent.manager.mapper.handler.VoiceInteractionHandler"/>
+        <result column="knowledge_retrieve_policy" property="knowledgeRetrievePolicy"
+                typeHandler="com.openjiuwen.studio.agent.manager.mapper.handler.JsonHandlerKnowledgeRetrievePolicy"/>
+        <result column="agent_variables" property="agentVariables"
+                typeHandler="com.openjiuwen.studio.agent.manager.mapper.handler.AgentVariableArrayHandler"/>
+        <result column="memory_config" property="memoryConfig"
+                typeHandler="com.openjiuwen.studio.agent.manager.mapper.handler.AgentMemoryConfigHandler"/>
+    </resultMap>
+
+
+    <select id="findByUpdatedOnLessThan" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM t_history_agent
+        WHERE updated_on &lt; #{time}
+    </select>
+
+    <insert id="insert"
+            parameterType="com.openjiuwen.studio.agent.manager.entity.HistoryAgentEntity">
+        INSERT INTO t_history_agent (
+            history_id, agent_id, project_id, trace_id, deleted, workspace_id, domain_id,
+            name, description, icon, model_deployment_id, model_name, model_config, model_type,
+            model,
+            plan_qa_independent, plan_model, plan_model_deployment_id, plan_model_name,
+            plan_model_config,
+            plan_model_type, instructions, trigger_list, memory_variables, prologue, suggest_queries,
+            additional_questions_config, voice_interaction, knowledge_retrieve_policy,
+            content_review,
+            safety_barrier, dsl_path, ir_path, type, sub_type, status, creator, creator_id,
+            workflow_switch_enabled, scheduling_mode, created_on, updated_on, published_on,
+            icon_name,
+            agent_variables, memory_config, is_share
+        ) VALUES (
+                     #{historyId}, #{agentId}, #{projectId}, #{traceId}, #{deleted}, #{workspaceId},
+                     #{domainId},#{name}, #{description}, #{icon}, #{modelDeploymentId}, #{modelName},
+                     #{modelConfig,typeHandler=com.openjiuwen.studio.agent.manager.mapper.handler.ModelConfigHandler},
+                     #{modelType}, #{model},#{planQaIndependent}, #{planModel}, #{planModelDeploymentId}, #{planModelName},
+                     #{planModelConfig,typeHandler=com.openjiuwen.studio.agent.manager.mapper.handler.ModelConfigHandler},#{planModelType}, #{instructions},
+                     #{triggerList,typeHandler=com.openjiuwen.studio.agent.manager.mapper.handler.TriggerConfigArrayHandler},
+                     #{memoryVariables,typeHandler=com.openjiuwen.studio.agent.manager.mapper.handler.MemoryVariableArrayHandler},
+                     #{prologue},#{suggestQueries,typeHandler=com.openjiuwen.studio.agent.manager.mapper.handler.ListHandler},
+                     #{additionalQuestionsConfig,typeHandler=com.openjiuwen.studio.agent.manager.mapper.handler.AdditionalQuestionsConfigHandler},
+                     #{voiceInteraction,typeHandler=com.openjiuwen.studio.agent.manager.mapper.handler.VoiceInteractionHandler},
+                     #{knowledgeRetrievePolicy,typeHandler=com.openjiuwen.studio.agent.manager.mapper.handler.JsonHandlerKnowledgeRetrievePolicy},
+                     #{contentReview}, #{safetyBarrier}, #{dslPath}, #{irPath}, #{type}, #{subType},#{status}, #{creator}, #{creatorId},
+                     #{workflowSwitchEnabled}, #{schedulingMode}, #{createdOn}, #{updatedOn}, #{publishedOn},#{iconName},
+                     #{agentVariables,typeHandler=com.openjiuwen.studio.agent.manager.mapper.handler.AgentVariableArrayHandler},
+                     #{memoryConfig,typeHandler=com.openjiuwen.studio.agent.manager.mapper.handler.AgentMemoryConfigHandler},#{isShare}
+                 )
+    </insert>
+
+
+    <delete id="deleteByHistoryId">
+        DELETE FROM t_history_agent
+        WHERE history_id = #{historyId}
+    </delete>
+
+</mapper>

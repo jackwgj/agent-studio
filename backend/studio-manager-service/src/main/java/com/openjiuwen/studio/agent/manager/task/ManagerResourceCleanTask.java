@@ -8,14 +8,12 @@ import com.openjiuwen.studio.agent.common.redis.RedisClient;
 import com.openjiuwen.studio.agent.common.redis.RedisLock;
 import com.openjiuwen.studio.agent.manager.constant.CommonConstant;
 import com.openjiuwen.studio.agent.manager.entity.HistoryAgentEntity;
+import com.openjiuwen.studio.agent.manager.mapper.HistoryAgentMapper;
+import com.openjiuwen.studio.agent.manager.mapper.HistoryMappingMapper;
+import com.openjiuwen.studio.agent.manager.mapper.HistoryReleaseVersionMapper;
 import com.openjiuwen.studio.agent.manager.mapper.HistoryWorkflowMapper;
 import com.openjiuwen.studio.agent.manager.obs.MgObsService;
-import com.openjiuwen.studio.agent.manager.repository.HistoryAgentRepository;
-import com.openjiuwen.studio.agent.manager.repository.HistoryMappingRepository;
-import com.openjiuwen.studio.agent.manager.repository.HistoryReleaseVersionRepository;
-
 import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -44,13 +42,13 @@ public class ManagerResourceCleanTask {
     private Integer softDeleteTtlDays;
 
     @Autowired
-    private HistoryAgentRepository historyAgentRepository;
-
-    @Autowired
-    private HistoryMappingRepository historyMappingRepository;
-
-    @Autowired
     private HistoryWorkflowMapper historyWorkflowMapper;
+
+    @Autowired
+    private HistoryAgentMapper historyAgentMapper;
+
+    @Autowired
+    private HistoryMappingMapper historyMappingMapper;
 
     @Autowired
     private MgObsService mgObsService;
@@ -59,10 +57,9 @@ public class ManagerResourceCleanTask {
     private RedisClient redisClient;
 
     @Autowired
-    private HistoryReleaseVersionRepository historyReleaseVersionRepository;
-
-    @Autowired
     private PlatformTransactionManager transactionManager;
+    @Autowired
+    private HistoryReleaseVersionMapper historyReleaseVersionMapper;
 
     /**
      * 定时清理软删除的模板数据
@@ -93,7 +90,7 @@ public class ManagerResourceCleanTask {
         Date targetDate = new Date(System.currentTimeMillis() - TimeUnit.DAYS.toMillis(softDeleteTtlDays));
 
         // 查询所有两年前软删除的AGENT ID
-        List<HistoryAgentEntity> agentEntities = historyAgentRepository.findByUpdatedOnLessThan(targetDate);
+        List<HistoryAgentEntity> agentEntities = historyAgentMapper.findByUpdatedOnLessThan(targetDate);
         List<String> workflowIds = historyWorkflowMapper.findByUpdatedOnLessThan(targetDate);
 
         TransactionStatus status = transactionManager.getTransaction(new DefaultTransactionDefinition());
@@ -106,10 +103,12 @@ public class ManagerResourceCleanTask {
                         + CommonConstant.Workflow.IR + CommonConstant.FOLDER_SEPARATOR + agentEntity.getAgentId());
                     mgObsService.deleteObsObjects(CommonConstant.AGENT_TYPE + CommonConstant.FOLDER_SEPARATOR
                         + CommonConstant.DSL_STR + CommonConstant.FOLDER_SEPARATOR + agentEntity.getAgentId());
-                    historyMappingRepository.deleteByAppId(agentEntity.getAgentId());
-                    historyReleaseVersionRepository.deleteByAppId(agentEntity.getAgentId());
+                    historyMappingMapper.deleteByAppId(agentEntity.getAgentId());
+                    historyReleaseVersionMapper.deleteByAppId(agentEntity.getAgentId());
                 }
-                historyAgentRepository.deleteAll(agentEntities);
+                for (HistoryAgentEntity entity : agentEntities) {
+                    historyAgentMapper.deleteByHistoryId(entity.getHistoryId());
+                }
                 log.info("Successfully deleted {} agentIds permanently.", agentEntities.size());
             }
 
@@ -118,8 +117,8 @@ public class ManagerResourceCleanTask {
                 for (String workflowId : workflowIds) {
                     mgObsService.deleteObsObjects(CommonConstant.WORKFLOW + CommonConstant.FOLDER_SEPARATOR
                         + CommonConstant.Workflow.IR + CommonConstant.FOLDER_SEPARATOR + workflowId);
-                    historyMappingRepository.deleteByAppId(workflowId);
-                    historyReleaseVersionRepository.deleteByAppId(workflowId);
+                    historyMappingMapper.deleteByAppId(workflowId);
+                    historyReleaseVersionMapper.deleteByAppId(workflowId);
                 }
                 historyWorkflowMapper.deleteByPrimaryKeys(workflowIds);
                 log.info("Successfully deleted {} workflowIds permanently.", workflowIds.size());

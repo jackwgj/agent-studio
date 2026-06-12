@@ -4,33 +4,6 @@
 
 package com.openjiuwen.studio.agent.manager.service.environment;
 
-import static com.openjiuwen.studio.agent.common.enums.StudioError.ENVIRONMENT_CREATE_FAIL;
-import static com.openjiuwen.studio.agent.common.enums.StudioError.ENVIRONMENT_CREATE_PARAMETER_VERIFICATION_FAIL;
-import static com.openjiuwen.studio.agent.common.enums.StudioError.ENVIRONMENT_CREATE_WITH_SUBNET_NOT_EXIST;
-import static com.openjiuwen.studio.agent.common.enums.StudioError.ENVIRONMENT_CREATE_WITH_VPC_NOT_EXIST;
-import static com.openjiuwen.studio.agent.common.enums.StudioError.ENVIRONMENT_DEFAULT_NOT_SUPPORT;
-import static com.openjiuwen.studio.agent.common.enums.StudioError.ENVIRONMENT_DEFAULT_SET_FAIL;
-import static com.openjiuwen.studio.agent.common.enums.StudioError.ENVIRONMENT_DELETE_FAIL;
-import static com.openjiuwen.studio.agent.common.enums.StudioError.ENVIRONMENT_DELETE_NOT_SUPPORT;
-import static com.openjiuwen.studio.agent.common.enums.StudioError.ENVIRONMENT_LIMIT_EXCEEDED;
-import static com.openjiuwen.studio.agent.common.enums.StudioError.ENVIRONMENT_MODIFY_FAIL;
-import static com.openjiuwen.studio.agent.common.enums.StudioError.ENVIRONMENT_NAME_EXIST;
-import static com.openjiuwen.studio.agent.common.enums.StudioError.ENVIRONMENT_NOT_EXIST;
-import static com.openjiuwen.studio.agent.common.enums.StudioError.ENVIRONMENT_NOT_PERMISSION_CREATE;
-import static com.openjiuwen.studio.agent.common.enums.StudioError.ENVIRONMENT_VARIABLES_LIMIT_EXCEEDED;
-import static com.openjiuwen.studio.agent.common.enums.StudioError.ENVIRONMENT_VARIABLE_CREATE_FAIL;
-import static com.openjiuwen.studio.agent.common.enums.StudioError.ENVIRONMENT_VARIABLE_DELETE_FAIL;
-import static com.openjiuwen.studio.agent.common.enums.StudioError.ENVIRONMENT_VARIABLE_NOT_EMPTY;
-import static com.openjiuwen.studio.agent.common.enums.StudioError.ENVIRONMENT_VARIABLE_NOT_EXISTS;
-import static com.openjiuwen.studio.agent.manager.enums.EnumEnvStatus.CREATING;
-import static com.openjiuwen.studio.agent.manager.enums.EnumEnvStatus.DELETED;
-import static com.openjiuwen.studio.agent.manager.enums.EnumEnvStatus.DELETE_FAILED;
-import static com.openjiuwen.studio.agent.manager.enums.EnumEnvStatus.DELETING;
-import static com.openjiuwen.studio.agent.manager.enums.EnumEnvStatus.FAILED;
-import static com.openjiuwen.studio.agent.manager.enums.EnumEnvStatus.NOT_FOUND;
-import static com.openjiuwen.studio.agent.manager.enums.EnumEnvStatus.READY;
-import static com.openjiuwen.studio.agent.manager.enums.EnumEnvStatus.UPDATING;
-
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 import com.alibaba.fastjson2.JSONWriter;
@@ -48,57 +21,27 @@ import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
 import com.openjiuwen.studio.agent.common.utils.CryptoUtils;
 import com.openjiuwen.studio.agent.common.utils.FileCommonUtils;
 import com.openjiuwen.studio.agent.common.utils.RequestContextUtils;
+import com.openjiuwen.studio.agent.common.utils.ResponseModel;
 import com.openjiuwen.studio.agent.manager.constant.CommonConstant;
-import com.openjiuwen.studio.agent.manager.dto.Environment;
-import com.openjiuwen.studio.agent.manager.dto.EnvironmentInfoRequest;
-import com.openjiuwen.studio.agent.manager.dto.EnvironmentInstance;
-import com.openjiuwen.studio.agent.manager.dto.EnvironmentInstances;
-import com.openjiuwen.studio.agent.manager.dto.EnvironmentVariable;
-import com.openjiuwen.studio.agent.manager.dto.EnvironmentVariableResp;
-import com.openjiuwen.studio.agent.manager.dto.EnvironmentVariableValue;
-import com.openjiuwen.studio.agent.manager.dto.EnvironmentVariables;
-import com.openjiuwen.studio.agent.manager.dto.EnvironmentVariablesExport;
-import com.openjiuwen.studio.agent.manager.dto.EnvironmentVariablesResp;
-import com.openjiuwen.studio.agent.manager.dto.Environments;
-import com.openjiuwen.studio.agent.manager.dto.ListSubnets;
-import com.openjiuwen.studio.agent.manager.dto.QueryEnvironmentInstancesQo;
-import com.openjiuwen.studio.agent.manager.dto.QueryEnvironmentVariablesQo;
-import com.openjiuwen.studio.agent.manager.dto.QueryEnvironmentsListQo;
-import com.openjiuwen.studio.agent.manager.dto.SubnetInfo;
-import com.openjiuwen.studio.agent.manager.dto.ValidationVariableImport;
-import com.openjiuwen.studio.agent.manager.dto.ValidationVariablesImport;
-import com.openjiuwen.studio.agent.manager.dto.VpcInfo;
-import com.openjiuwen.studio.agent.manager.entity.CreateEnvOpsMetaData;
-import com.openjiuwen.studio.agent.manager.entity.EnvironmentManagerEntity;
-import com.openjiuwen.studio.agent.manager.entity.EnvironmentManagerResources;
-import com.openjiuwen.studio.agent.manager.entity.EnvironmentVariableEntity;
-import com.openjiuwen.studio.agent.manager.entity.WorkspaceEntity;
+import com.openjiuwen.studio.agent.manager.dto.*;
+import com.openjiuwen.studio.agent.manager.entity.*;
 import com.openjiuwen.studio.agent.manager.enums.EnumEnvStatus;
 import com.openjiuwen.studio.agent.manager.mapper.EnvironmentManagerMapper;
+import com.openjiuwen.studio.agent.manager.mapper.EnvironmentVariableMapper;
 import com.openjiuwen.studio.agent.manager.mapper.workspace.WorkspaceMapper;
 import com.openjiuwen.studio.agent.manager.obs.MgObsService;
-import com.openjiuwen.studio.agent.manager.rce.models.IamUserInfoResp;
 import com.openjiuwen.studio.agent.manager.rce.service.EnvironmentClientService;
-import com.openjiuwen.studio.agent.manager.repository.EnvironmentManagerRepository;
-import com.openjiuwen.studio.agent.manager.repository.EnvironmentVariableRepository;
 import com.openjiuwen.studio.agent.manager.service.IEnvironmentServiceManagerService;
-import com.openjiuwen.studio.agent.manager.service.environment.model.EnvironmentVariablesExportAndImport;
-import com.openjiuwen.studio.agent.manager.service.environment.model.EnvironmentVariablesExportAndImportDetail;
-import com.openjiuwen.studio.agent.manager.service.environment.model.OpsEnvironmentInfo;
-import com.openjiuwen.studio.agent.manager.service.environment.model.OpsEnvironmentInstance;
-import com.openjiuwen.studio.agent.manager.service.environment.model.OpsEnvironmentInstances;
+import com.openjiuwen.studio.agent.manager.service.environment.model.*;
 import com.openjiuwen.studio.agent.manager.utils.CommonUtil;
 import com.openjiuwen.studio.agent.manager.utils.IamServiceUtils;
 import com.openjiuwen.studio.agent.manager.utils.JsonUtils;
-import com.openjiuwen.studio.agent.common.utils.ResponseModel;
-
 import jakarta.annotation.PostConstruct;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import lombok.extern.slf4j.Slf4j;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 import org.springframework.beans.BeanUtils;
@@ -106,8 +49,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
@@ -118,15 +61,13 @@ import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import static com.openjiuwen.studio.agent.common.enums.StudioError.*;
+import static com.openjiuwen.studio.agent.manager.enums.EnumEnvStatus.*;
 
 /**
  * 功能描述
@@ -190,12 +131,6 @@ public class EnvironmentServiceManagerService implements IEnvironmentServiceMana
     private IamServiceUtils iamServiceUtils;
 
     @Autowired
-    private EnvironmentManagerRepository environmentManagerRepository;
-
-    @Autowired
-    private EnvironmentVariableRepository environmentVariableRepository;
-
-    @Autowired
     private EnvironmentCacheUtil environmentCacheUtil;
 
     @Autowired
@@ -209,6 +144,9 @@ public class EnvironmentServiceManagerService implements IEnvironmentServiceMana
 
     @Autowired
     private EnvironmentManagerMapper environmentManagerMapper;
+
+    @Autowired
+    private EnvironmentVariableMapper environmentVariableMapper;
 
     @Value("${env-management.limit-quota:5}")
     private int environmentQuota;
@@ -248,8 +186,7 @@ public class EnvironmentServiceManagerService implements IEnvironmentServiceMana
             return;
         }
         try {
-            Optional<EnvironmentManagerEntity> optionEnvInfo = this.environmentManagerRepository.findById(id);
-            EnvironmentManagerEntity envInfo = optionEnvInfo.orElse(null);
+            EnvironmentManagerEntity envInfo = environmentManagerMapper.findById(id);
             if (envInfo == null) {
                 return;
             }
@@ -273,17 +210,17 @@ public class EnvironmentServiceManagerService implements IEnvironmentServiceMana
                 return;
             }
             if (opsEnvStatus == DELETED || opsEnvStatus == NOT_FOUND) {
-                this.environmentManagerRepository.deleteById(envInfo.getId());
+                environmentManagerMapper.deleteById(envInfo.getId());
                 return;
             }
-            this.environmentManagerRepository.updateStatusById(id, opsEnvStatus.getValue(), null);
+            environmentManagerMapper.updateStatusById(id, opsEnvStatus.getValue(), null);
 
             // 首个环境设置为默认
             if (opsEnvStatus == READY) {
                 List<EnvironmentManagerEntity> environmentManagerEntities
-                    = this.environmentManagerRepository.findByProjectIdAndIsDefaultTrue(envInfo.getProjectId());
+                    = environmentManagerMapper.findByProjectIdAndIsDefaultTrue(envInfo.getProjectId());
                 if (CollectionUtils.isEmpty(environmentManagerEntities)) {
-                    int result = this.environmentManagerRepository.updateIsDefaultById(envInfo.getId(),
+                    int result = environmentManagerMapper.updateIsDefaultById(envInfo.getId(),
                         true, null);
                 }
             }
@@ -328,7 +265,7 @@ public class EnvironmentServiceManagerService implements IEnvironmentServiceMana
                 entity.setId(body.getId());
             }
             entity.setName(body.getName());
-            entity.setDefault(false);
+            entity.setIsDefault(false);
             entity.setCreatorId(RequestContextUtils.getRequestUserId());
             entity.setStatus(CREATING.getValue());
             managerResources.getOpsMetadata().setDescription("");
@@ -340,8 +277,9 @@ public class EnvironmentServiceManagerService implements IEnvironmentServiceMana
             entity.setCreatedOn(new Date());
             entity.setUpdatedOn(new Date());
             try {
-                EnvironmentManagerEntity saveEntity = this.environmentManagerRepository.save(entity);
-                this.syncCaeStatusQueue.addData(saveEntity.getId());
+                log.info("entity:{}",entity);
+                environmentManagerMapper.insert(entity);
+                this.syncCaeStatusQueue.addData(entity.getId());
                 return entity.getId();
             } catch (Exception e) {
                 throw new AgentStudioException(ENVIRONMENT_CREATE_FAIL);
@@ -353,8 +291,7 @@ public class EnvironmentServiceManagerService implements IEnvironmentServiceMana
     @Transactional
     @OperationLog
     public Boolean deleteEnvironment(String projectId, String environmentId) {
-        EnvironmentManagerEntity envInfo = this.environmentManagerRepository
-            .findByIdAndProjectId(environmentId, projectId);
+        EnvironmentManagerEntity envInfo = environmentManagerMapper.findByIdAndProjectId(environmentId, projectId);
         if (envInfo == null) {
             throw new AgentStudioException(ENVIRONMENT_NOT_EXIST);
         }
@@ -365,20 +302,19 @@ public class EnvironmentServiceManagerService implements IEnvironmentServiceMana
         }
         this.environmentClientService.hasDeleteEnvironment(projectId, envInfo.getId());
         try {
-            this.environmentManagerRepository.updateStatusAndIsDefaultById(environmentId, DELETING.getValue(),
+            environmentManagerMapper.updateStatusAndIsDefaultById(environmentId, DELETING.getValue(),
                 CommonUtil.getUserId(), false);
             this.deleteAllEnvironmentVariables(projectId, environmentId);
             this.syncCaeStatusQueue.addData(envInfo.getId());
-            if (!envInfo.isDefault()) {
+            if (!envInfo.getIsDefault()) {
                 return true;
             }
             List<EnvironmentManagerEntity> isDefaultFase
-                = this.environmentManagerRepository.findByProjectIdAndIsDefaultFalseAndStatus(projectId,
-                READY.getValue());
+                = environmentManagerMapper.findByProjectIdAndIsDefaultFalseAndStatus(projectId, READY.getValue());
             if (CollectionUtils.isEmpty(isDefaultFase)) {
                 return true;
             }
-            this.environmentManagerRepository.updateIsDefaultById(isDefaultFase.get(0).getId(),
+            environmentManagerMapper.updateIsDefaultById(isDefaultFase.get(0).getId(),
                 true, CommonUtil.getUserId());
             return true;
         } catch (Exception e) {
@@ -390,7 +326,7 @@ public class EnvironmentServiceManagerService implements IEnvironmentServiceMana
     @Transactional
     @OperationLog
     public Boolean isDefaultEnvironments(String projectId, String environmentId) {
-        EnvironmentManagerEntity envInfo = this.environmentManagerRepository.findByIdAndProjectId(environmentId,
+        EnvironmentManagerEntity envInfo = environmentManagerMapper.findByIdAndProjectId(environmentId,
             projectId);
         if (envInfo == null) {
             throw new AgentStudioException(ENVIRONMENT_NOT_EXIST);
@@ -399,13 +335,13 @@ public class EnvironmentServiceManagerService implements IEnvironmentServiceMana
             throw new AgentStudioException(ENVIRONMENT_DEFAULT_NOT_SUPPORT);
         }
         List<EnvironmentManagerEntity> environmentManagerEntities
-            = this.environmentManagerRepository.findByProjectIdAndIsDefaultTrue(projectId);
+            = environmentManagerMapper.findByProjectIdAndIsDefaultTrue(projectId);
         if (!CollectionUtils.isEmpty(environmentManagerEntities)) {
             List<String> envIds = environmentManagerEntities.stream().map(EnvironmentManagerEntity::getId).toList();
-            this.environmentManagerRepository.batchUpdateIsDefaultByIds(envIds,
+            environmentManagerMapper.batchUpdateIsDefaultByIds(envIds,
                 false, RequestContextUtils.getRequestUserId());
         }
-        int result = this.environmentManagerRepository.updateIsDefaultById(environmentId,
+        int result = environmentManagerMapper.updateIsDefaultById(environmentId,
             true, RequestContextUtils.getRequestUserId());
         if (result <= 0) {
             throw new AgentStudioException(ENVIRONMENT_DEFAULT_SET_FAIL);
@@ -417,8 +353,9 @@ public class EnvironmentServiceManagerService implements IEnvironmentServiceMana
     @OperationLog
     public Boolean modifyEnvironmentInfo(String projectId, String environmentId,
         EnvironmentInfoRequest body) {
-        EnvironmentManagerEntity envInfo = this.environmentManagerRepository
-            .findByIdAndProjectId(environmentId, RequestContextUtils.getRequestProjectId());
+        log.info("projectId={},userId={}",RequestContextUtils.getRequestProjectId(),RequestContextUtils.getRequestUserId());
+        EnvironmentManagerEntity envInfo = environmentManagerMapper
+            .findByIdAndProjectId(environmentId, projectId);
         if (envInfo == null) {
             throw new AgentStudioException(ENVIRONMENT_NOT_EXIST);
         }
@@ -429,7 +366,7 @@ public class EnvironmentServiceManagerService implements IEnvironmentServiceMana
         envInfo.setUpdaterId(RequestContextUtils.getRequestUserId());
         envInfo.setUpdatedOn(new Date());
         try {
-            this.environmentManagerRepository.save(envInfo);
+            environmentManagerMapper.updateById(envInfo);
             return true;
         } catch (Exception e) {
             throw new AgentStudioException(ENVIRONMENT_MODIFY_FAIL);
@@ -438,7 +375,7 @@ public class EnvironmentServiceManagerService implements IEnvironmentServiceMana
 
     @Override
     public Environment queryEnvironment(String projectId, String environmentId) {
-        EnvironmentManagerEntity envInfo = this.environmentManagerRepository
+        EnvironmentManagerEntity envInfo = environmentManagerMapper
             .findByIdAndProjectId(environmentId, projectId);
         if (envInfo == null) {
             return new Environment();
@@ -466,7 +403,7 @@ public class EnvironmentServiceManagerService implements IEnvironmentServiceMana
     }
 
     private EnvironmentManagerEntity queryEnvironmentDetail(String projectId, String environmentId) {
-        EnvironmentManagerEntity entity = environmentManagerRepository.findByIdAndProjectId(environmentId, projectId);
+        EnvironmentManagerEntity entity = environmentManagerMapper.findByIdAndProjectId(environmentId, projectId);
         if (ObjectUtils.isEmpty(entity)) {
             log.info("Environment not found, environmentId: {}, projectId: {}", environmentId, projectId);
             throw new AgentStudioException(ENVIRONMENT_NOT_EXIST);
@@ -477,7 +414,7 @@ public class EnvironmentServiceManagerService implements IEnvironmentServiceMana
     @Override
     public EnvironmentInstances queryEnvironmentInstances(String projectId,
         String environmentId, QueryEnvironmentInstancesQo queryEnvironmentInstancesQo) {
-        EnvironmentManagerEntity envInfo = this.environmentManagerRepository
+        EnvironmentManagerEntity envInfo = environmentManagerMapper
             .findByIdAndProjectId(environmentId, projectId);
         if (envInfo == null) {
             throw new AgentStudioException(ENVIRONMENT_NOT_EXIST);
@@ -529,7 +466,7 @@ public class EnvironmentServiceManagerService implements IEnvironmentServiceMana
                 BeanUtils.copyProperties(entity, environment);
                 environment.setCreatedOn(entity.getCreatedOn().getTime());
                 environment.setUpdatedOn(entity.getUpdatedOn().getTime());
-                environment.setIsDefault(entity.isDefault());
+                environment.setIsDefault(entity.getIsDefault());
                 if (StringUtils.isNotBlank(entity.getResources())) {
                     EnvironmentManagerResources managerResources = JSONObject.parseObject(entity.getResources(),
                         EnvironmentManagerResources.class);
@@ -580,7 +517,7 @@ public class EnvironmentServiceManagerService implements IEnvironmentServiceMana
         if (!environmentManagerEntities.isEmpty()) {
             environmentVariablesList = environmentManagerEntities.stream().map(env -> {
                 EnvironmentVariableEntity environmentVariableFromDb
-                    = this.environmentVariableRepository.findByProjectIdAndWorkspaceIdAndEnvId(projectId,
+                    = environmentVariableMapper.findByProjectIdAndWorkspaceIdAndEnvId(projectId,
                     queryEnvironmentVariablesQo.getWorkspaceId(), env.getId());
                 EnvironmentVariableResp environmentVariableResp = new EnvironmentVariableResp();
                 environmentVariableResp.setId(env.getId());
@@ -628,8 +565,7 @@ public class EnvironmentServiceManagerService implements IEnvironmentServiceMana
      * @param workspaceId 空间id
      */
     public String queryEnvironmentVariables(String projectId, String environmentId, String workspaceId) {
-        Optional<EnvironmentManagerEntity> optionEnvInfo = this.environmentManagerRepository.findById(environmentId);
-        EnvironmentManagerEntity envInfo = optionEnvInfo.orElse(null);
+        EnvironmentManagerEntity envInfo = environmentManagerMapper.findById(environmentId);
         if (envInfo == null) {
             return "";
         }
@@ -637,7 +573,7 @@ public class EnvironmentServiceManagerService implements IEnvironmentServiceMana
         if (StringUtils.isNotBlank(variableInfo)) {
             return variableInfo;
         }
-        EnvironmentVariableEntity environmentVariable = this.environmentVariableRepository
+        EnvironmentVariableEntity environmentVariable = environmentVariableMapper
             .findByProjectIdAndWorkspaceIdAndEnvId(projectId, workspaceId, environmentId);
         return environmentVariable == null ? "" : environmentVariable.getEnvVariable();
     }
@@ -656,7 +592,7 @@ public class EnvironmentServiceManagerService implements IEnvironmentServiceMana
         }
         EnvironmentManagerEntity environmentManagerEntity = this.queryEnvironmentDetail(projectId, environmentId);
         EnvironmentVariableEntity environmentVariableEntity
-            = this.environmentVariableRepository.findByProjectIdAndWorkspaceIdAndEnvId(projectId, workspaceId,
+            = environmentVariableMapper.findByProjectIdAndWorkspaceIdAndEnvId(projectId, workspaceId,
             environmentId);
         Map<String, EnvironmentVariableValue> secretVariables = new HashMap<>();
         String variables;
@@ -680,7 +616,7 @@ public class EnvironmentServiceManagerService implements IEnvironmentServiceMana
     }
 
     private boolean updateEvnVariable(String environmentId, String variables, String workspaceId, String variableId) {
-        int count = environmentVariableRepository.updateEvnVariableById(variableId, variables, CommonUtil.getUserId());
+        int count = environmentVariableMapper.updateEvnVariableById(variableId, variables, CommonUtil.getUserId());
         if (count > 0) {
             environmentCacheUtil.updateEnvironmentCache(environmentId, workspaceId, variables);
         }
@@ -698,7 +634,7 @@ public class EnvironmentServiceManagerService implements IEnvironmentServiceMana
         entity.setEnvId(environmentId);
         entity.setEnvVariable(variables);
         try {
-            this.environmentVariableRepository.save(entity);
+            environmentVariableMapper.insert(entity);
             environmentCacheUtil.updateEnvironmentCache(environmentId, workspaceId,
                 entity.getEnvVariable());
             return true;
@@ -714,13 +650,13 @@ public class EnvironmentServiceManagerService implements IEnvironmentServiceMana
         String envVariableId, String workspaceId) {
         EnvironmentManagerEntity envInfo = this.queryEnvironmentDetail(projectId, environmentId);
         EnvironmentVariableEntity environmentVariableEntity
-            = this.environmentVariableRepository.findByProjectIdAndWorkspaceIdAndEnvIdAndId(projectId, workspaceId,
+            = environmentVariableMapper.findByProjectIdAndWorkspaceIdAndEnvIdAndId(projectId, workspaceId,
             environmentId, envVariableId);
         if (environmentVariableEntity == null) {
             throw new AgentStudioException(ENVIRONMENT_VARIABLE_NOT_EXISTS);
         }
         try {
-            environmentVariableRepository.deleteById(environmentVariableEntity.getId());
+            environmentVariableMapper.deleteById(environmentVariableEntity.getId());
             environmentCacheUtil.deleteEnvironmentCache(envInfo.getId(), workspaceId);
             return SUCCESS;
         } catch (Exception e) {
@@ -731,13 +667,13 @@ public class EnvironmentServiceManagerService implements IEnvironmentServiceMana
     private void deleteAllEnvironmentVariables(String projectId, String environmentId) {
         EnvironmentManagerEntity envInfo = this.queryEnvironmentDetail(projectId, environmentId);
         List<EnvironmentVariableEntity> environmentVariables
-            = this.environmentVariableRepository.findByProjectIdAndEnvId(projectId, environmentId);
+            = environmentVariableMapper.findByProjectIdAndEnvId(projectId, environmentId);
         if (CollectionUtils.isEmpty(environmentVariables)) {
             return;
         }
         try {
             environmentVariables.forEach(envVariable -> {
-                environmentVariableRepository.deleteById(envVariable.getId());
+                environmentVariableMapper.deleteById(envVariable.getId());
                 environmentCacheUtil.deleteEnvironmentCache(envInfo.getId(), envVariable.getWorkspaceId());
             });
         } catch (Exception e) {
@@ -793,14 +729,14 @@ public class EnvironmentServiceManagerService implements IEnvironmentServiceMana
             throw new AgentStudioException(ENVIRONMENT_CREATE_PARAMETER_VERIFICATION_FAIL, ENV_NAME);
         }
         List<EnvironmentManagerEntity> envs
-            = this.environmentManagerRepository.findByNameAndProjectId(name, projectId);
+            = environmentManagerMapper.findByNameAndProjectId(name, projectId);
         if (!CollectionUtils.isEmpty(envs)) {
             throw new AgentStudioException(ENVIRONMENT_NAME_EXIST);
         }
     }
 
     private void validationQuota(String projectId) {
-        int total = this.environmentManagerRepository.countByProjectId(projectId);
+        int total = environmentManagerMapper.countByProjectId(projectId);
         if (total >= environmentQuota) {
             throw new AgentStudioException(ENVIRONMENT_LIMIT_EXCEEDED, environmentQuota);
         }
@@ -846,15 +782,15 @@ public class EnvironmentServiceManagerService implements IEnvironmentServiceMana
 
     @Override
     public EnvironmentVariables showEnvironmentVariables(String projectId, String environmentId, String workspaceId) {
-        Optional<EnvironmentManagerEntity> optionEnvInfo = this.environmentManagerRepository.findById(environmentId);
-        EnvironmentManagerEntity envInfo = optionEnvInfo.orElse(null);
+
+        EnvironmentManagerEntity envInfo = environmentManagerMapper.findById(environmentId);
         if (envInfo == null) {
             return new EnvironmentVariables();
         }
         String variableInfo = this.environmentCacheUtil.getEnvironmentCache(envInfo.getId(), workspaceId);
         if (StringUtils.isBlank(variableInfo)) {
             EnvironmentVariableEntity environmentVariableFromDb
-                = this.environmentVariableRepository.findByProjectIdAndWorkspaceIdAndEnvId(projectId, workspaceId,
+                = environmentVariableMapper.findByProjectIdAndWorkspaceIdAndEnvId(projectId, workspaceId,
                 environmentId);
             if (environmentVariableFromDb == null) {
                 return new EnvironmentVariables();
@@ -882,17 +818,9 @@ public class EnvironmentServiceManagerService implements IEnvironmentServiceMana
      * @param pageable 分页信息
      */
     public Page<EnvironmentManagerEntity> selectByConditionWithPage(String name, String projectId, Pageable pageable) {
-        Specification<EnvironmentManagerEntity> spec = (Root<EnvironmentManagerEntity> root,
-            CriteriaQuery<?> query, CriteriaBuilder cb) -> {
-            Predicate predicate = cb.conjunction();
-            if (name != null && !name.isEmpty()) {
-                predicate = cb.and(predicate, cb.like(root.get("name"), "%" + name + "%"));
-            }
-            predicate = cb.and(predicate, cb.equal(root.get("projectId"), projectId));
-
-            return predicate;
-        };
-        return environmentManagerRepository.findAll(spec, pageable);
+        List<EnvironmentManagerEntity> environmentManagerEntities = environmentManagerMapper.selectByConditionWithPage(name, projectId, (int) pageable.getOffset(), pageable.getPageSize());
+        long total = environmentManagerMapper.countByCondition(name,projectId);
+        return new PageImpl<>(environmentManagerEntities,pageable,total);
     }
 
     /**
@@ -902,16 +830,10 @@ public class EnvironmentServiceManagerService implements IEnvironmentServiceMana
      * @param projectId 项目id
      * @param pageable 分页信息
      */
-    public Page<EnvironmentManagerEntity> selectByStatusConditionWithPage(String status,
-        String projectId, Pageable pageable) {
-        Specification<EnvironmentManagerEntity> spec = (Root<EnvironmentManagerEntity> root,
-            CriteriaQuery<?> query, CriteriaBuilder cb) -> {
-            List<Predicate> predicates = new ArrayList<>();
-            predicates.add(cb.equal(root.get("status"), status));
-            predicates.add(cb.and(cb.equal(root.get("projectId"), projectId)));
-            return cb.and(predicates.toArray(new Predicate[0]));
-        };
-        return environmentManagerRepository.findAll(spec, pageable);
+    public Page<EnvironmentManagerEntity> selectByStatusConditionWithPage(String status, String projectId, Pageable pageable) {
+        List<EnvironmentManagerEntity> environmentManagerEntities = environmentManagerMapper.selectByStatusConditionWithPage(status, projectId, (int) pageable.getOffset(), pageable.getPageSize());
+        long total = environmentManagerMapper.countByStatus(status,projectId);
+        return new PageImpl<>(environmentManagerEntities,pageable,total);
     }
 
 
@@ -928,7 +850,7 @@ public class EnvironmentServiceManagerService implements IEnvironmentServiceMana
         String workspaceId, String flowVersion) {
         EnvironmentManagerEntity envInfo = this.queryEnvironmentDetail(projectId, environmentId);
         EnvironmentVariableEntity variableEntity
-            = this.environmentVariableRepository.findByProjectIdAndWorkspaceIdAndEnvId(projectId, workspaceId,
+            = environmentVariableMapper.findByProjectIdAndWorkspaceIdAndEnvId(projectId, workspaceId,
             environmentId);
         obsService.uploadObsFile(flowId, StringUtils.join(flowId, "_", flowVersion, "_env"), CommonConstant.WORKFLOW,
             variableEntity == null ? "" : variableEntity.getEnvVariable(), CommonConstant.Workflow.IR);
@@ -991,7 +913,7 @@ public class EnvironmentServiceManagerService implements IEnvironmentServiceMana
         if (body == null || CollectionUtils.isEmpty(body.getEnvironmentId()) || body.getEnvironmentId().size() != 1) {
             throw new AgentStudioException(StudioError.EXPORT_ENVIRONMENT_VARIABLE_FAIL);
         }
-        List<EnvironmentManagerEntity> environments = this.environmentManagerRepository.findByProjectId(projectId);
+        List<EnvironmentManagerEntity> environments = environmentManagerMapper.findByProjectId(projectId);
         if (CollectionUtils.isEmpty(environments)) {
             throw new AgentStudioException(StudioError.EXPORT_ENVIRONMENT_VARIABLE_FAIL);
         }
@@ -1007,7 +929,7 @@ public class EnvironmentServiceManagerService implements IEnvironmentServiceMana
         body.getEnvironmentId().forEach(id -> {
             String cacheVariables = this.environmentCacheUtil.getEnvironmentCache(id, workspaceId);
             if (StringUtils.isBlank(cacheVariables)) {
-                EnvironmentVariableEntity variable = this.environmentVariableRepository
+                EnvironmentVariableEntity variable = environmentVariableMapper
                     .findByProjectIdAndWorkspaceIdAndEnvId(projectId, workspaceId, id);
                 cacheVariables = variable == null ? "" : variable.getEnvVariable();
             }
@@ -1083,7 +1005,7 @@ public class EnvironmentServiceManagerService implements IEnvironmentServiceMana
             log.error("The number of environment variables in a single environment has exceeded the maximum limit supported by the system {}", environmentVariablesQuota);
             throw new AgentStudioException(ENVIRONMENT_VARIABLES_LIMIT_EXCEEDED, environmentVariablesQuota);
         }
-        EnvironmentManagerEntity environmentManager = this.environmentManagerRepository.findByIdAndProjectId(
+        EnvironmentManagerEntity environmentManager = environmentManagerMapper.findByIdAndProjectId(
             importDetail.getEnvironmentId(), projectId);
         if (environmentManager == null) {
             log.error("The environment does not exist");
@@ -1092,7 +1014,7 @@ public class EnvironmentServiceManagerService implements IEnvironmentServiceMana
         this.validationDuplicateVariableName(importDetail);
         String variableValue;
         EnvironmentVariableEntity environmentVariable
-            = this.environmentVariableRepository.findByProjectIdAndWorkspaceIdAndEnvId(projectId, workspaceId,
+            = environmentVariableMapper.findByProjectIdAndWorkspaceIdAndEnvId(projectId, workspaceId,
             environmentManager.getId());
         if (environmentVariable == null) {
             variableValue = this.importEnvVariableParse(importDetail.getEnvironmentVariables(), true);
@@ -1182,7 +1104,7 @@ public class EnvironmentServiceManagerService implements IEnvironmentServiceMana
      */
     public ValidationVariablesImport resolveEnvironmentVariables(String projectId, EnvironmentVariablesExportAndImportDetail importDetail, String environmentId) {
         ValidationVariablesImport validationVariablesImport = new ValidationVariablesImport();
-        EnvironmentManagerEntity environmentManager = this.environmentManagerRepository.findByIdAndProjectId(
+        EnvironmentManagerEntity environmentManager = environmentManagerMapper.findByIdAndProjectId(
             environmentId, projectId);
         if (environmentManager == null) {
             log.error("The environment does not exist");
@@ -1193,7 +1115,7 @@ public class EnvironmentServiceManagerService implements IEnvironmentServiceMana
             throw new AgentStudioException(StudioError.IMPORT_ENVIRONMENT_VARIABLE_FAIL);
         }
         this.validationDuplicateVariableName(importDetail);
-        EnvironmentVariableEntity environmentVariable = this.environmentVariableRepository
+        EnvironmentVariableEntity environmentVariable = environmentVariableMapper
             .findByProjectIdAndWorkspaceIdAndEnvId(projectId, RequestContextUtils.getRequestWorkspaceId(), environmentManager.getId());
         if (environmentVariable == null) {
             return validationVariablesImport.setResult(true);

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.agent.manager.mapper.EnvironmentVariableMapper">
+
+    <sql id="Base_Column_List">
+        id, project_id, workspace_id, env_id, env_variable,
+          created_on, creator_id, updated_on, updater_id
+    </sql>
+
+    <resultMap id="BaseResultMap"
+               type="com.openjiuwen.studio.agent.manager.entity.EnvironmentVariableEntity">
+        <id column="id" jdbcType="VARCHAR" property="id"/>
+        <result column="project_id" jdbcType="VARCHAR" property="projectId"/>
+        <result column="workspace_id" jdbcType="VARCHAR" property="workspaceId"/>
+        <result column="env_id" jdbcType="VARCHAR" property="envId"/>
+        <result column="env_variable" jdbcType="VARCHAR" property="envVariable"/>
+        <result column="created_on" jdbcType="TIMESTAMP" property="createdOn"/>
+        <result column="creator_id" jdbcType="VARCHAR" property="creatorId"/>
+        <result column="updated_on" jdbcType="TIMESTAMP" property="updatedOn"/>
+        <result column="updater_id" jdbcType="VARCHAR" property="updaterId"/>
+    </resultMap>
+
+    <select id="findByProjectIdAndWorkspaceIdAndEnvIdIn" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM t_environment_variable_info
+        WHERE project_id = #{projectId}
+        AND workspace_id = #{workspaceId}
+        AND env_id IN
+        <foreach collection="envIds" item="envId" open="(" separator="," close=")">
+            #{envId}
+        </foreach>
+    </select>
+
+
+    <insert id="insert"
+            parameterType="com.openjiuwen.studio.agent.manager.entity.EnvironmentVariableEntity">
+        INSERT INTO t_environment_variable_info (
+            id, project_id, workspace_id, env_id, env_variable,
+            created_on, creator_id, updated_on, updater_id
+        ) VALUES (
+                     #{id}, #{projectId}, #{workspaceId}, #{envId}, #{envVariable},
+                     #{createdOn}, #{creatorId}, #{updatedOn}, #{updaterId}
+                 )
+    </insert>
+
+</mapper>
