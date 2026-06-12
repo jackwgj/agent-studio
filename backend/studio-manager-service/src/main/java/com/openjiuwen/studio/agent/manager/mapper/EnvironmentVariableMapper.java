@@ -31,7 +31,7 @@ public interface EnvironmentVariableMapper {
     List<EnvironmentVariableEntity> findByProjectIdAndWorkspaceIdAndEnvIdIn(String projectId, String workspaceId, List<String> envIds);
 
     @Update("update t_environment_variable_info " +
-            "set env_variable = #{envVariable}, updater_id = #{updaterId}, updatde_on = current_timestamp" +
+            "set env_variable = #{envVariable}, updater_id = #{updaterId}, updated_on = current_timestamp " +
             "where id = #{id}")
     int updateEvnVariableById(@Param("id") String id, @Param("envVariable") String envVariable, @Param("updaterId") String updaterId);
 
