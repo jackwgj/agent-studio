@@ -159,7 +159,7 @@
             </nz-textarea-count>
           </div>
           <div class="item">
-            <button nz-button nzType="primary" nzSize="large" (click)="triggerImage2Text()" nz-tooltip [nzTooltipTitle]="Image2TextButtonTip">
+            <button nz-button nzType="primary" nzSize="large" (click)="triggerImage2Text()" nz-tooltip [nzTooltipTitle]="Image2TextButtonTip" [disabled]="!!Image2TextButtonTip">
               {{ 'generate_image_understanding' | i18nextEager }}
             </button>
           </div>
@@ -189,7 +189,7 @@
             </nz-textarea-count>
           </div>
           <div class="item">
-            <button nz-button nzType="primary" (click)="triggerTextEmbedding()" nz-tooltip [nzTooltipTitle]="EmbeddingButtonTip">
+            <button nz-button nzType="primary" (click)="triggerTextEmbedding()" nz-tooltip [nzTooltipTitle]="EmbeddingButtonTip" [disabled]="!!EmbeddingButtonTip">
               {{ 'generate_vectorization' | i18nextEager }}
             </button>
           </div>
@@ -238,7 +238,7 @@
             </nz-textarea-count>
           </div>
           <div class="item">
-            <button nz-button nzType="primary" nz-tooltip [nzTooltipTitle]="RerankButtonTip" (click)="triggerTextRerank()">
+            <button nz-button nzType="primary" nz-tooltip [nzTooltipTitle]="RerankButtonTip" [disabled]="!!RerankButtonTip" (click)="triggerTextRerank()">
               {{ 'start_sorting' | i18nextEager }}
             </button>
           </div>
