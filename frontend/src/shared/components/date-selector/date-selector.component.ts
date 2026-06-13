@@ -1,10 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { Component, forwardRef, OnInit } from '@angular/core';
-import {
-  ControlValueAccessor,
-  FormsModule,
-  NG_VALUE_ACCESSOR,
-} from '@angular/forms';
+import { Component, forwardRef, Input, OnInit } from '@angular/core';
+import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { I18nNamespace } from '@i18n';
 import { MODULES } from '@shared/modules';
 import { I18NEXT_NAMESPACE, I18NextEagerPipe } from 'angular-i18next';
@@ -38,17 +34,22 @@ type FormatType = 'preset' | 'custom';
             [(ngModel)]="ruleStr"
             (ngModelChange)="onInput()"
             (blur)="onInputBlur()"
+            [class]="showError ? 'input-error' : ''"
           />
 
           <nz-select
             class="combo-select-right"
             *ngIf="formatTypeStr === 'preset'"
             style="width: 100%"
-            [nzOptions]="presetOps"
             [(ngModel)]="ruleStr"
             [nzPlaceHolder]="'select_placeholder' | i18nextEager"
             (ngModelChange)="onSelect()"
-          ></nz-select>
+            [class]="showError ? 'input-error' : ''"
+          >
+            @for (option of presetOps; track option) {
+              <nz-option [nzLabel]="option.label" [nzValue]="option.value" />
+            }
+          </nz-select>
         </div>
       </div>
     </div>
@@ -78,6 +79,10 @@ type FormatType = 'preset' | 'custom';
         border-top-left-radius: 0px !important;
         border-bottom-left-radius: 0px !important;
       }
+
+      .input-error {
+        border-color: #ff4d4f !important;
+      }
     `,
   ],
   providers: [
@@ -92,14 +97,11 @@ type FormatType = 'preset' | 'custom';
     },
   ],
   standalone: true,
-  imports: [
-    MODULES,
-    NzSelectModule,
-    FormsModule,
-    CommonModule,
-  ],
+  imports: [MODULES, NzSelectModule, FormsModule, CommonModule],
 })
 export class DateSelectorComponent implements ControlValueAccessor, OnInit {
+  @Input('showError') showError = false;
+
   disabled = false;
 
   formatTypeStr: FormatType = 'preset';
@@ -132,7 +134,7 @@ export class DateSelectorComponent implements ControlValueAccessor, OnInit {
     },
   ];
 
-  private presetValues = this.presetOps.map((op) => op.value);
+  private presetValues = this.presetOps.map(op => op.value);
 
   constructor(private i18n: I18NextEagerPipe) {}
 
@@ -180,7 +182,7 @@ export class DateSelectorComponent implements ControlValueAccessor, OnInit {
 
   onFormatChange() {
     if (this.formatTypeStr === 'preset') {
-      this.ruleStr = 'YYYY-MM-DD HH:MM';
+      this.ruleStr = '%Y-%m-%d %H:%M:%S';
     } else {
       this.ruleStr = '';
     }

@@ -374,6 +374,8 @@ export class CreateToolComponent implements OnInit {
 
   public emptyImage = null;
 
+  @ViewChild('inputForm') requestArgsForm: NgForm;
+
   public get requestArgValidates() {
     return this.requestArgs.filter(args => this.selectedTab && args.validated);
   }
@@ -936,6 +938,13 @@ export class CreateToolComponent implements OnInit {
     if (!this.showFromErrorByName(this.responseForm, ['responseFormName'])) {
       return;
     }
+
+    for (let i = 0; i < this.requestArgs.length; i++) {
+      if (this.requestArgs[i].validated && !this.requestArgs[i].validate_rule) {
+        return;
+      }
+    }
+
     if (this.patchArgs && this.patchArgs.length > 0 && this.pathForm.invalid) {
       return;
     }

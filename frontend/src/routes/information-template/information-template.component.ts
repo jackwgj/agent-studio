@@ -404,7 +404,7 @@ export class InformationTemplateComponent implements OnInit, OnDestroy {
       const params = {
         limit: this.pageSize.size,
         offset: (this.currentPage - 1) * this.pageSize.size,
-        ...(this.searchValue && { name: this.searchValue }),
+        ...(this.searchValue.trim() && { name: this.searchValue.trim() }),
       };
 
       const result = await this.informationTemplateService.getStructuredMessagesList(params);

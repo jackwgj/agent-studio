@@ -39,8 +39,8 @@
   </div>
 
   <div class="query-operate" *ngIf="!isShowNoDataGuide && !isFirstLoading">
-    <nz-input-search class="search-input">
-      <input nz-input [(ngModel)]="searchValue" [placeholder]="'search_and_filter' | i18nextEager" (keyup.enter)="searchList()" />
+    <nz-input-search class="search-input" (nzSearch)="searchList()">
+      <input nz-input [(ngModel)]="searchValue" [placeholder]="'search_and_filter' | i18nextEager" />
     </nz-input-search>
     <button nz-button nzType="default" class="h-8 w-8 flex items-center justify-center p-0" (click)="getStructuredMessagesListData()">
       <nz-icon nzType="redo" nzTheme="outline" />

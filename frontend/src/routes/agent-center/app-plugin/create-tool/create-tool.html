@@ -413,108 +413,120 @@
                     <div class="w-[140px] text-label">{{ 'validate_type' | i18nextEager }}</div>
                     <div class="w-[calc(100%-270)] text-label">{{ 'validate_rule' | i18nextEager }}</div>
                   </div>
+                  <form #requestArgsForm="ngForm" nz-form [nzLayout]="'vertical'">
+                    <div *ngFor="let param of requestArgValidates; index as i" class="mt-2 flex gap-2">
+                      <!-- 参数名称 -->
+                      <div class="w-[130px]">
+                        <input
+                          style="width: 100%"
+                          type="text"
+                          maxlength="100"
+                          [disabled]="true"
+                          nz-input
+                          [ngModelOptions]="{ standalone: true }"
+                          [(ngModel)]="param.name"
+                          [title]="param.name"
+                        />
+                      </div>
 
-                  <div *ngFor="let param of requestArgValidates; index as i" class="mt-2 flex gap-2">
-                    <!-- 参数名称 -->
-                    <div class="w-[130px]">
-                      <input
-                        style="width: 100%"
-                        type="text"
-                        maxlength="100"
-                        [disabled]="true"
-                        nz-input
-                        [ngModelOptions]="{ standalone: true }"
-                        [(ngModel)]="param.name"
-                        [title]="param.name"
-                      />
-                    </div>
-
-                    <!-- 校验类型 -->
-                    <div class="w-[140px]">
-                      <nz-select
-                        *ngIf="param.type === 'string'; else numberBlock"
-                        style="width: 100%"
-                        [name]="'requestValidateType' + param.name"
-                        [nzOptions]="strValidateOps"
-                        [(ngModel)]="param.validate_type"
-                      ></nz-select>
-
-                      <ng-template #numberBlock>
+                      <!-- 校验类型 -->
+                      <div class="w-[140px]">
                         <nz-select
+                          *ngIf="param.type === 'string'; else numberBlock"
                           style="width: 100%"
                           [name]="'requestValidateType' + param.name"
-                          [nzOptions]="numberValidateOps"
+                          [nzOptions]="strValidateOps"
                           [(ngModel)]="param.validate_type"
                         ></nz-select>
-                      </ng-template>
-                    </div>
 
-                    <!-- 校验规则 -->
-                    <div class="w-[calc(100%-270px)]">
-                      <!-- 字符长度 -->
-                      <ng-container *ngIf="param.validate_type === 'CHAR'">
-                        <input
-                          style="width: 100%"
-                          type="text"
-                          [name]="'requestValidateRule' + param.name"
-                          nonEmptyValidator
-                          positiveIntStr
-                          maxlength="7"
-                          nz-input
-                          [(ngModel)]="param.validate_rule"
-                          [placeholder]="'input_placeholder' | i18nextEager"
-                        />
-                        <div class="w-full" #requestRuleWrapper></div>
-                      </ng-container>
+                        <ng-template #numberBlock>
+                          <nz-select
+                            style="width: 100%"
+                            [name]="'requestValidateType' + param.name"
+                            [nzOptions]="numberValidateOps"
+                            [(ngModel)]="param.validate_type"
+                          ></nz-select>
+                        </ng-template>
+                      </div>
 
-                      <!-- 数值大小 -->
-                      <ng-container *ngIf="param.validate_type === 'NUM'">
-                        <number-range
-                          *ngIf="param.type === 'number'"
-                          [(ngModel)]="param.validate_rule"
-                          [name]="'requestValidateRule' + param.name"
-                          nonEmptyValidator
-                          numberRange
-                          [leftPlaceholder]="'min' | i18nextEager"
-                          [rightPlaceholder]="'max' | i18nextEager"
-                        />
+                      <!-- 校验规则 -->
+                      <div class="w-[calc(100%-270px)]">
+                        <!-- 字符长度 -->
+                        <ng-container *ngIf="param.validate_type === 'CHAR'">
+                          <input
+                            style="width: 100%"
+                            type="text"
+                            [name]="'requestValidateRule' + param.name"
+                            nonEmptyValidator
+                            positiveIntStr
+                            maxlength="7"
+                            nz-input
+                            [(ngModel)]="param.validate_rule"
+                            [placeholder]="'input_placeholder' | i18nextEager"
+                            [class.input-error]="requestArgsForm?.controls['requestValidateRule' + param.name]?.invalid"
+                          />
+                        </ng-container>
 
-                        <number-range
-                          *ngIf="param.type === 'integer'"
-                          [(ngModel)]="param.validate_rule"
-                          [name]="'requestValidateRule' + param.name"
-                          nonEmptyValidator
-                          integerRange
-                          [leftPlaceholder]="'min' | i18nextEager"
-                          [rightPlaceholder]="'max' | i18nextEager"
-                        />
-                        <div class="w-full" #requestRuleWrapper></div>
-                      </ng-container>
+                        <!-- 数值大小 -->
+                        <ng-container *ngIf="param.validate_type === 'NUM'">
+                          <number-range
+                            *ngIf="param.type === 'number'"
+                            [(ngModel)]="param.validate_rule"
+                            [name]="'requestValidateRule' + param.name"
+                            nonEmptyValidator
+                            numberRange
+                            [leftPlaceholder]="'min' | i18nextEager"
+                            [rightPlaceholder]="'max' | i18nextEager"
+                            [class.input-error]="requestArgsForm?.controls['requestValidateRule' + param.name]?.invalid"
+                          />
 
-                      <!-- 时间日期 -->
-                      <ng-container *ngIf="param.validate_type === 'DATE'">
-                        <date-selector [(ngModel)]="param.validate_rule" [name]="'requestValidateRule' + param.name" nonEmptyValidator />
-                        <div class="w-full pl-[30%]" #requestRuleWrapper></div>
-                      </ng-container>
+                          <number-range
+                            *ngIf="param.type === 'integer'"
+                            [(ngModel)]="param.validate_rule"
+                            [name]="'requestValidateRule' + param.name"
+                            nonEmptyValidator
+                            integerRange
+                            [leftPlaceholder]="'min' | i18nextEager"
+                            [rightPlaceholder]="'max' | i18nextEager"
+                            [class.input-error]="requestArgsForm?.controls['requestValidateRule' + param.name]?.invalid"
+                          />
+                        </ng-container>
 
-                      <!-- 枚举值 -->
-                      <ng-container *ngIf="param.validate_type === 'ENUM'">
-                        <input
-                          style="width: 100%"
-                          type="text"
-                          [name]="'requestValidateRule' + param.name"
-                          nonEmptyValidator
-                          enumStr
-                          nz-input
-                          [(ngModel)]="param.validate_rule"
-                          [placeholder]="
+                        <!-- 时间日期 -->
+                        <ng-container *ngIf="param.validate_type === 'DATE'">
+                          <date-selector
+                            [(ngModel)]="param.validate_rule"
+                            [name]="'requestValidateRule' + param.name"
+                            nonEmptyValidator
+                            [showError]="
+                          requestArgsForm?.controls['requestValidateRule' + param.name]?.invalid 
+                        "
+                          />
+                        </ng-container>
+
+                        <!-- 枚举值 -->
+                        <ng-container *ngIf="param.validate_type === 'ENUM'">
+                          <input
+                            style="width: 100%"
+                            type="text"
+                            [name]="'requestValidateRule' + param.name"
+                            nonEmptyValidator
+                            enumStr
+                            nz-input
+                            [(ngModel)]="param.validate_rule"
+                            [placeholder]="
                                 'validate_rule_placeholder' | i18nextEager
                               "
-                        />
-                        <div class="w-full" #requestRuleWrapper></div>
-                      </ng-container>
+                            [class.input-error]="requestArgsForm?.controls['requestValidateRule' + param.name]?.invalid"
+                          />
+                        </ng-container>
+
+                        <div *ngIf="requestArgsForm?.controls['requestValidateRule' + param.name]?.invalid" class="error-tip">
+                          {{requestArgsForm?.controls['requestValidateRule' + param.name]?.errors?.serviceName?.tiErrorMessage}}
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  </form>
                 </ng-template>
               </collapse-text>
             </div>
