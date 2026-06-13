@@ -154,7 +154,7 @@ class Aggregate(WorkflowComponent):
         user: dict[str, Any] = {}
         if isinstance(inputs, dict):
             inner = inputs.get(USER_FIELDS)
-            user = inner if isinstance(inner, dict) else inputs
+            user = inner if (isinstance(inner, dict) and inner) else inputs
         res: dict[str, Any] = {}
         if mode == "first-non-null":
             for out_key, item_list in groups.items():

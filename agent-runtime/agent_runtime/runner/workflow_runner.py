@@ -179,7 +179,7 @@ class WorkflowRunner:
             # 首次执行：使用普通 query 输入
             inputs = {
                 "query": req.query or "",
-                **self._build_global_state_params(req.params.model_dump()),
+                **self._build_global_state_params(req.params.model_dump(), node_defs),
             }
             # 保存 exec_id 到 Redis，以便中断恢复时使用
             t_redis_save = time.time()
@@ -378,7 +378,7 @@ class WorkflowRunner:
         for event in formatter.finalize():
             yield event
 
-    def _build_global_state_params(self, params: dict) -> dict:
+    def _build_global_state_params(self, params: dict, node_defs: dict) -> dict:
         """构建需要通过 inputs → commit_user_inputs() 写入 global_state 的参数。
 
         这些参数同时存在于 envs（由 _build_envs 生成），但 envs 不被 checkpoint 保存。
@@ -416,5 +416,8 @@ class WorkflowRunner:
         # 因此需要以 "_env" 为键写入
         if "environment_variables" in params:
             result["_env"] = params["environment_variables"]
+
+        if node_defs:
+            result["__node_defs__"] = node_defs
 
         return result

@@ -5,7 +5,7 @@
 """
 Chunk 封装器 - 将 workflow.stream 产生的单个 chunk 转换为统一的 StreamData 格式
 """
-
+import contextvars
 import datetime
 import time
 from typing import Any
@@ -44,6 +44,9 @@ _SKIP_COMPONENT_KEY: list[str] = [
     "_output",
     "_parallel_done"
 ]
+
+GLOBAL_REF_PREFIX = "MEMORY_VARIABLE."
+NODE_DEFS_KEY = "__node_defs__"
 
 
 class WorkflowStreamDataWrapper:
@@ -820,6 +823,18 @@ class WorkflowStreamDataWrapper:
         return self._last_node.copy()
 
 
+# ==================== 模块级回调注册 ====================
+# task-local 存储，在 type_convert_inputs（有 session）中写入 output 类型定义，
+# 供 type_convert_outputs（无 session）在同节点 Task 内读取。
+# ContextVar per-Task 隔离：每个节点在 openjiuwen Pregel 引擎中运行在独立的
+# asyncio Task 中（task.py:29 asyncio.create_task），
+# 不同节点/不同工作流之间的 .set() 互不干扰。
+# 存储结构: {"uf_outputs_defs": [], "sf_outputs_defs": [], "node_name": str, "node_type": str, "node_id": str}
+_current_output_convert_ctx: contextvars.ContextVar = contextvars.ContextVar(
+    '_current_output_convert_ctx', default=None
+)
+
+
 def _register_jiuwen_callbacks() -> None:
     """模块级一次性注册 jiuwen 回调到 openjiuwen CallbackFramework。
 
@@ -845,7 +860,6 @@ def _register_jiuwen_callbacks() -> None:
         if _fw is None:
             return
 
-        GLOBAL_REF_PREFIX = "MEMORY_VARIABLE."
 
         def _resolve_global_refs(schema, inputs, session_state, global_updates):
             """Recursively resolve ${global.xxx} references in nested input_schema."""
@@ -898,10 +912,124 @@ def _register_jiuwen_callbacks() -> None:
                 session.state().update_global(global_updates)
 
             return (args, kwargs)
+
+        from jiuwen.orchestration.flow.utils import force_convert_component_by_schema_raise_openjiuwen_exception
+        from jiuwen.orchestration.flow.model.workflow_data_class import WorkflowMetadata
+        from jiuwen.orchestration.flow.constant import (
+            STRUCTURE_POSITION_INPUTS,
+            STRUCTURE_POSITION_OUTPUTS,
+        )
+
+        @_fw.on(WorkflowEvents.COMPONENT_BATCH_INPUT, callback_type="transform")
+        async def type_convert_inputs(*args, **kwargs):
+            """按照 __node_defs__ 中 configs 的类型定义对节点输入值做类型强转。
+
+            从 session.state().get_global("__node_defs__") 读取节点定义，
+            按 session.workflow_id() + session.node_id() 定位具体节点数据。
+
+            同时将 output 类型定义提前存入 ContextVar，
+            供 type_convert_outputs（无 session）在同 Task 内读取。
+
+            transform_io 输入回调需返回 (new_args, new_kwargs) 格式。
+            """
+            _current_output_convert_ctx.set(None)
+
+            session = kwargs.get("session")
+            if session is None and len(args) >= 2:
+                session = args[1]
+            if session is None:
+                return (args, kwargs)
+
+            if not isinstance(session, NodeSession):
+                return (args, kwargs)
+
+            # 单次读取 node_defs，同时提取 input/output 类型定义。
+            # output 定义提前存入 ContextVar（output 回调拿不到 session）。
+            node_defs = session.state().get_global(NODE_DEFS_KEY)
+            node_def = None
+            if isinstance(node_defs, dict):
+                wf_defs = node_defs.get(session.workflow_id(), {})
+                node_def = wf_defs.get(session.node_id(), {})
+
+            if node_def:
+                configs = node_def.get("configs", {})
+                _current_output_convert_ctx.set({
+                    "uf_outputs_defs": configs.get("userFields", {}).get("outputs", []),
+                    "sf_outputs_defs": configs.get("systemFields", {}).get("outputs", []),
+                    "node_name": node_def.get("node_name", ""),
+                    "node_type": session.node_type() or "",
+                    "node_id": session.node_id(),
+                })
+                uf_inputs_defs = configs.get("userFields", {}).get("inputs", [])
+                sf_inputs_defs = configs.get("systemFields", {}).get("inputs", [])
+            else:
+                uf_inputs_defs = []
+                sf_inputs_defs = []
+
+            inputs = args[0] if len(args) >= 1 else kwargs.get("inputs")
+            if not isinstance(inputs, dict):
+                return (args, kwargs)
+
+            if not uf_inputs_defs and not sf_inputs_defs:
+                return (args, kwargs)
+
+            node_name = node_def.get("node_name", "")
+            node_info = WorkflowMetadata(
+                node_id=session.node_id(),
+                node_type=session.node_type() or "",
+                node_name=node_name,
+            )
+
+            converted = force_convert_component_by_schema_raise_openjiuwen_exception(
+                inputs=inputs,
+                node_configs={
+                    "userFields": {"inputs": uf_inputs_defs},
+                    "systemFields": {"inputs": sf_inputs_defs},
+                },
+                node_info=node_info,
+                structure_pos=STRUCTURE_POSITION_INPUTS,
+            )
+
+            new_args = (converted,) + args[1:] if len(args) >= 1 else (converted,)
+            return (new_args, kwargs)
+
+        @_fw.on(WorkflowEvents.COMPONENT_BATCH_OUTPUT, callback_type="transform")
+        async def type_convert_outputs(result, **kwargs):
+            """按照 __node_defs__ 中 configs 的类型定义对节点输出值做类型强转。
+
+            从 ContextVar 读取类型定义（由 type_convert_inputs 在同 Task 内写入），
+            不依赖 session（output transform 回调不传 session）。
+            """
+            if not isinstance(result, dict):
+                return result
+
+            ctx = _current_output_convert_ctx.get()
+            if ctx is None:
+                return result
+
+            uf_outputs_defs = ctx.get("uf_outputs_defs", [])
+            sf_outputs_defs = ctx.get("sf_outputs_defs", [])
+            if not uf_outputs_defs and not sf_outputs_defs:
+                return result
+
+            node_info = WorkflowMetadata(
+                node_id=ctx.get("node_id", ""),
+                node_type=ctx.get("node_type", ""),
+                node_name=ctx.get("node_name", ""),
+            )
+
+            return force_convert_component_by_schema_raise_openjiuwen_exception(
+                inputs=result,
+                node_configs={
+                    "userFields": {"outputs": uf_outputs_defs},
+                    "systemFields": {"outputs": sf_outputs_defs},
+                },
+                node_info=node_info,
+                structure_pos=STRUCTURE_POSITION_OUTPUTS,
+            )
     except Exception:
         pass
 
-    # 模块首次导入时自动注册回调（Python 保证只执行一次）
 
-
+# 模块首次导入时自动注册回调（Python 保证只执行一次）
 _register_jiuwen_callbacks()

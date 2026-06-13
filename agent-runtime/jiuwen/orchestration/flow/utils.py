@@ -48,6 +48,7 @@ from jiuwen.orchestration.flow.model.workflow_data_class import WorkflowMetadata
 from jiuwen.orchestration.flow.model.workflow_ir_validation import WorkflowIr
 from jiuwen.orchestration.flow.stream.base import StreamCode, StreamData
 from jiuwen.orchestration.flow.stream.workflow_streaming import WorkflowStreamCallback
+from jiuwen.extension.workflow_node.utils import JiuWenBaseException as OpenjiuwenJiuWenBaseException
 from lxml import etree
 from pydantic import ValidationError
 
@@ -427,6 +428,47 @@ def force_convert(inputs: dict, inputs_definition: Union[list, dict]) -> (dict, 
     else:
         errors.append(SCHEMA_IN_WRONG_FORMAT.format(k=""))
     return converted_value, errors
+
+
+def force_convert_component_by_schema_raise_openjiuwen_exception(
+        inputs, node_configs, node_info: WorkflowMetadata, structure_pos: str = STRUCTURE_POSITION_INPUTS):
+    """对 openjiuwen 工作流回调中的输入/输出值做类型强转，强转失败时抛出
+    OpenjiuwenJiuWenBaseException（继承 ExecutionError → BaseError），
+    使 openjiuwen 图引擎将其作为 BaseError 直接 re-raise。
+
+    封装 force_convert_component_by_schema_raise_exception（整体替换语义），
+    仅将异常类型从 JiuWenBaseException 转换为 OpenjiuwenJiuWenBaseException。
+
+    对齐老版本逻辑：先整体替换 userFields，再对 End/Message 节点恢复 #end_ 前缀字段
+    （老版本在 set_end_invoke_output 中强转后增量添加 #end_ 字段）。
+
+    仅在 openjiuwen 工作流回调（BATCH_INPUT/BATCH_OUTPUT）中使用此函数。
+    """
+    # 强转前暂存 #end_ 前缀字段（整体替换后会丢失）
+    original_uf = inputs.get(USER_FIELDS, {})
+    end_fields = {k: v for k, v in original_uf.items() if k.startswith("#end_")}
+
+    try:
+        converted = force_convert_component_by_schema_raise_exception(
+            inputs=inputs,
+            node_configs=node_configs,
+            node_info=node_info,
+            structure_pos=structure_pos,
+        )
+    except JiuWenBaseException as e:
+        raise OpenjiuwenJiuWenBaseException(
+            error_code=e.error_code,
+            message=e.message,
+            node_id=e.node_id,
+            node_name=e.node_name,
+            node_type=e.node_type,
+        ) from e
+
+    # 强转后恢复 #end_ 前缀字段（对齐老版本 set_end_invoke_output）
+    if end_fields:
+        converted.setdefault(USER_FIELDS, {}).update(end_fields)
+
+    return converted
 
 
 def force_convert_component_by_schema_raise_exception(
