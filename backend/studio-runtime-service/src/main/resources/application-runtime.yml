@@ -210,7 +210,7 @@ feign:
       iamManager:
         url: ${iam_manager_endpoint:http://mock-iam-manager:8080}
       agentManager:
-        url: ${agent_manager_endpoint:http://mock-agent-manager:8080}
+        url: ${agent_manager_endpoint:http://127.0.0.1:31111}
       agentBaseRuntime:
         url: ${agent_base_runtime_endpoint:http://mock-agent-base-runtime:8080}
       kooSearch:
