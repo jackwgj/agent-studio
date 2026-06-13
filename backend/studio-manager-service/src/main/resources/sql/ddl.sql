@@ -1024,6 +1024,8 @@ CREATE TABLE IF NOT EXISTS `t_custom_object` (
    PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci ROW_FORMAT=DYNAMIC ;
 
+ALTER TABLE t_custom_object ADD COLUMN workspace_id varchar(64) NULL COMMENT '工作空间id';
+
 CREATE TABLE IF NOT EXISTS t_workspace_mapping
 (
     `id`                VARCHAR(64)  NOT NULL COMMENT '主键ID',

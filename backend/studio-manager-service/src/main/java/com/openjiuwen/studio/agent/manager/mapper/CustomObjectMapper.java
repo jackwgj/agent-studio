@@ -27,7 +27,7 @@ public interface CustomObjectMapper {
      * @param workspaceId
      * @return
      */
-    @Select("select count(*) from t_custom_object where name = #{name} project_id = #{projectId} and workspace_id = #{workspaceId}")
+    @Select("select count(*) from t_custom_object where name = #{name} and project_id = #{projectId} and workspace_id = #{workspaceId}")
     int countByNameAndProjectIdAndWorkspaceId(
             @Param("name") String name,
             @Param("projectId") String projectId,
