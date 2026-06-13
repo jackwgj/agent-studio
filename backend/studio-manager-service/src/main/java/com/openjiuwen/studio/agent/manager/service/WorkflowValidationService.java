@@ -918,7 +918,7 @@ public class WorkflowValidationService {
         }
         for (WorkflowFieldVO field : fieldList) {
             WorkflowFieldVOValue value = field.getValue();
-            if (value.getType() == WorkflowFieldVOValue.TypeEnum.NESTED) {
+            if (NodeType.HTTP.getType().equals(node.getNodeInfo().getType()) && value.getType() == WorkflowFieldVOValue.TypeEnum.NESTED) {
                 JSONArray schema = (JSONArray) field.getSchema();
                 for (Object nestedField: schema) {
                     WorkflowFieldVO parsedNestedField = JSON.parseObject(JSON.toJSONString(nestedField),

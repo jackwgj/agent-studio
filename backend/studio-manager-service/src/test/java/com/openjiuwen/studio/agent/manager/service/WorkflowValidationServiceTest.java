@@ -288,8 +288,7 @@ class WorkflowValidationServiceTest {
         ReflectionTestUtils.invokeMethod(validator, "validateInputFields",
             List.of(parentField), mockNode, new HashMap<>(), new HashMap<>(), errors);
 
-        assertEquals(1, errors.size());
-        assertTrue(errors.get(0).getReason().contains("parent"));
+        assertEquals(0, errors.size());
     }
 
     @Test
