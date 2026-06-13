@@ -14,20 +14,41 @@
             <nz-form-item>
               <nz-form-label [nzRequired]="true">{{ createPluginFormLabel.ToolZhName }}</nz-form-label>
               <nz-form-control>
-                <input nz-input nzClearable maxlength="64" formControlName="pluginZhName" style="width: 100%" [placeholder]="createPluginFormLabel.defaultPlaceholder" />
+                <input
+                  nz-input
+                  nzClearable
+                  maxlength="64"
+                  formControlName="pluginZhName"
+                  style="width: 100%"
+                  [placeholder]="createPluginFormLabel.defaultPlaceholder"
+                />
               </nz-form-control>
             </nz-form-item>
             <nz-form-item>
               <nz-form-label [nzRequired]="true">{{ createPluginFormLabel.ToolName }}</nz-form-label>
               <nz-form-control>
-                <input nz-input nzClearable maxlength="64" formControlName="pluginName" style="width: 100%" [placeholder]="createPluginFormLabel.defaultPlaceholder" />
+                <input
+                  nz-input
+                  nzClearable
+                  maxlength="64"
+                  formControlName="pluginName"
+                  style="width: 100%"
+                  [placeholder]="createPluginFormLabel.defaultPlaceholder"
+                />
               </nz-form-control>
             </nz-form-item>
             <nz-form-item>
               <nz-form-label [nzRequired]="true">{{ createPluginFormLabel.toolDescription }}</nz-form-label>
               <nz-form-control>
-                <textarea nz-input nzAutosize maxlength="600" formControlName="pluginDescription" (input)="onInput()" style="width: 100%; min-height: 120px; max-height: 240px"
-                  [placeholder]="createPluginFormLabel.defaultPlaceholder">
+                <textarea
+                  nz-input
+                  nzAutosize
+                  maxlength="600"
+                  formControlName="pluginDescription"
+                  (input)="onInput()"
+                  style="width: 100%; min-height: 120px; max-height: 240px"
+                  [placeholder]="createPluginFormLabel.defaultPlaceholder"
+                >
                 </textarea>
               </nz-form-control>
             </nz-form-item>
@@ -46,15 +67,28 @@
             <nz-form-item>
               <nz-form-label>{{ createPluginFormLabel.pluginMethod }}</nz-form-label>
               <nz-form-control>
-                <nz-select [nzOptions]="methods" formControlName="pluginMethod" [nzPlaceHolder]="'select_placeholder' | i18nextEager" style="width: 100%" nzAllowClear>
+                <nz-select
+                  [nzOptions]="methods"
+                  formControlName="pluginMethod"
+                  [nzPlaceHolder]="'select_placeholder' | i18nextEager"
+                  style="width: 100%"
+                  nzAllowClear
+                >
                 </nz-select>
               </nz-form-control>
             </nz-form-item>
             <nz-form-item>
               <nz-form-label>{{ createPluginFormLabel.toolURL }}</nz-form-label>
               <nz-form-control>
-                <input nz-input nzClearable formControlName="pluginURL" maxlength="256" style="width: 100%" [placeholder]="createPluginFormLabel.defaultPlaceholder"
-                  (ngModelChange)="onPluginURLChange()" />
+                <input
+                  nz-input
+                  nzClearable
+                  formControlName="pluginURL"
+                  maxlength="256"
+                  style="width: 100%"
+                  [placeholder]="createPluginFormLabel.defaultPlaceholder"
+                  (ngModelChange)="onPluginURLChange()"
+                />
               </nz-form-control>
             </nz-form-item>
           </form>
@@ -94,7 +128,14 @@
                 <div class="flex w-full flex-col gap-[8px]">
                   <collapse-text [title]="'param_list' | i18nextEager" [classType]="'style3'">
                     <ng-template #icons>
-                      <button *ngIf="selectedTab==='Body'" (click)="openImportArgsModal('req')" class="mt-2 w-fit gap-1 mr-2" style="display: flex" nz-button nzType="default">
+                      <button
+                        *ngIf="selectedTab==='Body'"
+                        (click)="openImportArgsModal('req')"
+                        class="mt-2 w-fit gap-1 mr-2"
+                        style="display: flex"
+                        nz-button
+                        nzType="default"
+                      >
                         <img class="w-4 h-4" [src]="changeUrl('assets/agent-center/images/import.svg')" alt="" />
                         {{ 'create_tool_import_args' | i18nextEager }}
                       </button>
@@ -125,43 +166,83 @@
                           <div class="mt-[8px] flex gap-2 leading-none" style="flex: 1">
                             <!-- 参数名称 -->
                             <div id="argName" style="flex: 1">
-                              <input style="width: 100%" type="text" (keydown)="$event.stopPropagation()" [name]="'inputFormName'+ origin.keyindex" nz-input nonEmptyValidator
+                              <input
+                                style="width: 100%"
+                                type="text"
+                                (keydown)="$event.stopPropagation()"
+                                [name]="'inputFormName'+ origin.keyindex"
+                                nz-input
+                                nonEmptyValidator
                                 [pluginRequestArgsNameValidatorNew]="
                                         getReqExistingNames(origin)
-                                      " (input)="onInput()" [isEmptyObjReq]="origin" maxlength="200" [(ngModel)]="origin.name" [title]="origin.name"
-                                [placeholder]="'input_placeholder' | i18nextEager" [class.input-error]="
-                                               inputForm?.controls['inputFormName' + origin.keyindex]?.invalid &&
-                                               (inputForm?.controls['inputFormName' + origin.keyindex]?.dirty || inputForm?.controls['inputFormName' + origin.keyindex]?.touched)
-                                             " />
-                              <div *ngIf="
-                            inputForm?.controls['inputFormName' +  origin.keyindex]?.invalid &&
-                            (inputForm?.controls['inputFormName' +  origin.keyindex]?.dirty || inputForm?.controls['inputFormName' +  origin.keyindex]?.touched)
-                          " class="error-tip">
-                                {{inputForm?.controls['inputFormName' + origin.keyindex]?.errors?.serviceName?.tiErrorMessage}}
+                                      "
+                                (input)="onInput()"
+                                [isEmptyObjReq]="origin"
+                                maxlength="200"
+                                [(ngModel)]="origin.name"
+                                [title]="origin.name"
+                                [placeholder]="'input_placeholder' | i18nextEager"
+                                [class.input-error]="
+                                               inputForm?.controls['inputFormName'+ origin.keyindex]?.invalid &&
+                                               (inputForm?.controls['inputFormName'+ origin.keyindex]?.dirty || inputForm?.controls['inputFormName'+ origin.keyindex]?.touched)
+                                             "
+                              />
+                              <div
+                                *ngIf="
+                            inputForm?.controls['inputFormName'+ origin.keyindex]?.invalid &&
+                            (inputForm?.controls['inputFormName'+ origin.keyindex]?.dirty || inputForm?.controls['inputFormName'+ origin.keyindex]?.touched)
+                          "
+                                class="error-tip"
+                              >
+                                {{inputForm?.controls['inputFormName'+ origin.keyindex]?.errors?.serviceName?.tiErrorMessage}}
                               </div>
                             </div>
 
                             <!-- 中文名称 -->
                             <div class="w-[86px]" id="cnArgName">
-                              <input (keydown)="$event.stopPropagation()" style="width: 100%" type="text" [name]="'inputFormCnName' + origin.keyindex" nz-input (input)="onInput()"
-                                maxlength="200" [(ngModel)]="origin.name_cn" [title]="origin.name_cn" [placeholder]="
+                              <input
+                                (keydown)="$event.stopPropagation()"
+                                style="width: 100%"
+                                type="text"
+                                [name]="'inputFormCnName' + origin.keyindex"
+                                nz-input
+                                (input)="onInput()"
+                                maxlength="200"
+                                [(ngModel)]="origin.name_cn"
+                                [title]="origin.name_cn"
+                                [placeholder]="
                                         'input_placeholder' | i18nextEager
-                                      " />
+                                      "
+                              />
                               <div class="w-full" #cnWrapper></div>
                             </div>
 
                             <!-- 参数类型 -->
                             <div class="w-[110px]">
-                              <nz-select *ngIf="origin.depth === 5||tabs[2].active; else otherTypes" style="width: 100%" [name]="'inputFormType' + origin.keyindex"
-                                [nzOptions]="reqeustArgNoneObjTypeOptions" [(ngModel)]="origin.type" [nzDisabled]="tabs[0].active" (ngModelChange)="onParamTypeChange(origin)"
-                                [nzPlaceHolder]="'select_placeholder' | i18nextEager">
+                              <nz-select
+                                *ngIf="origin.depth === 5||tabs[2].active; else otherTypes"
+                                style="width: 100%"
+                                [name]="'inputFormType' + origin.keyindex"
+                                [nzOptions]="reqeustArgNoneObjTypeOptions"
+                                [(ngModel)]="origin.type"
+                                [nzDisabled]="tabs[0].active"
+                                (ngModelChange)="onParamTypeChange(origin)"
+                                [nzPlaceHolder]="'select_placeholder' | i18nextEager"
+                              >
                               </nz-select>
 
                               <ng-template #otherTypes>
-                                <nz-select style="width: 100%" [name]="'inputFormType'+ origin.keyindex" [nzOptions]="reqeustArgTypeOptions" [(ngModel)]="origin.type"
+                                <nz-select
+                                  style="width: 100%"
+                                  [name]="'inputFormType'+ origin.keyindex"
+                                  [nzOptions]="reqeustArgTypeOptions"
+                                  [(ngModel)]="origin.type"
                                   (ngModelChange)="
                                           onParamTypeChange(origin)
-                                        " [nzDisabled]="tabs[0].active" [nzPlaceHolder]="'select_placeholder' | i18nextEager">
+                                        "
+                                  [nzDisabled]="tabs[0].active"
+                                  [nzPlaceHolder]="'select_placeholder' | i18nextEager"
+                                >
                                 </nz-select>
                               </ng-template>
                             </div>
@@ -169,33 +250,79 @@
                             <!-- 默认值 -->
                             <!--后端要求放开到10000000-->
                             <div class="w-[86px]">
-                              <input (keydown)="$event.stopPropagation()" *ngIf="origin.type === 'string'" style="width: 100%" type="text"
-                                [name]="'inputFormDefault'+ origin.keyindex" nz-input maxlength="10000000" [(ngModel)]="origin.default" [title]="origin.default" [placeholder]="
-                                        'input_placeholder' | i18nextEager
-                                      " />
-
-                              <input (keydown)="$event.stopPropagation()" *ngIf="origin.type === 'integer'" style="width: 100%" type="text"
-                                [name]="'inputFormDefault'+ origin.keyindex" maxlength="2000" integerStr nz-input [(ngModel)]="origin.default" [title]="origin.default"
+                              <input
+                                (keydown)="$event.stopPropagation()"
+                                *ngIf="origin.type === 'string'"
+                                style="width: 100%"
+                                type="text"
+                                [name]="'inputFormDefault'+ origin.keyindex"
+                                nz-input
+                                maxlength="10000000"
+                                [(ngModel)]="origin.default"
+                                [title]="origin.default"
                                 [placeholder]="
                                         'input_placeholder' | i18nextEager
-                                      " />
+                                      "
+                              />
 
-                              <input (keydown)="$event.stopPropagation()" *ngIf="origin.type === 'number'" style="width: 100%" type="text"
-                                [name]="'inputFormDefault'+ origin.keyindex" numberStr maxlength="2000" nz-input [(ngModel)]="origin.default" [title]="origin.default"
+                              <input
+                                (keydown)="$event.stopPropagation()"
+                                *ngIf="origin.type === 'integer'"
+                                style="width: 100%"
+                                type="text"
+                                [name]="'inputFormDefault'+ origin.keyindex"
+                                maxlength="2000"
+                                integerStr
+                                nz-input
+                                [(ngModel)]="origin.default"
+                                [title]="origin.default"
                                 [placeholder]="
                                         'input_placeholder' | i18nextEager
-                                      " />
+                                      "
+                              />
 
-                              <input (keydown)="$event.stopPropagation()" *ngIf="!isSimpleType(origin.type)" style="width: 100%" type="text"
-                                [name]="'inputFormDefault'+ origin.keyindex" maxlength="2000" nz-input [(ngModel)]="origin.default" [title]="origin.default" [disabled]="true"
+                              <input
+                                (keydown)="$event.stopPropagation()"
+                                *ngIf="origin.type === 'number'"
+                                style="width: 100%"
+                                type="text"
+                                [name]="'inputFormDefault'+ origin.keyindex"
+                                numberStr
+                                maxlength="2000"
+                                nz-input
+                                [(ngModel)]="origin.default"
+                                [title]="origin.default"
                                 [placeholder]="
                                         'input_placeholder' | i18nextEager
-                                      " />
+                                      "
+                              />
 
-                              <nz-select *ngIf="origin.type === 'boolean'" style="width: 100%" [name]="'inputFormDefault'+ origin.keyindex" [nzOptions]="booleanOps"
-                                [(ngModel)]="origin.default" [nzPlaceHolder]="
+                              <input
+                                (keydown)="$event.stopPropagation()"
+                                *ngIf="!isSimpleType(origin.type)"
+                                style="width: 100%"
+                                type="text"
+                                [name]="'inputFormDefault'+ origin.keyindex"
+                                maxlength="2000"
+                                nz-input
+                                [(ngModel)]="origin.default"
+                                [title]="origin.default"
+                                [disabled]="true"
+                                [placeholder]="
+                                        'input_placeholder' | i18nextEager
+                                      "
+                              />
+
+                              <nz-select
+                                *ngIf="origin.type === 'boolean'"
+                                style="width: 100%"
+                                [name]="'inputFormDefault'+ origin.keyindex"
+                                [nzOptions]="booleanOps"
+                                [(ngModel)]="origin.default"
+                                [nzPlaceHolder]="
                                         'select_placeholder' | i18nextEager
-                                      ">
+                                      "
+                              >
                               </nz-select>
 
                               <div class="w-full" #deWrapper></div>
@@ -203,24 +330,57 @@
 
                             <!-- 描述 -->
                             <div class="w-[120px]">
-                              <flexible-text-field (keydown)="$event.stopPropagation()" [(ngModel)]="origin.description" [title]="origin.description"
-                                [name]="'inputFormDesc' + origin.keyindex" [maxlength]="2000" [placeholder]="
+                              <input
+                                type="text"
+                                nz-input
+                                (keydown)="$event.stopPropagation()"
+                                [(ngModel)]="origin.description"
+                                [title]="origin.description"
+                                [name]="'inputFormDesc' + origin.keyindex"
+                                [maxlength]="2000"
+                                [placeholder]="
                                         'input_placeholder' | i18nextEager
-                                      "/>
+                                      "
+                                nonEmptyValidator
+                                [class.input-error]="
+                                inputForm?.controls['inputFormDesc' + origin.keyindex]?.invalid &&
+                                (inputForm?.controls['inputFormDesc' + origin.keyindex]?.dirty || inputForm?.controls['inputFormDesc' + origin.keyindex]?.touched)
+                              "
+                              />
+                              <div
+                                *ngIf="
+                            inputForm?.controls['inputFormDesc' + origin.keyindex]?.invalid &&
+                            (inputForm?.controls['inputFormDesc' + origin.keyindex]?.dirty || inputForm?.controls['inputFormDesc' + origin.keyindex]?.touched)
+                          "
+                                class="error-tip"
+                              >
+                                {{inputForm?.controls['inputFormDesc' + origin.keyindex]?.errors?.serviceName?.tiErrorMessage}}
+                              </div>
                             </div>
                             <!-- 参数校验 -->
                             <div class="a-form-checkbox flex h-[28px] w-[60px] items-center justify-center">
-                              <label [id]="'inputFormCheckCheckbox' + origin.keyindex" nz-checkbox [name]="'inputFormCheck'+ origin.keyindex" [nzDisabled]="
+                              <label
+                                [id]="'inputFormCheckCheckbox' + origin.keyindex"
+                                nz-checkbox
+                                [name]="'inputFormCheck'+ origin.keyindex"
+                                [nzDisabled]="
                                         origin.depth > 0 ||
                                         !isSimpleType(origin.type) ||
                                         origin.type === 'boolean'
-                                      " [(ngModel)]="origin.validated">
+                                      "
+                                [(ngModel)]="origin.validated"
+                              >
                               </label>
                             </div>
 
                             <!-- 必填 -->
                             <div class="a-form-checkbox flex h-[28px] w-[28px] items-center justify-center">
-                              <label [id]="'inputFormRequiredCheckbox' + origin.keyindex" nz-checkbox [name]="'inputFormRequired'+ origin.keyindex" [(ngModel)]="origin.required">
+                              <label
+                                [id]="'inputFormRequiredCheckbox' + origin.keyindex"
+                                nz-checkbox
+                                [name]="'inputFormRequired'+ origin.keyindex"
+                                [(ngModel)]="origin.required"
+                              >
                               </label>
                             </div>
 
@@ -228,7 +388,11 @@
 
                             <div *ngIf="!isObjectLikeType(origin.type)" class="ml-[8px] h-[28px] w-[16px]"></div>
 
-                            <div *ngIf="showReqPropsDelete(origin)" (click)="removeArg(origin, 'req')" class="plugin-op-icon flex h-[28px] items-center justify-center">
+                            <div
+                              *ngIf="showReqPropsDelete(origin)"
+                              (click)="removeArg(origin, 'req')"
+                              class="plugin-op-icon flex h-[28px] items-center justify-center"
+                            >
                               <nz-icon nzType="delete" nzTheme="outline" style="font-size: 16px; cursor: pointer; padding-top: 8px"></nz-icon>
                             </div>
                           </div>
@@ -253,17 +417,35 @@
                   <div *ngFor="let param of requestArgValidates; index as i" class="mt-2 flex gap-2">
                     <!-- 参数名称 -->
                     <div class="w-[130px]">
-                      <input style="width: 100%" type="text" maxlength="100" [disabled]="true" nz-input [ngModelOptions]="{ standalone: true }" [(ngModel)]="param.name"
-                        [title]="param.name" />
+                      <input
+                        style="width: 100%"
+                        type="text"
+                        maxlength="100"
+                        [disabled]="true"
+                        nz-input
+                        [ngModelOptions]="{ standalone: true }"
+                        [(ngModel)]="param.name"
+                        [title]="param.name"
+                      />
                     </div>
 
                     <!-- 校验类型 -->
                     <div class="w-[140px]">
-                      <nz-select *ngIf="param.type === 'string'; else numberBlock" style="width: 100%" [name]="'requestValidateType' + param.name" [nzOptions]="strValidateOps"
-                        [(ngModel)]="param.validate_type"></nz-select>
+                      <nz-select
+                        *ngIf="param.type === 'string'; else numberBlock"
+                        style="width: 100%"
+                        [name]="'requestValidateType' + param.name"
+                        [nzOptions]="strValidateOps"
+                        [(ngModel)]="param.validate_type"
+                      ></nz-select>
 
                       <ng-template #numberBlock>
-                        <nz-select style="width: 100%" [name]="'requestValidateType' + param.name" [nzOptions]="numberValidateOps" [(ngModel)]="param.validate_type"></nz-select>
+                        <nz-select
+                          style="width: 100%"
+                          [name]="'requestValidateType' + param.name"
+                          [nzOptions]="numberValidateOps"
+                          [(ngModel)]="param.validate_type"
+                        ></nz-select>
                       </ng-template>
                     </div>
 
@@ -271,18 +453,41 @@
                     <div class="w-[calc(100%-270px)]">
                       <!-- 字符长度 -->
                       <ng-container *ngIf="param.validate_type === 'CHAR'">
-                        <input style="width: 100%" type="text" [name]="'requestValidateRule' + param.name" nonEmptyValidator positiveIntStr maxlength="7" nz-input
-                          [(ngModel)]="param.validate_rule" [placeholder]="'input_placeholder' | i18nextEager" />
+                        <input
+                          style="width: 100%"
+                          type="text"
+                          [name]="'requestValidateRule' + param.name"
+                          nonEmptyValidator
+                          positiveIntStr
+                          maxlength="7"
+                          nz-input
+                          [(ngModel)]="param.validate_rule"
+                          [placeholder]="'input_placeholder' | i18nextEager"
+                        />
                         <div class="w-full" #requestRuleWrapper></div>
                       </ng-container>
 
                       <!-- 数值大小 -->
                       <ng-container *ngIf="param.validate_type === 'NUM'">
-                        <number-range *ngIf="param.type === 'number'" [(ngModel)]="param.validate_rule" [name]="'requestValidateRule' + param.name" nonEmptyValidator numberRange
-                          [leftPlaceholder]="'min' | i18nextEager" [rightPlaceholder]="'max' | i18nextEager" />
+                        <number-range
+                          *ngIf="param.type === 'number'"
+                          [(ngModel)]="param.validate_rule"
+                          [name]="'requestValidateRule' + param.name"
+                          nonEmptyValidator
+                          numberRange
+                          [leftPlaceholder]="'min' | i18nextEager"
+                          [rightPlaceholder]="'max' | i18nextEager"
+                        />
 
-                        <number-range *ngIf="param.type === 'integer'" [(ngModel)]="param.validate_rule" [name]="'requestValidateRule' + param.name" nonEmptyValidator integerRange
-                          [leftPlaceholder]="'min' | i18nextEager" [rightPlaceholder]="'max' | i18nextEager" />
+                        <number-range
+                          *ngIf="param.type === 'integer'"
+                          [(ngModel)]="param.validate_rule"
+                          [name]="'requestValidateRule' + param.name"
+                          nonEmptyValidator
+                          integerRange
+                          [leftPlaceholder]="'min' | i18nextEager"
+                          [rightPlaceholder]="'max' | i18nextEager"
+                        />
                         <div class="w-full" #requestRuleWrapper></div>
                       </ng-container>
 
@@ -294,10 +499,18 @@
 
                       <!-- 枚举值 -->
                       <ng-container *ngIf="param.validate_type === 'ENUM'">
-                        <input style="width: 100%" type="text" [name]="'requestValidateRule' + param.name" nonEmptyValidator enumStr nz-input [(ngModel)]="param.validate_rule"
+                        <input
+                          style="width: 100%"
+                          type="text"
+                          [name]="'requestValidateRule' + param.name"
+                          nonEmptyValidator
+                          enumStr
+                          nz-input
+                          [(ngModel)]="param.validate_rule"
                           [placeholder]="
                                 'validate_rule_placeholder' | i18nextEager
-                              " />
+                              "
+                        />
                         <div class="w-full" #requestRuleWrapper></div>
                       </ng-container>
                     </div>
@@ -320,25 +533,65 @@
                   <nz-tree id="cp-res-tree" [nzData]="patchArgs" nzShowLine [nzTreeTemplate]="nzTreeTemplate2">
                     <ng-template #nzTreeTemplate2 let-node let-origin="origin" let-i="index">
                       <div class="mt-[8px] flex gap-2 leading-none">
-                        <div [ngStyle]="{
+                        <div
+                          [ngStyle]="{
                                 width: getResLayerIndexWidth(origin)
-                              }">
-                          <input [disabled]="true" style="width: 100%" type="text" [name]="'responseFormName'+ origin.keyindex" nonEmptyValidator variableNameValidator
-                            maxlength="200" [isEmptyObj]="origin" nz-input [(ngModel)]="origin.name" [placeholder]="
+                              }"
+                        >
+                          <input
+                            [disabled]="true"
+                            style="width: 100%"
+                            type="text"
+                            [name]="'responseFormName'+ origin.keyindex"
+                            nonEmptyValidator
+                            variableNameValidator
+                            maxlength="200"
+                            [isEmptyObj]="origin"
+                            nz-input
+                            [(ngModel)]="origin.name"
+                            [placeholder]="
                                   'input_placeholder' | i18nextEager
-                                " />
+                                "
+                          />
                           <div class="w-full" #wrapper></div>
                         </div>
                         <div class="w-[96px]">
-                          <nz-select [nzDisabled]="true" style="width: 100%" [name]="'responseFormType' + origin.keyindex" [nzOptions]="reqeustArgTypeOptions"
-                            [(ngModel)]="origin.type">
+                          <nz-select
+                            [nzDisabled]="true"
+                            style="width: 100%"
+                            [name]="'responseFormType' + origin.keyindex"
+                            [nzOptions]="reqeustArgTypeOptions"
+                            [(ngModel)]="origin.type"
+                          >
                           </nz-select>
                         </div>
                         <div class="w-[400px]">
-                          <input style="width: 100%" type="text" [name]="'responseFormDesc' + origin.keyindex" maxlength="2000" nz-input
-                            [(ngModel)]="origin.description" [title]="origin.description" [placeholder]="
+                          <input
+                            style="width: 100%"
+                            type="text"
+                            [name]="'responseFormDesc' + origin.keyindex"
+                            maxlength="2000"
+                            nonEmptyValidator
+                            nz-input
+                            [(ngModel)]="origin.description"
+                            [title]="origin.description"
+                            [placeholder]="
                                   'input_placeholder' | i18nextEager
-                                "/>
+                                "
+                            [class.input-error]="
+                                pathForm?.controls['responseFormDesc' + origin.keyindex]?.invalid &&
+                                (pathForm?.controls['responseFormDesc' + origin.keyindex]?.dirty || pathForm?.controls['responseFormDesc' + origin.keyindex]?.touched)
+                              "
+                          />
+                          <div
+                            *ngIf="
+                          pathForm?.controls['responseFormDesc' + origin.keyindex]?.invalid &&
+                          (pathForm?.controls['responseFormDesc' + origin.keyindex]?.dirty || pathForm?.controls['responseFormDesc' + origin.keyindex]?.touched)
+                        "
+                            class="error-tip"
+                          >
+                            {{pathForm?.controls['responseFormDesc' + origin.keyindex]?.errors?.serviceName?.tiErrorMessage}}
+                          </div>
                         </div>
                       </div>
                     </ng-template>
@@ -415,57 +668,89 @@
                   <ng-template #nzTreeTemplate3 let-node let-origin="origin" let-i="index">
                     <div class="mt-[8px] flex gap-2 leading-none" style="flex: 1">
                       <div style="flex: 1" class="getresponseargs">
-                        <input style="width: 100%" type="text" [name]="'responseFormName' + origin.keyindex" (keydown)="$event.stopPropagation()" nonEmptyValidator
+                        <input
+                          style="width: 100%"
+                          type="text"
+                          [name]="'responseFormName' + origin.keyindex"
+                          (keydown)="$event.stopPropagation()"
+                          nonEmptyValidator
                           [pluginRequestArgsNameValidator]="
                             getResExistingNames(origin)
-                          " maxlength="200" [isEmptyObjReq]="origin" (input)="onResponseInput()" nz-input [(ngModel)]="origin.name" [title]="origin.name" [placeholder]="
+                          "
+                          maxlength="200"
+                          [isEmptyObjReq]="origin"
+                          (input)="onResponseInput()"
+                          nz-input
+                          [(ngModel)]="origin.name"
+                          [title]="origin.name"
+                          [placeholder]="
                             'input_placeholder' | i18nextEager
-                          " [class.input-error]="
-                                    responseForm?.controls['responseFormName' +  origin.keyindex]?.invalid &&
-                                    (responseForm?.controls['responseFormName' +  origin.keyindex]?.dirty || responseForm?.controls['responseFormName' +  origin.keyindex]?.touched)
-                                  " />
-                        <div *ngIf="
-                      responseForm?.controls['responseFormName' +  origin.keyindex]?.invalid &&
-                      (responseForm?.controls['responseFormName' +  origin.keyindex]?.dirty || responseForm?.controls['responseFormName' +  origin.keyindex]?.touched)
-                    " class="error-tip">
+                          "
+                          [class.input-error]="
+                                    responseForm?.controls['responseFormName' + origin.keyindex]?.invalid &&
+                                    (responseForm?.controls['responseFormName' + origin.keyindex]?.dirty || responseForm?.controls['responseFormName' + origin.keyindex]?.touched)
+                                  "
+                        />
+                        <div
+                          *ngIf="
+                      responseForm?.controls['responseFormName' + origin.keyindex]?.invalid &&
+                      (responseForm?.controls['responseFormName' + origin.keyindex]?.dirty || responseForm?.controls['responseFormName' + origin.keyindex]?.touched)
+                    "
+                          class="error-tip"
+                        >
                           {{responseForm?.controls['responseFormName' + origin.keyindex]?.errors?.serviceName?.tiErrorMessage}}
                         </div>
                       </div>
                       <div class="w-[290px]">
-                        <input style="width: 100%" type="text" [name]="'responseFormDesc' + origin.keyindex" maxlength="2000" nz-input [(ngModel)]="origin.description"
-                          [title]="origin.description" [placeholder]="
+                        <input
+                          style="width: 100%"
+                          type="text"
+                          [name]="'responseFormDesc' + origin.keyindex"
+                          maxlength="2000"
+                          nz-input
+                          [(ngModel)]="origin.description"
+                          [title]="origin.description"
+                          [placeholder]="
                             'input_placeholder' | i18nextEager
-                          " [class.input-error]="
-                            responseForm?.controls['responseFormDesc' + i]?.invalid &&
-                            (responseForm?.controls['responseFormDesc' + i]?.dirty || responseForm?.controls['responseFormDesc' + i]?.touched)
-                          " />
-                        <div *ngIf="
-                      responseForm?.controls['responseFormDesc' +  origin.keyindex]?.invalid &&
-                      (responseForm?.controls['responseFormDesc' +  origin.keyindex]?.dirty || responseForm?.controls['responseFormDesc' +  origin.keyindex]?.touched)
-                    " class="error-tip">
-                          {{responseForm?.controls['responseFormDesc' + origin.keyindex]?.errors?.serviceName?.tiErrorMessage}}
-                        </div>
+                          "
+                        />
                       </div>
 
                       <div class="w-[96px]">
-                        <nz-select *ngIf="origin.depth === 5; else otherTypes" style="width: 100%" [name]="'responseFormType' + origin.keyindex"
-                          [nzOptions]="reqeustArgNoneObjTypeOptions" [(ngModel)]="origin.type" (ngModelChange)="
+                        <nz-select
+                          *ngIf="origin.depth === 5; else otherTypes"
+                          style="width: 100%"
+                          [name]="'responseFormType' + origin.keyindex"
+                          [nzOptions]="reqeustArgNoneObjTypeOptions"
+                          [(ngModel)]="origin.type"
+                          (ngModelChange)="
                             onResParamTypeChange(origin)
-                          ">
+                          "
+                        >
                         </nz-select>
 
                         <ng-template #otherTypes>
-                          <nz-select style="width: 100%" [name]="'responseFormType' + origin.keyindex" [nzOptions]="reqeustArgTypeOptions" [(ngModel)]="origin.type"
+                          <nz-select
+                            style="width: 100%"
+                            [name]="'responseFormType' + origin.keyindex"
+                            [nzOptions]="reqeustArgTypeOptions"
+                            [(ngModel)]="origin.type"
                             (ngModelChange)="
                               onResParamTypeChange(origin)
-                            ">
+                            "
+                          >
                           </nz-select>
                         </ng-template>
                       </div>
 
                       <!-- 是否必填 -->
                       <div class="a-form-checkbox flex h-[28px] w-[60px] items-center justify-center">
-                        <label [id]="'responseFormRequiredCheckbox' + origin.keyindex" nz-checkbox [name]="'responseFormRequired' + origin.keyindex" [(ngModel)]="origin.required">
+                        <label
+                          [id]="'responseFormRequiredCheckbox' + origin.keyindex"
+                          nz-checkbox
+                          [name]="'responseFormRequired' + origin.keyindex"
+                          [(ngModel)]="origin.required"
+                        >
                         </label>
                       </div>
 
@@ -473,7 +758,11 @@
 
                       <div *ngIf="!isObjectLikeType(origin.type)" class="ml-[4px] h-[28px] w-[16px]"></div>
 
-                      <div *ngIf="showResPropsDelete(origin)" (click)="removeArg(origin, 'res')" class="plugin-op-icon flex h-[28px] items-center justify-center">
+                      <div
+                        *ngIf="showResPropsDelete(origin)"
+                        (click)="removeArg(origin, 'res')"
+                        class="plugin-op-icon flex h-[28px] items-center justify-center"
+                      >
                         <nz-icon nzType="delete" nzTheme="outline" style="font-size: 16px; cursor: pointer; padding-top: 8px" />
                       </div>
                     </div>

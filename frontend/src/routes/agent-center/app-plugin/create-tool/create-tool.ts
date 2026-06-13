@@ -930,7 +930,7 @@ export class CreateToolComponent implements OnInit {
     if (!this.showFromError(this.responseForm.form)) {
       return;
     }
-    if (!this.showFromErrorByName(this.inputForm, ['inputFormName'])) {
+    if (!this.showFromErrorByName(this.inputForm, ['inputFormName', 'inputFormDesc'])) {
       return;
     }
     if (!this.showFromErrorByName(this.responseForm, ['responseFormName'])) {
