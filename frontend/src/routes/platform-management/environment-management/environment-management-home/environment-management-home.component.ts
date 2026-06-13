@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MODULES } from '@shared/modules';
 import { SharedModule } from '@shared/shared.module';
@@ -34,6 +34,20 @@ import { NzTabsModule } from 'ng-zorro-antd/tabs';
   ],
 })
 export class EnvManagementHomeComponent implements OnInit {
+  selectedTabIndex = 0;
+
+  @ViewChild(EnvManagementListComponent) envList!: EnvManagementListComponent;
+  @ViewChild(EnvironmentVariablesManagementListComponent) envVariablesList!: EnvironmentVariablesManagementListComponent;
+
   constructor() {}
   ngOnInit() {}
+
+  onTabChange(index: number) {
+    this.selectedTabIndex = index;
+    if (index === 0) {
+      this.envList?.getEnvironmentListData();
+    } else if (index === 1) {
+      this.envVariablesList?.getListData();
+    }
+  }
 }

@@ -56,9 +56,8 @@
       <th nzWidth="20%">{{ listColumns[1].title }}</th>
       <th nzWidth="15%">{{ listColumns[2].title }}</th>
       <th nzWidth="20%">{{ listColumns[3].title }}</th>
-      <th nzWidth="15%">{{ listColumns[4].title }}</th>
-      <th [nzWidth]="isZH() ? listColumns[5].width : '160px'">
-        {{ listColumns[5].title }}
+      <th [nzWidth]="isZH() ? listColumns[4].width : '160px'">
+        {{ listColumns[4].title }}
       </th>
     </tr>
     </thead>
@@ -103,12 +102,6 @@
             [nzTooltipTitle]="row?.statusReason"
           ></span>
         </div>
-      </td>
-
-      <td nz-tooltip [nzTooltipTitle]="row.vpcName + ' / ' + row.subnetCidr" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-        <span>{{ row.vpcName }}</span>
-        <span style="margin: 0 4px">/</span>
-        <span>{{ row.subnetCidr }}</span>
       </td>
 
       <td nz-tooltip [nzTooltipTitle]="formatTime(row.updatedOn)">{{ formatTime(row.updatedOn) }}</td>
@@ -158,10 +151,10 @@
 
       <ng-template #errorTpl let-control>
         <ng-container *ngIf="control.errors?.customPattern">{{ control.errors.customPattern.tiErrorMessage }}</ng-container>
-        <ng-container *ngIf="control.errors?.customVerify">{{ control.errors.customVerify.tiErrorMessage }}</ng-container>
-        <ng-container *ngIf="control.hasError('required')">{{ 'required_field' | i18nextEager }}</ng-container>
-        <ng-container *ngIf="control.hasError('maxlength')">{{ 'length_exceed' | i18nextEager }}</ng-container>
-        <ng-container *ngIf="control.hasError('minlength')">{{ 'length_short' | i18nextEager }}</ng-container>
+        <ng-container *ngIf="control.errors?.nameChAllow">{{ control.errors.nameChAllow.tiErrorMessage }}</ng-container>
+        <ng-container *ngIf="control.hasError('required')">{{ 'required' | i18nextEager }}</ng-container>
+        <ng-container *ngIf="control.hasError('maxlength')">{{ 'create_env_name_verify' | i18nextEager }}</ng-container>
+        <ng-container *ngIf="control.hasError('minlength')">{{ 'create_env_name_verify' | i18nextEager }}</ng-container>
       </ng-template>
 
       <form nz-form [formGroup]="formGroup" nzLayout="vertical">

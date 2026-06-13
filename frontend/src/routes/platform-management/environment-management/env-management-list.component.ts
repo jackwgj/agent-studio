@@ -193,7 +193,6 @@ export class EnvManagementListComponent implements OnInit, OnDestroy {
     { title: this.i18n.transform('name') },
     { title: this.i18n.transform('description') },
     { title: this.i18n.transform('status') },
-    { title: this.i18n.transform('env_resource_vpc_subnet') },
     { title: this.i18n.transform('update_time') },
     { title: this.i18n.transform('operation'), fixed: 'right', width: '160px' },
   ];

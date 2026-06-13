@@ -2692,7 +2692,7 @@
   "versionmodal_v_name": "版本名称",
   "authorize_immediately_tip": "当前账户暂未允许授权AgentRun，将影响环境功能使用。",
   "create_env_desc_verify": "仅支持中英文、数字、下划线(_)、中划线(-)、小括号()、空格，以中英文、数字开头",
-  "create_env_name_verify": "由英文字母开头，仅包含英文字母、数字或中划线",
+  "create_env_name_verify": "由英文字母开头，仅包含英文字母、数字或中划线，长度4-48",
   "flow_unpublish_modify": "尚有未更新版本的修改",
   "agent_log_model_options": "模型参数",
   "plugin_tips": "当前插件未配置鉴权，该插件不可用",
