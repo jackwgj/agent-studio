@@ -42,7 +42,6 @@ import { LAZY_LOAD_LIMIT } from '@routes/agent-center/app-flow/flow.const';
           type="button"
           nz-button
           nzType="primary"
-          nzDanger
           [disabled]="!flowSelected"
           (click)="onConfirm()"
         >

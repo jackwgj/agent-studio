@@ -182,12 +182,37 @@ export class ExportResultModalComponent {
   }
 
   public copyUrl() {
+    const url = this.exportResult?.download_url || '';
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(this.exportResult?.download_url).then(() => {
+      navigator.clipboard.writeText(url).then(() => {
         this.message.success(
           this.i18n.transform("copied_to_clipboard", { ns: I18nNamespace.PROMPT_PLATFORM })
         );
+      }).catch(() => {
+        this.fallbackCopyUrl(url);
       });
+    } else {
+      this.fallbackCopyUrl(url);
     }
+  }
+
+  private fallbackCopyUrl(text: string) {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+    try {
+      document.execCommand('copy');
+      this.message.success(
+        this.i18n.transform("copied_to_clipboard", { ns: I18nNamespace.PROMPT_PLATFORM })
+      );
+    } catch {
+      this.message.error(
+        this.i18n.transform("copy_failed", { ns: I18nNamespace.PROMPT_PLATFORM })
+      );
+    }
+    document.body.removeChild(textarea);
   }
 }

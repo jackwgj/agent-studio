@@ -1,4 +1,5 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, Input, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Clipboard } from '@angular/cdk/clipboard';
 import { HelpDocKey } from '@constants/support-topic.const';
 import { I18nNamespace } from '@i18n';
 import {
@@ -16,6 +17,7 @@ import { cdnAssetUrl } from 'src/single-spa/assets-url';
 import * as uuid from 'uuid';
 import { NzTabsModule } from 'ng-zorro-antd/tabs';
 import { NzTableModule } from 'ng-zorro-antd/table';
+import { NzMessageService } from 'ng-zorro-antd/message';
 
 @Component({
   selector: 'API-call-page',
@@ -228,6 +230,9 @@ export class APICallPageComponent implements OnInit {
     private configServ: AgentConfigService,
     private appAgentRepoService: AppAgentRepoService,
     private helpLinksService: HelpLinksService,
+    private clipboard: Clipboard,
+    private nzMessageService: NzMessageService,
+    private cdr: ChangeDetectorRef,
   ) {
     this.uuid = this.getUUID();
   }
@@ -375,5 +380,10 @@ export class APICallPageComponent implements OnInit {
 
   getUUID() {
     return uuid.v4();
+  }
+
+  copyToClipboard(content: string) {
+    this.clipboard.copy(content);
+    this.nzMessageService.success(this.i18n.transform('copy_success'));
   }
 }

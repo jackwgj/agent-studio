@@ -250,6 +250,7 @@
                   <div
                     [ngStyle]="{
                       flex: 1,
+                      'min-width': '50px',
                     }"
                   >
                     <input
@@ -476,6 +477,7 @@
                     <div
                       [ngStyle]="{
                       flex: 1,
+                      'min-width': '50px',
                     }"
                     >
                       <input
@@ -632,6 +634,7 @@
                           [nzPlaceHolder]="'select_placeholder' | i18nextEager"
                           [name]="'process_flow' +j+i+flow.id"
                           [id]="j+i+flow.id"
+                          [compareWith]="compareWithValue"
                         >
                         </nz-select>
                       </div>
@@ -646,6 +649,8 @@
                           nz-icon
                           nzType="setting"
                           nzTheme="outline"
+                          nz-tooltip
+                          [nzTooltipTitle]="'configureworkflowmodalcomponent_452' | i18nextEager"
                           [ngClass]="{'disabled-icon': !flow.canConfigure && !flow.inputs}"
                           (click)="configureProcessingFlow(flow,domainObject.name)"
                         ></span>
@@ -653,6 +658,8 @@
                           nz-icon
                           nzType="eye"
                           nzTheme="outline"
+                          nz-tooltip
+                          [nzTooltipTitle]="'view_details' | i18nextEager"
                           [ngClass]="{'disabled-icon': !flow.id}"
                           (click)="viewProcessingFlow(flow,domainObject.name)"
                         ></span>
@@ -665,6 +672,8 @@
                           nz-icon
                           nzType="delete"
                           nzTheme="outline"
+                          nz-tooltip
+                          [nzTooltipTitle]="'delete' | i18nextEager"
                         ></span>
                       </div>
                     </div>
@@ -794,7 +803,8 @@
                     <div class="mt-[8px] flex w-full gap-1">
                       <div
                         [ngStyle]="{
-                       width: getLayerIndexWidth(origin)
+                       width: getLayerIndexWidth(origin),
+                       'min-width': '50px',
                      }"
                       >
                         <input
@@ -1050,6 +1060,8 @@
                     nz-icon
                     nzType="setting"
                     nzTheme="outline"
+                    nz-tooltip
+                    [nzTooltipTitle]="'configureworkflowmodalcomponent_452' | i18nextEager"
                     [ngClass]="{'disabled-icon': !flow.canConfigure && !flow.inputs}"
                     (click)="configureExtensionFlow(flow)"
                   ></span>
@@ -1057,6 +1069,8 @@
                     nz-icon
                     nzType="eye"
                     nzTheme="outline"
+                    nz-tooltip
+                    [nzTooltipTitle]="'view_details' | i18nextEager"
                     [ngClass]="{'disabled-icon': !flow.id}"
                     (click)="viewExtensionFlow(flow)"
                   ></span>
@@ -1069,6 +1083,8 @@
                     nz-icon
                     nzType="delete"
                     nzTheme="outline"
+                    nz-tooltip
+                    [nzTooltipTitle]="'delete' | i18nextEager"
                   ></span>
                 </div>
               </div>

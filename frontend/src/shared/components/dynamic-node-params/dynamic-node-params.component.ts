@@ -378,7 +378,7 @@ export class DynamicNodeParamsComponent {
         inputItem.isError = false;
         inputItem.isEmpty = false;
       }
-   
+
       if (this.isComplexType(inputItem.type)) {
         const editorInstance = this.editors.toArray()[editorIndex].editor;
         const model = editorInstance?.getModel();
@@ -438,7 +438,7 @@ export class DynamicNodeParamsComponent {
       let { controlValue, value } = requirement;
       let defaultValue = value?.default || controlValue;
       if (requirement.type === 'integer' || requirement.type === 'number') {
-        defaultValue = Number(defaultValue) ?? 0;
+        defaultValue = isNaN(Number(defaultValue)) ? 0 : Number(defaultValue);
       }
       const possiableDefaultValue = this.getDefaultValue(requirement);
       if (possiableDefaultValue) {
@@ -448,7 +448,7 @@ export class DynamicNodeParamsComponent {
           defaultValue = defaultValue === 'true' || defaultValue === true;
         }
         if (requirement.type === 'integer' || requirement.type === 'number') {
-          defaultValue = Number(defaultValue) ?? 0;
+          defaultValue = isNaN(Number(defaultValue)) ? 0 : Number(defaultValue);
         }
       } else {
         // 修复开始节点配置boolean类型并且初始值为false时，该boolean类型字段未传递给试运行接口

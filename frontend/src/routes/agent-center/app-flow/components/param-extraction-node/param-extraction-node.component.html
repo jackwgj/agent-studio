@@ -97,7 +97,7 @@
                 {{ getFieldName(param) }}
               </div>
             </div>
-            <div class="node-param-shallow w-[120px]">
+            <div class="node-param-shallow w-[120px] overflow-hidden text-ellipsis whitespace-nowrap" nz-tooltip [nzTooltipTitle]="getFieldDesc(param)">
               {{ getFieldDesc(param) }}
             </div>
           </div>

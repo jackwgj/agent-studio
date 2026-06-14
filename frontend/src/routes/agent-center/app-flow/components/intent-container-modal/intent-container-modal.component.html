@@ -19,17 +19,12 @@
         class="flex h-[calc(100%-84px)] flex-col gap-[16px]"
         *ngIf="curStepIndex === 0"
       >
-        <div class="flex gap-[12px]">
+        <div class="flex gap-[12px] mt-2">
           <button
             type="button"
             nz-button
             [disabled]="!hasSelectedBranch()"
-            nz-popover
-            nzPopoverPlacement="bottomLeft"
-            [nzPopoverContent]="batchBindRef"
-            [nzPopoverOverlayStyle]="{ maxWidth: '500px', zIndex: 999 }"
-            [nzPopoverVisible]="showBatchBindRef"
-            (click)="batchBindFlows()"
+            (click)="openBatchBindModal()"
           >
             {{ 'batch_configuration' | i18nextEager }}
           </button>
@@ -268,9 +263,17 @@
   </div>
 </div>
 
-<ng-template #batchBindRef>
-  <model-settings
-    [workflowType]="workflowType"
-    (flowInfoSelected)="batchBindTipCtx.outputs.flowInfoSelected($event)"
-  ></model-settings>
-</ng-template>
+<nz-modal
+  [(nzVisible)]="showBatchBindRef"
+  [nzTitle]="'batch_configuration' | i18nextEager"
+  nzWidth="500px"
+  (nzOnCancel)="showBatchBindRef = false"
+  [nzFooter]="null"
+>
+  <ng-container *nzModalContent>
+    <model-settings
+      [workflowType]="workflowType"
+      (flowInfoSelected)="batchBindTipCtx.outputs.flowInfoSelected($event)"
+    ></model-settings>
+  </ng-container>
+</nz-modal>

@@ -88,9 +88,6 @@ export class IntentContainerModalComponent
     closeDrawer?: () => void;
   } = {};
 
-  @ViewChild('batchBindRef')
-  batchBindRef: any;
-
   @ViewChild('inputForm') inputForm: NgForm;
 
   @ViewChildren('boundFlowListForm') boundFlowListForm: QueryList<NgForm>;
@@ -126,9 +123,6 @@ export class IntentContainerModalComponent
   public isLoading = false;
 
   public isFlowsLoading = false;
-
-  // 批量绑定工作流的Tip弹窗
-  public batchBindRefCmp = batchBindFlowsComponent;
 
   public inputParams: IWorkflowField[] = [];
 
@@ -169,8 +163,8 @@ export class IntentContainerModalComponent
           selectedBranches.forEach((param) => {
             param.workflow_id = flowId;
           });
+          this.showBatchBindRef = false;
         }
-        this.showBatchBindRef = false;
       },
     },
   };
@@ -402,14 +396,9 @@ export class IntentContainerModalComponent
     return this.branchList.some((item) => item.selected);
   }
 
-  /** 点击展示批量配置的Tip弹窗 */
-  public batchBindFlows() {
-    if (this.showBatchBindRef) {
-      this.showBatchBindRef = false;
-    } else {
-      this.showBatchBindRef = true;
-      this.batchBindTipCtx.workflowType = this.workflowType;
-    }
+  public openBatchBindModal(): void {
+    this.showBatchBindRef = true;
+    this.batchBindTipCtx.workflowType = this.workflowType;
   }
 
   public batchUnbindFlows() {

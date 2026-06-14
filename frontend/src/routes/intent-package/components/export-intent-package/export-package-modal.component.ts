@@ -14,6 +14,7 @@ import { NzInputModule } from 'ng-zorro-antd/input';
 import { NzToolTipModule } from 'ng-zorro-antd/tooltip';
 import { NzEmptyModule } from 'ng-zorro-antd/empty';
 import { NzModalRef } from 'ng-zorro-antd/modal';
+import { NzDrawerRef } from 'ng-zorro-antd/drawer';
 import { agentCommonLogic } from '@routes/agent-center/app-agent/common-logic-agent';
 @Component({
   selector: 'export-intent-package-modal',
@@ -45,6 +46,7 @@ export class ExportPackageModalComponent implements OnInit {
     private readonly api: IntentPackageService,
     private readonly i18n: I18NextEagerPipe,
     @Optional() private modalRef: NzModalRef,
+    @Optional() private drawerRef: NzDrawerRef,
     private commonLogic: agentCommonLogic
   ) {}
 
@@ -140,6 +142,8 @@ export class ExportPackageModalComponent implements OnInit {
   public dismiss(): void {
     if (this.modalRef) {
       this.modalRef.destroy();
+    } else if (this.drawerRef) {
+      this.drawerRef.close();
     }
   }
 }

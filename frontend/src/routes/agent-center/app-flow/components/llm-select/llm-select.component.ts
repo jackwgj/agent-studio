@@ -9,6 +9,7 @@ import {
   signal,
   SimpleChanges,
   ViewChild,
+  ChangeDetectorRef,
 } from '@angular/core';
 import { MODULES } from '@shared/modules';
 import {
@@ -185,27 +186,30 @@ export class LLMSelectComponent implements OnDestroy {
     private nzModal: NzModalService,
     private router: Router,
     private configServ: AgentConfigService,
+    private cdr: ChangeDetectorRef,
   ) {
     effect(() => {
       const map = this._subscribeMap();
       const options = this._modelOptions().map(o => {
         return {
           ...o,
-          children: (!o.isFirstPlatform) ? o.children : o.children?.map(c => {
-            const isSubscribed = map.get(c.model_name) || c.is_subscribed;
+          children: o.children?.map(c => {
+            const isSubscribed = o.isFirstPlatform ? (map.get(c.model_name) || c.is_subscribed) : undefined;
             return {
               ...c,
-              isSubscribed,
-              disabled: c.type === 'button' ? false : !isSubscribed && !c.is_in_free_trial
+              ...(o.isFirstPlatform ? {
+                isSubscribed,
+                disabled: c.type === 'button' ? false : !isSubscribed && !c.is_in_free_trial
+              } : {})
             };
-          }).filter(c => !c.disabled)
+          })
         }
       });
       this.modelOptions = options;
       if (this.modelOptions.length) {
         this.showOptions.emit(this.modelOptions);
       }
-      ;
+      this.cdr.detectChanges();
     });
   }
 
@@ -302,6 +306,7 @@ export class LLMSelectComponent implements OnDestroy {
             service_name: this.serviceMap[this.selectedModel].service_name,
           }
         }
+        this.cdr.detectChanges();
       });
   }
 

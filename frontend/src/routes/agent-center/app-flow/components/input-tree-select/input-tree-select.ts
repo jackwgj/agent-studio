@@ -10,13 +10,14 @@ import { ParamLabelPipe } from 'src/pipes/param-label.pipe';
 import { NodeUtils } from 'src/routes/agent-center/app-flow/components/utils';
 import { WORKFLOW_SVGS } from 'src/routes/agent-center/app-flow/flow.const';
 import type { INodeType, IWorkflowFieldType } from 'src/routes/agent-center/app-flow/node.type';
+import { CdkConnectedOverlay, CdkOverlayOrigin, ConnectedPosition } from '@angular/cdk/overlay';
 
 @Component({
   selector: 'input-tree-select',
   templateUrl: './input-tree-select.html',
   styleUrls: ['./input-tree-select.less'],
   standalone: true,
-  imports: [MODULES, RefSelectedRequireDirective, ParamLabelPipe],
+  imports: [MODULES, RefSelectedRequireDirective, ParamLabelPipe, CdkConnectedOverlay, CdkOverlayOrigin],
   providers: [
     {
       provide: I18NEXT_NAMESPACE,
@@ -62,6 +63,10 @@ export class InputTreeSelect implements ControlValueAccessor {
   @ViewChild('selectDivDom') selectDivDom: ElementRef;
   @ViewChild('selectTreeDom') selectTreeDom: ElementRef;
   @ViewChild('inputDom') inputDom: ElementRef;
+  overlayPositions: ConnectedPosition[] = [
+    { originX: 'start', originY: 'bottom', overlayX: 'start', overlayY: 'top' },
+    { originX: 'start', originY: 'top', overlayX: 'start', overlayY: 'bottom' },
+  ];
   cScrollStartCt = false;
   cScrollTop = 0;
   thisSubscribe: Subscription;
@@ -254,10 +259,11 @@ export class InputTreeSelect implements ControlValueAccessor {
   onClick(event: MouseEvent) {
     const target = event.target as Node;
     const isInside = this.el.nativeElement.contains(target);
-    if (!isInside) {
+    const isOverlayClick = !!(target as HTMLElement)?.closest?.('.cdk-overlay-pane');
+    if (!isInside && !isOverlayClick) {
       if (this.showSelectDiv) {
-        this.control?.controls[this.name].markAsDirty();
-        this.vInvalid = !!this.control?.controls[this.name].errors && this.control?.controls[this.name].dirty;
+        this.control?.controls?.[this.name]?.markAsDirty();
+        this.vInvalid = !!this.control?.controls?.[this.name]?.errors && this.control?.controls?.[this.name]?.dirty;
       }
       this.showSelectDiv = false;
       this.treeSelectIndexList = [];
@@ -416,8 +422,17 @@ export class InputTreeSelect implements ControlValueAccessor {
   }
 
   get domSelectTreeTop() {
-    return `${(this.inputDom?.nativeElement?.getBoundingClientRect().top || 0) + (this.inputDom?.nativeElement?.getBoundingClientRect().height || 0)}px`;
+    const rect = this.inputDom?.nativeElement?.getBoundingClientRect();
+    if (!rect) return '0px';
+    return `${rect.bottom}px`;
   }
+
+  get domSelectTreeLeft() {
+    const rect = this.inputDom?.nativeElement?.getBoundingClientRect();
+    if (!rect) return '0px';
+    return `${rect.left}px`;
+  }
+
   get domSelectTreeWidth() {
     return `${this.inputDom?.nativeElement?.getBoundingClientRect().width || 0}px`;
   }

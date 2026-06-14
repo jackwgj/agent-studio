@@ -1,5 +1,7 @@
 <div class="main-select" [nz-tooltip]="showPathIcon ? tipTemplate : ''" [nzTooltipPlacement]="tooltipState" [nzTooltipColor]="'#fff'">
   <div
+    cdkOverlayOrigin
+    #overlayOrigin="cdkOverlayOrigin"
     (click)="selectClick()"
     [class]="borderClass"
     [class.is-invalid]="vInvalid"
@@ -35,15 +37,17 @@
     </div>
   </ng-template>
 
-  <div
-    *ngIf="showSelectDiv"
-    (mouseleave)="treeNodeLeave($event)"
-    class="select-tree-dom"
-    [style]="{
-    top:domSelectTreeTop,
-    width:domSelectTreeWidth,
-  }"
+  <ng-template
+    cdkConnectedOverlay
+    [cdkConnectedOverlayOrigin]="overlayOrigin"
+    [cdkConnectedOverlayOpen]="showSelectDiv"
+    [cdkConnectedOverlayPositions]="overlayPositions"
+    [cdkConnectedOverlayWidth]="domSelectTreeWidth"
   >
+    <div
+      (mouseleave)="treeNodeLeave($event)"
+      class="select-tree-dom"
+    >
     <div class="select-div" #selectDivDom>
       <nz-input-wrapper>
         <nz-icon nz-icon nzType="search" theme="outline" class="input-search-icon"></nz-icon>
@@ -138,5 +142,6 @@
         </div>
       </ng-template>
     </div>
-  </div>
+    </div>
+  </ng-template>
 </div>

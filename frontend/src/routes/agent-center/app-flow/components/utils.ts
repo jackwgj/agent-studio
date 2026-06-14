@@ -315,7 +315,7 @@ export const NodeUtils = {
           name: '',
           type: itemType as IWorkflowFieldType,
         };
-        if (itemType === 'object') {
+        if (itemType === 'object' && children) {
           (field.schema as IWorkflowField).schema = this.views2Fields(children);
         }
       }

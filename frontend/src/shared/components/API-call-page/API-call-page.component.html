@@ -5,6 +5,15 @@
       <div class="font-semibold">{{ info.part }}</div>
       <div class="flex items-center justify-between my-[8px]" style="position: relative">
         {{ info.field }}
+        <span
+          class="cursor-pointer"
+          nz-icon
+          nzType="copy"
+          nzTheme="outline"
+          nz-tooltip
+          [nzTooltipTitle]="'copy' | i18nextEager"
+          (click)="copyToClipboard(info.value)"
+        ></span>
         <img alt=""
           *ngIf="info.field === 'url'"
           style="position: absolute; right: 26px"
@@ -49,6 +58,16 @@
       </nz-tab>
       <nz-tab *ngIf="runtime_api_endpoint_prefix" [nzTitle]="tabs[1].title">
         <div class="editor-wrapper">
+          <div class="rounded-t-[8px] bg-[#FAFAFA] px-[16px] py-[8px] flex items-center">
+            <span
+              class="cursor-pointer mr-[2px]"
+              nz-icon
+              nzType="copy"
+              nzTheme="outline"
+              (click)="copyToClipboard(code)"
+            ></span>
+            {{ 'copy' | i18nextEager }}
+          </div>
           <div class="h-[calc(100%-50px)]">
             <ngx-monaco-editor [options]="editorOptions" [(ngModel)]="code"></ngx-monaco-editor>
           </div>

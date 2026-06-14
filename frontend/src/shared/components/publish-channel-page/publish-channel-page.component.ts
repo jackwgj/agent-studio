@@ -196,14 +196,13 @@ export class PublishChannelPageComponent {
   public expandModel() {
     this.isHalfModelExpand = !this.isHalfModelExpand;
     if (this.isHalfModelExpand) {
-      this.rightSidebarWidth =
-        (
-          document?.querySelector(
-            '#J_rightSidebar .js-cf-rightSidebar',
-          ) as HTMLElement
-        ).offsetWidth || 0;
+      const sidebarEl = document?.querySelector('#J_rightSidebar .js-cf-rightSidebar') as HTMLElement | null;
+      this.rightSidebarWidth = sidebarEl?.offsetWidth || 0;
       this.drawerWidth = window.innerWidth - this.rightSidebarWidth;
+    } else {
+      this.drawerWidth = 1000;
     }
+    this.cdr.markForCheck();
   }
   public async initFn() {
     this.isOpAccount = this.ctxServ.isOpAccount;

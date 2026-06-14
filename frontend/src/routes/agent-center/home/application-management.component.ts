@@ -479,10 +479,10 @@ export class ApplicationManagementComponent implements OnInit, OnDestroy {
   getIndexOfTab() {
     let index = 1;
     if (!this.appType) {
-      index = this.router.url.indexOf("workflow") > -1 ? 1 : 2;
+      index = this.router.url.indexOf("multi") > -1 ? 2 : 1;
     }else {
       // 兼容开发者空间的逻辑
-      index = this.appType === "workflow" ? 1 : 2;
+      index = this.appType === "multi" ? 2 : 1;
     }
     return index;
   }

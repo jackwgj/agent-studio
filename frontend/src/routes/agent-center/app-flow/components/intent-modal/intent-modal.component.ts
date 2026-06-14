@@ -1013,42 +1013,35 @@ export class IntentModalComponent extends ModalBaseComponent implements OnInit, 
       nzTitle: '',
       nzContent: IntentAddTipModalComponent,
       nzClassName: 'intent-add-class',
-      nzOnOk: () => {
-        // 查询意图包列表
-        if (FlowUtils.isAdvancedModeNew(this.nodeInfo)) {
-          this.intentRepoServe
-            .getIntentGroupList({
-              offset: 0,
-              limit: LAZY_LOAD_LIMIT,
-            })
-            .then(result => {
-              this.intentGroupOptions = result.intents.map(item => ({
-                ...item,
-                merge_name: `${item.name}（${item.branches_cnt}${this.i18n.transform('intentions')}）`,
-              }));
-              this.totalIntentGroups = result.count;
-              const intent = result.intents.find(item => item.intent_id === intentId);
-              if (!intent) {
-                return;
-              }
-              const intentGroupConfig = {
-                id: intent.intent_id,
-                name: intent.name,
-                branches_cnt: intent.branches_cnt,
-              };
-              const intentGroupFormValue = intentGroupConfig?.id ?? null;
-
-              this.modelFormGroup.controls.intent_group.setValue(intentGroupFormValue);
-            })
-            .catch(() => {
-              this.intentGroupOptions = [];
-              this.totalIntentGroups = 0;
-            });
-        }
-      },
+      nzFooter: null,
     });
     const instance = thisNzModal.getContentComponent();
     instance.packageName = name;
     instance.intentId = intentId;
+    thisNzModal.afterClose.subscribe(() => {
+      if (FlowUtils.isAdvancedModeNew(this.nodeInfo)) {
+        this.intentRepoServe
+          .getIntentGroupList({
+            offset: 0,
+            limit: LAZY_LOAD_LIMIT,
+          })
+          .then(result => {
+            this.intentGroupOptions = result.intents.map(item => ({
+              ...item,
+              merge_name: `${item.name}（${item.branches_cnt}${this.i18n.transform('intentions')}）`,
+            }));
+            this.totalIntentGroups = result.count;
+            const intent = result.intents.find(item => item.intent_id === intentId);
+            if (!intent) {
+              return;
+            }
+            this.modelFormGroup.controls.intent_group.setValue(intent.intent_id);
+          })
+          .catch(() => {
+            this.intentGroupOptions = [];
+            this.totalIntentGroups = 0;
+          });
+      }
+    });
   }
 }
