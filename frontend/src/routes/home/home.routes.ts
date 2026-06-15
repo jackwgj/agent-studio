@@ -202,6 +202,45 @@ export const HOME_ROUTES: Routes = [
     },
   },
   {
+    path: 'ai-assist-create-home',
+    loadChildren: () =>
+      import('@routes/ai-assist-create-home/ai-assist-create-home-routing.module').then(
+        (module) => module.AiAssistCreateHomeRoutingModule,
+      ),
+    data: {
+      i18nextNamespaces: [I18nNamespace.AGENT_CENTER,I18nNamespace.PROMPT_PLATFORM],
+    },
+    resolve: {
+      i18next: I18NEXT_NAMESPACE_RESOLVER,
+    },
+  },
+  {
+    path: 'ai-assist-create-agent',
+    loadChildren: () =>
+      import('@routes/ai-assist-create-agent/ai-assist-create-agent-routing.module').then(
+        (module) => module.AiAssistCreateAgentRoutingModule,
+      ),
+    data: {
+      i18nextNamespaces: [I18nNamespace.AGENT_CENTER,I18nNamespace.PROMPT_PLATFORM],
+    },
+    resolve: {
+      i18next: I18NEXT_NAMESPACE_RESOLVER,
+    },
+  },
+  {
+    path: 'ai-assist-create-workflow',
+    loadChildren: () =>
+      import('@routes/ai-assist-create-workflow/ai-assist-create-workflow-routing.module').then(
+        (module) => module.AiAssistCreateWorkflowRoutingModule,
+      ),
+    data: {
+      i18nextNamespaces: [I18nNamespace.AGENT_CENTER,I18nNamespace.PROMPT_PLATFORM],
+    },
+    resolve: {
+      i18next: I18NEXT_NAMESPACE_RESOLVER,
+    },
+  },
+  {
     path: 'development-configuration',
     loadChildren: () =>
       import('@routes/development-configuration/development-configuration-routing.module').then(

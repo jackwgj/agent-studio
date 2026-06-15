@@ -149,11 +149,67 @@ export class OverviewComponent implements OnInit {
     if (i === 'create') {
       cardinfoList = [
         {
+          bg: 'rgba(242, 246, 255, 1)',
+          icon: `url('${this.changeUrl('assets/images/overview/bg-1-2.png')}')`,
+          title: this.i18n.transform('overview_15'),
+          tip: this.i18n.transform('overview_16'),
+          btns: [
+            {
+              name: this.i18n.transform('agentConfig_split4'),
+              class: this.showCreateAppRole !== 'OPERATOR'
+                  ? 'new-overview-learn-card-left-b-link'
+                  : 'new-overview-learn-card-left-b-link-disable',
+              clickFun: async () => {
+                if (
+                  this.showCreateAppRole !== 'OPERATOR'
+                ) {
+                  this.router.navigate(['/home/ai-assist-create-home'], {
+                    queryParams: {
+                      appType: 'agent',
+                    },
+                  });
+                }
+              },
+            },
+            {
+              name: this.i18n.transform('overview_31'),
+              class:
+                this.showCreateAppRole !== 'OPERATOR'
+                  ? 'new-overview-learn-card-left-b-link'
+                  : 'new-overview-learn-card-left-b-link-disable',
+              clickFun: async () => {
+                if (
+                  this.showCreateAppRole !== 'OPERATOR'
+                ) {
+                  this.showExperienceCreation('agent');
+                }
+              },
+            },
+          ],
+        },
+        {
           bg: '#F7F1FA',
           icon: `url('${this.changeUrl('assets/images/overview/bg-1-1.png')}')`,
           title: this.i18n.transform('overview_18'),
           tip: this.i18n.transform('overview_19'),
           btns: [
+            {
+              name: this.i18n.transform('agentConfig_split4'),
+              class: this.showCreateAppRole !== 'OPERATOR'
+                  ? 'new-overview-learn-card-left-b-link'
+                  : 'new-overview-learn-card-left-b-link-disable',
+              clickFun: async () => {
+                if (
+                  this.showCreateAppRole !== 'OPERATOR'
+                ) {
+                  this.router.navigate(['/home/ai-assist-create-home'], {
+                    queryParams: {
+                      appType: 'workflow',
+                    },
+                  });
+                }
+              },
+            },
             {
               name: this.i18n.transform('overview_31'),
               class: 'new-overview-learn-card-left-b-link',

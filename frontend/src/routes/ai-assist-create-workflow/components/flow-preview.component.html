@@ -1,0 +1,162 @@
+<!-- 左边提示 -->
+<div
+  class="left-tip-box absolute left-[22px] top-[22px] z-10 w-[280px] bg-white p-4"
+  *ngIf="currentNodeProcessData?.details && isRunning"
+>
+  <div class="flex-between">
+    <span>
+      {{
+        'node_generated_count'
+          | i18nextEager
+            : { count: currentNodeProcessData.details.generated_count }
+      }}
+      /
+      {{
+        'node_total_generated_count'
+          | i18nextEager : { count: currentNodeProcessData.details.total_num }
+      }}
+    </span>
+    <span>{{ currentNodeProcessData.progress + '%' }}</span>
+  </div>
+  <nz-progress
+    [nzPercent]="currentNodeProcessData.progress"
+    nzStrokeColor="#1476ff"
+  ></nz-progress>
+  <div class="remain-time">
+    {{
+      'node_generated_remaining_time'
+        | i18nextEager : { time: currentNodeProcessData.remainTimeStr }
+    }}
+  </div>
+</div>
+
+<div class="preview-right-msg-wrapper absolute right-0 top-0 z-10">
+  <!-- 右边提示 -->
+  <nz-alert
+    *ngIf="rightMsgContent"
+    [nzType]="rightMsgType"
+    [nzMessage]="rightMsgTitle"
+    class="absolute right-[10px] top-[8px]"
+    ><span [innerHTML]="rightMsgContent"></span>
+    <a
+      *ngIf="showGoEditBtn"
+      id="gotoFlowDetail"
+      class="pointer ml-[4px] inline-flex items-center gap-[4px] a-link-color"
+      (click)="gotFlowDetail($event)"
+    >
+      <span>{{ 'go_to_edit' | i18nextEager }}</span>
+      <span nz-icon nzType="edit"></span>
+    </a>
+  </nz-alert>
+  <!-- 试运行按钮 -->
+  <span
+    *ngIf="workflowDetail"
+    class="mr-[20px] mt-[24px] flex cursor-pointer items-center gap-[4px]"
+    (click)="openRunHalfmodal()"
+  >
+    <asset-run-icon *ngIf="!testBtnLoading"></asset-run-icon>
+    <nz-spin nzSize="small" *ngIf="testBtnLoading"></nz-spin>
+    <span>{{ 'test_run' | i18nextEager }}</span>
+  </span>
+</div>
+
+<!-- 图 -->
+<div class="h-full w-full" [id]="previewGraphId"></div>
+
+<div class="absolute bottom-4 left-4 flex h-10 items-center gap-2">
+  <div class="tool-bar-item flex items-center gap-3">
+    <!-- 放大缩小 -->
+    <div class="flex items-center gap-2">
+      <div
+        class="icon-common scale-sub"
+        title="{{ 'zoomIn' | i18nextEager }}"
+        (click)="supCanvas()"
+      ></div>
+
+      <div class="w-[35px] text-center text-sm">{{ localScale }}%</div>
+
+      <div
+        class="icon-common scale-add"
+        title="{{ 'zoomOut' | i18nextEager }}"
+        (click)="addCanvas()"
+      ></div>
+    </div>
+
+    <!-- 分割线 -->
+    <div class="status-bar-divider"></div>
+
+    <!-- 缩略图 -->
+    <div
+      [ngStyle]="{ 'background-color': showMiniMap ? '#deecff' : '' }"
+      class="op-icon cursor-pointer p-1"
+      (click)="onClickShowThumb()"
+    >
+      <div nz-tooltip [nzTooltipTitle]="'show_thumb' | i18nextEager" class="show-thumb"></div>
+    </div>
+    <div
+      [id]="minimapGraphId"
+      [ngStyle]="{ visibility: showMiniMap ? 'visible' : 'hidden' }"
+      class="minimap absolute bottom-12 left-0 w-[180px] rounded-lg bg-white p-2"
+    ></div>
+
+    <!-- 全部展开/收起 -->
+    <div
+      class="op-icon w-[24px] cursor-pointer p-1"
+      (click)="expandAllSwitch()"
+    >
+      <div
+        *ngIf="isAllExpand"
+        class="node-expand rotate-180"
+        nz-tooltip
+        [nzTooltipTitle]="'global_folding_node' | i18nextEager"
+      ></div>
+
+      <div
+        *ngIf="!isAllExpand"
+        class="node-expand"
+        nz-tooltip
+        [nzTooltipTitle]="'global_expand_nodes' | i18nextEager"
+      ></div>
+    </div>
+
+    <!-- 定位到中间 -->
+    <div class="op-icon w-[24px] cursor-pointer p-1" (click)="onCenter()">
+      <div class="position-center" nz-tooltip [nzTooltipTitle]="'center' | i18nextEager"></div>
+    </div>
+
+    <!-- 布局优化 -->
+    <div class="op-icon w-[24px] cursor-pointer p-1" (click)="optimizeLayout()">
+      <div
+        class="optimize-layout"
+        nz-tooltip
+        [nzTooltipTitle]="'layout_optimization' | i18nextEager"
+      ></div>
+    </div>
+  </div>
+</div>
+
+<!-- 当前只支持对话流类型工作流 -->
+<dialog-halfmodal
+  class="absolute bottom-0 right-0 top-[65px]"
+  [hidden]="!showRunModal"
+  [isShow]="showRunModal"
+  [isDrawerVisible]="showRunModal"
+  [fromComponent]="''"
+  [graph]="previewGraph"
+  [conversationId]="conversationId"
+  [currWorkflow]="workflowDetail"
+  [inputWorkflowId]="workflowId"
+  versionName=""
+  [environment_id]="workflowDetail?.workflow_details?.configs?.environment"
+  (clickErrorInfo)="clickErrorInfo($event)"
+  (close)="dialogHalfModalClose()"
+></dialog-halfmodal>
+
+<check-error-workflow
+  [validateWorkflowList]="validateWorkflowList"
+  [workflowDetail]="workflowDetail"
+  (clickNodeEmit)="clickCheckErrorWorkflowModal($event)"
+  (dismissEmit)="dismissCheckErrorWorkflowModal()"
+  [isShow]="checkErrorWorkflowHalfModalRef"
+  [errorTip]="checkErrorTip"
+></check-error-workflow>

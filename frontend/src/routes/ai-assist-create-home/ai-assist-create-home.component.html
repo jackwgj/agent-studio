@@ -1,0 +1,76 @@
+<div id="ai-assist-create-home">
+  <div class="top-area">
+    <div (click)="close()" style="display: flex;align-items: center;cursor: pointer">
+      <span nz-icon nzType="arrow-left" style="font-size:24px"></span>
+      <span style="font-size:16px;margin-left: 8px">{{ 'tuning_back' | i18nextEager }}</span>
+    </div>
+
+    <div (click)="close()">
+      <img [src]="changeUrl('assets/ng2workflow/close.svg')" />
+    </div>
+  </div>
+
+  <div class="ai-assist-main">
+    <div class="intro-wrapper">
+      <div class="page-introduce">
+        {{ 'share_your_idea_create_personalized_app' | i18nextEager }}
+        <div class="gradient-text">{{ 'personalized_applications' | i18nextEager }}</div>
+      </div>
+    </div>
+
+    <div class="ai-assist-demo-area">
+      <div class="card-demo" *ngFor="let card of displayCards" (click)="sendCardContent(card)">
+        <img class="card-icon" [src]="changeUrl(card.icon)" alt="" />
+        <span nz-tooltip nzTooltipPlacement="top">{{ card.label }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="ai-assist-footer">
+    <div class="footer-content-wrapper">
+      <div class="ai-assist-textarea-area">
+        <textarea #textElement
+                  (input)="autoGrow()"
+                  [(ngModel)]="promptValue"
+                  [placeholder]="showPlaceholder() || ('ai_assist_placeholder' | i18nextEager)"
+                  class="textarea-tag">
+        </textarea>
+
+        <div class="operate-area">
+          <div class="operate-area-left">
+            <llm-select class="model-select-component"
+                        [selectedModel]="modelSelected"
+                        (update)="changeModelSelected($event)"
+                        [clearable]="false"
+                        [panelAlign]="'left'">
+            </llm-select>
+
+            <nz-select #select
+                       class="type-select-component"
+                       [(ngModel)]="typeValue"
+                       (ngModelChange)="ngModelChange($event)"
+                       [nzPlaceHolder]="'select_creation_type' | i18nextEager"
+                       nzAllowClear="false">
+              <nz-option *ngFor="let item of typeOptions" [nzValue]="item.value" [nzLabel]="item.label">
+                <div style="display: flex !important; flex-direction: row !important; align-items: center !important; gap: 8px; padding: 4px 0;">
+                  <img style="width: 20px; height: 20px; object-fit: contain; flex-shrink: 0; display: block; margin: 0;" [src]="changeUrl(item.icon)">
+                  <span style="font-size: 14px; line-height: 20px; color: #333; white-space: nowrap; margin: 0;">{{ item.label }}</span>
+                </div>
+              </nz-option>
+            </nz-select>
+          </div>
+
+          <div class="operate-area-right">
+            <img *ngIf="promptValue"
+                 (click)="toCreateApp()"
+                 class="send-btn"
+                 [src]="changeUrl('assets/ng2workflow/send.svg')" />
+          </div>
+        </div>
+      </div>
+      <div class="ai-notice-text">
+        {{ 'ai_generated_content_note' | i18nextEager }}
+      </div>
+    </div>
+  </div>
+</div>

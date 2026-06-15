@@ -1,0 +1,144 @@
+.tool-bar-item {
+  background-color: #fff;
+  border-radius: 8px;
+  box-sizing: border-box;
+  border: 1px solid #e1e5eb;
+  padding: 8px 16px;
+  height: 100%;
+}
+
+.icon-common {
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+}
+
+.scale-add {
+  width: 12px;
+  height: 12px;
+  margin-left: 16px;
+  background-image: url('../../../assets/agent-center/flow/add-minimap.svg');
+}
+
+.scale-sub {
+  width: 12px;
+  height: 12px;
+  margin-right: 16px;
+  background-image: url('../../../assets/agent-center/flow/sup-minimap.svg');
+}
+
+.node-expand {
+  margin-right: 0;
+  width: 16px;
+  height: 16px;
+  background-image: url('../../../assets/agent-center/flow/expand-all-nodes.svg');
+}
+
+.show-thumb {
+  width: 16px;
+  height: 16px;
+  background-image: url('../../../assets/agent-center/flow/show-thumb.svg');
+}
+
+.position-center {
+  margin-right: 0;
+  width: 16px;
+  height: 16px;
+  background-image: url('../../../assets/agent-center/flow/position1.svg');
+}
+
+.optimize-layout {
+  margin-right: 0;
+  width: 16px;
+  height: 16px;
+  background-image: url('../../../assets/agent-center/flow/Optimize.svg');
+}
+
+.status-bar-divider {
+  width: 1px;
+  height: 16px;
+  background-color: var(--ti-color-border-disabled);
+}
+
+.minimap {
+  display: flex;
+  justify-content: center;
+  padding-top: 7px;
+}
+
+:host ::ng-deep {
+  .x6-widget-minimap-viewport {
+    border: 1px solid #1476ff;
+    border-radius: 4px;
+  }
+
+  .a-link-color {
+    color: var(--ti-color-text-link);
+  }
+
+  .x6-widget-minimap {
+    background-color: #fafafa;
+  }
+
+  #flow-common-half-modal,
+  #flow-log-half-modal {
+    padding: 16px 0 16px 20px !important;
+    box-shadow: -4px 0px 6px 0 rgb(0 0 0 / 5%) !important;
+    border-left: 1px solid #e1e5eb;
+    overflow: hidden;
+
+    .tp-halfmodal-cotent {
+      height: 100% !important;
+    }
+
+    .tp-halfmodal-close {
+      line-height: 1;
+      color: #191919;
+      font-size: 18px;
+      top: 22px;
+    }
+
+    tp-halfmodal-header {
+      padding-right: 16px !important;
+    }
+  }
+
+  #checkerrorworkflow-half-modal {
+    padding: 16px 8px 16px 8px !important;
+  
+    .tp-halfmodal-cotent {
+      height: 100% !important;
+    }
+  
+    .tp-halfmodal-close {
+      line-height: 1;
+      color: #191919;
+      font-size: 18px;
+      top: 22px;
+    }
+  
+    tp-halfmodal-body {
+      padding-right: 0px !important
+    }
+
+    tp-halfmodal-header {
+      padding-right: 0px !important;
+    }
+  }
+}
+
+.left-tip-box {
+  border-radius: 8px;
+  box-shadow: 0px 2px 12px 0px #00000029;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.remain-time {
+  color: #595959;
+}

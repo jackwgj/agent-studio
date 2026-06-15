@@ -1,0 +1,291 @@
+<div id="ai-assist-create-workflow">
+  <div class="page-header-area">
+    <div class="navbar-left">
+      <div (click)="backCreateHome()" class="back-icon">
+        <span nz-icon nzType="arrow-left"></span>
+      </div>
+      <div class="logo-section">
+        <icon-upload *ngIf="!iconLoading; else loadingIcon"
+                     [(ngModel)]="workflowLogo"
+                     (ngModelChange)="handleLogoChange()"
+                     [maskIcon]="'edit1' | i18nextEager"
+                     [err_msg]="'maximum_img' | i18nextEager"
+                     class="icon-upload">
+        </icon-upload>
+        <ng-template #loadingIcon>
+          <div class="icon-container">
+            <img [src]="changeUrl('assets/agent-center/agent/model_icon_loading.svg')" class="rotate-icon" />
+          </div>
+        </ng-template>
+      </div>
+      <span class="brand-name">{{ workflowName || ('agent_untitled' | i18nextEager) }}</span>
+      <div (click)="editName()" class="edit-name">
+        <span nz-icon nzType="edit"></span>
+      </div>
+    </div>
+    <div class="navbar-right">
+      <button (click)="toEditWorkflow()" [disabled]="!workflow_id" nz-button>{{ 'go_to_edit' | i18nextEager }}</button>
+      <button (click)="publishWorkflow()" [disabled]="!workflow_id" nz-button nzType="primary">
+        {{ (isPublished ? 'update_version' : 'submit_version') | i18nextEager }}
+      </button>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <div class="main-content-left" *ngIf="!isFullScreen">
+      <div class="chat-list-area" #scrollContainer (scroll)="onScroll()">
+        <div *ngFor="let message of chatHistory; let last = last; trackBy: trackByFn"
+             [ngClass]="['message-wrapper', message.role]">
+
+          <div class="bubble"
+               *ngIf="message.content || message.sopContent || message.mermaidAnswer || message.questions?.length || message.directQuestions?.length || message.mermaidCode || (message.state4Messages && message.state4Messages.length > 0) || message.modifyPromptMessages?.length || (last && isRunning) || message.isStopped">
+
+            <app-markdown-answer *ngIf="message.role === 'user' && message.content"
+                                 [answer]="message.content"
+                                 class="text-content">
+            </app-markdown-answer>
+
+            <ng-container *ngIf="message.role === 'assistant'">
+
+              <div *ngIf="message.timelineGroups?.length || message.state0Messages?.length || message.state4Messages?.length || message.sopContent || message.mermaidAnswer || (last && isRunning)"
+                   class="thinking-process-wrapper">
+
+                <div (click)="message.isExpanded = !message.isExpanded"
+                     class="thinking-header"
+                     [style.cursor]="(message.timelineGroups?.length || message.state0Messages?.length || message.state4Messages?.length || message.sopContent || message.mermaidAnswer || message.modifyPromptMessages?.length) ? 'pointer' : 'default'">
+                  <div class="header-left">
+                    <div *ngIf="last && isRunning" class="loading-icon-wrapper">
+                      <img [src]="changeUrl('assets/ng2workflow/think-loading.svg')" class="rotate-icon" alt="Loading"/>
+                    </div>
+                    <div *ngIf="!(last && isRunning) && !message.isStopped" class="success-icon-circle">
+                      <svg viewBox="0 0 1024 1024" width="14" height="14">
+                        <path d="M912 190h-69.9c-9.8 0-19.1 4.5-25.1 12.2L404.7 724.5 207 474a31.8 31.8 0 0 0-25.1-12.2H112c-6.7 0-10.4 7.7-6.3 12.9l273.9 347c12.8 16.2 37.4 16.2 50.3 0l548.4-692.7c4.1-5.1.4-12.8-6.3-12.8z" fill="#52c41a"/>
+                      </svg>
+                    </div>
+                    <span class="thinking-title">
+                      {{ (last && isRunning) ? ('ai_creat_thinking' | i18nextEager) : (message.isStopped ? ('stop_deep_thinking' | i18nextEager) : ('complete_deep_thinking' | i18nextEager)) }}
+                    </span>
+                  </div>
+                  <div class="header-right" *ngIf="message.timelineGroups?.length || message.state0Messages?.length || message.state4Messages?.length || message.sopContent || message.mermaidAnswer || message.modifyPromptMessages?.length">
+                    <span nz-icon [nzType]="message.isExpanded ? 'up' : 'down'"></span>
+                  </div>
+                </div>
+
+                <div class="thinking-content" [style.display]="message.isExpanded ? 'block' : 'none'">
+                  <ng-container *ngIf="message.timelineGroups?.length">
+                    <ng-container *ngFor="let group of message.timelineGroups">
+                      <div class="state-icon-area" *ngIf="group.type === 'states'">
+                        <ng-container *ngFor="let state of group.states">
+                          <div class="state-item">
+                            <ng-container *ngTemplateOutlet="stateIconTemplate; context: { id: state.id, text: state.text || state }"></ng-container>
+                          </div>
+                          <ng-container *ngIf="(state.text || state).includes('validation_format' | i18nextEager)">
+                            <ng-container *ngTemplateOutlet="modifyPromptTemplate; context: { msg: message }"></ng-container>
+                          </ng-container>
+                        </ng-container>
+                      </div>
+                      <div *ngIf="group.type === 'text'" class="thinking-text-area">
+                        <app-markdown-answer class="text-content" [answer]="group.text"></app-markdown-answer>
+                      </div>
+                    </ng-container>
+                  </ng-container>
+
+                  <ng-container *ngIf="!message.timelineGroups?.length">
+                    <div *ngIf="message.state0Messages?.length || message.state4Messages?.length" class="state-icon-area">
+                      <div *ngFor="let s0 of message.state0Messages" class="state-item">
+                        <ng-container *ngTemplateOutlet="stateIconTemplate; context: { id: s0.id, text: s0.text }"></ng-container>
+                      </div>
+                      <ng-container *ngFor="let s4 of message.state4Messages">
+                        <div class="state-item">
+                          <ng-container *ngTemplateOutlet="stateIconTemplate; context: { id: null, text: s4 }"></ng-container>
+                        </div>
+                        <ng-container *ngIf="s4.includes('validation_format' | i18nextEager)">
+                          <ng-container *ngTemplateOutlet="modifyPromptTemplate; context: { msg: message }"></ng-container>
+                        </ng-container>
+                      </ng-container>
+                    </div>
+                    <app-markdown-answer *ngIf="message.sopContent" [answer]="message.sopContent" class="sop-content"></app-markdown-answer>
+                    <app-markdown-answer *ngIf="message.mermaidAnswer" [answer]="message.mermaidAnswer" class="mermaid-answer-text"></app-markdown-answer>
+                  </ng-container>
+                </div>
+              </div>
+
+              <div *ngIf="message.content" class="final-answer-wrapper"
+                   [style.border-top]="(message.timelineGroups?.length || message.state0Messages?.length || message.sopContent || message.modifyPromptMessages?.length) ? '1px solid rgba(219, 219, 219, 1)' : 'none'"
+                   [style.padding-top]="(message.timelineGroups?.length || message.state0Messages?.length || message.sopContent || message.modifyPromptMessages?.length) ? '16px' : '0'">
+                <app-markdown-answer [answer]="message.content" class="text-content"></app-markdown-answer>
+              </div>
+
+              <div *ngIf="message.directQuestions?.length" class="guide-questions" style="margin-top: 12px;">
+                <div *ngFor="let q of message.directQuestions" class="question-item">
+                  <div class="q-title" style="white-space: pre-wrap;">{{ q }}</div>
+                </div>
+              </div>
+
+              <div class="mermaid-code-container" *ngIf="message.mermaidCode">
+                <div class="mermaid-code-title">
+                  <span>{{ 'generated_for_you' | i18nextEager }}</span>
+                  <span>{{ message.mermaidInfo?.name }}，</span>
+                  <span>{{ 'generated_for_you_desc' | i18nextEager }}</span>
+                </div>
+                <div class="mermaid-preview-card">
+                  <img [src]="changeUrl('assets/ng2workflow/flow-invoke.svg')"/>
+                  <div class="card-name">{{ message.mermaidInfo?.name }}</div>
+                  <button (click)="activeTab = 'flow'" [disabled]="isGenerateGraph()" nz-button nzType="link">{{ 'view' | i18nextEager }}</button>
+                </div>
+                <div class="mermaid-action-area">
+                  <button (click)="determineGeneration()" [disabled]="!last" nz-button>{{ 'determine_generation' | i18nextEager }}</button>
+                  <div class="divider"></div>
+                  <div class="refresh-btn" [class.disabled]="!last" (click)="last && onMermaidRefresh()">
+                    <span nz-icon nzType="reload"></span>
+                  </div>
+                </div>
+              </div>
+
+              <div *ngIf="message.isStopped" class="stopped-indicator">
+                <span class="stopped-text">{{ 'system_stop_answer' | i18nextEager }}</span>
+                <div *ngIf="last" (click)="onRefresh()" class="refresh-action-btn">
+                  <span nz-icon nzType="reload"></span>
+                </div>
+              </div>
+
+              <div *ngIf="message.questions?.length" class="guide-questions">
+                <div *ngFor="let q of message.questions" class="question-item">
+                  <div class="q-title">{{ q.question }}</div>
+                  <div class="q-options">
+                    <div *ngFor="let opt of q.options"
+                         (click)="last && onToggleOption(q, opt)"
+                         [class.active]="q.selected === opt"
+                         [class.disabled]="!last"
+                         class="opt-btn">
+                      {{ opt }}
+                    </div>
+                  </div>
+                </div>
+                <div class="submit-action-area">
+                  <button (click)="onSubmitSelections(message)" [disabled]="!last" nz-button>{{ 'submit_requirement' | i18nextEager }}</button>
+                  <div (click)="last && onRefresh()" [class.disabled]="!last" class="refresh-btn">
+                    <span nz-icon nzType="reload"></span>
+                  </div>
+                </div>
+              </div>
+            </ng-container>
+          </div>
+        </div>
+      </div>
+
+      <div class="ai-assist-footer">
+        <div class="ai-assist-textarea-area">
+          <textarea #textElement
+                    (input)="autoGrow()"
+                    [(ngModel)]="promptValue"
+                    class="textarea-tag"
+                    [placeholder]="'enter_requirements' | i18nextEager">
+          </textarea>
+          <div class="operate-area">
+            <div class="operate-area-left">
+              <llm-select class="ai-create-model-selector"
+                          [clearable]="false"
+                          [panelAlign]="'left'"
+                          [selectedModel]="modelSelected"
+                          (update)="changeModelSelected($event)">
+              </llm-select>
+            </div>
+            <div class="operate-area-right">
+              <div *ngIf="isRunning" class="nl2-stop-button" (click)="onStopGeneration()">
+                <div class="stop-icon-wrapper">
+                  <div class="rotating-border"></div>
+                  <div class="center-square"></div>
+                </div>
+                <div class="stop-text" nz-tooltip>{{ 'stop_answering_nl' | i18nextEager }}</div>
+              </div>
+              <img *ngIf="promptValue && !isRunning" (click)="onSend()" class="send-button" [src]="changeUrl('assets/ng2workflow/send.svg')" alt="Send">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="main-content-right">
+      <div class="right-header-toolbar">
+        <div class="toggle-container">
+          <div class="toggle-group-left">
+            <div class="toggle-item"
+                 [class.active]="activeTab === 'flow'"
+                 [class.disabled]="isGenerateGraph()"
+                 (click)="changeToFlow()">
+              <img *ngIf="activeTab === 'flow'" [src]="changeUrl('assets/ng2workflow/active-flow.svg')"/>
+              <img *ngIf="activeTab !== 'flow' && isGenerateGraph()" [src]="changeUrl('assets/ng2workflow/disable-flow.svg')"/>
+              <img *ngIf="activeTab !== 'flow' && !isGenerateGraph()" [src]="changeUrl('assets/ng2workflow/no-active-flow.svg')"/>
+              <span>{{ 'common_process' | i18nextEager }}</span>
+            </div>
+
+            <div class="toggle-item" *ngIf="previewShow" [class.active]="activeTab === 'preview'" (click)="activeTab = 'preview'">
+              <img *ngIf="activeTab === 'preview'" [src]="changeUrl('assets/ng2workflow/no-active-preview.svg')"/>
+              <img *ngIf="activeTab !== 'preview'" [src]="changeUrl('assets/ng2workflow/active-preview.png')"/>
+              <span>{{ 'requeststepcomponent_1026' | i18nextEager }}</span>
+            </div>
+          </div>
+
+          <div class="fullscreen-btn" (click)="toggleFullscreen()">
+            <img class="fullscreen-icon" [src]="isFullScreen ? changeUrl('assets/images/full-collapse.svg') : changeUrl('assets/images/full-screen.svg')" alt="">
+            <span class="fullscreen-text">{{ isFullScreen ? ('exit_full_screen' | i18nextEager) : ('full_screen_display' | i18nextEager) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="mermaid-preview-container" id='app-flow-container'>
+        <app-mermaid-diagram
+          #mermaidDiagramRef
+          *ngIf="latestMermaidCode"
+          [style.display]="activeTab === 'flow' ? 'block' : 'none'"
+          class="mermaid-diagram-component"
+          [code]="latestMermaidCode"
+          [title]="latestMermaidName">
+        </app-mermaid-diagram>
+
+        <div [hidden]="activeTab !== 'preview'" class="relative h-full w-full">
+          <ai-assist-workflow-preview
+            id="previewComponent"
+            class="block h-full w-full"
+            [activeTab]="activeTab"
+            [currentNodeProcessData]="currentNodeProcessData"
+            [processLogs]="processLogs"
+            [workflowId]="workflow_id"
+            [isRunning]="isRunning"
+            [flowRetryCount]="flowRetryCount"
+            [isFullScreen]="isFullScreen">
+          </ai-assist-workflow-preview>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<ng-template #stateIconTemplate let-id="id" let-text="text">
+  <ng-container *ngIf="id">
+    <img *ngIf="['HD0_INIT'].includes(id)" [src]="changeUrl('assets/ng2workflow/intention.svg')"/>
+    <img *ngIf="['HD0_SOP_JUDGE', 'HD0_CREATE_SOP', 'HD1_DESIGN_SOP'].includes(id)" [src]="changeUrl('assets/ng2workflow/osteogenesis.svg')"/>
+    <img *ngIf="['HD0_TRANSFORM_SOP', 'HD3_MODIFY_MERMAID'].includes(id)" [src]="changeUrl('assets/ng2workflow/optimize.svg')"/>
+    <img *ngIf="id === 'HD2_DESIGN_MERMAID'" [src]="changeUrl('assets/ng2workflow/create-icon.svg')"/>
+    <img *ngIf="!['HD0_INIT', 'HD0_SOP_JUDGE', 'HD0_CREATE_SOP', 'HD0_TRANSFORM_SOP', 'HD1_DESIGN_SOP', 'HD2_DESIGN_MERMAID', 'HD3_MODIFY_MERMAID'].includes(id)"
+         [src]="changeUrl('assets/ng2workflow/intention.svg')"/>
+  </ng-container>
+
+  <ng-container *ngIf="!id">
+    <img *ngIf="text.includes('created_based_flowchart' | i18nextEager)" [src]="changeUrl('assets/ng2workflow/create-icon.svg')"/>
+    <img *ngIf="text.includes('validation_format' | i18nextEager)" [src]="changeUrl('assets/ng2workflow/jiaoyan.svg')"/>
+    <img *ngIf="text.includes('validation_passed' | i18nextEager)" [src]="changeUrl('assets/ng2workflow/shengcheng.svg')"/>
+    <img *ngIf="text.includes('workflow_created' | i18nextEager)" [src]="changeUrl('assets/ng2workflow/success.svg')"/>
+    <img *ngIf="!text.includes('created_based_flowchart' | i18nextEager) && !text.includes('validation_format' | i18nextEager) && !text.includes('validation_passed' | i18nextEager) && !text.includes('workflow_created' | i18nextEager)"
+         [src]="changeUrl('assets/ng2workflow/jiaoyan.svg')"/>
+  </ng-container>
+  <span>{{ text }}</span>
+</ng-template>
+
+<ng-template #modifyPromptTemplate let-msg="msg">
+  <div *ngIf="msg.modifyPromptMessages?.length" class="thinking-text-area" style="width: 100%; margin-bottom: 0;">
+    <div *ngFor="let promptMsg of msg.modifyPromptMessages">
+      <app-markdown-answer [answer]="promptMsg" class="text-content"></app-markdown-answer>
+    </div>
+  </div>
+</ng-template>

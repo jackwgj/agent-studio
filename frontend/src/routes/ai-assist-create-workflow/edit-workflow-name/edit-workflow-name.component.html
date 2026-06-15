@@ -1,0 +1,18 @@
+<div class="p-4">
+  <div class="mb-4 text-base font-semibold">{{ 'edit_workflow_name' | i18nextEager }}</div>
+  <form [formGroup]="form" nz-form nzLayout="vertical">
+    <nz-form-item>
+      <nz-form-label [nzFor]="'name'">{{ 'name' | i18nextEager }}</nz-form-label>
+      <nz-form-control>
+        <input nz-input formControlName="name"
+               [placeholder]="'please_enter_a_name' | i18nextEager"
+               [id]="'name'"
+               class="w-full" />
+      </nz-form-control>
+    </nz-form-item>
+  </form>
+  <div class="flex justify-end gap-2 mt-4">
+    <button nz-button (click)="dismiss()">{{ 'cancel' | i18nextEager }}</button>
+    <button nz-button nzType="primary" [disabled]="!this.form.get('name')?.value" [nzLoading]="loading" (click)="close()">{{ 'ok' | i18nextEager }}</button>
+  </div>
+</div>

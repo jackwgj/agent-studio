@@ -1,0 +1,200 @@
+<nz-spin [nzSpinning]="isLoading">
+<div id="ai-assist-create-agent">
+  <div class="page-header-area">
+    <div class="navbar-left">
+      <div (click)="backCreateHome()" class="back-icon">
+        <span nz-icon nzType="arrow-left"></span>
+      </div>
+      <div class="logo-section">
+        <icon-upload *ngIf="!iconLoading; else loadingIcon"
+                     [(ngModel)]="agentLogo"
+                     (ngModelChange)="handleLogoChange()"
+                     [maskIcon]="'edit1' | i18nextEager"
+                     [err_msg]="'maximum_img' | i18nextEager"
+                     class="icon-upload">
+        </icon-upload>
+        <ng-template #loadingIcon>
+          <div class="icon-container">
+            <img [src]="changeUrl('assets/agent-center/agent/model_icon_loading.svg')" class="rotate-icon" />
+          </div>
+        </ng-template>
+      </div>
+      <span class="brand-name">{{ agentName || ('agent_untitled' | i18nextEager) }}</span>
+      <div (click)="editName()" class="edit-name">
+        <span nz-icon nzType="edit"></span>
+      </div>
+    </div>
+    <div class="navbar-right">
+      <button (click)="toEditAgent()" [disabled]="!agentId" nz-button>{{ 'go_to_edit' | i18nextEager }}</button>
+      <button (click)="publishAgent()" [disabled]="!agentId" nz-button nzType="primary">
+        {{ (isPublished ? 'update_version' : 'submit_version') | i18nextEager }}
+      </button>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <div class="main-content-left" *ngIf="!isExpandDialog">
+      <div class="chat-list-area" #scrollContainer (scroll)="onScroll()">
+
+        <ng-template #stateItemTemplate let-s4>
+          <div class="state-item">
+            <img *ngIf="s4.includes('planner' | i18nextEager)" [src]="changeUrl('assets/ng2workflow/intention.svg')"/>
+            <img *ngIf="s4.includes('generate' | i18nextEager)" [src]="changeUrl('assets/ng2workflow/osteogenesis.svg')"/>
+            <img *ngIf="s4.includes('plugin' | i18nextEager)" [src]="changeUrl('assets/ng2workflow/create-icon.svg')"/>
+            <img *ngIf="s4.includes('knowledge' | i18nextEager)" [src]="changeUrl('assets/ng2workflow/jiaoyan.svg')"/>
+            <img *ngIf="s4.includes('cfg_text' | i18nextEager) || s4.includes('complete' | i18nextEager)" [src]="changeUrl('assets/ng2workflow/success.svg')"/>
+            <img *ngIf="!s4.includes('planner' | i18nextEager) && !s4.includes('common_query' | i18nextEager) && !s4.includes('generate' | i18nextEager) && !s4.includes('cfg_text' | i18nextEager) && !s4.includes('complete' | i18nextEager)" [src]="changeUrl('assets/ng2workflow/jiaoyan.svg')"/>
+            <span>{{ s4 }}</span>
+          </div>
+        </ng-template>
+
+        <div #messageItem class="message-wrapper" *ngFor="let message of chatHistory; let last = last" [ngClass]="message.role">
+          <div class="bubble" *ngIf="message.content || message.timelineGroups?.length || message.questions?.length || message.agentConfig || (last && isTyping) || message.state4Messages?.length || message.isStopped">
+
+            <ng-container *ngIf="message.role === 'user'">
+              <app-markdown-answer class="text-content" [(answer)]="message.content"></app-markdown-answer>
+            </ng-container>
+
+            <ng-container *ngIf="message.role === 'assistant'">
+              <div *ngIf="message.timelineGroups?.length || message.state4Messages?.length || (last && isTyping && !message.content)" class="thinking-process-wrapper">
+
+                <div (click)="message.isExpanded = !message.isExpanded" class="thinking-header">
+                  <div class="header-left">
+                    <ng-container *ngIf="last && isTyping && !message.content; else successIcon">
+                      <div class="loading-icon-wrapper">
+                        <img [src]="changeUrl('assets/ng2workflow/think-loading.svg')" class="rotate-icon" />
+                      </div>
+                    </ng-container>
+                    <ng-template #successIcon>
+                      <div *ngIf="!message.isStopped" class="success-icon-circle">
+                        <svg viewBox="0 0 1024 1024" width="14" height="14">
+                          <path d="M912 190h-69.9c-9.8 0-19.1 4.5-25.1 12.2L404.7 724.5 207 474a31.8 31.8 0 0 0-25.1-12.2H112c-6.7 0-10.4 7.7-6.3 12.9l273.9 347c12.8 16.2 37.4 16.2 50.3 0l548.4-692.7c4.1-5.1.4-12.8-6.3-12.8z" fill="#52c41a"/>
+                        </svg>
+                      </div>
+                    </ng-template>
+
+                    <span class="thinking-title">
+                       <ng-container *ngIf="last && isTyping && !message.content; else completeText">
+                         {{ 'ai_creat_thinking' | i18nextEager }}
+                       </ng-container>
+                       <ng-template #completeText>
+                         {{ message.isStopped ? ('stop_deep_thinking' | i18nextEager) : ('complete_deep_thinking' | i18nextEager) }}
+                       </ng-template>
+                    </span>
+                  </div>
+                  <div class="header-right" *ngIf="message.hasThinkingData">
+                    <span nz-icon [nzType]="message.isExpanded ? 'up' : 'down'" style="font-size: 16px"></span>
+                  </div>
+                </div>
+
+                <div class="thinking-content" [style.display]="message.isExpanded ? 'block' : 'none'">
+                  <ng-container *ngIf="message.timelineGroups?.length; else fallbackState4">
+                    <ng-container *ngFor="let group of message.timelineGroups">
+                      <div class="state-icon-area" *ngIf="group.type === 'states'">
+                        <ng-container *ngFor="let s4 of group.states">
+                          <ng-container *ngTemplateOutlet="stateItemTemplate; context: { $implicit: s4 }"></ng-container>
+                        </ng-container>
+                      </div>
+                      <div *ngIf="group.type === 'text'" class="thinking-text-area">
+                        <app-markdown-answer class="text-content" [(answer)]="group.text"></app-markdown-answer>
+                      </div>
+                    </ng-container>
+                  </ng-container>
+
+                  <ng-template #fallbackState4>
+                    <div class="state-icon-area" *ngIf="message.state4Messages?.length">
+                      <ng-container *ngFor="let s4 of message.state4Messages">
+                        <ng-container *ngTemplateOutlet="stateItemTemplate; context: { $implicit: s4 }"></ng-container>
+                      </ng-container>
+                    </div>
+                  </ng-template>
+                </div>
+              </div>
+
+              <div *ngIf="message.content" class="final-answer-wrapper"
+                   [style.border-top]="(message.timelineGroups?.length || message.state4Messages?.length) ? '1px solid rgba(219, 219, 219, 1)' : 'none'"
+                   [style.padding-top]="(message.timelineGroups?.length || message.state4Messages?.length) ? '16px' : '0'">
+                <app-markdown-answer class="text-content" [(answer)]="message.content"></app-markdown-answer>
+              </div>
+
+              <div *ngIf="message.isStopped" class="stopped-indicator">
+                <span class="stopped-text">{{ 'system_stop_answer' | i18nextEager }}</span>
+                <div *ngIf="last" (click)="onRefresh()" class="refresh-action-btn">
+                  <span nz-icon nzType="reload"></span>
+                </div>
+              </div>
+
+              <div *ngIf="message.questions?.length" class="guide-questions">
+                <div *ngFor="let q of message.questions" class="question-item">
+                  <div class="q-title">{{ q.question }}</div>
+                  <div class="q-options">
+                    <div *ngFor="let opt of q.options"
+                         class="opt-btn"
+                         [class.active]="q.selected === opt"
+                         [class.disabled]="!last"
+                         (click)="last && onToggleOption(q, opt)">
+                      {{ opt }}
+                    </div>
+                  </div>
+                </div>
+
+                <div class="submit-action-area">
+                  <button (click)="onSubmitSelections(message)" [disabled]="!last" nz-button>{{ 'submit_requirement' | i18nextEager }}</button>
+                  <div style="height: 16px; border-left: 1px solid rgba(219, 219, 219, 1);"></div>
+                  <div class="refresh-btn" [class.disabled]="!last" (click)="last && onRefresh()">
+                  <span nz-icon nzType="reload"></span>
+                  </div>
+                </div>
+              </div>
+            </ng-container>
+
+          </div>
+        </div>
+      </div>
+
+      <div class="ai-assist-footer">
+        <div class="ai-assist-textarea-area">
+          <textarea #textElement
+                    (input)="autoGrow()"
+                    [(ngModel)]="promptValue"
+                    class="textarea-tag"
+                    [placeholder]="'enter_requirements' | i18nextEager">
+          </textarea>
+          <div class="operate-area">
+            <div class="operate-area-left">
+              <llm-select class="ai-create-model-selector"
+                          [clearable]="false"
+                          [panelAlign]="'left'"
+                          [selectedModel]="modelSelected"
+                          (update)="changeModelSelected($event)">
+              </llm-select>
+            </div>
+            <div class="operate-area-right">
+              <div *ngIf="isTyping" class="nl2-stop-button" (click)="onStopGeneration()">
+                <div class="stop-icon-wrapper">
+                  <div class="rotating-border"></div>
+                  <div class="center-square"></div>
+                </div>
+                <div class="stop-text" nz-tooltip>{{ 'stop_answering_nl' | i18nextEager }}</div>
+              </div>
+              <img *ngIf="promptValue && !isTyping" (click)="onSend()" class="send-button" [src]="changeUrl('assets/ng2workflow/send.svg')" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="main-content-right">
+      <ai-assist-agent-preview *ngIf="agentId; else emptyState" [agentInfo]="agentInfo" (expandDialogEnv)="handleClickExpandDialog($event)"></ai-assist-agent-preview>
+      <ng-template #emptyState>
+        <div class="empty-state-wrapper">
+          <div class="empty-text">{{ 'wait_requirement_collection_completed' | i18nextEager }}</div>
+          <div class="empty-image">
+            <img [src]="changeUrl('assets/ng2workflow/no-agent.png')"/>
+          </div>
+        </div>
+      </ng-template>
+    </div>
+  </div>
+</div>
+</nz-spin>

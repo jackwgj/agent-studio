@@ -1,0 +1,183 @@
+<div class="content-header">
+  <div class="preview-btn">
+    <img [src]="changeUrl('assets/images/preview-debug.svg')" />
+    <div>{{ 'requeststepcomponent_1026' | i18nextEager }}</div>
+  </div>
+  <div
+    class="header-icon-border flex cursor-pointer items-center justify-center gap-[4px]"
+    (click)="handleClickExpandDialog()"
+  >
+    <img
+      class="fullscreen-icon"
+      [src]="isExpandDialog?changeUrl('assets/images/full-collapse.svg') : changeUrl('assets/images/full-screen.svg')"
+      alt=""
+    />
+    <div>{{ expandDialogText }}</div>
+  </div>
+</div>
+
+<div class="right-content-wrapper">
+  <div
+    class="right-content-container"
+    [ngClass]="isExpandDialog ? 'main-container-full' : ''"
+    cdkScrollable
+    #chatContainRef
+    (scroll)="onScroll($event.target)"
+  >
+    <div *ngIf="chatHistory.length === 0" class="init-chat-content-container">
+      <div *ngIf="chatHistory.length === 0" class="initial-container">
+        <div class="initial-header-container">
+          <img class="common-icon" [src]="agentInfo.icon" />
+          <span class="title-initial-state" nz-tooltip nzTooltipPlacement="top">{{
+            agentInfo.name
+          }}</span>
+        </div>
+
+        <div class="initial-prolog-container">
+          <div
+            class="initial-prolog-content"
+            *ngIf="
+              agentInfo.openText ||
+              (agentInfo.openQuestions && agentInfo.openQuestions.length > 0)
+            "
+          >
+            <div
+              class="prolog-text-style"
+              nz-tooltip
+              nzTooltipPlacement="top"
+              nzTooltipMaxWidth="500px"
+              *ngIf="agentInfo.openText"
+            >
+              {{ agentInfo.openText }}
+            </div>
+            <div
+              class="flex flex-col gap-3 w-fit max-w-[100%]"
+              *ngIf="
+                agentInfo.openQuestions && agentInfo.openQuestions.length > 0
+              "
+            >
+              <div *ngFor="let item of agentInfo.openQuestions" class="w-full">
+                <span
+                  class="suggest-question-text-style"
+                  nz-tooltip
+                  nzTooltipPlacement="top"
+                  nzTooltipMaxWidth="500px"
+                  (click)="submitQuestion(item)"
+                  >{{ item }}</span
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div *ngIf="chatHistory.length > 0" class="chat-content-wrapper">
+      <div class="chat-content-container gap-[24px]">
+        <ng-container *ngIf="chatHistory.length > 0">
+          <div
+            class="chat-content"
+            *ngFor="let item of chatHistory; let i = index"
+          >
+            <chat-item-update
+              #chatItem
+              class="flex flex-col"
+              [agentIcon]="agentInfo?.icon"
+              [data]="item"
+              [isLast]="i === chatHistory.length - 1"
+              [conversationId]="uuid"
+              [isFinished]="item[0].isFinished"
+              [messageId]="item[0].messageId"
+              [isError]="item[0].isError"
+              [agentName]="agentInfo.name"
+              [isQuestionsLoading]="isQuestionsLoading"
+            >
+            </chat-item-update>
+            <ng-container *ngIf="i === chatHistory.length - 1">
+              <div class="probe-container" *ngIf="isQuestionsVisible">
+                <nz-spin
+                  *ngIf="isQuestionsLoading"
+                  [nzSize]="'small'"
+                ></nz-spin>
+                <ng-container *ngIf="getFollowUpQuestions(item).length > 0">
+                  <div
+                    [ngClass]="{
+                      'mt-[0px]': first,
+                      'mt-[8px]': !first
+                    }"
+                    class="w-fit cursor-pointer rounded-[12px] bg-white px-[14px] py-[5px]"
+                    *ngFor="
+                      let question of getFollowUpQuestions(item)[0].questions; let first = first
+                    "
+                    (click)="probeQuestions(question)"
+                  >
+                    {{ question }}
+                  </div>
+                </ng-container>
+              </div>
+            </ng-container>
+          </div>
+
+          <div>
+            <div *ngIf="isRightLoading" class="loading">
+              <img class="logo" [src]="agentInfo?.icon" />
+              <div class="icon">
+                <img
+                  [src]="
+                    changeUrl('assets/agent-center/images/home-loading.webp')
+                  "
+                />
+              </div>
+            </div>
+          </div>
+        </ng-container>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-container">
+    <div class="flex w-full items-center gap-4">
+      <div
+        *ngIf="agentParams.length"
+        (click)="showVarConfPanel()"
+        class="show-var-conf-btn flex cursor-pointer items-center justify-center gap-1 rounded-2xl bg-white px-3 py-[6px]"
+      >
+        <span nz-icon nzType="global" class="!text-label"></span>
+        <div>{{ 'var_conf' | i18nextEager }}</div>
+      </div>
+
+      <div
+        *ngIf="isF1 && isCodeInterpreter"
+        class="code-interpreter"
+        [ngStyle]="{
+          'background-color': isCodeInterpreter ? '#ffffff' : '#f0f0f0',
+          cursor: isCodeInterpreter ? 'pointer' : 'not-allowed'
+        }"
+        (click)="toggleCodePlugin()"
+        (mouseenter)="onMouseEnter()"
+        (mouseleave)="onMouseLeave()"
+      >
+        <div *ngIf="isHovered" class="code-interpreter-tip">
+          {{ codeInterpretTip }}
+        </div>
+        <div *ngIf="isHovered" class="arrow"></div>
+        <div
+          *ngIf="isCodeInterpreter && isCodeInterpreterActive"
+          class="status-circle"
+        ></div>
+        <asset-interpreter-icon></asset-interpreter-icon>
+        <div>{{ 'code_interpreter' | i18nextEager }}</div>
+      </div>
+    </div>
+
+    <meta-sender
+      [sending]="isShowStopIcon"
+      [disabled]="sendDisabled"
+      [showClear]="false"
+      (disabledSender)="getDisableSender($event)"
+      [maxlength]="userQueryLimit"
+      (clear)="clearChat()"
+      (send)="sendQuestion($event)"
+      (stop)="stopChat()"
+    />
+  </div>
+</div>

@@ -1,6 +1,16 @@
 import { Injectable, Injector } from '@angular/core';
 import { Dom, Graph, Path } from '@antv/x6';
-import { register } from '@antv/x6-angular-shape';
+import { register, AngularShapeView } from '@antv/x6-angular-shape';
+
+const proto = AngularShapeView.prototype as any;
+const origUnmount = proto.unmountAngularContent;
+proto.unmountAngularContent = function () {
+  if (!this.getNodeContainer()) {
+    return null;
+  }
+  return origUnmount.call(this);
+};
+
 import { AggregationNodeComponent } from './components/aggregation-node/aggregation-node.component';
 import { BranchNodeComponent } from './components/branch-node/branch-node.component';
 import { ChildFlowComponent } from './components/child-flow-node/child-flow.component';
