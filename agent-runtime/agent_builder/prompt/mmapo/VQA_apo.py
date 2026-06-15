@@ -34,8 +34,8 @@ from agent_builder.prompt.tune.base.utils import (
     OnStopException,
 )
 from agent_builder.prompt.tune.joint_optimizer import JointOptimizer
-from jiuwen.common.exception import JiuWenBaseException
-from jiuwen.prompt.tune.template.utils import TaskInfo
+from agent_builder.adapter.exception_bridge import JiuWenBaseException
+from agent_builder.adapter.task_info import TaskInfo
 
 BATCH_NUMBER_PER_EPOCH = 3
 

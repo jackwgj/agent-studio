@@ -11,7 +11,7 @@ import time
 from agent_builder.serve.common.logger.log_init import init_logger
 from agent_builder.serve.server import ServerApp
 from flask import request, session, g
-from jiuwen.common.exception import JiuWenException
+from agent_builder.adapter.exception_bridge import JiuWenException
 from werkzeug.serving import WSGIRequestHandler
 
 SERVER_CONFIG_PATH = os.path.join(

@@ -14,7 +14,7 @@ from agent_builder.prompt.tune.instruction.base_optimizer import (
     OptimizeOutput,
     OptimizeAlgoConfig,
 )
-from jiuwen.common.exception import JiuWenBaseException
+from agent_builder.adapter.exception_bridge import JiuWenBaseException
 
 
 class GreedyOptimizer(BasicOptimizer):

@@ -9,7 +9,7 @@ from typing import Dict, List, Any, Optional
 from agent_builder.common.exception.status_code import StatusCode
 from agent_builder.common.logging.base import logger
 from agent_builder.prompt.mmapo.utils import is_network_image
-from jiuwen.common.exception import JiuWenBaseException
+from agent_builder.adapter.exception_bridge import JiuWenBaseException
 
 DEFAULT_IMAGE_DIR = "demo"
 IMAGE_DIR_ROOT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")

@@ -17,8 +17,8 @@ from zoneinfo import ZoneInfo
 from agent_builder.common.exception.status_code import StatusCode
 from agent_builder.common.security.sts_service import decrypt_sensitive_config
 from flask import g, request
-from jiuwen.common.exception import JiuWenBaseException
-from jiuwen.common.log.base import logger
+from agent_builder.adapter.exception_bridge import JiuWenBaseException
+from agent_builder.common.logging.base import logger
 
 DEFAULT_PROJECT_ID = "0"
 DEFAULT_DOMAIN_ID = "0"

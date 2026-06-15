@@ -24,8 +24,8 @@ from agent_builder.serve.apis.prompt import (
 )
 from agent_builder.serve.common.exception.exception_handler import ExceptionHandler
 from flask import request, Blueprint, copy_current_request_context, g, jsonify
-from jiuwen.common.exception import JiuWenBaseException
-from jiuwen.prompt.tune.template.utils import TaskInfo
+from agent_builder.adapter.exception_bridge import JiuWenBaseException
+from agent_builder.adapter.task_info import TaskInfo
 
 mmapo_app = Blueprint("mmapo_api", __name__)
 

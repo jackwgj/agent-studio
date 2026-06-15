@@ -10,7 +10,7 @@ from agent_builder.common.exception.status_code import StatusCode
 from agent_builder.prompt.common.config import LLMModelInfo
 from agent_builder.prompt.core.modifier.modifier import Modifier
 from agent_builder.prompt.core.optimizer.dataset import BaseCaseData
-from jiuwen.common.exception import JiuWenBaseException
+from agent_builder.adapter.exception_bridge import JiuWenBaseException
 
 
 class BaseAnalyzer(Modifier):

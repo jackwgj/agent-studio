@@ -9,8 +9,8 @@ from typing import List, Dict, Any
 import pymysql
 from agent_builder.common.exception.status_code import StatusCode
 from agent_builder.common.security.cloudmap import rainbow
-from jiuwen.common.exception import JiuWenBaseException
-from jiuwen.common.security.cryptor import Crypt
+from agent_builder.adapter.exception_bridge import JiuWenBaseException
+from agent_builder.adapter.cryptor import Crypt
 from pydantic import BaseModel
 
 VALID_TABLES = {"job_info", "optimize_info", "progress", "history", "cases"}

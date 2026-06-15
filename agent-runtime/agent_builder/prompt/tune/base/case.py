@@ -8,8 +8,8 @@ from typing import List, Dict, Optional, Any, Callable
 
 from agent_builder.common.exception.status_code import StatusCode
 from agent_builder.prompt.tune.base.constant import TuneConstant
-from jiuwen.common.exception import JiuWenBaseException
-from jiuwen.prompt.common.check import CheckInfo
+from agent_builder.adapter.exception_bridge import JiuWenBaseException
+from agent_builder.adapter.check_info import CheckInfo
 from pydantic import BaseModel, field_validator, Field, FieldValidationInfo
 
 

@@ -39,8 +39,8 @@ from agent_builder.prompt.tune.instruction.instruction_optimizer import (
     get_selected_algorithm,
 )
 from agent_builder.prompt.tune.joint_evaluator import JointEvaluatorWithRef
-from jiuwen.common.exception import JiuWenBaseException
-from jiuwen.prompt.tune.template.utils import TaskInfo
+from agent_builder.adapter.exception_bridge import JiuWenBaseException
+from agent_builder.adapter.task_info import TaskInfo
 
 CANCEL_EVENT = "cancel_event"
 

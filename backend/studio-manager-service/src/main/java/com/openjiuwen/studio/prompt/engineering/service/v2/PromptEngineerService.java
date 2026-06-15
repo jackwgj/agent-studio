@@ -375,11 +375,20 @@ public class PromptEngineerService implements IPromptEngineerService {
             listPromptTasksQo.getWorkspaceId());
 
         // 在内存中统计每个状态的任务数量
+        int textCount = 0;
+        int multiCount = 0;
         for (PromptTaskEntity task : allTasks) {
             String status = statusName.get(task.getStatus());
             statusCountMap.put(status, statusCountMap.getOrDefault(status, 0) + 1);
+            if ("text".equals(task.getPtType())) {
+                textCount++;
+            } else if ("multi".equals(task.getPtType())) {
+                multiCount++;
+            }
         }
         statusCountMap.put("TOTAL", allTasks.size());
+        statusCountMap.put("TEXT", textCount);
+        statusCountMap.put("MULTI", multiCount);
 
         // 1. 分页查询符合条件的任务实体（含conversionId等核心字段）
         PageInfo<PromptTaskEntity> entityPage = PageHelper.startPage(listPromptTasksQo.getPageNum(),

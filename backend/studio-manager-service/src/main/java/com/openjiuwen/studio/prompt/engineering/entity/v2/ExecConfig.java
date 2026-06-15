@@ -52,5 +52,16 @@ public class ExecConfig implements Serializable {
     @JsonProperty("max_tokens")
     private Integer maxTokens;
 
+    /**
+     * 模型API地址
+     */
+    @JsonProperty("url")
+    private String url;
+
+    /**
+     * 模型API密钥
+     */
+    @JsonProperty("api_key")
+    private String apiKey;
 
 }

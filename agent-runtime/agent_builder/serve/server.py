@@ -1,13 +1,17 @@
 #  Copyright (c) Huawei Technologies Co., Ltd. 2023-2023. All rights reserved.
 
 """
-general server for JiuWen services
+general server for agent_builder services
+
+Initialization uses local adapter layer instead of jiuwen.
 """
 
 import os
 import secrets
 from datetime import timedelta
 
+from agent_builder.adapter.exception_bridge import JiuWenException
+from agent_builder.adapter.init_server import load_yaml_config, env_to_config
 from agent_builder.common.logging.base import set_thread_session, logger
 from agent_builder.common.security.sts_service import sts_init
 from agent_builder.prompt.tune.base.context_manager import ContextManager
@@ -16,8 +20,6 @@ from agent_builder.serve.apis.prompt import prompt_manage_app
 from agent_builder.serve.common.ssl_ctx import create_context
 from agent_builder.serve.config import load_config
 from flask import Flask, request
-from jiuwen.common.exception import JiuWenException
-from jiuwen.common.init import JiuWen, init_cfg, _env_to_config
 
 apps_map = {
     "prompt.manager": prompt_manage_app,
@@ -52,7 +54,7 @@ def instance_app(config):
         if v[manager_key] is True or v[manager_key] in ["true", "True"]:
             manager_app = apps_map.get(k + "." + manager_key)
             if manager_app:
-                app.register_blueprint(manager_app)
+                app.register_blueprint(manager_app, url_prefix="/flask")
             else:
                 raise ValueError("app not found, please check your setting.yaml")
 
@@ -67,7 +69,7 @@ def _set_trace_id_from_request():
 
 
 class ServerApp:
-    """jiuwen server"""
+    """agent_builder server"""
 
     def __init__(
         self,
@@ -76,7 +78,7 @@ class ServerApp:
         default_server_config="",
         default_framework_config="",
     ):
-        JiuWen.init()
+        # Initialize framework config (replaces JiuWen.init())
         if server_config_path and os.path.isfile(server_config_path):
             self.server_config_path = server_config_path
         else:
@@ -114,13 +116,13 @@ class ServerApp:
             logger.warning(f"sts init failed: {str(e)}")
 
     def init_framework_config(self):
-        """init jiuwen framework config"""
-        init_cfg(cfg_file=self.framework_config_path)
+        """init framework config using local adapter"""
+        load_yaml_config(cfg_file=self.framework_config_path)
 
     def load_server_config(self):
-        """load jiuwen server config"""
+        """load server config using local adapter"""
         server_configs = load_config(config=self.server_config_path)
-        _env_to_config(yaml_cfg=server_configs)
+        env_to_config(yaml_cfg=server_configs)
         return server_configs
 
     def instance_app(self):

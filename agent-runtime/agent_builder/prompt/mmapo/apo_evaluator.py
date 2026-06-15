@@ -25,7 +25,7 @@ from agent_builder.prompt.tune.base.utils import (
     OnStopException,
     parse_json,
 )
-from jiuwen.common.exception import JiuWenBaseException
+from agent_builder.adapter.exception_bridge import JiuWenBaseException
 
 MAX_SCORE = 10
 MAX_RETRY = 10

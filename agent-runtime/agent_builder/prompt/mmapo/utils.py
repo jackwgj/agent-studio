@@ -14,7 +14,7 @@ from agent_builder.prompt.tune.base.case import (
     CaseManager,
 )
 from agent_builder.prompt.tune.base.utils import JointParams
-from jiuwen.common.exception import JiuWenBaseException
+from agent_builder.adapter.exception_bridge import JiuWenBaseException
 from pydantic import BaseModel
 
 JNT_MODE = "JNT"

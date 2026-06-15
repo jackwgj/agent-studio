@@ -20,7 +20,7 @@ from agent_builder.prompt.tune.base.utils import (
     LLMModelProcess,
     OnStopException,
 )
-from jiuwen.common.exception import JiuWenBaseException
+from agent_builder.adapter.exception_bridge import JiuWenBaseException
 
 
 class JointEvaluatorWithRef:

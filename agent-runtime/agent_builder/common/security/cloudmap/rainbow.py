@@ -7,8 +7,13 @@ import json
 
 from agent_builder.common.security.cloudmap.base import CloudMapMiddlewareParam
 from agent_builder.common.security.cloudmap.base import get_cloud_map_client
-from pystssdk import AesCryptor
-from pystssdk import sts_api
+
+try:
+    from pystssdk import AesCryptor
+    from pystssdk import sts_api
+except ImportError:
+    AesCryptor = None
+    sts_api = None
 
 
 class DataSourceAccount(object):

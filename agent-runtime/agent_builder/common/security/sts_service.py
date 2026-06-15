@@ -1,12 +1,33 @@
 #  Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
 """
 Sts service
+
+pystssdk is optional - if not installed, STS functions will raise
+meaningful errors when called. This allows the server to start
+without STS for development/testing environments.
 """
 
-import pystssdk
+try:
+    import pystssdk
+    from pystssdk import sts_api
+    _STS_AVAILABLE = True
+except ImportError:
+    pystssdk = None
+    sts_api = None
+    _STS_AVAILABLE = False
+
+from agent_builder.adapter.exception_bridge import JiuWenBaseException
 from agent_builder.common.exception.status_code import StatusCode
-from jiuwen.common.exception import JiuWenBaseException
-from pystssdk import sts_api
+
+
+def _check_sts_available():
+    """Check if pystssdk is available."""
+    if not _STS_AVAILABLE:
+        raise JiuWenBaseException(
+            StatusCode.STS_INIT_ERROR.code,
+            "pystssdk is not installed. STS features are unavailable. "
+            "Install pystssdk to enable STS functionality.",
+        )
 
 
 def sts_init(
@@ -17,6 +38,7 @@ def sts_init(
     with_local_cache=True,
 ):
     """sts init"""
+    _check_sts_available()
     try:
         pystssdk.sts_api.init(
             config_path=config_path,
@@ -32,9 +54,8 @@ def sts_init(
 
 
 def decrypt(encrypt_text):
-    """
-    decrypt
-    """
+    """decrypt"""
+    _check_sts_available()
     try:
         kek_decrypt = pystssdk.AesCryptor.builder().with_kek().build()
         decrypt_str = kek_decrypt.decrypt().from_base64(encrypt_text).to_raw_str()
@@ -46,7 +67,8 @@ def decrypt(encrypt_text):
 
 
 def decrypt_sensitive_config(encrypt_text: str):
-    """decrype sensitive config"""
+    """decrypt sensitive config"""
+    _check_sts_available()
     try:
         decrypt_str = sts_api.decrypt_sensitive_config(encrypt_text)
     except Exception as e:

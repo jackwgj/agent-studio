@@ -1,22 +1,28 @@
 #  Copyright (c) Huawei Technologies Co., Ltd. 2024-2024. All rights reserved.
 """
 meta template base
+
+Local implementation using adapter's template_adapter instead of jiuwen.
 """
 
 from abc import abstractmethod
 from typing import List, Union
 
+from agent_builder.adapter.template_adapter import (
+    MetaTemplate as AdapterMetaTemplate,
+    StandardMeta as AdapterStandardMeta,
+    Template,
+)
 from agent_builder.prompt.common.config import LLMModelInfo
 from agent_builder.prompt.template.llm_service import LLMServiceManager
-from jiuwen.prompt import Template
-from jiuwen.prompt.template.base import MetaTemplate as JiuwenMetaTemplate
-from jiuwen.prompt.template.base import StandardMeta as JiuwenStandardMeta
 from pydantic import Field
 
 
-class MetaTemplate(JiuwenMetaTemplate):
+class MetaTemplate(AdapterMetaTemplate):
     """
     meta template base
+
+    Extends the adapter's MetaTemplate with agent_builder-specific model_info.
     """
 
     model_info: Union[LLMModelInfo, None] = Field(default=None)
@@ -45,7 +51,7 @@ class MetaTemplate(JiuwenMetaTemplate):
         raise NotImplementedError("Not Implemented")
 
 
-class StandardMeta(JiuwenStandardMeta):
+class StandardMeta(AdapterStandardMeta):
     """standard meta implement"""
 
     def _streaming_build(self, content: str) -> str:
@@ -59,6 +65,8 @@ class StandardMeta(JiuwenStandardMeta):
         result = LLMServiceManager.get_llm_backend().chat(
             messages, model_info=self.model_info
         )
-        if "latency" in result:
-            result.pop("latency")
-        return result.get("data", "content not exit")
+        if isinstance(result, dict):
+            if "latency" in result:
+                result.pop("latency")
+            return result.get("data", result.get("content", "content not exit"))
+        return str(result)

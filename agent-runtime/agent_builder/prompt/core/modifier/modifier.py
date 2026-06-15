@@ -3,10 +3,10 @@
 modifier
 """
 
+from agent_builder.adapter.exception_bridge import JiuWenBaseException
 from agent_builder.prompt.common.config import LLMModelInfo
+from agent_builder.prompt.template.base import MetaTemplate
 from agent_builder.prompt.tune.base.utils import LLMModelProcess
-from jiuwen.common.exception import JiuWenBaseException
-from jiuwen.prompt.template.base import MetaTemplate
 
 
 class Modifier:

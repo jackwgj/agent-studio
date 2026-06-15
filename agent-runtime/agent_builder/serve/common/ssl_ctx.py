@@ -6,8 +6,8 @@ import ssl
 from os.path import isfile
 from typing import Optional, TypedDict, Union
 
-from jiuwen.common.exception import JiuWenException
-from jiuwen.common.security.cryptor import Crypt
+from agent_builder.adapter.exception_bridge import JiuWenException
+from agent_builder.adapter.cryptor import Crypt
 
 
 class ContexConfigDict(TypedDict, total=False):

@@ -148,9 +148,11 @@ public class PromptOptimizeTaskService {
     }
 
     public JiuWenJobDeatails queryTaskDetailsByIds(List<PromptTaskEntity> jiuwenTaskIds) {
-        log.info("start to query task details by ids, total: {}", jiuwenTaskIds.size());
-
         try {
+            if (jiuwenTaskIds == null) {
+                throw new AgentStudioException(StudioError.QUERY_OPTIMIZATION_TASK_ERROR);
+            }
+            log.info("start to query task details by ids, total: {}", jiuwenTaskIds.size());
             List<String> textTaskIds = new ArrayList<>();
             List<String> multiTaskIds = new ArrayList<>();
 
@@ -210,6 +212,7 @@ public class PromptOptimizeTaskService {
     private JiuWenJobDeatails mergeTaskJobDetail(JiuWenJobDeatails textPromptTaskJob,
         JiuWenJobDeatails multiPromptTaskJob) {
         JiuWenJobDeatails jiuWenJobDeatails = new JiuWenJobDeatails();
+        jiuWenJobDeatails.setTotalJobs(textPromptTaskJob.getTotalJobs() + multiPromptTaskJob.getTotalJobs());
         jiuWenJobDeatails.setFinishedJobs(textPromptTaskJob.getFinishedJobs() + multiPromptTaskJob.getFinishedJobs());
         jiuWenJobDeatails.setFailedJobs(textPromptTaskJob.getFailedJobs() + multiPromptTaskJob.getFailedJobs());
         jiuWenJobDeatails.setRunningJobs(textPromptTaskJob.getRunningJobs() + multiPromptTaskJob.getRunningJobs());

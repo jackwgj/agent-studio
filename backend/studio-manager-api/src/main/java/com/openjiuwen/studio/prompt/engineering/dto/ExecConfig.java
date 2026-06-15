@@ -42,6 +42,12 @@ public class ExecConfig implements Serializable {
     @JsonProperty("max_tokens")
     private Integer maxTokens = null;
 
+    @JsonProperty("url")
+    private String url = null;
+
+    @JsonProperty("api_key")
+    private String apiKey = null;
+
     public String getModel() {
         return model;
     }
@@ -87,6 +93,24 @@ public class ExecConfig implements Serializable {
         return this;
     }
 
+    public String getUrl() {
+        return url;
+    }
+
+    public ExecConfig setUrl(String url) {
+        this.url = url;
+        return this;
+    }
+
+    public String getApiKey() {
+        return apiKey;
+    }
+
+    public ExecConfig setApiKey(String apiKey) {
+        this.apiKey = apiKey;
+        return this;
+    }
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
@@ -96,6 +120,8 @@ public class ExecConfig implements Serializable {
         sb.append("    topP: ").append(toIndentedString(topP)).append("\n");
         sb.append("    temperature: ").append(toIndentedString(temperature)).append("\n");
         sb.append("    maxTokens: ").append(toIndentedString(maxTokens)).append("\n");
+        sb.append("    url: ").append(toIndentedString(url)).append("\n");
+        sb.append("    apiKey: ").append(toIndentedString(apiKey)).append("\n");
         sb.append("}");
         return sb.toString();
     }
@@ -111,12 +137,13 @@ public class ExecConfig implements Serializable {
         ExecConfig execConfig = (ExecConfig) o;
         return Objects.equals(this.model, execConfig.model) && Objects.equals(this.execType, execConfig.execType)
             && Objects.equals(this.topP, execConfig.topP) && Objects.equals(this.temperature, execConfig.temperature)
-            && Objects.equals(this.maxTokens, execConfig.maxTokens);
+            && Objects.equals(this.maxTokens, execConfig.maxTokens) && Objects.equals(this.url, execConfig.url)
+            && Objects.equals(this.apiKey, execConfig.apiKey);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(model, execType, topP, temperature, maxTokens);
+        return Objects.hash(model, execType, topP, temperature, maxTokens, url, apiKey);
     }
 
     /**

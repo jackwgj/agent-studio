@@ -37,7 +37,8 @@ public class PromptLibraryApiController implements PromptLibraryApi {
 
     @Override
     public ResponseEntity<String> downloadPromptSampleTemplate(String projectId, String workspaceId) {
-        return ResponseModel.success(promptLibraryService.downloadPromptSampleTemplate(projectId, workspaceId));
+        promptLibraryService.downloadPromptSampleTemplate(projectId, workspaceId);
+        return null;
     }
 
     @Override

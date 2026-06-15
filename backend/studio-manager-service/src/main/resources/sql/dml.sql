@@ -61,7 +61,9 @@ INSERT INTO `t_tag` (`tag_id`, `name`, `name_en`, `created_on`, `updated_on`)
 VALUES ('08479d76-c26a-496d-9117-a464b5f271eb', '教育', 'Education', '2023-10-01 00:00:00', '2023-10-04 00:00:00')
     on DUPLICATE key update tag_id = '08479d76-c26a-496d-9117-a464b5f271eb';
 
--- t_pe_tag
+-- ========================================
+-- 提示词工程：标签数据 (t_pe_tag)
+-- ========================================
 INSERT INTO `t_pe_tag` (`id`, `name`, `created_on`, `updated_on`, `name_en`)
 VALUES ('01e6c35c-eb2d-404a-ad84-9caea209852d', '问答', '2023-10-01 00:00:00', '2023-10-01 00:00:00', 'Q&A') on DUPLICATE key update id = '01e6c35c-eb2d-404a-ad84-9caea209852d';
 
@@ -77,15 +79,17 @@ VALUES ('7ebdd58d-23a3-4b72-bba8-89343677307f', '摘要', '2023-10-01 00:00:00',
 INSERT INTO `t_pe_tag` (`id`, `name`, `created_on`, `updated_on`, `name_en`)
 VALUES ('b2147145-cfe2-4439-8f4e-5b4f85fea219', '翻译', '2023-10-01 00:00:00', '2023-10-01 00:00:00', 'translation') on DUPLICATE key update id = 'b2147145-cfe2-4439-8f4e-5b4f85fea219';
 
--- t_pe_industry
-INSERT INTO `t_pe_industry` (`id`, `name`, `description`, `created_on`, `updated_on`, `name_en`, `workspace_id`, `library_type`) VALUES ('0d8f6781-6668-432a-b022-7d73ca67c790', '教育', '教育', '2023-10-17 06:09:38', '2026-02-10 08:14:44', 'education', NULL, 'prompt');
-INSERT INTO `t_pe_industry` (`id`, `name`, `description`, `created_on`, `updated_on`, `name_en`, `workspace_id`, `library_type`) VALUES ('10d701db-8741-4556-90b9-c1bf66cd9737', '通用', '通用', '2023-10-17 06:10:11', '2026-02-10 08:14:44', 'common', NULL, 'prompt');
-INSERT INTO `t_pe_industry` (`id`, `name`, `description`, `created_on`, `updated_on`, `name_en`, `workspace_id`, `library_type`) VALUES ('13c5130d-e6e4-4f3a-930b-c640652e91f6', '医疗', '医疗', '2023-10-17 06:10:27', '2026-02-10 08:14:44', 'medical', NULL, 'prompt');
-INSERT INTO `t_pe_industry` (`id`, `name`, `description`, `created_on`, `updated_on`, `name_en`, `workspace_id`, `library_type`) VALUES ('178cd0dc-a8d8-4b13-a502-320ed355786a', '政务', '政务', '2023-10-17 06:10:47', '2026-02-10 08:14:44', 'government', NULL, 'prompt');
-INSERT INTO `t_pe_industry` (`id`, `name`, `description`, `created_on`, `updated_on`, `name_en`, `workspace_id`, `library_type`) VALUES ('18bf3eaa-3bc2-45f1-a43d-831b57ddc790', '制造', '制造', '2023-10-17 06:11:02', '2026-02-10 08:14:44', 'manufacturing', NULL, 'prompt');
-INSERT INTO `t_pe_industry` (`id`, `name`, `description`, `created_on`, `updated_on`, `name_en`, `workspace_id`, `library_type`) VALUES ('1942075c-213c-4921-bb5f-f69ac9c5315e', '互联网', '互联网', '2023-10-17 06:08:00', '2026-02-10 08:14:44', 'internet', NULL, 'prompt');
-INSERT INTO `t_pe_industry` (`id`, `name`, `description`, `created_on`, `updated_on`, `name_en`, `workspace_id`, `library_type`) VALUES ('2a1ce92c-528b-4edc-8826-26ee91ec8dbb', '金融', '金融', '2023-10-14 06:35:53', '2026-02-10 08:14:44', 'finance', NULL, 'prompt');
-INSERT INTO `t_pe_industry` (`id`, `name`, `description`, `created_on`, `updated_on`, `name_en`, `workspace_id`, `library_type`) VALUES ('4b8e1c9f-2a7d-4f3e-a5c8-9b6d2f7e1a3c', '学术科研', '学术科研', '2026-02-13 11:14:35', '2026-02-13 11:14:35', 'Academic Research', NULL, 'prompt');
-INSERT INTO `t_pe_industry` (`id`, `name`, `description`, `created_on`, `updated_on`, `name_en`, `workspace_id`, `library_type`) VALUES ('6f9a4c2e-1b8d-4e3f-a7c5-9d2b8e1f5a3c', '文案创作', '文案创作', '2026-02-14 11:14:35', '2026-02-14 11:14:35', 'Content Creation', NULL, 'prompt');
-INSERT INTO `t_pe_industry` (`id`, `name`, `description`, `created_on`, `updated_on`, `name_en`, `workspace_id`, `library_type`) VALUES ('8b3d6a1c-9f2e-4c7f-d5a8-3b6c9f1e2a7d', '生活服务', '生活服务', '2026-01-31 11:53:07', '2026-01-31 11:53:10', 'lifestyle services', NULL, 'prompt');
+-- ========================================
+-- 提示词工程：行业数据 (t_pe_industry)
+-- ========================================
+INSERT INTO `t_pe_industry` (`id`, `name`, `description`, `created_on`, `updated_on`, `name_en`, `workspace_id`, `library_type`) VALUES ('0d8f6781-6668-432a-b022-7d73ca67c790', '教育', '教育', '2023-10-17 06:09:38', '2026-02-10 08:14:44', 'education', NULL, 'prompt') on DUPLICATE key update id = '0d8f6781-6668-432a-b022-7d73ca67c790';
+INSERT INTO `t_pe_industry` (`id`, `name`, `description`, `created_on`, `updated_on`, `name_en`, `workspace_id`, `library_type`) VALUES ('10d701db-8741-4556-90b9-c1bf66cd9737', '通用', '通用', '2023-10-17 06:10:11', '2026-02-10 08:14:44', 'common', NULL, 'prompt') on DUPLICATE key update id = '10d701db-8741-4556-90b9-c1bf66cd9737';
+INSERT INTO `t_pe_industry` (`id`, `name`, `description`, `created_on`, `updated_on`, `name_en`, `workspace_id`, `library_type`) VALUES ('13c5130d-e6e4-4f3a-930b-c640652e91f6', '医疗', '医疗', '2023-10-17 06:10:27', '2026-02-10 08:14:44', 'medical', NULL, 'prompt') on DUPLICATE key update id = '13c5130d-e6e4-4f3a-930b-c640652e91f6';
+INSERT INTO `t_pe_industry` (`id`, `name`, `description`, `created_on`, `updated_on`, `name_en`, `workspace_id`, `library_type`) VALUES ('178cd0dc-a8d8-4b13-a502-320ed355786a', '政务', '政务', '2023-10-17 06:10:47', '2026-02-10 08:14:44', 'government', NULL, 'prompt') on DUPLICATE key update id = '178cd0dc-a8d8-4b13-a502-320ed355786a';
+INSERT INTO `t_pe_industry` (`id`, `name`, `description`, `created_on`, `updated_on`, `name_en`, `workspace_id`, `library_type`) VALUES ('18bf3eaa-3bc2-45f1-a43d-831b57ddc790', '制造', '制造', '2023-10-17 06:11:02', '2026-02-10 08:14:44', 'manufacturing', NULL, 'prompt') on DUPLICATE key update id = '18bf3eaa-3bc2-45f1-a43d-831b57ddc790';
+INSERT INTO `t_pe_industry` (`id`, `name`, `description`, `created_on`, `updated_on`, `name_en`, `workspace_id`, `library_type`) VALUES ('1942075c-213c-4921-bb5f-f69ac9c5315e', '互联网', '互联网', '2023-10-17 06:08:00', '2026-02-10 08:14:44', 'internet', NULL, 'prompt') on DUPLICATE key update id = '1942075c-213c-4921-bb5f-f69ac9c5315e';
+INSERT INTO `t_pe_industry` (`id`, `name`, `description`, `created_on`, `updated_on`, `name_en`, `workspace_id`, `library_type`) VALUES ('2a1ce92c-528b-4edc-8826-26ee91ec8dbb', '金融', '金融', '2023-10-14 06:35:53', '2026-02-10 08:14:44', 'finance', NULL, 'prompt') on DUPLICATE key update id = '2a1ce92c-528b-4edc-8826-26ee91ec8dbb';
+INSERT INTO `t_pe_industry` (`id`, `name`, `description`, `created_on`, `updated_on`, `name_en`, `workspace_id`, `library_type`) VALUES ('4b8e1c9f-2a7d-4f3e-a5c8-9b6d2f7e1a3c', '学术科研', '学术科研', '2026-02-13 11:14:35', '2026-02-13 11:14:35', 'Academic Research', NULL, 'prompt') on DUPLICATE key update id = '4b8e1c9f-2a7d-4f3e-a5c8-9b6d2f7e1a3c';
+INSERT INTO `t_pe_industry` (`id`, `name`, `description`, `created_on`, `updated_on`, `name_en`, `workspace_id`, `library_type`) VALUES ('6f9a4c2e-1b8d-4e3f-a7c5-9d2b8e1f5a3c', '文案创作', '文案创作', '2026-02-14 11:14:35', '2026-02-14 11:14:35', 'Content Creation', NULL, 'prompt') on DUPLICATE key update id = '6f9a4c2e-1b8d-4e3f-a7c5-9d2b8e1f5a3c';
+INSERT INTO `t_pe_industry` (`id`, `name`, `description`, `created_on`, `updated_on`, `name_en`, `workspace_id`, `library_type`) VALUES ('8b3d6a1c-9f2e-4c7f-d5a8-3b6c9f1e2a7d', '生活服务', '生活服务', '2026-01-31 11:53:07', '2026-01-31 11:53:10', 'lifestyle services', NULL, 'prompt') on DUPLICATE key update id = '8b3d6a1c-9f2e-4c7f-d5a8-3b6c9f1e2a7d';
 

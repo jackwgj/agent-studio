@@ -18,7 +18,7 @@ from agent_builder.prompt.tune.base.utils import (
     load_prompt_pool_from_yaml,
 )
 from agent_builder.prompt.tune.joint_evaluator import JointEvaluatorWithRef
-from jiuwen.common.exception import JiuWenBaseException
+from agent_builder.adapter.exception_bridge import JiuWenBaseException
 from pydantic import BaseModel, Field
 
 

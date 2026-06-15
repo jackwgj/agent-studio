@@ -29,6 +29,18 @@ public class ModelProperties implements Serializable {
     @JsonProperty("model_source")
     private String modelSource = null;
 
+    @JsonProperty("url")
+    private String url = null;
+
+    @JsonProperty("api_key")
+    private String apiKey = null;
+
+    @JsonProperty("temperature")
+    private Double temperature = null;
+
+    @JsonProperty("top_p")
+    private Double topP = null;
+
     public String getModel() {
         return model;
     }
@@ -47,12 +59,52 @@ public class ModelProperties implements Serializable {
         return this;
     }
 
+    public String getUrl() {
+        return url;
+    }
+
+    public ModelProperties setUrl(String url) {
+        this.url = url;
+        return this;
+    }
+
+    public String getApiKey() {
+        return apiKey;
+    }
+
+    public ModelProperties setApiKey(String apiKey) {
+        this.apiKey = apiKey;
+        return this;
+    }
+
+    public Double getTemperature() {
+        return temperature;
+    }
+
+    public ModelProperties setTemperature(Double temperature) {
+        this.temperature = temperature;
+        return this;
+    }
+
+    public Double getTopP() {
+        return topP;
+    }
+
+    public ModelProperties setTopP(Double topP) {
+        this.topP = topP;
+        return this;
+    }
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("class ModelProperties {\n");
-        sb.append("    model: ").append(toIndentedString(model)).append("\n");
-        sb.append("    modelSource: ").append(toIndentedString(modelSource)).append("\n");
+        sb.append("ModelProperties{");
+        sb.append("model=").append(model);
+        sb.append(", modelSource=").append(modelSource);
+        sb.append(", url=").append(url);
+        sb.append(", apiKey=").append(apiKey);
+        sb.append(", temperature=").append(temperature);
+        sb.append(", topP=").append(topP);
         sb.append("}");
         return sb.toString();
     }
@@ -67,12 +119,14 @@ public class ModelProperties implements Serializable {
         }
         ModelProperties modelProperties = (ModelProperties) o;
         return Objects.equals(this.model, modelProperties.model) && Objects.equals(this.modelSource,
-            modelProperties.modelSource);
+            modelProperties.modelSource) && Objects.equals(this.url, modelProperties.url) && Objects.equals(
+            this.apiKey, modelProperties.apiKey) && Objects.equals(this.temperature, modelProperties.temperature)
+            && Objects.equals(this.topP, modelProperties.topP);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(model, modelSource);
+        return Objects.hash(model, modelSource, url, apiKey, temperature, topP);
     }
 
     /**

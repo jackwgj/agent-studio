@@ -11,7 +11,7 @@ from agent_builder.common.logging.base import logger
 from agent_builder.common.utils.utils import sanitize_input
 from agent_builder.prompt.common.config import LLMModelInfo
 from agent_builder.prompt.template.base import MetaTemplate
-from jiuwen.prompt.template.template_editor import TemplateEditor
+from agent_builder.adapter.placeholder_editor import TemplateEditor
 from pydantic import BaseModel, Field
 
 

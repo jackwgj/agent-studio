@@ -11,7 +11,7 @@ from agent_builder.common.exception.status_code import StatusCode
 from agent_builder.common.logging.base import logger
 from agent_builder.prompt.tune.base.case import CaseManager
 from agent_builder.prompt.tune.base.constant import TuneConstant
-from jiuwen.common.exception import JiuWenBaseException
+from agent_builder.adapter.exception_bridge import JiuWenBaseException
 
 
 class TaskParamsValidationException(JiuWenBaseException):

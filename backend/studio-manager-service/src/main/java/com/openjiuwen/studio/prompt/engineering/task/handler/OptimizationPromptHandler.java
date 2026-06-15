@@ -147,6 +147,12 @@ public class OptimizationPromptHandler extends AbstractJobHandler {
         if (modelConfig != null) {
             modelInfo.setModel(modelConfig.getDeploymentId());
             modelInfo.setModelSource(modelConfig.getModelSource());
+            modelInfo.setUrl(modelConfig.getEndpoint());
+            if (modelConfig.getToken() != null) {
+                modelInfo.setApiKey(ciphers.decrypt(modelConfig.getToken()));
+            }
+            modelInfo.setTemperature(modelConfig.getTemperature());
+            modelInfo.setTopP(modelConfig.getTopP());
         }
         return modelInfo;
     }

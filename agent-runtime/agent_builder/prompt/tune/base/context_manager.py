@@ -26,8 +26,8 @@ from agent_builder.prompt.tune.base.utils import (
 from agent_builder.prompt.tune.storage.base import BaseContextStoreAccesser
 from agent_builder.prompt.tune.storage.mysql_accesser import ContextMysqlAccesser
 from cacheout import Cache
-from jiuwen.common.exception import JiuWenBaseException
-from jiuwen.common.utils.singleton import Singleton
+from agent_builder.adapter.exception_bridge import JiuWenBaseException
+from agent_builder.adapter.singleton import Singleton
 
 
 class ContextManager(metaclass=Singleton):

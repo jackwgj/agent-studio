@@ -10,7 +10,7 @@ from typing import List, Iterator
 
 from agent_builder.common.exception.status_code import StatusCode
 from agent_builder.prompt.common.config import LLMModelInfo
-from jiuwen.common.exception import JiuWenBaseException
+from agent_builder.adapter.exception_bridge import JiuWenBaseException
 
 TRUE_LITERAL = "true"
 

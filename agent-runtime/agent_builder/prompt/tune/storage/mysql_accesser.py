@@ -20,8 +20,8 @@ from agent_builder.prompt.tune.base.utils import (
     placeholder_to_dict,
 )
 from agent_builder.prompt.tune.storage.base import BaseContextStoreAccesser
-from jiuwen.common.exception import JiuWenBaseException
-from jiuwen.common.utils.utils import safe_json_loads_raise_exception
+from agent_builder.adapter.exception_bridge import JiuWenBaseException
+from agent_builder.adapter.json_utils import safe_json_loads_raise_exception
 
 
 class MysqlConstant:

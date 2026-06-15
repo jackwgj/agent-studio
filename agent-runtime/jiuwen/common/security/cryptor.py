@@ -15,37 +15,15 @@ from jiuwen.common.exception.status_code import StatusCode
 class Crypt:
     """
     保护敏感信息在传输过程中不被窃取或篡改。
-    定义了两个静态方法encrypt和decrypt，用于加密和解密。
+    本地开发使用 PlainCrypt 模式，直接返回原始字符串。
     """
 
     @staticmethod
     def encrypt(origin: str):
-        """
-        用于实现加密功能。
-        Args:
-            origin (str): 需要加密的原始字符串。
-        Returns:
-            无返回值。
-        Raises:
-            JiuWenBaseException: 如果加密初始化失败，抛出此异常。
-        """
-        raise JiuWenBaseException(
-            error_code=StatusCode.CRYPT_INIT_ERROR.code,
-            message=StatusCode.CRYPT_INIT_ERROR.errmsg,
-        )
+        """pass-through encrypt for local dev"""
+        return origin
 
     @staticmethod
     def decrypt(encrypt_str: str):
-        """
-        用于实现解密功能。
-        Args:
-            encrypt_str (str): 需要解密的加密字符串。
-        Returns:
-            无返回值。
-        Raises:
-            JiuWenBaseException: 如果解密初始化失败，抛出此异常。
-        """
-        raise JiuWenBaseException(
-            error_code=StatusCode.CRYPT_INIT_ERROR.code,
-            message=StatusCode.CRYPT_INIT_ERROR.errmsg,
-        )
+        """pass-through decrypt for local dev"""
+        return encrypt_str

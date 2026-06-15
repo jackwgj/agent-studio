@@ -1,6 +1,9 @@
 #  Copyright (c) Huawei Technologies Co., Ltd. 2023-2023. All rights reserved.
 """
 common llm service
+
+Uses OpenAICompatibleService from the adapter layer instead of jiuwen's ModelFactory.
+All LLM calls now go through OpenAI-compatible HTTP API.
 """
 
 import json
@@ -9,14 +12,12 @@ import traceback
 from abc import abstractmethod
 from typing import List, Dict
 
+from agent_builder.adapter.exception_bridge import JiuWenBaseException
+from agent_builder.adapter.llm_bridge import OpenAICompatibleService
+from agent_builder.adapter.logger_bridge import logger
 from agent_builder.common.exception.status_code import StatusCode
 from agent_builder.common.llm_service.common_llm.xiaoyi_llmservice import XiaoyiLLM
-from agent_builder.common.logging.base import logger
 from agent_builder.prompt.common.config import LLMModelInfo
-from jiuwen.common.exception import JiuWenBaseException
-from jiuwen.common.llm_service.base import ModelFactory
-from jiuwen.common.llm_service.language_model.base import LanguageModelInput
-from jiuwen.common.llm_service.model_util import ModelUtil
 from pydantic import BaseModel, Field
 
 
@@ -36,31 +37,25 @@ class BaseLLMService(BaseModel):
 
 
 class EiCloudLLMService(BaseLLMService):
-    """ei cloud service"""
+    """
+    Ei cloud service using OpenAI-compatible HTTP API.
+
+    Replaces the original ModelFactory-based implementation with
+    direct HTTP calls via OpenAICompatibleService.
+    """
 
     system_message: list = Field(default=[])
 
     def full_chat(
         self, messages: List[dict], extra_info: Dict = None
     ) -> Dict[str, str]:
-        """full chat"""
+        """full chat using OpenAI-compatible API"""
         if self.add_prefix:
             messages = self.system_message + messages
         try:
-            chat_agent = ModelFactory().get_model(
-                model_type=self.model_info.model_source,
-                model_name=self.model_info.model,
-                temperature=self.model_info.temperature,
-                top_p=self.model_info.top_p,
-                **self.model_info.headers,
-            )
-            result = chat_agent.invoke(
-                LanguageModelInput(
-                    messages=ModelUtil.switch_message(messages=messages), tools=None
-                )
-            )
-
-            return dict(code=0, message="success", data=result.content)
+            service = OpenAICompatibleService(model_info=self.model_info)
+            result = service.full_chat(messages, extra_info=extra_info)
+            return result
         except JiuWenBaseException as error:
             traceback_error_msg = traceback.format_exc()
             code = StatusCode.PROMPT_LLM_GENERATION_FAILED_ERROR.code
@@ -86,33 +81,12 @@ class EiCloudLLMService(BaseLLMService):
     def streaming_chat(
         self, messages: List[dict], extra_info: Dict = None
     ) -> Dict[str, str]:
-        """streaming chat"""
+        """streaming chat using OpenAI-compatible API"""
         if self.add_prefix:
             messages = self.system_message + messages
         try:
-            chat_agent = ModelFactory().get_model(
-                model_type=self.model_info.model_source,
-                model_name=self.model_info.model,
-                temperature=self.model_info.temperature,
-                top_p=self.model_info.top_p,
-                **self.model_info.headers,
-            )
-            result = chat_agent.stream(
-                LanguageModelInput(
-                    messages=ModelUtil.switch_message(messages=messages), tools=None
-                )
-            )
-            for item in result:
-                if item.usage_metadata.code != 0:
-                    yield dict(
-                        code=StatusCode.PROMPT_LLM_GENERATION_FAILED_ERROR.code,
-                        message=StatusCode.PROMPT_LLM_GENERATION_FAILED_ERROR.errmsg.format(
-                            error_msg=item.usage_metadata.errmsg
-                        ),
-                        data="",
-                    )
-                if item.usage_metadata.finish_reason == "null":
-                    yield dict(code=0, message="success", data=item.content)
+            service = OpenAICompatibleService(model_info=self.model_info)
+            yield from service.streaming_chat(messages, extra_info=extra_info)
         except JiuWenBaseException as error:
             logger.error(
                 f"request agent builder llm failed! code: {error.error_code}, detail: {error.message}"
@@ -131,33 +105,13 @@ class EiCloudLLMService(BaseLLMService):
     async def astreaming_chat(
         self, messages: List[dict], extra_info: Dict = None
     ):
-        """streaming chat"""
+        """async streaming chat using OpenAI-compatible API"""
         if self.add_prefix:
             messages = self.system_message + messages
         try:
-            chat_agent = ModelFactory().get_model(
-                model_type=self.model_info.model_source,
-                model_name=self.model_info.model,
-                temperature=self.model_info.temperature,
-                top_p=self.model_info.top_p,
-                **self.model_info.headers,
-            )
-            result = chat_agent.stream(
-                LanguageModelInput(
-                    messages=ModelUtil.switch_message(messages=messages), tools=None
-                )
-            )
-            async for item in result:
-                if item.usage_metadata.code != 0:
-                    yield dict(
-                        code=StatusCode.PROMPT_LLM_GENERATION_FAILED_ERROR.code,
-                        message=StatusCode.PROMPT_LLM_GENERATION_FAILED_ERROR.errmsg.format(
-                            error_msg=item.usage_metadata.errmsg
-                        ),
-                        data="",
-                    )
-                if item.usage_metadata.finish_reason == "null":
-                    yield dict(code=0, message="success", data=item.content)
+            service = OpenAICompatibleService(model_info=self.model_info)
+            async for item in service.astreaming_chat(messages, extra_info=extra_info):
+                yield item
         except JiuWenBaseException as error:
             logger.error(
                 f"request agent builder llm failed! code: {error.error_code}, detail: {error.message}"

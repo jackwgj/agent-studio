@@ -13,7 +13,7 @@ from agent_builder.common.exception.status_code import StatusCode
 from agent_builder.common.logging.base import interface_logger, logger
 from agent_builder.common.utils.utils import sanitize_input
 from agent_builder.serve.common.ssl_ctx import set_ssl_cert
-from jiuwen.common.exception import JiuWenBaseException
+from agent_builder.adapter.exception_bridge import JiuWenBaseException
 from websockets.exceptions import ConnectionClosedOK
 from websockets.sync.client import connect
 

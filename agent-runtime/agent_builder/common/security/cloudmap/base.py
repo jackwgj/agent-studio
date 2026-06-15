@@ -17,8 +17,13 @@ import requests
 from agent_builder.common.logging.base import logger
 from agent_builder.common.security.cloudmap.common import retry
 from agent_builder.common.security.cloudmap.common import timed_lru_cache
-from pystssdk import StsAuthRequest
-from pystssdk import sts_api
+
+try:
+    from pystssdk import StsAuthRequest
+    from pystssdk import sts_api
+except ImportError:
+    StsAuthRequest = None
+    sts_api = None
 
 SYS_ENV_PREFIX = "nuwa.cloudmap."
 SERVER_ADDR = "serverAddr"

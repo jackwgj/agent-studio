@@ -5,6 +5,12 @@ package com.openjiuwen.studio.prompt.engineering.service.v2.job;
 
 import com.openjiuwen.studio.agent.common.enums.StudioError;
 import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
+import com.openjiuwen.studio.agent.common.utils.CryptoUtils;
+import com.openjiuwen.studio.agent.manager.entity.md.ModelServiceBase;
+import com.openjiuwen.studio.agent.manager.entity.md.ProviderAuthMetadata;
+import com.openjiuwen.studio.agent.manager.mapper.md.ModelServiceMapper;
+import com.openjiuwen.studio.agent.manager.mapper.md.ProviderAuthDataMapper;
+import com.openjiuwen.studio.agent.manager.mapper.md.ProviderAuthMetadataMapper;
 import com.openjiuwen.studio.agent.manager.utils.JsonUtils;
 import com.openjiuwen.studio.prompt.engineering.constant.CommonConstant;
 import com.openjiuwen.studio.prompt.engineering.dto.Case;
@@ -75,7 +81,7 @@ public class JiuWenPromptTaskJob implements Job {
         = "/flask/v1/MMprompt/templates_optimization/jobs/%s/stop";
 
     private static final String TEMPLATES_OPTIMIZATION_RESTART_MULTI_API
-        = "/flask/v1/MMprompt/templates_optimization/jobs/%S/restart";
+        = "/flask/v1/MMprompt/templates_optimization/jobs/%s/restart";
 
     private static final String TEMPLATES_OPTIMIZATION_DELETE_MULTI_API
         = "/flask/v1/MMprompt/templates_optimization/jobs/%s";
@@ -91,7 +97,7 @@ public class JiuWenPromptTaskJob implements Job {
         = "/flask/v1/prompt/templates_optimization/jobs/%s/stop";
 
     private static final String TEMPLATES_OPTIMIZATION_RESTART_API
-        = "/flask/v1/prompt/templates_optimization/jobs/%S/restart";
+        = "/flask/v1/prompt/templates_optimization/jobs/%s/restart";
 
     private static final String TEMPLATES_OPTIMIZATION_DELETE_API = "/flask/v1/prompt/templates_optimization/jobs/%s";
 
@@ -113,6 +119,15 @@ public class JiuWenPromptTaskJob implements Job {
 
     @Autowired
     private PromptEngineerDataSetService promptEngineerDataSetService;
+
+    @Autowired
+    private ModelServiceMapper modelServiceMapper;
+
+    @Autowired
+    private ProviderAuthMetadataMapper providerAuthMetadataMapper;
+
+    @Autowired
+    private ProviderAuthDataMapper providerAuthDataMapper;
 
     @Override
     public void execute(JobExecutionContext jobExecutionContext) throws JobExecutionException {
@@ -355,6 +370,11 @@ public class JiuWenPromptTaskJob implements Job {
     public Flux<String> generatePrompt(String projectId, String workspaceId, PromptBuildRequest body, String token) {
         log.info("start to generate prompt, projectId: {}, workspaceId: {}", projectId, workspaceId);
 
+        // 补充 modelInfo 的 url、api_key 等字段
+        if (body.getModelInfo() != null) {
+            enrichExecConfig(body.getModelInfo(), projectId, workspaceId);
+        }
+
         Flux<String> dataFlux = webClient.post()
             .uri(jiuwenBaseUrl + PROMPT_GENERATE_API)
             .contentType(MediaType.APPLICATION_JSON)
@@ -522,13 +542,78 @@ public class JiuWenPromptTaskJob implements Job {
             .name(promptTaskDetailVo.getName())
             .desc(promptTaskDetailVo.getDesc())
             .rawTemplates(promptTaskDetailVo.getPtText())
-            .modelInfo(promptTaskDetailVo.getPtModel())
-            .assistantInfo(promptTaskDetailVo.getExecObject())
+            .modelInfo(enrichExecConfig(promptTaskDetailVo.getPtModel(),
+                promptTaskDetailVo.getProjectId(), promptTaskDetailVo.getWorkspaceId()))
+            .assistantInfo(enrichExecConfig(promptTaskDetailVo.getExecObject(),
+                promptTaskDetailVo.getProjectId(), promptTaskDetailVo.getWorkspaceId()))
             .optimizeInfo(jiuWenOptimizeInfo)
             .build();
 
         log.info("JiuWenCreTaskReq built successfully, task name: {}", promptTaskDetailVo.getName());
         return jiuWenCreTaskReq;
+    }
+
+    /**
+     * Enrich ExecConfig with model URL and API key from the model service database.
+     */
+    private com.openjiuwen.studio.prompt.engineering.entity.v2.ExecConfig enrichExecConfig(
+            com.openjiuwen.studio.prompt.engineering.entity.v2.ExecConfig config,
+            String projectId, String workspaceId) {
+        if (config == null || StringUtils.isEmpty(config.getModel())) {
+            return config;
+        }
+        try {
+            ModelServiceBase modelService = modelServiceMapper.queryById(config.getModel());
+            if (modelService != null) {
+                String originalId = config.getModel();
+                config.setUrl(modelService.getApiUrl());
+                config.setModel(modelService.getModelName());
+                log.info("Enriched model config: id={}, modelName={}, url={}",
+                    originalId, modelService.getModelName(), config.getUrl());
+                if (StringUtils.isNotEmpty(modelService.getProviderId())) {
+                    List<ProviderAuthMetadata> authList = providerAuthDataMapper
+                        .selectProviderAuthData(projectId, workspaceId, modelService.getProviderId());
+                    log.info("Provider auth data list size: {}, providerId: {}",
+                        authList == null ? 0 : authList.size(), modelService.getProviderId());
+                    if (authList != null) {
+                        for (ProviderAuthMetadata auth : authList) {
+                            log.info("Provider auth data type: {}, hasAuthConfig: {}",
+                                auth.getAuthType(), auth.getAuthConfig() != null);
+                        }
+                        authList.stream()
+                            .filter(auth -> auth.getAuthConfig() != null)
+                            .findFirst()
+                            .ifPresent(auth -> {
+                                try {
+                                    Map<String, String> authMap = JsonUtils.json2Obj(
+                                        auth.getAuthConfig(), new com.fasterxml.jackson.core.type.TypeReference<>() {});
+                                    if (authMap != null && !authMap.isEmpty()) {
+                                        String encryptedKey = authMap.values().iterator().next();
+                                        String decryptedKey = CryptoUtils.decrypt(encryptedKey);
+                                        config.setApiKey(decryptedKey);
+                                        log.info("API key set successfully from authData");
+                                    }
+                                } catch (Exception e) {
+                                    log.warn("Failed to decrypt provider API key: {}", e.getMessage());
+                                }
+                            });
+                    }
+                }
+                // 设置 top_p 和 temperature 默认值（前端可能不传）
+                if (config.getTopP() == null) {
+                    config.setTopP(0.1);
+                }
+                if (config.getTemperature() == null) {
+                    config.setTemperature(0.1);
+                }
+                log.info("Enriched model config: model={}, url={}", config.getModel(), config.getUrl());
+            } else {
+                log.warn("Model service not found for id: {}", config.getModel());
+            }
+        } catch (Exception e) {
+            log.warn("Failed to enrich model config for model {}: {}", config.getModel(), e.getMessage());
+        }
+        return config;
     }
 
 }

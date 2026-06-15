@@ -106,7 +106,7 @@ class JiuWenPromptTaskJobTest {
         = "/flask/v1/prompt/templates_optimization/jobs/%s/stop";
 
     private static final String TEMPLATES_OPTIMIZATION_RESTART_API
-        = "/flask/v1/prompt/templates_optimization/jobs/%S/restart";
+        = "/flask/v1/prompt/templates_optimization/jobs/%s/restart";
 
     private static final String TEMPLATES_OPTIMIZATION_DELETE_API = "/flask/v1/prompt/templates_optimization/jobs/%s";
 

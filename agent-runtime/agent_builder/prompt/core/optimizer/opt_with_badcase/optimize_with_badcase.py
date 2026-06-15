@@ -11,7 +11,7 @@ from agent_builder.prompt.core.modifier.modifier import Modifier
 from agent_builder.prompt.core.optimizer.analyzer import BaseAnalyzer
 from agent_builder.prompt.core.optimizer.dataset import BaseCaseData
 from agent_builder.prompt.core.optimizer.optimizer_base import BaseOptimizer
-from jiuwen.common.exception import JiuWenBaseException
+from agent_builder.adapter.exception_bridge import JiuWenBaseException
 
 
 class OptimizeWithBadcase(BaseOptimizer):

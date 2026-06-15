@@ -57,10 +57,10 @@ from flask import (
     copy_current_request_context,
     g,
 )
-from jiuwen.common.exception import JiuWenBaseException
-from jiuwen.prompt.common.check import CheckInfo
-from jiuwen.prompt.template.template_editor import PlaceholderEditor
-from jiuwen.prompt.tune.template.utils import TaskInfo
+from agent_builder.adapter.exception_bridge import JiuWenBaseException
+from agent_builder.adapter.check_info import CheckInfo
+from agent_builder.adapter.placeholder_editor import PlaceholderEditor
+from agent_builder.adapter.task_info import TaskInfo
 from pydantic import BaseModel, Field, field_validator, FieldValidationInfo, StrictStr
 
 MIN_CONVERSATION_ID_LENGTH = 1
@@ -121,7 +121,7 @@ class TemplateInfo(BaseModel):
     """TemplateInfo"""
 
     metaTemplateType: MetaTemplateTypeEnum = Field(
-        default=MetaTemplateTypeEnum.GENERAL_TEMPLATE
+        default=MetaTemplateTypeEnum.GENERAL_TEMPLATE_XIAOYI
     )
 
 

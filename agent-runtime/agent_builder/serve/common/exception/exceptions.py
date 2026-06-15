@@ -5,7 +5,7 @@ exceptions
 """
 
 from agent_builder.common.exception.status_code import StatusCode
-from jiuwen.common.exception import JiuWenBaseException
+from agent_builder.adapter.exception_bridge import JiuWenBaseException
 
 
 class BaseJiuwenServerException(JiuWenBaseException):
