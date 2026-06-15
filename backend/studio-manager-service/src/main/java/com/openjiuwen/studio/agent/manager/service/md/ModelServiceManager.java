@@ -343,14 +343,15 @@ public class ModelServiceManager {
         String modelApiUrl, String interfaceProtocol, String authType, Object authInfo, Boolean encrypted) {
 
         ModelServiceCheckReq req = new ModelServiceCheckReq().setModelType(modelType)
-            .setModelName(modelName)
-            .setApiUrl(modelApiUrl)
-            .setInterfaceProtocol(interfaceProtocol)
-            .setAuthType(authType);
+                .setModelName(modelName)
+                .setApiUrl(modelApiUrl)
+                .setInterfaceProtocol(interfaceProtocol)
+                .setAuthType(authType);
 
         if (authInfo instanceof String) {
             Map<String, String> authMap = JsonUtils.decode((String) authInfo,
-                new TypeReference<Map<String, String>>() { });
+                    new TypeReference<Map<String, String>>() {
+                    });
             if (!encrypted) {
                 for (Map.Entry<String, String> entry : authMap.entrySet()) {
                     String key = entry.getKey();
@@ -374,8 +375,16 @@ public class ModelServiceManager {
             return new ModelServiceCheckRsp().setSuccess(true);
         }
 
-        return runtimeClient.modelServiceAvailableCheck(RequestContextUtils.getRequestAuthToken(), projectId, req)
-            .getBody();
+        ModelServiceCheckRsp checkRsp;
+        try {
+            checkRsp = runtimeClient.modelServiceAvailableCheck(RequestContextUtils.getRequestAuthToken(), projectId, req)
+                    .getBody();
+        } catch (Exception e) {
+            log.error("Call model service check fail. modelName:{}, msg: {}", modelName, e.getMessage());
+            throw new AgentStudioException(StudioError.CALL_MODEL_ERROR, e);
+        }
+
+        return checkRsp;
     }
 
     public AgentStudioException createAgentStudioException(int statusCode, String message) {
