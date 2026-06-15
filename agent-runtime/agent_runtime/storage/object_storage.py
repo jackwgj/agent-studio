@@ -88,6 +88,42 @@ class S3StorageProvider(ObjectStorageProvider):
 
         return cls._instance
 
+    async def get_object_bytes(self, object_key: str) -> bytes:
+        """异步读取 S3 对象内容，返回原始字节
+
+        Args:
+            object_key: S3 对象 key
+
+        Returns:
+            bytes: 对象原始字节内容
+
+        Raises:
+            StorageConfigError: 配置缺失
+            StorageReadError: 读取失败
+        """
+        try:
+            bucket_name = settings.object_storage.bucket
+            if not bucket_name:
+                raise StorageConfigError("DATASOURCE_OBS_BUCKET not configured")
+
+            client = self._get_client()
+            loop = asyncio.get_running_loop()
+            response = await loop.run_in_executor(
+                None,
+                lambda: client.get_object(Bucket=bucket_name, Key=object_key),
+            )
+            return response["Body"].read()
+
+        except Exception as e:
+            if isinstance(e, (StorageConfigError, StorageReadError)):
+                raise
+            workflow_logger.error(
+                f"S3 read failed: object_key={object_key}, {e}", exc_info=True
+            )
+            raise StorageReadError(
+                f"S3 read failed: object_key={object_key}, error={e}"
+            ) from e
+
     async def get_content(self, object_key: str) -> str:
         """异步读取 S3 对象内容，返回 UTF-8 字符串
 

@@ -484,7 +484,10 @@ class PlanExecuteMode(BaseMode):
 
         ctx = self._step_exec_ctx
         final_hint = ctx["hint_builder"].build_hint_all_completed(ctx["plan"])
-        final_result = await self._call_llm_with_hint(final_hint, [])
+        # 当计划有0个步骤时，传递filtered_tools以便LLM能使用skill等工具完成任务；
+        # 当计划有实际步骤时，finalize仅做汇总，不需要工具，传空列表
+        finalize_tools = ctx["filtered_tools"] if len(ctx["plan"].steps) == 0 else []
+        final_result = await self._call_llm_with_hint(final_hint, finalize_tools)
 
         content = final_result.get("content", "任务执行完成")
         self.context_manager.set_result_message(content)

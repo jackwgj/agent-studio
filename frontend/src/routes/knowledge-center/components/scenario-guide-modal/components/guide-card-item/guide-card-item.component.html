@@ -46,8 +46,8 @@
 </div>
 
 @if (!guideDataItem?.[SCENARIO_FIELD_ID.COLLAPSE]) {
-  <div [formGroup]="formGroupItem" class="guide-card-content">
-    <form nz-form nzLayout="vertical">
+  <div class="guide-card-content">
+    <form nz-form nzLayout="vertical" [formGroup]="formGroupItem">
       @for (formItem of [guideFormConfig[SCENARIO_FIELD_ID.TRIGGER_CONDITION], guideFormConfig[SCENARIO_FIELD_ID.PERFORM_ACTION], guideFormConfig[SCENARIO_FIELD_ID.SKILL_SET]]; track trackByIndex($index)) {
         <nz-form-item>
           <nz-form-label [nzRequired]="formItem.required">
@@ -77,13 +77,14 @@
                 [nzShowSearch]="true"
                 [nzAllowClear]="true"
                 [nzMaxTagCount]="100"
+                [compareWith]="compareWith"
                 (nzOpenChange)="onRemoveDeletedSkill()"
               >
                 @for (group of skillSetOptions; track group.label) {
                   <nz-option-group [nzLabel]="group.label">
                     <nz-option
                       *ngFor="let option of group.children"
-                      [nzValue]="option.id"
+                      [nzValue]="option"
                       [nzLabel]="option.label"
                       [nzDisabled]="option.disabled"
                     >

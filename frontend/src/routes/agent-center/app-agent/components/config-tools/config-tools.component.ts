@@ -658,7 +658,7 @@ export class ConfigToolsComponent implements OnInit, AfterViewInit, OnDestroy {
       });
 
     this.showSafetyBarrier =
-      !!this.configServ.getConfigs()?.safety_barrier_display;
+      !!this.configServ.getConfigs()?.safety_barrier_display && false;
 
     if (this.isAfterCreatePlugin) {
       this.afterCreatePlugin(this.AfterCreatePluginInfo.pluginId);

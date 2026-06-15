@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # coding=utf-8
 #  Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
+import asyncio
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
@@ -89,7 +90,7 @@ class Agent(BaseAgent):
             agent_config=config, context_manager=self.context_manager
         )
         self.workflows = config.workflows or []
-        self.plugins = []
+        self.plugins = config.plugins or []
         self.mcps = []
         self.result = None
         self.task_id = config.task_id
@@ -368,7 +369,7 @@ class Agent(BaseAgent):
 
         # 获取工具
         plugins, workflows, mcps = await self.get_tools(query, kwargs)
-        plugins, skill_ctx = self._inject_skills_if_needed(runtime_context, plugins)
+        plugins, skill_ctx = await self._inject_skills_if_needed(runtime_context, plugins)
 
         # 构建流式参数
         stream_params = self._build_stream_params(
@@ -716,13 +717,38 @@ class Agent(BaseAgent):
         async for item in yield_res:
             yield item
 
-    def _inject_skills_if_needed(self, runtime_context, plugins):
-        """根据计划模式决定是否进行动态技能注入，返回 (plugins, SkillInjectionContext)"""
+    async def _inject_skills_if_needed(self, runtime_context, plugins):
+        """根据计划模式决定是否进行动态技能注入，返回 (plugins, SkillInjectionContext)
+
+        如果 skill 文件下载失败，将错误信息注入到 prompt_suffix 中告知模型，
+        确保模型能感知 skill 配置异常，而非静默跳过后让模型尝试读取不存在的文件。
+        """
         from jiuwen.controller.common.config import SkillInjectionContext
 
         plan_mode = self.control_mode.plan_config.plan_mode
         if plan_mode in ("ReAct", "PlanExecute"):
-            return self._apply_runtime_skill_injection(runtime_context, plugins)
+            plugins_augmented, skill_ctx = self._apply_runtime_skill_injection(runtime_context, plugins)
+            download_ok = await self._prepare_skill_files_async(skill_ctx.work_dir or "")
+            if not download_ok and skill_ctx.prompt_suffix:
+                # skill下载失败但提示词已构建：将错误信息注入到提示词中，
+                # 让模型知道 skill 文件不可用，避免模型尝试读取不存在的文件
+                error_hint = (
+                    "\n\n[WARNING] Skill file download failed. "
+                    "The skill files referenced above may not be available on disk. "
+                    "Please inform the user that skill configuration is broken and needs to be fixed."
+                )
+                skill_ctx = SkillInjectionContext(
+                    prompt_suffix=skill_ctx.prompt_suffix + error_hint,
+                    tool_names=skill_ctx.tool_names,
+                    tool_refs=skill_ctx.tool_refs,
+                    work_dir=skill_ctx.work_dir,
+                )
+                logger.error(
+                    f"Skill download failed for agent {self.agent_id}. "
+                    f"Error hint injected into system prompt. "
+                    f"Check OBS configuration and skill file availability."
+                )
+            return plugins_augmented, skill_ctx
         return plugins, SkillInjectionContext.empty()
 
     def _patch_system_prompt(self, skills_prompt_suffix):
@@ -772,7 +798,7 @@ class Agent(BaseAgent):
         if sys_operation_card is None:
             return plugins, SkillInjectionContext.empty()
 
-        from openjiuwen.core.sys_operation import SysOperationCard, OperationMode
+        from openjiuwen.core.sys_operation import SysOperationCard
         from jiuwen.sys_operation.sys_operation_plugin import build_sysop_tools
 
         if not isinstance(sys_operation_card, SysOperationCard):
@@ -789,7 +815,12 @@ class Agent(BaseAgent):
 
         init_cwd(primary_work_dir)
 
-        Runner.resource_mgr.add_sys_operation(sys_operation_card, tag=self.agent_id)
+        add_result = Runner.resource_mgr.add_sys_operation(sys_operation_card, tag=self.agent_id)
+        if not add_result.is_ok() and "resource already exist" in str(add_result):
+            logger.info(
+                f"sys_operation resource already registered for agent {self.agent_id}, "
+                f"card_id={sys_operation_card.id}"
+            )
         sys_operation = Runner.resource_mgr.get_sys_operation(
             sys_operation_card.id, tag=self.agent_id
         )
@@ -798,14 +829,11 @@ class Agent(BaseAgent):
         extra_tools = build_sysop_tools(sys_operation)
         augmented_plugins = list(plugins) + extra_tools
 
-        work_dir = (
-            primary_work_dir if sys_operation_card.mode == OperationMode.LOCAL else ""
-        )
-
         return augmented_plugins, SkillInjectionContext(
-            prompt_suffix=self._build_skills_prompt(work_dir),
+            prompt_suffix=self._build_skills_prompt(primary_work_dir),
             tool_names={getattr(t, "name", "") for t in extra_tools} - {""},
             tool_refs={id(t) for t in extra_tools},
+            work_dir=primary_work_dir,
         )
 
     def _build_skills_prompt(self, work_dir: str = "") -> str:
@@ -825,7 +853,7 @@ class Agent(BaseAgent):
         if not self.skill_info:
             return ""
 
-        import os
+        import posixpath
 
         system_prompt = (
             "You are an agent equipped with various skills to solve problems.\n"
@@ -838,10 +866,10 @@ class Agent(BaseAgent):
             name = skill.get("name", "")
             description = skill.get("description", "")
             skill_directory = (
-                os.path.join(self.skill_dir, name) if self.skill_dir else name
+                posixpath.join(self.skill_dir, name) if self.skill_dir else name
             )
             if work_dir:
-                skill_directory = os.path.join(work_dir, skill_directory)
+                skill_directory = posixpath.join(work_dir, skill_directory)
             skills_info.append(
                 f"{index}.Skill name: {name}; "
                 f"Skill description: {description}; "
@@ -855,3 +883,181 @@ class Agent(BaseAgent):
             "You can use the read_file tool to read the corresponding SKILL.md file to obtain the relevant skill.\n"
         )
         return system_prompt + "\n" + skill_text
+
+    async def _prepare_skill_files_async(self, work_dir: str) -> bool:
+        """
+        在 agent 执行前下载并解压 skill zip 文件到本地工作目录，
+        使 read_file 工具能够读取 SKILL.md 文件。
+
+        使用 download_to_file 流式下载，比 get_content（先加载到内存再写入）更高效可靠。
+
+        Args:
+            work_dir: 本地工作目录路径
+
+        Returns:
+            True: 所有 skill 文件下载成功或已存在
+            False: 至少一个 skill 下载失败（错误已记录到日志）
+        """
+        import os
+        import zipfile
+
+        logger.info(
+            f"[SkillDownload] Starting skill file preparation. "
+            f"work_dir='{work_dir}', skill_info count={len(self.skill_info) if self.skill_info else 0}, "
+            f"skill_dir='{self.skill_dir}', skill_info={self.skill_info}"
+        )
+
+        # 开发环境路径映射：如果 work_dir 是沙箱 Unix 路径，映射到本地有效路径
+        if work_dir.startswith("/opt/") or work_dir.startswith("/tmp/"):
+            local_dev_root = os.environ.get("SANDBOX_LOCAL_ROOT", "")
+            if not local_dev_root:
+                logger.warning(
+                    f"[SkillDownload] work_dir is a sandbox path '{work_dir}' "
+                    f"but SANDBOX_LOCAL_ROOT env is not set. "
+                    f"Please set SANDBOX_LOCAL_ROOT to your local directory "
+                    f"that maps to the sandbox root, e.g. "
+                    f"SANDBOX_LOCAL_ROOT=/home/user/agent on Linux or "
+                    f"SANDBOX_LOCAL_ROOT=D:\\opt\\tmp\\agent on Windows. "
+                    f"Skill file download will be skipped."
+                )
+                return False
+            work_dir = work_dir.replace("/opt/tmp/agent", local_dev_root).replace("/tmp/agent", local_dev_root)
+            logger.info(f"[SkillDownload] Mapped sandbox path to local: {work_dir}")
+
+        logger.info(f"[SkillDownload] Before OBS config check, about to import env_constants")
+
+        # 检查 OBS 环境变量配置
+        try:
+            from jiuwen.common.configs.env_constants import DATASOURCE_OBS_BUCKET_KEY
+            logger.info(f"[SkillDownload] After import env_constants")
+        except Exception as e:
+            logger.error(f"[SkillDownload] Failed to import env_constants: {e}")
+            import traceback
+            logger.error(f"[SkillDownload] Import traceback: {traceback.format_exc()}")
+            return False
+
+        # 直接使用环境变量名称
+        obs_bucket = os.environ.get(DATASOURCE_OBS_BUCKET_KEY, "")
+        obs_server = os.environ.get("DATASOURCE_OBS_SERVER", "")
+        obs_ak = os.environ.get("DATASOURCE_OBS_AK", "")
+        obs_sk = os.environ.get("DATASOURCE_OBS_SK", "")
+        logger.info(
+            f"[SkillDownload] OBS config check: "
+            f"bucket='{obs_bucket}', server='{obs_server}', "
+            f"DATASOURCE_OBS_AK={'set' if obs_ak else 'NOT SET'}, "
+            f"DATASOURCE_OBS_SK={'set' if obs_sk else 'NOT SET'}"
+        )
+
+        if not work_dir or not self.skill_info or not self.skill_dir:
+            logger.warning(
+                f"[SkillDownload] Skipped: work_dir='{work_dir}', "
+                f"skill_info={'provided' if self.skill_info else 'None'}, "
+                f"skill_dir='{self.skill_dir}'"
+            )
+            return False
+
+        skill_local_path_prefix = os.path.join(work_dir, self.skill_dir)
+        logger.info(f"[SkillDownload] Attempting to create skill directory: {skill_local_path_prefix}")
+
+        # 检查 work_dir 是否存在
+        if not os.path.exists(work_dir):
+            logger.error(
+                f"[SkillDownload] work_dir does not exist: {work_dir}. "
+                "This may be a sandbox path issue on Windows dev environment."
+            )
+
+        # 确保目录存在
+        try:
+            os.makedirs(skill_local_path_prefix, exist_ok=True)
+            logger.info(f"[SkillDownload] Directory created/exists: {skill_local_path_prefix}")
+        except Exception as e:
+            logger.error(f"[SkillDownload] Failed to create directory {skill_local_path_prefix}: {e}")
+            return False
+
+        from jiuwen.common.store.async_obs import AsyncOBSUtil
+
+        all_success = True
+        for skill in self.skill_info:
+            skill_name = skill.get("name")
+            skill_path = skill.get("skill_path")
+
+            logger.info(f"[SkillDownload] Processing skill: name='{skill_name}', path='{skill_path}'")
+
+            if not skill_name or not skill_path:
+                logger.error(f"Skill missing name or path: {skill}. Skill config is invalid.")
+                all_success = False
+                continue
+
+            # 检查 SKILL.md 是否已存在，避免重复下载
+            skill_dir_local = os.path.join(skill_local_path_prefix, skill_name)
+            skill_md_path = os.path.join(skill_dir_local, "SKILL.md")
+            if os.path.isfile(skill_md_path):
+                logger.info(f"Skill {skill_name} already exists locally at {skill_md_path}, skip download")
+                continue
+
+            # 构建 zip 本地保存路径
+            local_zip_path = os.path.join(skill_local_path_prefix, f"{skill_name}.zip")
+
+            try:
+                logger.info(f"Downloading skill {skill_name} from OBS path {skill_path} to {local_zip_path}")
+                # 优先使用 OBS SDK 流式下载，失败时回退到 S3StorageProvider (boto3)
+                downloaded = False
+                try:
+                    await AsyncOBSUtil.download_to_file(
+                        object_key=skill_path, local_path=local_zip_path
+                    )
+                    downloaded = True
+                except Exception as obs_sdk_err:
+                    logger.warning(
+                        f"[SkillDownload] OBS SDK download failed for {skill_name}: {obs_sdk_err}. "
+                        f"Trying S3StorageProvider (boto3) as fallback."
+                    )
+                    try:
+                        from agent_runtime.storage.object_storage import S3StorageProvider
+                        s3_provider = S3StorageProvider()
+                        content_bytes = await s3_provider.get_object_bytes(skill_path)
+                        os.makedirs(os.path.dirname(local_zip_path), exist_ok=True)
+                        with open(local_zip_path, "wb") as f:
+                            f.write(content_bytes)
+                        downloaded = True
+                        logger.info(f"[SkillDownload] Fallback S3StorageProvider download succeeded for {skill_name}")
+                    except Exception as s3_err:
+                        logger.error(
+                            f"[SkillDownload] Both OBS SDK and S3StorageProvider failed for {skill_name}. "
+                            f"OBS SDK: {obs_sdk_err}, S3: {s3_err}"
+                        )
+
+                if not downloaded:
+                    all_success = False
+                    continue
+
+                # 解压 zip 到 skill 目录
+                with zipfile.ZipFile(local_zip_path, "r") as zip_ref:
+                    for member in zip_ref.infolist():
+                        member.filename = member.filename.replace("\\", "/")
+                        zip_ref.extract(member, skill_local_path_prefix)
+
+                # 解压后删除 zip 文件
+                try:
+                    os.remove(local_zip_path)
+                except Exception as e:
+                    logger.warning(f"Failed to delete zip file {local_zip_path}: {e}")
+
+                # 校验 SKILL.md 是否存在
+                if not os.path.isfile(skill_md_path):
+                    logger.error(
+                        f"Skill {skill_name} downloaded and extracted, but SKILL.md not found at {skill_md_path}. "
+                        f"Skill zip package may not contain SKILL.md."
+                    )
+                    all_success = False
+                else:
+                    logger.info(f"Successfully downloaded and extracted skill: {skill_name}")
+
+            except Exception as e:
+                logger.error(
+                    f"Failed to download/extract skill {skill_name} from OBS path {skill_path}: {e}. "
+                    f"Agent will not be able to read SKILL.md for this skill."
+                )
+                all_success = False
+
+        return all_success

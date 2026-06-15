@@ -640,11 +640,28 @@ class IRConverter:
         agent_id_in_config = f"{agent_id}_{agent_version}"
         plugin_irs = ir_data.get("configs", {}).get("plugins")
         plugins = None
+        logger.info(
+            f"[PluginLoad] create_agent_config: plugin_irs count={len(plugin_irs) if plugin_irs else 0}, "
+            f"agent_id={agent_id}, "
+            f"configs keys="
+            f"{list(ir_data.get('configs', {}).keys()) if isinstance(ir_data.get('configs'), dict) else 'N/A'}"
+        )
         if plugin_irs:
-            plugins = [
-                PluginIRConverter.ir_to_plugin(plugin_ir, agent_id, conversation_id)
-                for plugin_ir in plugin_irs
-            ]
+            plugins = []
+            for idx, plugin_ir in enumerate(plugin_irs):
+                try:
+                    plugin = PluginIRConverter.ir_to_plugin(plugin_ir, agent_id, conversation_id)
+                    plugins.append(plugin)
+                    logger.info(
+                        f"[PluginLoad] create_agent_config: "
+                        f"Successfully loaded plugin '{plugin_ir.get('name', 'unknown')}'"
+                    )
+                except Exception as e:
+                    plugin_name = plugin_ir.get("name", plugin_ir.get("id", f"index_{idx}"))
+                    logger.error(
+                        f"[PluginLoad] create_agent_config: Failed to convert plugin '{plugin_name}': {e}. "
+                        f"Skipping. IR keys: {list(plugin_ir.keys())}"
+                    )
 
         # 从 IR 中提取 skills 配置
         skills_config = ir_data.get("configs", {}).get("skills", {})
@@ -1080,8 +1097,12 @@ class IRConverter:
 
         t_card = _time.time()
         card = WorkflowCard(
-            id=ir_data.get("workflowId"),
-            name=ir_data.get("workflowName") or ir_data.get("workflowId"),
+            id=ir_data.get("workflowId") or ir_data.get("agentId") or "",
+            name=ir_data.get("workflowName")
+                or ir_data.get("workflowId")
+                or ir_data.get("agentName")
+                or ir_data.get("agentId")
+                or "",
             description=ir_data.get("description") or "",
         )
         workflow = Workflow(card=card)

@@ -129,6 +129,9 @@ class ConversationEvent(str, Enum):
     STEP_START = "step_start"
     STEP_END = "step_end"
     TASK_COMPLETE = "task_complete"
+    
+    # 意图识别
+    INTENT_MSG = "intent_msg"
 
 
 class AsyncExecutionStatus(Enum):

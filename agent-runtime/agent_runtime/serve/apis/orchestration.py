@@ -78,7 +78,7 @@ def _get_runner_by_type(agent_type: str):
     """根据agent_type返回对应的runner"""
     if agent_type == "react":
         return _get_react_runner()
-    if agent_type == "Controller":
+    if agent_type in ("Controller", "PlanExecute"):
         return _get_controller_runner()
     return _get_workflow_runner()
 

@@ -1,4 +1,4 @@
-<div *nzModalTitle>
+<ng-template #titleContent>
   <div class="mb-[16px]">{{ modalTitle }}</div>
 
   <nz-alert *ngIf="!isLocked" class="text-[12px]" [nzShowIcon]="true" nzType="info" style="width: 100%" [nzAction]="actionTemplate1">
@@ -13,7 +13,16 @@
       <nz-step [nzTitle]="step.label" *ngFor="let step of steps"></nz-step>
     </nz-steps>
   </div>
-</div>
+</ng-template>
+
+<ng-container *ngIf="isInModal">
+  <ng-container *nzModalTitle>
+    <ng-container *ngTemplateOutlet="titleContent"></ng-container>
+  </ng-container>
+</ng-container>
+<ng-container *ngIf="!isInModal">
+  <ng-container *ngTemplateOutlet="titleContent"></ng-container>
+</ng-container>
 
 <div id="create-plugin-body" class="h-[700px] overflow-auto">
   <div class="snd-step h-[calc(100%-40px)] w-full overflow-auto">
@@ -474,7 +483,7 @@
   </div>
 </div>
 
-<div *nzModalFooter>
+<ng-template #footerContent>
   <nz-space class="plugin-footer flex justify-end gap-2">
     <button nz-button nzType="default" class="rounded" *ngIf="this.step === 0 || isLocked" (click)="dismiss()">{{ 'cancel' | i18nextEager }}</button>
     <button
@@ -501,7 +510,16 @@
       {{ 'ok' | i18nextEager }}
     </button>
   </nz-space>
-</div>
+</ng-template>
+
+<ng-container *ngIf="isInModal">
+  <ng-container *nzModalFooter>
+    <ng-container *ngTemplateOutlet="footerContent"></ng-container>
+  </ng-container>
+</ng-container>
+<ng-container *ngIf="!isInModal">
+  <ng-container *ngTemplateOutlet="footerContent"></ng-container>
+</ng-container>
 
 <ng-template #streamTmpl>
   <div class="flex flex-col gap-[8px] rounded-lg bg-[#fafafa] p-[16px]">

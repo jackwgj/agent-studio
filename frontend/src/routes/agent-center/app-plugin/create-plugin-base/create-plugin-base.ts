@@ -6,6 +6,7 @@ import { ChangeDetectorRef, Component, EventEmitter, Input, OnInit, Output, View
 import { FormBuilder, FormControl, NgForm, Validators } from '@angular/forms';
 import { MessageComponent, StorageService } from '@shared/services/cfdata.service';
 import { NzModalRef, NzModalService } from 'ng-zorro-antd/modal';
+import { NzDrawerRef } from 'ng-zorro-antd/drawer';
 import { I18nNamespace } from '@i18n';
 import { AccBlockComponent } from '@routes/agent-center/app-flow/components/acc-block/acc-block.component';
 
@@ -114,7 +115,9 @@ export class CreatePluginBaseComponent implements OnInit {
 
   @Output('confirm') confirm = new EventEmitter<void>();
 
-  readonly modalRef = inject(NzModalRef);
+  readonly modalRef = inject(NzModalRef, { optional: true });
+  readonly drawerRef = inject(NzDrawerRef, { optional: true });
+  readonly isInModal = !!this.modalRef;
 
   public readonly PromptType = PromptType;
 
@@ -502,11 +505,19 @@ export class CreatePluginBaseComponent implements OnInit {
   }
 
   dismiss(): void {
-    this.modalRef.destroy();
+    this.closeContainer();
   }
 
   close(): void {
-    this.modalRef.destroy();
+    this.closeContainer();
+  }
+
+  private closeContainer(): void {
+    if (this.modalRef) {
+      this.modalRef.destroy();
+    } else if (this.drawerRef) {
+      this.drawerRef.close();
+    }
   }
 
   public isOriginAuth(name: string) {
@@ -651,7 +662,7 @@ export class CreatePluginBaseComponent implements OnInit {
     try {
       await this.appPluginRepoServ.updatePlugins(params);
       this.confirm.emit();
-      this.modalRef.destroy();
+      this.closeContainer();
       MessageComponent.showSuccess(this.i18n.transform('update_plugin_success'), 3000);
       this.close();
     } catch (error) {
@@ -693,7 +704,7 @@ export class CreatePluginBaseComponent implements OnInit {
 
       this.agentDataServe.setClickFlagPlugin('create');
       this.confirm.emit();
-      this.modalRef.destroy();
+      this.closeContainer();
       this.close();
       let from_id = '';
       let agent_node = '';

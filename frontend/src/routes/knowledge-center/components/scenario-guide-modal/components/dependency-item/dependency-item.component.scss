@@ -1,12 +1,55 @@
 .dependency-form {
   .form-row {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 8px;
-    align-items: flex-start;
+    align-items: center;
+  }
+
+  .inline-form-item {
+    display: inline-flex;
+    align-items: center;
+    margin-bottom: 0;
+
+    // 下拉框弹性宽度
+    .flex-select {
+      width: 100%;
+      min-width: 200px;
+    }
+
+    // 依赖符号输入框固定宽度
+    .symbol-input {
+      width: 50px;
+    }
+  }
+
+  // 两个下拉框的 form-item 占据剩余空间
+  .inline-form-item:first-child,
+  .inline-form-item:nth-child(3) {
+    flex: 1;
+  }
+
+  // 依赖符号的 form-item 固定宽度
+  .inline-form-item:nth-child(2) {
+    flex: 0 0 auto;
   }
 }
 
+.option-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+}
+
+.option-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: rgba(0, 0, 0, 0.85);
+}
+
+// 循环依赖错误样式（红色边框）
 .row-cycle-error-select {
   :host ::ng-deep .ant-select-selector {
     border-color: #ff4d4f !important;
@@ -14,9 +57,18 @@
   }
 }
 
+// 高优先级依赖低优先级警告样式（橙色边框）
+.priority-warning-select {
+  :host ::ng-deep .ant-select-selector {
+    border-color: #faad14 !important;
+    background-color: #fffbe6 !important;
+  }
+}
+
 .delete-form-item {
-  align-self: flex-start;
-  margin-top: 24px;
+  flex: 0 0 auto;
+  align-self: center;
+  margin-bottom: 0;
 }
 
 .alert-width {

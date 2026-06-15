@@ -1,28 +1,32 @@
-<form nz-form [formGroup]="formGroupItem" nzLayout="vertical" class="dependency-form">
+<form nz-form [formGroup]="formGroupItem" nzLayout="inline" class="dependency-form">
   <div class="form-row">
     @for (formItem of [dependencyFormConfig[SCENARIO_FIELD_ID.DEPEND_ITEM], dependencyFormConfig[SCENARIO_FIELD_ID.DEPEND_SYMBOL], dependencyFormConfig[SCENARIO_FIELD_ID.BE_DEPENDED_ITEM]]; track trackByIndex($index)) {
-      <nz-form-item>
-        <nz-form-label>{{ formItem.label }}</nz-form-label>
+      <nz-form-item class="inline-form-item">
+        @if (formItem.label) {
+          <nz-form-label>{{ formItem.label }}</nz-form-label>
+        }
         <nz-form-control>
           @if (formItem.type === FIELD_TYPE.SELECT) {
             <nz-select
-              style="width: 280px"
+              class="flex-select"
               [formControlName]="formItem.id"
               [nzPlaceHolder]="'select_placeholder' | i18nextEager"
               [nzShowSearch]="true"
+              [compareWith]="compareWith"
               [class.row-cycle-error-select]="isRowInCycle(itemIndex)"
+              [class.priority-warning-select]="isHigherDependentLower && formItem.id === SCENARIO_FIELD_ID.BE_DEPENDED_ITEM"
               (nzOnSearch)="false"
             >
               <nz-option
                 *ngFor="let item of (formItem.id === SCENARIO_FIELD_ID.DEPEND_ITEM ? dependencyOptions : dependencyDataItem.bOptions)"
-                [nzValue]="item.id"
+                [nzValue]="item"
                 [nzLabel]="item[SCENARIO_FIELD_ID.TRIGGER_CONDITION]"
                 [nzTooltipTitle]="item[SCENARIO_FIELD_ID.TRIGGER_CONDITION]"
                 nz-tooltip
               >
-                <div style="display: flex; align-items: center; gap: 8px; overflow: hidden">
+                <div class="option-content">
                   <nz-tag nzColor="blue" nzSize="small">{{ item.priorityText }}</nz-tag>
-                  <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">
+                  <span class="option-text">
                     {{ item[SCENARIO_FIELD_ID.TRIGGER_CONDITION] }}
                   </span>
                 </div>
@@ -33,7 +37,7 @@
             <input
               nz-input
               type="text"
-              style="width: 50px"
+              class="symbol-input"
               [formControlName]="formItem.id"
               readonly
             />
@@ -43,7 +47,7 @@
     }
     <nz-form-item class="delete-form-item">
       <nz-form-control>
-        <div class="icon-border mt-[2px]" (click)="deleteDependency()">
+        <div class="icon-border" (click)="deleteDependency()">
           <span nz-icon nzType="delete" nzTheme="fill" class="text-[16px]"></span>
         </div>
       </nz-form-control>

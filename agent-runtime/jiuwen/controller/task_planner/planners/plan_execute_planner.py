@@ -235,16 +235,13 @@ class PlanExecutePlanner(TaskPlanner):
             过滤后的工具列表
         """
         plugins = list(self.plugins) if self.plugins else []
-        injected_refs = self.skill_context.tool_refs if self.skill_context else set()
 
         if matched_scene is None:
-            if not injected_refs:
-                filtered = plugins
-            else:
-                filtered = [p for p in plugins if id(p) not in injected_refs]
+            # 不排除skill注入的工具，让规划器能看到所有可用工具（包括read_file等skill工具）
+            # 这样规划器可以根据用户请求中提到的skill生成合理的执行计划
+            filtered = plugins
             logger.info(
-                f"task_id: {self.task_id}| No scene match: {len(filtered)} plugin entries for task planning "
-                f"(excluded {len(injected_refs)} injected tool(s) when planning)"
+                f"task_id: {self.task_id}| No scene match: {len(filtered)} plugin entries for task planning"
             )
             return filtered
 

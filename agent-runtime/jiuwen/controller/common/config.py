@@ -313,6 +313,7 @@ class SkillInjectionContext:
     prompt_suffix: str = ""
     tool_names: Set[str] = field(default_factory=set)
     tool_refs: Set[int] = field(default_factory=set)
+    work_dir: str = ""
 
     @staticmethod
     def empty() -> "SkillInjectionContext":

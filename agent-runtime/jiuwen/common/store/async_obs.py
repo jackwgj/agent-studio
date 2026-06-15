@@ -13,6 +13,8 @@ try:
 except ImportError:
     from jiuwen.local_obs_stub import ObsClient
 
+from yarl import URL
+
 from jiuwen.common.configs.env_constants import (
     DATASOURCE_OBS_BUCKET_KEY,
     DATASOURCE_OBS_ENABLE_SSL,
@@ -113,7 +115,80 @@ class AsyncOBSUtil:
             message = StatusCode.OBS_CHECK_BUCKET_ERROR.errmsg.format(
                 object_key, bucket_name
             )
-            logger.error(message, simple_log="Head Bucket Failed.")
+            logger.error(
+                f"fail read obs. bucket:{bucket_name} object:{object_key} {e}",
+                simple_log="Head Bucket Failed.",
+            )
+            raise OBSException(
+                error_code=StatusCode.OBS_CHECK_BUCKET_ERROR.code, message=message
+            ) from e
+
+    @classmethod
+    async def download_to_file(cls, object_key: str, local_path: str, bucket_name=None):
+        """Download OBS object to local file using HTTP stream.
+
+        More efficient than get_content for large files - streams directly to disk
+        instead of loading entire content into memory.
+
+        Args:
+            object_key: OBS object key to download
+            local_path: Local file path to save the downloaded content
+            bucket_name: OBS bucket name (defaults to env config)
+
+        Returns:
+            local_path if download succeeds
+
+        Raises:
+            OBSException: on OBS access errors
+        """
+        try:
+            bucket_name = bucket_name or os.environ.get(DATASOURCE_OBS_BUCKET_KEY)
+            obs_client = AsyncOBSUtil.instance()
+            signed_url = obs_client.createSignedUrl(
+                method="GET", bucketName=bucket_name, objectKey=object_key
+            )
+            url = URL(signed_url["signedUrl"], encoded=True)
+            headers = signed_url["actualSignedRequestHeaders"]
+            connector = Connector().get_tcp_connector()
+
+            # 确保目标目录存在
+            os.makedirs(os.path.dirname(local_path), exist_ok=True)
+
+            async with aiohttp.ClientSession(
+                connector=connector, connector_owner=connector is None
+            ) as session:
+                async with session.get(
+                    url=url,
+                    headers=headers,
+                    ssl=os.getenv(DATASOURCE_OBS_ENABLE_SSL, "True").lower() == "true",
+                    allow_redirects=False,
+                ) as res:
+                    if res.status < HTTP_SUCCESS_THRESHOLD:
+                        # 流式写入本地文件
+                        with open(local_path, "wb") as f:
+                            async for chunk in res.content.iter_chunked(8192):
+                                f.write(chunk)
+                        return local_path
+
+                    content = await res.content.read()
+                    logger.error(f"Fail download obs object. url {url} content:{content}")
+                    raise OBSException(
+                        error_code=StatusCode.OBS_GET_OBJECT_ERROR.code,
+                        message=StatusCode.OBS_GET_OBJECT_ERROR.errmsg.format(
+                            object_key, bucket_name
+                        ),
+                    )
+        except Exception as e:
+            if isinstance(e, OBSException):
+                logger.error(f"Fail download obs. {e}")
+                raise e
+            message = StatusCode.OBS_CHECK_BUCKET_ERROR.errmsg.format(
+                object_key, bucket_name
+            )
+            logger.error(
+                f"fail download obs. bucket:{bucket_name} object:{object_key} {e}",
+                simple_log="Download Failed.",
+            )
             raise OBSException(
                 error_code=StatusCode.OBS_CHECK_BUCKET_ERROR.code, message=message
             ) from e

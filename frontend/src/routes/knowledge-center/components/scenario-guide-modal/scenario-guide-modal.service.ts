@@ -158,7 +158,7 @@ export class ScenarioGuideModalService {
       id: this.getPriorityByIndex(index),
       condition: formData[SCENARIO_FIELD_ID.TRIGGER_CONDITION],
       action: formData[SCENARIO_FIELD_ID.PERFORM_ACTION],
-      tools: formData[SCENARIO_FIELD_ID.SKILL_SET].map((item) => ({
+      tools: (formData[SCENARIO_FIELD_ID.SKILL_SET] || []).map((item) => ({
         id: item.id,
         name: item.name,
         type: item.skillType,
@@ -178,10 +178,10 @@ export class ScenarioGuideModalService {
       [SCENARIO_FIELD_ID.TRIGGER_CONDITION]: item.condition,
       [SCENARIO_FIELD_ID.PERFORM_ACTION]: item.action,
       [SCENARIO_FIELD_ID.SKILL_SET]: (item.tools || [])
-        .map((item) => {
-          return item.skillOption;
+        .map((tool) => {
+          return tool.skillOption;
         })
-        .filter((item) => item),
+        .filter((skillOption) => skillOption),
     }));
   }
 }

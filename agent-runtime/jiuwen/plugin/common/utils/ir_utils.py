@@ -71,7 +71,7 @@ class PluginIRConverter:
                     e, reason="Plugin parameter validation failed"
                 ),
             ) from e
-        url = ir_data.get("url", "")
+        url = ir_data.get("url", "").strip().strip("`").strip()
         description_key = "description"
         name_key = "name"
         headers = copy.deepcopy(ir_data.get(HEADERS, {}))
@@ -513,11 +513,14 @@ class RestfulPluginInputValidate(BaseModel):
     @classmethod
     def validate_url(cls, value):
         """校验url合法性"""
-        if value and not value.startswith(("http://", "https://")):
-            raise PluginCommonException(
-                code=StatusCode.PLUGIN_PARAMS_CHECK_FAILED,
-                message="URL must start with http:// or https://",
-            )
+        if value:
+            # 清理 URL 前后的空白字符和反引号等格式标记
+            value = value.strip().strip("`").strip()
+            if not value.startswith(("http://", "https://")):
+                raise PluginCommonException(
+                    code=StatusCode.PLUGIN_PARAMS_CHECK_FAILED,
+                    message="URL must start with http:// or https://",
+                )
         return value
 
     @field_validator("logo", mode="before")

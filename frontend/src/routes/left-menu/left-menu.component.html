@@ -28,7 +28,7 @@
           <nz-icon (click)="goBack()" class="!text-[24px] cursor-pointer" nzType="left" nzTheme="outline"/>
           <strong class="title" style="font-size: 20px; letter-spacing: 1px; padding-left: 12px;">{{ 'asset_center' | i18nextEager }}</strong>
         </div>
-        <p class="left-menu-title-line" *ngIf="false"></p>
+        <p class="left-menu-title-line" *ngIf="true"></p>
         <div class="my-space flex my-space-box" *ngIf="!isMarket" style="margin-bottom: 16px">
           <img [src]="this.space_icon" alt="" class="space_icon"/>
           <p class="left_menu_work_space">
@@ -111,7 +111,7 @@
             </div>
           </ng-template>
         </div>
-        <button class="left-menu-btn" style="height: 38px;" *ngIf="!isMarket && false" nz-button (click)="createApp()" [disabled]="hasPermission()">
+        <button class="left-menu-btn" style="height: 38px;" *ngIf="!isMarket" nz-button (click)="createApp()" [disabled]="hasPermission()">
           <nz-icon nzType="plus" nzTheme="outline"/>
           {{ 'create_ai_app' | i18nextEager }}
         </button>

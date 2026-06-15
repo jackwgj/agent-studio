@@ -78,4 +78,8 @@ export class GuideCardItemComponent {
   trackByIndex(index: number): number {
     return index;
   }
+
+  compareWith(o1: any, o2: any): boolean {
+    return o1?.id === o2?.id;
+  }
 }

@@ -14,8 +14,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { CommonUtils } from 'src/utils/common.util';
 import { AgentConfigService } from '@routes/agent-center/agent-config.service';
 import { PublishVersionSubmitSuccessComponent } from '@shared/components/version-submit-success-dialog/version-submit-component';
-import { NzModalRef } from 'ng-zorro-antd/modal';
-import { NzModalService } from 'ng-zorro-antd/modal';
+import { NzModalRef, NzModalService } from 'ng-zorro-antd/modal';
 import { NzDrawerRef } from 'ng-zorro-antd/drawer';
 import { NzFormModule } from 'ng-zorro-antd/form';
 import { NzInputModule } from 'ng-zorro-antd/input';
@@ -49,8 +48,8 @@ export class PublishVersionModalComponent {
   @Output() publishSuccess = new EventEmitter<any>();
   @Output() clickShare = new EventEmitter<any>();
 
-  private modalRef: NzModalRef | null = inject(NzModalRef, { optional: true });
-  private drawerRef: NzDrawerRef | null = inject(NzDrawerRef, { optional: true });
+  readonly modalRef = inject(NzModalRef, { optional: true });
+  readonly drawerRef = inject(NzDrawerRef, { optional: true });
 
   versionName = '';
 

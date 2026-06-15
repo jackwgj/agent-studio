@@ -213,14 +213,12 @@
         ></skill-list>
 
         <!-- Skill区域 -->
-        @if (false) {
-          <skills-config
-            [agentId]="agentId"
-            [isFlowReadonly]="isFlowReadonly"
-            [selectedSkills]="selectedSkills"
-            (doTriggerSaveSkill)="doTriggerSaveSkill($event)"
-          ></skills-config>
-        }
+        <skills-config
+          [agentId]="agentId"
+          [isFlowReadonly]="isFlowReadonly"
+          [selectedSkills]="selectedSkills"
+          (doTriggerSaveSkill)="doTriggerSaveSkill($event)"
+        ></skills-config>
 
         <div class="common-separator-line"></div>
       </div>
@@ -485,6 +483,7 @@
                 <img alt="" [src]="optimizeIcon" />
               </div>
               <div
+                *ngIf="!isAllTextareasEmpty()"
                 (click)="handleAutoGeneQuestionTip()"
                 class="common-item-add-icon"
                 #autoGeneQuestionTip="nzTooltip"

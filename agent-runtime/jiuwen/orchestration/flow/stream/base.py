@@ -65,6 +65,8 @@ class StreamCode(Enum):
     STATISTIC_DATA = 24000  # 统计数据
     SUMMARY_RESPONSE = 25000  # 总结响应
 
+    INTENT_MSG = 1208  # 意图识别响应
+
 
 class StreamData:
     """
