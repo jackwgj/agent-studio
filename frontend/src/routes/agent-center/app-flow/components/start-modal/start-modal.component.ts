@@ -5,6 +5,7 @@ import {
   OnInit,
   Output,
   ViewChild,
+  ChangeDetectorRef,
 } from '@angular/core';
 import { NgForm } from '@angular/forms';
 import { I18nNamespace } from '@i18n';
@@ -34,6 +35,7 @@ import { AddPropsIconComponent } from '../add-props-icon/add-props-icon.componen
 import { ModalBaseComponent } from '../base/modal-base.component';
 import { SetDefaultComponent } from '../set-default/set-default.component';
 import { StartImportJsonModalComponent } from '../start-import-json-modal/start-import-json-modal.component';
+import { ObjectTemplateComponent } from '@routes/object-manage/component/object-template/object-template.component';
 import { NodeUtils } from '../utils';
 import { FlowUtils } from '../../utils/flow-utils';
 import { startSchemaStrField } from '../../../app-plugin/utils';
@@ -123,6 +125,7 @@ export class StartModalComponent extends ModalBaseComponent implements OnInit {
     protected commonService: CommonService,
     private nzModal: NzModalService,
     private nzMessage: NzMessageService,
+    private cdr: ChangeDetectorRef,
   ) {
     super(nodeServ, appFlowServ);
   }
@@ -149,6 +152,31 @@ export class StartModalComponent extends ModalBaseComponent implements OnInit {
     this.helpCenterService.hideHelpPanel();
   }
 
+  chooseTemplate() {
+    const modalRef = this.nzModal.create<ObjectTemplateComponent>({
+      nzContent: ObjectTemplateComponent,
+      nzWidth: 900,
+      nzClosable: true,
+      nzClassName: 'modal-custom900-class',
+      nzFooter: null,
+      nzTitle: this.i18n.transform('object_template'),
+      nzData: {
+        templatesSelected: (data) => {
+          console.log(data)
+          const objectTemplateData = FlowUtils.objectTempStartNodeFields2Views(data);
+          this.startNodeParams = [
+            ...this.startNodeParams,
+            ...objectTemplateData,
+          ];
+          modalRef.close();
+          this.changeUpdateTime();
+          this.cdr.detectChanges();
+          this.onStartNodeNameChange();
+        },
+      },
+    });
+  }
+
   importJson() {
     const modal = this.nzModal.create({
       nzTitle: this.i18n.transform('import_json'),
@@ -163,6 +191,8 @@ export class StartModalComponent extends ModalBaseComponent implements OnInit {
       const item = this.startNodeParams.slice(0, 1);
       this.startNodeParams = [...item, ...FlowUtils.fields2Views(req)];
       modal.destroy();
+      this.changeUpdateTime();
+      this.cdr.detectChanges();
       this.handelSave();
     });
   }

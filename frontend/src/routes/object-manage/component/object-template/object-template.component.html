@@ -22,7 +22,7 @@
       <div *ngFor="let template of objectTemplates" (click)="selectTemplate(template, $event)">
         <div class="template-item" [class]="{ itemChecked: template.checked }">
           <span class="template-name-text" nz-typography nzEllipsis>{{ template.name }}</span>
-          <label nz-checkbox [(ngModel)]="template.checked"></label>
+          <label nz-checkbox [ngModel]="template.checked" (click)="$event.stopPropagation()" class="pointer-events-none"></label>
         </div>
       </div>
     </div>

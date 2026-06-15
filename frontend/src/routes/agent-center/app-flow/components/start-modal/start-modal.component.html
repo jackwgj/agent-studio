@@ -249,8 +249,21 @@
         <ng-template #right>
           <div class="flex items-center justify-center">
             <button
+              (click)="chooseTemplate()"
+              class="mr-[6px] w-fit !p-1"
+              nz-button
+              nzType="text"
+              nz-tooltip [nzTooltipTitle]="'choose_object_template' | i18nextEager"
+            >
+              <img
+                class=""
+                [src]="changeUrl('assets/agent-center/images/choose_object_template.svg')"
+                alt="import"
+              />
+            </button>
+            <button
               (click)="importJson()"
-              class="mr-[6px] w-fit"
+              class="mr-[6px] w-fit !p-1"
               nz-button
               nzType="text"
               nz-tooltip [nzTooltipTitle]="'import_json' | i18nextEager"

@@ -1832,7 +1832,7 @@ export const FlowUtils = {
     depth = 0,
     parentType: IWFViewParentType = 'none',
   ): IWFViewWithMultiType[] {
-    const views: IWFViewWithMultiType[] = fields.map((field) => {
+    const views: IWFViewWithMultiType[] = fields.map((field, index) => {
       const { name, type, description, schema, value } = field;
       const view: IWFViewWithMultiType = {
         name,
@@ -1843,6 +1843,7 @@ export const FlowUtils = {
         depth,
         parentType,
         value,
+        key: `${depth}_${index}_${name}_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
       };
 
       if (type === 'array') {
@@ -1886,7 +1887,7 @@ export const FlowUtils = {
     depth = 0,
     parentType: IWFViewParentType = 'none',
   ): IWFView[] {
-    const views: IWFView[] = fields.map((field) => {
+    const views: IWFView[] = fields.map((field, index) => {
       const { name, type, description, schema, value } = field;
       let midValue = value;
       if (value && value.default !== null) {
@@ -1906,6 +1907,7 @@ export const FlowUtils = {
         depth,
         parentType,
         value: midValue,
+        key: `${depth}_${index}_${name}_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
       };
 
       if (type === 'array') {
@@ -1914,7 +1916,7 @@ export const FlowUtils = {
           view.children = this.objectTempIWFields2Views(
             ((schema as IWorkflowField)?.schema ?? []) as IWorkflowField[],
             depth + 1,
-            view.type[0] as IWFViewParentType,
+            'array<object>' as IWFViewParentType,
           );
           view.expanded = true;
         }
@@ -1924,7 +1926,7 @@ export const FlowUtils = {
         view.children = this.objectTempIWFields2Views(
           (schema ?? []) as IWorkflowField[],
           depth + 1,
-          view.type[0] as IWFViewParentType,
+          'object' as IWFViewParentType,
         );
         view.expanded = true;
       }

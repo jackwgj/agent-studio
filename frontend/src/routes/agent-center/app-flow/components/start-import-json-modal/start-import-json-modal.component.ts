@@ -84,6 +84,7 @@ export class StartImportJsonModalComponent implements OnInit {
     protected readonly monacoLoader: MonacoEditorLoaderService,
     private nzModal?: NzModalService,
     private nzMessage?: NzMessageService,
+    private nzModalRef?: NzModalRef,
   ) {}
 
   ngOnInit() {
@@ -264,6 +265,7 @@ export class StartImportJsonModalComponent implements OnInit {
   }
 
   dismiss() {
+    this.nzModalRef?.close();
     this.cancel.emit();
   }
 }

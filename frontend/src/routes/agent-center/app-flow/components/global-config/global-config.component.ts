@@ -58,6 +58,7 @@ import { NzMessageService } from "ng-zorro-antd/message";
 import { ClickOutsideDirective } from "@shared/directives/click-outside.directive";
 import { NzTreeNodeOptions } from "ng-zorro-antd/tree";
 import { startSchemaStrField } from '@routes/agent-center/app-plugin/utils';
+import { ObjectTemplateComponent } from '@routes/object-manage/component/object-template/object-template.component';
 
 const QUES_LIMIT = 3;
 
@@ -715,6 +716,7 @@ export class GlobalConfigComponent
     ) {
       delete parentNodeParam.children;
     }
+    this.assignmentMemos = this.convertToAssignMemos(this.treeNodes);
     this.treeNodes = [...this.treeNodes];
     this.cdr.detectChanges();
   }
@@ -936,8 +938,28 @@ export class GlobalConfigComponent
       const req = startSchemaStrField(JSON.stringify(data));
       this.assignmentMemos = this.fields2Views(req);
       this.treeNodes=this.convertToTreeNodes(this.assignmentMemos);
+      this.cdr.detectChanges();
       modalRef.close();
     })
+  }
+
+  chooseTemplate() {
+    const modalRef = this.nzModal.create<ObjectTemplateComponent>({
+      nzContent: ObjectTemplateComponent,
+      nzWidth: 900,
+      nzClosable: true,
+      nzClassName: 'modal-custom900-class',
+      nzFooter: null,
+      nzTitle: this.i18n.transform('object_template'),
+      nzData: {
+        templatesSelected: (data) => {
+          this.assignmentMemos = [...this.assignmentMemos, ...this.fields2Views(data)];
+          this.treeNodes = this.convertToTreeNodes(this.assignmentMemos);
+          this.cdr.detectChanges();
+          modalRef.close();
+        },
+      },
+    });
   }
 
   fields2Views(
