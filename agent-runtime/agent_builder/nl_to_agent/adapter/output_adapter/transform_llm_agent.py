@@ -31,24 +31,25 @@ def collect_resource_list(resource_type, id_list, resource_list):
     return collected_resource_list
 
 
-def transform_to_cloud(input_json: dict, full_resource_dict: dict):
+def transform_to_cloud(input_json: dict, full_resource_dict: dict, model_dict: dict = None):
     """转换成格式"""
-    payload = request_json.get({})  # 从上下文变量中获取用户请求的模型配置
     knowledge_list = full_resource_dict.get("knowledge", [])
 
     data = copy.deepcopy(CLOUD_LLMAGENT_TEMPLATE)
-    # 生成一个随机的 UUID v4作为agent_id
     data["agent_id"] = str(uuid.uuid4())
     data["name"] = input_json.get("role_name")
     data["description"] = input_json.get("role_desc")
     data["instructions"] = input_json["prompt_parse"]
 
-    # 运行模型配置基于上下文变量
-    model_info = payload.get("model") or {}
-    extension = model_info.get("extension") or {}
-
-    data["model_deployment_id"] = extension.get("deploymentId")
-    data["model_name"] = model_info.get("modelExplicitName")
+    if model_dict:
+        data["model_deployment_id"] = model_dict.get("deployment_id")
+        data["model_name"] = model_dict.get("model_explicit_name")
+    else:
+        payload = request_json.get({})
+        model_info = payload.get("model") or {}
+        extension = model_info.get("extension") or {}
+        data["model_deployment_id"] = extension.get("deploymentId")
+        data["model_name"] = model_info.get("modelExplicitName")
 
     data["tools"] = input_json["tools_id_parse"]  # 优化格式插件
 

@@ -343,7 +343,7 @@ class Executor:
         self.query = state.get("query")
         self.task_id = state.get("task_id")
         self.agent_type = state.get("agent_type")
-        input_adapter = InputAdapter(schema_config_dict, resource)
+        input_adapter = InputAdapter(schema_config_dict, resource, agent_type=state.get("agent_type"))
         nl2agent_processor = Nl2AgentProcessor(model_info)
         self.model = nl2agent_processor
         self.controller = Controller.create_controller(task_id=self.task_id)

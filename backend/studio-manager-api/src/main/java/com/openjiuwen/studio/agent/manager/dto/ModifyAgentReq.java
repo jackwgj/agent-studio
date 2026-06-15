@@ -11,7 +11,6 @@ import com.fasterxml.jackson.annotation.JsonValue;
 import com.openjiuwen.studio.agent.common.dto.TriggerConfig;
 import io.swagger.annotations.ApiModel;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
@@ -52,7 +51,6 @@ public class ModifyAgentReq implements Serializable {
 
     @JsonProperty("details")
     @Valid
-    @NotNull
     private ControllerVO details = null;
 
     @JsonProperty("instructions")

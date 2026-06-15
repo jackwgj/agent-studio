@@ -1,6 +1,6 @@
 import hashlib
 import inspect
-from typing import Generator, Iterator, Union, Literal, Optional, Dict
+from typing import Any, AsyncGenerator, Generator, Iterator, Union, Literal, Optional, Dict
 
 from agent_builder.nl_to_agent.adapter.utils import parse_adapter_info
 from agent_builder.nl_to_agent.agent_creator.controller import Executor
@@ -80,7 +80,8 @@ def _n2l_json_wapper(
         "workspace_id": query_params.get("workspace_id", ""),
         "project_id": project_id,
         "x_auth_token": headers.get("x-auth-token"),
-        "auth_id": model.get("extension", "").get("authId"),
+        "auth_id": model.get("extension", {}).get("authId"),
+        "deployment_id": model.get("extension", {}).get("deploymentId", ""),
         "model_explicit_name": model.get("modelExplicitName", ""),
         "nl2_model_type": model.get("modelType", ""),
         "model_interface_protocol": model.get("modelInterfaceProtocol", ""),
@@ -185,7 +186,6 @@ class SSEEvent(BaseModel):
 import asyncio
 import json
 import time
-from typing import AsyncGenerator, Any
 
 
 async def _generate(yield_answer, task_id):

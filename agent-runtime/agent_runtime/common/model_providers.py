@@ -9,6 +9,7 @@
 1. EnvVarModelConfigProvider - 从环境变量读取
 2. OBSModelConfigProvider - 从 OBS 模型网关读取（后续开发）
 3. IRModelConfigProvider - 从 IR 配置读取，环境变量作为默认值兜底（推荐用于商用九问 IR 兼容）
+4. Nl2ModelConfigProvider - 从 NL2 Agent 的 modelInfo 读取模型配置，用于 nl_to_agent 模块调用模型
 """
 
 from typing import Optional
@@ -16,7 +17,7 @@ from typing import Optional
 from agent_runtime.common.config import settings
 from agent_runtime.common.ir_interfaces import ModelConfigProvider
 from agent_runtime.context.request_context import _request_ctx
-from openjiuwen.core.foundation.llm import ModelClientConfig, ModelRequestConfig
+from openjiuwen.core.foundation.llm import Model, ModelClientConfig, ModelRequestConfig
 from openjiuwen.core.workflow.components.llm.llm_comp import LLMCompConfig
 
 
@@ -57,6 +58,88 @@ class EnvVarModelConfigProvider(ModelConfigProvider):
             model_config=model_request_config,
             cache_stream=True,
         )
+
+
+class Nl2ModelConfigProvider:
+    """从 NL2 Agent 的 modelInfo 读取模型配置
+
+    适用于 nl_to_agent 模块调用模型的场景：
+    - 从前端传入的 modelInfo（LLMModelInfo）中提取模型名称、认证信息等
+    - 环境变量作为 api_key、api_base 等连接参数的兜底默认值
+    - authId 和 authToken 从 modelInfo.headers 和 HTTP 请求头透传
+    """
+
+    @staticmethod
+    def get_llm_config(model_info) -> LLMCompConfig:
+        """从 modelInfo 构建 LLM 组件配置
+
+        Args:
+            model_info: LLMModelInfo 实例，包含 model、model_source、headers 等字段
+
+        Returns:
+            LLMCompConfig: LLM 组件配置
+        """
+        base = settings.llm
+
+        headers = model_info.headers or {}
+        # 模型路由服务需要用 deploymentId（UUID）作为 model 参数
+        model_name = model_info.model or base.model_name
+        auth_id = headers.get("auth_id", "")
+        x_auth_token = headers.get("x_auth_token", "")
+
+        ctx = _request_ctx.get()
+        if ctx and ctx.headers:
+            if not x_auth_token:
+                x_auth_token = ctx.headers.get("x-auth-token", "") or ctx.headers.get("X-Auth-Token", "")
+
+        custom_headers = {}
+        if auth_id:
+            custom_headers["X-Auth-Id"] = auth_id
+        if x_auth_token:
+            custom_headers["X-Auth-Token"] = x_auth_token
+        deployment_id = headers.get("deployment_id", "")
+        if deployment_id:
+            custom_headers["X-Deployment-Id"] = deployment_id
+
+        model_client_config = ModelClientConfig(
+            client_provider="openai",
+            api_key=base.api_key,
+            api_base=base.api_base,
+            timeout=base.timeout,
+            verify_ssl=base.ssl_verify,
+            custom_headers=custom_headers,
+        )
+
+        model_request_config = ModelRequestConfig(
+            model=model_name,
+            temperature=model_info.temperature if model_info.temperature is not None else base.temperature,
+            top_p=model_info.top_p if model_info.top_p is not None else base.top_p,
+        )
+
+        return LLMCompConfig(
+            model_client_config=model_client_config,
+            model_config=model_request_config,
+            cache_stream=True,
+        )
+
+
+def get_nl2_model(model_info) -> Model:
+    """工厂方法：根据 modelInfo 创建 openjiuwen Model 实例
+
+    用于 nl_to_agent 模块中 Nl2AgentProcessor 获取模型实例，
+    替代原来通过 LLMServiceManager -> ModelFactory -> Nl2AgentBuilderModel 的调用链。
+
+    Args:
+        model_info: LLMModelInfo 实例，包含 model、model_source、headers 等字段
+
+    Returns:
+        Model: openjiuwen 的 Model 实例，支持 invoke/stream 等调用方式
+    """
+    llm_config = Nl2ModelConfigProvider.get_llm_config(model_info)
+    return Model(
+        model_client_config=llm_config.model_client_config,
+        model_config=llm_config.model_config,
+    )
 
 
 class OBSModelConfigProvider(ModelConfigProvider):

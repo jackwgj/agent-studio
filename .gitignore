@@ -42,6 +42,7 @@ build/
 .vscode/
 
 *.log
+*.pyc
 
 /**/.flattened-pom.xml
 mybatis.xml
@@ -49,6 +50,7 @@ env/
 
 .codemate
 /agent-runtime/open_lumina_engine.egg-info
+/agent-runtime/.venv
 /agent-runtime/logs
 /agent-runtime/agent_builder/nl_to_agent/adapter/logs/*
 /agent-runtime/agent_builder/serve/logs/*

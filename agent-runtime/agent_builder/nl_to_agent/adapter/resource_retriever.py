@@ -6,14 +6,16 @@ PRESET = "preset"
 
 
 class ResourceRetriever:
-    def __init__(self, resources):
+    def __init__(self, resources, agent_type: str = None):
         """
         初始化资源检索器
 
         Args:
             resources (dict): 包含plugins、knowledge_base、workflows的字典
+            agent_type (str): agent类型，如 "agents" 或 "workflows"
         """
         self.resource = resources
+        self.agent_type = agent_type
 
         # 从resources中获取数据
         raw_plugin_data = self.resource.get("plugins", {})
@@ -34,10 +36,6 @@ class ResourceRetriever:
         :param raw_data: 原始插件数据（直接是插件列表）
         :return: 处理后的插件列表
         """
-        from jiuwen.serve.common.context import request
-
-        request = request.get()
-
         if not raw_data:
             return []
 
@@ -61,7 +59,7 @@ class ResourceRetriever:
             plugin_chinese_name = plugin["plugin_chinese_name"]
             plugin_desc = plugin["plugin_desc"]
 
-            if request.path_params.get("agent_type") == "agents":
+            if self.agent_type in ("agents", "llm_agent"):
                 plugin_version_id = plugin.get(
                     "last_version_id", ""
                 )  # 新增九问后续处理所需字段数据

@@ -4,7 +4,7 @@
 from typing import Dict, List, Iterator, Optional
 
 from agent_builder.common.llm_service.utils import convert_message_to_dict
-from agent_builder.prompt.template.llm_service import LLMServiceManager
+from agent_runtime.common.model_providers import get_nl2_model
 from jiuwen.common.exception.base import JiuWenBaseException
 from jiuwen.common.exception.status_code import StatusCode
 from jiuwen.common.llm_service.messages import AIMessage, UsageMetadata
@@ -19,8 +19,7 @@ class Nl2AgentProcessor:
 
     def __init__(self, model_info):
         self.model_info = model_info
-        self.model = LLMServiceManager.get_llm_backend()
-        self.model.llm_service.model_info = self.model_info
+        self.model = get_nl2_model(model_info)
 
     def chat(
         self,
@@ -82,27 +81,17 @@ class Nl2AgentProcessor:
                 - content: 在流式结束时包含完整内容
                 - usage_metadata: 使用情况元数据，包含token统计等信息
         """
-        # pass
         messages = [convert_message_to_dict(msg) for msg in messages]
-        generator = self.model.achat(
-            messages=messages,
-            extra_info=extra_info,
-            model_info=model_info,
-            method=method,
-            add_prefix=add_prefix,
-        )
         usage_metadata = UsageMetadata()
         usage_metadata.type = kwargs.get("type")
         complete_content = ""
-        async for item in generator:
-            if isinstance(item, dict) and item.get("code", ""):
-                raise JiuWenBaseException(
-                    StatusCode.LLM_REQUEST_ERROR.code, item.get("message")
+        async for chunk in self.model.stream(messages=messages):
+            content = chunk.content if isinstance(chunk.content, str) else ""
+            if content:
+                complete_content += content
+                yield AIMessage(
+                    raw_content=content, content="", usage_metadata=usage_metadata
                 )
-            complete_content += item.get("data")
-            yield AIMessage(
-                raw_content=item.get("data"), content="", usage_metadata=usage_metadata
-            )
         yield AIMessage(
             raw_content="", content=complete_content, usage_metadata=usage_metadata
         )

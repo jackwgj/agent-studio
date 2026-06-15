@@ -6,7 +6,7 @@ from typing import List
 import yaml
 from jiuwen.common.log.base import logger
 
-AGENT_BUILDER_SCHEMA_INFO = "agentBuilder_schema_info"
+AGENT_BUILDER_SCHEMA_INFO = "versatile_schema_info"
 COMPONETS_YAML = "componets.yaml"
 BUILT_IN_EXAMPLES = "built_in_examples"
 USER_EXAMPLES = "user_examples"

@@ -32,6 +32,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -55,6 +56,9 @@ public class JiuWenService {
 
     @Value("${agent_runtime_endpoint:}")
     private String runtimeEndpoint;
+
+    @Value("${feign.client.config.jiuWenService.url:}")
+    private String jiuWenServiceEndpoint;
 
     /**
      * 构造方法
@@ -126,5 +130,31 @@ public class JiuWenService {
             .filter(chunk -> chunk != null && !chunk.trim().isEmpty());
         log.info("code generation completed, projectId: {}, workspaceId: {}", projectId, workspaceId);
         return dataFlux;
+    }
+
+    public Flux<Map<String, Object>> generatorAgentOrWorkflow(String token, String projectId,
+        String agentType, String cid, String workspaceId, Object body) {
+        return webClient.post()
+            .uri(jiuWenServiceEndpoint + "/v1/" + projectId + "/" + agentType
+                + "/generator/conversations/" + cid + "/chat?workspace_id=" + workspaceId)
+            .contentType(MediaType.APPLICATION_JSON)
+            .header(CommonConstant.X_AUTH_TOKEN, token)
+            .bodyValue(body)
+            .accept(MediaType.TEXT_EVENT_STREAM)
+            .retrieve()
+            .onStatus(status -> !status.is2xxSuccessful(),
+                response -> response.bodyToMono(String.class).flatMap(errorBody -> {
+                    log.error("generatorAgentOrWorkflow error: {}", errorBody);
+                    return Mono.error(new AgentStudioException(StudioError.JIU_WEN_SERVICE_EXCEPTION));
+                }))
+            .bodyToFlux(String.class)
+            .mapNotNull(chunk -> {
+                try {
+                    return JSONObject.parseObject(chunk);
+                } catch (Exception e) {
+                    log.warn("Failed to parse SSE chunk: {}", chunk, e);
+                    return null;
+                }
+            });
     }
 }

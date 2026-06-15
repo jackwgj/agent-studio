@@ -28,7 +28,7 @@ import com.openjiuwen.studio.agent.manager.entity.md.ModelServiceData;
 import com.openjiuwen.studio.agent.manager.entity.md.ProviderAuthData;
 import com.openjiuwen.studio.agent.manager.enums.ToolType;
 import com.openjiuwen.studio.agent.manager.mapper.md.ProviderAuthDataMapper;
-import com.openjiuwen.studio.agent.manager.rce.client.JiuWenClient;
+import com.openjiuwen.studio.agent.manager.rce.service.JiuWenService;
 import com.openjiuwen.studio.agent.manager.service.JiuwenRuntimeI18nService;
 import com.openjiuwen.studio.agent.manager.service.WorkflowManagementService;
 import com.openjiuwen.studio.agent.manager.service.md.ModelServiceManager;
@@ -61,7 +61,7 @@ import java.util.Map;
 @Slf4j
 @RequiredArgsConstructor(onConstructor_ = {@Autowired})
 public class JiuwenServiceProxyController {
-    private final JiuWenClient jiuWenClient;
+    private final JiuWenService jiuWenService;
 
     private final ModelServiceManager modelManager;
 
@@ -91,7 +91,7 @@ public class JiuwenServiceProxyController {
         NLResource resource = assembleBodyResource(projectId, workspaceId);
         body.setResource(resource);
 
-        Flux<Object> flux = jiuWenClient.generatorAgentOrWorkflow(token, projectId, agentType, cid, workspaceId, body);
+        Flux<Object> flux = jiuWenService.generatorAgentOrWorkflow(token, projectId, agentType, cid, workspaceId, body).cast(Object.class);
         return wrapToSse(flux);
     }
 

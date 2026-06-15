@@ -7,8 +7,6 @@ package com.openjiuwen.studio.agent.manager.rce.client;
 import com.alibaba.fastjson2.JSONObject;
 import com.openjiuwen.studio.agent.manager.rce.models.KooSearchModelCheckReq;
 
-import reactor.core.publisher.Flux;
-
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -16,7 +14,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestParam;
 
 /**
  * 功能描述
@@ -45,10 +42,4 @@ public interface JiuWenClient {
     @DeleteMapping("/v1/workflow/{workflow_id}")
     Void deleteMemory(@RequestHeader("X-Auth-Token") String authToken,
         @PathVariable(value = "workflow_id") String workflowId);
-
-    @PostMapping("/v1/{project_id}/{agent_type}/generator/conversations/{cid}/chat")
-    Flux<Object> generatorAgentOrWorkflow(@RequestHeader("X-Auth-Token") String token,
-        @PathVariable("project_id") String projectId, @PathVariable("agent_type") String agentType,
-        @PathVariable("cid") String cid, @RequestParam("workspace_id") String workspaceId,
-        @RequestBody Object body);
 }

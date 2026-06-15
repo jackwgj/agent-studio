@@ -247,7 +247,7 @@ class LlmAgentBuilder:
             async for item in self.agent_constructor.ainvoke(inputs):
                 if AGENT_MSG in item:
                     result = transform_to_cloud(
-                        item[AGENT_MSG], self.controller.resource_config
+                        item[AGENT_MSG], self.controller.resource_config, self.model.model_info.headers
                     )
                     yield result_msg(result, LLM_AGENT_IR)
                 else:

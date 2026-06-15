@@ -19,11 +19,12 @@ class InputAdapter:
         retriever (ResourceRetriever): 资源检索器实例，用于执行具体的检索操作。
     """
 
-    def __init__(self, detail_config: dict, resource: dict) -> None:
+    def __init__(self, detail_config: dict, resource: dict, agent_type: str = None) -> None:
         """初始化输入适配器。
 
         Args:
             detail_config (dict): 平台配置字典，包含平台组件相关的详细配置。
+            agent_type (str): agent类型，如 "agents" 或 "workflows"
         """
         self.resource_config = {
             "plugin": [],
@@ -31,7 +32,7 @@ class InputAdapter:
             "workflow": [],
         }  # 用于保留全量字段
         self.detail_config = detail_config
-        self.retriever = ResourceRetriever(resource)
+        self.retriever = ResourceRetriever(resource, agent_type=agent_type)
 
     def process_plugin_list_for_workflow(self, plugin_list: list):
         """为工作流生成准备插件字典和插件描述"""
