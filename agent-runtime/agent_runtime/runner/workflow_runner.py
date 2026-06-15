@@ -22,7 +22,7 @@ from agent_runtime.schemas.orchestration_mgr import (
 )
 from jiuwen.serve.controllers.execution.ir_converter import IRConverter
 from jiuwen.serve.controllers.execution.open_utils import async_ir_load
-from openjiuwen.core.common.exception.errors import WorkflowError
+from openjiuwen.core.common.exception.errors import ExecutionError, Termination
 from openjiuwen.core.common.logging import workflow_logger
 from openjiuwen.core.session.checkpointer.checkpointer import CheckpointerFactory
 from openjiuwen.core.session.interaction.interactive_input import InteractiveInput
@@ -216,6 +216,7 @@ class WorkflowRunner:
 
         # 7. 执行工作流
         t_stream_start = time.time()
+        workflow_wrapper = None
         try:
             is_debug = req.params.is_debug
             stream_modes = [BaseStreamMode.OUTPUT, BaseStreamMode.CUSTOM]
@@ -250,19 +251,60 @@ class WorkflowRunner:
                 f"[PERF] Workflow.stream() total: {(time.time() - t_stream_start) * 1000:.1f}ms"
             )
             workflow_logger.info(f"[PERF] Total chunks yielded: {chunk_count}")
-        except WorkflowError as e:
+        except Termination:
+            raise
+        except ExecutionError as e:
+            last_node = workflow_wrapper.get_last_node()
+            node_id = last_node.get("node_id", "")
+            node_type = last_node.get("node_type", "")
+            node_name = _resolve_node_name(node_defs, workflow_id, node_id)
+            error_code = e.code
+            error_msg = _format_error_message(error_code, e.message)
             yield {
                 "event": "error",
-                "data": {"code": GENERAL_ERROR, "message": str(e.message)},
+                "data": {
+                    "code": error_code,
+                    "message": error_msg,
+                    "node_id": node_id,
+                    "node_name": node_name,
+                    "node_type": node_type,
+                    "workflow_id": workflow_id,
+                    "workflow_name": ir_json.get("workflowName", ""),
+                },
+                "executionId": exec_id,
+                "index": 0,
+                "createdTime": int(time.time()),
+            }
+            yield {
+                "event": "done",
+                "data": {
+                    "node_id": node_id,
+                    "node_name": node_name,
+                    "node_type": node_type,
+                },
                 "executionId": exec_id,
                 "index": 0,
                 "createdTime": int(time.time()),
             }
         except Exception as e:
-            workflow_logger.error(f"Workflow execution failed: {e}", exc_info=True)
+            workflow_logger.error(f"Workflow execution failed: {e}, type={type(e).__name__}", exc_info=True)
+            last_node = workflow_wrapper.get_last_node() if workflow_wrapper else {}
+            node_id = last_node.get("node_id", "")
+            node_type = last_node.get("node_type", "")
+            node_name = _resolve_node_name(node_defs, workflow_id, node_id)
+            error_code = GENERAL_ERROR
+            error_msg = _format_error_message(error_code, "Workflow execution failed")
             yield {
                 "event": "error",
-                "data": {"code": GENERAL_ERROR, "message": "Workflow execution failed"},
+                "data": {
+                    "code": error_code,
+                    "message": error_msg,
+                    "node_id": node_id,
+                    "node_name": node_name,
+                    "node_type": node_type,
+                    "workflow_id": workflow_id,
+                    "workflow_name": ir_json.get("workflowName", ""),
+                },
                 "executionId": exec_id,
                 "index": 0,
                 "createdTime": int(time.time()),
@@ -421,3 +463,16 @@ class WorkflowRunner:
             result["__node_defs__"] = node_defs
 
         return result
+
+
+def _resolve_node_name(node_defs: dict, workflow_id: str, node_id: str) -> str:
+    if not node_defs or not node_id:
+        return node_id
+    wf_defs = node_defs.get(workflow_id, {})
+    node_info = wf_defs.get(node_id, {})
+    return node_info.get("node_name", node_id) if isinstance(node_info, dict) else node_id
+
+
+def _format_error_message(code: int, raw_message: str) -> str:
+    from jiuwen.orchestration.flow.constant import WORKFLOW_UNIFIED_ERROR_INFORMATION_UNSAFE
+    return WORKFLOW_UNIFIED_ERROR_INFORMATION_UNSAFE.format(code, raw_message)

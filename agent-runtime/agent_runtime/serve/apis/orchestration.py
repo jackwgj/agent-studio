@@ -179,25 +179,28 @@ async def stream_response(req: ExecutionRequest, execution_id: str, runner):
     输出格式: data: {"type": "end node stream", "index": 0, "payload": {"response": "text"}}\n\n
     """
     execution_id = execution_id or str(uuid.uuid4())
+    last_event = ""
     async for chunk in runner.run_streaming(req, execution_id):
         if chunk is None:
             continue
-        # If chunk is already bytes (SSE format), yield directly
-        # If chunk is dict, wrap with SSE format
         if isinstance(chunk, bytes):
             yield chunk
         else:
             yield f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"
+            if isinstance(chunk, dict):
+                last_event = chunk.get("event", "")
 
-    # Done 事件
-    done_payload = {
-        "event": "done",
-        "data": {},
-        "index": 0,
-        "executionId": execution_id,
-        "createdTime": int(time.time()),
-    }
-    yield f"data: {json.dumps(done_payload, ensure_ascii=False)}\n\n"
+    # 兜底 done：runner 仅在异常处理中自行发送 done（见 workflow_runner.py except 块），
+    # 正常完成时 runner 不发 done，由这里补发。
+    if last_event != "done":
+        done_payload = {
+            "event": "done",
+            "data": {},
+            "index": 0,
+            "executionId": execution_id,
+            "createdTime": int(time.time()),
+        }
+        yield f"data: {json.dumps(done_payload, ensure_ascii=False)}\n\n"
 
 
 @execution_app.post("/v1/orchestration/ir/component/{component_id}/execute")
