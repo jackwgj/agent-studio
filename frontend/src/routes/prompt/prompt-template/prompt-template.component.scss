@@ -1,3 +1,8 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
 .pe-tmpl-tabs {
   height: calc(100% - 98px);
 
@@ -13,6 +18,8 @@
   border-radius: 8px;
   background: rgba(255, 255, 255, 1);
   flex-grow: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .contentBody {

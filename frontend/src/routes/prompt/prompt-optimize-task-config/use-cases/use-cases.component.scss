@@ -99,8 +99,26 @@
     align-items: flex-start;
   }
 }
-:host::ng-deep{
-  .ti3-picture-card-name{
+
+:host::ng-deep {
+  .ti3-picture-card-name {
     display: none !important;
   }
+}
+
+.error-tip {
+  color: #ff4d4f;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.input-error {
+  border-color: #ff4d4f !important;
+}
+
+.flex-top-left {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  flex-direction: column;
 }

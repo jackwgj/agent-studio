@@ -115,7 +115,7 @@ export class UseCasesComponent {
           editState: '',
           id: base_id + index + 1,
           useCaseId: useCase.id,
-          expectedOutput: useCase.content.VERSATILE_PROMPT_OUTPUT,
+          expectedOutput: useCase.content.AGENT_BUILDER_PROMPT_OUTPUT,
           variables: useCase.content,
           images: {},
         };
@@ -276,15 +276,15 @@ export class UseCasesComponent {
       variables: {},
       images: {},
     });
-    this.updateActionState();
     this.isEditing = true;
+    this.updateActionState();
   }
 
   editRow(rowData: any) {
     this.isEditing = true;
     rowData.isEdit = true;
     rowData.editState = 'update';
-    rowData.backData = { ...rowData };
+    rowData.backData = JSON.parse(JSON.stringify(rowData));
     this.updateActionState();
   }
 
@@ -371,6 +371,7 @@ export class UseCasesComponent {
       },
       nzOnCancel: (): void => {
         this.useCaseService.pushErrorMessages(''); // 清空错误信息
+        thisNzModal.destroy();
       },
     });
     const instance = thisNzModal.getContentComponent();
@@ -392,7 +393,7 @@ export class UseCasesComponent {
       content: JSON.stringify([
         ...data,
         {
-          name: 'VERSATILE_PROMPT_OUTPUT',
+          name: 'AGENT_BUILDER_PROMPT_OUTPUT',
           type: 'text',
           content: rowData.expectedOutput ?? '',
         },
@@ -414,7 +415,7 @@ export class UseCasesComponent {
       content: JSON.stringify([
         ...data,
         {
-          name: 'VERSATILE_PROMPT_OUTPUT',
+          name: 'AGENT_BUILDER_PROMPT_OUTPUT',
           type: 'text',
           content: rowData.expectedOutput ?? '',
         },
@@ -430,14 +431,31 @@ export class UseCasesComponent {
     });
   }
 
+  getBase64(img: File, callback: (img: string) => void): void {
+    const reader = new FileReader();
+    reader.addEventListener('load', () => callback(reader.result!.toString()));
+    reader.readAsDataURL(img);
+  }
+
   public onAddFileSuccess(fileItem: any, useCase: any, variable: string) {
-    useCase.images[variable] = fileItem;
+    if (fileItem.type === 'removed') {
+      return;
+    }
+    if (fileItem.type !== 'start') {
+      return;
+    }
+    useCase.images[variable] = fileItem.file.originFileObj;
+    this.getBase64(fileItem.file.originFileObj, (img: string) => {
+      useCase.variables[variable] = img;
+      this.cdr.detectChanges();
+    });
+
     this.updateActionState();
   }
 
   public async uploadImage(fileItem: any) {
     const formData = new FormData();
-    formData.append('file', fileItem._file);
+    formData.append('file', fileItem);
     const res = await this.promptOptimizeService.uploadImage(this.taskId, formData);
     return res.data;
   }

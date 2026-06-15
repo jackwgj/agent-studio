@@ -1,23 +1,16 @@
-import {
-  ChangeDetectionStrategy,
-  ChangeDetectorRef,
-  Component,
-  EventEmitter,
-  Input,
-  Output,
-} from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, Input, Output } from '@angular/core';
 import { MODULES } from '@shared/modules';
 import { cdnAssetUrl } from 'src/single-spa/assets-url';
-import {
-  PromptOptimizeService,
-  UseCaseService,
-} from '@services/agent-center/prompt-optimize-task/prompt-optimize.service';
+import { PromptOptimizeService, UseCaseService } from '@services/agent-center/prompt-optimize-task/prompt-optimize.service';
 import { CommonUtils } from 'src/utils/common.util';
 import { I18NEXT_NAMESPACE, I18NextEagerPipe } from 'angular-i18next';
 import { I18nNamespace } from '@i18n';
 import { Subscription } from 'rxjs';
 import { VariableService } from '@services/agent-center/prompt-optimize-task/prompt-editor.service';
 import { PromptType } from '@interfaces/prompt/prompt-optimize-task.interface';
+import { NzModalRef } from 'ng-zorro-antd/modal';
+import { NzUploadFile } from 'ng-zorro-antd/upload';
+import { agentCommonLogic } from '@routes/agent-center/app-agent/common-logic-agent';
 
 @Component({
   selector: 'meta-import-modal',
@@ -37,7 +30,8 @@ export class ImportModalComponent {
   @Input() promptType: PromptType = PromptType.TEXT;
   @Output() importUseCases = new EventEmitter<any>();
   accept = '.json,.xlsx,.xls';
-  selectedFile: any;
+  selectedFile: File | null = null;
+  fileList: NzUploadFile[] = [];
   importModalCloseSubscription: Subscription;
   importErrMsgSubscription: Subscription;
   variables: string = '';
@@ -50,20 +44,19 @@ export class ImportModalComponent {
     private useCaseService: UseCaseService,
     private i18n: I18NextEagerPipe,
     private cdr: ChangeDetectorRef,
+    private modalRef: NzModalRef,
+    private commonLogic: agentCommonLogic
   ) {
-    this.importModalCloseSubscription =
-      this.useCaseService.importModalClose$.subscribe(() => {
-        this.dismiss();
-      });
-    this.importErrMsgSubscription = this.useCaseService.importErrMsg$.subscribe(
-      (msg) => {
-        this.errMsg = msg;
-        this.cdr.markForCheck();
-      },
-    );
+    this.importModalCloseSubscription = this.useCaseService.importModalClose$.subscribe(() => {
+      this.dismiss();
+    });
+    this.importErrMsgSubscription = this.useCaseService.importErrMsg$.subscribe(msg => {
+      this.errMsg = msg;
+      this.cdr.markForCheck();
+    });
     this.variables = this.variableService
       .getVariables()
-      .map((item) => {
+      .map(item => {
         return item.value;
       })
       .join('、');
@@ -84,49 +77,43 @@ export class ImportModalComponent {
     this.useCaseService.closeImportModal();
   }
 
-  dismiss(): void {}
+  dismiss(): void {
+    this.modalRef.destroy();
+  }
 
   handleCancel(): void {
     this.useCaseService.closeImportModal();
   }
 
-  onAddFileSuccess(fileItem: any) {
-    if (fileItem.type === "removed") {
-      this.onRemoveItems();
-      return;
-    }
-    if (fileItem.type !== "start") {
-      return;
-    }
-
-    if (this.selectedFile) {
-      this.selectedFile.uploader.removeItems([this.selectedFile]);
-    }
-    this.selectedFile = fileItem;
+  beforeUpload = (file: NzUploadFile): boolean => {
+    this.selectedFile = file as unknown as File;
+    this.fileList = [file];
     this.errMsg = '';
-  }
+    this.cdr.markForCheck();
+    return false;
+  };
 
-  onRemoveItems() {
-    //该对象的引用已经被移除了，这里只需要清除记录即可
-    if (this.selectedFile) {
-      this.selectedFile = undefined;
-    }
+  onRemove = (): boolean => {
+    this.selectedFile = null;
+    this.fileList = [];
     this.errMsg = '';
-  }
+    this.cdr.markForCheck();
+    return true;
+  };
 
   downloadTemplate() {
-    this.promptOptimizeService.downLoadTemplate(this.promptType).then((res) => {
+    this.promptOptimizeService.downLoadTemplate(this.promptType).then(res => {
       CommonUtils.downloadFile(
         new Blob([res.data], {
           type: 'application/zip',
         }),
-        res.headers.get('Content-Disposition'),
+        `${this.commonLogic.getFormattedDateTime()}.zip`
       );
     });
   }
 
   confirm(): void {
-    this.importUseCases.emit(this.selectedFile);
+    this.importUseCases.emit({ _file: this.selectedFile });
   }
 
   protected readonly changeUrl = cdnAssetUrl;

@@ -1,12 +1,4 @@
-import {
-  Component,
-  EventEmitter,
-  Input,
-  OnDestroy,
-  OnInit,
-  Output,
-  ViewChild,
-} from '@angular/core';
+import { Component, EventEmitter, Input, OnDestroy, OnInit, Output, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, NgForm, Validators } from '@angular/forms';
 import { I18nNamespace } from '@i18n';
 import { AgentConfigService } from '@routes/agent-center/agent-config.service';
@@ -15,11 +7,7 @@ import { ITmpl } from '@services/prompt.service';
 import { DateSelectorComponent } from '@shared/components/date-selector/date-selector.component';
 import { FlexibleTextFieldComponent } from '@shared/components/flexible-text-field/flexible-text-field.component';
 import { NumberRangeComponent } from '@shared/components/number-range/number-range.component';
-import {
-  PositiveIntValidatorDirective,
-  RefSelectedRequireDirective,
-  UrlValidatorDirective,
-} from '@shared/directives/common-validator.directive';
+import { PositiveIntValidatorDirective, RefSelectedRequireDirective, UrlValidatorDirective } from '@shared/directives/common-validator.directive';
 import {
   EnumStrValidatorDirective,
   FlowParamIsUnique,
@@ -38,12 +26,7 @@ import { cdnAssetUrl } from 'src/single-spa/assets-url';
 import { CommonUtils } from 'src/utils/common.util';
 import { AppFlowService } from '../../app-flow.service';
 import type { IModel } from '../../app-flow.types';
-import {
-  getInitInputParamConfig,
-  getInitOutputParamConfig,
-  getLLMLikeOutputParamTypes,
-  NODE_SAVE_DEBOUNCE_TIME,
-} from '../../flow.const';
+import { getInitInputParamConfig, getInitOutputParamConfig, getLLMLikeOutputParamTypes, NODE_SAVE_DEBOUNCE_TIME } from '../../flow.const';
 import { NodeService } from '../../node.service';
 import type {
   IParamRef,
@@ -59,21 +42,11 @@ import { AccBlockNewComponent } from '../acc-block-new/acc-block-new..component'
 import { ModalBaseComponent } from '../base/modal-base.component';
 import { ParamSelectorComponent } from '../param-selector/param-selector.component';
 import { NodeUtils } from '../utils';
-import {
-  IPluginRefTipUpdatedValue,
-  PluginRefTipComponent,
-} from './plugin-ref-tip';
-import {
-  modelSettingsComponent,
-  type IModelParam,
-} from '@shared/components/model-settings-tip';
-import {
-  AssetIntelligentAddComponent
-} from '@shared/components/assets/asset-intelligent-add/asset-intelligent-add.component';
-import {
-  AssetIntelligentAddDisabledComponent
-} from '@shared/components/assets/asset-intelligent-add-disabled/asset-intelligent-add-disabled.component';
-import { LLMSelectComponent } from "@routes/agent-center/app-flow/components/llm-select/llm-select.component";
+import { IPluginRefTipUpdatedValue, PluginRefTipComponent } from './plugin-ref-tip';
+import { modelSettingsComponent, type IModelParam } from '@shared/components/model-settings-tip';
+import { AssetIntelligentAddComponent } from '@shared/components/assets/asset-intelligent-add/asset-intelligent-add.component';
+import { AssetIntelligentAddDisabledComponent } from '@shared/components/assets/asset-intelligent-add-disabled/asset-intelligent-add-disabled.component';
+import { LLMSelectComponent } from '@routes/agent-center/app-flow/components/llm-select/llm-select.component';
 import { AgentDataService } from '@services/agent-center/agent-data.service';
 import { EditNameComponent } from '@routes/agent-center/app-flow/components/edit-name/edit-name.component';
 import { NodeDescriptionComponent } from '../node-description/node-description.component';
@@ -97,6 +70,7 @@ import { NzSwitchModule } from 'ng-zorro-antd/switch';
 import { NzSliderModule } from 'ng-zorro-antd/slider';
 import { NzInputNumberModule } from 'ng-zorro-antd/input-number';
 import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
+import { OptimizePromptModalComponent } from '@routes/agent-center/app-agent/components/optimize-prompt-modal/optimize-prompt-modal.component';
 
 interface IQuesValidatorExt {
   type: QuesRailsAction;
@@ -151,7 +125,7 @@ interface IQuesWorkflowFieldExt extends Omit<IQuesWorkflowField, 'validator'> {
     NzSliderModule,
     NzInputNumberModule,
     NzCheckboxModule,
-    PluginRefTipComponent // 引入并注册子组件，以便直接使用标签
+    PluginRefTipComponent, // 引入并注册子组件，以便直接使用标签
   ],
   providers: [
     {
@@ -160,9 +134,7 @@ interface IQuesWorkflowFieldExt extends Omit<IQuesWorkflowField, 'validator'> {
     },
   ],
 })
-export class QuestionerModalComponent
-  extends ModalBaseComponent
-  implements OnInit, OnDestroy {
+export class QuestionerModalComponent extends ModalBaseComponent implements OnInit, OnDestroy {
   @Input('names') names: string[];
 
   @Input('nodeInfo') nodeInfo: IQuestionerNode;
@@ -195,9 +167,7 @@ export class QuestionerModalComponent
   };
 
   public getQuesModesTip() {
-    return `${this.i18n.transform(
-      'flow_ques_node_tip1',
-    )}<br>${this.i18n.transform('flow_ques_node_tip2')}`;
+    return `${this.i18n.transform('flow_ques_node_tip1')}<br>${this.i18n.transform('flow_ques_node_tip2')}`;
   }
 
   public getParameterExtractionTip() {
@@ -232,7 +202,7 @@ export class QuestionerModalComponent
   }
 
   public get outputParamValidates() {
-    return this.outputParams.filter((param) => param.validated);
+    return this.outputParams.filter(param => param.validated);
   }
 
   public get customTemplateEnable() {
@@ -283,9 +253,7 @@ export class QuestionerModalComponent
     max_response: [10],
     allow_node_break: [false],
     allow_node_confirm: [false],
-    auto_ask_template: [
-      this.i18n.transform('ques_custom_inquiry_template_placeholder'),
-    ],
+    auto_ask_template: [this.i18n.transform('ques_custom_inquiry_template_placeholder')],
     auto_ask_mode: ['default'],
     enum_visible: [false],
   });
@@ -442,7 +410,8 @@ export class QuestionerModalComponent
     public configServ: AgentConfigService,
     private helpCenterService: HelpCenterService,
     protected commonService: CommonService,
-    private nzModal: NzModalService
+    private nzModal: NzModalService,
+    private cdr: ChangeDetectorRef
   ) {
     super(nodeServ, appFlowServ);
   }
@@ -463,25 +432,18 @@ export class QuestionerModalComponent
   }
 
   public override ngOnInit() {
-
     this.setNodeBase(this.nodeInfo);
     super.ngOnInit();
 
-    this.validationRules.push(
-      CommonValidation.nameUniquenessVerify(
-        this.names,
-        this.i18n.transform('name_uniqueness'),
-        this.nodeInfo.name,
-      ) as any
-    );
+    this.validationRules.push(CommonValidation.nameUniquenessVerify(this.names, this.i18n.transform('name_uniqueness'), this.nodeInfo.name) as any);
 
     const parentNode = this.getParentNodeInfo(this.appFlowServ.getGraph());
     if (parentNode) {
-      this.getLoopInnerNodeRefs(parentNode).subscribe((info) => {
+      this.getLoopInnerNodeRefs(parentNode).subscribe(info => {
         this.onRefUpdate(info);
       });
     } else {
-      this.getSelfRefs().subscribe((info) => {
+      this.getSelfRefs().subscribe(info => {
         this.onRefUpdate(info);
       });
     }
@@ -489,19 +451,19 @@ export class QuestionerModalComponent
     this.modelListSubscription = this.appFlowServ
       .modelListUpdate()
       .pipe(takeUntil(this.destroy$))
-      .subscribe((models) => {
+      .subscribe(models => {
         if (models.length > 0) {
           this.modelOptions = models ?? [];
         }
       });
 
-    this.outputParams = this.nodeInfo.outputs.map((output) => {
+    this.outputParams = this.nodeInfo.outputs.map(output => {
       const validated = !!output.validator.length;
 
       return {
         expended: false,
         ...output,
-        validator: output.validator.map((v) => ({
+        validator: output.validator.map(v => ({
           ...v,
           params: v.params.join(','),
         })),
@@ -509,8 +471,7 @@ export class QuestionerModalComponent
       };
     });
 
-    const { temperature, top_p, enum_visible, max_tokens } =
-      this.nodeInfo.configs;
+    const { temperature, top_p, enum_visible, max_tokens } = this.nodeInfo.configs;
     this.modelParams = {
       top_p: top_p ?? 0.5,
       temperature,
@@ -518,9 +479,7 @@ export class QuestionerModalComponent
     };
 
     if (this.nodeInfo.configs?.mode) {
-      this.selectMode = this.modeButtons.find(
-        (item) => item.value === this.nodeInfo.configs.mode,
-      );
+      this.selectMode = this.modeButtons.find(item => item.value === this.nodeInfo.configs.mode);
     }
 
     let auto_ask_mode;
@@ -532,39 +491,29 @@ export class QuestionerModalComponent
       auto_ask_mode = 'default';
     }
 
-    this.selectedModelSubscription = this.configsFormGroup
-      .get('model')
-      .valueChanges.subscribe((value) => {
-        this.modelSetTipCtx.selectedModel = this.modelOptions.find(
-          (model) => model.model_deployment_id === value,
-        );
-      });
+    this.selectedModelSubscription = this.configsFormGroup.get('model').valueChanges.subscribe(value => {
+      this.modelSetTipCtx.selectedModel = this.modelOptions.find(model => model.model_deployment_id === value);
+    });
 
     // 初始化模型信息
-    setTimeout(()=>{
+    setTimeout(() => {
       this.configsFormGroup.patchValue({
         model: this.nodeInfo.configs?.model?.model_deployment_id ?? '',
-        extra_prompt_for_fields_extraction:
-        this.nodeInfo.configs.extra_prompt_for_fields_extraction,
+        extra_prompt_for_fields_extraction: this.nodeInfo.configs.extra_prompt_for_fields_extraction,
         question_content: this.nodeInfo.configs.question_content,
         with_chat_history: this.nodeInfo.configs.with_chat_history,
-        extract_fields_from_response:
-        this.nodeInfo.configs.extract_fields_from_response,
+        extract_fields_from_response: this.nodeInfo.configs.extract_fields_from_response,
         max_response: this.nodeInfo.configs.max_response,
         example_content: this.nodeInfo.configs?.example_content ?? '',
         allow_node_break: this.nodeInfo.configs?.allow_node_break ?? false,
         allow_node_confirm: this.nodeInfo.configs?.allow_node_confirm ?? false,
-        auto_ask_template:
-          this.nodeInfo.configs?.auto_ask_template ||
-          this.i18n.transform('ques_custom_inquiry_template_placeholder'),
+        auto_ask_template: this.nodeInfo.configs?.auto_ask_template || this.i18n.transform('ques_custom_inquiry_template_placeholder'),
         auto_ask_mode,
         enum_visible: enum_visible ?? false,
       });
-    })
+    });
 
-    this.rewrite_chain = (this.nodeInfo.configs.rewrite_chain || []).filter(
-      (item) => this.rewriteChainInfoMap[item.type],
-    );
+    this.rewrite_chain = (this.nodeInfo.configs.rewrite_chain || []).filter(item => this.rewriteChainInfoMap[item.type]);
     if (!this.rewrite_chain.length && this.isPOC) {
       this.rewrite_chain.push({
         type: 'rewrite_api',
@@ -574,40 +523,24 @@ export class QuestionerModalComponent
       });
     }
 
-    NodeUtils.checkModelExistence(
-      this.nodeInfo.name,
-      this.nodeInfo.configs?.model?.model_deployment_id ?? '',
-      this.modelOptions,
-    );
+    NodeUtils.checkModelExistence(this.nodeInfo.name, this.nodeInfo.configs?.model?.model_deployment_id ?? '', this.modelOptions);
 
     // 若开启参数提取，question_content非必填
     if (this.configsFormGroup.controls.extract_fields_from_response.value) {
-      this.configsFormGroup.controls.question_content.removeValidators(
-        Validators.required,
-      );
+      this.configsFormGroup.controls.question_content.removeValidators(Validators.required);
     }
 
-    this.configsFormGroup.controls.extract_fields_from_response.valueChanges
-      .pipe(takeUntil(this.destroy$))
-      .subscribe((value) => {
-        if (value) {
-          this.configsFormGroup.controls.question_content.removeValidators(
-            Validators.required,
-          );
-        } else {
-          this.configsFormGroup.controls.question_content.addValidators(
-            Validators.required,
-          );
+    this.configsFormGroup.controls.extract_fields_from_response.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(value => {
+      if (value) {
+        this.configsFormGroup.controls.question_content.removeValidators(Validators.required);
+      } else {
+        this.configsFormGroup.controls.question_content.addValidators(Validators.required);
 
-          this.outputParams = this.outputParams
-            .filter(
-              (item) =>
-                item.name.toLowerCase() === 'user_response' ||
-                item.name.toLowerCase() === 'status',
-            )
-            .map((item) => Object.assign({}, item));
-        }
-      });
+        this.outputParams = this.outputParams
+          .filter(item => item.name.toLowerCase() === 'user_response' || item.name.toLowerCase() === 'status')
+          .map(item => Object.assign({}, item));
+      }
+    });
     // 设置提示词优化的参数
     this.agentDataServe.setPromptAndModelConfig({
       modelConfig: this.nodeInfo.configs?.model,
@@ -634,14 +567,10 @@ export class QuestionerModalComponent
   }
 
   public onRefUpdate(info: IParamRef[]) {
-
     this.nameRefOptions = info;
 
     if (this.isInit) {
-      this.inputParams = NodeUtils.initInputs(
-        this.nodeInfo.inputs,
-        this.nameRefOptions,
-      );
+      this.inputParams = NodeUtils.initInputs(this.nodeInfo.inputs, this.nameRefOptions);
     } else {
       NodeUtils.reSelectRefsWithNewOps(this.inputParams, this.nameRefOptions);
     }
@@ -762,9 +691,9 @@ export class QuestionerModalComponent
     }
   }
 
-  dismiss(): void { }
+  dismiss(): void {}
 
-  close(): void { }
+  close(): void {}
 
   validateNode() {
     const checkForm = (form: any) => {
@@ -790,16 +719,11 @@ export class QuestionerModalComponent
     return { existingValues: names, notAllowedValues };
   }
   get variants() {
-    return this.inputParams.map((param) => param.name);
+    return this.inputParams.map(param => param.name);
   }
   public outputValidityValidator(index: number) {
-    const notAllowedValues = [
-      'STATUS',
-      'status',
-      'USER_RESPONSE',
-      'user_response',
-    ];
-    const names = this.outputParams.map((p) => p.name);
+    const notAllowedValues = ['STATUS', 'status', 'USER_RESPONSE', 'user_response'];
+    const names = this.outputParams.map(p => p.name);
     names.splice(index, 1);
     return { existingValues: names, notAllowedValues };
   }
@@ -807,7 +731,7 @@ export class QuestionerModalComponent
   getOutputNames(index: number): {
     existingValues: string[];
   } {
-    const names = this.outputParams.map((p) => p.name);
+    const names = this.outputParams.map(p => p.name);
     names.splice(index, 1);
     return { existingValues: names };
   }
@@ -844,18 +768,8 @@ export class QuestionerModalComponent
   public handlePluginUpdated($event: IPluginRefTipUpdatedValue): void {
     if (this.showPluginRefTip) {
       if ($event.isSelect && $event.pluginArgs) {
-        $event.pluginArgs.forEach((arg) => {
-          const {
-            name,
-            name_cn,
-            type,
-            description,
-            required,
-            validate_rule,
-            validate_type,
-            validated,
-            default: default_value,
-          } = arg;
+        $event.pluginArgs.forEach(arg => {
+          const { name, name_cn, type, description, required, validate_rule, validate_type, validated, default: default_value } = arg;
 
           const validator: IQuesValidatorExt[] = [];
           if (validated) {
@@ -906,17 +820,30 @@ export class QuestionerModalComponent
     return CommonUtils.isNil(value);
   }
 
-  public openRefModal() {
+  public onIntelligentAdd() {
+    if (!this.configsFormGroup.controls.extra_prompt_for_fields_extraction.value || this.isFlowReadonly) return;
     this.nzModal.create({
-      nzWrapClassName: 'ref-prompt-modal',
-      nzContent: RefPromptComponent,
+      nzContent: OptimizePromptModalComponent,
+      nzWidth: 600,
       nzData: {
-        outputs: {
-          select: (tmpl: ITmpl) => {
-            this.configsFormGroup.controls.extra_prompt_for_fields_extraction.setValue(
-              tmpl.content,
-            );
-          },
+        instruct: this.configsFormGroup.controls.extra_prompt_for_fields_extraction.value,
+        isWorkflow: true,
+        tipsChange: value => {
+          this.configsFormGroup.controls.extra_prompt_for_fields_extraction.setValue(value);
+          this.cdr.markForCheck();
+        },
+      },
+    });
+  }
+
+  public openRefModal() {
+    const myModal = this.nzModal.create({
+      nzContent: RefPromptComponent,
+      nzWidth: 1000,
+      nzData: {
+        select: (tmpl: ITmpl) => {
+          this.configsFormGroup.controls.extra_prompt_for_fields_extraction.setValue(tmpl.content);
+          this.cdr.markForCheck();
         },
       },
     });
@@ -941,10 +868,10 @@ export class QuestionerModalComponent
   }
 
   public updateModel(modelInfo: any) {
-    this.configsFormGroup.controls.model.setValue(modelInfo.id)
+    this.configsFormGroup.controls.model.setValue(modelInfo.id);
     // 设置提示词优化的参数
     this.agentDataServe.setPromptAndModelConfig({
-      modelConfig: modelInfo.modelInfo
+      modelConfig: modelInfo.modelInfo,
     });
   }
 
@@ -960,11 +887,7 @@ export class QuestionerModalComponent
     if (this.tagCompareNoChange()) {
       return;
     }
-    const selectedModel = this.modelOptions.find(
-      (model) =>
-        model.model_deployment_id ===
-        this.configsFormGroup.controls.model.value,
-    );
+    const selectedModel = this.modelOptions.find(model => model.model_deployment_id === this.configsFormGroup.controls.model.value);
     let hasTimeValidator = false;
 
     const nodeData: IQuestionerNode = {
@@ -972,13 +895,13 @@ export class QuestionerModalComponent
       name: this.nodeInfo.name,
       type: this.nodeInfo.type,
       inputs: NodeUtils.getDtoInputs(this.inputParams),
-      outputs: this.outputParams.map((outputParam) => {
+      outputs: this.outputParams.map(outputParam => {
         outputParam.reflection = this.selectMode.value === 'effect';
         const { validated, ...restParam } = outputParam;
         let validator = [];
 
         if (validated) {
-          validator = restParam.validator.map((v) => {
+          validator = restParam.validator.map(v => {
             const ret: IQuesValidator = {
               type: v.type,
               params: [v.params],
@@ -1009,14 +932,10 @@ export class QuestionerModalComponent
         mode: this.selectMode.value,
         temperature: Number(this.modelParams.temperature),
         top_p: Number(this.modelParams.top_p),
-        extra_prompt_for_fields_extraction:
-        this.configsFormGroup.controls.extra_prompt_for_fields_extraction
-          .value,
+        extra_prompt_for_fields_extraction: this.configsFormGroup.controls.extra_prompt_for_fields_extraction.value,
         question_content: this.configsFormGroup.controls.question_content.value,
-        with_chat_history:
-        this.configsFormGroup.controls.with_chat_history.value,
-        extract_fields_from_response:
-        this.configsFormGroup.controls.extract_fields_from_response.value,
+        with_chat_history: this.configsFormGroup.controls.with_chat_history.value,
+        extract_fields_from_response: this.configsFormGroup.controls.extract_fields_from_response.value,
         max_response: this.configsFormGroup.controls.max_response.value,
         model: {
           model_name: selectedModel?.model_name ?? '',
@@ -1024,23 +943,18 @@ export class QuestionerModalComponent
           model_deployment_id: selectedModel?.model_deployment_id ?? '',
           ...(selectedModel?.model && { model: selectedModel.model }),
         },
-        template_anthropomorphic:
-          this.configsFormGroup.controls.auto_ask_mode.value === 'ai',
-        auto_ask_template:
-          this.configsFormGroup.controls.auto_ask_mode.value === 'template'
-            ? this.configsFormGroup.controls.auto_ask_template.value
-            : '',
+        template_anthropomorphic: this.configsFormGroup.controls.auto_ask_mode.value === 'ai',
+        auto_ask_template: this.configsFormGroup.controls.auto_ask_mode.value === 'template' ? this.configsFormGroup.controls.auto_ask_template.value : '',
         rewrite_chain: this.rewrite_chain,
         example_content: this.configsFormGroup.controls.example_content.value,
         allow_node_break: this.configsFormGroup.controls.allow_node_break.value,
-        allow_node_confirm:
-        this.configsFormGroup.controls.allow_node_confirm.value,
+        allow_node_confirm: this.configsFormGroup.controls.allow_node_confirm.value,
         enum_visible: this.configsFormGroup.value.enum_visible,
         max_tokens: Number(this.modelParams.max_tokens),
       },
     };
     this.appFlowServ.setNodeSaveMonitor({
-      nodeData
+      nodeData,
     });
     if (this.updateTimeout) {
       clearTimeout(this.updateTimeout);

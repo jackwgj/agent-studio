@@ -49,6 +49,14 @@ import { AGENT_MODE_CODE } from "../../agent-bot-page/agent-bot-page.constant";
 import { CommonService } from "@services/common.service";
 import { SkillInputPromptService } from "@services/agent-center/skill/skill-input-prompt.service";
 import { NzMessageService } from "ng-zorro-antd/message";
+import { RefPromptComponent } from '@routes/agent-center/ref-prompt/ref-prompt.component';
+import { OptimizePromptModalComponent } from '@routes/agent-center/app-agent/components/optimize-prompt-modal/optimize-prompt-modal.component';
+import { SaveTmplLibraryModalComponent } from '@routes/prompt/prompt-candidate-template/save-tmpl-library-modal/save-tmpl-library-modal.component';
+import { ITmpl } from '@services/prompt.service';
+import moment from 'moment';
+import { CandidateTemplateListService } from '@services/candidate-template-list.service';
+import { NzModalService } from 'ng-zorro-antd/modal';
+import { MessageComponent } from '@shared/services/cfdata.service';
 
 @Component({
   selector: "info-and-prompt-builder",
@@ -166,7 +174,9 @@ export class InfoAndPromptBuilderComponent implements OnInit {
     private appAgentRepoServe: AppAgentRepoService,
     public readonly commonService: CommonService,
     public inputService: SkillInputPromptService,
-    private message: NzMessageService
+    private message: NzMessageService,
+    private nzModal: NzModalService,
+    private candidateTemplateListServe: CandidateTemplateListService,
   ) {
     this.groupFormControl = fb.group({
       name: new FormControl("", [
@@ -405,6 +415,82 @@ export class InfoAndPromptBuilderComponent implements OnInit {
     }
   }
 
+  /** 打开智能优化Prompt弹窗 */
+  public openOptimizePromptModal() {
+    if (!this.promptInputed || this.isFlowReadonly) return;
+    this.nzModal.create({
+      nzContent: OptimizePromptModalComponent,
+      nzWidth: 600,
+      nzData: {
+      instruct:this.promptInputed
+      }
+    });
+  }
+
+  public openRefModal() {
+    if (this.isFlowReadonly) {
+      return;
+    }
+
+    const myModal = this.nzModal.create({
+      nzContent: RefPromptComponent,
+      nzWidth: 1000,
+      nzData: {
+        select: (tmpl: ITmpl) => {
+          this.promptInputed = tmpl.content.trim();
+          this.agentInfo.promptTags = this.commonLogic.handlePrompttags(this.promptInputed);
+          this.doTriggerSave({
+            data: {
+              instructions: this.promptInputed,
+            },
+          });
+          this.scrollToBottom();
+        },
+      },
+    });
+  }
+
+  public showSaveTmplModal() {
+    if (this.promptInputed && this.promptInputed.length > 0) {
+      const thisMOdal = this.nzModal.create({
+        nzContent: SaveTmplLibraryModalComponent,
+        nzWidth: 600,
+        nzData: {
+          currentTmpl: {
+            is_workflow: true,
+            created_on: moment().format('YYYY-MM-DD HH:mm:ss'),
+            content: this.promptInputed,
+            model_config: {
+              temperature: 0,
+              top_p: 0,
+              max_tokens: 0,
+              presence_penalty: 0,
+            } as any,
+          },
+          modalClose: form => {
+            if (form?.value?.templateName) {
+              const params = {
+                task_id: this.paramsId,
+                id: '',
+                name: form.value.templateName,
+                tags: form.value.tags,
+                industry_id: form.value.industrys,
+                content: this.promptInputed,
+                source: 'PLAYGROUND',
+                variables: this.processString(this.promptInputed),
+              };
+              this.candidateTemplateListServe.saveFormalTmpl(params).subscribe({
+                next: res => {
+                  MessageComponent.showSuccess(this.i18n.transform('single_tmpl_save_success_tip'));
+                },
+              });
+            }
+          },
+        },
+      });
+    }
+  }
+
   /** 点击示例，复制一组模板 */
   public addExamplePrompt() {
     if (this.isFlowReadonly) {
@@ -412,7 +498,7 @@ export class InfoAndPromptBuilderComponent implements OnInit {
     }
 
     if (this.promptInputed.trim()) {
-      this.promptInputed += "\n" + exampleTipText;
+      this.promptInputed += '\n' + exampleTipText;
     } else {
       this.promptInputed += exampleTipText;
     }
@@ -420,8 +506,8 @@ export class InfoAndPromptBuilderComponent implements OnInit {
     this.agentInfo.promptTags = [...this.agentInfo.promptTags, ...tags];
     this.doTriggerSave({
       data: {
-        instructions: this.promptInputed
-      }
+        instructions: this.promptInputed,
+      },
     });
     this.scrollToBottom();
   }

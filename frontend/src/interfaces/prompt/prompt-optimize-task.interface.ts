@@ -177,6 +177,7 @@ export interface OptimizeTaskItem {
   creator: string;
   creator_id: string;
   updatedTime: string;
+  actionList: Array<any>;
 }
 
 export interface UseCase {

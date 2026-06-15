@@ -236,6 +236,7 @@ export class PromptTemplateComponent implements OnInit, OnDestroy {
     const activeTab = StorageService.getSessionStorage('activeTab');
     if (activeTab) {
       StorageService.delSessionStorage('activeTab');
+      this.tabSelectedIndex = 1;
       this.subTabs[0].active = false;
       this.subTabs[1].active = true;
       this.buttonGroupSelected = this.subTabs[activeTab].id;
@@ -468,7 +469,13 @@ export class PromptTemplateComponent implements OnInit, OnDestroy {
     }
   }
 
-  public onPageUpdate(): void {
+  public onPageUpdate(page: number): void {
+    this.currentCardPage = page;
+    this.getCardData();
+  }
+
+  public onPageSizeChange(): void {
+    this.currentCardPage = 1;
     this.getCardData();
   }
 
@@ -525,8 +532,11 @@ export class PromptTemplateComponent implements OnInit, OnDestroy {
     });
   }
 
-  public handleTabChange(index: number) {
-    const tab = this.subTabs[index];
+  public handleTabChange(selectIndex: number) {
+    this.subTabs.forEach((item, index) => {
+      item.active = selectIndex === index;
+    });
+    const tab = this.subTabs[selectIndex];
     if (tab.active) {
       this.isFirstLoading = true;
       this.buttonGroupSelected = tab.id;
@@ -534,7 +544,7 @@ export class PromptTemplateComponent implements OnInit, OnDestroy {
         this.getData();
       }
       if (this.buttonGroupSelected === this.subTabs[1]?.id) {
-        this.promptOptimizeList.isFirstLoading = true;
+        this.isFirstLoading = true;
         this.promptOptimizeList.listTasks();
       }
     }
@@ -543,7 +553,7 @@ export class PromptTemplateComponent implements OnInit, OnDestroy {
   public changePromptButton() {
     this.subTabs[0].active = true;
     this.subTabs[1].active = false;
-    this.handleTabChange(this.subTabs[0]);
+    this.handleTabChange(0);
   }
 
   private closeCurrentModal() {
@@ -624,31 +634,38 @@ export class PromptTemplateComponent implements OnInit, OnDestroy {
             rowKey: 'template_id',
           },
         ],
-        outputs: {
-          confirm: ({ rows }) => {
-            this.service.exportPromptTmplV2(rows.map(row => row.template_id)).subscribe({
-              next: res => {
-                CommonUtils.downloadFile(
-                  new Blob([res.data], {
-                    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                  }),
-                  res.headers.get('Content-Disposition')
-                );
-              },
-            });
-          },
-        },
       },
       nzClosable: true,
       nzMaskClosable: true,
+      nzZIndex: 10000,
     });
     this.openModalRef = drawerRef;
+    // 手动订阅组件的 confirm 事件（nzData.outputs 在 Drawer 中不生效）
+    drawerRef.afterOpen.subscribe(() => {
+      const instance = drawerRef.getContentComponent();
+      if (instance && instance.confirm) {
+        instance.confirm.subscribe(({ rows }: any) => {
+          this.service.exportPromptTmplV2(rows.map((row: any) => row.template_id)).subscribe({
+            next: (res: any) => {
+              CommonUtils.downloadFile(
+                new Blob([res.data], {
+                  type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                }),
+                res.headers.get('Content-Disposition')
+              );
+            },
+          });
+        });
+      }
+    });
+    this.cdr.detectChanges();
   }
 
   public importTemplate() {
     this.closeCurrentModal();
     const modalRef: NzModalRef = this.nzModal.create({
       nzTitle: '',
+      nzWidth: '600px',
       nzContent: ImportTemplateModalComponent,
       nzFooter: null,
     });

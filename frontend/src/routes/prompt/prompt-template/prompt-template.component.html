@@ -1,4 +1,4 @@
-<div class="bg-[#ffffff] pb-6 h-full w-full" [ngClass]="{ 'layout-content-padding': currActiveTab === 0, 'no-padding': currActiveTab === 1 }">
+<div class="bg-[#ffffff] pb-6 h-full w-full flex flex-col" [ngClass]="{ 'layout-content-padding': currActiveTab === 0, 'no-padding': currActiveTab === 1 }">
   <!-- 内容头部 -->
   <meta-system-template
     #systemTemplate
@@ -177,7 +177,7 @@
           </div>
           <div [hidden]="isHideCard" class="footer-card footer-flexend">
             <nz-pagination
-              (nzPageIndexChange)="onPageUpdate()"
+              (nzPageIndexChange)="onPageUpdate($event)"
               *ngIf="totalCardNumber"
               [nzShowTotal]="null"
               [(nzPageIndex)]="currentCardPage"

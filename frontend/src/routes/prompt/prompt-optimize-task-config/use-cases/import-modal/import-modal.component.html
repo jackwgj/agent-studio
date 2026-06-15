@@ -12,12 +12,13 @@
     </div>
     <div class="import-button">
       <nz-upload
-        (nzChange)="onAddFileSuccess($event)"
+        [nzAction]="null"
         [nzAccept]="accept"
-        [nzShowUploadList]="true"
+        [(nzFileList)]="fileList"
+        [nzBeforeUpload]="beforeUpload"
+        [nzRemove]="onRemove"
         [nzLimit]="1"
         [nzMultiple]="false"
-        action="/"
       >
         <button nz-button>
           <span>{{ selectedFile ? ('reselect_file' | i18nextEager) : ('add_file' | i18nextEager) }}</span>

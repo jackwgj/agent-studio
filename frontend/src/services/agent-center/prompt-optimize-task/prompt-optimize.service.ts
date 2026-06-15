@@ -6,7 +6,7 @@ import {
   OptimizeTaskItem, PromptType,
   UseCase,
 } from '@interfaces/prompt/prompt-optimize-task.interface';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { BehaviorSubject, Observable, Subject } from 'rxjs';
 
 /**
  * 用例导入相关
@@ -19,7 +19,7 @@ import { BehaviorSubject, Observable } from 'rxjs';
 export class UseCaseService {
   constructor() {}
 
-  private importModalCloseSubject = new BehaviorSubject<any>(null); // 初始值为 null，类型可自定义
+  private importModalCloseSubject = new Subject<any>();
   private importErrMsgSubject = new BehaviorSubject<string>('');
 
 

@@ -11,7 +11,17 @@
       </p>
     </div>
     <div class="import-button">
-      <nz-upload nzAccept=".xls,.xlsx" nzListType="text" [nzShowUploadList]="true" (nzChange)="onAddFileSuccess($event)" (nzOnRemove)="onRemoveItems()">
+      <nz-upload
+        nzAccept=".xls,.xlsx"
+        nzListType="text"
+        [nzShowUploadList]="true"
+        [nzAction]="null"
+        [(nzFileList)]="fileList"
+        [nzBeforeUpload]="beforeUpload"
+        [nzRemove]="onRemove"
+        [nzLimit]="1"
+        [nzMultiple]="false"
+      >
         <button nz-button>
           <span nz-icon nzType="upload"></span>
           {{ (selectedFile ? 'reselect_file' : 'add_file') | i18nextEager }}

@@ -84,7 +84,7 @@ import { NodeTypeTopic } from '@routes/agent-center/types/common.types';
 import { HelpCenterService } from '@services/help-center.service';
 import { MessageComponent } from "@shared/services/cfdata.service";
 import { ObjectTemplateComponent } from "@routes/object-manage/component/object-template/object-template.component";
-
+import { OptimizePromptModalComponent } from '@routes/agent-center/app-agent/components/optimize-prompt-modal/optimize-prompt-modal.component';
 interface IWFViewP extends IWFView {
   processing_workflows?: IProcessingWorkflow[];
   children?: IWFViewP[];
@@ -924,20 +924,17 @@ export class ParamExtractionModalComponent
   }
 
   public openRefModal() {
-    const outputs = {
-      select: (temp: ITmpl) => {
-        this.prompt = temp.content;
-        this.onSave();
-      },
-    };
-    this.nzModal.create<RefPromptComponent>({
-      nzTitle: '',
+    const myModal = this.nzModal.create({
       nzContent: RefPromptComponent,
-      nzClassName: 'ref-prompt-modal',
+      nzWidth: 1000,
       nzData: {
-        outputs,
+        select: (tmpl: ITmpl) => {
+          this.prompt = tmpl.content;
+          this.onSave();
+          this.cdr.markForCheck();
+        },
       },
-    } as any);
+    });
   }
 
   public subFlowOps: any[] = [];
@@ -1409,7 +1406,20 @@ export class ParamExtractionModalComponent
   public onIntelligentAdd(role) {
     if (this.isFlowReadonly) return;
     if (!this.prompt) return;
-    this.nzMessage.info('功能暂不可用');
+    this.nzModal.create({
+      nzContent: OptimizePromptModalComponent,
+      nzWidth: 600,
+      nzData: {
+        instruct: this?.prompt,
+        isWorkflow: true,
+        tipsChange: value => {
+          this.prompt = value ?? '';
+          this.onSave();
+          this.cdr.markForCheck();
+        },
+      },
+    });
+
   }
 
   public updateModel(modelInfo: any) {

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, TemplateRef, ViewChild } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, TemplateRef, ViewChild, ElementRef } from '@angular/core';
 import { ReactiveFormsModule } from '@angular/forms';
 import { COMMON_MODULES, MODULES } from '@shared/modules';
 import { SetSidebarVisibilityService } from '@shared/services/set-sidebar-visibility.service';
@@ -19,6 +19,7 @@ import { PromptService } from '@services/prompt.service';
 import { ModelManagementService } from '@services/repositories/model-management-new';
 import { FormateTimePipe } from 'src/pipes/formate-time.pipe';
 import { NzDrawerService } from 'ng-zorro-antd/drawer';
+import * as echarts from 'echarts';
 @Component({
   selector: 'meta-prompt-optimize-task-detail',
   standalone: true,
@@ -120,52 +121,54 @@ export class PromptOptimizeTaskDetailComponent {
   // 图表
   public chartIns: any;
   public chartOption = {
-    theme: 'hdesign-light',
-    padding: [30, 70, 0, 0],
+    grid: {
+      top: '30px',
+      left: '30px',
+      right: '70px',
+      bottom: '25px',
+    },
     legend: {
       show: false,
       icon: 'line',
     },
     tooltip: {
-      formatter: (params, ticket, callback) => {
+      formatter: params => {
         let htmlString = '';
-        params.forEach((item, index) => {
-          if (index === 0) {
-            htmlString += 'V' + item.name + '<br/>';
-          }
-          htmlString +=
-            '<div>' +
-            '<span style="width:10px;display:inline-block;height:10px;border-radius:5px; background-color:' +
-            item.color +
-            ';">' +
-            '</span>' +
-            '<span style="margin-left:6px;>' +
-            '<span style="width:100px;display:inline-block;">' +
-            this.i18n.transform('success_rate') +
-            '</span>' +
-            '<span style="font-weight:bold"> ' +
-            item.value +
-            '%</span>' +
-            '</span>' +
-            '</div>';
-        });
+        const { name, value, color } = params;
+        htmlString += 'V' + name + '<br/>';
+        htmlString +=
+          '<div>' +
+          '<span style="width:10px;display:inline-block;height:10px;border-radius:5px; background-color:' +
+          color +
+          ';">' +
+          '</span>' +
+          '<span style="margin-left:6px;>' +
+          '<span style="width:100px;display:inline-block;">' +
+          this.i18n.transform('success_rate') +
+          '</span>' +
+          '<span style="font-weight:bold"> ' +
+          value +
+          '%</span>' +
+          '</span>' +
+          '</div>';
         return htmlString;
       },
     },
-    data: [
-      { round: '1', accuracy: 40 },
-      { round: '2', accuracy: 70 },
-      { round: '3', accuracy: 60 },
-      { round: '4', accuracy: 80 },
-    ],
     xAxis: {
-      data: 'round',
-      name: this.i18n.transform('iteration_rounds'),
+      type: 'category',
+      name: '迭代轮次',
+      data: [],
     },
     yAxis: {
-      data: 'accuracy',
-      name: this.i18n.transform('success_rate') + '%',
+      name: '成功率%',
+      type: 'value',
     },
+    series: [
+      {
+        data: [],
+        type: 'line',
+      },
+    ],
   };
   public chartType = 'LineChart';
   initFlag = true;
@@ -182,6 +185,9 @@ export class PromptOptimizeTaskDetailComponent {
   public initVariableList: Array<{ type: VariableType; value: string }> = [];
   public diffHighLight = false;
   isSpinning = false;
+
+  @ViewChild('chartContainer', { static: false }) chartContainer: ElementRef;
+
   constructor(
     private router: Router,
     private sidebarVisibilityServ: SetSidebarVisibilityService,
@@ -224,11 +230,9 @@ export class PromptOptimizeTaskDetailComponent {
       .TaskDetail(this.taskId)
       .then(res => {
         const task: OptimizeTaskRunningDetail = res.data;
-        this.chartOption.data = task.iteration_results.iteration_info_list.map(item => {
-          return {
-            round: item.iteration_round.toString(),
-            accuracy: item.success_rate * 100,
-          };
+        task.iteration_results.iteration_info_list.forEach(item => {
+          this.chartOption.xAxis.data.push(item.iteration_round.toString());
+          this.chartOption.series[0].data.push(item.success_rate * 100);
         });
         this.taskDetail = task;
         this.initTaskDetail(task);
@@ -253,11 +257,11 @@ export class PromptOptimizeTaskDetailComponent {
   }
 
   public renderChart() {
-    let data = this.chartOption;
-    if (this.chartIns) {
-      this.chartIns.refresh(data);
-    } else {
-    }
+    setTimeout(() => {
+      let data = this.chartOption;
+      this.chartIns = echarts.init(this.chartContainer.nativeElement);
+      this.chartIns.setOption(data);
+    }, 500);
   }
 
   public initTaskDetail(task: OptimizeTaskRunningDetail) {
@@ -379,7 +383,7 @@ export class PromptOptimizeTaskDetailComponent {
       this.notShowCompleteModal = true;
     }
     this.variableList = task.pt_vars
-      .filter(item => item.name !== 'VERSATILE_PROMPT_OUTPUT')
+      .filter(item => item.name !== 'AGENT_BUILDER_PROMPT_OUTPUT')
       .map(item => {
         return {
           type: item.type,

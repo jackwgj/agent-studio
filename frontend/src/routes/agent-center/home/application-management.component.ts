@@ -111,7 +111,7 @@ export class ApplicationManagementComponent implements OnInit, OnDestroy {
 
   public tabs = [
     {
-      show: false,
+      show: true,
       id: ApplicationType.SINGLE_AGENT,
       title: this.i18n.transform("single_agent"),
       hash: "#/home/agent-center/single",

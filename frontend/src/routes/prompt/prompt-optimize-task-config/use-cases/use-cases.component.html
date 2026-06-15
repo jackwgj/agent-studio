@@ -3,7 +3,7 @@
     <div class="title">
       {{ 'use_cases' | i18nextEager }}
     </div>
-    <img alt="" [src]="changeUrl('assets/prompt/optimize-tip.svg')" nz-tooltip [nzTooltipTitle]="'use_cases_tip' | i18nextEager" style="cursor: pointer" />
+    <img alt="" [src]="changeUrl('assets/prompt/optimize-tip.svg')" nz-tooltip [nzTooltipTitle]="use_cases_tip" style="cursor: pointer" />
   </div>
 
   <div *ngIf="!variables.length" class="no-data">
@@ -18,7 +18,7 @@
     <button nz-button (click)="openImportModal()" [disabled]="!taskId">{{ 'import' | i18nextEager }}</button>
   </div>
   <div *ngIf="variables.length" class="content">
-    <nz-table [nzData]="useCasesData.data" class="w-full" style="max-height: calc(100% - 24px)">
+    <nz-table [nzData]="useCasesData.data" class="w-full h-[calc(100% - 110px)] overflow-auto" [nzShowPagination]="false" [nzFrontPagination]="false">
       <thead>
         <tr>
           <th *ngFor="let column of columns" [style.width]="column.width">{{ column.title }}</th>
@@ -33,7 +33,7 @@
                 {{ useCase.variables[variable.value] }}
               </ng-container>
               <ng-template #imageTmpl>
-                <nz-upload [nzDisabled]="true" [nzLimit]="1" nzListType="picture"></nz-upload>
+                <img [src]="useCase.variables[variable.value]" style="height: 102px; width: 102px" />
               </ng-template>
             </td>
             <td>{{ useCase.expectedOutput }}</td>
@@ -41,20 +41,40 @@
           <ng-template #editTmpl>
             <td>{{ useCase.id }}</td>
             <td *ngFor="let variable of variables">
-              <ng-container *ngIf="variable.type === 'text'; else imageTmpl">
-                <textarea
-                  (blur)="updateActionState()"
-                  (ngModelChange)="changeModel($event, useCase)"
-                  [(ngModel)]="useCase.variables[variable.value]"
-                  [placeholder]="'input_variable_content' | i18nextEager"
-                  nz-required
-                  style="width: 200px; height: 100px"
-                  nz-input
-                ></textarea>
-              </ng-container>
-              <ng-template #imageTmpl>
-                <nz-upload (nzChange)="onAddFileSuccess($event, useCase, variable.value)" [nzLimit]="1" nzListType="picture"> </nz-upload>
-              </ng-template>
+              <div class="flex-top-left">
+                <ng-container *ngIf="variable.type === 'text'; else imageEditTmpl">
+                  <textarea
+                    (blur)="updateActionState()"
+                    (ngModelChange)="changeModel($event, useCase)"
+                    [(ngModel)]="useCase.variables[variable.value]"
+                    [placeholder]="'input_variable_content' | i18nextEager"
+                    nz-required
+                    style="width: 200px; height: 100px"
+                    nz-input
+                    [class]="useCase.variables[variable.value] ? '' : 'input-error'"
+                  ></textarea>
+                  <div *ngIf="!useCase.variables[variable.value]" class="error-tip">输入不能为空。</div>
+                </ng-container>
+                <ng-template #imageEditTmpl>
+                  <nz-upload
+                    (nzChange)="onAddFileSuccess($event, useCase, variable.value)"
+                    [nzLimit]="1"
+                    nzListType="picture-card"
+                    [nzMultiple]="false"
+                    [nzShowUploadList]="false"
+                    style="height: 100px; width: 100px"
+                  >
+                    @if (useCase?.variables[variable?.value]) {
+                      <img [src]="useCase?.variables[variable?.value]" style="height: 100px; width: 100px" />
+                    } @else {
+                      <div>上传</div>
+                    }
+                  </nz-upload>
+                  @if (!useCase?.variables[variable?.value]) {
+                    <div class="error-tip">请上传图片</div>
+                  }
+                </ng-template>
+              </div>
             </td>
             <td>
               <textarea
@@ -65,29 +85,32 @@
                 nz-required
                 style="width: 320px; height: 100px"
                 nz-input
+                [class]="useCase.expectedOutput ? '' : 'input-error'"
               ></textarea>
+              <div *ngIf="!useCase.expectedOutput" class="error-tip">输入不能为空。</div>
             </td>
           </ng-template>
           <td>
             @for (action of useCase?.action; track action) {
-              <button nz-button nzType="link" (click)="onSelect(action, useCase)">
+              <button nz-button nzType="link" nz-tooltip [nzTooltipTitle]="action.tip" (click)="onSelect(action, useCase)" [disabled]="action.disabled">
                 {{ action.label }}
               </button>
             }
-
           </td>
         </tr>
       </tbody>
     </nz-table>
-    <nz-pagination
-      (nzPageIndexChange)="changePage({ currentPage: $event, size: pageSize.size })"
-      *ngIf="useCases.length"
-      [(nzPageIndex)]="currentPage"
-      [nzTotal]="totalNumber"
-      [nzPageSize]="pageSize.size"
-      [nzShowSizeChanger]="true"
-      [nzPageSizeOptions]="[10, 20, 50, 100]"
-    ></nz-pagination>
+    <div style="display: flex; justify-content: flex-end; align-items: flex-end; width: 100%">
+      <nz-pagination
+        (nzPageIndexChange)="changePage({ currentPage: $event, size: pageSize.size })"
+        *ngIf="useCases.length"
+        [(nzPageIndex)]="currentPage"
+        [nzTotal]="totalNumber"
+        [nzPageSize]="pageSize.size"
+        [nzShowSizeChanger]="true"
+        [nzPageSizeOptions]="[10, 20, 50, 100]"
+      ></nz-pagination>
+    </div>
     <div *ngIf="!useCasesData.data.length" class="no-data">
       <img [src]="changeUrl('assets/prompt/noData.svg')" alt="" />
       <div class="tip-area">

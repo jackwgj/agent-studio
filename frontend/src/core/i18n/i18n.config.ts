@@ -28,6 +28,7 @@ export const I18NEXT_CONFIG: InitOptions = {
   ],
   defaultNS: Model.I18nNamespace.COMMON,
   interpolation: {
+    escapeValue: false,
     format: I18NextModule.interpolationFormat(defaultInterpolationFormat),
   },
   backend: {

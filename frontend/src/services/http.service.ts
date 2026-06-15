@@ -12,7 +12,7 @@ import { BehaviorSubject, Observable } from 'rxjs';
 import { buildErrorMsgStr, ICommonError } from 'src/utils/utils';
 import { environment } from '../environment/environment';
 import { HttpClient, HttpParams, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
-import { catchError, throwError } from 'rxjs';
+import { catchError, throwError, map } from 'rxjs';
 import { CommonUtils } from "../utils/common.util";
 
 interface IHttpConfig extends HttpConfig {
@@ -331,6 +331,31 @@ export class HttpService {
   }
 
   public fetch<T>(httpConfig: IHttpConfig): Observable<T> {
+    if (httpConfig.method === 'POST') {
+      if (httpConfig.dataType === 'blob') {
+        const config = this.mergeConfig(httpConfig);
+        let queryParams = new HttpParams();
+        if (config.query) {
+          Object.keys(config.query).forEach(key => {
+            queryParams = queryParams.set(key, config.query[key as keyof typeof config.query] as string);
+          });
+        }
+        const headers = this.buildHeaders();
+        const body = config.body ?? config.params;
+        return this.httpClient.post(config.url as string, body, {
+          params: queryParams,
+          headers: headers,
+          responseType: 'blob',
+          observe: 'response'
+        }).pipe(
+          map((res: any) => ({ data: res.body, headers: res.headers }))
+        ) as Observable<T>;
+      }
+      return this.post<T>(httpConfig);
+    }
+    if (httpConfig.dataType === 'blob') {
+      return this.getBlob(httpConfig) as Observable<T>;
+    }
     return this.get<T>(httpConfig);
   }
 

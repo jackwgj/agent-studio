@@ -8,23 +8,26 @@
           [(ngModel)]="agentLogo"
           (ngModelChange)="handleLogoChange()"
           maskIcon="{{ 'modify_avatar' | i18nextEager }}"
-          [err_msg]="'maximum_img'|i18nextEager"
+          [err_msg]="'maximum_img' | i18nextEager"
           *ngIf="!iconLoading"
         />
-        <div *ngIf="iconLoading"
-             style="border-radius: 8px; width: 60px;height: 60px; background: rgba(230, 230, 230, 1); display: flex; align-items: center; justify-content: center;">
-          <img [src]="changeUrl('assets/agent-center/agent/model_icon_loading.svg')"
-               [class.rotate-icon]="iconLoading" alt=""
-               style="width: 35px;height: 35px;">
+        <div
+          *ngIf="iconLoading"
+          style="border-radius: 8px; width: 60px; height: 60px; background: rgba(230, 230, 230, 1); display: flex; align-items: center; justify-content: center"
+        >
+          <img
+            [src]="changeUrl('assets/agent-center/agent/model_icon_loading.svg')"
+            [class.rotate-icon]="iconLoading"
+            alt=""
+            style="width: 35px; height: 35px"
+          />
         </div>
       </div>
       <div class="right-area">
         <form [formGroup]="groupFormControl" class="flex flex-col gap-[12px]">
           <div class="name-wrapper">
             <div class="input-container">
-              <span class="char-counter">
-                {{ groupFormControl.get('name')?.value?.length || 0 }}/64
-              </span>
+              <span class="char-counter"> {{ groupFormControl.get('name')?.value?.length || 0 }}/64 </span>
             </div>
             <input
               nz-input
@@ -38,12 +41,7 @@
           <div class="desc-wrapper">
             <textarea
               nz-input
-              style="
-                width: 100%;
-                min-width: 100%;
-                height: 104px;
-                max-height: 62px;
-              "
+              style="width: 100%; min-width: 100%; height: 104px; max-height: 62px"
               resize="none"
               maxlength="256"
               [(ngModel)]="openingDescription"
@@ -58,18 +56,41 @@
     </div>
   </div>
   <div class="prompt-container relative mt-[12px]" *ngIf="isShowPrompt">
-    <nz-spin *ngIf="tiLoading" style="position: absolute; width:50px;height:50px;left: 50%;top: 50%;background-color: transparent"></nz-spin>
+    <nz-spin *ngIf="tiLoading" style="position: absolute; width: 50px; height: 50px; left: 50%; top: 50%; background-color: transparent"></nz-spin>
     <div class="top-area">
       <div class="prompt-title">{{ 'prompt' | i18nextEager }}</div>
       <div class="op-btns">
         <div class="img-hover">
-          <div style="display: flex;justify-content: center;align-items: center;color: #1a1a1a"
-               nz-tooltip
-               [nzTooltipTitle]="exampleTipTemplate"
-               nzTooltipPlacement="bottom"
-               nzTooltipOverlayClassName="max-w-[315px]"
-               nzTooltipColor="#fff"
-               (click)="addExamplePrompt()">
+          <button
+            [nzTooltipTitle]="showPromptTip()"
+            nzTooltipPlacement="top"
+            nz-tooltip
+            [disabled]="!isNotEmptyAfterTrim()"
+            (click)="openOptimizePromptModal()"
+          >
+            <div style="display: flex; justify-content: center; align-items: center">
+              <img *ngIf="isNotEmptyAfterTrim()" [src]="changeUrl('assets/agent/intelligent-highlight.svg')" alt="" />
+              <img *ngIf="!isNotEmptyAfterTrim()" [src]="changeUrl('assets/agent/intelligent-grey.svg')" alt="" />
+            </div>
+          </button>
+        </div>
+        <div class="img-hover">
+          <button [nzTooltipTitle]="'citation_template' | i18nextEager" nzTooltipPlacement="top" nz-tooltip (click)="openRefModal()">
+            <div style="display: flex; justify-content: center; align-items: center">
+              <img [src]="changeUrl('assets/agent-center/flow/prompt.svg')" alt="" />
+            </div>
+          </button>
+        </div>
+        <div class="img-hover">
+          <div
+            style="display: flex; justify-content: center; align-items: center; color: #1a1a1a"
+            nz-tooltip
+            [nzTooltipTitle]="exampleTipTemplate"
+            nzTooltipPlacement="bottom"
+            nzTooltipOverlayClassName="max-w-[315px]"
+            nzTooltipColor="#fff"
+            (click)="addExamplePrompt()"
+          >
             <img [src]="changeUrl('assets/agent/role-instruction-template.svg')" alt="" />
           </div>
         </div>
@@ -81,20 +102,30 @@
           (click)="showVarList($event)"
           class="img-hover"
         >
-          <div class="ref-args-icon"
-               (mousedown)="$event.preventDefault()"
-               (click)="showVarList($event)"
-          ></div>
+          <div class="ref-args-icon" (mousedown)="$event.preventDefault()" (click)="showVarList($event)"></div>
+        </div>
+        <div class="img-hover">
+          <button
+            [nzTooltipTitle]="'save_tmp' | i18nextEager"
+            nzTooltipPlacement="top"
+            nz-tooltip
+            [disabled]="!(promptInputed && promptInputed.length > 0)"
+            (click)="showSaveTmplModal()"
+          >
+            <div style="display: flex; justify-content: center; align-items: center">
+              <img
+                [src]="changeUrl(!(promptInputed && promptInputed.length > 0) ? 'assets/prompt/prompt-save-disabled.svg' : 'assets/prompt/prompt-save.svg')"
+                alt=""
+              />
+            </div>
+          </button>
         </div>
       </div>
     </div>
     <div class="bottom-area">
       <div class="prompt-tags" *ngIf="isNotEmptyAfterTrim()">
         @for (item of getUniqueTags(agentInfo.promptTags); track item.name) {
-          <span
-            class="single-tag"
-            [ngStyle]="getTagStyle(item.type)"
-          >
+          <span class="single-tag" [ngStyle]="getTagStyle(item.type)">
             {{ item.name }}
           </span>
         }
@@ -107,7 +138,7 @@
         [(ngModel)]="promptInputed"
         [disabled]="isFlowReadonly"
         [placeholder]="placeholderStr"
-        [variants]="dispatchSelectedType === 'ReAct'?variants:[]"
+        [variants]="dispatchSelectedType === 'ReAct' ? variants : []"
         [variantsTrigger]="showVarList$()"
         [maxHeight]="''"
         (ngModelChange)="onInputChange($event)"

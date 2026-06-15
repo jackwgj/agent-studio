@@ -36,19 +36,6 @@ interface ActionMenuItem {
   };
 }
 
-interface TableRowData {
-  id: string;
-  taskName: string;
-  type: string;
-  desc: string;
-  status: string;
-  log: string;
-  progressRate: number;
-  executionTime: number;
-  updatedTime: number;
-  originData: any;
-}
-
 interface TableColumn {
   title: string;
   width?: string;
@@ -56,11 +43,6 @@ interface TableColumn {
 
 interface PageSizeConfig {
   options: number[];
-  size: number;
-}
-
-interface PaginationEvent {
-  currentPage: number;
   size: number;
 }
 
@@ -96,7 +78,6 @@ interface PaginationEvent {
 export class PromptOptimizeTaskListComponent {
   @Input() isLibraryPrompt = false;
   isLoading = false;
-  displayedData: Array<TableRowData> = [];
   taskList = {
     data: [],
     state: undefined,
@@ -139,11 +120,11 @@ export class PromptOptimizeTaskListComponent {
   filterOption = {
     typeFilter: {
       options: [
-        { label: this.i18n.transform('all_types'), value: '' },
-        { label: this.i18n.transform('text'), value: 'text' },
-        { label: this.i18n.transform('multimodal'), value: 'multi' },
+        { label: this.i18n.transform('all_types'), value: '', num: 0 },
+        { label: this.i18n.transform('text'), value: 'text', num: 0 },
+        { label: this.i18n.transform('multimodal'), value: 'multi', num: 0 },
       ],
-      value: { label: this.i18n.transform('all_types'), value: '' },
+      value: '',
     },
     statusFilter: {
       options: [
@@ -163,7 +144,7 @@ export class PromptOptimizeTaskListComponent {
         },
         { label: this.i18n.transform('stop'), value: 'PAUSE', num: 0 },
       ],
-      value: { label: this.i18n.transform('all_tasks'), value: '', num: 0 },
+      value: '',
     },
     searchText: {
       value: '',
@@ -194,7 +175,7 @@ export class PromptOptimizeTaskListComponent {
   }
 
   get searchNameIsEmpty() {
-    return this.filterOption.statusFilter.value?.value === '' && this.filterOption.typeFilter.value?.value === '' && !this.filterOption.searchText.value;
+    return this.filterOption.statusFilter.value === '' && this.filterOption.typeFilter.value === '' && !this.filterOption.searchText.value;
   }
 
   constructor(
@@ -226,59 +207,58 @@ export class PromptOptimizeTaskListComponent {
   }
 
   handleClickClearSearch() {
-    this.filterOption.statusFilter.value = this.filterOption.statusFilter.options[0];
-    this.filterOption.typeFilter.value = this.filterOption.typeFilter.options[0];
+    this.filterOption.statusFilter.value = this.filterOption.statusFilter.options[0].value;
+    this.filterOption.typeFilter.value = this.filterOption.typeFilter.options[0].value;
     this.filterOption.searchText.value = '';
     this.listTasks();
   }
 
-  dataToItemsFn = (data: any): Array<ActionMenuItem> => {
-    let items: Array<ActionMenuItem> = [];
-
+  dataToItemsFn(data: any) {
+    const res = [];
     if (['success'].includes(data.status)) {
-      items.push({
+      res.push({
         id: 'show',
         label: this.i18n.transform('view'),
         disabled: !this.subscribeBtnStatus,
       });
     }
     if (['optimizing'].includes(data.status) && data.progressRate > 0) {
-      items.push({
+      res.push({
         id: 'show',
         label: this.i18n.transform('view'),
         disabled: !this.subscribeBtnStatus,
       });
     }
     if (['draft'].includes(data.status)) {
-      items.push({
+      res.push({
         id: 'edit',
         label: this.i18n.transform('base_edit'),
         disabled: !this.subscribeBtnStatus,
       });
     }
     if (['optimizing'].includes(data.status)) {
-      items.push({
+      res.push({
         id: 'stop',
         label: this.i18n.transform('stop'),
         disabled: !this.subscribeBtnStatus,
       });
     }
     if (['failed'].includes(data.status)) {
-      items.push({
+      res.push({
         id: 'retry',
         label: this.i18n.transform('base_retry'),
         disabled: !this.subscribeBtnStatus,
       });
     }
     if (['pause'].includes(data.status)) {
-      items.push({
+      res.push({
         id: 'continue',
         label: this.i18n.transform('continue'),
         disabled: !this.subscribeBtnStatus,
       });
     }
     if (['success', 'waiting', 'failed', 'optimizing'].includes(data.status)) {
-      items.push({
+      res.push({
         id: 'copy',
         label: this.i18n.transform('create_copy'),
         disabled: !this.subscribeBtnStatus,
@@ -286,7 +266,7 @@ export class PromptOptimizeTaskListComponent {
     }
 
     if (['draft', 'pause', 'success', 'waiting', 'failed'].includes(data.status)) {
-      items.push({
+      res.push({
         id: 'del',
         label: this.i18n.transform('base_remove'),
         disabled: !this.subscribeBtnStatus,
@@ -300,10 +280,10 @@ export class PromptOptimizeTaskListComponent {
         },
       });
     }
-    return items;
-  };
+    return res;
+  }
 
-  onSelect(action: ActionMenuItem, task: TableRowData): void {
+  onSelect(action: ActionMenuItem, task: any): void {
     if (action.id === 'show') {
       this.router.navigate(['/home/prompt/optimize/detail'], {
         queryParams: { id: task.id },
@@ -355,7 +335,7 @@ export class PromptOptimizeTaskListComponent {
   }
 
   private convertTask(task: OptimizeTaskItem) {
-    return {
+    const res = {
       id: task.id,
       taskName: task.name,
       type: this.convertType(task.pt_type),
@@ -367,7 +347,10 @@ export class PromptOptimizeTaskListComponent {
       createTime: task.created_time,
       updatedTime: task.updatedTime,
       originData: task,
+      actionList: [],
     };
+    res.actionList = this.dataToItemsFn(res);
+    return res;
   }
 
   private convertStatus(status: string) {
@@ -402,8 +385,14 @@ export class PromptOptimizeTaskListComponent {
     }
   }
 
-  public handlePageChange(pageInfo: PaginationEvent) {
-    this.listTasks(pageInfo.currentPage, pageInfo.size);
+  public handlePageChange(page: number) {
+    this.currentPage = page;
+    this.listTasks(page, this.pageSize.size);
+  }
+
+  public handlePageSizeChange() {
+    this.currentPage = 1;
+    this.listTasks(1, this.pageSize.size);
   }
 
   public handleSearch() {
@@ -422,11 +411,11 @@ export class PromptOptimizeTaskListComponent {
     if (this.filterOption.searchText.value) {
       params.name = this.filterOption.searchText?.value;
     }
-    if (this.filterOption.typeFilter.value.value) {
-      params.type = this.filterOption.typeFilter?.value?.value;
+    if (this.filterOption.typeFilter.value) {
+      params.type = this.filterOption.typeFilter?.value;
     }
-    if (this.filterOption.statusFilter.value.value) {
-      params.status = this.filterOption.statusFilter?.value?.value;
+    if (this.filterOption.statusFilter.value) {
+      params.status = this.filterOption.statusFilter?.value;
     }
     this.promptOptimizeService
       .listTasks(params, pageSize, page)
@@ -439,7 +428,10 @@ export class PromptOptimizeTaskListComponent {
         this.filterOption.statusFilter.options[5].num = statusStatics.FAILED ?? 0;
         this.filterOption.statusFilter.options[6].num = statusStatics.PAUSE ?? 0;
         this.filterOption.statusFilter.options[0].num = statusStatics.TOTAL ?? 0;
-        this.filterOption.statusFilter.value = this.filterOption.statusFilter.options.find(item => item.value === this.filterOption.statusFilter.value.value);
+        this.filterOption.typeFilter.options[0].num = statusStatics.TOTAL ?? 0;
+        this.filterOption.typeFilter.options[1].num = statusStatics.TEXT ?? 0;
+        this.filterOption.typeFilter.options[2].num = statusStatics.MULTI ?? 0;
+        this.filterOption.statusFilter.value = this.filterOption.statusFilter.options.find(item => item.value === this.filterOption.statusFilter.value)?.value;
         this.currentPage = res.data?.pageNum ?? 1;
         this.pageSize.size = res.data?.pageSize ?? 10;
         this.totalNumber = res.data?.total ?? 0;

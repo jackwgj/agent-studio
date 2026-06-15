@@ -6,124 +6,124 @@
     <div *ngIf="activeStep === 0; else step1" class="step0">
       <div class="basic-info">
         <form nz-form nzLayout="vertical" [formGroup]="basicInfoForm" class="w-full">
-        <nz-form-item class="w-full">
-          <nz-form-label [nzSpan]="24" nzRequired>{{ basicInfoFormLabel.taskName }}</nz-form-label>
-          <nz-form-control>
-            <input nz-input [placeholder]="'enter_task_name' | i18nextEager" class="w-full" formControlName="taskName" type="text" />
-          </nz-form-control>
-        </nz-form-item>
-        <nz-form-item class="w-full">
-          <nz-form-label [nzSpan]="24" nzRequired>{{ basicInfoFormLabel.desc }}</nz-form-label>
-          <nz-form-control>
-            <textarea
-              nz-input
-              [placeholder]="'enter_task_description' | i18nextEager"
-              formControlName="desc"
-              maxlength="256"
-              [nzAutosize]="{ minRows: 2, maxRows: 6 }"
-              style="width: 100%"
-            ></textarea>
-          </nz-form-control>
-        </nz-form-item>
-        <div class="dividing-line"></div>
-        <div style="width: 100%">
-          <div class="the-obj-to-apply mb-2">{{ basicInfoFormLabel.theObjectToApply }}</div>
-          <nz-form-item>
+          <nz-form-item class="w-full">
+            <nz-form-label [nzSpan]="24" nzRequired>{{ basicInfoFormLabel.taskName }}</nz-form-label>
             <nz-form-control>
-              <nz-select formControlName="theTypeOfObjectToApply">
-                @for (item of objectApplyTypeOptions; track item) {
-                  <nz-option [nzLabel]="item.label" [nzValue]="item.value"  [nzDisabled]="item.disabled"/>
+              <input nz-input [placeholder]="'enter_task_name' | i18nextEager" class="w-full" formControlName="taskName" type="text" />
+            </nz-form-control>
+          </nz-form-item>
+          <nz-form-item class="w-full">
+            <nz-form-label [nzSpan]="24" nzRequired>{{ basicInfoFormLabel.desc }}</nz-form-label>
+            <nz-form-control>
+              <textarea
+                nz-input
+                [placeholder]="'enter_task_description' | i18nextEager"
+                formControlName="desc"
+                maxlength="256"
+                [nzAutosize]="{ minRows: 2, maxRows: 6 }"
+                style="width: 100%"
+              ></textarea>
+            </nz-form-control>
+          </nz-form-item>
+          <div class="dividing-line"></div>
+          <div style="width: 100%">
+            <div class="the-obj-to-apply mb-2">{{ basicInfoFormLabel.theObjectToApply }}</div>
+            <nz-form-item>
+              <nz-form-control>
+                <nz-select formControlName="theTypeOfObjectToApply">
+                  @for (item of objectApplyTypeOptions; track item) {
+                    <nz-option [nzLabel]="item.label" [nzValue]="item.value" [nzDisabled]="item.disabled" />
+                  }
+                </nz-select>
+              </nz-form-control>
+            </nz-form-item>
+            <nz-form-item *ngIf="basicInfoForm.value.theTypeOfObjectToApply === 'model'">
+              <nz-form-control>
+                <div>
+                  <llm-select
+                    (update)="handleApplyObjectChange($event)"
+                    [index]="0"
+                    [modelType]="modelType"
+                    [panelAlign]="'left'"
+                    [selectedModel]="basicInfoForm.value.theObjectToApply"
+                  >
+                  </llm-select>
+                </div>
+              </nz-form-control>
+            </nz-form-item>
+          </div>
+
+          <nz-form-item class="w-full">
+            <nz-form-label [nzSpan]="24" nzRequired>{{ basicInfoFormLabel.type }}</nz-form-label>
+            <nz-form-control>
+              <nz-select
+                (ngModelChange)="handleTypeSelect($event)"
+                [(ngModel)]="promptTypeSelected"
+                [nzPlaceHolder]="'select_type' | i18nextEager"
+                style="width: 100%"
+                [ngModelOptions]="{ standalone: true }"
+              >
+                @for (item of promptTypeOptions; track item) {
+                  <nz-option [nzLabel]="item.label" [nzValue]="item.value" />
                 }
               </nz-select>
             </nz-form-control>
           </nz-form-item>
-          <nz-form-item *ngIf="basicInfoForm.value.theTypeOfObjectToApply === 'model'">
+
+          <nz-form-item class="w-full custom-deep">
             <nz-form-control>
-              <div>
-                <llm-select
-                  (update)="handleApplyObjectChange($event)"
-                  [index]="0"
-                  [modelType]="modelType"
-                  [panelAlign]="'left'"
-                  [selectedModel]="basicInfoForm.value.theObjectToApply"
-                >
-                </llm-select>
-              </div>
-            </nz-form-control>
-          </nz-form-item>
-        </div>
-
-        <nz-form-item class="w-full">
-          <nz-form-label [nzSpan]="24" nzRequired>{{ basicInfoFormLabel.type }}</nz-form-label>
-          <nz-form-control>
-            <nz-select
-              (ngModelChange)="handleTypeSelect($event)"
-              [(ngModel)]="promptTypeSelected"
-              [nzPlaceHolder]="'select_type' | i18nextEager"
-              style="width: 100%"
-              [ngModelOptions]="{standalone: true}"
-            >
-              @for (item of promptTypeOptions; track item) {
-                <nz-option [nzLabel]="item.label" [nzValue]="item.value" />
-              }
-            </nz-select>
-          </nz-form-control>
-        </nz-form-item>
-
-        <nz-form-item class="w-full custom-deep">
-          <nz-form-control>
-            <div class="flex gap-2 flex-col" style="height: 100%">
-              <div class="prompt-label">
-                <div class="prompt-title">
-                  {{ basicInfoFormLabel.prompt }}
+              <div class="flex gap-2 flex-col" style="height: 100%">
+                <div class="prompt-label">
+                  <div class="prompt-title">
+                    {{ basicInfoFormLabel.prompt }}
+                  </div>
+                  <div class="prompt-action">
+                    <button
+                      nz-button
+                      nzType="default"
+                      nzSize="small"
+                      (click)="showInserter()"
+                      (mousedown)="$event.preventDefault()"
+                      [nzType]="'default'"
+                      nz-tooltip
+                      [nzTooltipTitle]="'insert_variable' | i18nextEager"
+                    >
+                      <img [src]="changeUrl('assets/prompt/insert_variable.svg')" alt="" class="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
-                <div class="prompt-action">
-                  <button
-                    nz-button
-                    nzType="default"
-                    nzSize="small"
-                    (click)="showInserter()"
-                    (mousedown)="$event.preventDefault()"
-                    [nzType]="'default'"
-                    nz-tooltip
-                    [nzTooltipTitle]="'insert_variable' | i18nextEager"
-                  >
-                    <img [src]="changeUrl('assets/prompt/insert_variable.svg')" alt="" class="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-              <div class="prompt-editor">
-                <meta-prompt-editor
-                  (afterInsertVariable)="hideInserter()"
-                  (click)="scrollToEditor()"
-                  (variablesChange)="updateVariables($event)"
-                  [class]="{ 'h-[530px]': !!basicInfoForm.value.prompt?.trim(), 'h-[402px]': !basicInfoForm.value.prompt?.trim() }"
-                  [initVariables]="initVariableList"
-                  [maxLength]="promptMaxLength"
-                  [promptType]="basicInfoForm.value.type"
-                  [showInserter]="isShowInserter"
-                  [style]="{
-                    height: !basicInfoForm.value.prompt?.trim() ? '390px' : '518px',
-                  }"
-                  [variables]="variableList"
-                  formControlName="prompt"
-                ></meta-prompt-editor>
-                <div *ngIf="!basicInfoForm.value.prompt?.trim()" class="prompt-example">
-                  <div class="label">{{ 'prompt_example' | i18nextEager }}</div>
-                  <div class="content">
-                    <ng-container *ngFor="let example of promptExample">
-                      <div (click)="handleExampleClick(example)" *ngIf="example.type === basicInfoForm.value.type" class="example-item">
-                        <div class="title" nz-ellipsis>{{ example.title }}</div>
-                        <div nz-tooltip [nzTooltipTitle]="example.value" nz-ellipsis class="content" style="max-width: 600px">{{ example.value }}</div>
-                      </div>
-                    </ng-container>
+                <div class="prompt-editor">
+                  <meta-prompt-editor
+                    (afterInsertVariable)="hideInserter()"
+                    (click)="scrollToEditor()"
+                    (variablesChange)="updateVariables($event)"
+                    [class]="{ 'h-[530px]': !!basicInfoForm.value.prompt?.trim(), 'h-[402px]': !basicInfoForm.value.prompt?.trim() }"
+                    [initVariables]="initVariableList"
+                    [maxLength]="promptMaxLength"
+                    [promptType]="basicInfoForm.value.type"
+                    [showInserter]="isShowInserter"
+                    [style]="{
+                      height: !basicInfoForm.value.prompt?.trim() ? '390px' : '518px',
+                    }"
+                    [variables]="variableList"
+                    formControlName="prompt"
+                  ></meta-prompt-editor>
+                  <div *ngIf="!basicInfoForm.value.prompt?.trim()" class="prompt-example">
+                    <div class="label">{{ 'prompt_example' | i18nextEager }}</div>
+                    <div class="content">
+                      <ng-container *ngFor="let example of promptExample">
+                        <div (click)="handleExampleClick(example)" *ngIf="example.type === basicInfoForm.value.type" class="example-item">
+                          <div class="title" nz-ellipsis>{{ example.title }}</div>
+                          <div nz-tooltip [nzTooltipTitle]="example.value" nz-ellipsis class="content" style="max-width: 600px">{{ example.value }}</div>
+                        </div>
+                      </ng-container>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </nz-form-control>
-        </nz-form-item>
-     </form>
+            </nz-form-control>
+          </nz-form-item>
+        </form>
       </div>
       <div class="use-cases">
         <meta-use-cases
@@ -151,150 +151,163 @@
     <ng-template #step1>
       <div class="step1">
         <div class="input-area">
-          <nz-form-item class="w-full">
-            <nz-form-label [nzSpan]="24">{{ basicSettingsFormLabel.model }}</nz-form-label>
-            <nz-form-control>
-              <div style="width: 444px">
-                <llm-select (update)="handleExecuteModelChange($event)" [panelAlign]="'left'" [selectedModel]="basicSettingsForm.controls.model.value">
-                </llm-select>
-              </div>
-            </nz-form-control>
-          </nz-form-item>
-          <nz-form-item class="w-full">
-            <nz-form-label [nzSpan]="24">{{ basicSettingsFormLabel.executionTime }}</nz-form-label>
-            <nz-form-control>
-              <nz-radio-group [(ngModel)]="executionTimeMode[0].active">
-                <label nz-radio [nzValue]="true">{{ 'later_start' | i18nextEager }}</label>
-                <label nz-radio [nzValue]="false">{{ 'immediate_start' | i18nextEager }}</label>
-              </nz-radio-group>
-              <nz-date-picker
-                *ngIf="executionTimeMode[0].active"
-                [nzFormat]="'yyyy/MM/dd HH:mm:ss'"
-                [nzShowTime]="true"
-                [nzDisabledDate]="disabledDate"
-                formControlName="executionTime"
-              ></nz-date-picker>
-            </nz-form-control>
-          </nz-form-item>
-          <div class="dividing-line"></div>
+          <form nz-form nzLayout="vertical" [formGroup]="basicSettingsForm" class="w-full">
+            <nz-form-item class="w-full">
+              <nz-form-label [nzSpan]="24">{{ basicSettingsFormLabel.model }}</nz-form-label>
+              <nz-form-control>
+                <div style="width: 444px">
+                  <llm-select (update)="handleExecuteModelChange($event)" [panelAlign]="'left'" [selectedModel]="basicSettingsForm.controls.model.value">
+                  </llm-select>
+                </div>
+              </nz-form-control>
+            </nz-form-item>
+            <nz-form-item class="w-full">
+              <nz-form-label [nzSpan]="24">{{ basicSettingsFormLabel.executionTime }}</nz-form-label>
+              <nz-form-control>
+                <nz-radio-group formControlName="executionTimeMode">
+                  <label nz-radio [nzValue]="true">{{ 'later_start' | i18nextEager }}</label>
+                  <label nz-radio [nzValue]="false">{{ 'immediate_start' | i18nextEager }}</label>
+                </nz-radio-group>
+                <nz-date-picker
+                  *ngIf="basicSettingsForm.value.executionTimeMode"
+                  [nzFormat]="'yyyy/MM/dd HH:mm:ss'"
+                  [nzShowTime]="true"
+                  [nzDisabledDate]="disabledDate"
+                  formControlName="executionTime"
+                ></nz-date-picker>
+              </nz-form-control>
+            </nz-form-item>
 
-          <nz-form-item class="w-full">
-            <nz-form-label [nzSpan]="24">{{ basicSettingsFormLabel.maximumRound }}</nz-form-label>
-            <nz-form-control>
-              <div class="tip">
-                {{ 'optimize_rounds_limit' | i18nextEager }}
-              </div>
-              <div class="flex gap-4">
-                <div class="w-[309px] h-6 flex items-center">
-                  <nz-slider (nzOnAfterChange)="handleMaxRoundChange()" [nzMax]="20" [nzMin]="1" [nzStep]="1" class="m-0 w-full" formControlName="maximumRound">
-                  </nz-slider>
+            <div class="dividing-line"></div>
+
+            <nz-form-item class="w-full">
+              <nz-form-label [nzSpan]="24">{{ basicSettingsFormLabel.maximumRound }}</nz-form-label>
+              <nz-form-control>
+                <div class="tip">
+                  {{ 'optimize_rounds_limit' | i18nextEager }}
                 </div>
-                <div style="width: 72px">
-                  <nz-input-number
-                    (nzBlur)="handleMaxRoundChange()"
-                    [nzMax]="20"
-                    [nzMin]="1"
-                    [nzStep]="1"
-                    formControlName="maximumRound"
-                    placeholder="1~20"
-                  ></nz-input-number>
+                <div class="flex gap-4">
+                  <div class="w-[309px] h-6 flex items-center">
+                    <nz-slider
+                      (nzOnAfterChange)="handleMaxRoundChange()"
+                      [nzMax]="20"
+                      [nzMin]="1"
+                      [nzStep]="1"
+                      class="m-0 w-full"
+                      formControlName="maximumRound"
+                    >
+                    </nz-slider>
+                  </div>
+                  <div style="width: 72px">
+                    <nz-input-number
+                      (ngModelChange)="handleMaxRoundChange()"
+                      [nzMax]="20"
+                      [nzMin]="1"
+                      [nzStep]="1"
+                      formControlName="maximumRound"
+                      placeholder="1~20"
+                    ></nz-input-number>
+                  </div>
                 </div>
-              </div>
-            </nz-form-control>
-          </nz-form-item>
-          <div class="dividing-line"></div>
-          <nz-form-item class="w-full">
-            <nz-form-label [nzSpan]="24">{{ basicSettingsFormLabel.numberOfPromptExamples }}</nz-form-label>
-            <nz-form-control>
-              <button
-                *ngFor="let item of numberOfPromptExamplesItems"
-                nz-button
-                [nzType]="basicSettingsForm.value.numberOfPromptExamples?.text === item.text ? 'primary' : 'default'"
-                (click)="basicSettingsForm.controls.numberOfPromptExamples.setValue(item)"
-              >
-                {{ item.text }}
-              </button>
-              <div class="tip">
-                {{ 'add_reply_examples_in_prompt' | i18nextEager }}
-              </div>
-            </nz-form-control>
-          </nz-form-item>
-          <nz-form-item class="w-full">
-            <nz-form-label [nzSpan]="24">{{ basicSettingsFormLabel.taskType }}</nz-form-label>
-            <nz-form-control>
-              <nz-radio-group class="flex gap-6" formControlName="taskType">
-                @for (taskTypeOption of taskTypeOptions; track taskTypeOption) {
-                  <label nz-radio nzValue="taskTypeOption.value">
-                    <div class="task-type-option-item">
-                      <header class="task-type-option-item-header">{{ taskTypeOption.title }}</header>
-                      <section class="task-type-option-item-body">{{ taskTypeOption.content }}</section>
-                      <section class="task-type-option-item-body">{{ taskTypeOption.example }}</section>
+              </nz-form-control>
+            </nz-form-item>
+            <div class="dividing-line"></div>
+            <nz-form-item class="w-full">
+              <nz-form-label [nzSpan]="24">{{ basicSettingsFormLabel.numberOfPromptExamples }}</nz-form-label>
+              <nz-form-control>
+                <button
+                  *ngFor="let item of numberOfPromptExamplesItems"
+                  nz-button
+                  [nzType]="basicSettingsForm.value.numberOfPromptExamples?.text === item.text ? 'primary' : 'default'"
+                  (click)="basicSettingsForm.controls.numberOfPromptExamples.setValue(item)"
+                >
+                  {{ item.text }}
+                </button>
+                <div class="tip">
+                  {{ 'add_reply_examples_in_prompt' | i18nextEager }}
+                </div>
+              </nz-form-control>
+            </nz-form-item>
+            <nz-form-item class="w-full">
+              <nz-form-label [nzSpan]="24">{{ basicSettingsFormLabel.taskType }}</nz-form-label>
+              <nz-form-control>
+                <nz-radio-group class="flex gap-6" formControlName="taskType">
+                  @for (taskTypeOption of taskTypeOptions; track taskTypeOption) {
+                    <label nz-radio [nzValue]="taskTypeOption.value">
+                      <div class="task-type-option-item">
+                        <header class="task-type-option-item-header">{{ taskTypeOption.title }}</header>
+                        <section class="task-type-option-item-body">{{ taskTypeOption.content }}</section>
+                        <section class="task-type-option-item-body">{{ taskTypeOption.example }}</section>
+                      </div>
+                    </label>
+                  }
+                </nz-radio-group>
+              </nz-form-control>
+            </nz-form-item>
+          </form>
+          <form nz-form nzLayout="vertical" [formGroup]="advancedSettingsForm" class="w-full">
+            <div class="dividing-line"></div>
+            <div (click)="isShowAdvancedSettings = !isShowAdvancedSettings" class="advanced-settings-title">
+              {{ 'advanced_config_optional' | i18nextEager }}
+              <img *ngIf="!isShowAdvancedSettings" [src]="changeUrl('assets/agent-center/flow/fold.svg')" alt="" class="h-4 w-4" />
+              <img *ngIf="isShowAdvancedSettings" [src]="changeUrl('assets/agent-center/flow/unfold.svg')" alt="" class="h-4 w-4" />
+            </div>
+            <nz-form-item class="w-full">
+              <nz-form-control>
+                <div class="flex gap-2 flex-col w-full">
+                  <div class="label">
+                    <div class="title">
+                      {{ advancedSettingsFormLabel.scoringCriteria }}
+                      <img
+                        alt=""
+                        [src]="changeUrl('assets/prompt/optimize-tip.svg')"
+                        nz-tooltip
+                        [nzTooltipTitle]="'output_scoring_criteria' | i18nextEager"
+                        style="cursor: pointer"
+                      />
                     </div>
-                  </label>
-                }
-              </nz-radio-group>
-            </nz-form-control>
-          </nz-form-item>
-
-          <div class="dividing-line"></div>
-          <div (click)="isShowAdvancedSettings = !isShowAdvancedSettings" class="advanced-settings-title">
-            {{ 'advanced_config_optional' | i18nextEager }}
-            <img *ngIf="!isShowAdvancedSettings" [src]="changeUrl('assets/agent-center/flow/fold.svg')" alt="" class="h-4 w-4" />
-            <img *ngIf="isShowAdvancedSettings" [src]="changeUrl('assets/agent-center/flow/unfold.svg')" alt="" class="h-4 w-4" />
-          </div>
-          <nz-form-item *ngIf="isShowAdvancedSettings" class="w-full">
-            <nz-form-control>
-              <div class="flex gap-2 flex-col w-full">
-                <div class="label">
-                  <div class="title">
-                    {{ advancedSettingsFormLabel.scoringCriteria }}
-                    <img alt=""
-                      [src]="changeUrl('assets/prompt/optimize-tip.svg')"
-                      nz-tooltip
-                      [nzTooltipTitle]="'output_scoring_criteria' | i18nextEager"
-                      style="cursor: pointer"
-                    />
+                    <div class="action">
+                      <nz-switch (ngModelChange)="handleClickSwitch()" formControlName="enableScoringCriteria"></nz-switch>
+                    </div>
                   </div>
-                  <div class="action">
-                    <nz-switch (ngModelChange)="handleClickSwitch()" formControlName="enableScoringCriteria"></nz-switch>
-                  </div>
+                  <textarea
+                    nz-input
+                    [placeholder]="scoringCriteriaPlaceholder"
+                    [nzAutosize]="{ minRows: 4, maxRows: 10 }"
+                    class="w-full h-[240px]"
+                    formControlName="scoringCriteria"
+                    maxlength="1000"
+                  ></textarea>
                 </div>
-                <textarea
-                  nz-input
-                  [placeholder]="scoringCriteriaPlaceholder"
-                  [nzAutosize]="{ minRows: 4, maxRows: 10 }"
-                  class="w-full h-[240px]"
-                  formControlName="scoringCriteria"
-                  maxlength="1000"
-                ></textarea>
-              </div>
-            </nz-form-control>
-          </nz-form-item>
-          <nz-form-item *ngIf="isShowAdvancedSettings" class="w-full">
-            <nz-form-control>
-              <div class="flex gap-2 flex-col w-full">
-                <div class="label">
-                  <div class="title">
-                    {{ advancedSettingsFormLabel.backgroundPrompt }}
-                    <img alt=""
-                      [src]="changeUrl('assets/prompt/optimize-tip.svg')"
-                      nz-tooltip
-                      [nzTooltipTitle]="'vertical_knowledge_addition' | i18nextEager"
-                      style="cursor: pointer"
-                    />
+              </nz-form-control>
+            </nz-form-item>
+            <nz-form-item class="w-full">
+              <nz-form-control>
+                <div class="flex gap-2 flex-col w-full">
+                  <div class="label">
+                    <div class="title">
+                      {{ advancedSettingsFormLabel.backgroundPrompt }}
+                      <img
+                        alt=""
+                        [src]="changeUrl('assets/prompt/optimize-tip.svg')"
+                        nz-tooltip
+                        [nzTooltipTitle]="'vertical_knowledge_addition' | i18nextEager"
+                        style="cursor: pointer"
+                      />
+                    </div>
                   </div>
+                  <textarea
+                    nz-input
+                    [placeholder]="backgroundPromptPlaceholder"
+                    [nzAutosize]="{ minRows: 4, maxRows: 10 }"
+                    class="w-full h-[240px]"
+                    formControlName="backgroundPrompt"
+                    maxlength="1000"
+                  ></textarea>
                 </div>
-                <textarea
-                  nz-input
-                  [placeholder]="backgroundPromptPlaceholder"
-                  [nzAutosize]="{ minRows: 4, maxRows: 10 }"
-                  class="w-full h-[240px]"
-                  formControlName="backgroundPrompt"
-                  maxlength="1000"
-                ></textarea>
-              </div>
-            </nz-form-control>
-          </nz-form-item>
+              </nz-form-control>
+            </nz-form-item>
+          </form>
         </div>
         <div class="example-area">
           <div class="header">

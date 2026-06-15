@@ -29,23 +29,17 @@
         </nz-tabset>
       </div>
       <ng-container *ngIf="!isShowNoDataGuide && !isFirstLoading">
-        <nz-select
-          class="mr-2"
-          (ngModelChange)="handleSearch()"
-          [(ngModel)]="filterOption.statusFilter.value"
-          [nzOptions]="filterOption.statusFilter.options"
-          nzMode="default"
-        >
-          <ng-template #nzSelectTemplate let-item>
-            <div class="flex gap-1">
-              <span>{{ item.label }}</span>
-              <span>{{ item.num }}</span>
-            </div>
-          </ng-template>
+        <nz-select class="mr-2 w-[200px]" (ngModelChange)="handleSearch()" [(ngModel)]="filterOption.statusFilter.value">
+          @for (item of filterOption.statusFilter.options; track item) {
+            <nz-option [nzLabel]="item.label + ' ' + item.num" [nzValue]="item.value" />
+          }
         </nz-select>
-        <nz-select class="mr-2" (ngModelChange)="handleSearch()" [(ngModel)]="filterOption.typeFilter.value" [nzOptions]="filterOption.typeFilter.options">
+        <nz-select class="mr-2 w-[200px]" (ngModelChange)="handleSearch()" [(ngModel)]="filterOption.typeFilter.value">
+          @for (item of filterOption.typeFilter.options; track item) {
+            <nz-option [nzLabel]="item.label + ' ' + item.num" [nzValue]="item.value" />
+          }
         </nz-select>
-        <nz-input-search (ngModelChange)="handleSearch()" [(ngModel)]="filterOption.searchText.value" class="flex-grow mr-2"> </nz-input-search>
+        <input nz-input [(ngModel)]="filterOption.searchText.value" class="w-[calc(100%-32px)]" (ngModelChange)="handleSearch()" />
         <button (click)="listTasks()" [nz-tooltip]="'prompt_task_refresh' | i18nextEager" nz-button nzType="default">
           <img alt="" [src]="changeUrl('assets/prompt/refresh.svg')" />
         </button>
@@ -54,53 +48,44 @@
     <nz-spin *ngIf="isLoading" [nzSpinning]="isLoading" class="loading-icon"></nz-spin>
     <nz-table
       *ngIf="!isLoading && taskList.data.length && !isFirstLoading"
-      [nzData]="displayedData"
-      class="height-[calc(100% - 110px)] overflow-hidden"
+      [nzData]="taskList.data"
+      class="h-[calc(100% - 110px)] overflow-auto"
       [nzBordered]="false"
-      [nzShowSizeChanger]="false"
+      [nzFrontPagination]="false"
       [nzShowPagination]="false"
     >
-      <div class="table-wrapper h-full">
-        <table>
-          <thead>
-            <tr style="height: 48px">
-              <th *ngFor="let column of columns" [nzWidth]="column?.width ?? ''">{{ column.title }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let task of displayedData" style="height: 60px">
-              <td nz-ellipsis>{{ task.taskName }}</td>
-              <td nz-ellipsis>{{ task.type }}</td>
-              <td nz-ellipsis>{{ task.desc }}</td>
-              <td>
-                <meta-prompt-optimize-task-status [progressRate]="task.progressRate" [status]="task.status" [tip]="task.log">
-                </meta-prompt-optimize-task-status>
-              </td>
-              <td nz-ellipsis>{{ task.executionTime | formateTime }}</td>
-              <td nz-ellipsis>{{ task.updatedTime | formateTime }}</td>
-              <td>
-                <div nz-dropdown [nzDropdownMenu]="actionMenu" nzTrigger="click" [nzPlacement]="'bottomRight'">
-                  <ng-container *ngFor="let action of dataToItemsFn(task)">
-                    <ng-container *nzStringTemplateOutlet="action.label">{{ action.label }}</ng-container>
-                  </ng-container>
-                </div>
-                <nz-dropdown-menu #actionMenu="nzDropdownMenu">
-                  <ul nz-menu>
-                    <ng-container *ngFor="let action of dataToItemsFn(task)">
-                      <li nz-menu-item *ngIf="action.id !== 'del'" [nzDisabled]="action.disabled" (click)="onSelect(action, task)">
-                        {{ action.label }}
-                      </li>
-                      <li nz-menu-item *ngIf="action.id === 'del'" [nzDisabled]="action.disabled" (click)="action.popConfig.close()">
-                        {{ action.label }}
-                      </li>
-                    </ng-container>
-                  </ul>
-                </nz-dropdown-menu>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <thead>
+        <tr style="height: 48px">
+          @for (item of columns; track item) {
+            <th [nzWidth]="item?.width ?? ''">{{ item.title }}</th>
+          }
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let task of taskList.data" style="height: 60px">
+          <td nz-ellipsis>{{ task.taskName }}</td>
+          <td nz-ellipsis>{{ task.type }}</td>
+          <td nz-ellipsis>{{ task.desc }}</td>
+          <td>
+            <meta-prompt-optimize-task-status [progressRate]="task.progressRate" [status]="task.status" [tip]="task.log"> </meta-prompt-optimize-task-status>
+          </td>
+          <td nz-ellipsis>{{ task.executionTime | formateTime }}</td>
+          <td nz-ellipsis>{{ task.updatedTime | formateTime }}</td>
+          <td>
+            @for (action of task.actionList; track action) {
+              @if (action.id !== 'del') {
+                <a nz-button nzType="link" [disabled]="action.disabled" (click)="onSelect(action, task)">
+                  {{ action.label }}
+                </a>
+              } @else {
+                <a nz-button nzType="link" [disabled]="action.disabled" (click)="action.popConfig.close()">
+                  {{ action.label }}
+                </a>
+              }
+            }
+          </td>
+        </tr>
+      </tbody>
     </nz-table>
 
     <div *ngIf="!isLoading && !taskList.data.length" class="no-data">
@@ -117,12 +102,14 @@
     </div>
     <nz-pagination
       *ngIf="totalNumber"
-      [nzPageIndex]="currentPage"
+      nzAlign="end"
+      [(nzPageIndex)]="currentPage"
       [nzTotal]="totalNumber"
-      [nzPageSize]="pageSize.size"
-      [nzShowSizeChanger]="true"
+      [(nzPageSize)]="pageSize.size"
+      nzShowSizeChanger
       [nzPageSizeOptions]="[10, 15, 20]"
-      (nzPageIndexChange)="handlePageChange({ currentPage: $event, size: pageSize.size })"
+      (nzPageIndexChange)="handlePageChange($event)"
+      (nzPageSizeChange)="handlePageSizeChange()"
     ></nz-pagination>
   </div>
 </div>

@@ -32,7 +32,7 @@ import { ModelType } from '@enums/versatile-model.enum';
 import { VariableService } from '@services/agent-center/prompt-optimize-task/prompt-editor.service';
 import { AgentConfigService } from '@routes/agent-center/agent-config.service';
 import { CommonUtils } from 'src/utils/common.util';
-
+import { DebounceDecorators } from '@shared/decorators/debouncing-throttling.directive';
 @Component({
   selector: 'meta-prompt-optimize-task-config',
   standalone: true,
@@ -94,10 +94,7 @@ export class PromptOptimizeTaskConfigComponent {
     desc: new FormControl('', [Validators.required]),
     prompt: new FormControl('', [Validators.required]),
     theObjectToApply: new FormControl('', [Validators.required]),
-    theTypeOfObjectToApply: new FormControl(
-     'model',
-      [Validators.required]
-    ),
+    theTypeOfObjectToApply: new FormControl('model', [Validators.required]),
   });
 
   public taskTypeOptions: Array<any> = [
@@ -145,11 +142,12 @@ export class PromptOptimizeTaskConfigComponent {
   };
   public basicSettingsForm = this.fb.group({
     executionTime: new FormControl(new Date(), [Validators.required]),
+    executionTimeMode: new FormControl(true, []),
     model: new FormControl('', [Validators.required]),
     targetAccuracy: new FormControl(60, [Validators.required]),
     maximumRound: new FormControl(1, [Validators.required]),
     numberOfPromptExamples: new FormControl(this.numberOfPromptExamplesItems[1], [Validators.required]),
-    taskType: new FormControl(this.taskTypeOptions[0], [Validators.required]),
+    taskType: new FormControl(this.taskTypeOptions[0].value, [Validators.required]),
   });
 
   public isShowAdvancedSettings = false;
@@ -186,7 +184,6 @@ export class PromptOptimizeTaskConfigComponent {
   public HWCloudTopHeight: number = 0;
 
   public variant: 'compact' | 'simple' | '常规' = 'compact';
-  public executionTimeMode = [{ active: true }, { active: false }];
 
   public get footerDisabled(): string {
     if (this.activeStep === 0) {
@@ -327,7 +324,7 @@ export class PromptOptimizeTaskConfigComponent {
   }
 
   disabledDate = (current: Date): boolean => {
-    return current > new Date();
+    return current < new Date();
   };
 
   public handleNextStep() {
@@ -403,17 +400,18 @@ export class PromptOptimizeTaskConfigComponent {
     const thisNzModal: any = this.nzModal.create({
       nzContent: EnsureChangeTypeComponent,
       nzWidth: '700px',
-      nzOnCancel: (): void => {
+    });
+    const instance = thisNzModal.getContentComponent();
+    instance.ensure.subscribe((res) => {
+      if(res){
+        this.basicInfoForm.controls.type.setValue(value);
+        this.modelType = ModelType.LLM;
+        this.cdr.markForCheck();
+      }else{
         this.basicInfoForm.controls.type.setValue(this.promptTypeOptions[1].value);
         this.promptTypeSelected = this.promptTypeOptions[1].value;
         this.cdr.markForCheck();
-      },
-    });
-    const instance = thisNzModal.getContentComponent();
-    instance.ensure.subscribe(() => {
-      this.basicInfoForm.controls.type.setValue(value);
-      this.modelType = ModelType.LLM;
-      this.cdr.markForCheck();
+      }
     });
   }
 
@@ -449,7 +447,9 @@ export class PromptOptimizeTaskConfigComponent {
 
   public handleMaxRoundChange() {
     setTimeout(() => {
-      this.basicSettingsForm.controls.maximumRound.setValue(this.basicSettingsForm.value.maximumRound);
+      const value = this.basicSettingsForm.value.maximumRound;
+      this.basicSettingsForm.controls.maximumRound.setValue(null);
+      this.basicSettingsForm.controls.maximumRound.setValue(value);
     }, 0);
   }
 
@@ -476,7 +476,9 @@ export class PromptOptimizeTaskConfigComponent {
       promptId: this.promptId,
       name: this.basicInfoForm.value.taskName || '',
       desc: this.basicInfoForm.value.desc || '',
-      execTime: this.executionTimeMode[1].active ? Date.now().toString() : (this.basicSettingsForm.value.executionTime?.getTime()?.toString() ?? ''),
+      execTime: this.basicSettingsForm.value.executionTimeMode
+        ? (this.basicSettingsForm.value.executionTime?.getTime()?.toString() ?? '')
+        : Date.now().toString(),
       ptType: this.basicInfoForm.value.type || '',
       ptText: this.basicInfoForm.value.prompt || '',
       ptVars:
@@ -488,7 +490,7 @@ export class PromptOptimizeTaskConfigComponent {
             };
           }),
           {
-            name: 'VERSATILE_PROMPT_OUTPUT',
+            name: 'AGENT_BUILDER_PROMPT_OUTPUT',
             type: 'text',
           },
         ]) || '',
@@ -503,7 +505,7 @@ export class PromptOptimizeTaskConfigComponent {
       maxIterNum: this.basicSettingsForm.value.maximumRound || 1,
       targetAcc: '1',
       showCaseNum: parseInt(this.basicSettingsForm.value.numberOfPromptExamples.text) ?? 1,
-      targetType: this.basicSettingsForm.value.taskType.value || '',
+      targetType: this.basicSettingsForm.value.taskType || '',
       // 评分标准可关闭
       scoreStandard: this.advancedSettingsForm.value.enableScoringCriteria ? this.advancedSettingsForm.value.scoringCriteria : '',
       // 多模态不支持背景知识
@@ -607,7 +609,7 @@ export class PromptOptimizeTaskConfigComponent {
       this.basicInfoForm.patchValue({
         taskName: template.template_name,
         desc: template.description,
-        type: (template.pt_type ?? 'text') === 'text' ? this.promptTypeOptions[0].value: this.promptTypeOptions[1].value,
+        type: (template.pt_type ?? 'text') === 'text' ? this.promptTypeOptions[0].value : this.promptTypeOptions[1].value,
       });
       // 修改表单后，数据还未同步给组件，导致进行提示词解析时缺少参数，类型解析错误，需要强制同步
       this.cdr.detectChanges();
@@ -655,7 +657,7 @@ export class PromptOptimizeTaskConfigComponent {
     this.promptId = draft.prompt_id;
     // 确保变量和提示词类型放在提示词前面,避免提示词模板变量渲染错误
     this.variableList = draft.pt_vars
-      .filter(item => item.name !== 'VERSATILE_PROMPT_OUTPUT' && item.name.trim() !== '')
+      .filter(item => item.name !== 'AGENT_BUILDER_PROMPT_OUTPUT' && item.name.trim() !== '')
       .map(item => {
         return {
           type: item.type === 'text' ? VariableType.TEXT : VariableType.IMAGE,
@@ -676,16 +678,16 @@ export class PromptOptimizeTaskConfigComponent {
 
     this.basicSettingsForm.controls.executionTime.setValue(draft.exec_time ? new Date(draft.exec_time) : null);
     if (this.basicSettingsForm.value.executionTime.getTime() < Date.now()) {
-      this.executionTimeMode[0].active = false;
-      this.executionTimeMode[1].active = true;
+      this.basicSettingsForm.controls.executionTimeMode.setValue(false);
     }
-
     this.basicSettingsForm.controls.maximumRound.setValue(draft.max_iter_num);
     this.basicSettingsForm.controls.targetAccuracy.setValue(draft.target_acc * 100);
     this.basicSettingsForm.controls.numberOfPromptExamples.setValue(
       this.numberOfPromptExamplesItems.find(item => item.text === draft.show_case_num.toString())
     );
-    this.basicSettingsForm.controls.taskType.setValue(this.taskTypeOptions.find(item => item.value === draft.target_type));
+    this.basicSettingsForm.controls.taskType.setValue(
+      this.taskTypeOptions.find(item => item.value === draft.target_type)?.value ?? this.taskTypeOptions[0].value
+    );
     if (draft.score_standard.trim() !== '') {
       this.advancedSettingsForm.controls.enableScoringCriteria.setValue(true);
       this.advancedSettingsForm.controls.scoringCriteria.setValue(draft.score_standard);
@@ -737,7 +739,7 @@ export class PromptOptimizeTaskConfigComponent {
         taskType:
           this.taskTypeOptions.find(item => {
             return item.value === example.taskType;
-          }) ?? this.taskTypeOptions[0],
+          })?.value ?? this.taskTypeOptions[0].value,
       },
       { emitEvent: false }
     );

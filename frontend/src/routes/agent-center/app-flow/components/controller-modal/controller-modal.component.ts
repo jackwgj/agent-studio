@@ -96,6 +96,8 @@ import { CommonService } from '@services/common.service';
 import { NodeDescriptionComponent } from '../node-description/node-description.component';
 import {ApplicationType} from "@enums/agent-center.enum";
 import {CONTROLLER_SUB_FLOW_LIMIT, SubAgentModel, SubApplication, SubWorkFlow} from "@routes/agent-center/app-flow/components/controller-modal/controller-modal.interface";
+import { OptimizePromptModalComponent } from '@routes/agent-center/app-agent/components/optimize-prompt-modal/optimize-prompt-modal.component';
+import { SaveTmplLibraryModalComponent } from '@routes/prompt/prompt-candidate-template/save-tmpl-library-modal/save-tmpl-library-modal.component';
 
 const SUBFLOW_LIMIT = CONTROLLER_SUB_FLOW_LIMIT;
 
@@ -1218,16 +1220,6 @@ export class ControllerModalComponent
     ) ?? [];
   }
 
-  public openRefModal() {
-    const modalRef = this.nzModal.create({
-      nzContent: RefPromptComponent,
-      nzClassName: 'ref-prompt-modal',
-    });
-    modalRef.componentInstance.select.subscribe((tmpl: ITmpl) => {
-      this.prompt = tmpl.content;
-    });
-  }
-
   public updateModel(modelInfo: any) {
     this.modelFormGroup.controls.model.setValue(modelInfo.id);
   }
@@ -1239,6 +1231,81 @@ export class ControllerModalComponent
       return extractedValues.join(',');
     }
     return '';
+  }
+
+  public showSaveTmplModal() {
+    if (this.prompt && this.prompt.length > 0) {
+    const thisMOdal = this.nzModal.create({
+      nzContent: SaveTmplLibraryModalComponent,
+      nzWidth: 600,
+      nzData: {
+        currentTmpl: {
+          is_workflow: true,
+          created_on: moment().format('YYYY-MM-DD HH:mm:ss'),
+          content: this.prompt,
+          model_config: {
+            temperature: null,
+            top_p: null,
+            max_tokens: null,
+            presence_penalty: null,
+          },
+        },
+        // 调用接口，保存候选模板作为正式模板
+        modalClose: form => {
+          const params = {
+            task_id: this.paramsId,
+            id: '',
+            name: form.value.templateName,
+            tags: form.value.tags,
+            industry_id: form.value.industrys,
+            content: this.prompt,
+            source: 'PLAYGROUND',
+            variables: this.processString(this.prompt),
+          };
+          this.candidateTemplateListServe.saveFormalTmpl(params).subscribe({
+            next: (res) => {
+              MessageComponent.showSuccess(
+                this.i18n.transform('single_tmpl_save_success_tip'),
+              );
+            },
+          });
+          this.cd.markForCheck();
+        },
+      },
+    });
+
+
+    }
+  }
+
+  public onIntelligentAdd() {
+    if (!this.prompt || this.isFlowReadonly) return;
+    this.nzModal.create({
+      nzContent: OptimizePromptModalComponent,
+      nzWidth: 600,
+      nzData: {
+        instruct: this.prompt,
+        isWorkflow: true,
+        tipsChange: value => {
+          this.prompt = value ?? '';
+          this.cd.markForCheck();
+        },
+      },
+    });
+
+  }
+
+  public openRefModal() {
+    const myModal = this.nzModal.create({
+      nzContent: RefPromptComponent,
+      nzWidth: 1000,
+      nzData: {
+        select: (tmpl: ITmpl) => {
+          this.prompt = tmpl.content;
+          this.cd.markForCheck();
+        },
+      },
+    })
   }
 
   addIntentFlow(flowType: string) {

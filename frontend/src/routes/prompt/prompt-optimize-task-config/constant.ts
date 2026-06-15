@@ -89,7 +89,7 @@ export const ConfigConstants: IConfigConstants = {
               content: '工资卡',
             },
             {
-              name: 'VERSATILE_PROMPT_OUTPUT',
+              name: 'AGENT_BUILDER_PROMPT_OUTPUT',
               type: VariableType.TEXT,
               content: '{"payCard": ["0", "1"]}',
             },
@@ -107,7 +107,7 @@ export const ConfigConstants: IConfigConstants = {
               content: '房贷卡',
             },
             {
-              name: 'VERSATILE_PROMPT_OUTPUT',
+              name: 'AGENT_BUILDER_PROMPT_OUTPUT',
               type: VariableType.TEXT,
               content: '{"payCard": ["1"]}',
             },
@@ -124,7 +124,7 @@ export const ConfigConstants: IConfigConstants = {
               content: '借记卡',
             },
             {
-              name: 'VERSATILE_PROMPT_OUTPUT',
+              name: 'AGENT_BUILDER_PROMPT_OUTPUT',
               type: VariableType.TEXT,
               content: '{"payCard": []}',
             },
@@ -142,7 +142,7 @@ export const ConfigConstants: IConfigConstants = {
               content: '借记卡',
             },
             {
-              name: 'VERSATILE_PROMPT_OUTPUT',
+              name: 'AGENT_BUILDER_PROMPT_OUTPUT',
               type: VariableType.TEXT,
               content: '{"payCard": []}',
             },
@@ -160,7 +160,7 @@ export const ConfigConstants: IConfigConstants = {
               content: '默认卡',
             },
             {
-              name: 'VERSATILE_PROMPT_OUTPUT',
+              name: 'AGENT_BUILDER_PROMPT_OUTPUT',
               type: VariableType.TEXT,
               content: '{"payCard": ["0"]}',
             },
@@ -178,7 +178,7 @@ export const ConfigConstants: IConfigConstants = {
               content: '消费卡',
             },
             {
-              name: 'VERSATILE_PROMPT_OUTPUT',
+              name: 'AGENT_BUILDER_PROMPT_OUTPUT',
               type: VariableType.TEXT,
               content: '{"payCard": ["0"]}',
             },
@@ -223,7 +223,7 @@ export const ConfigConstants: IConfigConstants = {
               content: "['West Virginia', 'Louisiana', 'Arizona', 'Oklahoma']",
             },
             {
-              name: 'VERSATILE_PROMPT_OUTPUT',
+              name: 'AGENT_BUILDER_PROMPT_OUTPUT',
               type: VariableType.TEXT,
               content: '0',
             },
@@ -248,7 +248,7 @@ export const ConfigConstants: IConfigConstants = {
                 "['乒乓球从30°角发射后，比从45°角发射后，会更早停止在地面上滚动吗？', '乒乓球从30°角发射时，比从45°角发射时，能飞得更远吗？']",
             },
             {
-              name: 'VERSATILE_PROMPT_OUTPUT',
+              name: 'AGENT_BUILDER_PROMPT_OUTPUT',
               type: VariableType.TEXT,
               content: '1',
             },
@@ -273,7 +273,7 @@ export const ConfigConstants: IConfigConstants = {
                 "['Kathleen的滑雪板在有蜡层时，还是没有蜡层时，滑下山坡所需的时间更短？', 'Kathleen的滑雪板在表面有一层薄蜡时，还是有一层厚蜡时，滑下山坡所需的时间更短？']",
             },
             {
-              name: 'VERSATILE_PROMPT_OUTPUT',
+              name: 'AGENT_BUILDER_PROMPT_OUTPUT',
               type: VariableType.TEXT,
               content: '0',
             },
@@ -327,7 +327,7 @@ export const ConfigConstants: IConfigConstants = {
               content: 'bake_time',
             },
             {
-              name: 'VERSATILE_PROMPT_OUTPUT',
+              name: 'AGENT_BUILDER_PROMPT_OUTPUT',
               type: VariableType.TEXT,
               content: '{"bake_time": "10-12 minutes"}',
             },
@@ -345,7 +345,7 @@ export const ConfigConstants: IConfigConstants = {
               content: 'bake_time',
             },
             {
-              name: 'VERSATILE_PROMPT_OUTPUT',
+              name: 'AGENT_BUILDER_PROMPT_OUTPUT',
               type: VariableType.TEXT,
               content: '{"bake_time": "10-12 minutes"}',
             },
@@ -363,7 +363,7 @@ export const ConfigConstants: IConfigConstants = {
               content: 'confirmation_code',
             },
             {
-              name: 'VERSATILE_PROMPT_OUTPUT',
+              name: 'AGENT_BUILDER_PROMPT_OUTPUT',
               type: VariableType.TEXT,
               content: '{"confirmation_code": "8K3L2P"}',
             },
@@ -381,7 +381,7 @@ export const ConfigConstants: IConfigConstants = {
               content: 'blood_pressure',
             },
             {
-              name: 'VERSATILE_PROMPT_OUTPUT',
+              name: 'AGENT_BUILDER_PROMPT_OUTPUT',
               type: VariableType.TEXT,
               content: '{"blood_pressure": "125/80 mmHg"}',
             },
@@ -399,7 +399,7 @@ export const ConfigConstants: IConfigConstants = {
               content: 'ticker',
             },
             {
-              name: 'VERSATILE_PROMPT_OUTPUT',
+              name: 'AGENT_BUILDER_PROMPT_OUTPUT',
               type: VariableType.TEXT,
               content: '{"ticker": "GTECH"}',
             },
@@ -417,7 +417,7 @@ export const ConfigConstants: IConfigConstants = {
               content: 'resolution',
             },
             {
-              name: 'VERSATILE_PROMPT_OUTPUT',
+              name: 'AGENT_BUILDER_PROMPT_OUTPUT',
               type: VariableType.TEXT,
               content: '{"resolution": "2778x1284 pixels"}',
             },
@@ -464,7 +464,7 @@ export const ConfigConstants: IConfigConstants = {
               content: "['West Virginia', 'Louisiana', 'Arizona', 'Oklahoma']",
             },
             {
-              name: 'VERSATILE_PROMPT_OUTPUT',
+              name: 'AGENT_BUILDER_PROMPT_OUTPUT',
               type: VariableType.TEXT,
               content: '0',
             },
@@ -490,7 +490,7 @@ export const ConfigConstants: IConfigConstants = {
                 "['Do ping pong balls stop rolling along the ground sooner after being launched from a 30° angle or a 45° angle?', 'Do ping pong balls travel farther when launched from a 30° angle compared to a 45° angle?']",
             },
             {
-              name: 'VERSATILE_PROMPT_OUTPUT',
+              name: 'AGENT_BUILDER_PROMPT_OUTPUT',
               type: VariableType.TEXT,
               content: '1',
             },
@@ -516,7 +516,7 @@ export const ConfigConstants: IConfigConstants = {
                 "['Does Kathleen's snowboard slide down a hill in less time when it has a layer of wax or when it does not have a layer of wax?', 'Does Kathleen's snowboard slide down a hill in less time when it has a thin layer of wax or a thick layer of wax?']",
             },
             {
-              name: 'VERSATILE_PROMPT_OUTPUT',
+              name: 'AGENT_BUILDER_PROMPT_OUTPUT',
               type: VariableType.TEXT,
               content: '0',
             },

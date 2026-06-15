@@ -17,8 +17,8 @@ enum mapKeys {
     <div *nzModalTitle>{{ 'select_prompt_template' | i18nextEager }}</div>
     <div class="!overflow-hidden h-[496px]">
       <div class="relative h-full w-full">
-        <nz-tabset id="ref-prompt-tabs" class="h-full top-level-tab" [(nzSelectedIndex)]="outerPromptIndex" (nzSelectedIndexChange)="onTopTabChange()">
-          <nz-tab class="h-full mt-1" *ngFor="let tab of tabs" [nzTitle]="tab.title">
+        <nz-tabset id="ref-prompt-tabs" class=" top-level-tab" [(nzSelectedIndex)]="outerPromptIndex" (nzSelectedIndexChange)="onTopTabChange()">
+          <nz-tab class=" mt-1" *ngFor="let tab of tabs" [nzTitle]="tab.title">
             <nz-tabset
               [nzTabPosition]="'top'"
               [nzType]="'line'"
@@ -29,89 +29,88 @@ enum mapKeys {
             >
               <nz-tab *ngFor="let tab of appPromptTabs; let i = index" [nzTitle]="tab.name"></nz-tab>
             </nz-tabset>
-            <div class="mt-1 flex flex-col gap-[16px] h-[calc(100%-40px)]">
-              <div class="flex w-full items-center gap-2">
-                <nz-input-search (nzSearch)="getPrompts()">
-                  <input nz-input [(ngModel)]="searchValue" />
-                </nz-input-search>
-                <button (click)="getPrompts()" class="h-8 w-8" nz-button>
-                  <nz-icon nzType="reload" nzTheme="outline" />
-                </button>
-              </div>
-
-              <div class="flex h-[calc(100%-52px)] w-full rounded-[8px] border-[1px] border-solid border-[#dfdfdf]">
-                <ng-container *ngIf="tmpls.length">
-                  <div class="border-r-solid h-full w-[310px] border-r-[1px] border-r-[#dfdfdf] p-[20px]">
-                    <div (scroll)="onScroll($event)" class="flex h-full w-full flex-col gap-[8px] overflow-auto">
-                      <div
-                        [ngStyle]="{
-                          'border-color': tmpl.template_id === curTmpl?.template_id ? '#1476ff' : 'transparent',
-                        }"
-                        class="flex w-full cursor-pointer flex-col gap-[4px] rounded-[6px] border-[1px] border-solid bg-[#fafafa] p-[16px]"
-                        *ngFor="let tmpl of tmpls"
-                        (click)="onSelectTmpl(tmpl)"
-                      >
-                        <div class="flex items-center gap-[8px]">
-                          <div class="max-w-[calc(100%-40px)] shrink-0 font-bold text-[#191919]">
-                            {{ tmpl.template_name }}
-                          </div>
-
-                          <div class="tag-container flex flex-1 items-center gap-[4px] overflow-hidden">
-                            <div class="w-[40px] shrink-0 grow-0 rounded-[4px] bg-[#f5f5f5] px-[8px]" *ngFor="let tag of tmpl.tag_list">
-                              {{ lang === 'zh-cn' ? tag.name : tag?.name_en }}
-                            </div>
-                          </div>
-                        </div>
-                        <div class="text-[12px] text-desc">
-                          {{ 'come_from' | i18nextEager }}
-                          {{ lang === 'zh-cn' ? tmpl.industry.name : tmpl.industry.name_en }}
-                        </div>
-                      </div>
-                      <nz-spin *ngIf="isLoading" class="flex w-full items-center justify-center" />
-                    </div>
-                  </div>
-                  <div class="h-full w-[calc(100%-310px)] p-[20px] overflow-auto">
-                    <div *ngIf="curTmpl" class="flex flex-col gap-[8px] text-desc">
-                      <div class="text-[14px] font-bold text-[#191919]">
-                        {{ curTmpl.template_name }}
-                      </div>
-                      <div class="flex w-full items-center gap-[4px]">
-                        <div class="flex items-center gap-[4px] rounded-[4px] border-[1px] border-solid border-[#f0f0f0] bg-white px-[10px]">
-                          <span class="text-[#595959]">
-                            {{ lang === 'zh-cn' ? curTmpl.industry?.name : curTmpl.industry?.name_en }}
-                          </span>
-                        </div>
-
-                        <div class="flex items-center gap-[4px]">
-                          <div class="rounded-[4px] bg-[#f5f5f5] px-[8px]" *ngFor="let tag of curTmpl.tag_list">
-                            {{ lang === 'zh-cn' ? tag.name : tag?.name_en }}
-                          </div>
-                        </div>
-                      </div>
-                      <div>
-                        {{ 'creator_with_colon' | i18nextEager }}
-                        {{ curTmpl.creator }}
-                      </div>
-                      <div>
-                        {{ 'creation_time_with_colon' | i18nextEager }}
-                        {{ curTmpl.created_on | date: 'yyyy-MM-dd HH:mm:ss' }}
-                      </div>
-                      <div class="mt-[8px]">
-                        <pre style="white-space: pre-wrap; font-family: PingFang SC;">{{ curTmpl.content }}</pre>
-                      </div>
-                    </div>
-                  </div>
-                </ng-container>
-                <ng-container *ngIf="!tmpls.length">
-                  <div class="flex h-full w-full items-center justify-center">
-                    <app-common-no-data *ngIf="!isLoading" />
-                    <nz-spin class="flex h-full w-full items-center justify-center" *ngIf="isLoading" />
-                  </div>
-                </ng-container>
-              </div>
-            </div>
           </nz-tab>
         </nz-tabset>
+        <div class="mt-1 flex flex-col gap-[16px] h-[calc(100%-124px)]">
+          <div class="flex w-full items-center gap-2">
+            <nz-input-search (nzSearch)="getPrompts()">
+              <input nz-input [(ngModel)]="searchValue" />
+            </nz-input-search>
+            <button (click)="getPrompts()" class="h-8 w-8" nz-button>
+              <nz-icon nzType="reload" nzTheme="outline" />
+            </button>
+          </div>
+          <div class="flex h-[calc(100%-52px)] w-full rounded-[8px] border-[1px] border-solid border-[#dfdfdf]">
+            <ng-container *ngIf="tmpls.length">
+              <div class="border-r-solid w-[310px] border-r-[1px] border-r-[#dfdfdf] p-[20px] h-full">
+                <div (scroll)="onScroll($event)" class="flex  w-full flex-col gap-[8px] h-full overflow-auto">
+                  <div
+                    [ngStyle]="{
+                      'border-color': tmpl.template_id === curTmpl?.template_id ? '#1476ff' : 'transparent',
+                    }"
+                    class="flex w-full cursor-pointer flex-col gap-[4px] rounded-[6px] border-[1px] border-solid bg-[#fafafa] p-[16px]"
+                    *ngFor="let tmpl of tmpls"
+                    (click)="onSelectTmpl(tmpl)"
+                  >
+                    <div class="flex items-center gap-[8px]">
+                      <div class="max-w-[calc(100%-40px)] shrink-0 font-bold text-[#191919]">
+                        {{ tmpl.template_name }}
+                      </div>
+
+                      <div class="tag-container flex flex-1 items-center gap-[4px] overflow-hidden">
+                        <div class="w-[40px] shrink-0 grow-0 rounded-[4px] bg-[#f5f5f5] px-[8px]" *ngFor="let tag of tmpl.tag_list">
+                          {{ lang === 'zh-cn' ? tag.name : tag?.name_en }}
+                        </div>
+                      </div>
+                    </div>
+                    <div class="text-[12px] text-desc">
+                      {{ 'come_from' | i18nextEager }}
+                      {{ lang === 'zh-cn' ? tmpl.industry.name : tmpl.industry.name_en }}
+                    </div>
+                  </div>
+                  <nz-spin *ngIf="isLoading" class="flex w-full items-center justify-center" />
+                </div>
+              </div>
+              <div class=" w-[calc(100%-310px)] p-[20px] overflow-auto">
+                <div *ngIf="curTmpl" class="flex flex-col gap-[8px] text-desc">
+                  <div class="text-[14px] font-bold text-[#191919]">
+                    {{ curTmpl.template_name }}
+                  </div>
+                  <div class="flex w-full items-center gap-[4px]">
+                    <div class="flex items-center gap-[4px] rounded-[4px] border-[1px] border-solid border-[#f0f0f0] bg-white px-[10px]">
+                      <span class="text-[#595959]">
+                        {{ lang === 'zh-cn' ? curTmpl.industry?.name : curTmpl.industry?.name_en }}
+                      </span>
+                    </div>
+
+                    <div class="flex items-center gap-[4px]">
+                      <div class="rounded-[4px] bg-[#f5f5f5] px-[8px]" *ngFor="let tag of curTmpl.tag_list">
+                        {{ lang === 'zh-cn' ? tag.name : tag?.name_en }}
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    {{ 'creator_with_colon' | i18nextEager }}
+                    {{ curTmpl.creator }}
+                  </div>
+                  <div>
+                    {{ 'creation_time_with_colon' | i18nextEager }}
+                    {{ curTmpl.created_on | date: 'yyyy-MM-dd HH:mm:ss' }}
+                  </div>
+                  <div class="mt-[8px]">
+                    <pre style="white-space: pre-wrap; font-family: PingFang SC;">{{ curTmpl.content }}</pre>
+                  </div>
+                </div>
+              </div>
+            </ng-container>
+            <ng-container *ngIf="!tmpls.length">
+              <div class="flex  w-full items-center justify-center">
+                <app-common-no-data *ngIf="!isLoading" />
+                <nz-spin class="flex  w-full items-center justify-center" *ngIf="isLoading" />
+              </div>
+            </ng-container>
+          </div>
+        </div>
       </div>
     </div>
     <div *nzModalFooter class="!pt-0" style="margin-top: 16px">

@@ -18,7 +18,8 @@ import { PromptService } from '@services/prompt.service';
 import { NzFormModule } from 'ng-zorro-antd/form';
 import { NzRadioModule } from 'ng-zorro-antd/radio';
 import { NzButtonModule } from 'ng-zorro-antd/button';
-import { NzModalModule, NzModalRef } from 'ng-zorro-antd/modal';
+import { NzModalModule } from 'ng-zorro-antd/modal';
+import { NzDrawerRef } from 'ng-zorro-antd/drawer';
 import { NzSpaceModule } from 'ng-zorro-antd/space';
 import { NzTableModule } from 'ng-zorro-antd/table';
 import { NzInputModule } from 'ng-zorro-antd/input';
@@ -60,7 +61,7 @@ import { NzIconModule } from 'ng-zorro-antd/icon';
   ],
 })
 export class ExportHalfModalComponent implements OnInit {
-  readonly modalRef = inject(NzModalRef);
+  readonly modalRef = inject(NzDrawerRef);
   @Input() exportType = ApplicationType.SINGLE_AGENT;
   @Input() exportTypeOptions = [
     {
@@ -338,7 +339,7 @@ export class ExportHalfModalComponent implements OnInit {
   }
 
   public dismiss() {
-    this.modalRef.destroy();
+    this.modalRef.close();
   }
 
   public handleExport() {
@@ -346,9 +347,9 @@ export class ExportHalfModalComponent implements OnInit {
       type: this.exportType,
       rows: this.selectedRows,
     });
-    this.modalRef.destroy();
+    this.modalRef.close();
   }
   public close() {
-    this.modalRef.destroy();
+    this.modalRef.close();
   }
 }
