@@ -10,7 +10,7 @@ from typing import Optional, Union
 from agent_runtime.common.config import RedisMode, RedisSettings
 from agent_runtime.common.logger import logger
 from redis.asyncio import Redis
-from redis.asyncio.cluster import RedisCluster
+from redis.asyncio.cluster import RedisCluster, ClusterNode
 from redis.asyncio.sentinel import Sentinel
 
 
@@ -95,6 +95,7 @@ class RedisClientManager:
 
     def _create_cluster_client(self) -> RedisCluster:
         """创建集群模式的异步 Redis 客户端。"""
+
         nodes = []
         for node_str in self._settings.cluster_nodes.split(","):
             node_str = node_str.strip()
@@ -102,25 +103,21 @@ class RedisClientManager:
                 continue
             if ":" in node_str:
                 host, port = node_str.split(":", 1)
-                nodes.append({"host": host, "port": int(port)})
+                node = ClusterNode(host=host, port=int(port))
             else:
-                nodes.append({"host": node_str, "port": 6379})
+                node = ClusterNode(host=node_str, port=6379)
+            nodes.append(node)
 
         if not nodes:
             raise ValueError("REDIS_CLUSTER_NODES not configured")
 
-        ssl_kwargs: dict = {}
-        if self._settings.ssl_enabled:
-            ssl_kwargs["ssl"] = self._create_ssl_context()
-
         return RedisCluster(
             startup_nodes=nodes,
             max_connections=self._settings.max_connections,
-            read_from_replicas=False,
+            password=self._settings.password,
             decode_responses=False,
             socket_timeout=self._settings.socket_timeout,
-            socket_connect_timeout=self._settings.socket_connect_timeout,
-            **ssl_kwargs,
+            socket_connect_timeout=self._settings.socket_connect_timeout
         )
 
     def _create_sentinel_client(self) -> Redis:
