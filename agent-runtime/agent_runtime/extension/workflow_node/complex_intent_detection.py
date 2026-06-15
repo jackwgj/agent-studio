@@ -123,6 +123,14 @@ def _build_intent_conf(conf: dict) -> dict:
 
 def convert_input(inputs: Input) -> dict:
     """转换输入格式"""
+    from openjiuwen.core.session.interaction.interactive_input import InteractiveInput
+    if isinstance(inputs, InteractiveInput):
+        raw = inputs.get_raw_inputs() if hasattr(inputs, 'get_raw_inputs') else None
+        result = dict(inputs) if hasattr(inputs, '__iter__') else {}
+        if raw:
+            result[_INPUT] = raw
+        user_fields = inputs.get("userFields", {}) or {}
+        return {**result, _INPUT: result.get(_INPUT) or raw or user_fields.get(_INPUT)}
     if _INPUT in inputs:
         return dict(inputs) if isinstance(inputs, dict) else inputs
     if isinstance(inputs, dict):
@@ -326,8 +334,7 @@ class ComplexIntentDetection(WorkflowComponent):
         self._context = context
 
         try:
-            inputs_dict = convert_input(dict(inputs) if isinstance(inputs, dict)
-                                        else {str(k): v for k, v in inputs.items()})
+            inputs_dict = convert_input(inputs)
 
             intent_result, intent_branch = await self._get_intent_result(inputs_dict, **kwargs)
             # 单节点执行仅返回意图
@@ -517,9 +524,16 @@ class ComplexIntentDetection(WorkflowComponent):
             if isinstance(session_state, dict):
                 workflow_state = session_state.get("workflow_state", {})
                 if isinstance(workflow_state, dict):
-                    interactive_input = workflow_state.get("workflow", {}).get(INTERACTIVE_INPUT)
-                    if interactive_input:
+                    # 优先检查 __interactive_input__ (双下划线)
+                    if workflow_state.get("__interactive_input__"):
                         return True
+                    # 兜底：检查 workflow.workflow 中的 INTERACTIVE_INPUT
+                    workflow = workflow_state.get("workflow", {})
+                    if isinstance(workflow, dict):
+                        inner_workflow = workflow.get("workflow", {})
+                        interactive_input = inner_workflow.get(INTERACTIVE_INPUT) if isinstance(inner_workflow, dict) else None
+                        if interactive_input:
+                            return True
         except (KeyError, TypeError, AttributeError) as e:
             workflow_logger.warn(f"get sub workflow session checkpoint failed: {e}\n{traceback.format_exc()}")
             pass
@@ -535,7 +549,8 @@ class ComplexIntentDetection(WorkflowComponent):
                 if isinstance(session_dump, dict):
                     workflow_state = session_dump.get("workflow_state", {})
                     if isinstance(workflow_state, dict):
-                        interactive_input = workflow_state.get("workflow", {}).get(INTERACTIVE_INPUT)
+                        # 优先从 __interactive_input__ (双下划线) 读取恢复输入
+                        interactive_input = workflow_state.get("__interactive_input__")
                         if interactive_input:
                             if isinstance(interactive_input, list) and interactive_input:
                                 last = interactive_input[-1]
@@ -543,9 +558,20 @@ class ComplexIntentDetection(WorkflowComponent):
                                     return last.content
                                 return str(last)
                             return str(interactive_input) if interactive_input else None
+                        # 兜底：从 workflow.workflow 中读取
+                        workflow = workflow_state.get("workflow", {})
+                        if isinstance(workflow, dict):
+                            inner_workflow = workflow.get("workflow", {})
+                            interactive_input = inner_workflow.get(INTERACTIVE_INPUT) if isinstance(inner_workflow, dict) else None
+                            if interactive_input:
+                                if isinstance(interactive_input, list) and interactive_input:
+                                    last = interactive_input[-1]
+                                    if hasattr(last, "content"):
+                                        return last.content
+                                    return str(last)
+                                return str(interactive_input) if interactive_input else None
         except Exception as e:
             workflow_logger.warn(f"get session checkpoint failed: {e}\n{traceback.format_exc()}")
-            pass
         return None
 
     async def _init_sub_workflow(
