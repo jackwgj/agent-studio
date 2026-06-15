@@ -274,6 +274,10 @@ class End(BaseEnd):
         self._mix_render_complete = False
         self._mix_batch_pushed = False  # batch 路径已 push 数据，stream 可以开始渲染
 
+        # Pregel 引擎在 wait_for_all=False 时，每条入边分别触发 End 节点，
+        # 导致 stream()/invoke() 被多次调用。用此标志保证幂等。
+        self._executed = False
+
     @staticmethod
     def _is_workflow_interrupted(session: Session) -> bool:
         """检查工作流是否处于中断状态，通过 workflow_state 中的 __interrupted 标志判断。"""
@@ -517,6 +521,11 @@ class End(BaseEnd):
         - 处理输入中的生成器值
         - 支持结构化输出
         """
+        # 幂等保护：End 节点在 wait_for_all=False 时可能被 Pregel 引擎多次触发
+        if self._executed:
+            return {}
+        self._executed = True
+
         # 处理输入中的生成器值
         outputs = {}
         if inputs and isinstance(inputs, dict):
@@ -650,6 +659,11 @@ class End(BaseEnd):
         """
         增强的流式输出处理，支持生成器值和结构化输出。
         """
+        # 幂等保护：End 节点在 wait_for_all=False 时可能被 Pregel 引擎多次触发
+        if self._executed:
+            return
+        self._executed = True
+
         # 处理输入中的生成器值
         outputs = {}
         if inputs and isinstance(inputs, dict):
@@ -856,6 +870,10 @@ class End(BaseEnd):
         """
         流式输入聚合为批量输出（与 invoke 模式一致）。
         """
+        # 幂等保护：End 节点在 wait_for_all=False 时可能被 Pregel 引擎多次触发
+        if self._executed:
+            return None
+        self._executed = True
         # 聚合流式输入
         collected_inputs = []
         outputs = {}
@@ -1018,6 +1036,11 @@ class End(BaseEnd):
         流式输入通过 super().transform() 逐帧处理，
         输出先缓冲，消费完所有流式数据后检查中断状态，中断时丢弃所有输出。
         """
+        # 幂等保护：End 节点在 wait_for_all=False 时可能被 Pregel 引擎多次触发
+        if self._executed:
+            return
+        self._executed = True
+
         # 开始时清空缓存
         self._reset_stream_output()
 

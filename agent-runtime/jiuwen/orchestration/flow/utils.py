@@ -289,8 +289,11 @@ def force_convert(inputs: dict, inputs_definition: Union[list, dict]) -> (dict, 
         return None
 
     def _convert_object(inputs, definition, current_path):
-        # object类型的参数必须定义schema，且schema是一个list
         object_schema = definition.get(SCHEMA)
+
+        if not object_schema:
+            return inputs
+
         if not isinstance(object_schema, list):
             raise JiuWenBaseException(
                 error_code=StatusCode.WORKFLOW_IR_VALIDATION_ERROR.code,
@@ -298,9 +301,6 @@ def force_convert(inputs: dict, inputs_definition: Union[list, dict]) -> (dict, 
                     reason=f"key: {current_path} is of object type and should have schema"
                 ),
             )
-
-        if not object_schema:
-            return inputs
 
         # 尝试转换object
         if inputs is None:
