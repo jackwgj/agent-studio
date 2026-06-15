@@ -354,9 +354,8 @@ def optimize_feedback():
 
     if not input_info.modelInfo.headers:
         input_info.modelInfo.headers = {}
-    if os.getenv("SERVICE_TYPE") == "agentBuilder":
-        request_headers = dict(request.headers)
-        input_info.modelInfo.headers = request_headers | input_info.modelInfo.headers
+    request_headers = dict(request.headers)
+    input_info.modelInfo.headers = request_headers | input_info.modelInfo.headers
 
     optimizer = OptimizeWithFeedBack(
         input_prompt_list=process_prompt,
@@ -399,9 +398,8 @@ def optimize_bad_cases():
         )
     meta_prompt_name = ["opt_generator_badcase_zh_meta", "opt_analyze_badcase_zh_meta"]
 
-    if os.getenv("SERVICE_TYPE") == "agentBuilder":
-        request_headers = dict(request.headers)
-        input_info.modelInfo.headers = request_headers | input_info.modelInfo.headers
+    request_headers = dict(request.headers)
+    input_info.modelInfo.headers = request_headers | input_info.modelInfo.headers
 
     process_prompt = convert_string(input_info.prompt)
     opt_bad_case_optimizer = OptimizeWithBadcase(
@@ -479,14 +477,13 @@ def prompt_optimize():
     optimizer = JointOptimizer()
     job_id = generate_optimize_task_job_id()
 
-    if os.getenv("SERVICE_TYPE") == "agentBuilder":
-        request_headers = dict(request.headers)
-        creation_info.model_info.headers = (
-            request_headers | creation_info.model_info.headers
-        )
-        creation_info.assistant_info.headers = (
-            request_headers | creation_info.assistant_info.headers
-        )
+    request_headers = dict(request.headers)
+    creation_info.model_info.headers = (
+        request_headers | creation_info.model_info.headers
+    )
+    creation_info.assistant_info.headers = (
+        request_headers | creation_info.assistant_info.headers
+    )
 
     progress_info = ContextManager().get(job_id)
     if progress_info is not None:

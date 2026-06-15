@@ -50,14 +50,13 @@ def prompt_optimization():
         creation_info.model_info.headers = {}
     if not creation_info.assistant_info.headers:
         creation_info.assistant_info.headers = {}
-    if os.getenv("SERVICE_TYPE") == "agentBuilder":
-        request_headers = dict(request.headers)
-        creation_info.model_info.headers = (
-            request_headers | creation_info.model_info.headers
-        )
-        creation_info.assistant_info.headers = (
-            request_headers | creation_info.assistant_info.headers
-        )
+    request_headers = dict(request.headers)
+    creation_info.model_info.headers = (
+        request_headers | creation_info.model_info.headers
+    )
+    creation_info.assistant_info.headers = (
+        request_headers | creation_info.assistant_info.headers
+    )
 
     create_time = datetime.now(tz=timezone(timedelta(hours=8))).strftime(
         "%Y-%m-%d %H:%M:%S"

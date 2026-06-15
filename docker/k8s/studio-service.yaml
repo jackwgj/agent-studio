@@ -24,7 +24,7 @@ spec:
           env:
             # 数据库连接信息，必填
             - name: spring_datasource_url
-              value: 'jdbc:mariadb://${MYSQL_DB_IP}:3306/agent-builder?useUnicode=true&characterEncoding=utf8&autoReconnect=true&sslMode=trust&allowMultiQueries=true&useAffectedRows=true'
+              value: 'jdbc:mariadb://${MYSQL_DB_IP}:3306/agent_studio?allowMultiQueries=true'
             - name: spring_datasource_username
               value: ''
             - name: spring_datasource_password

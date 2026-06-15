@@ -30,6 +30,7 @@ MAX_JAVA_HEAP_SIZE=${heap_size}m
 
 # 启动服务
 exec java -Xms${INIT_JAVA_HEAP_SIZE} -Xmx${MAX_JAVA_HEAP_SIZE} \
+  -Dfile.encoding=UTF-8 \
   -jar ${APP_PATH}/app/${MICROSERVICE_NAME}.jar \
   --spring.config.additional-location=${APP_PATH}/config/ \
   --spring.profiles.active=${ACTIVE_PROFILES} \

@@ -20,6 +20,7 @@ spring:
     show-sql: true
   sql:
     init:
+      encoding: UTF-8
       schema-locations:
         - ${spring_sql_manager_ddl:classpath:sql/ddl.sql}
         - ${spring_sql_knowledge_ddl:classpath:sql/knowledge-base/ddl.sql}
