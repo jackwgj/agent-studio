@@ -68,15 +68,15 @@ import java.util.zip.ZipOutputStream;
 @Service
 public class PromptEngineerDataSetService implements IPromptEngineerDataSetService {
 
-    private static final String JSON_FILE_PATH = "response/data.json";
+    private static final String MULTI_JSON_FILE_PATH = "template/prompt/prompt_sample_multi.json";
 
-    private static final String TEXT_JSON_FILE_PATH = "response/prompt_sample_text.json";
+    private static final String TEXT_JSON_FILE_PATH = "template/prompt/prompt_sample_text.json";
 
     private static final String PIC_FILE_PATH = "";
 
-    private static final String EXCEL_FILE_PATH = "response/data.xlsx";
+    private static final String MULTI_EXCEL_FILE_PATH = "template/prompt/prompt_sample_multi.xlsx";
 
-    private static final String TEXT_EXCEL_FILE_PATH = "response/prompt_sample_text.xlsx";
+    private static final String TEXT_EXCEL_FILE_PATH = "template/prompt/prompt_sample_text.xlsx";
 
     private static final String EVAL_DATA_PATH = "EvalData/%s/%s/%s/%s.json";
 
@@ -558,8 +558,8 @@ public class PromptEngineerDataSetService implements IPromptEngineerDataSetServi
 
         try (ZipOutputStream zipOutputStream = new ZipOutputStream(byteArrayOutputStream)) {
 
-            String jsonPath = PtTypeEnum.TEXT.toString().equals(ptType) ? TEXT_JSON_FILE_PATH : JSON_FILE_PATH;
-            String excelPath = PtTypeEnum.TEXT.toString().equals(ptType) ? TEXT_EXCEL_FILE_PATH : EXCEL_FILE_PATH;
+            String jsonPath = PtTypeEnum.TEXT.toString().equals(ptType) ? TEXT_JSON_FILE_PATH : MULTI_JSON_FILE_PATH;
+            String excelPath = PtTypeEnum.TEXT.toString().equals(ptType) ? TEXT_EXCEL_FILE_PATH : MULTI_EXCEL_FILE_PATH;
             // 1. 添加 data.json 文件（原有逻辑）
             addFileToZip(zipOutputStream, jsonPath, "data.json");
             // 2. 新增：添加Excel文件到ZIP包
