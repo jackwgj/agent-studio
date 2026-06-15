@@ -96,6 +96,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * AgentRuntimeService测试类
@@ -173,6 +174,7 @@ public class ToolRuntimeServiceTest extends BaseTest {
         ReflectionTestUtils.setField(toolRuntimeService, "urlCheckUtils", urlCheckUtils);
         ReflectionTestUtils.setField(toolRuntimeService, "enableUrlCheck", true);
         ReflectionTestUtils.setField(toolRuntimeService, "connectorConfigHostBlacklist", black);
+        ReflectionTestUtils.setField(toolRuntimeService, "connectorConfigHostWhitelist", Set.of(TEST_PLUGIN_ID));
         doNothing().when(urlCheckUtils).checkUrl(anyString(), anyString());
 
         Map<String, String> mimeTypeMap = Map.of(
@@ -501,7 +503,8 @@ public class ToolRuntimeServiceTest extends BaseTest {
     }
 
     private void test_run_tool_get_error(String configFileName) {
-        when(obsService.downloadObsFile(String.format("%s/%s.json", TOOL_TEST_OBS_PATH, TEST_PLUGIN_ID))).thenReturn(
+        String nonWhitelistedPluginId = "non_whitelisted_plugin";
+        when(obsService.downloadObsFile(String.format("%s/%s.json", TOOL_TEST_OBS_PATH, nonWhitelistedPluginId))).thenReturn(
                 TestUtil.getStringFromFile("classpath:openapi/" + configFileName));
 
         RequestResult requestResult = new RequestResult();
@@ -509,9 +512,8 @@ public class ToolRuntimeServiceTest extends BaseTest {
         when(okHttpUtils.call(anyString(), any(), any(), any(), any())).thenReturn(requestResult);
 
         RunToolRequestBody runToolRequestBody = new RunToolRequestBody().setParameter("{\"city\":320500}");
-        runToolRequestBody.setToolObsKey(TEST_PLUGIN_ID);
+        runToolRequestBody.setToolObsKey(nonWhitelistedPluginId);
 
-        // 期望抛出 AgentStudioException 异常
         assertThrows(AgentStudioException.class, () -> {
             toolRuntimeService.runTool(TEST_PROJECT_ID, runToolRequestBody);
         });

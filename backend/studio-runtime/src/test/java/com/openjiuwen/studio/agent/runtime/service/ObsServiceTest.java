@@ -194,6 +194,6 @@ public class ObsServiceTest extends BaseTest {
 
         InputStream inputStream = new ByteArrayInputStream(OBS_CONTENT.getBytes(StandardCharsets.UTF_8));
         String url = obsService.uploadToStagingWithPublicRead(inputStream, "test.txt", 300);
-        Assertions.assertEquals("https://www.fake.com/agentBuilder-files-staging/file/test.txt", url);
+        Assertions.assertEquals("https://www.fake.com/agent-builder-files-staging/file/test.txt", url);
     }
 }

@@ -180,7 +180,13 @@ class TestIRWorkflowBuilder:
 
     def test_build_workflow_structure(self):
         """测试工作流结构"""
+        import asyncio
         from agent_runtime.ir_runner.builder import IRWorkflowBuilder
+
+        try:
+            asyncio.get_event_loop()
+        except RuntimeError:
+            asyncio.set_event_loop(asyncio.new_event_loop())
 
         builder = IRWorkflowBuilder(model_provider=_make_mock_model_provider())
         workflow = builder.build(SAMPLE_IR_JSON)
@@ -207,14 +213,14 @@ class TestRefConversion:
         handler = LLMHandler()
 
         # 测试 userFields 引用转换
-        result = handler._convert_ir_ref_to_workflow_ref(
-            "${node_llm.userFields.raw_output}"
+        result = handler.convert_ref_format(
+            "${node_llm.userFields.raw_output}", {}
         )
         assert result == "${node_llm.output}"
 
         # 测试 systemFields 引用转换
-        result = handler._convert_ir_ref_to_workflow_ref(
-            "${node_start.systemFields.query}"
+        result = handler.convert_ref_format(
+            "${node_start.systemFields.query}", {}
         )
         assert result == "${node_start.query}"
 
@@ -225,9 +231,9 @@ class TestRefConversion:
         handler = LLMHandler()
 
         # 测试无效格式
-        assert handler._convert_ir_ref_to_workflow_ref("not a ref") == "not a ref"
-        assert handler._convert_ir_ref_to_workflow_ref("${simple}") == "${simple}"
-        assert handler._convert_ir_ref_to_workflow_ref(None) is None
+        assert handler.convert_ref_format("not a ref", {}) == "not a ref"
+        assert handler.convert_ref_format("${simple}", {}) == "${simple}"
+        assert handler.convert_ref_format(None, {}) is None
 
     def test_end_handler_ref_conversion(self):
         """测试 End 节点处理器引用转换"""
@@ -236,8 +242,8 @@ class TestRefConversion:
         handler = EndHandler()
 
         # 测试引用转换
-        result = handler._convert_ir_ref_to_workflow_ref(
-            "${node_llm.userFields.raw_output}"
+        result = handler.convert_ref_format(
+            "${node_llm.userFields.raw_output}", {}
         )
         assert result == "${node_llm.raw_output}"
 

@@ -27,19 +27,12 @@ def _patch_redis_modules():
     mock_async_redis.delete.return_value = 1
 
     with patch(
-        "jiuwen.serve.controllers.execution.open_utils.redis.Redis",
+        "jiuwen.serve.controllers.execution.open_utils.get_redis_instance",
         return_value=mock_redis,
     ), patch(
-        "jiuwen.serve.controllers.execution.open_utils.aioredis.Redis",
+        "jiuwen.serve.controllers.execution.open_utils.get_async_redis_instance",
         return_value=mock_async_redis,
     ):
-        # Remove cached module so it re-imports with patches active
-        import sys
-
-        mod_key = "jiuwen.serve.controllers.execution.open_utils"
-        if mod_key in sys.modules:
-            del sys.modules[mod_key]
-
         yield mock_redis, mock_async_redis
 
 
@@ -67,8 +60,8 @@ def cache_utils(mock_redis, mock_async_redis):
         memory_ttl=2,
         redis_ttl=60,
     )
-    cu.redis_cache = mock_redis
-    cu.async_redis_cache = mock_async_redis
+    cu._redis_cache = mock_redis  # pylint: disable=protected-access
+    cu._async_redis_cache = mock_async_redis  # pylint: disable=protected-access
     return cu
 
 
@@ -76,7 +69,7 @@ class TestCacheUtilsPutGet:
     """Basic put/get cycle tests."""
 
     @staticmethod
-    def test_put_then_get_memory_hit(self, cache_utils, mock_redis):
+    def test_put_then_get_memory_hit(cache_utils, mock_redis):
         """After put, get returns from memory (L1) without touching Redis."""
         cache_utils.put("key1", {"data": "value1"})
         mock_redis.get.reset_mock()
@@ -96,7 +89,7 @@ class TestCacheUtilsPutGet:
         mock_async_redis.get.assert_not_called()
 
     @staticmethod
-    def test_get_miss_memory_hit_redis(self, cache_utils, mock_redis):
+    def test_get_miss_memory_hit_redis(cache_utils, mock_redis):
         """When memory misses but Redis hits, data is returned and backfilled to memory."""
         cache_utils.put("key1", {"data": "value1"})
         # Simulate memory eviction by clearing the LRU
@@ -109,7 +102,7 @@ class TestCacheUtilsPutGet:
         assert result == {"data": "value1"}
 
     @staticmethod
-    def test_get_miss_both(self, cache_utils, mock_redis):
+    def test_get_miss_both(cache_utils, mock_redis):
         """When both memory and Redis miss, returns None."""
         result = cache_utils.get("nonexistent")
         assert result is None
@@ -119,7 +112,7 @@ class TestCacheUtilsLRUEviction:
     """LRU capacity and eviction tests."""
 
     @staticmethod
-    def test_lru_eviction(self, cache_utils):
+    def test_lru_eviction(cache_utils):
         """When capacity is exceeded, the least-recently-used item is evicted from memory."""
         cache_utils.put("key1", "val1")
         cache_utils.put("key2", "val2")
@@ -135,7 +128,7 @@ class TestCacheUtilsTTL:
     """TTL expiration tests."""
 
     @staticmethod
-    def test_memory_ttl_expiration(self, cache_utils, mock_redis):
+    def test_memory_ttl_expiration(cache_utils, mock_redis):
         """Memory cache entries expire after memory_ttl seconds."""
         cache_utils.put("key1", "val1")
         # Wait for TTL to expire (memory_ttl=2s)
@@ -149,7 +142,7 @@ class TestCacheUtilsPop:
     """Pop (delete) tests."""
 
     @staticmethod
-    def test_pop_removes_from_both_layers(self, cache_utils, mock_redis):
+    def test_pop_removes_from_both_layers(cache_utils, mock_redis):
         cache_utils.put("key1", "val1")
         # Redis mock.get must return a truthy value so pop() calls delete
         mock_redis.get.return_value = b"serialized"
@@ -171,7 +164,7 @@ class TestCacheUtilsRedisDegradation:
     """Redis failure graceful degradation tests."""
 
     @staticmethod
-    def test_get_degrades_to_memory_only_on_redis_error(self, cache_utils, mock_redis):
+    def test_get_degrades_to_memory_only_on_redis_error(cache_utils, mock_redis):
         """When Redis raises an exception, get still returns from memory."""
         cache_utils.put("key1", "val1")
         # Clear memory to force Redis lookup
@@ -182,7 +175,7 @@ class TestCacheUtilsRedisDegradation:
         assert result is None
 
     @staticmethod
-    def test_put_does_not_crash_on_redis_error(self, cache_utils, mock_redis):
+    def test_put_does_not_crash_on_redis_error(cache_utils, mock_redis):
         """When Redis raises on set, put still writes to memory."""
         mock_redis.set.side_effect = Exception("Redis connection refused")
         cache_utils.put("key1", "val1")
@@ -195,11 +188,10 @@ class TestCacheUtilsKeyFormat:
     """Redis key format tests."""
 
     @staticmethod
-    def test_redis_key_format(self, cache_utils, mock_redis):
+    def test_redis_key_format(cache_utils, mock_redis):
         """Keys are prefixed with ei:engine:{cache_name}:."""
         cache_utils.put("mykey", "val")
         call_args = mock_redis.set.call_args
-        # redis_cache.set is called with keyword args: key=..., value=..., ex=...
-        actual_key = call_args.kwargs.get("key") or call_args[1].get("key")
+        actual_key = call_args[0][0]
         assert actual_key == "ei:engine:test:mykey"
 

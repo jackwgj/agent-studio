@@ -139,8 +139,8 @@ class TestLLMHandler:
         from agent_runtime.ir_runner.components.llm import LLMHandler
 
         handler = LLMHandler()
-        result = handler._convert_ir_ref_to_workflow_ref(
-            "${node_llm.userFields.raw_output}"
+        result = handler.convert_ref_format(
+            "${node_llm.userFields.raw_output}", {}
         )
         assert result == "${node_llm.output}"
 
@@ -149,8 +149,8 @@ class TestLLMHandler:
         from agent_runtime.ir_runner.components.llm import LLMHandler
 
         handler = LLMHandler()
-        result = handler._convert_ir_ref_to_workflow_ref(
-            "${node_start.systemFields.query}"
+        result = handler.convert_ref_format(
+            "${node_start.systemFields.query}", {}
         )
         assert result == "${node_start.query}"
 
@@ -161,7 +161,7 @@ class TestLLMHandler:
         handler = LLMHandler()
 
         # 已经是工作流格式的引用
-        result = handler._convert_ir_ref_to_workflow_ref("${node.output}")
+        result = handler.convert_ref_format("${node.output}", {})
         assert result == "${node.output}"
 
     def test_convert_ir_ref_to_workflow_ref_invalid(self):
@@ -170,9 +170,9 @@ class TestLLMHandler:
 
         handler = LLMHandler()
 
-        assert handler._convert_ir_ref_to_workflow_ref("invalid") == "invalid"
-        assert handler._convert_ir_ref_to_workflow_ref("${simple}") == "${simple}"
-        assert handler._convert_ir_ref_to_workflow_ref(None) is None
+        assert handler.convert_ref_format("invalid", {}) == "invalid"
+        assert handler.convert_ref_format("${simple}", {}) == "${simple}"
+        assert handler.convert_ref_format(None, {}) is None
 
 
 class TestEndHandler:
@@ -194,8 +194,8 @@ class TestEndHandler:
         from agent_runtime.ir_runner.components.end import EndHandler
 
         handler = EndHandler()
-        result = handler._convert_ir_ref_to_workflow_ref(
-            "${node_llm.userFields.raw_output}"
+        result = handler.convert_ref_format(
+            "${node_llm.userFields.raw_output}", {}
         )
         assert result == "${node_llm.raw_output}"
 

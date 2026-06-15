@@ -153,14 +153,14 @@ class TestFlowQAInitialization:
     def test_component_node_type(self):
         """测试节点类型"""
         qa = FlowQA({"options": ["选项"]})
-        assert qa.component_type() == "jiuwen.qa"
+        assert qa.component_type() == "EI.qa"
 
     def test_component_properties(self):
         """测试组件属性"""
         config = FlowQAConfig(name="test", options=["a", "b", "c"])
         qa = FlowQA(config)
 
-        assert qa.node_type == "jiuwen.qa"
+        assert qa.node_type == "EI.qa"
         assert qa.config == config
 
 

@@ -11,8 +11,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -52,6 +54,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.util.CollectionUtils;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
@@ -62,6 +65,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 @MockitoSettings(strictness = Strictness.LENIENT)
 class PromptEngineerDataSetServiceTest {
@@ -130,7 +135,14 @@ class PromptEngineerDataSetServiceTest {
 
     @Test
     void test_importEvalDataSetItems_success() throws IOException {
-        byte[] zipBytes = promptEngineerDataSetService.buildZipContent("text");
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try (ZipOutputStream zos = new ZipOutputStream(baos)) {
+            ZipEntry entry = new ZipEntry("data.json");
+            zos.putNextEntry(entry);
+            zos.write("[]".getBytes(StandardCharsets.UTF_8));
+            zos.closeEntry();
+        }
+        byte[] zipBytes = baos.toByteArray();
         MockMultipartFile file = new MockMultipartFile("file", "template.zip", "application/zip", zipBytes);
 
         when(promptTaskMapper.selectByPrimaryKey(anyString(), anyString(), anyString())).thenReturn(
@@ -160,34 +172,25 @@ class PromptEngineerDataSetServiceTest {
 
     @Test
     void test_downloadEvalDataSetTemplate_success() throws Exception {
-        // 1. 准备 mock 对象
         HttpServletResponse mockResponse = mock(HttpServletResponse.class);
         ServletOutputStream mockOutputStream = mock(ServletOutputStream.class);
         when(mockResponse.getOutputStream()).thenReturn(mockOutputStream);
 
-        // 2. mock ClassPathResource 的行为
-        ClassPathResource mockResource = mock(ClassPathResource.class);
-        when(mockResource.exists()).thenReturn(true);
-        when(mockResource.getInputStream()).thenReturn(
-            new ByteArrayInputStream("mock zip content".getBytes(StandardCharsets.UTF_8)));
-
-        // 3. mock PromptTaskEntity
         when(promptTaskMapper.selectByPrimaryKey(anyString(), anyString(), anyString())).thenReturn(
             new PromptTaskEntity());
 
-        // 4. 使用反射注入 mockResponse 到 service 中
+        PromptEngineerDataSetService spyService = spy(promptEngineerDataSetService);
+        byte[] mockZipBytes = "mock zip content".getBytes(StandardCharsets.UTF_8);
+        doReturn(mockZipBytes).when(spyService).buildZipContent(anyString());
+
         Field responseField = PromptEngineerDataSetService.class.getDeclaredField("response");
         responseField.setAccessible(true);
-        responseField.set(promptEngineerDataSetService, mockResponse);
+        responseField.set(spyService, mockResponse);
 
-        // 5. 调用方法
-        promptEngineerDataSetService.downloadEvalDataSetTemplate(PROJECT_ID, WORKSPACE_ID, "text");
+        spyService.downloadEvalDataSetTemplate(PROJECT_ID, WORKSPACE_ID, "text");
 
-        // 6. 验证响应头是否设置正确
         verify(mockResponse).setContentType("application/zip");
         verify(mockResponse).setHeader(eq("Content-Disposition"), contains("template.zip"));
-
-        // 7. 验证字节是否写入输出流
         verify(mockOutputStream).flush();
     }
 

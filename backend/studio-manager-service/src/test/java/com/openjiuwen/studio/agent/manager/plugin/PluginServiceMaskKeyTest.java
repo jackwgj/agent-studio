@@ -96,12 +96,11 @@ public class PluginServiceMaskKeyTest {
     @DisplayName("分支 6：解密成功，且明文长度大于 1，首字母+占位符+尾字母")
     void testMaskKey_DecryptedKeyLengthGreaterThanOne() {
         String cipherKey = "cipher_key";
-        String decryptedKey = ""; // 长度大于 1
+        String decryptedKey = "HelloWorld";
         when(encryptionAdapter.decrypt(cipherKey)).thenReturn(decryptedKey);
 
         String result = ReflectionTestUtils.invokeMethod(pluginService, "maskKey", cipherKey);
 
-        // 预期：首字母 'H' + 中间的脱敏符 + 尾字母 'd'
         String expected = "H" + CommonConstant.ANONYMIZED_TEXT.substring(1,
                 CommonConstant.ANONYMIZED_TEXT.length() - 1) + "d";
         assertEquals(expected, result);

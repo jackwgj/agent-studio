@@ -44,6 +44,9 @@ public class KooSearchConnection extends KnowledgeSourceConnection {
         Objects.requireNonNull(this.projectId, "domainName should not be null");
         KooSearchAuthMode kooSearchAuthMode = KooSearchAuthMode.valueOf(authMode.toUpperCase(Locale.ENGLISH));
         switch (kooSearchAuthMode) {
+            case NONE -> {
+                return true;
+            }
             case TOKEN -> {
                 Objects.requireNonNull(this.userName, "userName should not be null");
                 Objects.requireNonNull(this.userPassword, "userPassword should not be null");

@@ -295,21 +295,11 @@ class LakeSearchClientTest {
 
     @Test
     void test_setEntityForUpload_throw_exception() {
-        Resource resource1 = new InputStreamResource(new ByteArrayInputStream(new byte[0])) {
-            @NotNull
-            @Override
-            public String getFilename() {
-                return "";
-            }
-
-            @Override
-            public long contentLength() {
-                return 0;
-            }
-        };
+        MultipartFile file = new MockMultipartFile("fake_file_name", "", "text/plain",
+            new byte[0]);
         assertThrows(AgentBaseException.class, () -> {
             ReflectionTestUtils.invokeMethod(agentBaseLakeSearchClient, "setEntityForUpload", LakeSearchApi.UPLOAD_FILE,
-                resource1, ClassicRequestBuilder.post("").build());
+                file, ClassicRequestBuilder.post("").build());
         });
     }
 }

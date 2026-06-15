@@ -131,7 +131,7 @@ class TestResolveStreamInputs:
         async def gen():
             yield {"key": "val"}
 
-        for cls in (FlowCard, Message, FlowStreamTransform):
+        for cls in (FlowCard, FlowStreamTransform):
             result = await cls._resolve_stream_inputs(gen())
             assert result == {"key": "val"}
 
@@ -143,7 +143,7 @@ class TestResolveStreamInputs:
             yield {"a": 1}
             yield {"b": 2}
 
-        for cls in (FlowCard, Message, FlowStreamTransform):
+        for cls in (FlowCard, FlowStreamTransform):
             result = await cls._resolve_stream_inputs(gen())
             assert result == {"b": 2}
 
@@ -154,14 +154,14 @@ class TestResolveStreamInputs:
         async def gen():
             yield "str_only"
 
-        for cls in (FlowCard, Message, FlowStreamTransform):
+        for cls in (FlowCard, FlowStreamTransform):
             result = await cls._resolve_stream_inputs(gen())
             assert result == {}
 
     @pytest.mark.asyncio
     async def test_non_dict_async_iterable_empty(self):
         """非 dict 输入，异步可迭代，不产出任何元素 → 返回空字典"""
-        for cls in (FlowCard, Message, FlowStreamTransform):
+        for cls in (FlowCard, FlowStreamTransform):
             result = await cls._resolve_stream_inputs(_async_gen_empty())
             assert result == {}
 
@@ -208,7 +208,7 @@ class TestResolveStreamInputs:
         async def gen():
             yield {"response": "resp", "answer": "ans"}
 
-        for cls in (FlowCard, Message, FlowStreamTransform):
+        for cls in (FlowCard, FlowStreamTransform):
             inputs = {"data": gen()}
             result = await cls._resolve_stream_inputs(inputs)
             assert result == {"data": "resp"}

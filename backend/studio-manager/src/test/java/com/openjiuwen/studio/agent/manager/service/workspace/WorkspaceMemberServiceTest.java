@@ -210,19 +210,26 @@ class WorkspaceMemberServiceTest {
             mockedStaticRequestContextUtils.when(RequestContextUtils::getRequestUserName).thenReturn("not_empty");
             mockedStaticRequestContextUtils.when(RequestContextUtils::getRequestUserId).thenReturn("not_empty");
 
-            WorkSpaceMemberEntity existedMember = new WorkSpaceMemberEntity();
-            when(workSpaceMemberMapper.selectByMemberIdAndWorkspaceId(anyString(), anyString())).thenReturn(
-                existedMember);
-            existedMember.setRole(MemberRole.OWNER.getValue());
+            WorkSpaceMemberEntity currentMember = new WorkSpaceMemberEntity();
+            currentMember.setRole(MemberRole.OWNER.getValue());
+            WorkSpaceMemberEntity targetMember = new WorkSpaceMemberEntity();
+            targetMember.setRole(MemberRole.OWNER.getValue());
+
+            when(workSpaceMemberMapper.selectByMemberIdAndWorkspaceId(eq("not_empty"), anyString()))
+                .thenReturn(currentMember);
+            when(workSpaceMemberMapper.selectByMemberIdAndWorkspaceId(eq("target_user"), anyString()))
+                .thenReturn(targetMember);
 
             WorkspaceEntity workspaceInfo = new WorkspaceEntity();
             workspaceInfo.setType(CommonConstant.WORKSPACE.TYPE.TEAM_TYPE);
             when(workspaceMapper.getWorkspaceByWorkspaceId(anyString(), anyString())).thenReturn(workspaceInfo);
 
             DeleteWorkspaceMemberReq body = new DeleteWorkspaceMemberReq();
-            body.setUserIds(Lists.newArrayList("not_empty"));
+            body.setUserIds(Lists.newArrayList("target_user"));
 
-            workSpaceMemberService.batchDeleteWorkspaceMember("not_empty", "not_empty", body);
+            assertThrows(AgentStudioException.class, () -> {
+                workSpaceMemberService.batchDeleteWorkspaceMember("not_empty", "not_empty", body);
+            });
         }
     }
 

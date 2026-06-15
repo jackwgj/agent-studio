@@ -26,6 +26,8 @@ public class AgentIrTypeTest {
         assertEquals(AgentIrType.MULTI_AGENTS, AgentIrType.fromValue("MULTIAGENTS"));
         assertEquals(AgentIrType.DEEP_RESEARCH, AgentIrType.fromValue("deepresearch"));
         assertEquals(AgentIrType.DEEP_RESEARCH, AgentIrType.fromValue("DEEPRESEARCH"));
+        assertEquals(AgentIrType.PLAN_EXECUTE, AgentIrType.fromValue("plan"));
+        assertEquals(AgentIrType.PLAN_EXECUTE, AgentIrType.fromValue("PLAN"));
 
         // Test invalid value
         assertEquals(AgentIrType.UNKNOWN, AgentIrType.fromValue("invalid_type"));
@@ -38,17 +40,19 @@ public class AgentIrTypeTest {
         assertEquals("workflow", AgentIrType.WORKFLOW.toString());
         assertEquals("multiagents", AgentIrType.MULTI_AGENTS.toString());
         assertEquals("deepresearch", AgentIrType.DEEP_RESEARCH.toString());
+        assertEquals("plan", AgentIrType.PLAN_EXECUTE.toString());
         assertEquals("unknown", AgentIrType.UNKNOWN.toString());
     }
 
     @Test
     public void test_agent_ir_type_values() {
         AgentIrType[] values = AgentIrType.values();
-        assertEquals(5, values.length);
+        assertEquals(6, values.length);
         assertTrue(Arrays.asList(values).contains(AgentIrType.AGENT));
         assertTrue(Arrays.asList(values).contains(AgentIrType.WORKFLOW));
         assertTrue(Arrays.asList(values).contains(AgentIrType.MULTI_AGENTS));
         assertTrue(Arrays.asList(values).contains(AgentIrType.DEEP_RESEARCH));
+        assertTrue(Arrays.asList(values).contains(AgentIrType.PLAN_EXECUTE));
         assertTrue(Arrays.asList(values).contains(AgentIrType.UNKNOWN));
     }
 
@@ -58,6 +62,7 @@ public class AgentIrTypeTest {
         assertEquals("workflow", AgentIrType.WORKFLOW.getValue());
         assertEquals("multiagents", AgentIrType.MULTI_AGENTS.getValue());
         assertEquals("deepresearch", AgentIrType.DEEP_RESEARCH.getValue());
+        assertEquals("plan", AgentIrType.PLAN_EXECUTE.getValue());
         assertEquals("unknown", AgentIrType.UNKNOWN.getValue());
     }
 }
