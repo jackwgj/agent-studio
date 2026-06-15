@@ -1,119 +1,116 @@
-<!--<div-->
-<!--  class="pw-common-node-wrapper"-->
-<!--  [ngClass]="{-->
-<!--    'pw-common-node-error': alertContent.length > 0 || nodeInfo.configs?.valid === false,-->
-<!--    'pw-common-node-selected': alertContent.length === 0 && (isSelected || isSelection),-->
-<!--    'pw-common-node-hover': alertContent.length === 0 && !(isSelected || isSelection),-->
-<!--    'pw-common-node-extra': alertContent.length === 0-->
-<!--  }"-->
-<!--&gt;-->
-<!--  <div *ngIf="alertContent.length > 0" class="pw-tips bg-[#ffeae8]">-->
-<!--    <div class="flex items-center gap-[4px]">-->
-<!--      <img alt="" class="node-img h-[16px] w-[16px]" [src]="validateAlertIcon" />-->
-<!--      <span>{{ 'node_error' | i18nextEager }}</span>-->
-<!--    </div>-->
-<!--    <button-->
-<!--      class="detail-tip"-->
-<!--      tiButton-->
-<!--      [hasBorder]="false"-->
-<!--      [tiTip]="customTipTmpl"-->
-<!--      [tiTipContext]="alertContent"-->
-<!--      tiTipPosition="top"-->
-<!--    >-->
-<!--      {{ 'details' | i18nextEager }}-->
-<!--    </button>-->
-<!--  </div>-->
+<div
+  class="pw-common-node-wrapper"
+  [ngClass]="{
+    'pw-common-node-error': alertContent.length > 0 || nodeInfo.configs?.valid === false,
+    'pw-common-node-selected': alertContent.length === 0 && (isSelected || isSelection),
+    'pw-common-node-hover': alertContent.length === 0 && !(isSelected || isSelection),
+    'pw-common-node-extra': alertContent.length === 0
+  }"
+>
+  <div *ngIf="alertContent.length > 0" class="pw-tips bg-[#ffeae8]">
+    <div class="flex items-center gap-[4px]">
+      <img alt="" class="node-img h-[16px] w-[16px]" [src]="validateAlertIcon" />
+      <span>{{ 'node_error' | i18nextEager }}</span>
+    </div>
+    <button
+      class="detail-tip"
+      nz-button
+      [nzType]="'text'"
+      nz-popover
+      [nzPopoverContent]="alertContent.join('\n')"
+      nzPopoverPlacement="top"
+    >
+      {{ 'details' | i18nextEager }}
+    </button>
+  </div>
 
-<!--  <div-->
-<!--    *ngIf="runNodeStatus"-->
-<!--    class="pw-tips"-->
-<!--    [ngStyle]="{ 'background-color': getBgColor(runNodeStatus),color: getColor(runNodeStatus) }"-->
-<!--  >-->
-<!--    <div class="flex items-center gap-[4px]">-->
-<!--      <img alt=""-->
-<!--        class="node-img h-[16px] w-[16px]"-->
-<!--        [src]="getNodeStatus(runNodeStatus)"-->
-<!--      />-->
-<!--      <span>{{ getNodeStatusText(runNodeStatus) }}</span>-->
-<!--      <span>{{ nodeElapsedTime }}</span>-->
-<!--    </div>-->
-<!--    <div class="node-test-info" (click)="onClickTestInfo($event)">{{ 'show_detail' | i18nextEager}}</div>-->
-<!--  </div>-->
+  <div
+    *ngIf="runNodeStatus"
+    class="pw-tips"
+    [ngStyle]="{ 'background-color': getBgColor(runNodeStatus),color: getColor(runNodeStatus) }"
+  >
+    <div class="flex items-center gap-[4px]">
+      <img alt=""
+           class="node-img h-[16px] w-[16px]"
+           [src]="getNodeStatus(runNodeStatus)"
+      />
+      <span>{{ getNodeStatusText(runNodeStatus) }}</span>
+      <span>{{ nodeElapsedTime }}</span>
+    </div>
+    <div class="node-test-info" (click)="onClickTestInfo($event)">{{ 'show_detail' | i18nextEager}}</div>
+  </div>
 
-<!--  <div class="pw-common-node" *ngIf="nodeInfo.configs?.valid !== false">-->
-<!--    <div class="node-header">-->
-<!--      <div class="node-icon-name">-->
-<!--        <div-->
-<!--          [ngClass]="isExpand ? 'node-open' : 'node-close'"-->
-<!--          (click)="onSwitchExpand()"-->
-<!--        ></div>-->
+  <div class="pw-common-node" *ngIf="nodeInfo.configs?.valid !== false">
+    <div class="node-header">
+      <div class="node-icon-name">
+        <div
+          [ngClass]="isExpand ? 'node-open' : 'node-close'"
+          (click)="onSwitchExpand()"
+        ></div>
 
-<!--        <img class="node-icon" [src]="icon" alt="agent-node" />-->
-<!--        <div class="node-name" lineClamp>-->
-<!--          {{ nodeInfo.name }}-->
-<!--        </div>-->
-<!--        <span class="type-tag">-->
-<!--          {{ 'sub_single_agent' | i18nextEager }}-->
-<!--        </span>-->
-<!--        <div-->
-<!--          *ngIf="showUpdatedIcon && nodeInfo.parent_node_type !== 'sub_controller'"-->
-<!--          class="update-flow-icon"-->
-<!--          [tiTip]="updateFlowTip"-->
-<!--          tiTipPosition="top"-->
-<!--          (click)="openUpdateNodeModal()"-->
-<!--        ></div>-->
-<!--      </div>-->
+        <img class="node-icon" [src]="icon" alt="agent-node" />
+        <div class="node-name" lineClamp>
+          {{ nodeInfo.name }}
+        </div>
+        <span class="type-tag">
+          {{ 'sub_single_agent' | i18nextEager }}
+        </span>
+      </div>
 
-<!--      <div class="node-oprs" style="width: fit-content">-->
-<!--        <div class="cursor-pointer">-->
-<!--          <ti-menu-->
-<!--            class="pw-three-dots-more"-->
-<!--            [items]="actions"-->
-<!--            (select)="onClickAction($event)"-->
-<!--            ellipsis-->
-<!--          ></ti-menu>-->
-<!--        </div>-->
-<!--      </div>-->
-<!--    </div>-->
+      <div class="node-oprs" style="width: fit-content">
+        <div class="cursor-pointer" nz-dropdown [nzDropdownMenu]="actionMenu" nzTrigger="click" nzPlacement="bottomRight">
+          <nz-icon nzType="more" nzTheme="outline"></nz-icon>
+        </div>
+        <nz-dropdown-menu #actionMenu="nzDropdownMenu">
+          <ul nz-menu>
+            @for (action of actions; track action.label) {
+              <li nz-menu-item (click)="onClickAction(action)">
+                <span>{{ action.label }}</span>
+              </li>
+            }
+          </ul>
+        </nz-dropdown-menu>
+      </div>
+    </div>
 
-<!--    <div class="node-desc" *ngIf="!!versionId">-->
-<!--      {{ 'version_ID' | i18nextEager }}{{ versionId }}-->
-<!--    </div>-->
+    <div class="node-desc" *ngIf="!!versionId">
+      {{ 'version_ID' | i18nextEager }}{{ versionId }}
+    </div>
 
-<!--    <div *ngIf="isExpand" class="node-groups">-->
-<!--      <div class="node-group">-->
-<!--        <div class="flex flex-col gap-2">-->
-<!--          <span>{{ 'description' | i18nextEager }}</span>-->
-<!--          <span class="text-[#595959]" lineClamp>-->
-<!--            {{ description || ('not_configured' | i18nextEager) }}-->
-<!--          </span>-->
-<!--        </div>-->
-<!--      </div>-->
-<!--    </div>-->
-<!--  </div>-->
-<!--  <div *ngIf="nodeInfo.configs?.valid === false" class="rounded-lg bg-[#FFEAE8]">-->
-<!--    <div-->
-<!--      class="flex items-center gap-[4px] pb-[5px] pl-[16px] pr-[16px] pt-[5px]"-->
-<!--    >-->
-<!--      <img alt="" class="h-[14px] w-[14px]" [src]="validateAlertIcon" />-->
-<!--       <span>-->
-<!--        {{ 'controller_node_not_exist' | i18nextEager }}-->
-<!--        <span *ngIf="nodeInfo.configs?.version_id">-->
-<!--          {{'pluginnodecomponent_544'| i18nextEager:{version_id: nodeInfo.configs?.version_id } }}-->
-<!--        </span>-->
-<!--      </span>-->
-<!--    </div>-->
-<!--    <div class="rounded-lg bg-white pb-[22px] pt-[22px]">-->
-<!--      <div class="flex flex-col items-center justify-center">-->
-<!--        <img class="h-[24px] w-[24px]" [src]="apiImgUrl" alt="" />-->
-<!--        <div class="mt-[5px] text-[14px] font-semibold leading-[22px]">-->
-<!--          {{ nodeInfo.configs?.name }}-->
-<!--        </div>-->
-<!--      </div>-->
-<!--    </div>-->
-<!--  </div>-->
-<!--</div>-->
+    <div *ngIf="isExpand" class="node-groups">
+      <div class="node-group">
+        <div class="flex flex-col gap-2">
+          <span>{{ 'description' | i18nextEager }}</span>
+          <span class="text-[#595959]" lineClamp>
+            {{ description || ('not_configured' | i18nextEager) }}
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div *ngIf="nodeInfo.configs?.valid === false" class="rounded-lg bg-[#FFEAE8]">
+    <div
+      class="flex items-center gap-[4px] pb-[5px] pl-[16px] pr-[16px] pt-[5px]"
+    >
+      <img alt="" class="h-[14px] w-[14px]" [src]="validateAlertIcon" />
+      <span>
+        {{ 'controller_node_not_exist' | i18nextEager }}
+        <span *ngIf="nodeInfo.configs?.version_id">
+          {{'pluginnodecomponent_544'| i18nextEager:{version_id: nodeInfo.configs?.version_id } }}
+        </span>
+      </span>
+    </div>
+    <div class="rounded-lg bg-white pb-[22px] pt-[22px]">
+      <div class="flex flex-col items-center justify-center">
+        <img class="h-[24px] w-[24px]" [src]="icon" alt="" />
+        <div class="mt-[5px] text-[14px] font-semibold leading-[22px]">
+          {{ nodeInfo.configs?.name }}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
-<!--<ng-template #customTipTmpl let-context="context">-->
-<!--  <div *ngFor="let item of context">{{ item }}</div>-->
-<!--</ng-template>-->
+<ng-template #customTipTmpl let-context="context">
+  <div *ngFor="let item of context">{{ item }}</div>
+</ng-template>

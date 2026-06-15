@@ -1,11 +1,136 @@
-import { Component } from '@angular/core';
+import {
+  Component,
+  EventEmitter,
+  Input,
+  NO_ERRORS_SCHEMA,
+  OnDestroy,
+  OnInit,
+  Output,
+} from '@angular/core';
+import { I18nNamespace } from '@i18n';
+import { MODULES } from '@shared/modules';
+import { I18NEXT_NAMESPACE, I18NextEagerPipe } from 'angular-i18next';
+import { AppFlowService } from '../../app-flow.service';
+import { WORKFLOW_SVGS } from '../../flow.const';
+import { NodeService } from '../../node.service';
+import type { ISingleAgentNode } from '../../node.type';
+import { AccBlockComponent } from '../acc-block/acc-block.component';
+import { ModalBaseComponent } from '../base/modal-base.component';
+import { ReadonlyParamsTreeComponent } from '../readonly-params/readonly-params-tree.component';
+import { AppAgentRepoService } from '@services/agent-center/app-agent-repo.service';
+import { SafeHtmlPipe } from 'src/pipes/safehtml.pipe';
+import { cdnAssetUrl } from 'src/single-spa/assets-url';
 
 @Component({
   selector: 'meta-single-agent-modal',
   templateUrl: './single-agent-modal.component.html',
   styleUrls: ['./single-agent-modal.component.scss', '.././common-styles.less'],
   standalone: true,
-  imports: [],
-  providers: [],
+  imports: [
+    MODULES,
+    AccBlockComponent,
+    ReadonlyParamsTreeComponent,
+    SafeHtmlPipe,
+  ],
+  schemas: [NO_ERRORS_SCHEMA],
+  providers: [
+    {
+      provide: I18NEXT_NAMESPACE,
+      useValue: [I18nNamespace.AGENT_CENTER],
+    },
+  ],
 })
-export class SingleAgentModalComponent {}
+export class SingleAgentModalComponent
+  extends ModalBaseComponent
+  implements OnInit, OnDestroy
+{
+  @Input('names') names: string[];
+
+  @Input('nodeInfo') nodeInfo: ISingleAgentNode;
+
+  @Input('workflow_parent_node_type') workflow_parent_node_type: string;
+
+  @Input() outputs: {
+    confirm?: (data: ISingleAgentNode) => void;
+    closeDrawer?: () => void;
+    editCodeEvent?: (data: any) => void;
+  };
+
+  @Output('confirm') confirm = new EventEmitter<ISingleAgentNode>();
+
+  public iconUrl = WORKFLOW_SVGS.SingleAgent;
+
+  public changeUrl = cdnAssetUrl;
+
+  public description = '';
+
+  public source = 'controller';
+
+  public intent_name: string = '';
+
+  public intent_desc: string = '';
+
+  public versionAgentInfo;
+
+  public agentInfoLoading = true;
+
+  constructor(
+    protected override appFlowServ: AppFlowService,
+    protected override nodeServ: NodeService,
+    private appAgentRepoServ: AppAgentRepoService,
+    private i18n: I18NextEagerPipe,
+  ) {
+    super(nodeServ, appFlowServ);
+  }
+
+  override ngOnInit(): void {
+    this.source = this.nodeInfo.parent_node_type
+      || this.workflow_parent_node_type
+      || 'controller';
+    this.setNodeBase(this.nodeInfo);
+    super.ngOnInit();
+
+    this.appAgentRepoServ
+      .rollbackAgentVersion(
+        this.nodeInfo.configs?.id,
+        this.nodeInfo.configs?.version_id,
+      )
+      .then((res) => {
+        this.versionAgentInfo = res;
+      }).finally(() => {
+      this.agentInfoLoading = false;
+    });
+
+    this.description = this.nodeInfo.configs.description;
+    this.intent_name = this.nodeInfo.configs?.intent?.name ?? '';
+    this.intent_desc = this.nodeInfo.configs?.intent?.description ?? '';
+  }
+
+  onConfirm(): void {
+    const params = {
+      ...this.nodeInfo,
+      configs: {
+        ...this.nodeInfo.configs,
+        description: this.description,
+        intent: {
+          name: this.intent_name,
+          description: this.intent_desc,
+        },
+      },
+    };
+
+    if (this.outputs?.confirm) {
+      this.outputs.confirm(params);
+    } else {
+      this.confirm.emit(params);
+    }
+  }
+
+  dismiss(): void {
+    this.outputs?.closeDrawer?.();
+  }
+
+  close(): void {
+    this.outputs?.closeDrawer?.();
+  }
+}

@@ -211,11 +211,30 @@ export class AddMultipleAgentModalComponent implements OnInit {
     this.refreshList();
   }
 
+  public onCardClick(agent: SubAgentModel | SubWorkFlow, event: Event): void {
+    event.stopPropagation();
+    if (agent.disable) {
+      return;
+    }
+    if (this.isSingleAgent) {
+      if (!agent.checked) {
+        agent.checked = true;
+        this.onCardSingleSelected(agent);
+      }
+    } else {
+      agent.checked = !agent.checked;
+      this.onCardMultiSelected(agent);
+    }
+  }
+
   public onCardSelected(agent: SubAgentModel | SubWorkFlow) {
     if (agent.disable) {
       return;
     }
     if (this.isSingleAgent) {
+      if (!agent.checked) {
+        agent.checked = true;
+      }
       this.onCardSingleSelected(agent);
     } else {
       this.onCardMultiSelected(agent);
@@ -273,7 +292,7 @@ export class AddMultipleAgentModalComponent implements OnInit {
   }
 
   public isShowSingleEnter() {
-    return false;
+    return true;
   }
 
   private initSingleAgentList(): void {

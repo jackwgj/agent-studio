@@ -857,13 +857,11 @@ class ControllerPlanner(TaskPlanner):
         return workflow_context.description
 
     def _collect_child_agent_intent_descriptions(self, intent_descriptions: list):
-        """收集子 Agent 意图描述（排除 PlanExecute 模式）"""
+        """收集子 Agent 意图描述"""
         child_agents = self.plan_config.child_agents_metadata
         if not child_agents or not isinstance(child_agents, list):
             return
         for agent in child_agents:
-            if agent.mode == "PlanExecute":
-                continue
             intent_desc = self._format_agent_intent_description(agent)
             if intent_desc:
                 intent_descriptions.append(intent_desc)

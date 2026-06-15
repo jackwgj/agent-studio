@@ -62,7 +62,8 @@
   >
     <div *ngIf="agents.length" class="cards-wrapper">
       <div class="card" [class.card-active]="agent.checked" *ngFor="let agent of agents"
-           nz-tooltip [nzTooltipTitle]="agent.tip">
+           nz-tooltip [nzTooltipTitle]="agent.tip"
+           (click)="onCardClick(agent, $event)">
         <div class="flex-content gap-[16px] h-[44px]">
           <img
             class="img-border"
@@ -90,7 +91,7 @@
               </div>
             </div>
           </div>
-          <div class="right-area">
+          <div class="right-area" (click)="$event.stopPropagation()">
             <label
               nz-checkbox
               [disabled]="isSingleAgent ? false : agent.disable"

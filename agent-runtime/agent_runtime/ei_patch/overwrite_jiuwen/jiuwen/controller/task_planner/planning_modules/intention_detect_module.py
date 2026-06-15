@@ -1383,9 +1383,6 @@ class IntentionDetectModule:
     def _process_child_agents(self, intents, category_index):
         """处理子agent"""
         for child_agent in self.plan_config.child_agents_metadata:
-            # 排除 PlanExecute 模式的 agent，它们用于处理复杂任务，不作为简单意图分类
-            if hasattr(child_agent, "mode") and child_agent.mode == "PlanExecute":
-                continue
             if child_agent.description and child_agent.name:
                 # 获取子agent的intent_name字段，如果没有则使用description
                 agent_intent_name = (

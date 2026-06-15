@@ -1,4 +1,4 @@
-<!-- <div class="flex h-full w-full flex-col">
+<div class="flex h-full w-full flex-col">
   <tp-halfmodal-header class="mb-[16px] block">
     <div class="flex w-[calc(100%-38px)] items-center justify-between">
       <div class="flex items-center gap-[8px]">
@@ -18,13 +18,76 @@
       <div *ngIf="source === 'sub_controller'" class="sub-con-agent mt-[8px]">
         <div class="mb-[8px]">
           <div class="title">{{ 'intent_name' | i18nextEager }}</div>
-          <div class="secondary-content">{{ intent_name }}</div>
+          <div class="secondary-content">{{ intent_name || ('not_configured' | i18nextEager) }}</div>
         </div>
-        <div>
+        <div class="mb-[8px]">
           <div class="title">{{ 'intent_desc' | i18nextEager }}</div>
-          <div class="secondary-content">{{ intent_desc }}</div>
+          <div class="secondary-content">{{ intent_desc || ('not_configured' | i18nextEager) }}</div>
         </div>
         <div class="my-[16px] h-[1px] w-full bg-[#f0f0f0]"></div>
+
+        <div [(tiLoading)]="agentInfoLoading">
+          <meta-acc-block class="block" [title]="'prompt' | i18nextEager">
+            <ng-template #content>
+              <div
+                class="secondary-content agent-instructions mt-4 w-full"
+                [innerHTML]="
+                  versionAgentInfo?.instructions ||
+                    ('not_configured' | i18nextEager) | safeHtml
+                "
+              ></div>
+            </ng-template>
+          </meta-acc-block>
+
+          <div class="my-[16px] h-[1px] w-full bg-[#f0f0f0]"></div>
+
+          <meta-acc-block
+            class="mb-4 block"
+            [title]="'scenario_guide_label' | i18nextEager"
+          >
+            <ng-template #content>
+              <div class="mt-4 w-full">
+                <ng-container
+                  *ngIf="versionAgentInfo?.scenes?.length; else noScenesSub"
+                >
+                  <div
+                    *ngFor="let item of versionAgentInfo.scenes"
+                    class="scene-box mb-[12px]"
+                  >
+                    <img alt=""
+                         class="mr-[8px] h-[28px] w-[28px]"
+                         [src]="changeUrl('assets/agent/scene.svg')"
+                    />
+                    <div class="scene-title">
+                      <div class="scene-name mb-[2px] text-ellipsis overflow-hidden whitespace-nowrap">
+                        {{ item.name }}
+                      </div>
+                      <div
+                        class="scene-sub-title w-[100%] text-ellipsis overflow-hidden whitespace-nowrap"
+                        [title]="item.description"
+                      >
+                        {{
+                          'scene_guide_count_label'
+                            | i18nextEager
+                            : { count: item.guidelines?.length || 0 }
+                        }}
+                        <ng-container *ngIf="item.description">
+                          <span class="split-line-short"></span>
+                          {{ item.description }}
+                        </ng-container>
+                      </div>
+                    </div>
+                  </div>
+                </ng-container>
+                <ng-template #noScenesSub>
+                  <div class="secondary-content">
+                    {{ 'not_configured' | i18nextEager }}
+                  </div>
+                </ng-template>
+              </div>
+            </ng-template>
+          </meta-acc-block>
+        </div>
       </div>
 
       <div *ngIf="source === 'controller'">
@@ -35,7 +98,7 @@
               id="text-basic"
               [(ngModel)]="intent_name"
               maxlength="120"
-              tiText
+              nz-input
             />
           </ng-template>
         </meta-acc-block>
@@ -49,7 +112,7 @@
               [(ngModel)]="intent_desc"
               rows="5"
               [placeholder]="'input_placeholder' | i18nextEager"
-              tiTextarea
+              nz-input
             ></textarea>
           </ng-template>
         </meta-acc-block>
@@ -82,25 +145,24 @@
                 >
                   <div
                     *ngFor="let item of versionAgentInfo.scenes"
-                    class="scene-box flex-left mb-[12px]"
+                    class="scene-box mb-[12px]"
                   >
                     <img alt=""
-                      class="mr-[8px] h-[28px] w-[28px]"
-                      [src]="changeUrl('assets/agent/scene.svg')"
+                         class="mr-[8px] h-[28px] w-[28px]"
+                         [src]="changeUrl('assets/agent/scene.svg')"
                     />
                     <div class="scene-title">
-                      <div class="scene-name mb-[2px]" tiOverflow>
+                      <div class="scene-name mb-[2px] text-ellipsis overflow-hidden whitespace-nowrap">
                         {{ item.name }}
                       </div>
                       <div
-                        class="scene-sub-title w-[100%]"
-                        tiOverflow
-                        [tiTipContent]="item.description"
+                        class="scene-sub-title w-[100%] text-ellipsis overflow-hidden whitespace-nowrap"
+                        [title]="item.description"
                       >
                         {{
                           'scene_guide_count_label'
                             | i18nextEager
-                              : { count: item.guidelines?.length || 0 }
+                            : { count: item.guidelines?.length || 0 }
                         }}
                         <ng-container *ngIf="item.description">
                           <span class="split-line-short"></span>
@@ -124,20 +186,20 @@
   </tp-halfmodal-body>
 
   <tp-halfmodal-footer *ngIf="source !== 'sub_controller'">
-    <div class="flex justify-end gap-2">
-      <button type="button" tiButton (click)="dismiss()">
+    <div class="drawer-footer flex justify-end gap-2">
+      <button type="button" nz-button (click)="dismiss()">
         {{ 'cancel' | i18nextEager }}
       </button>
       <button
         [disabled]="isFlowReadonly"
         type="button"
-        tiButton
-        color="danger"
+        nz-button
+        nzType="primary"
         (click)="onConfirm()"
-        [loading]="isConfirmLoading"
+        [nzLoading]="isConfirmLoading"
       >
         {{ 'ok' | i18nextEager }}
       </button>
     </div>
   </tp-halfmodal-footer>
-</div> -->
+</div>

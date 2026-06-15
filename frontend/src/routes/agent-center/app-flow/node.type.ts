@@ -586,7 +586,11 @@ export interface ISingleAgentConfigs extends IWorkflowConfigs {
     model_deployment_id?: string;
     model_name?: string;
     model_type?: string;
-  }
+  };
+  intent?: {
+    name: string;
+    description: string;
+  };
 }
 
 export interface IWorkflowNode extends INodeBase {

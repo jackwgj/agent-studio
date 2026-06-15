@@ -56,3 +56,8 @@ env/
 /agent-runtime/agent_builder/serve/logs/*
 /agent-runtime/open_agentBuilder_engine.egg-info
 *.mmap
+
+### Python venv ###
+.venv/
+venv/
+__pycache__/

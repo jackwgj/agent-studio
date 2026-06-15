@@ -8,19 +8,29 @@
   .title {
     font-size: 12px;
     font-weight: bold;
-    color: #252B3A;
+    color: #191919;
     margin-bottom: 8px;
   }
 }
 
 .secondary-content {
   font-size: 12px;
-  color: #575D6C;
+  color: #595959;
 }
 
 .agent-instructions {
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.scene-box {
+  border-radius: 8px;
+  background: #FFF;
+  padding: 8px 12px;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 8px;
 }
 
 .scene-left {
@@ -46,4 +56,9 @@
   height: 9px;
   display: inline-block;
   margin: 0 4px;
+}
+
+.drawer-footer {
+  padding: 16px 20px;
+  border-top: 1px solid #e1e5eb;
 }

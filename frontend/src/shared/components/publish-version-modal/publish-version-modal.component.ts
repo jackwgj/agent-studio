@@ -1,4 +1,4 @@
-import {Component, EventEmitter, Input, Output, inject} from '@angular/core';
+import {Component, EventEmitter, Inject, Input, Optional, Output, inject} from '@angular/core';
 import { MODULES } from '@shared/modules';
 import { I18nNamespace } from '@i18n';
 import { I18NEXT_NAMESPACE, I18NextEagerPipe } from 'angular-i18next';
@@ -16,6 +16,7 @@ import { AgentConfigService } from '@routes/agent-center/agent-config.service';
 import { PublishVersionSubmitSuccessComponent } from '@shared/components/version-submit-success-dialog/version-submit-component';
 import { NzModalRef } from 'ng-zorro-antd/modal';
 import { NzModalService } from 'ng-zorro-antd/modal';
+import { NzDrawerRef } from 'ng-zorro-antd/drawer';
 import { NzFormModule } from 'ng-zorro-antd/form';
 import { NzInputModule } from 'ng-zorro-antd/input';
 import { NzButtonModule } from 'ng-zorro-antd/button';
@@ -48,7 +49,8 @@ export class PublishVersionModalComponent {
   @Output() publishSuccess = new EventEmitter<any>();
   @Output() clickShare = new EventEmitter<any>();
 
-  readonly modalRef = inject(NzModalRef);
+  private modalRef: NzModalRef | null = inject(NzModalRef, { optional: true });
+  private drawerRef: NzDrawerRef | null = inject(NzDrawerRef, { optional: true });
 
   versionName = '';
 
@@ -198,11 +200,19 @@ export class PublishVersionModalComponent {
   }
 
   public close() {
-    this.modalRef.close();
+    if (this.modalRef) {
+      this.modalRef.close();
+    } else if (this.drawerRef) {
+      this.drawerRef.close();
+    }
   }
 
   public dismiss() {
-    this.modalRef.close();
+    if (this.modalRef) {
+      this.modalRef.close();
+    } else if (this.drawerRef) {
+      this.drawerRef.close();
+    }
   }
 
 
