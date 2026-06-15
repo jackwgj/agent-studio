@@ -1,4 +1,7 @@
-# -*- coding: UTF-8 -*-
+#  !/usr/bin/env python
+#  -*- coding: UTF-8 -*-
+#  Copyright c) Huawei Technologies Co. Ltd. 2025-2025
+
 """
 增强版 LoopSetVariable 组件
 
@@ -36,6 +39,8 @@ from openjiuwen.core.session.utils import is_ref_path
 REDIS_GLOBAL_VALS_NAME = "global.vals"  # Redis全局值存储键名前缀
 # ${MEMORY_VARIABLE.xxx} 引用前缀
 GLOBAL_REF_PREFIX = "MEMORY_VARIABLE."
+# 会话变量的 io_state 路径前缀
+MEMORY_VAR_PATH_PREFIX = "node_start.userFields.memory"
 
 
 class LoopSetVariable(LoopSetVariableComponent):
@@ -96,6 +101,12 @@ class LoopSetVariable(LoopSetVariableComponent):
                 # Use left_ref_str (e.g. "global.is_valid") as key so update_dict
                 # stores at state["global"]["is_valid"] matching get_global path
                 root_session.state().update_global({left_ref_str: value})
+
+                # MEMORY_VARIABLE refs that correspond to session vars need Redis persistence
+                var_name = left_ref_str[len(GLOBAL_REF_PREFIX):]
+                if session_var_defs and var_name in session_var_defs:
+                    await self._save_to_redis(session, f"{MEMORY_VAR_PATH_PREFIX}.{var_name}", {var_name: value})
+
                 continue
             keys = left_ref_str.split(NESTED_PATH_SPLIT)
 
