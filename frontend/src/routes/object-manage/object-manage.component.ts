@@ -505,4 +505,10 @@ export class ObjectManageComponent extends ModalBaseComponent implements OnInit 
   }
 
   protected readonly JSON = JSON;
+
+  public onSearchChange(value: string): void {
+    if (!value) {
+      this.searchList();
+    }
+  }
 }
