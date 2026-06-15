@@ -5,11 +5,14 @@ import time
 from dataclasses import dataclass, asdict
 from typing import Optional
 
-import aiohttp
-from jiuwen.common.llm_service.messages import BaseMessage
-from jiuwen.common.log.base import logger
+from openjiuwen.core.common.logging import memory_logger as logger
+from openjiuwen.core.memory.config.config import AgentMemoryConfig
+
+from openjiuwen.core.foundation.llm import UserMessage, AssistantMessage, BaseMessage
 from jiuwen.serve.common.context import request as current_request
 from jiuwen.serve.controllers.execution.ir_converter import IRConverter
+
+from agent_runtime.memory.adapter.ltm_manager import get_ltm
 
 
 @dataclass
@@ -79,7 +82,7 @@ class MessageChatTurn:
 @dataclass
 class ChatHistoryConversationCache:
     user_id: str
-    app_id: str
+    memory_repo_id: str
     conversation_id: str
     last_update_time: Optional[int] = None
     chat_turns: Optional[list[MessageChatTurn]] = None
@@ -94,7 +97,6 @@ class ChatHistoryConversationCache:
     def from_json(cls, json_str: str):
         data = json.loads(json_str)
 
-        # 转换历史对话列表
         chat_turns = []
         for chat_data in data.get("chat_turns", []):
             messages = []
@@ -104,7 +106,7 @@ class ChatHistoryConversationCache:
 
         return cls(
             user_id=data["user_id"],
-            app_id=data["app_id"],
+            memory_repo_id=data.get("memory_repo_id") or data.get("app_id", ""),
             conversation_id=data["conversation_id"],
             last_update_time=data["last_update_time"],
             chat_turns=chat_turns,
@@ -129,13 +131,7 @@ class UserProfileMemoryExtractor:
     _extract_time_windows = int(
         os.getenv("MEMORY_USER_PROFILE_EXTRACT_TIME_WINDOWS", 10)
     )
-    _memory_service_url = os.environ.get("MEMORY_SERVICE_ENDPOINT")
-    _memory_service_cert_path = os.environ.get("MEMORY_SERVICE_CERT_PATH", "")
-    _memory_service_ssl_verify = (
-        _memory_service_cert_path if _memory_service_cert_path else False
-    )
-    _memory_service_session = None
-    _memory_extract_delay_task = set()
+    _memory_extract_delay_task: dict = {}
 
     def __new__(cls):
         if cls._instance is None:
@@ -143,11 +139,10 @@ class UserProfileMemoryExtractor:
         return cls._instance
 
     def __init__(self):
-        # 防止多次初始化
         if not self._initialized:
-            from jiuwen.common.store.async_redis import get_async_redis_instance
+            from agent_runtime.common.redis_manager import RedisClientManager
 
-            self._redis_client = get_async_redis_instance()
+            self._redis_client = RedisClientManager.get_instance().get_client()
             self._initialized = True
             logger.info(
                 f"Init user profile memory extractor with enable:{self._user_profile_enable}, "
@@ -155,34 +150,24 @@ class UserProfileMemoryExtractor:
                 f"default extract time windows: {self._extract_time_windows}"
             )
 
-            self._memory_service_session = aiohttp.ClientSession(
-                connector=aiohttp.TCPConnector(ssl=self._memory_service_ssl_verify)
-            )
-
     async def async_add_chat_turn(
         self,
         user_id: str,
-        app_id: str,
+        memory_repo_id: str,
         conversation_id: str,
         ir_data: dict,
         messages: list[BaseMessage],
     ):
         """
-        为用户画像记忆的提取来存储每一轮会话
+        Store chat turns for user profile memory extraction.
         Args:
-            user_id: 用户ID
-            app_id: 应用ID，可以是智能体ID或者工作流ID
-            conversation_id: 会话ID
-            ir_data: 智能体或工作流的IR数据
-            messages: 本轮对话的消息
-
+            user_id: User ID
+            memory_repo_id: Memory repo ID (from IR configs.memory.memory_repo_id)
+            conversation_id: Conversation ID
+            ir_data: Agent or workflow IR data
+            messages: Messages from this conversation turn
         """
-        if not self._user_profile_enable:
-            # 未开启用户画像功能时，不做任何处理
-            return
-
         try:
-            # 解析IR配置中用户画像提取相关的配置
             extractor_config = self._convert_memory_extract_config(ir_data)
             if not extractor_config.user_profile_enable:
                 return
@@ -203,7 +188,7 @@ class UserProfileMemoryExtractor:
             task = asyncio.create_task(
                 self._async_add_chat_turn_task(
                     user_id,
-                    app_id,
+                    memory_repo_id,
                     conversation_id,
                     real_extract_config,
                     messages,
@@ -220,26 +205,15 @@ class UserProfileMemoryExtractor:
     async def _async_add_chat_turn_task(
         self,
         user_id: str,
-        app_id: str,
+        memory_repo_id: str,
         conversation_id: str,
         extractor_config: UserProfileMemoryExtractorConfig,
         messages: list[BaseMessage],
         ir_data: dict,
     ):
-        """
-        为用户画像记忆的提取来存储每一轮会话的异步任务
-        Args:
-            user_id: 用户ID
-            app_id: 应用ID，可以是智能体ID或者工作流ID
-            conversation_id: 会话ID
-            extractor_config: 用户画像提取配置
-            messages: 本轮对话的消息
-            ir_data: 智能体或工作流的IR数据
-
-        """
         try:
             await self._cache_chat_message(
-                user_id, app_id, conversation_id, extractor_config, messages, ir_data
+                user_id, memory_repo_id, conversation_id, extractor_config, messages, ir_data
             )
         except Exception as e:
             logger.error(
@@ -250,25 +224,12 @@ class UserProfileMemoryExtractor:
     async def _cache_chat_message(
         self,
         user_id: str,
-        app_id: str,
+        memory_repo_id: str,
         conversation_id: str,
         extractor_config: UserProfileMemoryExtractorConfig,
         messages: list[BaseMessage],
         ir_data: dict,
     ):
-        """
-        缓存用于记忆提取的历史消息
-        Args:
-            user_id: 用户ID
-            app_id: 应用ID，可以是智能体ID或者工作流ID
-            conversation_id: 会话ID
-            extractor_config: 用户画像提取配置
-            messages: 历史消息
-            ir_data: 智能体或工作流的IR数据
-
-        Returns:
-
-        """
         if not messages:
             return
 
@@ -276,13 +237,13 @@ class UserProfileMemoryExtractor:
         for message in messages:
             message_in_turn.append(
                 UserProfileMemoryHistoryMessage(
-                    role=message.type, content=message.content
+                    role=message.role, content=message.content
                 )
             )
         chat_turn = MessageChatTurn(messages=message_in_turn)
 
         history_message = await self._redis_client.get(
-            self._obtain_user_memory_key(user_id, app_id, conversation_id)
+            self._obtain_user_memory_key(user_id, memory_repo_id, conversation_id)
         )
 
         if not history_message:
@@ -290,7 +251,7 @@ class UserProfileMemoryExtractor:
                 f"Cached user memory is empty. Create userMemory for user: {user_id}."
             )
             cache_conversation = ChatHistoryConversationCache(
-                user_id=user_id, app_id=app_id, conversation_id=conversation_id
+                user_id=user_id, memory_repo_id=memory_repo_id, conversation_id=conversation_id
             )
             cache_conversation.add_chat_turn(chat_turn)
         else:
@@ -299,60 +260,57 @@ class UserProfileMemoryExtractor:
             )
             cache_conversation.add_chat_turn(chat_turn)
 
-        # 如果达到了设置的对话轮数，则开始提取记忆；如果没有达到，则继续缓存消息，并启动一个延时任务，等待一段时间后再提取记忆
         if len(cache_conversation.chat_turns) >= extractor_config.extract_max_turns:
             logger.info(
                 f"Cached chatTurns exceeds maxCachedTurn count. Extract user memory for user: {user_id}, conversation: {conversation_id}."
             )
             await self._extract_memory(
-                user_id, app_id, conversation_id, ir_data, cache_conversation
+                user_id, memory_repo_id, conversation_id, ir_data, cache_conversation
             )
         else:
             message_json_str = ChatHistoryConversationCache.to_json(cache_conversation)
             await self._redis_client.set(
-                self._obtain_user_memory_key(user_id, app_id, conversation_id),
+                self._obtain_user_memory_key(user_id, memory_repo_id, conversation_id),
                 message_json_str.encode("utf-8"),
             )
             logger.info(
-                f"Cached chatTurns is within maxCachedTurn count. Schedule delay extract user memory  for user: {user_id}, conversation: {conversation_id} later."
+                "Cached chatTurns within maxCachedTurn. "
+                "Scheduling delayed memory extraction for user: %s, conversation: %s.",
+                user_id, conversation_id,
             )
-            asyncio.create_task(
+            # Cancel existing delay task for this conversation to reset the timer (T-02)
+            existing_task = self._memory_extract_delay_task.pop(conversation_id, None)
+            if existing_task is not None:
+                existing_task.cancel()
+                logger.info(
+                    f"Cancelled previous delay task for conversation: {conversation_id}, will reschedule."
+                )
+            task = asyncio.create_task(
                 self._extract_memory_delay(
                     user_id,
-                    app_id,
+                    memory_repo_id,
                     conversation_id,
                     extractor_config.extract_time_windows,
                     ir_data,
                 )
             )
+            self._memory_extract_delay_task[conversation_id] = task
 
     async def _extract_memory_delay(
         self,
         user_id: str,
-        app_id: str,
+        memory_repo_id: str,
         conversation_id: str,
         delay_minutes: int,
         ir_data: dict,
     ):
-        """
-        延时提取用户画像记忆
-        Args:
-            user_id: 用户ID
-            app_id: 应用ID，可以是智能体ID或者工作流ID
-            conversation_id: 会话ID
-            delay_minutes: 延时执行的时间，单位：分钟
-            ir_data: 智能体或工作流的IR数据
-
-        Returns:
-
-        """
-        # 如果针对某个对话已经存在延时任务了，就不再继续新增一个延时任务
-        if conversation_id in self._memory_extract_delay_task:
-            return
-
-        await asyncio.sleep(delay_minutes * 60)
         try:
-            await self._extract_memory(user_id, app_id, conversation_id, ir_data)
+            await asyncio.sleep(delay_minutes * 60)
+            await self._extract_memory(user_id, memory_repo_id, conversation_id, ir_data)
+        except asyncio.CancelledError:
+            logger.info(
+                f"Delay extraction task cancelled for conversation: {conversation_id}"
+            )
         except Exception as e:
             logger.error(
                 f"Add chat history to user profile memory cache error: {e}",
@@ -362,27 +320,15 @@ class UserProfileMemoryExtractor:
     async def _extract_memory(
         self,
         user_id: str,
-        app_id: str,
+        memory_repo_id: str,
         conversation_id: str,
         ir_data: dict,
         cached_conversation: Optional[ChatHistoryConversationCache] = None,
     ):
-        """
-        提取用户画像记忆
-        Args:
-            user_id: 用户ID
-            app_id: 应用ID，可以是智能体ID或者工作流ID
-            conversation_id: 会话ID
-            cached_conversation: 缓存的历史对话内容
-            ir_data: 智能体或工作流的IR数据
-
-        Returns:
-
-        """
         cached_conversation_to_extract = cached_conversation
         if not cached_conversation:
             conversation_str = await self._redis_client.get(
-                self._obtain_user_memory_key(user_id, app_id, conversation_id)
+                self._obtain_user_memory_key(user_id, memory_repo_id, conversation_id)
             )
             if not conversation_str:
                 logger.info(
@@ -397,12 +343,10 @@ class UserProfileMemoryExtractor:
                 f"Cached conversation is empty. Skip extract user memory for user: {user_id}, conversation: {conversation_id}."
             )
             return
-        # 已经准备触发提取了，需要从redis中删除缓存的消息，避免用户一直对话，还在持续的往redis中写入消息缓存
         await self._redis_client.delete(
-            self._obtain_user_memory_key(user_id, app_id, conversation_id)
+            self._obtain_user_memory_key(user_id, memory_repo_id, conversation_id)
         )
 
-        # 从IR中递归解析所有的topic和tag信息
         all_tags = await IRConverter.get_memory_topics(ir_data)
         topics_to_extract = []
         if all_tags:
@@ -418,34 +362,85 @@ class UserProfileMemoryExtractor:
                         topic_to_extract.tags.append(tag_to_extract)
                 topics_to_extract.append(topic_to_extract)
 
-        # 调用memory-service的接口提取用户画像
-        url = f"{self._memory_service_url}/v1/{self._get_project_id()}/memories/profile/users/{user_id}/apps/{app_id}"
-        reqeust_body = self._convert_message_for_memory_extract(
-            cached_conversation_to_extract
-        )
-        reqeust_body.topics = topics_to_extract
-        headers = self._get_headers()
+        # Extract memory via LTM (replaces HTTP POST to memory-service)
         try:
-            async with self._memory_service_session.post(
-                url, data=reqeust_body.to_json(), headers=headers
-            ) as response:
-                if response.status == 200:
-                    logger.info(
-                        f"call memor-service extract user profile success for user: {user_id}, conversation: {conversation_id}"
-                    )
-                else:
-                    logger.error(
-                        f"extract user profile failed for user: {user_id}, conversation: {conversation_id}. Error message:{response}"
-                    )
+            ltm = get_ltm()
+            if ltm is None:
+                logger.info(
+                    "LTM not initialized, skipping memory extraction for user: %s",
+                    user_id,
+                )
+                return
+
+            # Ensure scope config exists with strategy prompts from IR
+            try:
+                existing_cfg = await ltm.get_scope_config(memory_repo_id)
+                if existing_cfg is None:
+                    from agent_runtime.memory.adapter.ltm_manager import build_scope_config
+                    scope_cfg = build_scope_config()
+                    configs = ir_data.get("configs") if ir_data.get("configs") else {}
+                    memory_config = configs.get("memory") if configs.get("memory") else {}
+                    strategies = memory_config.get("strategies") if memory_config.get("strategies") else []
+                    for strategy in strategies:
+                        strategy_type = strategy.get("type", "")
+                        prompt = strategy.get("prompt", "")
+                        if not prompt:
+                            continue
+                        if strategy_type == "user_profile":
+                            scope_cfg.user_profile_definition = prompt
+                        elif strategy_type == "semantic_memory":
+                            scope_cfg.semantic_memory_definition = prompt
+                        elif strategy_type == "episodic_memory":
+                            scope_cfg.episodic_memory_definition = prompt
+                    await ltm.set_scope_config(memory_repo_id, scope_cfg)
+            except Exception as e:
+                logger.warning("Failed to ensure scope config for %s (non-blocking): %s", memory_repo_id, e)
+
+            base_messages: list[BaseMessage] = []
+            for chat_turn in cached_conversation_to_extract.chat_turns:
+                for msg in chat_turn.messages:
+                    if msg.role == "user":
+                        base_messages.append(UserMessage(content=msg.content))
+                    else:
+                        base_messages.append(AssistantMessage(content=msg.content))
+
+            if not base_messages:
+                return
+
+            agent_config = AgentMemoryConfig()
+
+            configs = ir_data.get("configs") if ir_data.get("configs") else {}
+            memory_config = configs.get("memory") if configs.get("memory") else {}
+            strategies = memory_config.get("strategies") if memory_config.get("strategies") else []
+            strategy_types = {s.get("type") for s in strategies if s.get("type")}
+            if strategy_types:
+                agent_config.enable_user_profile = "user_profile" in strategy_types
+                agent_config.enable_semantic_memory = "semantic_memory" in strategy_types
+                agent_config.enable_episodic_memory = "episodic_memory" in strategy_types
+
+            await ltm.add_messages(
+                messages=base_messages,
+                agent_config=agent_config,
+                user_id=user_id.lower(),
+                scope_id=memory_repo_id,
+                session_id=conversation_id,
+            )
+            logger.info(
+                "LTM memory extraction completed for user: %s, conversation: %s",
+                user_id,
+                conversation_id,
+            )
 
         except Exception as e:
             logger.error(
-                f"call memor-service error when extract user profile. Error message:{e}",
+                "LTM memory extraction failed for user: %s, conversation: %s. Error: %s",
+                user_id,
+                conversation_id,
+                e,
                 exc_info=True,
             )
         finally:
-            # 不管有没有提取成功，都要删除已经存在的延时任务
-            self._memory_extract_delay_task.discard(conversation_id)
+            self._memory_extract_delay_task.pop(conversation_id, None)
 
     def _convert_message_for_memory_extract(
         self, history_messages: ChatHistoryConversationCache
@@ -470,6 +465,25 @@ class UserProfileMemoryExtractor:
     ) -> UserProfileMemoryExtractorConfig:
         configs = ir_data.get("configs") if ir_data.get("configs") else {}
         memory_config = configs.get("memory") if configs.get("memory") else {}
+
+        # Prefer new IR structure: extract_config + strategies
+        extract_config = memory_config.get("extract_config") or {}
+        strategies = memory_config.get("strategies") or []
+
+        if extract_config or strategies:
+            strategy_types = {s.get("type") for s in strategies if s.get("type")}
+            memory_enabled = len(strategy_types) > 0
+            return UserProfileMemoryExtractorConfig(
+                extract_max_turns=extract_config.get("max_chat_turn")
+                if extract_config.get("max_chat_turn")
+                else self._extract_max_turns,
+                extract_time_windows=extract_config.get("time_window")
+                if extract_config.get("time_window")
+                else self._extract_time_windows,
+                user_profile_enable=memory_enabled,
+            )
+
+        # Fallback: old IR structure configs.memory.userProfile
         user_profile_config = (
             memory_config.get("userProfile") if memory_config.get("userProfile") else {}
         )
@@ -493,20 +507,9 @@ class UserProfileMemoryExtractor:
             user_profile_enable=user_profile_enable,
         )
 
-    def _get_headers(self) -> dict[str, str]:
-        request_headers = current_request.get().headers
-
-        headers = {
-            "Content-Type": "application/json",
-            "X-Auth-Token": request_headers.get("X-Auth-Token", ""),
-        }
-        return headers
-
-    def _get_project_id(self) -> str:
-        return current_request.get().headers.get("x-owner-project-id", "")
-
-    def _obtain_user_memory_key(self, user_id: str, app_id: str, conversation_id: str):
-        return f"memory_chat_cache:{user_id}:{app_id}:{conversation_id}"
+    @staticmethod
+    def _obtain_user_memory_key(user_id: str, memory_repo_id: str, conversation_id: str):
+        return f"memory_chat_cache:{user_id}:{memory_repo_id}:{conversation_id}"
 
 
 def get_instance():

@@ -7,7 +7,7 @@ export interface IMemoryBasicQuery {
 }
 
 export interface IMemoryQueryParams extends IMemoryBasicQuery {
-  memory_type: MemoryStrategyType;
+  memory_type: string;
   offset: number;
   limit: number;
 }
@@ -49,7 +49,7 @@ export enum MemUpdatedOperationType {
 
 export interface IMemoryInfo {
   // all
-  content: any;
+  content: string;
   updatedType: MemUpdatedOperationType;
   fakeId: string; // uuid from frontend
   id?: string;

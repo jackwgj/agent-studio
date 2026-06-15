@@ -71,6 +71,8 @@ import com.openjiuwen.studio.agent.manager.dto.MemoryUserProfileExtractConfigIR;
 import com.openjiuwen.studio.agent.manager.dto.MemoryUserProfileIR;
 import com.openjiuwen.studio.agent.manager.dto.MemoryUserProfileTagInfoIR;
 import com.openjiuwen.studio.agent.manager.dto.MemoryUserProfileTopicInfoIR;
+import com.openjiuwen.studio.agent.manager.entity.MemoryRepoEntity;
+import com.openjiuwen.studio.agent.manager.mapper.MemoryRepoMapper;
 import com.openjiuwen.studio.agent.manager.dto.RequestInfo;
 import com.openjiuwen.studio.agent.manager.dto.Scene;
 import com.openjiuwen.studio.agent.manager.dto.ToolCredential;
@@ -585,6 +587,9 @@ public class IrAdapterService {
     @Autowired
     private KnowledgeBaseServiceImpl knowledgeBaseService;
 
+    @Autowired
+    private MemoryRepoMapper memoryRepoMapper;
+
     private static void markEndBranchId(Map<String, WorkflowEdgeVO> edgeVoMap, WorkflowParallelEndNode parallelEndNode,
         String parallelBranchUuid) {
         for (String edgeId : parallelEndNode.getEdgeIds()) {
@@ -751,9 +756,34 @@ public class IrAdapterService {
         if (configs.get(Constants.Workflow.MEMORY_CONFIG) != null) {
             Map<String, String> agentMemoryConfig = JsonUtils.objectToClass(configs.get(Constants.Workflow.MEMORY_CONFIG));
             if (agentMemoryConfig != null && StringUtils.isNotBlank(agentMemoryConfig.get(MEMORY_REPO_ID))) {
-                MemoryConfigIR memoryConfigIr = new MemoryConfigIR();
-                memoryConfigIr.setMemoryRepoId(agentMemoryConfig.get(MEMORY_REPO_ID));
-                irConfigs.put(Constants.Workflow.MEMORY, memoryConfigIr);
+                String repoId = agentMemoryConfig.get(MEMORY_REPO_ID);
+
+                // Verify the memory repo still exists — skip if it was deleted
+                MemoryRepoEntity repoEntity = null;
+                try {
+                    repoEntity = memoryRepoMapper.selectById(repoId);
+                } catch (Exception e) {
+                    org.slf4j.LoggerFactory.getLogger(IrAdapterService.class)
+                        .warn("Failed to lookup memory repo {} during IR generation: {}", repoId, e.getMessage());
+                }
+                if (repoEntity == null) {
+                    org.slf4j.LoggerFactory.getLogger(IrAdapterService.class)
+                        .info("Memory repo {} not found, skipping memory config in IR", repoId);
+                } else {
+                    MemoryConfigIR memoryConfigIr = new MemoryConfigIR();
+                    memoryConfigIr.setMemoryRepoId(repoId);
+
+                    if (repoEntity.getConversationRound() != null || repoEntity.getTimeSpan() != null) {
+                        MemoryConfigIR.ExtractConfig extractConfig = new MemoryConfigIR.ExtractConfig();
+                        extractConfig.setMaxChatTurn(repoEntity.getConversationRound());
+                        extractConfig.setTimeWindow(repoEntity.getTimeSpan());
+                        memoryConfigIr.setExtractConfig(extractConfig);
+                    }
+                    if (repoEntity.getLongTermMemoryStrategies() != null && !repoEntity.getLongTermMemoryStrategies().isEmpty()) {
+                        memoryConfigIr.setStrategies(repoEntity.getLongTermMemoryStrategies());
+                    }
+                    irConfigs.put(Constants.Workflow.MEMORY, memoryConfigIr);
+                }
             }
         }
         return irConfigs;
@@ -2305,10 +2335,33 @@ public class IrAdapterService {
             configs.put("scenes", sceneConfigs);
             configs.put("planning", planningConfig);
 
-            // 添加记忆相关配置
+            // 添加记忆相关配置 — 从 DB 查询完整策略和提取频率，与 workflow IR 路径保持一致
             AgentMemoryConfig memoryConfig = agent.getMemoryConfig();
-            if (memoryConfig != null) {
-                configs.put("memory", memoryConfig);
+            if (memoryConfig != null && StringUtils.isNotBlank(memoryConfig.getMemoryRepoId())) {
+                String repoId = memoryConfig.getMemoryRepoId();
+                MemoryRepoEntity repoEntity = null;
+                try {
+                    repoEntity = memoryRepoMapper.selectById(repoId);
+                } catch (Exception e) {
+                    log.warn("Failed to lookup memory repo {} during agent IR generation: {}", repoId, e.getMessage());
+                }
+                if (repoEntity != null) {
+                    MemoryConfigIR memoryConfigIr = new MemoryConfigIR();
+                    memoryConfigIr.setMemoryRepoId(repoId);
+                    if (repoEntity.getConversationRound() != null || repoEntity.getTimeSpan() != null) {
+                        MemoryConfigIR.ExtractConfig extractConfig = new MemoryConfigIR.ExtractConfig();
+                        extractConfig.setMaxChatTurn(repoEntity.getConversationRound());
+                        extractConfig.setTimeWindow(repoEntity.getTimeSpan());
+                        memoryConfigIr.setExtractConfig(extractConfig);
+                    }
+                    if (repoEntity.getLongTermMemoryStrategies() != null && !repoEntity.getLongTermMemoryStrategies().isEmpty()) {
+                        memoryConfigIr.setStrategies(repoEntity.getLongTermMemoryStrategies());
+                    }
+                    configs.put("memory", memoryConfigIr);
+                } else {
+                    log.info("Memory repo {} not found during agent IR generation, using bare config", repoId);
+                    configs.put("memory", memoryConfig);
+                }
             }
         }
 

@@ -19,10 +19,13 @@ import reactor.core.publisher.Flux;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @FeignClient(name = "jiuWenService", url = "${feign.client.config.jiuWenService.url:}")
 public interface JiuWenClient {
@@ -58,4 +61,32 @@ public interface JiuWenClient {
         @PathVariable(value = "project_id") String projectId, @PathVariable(value = "agent_id") String agentId,
         @PathVariable(value = "user_id") String userId,
         @RequestBody RetrieveUserVariableMemoriesRequestBody requestBody);
+
+    @DeleteMapping("/internal/v1/memory-repos/{memory_repo_id}")
+    ResponseEntity<Object> deleteMemoryRepoData(@PathVariable("memory_repo_id") String memoryRepoId);
+
+    @DeleteMapping("/internal/v1/memory-repos/{memory_repo_id}/users/{user_id}/memories")
+    ResponseEntity<Object> clearUserMemories(
+        @PathVariable("memory_repo_id") String memoryRepoId,
+        @PathVariable("user_id") String userId);
+
+    @PostMapping("/internal/v1/memory-repos/{memory_repo_id}/users/{user_id}/memories/batch-delete")
+    ResponseEntity<Object> batchDeleteMemories(
+        @PathVariable("memory_repo_id") String memoryRepoId,
+        @PathVariable("user_id") String userId,
+        @RequestBody Object body);
+
+    @GetMapping("/internal/v1/memory-repos/{memory_repo_id}/users/{user_id}/memories")
+    ResponseEntity<Object> listUserMemories(
+        @PathVariable("memory_repo_id") String memoryRepoId,
+        @PathVariable("user_id") String userId,
+        @RequestParam("page_size") Integer pageSize,
+        @RequestParam("page_num") Integer pageNum,
+        @RequestParam(value = "memory_type", required = false) String memoryType);
+
+    @PutMapping("/internal/v1/memory-repos/{memory_repo_id}/memories/{memory_id}")
+    ResponseEntity<Object> updateMemory(
+        @PathVariable("memory_repo_id") String memoryRepoId,
+        @PathVariable("memory_id") String memoryId,
+        @RequestBody Object body);
 }

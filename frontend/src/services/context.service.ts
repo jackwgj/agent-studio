@@ -125,9 +125,28 @@ export class ContextService {
       switchMap((meData: ICFUser) => {
         this.user = meData;
         this.projectId = meData.projectId;
+
+        // Fetch workspace_id if not already set — needed by Java Manager/Service APIs.
+        if (!this.workspaceId && this.projectId) {
+          return from(this.http.fetchAsyncDefaultWorkspaceId<any>({
+            method: 'GET',
+            url: `/v1/${this.projectId}/agent-manager/workspace`,
+          })).pipe(
+            catchError(() => of(null)),
+            switchMap((wsRes: any) => {
+              if (wsRes?.workspaceList?.length > 0) {
+                this.workspaceId = wsRes.workspaceList[0].id;
+                meData.workspaceId = this.workspaceId;
+              }
+              StorageService.setSessionStorage(PE_SESSION_KEY, meData);
+              StorageService.setLocalStorage(PE_SESSION_KEY, meData);
+              return of(this.user);
+            }),
+          );
+        }
+
         StorageService.setSessionStorage(PE_SESSION_KEY, meData);
         StorageService.setLocalStorage(PE_SESSION_KEY, meData);
-
         return of(this.user);
       }),
       catchError((err) => {

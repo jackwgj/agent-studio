@@ -46,7 +46,7 @@
         />
       </div>
       <div class="common-content">
-        <button nz-button [disabled]="!srcData.data.length" nz-popover [nzPopoverTitle]="'confirm_delete_all' | i18nextEager" (nzOnConfirm)="deleteAll()">{{ 'delete_all' | i18nextEager }}</button>
+        <button nz-button [disabled]="!srcData.data.length" nz-popconfirm [nzPopconfirmTitle]="'confirm_delete_all' | i18nextEager" (nzOnConfirm)="deleteAll()">{{ 'delete_all' | i18nextEager }}</button>
       </div>
     </div>
 
@@ -70,13 +70,17 @@
           </tr>
         </thead>
         <tbody>
-          <ng-container *ngFor="let row of displayedData; trackBy: trackByFn">
-            <tr *ngIf="editingRow?.fakeId !== row.fakeId else editingTemplate">
+          <ng-container *ngFor="let row of srcData.data; trackBy: trackByFn">
+            <tr *ngIf="editingRow?.id !== row.id else editingTemplate">
               <td>{{ getDisplayMemContent(row) }}</td>
               <td>
                 <nz-space [nzSize]="8">
                   <button *nzSpaceItem nz-button nzType="link" nzSize="small" (click)="onSelect({id: 'EDIT'}, row)">{{ 'edit' | i18nextEager }}</button>
-                  <button *nzSpaceItem nz-button nzType="link" nzSize="small" nzDanger (click)="onSelect({id: 'DELETE'}, row)">{{ 'delete' | i18nextEager }}</button>
+                  <button *nzSpaceItem nz-button nzType="link" nzSize="small" nzDanger
+                    nz-popconfirm
+                    [nzPopconfirmTitle]="delConfirmTitle"
+                    (nzOnConfirm)="deleteMem(row)"
+                  >{{ 'delete' | i18nextEager }}</button>
                 </nz-space>
               </td>
             </tr>

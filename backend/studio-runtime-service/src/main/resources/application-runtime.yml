@@ -219,8 +219,6 @@ feign:
         url: ${jiuwen_base_url:http://mock-jiuwen:8080}
       modelManager:
         url: ${model_manager_endpoint:http://mock-model-manager:8080}
-      memoryService:
-        url: ${agent_memory_service_endpoint:http://mock-memory-service:8080}
       ocrClient:
         url: ${ocr_endpoint:http://mock-ocr:8080}
       sisClient:

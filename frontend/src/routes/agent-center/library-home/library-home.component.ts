@@ -80,7 +80,7 @@ export class LibraryHomeComponent implements OnInit, OnDestroy {
       active: false,
     },
     {
-      show: false,
+      show: true,
       id: 'memoryLib',
       title: this.i18n.transform('memory.management.title'),
       active: false,

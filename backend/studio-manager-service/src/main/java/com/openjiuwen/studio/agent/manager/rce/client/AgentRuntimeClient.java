@@ -548,4 +548,12 @@ public interface AgentRuntimeClient {
     ResponseEntity<Object> clearResourceCache(@RequestHeader(CommonConstant.X_AUTH_TOKEN) String authToken,
         @PathVariable("project_id") String projectId, @PathVariable("resource_id") String resourceId,
         @RequestParam(value = "type") String type);
+
+    /**
+     * Delete memory data in agent-runtime for a memory repo.
+     * Called when a memory repo is deleted to clean up OpenSearch/Redis data.
+     */
+    @DeleteMapping(value = "/internal/v1/memory-repos/{memory_repo_id}")
+    ResponseEntity<Object> deleteMemoryRepoData(
+        @PathVariable("memory_repo_id") String memoryRepoId);
 }

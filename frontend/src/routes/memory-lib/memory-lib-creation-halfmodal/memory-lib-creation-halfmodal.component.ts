@@ -4,6 +4,7 @@ import { Subject, takeUntil } from 'rxjs';
 import { I18NEXT_NAMESPACE, I18NextEagerPipe, I18NextModule } from 'angular-i18next';
 import { NzFormModule } from 'ng-zorro-antd/form';
 import { NzInputModule } from 'ng-zorro-antd/input';
+import { NzInputNumberModule } from 'ng-zorro-antd/input-number';
 import { NzButtonModule } from 'ng-zorro-antd/button';
 import { NzSpinModule } from 'ng-zorro-antd/spin';
 import { NzIconModule } from 'ng-zorro-antd/icon';
@@ -31,6 +32,7 @@ import { NzModalRef } from 'ng-zorro-antd/modal';
     I18NextModule,
     NzFormModule,
     NzInputModule,
+    NzInputNumberModule,
     NzButtonModule,
     NzSpinModule,
     NzIconModule,
@@ -77,6 +79,11 @@ export class MemoryLibCreationHalfmodalComponent implements OnInit, OnDestroy {
     ltmRetrievalStrategy: [[] as IMemoryStrategy[], [this.strategyRequiredValidator()]],
   });
 
+  extractionFrequencyFormGroup = this.fb.group({
+    conversation_round: [null as number | null, [Validators.min(1), Validators.max(30)]],
+    time_span: [null as number | null, [Validators.min(5), Validators.max(60)]],
+  });
+
   private destroy$ = new Subject<void>();
 
   public setLoading = (isLoading: boolean) => {
@@ -108,6 +115,10 @@ export class MemoryLibCreationHalfmodalComponent implements OnInit, OnDestroy {
           });
           this.ltmRetrievalStrategyFormGroup.patchValue({
             ltmRetrievalStrategy: res.long_term_memory_strategies ?? [],
+          });
+          this.extractionFrequencyFormGroup.patchValue({
+            conversation_round: res.conversation_round ?? null,
+            time_span: res.time_span ?? null,
           });
         })
         .finally(() => {

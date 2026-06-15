@@ -5,35 +5,22 @@ package com.openjiuwen.studio.agent.manager.service.memory;
 
 import com.openjiuwen.studio.agent.common.enums.StudioError;
 import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
-import com.openjiuwen.studio.agent.common.utils.LanguageUtils;
-import com.openjiuwen.studio.agent.common.utils.RequestContextUtils;
 import com.openjiuwen.studio.agent.manager.dto.UserProfileMemoryConfig;
 import com.openjiuwen.studio.agent.manager.dto.UserProfileTagInfo;
 import com.openjiuwen.studio.agent.manager.dto.UserProfileTopicInfo;
-import com.openjiuwen.studio.agent.manager.rce.client.MemoryServiceClient;
-import com.openjiuwen.studio.agent.manager.rce.models.memory.UserProfileDeleteRequest;
-import com.openjiuwen.studio.agent.manager.rce.models.memory.UserProfileModifyRequest;
-import com.openjiuwen.studio.agent.manager.rce.models.memory.UserProfileTag;
-import com.openjiuwen.studio.agent.manager.rce.models.memory.UserProfileTopic;
 import com.openjiuwen.studio.agent.manager.service.AgentCommonService;
 
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * Agent记忆相关的配置服务
@@ -48,14 +35,8 @@ public class AgentMemoryConfigService {
     @Value("${memory.user-profile-enable:false}")
     private boolean userProfileEnable;
 
-    private final MemoryServiceClient memoryServiceClient;
-
-    private final ExecutorService memoryOperationExecutor;
-
-    public AgentMemoryConfigService(MemoryServiceClient memoryServiceClient, AgentCommonService agentCommonService) {
-        this.memoryServiceClient = memoryServiceClient;
+    public AgentMemoryConfigService(AgentCommonService agentCommonService) {
         this.agentCommonService = agentCommonService;
-        this.memoryOperationExecutor = Executors.newFixedThreadPool(2);
     }
 
     /**
@@ -113,7 +94,7 @@ public class AgentMemoryConfigService {
     }
 
     /**
-     * 存储记忆的定义
+     * 存储记忆的定义（v4.2: scope config 由 Python 侧在首次记忆提取时懒创建，不再同步到 memory-service）
      *
      * @param projectId
      * @param agentId
@@ -125,65 +106,16 @@ public class AgentMemoryConfigService {
         if (!userProfileEnable) {
             return;
         }
-        if (newUserProfileMemoryConfig == null) {
-            // 为null时，表示不更新用户画像记忆
-            return;
-        }
-        List<UserProfileTopic> topicsToModify = new ArrayList<>();
-        Set<String> newTags = new HashSet<>();
-        for (UserProfileTopicInfo topic : ObjectUtils.firstNonNull(newUserProfileMemoryConfig.getTopics(),
-            Collections.<UserProfileTopicInfo>emptyList())) {
-            UserProfileTopic topicConfig = new UserProfileTopic();
-            topicConfig.setTopic(topic.getTopicName());
-            topicConfig.setTags(new ArrayList<>());
-            topicsToModify.add(topicConfig);
-            for (UserProfileTagInfo tag : ObjectUtils.firstNonNull(topic.getTags(),
-                Collections.<UserProfileTagInfo>emptyList())) {
-                UserProfileTag newTag = UserProfileTag.builder()
-                    .name(tag.getTagName())
-                    .description(tag.getTagDescription())
-                    .build();
-                topicConfig.getTags().add(newTag);
-                newTags.add(joinTopicAndTagName(topic.getTopicName(), tag.getTagName()));
-            }
-        }
-
-        List<UserProfileTopic> topicsToDelete = new ArrayList<>();
-        for (UserProfileTopicInfo oldTopic : Optional.ofNullable(oldUserProfileMemoryConfig)
-            .map(UserProfileMemoryConfig::getTopics)
-            .orElse(Collections.<UserProfileTopicInfo>emptyList())) {
-            UserProfileTopic topicToDelete = new UserProfileTopic();
-            topicToDelete.setTopic(oldTopic.getTopicName());
-            topicToDelete.setTags(new ArrayList<>());
-            for (UserProfileTagInfo oldTag : ObjectUtils.firstNonNull(oldTopic.getTags(),
-                Collections.<UserProfileTagInfo>emptyList())) {
-                if (!newTags.contains(joinTopicAndTagName(oldTopic.getTopicName(), oldTag.getTagName()))) {
-                    UserProfileTag tagToDelete = new UserProfileTag();
-                    tagToDelete.setName(oldTag.getTagName());
-                    topicToDelete.getTags().add(tagToDelete);
-                }
-            }
-            if (CollectionUtils.isNotEmpty(topicToDelete.getTags())) {
-                topicsToDelete.add(topicToDelete);
-            }
-        }
-
-        UserProfileModifyRequest request = UserProfileModifyRequest.builder().topics(topicsToModify).build();
-        // 需要存到memory-server中一份，让九问的记忆引擎感知有哪些用户画像记忆
-        memoryServiceClient.modifyUserProfileConfig(RequestContextUtils.getRequestAuthToken(),
-            LanguageUtils.getLanguage(), projectId, request);
-        log.info("modify {} topics from memory-service in agent {}.", topicsToModify.size(), agentId);
-        // 如果有需要删除的记忆，也需要让九问的记忆引擎感知有哪些用户画像记忆被删除了
-        if (CollectionUtils.isNotEmpty(topicsToDelete)) {
-            UserProfileDeleteRequest deleteRequest = UserProfileDeleteRequest.builder().topics(topicsToDelete).build();
-            log.info("delete {} topics from memory-service in agent {}.", topicsToDelete.size(), agentId);
-            memoryServiceClient.deleteUserProfileConfig(RequestContextUtils.getRequestAuthToken(),
-                LanguageUtils.getLanguage(), projectId, deleteRequest);
+        // v4.2: No longer sync to memory-service. Scope config is lazily created by Python
+        // agent-runtime during first memory extraction, driven by IR strategies.
+        if (newUserProfileMemoryConfig != null && CollectionUtils.isNotEmpty(newUserProfileMemoryConfig.getTopics())) {
+            log.info("User profile config saved for agent {} ({} topics) — scope config will be lazily created by runtime",
+                agentId, newUserProfileMemoryConfig.getTopics().size());
         }
     }
 
     /**
-     * 删除某个应用中的所有用户长期记忆
+     * 删除某个应用中的所有用户长期记忆（v4.2: 不再通过 memory-service，改为 Python LTM 内部端点处理）
      *
      * @param iamToken
      * @param language
@@ -194,15 +126,9 @@ public class AgentMemoryConfigService {
         if (!userProfileEnable) {
             return;
         }
-        memoryOperationExecutor.submit(() -> {
-            // 删除长期记忆
-            try {
-                memoryServiceClient.deleteLongTermMemories(iamToken, language, projectId, appId);
-                log.info("Successfully cleared user long term memories for application: {}", appId);
-            } catch (Exception e) {
-                log.error("Failed to clear user long term memories for application: {}", appId, e);
-            }
-        });
+        // v4.2: Memory clearing is handled by MemoryRepoInternalController → JiuWenClient → Python LTM.
+        // This method is retained as a compatibility no-op.
+        log.info("clearUserMemoriesInApplication called for app {} — handled by LTM internal endpoints", appId);
     }
 
     private String joinTopicAndTagName(String topicName, String tagName) {

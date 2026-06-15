@@ -15,6 +15,8 @@ from agent_runtime.common.logging_context import (
 )
 from agent_runtime.common.redis_manager import RedisClientManager
 from agent_runtime.context.middleware import RequestContextMiddleware
+from agent_runtime.memory.adapter.ltm_manager import init_ltm
+from agent_runtime.memory.internal_routes import memory_internal_router
 from agent_runtime.serve.apis.orchestration import execution_app
 from agent_runtime.serve.apis.user_variable_api import user_variable_router
 from fastapi import FastAPI, Request
@@ -58,7 +60,7 @@ from agent_runtime.extension.workflow_node.flow_code import FlowCode, JIUWEN_COD
 component_class_pool.register_component_class(JIUWEN_CODE_TYPE, FlowCode)
 logger.info("Registered workflow component: jiuwen.code")
 
-apps_map = [execution_app, user_variable_router]
+apps_map = [execution_app, user_variable_router, memory_internal_router]
 
 
 @asynccontextmanager
@@ -97,6 +99,13 @@ async def lifespan(app: FastAPI):  # noqa: redefined-outer-name
         logger.info("Redis connection check passed")
     except Exception as e:
         raise RuntimeError(f"Redis connection check failed: {e}") from e
+
+    # Initialize memory library (LTM) — non-critical, degrades gracefully
+    memory_ok = await init_ltm(redis_client)
+    if memory_ok:
+        logger.info("Memory library enabled")
+    else:
+        logger.info("Memory library not available (non-critical)")
 
     # 创建并设置 Redis Checkpointer 为默认
     checkpointer_config = build_redis_checkpointer_config()

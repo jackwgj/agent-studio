@@ -7,7 +7,6 @@ import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import com.openjiuwen.studio.agent.common.enums.StudioError;
 import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
-import com.openjiuwen.studio.agent.common.utils.LanguageUtils;
 import com.openjiuwen.studio.agent.common.utils.RequestContextUtils;
 import com.openjiuwen.studio.agent.common.utils.SqlLikeEscapeHelper;
 import com.openjiuwen.studio.agent.manager.dto.CreateMemoryRepoRequestBody;
@@ -20,15 +19,18 @@ import com.openjiuwen.studio.agent.manager.dto.MemoryRepoListItem;
 import com.openjiuwen.studio.agent.manager.dto.ModifyMemoryRepoRequestBody;
 import com.openjiuwen.studio.agent.manager.dto.ModifyMemoryRepoResponseBody;
 import com.openjiuwen.studio.agent.manager.dto.ShowMemoryRepoResponseBody;
+import com.openjiuwen.studio.agent.manager.entity.Agent;
 import com.openjiuwen.studio.agent.manager.entity.MemoryRepoEntity;
+import com.openjiuwen.studio.agent.manager.entity.WorkflowEntity;
+import com.openjiuwen.studio.agent.manager.mapper.AgentMapper;
 import com.openjiuwen.studio.agent.manager.mapper.MemoryRepoMapper;
+import com.openjiuwen.studio.agent.manager.mapper.WorkflowMapper;
 import com.openjiuwen.studio.agent.manager.obs.MgObsService;
-import com.openjiuwen.studio.agent.manager.rce.client.MemoryServiceClient;
-import com.openjiuwen.studio.agent.manager.rce.models.memory.BatchDeleteMemoryRepositoryRequestBody;
-import com.openjiuwen.studio.agent.manager.rce.models.memory.MemoryRepositoryConfig;
-import com.openjiuwen.studio.agent.manager.rce.models.memory.SaveOrUpdateMemoryRepositoryRequestBody;
-import com.openjiuwen.studio.agent.manager.rce.models.memory.TimeWindow;
+import com.openjiuwen.studio.agent.manager.rce.client.AgentRuntimeClient;
 import com.openjiuwen.studio.agent.manager.service.IMemoryRepoManagementService;
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONObject;
+import com.alibaba.fastjson2.JSONWriter;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -52,7 +54,13 @@ public class MemoryRepoManagementService implements IMemoryRepoManagementService
     private MemoryRepoMapper memoryRepoMapper;
 
     @Autowired
-    private MemoryServiceClient memoryServiceClient;
+    private AgentMapper agentMapper;
+
+    @Autowired
+    private WorkflowMapper workflowMapper;
+
+    @Autowired
+    private AgentRuntimeClient agentRuntimeClient;
 
     @Autowired
     private MgObsService mgObsService;
@@ -63,8 +71,6 @@ public class MemoryRepoManagementService implements IMemoryRepoManagementService
     @Override
     @Transactional
     public CreateMemoryRepoResponseBody createMemoryRepo(String projectId, String workspaceId, CreateMemoryRepoRequestBody body) {
-        String requestIamToken = RequestContextUtils.getRequestAuthToken();
-        String language = LanguageUtils.getLanguage();
         // 转换请求体为实体
         MemoryRepoEntity entity = buildMemoryRepoEntity(projectId, workspaceId, body);
         if (StringUtils.isNotEmpty(body.getIcon())) {
@@ -76,25 +82,10 @@ public class MemoryRepoManagementService implements IMemoryRepoManagementService
         // 插入数据库
         memoryRepoMapper.insert(entity);
 
-        // 调用memory-service服务，记忆策略
-        SaveOrUpdateMemoryRepositoryRequestBody requestBody = buildSaveOrUpdateMemoryRepoRequest(entity);
-
-        memoryServiceClient.saveOrUpdateMemoryRepositoryConfig(requestIamToken, language, projectId, requestBody);
         // 构建返回结果
         CreateMemoryRepoResponseBody response = new CreateMemoryRepoResponseBody();
         response.setMemoryRepoId(entity.getId());
         return response;
-    }
-
-    private static SaveOrUpdateMemoryRepositoryRequestBody buildSaveOrUpdateMemoryRepoRequest(MemoryRepoEntity entity) {
-        SaveOrUpdateMemoryRepositoryRequestBody requestBody = new SaveOrUpdateMemoryRepositoryRequestBody();
-        requestBody.setId(entity.getId());
-        MemoryRepositoryConfig config = MemoryRepositoryConfig.builder()
-            .longTermMemoryStrategies(entity.getLongTermMemoryStrategies())
-            .timeWindow(TimeWindow.builder().conversationRound(entity.getConversationRound()).timeSpan(entity.getTimeSpan()).build())
-            .build();
-        requestBody.setConfig(config);
-        return requestBody;
     }
 
     private void checkLongMemoryStrategies(List<LongTermMemoryStrategy> longTermMemoryStrategies) {
@@ -127,6 +118,8 @@ public class MemoryRepoManagementService implements IMemoryRepoManagementService
             .description(body.getDescription())
             .name(body.getName())
             .longTermMemoryStrategies(body.getLongTermMemoryStrategies())
+            .conversationRound(body.getConversationRound())
+            .timeSpan(body.getTimeSpan())
             .build();
     }
 
@@ -134,14 +127,71 @@ public class MemoryRepoManagementService implements IMemoryRepoManagementService
     @Transactional
     public DeleteMemoryRepoResponseBody deleteMemoryRepo(String projectId, String memoryRepoId, String workspaceId) {
 
+        // 解绑关联的智能体：清除绑定了该记忆库的 Agent 的 memoryConfig
+        // SQL 使用 LIKE 做粗筛，Java 层再做精确 JSON 匹配，避免误命中
+        try {
+            List<Agent> candidateAgents = agentMapper.selectByMemoryRepoId(memoryRepoId);
+            if (candidateAgents != null && !candidateAgents.isEmpty()) {
+                List<Agent> boundAgents = candidateAgents.stream()
+                    .filter(a -> a.getMemoryConfig() != null
+                        && memoryRepoId.equals(a.getMemoryConfig().getMemoryRepoId()))
+                    .collect(Collectors.toList());
+                for (Agent agent : boundAgents) {
+                    agentMapper.clearMemoryConfig(agent.getAgentId());
+                }
+                org.slf4j.LoggerFactory.getLogger(MemoryRepoManagementService.class)
+                    .info("Unbound memory repo {} from {} agents (candidates: {})",
+                        memoryRepoId, boundAgents.size(), candidateAgents.size());
+            }
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(MemoryRepoManagementService.class)
+                .warn("Failed to unbind agents from memory repo {}: {}", memoryRepoId, e.getMessage());
+        }
+
+        // 解绑关联的 Workflow：清除 DSL 中的 memory_config 引用
+        try {
+            List<WorkflowEntity> allWorkflows = workflowMapper.getAll();
+            if (allWorkflows != null) {
+                for (WorkflowEntity wf : allWorkflows) {
+                    if (StringUtils.isEmpty(wf.getDslPath())) continue;
+                    try {
+                        String dslJson = mgObsService.downloadObsFile(wf.getDslPath());
+                        JSONObject dslObj = JSON.parseObject(dslJson);
+                        JSONObject configs = dslObj.getJSONObject("configs");
+                        if (configs != null && configs.containsKey("memory_config")) {
+                            JSONObject memCfg = configs.getJSONObject("memory_config");
+                            if (memCfg != null && memoryRepoId.equals(memCfg.getString("memory_repo_id"))) {
+                                configs.remove("memory_config");
+                                String updatedJson = JSON.toJSONString(dslObj, JSONWriter.Feature.WriteMapNullValue);
+                                mgObsService.uploadObsFile(wf.getDslPath(), updatedJson, -1);
+                                org.slf4j.LoggerFactory.getLogger(MemoryRepoManagementService.class)
+                                    .info("Removed memory_config from workflow DSL: {}", wf.getId());
+                            }
+                        }
+                    } catch (Exception e) {
+                        org.slf4j.LoggerFactory.getLogger(MemoryRepoManagementService.class)
+                            .warn("Failed to clean memory config from workflow {}: {}", wf.getId(), e.getMessage());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(MemoryRepoManagementService.class)
+                .warn("Failed to scan workflows for memory repo cleanup {}: {}", memoryRepoId, e.getMessage());
+        }
+
         // 删除记录
         int result = memoryRepoMapper.deleteById(memoryRepoId);
-        String requestIamToken = RequestContextUtils.getRequestAuthToken();
-        String language = LanguageUtils.getLanguage();
-        BatchDeleteMemoryRepositoryRequestBody requestBody = new BatchDeleteMemoryRepositoryRequestBody();
         if (result == 1) {
-            requestBody.setIds(List.of(memoryRepoId));
-            memoryServiceClient.batchDeleteMemoryRepositoryConfig(requestIamToken, language, projectId, requestBody);
+            // Delete actual memory data in agent-runtime via LTM (OpenSearch/Redis)
+            try {
+                agentRuntimeClient.deleteMemoryRepoData(memoryRepoId);
+            } catch (Exception e) {
+                // Non-critical: orphaned data doesn't cause errors, just occupies storage.
+                // Structured log for ops monitoring — grep "ORPHAN_MEMORY_DATA" to find failures.
+                org.slf4j.LoggerFactory.getLogger(MemoryRepoManagementService.class)
+                    .error("[ORPHAN_MEMORY_DATA] Failed to delete runtime data for memory repo {}: type={}, msg={}",
+                        memoryRepoId, e.getClass().getSimpleName(), e.getMessage(), e);
+            }
         }
         DeleteMemoryRepoResponseBody res = new DeleteMemoryRepoResponseBody();
 
@@ -207,11 +257,6 @@ public class MemoryRepoManagementService implements IMemoryRepoManagementService
         // 更新数据库
         memoryRepoMapper.updateById(entity);
 
-        String requestIamToken = RequestContextUtils.getRequestAuthToken();
-        String language = LanguageUtils.getLanguage();
-        SaveOrUpdateMemoryRepositoryRequestBody requestBody = buildSaveOrUpdateMemoryRepoRequest(entity);
-        memoryServiceClient.saveOrUpdateMemoryRepositoryConfig(requestIamToken, language, projectId, requestBody);
-
         // 构建返回结果
         ModifyMemoryRepoResponseBody response = new ModifyMemoryRepoResponseBody();
         response.setMemoryRepoId(entity.getId());
@@ -227,6 +272,8 @@ public class MemoryRepoManagementService implements IMemoryRepoManagementService
             .description(body.getDescription())
             .name(body.getName())
             .longTermMemoryStrategies(body.getLongTermMemoryStrategies())
+            .conversationRound(body.getConversationRound())
+            .timeSpan(body.getTimeSpan())
             .lastUpdateUserId(RequestContextUtils.getRequestUserId())
             .lastUpdateUserName(RequestContextUtils.getRequestUserName())
             .build();
@@ -258,6 +305,8 @@ public class MemoryRepoManagementService implements IMemoryRepoManagementService
         response.setLastUpdateUserName(entity.getLastUpdateUserName());
         response.setUpdateTime(entity.getUpdateTime());
         response.setLongTermMemoryStrategies(entity.getLongTermMemoryStrategies());
+        response.setConversationRound(entity.getConversationRound());
+        response.setTimeSpan(entity.getTimeSpan());
         response.setIcon(StringUtils.isEmpty(entity.getIcon()) ? memoryDefaultIcon : entity.getIcon());
         return response;
     }

@@ -170,4 +170,19 @@ public interface AgentMapper {
     void updateAgentShareStatus(@Param("agentId") String agentId, @Param("status") int status);
 
     int countAgentIdInDb(@Param("agentId") String agentId);
+
+    /**
+     * 查询绑定了指定记忆库的智能体列表
+     *
+     * @param memoryRepoId 记忆库ID
+     * @return 绑定了该记忆库的智能体列表
+     */
+    List<Agent> selectByMemoryRepoId(@Param("memoryRepoId") String memoryRepoId);
+
+    /**
+     * 清除指定智能体的记忆配置
+     *
+     * @param agentId 智能体ID
+     */
+    void clearMemoryConfig(@Param("agentId") String agentId);
 }

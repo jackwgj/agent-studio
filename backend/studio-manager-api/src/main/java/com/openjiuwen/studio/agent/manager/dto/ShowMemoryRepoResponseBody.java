@@ -69,6 +69,12 @@ public class ShowMemoryRepoResponseBody implements Serializable {
     @JsonProperty("update_time")
     private Date updateTime = null;
 
+    @JsonProperty("conversation_round")
+    private Integer conversationRound = null;
+
+    @JsonProperty("time_span")
+    private Integer timeSpan = null;
+
     public String getMemoryRepoId() {
         return memoryRepoId;
     }
@@ -169,6 +175,24 @@ public class ShowMemoryRepoResponseBody implements Serializable {
         return this;
     }
 
+    public Integer getConversationRound() {
+        return conversationRound;
+    }
+
+    public ShowMemoryRepoResponseBody setConversationRound(Integer conversationRound) {
+        this.conversationRound = conversationRound;
+        return this;
+    }
+
+    public Integer getTimeSpan() {
+        return timeSpan;
+    }
+
+    public ShowMemoryRepoResponseBody setTimeSpan(Integer timeSpan) {
+        this.timeSpan = timeSpan;
+        return this;
+    }
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
@@ -185,6 +209,8 @@ public class ShowMemoryRepoResponseBody implements Serializable {
         sb.append("    lastUpdateUserId: ").append(toIndentedString(lastUpdateUserId)).append("\n");
         sb.append("    lastUpdateUserName: ").append(toIndentedString(lastUpdateUserName)).append("\n");
         sb.append("    updateTime: ").append(toIndentedString(updateTime)).append("\n");
+        sb.append("    conversationRound: ").append(toIndentedString(conversationRound)).append("\n");
+        sb.append("    timeSpan: ").append(toIndentedString(timeSpan)).append("\n");
         sb.append("}");
         return sb.toString();
     }
@@ -207,13 +233,16 @@ public class ShowMemoryRepoResponseBody implements Serializable {
             showMemoryRepoResponseBody.createTime) && Objects.equals(this.lastUpdateUserId,
             showMemoryRepoResponseBody.lastUpdateUserId) && Objects.equals(this.lastUpdateUserName,
             showMemoryRepoResponseBody.lastUpdateUserName) && Objects.equals(this.updateTime,
-            showMemoryRepoResponseBody.updateTime);
+            showMemoryRepoResponseBody.updateTime)
+            && Objects.equals(this.conversationRound, showMemoryRepoResponseBody.conversationRound)
+            && Objects.equals(this.timeSpan, showMemoryRepoResponseBody.timeSpan);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(memoryRepoId, name, description, icon, longTermMemoryStrategies, createdUserId,
-            createdUserName, createTime, lastUpdateUserId, lastUpdateUserName, updateTime);
+            createdUserName, createTime, lastUpdateUserId, lastUpdateUserName, updateTime,
+            conversationRound, timeSpan);
     }
 
     /**

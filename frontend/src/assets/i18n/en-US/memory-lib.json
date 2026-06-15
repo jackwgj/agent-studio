@@ -58,5 +58,13 @@
   "memory.detail.reference.version": "Version",
   "memory.patch.tip.success": "Memory library updated successfully",
   "memory.create.strategy.triggerTip": "Extraction is triggered by default for each round of dialogue.",
-  "memory.selector.tip.add": "Add Memory Library"
+  "memory.selector.tip.add": "Add Memory Library",
+  "memory.create.title.extractionFrequency": "Memory Extraction Frequency",
+  "memory.create.title.extractionFrequencyDescription": "Configure trigger conditions for memory extraction. Extraction is triggered when any condition is met.",
+  "memory.create.conversationRound": "Conversation Rounds",
+  "memory.create.conversationRoundUnit": "rounds before extraction",
+  "memory.create.conversationRoundPlaceholder": "1～30",
+  "memory.create.timeSpan": "Time Interval",
+  "memory.create.timeSpanUnit": "minutes before extraction",
+  "memory.create.timeSpanPlaceholder": "5～60"
 }

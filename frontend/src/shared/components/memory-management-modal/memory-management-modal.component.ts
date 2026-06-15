@@ -51,20 +51,8 @@ export class MemoryManagementModalComponent {
     instance.conversationState = this.conversationState;
 
     modalRef.afterClose.subscribe(reason => {
-      if (reason) {
-        const data: IMemoryManagementData = instance.getData();
-        instance.loading = true;
-        this.modifyPersonaData(data).then(res => {
-          if (res) {
-            this.confirm.emit(data);
-            modalRef.close(reason);
-          } else {
-            instance.loading = false;
-          }
-        });
-      } else {
-        modalRef.close(reason);
-      }
+      // Data processing is handled by the template's close() method.
+      // No action needed here — modal is already closed.
     });
   }
 

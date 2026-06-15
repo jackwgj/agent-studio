@@ -171,6 +171,49 @@ class CacheSettings(BaseSettings):
     )
 
 
+class OpenSearchSettings(BaseSettings):
+    """OpenSearch connection settings for memory library."""
+
+    hosts: str = Field(default="localhost:9200", validation_alias="OPENSEARCH_HOSTS")
+    use_ssl: Optional[bool] = Field(default=None, validation_alias="OPENSEARCH_USE_SSL")
+    ssl_verify: bool = Field(default=False, validation_alias="OPENSEARCH_SSL_VERIFY")
+    username: str = Field(default="admin", validation_alias="OPENSEARCH_USERNAME")
+    password: str = Field(default="admin", validation_alias="OPENSEARCH_PASSWORD")
+
+    model_config = SettingsConfigDict(
+        env_file=".env", env_file_encoding="utf-8", extra="ignore"
+    )
+
+
+class MemorySettings(BaseSettings):
+    """Memory library feature settings."""
+
+    enabled: bool = Field(default=True, validation_alias="MEMORY_ENABLED")
+    embedding_model: str = Field(
+        default="bge-m3", validation_alias="MEMORY_EMBEDDING_MODEL"
+    )
+    embedding_base_url: str = Field(
+        default="", validation_alias="MEMORY_EMBEDDING_BASE_URL"
+    )
+    embedding_api_key: str = Field(
+        default="", validation_alias="MEMORY_EMBEDDING_API_KEY"
+    )
+    llm_model: str = Field(default="", validation_alias="MEMORY_LLM_MODEL")
+    llm_base_url: str = Field(default="", validation_alias="MEMORY_LLM_BASE_URL")
+    llm_api_key: str = Field(default="", validation_alias="MEMORY_LLM_API_KEY")
+
+    # MySQL DB for LTM text storage
+    db_host: str = Field(default="", validation_alias="MEMORY_DB_HOST")
+    db_port: int = Field(default=3306, validation_alias="MEMORY_DB_PORT")
+    db_user: str = Field(default="", validation_alias="MEMORY_DB_USER")
+    db_password: str = Field(default="", validation_alias="MEMORY_DB_PASSWORD")
+    db_name: str = Field(default="agent-memory", validation_alias="MEMORY_DB_NAME")
+
+    model_config = SettingsConfigDict(
+        env_file=".env", env_file_encoding="utf-8", extra="ignore"
+    )
+
+
 class Settings:
     server = ServerSettings()
     redis = RedisSettings()
@@ -180,6 +223,8 @@ class Settings:
     security_sandbox = SecuritySandboxSettings()
     workflow_log = WorkflowLogSettings()
     cache = CacheSettings()
+    opensearch = OpenSearchSettings()
+    memory = MemorySettings()
 
 
 settings = Settings()

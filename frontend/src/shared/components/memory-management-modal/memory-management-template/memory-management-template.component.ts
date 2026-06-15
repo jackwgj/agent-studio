@@ -12,6 +12,7 @@ import { NewCommonNoDataWithBtnComponent } from '@shared/components/new-common-n
 import { MODULES } from '@shared/modules';
 import { MemoryLibApiService } from '@routes/memory-lib/memory-lib-api.service';
 import { IMemoryLibItem } from '@routes/memory-lib/memory-lib-interfaces';
+import { NzModalRef } from 'ng-zorro-antd/modal';
 
 enum ActionType {
   EDIT = 'EDIT',
@@ -46,17 +47,8 @@ export class MemoryManagementTemplateComponent implements OnInit {
   loading = false;
   isExtract = false;
   isRetrieve = false;
-  delAllConfirm = {
-    id: 'topic-delete-all-confirm',
-    yesPrimary: true,
-    content: this.i18n.transform('del_all_warn_tip'),
-    position: 'bottom' as any,
-    close: () => {
-      this.deleteAll();
-    },
-  };
+  delConfirmTitle = this.i18n.transform('memory_del_warn');
   memoryLoading = false;
-  currentRow?: any;
   editingRow?: any;
   displayedData: Array<any> = [];
   srcData: any = {
@@ -76,26 +68,6 @@ export class MemoryManagementTemplateComponent implements OnInit {
       width: '100px',
     },
   ];
-  items: Array<any> = [
-    {
-      label: this.i18n.transform('edit'),
-      id: ActionType.EDIT,
-    },
-    {
-      label: this.i18n.transform('delete'),
-      id: ActionType.DELETE,
-      popConfig: {
-        content: this.i18n.transform('memory_del_warn'),
-        yesPrimary: true,
-        close: (): void => {
-          this.deleteMem();
-        },
-        dismiss: (): void => {
-          this.currentRow = undefined;
-        },
-      },
-    },
-  ];
 
   // 记录修改的记忆 用于调接口
   changeIdSet = new Set<string>();
@@ -103,9 +75,9 @@ export class MemoryManagementTemplateComponent implements OnInit {
   allTabs: Array<any> = [
     {
       title: this.i18n.transform('memory.detail.name.semanticMemory', { ns: I18nNamespace.MEMORY_LIB }),
-      id: MemoryStrategyType.SEMANTIC_MEMORY,
+      id: 'summary',
       active: false,
-      isShow: () => this.memoryDetail?.long_term_memory_strategies?.some(item => item.type === MemoryStrategyType.SEMANTIC_MEMORY),
+      isShow: () => true,
     },
     {
       title: this.i18n.transform('memory.detail.name.userProfile', { ns: I18nNamespace.MEMORY_LIB }),
@@ -117,7 +89,7 @@ export class MemoryManagementTemplateComponent implements OnInit {
   tabs: Array<any>;
   tabIndex = 0;
 
-  currentTabId = signal<MemoryStrategyType>(MemoryStrategyType.SEMANTIC_MEMORY);
+  currentTabId = signal<string>('summary');
   currentPage = signal(1);
   pageSize = signal<any>({
     options: [10, 20, 50, 100],
@@ -131,6 +103,7 @@ export class MemoryManagementTemplateComponent implements OnInit {
     private i18n: I18NextEagerPipe,
     private memoryLibApiService: MemoryLibApiService,
     private memoryManagementService: MemoryManagementService,
+    private modalRef: NzModalRef,
   ) {}
 
   ngOnInit() {
@@ -141,15 +114,40 @@ export class MemoryManagementTemplateComponent implements OnInit {
       this.memoryLibApiService.queryMemoryLibDetail(this.memoryLibId).then((res) => {
         this.memoryDetail = res;
         this.initTab();
+      }).catch(() => {
+        // Detail fetch may fail (e.g. invalid workspace_id in dev env).
+        // Still init tabs — the summary tab is always visible.
+        this.initTab();
       });
     }
     this.isRetrieve = Boolean(this.conversationState.isRetrieve);
     this.isExtract = Boolean(this.conversationState.isExtract);
   }
 
-  dismiss() {}
+  dismiss() {
+    this.modalRef.close();
+  }
 
-  close() {}
+  close() {
+    this.loading = true;
+    const data = this.getData();
+    const changedMemories = data.memories;
+    if (changedMemories && changedMemories.length > 0 && this.memoryLibId) {
+      this.memoryManagementService
+        .changeMemoryContent(
+          { memories: changedMemories },
+          { memory_repo_id: this.memoryLibId },
+        )
+        .then(() => {
+          this.modalRef.close('ok');
+        })
+        .catch(() => {
+          this.loading = false;
+        });
+    } else {
+      this.modalRef.close('ok');
+    }
+  }
 
   deleteAll() {
     if (!this.memoryLibId) {
@@ -169,7 +167,7 @@ export class MemoryManagementTemplateComponent implements OnInit {
   }
 
   getData(): IMemoryManagementData {
-    const changeData = this.srcData.data.filter(mem => this.changeIdSet.has(mem.fakeId)) as IMemoryInfo[];
+    const changeData = this.srcData.data.filter(mem => this.changeIdSet.has(mem.id)) as IMemoryInfo[];
     return {
       enable_retrieve: this.isRetrieve,
       enable_extract: this.isExtract,
@@ -178,15 +176,13 @@ export class MemoryManagementTemplateComponent implements OnInit {
   }
 
   trackByFn(_: number, item: any) {
-    return item.fakeId;
+    return item.id;
   }
 
   onSelect(item: any, row: any): void {
     if (item.id === ActionType.EDIT) {
       this.editingRow = { ...row };
       this.editableRows(false);
-    } else {
-      this.currentRow = row;
     }
   }
 
@@ -194,12 +190,12 @@ export class MemoryManagementTemplateComponent implements OnInit {
     if (item.id === ActionType.SAVE) {
       if (this.editingRow?.content && this.editingRow?.content?.length <= 1000) {
         this.srcData.data = this.srcData.data.map((current: any) => {
-          if (this.editingRow && current.fakeId === row.fakeId) {
+          if (this.editingRow && current.id === row.id) {
             current = this.editingRow;
           }
           return current;
         });
-        this.changeIdSet.add(row.fakeId);
+        this.changeIdSet.add(row.id);
         this.editingRow = undefined;
         this.editableRows(true);
       }
@@ -224,8 +220,7 @@ export class MemoryManagementTemplateComponent implements OnInit {
     return '';
   }
 
-  deleteMem() {
-    const row = this.currentRow as IMemoryInfo;
+  deleteMem(row: IMemoryInfo) {
     if (row) {
       this.memoryLoading = true;
       const delData = MemoryManagementUtils.reverseStandardizedMemoryInfo([row]);
@@ -235,14 +230,12 @@ export class MemoryManagementTemplateComponent implements OnInit {
         })
         .then(() => {
           MessageComponent.showSuccess(this.i18n.transform('delete_success'));
-          this.srcData.data = this.srcData.data.filter((current: any): boolean => current.fakeId !== row.fakeId);
-          this.changeIdSet.delete(row.fakeId);
+          this.srcData.data = this.srcData.data.filter((current: any): boolean => current.id !== row.id);
+          this.changeIdSet.delete(row.id);
           this.memoryLoading = false;
-          this.currentRow = undefined;
         })
         .catch(() => {
           this.memoryLoading = false;
-          this.currentRow = undefined;
         });
     }
   }
@@ -287,14 +280,8 @@ export class MemoryManagementTemplateComponent implements OnInit {
     this.queryMemories();
   }
 
-  private editableRows(editable: boolean): void {
-    this.items = this.items.map(
-      (item: any): any => ({
-        ...item,
-        disabled: !editable,
-        tip: editable ? '' : this.i18n.transform('mem_save_warn_tip'),
-      })
-    );
+  private editableRows(_editable: boolean): void {
+    // items array removed — edit/delete buttons now use direct template bindings
   }
 
   private queryMemories(): void {

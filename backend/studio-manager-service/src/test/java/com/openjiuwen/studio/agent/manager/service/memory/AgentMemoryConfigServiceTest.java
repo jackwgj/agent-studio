@@ -4,13 +4,10 @@
 package com.openjiuwen.studio.agent.manager.service.memory;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
 
 import com.openjiuwen.studio.agent.manager.dto.UserProfileMemoryConfig;
 import com.openjiuwen.studio.agent.manager.dto.UserProfileTagInfo;
 import com.openjiuwen.studio.agent.manager.dto.UserProfileTopicInfo;
-import com.openjiuwen.studio.agent.manager.rce.client.MemoryServiceClient;
 import com.openjiuwen.studio.agent.manager.service.AgentCommonService;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -29,9 +26,6 @@ import java.util.ArrayList;
 class AgentMemoryConfigServiceTest {
 
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
-    private MemoryServiceClient memoryServiceClient;
-
-    @Mock(answer = Answers.RETURNS_DEEP_STUBS)
     private AgentCommonService agentCommonService;
 
     @InjectMocks
@@ -43,8 +37,6 @@ class AgentMemoryConfigServiceTest {
     void setUp() {
         mockitoCloseable = MockitoAnnotations.openMocks(this);
         ReflectionTestUtils.setField(agentMemoryConfigService, "userProfileEnable", true);
-        ReflectionTestUtils.setField(agentMemoryConfigService, "memoryServiceClient", memoryServiceClient);
-        ReflectionTestUtils.setField(agentMemoryConfigService, "agentCommonService", agentCommonService);
     }
 
     @Test
@@ -89,10 +81,7 @@ class AgentMemoryConfigServiceTest {
     @Test
     void test_clearUserMemoriesInApplication_should_pass() throws Exception {
         assertDoesNotThrow(() -> {
-            // Given
-            when(memoryServiceClient.deleteLongTermMemories(any(), any(), any(), any())).thenReturn(null);
-
-            // When
+            // LTM-backed: clearUserMemoriesInApplication is now a no-op (log only)
             agentMemoryConfigService.clearUserMemoriesInApplication("token", "zh-CN", "project-id", "app-id");
         });
     }

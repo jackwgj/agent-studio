@@ -1,4 +1,4 @@
-import { Component, inject, Input, linkedSignal, OnInit, signal } from '@angular/core';
+import { Component, inject, Input, linkedSignal, OnInit, signal, Optional, Inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { I18NEXT_NAMESPACE, I18NextEagerPipe, I18NextModule } from 'angular-i18next';
 
@@ -10,6 +10,7 @@ import { NzAlertModule } from 'ng-zorro-antd/alert';
 import { NzPaginationModule } from 'ng-zorro-antd/pagination';
 import { NzSpinModule } from 'ng-zorro-antd/spin';
 import { NzToolTipModule } from 'ng-zorro-antd/tooltip';
+import { NZ_DRAWER_DATA } from 'ng-zorro-antd/drawer';
 
 import { MemoryLibApiService } from '@routes/memory-lib/memory-lib-api.service';
 import { IMemoryLibItem, MemoryLibCardDisplayConfig } from '@routes/memory-lib/memory-lib-interfaces';
@@ -51,6 +52,8 @@ export class MemoryLibSelectorHalfmodalComponent implements OnInit {
   readonly i18n = inject(I18NextEagerPipe);
   readonly agentConfigService = inject(AgentConfigService);
   readonly message = inject(NzMessageService);
+
+  constructor(@Optional() @Inject(NZ_DRAWER_DATA) public nzData: any) {}
 
   existedMemoryLibs = linkedSignal<IMemoryLibItem[]>(() => this.existedLibs);
   memoryLibs = signal<IMemoryLibItem[]>([]);
@@ -143,5 +146,12 @@ export class MemoryLibSelectorHalfmodalComponent implements OnInit {
   }
 
   dismiss() {}
-  close() {}
+
+  close(): void {
+    if (this.nzData?.beforeHide && typeof this.nzData.beforeHide === 'function') {
+      this.nzData.beforeHide({
+        reason: true,
+      });
+    }
+  }
 }

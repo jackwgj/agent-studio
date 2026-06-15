@@ -1,10 +1,10 @@
 import asyncio
 from typing import Any
 
-from jiuwen.common.llm_service.messages import AIMessage, HumanMessage
+from openjiuwen.core.foundation.llm import UserMessage, AssistantMessage
 from jiuwen.serve.common.message import StreamingCollector
 from jiuwen.serve.controllers.execution.enum import ConversationEvent
-from memory.storage.user_profile_memory_extractor import get_instance
+from memory.storage.memory_extractor import get_instance
 
 
 class UserProfileMemoryMessageCollector(StreamingCollector):
@@ -22,9 +22,12 @@ class UserProfileMemoryMessageCollector(StreamingCollector):
         self.app_id: str = app_id
         self.conversation_id: str = conversation_id
         self.ir_data: dict = ir_data
+        # Extract memory_repo_id from IR configs for proper scope isolation
+        configs = ir_data.get("configs") if ir_data.get("configs") else {}
+        memory_config = configs.get("memory") if configs.get("memory") else {}
+        self.memory_repo_id: str = memory_config.get("memory_repo_id") or app_id
 
     def filter(self, message: Any) -> bool:
-        # 只获取流式响应的message_end作为记忆提取的消息
         return message.event == ConversationEvent.MESSAGE_END
 
     async def done(self) -> None:
@@ -32,14 +35,14 @@ class UserProfileMemoryMessageCollector(StreamingCollector):
         if not filter_messages:
             pass
 
-        messages_to_extract_memory = [HumanMessage(content=self.user_query)]
+        messages_to_extract_memory = [UserMessage(content=self.user_query)]
         for msg in filter_messages:
             answer = msg.data.get("answer")
-            messages_to_extract_memory.append(AIMessage(content=answer))
+            messages_to_extract_memory.append(AssistantMessage(content=answer))
         asyncio.create_task(
             get_instance().async_add_chat_turn(
                 self.user_id,
-                self.app_id,
+                self.memory_repo_id,
                 self.conversation_id,
                 self.ir_data,
                 messages_to_extract_memory,

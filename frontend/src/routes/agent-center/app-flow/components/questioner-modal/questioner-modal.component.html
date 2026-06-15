@@ -735,19 +735,6 @@
 
       <form [formGroup]="configsFormGroup">
         <meta-acc-block-new class="mt-2 block w-full" [title]="'problem_configuration' | i18nextEager">
-          <ng-container *ngIf="configServ.isSupportUserPersona()">
-            <ng-template #right>
-              <div class="flex items-center gap-[4px]">
-                <div class="flex items-center gap-[4px]">
-                  <div class="flex items-center gap-[4px]">
-                    <div>{{ 'memory' | i18nextEager }}</div>
-                    <span nz-icon nzType="question-circle" nzTheme="outline" nz-tooltip [nzTooltipTitle]="'questioner_node_persona_tip' | i18nextEager"></span>
-                  </div>
-                </div>
-                <nz-switch formControlName="enableMemory"></nz-switch>
-              </div>
-            </ng-template>
-          </ng-container>
           <ng-template #content>
             <div class="mt-2">
               <div class="flex flex-col gap-[8px]">

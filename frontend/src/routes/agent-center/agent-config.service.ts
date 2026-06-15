@@ -133,8 +133,9 @@ export class AgentConfigService {
     return true;
   }
 
-  /** 后续版本开放 */
+  /** 记忆库功能开关，由后端 memory_repo_enable 配置控制 */
   public isSupportMemoryInSingleAgent() {
-    return false;
+    const { memory_repo_enable } = this.getConfigs();
+    return !!memory_repo_enable;
   }
 }

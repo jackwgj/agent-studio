@@ -214,6 +214,9 @@ public class CommonManagementService implements ICommonManagementService {
     @Value("${memory.user-profile-enable:false}")
     private boolean userProfileEnable;
 
+    @Value("${memory.repo-enable:false}")
+    private boolean memoryRepoEnable;
+
     @Value("${prompt.contentlenth}")
     private int promptContentLength;
 
@@ -390,6 +393,7 @@ public class CommonManagementService implements ICommonManagementService {
         defConfigJsonObject.put("space_service_display", spaceServiceDisplay);
         defConfigJsonObject.put("plugin_publish_choice", pluginChoice);
         defConfigJsonObject.put("memory_user_profile_enable", userProfileEnable);
+        defConfigJsonObject.put("memory_repo_enable", memoryRepoEnable);
         defConfigJsonObject.put("maas_service_region", maasRegion);
         defConfigJsonObject.put("maas_square_page", maasSquarePage);
         defConfigJsonObject.put("nl2agent_recognition_model", nl2agentDefaultModelId);

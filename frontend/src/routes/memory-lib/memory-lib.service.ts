@@ -48,16 +48,19 @@ export class MemoryLibService {
         libId: memoryLibId,
         beforeHide: ({ reason }) => {
           const creatioComp: MemoryLibCreationHalfmodalComponent = drawerRef.getContentComponent();
-          const { basicInfoFormGroup, ltmRetrievalStrategyFormGroup, setLoading } = creatioComp;
+          const { basicInfoFormGroup, ltmRetrievalStrategyFormGroup, extractionFrequencyFormGroup, setLoading } = creatioComp;
           if (reason) {
-            const errors = [basicInfoFormGroup?.invalid, ltmRetrievalStrategyFormGroup?.invalid].filter(Boolean);
+            const errors = [basicInfoFormGroup?.invalid, ltmRetrievalStrategyFormGroup?.invalid, extractionFrequencyFormGroup?.invalid].filter(Boolean);
             if (!errors.length) {
+              const frequencyValues = extractionFrequencyFormGroup.getRawValue();
               callBack({
                 reason,
                 halfModalRef: drawerRef as any,
                 data: {
                   ...basicInfoFormGroup.getRawValue(),
                   long_term_memory_strategies: ltmRetrievalStrategyFormGroup.getRawValue().ltmRetrievalStrategy ?? [],
+                  conversation_round: frequencyValues.conversation_round ?? undefined,
+                  time_span: frequencyValues.time_span ?? undefined,
                 },
                 setLoading,
               });
@@ -81,27 +84,29 @@ export class MemoryLibService {
    * @param callBack
    */
   showMemoryLibSelector(existedLibs: IMemoryLibItem[], callBack: (data: IMemoryLibSelectData) => void): void {
-    this.nzDrawerService.create({
+    const drawerRef = this.nzDrawerService.create({
       nzContent: MemoryLibSelectorHalfmodalComponent,
       nzWidth: '700px',
       nzMask: true,
       nzData: {
         existedLibs,
-        beforeHide: (drawerRef: NzDrawerRef, reason: boolean) => {
+        beforeHide: ({ reason }: { reason: boolean }) => {
           if (reason) {
-            const creatioComp: MemoryLibSelectorHalfmodalComponent = drawerRef.getContentComponent();
-            const { existedMemoryLibs } = creatioComp;
+            const selectorComp: MemoryLibSelectorHalfmodalComponent = drawerRef.getContentComponent() as MemoryLibSelectorHalfmodalComponent;
+            const { existedMemoryLibs } = selectorComp;
             callBack({
               reason,
               halfModalRef: drawerRef as any,
               data: existedMemoryLibs(),
             });
+            drawerRef.close();
           } else {
             callBack({
               reason,
               halfModalRef: drawerRef as any,
               data: [],
             });
+            drawerRef.close();
           }
         },
       },

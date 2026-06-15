@@ -30,6 +30,31 @@
       margin-top: -12px;
       margin-bottom: 16px;
     }
+
+    .extraction-frequency-row {
+      display: flex;
+      gap: 24px;
+
+      .extraction-frequency-item {
+        flex: 1;
+
+        .input-with-unit {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+
+          nz-input-number {
+            width: 120px;
+          }
+
+          .input-unit {
+            color: #595959;
+            font-size: 14px;
+            white-space: nowrap;
+          }
+        }
+      }
+    }
   }
 
   .tip-text {

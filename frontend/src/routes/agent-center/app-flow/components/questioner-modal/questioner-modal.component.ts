@@ -288,7 +288,6 @@ export class QuestionerModalComponent
     ],
     auto_ask_mode: ['default'],
     enum_visible: [false],
-    enableMemory: [false],
   });
 
   public autoAskModes = [
@@ -560,7 +559,6 @@ export class QuestionerModalComponent
           this.i18n.transform('ques_custom_inquiry_template_placeholder'),
         auto_ask_mode,
         enum_visible: enum_visible ?? false,
-        enableMemory: Boolean(this.nodeInfo.configs?.enable_memory),
       });
     })
 
@@ -1039,7 +1037,6 @@ export class QuestionerModalComponent
         this.configsFormGroup.controls.allow_node_confirm.value,
         enum_visible: this.configsFormGroup.value.enum_visible,
         max_tokens: Number(this.modelParams.max_tokens),
-        ...(this.configServ.isSupportUserPersona() ? { enable_memory: this.configsFormGroup.get('enableMemory').value } : {}),
       },
     };
     this.appFlowServ.setNodeSaveMonitor({

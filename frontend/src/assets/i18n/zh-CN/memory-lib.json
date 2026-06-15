@@ -58,5 +58,13 @@
   "memory.detail.reference.version": "版本",
   "memory.patch.tip.success": "记忆库更新成功",
   "memory.create.strategy.triggerTip": "默认每轮对话触发提取",
-  "memory.selector.tip.add": "添加记忆库"
+  "memory.selector.tip.add": "添加记忆库",
+  "memory.create.title.extractionFrequency": "记忆提取频率",
+  "memory.create.title.extractionFrequencyDescription": "配置记忆提取的触发条件，满足任一条件即触发提取",
+  "memory.create.conversationRound": "对话轮数",
+  "memory.create.conversationRoundUnit": "轮对话后提取",
+  "memory.create.conversationRoundPlaceholder": "1～30",
+  "memory.create.timeSpan": "时间间隔",
+  "memory.create.timeSpanUnit": "分钟后提取",
+  "memory.create.timeSpanPlaceholder": "5～60"
 }

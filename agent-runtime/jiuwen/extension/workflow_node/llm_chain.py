@@ -543,11 +543,21 @@ class LLMChain(WorkflowComponent):
                 system_prompt = system_template
 
         if self._get_enable_history():
-            return self._get_history(user_prompt, system_prompt)
-        messages = []
-        if system_prompt:
-            messages.append({"role": "system", "content": system_prompt})
-        messages.append({"role": "user", "content": user_prompt})
+            messages = self._get_history(user_prompt, system_prompt)
+        else:
+            messages = []
+            if system_prompt:
+                messages.append({"role": "system", "content": system_prompt})
+            messages.append({"role": "user", "content": user_prompt})
+
+        # 注入长期记忆消息（如果 LLM 节点配置了 memory.enable）
+        if self.mem_conf and self.mem_conf.get("enable") and self._session:
+            from jiuwen.common.llm_service.messages import BaseMessage
+
+            memory_msg = self._session.get_global_state("memory_message")
+            if isinstance(memory_msg, BaseMessage):
+                messages.append({"role": "user", "content": memory_msg.content})
+
         return messages
 
     def _validate_prompt_template(self, template: str) -> None:

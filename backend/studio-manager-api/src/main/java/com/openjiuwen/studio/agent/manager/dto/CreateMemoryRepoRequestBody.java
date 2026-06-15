@@ -48,6 +48,12 @@ public class CreateMemoryRepoRequestBody implements Serializable {
     @Size(max = 200)
     private List<LongTermMemoryStrategy> longTermMemoryStrategies = null;
 
+    @JsonProperty("conversation_round")
+    private Integer conversationRound = null;
+
+    @JsonProperty("time_span")
+    private Integer timeSpan = null;
+
     public String getName() {
         return name;
     }
@@ -85,6 +91,24 @@ public class CreateMemoryRepoRequestBody implements Serializable {
         return this;
     }
 
+    public Integer getConversationRound() {
+        return conversationRound;
+    }
+
+    public CreateMemoryRepoRequestBody setConversationRound(Integer conversationRound) {
+        this.conversationRound = conversationRound;
+        return this;
+    }
+
+    public Integer getTimeSpan() {
+        return timeSpan;
+    }
+
+    public CreateMemoryRepoRequestBody setTimeSpan(Integer timeSpan) {
+        this.timeSpan = timeSpan;
+        return this;
+    }
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
@@ -94,6 +118,8 @@ public class CreateMemoryRepoRequestBody implements Serializable {
         sb.append("    description: ").append(toIndentedString(description)).append("\n");
         sb.append("    icon: ").append(toIndentedString(icon)).append("\n");
         sb.append("    longTermMemoryStrategies: ").append(toIndentedString(longTermMemoryStrategies)).append("\n");
+        sb.append("    conversationRound: ").append(toIndentedString(conversationRound)).append("\n");
+        sb.append("    timeSpan: ").append(toIndentedString(timeSpan)).append("\n");
         sb.append("}");
         return sb.toString();
     }
@@ -109,12 +135,14 @@ public class CreateMemoryRepoRequestBody implements Serializable {
         CreateMemoryRepoRequestBody createMemoryRepoRequestBody = (CreateMemoryRepoRequestBody) o;
         return Objects.equals(this.name, createMemoryRepoRequestBody.name) && Objects.equals(this.description,
             createMemoryRepoRequestBody.description) && Objects.equals(this.icon, createMemoryRepoRequestBody.icon)
-            && Objects.equals(this.longTermMemoryStrategies, createMemoryRepoRequestBody.longTermMemoryStrategies);
+            && Objects.equals(this.longTermMemoryStrategies, createMemoryRepoRequestBody.longTermMemoryStrategies)
+            && Objects.equals(this.conversationRound, createMemoryRepoRequestBody.conversationRound)
+            && Objects.equals(this.timeSpan, createMemoryRepoRequestBody.timeSpan);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, description, icon, longTermMemoryStrategies);
+        return Objects.hash(name, description, icon, longTermMemoryStrategies, conversationRound, timeSpan);
     }
 
     /**

@@ -33,6 +33,8 @@ export interface IMemoryLibItem extends IMemoryLibItemVirtualData, IMemoryLibBas
   last_update_user_id: string;
   last_update_user_name: string;
   update_time: number;
+  conversation_round?: number;
+  time_span?: number;
 }
 
 /** 记忆库的提取策略  */
@@ -60,6 +62,8 @@ export interface IMemoryLibDetail extends IMemoryLibBaseInfo {
   last_update_user_id: string;
   last_update_user_name: string;
   update_time: number;
+  conversation_round?: number;
+  time_span?: number;
 }
 
 /** 记忆库的卡片展示模式配置  */
@@ -126,6 +130,8 @@ export interface IMemoryLibChangeParams {
   description: string;
   icon?: string;
   long_term_memory_strategies?: IMemoryStrategy[];
+  conversation_round?: number;
+  time_span?: number;
 }
 
 /** 记忆库创建Res  */

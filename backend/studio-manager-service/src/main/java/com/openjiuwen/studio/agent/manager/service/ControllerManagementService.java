@@ -33,6 +33,8 @@ import com.openjiuwen.studio.agent.manager.dto.ControllerVO;
 import com.openjiuwen.studio.agent.manager.dto.ControllerWorkflowIR;
 import com.openjiuwen.studio.agent.manager.dto.CreateAgentReq;
 import com.openjiuwen.studio.agent.manager.dto.MemoryConfigIR;
+import com.openjiuwen.studio.agent.manager.entity.MemoryRepoEntity;
+import com.openjiuwen.studio.agent.manager.mapper.MemoryRepoMapper;
 import com.openjiuwen.studio.agent.manager.dto.ModelConfigVO;
 import com.openjiuwen.studio.agent.manager.dto.ModifyAgentReq;
 import com.openjiuwen.studio.agent.manager.dto.SubControllerNodeConfigVO;
@@ -184,6 +186,9 @@ public class ControllerManagementService {
 
     @Autowired
     private IrAdapterService irAdapterService;
+
+    @Autowired
+    private MemoryRepoMapper memoryRepoMapper;
 
     /**
      * 获取控制器主节点
@@ -1210,8 +1215,31 @@ public class ControllerManagementService {
         if (body.getMemoryConfig() == null) {
             return;
         }
+        String repoId = body.getMemoryConfig().getMemoryRepoId();
+        if (repoId == null || repoId.isEmpty()) {
+            return;
+        }
         MemoryConfigIR memoryConfigIR = new MemoryConfigIR();
-        memoryConfigIR.setMemoryRepoId(body.getMemoryConfig().getMemoryRepoId());
+        memoryConfigIR.setMemoryRepoId(repoId);
+
+        // 从 DB 查询完整的策略和提取频率配置，与 workflow/agent IR 路径保持一致
+        MemoryRepoEntity repoEntity = null;
+        try {
+            repoEntity = memoryRepoMapper.selectById(repoId);
+        } catch (Exception e) {
+            // 查询失败时使用基础配置，不阻断流程
+        }
+        if (repoEntity != null) {
+            if (repoEntity.getConversationRound() != null || repoEntity.getTimeSpan() != null) {
+                MemoryConfigIR.ExtractConfig extractConfig = new MemoryConfigIR.ExtractConfig();
+                extractConfig.setMaxChatTurn(repoEntity.getConversationRound());
+                extractConfig.setTimeWindow(repoEntity.getTimeSpan());
+                memoryConfigIR.setExtractConfig(extractConfig);
+            }
+            if (repoEntity.getLongTermMemoryStrategies() != null && !repoEntity.getLongTermMemoryStrategies().isEmpty()) {
+                memoryConfigIR.setStrategies(repoEntity.getLongTermMemoryStrategies());
+            }
+        }
         ir.getConfigs().setMemory(memoryConfigIR);
     }
 

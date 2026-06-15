@@ -950,4 +950,18 @@
             and created_on >= #{startTime} and created_on &lt; #{endTime}
         </if>
     </select>
+
+    <select id="selectByMemoryRepoId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM t_agent
+        WHERE deleted = 0
+          AND memory_config IS NOT NULL
+          AND JSON_VALUE(memory_config, '$.memory_repo_id') = #{memoryRepoId}
+    </select>
+
+    <update id="clearMemoryConfig">
+        UPDATE t_agent
+        SET memory_config = NULL
+        WHERE agent_id = #{agentId}
+    </update>
 </mapper>

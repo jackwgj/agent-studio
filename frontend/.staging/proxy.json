@@ -1,12 +1,38 @@
 {
+  "/v1/0/agent-manager": {
+    "target": "",
+    "changeOrigin": true,
+    "secure": false
+  },
+  "/v1/0/agent-runtime": {
+    "target": "",
+    "changeOrigin": true,
+    "secure": false
+  },
+  "/v2/0/agent-manager": {
+    "target": "",
+    "changeOrigin": true,
+    "secure": false
+  },
+  "/v2/0/agent-runtime": {
+    "target": "",
+    "changeOrigin": true,
+    "secure": false
+  },
   "/v1": {
     "target": "http://127.0.0.1:31111/",
     "changeOrigin": true,
-    "secure": false
+    "secure": false,
+    "router": {
+      "agent-runtime": ""
+    }
   },
   "/v2": {
     "target": "http://127.0.0.1:31113/",
     "changeOrigin": true,
-    "secure": false
+    "secure": false,
+    "router": {
+      "agent-runtime": ""
+    }
   }
 }

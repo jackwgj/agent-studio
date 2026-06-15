@@ -179,7 +179,7 @@
             ></asset-config-icon>
             <memory-management
               class="chat-header-icon"
-              *ngIf="configServ.isSupportUserPersona() && false"
+              *ngIf="configServ.isSupportUserPersona()"
               [conversationState]="conversationState"
               [memoryLibId]="memoryLibId"
               (confirm)="memoryConfirm($event)"

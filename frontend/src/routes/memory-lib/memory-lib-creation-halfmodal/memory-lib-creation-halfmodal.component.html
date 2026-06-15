@@ -73,6 +73,52 @@
           </nz-form-item>
         </form>
       </section>
+
+      <!-- 提取频率配置区块 -->
+      <section class="creation-section">
+        <div class="section-header">
+          <h3 class="section-title">
+            {{ 'memory.create.title.extractionFrequency' | i18nextEager }}
+          </h3>
+          <p class="section-description">{{ 'memory.create.title.extractionFrequencyDescription' | i18nextEager }}</p>
+        </div>
+
+        <form nz-form nzLayout="vertical" [formGroup]="extractionFrequencyFormGroup">
+          <div class="extraction-frequency-row">
+            <nz-form-item class="extraction-frequency-item">
+              <nz-form-label>{{ 'memory.create.conversationRound' | i18nextEager }}</nz-form-label>
+              <nz-form-control>
+                <div class="input-with-unit">
+                  <nz-input-number
+                    formControlName="conversation_round"
+                    [nzMin]="1"
+                    [nzMax]="30"
+                    [nzStep]="1"
+                    [nzPlaceHolder]="'memory.create.conversationRoundPlaceholder' | i18nextEager"
+                  ></nz-input-number>
+                  <span class="input-unit">{{ 'memory.create.conversationRoundUnit' | i18nextEager }}</span>
+                </div>
+              </nz-form-control>
+            </nz-form-item>
+
+            <nz-form-item class="extraction-frequency-item">
+              <nz-form-label>{{ 'memory.create.timeSpan' | i18nextEager }}</nz-form-label>
+              <nz-form-control>
+                <div class="input-with-unit">
+                  <nz-input-number
+                    formControlName="time_span"
+                    [nzMin]="5"
+                    [nzMax]="60"
+                    [nzStep]="5"
+                    [nzPlaceHolder]="'memory.create.timeSpanPlaceholder' | i18nextEager"
+                  ></nz-input-number>
+                  <span class="input-unit">{{ 'memory.create.timeSpanUnit' | i18nextEager }}</span>
+                </div>
+              </nz-form-control>
+            </nz-form-item>
+          </div>
+        </form>
+      </section>
     </div>
   </nz-spin>
 </div>
