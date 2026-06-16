@@ -45,30 +45,23 @@ public class JiuWenService {
 
     private static final String X_AUTH_TOKEN = "x-auth-token";
 
-    private final AgentRuntimeClient runtimeClient;
-
-    private final ProviderAuthDataMapper authDataMapper;
-
-    private final FreeModelService freeModelService;
-
     @Autowired
     private WebClient webClient;
+
+    @Autowired
+    private AgentRuntimeClient runtimeClient;
+
+    @Autowired
+    private ProviderAuthDataMapper authDataMapper;
+
+    @Autowired
+    private FreeModelService freeModelService;
 
     @Value("${agent_runtime_endpoint:}")
     private String runtimeEndpoint;
 
     @Value("${feign.client.config.jiuWenService.url:}")
     private String jiuWenServiceEndpoint;
-
-    /**
-     * 构造方法
-     */
-    public JiuWenService(AgentRuntimeClient runtimeClient, ProviderAuthDataMapper authDataMapper,
-        FreeModelService freeModelService) {
-        this.runtimeClient = runtimeClient;
-        this.authDataMapper = authDataMapper;
-        this.freeModelService = freeModelService;
-    }
 
     /**
      * 调用模型

@@ -106,6 +106,6 @@ class AgentDesigner(BaseOperator):
                 self.context_manager.add_assistant_message(
                     self.task_id, response, "分类1"
                 )
-                self.controller.refine_workflow()
+                await self.controller.async_refine_workflow()
                 content = f"{SUMMRY_CONTENT}\n{response or ''}"
                 yield mermaid_msg(content, MERMAID, info)

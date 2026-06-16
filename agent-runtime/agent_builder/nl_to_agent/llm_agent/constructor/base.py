@@ -244,5 +244,5 @@ class AgentConstructor:
                     knowledge_id_parse=knowledge_parse,
                     workflow_id_parse=workflow_parse,
                 )
-                self.controller.reset_llm_agent(item[FINAL_MSG])
+                await self.controller.async_reset_llm_agent(item[FINAL_MSG])
             yield item

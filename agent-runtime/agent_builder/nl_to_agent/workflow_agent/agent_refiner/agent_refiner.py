@@ -105,6 +105,6 @@ class AgentRefiner(BaseOperator):
                     self.task_id, response, "分类1"
                 )
                 item.raw_content = f"{RESPONSE_CONTENT}{mermaid_code}"
-                self.controller.refine_workflow()
+                await self.controller.async_refine_workflow()
                 info = {"mermaid": mermaid_code}
                 yield mermaid_msg(item.raw_content, MERMAID, info)

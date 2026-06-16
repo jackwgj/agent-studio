@@ -15,13 +15,17 @@ from agent_builder.nl_to_agent.base import OperatorInput
 from agent_builder.nl_to_agent.common.chatbot import ChatBot
 from agent_builder.nl_to_agent.common.llm_service import Nl2AgentProcessor
 from agent_builder.nl_to_agent.llm_agent.agent_builder import LlmAgentBuilder
-from agent_builder.nl_to_agent.storage.history import HistoryStorage
+from agent_builder.nl_to_agent.storage.history import (
+    AsyncHistoryStorage,
+    AsyncSessionStorage,
+    HistoryStorage,
+    SessionStorage,
+)
 from agent_builder.nl_to_agent.workflow_agent.workflow_agent_builder import (
     WorkflowAgentBuilder,
 )
 from jiuwen.common.exception import JiuWenBaseException
 from jiuwen.common.llm_service.messages import HumanMessage, SystemMessage
-from jiuwen.serve.controllers.execution.manager import StateManager
 
 from .context_manager import ContextManager
 from .prompt import (
@@ -171,7 +175,6 @@ class Controller:
         self.resource_config = {"plugin": [], "knowledge": [], "workflow": []}
         self.plugin_dict = {}
         self.workflow_dict = {}
-
         if not self.load_session():
             self.context_manager.add_message(
                 task_id, role="system", content="你是一个助手, 请用中文回答"
@@ -269,10 +272,11 @@ class Controller:
 
     def load_session(self):
         """加载会话状态"""
-        state = StateManager().get_state(f"agent:{self.task_id}")
-        resource_config = StateManager().get_state(f"resource:{self.task_id}")
-        plugin_dict = StateManager().get_state(f"plugin_dict:{self.task_id}")
-        workflow_dict = StateManager().get_state(f"workflow_dict:{self.task_id}")
+        data = SessionStorage.load(self.task_id)
+        state = data["state"]
+        resource_config = data["resource_config"]
+        plugin_dict = data["plugin_dict"]
+        workflow_dict = data["workflow_dict"]
         history_str_list = HistoryStorage().get_all(f"history:{self.task_id}")
         if history_str_list:
             if state:
@@ -305,18 +309,15 @@ class Controller:
 
     def save_session(self):
         """保存会话状态"""
-        StateManager().save_state(f"agent:{self.task_id}", self.workflow_state)
-        StateManager().save_state(
-            f"resource:{self.task_id}", json.dumps(self.resource_config)
-        )
-        StateManager().save_state(
-            f"plugin_dict:{self.task_id}", json.dumps(self.plugin_dict)
-        )
-        StateManager().save_state(
-            f"workflow_dict:{self.task_id}", json.dumps(self.workflow_dict)
+        SessionStorage.save(
+            self.task_id,
+            self.workflow_state,
+            self.resource_config,
+            self.plugin_dict,
+            self.workflow_dict,
         )
         messages = self.context_manager.get_dialogue_history(self.task_id)
-        for message in messages[self._history_size :]:
+        for message in messages[self._history_size:]:
             HistoryStorage().add(
                 f"history:{self.task_id}",
                 {
@@ -330,12 +331,119 @@ class Controller:
 
     def delete_session(self):
         """删除会话状态"""
-        StateManager().delete_state(f"agent:{self.task_id}")
-        StateManager().delete_state(f"resource:{self.task_id}")
-        StateManager().delete_state(f"plugin_dict:{self.task_id}")
-        StateManager().delete_state(f"workflow_dict:{self.task_id}")
+        SessionStorage.delete(self.task_id)
         HistoryStorage().delete(f"history:{self.task_id}")
         self._history_size = 0
+
+    async def async_load_session(self):
+        data = await AsyncSessionStorage.load(self.task_id)
+        state = data["state"]
+        resource_config = data["resource_config"]
+        plugin_dict = data["plugin_dict"]
+        workflow_dict = data["workflow_dict"]
+        history_str_list = await AsyncHistoryStorage().get_all(f"history:{self.task_id}")
+        if history_str_list:
+            if state:
+                self.workflow_state = int(state)
+            if resource_config:
+                self.resource_config = json.loads(resource_config)
+            if plugin_dict:
+                self.plugin_dict = json.loads(plugin_dict)
+            if workflow_dict:
+                self.workflow_dict = json.loads(workflow_dict)
+            history_list = [
+                json.loads(
+                    history_str.decode("utf-8")
+                    if isinstance(history_str, bytes)
+                    else history_str
+                )
+                for history_str in history_str_list
+            ]
+            self._history_size = len(history_list)
+            for history_item in history_list:
+                self.context_manager.add_message(
+                    self.task_id,
+                    **{
+                        "role": history_item.get("role"),
+                        "content": history_item.get("content"),
+                        "timestamp": self.str_to_datetime(
+                            history_item.get("timestamp")
+                        ),
+                        "intent_label": history_item.get("intent", ""),
+                    },
+                )
+            return True
+        return False
+
+    async def async_save_session(self):
+        await AsyncSessionStorage.save(
+            self.task_id,
+            self.workflow_state,
+            self.resource_config,
+            self.plugin_dict,
+            self.workflow_dict,
+        )
+        messages = self.context_manager.get_dialogue_history(self.task_id)
+        for message in messages[self._history_size:]:
+            await AsyncHistoryStorage().add(
+                f"history:{self.task_id}",
+                {
+                    "role": message.role,
+                    "content": message.content,
+                    "timestamp": self.datetime_to_str(message.timestamp),
+                    "intent": message.intent_label or "",
+                },
+            )
+        self._history_size = len(messages)
+
+    async def async_delete_session(self):
+        await AsyncSessionStorage.delete(self.task_id)
+        await AsyncHistoryStorage().delete(f"history:{self.task_id}")
+        self._history_size = 0
+
+    async def async_clarify_llm(self, clarifier_output):
+        self.context_manager.add_assistant_message(
+            self.task_id, clarifier_output, "分类3"
+        )
+        await self.async_save_session()
+
+    async def async_design_llm(self, designer_output):
+        self.context_manager.add_assistant_message(
+            self.task_id, designer_output, "分类3"
+        )
+        await self.async_save_session()
+
+    async def async_reset_llm_agent(self, agent_constructor_output):
+        await self.async_delete_session()
+        self.context_manager.clear_dialogue(self.task_id)
+        self.context_manager.add_user_message(
+            self.task_id, f"原始的Agent设计为：{agent_constructor_output}", "分类3"
+        )
+        await self.async_save_session()
+
+    async def async_start_workflow(self):
+        self.workflow_state = 1
+        await self.async_save_session()
+
+    async def async_design_workflow(self):
+        self.workflow_state = 2
+        await self.async_save_session()
+
+    async def async_refine_workflow(self):
+        self.workflow_state = 3
+        await self.async_save_session()
+
+    async def async_construct_workflow(self):
+        self.workflow_state = 4
+        await self.async_save_session()
+
+    async def async_finish_workflow(self):
+        self.workflow_state = 0
+        self.context_manager.clear_dialogue(self.task_id)
+        await self.async_delete_session()
+        self.context_manager.add_message(
+            self.task_id, role="system", content="你是一个助手, 请用中文回答"
+        )
 
 
 class Executor:
@@ -452,7 +560,7 @@ class Executor:
 
                 # 针对特定类型的特殊处理
                 if self.agent_type == "workflow":
-                    self.controller.finish_workflow()  # 发生异常重置状态
+                    await self.controller.async_finish_workflow()
 
                 # 统一抛出异常
                 if isinstance(e, JiuWenBaseException):

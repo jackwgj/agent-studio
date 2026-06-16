@@ -196,5 +196,5 @@ class AgentClarifier:
             clarifier_output = self.format_validation(clarifier_output)
         else:
             self.need_clarification = False
-        self.controller.clarify_llm(clarifier_output)
+        await self.controller.async_clarify_llm(clarifier_output)
         return clarifier_output

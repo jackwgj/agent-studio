@@ -498,7 +498,7 @@ class WorkflowAgentBuilder:
             context_manager.add_assistant_message(
                 task_id, WORKFLOW_RESPONSE_CONTENT, "分类1"
             )
-            self.controller.start_workflow()
+            await self.controller.async_start_workflow()
             async for item in self.atransform_to_generator(WORKFLOW_RESPONSE_CONTENT):
                 yield item
 
@@ -534,7 +534,7 @@ class WorkflowAgentBuilder:
 
     async def _handle_state_2_async(self, inputs):
         yield HD2_DESIGN_MERMAID
-        self.controller.design_workflow()
+        await self.controller.async_design_workflow()
         inputs, plugin_dict, workflow_dict = (
             self.input_adapter.workflow_retrieve_adapter(inputs.query)
         )
@@ -553,7 +553,7 @@ class WorkflowAgentBuilder:
     async def _handle_state_3_async(self, inputs):
         task_id = self.controller.task_id
         context_manager = self.controller.context_manager
-        self.controller.refine_workflow()
+        await self.controller.async_refine_workflow()
         history = context_manager.get_formatted_history(
             session_id=task_id, intent="分类1"
         )
@@ -575,7 +575,7 @@ class WorkflowAgentBuilder:
         yield HD4_CREATE_DL
         task_id = self.controller.task_id
         context_manager = self.controller.context_manager
-        self.controller.construct_workflow()
+        await self.controller.async_construct_workflow()
         history = context_manager.get_filtered_messages(
             session_id=task_id, intent="分类1"
         )

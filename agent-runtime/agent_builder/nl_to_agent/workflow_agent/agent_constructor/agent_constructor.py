@@ -122,6 +122,6 @@ class AgentConstructor(BaseOperator):
             self.workflow_description,
             eicloud_dsl,
         )
-        self.controller.finish_workflow()
+        await self.controller.async_finish_workflow()
         yield result_msg(content, WORKFLOW_AGENT_DL)
         yield result_msg(agent_json, WORKFLOW_AGENT_IR)

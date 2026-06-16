@@ -94,6 +94,6 @@ class AgentDesigner:
         response = self.llm_design(designer_prompt)
         for item in response:
             if FINAL_MSG in item:
-                self.controller.design_llm(item[FINAL_MSG])
+                await self.controller.async_design_llm(item[FINAL_MSG])
             else:
                 yield item[CACHE_TOKEN]

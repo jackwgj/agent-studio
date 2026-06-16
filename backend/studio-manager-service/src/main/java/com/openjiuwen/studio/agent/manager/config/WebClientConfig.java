@@ -4,6 +4,9 @@
 
 package com.openjiuwen.studio.agent.manager.config;
 
+import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import reactor.netty.http.client.HttpClient;
 
 import org.springframework.context.annotation.Bean;
@@ -21,11 +24,18 @@ public class WebClientConfig {
 
     @Bean
     public WebClient webClient() {
-        HttpClient httpClient = HttpClient.create()
-            .responseTimeout(Duration.ofSeconds(60));
-
-        return WebClient.builder()
-            .clientConnector(new ReactorClientHttpConnector(httpClient))
-            .build();
+        try {
+            SslContext sslContext = SslContextBuilder.forClient()
+                .trustManager(InsecureTrustManagerFactory.INSTANCE)
+                .build();
+            HttpClient httpClient = HttpClient.create()
+                .responseTimeout(Duration.ofSeconds(60))
+                .secure(sslContextSpec -> sslContextSpec.sslContext(sslContext));
+            return WebClient.builder()
+                .clientConnector(new ReactorClientHttpConnector(httpClient))
+                .build();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to create WebClient with insecure SSL context", e);
+        }
     }
 }
