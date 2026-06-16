@@ -568,11 +568,6 @@ public class AgentImportService {
         });
 
         if (CollectionUtils.isNotEmpty(mappingList)) {
-            // 补充开发态Mapping
-            List<MappingEntity> draftMappings = buildDraftMappings(mappingList);
-            if (CollectionUtils.isNotEmpty(draftMappings)) {
-                mappingList.addAll(draftMappings);
-            }
             // 分组并删除旧数据
             groupedDelete(mappingList);
             // 批量插入新数据
@@ -760,8 +755,6 @@ public class AgentImportService {
     private void uploadWorkflowDsl(ImportInfo importInfo, String id, String objectKey, String versionId) {
         try {
             WorkflowVO workflowVO = JsonUtils.objectToClassType(importInfo.getDsl(), WorkflowVO.class);
-            workflowVO.setId(id);
-            verifyingAndReplaceWorkflowResourceInfo(workflowVO);
             mgObsService.uploadObsFile(id, objectKey, CommonConstant.WORKFLOW,
                 JSON.toJSONString(workflowVO, JSONWriter.Feature.WriteMapNullValue), CommonConstant.Workflow.FLOW);
             WorkflowEntity workflowEntity = workflowMapper.getWorkflowById(id);
@@ -1260,6 +1253,7 @@ public class AgentImportService {
             case MODEL, STRATEGY -> handleWorkflowModel(result, workflowVO);
             case TOOL -> handleWorkflowPlugin(result, workflowVO);
             case MCP -> handleWorkflowNoVersionNode(result, workflowVO);
+            case WORKFLOW -> handleWorkflowVersionNode(result, workflowVO);
         }
         parentResource.setDsl(workflowVO);
     }

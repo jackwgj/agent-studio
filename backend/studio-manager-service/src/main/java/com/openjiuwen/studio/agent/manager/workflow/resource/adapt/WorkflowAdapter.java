@@ -46,7 +46,9 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -255,6 +257,8 @@ public class WorkflowAdapter extends ResourceAdapter {
         WorkflowEntity existingWorkflow = getWorkflowByTraceId(importInfo.getTargetProjectId(),
             importInfo.getTargetWorkspaceId(), workflow.getTraceId());
         if (existingWorkflow == null) {
+            setWorkflowName(importInfo.getTargetProjectId(), importInfo.getTargetWorkspaceId(), workflow);
+            result.setNewName(workflow.getName());
             // 若当前空间资源不存在，且该资源id已存在，则更换id
             if (workflowMapper.countWorkflowIdInDb(workflow.getId()) > 0) {
                 workflow.setId(UUID.randomUUID().toString());
@@ -268,6 +272,34 @@ public class WorkflowAdapter extends ResourceAdapter {
             }
             updateWorkflow(workflow, importInfo.getReleaseVersion(), result);
         }
+    }
+
+    private void setWorkflowName(String projectId, String workspaceId, WorkflowEntity workflowEntity) {
+        String name = workflowEntity.getName();
+        List<WorkflowEntity> workflowByWorkspaceId = workflowMapper.getAvailableWorkflowEntityByWorkspaceId(projectId,
+                workspaceId);
+        if (CollectionUtils.isEmpty(workflowByWorkspaceId)) {
+            return;
+        }
+        Set<String> currentNameSet = workflowByWorkspaceId.stream()
+                .map(WorkflowEntity::getName)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toCollection(() -> new TreeSet<>(String.CASE_INSENSITIVE_ORDER)));
+
+        List<WorkflowEntity> sameNameList = workflowByWorkspaceId.stream()
+                .filter(v -> Strings.CS.equals(v.getName(), name))
+                .collect(Collectors.toList());
+
+        if (CollectionUtils.isEmpty(sameNameList)) {
+            return;
+        }
+        // 用户在当前环境中已存在该资源，且name未改变，不会冲突
+        if (sameNameList.stream().filter(v -> Strings.CS.equals(v.getTraceId(), workflowEntity.getTraceId())).count()
+                > 0) {
+            return;
+        }
+        // 设置唯一资源名称
+        workflowEntity.setName(getFormatName(name, currentNameSet));
     }
 
     private void updateMetadata(ImportInfo importInfo, WorkflowEntity workflow) {
