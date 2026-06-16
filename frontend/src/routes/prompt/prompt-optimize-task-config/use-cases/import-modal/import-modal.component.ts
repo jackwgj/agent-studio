@@ -104,7 +104,7 @@ export class ImportModalComponent {
   downloadTemplate() {
     this.promptOptimizeService.downLoadTemplate(this.promptType).then(res => {
       CommonUtils.downloadFile(
-        new Blob([res.data], {
+        new Blob([res], {
           type: 'application/zip',
         }),
         `${this.commonLogic.getFormattedDateTime()}.zip`
