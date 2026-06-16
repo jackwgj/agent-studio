@@ -5,7 +5,7 @@
   <form #myForm="ngForm">
     <nz-form-item *ngIf="isApplyPage && !isEdit">
       <nz-form-label>{{ 'edit_share_modal_1' | i18nextEager }}</nz-form-label>
-      <nz-form-control>
+      <nz-form-control [nzValidateStatus]="applySelectError ? 'error' : ''" [nzErrorTip]="'input_cannot_be_empty' | i18nextEager">
         <div class="flex flex-col">
           <div class="flex gap-[8px]">
             <div class="w-[30%]">
@@ -39,7 +39,7 @@
     </nz-form-item>
     <nz-form-item *ngIf="!isApplyPage && !isEdit">
       <nz-form-label>{{ 'edit_share_modal_2' | i18nextEager }}</nz-form-label>
-      <nz-form-control>
+      <nz-form-control [nzValidateStatus]="pluginSelectError ? 'error' : ''" [nzErrorTip]="'input_cannot_be_empty' | i18nextEager">
         <nz-select
           class="!w-full"
           name="plugin"
@@ -53,8 +53,8 @@
     </nz-form-item>
     <nz-form-item>
       <nz-form-label>{{ 'edit_share_modal_3' | i18nextEager }}</nz-form-label>
-      <nz-form-control>
-        <nz-select class="!w-[452px]" nzMode="multiple" name="version" [(ngModel)]="versionSelect" [nzPlaceHolder]="'select_placeholder' | i18nextEager">
+      <nz-form-control [nzValidateStatus]="versionSelectError ? 'error' : ''" [nzErrorTip]="'input_cannot_be_empty' | i18nextEager">
+        <nz-select class="!w-[452px]" nzMode="multiple" name="version" [(ngModel)]="versionSelect" [nzPlaceHolder]="'select_placeholder' | i18nextEager" (ngModelChange)="versionSelectError = false">
           <nz-option *ngFor="let item of versionOptions" [nzValue]="item.version_id" [nzLabel]="item.version_name"></nz-option>
         </nz-select>
       </nz-form-control>
@@ -123,6 +123,11 @@
             (nzPageIndexChange)="onPageUpdate()"
           ></nz-pagination>
         </div>
+        @if (workspaceSelectError) {
+          <div class="ant-form-item-explain ant-form-item-explain-connected">
+            <div class="ant-form-item-explain-error">{{ 'select_team_limit_min_tip' | i18nextEager }}</div>
+          </div>
+        }
         <div #checkWrapper></div>
       </nz-form-control>
     </nz-form-item>

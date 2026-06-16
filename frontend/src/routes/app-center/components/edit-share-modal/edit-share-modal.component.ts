@@ -28,7 +28,7 @@ import { CardService } from '@routes/agent-center/my-card/card.service';
   providers: [
     {
       provide: I18NEXT_NAMESPACE,
-      useValue: [I18nNamespace.AGENT_CENTER],
+      useValue: [I18nNamespace.AGENT_CENTER,I18nNamespace.KNOWLEDGE],
     },
   ],
 })
@@ -96,6 +96,10 @@ export class EditShareModalComponent implements OnInit {
   shareWorkspaceSelect = [];
   shareWorkspaceSelectIds = [];
   isAllSelected = false;
+  applySelectError = false;
+  pluginSelectError = false;
+  versionSelectError = false;
+  workspaceSelectError = false;
   currentPage = 1;
   totalNumber = 0;
   public pageSize: any = {
@@ -154,6 +158,7 @@ export class EditShareModalComponent implements OnInit {
   }
 
   onSelectApply($event: any): void {
+    this.applySelectError = false;
     //  选了应用查版本
     if (this.typeSelect === SHARE_TOOL_TYPE.workflow) {
       this.getWorkflowVersion();
@@ -165,6 +170,7 @@ export class EditShareModalComponent implements OnInit {
   }
 
   onSelectPlugin($event: any): void {
+    this.pluginSelectError = false;
     //  选了应用查版本
     this.getPluginVersion();
   }
@@ -202,6 +208,7 @@ export class EditShareModalComponent implements OnInit {
   }
 
   onAllCheckedChange(checked: boolean): void {
+    this.workspaceSelectError = false;
     if (checked) {
       this.shareWorkspaceSelect = [...this.searchWorkspaceList];
     } else {
@@ -211,6 +218,7 @@ export class EditShareModalComponent implements OnInit {
   }
 
   onItemCheckedChange(item: any, checked: boolean): void {
+    this.workspaceSelectError = false;
     if (checked) {
       if (!this.shareWorkspaceSelect.find(v => v.id === item.id)) {
         this.shareWorkspaceSelect.push(item);
@@ -272,6 +280,13 @@ export class EditShareModalComponent implements OnInit {
   }
 
   onComfirm(): void {
+    this.applySelectError = !this.isEdit && this.isApplyPage && !this.applySelect;
+    this.pluginSelectError = !this.isEdit && !this.isApplyPage && !this.pluginSelect;
+    this.versionSelectError = !this.versionSelect.length;
+    this.workspaceSelectError = !this.isWorkspaceSelectAll && !this.shareWorkspaceSelect.length;
+    if (this.applySelectError || this.pluginSelectError || this.versionSelectError || this.workspaceSelectError) {
+      return;
+    }
     let params: any = {}
     if (this.sharePage === SHARE_PAGE.plugin) {
       const plugin = this.pluginOptions.find(v => this.pluginSelect === v.id);
@@ -289,7 +304,7 @@ export class EditShareModalComponent implements OnInit {
       params = {
         resource_id: this.applySelect,
         resource_type: this.typeSelect,
-        resource_name: apply?.name || this.shareInfo.resource_name,
+        resource_name: apply?.name || this.shareInfo?.resource_name || '',
         version_list: [...this.versionSelect],
         auth_workspace_id_list: this.isWorkspaceSelectAll ? ['all'] : this.shareWorkspaceSelect.map(v => {
           return v.id;
