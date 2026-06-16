@@ -69,6 +69,10 @@
             <div class="config-area-title mb-[16px]">
               <div class="flex h-full" style="align-items: center">
                 <div class="regular-create">{{ 'basic_information_config' | i18nextEager }}</div>
+                @if(['agent', 'chat'].includes(this.selectedType)){
+                  <img class="ai-assisted"
+                       (click)="gotoN2()" [src]="isZH() ? changeUrl('assets/app-center/ai-assisted-creation.svg') : changeUrl('assets/app-center/ai-create-btn-en.svg')" alt="">
+                }
               </div>
               @if (!isShowCardSelect) {
                 <ng-container *ngTemplateOutlet="toTemplate;"></ng-container>

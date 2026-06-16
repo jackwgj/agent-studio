@@ -803,32 +803,33 @@ export class AiAssistCreateWorkflowComponent
   public publishWorkflow() {
     const modalRef = this.tiModal.create({
       nzContent: PublishVersionModalComponent,
-      nzData: {
-        closeOnError: true,
-        app_id: this.workflow_id,
-        app_type: 'flow',
-        workflowType: 'chat',
-        title: this.i18n.transform('submit_version'),
-        outputs: {
-          publishSuccess: () => {
-            this.isPublished = true;
-          },
-          clickShare: () => {
-            const cur_space_options = JSON.parse(
-              StorageService.getSessionStorage('CUR_SPACE_OPTIONS'),
-            );
-            let cur_space_id = cur_space_options.id;
-            const queryParams = {
-              id: this.workflow_id,
-              workspace_id: cur_space_id,
-              tabId: 'releaseManage',
-            };
-            FlowHelperService.toEditWorkflow(this.router, queryParams);
-          },
-        },
-      },
+      nzWidth: '520px',
+      nzMaskClosable: false,
       nzFooter: null,
     });
+    Object.assign(modalRef.componentInstance, {
+      app_id: this.workflow_id,
+      app_type: 'flow',
+      workflowType: 'chat',
+      title: this.i18n.transform('submit_version'),
+    });
+    (modalRef.componentInstance as any).outputs = {
+      publishSuccess: () => {
+        this.isPublished = true;
+      },
+      clickShare: () => {
+        const cur_space_options = JSON.parse(
+          StorageService.getSessionStorage('CUR_SPACE_OPTIONS'),
+        );
+        let cur_space_id = cur_space_options.id;
+        const queryParams = {
+          id: this.workflow_id,
+          workspace_id: cur_space_id,
+          tabId: 'releaseManage',
+        };
+        FlowHelperService.toEditWorkflow(this.router, queryParams);
+      },
+    };
   }
 
   handleLogoChange() {
