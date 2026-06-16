@@ -1,0 +1,833 @@
+{
+  "configs": {
+    "variables": [
+      {
+        "default_value": "",
+        "description": "",
+        "name": "custom_field",
+        "scope": "request",
+        "type": "string"
+      },
+      {
+        "default_value": "",
+        "description": "",
+        "name": "integer_field",
+        "scope": "request",
+        "type": "integer"
+      },
+      {
+        "default_value": "",
+        "description": "",
+        "name": "number_field",
+        "scope": "request",
+        "type": "number"
+      },
+      {
+        "default_value": "",
+        "description": "",
+        "name": "bool_field",
+        "scope": "request",
+        "type": "boolean"
+      },
+      {
+        "default_value": "",
+        "description": "",
+        "name": "obj_filed",
+        "scope": "request",
+        "type": "object"
+      },
+      {
+        "default_value": "",
+        "description": "",
+        "name": "arr_str_field",
+        "scope": "request",
+        "type": "array"
+      },
+      {
+        "default_value": "",
+        "description": "",
+        "name": "arr_number_field",
+        "scope": "request",
+        "type": "array"
+      },
+      {
+        "default_value": "",
+        "description": "",
+        "name": "arr_integer_field",
+        "scope": "request",
+        "type": "array"
+      }
+    ],
+    "safety_barrier": false,
+    "model": {
+      "modelName": "eb5e97e8-3d73-4b8f-a77d-0888433cece1",
+      "extension": {
+        "safetyBarrier": false,
+        "deploymentId": "eb5e97e8-3d73-4b8f-a77d-0888433cece1",
+        "authId": "ee0b4315-0d17-48a1-be93-f0e7f3d0639a"
+      },
+      "hyperParameters": {},
+      "modelType": "LLM"
+    },
+    "content_review": {
+      "enabled": true,
+      "filter": {
+        "keywords": ""
+      },
+      "replace": [],
+      "reply": []
+    },
+    "prologue": ""
+  },
+  "components": [
+    {
+      "configs": {
+        "settings": [
+          {
+            "left": {
+              "type": "string",
+              "value": "${_request.custom_field}"
+            },
+            "right": {
+              "type": "string",
+              "value": "test",
+              "operator": null
+            }
+          },
+          {
+            "left": {
+              "type": "integer",
+              "value": "${_request.integer_field}"
+            },
+            "right": {
+              "type": "integer",
+              "value": 10,
+              "operator": null
+            }
+          },
+          {
+            "left": {
+              "type": "number",
+              "value": "${_request.number_field}"
+            },
+            "right": {
+              "type": "number",
+              "value": "${_request.number_field}",
+              "operator": "increment"
+            }
+          },
+          {
+            "left": {
+              "type": "boolean",
+              "value": "${_request.bool_field}"
+            },
+            "right": {
+              "type": "boolean",
+              "value": "${_request.bool_field}",
+              "operator": "empty"
+            }
+          },
+          {
+            "left": {
+              "schema": [
+                {
+                  "description": "",
+                  "id": "obj_str",
+                  "type": "string"
+                }
+              ],
+              "type": "object",
+              "value": "${_request.obj_filed}"
+            },
+            "right": {
+              "schema": [
+                {
+                  "description": "",
+                  "id": "obj_str",
+                  "type": "string"
+                }
+              ],
+              "type": "object",
+              "value": "${_request.obj_filed}",
+              "operator": "empty"
+            }
+          },
+          {
+            "left": {
+              "schema": {
+                "id": "",
+                "type": "string"
+              },
+              "type": "array",
+              "value": "${_request.arr_str_field}"
+            },
+            "right": {
+              "schema": {
+                "id": "",
+                "type": "string"
+              },
+              "type": "array",
+              "value": "${_request.arr_str_field}",
+              "operator": "empty_arr"
+            }
+          },
+          {
+            "left": {
+              "schema": {
+                "id": "",
+                "type": "number"
+              },
+              "type": "array",
+              "value": "${_request.arr_number_field}"
+            },
+            "right": {
+              "schema": {
+                "id": "",
+                "type": "number"
+              },
+              "type": "array",
+              "value": "${_request.arr_number_field}",
+              "operator": "empty"
+            }
+          },
+          {
+            "left": {
+              "schema": {
+                "id": "",
+                "type": "integer"
+              },
+              "type": "array",
+              "value": "${_request.arr_integer_field}"
+            },
+            "right": {
+              "schema": {
+                "id": "",
+                "type": "integer"
+              },
+              "type": "array",
+              "value": "${_request.arr_integer_field}",
+              "operator": "empty_arr"
+            }
+          }
+        ],
+        "userFields": {
+          "inputs": [
+            {
+              "sourceType": "ref",
+              "description": "循环之间共享参数",
+              "id": "custom_field",
+              "type": "string",
+              "required": true
+            },
+            {
+              "sourceType": "ref",
+              "description": "循环之间共享参数",
+              "id": "integer_field",
+              "type": "integer",
+              "required": true
+            },
+            {
+              "sourceType": "ref",
+              "description": "循环之间共享参数",
+              "id": "number_field",
+              "type": "number",
+              "required": true
+            },
+            {
+              "sourceType": "ref",
+              "description": "循环之间共享参数",
+              "id": "bool_field",
+              "type": "boolean",
+              "required": true
+            },
+            {
+              "schema": [
+                {
+                  "description": "",
+                  "id": "obj_str",
+                  "type": "string"
+                }
+              ],
+              "sourceType": "ref",
+              "description": "循环之间共享参数",
+              "id": "obj_filed",
+              "type": "object",
+              "required": true
+            },
+            {
+              "schema": {
+                "id": "",
+                "type": "string"
+              },
+              "sourceType": "ref",
+              "description": "循环之间共享参数",
+              "id": "arr_str_field",
+              "type": "array",
+              "required": true
+            },
+            {
+              "schema": {
+                "id": "",
+                "type": "number"
+              },
+              "sourceType": "ref",
+              "description": "循环之间共享参数",
+              "id": "arr_number_field",
+              "type": "array",
+              "required": true
+            },
+            {
+              "schema": {
+                "id": "",
+                "type": "integer"
+              },
+              "sourceType": "ref",
+              "description": "循环之间共享参数",
+              "id": "arr_integer_field",
+              "type": "array",
+              "required": true
+            }
+          ],
+          "outputs": []
+        },
+        "systemFields": {
+          "inputs": [],
+          "outputs": []
+        }
+      },
+      "inputs": {
+        "userFields": {
+          "custom_field": "${_request.custom_field}",
+          "bool_field": "${_request.bool_field}",
+          "integer_field": "${_request.integer_field}",
+          "arr_integer_field": "${_request.arr_integer_field}",
+          "arr_number_field": "${_request.arr_number_field}",
+          "number_field": "${_request.number_field}",
+          "obj_filed": "${_request.obj_filed}",
+          "arr_str_field": "${_request.arr_str_field}"
+        }
+      },
+      "name": "变量赋值",
+      "id": "node_1781160197717",
+      "type": "jiuwen.setVariable"
+    },
+    {
+      "outputs": {
+        "userFields": {
+          "custom_field": "",
+          "bool_field": "",
+          "integer_field": "",
+          "arr_integer_field": [
+            ""
+          ],
+          "arr_number_field": [
+            ""
+          ],
+          "number_field": "",
+          "obj_filed": {
+            "obj_str": ""
+          },
+          "arr_str_field": [
+            ""
+          ]
+        },
+        "memory": {},
+        "systemFields": {
+          "query": "",
+          "sys": {}
+        }
+      },
+      "configs": {
+        "userFields": {
+          "inputs": [
+            {
+              "sourceType": "null",
+              "description": "",
+              "default_value": "",
+              "id": "custom_field",
+              "type": "string",
+              "required": false
+            },
+            {
+              "sourceType": "null",
+              "description": "",
+              "default_value": "",
+              "id": "integer_field",
+              "type": "integer",
+              "required": false
+            },
+            {
+              "sourceType": "null",
+              "description": "",
+              "default_value": "",
+              "id": "number_field",
+              "type": "number",
+              "required": false
+            },
+            {
+              "sourceType": "null",
+              "description": "",
+              "default_value": "",
+              "id": "bool_field",
+              "type": "boolean",
+              "required": false
+            },
+            {
+              "schema": [
+                {
+                  "description": "",
+                  "id": "obj_str",
+                  "type": "string"
+                }
+              ],
+              "sourceType": "null",
+              "description": "",
+              "default_value": "",
+              "id": "obj_filed",
+              "type": "object",
+              "required": false
+            },
+            {
+              "schema": {
+                "id": "",
+                "type": "string"
+              },
+              "sourceType": "null",
+              "description": "",
+              "default_value": "",
+              "id": "arr_str_field",
+              "type": "array",
+              "required": false
+            },
+            {
+              "schema": {
+                "id": "",
+                "type": "number"
+              },
+              "sourceType": "null",
+              "description": "",
+              "default_value": "",
+              "id": "arr_number_field",
+              "type": "array",
+              "required": false
+            },
+            {
+              "schema": {
+                "id": "",
+                "type": "integer"
+              },
+              "sourceType": "null",
+              "description": "",
+              "default_value": "",
+              "id": "arr_integer_field",
+              "type": "array",
+              "required": false
+            }
+          ],
+          "outputs": [
+            {
+              "sourceType": "null",
+              "description": "",
+              "default_value": "",
+              "id": "custom_field",
+              "type": "string",
+              "required": false
+            },
+            {
+              "sourceType": "null",
+              "description": "",
+              "default_value": "",
+              "id": "integer_field",
+              "type": "integer",
+              "required": false
+            },
+            {
+              "sourceType": "null",
+              "description": "",
+              "default_value": "",
+              "id": "number_field",
+              "type": "number",
+              "required": false
+            },
+            {
+              "sourceType": "null",
+              "description": "",
+              "default_value": "",
+              "id": "bool_field",
+              "type": "boolean",
+              "required": false
+            },
+            {
+              "schema": [
+                {
+                  "description": "",
+                  "id": "obj_str",
+                  "type": "string"
+                }
+              ],
+              "sourceType": "null",
+              "description": "",
+              "default_value": "",
+              "id": "obj_filed",
+              "type": "object",
+              "required": false
+            },
+            {
+              "schema": {
+                "id": "",
+                "type": "string"
+              },
+              "sourceType": "null",
+              "description": "",
+              "default_value": "",
+              "id": "arr_str_field",
+              "type": "array",
+              "required": false
+            },
+            {
+              "schema": {
+                "id": "",
+                "type": "number"
+              },
+              "sourceType": "null",
+              "description": "",
+              "default_value": "",
+              "id": "arr_number_field",
+              "type": "array",
+              "required": false
+            },
+            {
+              "schema": {
+                "id": "",
+                "type": "integer"
+              },
+              "sourceType": "null",
+              "description": "",
+              "default_value": "",
+              "id": "arr_integer_field",
+              "type": "array",
+              "required": false
+            }
+          ]
+        },
+        "systemFields": {
+          "inputs": [
+            {
+              "sourceType": "input",
+              "description": "用户输入",
+              "id": "query",
+              "type": "string",
+              "required": true
+            },
+            {
+              "schema": [
+                {
+                  "schema": {
+                    "schema": [
+                      {
+                        "description": "角色",
+                        "id": "role",
+                        "type": "string"
+                      },
+                      {
+                        "description": "消息内容",
+                        "id": "content",
+                        "type": "string"
+                      }
+                    ],
+                    "id": "",
+                    "type": "object"
+                  },
+                  "description": "会话历史消息",
+                  "id": "conversationHistory",
+                  "type": "array"
+                },
+                {
+                  "description": "当前系统时间",
+                  "id": "currentTime",
+                  "type": "string"
+                },
+                {
+                  "description": "使用该工作流的唯一标识",
+                  "id": "userId",
+                  "type": "string"
+                },
+                {
+                  "description": "工作流对话id",
+                  "id": "conversationId",
+                  "type": "string"
+                },
+                {
+                  "description": "会话轮次",
+                  "id": "dialogueCount",
+                  "type": "integer"
+                }
+              ],
+              "sourceType": "input",
+              "description": "系统变量",
+              "id": "sys",
+              "type": "object",
+              "required": true
+            }
+          ],
+          "outputs": [
+            {
+              "sourceType": "input",
+              "description": "用户输入",
+              "id": "query",
+              "type": "string",
+              "required": true
+            },
+            {
+              "schema": [
+                {
+                  "schema": {
+                    "schema": [
+                      {
+                        "description": "角色",
+                        "id": "role",
+                        "type": "string"
+                      },
+                      {
+                        "description": "消息内容",
+                        "id": "content",
+                        "type": "string"
+                      }
+                    ],
+                    "id": "",
+                    "type": "object"
+                  },
+                  "description": "会话历史消息",
+                  "id": "conversationHistory",
+                  "type": "array"
+                },
+                {
+                  "description": "当前系统时间",
+                  "id": "currentTime",
+                  "type": "string"
+                },
+                {
+                  "description": "使用该工作流的唯一标识",
+                  "id": "userId",
+                  "type": "string"
+                },
+                {
+                  "description": "工作流对话id",
+                  "id": "conversationId",
+                  "type": "string"
+                },
+                {
+                  "description": "会话轮次",
+                  "id": "dialogueCount",
+                  "type": "integer"
+                }
+              ],
+              "sourceType": "input",
+              "description": "系统变量",
+              "id": "sys",
+              "type": "object",
+              "required": true
+            }
+          ]
+        },
+        "preDefinedFields": {
+          "inputs": [
+            {
+              "schema": [],
+              "sourceType": "null",
+              "description": null,
+              "id": "memory",
+              "type": "object",
+              "required": true
+            }
+          ],
+          "outputs": [
+            {
+              "schema": [],
+              "sourceType": "null",
+              "description": null,
+              "id": "memory",
+              "type": "object",
+              "required": true
+            }
+          ]
+        }
+      },
+      "inputs": {
+        "userFields": {
+          "custom_field": "",
+          "bool_field": "",
+          "integer_field": "",
+          "arr_integer_field": [
+            ""
+          ],
+          "arr_number_field": [
+            ""
+          ],
+          "number_field": "",
+          "obj_filed": {
+            "obj_str": ""
+          },
+          "arr_str_field": [
+            ""
+          ]
+        },
+        "memory": {},
+        "systemFields": {
+          "query": "",
+          "sys": {}
+        }
+      },
+      "name": "开始",
+      "id": "node_start",
+      "type": "jiuwen.start"
+    },
+    {
+      "outputs": {
+        "userFields": {},
+        "responseContent": ""
+      },
+      "configs": {
+        "responseMode": "directResponse",
+        "userFields": {
+          "inputs": [
+            {
+              "sourceType": "ref",
+              "description": "最终输出",
+              "id": "result_cust_field",
+              "type": "string",
+              "required": false
+            },
+            {
+              "sourceType": "ref",
+              "description": "",
+              "id": "integer_field",
+              "type": "integer",
+              "required": true
+            },
+            {
+              "sourceType": "ref",
+              "description": "",
+              "id": "number_field",
+              "type": "number",
+              "required": true
+            },
+            {
+              "sourceType": "ref",
+              "description": "",
+              "id": "bool_field",
+              "type": "boolean",
+              "required": true
+            },
+            {
+              "schema": [
+                {
+                  "description": "",
+                  "id": "obj_str",
+                  "type": "string"
+                }
+              ],
+              "sourceType": "ref",
+              "description": "",
+              "id": "obj_filed",
+              "type": "object",
+              "required": true
+            },
+            {
+              "schema": {
+                "id": "",
+                "type": "string"
+              },
+              "sourceType": "ref",
+              "description": "",
+              "id": "arr_str_field",
+              "type": "array",
+              "required": true
+            },
+            {
+              "schema": {
+                "id": "",
+                "type": "number"
+              },
+              "sourceType": "ref",
+              "description": "",
+              "id": "arr_number_field",
+              "type": "array",
+              "required": true
+            },
+            {
+              "schema": {
+                "id": "",
+                "type": "integer"
+              },
+              "sourceType": "ref",
+              "description": "",
+              "id": "arr_integer_field",
+              "type": "array",
+              "required": true
+            }
+          ],
+          "outputs": []
+        },
+        "responseTemplate": "result_cust_field{{result_cust_field}}\ninteger_field{{integer_field}}\nnumber_field{{number_field}}\nbool_field{{bool_field}}\nobj_filed{{obj_filed}}\narr_str_field{{arr_str_field}}\narr_number_field{{arr_number_field}}\narr_integer_field{{arr_integer_field}}\n\n",
+        "struct_output_template": "{\n  \"answer\": \"{{_NODE_OUTPUT}}\"\n}",
+        "systemFields": {
+          "inputs": [],
+          "outputs": []
+        },
+        "isStreamOut": true,
+        "enable_history": true,
+        "isStructMessage": false
+      },
+      "inputs": {
+        "userFields": {
+          "bool_field": "${_request.bool_field}",
+          "result_cust_field": "${_request.custom_field}",
+          "integer_field": "${_request.integer_field}",
+          "arr_integer_field": "${_request.arr_integer_field}",
+          "arr_number_field": "${_request.arr_number_field}",
+          "number_field": "${_request.number_field}",
+          "obj_filed": "${_request.obj_filed}",
+          "arr_str_field": "${_request.arr_str_field}"
+        }
+      },
+      "name": "结束",
+      "id": "node_end",
+      "type": "jiuwen.end"
+    }
+  ],
+  "metadata": {
+    "visibility": "project",
+    "publishedAt": null,
+    "type": "chat",
+    "userId": "testUser",
+    "projectId": "0",
+    "domainId": "0",
+    "workspaceId": "3d1e2fe202d3460ca5fd91caeef97617",
+    "updatedAt": 1781160653452,
+    "status": "draft"
+  },
+  "schemaVersion": "0.6.0",
+  "description": "测试用例-变量赋值节点",
+  "workflowName": "ceshiyongli-bianliangfuzhijiedian",
+  "workflowVersion": "0.6.0",
+  "workflowId": "3f0a1672-0432-49f2-906a-bab0be0ba826",
+  "connections": [
+    {
+      "source": {
+        "componentId": "node_start"
+      },
+      "target": {
+        "componentId": "node_1781160197717"
+      }
+    },
+    {
+      "source": {
+        "componentId": "node_1781160197717"
+      },
+      "target": {
+        "componentId": "node_end"
+      }
+    }
+  ]
+}
