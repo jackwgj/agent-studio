@@ -614,7 +614,11 @@ class WorkflowStreamDataWrapper:
         computed_status = None
 
         if trace_status == "error":
-            computed_status = "error"
+            # Degraded completion: engine may still report error while outputs/endTime exist.
+            if outputs is not None and payload.get("endTime"):
+                computed_status = "finish"
+            else:
+                computed_status = "error"
             inner_error = payload.get("innerError")
         elif trace_status == "interrupted":
             computed_status = "running"
@@ -634,15 +638,13 @@ class WorkflowStreamDataWrapper:
                     memory = last_frame.pop("memory", None)
             computed_status = "finish"
         elif trace_status == "running":
+            # Retry inner_error is already emitted once via trace_status=error (on_invoke).
+            # pre_invoke on the next attempt stays running while onInvokeData keeps history.
             if on_invoke_data:
                 last_item = on_invoke_data[-1]
-                if isinstance(last_item, dict) and "inner_error" in last_item:
-                    inner_error = last_item["inner_error"]
-                    computed_status = "error"
-                else:
-                    if isinstance(last_item, dict):
-                        memory = last_item.get("memory")
-                    computed_status = "running"
+                if isinstance(last_item, dict) and "inner_error" not in last_item:
+                    memory = last_item.get("memory")
+            computed_status = "running"
         else:
             computed_status = "start"
             if self._is_resuming and payload.get("componentType", "") == "Questioner":
