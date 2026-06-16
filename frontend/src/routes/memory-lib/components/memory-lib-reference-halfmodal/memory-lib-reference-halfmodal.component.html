@@ -3,11 +3,6 @@
 </div>
 
 <div class="memory-lib-reference-container">
-  <!-- Loading 状态 -->
-  @if (isLoading) {
-    <nz-spin class="loading-icon" nzSimple nzSize="large"></nz-spin>
-  }
-
   <!-- 标签页 -->
   <nz-tabset [(nzSelectedIndex)]="activeTabIndex" (nzSelectedIndexChange)="onTabChange($event)">
     @for (tab of tabs; track tab.id) {

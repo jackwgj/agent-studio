@@ -726,9 +726,9 @@ export class ChatFlowPageComponent
     const longTermMemory = this.configServ.isSupportUserPersona()
       ? {
         long_term_memory: {
-          // 记忆提取配置
-          enable_retrieve: this.conversationState.isRetrieve,
-          enable_extract: this.conversationState.isExtract,
+          // 记忆提取配置：未关联记忆库时关闭 retrieve/extract，避免后端空ID报错
+          enable_retrieve: this.memoryLibId ? this.conversationState.isRetrieve : false,
+          enable_extract: this.memoryLibId ? this.conversationState.isExtract : false,
           memory_repo_id: this.memoryLibId,
         },
       }

@@ -1,10 +1,11 @@
-import { Component, Input, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, Input, OnDestroy, OnInit, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { I18NEXT_NAMESPACE, I18NextEagerPipe } from 'angular-i18next';
 import { Subject, takeUntil } from 'rxjs';
 import { NzTabsModule } from 'ng-zorro-antd/tabs';
 import { NzTableModule } from 'ng-zorro-antd/table';
 import { NzSpinModule } from 'ng-zorro-antd/spin';
+import { NZ_DRAWER_DATA } from 'ng-zorro-antd/drawer';
 
 import { AgentConfigService } from '@routes/agent-center/agent-config.service';
 import { MemoryLibReferenceType } from '@routes/memory-lib/memory-lib-enums';
@@ -31,6 +32,10 @@ import { cdnAssetUrl } from '../../../../single-spa/assets-url';
 })
 export class MemoryLibReferenceHalfmodalComponent implements OnInit, OnDestroy {
   @Input() memLibId = '';
+
+  /** Drawer 通过 nzData 传入的数据（优先级高于 @Input） */
+  private readonly drawerData: any = inject(NZ_DRAWER_DATA, { optional: true });
+  private readonly cdr = inject(ChangeDetectorRef);
 
   isLoading = false;
   cdnAssetUrl = cdnAssetUrl;
@@ -72,6 +77,12 @@ export class MemoryLibReferenceHalfmodalComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    // Drawer 场景下 nzData 通过 Object.assign 赋值晚于 ngOnInit，
+    // 因此需要优先从 NZ_DRAWER_DATA 注入获取 memLibId
+    if (this.drawerData?.memLibId) {
+      this.memLibId = this.drawerData.memLibId;
+    }
+
     this.workspaceId = this.http.getWorkspaceId();
     this.setTabs();
     this.getReferenceList();
@@ -102,7 +113,16 @@ export class MemoryLibReferenceHalfmodalComponent implements OnInit, OnDestroy {
   }
 
   getReferenceList() {
+    if (!this.memLibId) {
+      this.isLoading = false;
+      this.relations = [];
+      this.srcData.data = [];
+      this.totalNumber = 0;
+      this.cdr.markForCheck();
+      return;
+    }
     this.isLoading = true;
+    this.cdr.markForCheck();
     this.mcpRepoServe
       .getReferenceList(this.memLibId, {
         limit: this.pageSize.size,
@@ -115,10 +135,15 @@ export class MemoryLibReferenceHalfmodalComponent implements OnInit, OnDestroy {
         this.relations = res.relations;
         this.srcData.data = this.relations.filter(item => item.app_type === this.currentActiveTab);
         this.totalNumber = res.count;
-        this.isLoading = false;
       })
       .catch(() => {
+        this.relations = [];
+        this.srcData.data = [];
+        this.totalNumber = 0;
+      })
+      .finally(() => {
         this.isLoading = false;
+        this.cdr.markForCheck();
       });
   }
 
