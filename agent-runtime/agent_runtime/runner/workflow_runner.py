@@ -268,7 +268,7 @@ class WorkflowRunner:
                     if evt_type in ("message", "done"):
                         answer = event.get("data", {}).get("answer", "")
                         if answer:
-                            memory_response_parts.append(answer)
+                            memory_response_parts.append(str(answer))
                     yield event
             workflow_logger.info(
                 f"[PERF] Workflow.stream() total: {(time.time() - t_stream_start) * 1000:.1f}ms"

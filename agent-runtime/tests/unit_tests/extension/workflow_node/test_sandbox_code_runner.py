@@ -9,6 +9,9 @@ import pytest
 from agent_runtime.extension.workflow_node.code_runner.sandbox_code_runner import (
     SandboxCodeRunner,
 )
+from agent_runtime.extension.workflow_node.code_runner.base_code_runner import (
+    build_wrapped_code,
+)
 from openjiuwen.core.common.exception.codes import StatusCode
 
 
@@ -172,19 +175,19 @@ class TestSandboxCodeRunnerRun:
 class TestSandboxCodeRunnerWrapUserCode:
     @staticmethod
     def test_wrap_contains_user_code():
-        wrapped = SandboxCodeRunner.wrap_user_code("def main(args): return {}", {"x": 1})
+        wrapped = build_wrapped_code("def main(args): return {}", {"x": 1})
         assert "def main(args): return {}" in wrapped
         assert "args = {'x': 1}" in wrapped
         assert "json.dumps(result, default=str)" in wrapped
 
     @staticmethod
     def test_wrap_embeds_inputs():
-        wrapped = SandboxCodeRunner.wrap_user_code("pass", {"x": 1, "y": "hello"})
+        wrapped = build_wrapped_code("pass", {"x": 1, "y": "hello"})
         assert "args = {'x': 1, 'y': 'hello'}" in wrapped
 
     @staticmethod
     def test_wrap_empty_inputs():
-        wrapped = SandboxCodeRunner.wrap_user_code("pass", {})
+        wrapped = build_wrapped_code("pass", {})
         assert "args = {}" in wrapped
 
 

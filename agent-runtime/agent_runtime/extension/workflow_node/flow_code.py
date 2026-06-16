@@ -436,6 +436,7 @@ class FlowCode(WorkflowComponent):
                 user_fields = _coerce_inputs(user_fields, inputs_schema)
 
             # 4. 执行代码（带 sandbox 失败 fallback 到 local）
+            active_runner = self._code_runner
             try:
                 result_dict = await self._code_runner.run(
                     user_code=self._conf.code,
@@ -449,14 +450,22 @@ class FlowCode(WorkflowComponent):
                     workflow_logger.warning(
                         f"Sandbox execution failed: {e}, fallback to local"
                     )
-                    local_runner_instance = self._get_local_runner()
-                    result_dict = await local_runner_instance.run(
+                    active_runner = self._get_local_runner()
+                    result_dict = await active_runner.run(
                         user_code=self._conf.code,
                         inputs=user_fields,
                         timeout=300,
                     )
                 else:
                     raise  # Re-raise for non-sandbox environments
+
+            # 4.5 将 function_log（用户 print 输出）通过 tracer 发送到 onInvokeData
+            function_log = getattr(active_runner, "function_log", "")
+            if function_log:
+                try:
+                    await session.trace(data={"function_log": function_log})
+                except Exception as e:
+                    workflow_logger.warning(f"Fail record function log. {e}")
 
             workflow_logger.debug(
                 "FlowCode component invoke succeeded",
