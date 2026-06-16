@@ -1,0 +1,79 @@
+# Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+"""
+ReActAgent Workflow Adapter — 将 Workflow 适配为 ReActAgent 可调用的 Tool
+"""
+
+import uuid
+from typing import List, Any
+
+from openjiuwen.core.foundation.tool import Tool, ToolCard
+from openjiuwen.core.session.stream import BaseStreamMode
+
+
+class ReactWorkflowAdapter(Tool):
+    """包装工作流为 Tool，供 ReActAgent 调用"""
+
+    def __init__(
+        self,
+        workflow_instance: Any,
+        workflow_name: str,
+        workflow_desc: str,
+        input_params: dict,
+        user_fields_keys: List[str],
+    ):
+        card = ToolCard(
+            id=workflow_instance.card.id,
+            name=workflow_name,
+            description=workflow_desc,
+            input_params=input_params,
+        )
+        super().__init__(card=card)
+        self._workflow_instance = workflow_instance
+        self._user_fields_keys = user_fields_keys
+
+    async def invoke(self, inputs: dict, **kwargs) -> dict:
+        """调用工作流"""
+        from openjiuwen.core.workflow import create_workflow_session
+
+        session_id = kwargs.get("session_id", str(uuid.uuid4()))
+        session = create_workflow_session(session_id=session_id)
+        wf_inputs = self._convert_inputs(inputs)
+
+        final_answer = None
+        fallback_result = None
+
+        async for chunk in self._workflow_instance.stream(
+            inputs=wf_inputs,
+            session=session,
+            stream_modes=[BaseStreamMode.OUTPUT, BaseStreamMode.CUSTOM],
+        ):
+            chunk_type = getattr(chunk, "type", None)
+            payload = getattr(chunk, "payload", {}) or getattr(chunk, "data", {})
+
+            if chunk_type == "workflow_final":
+                final_answer = payload.get("answer", "")
+            elif chunk_type == "message_end" and payload.get("node_type", "") != "jiuwen.end":
+                message_result = payload.get("answer", "")
+                if message_result:
+                    fallback_result = message_result
+
+        if not final_answer and fallback_result:
+            final_answer = fallback_result
+
+        return {"answer": final_answer} if final_answer else {}
+
+    async def stream(self, inputs: dict, **kwargs):
+        """流式调用工作流（ReActAgent 不使用，但需实现抽象方法）"""
+        result = await self.invoke(inputs, **kwargs)
+        yield result
+
+    def _convert_inputs(self, inputs: dict) -> dict:
+        """将 agent 的 flat 输入转换为工作流期望的嵌套格式"""
+        user_fields = {
+            key: inputs[key] for key in self._user_fields_keys if key in inputs
+        }
+        system_fields = {
+            "query": inputs.get("query", ""),
+            "sys": inputs.get("sys", {}),
+        }
+        return {"userFields": user_fields, "systemFields": system_fields}
