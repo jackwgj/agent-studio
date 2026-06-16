@@ -74,7 +74,17 @@ public enum ResourceTypeEnum {
     /**
      * 多智能体
      */
-    CONTROLLER("controller", 20);
+    CONTROLLER("controller", 20),
+
+    /**
+     * FunctionGraph
+     */
+    FUNCTIONGRAPH("functiongraph", 12),
+
+    /**
+     * 不支持节点
+     */
+    UNSUPPORTED("unsupported", 404);
 
     private final String value;
 
@@ -96,7 +106,7 @@ public enum ResourceTypeEnum {
                 return b;
             }
         }
-        return null;
+        return ResourceTypeEnum.UNSUPPORTED;
     }
 
 }

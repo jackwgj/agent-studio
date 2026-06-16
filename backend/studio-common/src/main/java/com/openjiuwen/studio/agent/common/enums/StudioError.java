@@ -1418,6 +1418,11 @@ public enum StudioError {
      */
     MISSING_TRANSFORMER(BAD_REQUEST, WORKFLOW, "1095"),
 
+    /**
+     * 不支持导入的资源
+     */
+    UNSUPPORTED_RESOURCE_IMPORT(BAD_REQUEST, WORKFLOW, "1097"),
+
     /*
      * ============================== 多智能体相关错误码 ==============================
      */

@@ -218,6 +218,10 @@ public class AgentImportService {
             // 逐行读取文件中的jsonl配置
             while (StringUtils.isNotEmpty(line = bufferedReader.readLine())) {
                 ImportInfo importInfo = jacksonObjectMapper.readValue(line, ImportInfo.class);
+                if (importInfo.getOrder() == 404) {
+                    log.error("the file exist unsupported resource: {}", importInfo.getResourceType());
+                    throw new AgentStudioException(StudioError.UNSUPPORTED_RESOURCE_IMPORT, importInfo.getResourceType());
+                }
                 if (!Strings.CS.equals(importInfo.getResourceType(), CommonConstant.EXPORT_V2_TYPE)) {
                     resourceList.add(importInfo);
                 }
@@ -226,6 +230,8 @@ public class AgentImportService {
                 }
             }
 
+        } catch (AgentStudioException e) {
+            throw e;
         } catch (Exception e) {
             log.error("listImportFile file:{}, error: {}", i18nUtil.getMessage(StudioError.FILE_RESOLVE_FILE),
                 e.getMessage());
@@ -1254,6 +1260,7 @@ public class AgentImportService {
             case TOOL -> handleWorkflowPlugin(result, workflowVO);
             case MCP -> handleWorkflowNoVersionNode(result, workflowVO);
             case WORKFLOW -> handleWorkflowVersionNode(result, workflowVO);
+            case FUNCTIONGRAPH -> handleWorkflowFunction(result, workflowVO);
         }
         parentResource.setDsl(workflowVO);
     }
