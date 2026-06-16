@@ -521,7 +521,11 @@
                           />
                         </ng-container>
 
-                        <div *ngIf="requestArgsForm?.controls['requestValidateRule' + param.name]?.invalid" class="error-tip">
+                        <div
+                          *ngIf="requestArgsForm?.controls['requestValidateRule' + param.name]?.invalid"
+                          class="error-tip"
+                          [style]="{paddingLeft:param.validate_type === 'DATE'?'200px':'0px'}"
+                        >
                           {{requestArgsForm?.controls['requestValidateRule' + param.name]?.errors?.serviceName?.tiErrorMessage}}
                         </div>
                       </div>
