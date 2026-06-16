@@ -4,7 +4,7 @@
 
 package com.openjiuwen.studio.agent.agentbase.mapper.handler;
 
-import com.alibaba.fastjson2.JSONArray;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.openjiuwen.studio.agent.agentbase.model.KnowledgeBaseConnectorParam;
 import com.openjiuwen.studio.agent.foundation.base.utils.JacksonUtils;
 
@@ -22,9 +22,12 @@ import java.util.List;
  *
  */
 public class KnowledgeBaseConnectorParamListHandler extends BaseTypeHandler<List<KnowledgeBaseConnectorParam>> {
+
+    private static final TypeReference<List<KnowledgeBaseConnectorParam>> TYPE_REF = new TypeReference<>() { };
+
     @Override
     public void setNonNullParameter(PreparedStatement ps, int i, List<KnowledgeBaseConnectorParam> parameter,
-        JdbcType jdbcType) throws SQLException {
+                                    JdbcType jdbcType) throws SQLException {
         ps.setString(i, JacksonUtils.toJson(parameter));
     }
 
@@ -32,7 +35,7 @@ public class KnowledgeBaseConnectorParamListHandler extends BaseTypeHandler<List
     public List<KnowledgeBaseConnectorParam> getNullableResult(ResultSet rs, String columnName) throws SQLException {
         String sqlJson = rs.getString(columnName);
         if (sqlJson != null) {
-            return JSONArray.parseArray(sqlJson, KnowledgeBaseConnectorParam.class);
+            return JacksonUtils.readValue(sqlJson, TYPE_REF);
         }
         return null;
     }
@@ -41,17 +44,17 @@ public class KnowledgeBaseConnectorParamListHandler extends BaseTypeHandler<List
     public List<KnowledgeBaseConnectorParam> getNullableResult(ResultSet rs, int columnIndex) throws SQLException {
         String sqlJson = rs.getString(columnIndex);
         if (sqlJson != null) {
-            return JSONArray.parseArray(sqlJson, KnowledgeBaseConnectorParam.class);
+            return JacksonUtils.readValue(sqlJson, TYPE_REF);
         }
         return null;
     }
 
     @Override
     public List<KnowledgeBaseConnectorParam> getNullableResult(CallableStatement cs, int columnIndex)
-        throws SQLException {
+            throws SQLException {
         String sqlJson = cs.getNString(columnIndex);
         if (sqlJson != null) {
-            return JSONArray.parseArray(sqlJson, KnowledgeBaseConnectorParam.class);
+            return JacksonUtils.readValue(sqlJson, TYPE_REF);
         }
         return null;
     }
