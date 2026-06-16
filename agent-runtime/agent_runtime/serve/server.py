@@ -39,6 +39,11 @@ from agent_runtime.serve.apis.orchestration import execution_app
 from agent_runtime.serve.apis.user_variable_api import user_variable_router
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from flask import Flask
+from starlette.middleware.wsgi import WSGIMiddleware
+
+# 导入 Flask prompt 子应用（agent_builder 构建侧）
+from agent_builder.app import app as prompt_manage_app
 
 # 初始化 prompt 模板
 from jiuwen.common.init import init_prompt
@@ -78,7 +83,7 @@ from agent_runtime.extension.workflow_node.flow_code import FlowCode, JIUWEN_COD
 component_class_pool.register_component_class(JIUWEN_CODE_TYPE, FlowCode)
 logger.info("Registered workflow component: jiuwen.code")
 
-apps_map = [execution_app, user_variable_router, memory_internal_router]
+apps_map = [execution_app, prompt_manage_app, user_variable_router, memory_internal_router]
 
 
 @asynccontextmanager
@@ -185,8 +190,24 @@ def instance_app(config: dict | None = None):
     """instance FastAPI server"""
     app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)  # noqa: redefined-outer-name
     app.add_middleware(RequestContextMiddleware)
+
+    # Flask 路径规范化中间件：OptimizationTemplateService.java 调用 /v1/prompt/...
+    # 而 Flask blueprint 注册了 url_prefix="/flask"，需要统一补上前缀
+    # 注意：这里操作的是 URL 路径（非文件系统路径），分隔符固定为 /
+    @app.middleware("http")
+    async def normalize_flask_path(request: Request, call_next):
+        path = request.url.path
+        if path.startswith("/v1/prompt/") and not path.startswith("/flask"):
+            prefixed = f"/flask{path}"
+            request = Request(request.scope, request.receive)
+            request.scope["path"] = prefixed
+        return await call_next(request)
+
     for i in apps_map:
-        app.include_router(i)
+        if isinstance(i, Flask):
+            app.mount("/", WSGIMiddleware(i))
+        else:
+            app.include_router(i)
 
     @app.exception_handler(AgentBuilderError)
     async def agent_builder_error_handler(request: Request, exc: AgentBuilderError):
