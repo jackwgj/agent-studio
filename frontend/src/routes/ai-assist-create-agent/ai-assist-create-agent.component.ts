@@ -656,35 +656,37 @@ export class AiAssistCreateAgentComponent
   }
 
   public publishAgent() {
-    this.tiModal.create({
+    const modalRef = this.tiModal.create({
       nzContent: PublishVersionModalComponent,
-      nzData: {
-        app_id: this.agentId,
-        app_type: 'agent',
-        isFromDevelopSpace: false,
-        title: this.i18n.transform('submit_version'),
-        outputs: {
-          publishSuccess: () => {
-            this.isPublished = true;
-          },
-          clickShare: () => {
-            const cur_space_options = JSON.parse(
-              StorageService.getSessionStorage('CUR_SPACE_OPTIONS'),
-            );
-            let cur_space_id = cur_space_options.id;
-            const queryParams = {
-              agentId: this.agentId,
-              workspace_id: cur_space_id,
-              tabId: 'releaseManage',
-            };
-            this.router.navigate(['/home/agent-center/app-agent/detail'], {
-              queryParams: queryParams,
-            });
-          },
-        },
-      },
+      nzWidth: '520px',
+      nzMaskClosable: false,
       nzFooter: null,
     });
+    Object.assign(modalRef.componentInstance, {
+      app_id: this.agentId,
+      app_type: 'agent',
+      isFromDevelopSpace: false,
+      title: this.i18n.transform('submit_version'),
+    });
+    (modalRef.componentInstance as any).outputs = {
+      publishSuccess: () => {
+        this.isPublished = true;
+      },
+      clickShare: () => {
+        const cur_space_options = JSON.parse(
+          StorageService.getSessionStorage('CUR_SPACE_OPTIONS'),
+        );
+        let cur_space_id = cur_space_options.id;
+        const queryParams = {
+          agentId: this.agentId,
+          workspace_id: cur_space_id,
+          tabId: 'releaseManage',
+        };
+        this.router.navigate(['/home/agent-center/app-agent/detail'], {
+          queryParams: queryParams,
+        });
+      },
+    };
   }
 
   editName() {
