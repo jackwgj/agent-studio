@@ -38,6 +38,7 @@ RUN mkdir -p $SERVICE_HOME/bin \
     && mkdir -p $SERVICE_HOME/tls \
     && mkdir -p /opt/cloud/logs \
     && mkdir -p /opt/cloud/tool \
+    && mkdir -p /opt/tmp/agent \
     && mkdir -p /opt/cloud/logs/agent-runtime/run \
     && touch /opt/cloud/logs/agent-runtime/run/agent-runtime.pid \
     && touch /opt/cloud/logs/agent-runtime/run/agent-runtime_access.log \
@@ -48,6 +49,7 @@ RUN mkdir -p $SERVICE_HOME/bin \
     && chmod 700 $SERVICE_HOME/.. \
     && chown -R service:service /home \
     && chown -R service:service /opt/cloud \
+    && chown -R service:service /opt/tmp/agent \
     && chmod 755 /home
 
 # 定义定时任务需要的权限

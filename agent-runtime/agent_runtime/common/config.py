@@ -171,6 +171,22 @@ class CacheSettings(BaseSettings):
     )
 
 
+class SkillStorageSettings(BaseSettings):
+    """Skill 文件存储路径配置。
+
+    生产环境：work_dir（如 /opt/tmp/agent）由 Dockerfile 预创建，路径已存在，不需要此变量。
+    开发环境：本地不存在容器路径，通过 SKILL_STORAGE_DIR 环境变量指定本地存储目录。
+    """
+
+    skill_storage_dir: str = Field(
+        default="/opt/tmp/agent", validation_alias="SKILL_STORAGE_DIR"
+    )
+
+    model_config = SettingsConfigDict(
+        env_file=".env", env_file_encoding="utf-8", extra="ignore"
+    )
+
+
 class OpenSearchSettings(BaseSettings):
     """OpenSearch connection settings for memory library."""
 
@@ -223,6 +239,7 @@ class Settings:
     security_sandbox = SecuritySandboxSettings()
     workflow_log = WorkflowLogSettings()
     cache = CacheSettings()
+    skill_storage = SkillStorageSettings()
     opensearch = OpenSearchSettings()
     memory = MemorySettings()
 

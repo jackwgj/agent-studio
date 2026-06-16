@@ -907,22 +907,44 @@ class Agent(BaseAgent):
             f"skill_dir='{self.skill_dir}', skill_info={self.skill_info}"
         )
 
-        # 开发环境路径映射：如果 work_dir 是沙箱 Unix 路径，映射到本地有效路径
-        if work_dir.startswith("/opt/") or work_dir.startswith("/tmp/"):
-            local_dev_root = os.environ.get("SANDBOX_LOCAL_ROOT", "")
-            if not local_dev_root:
-                logger.warning(
-                    f"[SkillDownload] work_dir is a sandbox path '{work_dir}' "
-                    f"but SANDBOX_LOCAL_ROOT env is not set. "
-                    f"Please set SANDBOX_LOCAL_ROOT to your local directory "
-                    f"that maps to the sandbox root, e.g. "
-                    f"SANDBOX_LOCAL_ROOT=/home/user/agent on Linux or "
-                    f"SANDBOX_LOCAL_ROOT=D:\\opt\\tmp\\agent on Windows. "
+        # Skill 文件存储路径解析（优先级：本地路径 > 环境变量映射）：
+        # - 生产环境：work_dir（如 /opt/tmp/agent）由 Dockerfile 预创建，路径已存在，直接使用
+        # - 开发环境：本地不存在容器路径，通过 SKILL_STORAGE_DIR 环境变量指定本地存储目录
+        original_work_dir = work_dir  # 保留原始值用于日志
+
+        if os.path.exists(work_dir):
+            # 优先级1：路径已存在 → 直接使用（生产容器或本地已有该目录）
+            logger.info(f"[SkillDownload] work_dir '{work_dir}' exists locally, using it directly.")
+        else:
+            # 路径不存在（开发环境）或为空 → 回退到 SKILL_STORAGE_DIR 环境变量
+            from agent_runtime.common.config import settings
+            skill_storage_dir = settings.skill_storage.skill_storage_dir
+            if skill_storage_dir:
+                # 优先级2：环境变量提供了替代路径
+                work_dir = skill_storage_dir
+                logger.info(
+                    f"[SkillDownload] original_work_dir '{original_work_dir}' does not exist locally, "
+                    f"falling back to SKILL_STORAGE_DIR: '{work_dir}'"
+                )
+                # 确保替代路径本身存在
+                if not os.path.exists(work_dir):
+                    logger.error(
+                        f"[SkillDownload] SKILL_STORAGE_DIR '{work_dir}' does not exist locally. "
+                        f"Please create this directory manually. "
+                        f"Skill file download will be skipped."
+                    )
+                    return False
+            else:
+                # 无环境变量兜底：无法确定 skill 文件存储路径
+                logger.error(
+                    f"[SkillDownload] work_dir '{original_work_dir}' does not exist locally and "
+                    f"SKILL_STORAGE_DIR env is not set. In production, the Dockerfile should "
+                    f"pre-create this directory. In development, please set SKILL_STORAGE_DIR "
+                    f"to a local directory for skill file storage, e.g. "
+                    f"SKILL_STORAGE_DIR=windows or linux path"
                     f"Skill file download will be skipped."
                 )
                 return False
-            work_dir = work_dir.replace("/opt/tmp/agent", local_dev_root).replace("/tmp/agent", local_dev_root)
-            logger.info(f"[SkillDownload] Mapped sandbox path to local: {work_dir}")
 
         logger.info(f"[SkillDownload] Before OBS config check, about to import env_constants")
 
@@ -959,14 +981,7 @@ class Agent(BaseAgent):
         skill_local_path_prefix = os.path.join(work_dir, self.skill_dir)
         logger.info(f"[SkillDownload] Attempting to create skill directory: {skill_local_path_prefix}")
 
-        # 检查 work_dir 是否存在
-        if not os.path.exists(work_dir):
-            logger.error(
-                f"[SkillDownload] work_dir does not exist: {work_dir}. "
-                "This may be a sandbox path issue on Windows dev environment."
-            )
-
-        # 确保目录存在
+        # 确保 skill 子目录存在
         try:
             os.makedirs(skill_local_path_prefix, exist_ok=True)
             logger.info(f"[SkillDownload] Directory created/exists: {skill_local_path_prefix}")
