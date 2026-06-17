@@ -303,6 +303,12 @@ def streaming_result_transfer(streaming_result):
 def prompt_generate():
     """prompt_generate"""
     input_info = GenerateInfo(**request.json)
+
+    if not input_info.modelInfo.headers:
+        input_info.modelInfo.headers = {}
+    request_headers = dict(request.headers)
+    input_info.modelInfo.headers = request_headers | input_info.modelInfo.headers
+
     template_mapping = {
         "GeneralTemplate-Xiaoyi": "xiaoyi_general_meta_epo",
         "PlanTemplate-Xiaoyi": "xiaoyi_plan_meta_epo",
