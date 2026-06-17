@@ -37,6 +37,7 @@ import com.openjiuwen.studio.agent.manager.service.environment.model.OpsEnvironm
 import com.openjiuwen.studio.agent.manager.service.environment.model.OpsEnvironmentInstances;
 import com.openjiuwen.studio.agent.manager.utils.BaseTest;
 
+import com.openjiuwen.studio.prompt.engineering.service.PromptObsService;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -70,6 +71,9 @@ public class EnvironmentServiceManagerServiceTest extends BaseTest {
 
     @MockitoBean(name = "mgObsService")
     private MgObsService mgObsService;
+
+    @MockitoBean(name = "promptObsService")
+    private PromptObsService promptObsService;
 
     @Autowired
     private EnvironmentServiceManagerService environmentServiceManagerService;

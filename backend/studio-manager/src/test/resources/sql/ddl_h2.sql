@@ -1,3 +1,4 @@
+SET NON_KEYWORDS KEY,VALUE;
 CREATE TABLE IF NOT EXISTS t_knowledge_i18n_resource (
     id bigint NOT NULL AUTO_INCREMENT PRIMARY KEY,
     i18n_key varchar(255) NOT NULL,
@@ -146,7 +147,7 @@ CREATE TABLE IF NOT EXISTS t_agent (
     creator                     VARCHAR(64)   NULL     COMMENT 'agent创建者',
     creator_id                  VARCHAR(64)    NULL COMMENT 'agent创建者id',
     created_on                  TIMESTAMP     NULL     DEFAULT CURRENT_TIMESTAMP                             COMMENT 'agent创建时间',
-    updated_on                  TIMESTAMP     NULL     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'agent更新时间',
+    updated_on                  TIMESTAMP     NULL     DEFAULT CURRENT_TIMESTAMP  COMMENT 'agent更新时间',
     published_on                TIMESTAMP     NULL     COMMENT 'agent发布时间',
     model_type                  VARCHAR(64)   NULL     COMMENT '模型类型',
     knowledge_retrieve_policy   MEDIUMTEXT    NULL     COMMENT '知识检索策略（json）',
@@ -295,7 +296,7 @@ CREATE TABLE IF NOT EXISTS t_app (
     workspace_id    VARCHAR(64)  NULL COMMENT '工作空间ID',
     trace_id        VARCHAR(64)  NULL COMMENT '溯源ID',
     deleted         TINYINT(1)   NOT NULL DEFAULT 0 COMMENT '逻辑删除标记：0-未删除，1-已删除',
-    updated_on      TIMESTAMP    NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    updated_on      TIMESTAMP    NULL DEFAULT CURRENT_TIMESTAMP  COMMENT '更新时间',
     PRIMARY KEY (app_id,project_id)
     ) COMMENT='应用表';
 
@@ -304,7 +305,7 @@ CREATE TABLE IF NOT EXISTS t_tag (
     name       VARCHAR(128) NOT NULL COMMENT '标签名称',
     name_en    VARCHAR(128) NOT NULL COMMENT '标签英文名称',
     created_on DATETIME     NULL     DEFAULT CURRENT_TIMESTAMP                             COMMENT '标签创建时间',
-    updated_on DATETIME     NULL     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '标签更新时间',
+    updated_on DATETIME     NULL     DEFAULT CURRENT_TIMESTAMP  COMMENT '标签更新时间',
     PRIMARY KEY (tag_id)
     ) COMMENT='标签表';
 
@@ -525,7 +526,7 @@ CREATE TABLE IF NOT EXISTS t_mapping
     resource_desc           VARCHAR(2048) NULL COMMENT '关联的资源描述',
     resource_choose_tools   VARCHAR(2048) NULL COMMENT 'Agent配置的mcp内选择的工具',
     created_on              TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    updated_on              TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    updated_on              TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP  COMMENT '更新时间',
     reference_type          VARCHAR(64)   NULL DEFAULT 'direct' COMMENT 'share表示跨空间共享引用，direct表示本空间直接引用',
     resource_workspace_id   VARCHAR(64)   NULL COMMENT '被引用元素所属的来源空间',
     extends                 MEDIUMTEXT    NULL COMMENT '额外信息',
@@ -556,7 +557,7 @@ CREATE TABLE IF NOT EXISTS t_release_version (
     app_sub_type    VARCHAR(100)  NULL COMMENT '发布版本子类型',
     released_on     TIMESTAMP     NULL DEFAULT CURRENT_TIMESTAMP COMMENT '发布时间',
     deleted         TINYINT(1)    NOT NULL DEFAULT 0 COMMENT '逻辑删除标记：0-未删除，1-已删除',
-    updated_on      TIMESTAMP     NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    updated_on      TIMESTAMP     NULL DEFAULT CURRENT_TIMESTAMP  COMMENT '更新时间',
     PRIMARY KEY (id),
     UNIQUE INDEX unique_index_app_version_id (app_id, version_id)
     ) COMMENT='发布版本表';
@@ -577,7 +578,7 @@ CREATE TABLE IF NOT EXISTS t_release_channel (
     creator         VARCHAR(64)   NULL     COMMENT '版本创建者',
     creator_id      VARCHAR(64)    NULL     COMMENT '版本创建者user id',
     app_sub_type    VARCHAR(100)  NULL     COMMENT '发布通道子类型',
-    released_on     TIMESTAMP     NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '发布时间',
+    released_on     TIMESTAMP     NULL DEFAULT CURRENT_TIMESTAMP  COMMENT '发布时间',
     project_id      VARCHAR(64)    NULL COMMENT '项目ID',
     workspace_id    VARCHAR(64)   NULL COMMENT '工作空间ID',
     trace_id        VARCHAR(64)   NULL COMMENT '溯源ID',
@@ -615,7 +616,7 @@ CREATE TABLE IF NOT EXISTS t_complex_intent (
     creator_id        VARCHAR(64)      NULL COMMENT '创建人ID',
     branches_cnt      INT             NULL COMMENT '分支数',
     created_on        TIMESTAMP       NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    updated_on        TIMESTAMP       NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    updated_on        TIMESTAMP       NULL DEFAULT CURRENT_TIMESTAMP  COMMENT '更新时间',
     workspace_id      VARCHAR(64)     NULL COMMENT '工作空间ID',
     trace_id          VARCHAR(64)     NULL COMMENT '溯源ID',
     PRIMARY KEY (intent_id),
@@ -632,7 +633,7 @@ CREATE TABLE IF NOT EXISTS t_complex_intent_branch (
     faq_ids           TEXT            NULL        COMMENT '存储的FAQ id列表',
     creator_id        VARCHAR(64)      NULL COMMENT '创建人ID',
     created_on        TIMESTAMP       NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    updated_on        TIMESTAMP       NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    updated_on        TIMESTAMP       NULL DEFAULT CURRENT_TIMESTAMP  COMMENT '更新时间',
     workspace_id      VARCHAR(64)     NULL COMMENT '工作空间ID',
     trace_id          VARCHAR(64)     NULL COMMENT '溯源ID',
     PRIMARY KEY (branch_id),
@@ -657,7 +658,7 @@ CREATE TABLE IF NOT EXISTS t_agent_datasource (
     created_on        TIMESTAMP       NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     updated_by        VARCHAR(64)     NULL COMMENT '修改人',
     updater_id        VARCHAR(64)     NULL COMMENT '修改人ID',
-    updated_on        TIMESTAMP       NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    updated_on        TIMESTAMP       NULL DEFAULT CURRENT_TIMESTAMP  COMMENT '更新时间',
     workspace_id      VARCHAR(64)     NULL COMMENT '工作空间ID',
     trace_id          VARCHAR(64)     NULL COMMENT '溯源ID',
     PRIMARY KEY (id),
@@ -674,7 +675,7 @@ CREATE TABLE IF NOT EXISTS t_credential(
     workspace_id  VARCHAR(64)     NULL COMMENT '工作空间ID',
     domain_id     VARCHAR(64)     NULL COMMENT '租户id',
     created_on    TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    updated_on    TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    updated_on    TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP  COMMENT '更新时间',
     PRIMARY KEY(id),
     KEY idx_t_credential_updated_on(updated_on),
     KEY idx_t_credential_domain_id (domain_id),
@@ -684,6 +685,7 @@ CREATE TABLE IF NOT EXISTS t_credential(
 CREATE TABLE IF NOT EXISTS t_workspace (
     id               VARCHAR(64)   NOT NULL COMMENT '工作空间唯一标识',
     project_id       VARCHAR(64)    NOT NULL COMMENT '项目唯一标识',
+    domain_id        VARCHAR(64)   NULL     COMMENT '租户唯一标识',
     name             VARCHAR(64)   NULL     COMMENT '工作空间名称',
     flag             VARCHAR(64)   NULL     COMMENT '标识符',
     description      VARCHAR(2048) NULL     COMMENT '工作空间描述',
@@ -694,7 +696,7 @@ CREATE TABLE IF NOT EXISTS t_workspace (
     created_on       TIMESTAMP     NULL     DEFAULT CURRENT_TIMESTAMP                             COMMENT '工作空间创建时间',
     creator          VARCHAR(64)   NULL     COMMENT '工作空间创建者',
     creator_id       VARCHAR(64)    NULL COMMENT '工作空间创建者id',
-    updated_on       TIMESTAMP     NULL     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '工作空间更新时间',
+    updated_on       TIMESTAMP     NULL     DEFAULT CURRENT_TIMESTAMP  COMMENT '工作空间更新时间',
     updater          VARCHAR(64)   NULL     COMMENT '工作空间更新者',
     updater_id       VARCHAR(64)   NULL COMMENT '工作空间更新者id',
     is_preset_agent  INT           DEFAULT 0 NULL COMMENT '是否已经预置Agent教学模版，0标识未预置，1标识已预置',
@@ -718,7 +720,7 @@ CREATE TABLE IF NOT EXISTS t_workspace_member
     updater       varchar(64) not null comment '更新者',
     updater_id    varchar(64) not null comment '更新者 user id',
     created_on    timestamp default CURRENT_TIMESTAMP not null comment '创建时间',
-    updated_on    timestamp default CURRENT_TIMESTAMP not null on update CURRENT_TIMESTAMP comment '更新时间',
+    updated_on    timestamp default CURRENT_TIMESTAMP not null  comment '更新时间',
     PRIMARY KEY (id),
     KEY idx_member_id (member_id),
     KEY idx_member_workspace_status (member_id, workspace_id, status),
@@ -741,7 +743,7 @@ CREATE TABLE IF NOT EXISTS t_dependency
     creator_id VARCHAR(64)  NOT NULL COMMENT '创建用户id',
     created_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP NULL COMMENT '创建时间',
     updater_id VARCHAR(64) NULL COMMENT '更新用户id',
-    updated_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    updated_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP NULL  COMMENT '更新时间',
     version TINYINT NULL COMMENT '版本号',
     deleted TINYINT(1) DEFAULT 0 NULL COMMENT '软删除标志',
     KEY idx_t_dependency_domain (domain_id)
@@ -769,7 +771,7 @@ CREATE TABLE IF NOT EXISTS t_function
     creator_id VARCHAR(64)  NOT NULL COMMENT '创建用户id',
     created_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP NULL COMMENT '创建时间',
     updater_id VARCHAR(64) NULL COMMENT '更新用户id',
-    updated_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    updated_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP  COMMENT '更新时间',
     deleted TINYINT(1) DEFAULT 0 NULL COMMENT '软删除标志',
     trace_id VARCHAR(64) NULL COMMENT '溯源ID',
     template_version VARCHAR(64) NOT NULL DEFAULT 'v1' COMMENT '函数模版版本，v1表示老版本，v2表示新版本',
@@ -861,7 +863,7 @@ CREATE TABLE IF NOT EXISTS t_environment_manager_info
     resources    varchar(512)                        null comment '环境资源信息',
     created_on   timestamp default CURRENT_TIMESTAMP not null comment '环境创建时间',
     creator_id   varchar(64)                         null comment '环境创建者user id',
-    updated_on   timestamp default CURRENT_TIMESTAMP not null on update CURRENT_TIMESTAMP comment '更新时间',
+    updated_on   timestamp default CURRENT_TIMESTAMP not null  comment '更新时间',
     updater_id   varchar(64)                         null comment '环境修改者user id',
     project_id   varchar(64)                         null comment '项目id',
     domain_id    varchar(64)                         null comment '账号id',
@@ -875,7 +877,7 @@ CREATE TABLE IF NOT EXISTS t_environment_variable_info
     env_variable text                                null comment '环境变量',
     created_on   timestamp default CURRENT_TIMESTAMP not null comment '环境创建时间',
     creator_id   varchar(64)  null comment '环境创建者user id',
-    updated_on   timestamp default CURRENT_TIMESTAMP not null on update CURRENT_TIMESTAMP comment '更新时间',
+    updated_on   timestamp default CURRENT_TIMESTAMP not null  comment '更新时间',
     updater_id   varchar(64) null comment '环境修改者user id',
     project_id   varchar(64)  not null comment '项目id',
     workspace_id varchar(64)  not null comment '工作空间',
@@ -898,7 +900,7 @@ CREATE TABLE IF NOT EXISTS t_structured_message
     project_id   VARCHAR(64)  NOT NULL COMMENT '项目ID',
     created_on   TIMESTAMP    DEFAULT CURRENT_TIMESTAMP NOT NULL COMMENT '创建时间',
     creator_id   VARCHAR(64)  NULL COMMENT '创建者ID',
-    updated_on   TIMESTAMP    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    updated_on   TIMESTAMP    DEFAULT CURRENT_TIMESTAMP  COMMENT '更新时间',
     updater_id   VARCHAR(64)                         NULL COMMENT '更新者ID',
     PRIMARY KEY (id),
     INDEX idx_project_visibility (project_id, visibility),
@@ -924,7 +926,7 @@ CREATE TABLE IF NOT EXISTS t_share_resource
     create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     updater_id VARCHAR(128) NOT NULL COMMENT '更新用户ID',
     updater VARCHAR(64) NOT NULL COMMENT '更新人',
-    update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP  COMMENT '更新时间',
     KEY index_t_share_resource_domain (tenant_id),
     KEY idx_t_share_resource_resource_type (resource_type),
     KEY idx_t_share_resource_resource_name (resource_name),
@@ -1067,7 +1069,7 @@ CREATE TABLE t_history_mapping
     valid                 tinyint      NOT NULL DEFAULT '1' COMMENT '关联关系是否有效',
     resource_desc         varchar(2048)   DEFAULT NULL COMMENT '关联的资源描述',
     created_on            timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    updated_on            timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    updated_on            timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP  COMMENT '更新时间',
     reference_type        varchar(64)           DEFAULT 'direct' COMMENT 'share表示跨空间共享引用，direct表示本空间直接引用',
     resource_workspace_id varchar(64)           DEFAULT NULL COMMENT '被引用元素所属的来源空间',
     extends               mediumtext COMMENT '额外信息',
@@ -1106,7 +1108,7 @@ CREATE TABLE t_history_agent
     creator                     varchar(64)          DEFAULT NULL,
     creator_id                  varchar(64)          DEFAULT NULL,
     created_on                  timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'agent创建时间',
-    updated_on                  timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'agent更新时间',
+    updated_on                  timestamp NULL DEFAULT CURRENT_TIMESTAMP  COMMENT 'agent更新时间',
     published_on                timestamp NULL DEFAULT NULL COMMENT 'agent发布时间',
     model_type                  varchar(64)          DEFAULT NULL COMMENT '模型类型',
     knowledge_retrieve_policy   mediumtext COMMENT '知识检索策略（json）',
@@ -1153,7 +1155,7 @@ CREATE TABLE t_history_release_version
     released_on  timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '发布时间',
     extend1      text COMMENT '扩展字段',
     deleted      tinyint(1) NOT NULL DEFAULT '0' COMMENT '逻辑删除标记：0-未删除，1-已删除',
-    updated_on   timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    updated_on   timestamp NULL DEFAULT CURRENT_TIMESTAMP  COMMENT '更新时间',
     PRIMARY KEY (history_id) ,
     UNIQUE KEY unique_index_app_version_id_delete (app_id,version_id,deleted)
 ) COMMENT='已删除资源的发布版本表';
@@ -1174,7 +1176,7 @@ CREATE TABLE IF NOT EXISTS t_agent_code (
     user_id VARCHAR ( 64 ) DEFAULT NULL COMMENT '创建人id',
     user_name VARCHAR ( 64 ) DEFAULT NULL COMMENT '创建人名称',
     created_on TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'agent创建时间',
-    updated_on TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'agent更新时间',
+    updated_on TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP  COMMENT 'agent更新时间',
     published_on TIMESTAMP NULL DEFAULT NULL COMMENT 'agent发布时间',
     auto_gen_flag TINYINT(1) DEFAULT NULL COMMENT '自动生成标识,(0=否，1=是)',
     KEY index_t_agent_id ( id ) ,
@@ -1189,7 +1191,7 @@ CREATE TABLE IF NOT EXISTS t_agent_code_session (
     project_id VARCHAR ( 64 ) DEFAULT NULL COMMENT '租户的project id',
     workspace_id VARCHAR ( 64 ) DEFAULT NULL COMMENT '工作空间ID',
     created_on TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'agent创建时间',
-    updated_on TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'agent更新时间',
+    updated_on TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP  COMMENT 'agent更新时间',
     PRIMARY KEY (id)
     );
 
@@ -1247,7 +1249,7 @@ CREATE TABLE IF NOT EXISTS t_memory_repo (
     last_update_user_id varchar(64) DEFAULT NULL COMMENT '更新人（用户id）',
     last_update_user_name varchar(255) DEFAULT NULL COMMENT '更新人（用户名）',
     create_time TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    update_time TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    update_time TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP  COMMENT '更新时间',
     PRIMARY KEY (id)
 ) COMMENT='记忆库表';
 
@@ -1626,7 +1628,7 @@ CREATE TABLE IF NOT EXISTS t_pe_task
     creator       varchar(36) NOT NULL COMMENT '创建人',
     updater       varchar(36) NULL DEFAULT NULL COMMENT '修改人',
     created_on    timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    updated_on    timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
+    updated_on    timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP  COMMENT '修改时间',
     workspace_id  varchar(64) NULL COMMENT '工作空间ID',
     PRIMARY KEY (id),
     UNIQUE INDEX uniq_t_pe_task_name(name ASC, project_id ASC),
@@ -1641,7 +1643,7 @@ CREATE TABLE IF NOT EXISTS t_pe_tag
     name       varchar(128)  NOT NULL COMMENT '名称/值，唯一',
     name_en    varchar(128) NOT NULL COMMENT '英文标签名称',
     created_on timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    updated_on timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    updated_on timestamp NULL DEFAULT CURRENT_TIMESTAMP  COMMENT '更新时间',
     workspace_id varchar(64) NULL COMMENT '工作空间ID',
     PRIMARY KEY (id) ,
     UNIQUE INDEX uniq_t_pe_tag_name(name ASC)
@@ -1656,7 +1658,7 @@ CREATE TABLE IF NOT EXISTS t_pe_evaluation_task
     test_set_id      varchar(255)  NOT NULL COMMENT '选择的测试数据集uri',
     description      text  NULL COMMENT '任务描述',
     created_on       timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '评估任务创建时间',
-    updated_on       timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '评估任务更新时间',
+    updated_on       timestamp NULL DEFAULT CURRENT_TIMESTAMP  COMMENT '评估任务更新时间',
     status           varchar(255)  NULL DEFAULT NULL COMMENT '评估任务状态，共8种状态：等待中、评估中、评估成功、评估失败、重启、部分评估成功、正在中止、已中止',
     creator          varchar(36)    NOT NULL COMMENT '创建人',
     prompts          json NULL COMMENT '模板列表信息，最多九项',
@@ -1680,9 +1682,9 @@ CREATE TABLE IF NOT EXISTS t_pe_evaluation_result
     PRIMARY KEY (id) ,
     INDEX                pe_result_test_id(test_num ASC) ,
     INDEX                pe_result_prompt_id(prompt_id ASC) ,
-    INDEX                pe-eval-task-id-fk(evaluation_task_id ASC) ,
+    INDEX                pe_eval_task_id_fk(evaluation_task_id ASC) ,
     UNIQUE               pe_pid_etid_tn_ux (evaluation_task_id,prompt_id,test_num) ,
-    CONSTRAINT pe-eval-task-id-fk FOREIGN KEY (evaluation_task_id) REFERENCES t_pe_evaluation_task (id) ON DELETE RESTRICT ON UPDATE RESTRICT
+    CONSTRAINT pe_eval_task_id_fk FOREIGN KEY (evaluation_task_id) REFERENCES t_pe_evaluation_task (id) ON DELETE RESTRICT ON UPDATE RESTRICT
 );
 
 CREATE TABLE IF NOT EXISTS t_pe_prompt
@@ -1701,7 +1703,7 @@ CREATE TABLE IF NOT EXISTS t_pe_prompt
     creator      varchar(36) NOT NULL COMMENT '创建人',
     updater      varchar(36) NULL DEFAULT NULL COMMENT '修改人',
     created_on   timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    updated_on   timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    updated_on   timestamp NULL DEFAULT CURRENT_TIMESTAMP  COMMENT '更新时间',
     workspace_id varchar(64) NULL COMMENT '工作空间ID',
     file_id      varchar(64) NULL COMMENT '文件ID',
     PRIMARY KEY (id)
@@ -1721,7 +1723,7 @@ CREATE TABLE IF NOT EXISTS t_pe_prompt_library
     creator     varchar(36)  NOT NULL COMMENT '创建人',
     updater     varchar(36)  NULL DEFAULT NULL COMMENT '修改人',
     created_on  timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    updated_on  timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    updated_on  timestamp NULL DEFAULT CURRENT_TIMESTAMP  COMMENT '更新时间',
     workspace_id varchar(64) NULL COMMENT '工作空间ID',
     domain_id   varchar(64) NULL COMMENT '租户id',
     is_share    TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否已共享（0=否，1=是)',
@@ -1744,7 +1746,7 @@ CREATE TABLE IF NOT EXISTS t_history_prompt (
     creator     VARCHAR(36)  NOT NULL COMMENT '创建人',
     updater     VARCHAR(36)  NULL DEFAULT NULL COMMENT '修改人',
     created_on  TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    updated_on  TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    updated_on  TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP  COMMENT '更新时间',
     workspace_id VARCHAR(64)  NULL DEFAULT NULL COMMENT '工作空间ID',
     domain_id   VARCHAR(64)  NULL DEFAULT NULL COMMENT '租户id',
     tag_ids     VARCHAR(1024)  NOT NULL COMMENT '标签id列表',
@@ -1798,7 +1800,7 @@ CREATE TABLE IF NOT EXISTS t_job_instance
 (
     id          varchar(36) NOT NULL,
     name        varchar(128) NULL DEFAULT NULL COMMENT '任务名称',
-    created_on  timestamp   NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_on  timestamp   NOT NULL DEFAULT CURRENT_TIMESTAMP ,
     updated_on  timestamp NULL DEFAULT NULL,
     job_spec_id varchar(36) NOT NULL COMMENT '关联的job_spc',
     context     mediumtext NOT NULL COMMENT '任务参数，json格式',
@@ -1838,7 +1840,7 @@ CREATE TABLE IF NOT EXISTS t_mapping_pe_template_tag
 CREATE TABLE IF NOT EXISTS t_job_spec
 (
     id         varchar(36) NOT NULL,
-    created_on timestamp   NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_on timestamp   NOT NULL DEFAULT CURRENT_TIMESTAMP ,
     updated_on timestamp NULL DEFAULT NULL,
     name       varchar(32) NOT NULL COMMENT '任务的名称',
     type       varchar(32) NOT NULL COMMENT '任务类型，polling（定时任务），cluster（分发任务）',
@@ -1854,7 +1856,7 @@ CREATE TABLE IF NOT EXISTS t_pe_industry
     description TEXT COMMENT "行业描述",
     library_type VARCHAR(50) COMMENT '组件类别，提示词，插件，MCP',
     created_on  timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    updated_on  timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    updated_on  timestamp NULL DEFAULT CURRENT_TIMESTAMP  COMMENT '更新时间',
     workspace_id varchar(64) NULL COMMENT '工作空间ID',
     PRIMARY KEY (id)
 ) COMMENT='prompt行业表';
@@ -1878,7 +1880,7 @@ CREATE TABLE IF NOT EXISTS t_pe_optimization_task (
     creator         VARCHAR ( 36 ) NOT NULL COMMENT '创建人',
     created_on      TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP COMMENT '优化任务创建时间',
     running_on      TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP COMMENT '任务启动时间',
-    updated_on      TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '优化创建时间',
+    updated_on      TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP  COMMENT '优化创建时间',
     type            VARCHAR(16) NOT NULL DEFAULT 'expansion' COMMENT '优化任务类型',
     workspace_id    varchar(64) NULL COMMENT '工作空间ID',
     PRIMARY KEY (id),
@@ -1911,8 +1913,8 @@ CREATE TABLE IF NOT EXISTS t_pe_op_task (
     workspace_id    VARCHAR(64) NULL COMMENT '空间id',
     creator         VARCHAR(64)  NULL DEFAULT NULL COMMENT '工具创建者',
     creator_id      VARCHAR(64)  NULL DEFAULT NULL COMMENT '工具创建者user id',
-    created_time    TIMESTAMP(0) NULL DEFAULT CURRENT_TIMESTAMP(0) COMMENT '创建时间',
-    updated_time    TIMESTAMP(0) NULL DEFAULT CURRENT_TIMESTAMP(0) ON UPDATE CURRENT_TIMESTAMP(0) COMMENT '更新时间',
+    created_time    TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_time    TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP COMMENT '更新时间',
     prompt_id       VARCHAR(64) NULL DEFAULT NULL COMMENT '我的提示词模板ID',
     domain_id       varchar(64) NULL COMMENT '租户id',
     algorithm       varchar(32) NULL COMMENT '优化算法',
@@ -1945,7 +1947,7 @@ CREATE TABLE IF NOT EXISTS t_history_op_task (
     creator         VARCHAR(64)  NULL     COMMENT '工具创建者',
     creator_id      VARCHAR(64)  NULL     COMMENT '工具创建者user id',
     created_time    TIMESTAMP    NULL     DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    updated_time    TIMESTAMP    NULL     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    updated_time    TIMESTAMP    NULL     DEFAULT CURRENT_TIMESTAMP  COMMENT '更新时间',
     prompt_id       VARCHAR(64)  NULL     COMMENT '我的提示词模板ID',
     domain_id       VARCHAR(64)  NULL     COMMENT '租户id',
     algorithm       varchar(32)  NULL     COMMENT '优化算法',
@@ -1970,7 +1972,7 @@ CREATE TABLE IF NOT EXISTS t_mcp (
     creator       VARCHAR(64) NOT NULL COMMENT '创建者',
     creator_id    VARCHAR(64)  NOT NULL COMMENT '创建者 user id',
     created_on    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    updated_on    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    updated_on    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP  COMMENT '更新时间',
     PRIMARY KEY (server_id),
     UNIQUE INDEX idx_t_mcp_project_id_mcp_server_name_en (project_id, server_name_en),
     KEY idx_t_mcp_server_updated_on (updated_on)
@@ -1983,7 +1985,7 @@ CREATE TABLE IF NOT EXISTS t_mcp_config(
     auth_keys   VARCHAR(4096) NOT NULL COMMENT 'mcp 认证配置',
     creator_id  VARCHAR(64)  NOT NULL COMMENT '租户 user id',
     created_on  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    updated_on  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    updated_on  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP  COMMENT '更新时间',
     PRIMARY KEY(id),
     UNIQUE INDEX idx_t_mcp_config_creator_id_project_id_server_id(server_id, creator_id, project_id),
     KEY idx_t_mcp_config_updated_on(updated_on)
@@ -2008,7 +2010,7 @@ CREATE TABLE ws_mcp_server_def
     dept_code               varchar(64)       null comment '部门id',
     created_date            timestamp         not null DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     created_by_user_id      varchar(64)       null COMMENT '创建用户',
-    last_updated_date       timestamp         not null DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    last_updated_date       timestamp         not null DEFAULT CURRENT_TIMESTAMP  COMMENT '更新时间',
     last_updated_by_user_id varchar(64)       null COMMENT '更新用户',
     url                     varchar(255)      null COMMENT '服务的url地址',
     install_times           bigint  default 0 null COMMENT '部署次数',
@@ -2034,7 +2036,7 @@ CREATE TABLE ws_mcp_service_def
     dept_code                 varchar(64)       null comment '部门id',
     created_date              timestamp         not null DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     created_by_user_id        varchar(64)       null COMMENT '创建租户',
-    last_updated_date         timestamp         not null DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    last_updated_date         timestamp         not null DEFAULT CURRENT_TIMESTAMP  COMMENT '更新时间',
     last_updated_by_user_id   varchar(64)       null COMMENT '更新租户',
     readme                    longtext          null COMMENT '服务介绍',
     server_config             longtext          null COMMENT '服务配置',
@@ -2092,7 +2094,7 @@ CREATE TABLE IF NOT EXISTS t_tool (
     creator           VARCHAR(64)   NULL COMMENT '工具创建者',
     creator_id        VARCHAR(64)    NULL COMMENT '工具创建者user id',
     created_on        TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    updated_on        TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    updated_on        TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP  COMMENT '更新时间',
     test_status       CLOB          NULL COMMENT '工具测试状态，0：失败；1：成功；2：未知',
     last_version_id   VARCHAR(64)   NULL COMMENT '插件最新版本号',
     customize_node    TINYINT(1)       NULL COMMENT '是否是自定义节点，1表示是自定义节点,0或空表示不是',
@@ -2132,7 +2134,7 @@ CREATE TABLE IF NOT EXISTS t_history_tool (
     creator           VARCHAR(64)   NULL COMMENT '工具创建者',
     creator_id        VARCHAR(64)   NULL COMMENT '工具创建者user id',
     created_on        TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    updated_on        TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    updated_on        TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP  COMMENT '更新时间',
     test_status       MEDIUMTEXT    NULL COMMENT '工具测试状态，0：失败；1：成功；2：未知',
     last_version_id   VARCHAR(64)   NULL COMMENT '插件最新版本号',
     customize_node    TINYINT(1)    NULL DEFAULT NULL COMMENT '是否是自定义节点，1表示是自定义节点,0或空表示不是',
@@ -2158,7 +2160,7 @@ CREATE TABLE IF NOT EXISTS t_mapping_agent_tool
     project_id   VARCHAR(64)  NOT NULL COMMENT 'project_id',
     resident     TINYINT(1)  NOT NULL DEFAULT '0' COMMENT '是否为常驻工具',
     created_on   TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    updated_on   TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    updated_on   TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP  COMMENT '更新时间',
     PRIMARY KEY (agent_id, tool_id, project_id),
     KEY idx_t_mapping_agent_tool_assistant_id (agent_id),
     KEY idx_t_mapping_agent_tool_project_id (project_id),
@@ -2173,7 +2175,7 @@ CREATE TABLE IF NOT EXISTS t_mapping_tool_function
     tool_id     varchar(64)  NOT NULL COMMENT '工具id',
     created_on  timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     creator_id  varchar(64)  DEFAULT NULL,
-    updated_on  timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    updated_on  timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP  COMMENT '更新时间',
     updater_id  varchar(64)  DEFAULT NULL,
     PRIMARY KEY (id),
     KEY  idx_t_mapping_tool_function_updated_on (updated_on)
@@ -2368,7 +2370,7 @@ CREATE TABLE IF NOT EXISTS t_knowledge_repo  (
                                      creator_id varchar(64)  NULL DEFAULT NULL COMMENT '知识库创建者user id',
                                      metadata varchar(4096)  NULL DEFAULT NULL COMMENT '扩展字段',
                                      created_on timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-                                     updated_on timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+                                     updated_on timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP  COMMENT '更新时间',
                                      source varchar(64)  NOT NULL COMMENT '知识库来源，支持KooSearch、LakeSearch',
                                      status varchar(16)  NOT NULL DEFAULT 'OPEN' COMMENT '知识库启停状态，OPEN、CLOSE',
                                      PRIMARY KEY (knowledge_repo_id) ,
@@ -2384,7 +2386,7 @@ CREATE TABLE IF NOT EXISTS t_knowledge_segment_rule  (
                                              creator varchar(64)  NULL DEFAULT NULL COMMENT '规则创建者',
                                              creator_id varchar(64)  NULL DEFAULT NULL COMMENT '规则创建者user id',
                                              created_on timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-                                             updated_on timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+                                             updated_on timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP  COMMENT '更新时间',
                                              knowledge_base_connection_id varchar(200)  NULL DEFAULT NULL COMMENT '知识源连接id',
                                              PRIMARY KEY (id) ,
                                              INDEX idx_t_knowledge_segment_rule_updated_on(updated_on ASC) 
@@ -2421,5 +2423,5 @@ CREATE TABLE IF NOT EXISTS t_memory_variable_value  (
                                             create_time bigint NULL DEFAULT NULL COMMENT '创建时间',
                                             last_update_time bigint NULL DEFAULT NULL COMMENT '最新一次更新时间',
                                             PRIMARY KEY (agent_id, user_id, variable_key) 
-) );
+);
 

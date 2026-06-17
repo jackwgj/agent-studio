@@ -31,6 +31,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
 
 /**
@@ -48,7 +49,7 @@ public class EnvironmentServiceManagerServiceTest {
     private static final String TEST_CREATOR_ID = "test_user_id";
 
     @Mock
-    private EnvironmentClientService environmentCl去ientService;
+    private EnvironmentClientService environmentClientService;
 
     @Mock
     private EnvironmentManagerMapper environmentManagerMapper;
@@ -476,5 +477,132 @@ public class EnvironmentServiceManagerServiceTest {
         assertThrows(AgentStudioException.class, () -> {
             environmentServiceManagerService.validateEnvironmentId("not_exist_id");
         });
+    }
+
+    @Test
+    void testCreateEnvironmentInfo_NullBody() {
+        assertThrows(AgentStudioException.class, () -> {
+            environmentServiceManagerService.createEnvironmentInfo(TEST_PROJECT_ID, null);
+        });
+    }
+
+    @Test
+    void testDeleteEnvironment_Success() {
+        when(environmentManagerMapper.findByIdAndProjectId("test_env_id", TEST_PROJECT_ID))
+            .thenReturn(testEnvironmentEntity);
+        when(environmentClientService.hasDeleteEnvironment(TEST_PROJECT_ID, "test_env_id"))
+            .thenReturn(true);
+        when(environmentManagerMapper.updateStatusAndIsDefaultById(any(), any(), any(), anyBoolean()))
+            .thenReturn(1);
+        when(environmentVariableMapper.findByProjectIdAndEnvId(TEST_PROJECT_ID, "test_env_id"))
+            .thenReturn(new ArrayList<>());
+
+        Boolean result = environmentServiceManagerService.deleteEnvironment(TEST_PROJECT_ID, "test_env_id");
+
+        assertTrue(result);
+    }
+
+    @Test
+    void testDeleteEnvironment_NotFound() {
+        when(environmentManagerMapper.findByIdAndProjectId("not_exist_id", TEST_PROJECT_ID))
+            .thenReturn(null);
+
+        assertThrows(AgentStudioException.class, () -> {
+            environmentServiceManagerService.deleteEnvironment(TEST_PROJECT_ID, "not_exist_id");
+        });
+    }
+
+    @Test
+    void testDeleteEnvironment_StatusCreating() {
+        testEnvironmentEntity.setStatus("creating");
+        when(environmentManagerMapper.findByIdAndProjectId("test_env_id", TEST_PROJECT_ID))
+            .thenReturn(testEnvironmentEntity);
+
+        assertThrows(AgentStudioException.class, () -> {
+            environmentServiceManagerService.deleteEnvironment(TEST_PROJECT_ID, "test_env_id");
+        });
+    }
+
+    @Test
+    void testDeleteEnvironment_StatusDeleting() {
+        testEnvironmentEntity.setStatus("deleting");
+        when(environmentManagerMapper.findByIdAndProjectId("test_env_id", TEST_PROJECT_ID))
+            .thenReturn(testEnvironmentEntity);
+
+        assertThrows(AgentStudioException.class, () -> {
+            environmentServiceManagerService.deleteEnvironment(TEST_PROJECT_ID, "test_env_id");
+        });
+    }
+
+    @Test
+    void testDeleteEnvironment_IsDefault() {
+        testEnvironmentEntity.setIsDefault(true);
+
+        when(environmentManagerMapper.findByIdAndProjectId("test_env_id", TEST_PROJECT_ID))
+            .thenReturn(testEnvironmentEntity);
+        when(environmentClientService.hasDeleteEnvironment(TEST_PROJECT_ID, "test_env_id"))
+            .thenReturn(true);
+        when(environmentManagerMapper.updateStatusAndIsDefaultById(any(), any(), any(), anyBoolean()))
+            .thenReturn(1);
+        when(environmentVariableMapper.findByProjectIdAndEnvId(TEST_PROJECT_ID, "test_env_id"))
+            .thenReturn(new ArrayList<>());
+        when(environmentManagerMapper.findByProjectIdAndIsDefaultFalseAndStatus(TEST_PROJECT_ID, "ready"))
+            .thenReturn(new ArrayList<>());
+
+        Boolean result = environmentServiceManagerService.deleteEnvironment(TEST_PROJECT_ID, "test_env_id");
+
+        assertTrue(result);
+    }
+
+    @Test
+    void testDeleteEnvironment_IsDefaultWithFallback() {
+        testEnvironmentEntity.setIsDefault(true);
+
+        EnvironmentManagerEntity fallbackEntity = new EnvironmentManagerEntity();
+        fallbackEntity.setId("fallback_env_id");
+        fallbackEntity.setIsDefault(false);
+        fallbackEntity.setStatus("ready");
+
+        when(environmentManagerMapper.findByIdAndProjectId("test_env_id", TEST_PROJECT_ID))
+            .thenReturn(testEnvironmentEntity);
+        when(environmentClientService.hasDeleteEnvironment(TEST_PROJECT_ID, "test_env_id"))
+            .thenReturn(true);
+        when(environmentManagerMapper.updateStatusAndIsDefaultById(any(), any(), any(), anyBoolean()))
+            .thenReturn(1);
+        when(environmentVariableMapper.findByProjectIdAndEnvId(TEST_PROJECT_ID, "test_env_id"))
+            .thenReturn(new ArrayList<>());
+        when(environmentManagerMapper.findByProjectIdAndIsDefaultFalseAndStatus(TEST_PROJECT_ID, "ready"))
+            .thenReturn(List.of(fallbackEntity));
+        when(environmentManagerMapper.updateIsDefaultById("fallback_env_id", true, TEST_CREATOR_ID))
+            .thenReturn(1);
+
+        Boolean result = environmentServiceManagerService.deleteEnvironment(TEST_PROJECT_ID, "test_env_id");
+
+        assertTrue(result);
+    }
+
+    @Test
+    void testQueryEnvironment_WithOpsInfo() {
+        when(environmentManagerMapper.findByIdAndProjectId("test_env_id", TEST_PROJECT_ID))
+            .thenReturn(testEnvironmentEntity);
+        when(environmentClientService.queryEnvironmentInfo(any(), any(), any(), any()))
+            .thenReturn(new com.openjiuwen.studio.agent.manager.service.environment.model.OpsEnvironmentInfo());
+
+        Environment result = environmentServiceManagerService.queryEnvironment(TEST_PROJECT_ID, "test_env_id");
+
+        assertNotNull(result);
+        assertEquals("test_env_name", result.getName());
+    }
+
+    @Test
+    void testQueryEnvironment_OpsInfoNull() {
+        when(environmentManagerMapper.findByIdAndProjectId("test_env_id", TEST_PROJECT_ID))
+            .thenReturn(testEnvironmentEntity);
+        when(environmentClientService.queryEnvironmentInfo(any(), any(), any(), any()))
+            .thenReturn(null);
+
+        Environment result = environmentServiceManagerService.queryEnvironment(TEST_PROJECT_ID, "test_env_id");
+
+        assertNotNull(result);
     }
 }

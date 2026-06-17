@@ -149,10 +149,11 @@ public class CustomObjectManagementService implements ICustomObjectManagementSer
             throw new AgentStudioException(StudioError.STATIC_RESOURCE_NOT_EXIST);
         }
         if (body.getName() != null && !body.getName().equals(customObjectEntity.getName())) {
-            // 检验对象名称是否重复
+            // 检验新设置的对象名称是否与已有的重复
             checkObjectNameRepeat(body.getName(), projectId, workspaceId);
             customObjectEntity.setName(body.getName());
         }
+        //不更新（保留原值），此时传递null；用户传""，表示更新为空字符串
         if (body.getDescription() != null) {
             customObjectEntity.setDescription(body.getDescription());
         }

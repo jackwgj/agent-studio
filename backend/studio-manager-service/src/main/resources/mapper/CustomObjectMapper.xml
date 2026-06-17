@@ -75,11 +75,20 @@
     <!-- 更新 -->
     <update id="updateById" parameterType="com.openjiuwen.studio.agent.manager.entity.CustomObjectEntity">
         UPDATE t_custom_object
-        SET name = #{name},
-            description = #{description},
-            object_schema = #{objectSchema},
-            updated_on = #{updatedOn}
-        WHERE id = #{id}
+        <set>
+            <if test="name != null">
+                name = #{name},
+            </if>
+            <if test="description != null">
+                description = #{description},
+            </if>
+            <if test="objectSchema != null">
+                object_schema = #{objectSchema},
+            </if>
+            updated_on = #{updatedOn},
+        </set>
+
+        WHERE id = #{id} AND project_id = #{projectId} AND workspace_id = #{workspaceId}
     </update>
 
 </mapper>

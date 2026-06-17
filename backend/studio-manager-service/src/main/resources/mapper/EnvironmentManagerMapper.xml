@@ -175,10 +175,6 @@
     <select id="countByStatus" resultType="int">
         SELECT count(*) FROM t_environment_manager_info
         WHERE project_id = #{projectId} AND status = #{status}
-        WHERE project_id = #{projectId}
-        <if test="name != null and name != ''">
-            AND name LIKE CONCAT('%', #{name}, '%')
-        </if>
     </select>
 
 </mapper>
