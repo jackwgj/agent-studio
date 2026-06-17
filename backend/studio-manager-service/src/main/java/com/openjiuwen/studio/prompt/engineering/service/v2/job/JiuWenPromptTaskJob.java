@@ -5,8 +5,12 @@ package com.openjiuwen.studio.prompt.engineering.service.v2.job;
 
 import com.openjiuwen.studio.agent.common.enums.StudioError;
 import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
+import com.openjiuwen.studio.agent.common.utils.CryptoUtils;
 import com.openjiuwen.studio.agent.manager.entity.md.ModelServiceBase;
+import com.openjiuwen.studio.agent.manager.entity.md.ProviderAuthMetadata;
 import com.openjiuwen.studio.agent.manager.mapper.md.ModelServiceMapper;
+import com.openjiuwen.studio.agent.manager.mapper.md.ProviderAuthDataMapper;
+import com.openjiuwen.studio.agent.manager.mapper.md.ProviderAuthMetadataMapper;
 import com.openjiuwen.studio.agent.manager.utils.JsonUtils;
 import com.openjiuwen.studio.prompt.engineering.constant.CommonConstant;
 import com.openjiuwen.studio.prompt.engineering.dto.Case;
@@ -19,7 +23,6 @@ import com.openjiuwen.studio.prompt.engineering.entity.v2.PromptVar;
 import com.openjiuwen.studio.prompt.engineering.enums.ResponseCode;
 import com.openjiuwen.studio.prompt.engineering.enums.v2.PromptTaskStatusEnum;
 import com.openjiuwen.studio.prompt.engineering.enums.v2.PtTypeEnum;
-import com.openjiuwen.studio.prompt.engineering.mapper.PeTaskMapper;
 import com.openjiuwen.studio.prompt.engineering.mapper.v2.PromptTaskMapper;
 import com.openjiuwen.studio.prompt.engineering.remote.ClientTemplate;
 import com.openjiuwen.studio.prompt.engineering.service.model.v2.jiuwen.JIuWenPromptBaseRes;
@@ -121,7 +124,10 @@ public class JiuWenPromptTaskJob implements Job {
     private ModelServiceMapper modelServiceMapper;
 
     @Autowired
-    private PeTaskMapper peTaskMapper;
+    private ProviderAuthMetadataMapper providerAuthMetadataMapper;
+
+    @Autowired
+    private ProviderAuthDataMapper providerAuthDataMapper;
 
     @Override
     public void execute(JobExecutionContext jobExecutionContext) throws JobExecutionException {
@@ -139,9 +145,6 @@ public class JiuWenPromptTaskJob implements Job {
 
     public JiuWenJobInfo execTask(PromptTaskDetailVo promptTaskDetailVo, String token) {
         log.info("request jiuwen for create task");
-        // 保存原始模型 UUID（buildJiuWenCreTaskReq 会把 model 替换为 modelName）
-        String deploymentId = promptTaskDetailVo.getPtModel() != null
-            ? promptTaskDetailVo.getPtModel().getModel() : null;
         JiuWenCreTaskReq req = buildJiuWenCreTaskReq(promptTaskDetailVo);
         try {
             String jiuwenPath = promptTaskDetailVo.getPtType() == PtTypeEnum.TEXT
@@ -152,9 +155,6 @@ public class JiuWenPromptTaskJob implements Job {
                 headers.set(CommonConstant.X_AUTH_TOKEN, token);
             }
             headers.set(CommonConstant.X_WORKSPACE_ID, promptTaskDetailVo.getWorkspaceId());
-            // 补充 X-Auth-Id 和 X-Deployment-Id
-            enrichAuthHeaders(headers, promptTaskDetailVo.getProjectId(),
-                promptTaskDetailVo.getWorkspaceId(), deploymentId);
             ResponseEntity<JiuWenCreTaskRes> response = clientTemplate.postForEntity(jiuwenBaseUrl + jiuwenPath,
                 headers, JsonUtil.object2Json(req), JiuWenCreTaskRes.class);
             if (!response.getStatusCode().is2xxSuccessful()) {
@@ -352,10 +352,6 @@ public class JiuWenPromptTaskJob implements Job {
                 headers.set(CommonConstant.X_AUTH_TOKEN, token);
             }
             headers.set(CommonConstant.X_WORKSPACE_ID, promptTaskDetailVo.getWorkspaceId());
-            if (promptTaskDetailVo.getPtModel() != null) {
-                enrichAuthHeaders(headers, promptTaskDetailVo.getProjectId(),
-                    promptTaskDetailVo.getWorkspaceId(), promptTaskDetailVo.getPtModel().getModel());
-            }
             ResponseEntity<JIuWenPromptBaseRes> response = clientTemplate.postForEntity(
                 jiuwenBaseUrl + String.format(jiuwenPath, jiuwenTaskId), headers, null, JIuWenPromptBaseRes.class);
             if (!response.getStatusCode().is2xxSuccessful()) {
@@ -374,33 +370,16 @@ public class JiuWenPromptTaskJob implements Job {
     public Flux<String> generatePrompt(String projectId, String workspaceId, PromptBuildRequest body, String token) {
         log.info("start to generate prompt, projectId: {}, workspaceId: {}", projectId, workspaceId);
 
-        // 保存原始模型 UUID 作为 deployment_id（enrichment 会替换 model 为 modelName）
-        String deploymentId = body.getModelInfo() != null ? body.getModelInfo().getModel() : null;
-
-        // 补充 modelInfo 的 model name 等字段
+        // 补充 modelInfo 的 url、api_key 等字段
         if (body.getModelInfo() != null) {
             enrichExecConfig(body.getModelInfo(), projectId, workspaceId);
         }
 
-        // 查询 auth_id
-        String authId = null;
-        if (StringUtils.isNotEmpty(deploymentId)) {
-            try {
-                authId = peTaskMapper.selectModelAuthId(projectId, workspaceId, deploymentId);
-            } catch (Exception e) {
-                log.warn("Failed to query auth_id for model {}: {}", deploymentId, e.getMessage());
-            }
-        }
-
-        String finalAuthId = authId;
-        String finalDeploymentId = deploymentId != null ? deploymentId : "";
         Flux<String> dataFlux = webClient.post()
             .uri(jiuwenBaseUrl + PROMPT_GENERATE_API)
             .contentType(MediaType.APPLICATION_JSON)
             .header(CommonConstant.X_AUTH_TOKEN, token)
             .header(CommonConstant.X_WORKSPACE_ID, workspaceId)
-            .header("X-Deployment-Id", finalDeploymentId)
-            .header("X-Auth-Id", finalAuthId != null ? finalAuthId : "")
             .bodyValue(body)
             .retrieve()
             // 处理HTTP非2xx状态码：直接抛异常
@@ -467,25 +446,10 @@ public class JiuWenPromptTaskJob implements Job {
                 body.setFeedback(body.getFeedback() + "\n" + feeback);
             }
 
-            // 查询 auth_id 和 deployment_id
-            String deploymentId = body.getModelInfo() != null ? body.getModelInfo().getModel() : null;
-            String authId = null;
-            if (StringUtils.isNotEmpty(deploymentId)) {
-                try {
-                    authId = peTaskMapper.selectModelAuthId(projectId, workspaceId, deploymentId);
-                } catch (Exception e) {
-                    log.warn("Failed to query auth_id for model {}: {}", deploymentId, e.getMessage());
-                }
-            }
-
-            String finalAuthId = authId;
-            String finalDeploymentId = deploymentId != null ? deploymentId : "";
             Flux<String> dataFlux = webClient.post()
                 .uri(jiuwenBaseUrl + PROMPT_FEEDBACK_API)
                 .contentType(MediaType.APPLICATION_JSON)
                 .header(CommonConstant.X_AUTH_TOKEN, token)
-                .header("X-Deployment-Id", finalDeploymentId)
-                .header("X-Auth-Id", finalAuthId != null ? finalAuthId : "")
                 .bodyValue(body)
                 .retrieve()
                 // 处理HTTP非2xx状态码：直接抛异常
@@ -590,10 +554,7 @@ public class JiuWenPromptTaskJob implements Job {
     }
 
     /**
-     * Enrich ExecConfig with model name from the model service database.
-     * api_key、url、auth_id、deployment_id 不通过请求体传输：
-     * - api_key/url 由 runtime 端从环境变量读取
-     * - auth_id/deployment_id 通过 HTTP 请求头透传（见 enrichAuthHeaders）
+     * Enrich ExecConfig with model URL and API key from the model service database.
      */
     private com.openjiuwen.studio.prompt.engineering.entity.v2.ExecConfig enrichExecConfig(
             com.openjiuwen.studio.prompt.engineering.entity.v2.ExecConfig config,
@@ -605,9 +566,39 @@ public class JiuWenPromptTaskJob implements Job {
             ModelServiceBase modelService = modelServiceMapper.queryById(config.getModel());
             if (modelService != null) {
                 String originalId = config.getModel();
+                config.setUrl(modelService.getApiUrl());
                 config.setModel(modelService.getModelName());
-                log.info("Enriched model config: id={}, modelName={}", originalId, modelService.getModelName());
-
+                log.info("Enriched model config: id={}, modelName={}, url={}",
+                    originalId, modelService.getModelName(), config.getUrl());
+                if (StringUtils.isNotEmpty(modelService.getProviderId())) {
+                    List<ProviderAuthMetadata> authList = providerAuthDataMapper
+                        .selectProviderAuthData(projectId, workspaceId, modelService.getProviderId());
+                    log.info("Provider auth data list size: {}, providerId: {}",
+                        authList == null ? 0 : authList.size(), modelService.getProviderId());
+                    if (authList != null) {
+                        for (ProviderAuthMetadata auth : authList) {
+                            log.info("Provider auth data type: {}, hasAuthConfig: {}",
+                                auth.getAuthType(), auth.getAuthConfig() != null);
+                        }
+                        authList.stream()
+                            .filter(auth -> auth.getAuthConfig() != null)
+                            .findFirst()
+                            .ifPresent(auth -> {
+                                try {
+                                    Map<String, String> authMap = JsonUtils.json2Obj(
+                                        auth.getAuthConfig(), new com.fasterxml.jackson.core.type.TypeReference<>() {});
+                                    if (authMap != null && !authMap.isEmpty()) {
+                                        String encryptedKey = authMap.values().iterator().next();
+                                        String decryptedKey = CryptoUtils.decrypt(encryptedKey);
+                                        config.setApiKey(decryptedKey);
+                                        log.info("API key set successfully from authData");
+                                    }
+                                } catch (Exception e) {
+                                    log.warn("Failed to decrypt provider API key: {}", e.getMessage());
+                                }
+                            });
+                    }
+                }
                 // 设置 top_p 和 temperature 默认值（前端可能不传）
                 if (config.getTopP() == null) {
                     config.setTopP(0.1);
@@ -615,6 +606,7 @@ public class JiuWenPromptTaskJob implements Job {
                 if (config.getTemperature() == null) {
                     config.setTemperature(0.1);
                 }
+                log.info("Enriched model config: model={}, url={}", config.getModel(), config.getUrl());
             } else {
                 log.warn("Model service not found for id: {}", config.getModel());
             }
@@ -622,28 +614,6 @@ public class JiuWenPromptTaskJob implements Job {
             log.warn("Failed to enrich model config for model {}: {}", config.getModel(), e.getMessage());
         }
         return config;
-    }
-
-    /**
-     * 查询模型的 auth_id 和 deployment_id，写入 HTTP 请求头。
-     * Flask 端会将 HTTP 请求头合并到 modelInfo.headers，最终由 PromptOptimizeModelProvider 提取。
-     */
-    private void enrichAuthHeaders(HttpHeaders headers, String projectId, String workspaceId, String modelId) {
-        if (StringUtils.isEmpty(modelId)) {
-            return;
-        }
-        // deployment_id: 模型 UUID，模型路由服务用于定位目标模型
-        headers.set("X-Deployment-Id", modelId);
-        // auth_id: 从 t_provider_auth_info 查询
-        try {
-            String authId = peTaskMapper.selectModelAuthId(projectId, workspaceId, modelId);
-            if (StringUtils.isNotEmpty(authId)) {
-                headers.set("X-Auth-Id", authId);
-                log.info("Auth ID set in HTTP header: {}", authId);
-            }
-        } catch (Exception e) {
-            log.warn("Failed to query auth_id for model {}: {}", modelId, e.getMessage());
-        }
     }
 
 }
