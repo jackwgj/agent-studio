@@ -11,6 +11,7 @@ import time
 from typing import Any
 
 from openjiuwen.core.common.constants.constant import INTERACTION
+from openjiuwen.core.common.logging import performance_logger
 from openjiuwen.core.session.stream.base import (
     OutputSchema,
     CustomSchema,
@@ -836,6 +837,10 @@ _current_output_convert_ctx: contextvars.ContextVar = contextvars.ContextVar(
     '_current_output_convert_ctx', default=None
 )
 
+_node_start_time_ctx: contextvars.ContextVar = contextvars.ContextVar(
+    '_node_start_time_ctx', default=None
+)
+
 
 def _register_jiuwen_callbacks() -> None:
     """模块级一次性注册 jiuwen 回调到 openjiuwen CallbackFramework。
@@ -844,13 +849,15 @@ def _register_jiuwen_callbacks() -> None:
     回调闭包不引用任何 WorkflowWrapper 实例成员（无 self），通过
     session.state().get_global("__node_defs__") 读取节点定义数据。
 
-    注册三类回调：
+    注册四类回调：
     1. resolve_global_vars_transform (transform, priority=10)
        — 解析 ${global.xxx} 引用，在 type_convert_inputs 之前执行
     2. type_convert_inputs / type_convert_outputs (transform)
        — 从 session global_state 读取节点 configs，做类型强转
     3. notify_start_trace_resolved (regular)
        — 通过 CustomSchema 通知 WorkflowWrapper 发送缓存的 start trace
+    4. node_perf_start / node_perf_end (transform+regular)
+       — 记录节点执行耗时，输出 node_executed<node_id>|{ms} 性能日志
     """
     try:
         from openjiuwen.core.runner.callback.events import WorkflowEvents
@@ -1029,6 +1036,62 @@ def _register_jiuwen_callbacks() -> None:
                 node_info=node_info,
                 structure_pos=STRUCTURE_POSITION_OUTPUTS,
             )
+
+        # ---------- 节点执行耗时性能日志 ----------
+        @_fw.on(WorkflowEvents.COMPONENT_BATCH_INPUT, callback_type="transform", priority=-10)
+        async def node_perf_start(*args, **kwargs):
+            """Record node execution start time and metadata via ContextVar.
+
+            Priority=-10 ensures this runs after all other input transforms
+            (type_convert_inputs=0, resolve_global_vars=10).
+            """
+            session = kwargs.get("session")
+            if session is None and len(args) >= 2:
+                session = args[1]
+            if session is not None and isinstance(session, NodeSession):
+                node_id = session.node_id()
+                node_type = ""
+                node_name = ""
+                # 从 __node_defs__ 读取节点类型和显示名称
+                node_defs = session.state().get_global(NODE_DEFS_KEY)
+                if isinstance(node_defs, dict):
+                    wf_defs = node_defs.get(session.workflow_id(), {})
+                    node_def = wf_defs.get(node_id, {})
+                    if isinstance(node_def, dict):
+                        node_type = node_def.get("node_type", "")
+                        node_name = node_def.get("node_name", "")
+                _node_start_time_ctx.set({
+                    "start": time.perf_counter(),
+                    "node_type": node_type,
+                    "node_name": node_name,
+                })
+            return (args, kwargs)
+
+        @_fw.on(WorkflowEvents.NODE_EXECUTED, priority=0)
+        async def node_perf_end(node_id, ability, graph_id, inputs, outputs):
+            """Emit per-node execution timing.
+
+            Format: node_executed<type_name>|{ms}
+            e.g. node_executed<jiuwen.code_代码>|12
+            Aligns with old project: _execute_invokable<node=jiuwen.code_代码>|12
+            """
+            ctx = _node_start_time_ctx.get()
+            if ctx is None:
+                return
+            duration_ms = round((time.perf_counter() - ctx["start"]) * 1000)
+            node_type = ctx.get("node_type", "")
+            node_name = ctx.get("node_name", "")
+            # 对齐老项目格式: type_name (e.g. jiuwen.code_代码)
+            if node_type and node_name:
+                label = f"{node_type}_{node_name}"
+            elif node_type:
+                label = node_type
+            elif node_name:
+                label = node_name
+            else:
+                label = node_id
+            performance_logger.info(f"node_executed<{label}>|{duration_ms}")
+            _node_start_time_ctx.set(None)
     except Exception:
         pass
 

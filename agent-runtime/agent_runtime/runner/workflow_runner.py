@@ -24,6 +24,7 @@ from jiuwen.serve.controllers.execution.ir_converter import IRConverter
 from jiuwen.serve.controllers.execution.open_utils import async_ir_load
 from openjiuwen.core.common.exception.errors import ExecutionError, Termination
 from openjiuwen.core.common.logging import workflow_logger
+from openjiuwen.core.common.logging import performance_logger
 from openjiuwen.core.session.checkpointer.checkpointer import CheckpointerFactory
 from openjiuwen.core.session.interaction.interactive_input import InteractiveInput
 from openjiuwen.core.session.stream import BaseStreamMode
@@ -82,7 +83,7 @@ class WorkflowRunner:
             req: 执行请求
             execution_id: 请求级执行 ID，用于 SSE 事件追踪；若未提供则使用 conversation_id
         """
-        perf_start = time.time()
+        perf_start = time.perf_counter()
 
         # 1. 确定 session_id 和 execution_id
         session_id = req.conversation_id
@@ -90,12 +91,8 @@ class WorkflowRunner:
 
         # 2. 使用缓存的 IR（如果存在）或从存储读取
         ir_path = req.ir_path
-        t_load_start = time.time()
         try:
             ir_json = await async_ir_load(ir_path)
-            workflow_logger.info(
-                f"[PERF] IR load (cache+storage): {(time.time() - t_load_start) * 1000:.1f}ms"
-            )
         except Exception as e:
             workflow_logger.error(
                 f"Failed to load IR from {ir_path}: {e}", exc_info=True
@@ -110,17 +107,17 @@ class WorkflowRunner:
             return
 
         # 3. 构建工作流（纯 dict → workflow，无存储）, 构建node_id与node_name映射
-        t_node_map = time.time()
+        t_node_map = time.perf_counter()
         node_defs = await IRConverter.extract_node_defs(ir_json)
-        workflow_logger.info(
-            f"[PERF] Node ID mapping build: {(time.time() - t_node_map) * 1000:.1f}ms"
+        performance_logger.info(
+            f"node_id_mapping|{round((time.perf_counter() - t_node_map) * 1000)}"
         )
 
-        t_convert_start = time.time()
+        t_convert_start = time.perf_counter()
         try:
             workflow = await self._ir_converter.async_ir_to_workflow(ir_json)
-            workflow_logger.info(
-                f"[PERF] IR->Workflow conversion total: {(time.time() - t_convert_start) * 1000:.1f}ms"
+            performance_logger.info(
+                f"ir_convert|{round((time.perf_counter() - t_convert_start) * 1000)}"
             )
         except IRBuildException as e:
             workflow_logger.error(f"Failed to build workflow: {e}", exc_info=True)
@@ -134,40 +131,40 @@ class WorkflowRunner:
             return
 
         # 3. 创建对话上下文
-        t_context = time.time()
+        t_context = time.perf_counter()
         context = create_conversation_context(
             context_id=req.ir_path,
             session_id=req.conversation_id,
             history=req.params.conversation_history,
         )
-        workflow_logger.info(
-            f"[PERF] ConversationContext creation: {(time.time() - t_context) * 1000:.1f}ms"
+        performance_logger.info(
+            f"context_creation|{round((time.perf_counter() - t_context) * 1000)}"
         )
 
         # 4. 创建 session，使用固定的 session_id 以支持中断恢复
-        t_session = time.time()
+        t_session = time.perf_counter()
         session = create_workflow_session(session_id=session_id)
-        workflow_logger.info(
-            f"[PERF] WorkflowSession creation: {(time.time() - t_session) * 1000:.1f}ms"
+        performance_logger.info(
+            f"session_creation|{round((time.perf_counter() - t_session) * 1000)}"
         )
 
         # 5. 检查会话是否处于中断状态，构建 inputs
-        t_checkpoint = time.time()
+        t_checkpoint = time.perf_counter()
         is_interrupted = await self._is_session_interrupted(session_id)
-        workflow_logger.info(
-            f"[PERF] Checkpoint check (session_exists): {(time.time() - t_checkpoint) * 1000:.1f}ms"
+        performance_logger.info(
+            f"checkpoint_check|{round((time.perf_counter() - t_checkpoint) * 1000)}"
         )
 
         workflow_id = ir_json.get("workflowId", "")
 
-        t_inputs_build = time.time()
+        t_inputs_build = time.perf_counter()
         if is_interrupted:
             # 恢复执行：使用 InteractiveInput(raw_inputs) 恢复 checkpoint
             # 从 Redis 中恢复上一次保存的 exec_id
-            t_redis_get = time.time()
+            t_redis_get = time.perf_counter()
             saved_exec_id = await ExecutionIdStore.get(workflow_id, session_id)
-            workflow_logger.info(
-                f"[PERF] Redis GET (restore exec_id): {(time.time() - t_redis_get) * 1000:.1f}ms"
+            performance_logger.info(
+                f"redis_get_exec_id|{round((time.perf_counter() - t_redis_get) * 1000)}"
             )
             if saved_exec_id:
                 exec_id = saved_exec_id
@@ -182,14 +179,14 @@ class WorkflowRunner:
                 **self._build_global_state_params(req.params.model_dump(), node_defs),
             }
             # 保存 exec_id 到 Redis，以便中断恢复时使用
-            t_redis_save = time.time()
+            t_redis_save = time.perf_counter()
             await ExecutionIdStore.save(workflow_id, session_id, exec_id)
-            workflow_logger.info(
-                f"[PERF] Redis SAVE (store exec_id): {(time.time() - t_redis_save) * 1000:.1f}ms"
+            performance_logger.info(
+                f"redis_save_exec_id|{round((time.perf_counter() - t_redis_save) * 1000)}"
             )
             is_resuming = False
-        workflow_logger.info(
-            f"[PERF] Inputs build + Redis ops: {(time.time() - t_inputs_build) * 1000:.1f}ms"
+        performance_logger.info(
+            f"inputs_build|{round((time.perf_counter() - t_inputs_build) * 1000)}"
         )
 
         # 5.1 记忆检索：在工作流执行前检索相关记忆
@@ -209,8 +206,8 @@ class WorkflowRunner:
                         memory_message, "content", memory_message
                     )
 
-        workflow_logger.info(
-            f"[PERF] === PRE-EXEC TOTAL: {(time.time() - perf_start) * 1000:.1f}ms ==="
+        performance_logger.info(
+            f"pre_exec_total|{round((time.perf_counter() - perf_start) * 1000)}"
         )
 
         # 6. 发送工作流开始帧（首次执行时）
@@ -232,7 +229,7 @@ class WorkflowRunner:
             }
 
         # 7. 执行工作流
-        t_stream_start = time.time()
+        t_stream_start = time.perf_counter()
         workflow_wrapper = None
         # Collect assistant response for memory extraction
         memory_response_parts: list[str] = []
@@ -252,14 +249,14 @@ class WorkflowRunner:
                 is_resuming=is_resuming,
             )
 
-            t_compile_invoke_start = time.time()
+            t_compile_invoke_start = time.perf_counter()
             chunk_count = 0
             async for chunk in workflow.stream(
                 inputs, session, context=context, stream_modes=stream_modes
             ):
                 if chunk_count == 0:
-                    workflow_logger.info(
-                        f"[PERF] First chunk latency (compile+invoke start): {(time.time() - t_compile_invoke_start) * 1000:.1f}ms"
+                    performance_logger.info(
+                        f"first_chunk_latency|{round((time.perf_counter() - t_compile_invoke_start) * 1000)}"
                     )
                 chunk_count += 1
                 for event in workflow_wrapper.wrap_stream_data(
@@ -272,10 +269,10 @@ class WorkflowRunner:
                         if answer:
                             memory_response_parts.append(str(answer))
                     yield event
-            workflow_logger.info(
-                f"[PERF] Workflow.stream() total: {(time.time() - t_stream_start) * 1000:.1f}ms"
+            performance_logger.info(
+                f"workflow_stream|{round((time.perf_counter() - t_stream_start) * 1000)}"
             )
-            workflow_logger.info(f"[PERF] Total chunks yielded: {chunk_count}")
+            performance_logger.info(f"total_chunks|{chunk_count}")
 
             # Trigger memory extraction after successful workflow execution
             await self._trigger_memory_extraction(

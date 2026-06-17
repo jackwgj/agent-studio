@@ -4,17 +4,18 @@ from agent_runtime.context.request_context import _request_ctx
 from openjiuwen.core.common.logging import get_session_id
 
 COMMON_LOG_FORMAT = (
-    "%(asctime)s|%(log_type)s|%(filename)s:%(lineno)d|%(funcName)s|"
+    "%(asctime)s,%(msecs)03d|%(log_type)s|%(filename)s:%(lineno)d|%(funcName)s|"
     "%(trace_id)s|%(execution_id)s|%(request_id)s|%(levelname)s|%(message)s"
 )
 PERFORMANCE_LOG_FORMAT = (
-    "%(asctime)s|%(log_type)s|%(trace_id)s|%(execution_id)s|%(request_id)s|"
+    "%(asctime)s,%(msecs)03d|%(log_type)s|%(trace_id)s|%(execution_id)s|%(request_id)s|"
     "%(levelname)s|%(message)s"
 )
-DEFAULT_LOG_FORMAT = "%(asctime)s|%(log_type)s|%(trace_id)s|%(levelname)s|%(message)s"
+DEFAULT_LOG_FORMAT = "%(asctime)s,%(msecs)03d|%(log_type)s|%(trace_id)s|%(levelname)s|%(message)s"
 
 _INSTALLED = False
 _FORMATTER_PATCH_INSTALLED = False
+_OPENJIUWEN_LOGGING_MANAGED = False
 
 
 def get_log_format(log_type: str) -> str:
@@ -25,7 +26,7 @@ def get_log_format(log_type: str) -> str:
 
 def install_log_formatter_patch() -> None:
     """Make openjiuwen default backend choose formats by logger type."""
-    global _FORMATTER_PATCH_INSTALLED
+    global _FORMATTER_PATCH_INSTALLED, _OPENJIUWEN_LOGGING_MANAGED
     if _FORMATTER_PATCH_INSTALLED:
         return
 
@@ -38,6 +39,7 @@ def install_log_formatter_patch() -> None:
 
     DefaultLogger._get_formatter = get_formatter
     _FORMATTER_PATCH_INSTALLED = True
+    _OPENJIUWEN_LOGGING_MANAGED = True
 
 
 def install_request_id_log_record_factory() -> None:

@@ -28,6 +28,7 @@ from jiuwen.common.exception.status_code import StatusCode
 from jiuwen.common.llm_service.base import ModelFactory
 from jiuwen.common.llm_service.model_util import ModelUtil
 from jiuwen.common.log.base import logger, get_x_execution_id
+from openjiuwen.core.common.logging import performance_logger
 from jiuwen.common.utils.utils import safe_json_loads_raise_exception, timed_cache_op
 from jiuwen.context.memory_engine.config.memory_ir_config import MemoryIrConfig
 from jiuwen.controller.agent.agent import Agent
@@ -556,8 +557,11 @@ class IRConverter:
             comp_id = comp.get("id")
             if not comp_id:
                 continue
-            # 合并 node_name 和 configs
-            node_def: dict = {"node_name": comp.get("name", "")}
+            # 合并 node_name, node_type 和 configs
+            node_def: dict = {
+                "node_name": comp.get("name", ""),
+                "node_type": comp.get("type", ""),
+            }
             configs = comp.get("configs")
             if configs:
                 node_def["configs"] = configs
@@ -1088,14 +1092,13 @@ class IRConverter:
         """Core IR -> openjiuwen Workflow conversion."""
         import time as _time
 
-        t_total = _time.time()
+        t_total = _time.perf_counter()
 
         if not isinstance(ir_data, dict):
             raise ValueError("ir_data must be a dict")
 
         register_error_recovery_handler()
 
-        t_card = _time.time()
         card = WorkflowCard(
             id=ir_data.get("workflowId") or ir_data.get("agentId") or "",
             name=ir_data.get("workflowName")
@@ -1106,9 +1109,6 @@ class IRConverter:
             description=ir_data.get("description") or "",
         )
         workflow = Workflow(card=card)
-        logger.info(
-            f"[PERF-IR] WorkflowCard creation: {(_time.time() - t_card) * 1000:.1f}ms"
-        )
 
         global_model = (ir_data.get("configs") or {}).get("model")
 
@@ -1145,7 +1145,6 @@ class IRConverter:
                 ir_stream_source_ids.add(nid)
 
         # Pre-compute stream connection targets from explicit IR connections.
-        t_stream_targets = _time.time()
         stream_input_target_ids: set[str] = set()
         for connection in connections:
             source = ((connection.get("source") or {}).get("componentId") or "").strip()
@@ -1165,9 +1164,6 @@ class IRConverter:
                 if target_type in IRConverter._AGGREGATE_TYPES:
                     continue
                 stream_input_target_ids.add(target)
-        logger.info(
-            f"[PERF-IR] Stream targets computed: {(_time.time() - t_stream_targets) * 1000:.1f}ms"
-        )
 
         parallel_stream_done_inputs: dict[str, dict] = {}
         for connection in connections:
@@ -1190,7 +1186,6 @@ class IRConverter:
                     "userFields": {"stream": "${" + source + "}"}
                 }
 
-        t_prep = _time.time()
         # Pre-collect all loop body component IDs so that root-level connection
         # processing can skip inter-body connections (they belong to LoopGroup, not main workflow).
         _loop_body_ids: set[str] = set()
@@ -1199,15 +1194,10 @@ class IRConverter:
                 for _bid in (_n.get("configs") or {}).get("loopBody") or []:
                     if isinstance(_bid, str) and _bid in node_by_id:
                         _loop_body_ids.add(_bid)
-        logger.info(
-            f"[PERF-IR] Prep (node_by_id, loop_body): {(_time.time() - t_prep) * 1000:.1f}ms"
-        )
 
         pending_end_nodes: list[dict] = []
         pending_branch_nodes: list[dict] = []
-        t_components_start = _time.time()
         for idx, node in enumerate(components):
-            t_node = _time.time()
             node_id = node.get("id")
             is_stream_target = node_id in stream_input_target_ids
             component = await IRConverter._add_component(
@@ -1224,14 +1214,8 @@ class IRConverter:
                 stream_source_ids=ir_stream_source_ids,
                 parallel_join_nodes=parallel_join_nodes,
             )
-            logger.info(
-                f"[PERF-IR] Component[{idx}] '{node_id}' ({node.get('type')}): {(_time.time() - t_node) * 1000:.1f}ms"
-            )
             if component is not None:
                 component_by_id[node.get("id")] = component
-        logger.info(
-            f"[PERF-IR] All components creation total: {(_time.time() - t_components_start) * 1000:.1f}ms"
-        )
 
         for done_node_id in parallel_join_plan.done_nodes:
             if done_node_id in component_by_id:
@@ -1250,8 +1234,6 @@ class IRConverter:
                 lane_done = _ParallelInvokeLaneDoneComponent()
                 workflow.add_workflow_comp(done_node_id, lane_done, inputs_schema={})
             component_by_id[done_node_id] = lane_done
-
-        t_connections_start = _time.time()
         end_node_ids = {p["node_id"] for p in pending_end_nodes}
         stream_connection_targets: set[str] = set()
         batch_connection_targets: set[str] = set()
@@ -1318,9 +1300,6 @@ class IRConverter:
                 workflow.add_stream_connection(source, target)
             else:
                 workflow.add_connection(source, target)
-        logger.info(
-            f"[PERF-IR] Connections processing (main loop): {(_time.time() - t_connections_start) * 1000:.1f}ms"
-        )
 
         error_branch_groups: dict[str, list[tuple[str, str]]] = {}
         for connection in connections:
@@ -1357,7 +1336,6 @@ class IRConverter:
             )
             workflow.add_connection(_src_id, _branch_node_id)
 
-        t_end_comp = _time.time()
         for join_spec in parallel_join_plan.joins.values():
             if join_spec.join_target in end_node_ids:
                 batch_connection_targets.add(join_spec.join_target)
@@ -1391,11 +1369,7 @@ class IRConverter:
                 set_end_kwargs["response_mode"] = "streaming"
 
             workflow.set_end_comp(node_id, end, **set_end_kwargs)
-        logger.info(
-            f"[PERF-IR] End comp setup: {(_time.time() - t_end_comp) * 1000:.1f}ms"
-        )
 
-        t_deferred = _time.time()
         for source, target, is_stream in deferred_connections:
             existing_connections.add((source, target))
             if is_stream:
@@ -1406,9 +1380,6 @@ class IRConverter:
             lane_done_nodes = [lane.done_node for lane in join_spec.lanes]
             if len(lane_done_nodes) >= 2:
                 workflow.add_connection(lane_done_nodes, join_spec.join_target)
-        logger.info(
-            f"[PERF-IR] Deferred connections: {(_time.time() - t_deferred) * 1000:.1f}ms"
-        )
 
         # Add missing connections based on schema references.
         # Strategy:
@@ -1418,7 +1389,6 @@ class IRConverter:
         #   pure-batch nodes like Code — that bypasses intermediate nodes and can
         #   schedule them before the stream producer finishes.
         all_target_ids: set[str] = set()
-        t_missing = _time.time()
         for connection in connections:
             s = ((connection.get("source") or {}).get("componentId") or "").strip()
             t = ((connection.get("target") or {}).get("componentId") or "").strip()
@@ -1456,12 +1426,9 @@ class IRConverter:
                 ):
                     workflow.add_connection(source_id, target_id)
                     existing_connections.add((source_id, target_id))
-        logger.info(
-            f"[PERF-IR] Missing connections: {(_time.time() - t_missing) * 1000:.1f}ms"
-        )
 
-        logger.info(
-            f"[PERF-IR] === _build_openjiuwen_workflow_from_ir TOTAL: {(_time.time() - t_total) * 1000:.1f}ms ==="
+        performance_logger.info(
+            f"ir_build_total|{round((_time.perf_counter() - t_total) * 1000)}"
         )
         return workflow
 
@@ -1500,10 +1467,6 @@ class IRConverter:
 
         返回 (component_instance, node_type, configs)。
         """
-        import time as _time
-
-        t_start = _time.time()
-
         node_id = node.get("id")
         node_name = node.get("name")
         node_type = node.get("type")
@@ -1527,23 +1490,14 @@ class IRConverter:
                         inputs_schema["userFields"]["#end_" + user_field] = value
         if node_type == "jiuwen.start":
             result = Start(configs)
-            logger.debug(
-                f"[PERF-IR] _create_component '{node_id}' (start): {(_time.time() - t_start) * 1000:.1f}ms"
-            )
             return result, node_type, configs
 
         if node_type == "jiuwen.end":
             result = End(_normalize_end_config(configs))
-            logger.debug(
-                f"[PERF-IR] _create_component '{node_id}' (end): {(_time.time() - t_start) * 1000:.1f}ms"
-            )
             return result, node_type, configs
 
         if node_type == "jiuwen.message":
             result = Message(configs)
-            logger.debug(
-                f"[PERF-IR] _create_component '{node_id}' (message): {(_time.time() - t_start) * 1000:.1f}ms"
-            )
             return result, node_type, configs
 
         if node_type in {
@@ -1552,7 +1506,6 @@ class IRConverter:
             "jiuwen.llmChain",
             "jiuwen.LLMComponent",
         }:
-            t_llm = _time.time()
             if node_id in IRConverter._STREAM_SOURCE_IDS:
                 IRConverter._STREAM_SOURCE_IDS.remove(node_id)
             if global_model and "model" not in configs:
@@ -1565,9 +1518,6 @@ class IRConverter:
                     "extension": configs.pop("extension", {}),
                 }
             result = LLMChain(configs)
-            logger.debug(
-                f"[PERF-IR] _create_component '{node_id}' (LLM): {(_time.time() - t_llm) * 1000:.1f}ms"
-            )
             return result, node_type, configs
 
         if node_type == "jiuwen.questioner":
@@ -1860,19 +1810,12 @@ class IRConverter:
         parallel_join_nodes: frozenset[str] | None = None,
     ) -> Any:
         """将组件注册到 Workflow。内部调用 _create_component 创建组件实例。"""
-        import time as _time
-
-        t_start = _time.time()
 
         node_id = node.get("id")
         node_type = node.get("type")
 
-        t_schema = _time.time()
         inputs_schema = _convert_schema(node.get("inputs") or {})
         outputs_schema = _convert_schema(node.get("outputs") or {})
-        logger.debug(
-            f"[PERF-IR] _add_component '{node_id}' schema conversion: {(_time.time() - t_schema) * 1000:.1f}ms"
-        )
 
         exception_config = _parse_exception_config(node)
         if exception_config and node_type not in _NO_EXCEPTION_TYPES:
@@ -1928,22 +1871,15 @@ class IRConverter:
                 inputs_schema=inputs_schema,
                 **_comp_reg,
             )
-            logger.info(
-                f"[PERF-IR] _add_component '{node_id}' (subWorkflow) total: {(_time.time() - t_start) * 1000:.1f}ms"
-            )
             return component
 
         # ComplexIntentDetection 组件
         if node_type in {"EI.ComplexIntentDetection", "EI.complexIntentDetection"}:
-            t_create = _time.time()
             configs = dict(node.get("configs") or {})
             component = ComplexIntentDetection(
                 configs,
                 node_id=node_id,
                 node_name=configs.get("name", ""),
-            )
-            logger.debug(
-                f"[PERF-IR] _add_component '{node_id}' (ComplexIntentDetection): {(_time.time() - t_create) * 1000:.1f}ms"
             )
             _add_workflow_comp_with_exception(
                 workflow,
@@ -1954,15 +1890,11 @@ class IRConverter:
             )
             return component
 
-        t_create = _time.time()
         component, resolved_type, configs = await IRConverter._create_component(
             node,
             global_model,
             node_by_id=node_by_id,
             ir_connections=ir_connections,
-        )
-        logger.debug(
-            f"[PERF-IR] _add_component '{node_id}' _create_component: {(_time.time() - t_create) * 1000:.1f}ms"
         )
 
         if resolved_type == "jiuwen.start":
@@ -2779,7 +2711,6 @@ class IRConverter:
         Uses IRModelConfigProvider for consistent model configuration across
         all components, including per-request auth headers.
         """
-        import time as _time
 
         if not model_id:
             return
@@ -2790,36 +2721,23 @@ class IRConverter:
             )
             return
 
-        t_reg_start = _time.time()
         from agent_runtime.common.model_adapters import adapt_ir_converter_model_config
         from agent_runtime.common.model_providers import IRModelConfigProvider
         from openjiuwen.core.foundation.llm import Model
         from openjiuwen.core.runner import Runner
 
-        t_adapt = _time.time()
         adapted_conf = adapt_ir_converter_model_config(model_configs, model_id)
-        logger.info(
-            f"[PERF-IR] Model config adaptation: {(_time.time() - t_adapt) * 1000:.1f}ms"
-        )
 
-        t_provider = _time.time()
         provider = IRModelConfigProvider()
         llm_comp_config = provider.get_llm_config(adapted_conf)
-        logger.info(
-            f"[PERF-IR] IRModelConfigProvider.get_llm_config: {(_time.time() - t_provider) * 1000:.1f}ms"
-        )
 
         # Extract model name for logging
         model_name = model_configs.get("modelName") or model_id
 
-        t_model_create = _time.time()
         try:
             model_instance = Model(
                 model_client_config=llm_comp_config.model_client_config,
                 model_config=llm_comp_config.model_config,
-            )
-            logger.info(
-                f"[PERF-IR] Model instance creation: {(_time.time() - t_model_create) * 1000:.1f}ms"
             )
         except Exception as e:
             logger.error(
@@ -2835,12 +2753,8 @@ class IRConverter:
         def model_factory():
             return model_instance
 
-        t_register = _time.time()
         add_result = Runner.resource_mgr.add_model(
             model_id=model_id, model=model_factory
-        )
-        logger.info(
-            f"[PERF-IR] Runner.resource_mgr.add_model: {(_time.time() - t_register) * 1000:.1f}ms"
         )
 
         # Check registration result
@@ -2860,9 +2774,6 @@ class IRConverter:
             )
 
         _AGENT_CORE_REGISTERED_MODEL_IDS.add(model_id)
-        logger.info(
-            f"[PERF-IR] === Model registration TOTAL: {(_time.time() - t_reg_start) * 1000:.1f}ms ==="
-        )
         logger.info(
             f"Registered agent-core model resource: model_id={model_id}, model={model_name}",
             simple_log="registered agent-core model resource",

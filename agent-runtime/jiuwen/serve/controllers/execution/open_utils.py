@@ -201,6 +201,29 @@ class CacheUtils:
         """生成key"""
         return f"agent_runtime:{self.cache_name}:{key}"
 
+    async def aget_with_source(self, key: str) -> tuple[Any, str]:
+        """异步按层级查找缓存，返回 (value, source)。
+
+        source 为 'memory' / 'redis' / 'obs'，用于性能日志区分缓存来源。
+        未命中任何缓存时返回 (None, '')，调用方需自行从存储加载。
+        """
+        unique_key = self._generate_unique_key(key)
+
+        # memory 缓存
+        value = self._get_from_memory_cache(unique_key)
+        if value is not None:
+            self._update_memory_cache(unique_key, value)
+            return value, "memory"
+
+        # redis 缓存
+        value = await self.async_redis_cache.get(unique_key)
+        if value is not None:
+            value = deserialize_object(value) if self.should_serialize else value
+            self._update_memory_cache(unique_key, value)
+            return value, "redis"
+
+        return None, ""
+
 
 # 缓存队列实例
 cache_ir_queue = CacheUtils(
@@ -240,15 +263,29 @@ cache_intent_rule_queue = CacheUtils(
 async def async_ir_load(path: str) -> dict:
     """异步加载IR内容，支持任意Python对象缓存。
 
-    查找顺序：L1 内存 → L2 Redis → L3 OBS/S3
+    查找顺序：memory → redis → obs
+    性能日志格式: ir_load|{ms}|{memory|redis|obs}
     """
+    from openjiuwen.core.common.logging import performance_logger
+
+    t_start = time.perf_counter()
     logger.info("Async Loading IR content from %s", path)
 
-    ir_value = await cache_ir_queue.aget(path)
-    if ir_value:
-        logger.info("Cache HIT! Process %d async got cached data: %s", os.getpid(), path)
+    ir_value, source = await cache_ir_queue.aget_with_source(path)
+    if ir_value is not None:
+        if source == "memory":
+            logger.info("Cache HIT! Process %d async got cached data: %s", os.getpid(), path)
+        else:
+            logger.info(
+                "Redis HIT! Process %d async got cached data: %s, "
+                "memory size %d/%d",
+                os.getpid(), path,
+                cache_ir_queue.memory_cache.currsize, cache_ir_queue.memory_cache.maxsize,
+            )
+        performance_logger.info(f"ir_load|{round((time.perf_counter() - t_start) * 1000)}|{source}")
         return ir_value
 
+    # obs 存储
     logger.info("Cache MISS! Process %d async loading from OBS: %s", os.getpid(), path)
     from agent_runtime.serve.apis.orchestration import _load_ir_json
 
@@ -261,6 +298,7 @@ async def async_ir_load(path: str) -> dict:
         await cache_ir_queue.aput(path, ir_data)
         logger.info("Process %d async cached data: %s", os.getpid(), path)
 
+    performance_logger.info(f"ir_load|{round((time.perf_counter() - t_start) * 1000)}|obs")
     return ir_data
 
 

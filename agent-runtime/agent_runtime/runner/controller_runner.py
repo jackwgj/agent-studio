@@ -21,6 +21,7 @@ from jiuwen.serve.controllers.execution.utils import (
     post_process_agent_group_streaming_output,
 )
 from openjiuwen.core.common.logging import workflow_logger
+from openjiuwen.core.common.logging import performance_logger
 
 
 class ControllerRunner:
@@ -72,7 +73,9 @@ class ControllerRunner:
 
         # 2. Build PlanRuntimeContext (reuse commercial logic)
         try:
+            t_build_input = time.perf_counter()
             insight_client, runtime_context, tracer = await build_agent_input(req)
+            performance_logger.info(f"build_agent_input|{round((time.perf_counter() - t_build_input) * 1000)}")
         except Exception as e:
             workflow_logger.error(f"Failed to build agent input: {e}", exc_info=True)
             yield adapter.adapt_error(f"Failed to build runtime context: {e}", exec_id)
@@ -80,7 +83,9 @@ class ControllerRunner:
 
         # 3. Create Agent Group instance
         try:
+            t_agent_group = time.perf_counter()
             agent_group = await IRConverter.ir_to_agent_group(ir_json, session_id)
+            performance_logger.info(f"ir_to_agent_group|{round((time.perf_counter() - t_agent_group) * 1000)}")
         except Exception as e:
             workflow_logger.error(
                 f"Failed to create agent group from IR: {e}", exc_info=True
@@ -104,6 +109,7 @@ class ControllerRunner:
 
         # 6. Execute agent group streaming using post_process_agent_group_streaming_output
         try:
+            t_stream_start = time.perf_counter()
             workflow_logger.info(f"Starting agent_group.astream for query: {req.query}")
             streaming_output = agent_group.astream(
                 req.query,
@@ -121,6 +127,7 @@ class ControllerRunner:
                 is_debug=is_debug,
             ):
                 yield adapter.adapt_execution_id(chunk)
+            performance_logger.info(f"agent_group_stream|{round((time.perf_counter() - t_stream_start) * 1000)}")
         except Exception as e:
             workflow_logger.error(
                 f"Agent group streaming failed with exception: {e}", exc_info=True

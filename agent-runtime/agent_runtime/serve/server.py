@@ -5,6 +5,15 @@ OLE FastAPI server — lightweight version of jiwen-server/serve/server.py
 import os
 from contextlib import asynccontextmanager
 
+# 在所有 jiuwen import 之前，先接管日志配置
+# 这样 jiuwen SingletonLogger 检测到标志后不再添加自己的 handler，避免重复日志
+from agent_runtime.common.logging_context import (
+    install_log_formatter_patch,
+    install_request_id_log_record_factory,
+)
+install_request_id_log_record_factory()
+install_log_formatter_patch()
+
 # 在任何 jiuwen OBS 操作之前，补丁 Crypt 类使用明文解密
 # agent_runtime 本地调试环境 SK 为明文存储，而 jiuwen Crypt 默认实现抛异常
 from jiuwen.common.security.cryptor import Crypt as JiuWenCrypt
@@ -26,11 +35,7 @@ JiuWenCrypt.decrypt = staticmethod(_plain_decrypt)
 from agent_runtime.common import settings
 from agent_runtime.common.checkpointer_config import build_redis_checkpointer_config
 from agent_runtime.common.exception.errors import AgentBuilderError
-from agent_runtime.common.logging_context import (
-    COMMON_LOG_FORMAT,
-    install_log_formatter_patch,
-    install_request_id_log_record_factory,
-)
+from agent_runtime.common.logging_context import COMMON_LOG_FORMAT
 from agent_runtime.common.redis_manager import RedisClientManager
 from agent_runtime.context.middleware import RequestContextMiddleware
 from agent_runtime.memory.adapter.ltm_manager import init_ltm
@@ -64,9 +69,6 @@ from openjiuwen.extensions.sys_operation.sandbox import providers as _  # noqa: 
 # 导入 redis checkpointer 模块以触发 @CheckpointerFactory.register("redis") 装饰器
 from openjiuwen.extensions.checkpointer.redis import checkpointer as _  # noqa: F401
 
-install_request_id_log_record_factory()
-install_log_formatter_patch()
-
 prompt_dir = os.path.join(
     os.path.dirname(__file__), "..", "..", "jiuwen", "prompt", "template", "default"
 )
@@ -99,6 +101,7 @@ async def lifespan(app: FastAPI):  # noqa: redefined-outer-name
             "format": COMMON_LOG_FORMAT,
             "loggers": {
                 "workflow": {"level": workflow_log_level},
+                "performance": {"level": "INFO"},
                 "sys_operation": {
                     "level": "WARNING"
                 },  # 关闭 sys_operation 的 INFO 日志

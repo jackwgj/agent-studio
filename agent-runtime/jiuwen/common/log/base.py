@@ -350,7 +350,8 @@ class SingletonLogger:
         # 敏感日志掩码
         sensitive_words = get_list_from_env("LOG_MASKED_SENS_WORDS")
         common_logger = logging.getLogger(log_type)
-        # 动态包装标准日志方法
+
+        # 动态包装标准日志方法（必须在 return 之前，jiwen 代码会传 simple_log 参数）
         for method in ["debug", "info", "warning", "error", "critical"]:
             if hasattr(common_logger, method):
                 setattr(
@@ -358,6 +359,16 @@ class SingletonLogger:
                     method,
                     LogRouter().route_log(getattr(common_logger, method)),
                 )
+
+        # 如果 openjiuwen LogManager 已接管日志配置，直接复用，不再添加 jiuwen 自己的 handler
+        # 避免同一 stdlib logger 上出现两套 handler 导致日志重复输出
+        try:
+            from agent_runtime.common.logging_context import _OPENJIUWEN_LOGGING_MANAGED
+            if _OPENJIUWEN_LOGGING_MANAGED:
+                common_logger.setLevel(level)
+                return common_logger
+        except ImportError:
+            pass
 
         if get_gray_debug_config(log_config):
             common_logger.setLevel("DEBUG")
