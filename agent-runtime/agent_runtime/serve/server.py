@@ -99,6 +99,7 @@ async def lifespan(app: FastAPI):  # noqa: redefined-outer-name
             "format": COMMON_LOG_FORMAT,
             "loggers": {
                 "workflow": {"level": workflow_log_level},
+                "performance": {"level": "INFO"},
                 "sys_operation": {
                     "level": "WARNING"
                 },  # 关闭 sys_operation 的 INFO 日志

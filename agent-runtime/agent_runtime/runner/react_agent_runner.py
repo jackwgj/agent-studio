@@ -16,6 +16,7 @@ from agent_runtime.runner.react_workflow_adapter import ReactWorkflowAdapter
 from agent_runtime.schemas.orchestration_mgr import ExecutionRequest
 from jiuwen.serve.controllers.execution.open_utils import async_ir_load
 from openjiuwen.core.common.logging import workflow_logger
+from openjiuwen.core.common.logging import performance_logger
 from openjiuwen.core.foundation.llm import Model
 from openjiuwen.core.session.agent import Session, create_agent_session
 from openjiuwen.core.session.stream import BaseStreamMode
@@ -327,11 +328,7 @@ class ReActAgentRunner:
 
         # 加载 IR 配置
         try:
-            t_load_start = time.time()
             ir_json = await self._load_ir(req.ir_path)
-            workflow_logger.info(
-                f"[PERF] IR load (cache+storage): {(time.time() - t_load_start) * 1000:.1f}ms"
-            )
         except Exception as e:
             workflow_logger.error(
                 f"Failed to load IR from {req.ir_path}: {e}", exc_info=True

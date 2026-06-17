@@ -10,8 +10,10 @@ IRWorkflowBuilder - IR 到工作流的构造器
 
 from dataclasses import dataclass
 from typing import Any, Optional
+import time as _time
 
 from agent_runtime.common.exception.errors import AgentBuilderError, ExtensionStatusCode
+from openjiuwen.core.common.logging import performance_logger
 from openjiuwen.core.common.logging import workflow_logger
 from openjiuwen.core.workflow import Workflow as InvokableWorkflow
 from openjiuwen.core.workflow import WorkflowCard
@@ -89,6 +91,8 @@ class IRWorkflowBuilder:
         if not self._validate_ir(ir_json):
             raise IRBuildException("IR JSON 格式无效，缺少必需字段")
 
+        t_build_start = _time.perf_counter()
+
         # 创建工作流实例
         workflow_id = ir_json.get("workflowId", "workflow")
         workflow_name = ir_json.get("workflowName", "Workflow")
@@ -115,14 +119,21 @@ class IRWorkflowBuilder:
         )
 
         # 第一阶段：注册节点
+        t_reg_start = _time.perf_counter()
         self._register_components(workflow, ir_json, context)
+        performance_logger.info(f"register_components|{round((_time.perf_counter() - t_reg_start) * 1000)}")
 
         # 第二阶段：建立连接
+        t_conn_start = _time.perf_counter()
         self._register_connections(workflow, ir_json, context)
+        performance_logger.info(f"register_connections|{round((_time.perf_counter() - t_conn_start) * 1000)}")
 
         # 第三阶段：完成分支组件的 finalization
+        t_branch_start = _time.perf_counter()
         self._finalize_branches(workflow, context)
+        performance_logger.info(f"finalize_branches|{round((_time.perf_counter() - t_branch_start) * 1000)}")
 
+        performance_logger.info(f"ir_builder_build|{round((_time.perf_counter() - t_build_start) * 1000)}")
         workflow_logger.info(f"IR workflow built successfully: {workflow_id}")
 
         return workflow
