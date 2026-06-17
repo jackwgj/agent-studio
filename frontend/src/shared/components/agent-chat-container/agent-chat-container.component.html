@@ -2,9 +2,9 @@
   <div class="chat-loop" *ngFor="let item of chatLoop; let topIndex = index">
     <div class="flex justify-end">
       <img alt="" *ngIf="item.reqErrorStatus"
-        class="warning-icon"
-        (click)="onResend(topIndex)"
-        [src]="cdnUrl('assets/flow/warning.svg')"
+           class="warning-icon"
+           (click)="onResend(topIndex)"
+           [src]="cdnUrl('assets/flow/warning.svg')"
       >
       <div class="user-question">
         <div class="w-auto text">
@@ -16,8 +16,8 @@
     <div>
       <div *ngIf="item.thinkLoading" class="chat-loading-message">
         <img alt=""
-          [src]="cdnUrl('assets/agent-center/images/running.webp')"
-          [alt]="'loading' | i18nextEager"
+             [src]="cdnUrl('assets/agent-center/images/running.webp')"
+             [alt]="'loading' | i18nextEager"
         />
         <span>{{ 'recognizing_user_intent' | i18nextEager }}</span>
       </div>
@@ -94,9 +94,9 @@
                 *ngIf="answer.inputList?.length"
                 style="width: fit-content"
                 type="button"
-                tiButton
+                nz-button
                 (click)="onConfirm(answer, item)"
-                [tiTip]="
+                [nz-tooltip]="
                   answer.inputStatus === 'not-prepared'
                   ? ('waiting_for_file_upload_to_complete' | i18nextEager)
                   : ''
@@ -129,7 +129,7 @@
 <ng-template let-answer="answer" let-index="index" #childAnswerTmpl>
   <div class="chat-border">
     <div *ngIf="!answer.id || (answer.id && answer.steps.length)"
-          class="flex mb-[8px] answer-title">
+         class="flex mb-[8px] answer-title">
       <nz-icon nzType="check-circle" nzTheme="outline" *ngIf="answer.status ==='finished'; else loading" style="color:#c2c2c2;font-size: 16px" />
       <ng-template #loading>
         <nz-spin size='16px'></nz-spin>
@@ -147,7 +147,7 @@
         <div
           *ngFor="let item of answer.steps"
           class="plan-item">
-          <span tiOverflow><span class="dot-black">•</span>{{ item.step_name }} {{item.description}}</span>
+          <span nz-typography nzEllipsis><span class="dot-black">•</span>{{ item.step_name }} {{item.description}}</span>
         </div>
       </div>
     </ng-container>
@@ -157,12 +157,12 @@
         <div
           *ngFor="let item of answer.actionSteps"
           class="action-item">
-          <span class="step-title" tiOverflow>{{ item.title }}</span>
+          <span class="step-title" nz-typography nzEllipsis>{{ item.title }}</span>
           <div
             *ngFor="let action of item.actions">
             <div class="action-info">
               <nz-icon nzType="mail" nzTheme="outline" style="font-size: 14px;margin-right: 2px" />
-              <span tiOverflow>{{ action.title }}</span>
+              <span nz-typography nzEllipsis>{{ action.title }}</span>
             </div>
             <div *ngIf="action.content" style="padding-left: 12px">
               <app-markdown-answer

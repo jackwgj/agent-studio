@@ -111,6 +111,14 @@
           <span>{{ 'debugging' | i18nextEager }}</span>
         </span>
         <span
+          *ngIf="type !== 'multi' && showAsync"
+          class="flex cursor-pointer items-center gap-[4px]"
+          (click)="clickTestRun()"
+        >
+ 	           <asset-async-run-icon></asset-async-run-icon>
+ 	           <span>{{ 'flowcomponent_608'| i18nextEager }}</span>
+ 	         </span>
+        <span
           class="flex cursor-pointer items-center gap-[4px]"
           (click)="openRunHalfmodal()"
         >

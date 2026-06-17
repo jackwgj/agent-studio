@@ -1,12 +1,12 @@
-<!-- <div class="task-list-box h-full w-full overflow-hidden">
+<div class="task-list-box h-full w-full overflow-hidden">
   <div>
-    <button class="mb-3 w-full task-create" id="button-color-default" tiButton (click)="createTask()">
-      <tp-icon [isSquare]="true" name="cloudx-action-create-1"></tp-icon>{{'flowtasklistcomponent_642'| i18nextEager}}
+    <button class="mb-3 w-full task-create h-[18px]" id="button-color-default" nz-button (click)="createTask()">
+      <span nz-icon nzType="plus" nzTheme="outline"></span>{{'flowtasklistcomponent_642'| i18nextEager}}
     </button>
     <div class="task-list-line-sever"></div>
     <div>
       <div class="task-list-area">
-        <tp-icon [isSquare]="true" name="cloudx-action-history"></tp-icon>
+        <span nz-icon nzType="history" nzTheme="outline"></span>
         <span>{{'flowtasklistcomponent_643'| i18nextEager}}</span>
         <span>({{countMap.total}})</span>
       </div>
@@ -38,19 +38,23 @@
         (click)="handleTask($event, 'select', item)"
       >
         <div *ngIf="!item.isEdit" class="w-full flex-between">
-          <div tiOverflow>{{item.name}}</div>
+          <div nzEllipsis>{{item.name}}</div>
           <div class="edit-box">
             <div class="edit-content">
-              <tp-iconaction
+              <span
+                nz-icon
+                nzType="edit"
+                nzTheme="outline"
                 class="edit flex-center"
-                iconName="cloudx-action-edit"
                 (click)="handleTask($event, 'edit', item)"
-              />
-              <tp-iconaction
+              ></span>
+              <span
+                nz-icon
+                nzType="delete"
+                nzTheme="outline"
                 class="edit flex-center"
-                iconName="cloudx-action-delete"
                 (click)="handleTask($event, 'delete', item)"
-              />
+              ></span>
             </div>
           </div>
           <div class="status-box">
@@ -63,7 +67,7 @@
         <div *ngIf="item.isEdit" class="w-full flex-between">
           <input
             style="width: 70%; "
-            tiText
+            nz-input
             minlength="1"
             maxlength="64"
             [(ngModel)]="item.editName"
@@ -82,13 +86,10 @@
     </div>
   </div>
   <div *ngIf="isLoading" style="height: 60%" class="flex-center">
-    <ti-loading
-      class="loading-icon"
-      [size]="'middle'"
-    ></ti-loading>
+    <nz-spin class="loading-icon" nzSimple></nz-spin>
   </div>
   <div *ngIf="!isLoading && taskList.length === 0" class="no-data-container">
     <no-data-icon></no-data-icon>
     <span>{{ 'no_data' | i18nextEager }}</span>
   </div>
-</div> -->
+</div>

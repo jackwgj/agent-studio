@@ -1,4 +1,4 @@
-<!-- <div class="h-full w-full overflow-hidden">
+<div class="h-full w-full overflow-hidden">
   <flow-detail-header
     [workflowDetail]="workflowDetail"
     (backClick)="onPageBack()"
@@ -58,20 +58,20 @@
 </div>
 
 <ng-template #dropLTMModal let-context="context">
-  <ti-modal-header>{{ 'LTM' | i18nextEager }}</ti-modal-header>
-  <ti-modal-body>{{ 'ltmTip' | i18nextEager }}</ti-modal-body>
-  <ti-modal-footer>
-    <button type="button" (click)="context.dismiss()" tiButton>
+  <div nz-modal-header>{{ 'LTM' | i18nextEager }}</div>
+  <div nz-modal-body>{{ 'ltmTip' | i18nextEager }}</div>
+  <div nz-modal-footer>
+    <button type="button" nz-button (click)="context.dismiss()">
       {{ 'cancel' | i18nextEager }}
     </button>
     <button
       type="button"
-      color="danger"
+      nz-button
+      nzDanger
       autofocus
       (click)="context.close()"
-      tiButton
     >
       {{ 'ok' | i18nextEager }}
     </button>
-  </ti-modal-footer>
-</ng-template> -->
+  </div>
+</ng-template>

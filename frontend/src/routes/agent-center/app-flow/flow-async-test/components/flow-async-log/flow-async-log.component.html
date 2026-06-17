@@ -1,4 +1,4 @@
-<!-- <div class="run-modal-wrapper run-modal-show w-[600px]">
+<div class="run-modal-wrapper run-modal-show w-[600px]">
   <div class="header">
     <div class="flex items-center gap-[8px]">
       <div class="title">{{'flowasynclogcomponent_634'| i18nextEager}}</div>
@@ -8,13 +8,34 @@
     <div *ngIf="showExecList" class="exec-list">
       <nz-select
         class="date-selector"
-        style="width: 100%"
+        style="width: 150px"
         [nzPlaceHolder]="'select_placeholder' | i18nextEager"
-        [nzOptions]="dates"
-        [(ngModel)]="selectDate"
+        [nzSuffixIcon]="calendarIcon"
+        [nzDropdownMatchSelectWidth]="false"
+        [(ngModel)]="selectDateObj"
         (ngModelChange)="onSelectDate($event)"
       >
+        @for (date of dates; track date.value) {
+          <nz-option [nzValue]="date" [nzLabel]="date.label" [nzDisabled]="date.disabled" [nzCustomContent]="true">
+            <span class="flex items-center gap-[4px]">
+              {{ date.label }}
+              <ng-container *ngIf="!date.disabled && date.value !== 'all'">
+                <span class="flex items-center gap-[4px] ml-[24px]">
+                  <asset-success-icon></asset-success-icon>
+                  <span class="w-[20px]">{{ date.successCount }}</span>
+                </span>
+                <span class="flex items-center gap-[4px]">
+                  <asset-error-icon></asset-error-icon>
+                  <span>{{ date.failCount }}</span>
+                </span>
+              </ng-container>
+            </span>
+          </nz-option>
+        }
       </nz-select>
+      <ng-template #calendarIcon>
+        <asset-calendar-icon></asset-calendar-icon>
+      </ng-template>
 
       <div class="flex w-[calc(100%-36px)] gap-[8px]">
         <div class="flex h-fit w-[calc(100%-8px)] items-center gap-2">
@@ -23,38 +44,50 @@
               class="combo-select-right"
               style="width: 100%; min-width: 100%; margin-bottom: 20px"
               [nzPlaceHolder]="'select_placeholder' | i18nextEager"
-              [nzOptions]="executionList"
               [(ngModel)]="executionSelected"
               (ngModelChange)="changeExecSelected()"
-              nzLabel nzValue nzIdKey="execution_id"
+              [nzCustomTemplate]="execTemplate"
+              [nzShowSearch]="false"
             >
-              <ng-template #nzOptionTemplate let-item>
-                <span class="flex justify-between">
-                  <span class="w-[calc(100%-70px)]">{{
-                      item?.inputs?.query
-                    }}</span>
-                  <span class="flex gap-[8px] text-[#808080]">
-                    <span>{{ formatToExecTime(item.start_time) }}</span>
-                    <asset-loading-icon
-                      *ngIf="
-                        item.status === 'waiting' || item.status === 'loading'
-                      "
-                    ></asset-loading-icon>
-                    <asset-success-icon
-                      *ngIf="
-                        item.status === 'succeed' ||
-                        item.status === 'succeeded'
-                      "
-                    ></asset-success-icon>
-                    <asset-error-icon
-                      *ngIf="
-                        item.status === 'failed' || item.status === 'FAILED'
-                      "
-                    ></asset-error-icon>
-                  </span>
-                </span>
-              </ng-template>
+              @for (item of executionList; track item.execution_id) {
+                <nz-option
+                  [nzCustomContent]="true"
+                  [nzValue]="item"
+                >
+                  <div>
+                    <span class="flex justify-between">
+                      <span class="w-[calc(100%-70px)] overflow-hidden text-ellipsis">{{
+                          item?.inputs?.query
+                        }}</span>
+                      <span class="flex gap-[8px] text-[#808080]">
+                        <span>{{ formatToExecTime(item.start_time) }}</span>
+                        <asset-loading-icon
+                          *ngIf="
+                            item.status === 'waiting' || item.status === 'loading'
+                          "
+                        ></asset-loading-icon>
+                        <asset-success-icon
+                          *ngIf="
+                            item.status === 'succeed' ||
+                            item.status === 'succeeded'
+                          "
+                        ></asset-success-icon>
+                        <asset-error-icon
+                          *ngIf="
+                            item.status === 'failed' || item.status === 'FAILED'
+                          "
+                        ></asset-error-icon>
+                      </span>
+                    </span>
+                  </div>
+                </nz-option>
+              }
             </nz-select>
+            <ng-template #execTemplate let-item>
+              <div>
+                {{ executionSelected?.inputs?.query }}
+              </div>
+            </ng-template>
           </div>
         </div>
       </div>
@@ -175,14 +208,14 @@
             <ng-container
               *ngIf="executionList.length && chartViewMode === 'sequence'"
             >
-              <!-!- 时序图 -!->
+              <!-- 时序图 -->
               <time-line
                 *ngIf="!isEmptyObject(timelineData)"
                 [data]="timelineData"
                 [currentInvodeId]="curInvodeId"
                 (handleClick)="onNodeClicked($event)"
               ></time-line>
-              <!-!- 展示时序图上被点击节点的输入和输出 -!->
+              <!-- 展示时序图上被点击节点的输入和输出 -->
               <ng-container *ngIf="nodeIdClicked">
                 <ng-container *ngFor="let callItem of callChainInfo.list">
                   <ng-container *ngIf="callItem.node_uuid === nodeIdClicked">
@@ -204,7 +237,7 @@
             <ng-container
               *ngIf="executionList.length && chartViewMode === 'list'"
             >
-              <!-!- 表格 -!->
+              <!-- 表格 -->
               <div
                 *ngIf="callChainInfo.list.length"
                 class="call-chains-container"
@@ -250,13 +283,15 @@
     [ngClass]="{ 'bg-unfolded': !callItem.collapsed }"
   >
     <div class="call-item-left">
-      <tp-icon
-        name="cloudx-action-arrow-right"
+      <span
+        nz-icon
+        nzType="right"
+        nzTheme="outline"
         class="collapse-icon"
         [ngClass]="{ 'unfolded-icon': !callItem.collapsed }"
-      ></tp-icon>
+      ></span>
       <img alt="" class="call-node-icon" [src]="getNodeIcon(callItem?.node_type)" />
-      <span tiOverflow class="text-[#191919]">
+      <span nz-typography nzEllipsis class="text-[#191919]">
         {{ callItem?.node_name }}
       </span>
       <span *ngIf="isQuestionNode(callItem?.node_type)" class="rounds">
@@ -281,12 +316,12 @@
   </div>
   <div class="call-node-IO" *ngIf="!callItem.collapsed">
     <div class="crumb" *ngIf="callItem?.node_type === 'Workflow'" (click)="getChildWorkflow(callItem)">
-      <tp-icon class="mr-1" name="cloudx-action-share"></tp-icon>
+      <span nz-icon nzType="share-alt" nzTheme="outline" class="mr-1"></span>
       <span>{{ 'view_sub_workflow_call_chain' | i18nextEager }}</span>
     </div>
 
     <div *ngIf="!isQuestionNode(callItem?.node_type); else questionerNode">
-      <!-!- 非提问器节点的输入 -!->
+      <!-- 非提问器节点的输入 -->
       <div *ngIf="!isIOEmpty(callItem.inputs); else noInputs" class="mb-[12px]">
         <div class="node-inputs-area">
           <span class="text-[#191919]">{{ 'input' | i18nextEager }}</span>
@@ -304,7 +339,7 @@
           <json-viewer [jsonData]="callItem.inputs"></json-viewer>
         </div>
       </div>
-      <!-!- 非提问器节点的输出 -!->
+      <!-- 非提问器节点的输出 -->
       <div *ngIf="!isIOEmpty(callItem.outputs); else noOutputs">
         <div class="node-inputs-area">
           <span class="text-[#191919]">{{ 'output' | i18nextEager }}</span>
@@ -322,7 +357,7 @@
           <json-viewer [jsonData]="callItem.outputs"></json-viewer>
         </div>
       </div>
-      <!-!-模型输入，包含意图节点、提问器节点、大模型节点 -!->
+      <!--模型输入，包含意图节点、提问器节点、大模型节点 -->
       <ng-container
         *ngTemplateOutlet="
           modelIOTmpl;
@@ -348,7 +383,7 @@
         "
       ></ng-container>
     </div>
-    <!-!- 提问器节点 -!->
+    <!-- 提问器节点 -->
     <ng-template #questionerNode>
       <nz-select
         id="questioner-node-select"
@@ -359,7 +394,7 @@
         nzLabel nzValue nzIdKey="uuid"
       >
       </nz-select>
-      <!-!- 提问器节点某一次QA的输入 -!->
+      <!-- 提问器节点某一次QA的输入 -->
       <ng-container
         *ngIf="
           getMessagesByUuid(
@@ -389,7 +424,7 @@
           </div>
         </div>
       </ng-container>
-      <!-!- 提问器节点某一次QA的输出 -!->
+      <!-- 提问器节点某一次QA的输出 -->
       <ng-container
         *ngIf="
           getMessagesByUuid(
@@ -416,7 +451,7 @@
           </div>
         </div>
       </ng-container>
-      <!-!-提问器节点的模型输入 -!->
+      <!--提问器节点的模型输入 -->
       <ng-container
         *ngTemplateOutlet="
           modelIOTmpl;
@@ -447,7 +482,7 @@
 
 <ng-template #emptyTmpl></ng-template>
 
-<!-!- 模型输入和模型输出的公共html代码，后续可抽出子组件 -!->
+<!-- 模型输入和模型输出的公共html代码，后续可抽出子组件 -->
 <ng-template
   #modelIOTmpl
   let-callItem="callItem"
@@ -478,4 +513,4 @@
       ></json-viewer>
     </div>
   </div>
-</ng-template> -->
+</ng-template>

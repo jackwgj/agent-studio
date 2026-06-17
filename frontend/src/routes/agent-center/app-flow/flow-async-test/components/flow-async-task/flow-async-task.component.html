@@ -1,4 +1,4 @@
-<!-- <div class="run-modal-wrapper run-modal-show h-full">
+<div class="run-modal-wrapper run-modal-show h-full">
   <div class="mb-[20px] flex w-full items-center justify-between">
     <div class="text-[14px] font-bold text-label">
       {{ 'test_run' | i18nextEager }}
@@ -14,11 +14,11 @@
       <div class="run-workflow-btn">
         <button
           type="button"
-          color="danger"
+          nz-button
+          nzDanger
           class="w-full"
-          tiButton
           (click)="runWorkflow()"
-          [tiTip]="
+          [nz-tooltip]="
               dynamicNodeParams.fileLoading
                 ? ('waiting_for_file_upload_to_complete' | i18nextEager)
                 : ''
@@ -78,4 +78,4 @@
     <img alt="" class="flow-avatar" [src]="flowInfo?.avatar" />
     <span class="flow-name">{{ flowInfo?.name }}</span>
   </div>
-</div> -->
+</div>
