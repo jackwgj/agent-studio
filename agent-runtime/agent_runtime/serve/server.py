@@ -1,3 +1,5 @@
+# -*- coding: UTF-8 -*-
+# Copyright (c) Huawei Technologies Co., Ltd. 2026. All rights reserved.
 """
 OLE FastAPI server — lightweight version of jiwen-server/serve/server.py
 """
@@ -70,6 +72,7 @@ from openjiuwen.extensions.sys_operation.sandbox import providers as _  # noqa: 
 
 # 导入 redis checkpointer 模块以触发 @CheckpointerFactory.register("redis") 装饰器
 from openjiuwen.extensions.checkpointer.redis import checkpointer as _  # noqa: F401
+from agent_runtime.runner.fast_redis_checkpointer import FastRedisCheckpointer
 
 prompt_dir = os.path.join(
     os.path.dirname(__file__), "..", "..", "jiuwen", "prompt", "template", "default"
@@ -139,8 +142,18 @@ async def lifespan(app: FastAPI):  # noqa: redefined-outer-name
     # 创建并设置 Redis Checkpointer 为默认
     checkpointer_config = build_redis_checkpointer_config()
     redis_checkpointer = await CheckpointerFactory.create(checkpointer_config)
-    CheckpointerFactory.set_default_checkpointer(redis_checkpointer)
-    logger.info("Redis checkpointer initialized and set as default")
+
+    if settings.checkpointer.fast_checkpointer_enabled:
+        fast_checkpointer = FastRedisCheckpointer(
+            delegate=redis_checkpointer,
+            redis_client=redis_client,
+            ttl_seconds=settings.checkpointer.sentinel_ttl_seconds,
+        )
+        CheckpointerFactory.set_default_checkpointer(fast_checkpointer)
+        logger.info("FastRedisCheckpointer initialized and set as default (scan_iter bypass enabled)")
+    else:
+        CheckpointerFactory.set_default_checkpointer(redis_checkpointer)
+        logger.info("Redis checkpointer initialized and set as default (fast checkpointer disabled)")
 
     # 初始化异步 S3 存储客户端
     try:
@@ -198,8 +211,8 @@ async def lifespan(app: FastAPI):  # noqa: redefined-outer-name
         try:
             s3_provider = S3StorageProvider.instance()
             await s3_provider.close()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"S3 storage client close failed (non-critical): {e}")
 
         # 关闭 Redis 客户端
         await redis_mgr.close()

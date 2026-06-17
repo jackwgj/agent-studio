@@ -230,6 +230,21 @@ class MemorySettings(BaseSettings):
     )
 
 
+class CheckpointerSettings(BaseSettings):
+    """Checkpointer feature toggles."""
+
+    fast_checkpointer_enabled: bool = Field(
+        default=True, validation_alias="FAST_CHECKPOINTER_ENABLED"
+    )
+    sentinel_ttl_seconds: int = Field(
+        default=86400, validation_alias="FAST_CHECKPOINTER_SENTINEL_TTL_SECONDS"
+    )
+
+    model_config = SettingsConfigDict(
+        env_file=".env", env_file_encoding="utf-8", extra="ignore"
+    )
+
+
 class Settings:
     server = ServerSettings()
     redis = RedisSettings()
@@ -242,6 +257,7 @@ class Settings:
     skill_storage = SkillStorageSettings()
     opensearch = OpenSearchSettings()
     memory = MemorySettings()
+    checkpointer = CheckpointerSettings()
 
 
 settings = Settings()
