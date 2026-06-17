@@ -557,8 +557,11 @@ class IRConverter:
             comp_id = comp.get("id")
             if not comp_id:
                 continue
-            # 合并 node_name 和 configs
-            node_def: dict = {"node_name": comp.get("name", "")}
+            # 合并 node_name, node_type 和 configs
+            node_def: dict = {
+                "node_name": comp.get("name", ""),
+                "node_type": comp.get("type", ""),
+            }
             configs = comp.get("configs")
             if configs:
                 node_def["configs"] = configs
