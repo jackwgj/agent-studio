@@ -17,6 +17,7 @@ LLMChain 组件 - 完整迁移自商用版本
 """
 
 import asyncio
+import ast
 import json
 import re
 import time
@@ -34,6 +35,7 @@ from pydantic import BaseModel, StrictStr, Field, ValidationError
 USER_FIELDS = "userFields"
 PARTIAL_CONTENT = "partial_content"
 JIUWEN_LLM_TYPE = "jiuwen.LLMComponent"
+MEMORY_MESSAGE = "memory_message"
 
 CHAT_HISTORY_MAX_TURN = 3
 _ROLE = "role"
@@ -550,15 +552,68 @@ class LLMChain(WorkflowComponent):
                 messages.append({"role": "system", "content": system_prompt})
             messages.append({"role": "user", "content": user_prompt})
 
-        # 注入长期记忆消息（如果 LLM 节点配置了 memory.enable）
-        if self.mem_conf and self.mem_conf.get("enable") and self._session:
-            from jiuwen.common.llm_service.messages import BaseMessage
-
-            memory_msg = self._session.get_global_state("memory_message")
-            if isinstance(memory_msg, BaseMessage):
-                messages.append({"role": "user", "content": memory_msg.content})
+        self._insert_memory_message(messages, inputs)
 
         return messages
+
+    def _insert_memory_message(self, messages: list[dict], inputs: dict) -> None:
+        """Inject retrieved long-term memory before the current user prompt."""
+        memory_conf = self.mem_conf or self._conf.get("memory", {})
+        if not (memory_conf and memory_conf.get("enable")):
+            return
+
+        memory_msg = inputs.get(MEMORY_MESSAGE) if isinstance(inputs, dict) else None
+        if memory_msg is None and self._session:
+            memory_msg = self._session.get_global_state(MEMORY_MESSAGE)
+        if memory_msg is None and self._session:
+            try:
+                state = self._session.dump_state()
+                memory_msg = (state or {}).get(MEMORY_MESSAGE)
+                if memory_msg is None:
+                    memory_msg = ((state or {}).get("global_state") or {}).get(
+                        MEMORY_MESSAGE
+                    )
+            except Exception:
+                memory_msg = None
+
+        memory_content = self._extract_memory_content(memory_msg)
+        if not memory_content:
+            return
+
+        insert_index = len(messages)
+        for idx in range(len(messages) - 1, -1, -1):
+            if messages[idx].get("role") == "user":
+                insert_index = idx
+                break
+        messages.insert(insert_index, {"role": "user", "content": memory_content})
+
+    @staticmethod
+    def _extract_memory_content(memory_msg: Any) -> str:
+        if memory_msg is None:
+            return ""
+        if isinstance(memory_msg, dict):
+            return str(memory_msg.get("content") or "")
+
+        content = getattr(memory_msg, "content", None)
+        if content:
+            return str(content)
+
+        if not isinstance(memory_msg, str):
+            return ""
+        if not memory_msg.startswith("type="):
+            return memory_msg
+
+        match = re.search(
+            r"content=('(?:\\.|[^'])*'|\"(?:\\.|[^\"])*\")",
+            memory_msg,
+            re.DOTALL,
+        )
+        if not match:
+            return memory_msg
+        try:
+            return str(ast.literal_eval(match.group(1)))
+        except Exception:
+            return match.group(1).strip("'\"")
 
     def _validate_prompt_template(self, template: str) -> None:
         """

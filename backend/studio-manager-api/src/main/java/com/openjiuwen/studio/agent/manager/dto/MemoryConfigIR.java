@@ -33,6 +33,12 @@ public class MemoryConfigIR implements Serializable {
     @JsonProperty("strategies")
     private List<LongTermMemoryStrategy> strategies = null;
 
+    /**
+     * 是否启用 LLM 节点的记忆注入。绑定记忆库时应置 true。
+     */
+    @JsonProperty("enable")
+    private Boolean enable = null;
+
     public String getMemoryRepoId() {
         return memoryRepoId;
     }
@@ -60,6 +66,15 @@ public class MemoryConfigIR implements Serializable {
         return this;
     }
 
+    public Boolean getEnable() {
+        return enable;
+    }
+
+    public MemoryConfigIR setEnable(Boolean enable) {
+        this.enable = enable;
+        return this;
+    }
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
@@ -67,6 +82,7 @@ public class MemoryConfigIR implements Serializable {
         sb.append("    memoryRepoId: ").append(toIndentedString(memoryRepoId)).append("\n");
         sb.append("    extractConfig: ").append(toIndentedString(extractConfig)).append("\n");
         sb.append("    strategies: ").append(toIndentedString(strategies)).append("\n");
+        sb.append("    enable: ").append(toIndentedString(enable)).append("\n");
         sb.append("}");
         return sb.toString();
     }
@@ -82,12 +98,13 @@ public class MemoryConfigIR implements Serializable {
         MemoryConfigIR memoryConfigIR = (MemoryConfigIR) o;
         return Objects.equals(this.memoryRepoId, memoryConfigIR.memoryRepoId)
             && Objects.equals(this.extractConfig, memoryConfigIR.extractConfig)
-            && Objects.equals(this.strategies, memoryConfigIR.strategies);
+            && Objects.equals(this.strategies, memoryConfigIR.strategies)
+            && Objects.equals(this.enable, memoryConfigIR.enable);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(memoryRepoId, extractConfig, strategies);
+        return Objects.hash(memoryRepoId, extractConfig, strategies, enable);
     }
 
     private String toIndentedString(java.lang.Object o) {

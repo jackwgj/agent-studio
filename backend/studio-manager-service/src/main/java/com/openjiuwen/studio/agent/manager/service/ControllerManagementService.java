@@ -1221,6 +1221,7 @@ public class ControllerManagementService {
         }
         MemoryConfigIR memoryConfigIR = new MemoryConfigIR();
         memoryConfigIR.setMemoryRepoId(repoId);
+        memoryConfigIR.setEnable(true);
 
         // 从 DB 查询完整的策略和提取频率配置，与 workflow/agent IR 路径保持一致
         MemoryRepoEntity repoEntity = null;

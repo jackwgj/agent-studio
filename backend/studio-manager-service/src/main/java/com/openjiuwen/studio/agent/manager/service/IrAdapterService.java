@@ -772,6 +772,8 @@ public class IrAdapterService {
                 } else {
                     MemoryConfigIR memoryConfigIr = new MemoryConfigIR();
                     memoryConfigIr.setMemoryRepoId(repoId);
+                    // 绑定记忆库即启用 LLM 节点的记忆注入。
+                    memoryConfigIr.setEnable(true);
 
                     if (repoEntity.getConversationRound() != null || repoEntity.getTimeSpan() != null) {
                         MemoryConfigIR.ExtractConfig extractConfig = new MemoryConfigIR.ExtractConfig();
@@ -2348,6 +2350,7 @@ public class IrAdapterService {
                 if (repoEntity != null) {
                     MemoryConfigIR memoryConfigIr = new MemoryConfigIR();
                     memoryConfigIr.setMemoryRepoId(repoId);
+                    memoryConfigIr.setEnable(true);
                     if (repoEntity.getConversationRound() != null || repoEntity.getTimeSpan() != null) {
                         MemoryConfigIR.ExtractConfig extractConfig = new MemoryConfigIR.ExtractConfig();
                         extractConfig.setMaxChatTurn(repoEntity.getConversationRound());

@@ -205,7 +205,9 @@ class WorkflowRunner:
                     query=req.query or "",
                 )
                 if memory_message is not None:
-                    inputs["memory_message"] = memory_message
+                    inputs["memory_message"] = getattr(
+                        memory_message, "content", memory_message
+                    )
 
         workflow_logger.info(
             f"[PERF] === PRE-EXEC TOTAL: {(time.time() - perf_start) * 1000:.1f}ms ==="
