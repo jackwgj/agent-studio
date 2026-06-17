@@ -7,7 +7,7 @@ spec:
   ports:
     - name: cce-service-0
       protocol: TCP
-      #https请求方式修改点1：将port和targetPort的80端口号改成443端口号
+      # HTTPS启动：将port和targetPort改为443
       port: 80
       targetPort: 80
       nodePort: 30001
@@ -17,8 +17,7 @@ spec:
   type: NodePort
 
 ---
-#https请求方式修改点2：取消证书Secret配置的注释，按照提示配置cert.pem、pri_key.pem
-# ---------------------    证书Secret配置开始 ---------------------
+# HTTPS启动：删除以下行首的#号，填写证书Base64编码
 #kind: Secret
 #apiVersion: v1
 #metadata:
@@ -28,7 +27,6 @@ spec:
 #  cert.pem: '<base64编码内容>'
 #  pri_key.pem: '<base64编码内容>'
 #type: Opaque
-# ---------------------    证书Secret配置结束    ---------------------
 ---
 
 kind: ConfigMap
@@ -873,8 +871,7 @@ data:
 
 ---
 
-#https请求方式修改点3：取消证书密码挂载配置的注释，按照提示配置keypassfifo
-# ---------------------    证书密码挂载配置开始    ---------------------
+# HTTPS启动：删除以下行首的#号，填写证书密码Base64编码
 #kind: Secret
 #apiVersion: v1
 #metadata:
@@ -883,7 +880,6 @@ data:
 #data:
 #  keypassfifo: '<base64编码内容>'
 #type: Opaque
-# ---------------------    证书密码挂载配置结束    ---------------------
 
 ---
 
@@ -911,17 +907,15 @@ spec:
           configMap:
             name: nginx.conf
             defaultMode: 420
-      #https请求方式修改点4：取消证书Volume定义的注释
-      # ---------------------    证书Volume定义    ---------------------
-      #        - name: vol-175885593369061328
-      #          secret:
-      #            secretName: cert
-      #            defaultMode: 420
-      #        - name: vol-175885817081510014
-      #          secret:
-      #            secretName: nginx-secret
-      #            defaultMode: 420
-      # ---------------------    证书Volume定义结束    ---------------------
+      # HTTPS启动：删除以下行首的#号和空格，使缩进与上方已有的卷定义对齐
+        # - name: vol-175885593369061328
+        #   secret:
+        #     secretName: cert
+        #     defaultMode: 420
+        # - name: vol-175885817081510014
+        #   secret:
+        #     secretName: nginx-secret
+        #     defaultMode: 420
       containers:
         - name: container-studio-console
           image: studio-console:1.0.0.20260526091150.x86_64
@@ -936,15 +930,13 @@ spec:
             - name: vol-175869654720512159
               readOnly: true
               mountPath: /home/conf
-          #https请求方式修改点5：取消证书Volume绑定的注释
-          # ---------------------    证书Volume绑定开始    ---------------------
-          #            - name: vol-175885593369061328
-          #              readOnly: true
-          #              mountPath: /home/service/nginx
-          #            - name: vol-175885817081510014
-          #              readOnly: true
-          #              mountPath: /home/secret
-          # ---------------------    证书Volume绑定结束    ---------------------
+          # HTTPS启动：删除以下行首的#号和空格，使缩进与上方已有的挂载项对齐
+            # - name: vol-175885593369061328
+            #   readOnly: true
+            #   mountPath: /home/service/nginx
+            # - name: vol-175885817081510014
+            #   readOnly: true
+            #   mountPath: /home/secret
           terminationMessagePath: /dev/termination-log
           terminationMessagePolicy: File
           imagePullPolicy: Never

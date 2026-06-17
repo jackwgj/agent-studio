@@ -204,7 +204,7 @@ class OpenSearchSettings(BaseSettings):
 class MemorySettings(BaseSettings):
     """Memory library feature settings."""
 
-    enabled: bool = Field(default=True, validation_alias="MEMORY_ENABLED")
+    enabled: bool = Field(default=False, validation_alias="MEMORY_ENABLED")
     embedding_model: str = Field(
         default="bge-m3", validation_alias="MEMORY_EMBEDDING_MODEL"
     )

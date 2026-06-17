@@ -149,7 +149,7 @@ audio:
   english-timbre: ${audio_english_timbre:}
 
 okhttp:
-  ignore-cert: ${okhttp_ignore_cert:false}
+  ignore-cert: ${okhttp_ignore_cert:true}
   max-idle-connections: ${okhttp_max_idle_connections:20}
   keep-alive-duration: ${okhttp_keep_alive_duration:30}
   connect-timeout: ${okhttp_connect_timeout:10}
@@ -480,7 +480,7 @@ feign:
       elbClient:
         url: ${elb_client_endpoint:http://mock-elb:8080}
       jiuWenService:
-        url: ${jiu_wen_service_endpoint:}
+        url: ${jiu_wen_service_endpoint:http://127.0.0.1:31014}
       maasModel:
         url: ${maas_model_endpoint:http://mock-maas-model:8080}
       managementCenterFeignClient:
@@ -672,7 +672,7 @@ task.quota: ${task_quota:600}
 model.manager.server.endpoint: ${manager_server_baseurl:}
 
 jiuwen:
-  base-url: ${jiuwen_base_url:}
+  base-url: ${jiuwen_base_url:http://127.0.0.1:31014}
 
 prompt:
   contentlenth: ${prompt_max_length:10000}

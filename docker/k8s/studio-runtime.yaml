@@ -22,25 +22,48 @@ spec:
         - name: container-studio-runtime
           image: studio-runtime:1.0.0.20260526091150.x86_64
           env:
-            - name: PORT
-              value: '31014'
-            # redis连接信息，必填
+            # ======== [必填] Redis ========
+            # 单机模式：配置 REDIS_HOST、REDIS_PORT、REDIS_PASSWORD
+            # 集群模式：配置 REDIS_CLUSTER_NODES、REDIS_PASSWORD、REDIS_MODE=cluster
+            # 哨兵模式：配置 REDIS_SENTINEL_MASTER、REDIS_SENTINEL_NODES、REDIS_PASSWORD、REDIS_MODE=sentinel
             - name: REDIS_HOST
               value: ''
             - name: REDIS_PASSWORD
               value: ''
             - name: REDIS_PORT
-              value: '6379'
-            # obs连接信息，必填
+              value: ''
+            # 集群模式时填写，格式：host1:port1,host2:port2,host3:port3
+            - name: REDIS_CLUSTER_NODES
+              value: ''
+            # 哨兵模式时填写
+            - name: REDIS_SENTINEL_MASTER
+              value: ''
+            # 哨兵模式时填写，格式：host1:port1,host2:port2,host3:port3
+            - name: REDIS_SENTINEL_NODES
+              value: ''
+            # 单机无需配置，集群填cluster，哨兵填sentinel
+            - name: REDIS_MODE
+              value: ''
+            # Redis数据库编号，默认0
+            - name: REDIS_DATABASE
+              value: '0'
+            # ======== [必填] 对象存储 ========
             - name: DATASOURCE_OBS_SERVER
-              value: 'https://ip:port'
+              value: ''
             - name: DATASOURCE_OBS_BUCKET
-              value: 'agent-builder'
+              value: ''
             - name: DATASOURCE_OBS_AK
               value: ''
             - name: DATASOURCE_OBS_SK
               value: ''
-            # https证书，默认不用修改
+            - name: DATASOURCE_OBS_ENABLE_SSL
+              value: 'false'
+            # ======== 服务间调用地址（默认无需修改） ========
+            # 模型路由接口地址，HTTPS启动需要改成https
+            - name: MODEL_ROUTER_API
+              value: 'http://studio-service:31113/v1/agent-builder'
+            # ======== [选填] HTTPS证书 ========
+            # 启用时设HTTPS=true，并填写证书Base64编码
             - name: HTTPS
               value: 'false'
             - name: HTTPS_CERT_FILE
@@ -53,9 +76,73 @@ spec:
               value: '/opt/cloud/agent-runtime/tls/key.pem'
             - name: TLS_CERT_PATH
               value: '/opt/cloud/agent-runtime/tls/cert.pem'
-            # studio-service调用地址
-            - name: MODEL_ROUTER_API
-              value: 'http://studio-service:31113/v1/agent-builder'
+            # ======== [选填] 沙箱配置 ========
+            # 远程沙箱地址（配置后启用沙箱模式，为空则沙箱不可用自动走 local）
+            - name: SECURITY_SANDBOX_SERVER
+              value: ''
+            - name: SECURITY_SANDBOX_SSL_VERIFY
+              value: 'false'
+            - name: SECURITY_SANDBOX_IDLE_TTL
+              value: '600'
+            - name: SECURITY_SANDBOX_TIMEOUT
+              value: '300'
+            - name: SECURITY_SANDBOX_SCOPE
+              value: 'system'
+            # ======== [选填] OpenSearch（启用记忆库时必填） ========
+            # 格式: host:port，多节点用逗号分隔
+            - name: OPENSEARCH_HOSTS
+              value: ''
+            - name: OPENSEARCH_USERNAME
+              value: 'admin'
+            - name: OPENSEARCH_PASSWORD
+              value: 'admin'
+            - name: OPENSEARCH_USE_SSL
+              value: 'false'
+            - name: OPENSEARCH_SSL_VERIFY
+              value: 'false'
+            # ======== [选填] 记忆库配置（默认关闭） ========
+            # 总开关，设为true启用记忆库功能
+            - name: MEMORY_ENABLED
+              value: 'false'
+            - name: LONG_TERM_MEMORY_ENABLE
+              value: 'false'
+            - name: MEMORY_USER_PROFILE_ENABLE
+              value: 'false'
+            # 记忆库抽取用的Embedding模型配置（启用记忆库时必填）
+            - name: MEMORY_EMBEDDING_MODEL
+              value: 'bge-m3'
+            - name: MEMORY_EMBEDDING_BASE_URL
+              value: ''
+            - name: MEMORY_EMBEDDING_API_KEY
+              value: ''
+            # 记忆库抽取用的LLM模型配置（启用记忆库时必填）
+            - name: MEMORY_LLM_MODEL
+              value: ''
+            - name: MEMORY_LLM_BASE_URL
+              value: ''
+            - name: MEMORY_LLM_API_KEY
+              value: ''
+            # ======== [选填] 记忆库MySQL存储（启用记忆库时必填） ========
+            # 记忆库文本数据存储，可与主库共用同一MySQL实例，使用独立数据库
+            - name: MEMORY_DB_HOST
+              value: ''
+            - name: MEMORY_DB_PORT
+              value: '3306'
+            - name: MEMORY_DB_USER
+              value: ''
+            - name: MEMORY_DB_PASSWORD
+              value: ''
+            - name: MEMORY_DB_NAME
+              value: 'agent-memory'
+            # ======== [选填] 其他配置 ========
+            - name: PORT
+              value: '31014'
+            - name: PLUGIN_SSL_API_CERT
+              value: 'false'
+            - name: WORKFLOW_EXECUTE_TIMEOUT
+              value: '900'
+            - name: IR_LLM_API_KEY
+              value: 'sk-placeholder'
             - name: JIUWEN_LOG_FILE
               value: '/opt/cloud/logs/tgf_python.log'
             - name: JIUWEN_LOG_PATH
@@ -66,10 +153,6 @@ spec:
               value: '/opt/cloud/logs/'
             - name: TGF_LOG_DIR
               value: '/opt/cloud/logs/'
-            - name: PLUGIN_SSL_API_CERT
-              value: 'false'
-            - name: WORKFLOW_EXECUTE_TIMEOUT
-              value: '900'
           resources:
             limits:
               cpu: '2'

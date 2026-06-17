@@ -105,7 +105,7 @@ public class JiuWenPromptTaskJob implements Job {
 
     private static final String PROMPT_FEEDBACK_API = "/flask/v1/prompt/optimize_feedback";
 
-    @Value("${jiuwen.base-url:https://jiuwen-runtime.default.svc.cluster.local:31024}")
+    @Value("${jiuwen.base-url:}")
     private String jiuwenBaseUrl;
 
     @Resource(name = "remoteClientTemplate")

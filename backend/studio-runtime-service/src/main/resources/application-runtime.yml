@@ -168,7 +168,7 @@ tool:
     black-list: ${tool_url_black_list:}
     white-list: ${tool_url_white_list:}
 okhttp:
-  ignore-cert: ${okhttp_ignore_cert:false}
+  ignore-cert: ${okhttp_ignore_cert:true}
   max-idle-connections: ${okhttp_max_idle_connections:40}
   keep-alive-duration: ${okhttp_keep_alive_duration:30}
   connect-timeout: ${okhttp_connect_timeout:10}
@@ -212,12 +212,10 @@ feign:
         url: ${iam_manager_endpoint:http://mock-iam-manager:8080}
       agentManager:
         url: ${agent_manager_endpoint:http://127.0.0.1:31111}
-      agentBaseRuntime:
-        url: ${agent_base_runtime_endpoint:http://mock-agent-base-runtime:8080}
       kooSearch:
         url: ${koosearch_endpoint:http://mock-koo-search:8080}
       jiuWenService:
-        url: ${jiuwen_base_url:http://mock-jiuwen:8080}
+        url: ${jiuwen_base_url:http://127.0.0.1:31014}
       modelManager:
         url: ${model_manager_endpoint:http://mock-model-manager:8080}
       ocrClient:
@@ -447,7 +445,7 @@ tenant:
 # AgentBuilderCommonSDK中调用agent-manager服务的地址
 agent-builder:
   agent-manager:
-    domain: ${agent_manager_endpoint:}
+    domain: ${agent_manager_endpoint:http://127.0.0.1:31111}
 
 isHcs: ${is_hcs:false}
 trace.audit.enabled: false
