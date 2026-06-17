@@ -201,6 +201,29 @@ class CacheUtils:
         """生成key"""
         return f"agent_runtime:{self.cache_name}:{key}"
 
+    async def aget_with_source(self, key: str) -> tuple[Any, str]:
+        """异步按层级查找缓存，返回 (value, source)。
+
+        source 为 'memory' / 'redis' / 'obs'，用于性能日志区分缓存来源。
+        未命中任何缓存时返回 (None, '')，调用方需自行从存储加载。
+        """
+        unique_key = self._generate_unique_key(key)
+
+        # memory 缓存
+        value = self._get_from_memory_cache(unique_key)
+        if value is not None:
+            self._update_memory_cache(unique_key, value)
+            return value, "memory"
+
+        # redis 缓存
+        value = await self.async_redis_cache.get(unique_key)
+        if value is not None:
+            value = deserialize_object(value) if self.should_serialize else value
+            self._update_memory_cache(unique_key, value)
+            return value, "redis"
+
+        return None, ""
+
 
 # 缓存队列实例
 cache_ir_queue = CacheUtils(
@@ -248,28 +271,18 @@ async def async_ir_load(path: str) -> dict:
     t_start = time.perf_counter()
     logger.info("Async Loading IR content from %s", path)
 
-    unique_key = cache_ir_queue._generate_unique_key(path)
-
-    # memory 缓存
-    ir_value = cache_ir_queue._get_from_memory_cache(unique_key)
+    ir_value, source = await cache_ir_queue.aget_with_source(path)
     if ir_value is not None:
-        logger.info("Cache HIT! Process %d async got cached data: %s", os.getpid(), path)
-        cache_ir_queue._update_memory_cache(unique_key, ir_value)
-        performance_logger.info(f"ir_load|{round((time.perf_counter() - t_start) * 1000)}|memory")
-        return ir_value
-
-    # redis 缓存
-    ir_value = await cache_ir_queue.async_redis_cache.get(unique_key)
-    if ir_value is not None:
-        ir_value = deserialize_object(ir_value) if cache_ir_queue.should_serialize else ir_value
-        cache_ir_queue._update_memory_cache(unique_key, ir_value)
-        logger.info(
-            "Redis HIT! Process %d async got cached data: %s, "
-            "memory size %d/%d",
-            os.getpid(), path,
-            cache_ir_queue.memory_cache.currsize, cache_ir_queue.memory_cache.maxsize,
-        )
-        performance_logger.info(f"ir_load|{round((time.perf_counter() - t_start) * 1000)}|redis")
+        if source == "memory":
+            logger.info("Cache HIT! Process %d async got cached data: %s", os.getpid(), path)
+        else:
+            logger.info(
+                "Redis HIT! Process %d async got cached data: %s, "
+                "memory size %d/%d",
+                os.getpid(), path,
+                cache_ir_queue.memory_cache.currsize, cache_ir_queue.memory_cache.maxsize,
+            )
+        performance_logger.info(f"ir_load|{round((time.perf_counter() - t_start) * 1000)}|{source}")
         return ir_value
 
     # obs 存储
