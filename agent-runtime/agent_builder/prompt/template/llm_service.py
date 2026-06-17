@@ -2,8 +2,8 @@
 """
 common llm service
 
-Uses OpenAICompatibleService from the adapter layer instead of jiuwen's ModelFactory.
-All LLM calls now go through OpenAI-compatible HTTP API.
+使用 model_providers.get_prompt_optimize_model() 获取九问平台 Model 实例，
+替代原来通过 OpenAICompatibleService 的调用方式。
 """
 
 import json
@@ -12,10 +12,11 @@ from abc import abstractmethod
 from typing import List, Dict
 
 from agent_builder.adapter.exception_bridge import JiuWenBaseException
-from agent_builder.adapter.llm_bridge import OpenAICompatibleService
+from agent_builder.adapter.llm_bridge import _run_async, _collect_async_gen
 from agent_builder.adapter.logger_bridge import logger
 from agent_builder.common.exception.status_code import StatusCode
 from agent_builder.prompt.common.config import LLMModelInfo
+from agent_runtime.common.model_providers import get_prompt_optimize_model
 from pydantic import BaseModel, Field
 
 
@@ -36,10 +37,10 @@ class BaseLLMService(BaseModel):
 
 class EiCloudLLMService(BaseLLMService):
     """
-    Ei cloud service using OpenAI-compatible HTTP API.
+    Ei cloud service using agent-core Model via PromptOptimizeModelProvider.
 
-    Replaces the original ModelFactory-based implementation with
-    direct HTTP calls via OpenAICompatibleService.
+    通过 get_prompt_optimize_model() 获取九问平台的 Model 实例，
+    配置逻辑由 PromptOptimizeModelProvider 统一管理（settings.llm + modelInfo + 认证头）。
     """
 
     system_message: list = Field(default=[])
@@ -47,13 +48,14 @@ class EiCloudLLMService(BaseLLMService):
     def full_chat(
         self, messages: List[dict], extra_info: Dict = None
     ) -> Dict[str, str]:
-        """full chat using OpenAI-compatible API"""
+        """full chat using agent-core Model (sync bridge)"""
         if self.add_prefix:
             messages = self.system_message + messages
         try:
-            service = OpenAICompatibleService(model_info=self.model_info)
-            result = service.full_chat(messages, extra_info=extra_info)
-            return result
+            model = get_prompt_optimize_model(self.model_info)
+            response = _run_async(model.invoke(messages))
+            content = response.content if hasattr(response, "content") else str(response)
+            return dict(code=0, message="success", data=content)
         except JiuWenBaseException as error:
             traceback_error_msg = traceback.format_exc()
             code = StatusCode.PROMPT_LLM_GENERATION_FAILED_ERROR.code
@@ -79,12 +81,16 @@ class EiCloudLLMService(BaseLLMService):
     def streaming_chat(
         self, messages: List[dict], extra_info: Dict = None
     ) -> Dict[str, str]:
-        """streaming chat using OpenAI-compatible API"""
+        """streaming chat using agent-core Model (sync bridge)"""
         if self.add_prefix:
             messages = self.system_message + messages
         try:
-            service = OpenAICompatibleService(model_info=self.model_info)
-            yield from service.streaming_chat(messages, extra_info=extra_info)
+            model = get_prompt_optimize_model(self.model_info)
+            chunks = _collect_async_gen(model.stream(messages))
+            for chunk in chunks:
+                content = chunk.content if hasattr(chunk, "content") else str(chunk)
+                if content:
+                    yield dict(code=0, message="success", data=content)
         except JiuWenBaseException as error:
             logger.error(
                 f"request agent builder llm failed! code: {error.error_code}, detail: {error.message}"
@@ -103,13 +109,15 @@ class EiCloudLLMService(BaseLLMService):
     async def astreaming_chat(
         self, messages: List[dict], extra_info: Dict = None
     ):
-        """async streaming chat using OpenAI-compatible API"""
+        """async streaming chat using agent-core Model (native async)"""
         if self.add_prefix:
             messages = self.system_message + messages
         try:
-            service = OpenAICompatibleService(model_info=self.model_info)
-            async for item in service.astreaming_chat(messages, extra_info=extra_info):
-                yield item
+            model = get_prompt_optimize_model(self.model_info)
+            async for chunk in model.stream(messages):
+                content = chunk.content if hasattr(chunk, "content") else str(chunk)
+                if content:
+                    yield dict(code=0, message="success", data=content)
         except JiuWenBaseException as error:
             logger.error(
                 f"request agent builder llm failed! code: {error.error_code}, detail: {error.message}"
