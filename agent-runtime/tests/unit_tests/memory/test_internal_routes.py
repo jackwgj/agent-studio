@@ -302,3 +302,157 @@ class TestClearUserMemories:
                 )
         assert resp.status_code == 400
         assert "not a valid UUID" in resp.json()["reason"]
+
+
+class TestSearchMemories:
+    """Tests for POST /{repo}/users/{user}/memories/search."""
+
+    @pytest.mark.asyncio
+    async def test_search_ltm_none(self):
+        """LTM not initialized should return empty results."""
+        with patch("agent_runtime.memory.internal_routes.get_ltm", return_value=None):
+            app = _make_app()
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                resp = await client.post(
+                    f"/internal/v1/memory-repos/{REPO_ID}/users/testuser/memories/search",
+                    json={"query": "test query"},
+                )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["total"] == 0
+        assert data["memories"] == []
+
+    @pytest.mark.asyncio
+    async def test_search_success(self):
+        """Valid search should return matching memories."""
+        # Mock LTM search result
+        mock_mem_info = type("MemInfo", (), {
+            "mem_id": "mem-1",
+            "content": "test memory content",
+            "type": type("Type", (), {"value": "summary"})(),
+            "timestamp": "2026-06-17T10:00:00",
+        })()
+        mock_result = type("MemResult", (), {
+            "mem_info": mock_mem_info,
+            "score": 0.85,
+        })()
+
+        mock_ltm = AsyncMock()
+        mock_ltm.search_user_mem = AsyncMock(return_value=[mock_result])
+
+        with patch("agent_runtime.memory.internal_routes.get_ltm", return_value=mock_ltm):
+            app = _make_app()
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                resp = await client.post(
+                    f"/internal/v1/memory-repos/{REPO_ID}/users/testuser/memories/search",
+                    json={"query": "test query", "top_k": 5, "threshold": 0.3},
+                )
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["total"] == 1
+        assert len(data["memories"]) == 1
+        assert data["memories"][0]["memory_id"] == "mem-1"
+        assert data["memories"][0]["content"] == "test memory content"
+        assert data["memories"][0]["score"] == 0.85
+
+    @pytest.mark.asyncio
+    async def test_search_user_id_lowercased(self):
+        """user_id should be lowercased before calling LTM."""
+        mock_ltm = AsyncMock()
+        mock_ltm.search_user_mem = AsyncMock(return_value=[])
+
+        with patch("agent_runtime.memory.internal_routes.get_ltm", return_value=mock_ltm):
+            app = _make_app()
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                resp = await client.post(
+                    f"/internal/v1/memory-repos/{REPO_ID}/users/TestUser/memories/search",
+                    json={"query": "test"},
+                )
+
+        assert resp.status_code == 200
+        # Verify LTM was called with lowercased user_id
+        mock_ltm.search_user_mem.assert_awaited_once()
+        call_kwargs = mock_ltm.search_user_mem.call_args.kwargs
+        assert call_kwargs["user_id"] == "testuser"
+
+    @pytest.mark.asyncio
+    async def test_search_empty_query_returns_400(self):
+        """Empty query should return HTTP 400."""
+        with patch("agent_runtime.memory.internal_routes.get_ltm", return_value=AsyncMock()):
+            app = _make_app()
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                resp = await client.post(
+                    f"/internal/v1/memory-repos/{REPO_ID}/users/testuser/memories/search",
+                    json={"query": ""},
+                )
+        assert resp.status_code == 400
+        data = resp.json()
+        assert "query is required" in data["reason"]
+
+    @pytest.mark.asyncio
+    async def test_search_missing_query_returns_400(self):
+        """Missing query field should return HTTP 400."""
+        with patch("agent_runtime.memory.internal_routes.get_ltm", return_value=AsyncMock()):
+            app = _make_app()
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                resp = await client.post(
+                    f"/internal/v1/memory-repos/{REPO_ID}/users/testuser/memories/search",
+                    json={},
+                )
+        assert resp.status_code == 400
+
+    @pytest.mark.asyncio
+    async def test_search_invalid_repo_uuid_returns_400(self):
+        """Invalid repo UUID format should return HTTP 400."""
+        with patch("agent_runtime.memory.internal_routes.get_ltm", return_value=AsyncMock()):
+            app = _make_app()
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                resp = await client.post(
+                    f"/internal/v1/memory-repos/{INVALID_ID}/users/testuser/memories/search",
+                    json={"query": "test"},
+                )
+        assert resp.status_code == 400
+        data = resp.json()
+        assert "not a valid UUID" in data["reason"]
+
+    @pytest.mark.asyncio
+    async def test_search_default_parameters(self):
+        """Missing top_k and threshold should use defaults."""
+        mock_ltm = AsyncMock()
+        mock_ltm.search_user_mem = AsyncMock(return_value=[])
+
+        with patch("agent_runtime.memory.internal_routes.get_ltm", return_value=mock_ltm):
+            app = _make_app()
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                resp = await client.post(
+                    f"/internal/v1/memory-repos/{REPO_ID}/users/testuser/memories/search",
+                    json={"query": "test"},
+                )
+
+        assert resp.status_code == 200
+        # Verify defaults were used
+        call_kwargs = mock_ltm.search_user_mem.call_args.kwargs
+        assert call_kwargs["num"] == 10
+        assert call_kwargs["threshold"] == 0.3
+
+    @pytest.mark.asyncio
+    async def test_search_ltm_exception_returns_error(self):
+        """LTM exception should return error in response."""
+        mock_ltm = AsyncMock()
+        mock_ltm.search_user_mem = AsyncMock(side_effect=Exception("search failed"))
+
+        with patch("agent_runtime.memory.internal_routes.get_ltm", return_value=mock_ltm):
+            app = _make_app()
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                resp = await client.post(
+                    f"/internal/v1/memory-repos/{REPO_ID}/users/testuser/memories/search",
+                    json={"query": "test"},
+                )
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["total"] == 0
+        assert data["memories"] == []
+        assert "error" in data
+        assert "search failed" in data["error"]

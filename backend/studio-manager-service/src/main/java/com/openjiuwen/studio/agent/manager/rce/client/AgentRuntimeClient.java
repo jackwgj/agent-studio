@@ -556,4 +556,35 @@ public interface AgentRuntimeClient {
     @DeleteMapping(value = "/internal/v1/memory-repos/{memory_repo_id}")
     ResponseEntity<Object> deleteMemoryRepoData(
         @PathVariable("memory_repo_id") String memoryRepoId);
+
+    /**
+     * List memories for a user within a memory repo scope.
+     * Calls runtime internal API which queries OpenSearch.
+     */
+    @GetMapping(value = "/internal/v1/memory-repos/{memory_repo_id}/users/{user_id}/memories")
+    ResponseEntity<Object> listMemories(
+        @PathVariable("memory_repo_id") String memoryRepoId,
+        @PathVariable("user_id") String userId,
+        @RequestParam(value = "page_size", defaultValue = "10") Integer pageSize,
+        @RequestParam(value = "page_num", defaultValue = "1") Integer pageNum);
+
+    /**
+     * Batch-delete memories by ID list for a user within a memory repo scope.
+     * Calls runtime internal API which deletes from OpenSearch.
+     */
+    @PostMapping(value = "/internal/v1/memory-repos/{memory_repo_id}/users/{user_id}/memories/batch-delete")
+    ResponseEntity<Object> batchDeleteMemories(
+        @PathVariable("memory_repo_id") String memoryRepoId,
+        @PathVariable("user_id") String userId,
+        @RequestBody java.util.Map<String, List<String>> body);
+
+    /**
+     * Semantic search for memories within a memory repo scope.
+     * Calls runtime internal API which searches OpenSearch.
+     */
+    @PostMapping(value = "/internal/v1/memory-repos/{memory_repo_id}/users/{user_id}/memories/search")
+    ResponseEntity<Object> searchMemories(
+        @PathVariable("memory_repo_id") String memoryRepoId,
+        @PathVariable("user_id") String userId,
+        @RequestBody java.util.Map<String, Object> body);
 }

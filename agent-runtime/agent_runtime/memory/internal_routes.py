@@ -185,6 +185,74 @@ async def list_user_memories(
         return {"total": 0, "memories": [], "error": str(e)}
 
 
+@memory_internal_router.post("/{memory_repo_id}/users/{user_id}/memories/search")
+async def search_memories(
+    memory_repo_id: str,
+    user_id: str,
+    body: dict,
+):
+    """Semantic search for memories within a memory repo scope.
+
+    Body: {"query": "...", "top_k": 10, "threshold": 0.3}
+    """
+    err = _validate_uuid(memory_repo_id, "memory_repo_id")
+    if err:
+        return JSONResponse(status_code=400, content={"status": "error", "reason": err})
+
+    ltm = get_ltm()
+    if ltm is None:
+        return {"total": 0, "memories": []}
+
+    # LTM stores user_id in lowercase (OpenSearch index names must be lowercase)
+    user_id = user_id.lower()
+
+    query = body.get("query", "")
+    if not query:
+        return JSONResponse(status_code=400, content={"status": "error", "reason": "query is required"})
+
+    top_k = body.get("top_k", 10)
+    threshold = body.get("threshold", 0.3)
+
+    try:
+        results = await ltm.search_user_mem(
+            query=query,
+            num=top_k,
+            user_id=user_id,
+            scope_id=memory_repo_id,
+            threshold=threshold,
+        )
+
+        memories = []
+        for r in (results or []):
+            info = r.mem_info if hasattr(r, "mem_info") else r
+            mem_type = getattr(info, "type", None)
+            if mem_type is not None and hasattr(mem_type, "value"):
+                mem_type_str = mem_type.value
+            elif mem_type is not None:
+                mem_type_str = str(mem_type)
+            else:
+                mem_type_str = ""
+
+            memories.append({
+                "memory_id": getattr(info, "mem_id", ""),
+                "content": getattr(info, "content", ""),
+                "type": mem_type_str,
+                "score": getattr(r, "score", None),
+                "last_update_time": str(getattr(info, "timestamp", "")),
+            })
+
+        return {"total": len(memories), "memories": memories}
+    except Exception as e:
+        logger.error(
+            "Failed to search memories for user %s in repo %s: %s",
+            user_id,
+            memory_repo_id,
+            e,
+            exc_info=True,
+        )
+        return {"total": 0, "memories": [], "error": str(e)}
+
+
 @memory_internal_router.put("/{memory_repo_id}/memories/{memory_id}")
 async def update_memory(memory_repo_id: str, memory_id: str, body: dict):
     """Update a single memory's content.
