@@ -10,6 +10,7 @@ dependencies = [
     "pydantic-settings~=2.13.1",
     "openjiuwen[sandbox]",
     "boto3",
+    "aioboto3",
     "aiohttp",
     "httpx",
     "requests",

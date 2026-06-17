@@ -32,6 +32,8 @@ def _plain_decrypt(encrypt_str: str):
 JiuWenCrypt.encrypt = staticmethod(_plain_encrypt)
 JiuWenCrypt.decrypt = staticmethod(_plain_decrypt)
 
+from agent_runtime.storage import S3StorageProvider
+
 from agent_runtime.common import settings
 from agent_runtime.common.checkpointer_config import build_redis_checkpointer_config
 from agent_runtime.common.exception.errors import AgentBuilderError
@@ -140,6 +142,14 @@ async def lifespan(app: FastAPI):  # noqa: redefined-outer-name
     CheckpointerFactory.set_default_checkpointer(redis_checkpointer)
     logger.info("Redis checkpointer initialized and set as default")
 
+    # 初始化异步 S3 存储客户端
+    try:
+        s3_provider = S3StorageProvider.instance()
+        await s3_provider.initialize()
+        logger.info("S3 async storage client initialized")
+    except Exception as e:
+        logger.warning(f"S3 async storage client initialization failed (non-critical): {e}")
+
     # 注册 flow_code 专用的 SysOperation（local mode）
     sys_op_id = "flow_code_sys_op"
     if Runner.resource_mgr.get_sys_operation(sys_op_id) is None:
@@ -184,6 +194,13 @@ async def lifespan(app: FastAPI):  # noqa: redefined-outer-name
     try:
         yield
     finally:
+        # 关闭异步 S3 存储客户端
+        try:
+            s3_provider = S3StorageProvider.instance()
+            await s3_provider.close()
+        except Exception:
+            pass
+
         # 关闭 Redis 客户端
         await redis_mgr.close()
         logger.info("Redis client closed")

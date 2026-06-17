@@ -1025,11 +1025,11 @@ class Agent(BaseAgent):
                 except Exception as obs_sdk_err:
                     logger.warning(
                         f"[SkillDownload] OBS SDK download failed for {skill_name}: {obs_sdk_err}. "
-                        f"Trying S3StorageProvider (boto3) as fallback."
+                        f"Trying S3StorageProvider (aioboto3) as fallback."
                     )
                     try:
                         from agent_runtime.storage.object_storage import S3StorageProvider
-                        s3_provider = S3StorageProvider()
+                        s3_provider = S3StorageProvider.instance()
                         content_bytes = await s3_provider.get_object_bytes(skill_path)
                         os.makedirs(os.path.dirname(local_zip_path), exist_ok=True)
                         with open(local_zip_path, "wb") as f:
