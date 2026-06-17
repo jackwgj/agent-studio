@@ -154,10 +154,6 @@ class S3StorageProvider(ObjectStorageProvider):
 
             body = response["Body"].read()
             content = body.decode("utf-8")
-            workflow_logger.debug(
-                f"Read object from OBS: bucket={bucket_name}, key={object_key}, size={len(content)} bytes"
-            )
-            workflow_logger.debug(f"Object content: {content}")
             return content
 
         except StorageConfigError:

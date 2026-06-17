@@ -6,6 +6,7 @@
 import builtins
 import importlib
 import io
+import json
 import os
 import pickle
 import time
@@ -20,6 +21,7 @@ from jiuwen.common.exception.base import JiuWenBaseException
 from jiuwen.common.exception.status_code import StatusCode
 from jiuwen.common.log.base import logger
 from jiuwen.common.utils.utils import safe_json_loads_raise_exception
+from openjiuwen.core.common.logging import workflow_logger
 
 from jiuwen.serve.common.logger.request_logger import log_function_timing
 
@@ -259,6 +261,17 @@ cache_intent_rule_queue = CacheUtils(
 )
 
 
+def _log_ir_content(source: str, path: str, ir_data: dict):
+    """以 DEBUG 级别输出 IR 内容的 JSON 日志。"""
+    try:
+        _ir_json = json.dumps(ir_data, ensure_ascii=False, default=str)
+        workflow_logger.debug(
+            f"IR content from {source}: path={path}, size={len(_ir_json)} bytes, content={_ir_json}"
+        )
+    except Exception as e:
+        logger.warning("Failed to log IR content: source=%s, path=%s, error=%s", source, path, e)
+
+
 @log_function_timing
 async def async_ir_load(path: str) -> dict:
     """异步加载IR内容，支持任意Python对象缓存。
@@ -282,6 +295,7 @@ async def async_ir_load(path: str) -> dict:
                 os.getpid(), path,
                 cache_ir_queue.memory_cache.currsize, cache_ir_queue.memory_cache.maxsize,
             )
+        _log_ir_content(source, path, ir_value)
         performance_logger.info(f"ir_load|{round((time.perf_counter() - t_start) * 1000)}|{source}")
         return ir_value
 
@@ -290,6 +304,8 @@ async def async_ir_load(path: str) -> dict:
     from agent_runtime.serve.apis.orchestration import _load_ir_json
 
     ir_data = await _load_ir_json(path)
+
+    _log_ir_content("obs", path, ir_data)
 
     ir_data["ir_path"] = path
     ir_data["is_published"] = is_ir_published(path)
@@ -313,6 +329,7 @@ def ir_load(path: str) -> dict:
     ir_value = cache_ir_queue.get(path)
     if ir_value:
         logger.info("Cache HIT! Process %d got cached data: %s", os.getpid(), path)
+        _log_ir_content("cache", path, ir_value)
         return ir_value
 
     logger.info("Cache MISS! Process %d loading from OBS: %s", os.getpid(), path)
@@ -325,6 +342,8 @@ def ir_load(path: str) -> dict:
             error_code=StatusCode.IR_DATA_JSON_LOAD_FAILED.code,
             message=StatusCode.IR_DATA_JSON_LOAD_FAILED.errmsg
         ) from e
+
+    _log_ir_content("obs", path, ir_data)
 
     ir_data["ir_path"] = path
     ir_data["is_published"] = is_ir_published(path)
