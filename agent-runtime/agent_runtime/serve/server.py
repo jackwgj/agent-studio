@@ -83,7 +83,8 @@ from agent_runtime.extension.workflow_node.flow_code import FlowCode, JIUWEN_COD
 component_class_pool.register_component_class(JIUWEN_CODE_TYPE, FlowCode)
 logger.info("Registered workflow component: jiuwen.code")
 
-apps_map = [execution_app, prompt_manage_app, user_variable_router, memory_internal_router]
+# FastAPI routers must be included BEFORE Flask app mount (Flask catches all routes)
+apps_map = [execution_app, user_variable_router, memory_internal_router, prompt_manage_app]
 
 
 @asynccontextmanager
