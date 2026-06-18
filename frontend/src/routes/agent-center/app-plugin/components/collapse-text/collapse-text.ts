@@ -71,6 +71,16 @@ export class CollapseText {
         return 'style4-title-text';
       case this.classType === 'style4' && position === 'pdb':
         return '0px';
+      case this.classType === 'style5' && position === 'main-collapse':
+        return 'style5-main-collapse';
+      case this.classType === 'style5' && position === 'title-row':
+        return 'style5-title-row';
+      case this.classType === 'style5' && position === 'title-left':
+        return 'style5-title-left';
+      case this.classType === 'style5' && position === 'title-text':
+        return 'style5-title-text';
+      case this.classType === 'style5' && position === 'pdb':
+        return '24px';
       default:
         return '';
     }

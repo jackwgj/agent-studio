@@ -242,7 +242,7 @@ export class EditShareModalComponent implements OnInit {
 
   queryWorkspaceList() {
     this.shareService.getWorkspace({
-      scope: 'domain'
+      scope: 'project'
     })
       .then((res) => {
         const list = res.workspaceList || [];

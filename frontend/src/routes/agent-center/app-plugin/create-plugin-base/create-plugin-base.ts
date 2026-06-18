@@ -346,8 +346,8 @@ export class CreatePluginBaseComponent implements OnInit {
 
   public groupFormControl = this.fb.group({
     pluginName: new FormControl('', []),
-    pluginZhName: new FormControl('', []),
-    pluginDescription: new FormControl('', []),
+    pluginZhName: new FormControl('', [Validators.required, CommonValidation.pluginZHNameVerify(this.i18n.transform('variable_validator10'))]),
+    pluginDescription: new FormControl('', [Validators.required]),
     pluginLogo: new FormControl(''),
     visibility: new FormControl(false),
     pluginMethod: new FormControl('GET', []),
@@ -360,7 +360,7 @@ export class CreatePluginBaseComponent implements OnInit {
     metadata: new FormControl(''),
     protocol: new FormControl('https', []),
     host: new FormControl('', [CommonValidation.pluginParamHostVerify(this.i18n.transform('plugin_host_error'))]),
-    baseURL: new FormControl('/', [CommonValidation.pluginParamBaseUrlVerify(this.i18n.transform('plugin_baseURL_error'))]),
+    baseURL: new FormControl('', [CommonValidation.pluginParamBaseUrlVerify(this.i18n.transform('plugin_baseURL_error'))]),
     callMode: new FormControl('api', []),
     iamUrl: new FormControl('', []),
     sgovUrl: new FormControl('', []),
@@ -380,6 +380,8 @@ export class CreatePluginBaseComponent implements OnInit {
 
   hostError = '';
   baseURLError = '';
+  pluginZhNameError = '';
+  pluginDescriptionError = '';
 
   get callModeIsFunctionGraph() {
     return this.groupFormControl.controls.callMode.value === 'functiongraph';
@@ -540,10 +542,17 @@ export class CreatePluginBaseComponent implements OnInit {
     }
   }
 
+  checkFormDom(form, cName) {
+    form.controls[cName].markAsDirty();
+    form.controls[cName].updateValueAndValidity({ onlySelf: false });
+  }
+
   public btnDisabledFunc(step: number): boolean {
     //待优化
     const form = this.groupFormControl.controls;
     if (step === 0) {
+      this.checkFormDom(this.groupFormControl, 'pluginZhName');
+      this.checkFormDom(this.groupFormControl, 'pluginDescription');
       if (form.pluginZhName.errors || form.pluginName.errors || form.pluginDescription.errors) {
         return true;
       }

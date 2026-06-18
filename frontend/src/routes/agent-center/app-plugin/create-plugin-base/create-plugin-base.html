@@ -57,8 +57,11 @@
         </nz-form-item>
         <nz-form-item>
           <nz-form-label [nzSpan]="24">{{ createPluginFormLabel.pluginZhName }}</nz-form-label>
-          <nz-form-control nzErrorTip="{{ 'input_placeholder' | i18nextEager }}">
-            <input nz-input maxlength="64" formControlName="pluginZhName" style="width: 100%" [placeholder]="createPluginFormLabel.defaultPlaceholder" />
+          <nz-form-control [nzErrorTip]="pluginZhNameTpl">
+            <input nz-input maxlength="64" formControlName="pluginZhName" style="width: 100%" [placeholder]="createPluginFormLabel.defaultPlaceholder"/>
+            <ng-template #pluginZhNameTpl let-control>
+              @if (control.hasError('required')) { 必须输入 }@else{ {{ control.errors.serviceName.tiErrorMessage}} }
+            </ng-template>
           </nz-form-control>
         </nz-form-item>
         <nz-form-item *ngIf="false">
@@ -69,7 +72,7 @@
         </nz-form-item>
         <nz-form-item>
           <nz-form-label [nzSpan]="24">{{ createPluginFormLabel.pluginDescription }}</nz-form-label>
-          <nz-form-control nzErrorTip="{{ 'input_placeholder' | i18nextEager }}">
+          <nz-form-control [nzErrorTip]="pluginDescriptionTpl">
             <textarea
               nz-input
               maxlength="600"
@@ -78,6 +81,9 @@
               [placeholder]="createPluginFormLabel.defaultPlaceholder"
             >
             </textarea>
+            <ng-template #pluginDescriptionTpl let-control>
+              @if (control.hasError('required')) { 必须输入 }@else{ {{ control.errors.serviceName.tiErrorMessage}} }
+            </ng-template>
           </nz-form-control>
         </nz-form-item>
         <div [hidden]="isOp" class="mt-[20px] flex items-center gap-[4px]">
@@ -92,7 +98,7 @@
       <!-- 配置信息 -->
       <div *ngIf="step === 1" class="plugin-auth-info" style="margin-top: -25px">
         <div>
-          <collapse-text [title]="'config_info'|i18nextEager">
+          <collapse-text [title]="'config_info'|i18nextEager" [classType]="'style5'">
             <ng-template #content>
               <nz-form-item>
                 <nz-form-label [nzSpan]="24">{{ createPluginFormLabel.protocol }}</nz-form-label>
@@ -124,7 +130,7 @@
                     formControlName="host"
                     [class]="{'custom-error-style':hostError}"
                   ></meta-param-editor>
-                    <span class="mt-[8px] w-full text-[#f23030]" *ngIf="hostError">{{ hostError }}</span>
+                  <span class="mt-[8px] w-full text-[#f23030]" *ngIf="hostError">{{ hostError }}</span>
                 </nz-form-control>
               </nz-form-item>
               <nz-form-item>
@@ -149,7 +155,7 @@
                     formControlName="baseURL"
                     [class]="{'custom-error-style':baseURLError}"
                   ></meta-param-editor>
-                    <span class="mt-[8px] w-full text-[#f23030]" *ngIf="baseURLError">{{ baseURLError }}</span>
+                  <span class="mt-[8px] w-full text-[#f23030]" *ngIf="baseURLError">{{ baseURLError }}</span>
                 </nz-form-control>
               </nz-form-item>
               <nz-form-item>
@@ -203,7 +209,7 @@
             </ng-template>
           </collapse-text>
         </div>
-        <collapse-text [classType]="'style2'" [title]="'request_auth'|i18nextEager">
+        <collapse-text [classType]="'style5'" [title]="'request_auth'|i18nextEager">
           <ng-template #content>
             <nz-form-item style="width: 630px">
               <nz-form-label [nzSpan]="6">{{ createPluginFormLabel.pluginAuth }}</nz-form-label>
@@ -270,7 +276,6 @@
                         <div *ngIf="apiAuthForm?.controls['apiKeyAuthName' + i]?.invalid" class="error-tip">
                           {{apiAuthForm?.controls['apiKeyAuthName' + i]?.errors?.serviceName?.tiErrorMessage}}
                         </div>
-
                       </div>
 
                       <div class="w-[48%]">

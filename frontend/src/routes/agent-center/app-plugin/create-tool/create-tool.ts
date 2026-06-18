@@ -656,17 +656,6 @@ export class CreateToolComponent implements OnInit {
     }
   }
 
-  index = 0;
-  public asdasdasd(className) {
-    const max = document.getElementsByClassName(className)?.length || 0;
-    if (this.index <= max) {
-      this.index++;
-    } else {
-      this.index = 0;
-    }
-    return this.index--;
-  }
-
   public addArgs(key: string) {
     switch (key) {
       case 'requestArgs': {
@@ -907,23 +896,33 @@ export class CreateToolComponent implements OnInit {
   }
 
   showFromErrorByName(form, validatorName): boolean {
+    let res = true;
     const keysList = Object.keys(form.controls);
     if (keysList) {
       for (let i = 0; i < keysList.length; i++) {
-        for (let j = 0; j < validatorName.length; j++) {
-          if (keysList[i].indexOf(validatorName[j]) === 0) {
-            if (form.controls[keysList[i]].errors) {
-              return false;
+        form.controls[keysList[i]].markAsDirty();
+        form.controls[keysList[i]].updateValueAndValidity({ onlySelf: false });
+        if (validatorName?.length > 0) {
+          for (let j = 0; j < validatorName.length; j++) {
+            if (keysList[i].indexOf(validatorName[j]) === 0) {
+              if (form.controls[keysList[i]].errors) {
+                res = false;
+              }
             }
+          }
+        } else {
+          if (form.controls[keysList[i]].errors) {
+            res = false;
           }
         }
       }
     }
-    return true;
+
+    return res;
   }
 
   async onConfirm() {
-    if (!this.showFromError(this.groupFormControl)) {
+    if (!this.showFromErrorByName(this.groupFormControl, [])) {
       return;
     }
     if (!this.showFromError(this.inputForm.form)) {
@@ -932,10 +931,10 @@ export class CreateToolComponent implements OnInit {
     if (!this.showFromError(this.responseForm.form)) {
       return;
     }
-    if (!this.showFromErrorByName(this.inputForm, ['inputFormName', 'inputFormDesc'])) {
+    if (!this.showFromErrorByName(this.inputForm.form, ['inputFormName', 'inputFormDesc'])) {
       return;
     }
-    if (!this.showFromErrorByName(this.responseForm, ['responseFormName'])) {
+    if (!this.showFromErrorByName(this.responseForm.form, ['responseFormName'])) {
       return;
     }
 
