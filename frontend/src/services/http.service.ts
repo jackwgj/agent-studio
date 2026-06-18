@@ -87,7 +87,10 @@ export class HttpService {
   private handleError(error: HttpErrorResponse): Observable<any> {
     // 处理接口application/json返回text
     if (error.status === 200 && error.error?.text) {
-      return new Observable(observer => observer.next(error.error.text as any));
+      return new Observable(observer => {
+        observer.next(error.error.text as any);
+        observer.complete();
+      });
     }
     if (error.error?.error_code) {
       if (['Openjiuwen.02001084'].includes(error.error?.error_code)) {

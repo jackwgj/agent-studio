@@ -1,4 +1,4 @@
-import { Component, OnInit, Optional } from '@angular/core';
+import { Component, OnInit, Optional, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MODULES } from '@shared/modules';
 import { I18nNamespace } from '@i18n';
@@ -47,7 +47,8 @@ export class ExportPackageModalComponent implements OnInit {
     private readonly i18n: I18NextEagerPipe,
     @Optional() private modalRef: NzModalRef,
     @Optional() private drawerRef: NzDrawerRef,
-    private commonLogic: agentCommonLogic
+    private commonLogic: agentCommonLogic,
+    private readonly cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -68,13 +69,15 @@ export class ExportPackageModalComponent implements OnInit {
       .then((res: any) => {
         this.displayData = res?.intents ?? [];
         this.totalNumber = res.count ?? 0;
-        this.loading = false;
         this.refreshCheckedStatus();
       })
       .catch(() => {
         this.displayData = [];
         this.totalNumber = 0;
+      })
+      .finally(() => {
         this.loading = false;
+        this.cdr.detectChanges();
       });
   }
 
