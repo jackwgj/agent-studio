@@ -20,26 +20,25 @@ async def ensure_openjiuwen_workflow_registered(
     description: str = "",
     agent_id: str = "",
 ):
-    """Ensure an openjiuwen workflow resource exists for the current workflow/tag."""
+    """Ensure an openjiuwen workflow resource exists for the current workflow/tag.
+
+    IMPORTANT: Always builds a fresh Workflow instance from the IR. Reusing a
+    Workflow object across runs is unsafe because agent-core mutates internal
+    state (abilities, vertex sessions, compiled Pregel graph) during execution,
+    and the reset between runs is only partial — leading to NoneType errors on
+    the second invocation.
+    """
     workflow_id = workflow_id or workflow_ir.get("workflowId")
     tag = agent_id or None
-    current_ir_path = _resolve_workflow_ir_path(workflow_ir)
     if not workflow_id:
         raise ValueError("workflow_id is required to register openjiuwen workflow")
 
-    existing = await _get_workflow_if_exists(workflow_id, tag)
-    if existing is not None:
-        if _workflow_matches_ir_path(existing, current_ir_path):
-            return existing
-        _remove_workflow_if_exists(workflow_id, tag)
+    _remove_workflow_if_exists(workflow_id, tag)
 
     from jiuwen.serve.controllers.execution.ir_converter import IRConverter
 
     workflow = await IRConverter.ir_to_workflow(workflow_ir)
-    Runner.resource_mgr.remove_workflow(
-        workflow_id=workflow.card.id, tag=workflow.card.id
-    )
-    _attach_workflow_ir_path(workflow, current_ir_path)
+    _attach_workflow_ir_path(workflow, _resolve_workflow_ir_path(workflow_ir))
 
     result = Runner.resource_mgr.add_workflow(
         card=workflow.card,

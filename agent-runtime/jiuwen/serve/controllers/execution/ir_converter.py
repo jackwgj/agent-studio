@@ -743,7 +743,7 @@ class IRConverter:
                     )
                     # 支持从父Agent修改子Agent描述
                     parent_description = child.get("description", "")
-                    # 创建子agent的IR数据副本，合并intent字段
+                    # async_ir_load 返回的 IR 数据可安全修改，缓存层已做防篡改隔离
                     child_ir_data = await async_ir_load(child.get("ir_path"))
                     # 如果子agent配置中有intent字段，使用它，否则保持原有的intent
                     if "intent" in child:

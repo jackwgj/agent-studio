@@ -4,6 +4,7 @@
 """This module contains open utilities — CacheUtils (LRU + Redis) and IR loading."""
 
 import builtins
+import copy
 import importlib
 import io
 import json
@@ -27,7 +28,15 @@ from jiuwen.serve.common.logger.request_logger import log_function_timing
 
 
 class CacheUtils:
-    """内存+Redis二级缓存"""
+    """内存+Redis二级缓存
+
+    Args:
+        return_copy: 为 True 时，所有读取方法（get/aget/aget_with_source）返回
+            数据的 copy.deepcopy，防止下游代码修改缓存中的原始对象。
+            适用于缓存可变 dict（如 IR JSON）的场景。
+            为 False 时（默认）直接返回引用，适用于缓存不可变数据或
+            Python 对象实例（Agent、AgentGroupConfig 等）的场景。
+    """
 
     def __init__(
         self,
@@ -36,6 +45,7 @@ class CacheUtils:
         cache_name: str,
         memory_ttl: int = -1,
         redis_ttl: int = -1,
+        return_copy: bool = False,
     ):
         self.memory_cache = LRUCache(capacity)
         self._redis_cache = None
@@ -44,6 +54,7 @@ class CacheUtils:
         self.cache_name = cache_name
         self.memory_ttl = memory_ttl
         self.redis_ttl = redis_ttl
+        self.return_copy = return_copy
 
     @property
     def redis_cache(self):
@@ -105,7 +116,7 @@ class CacheUtils:
             if value is not None:
                 logger.info(f"memory hit {key} in {self.cache_name} memory")
                 self._update_memory_cache(unique_key, value)
-                return value
+                return self._safe_return(value)
 
             value = await self.async_redis_cache.get(unique_key)
             if value is not None:
@@ -117,7 +128,7 @@ class CacheUtils:
                     f"redis hit, put {key} in {self.cache_name} memory, "
                     f"size {self.memory_cache.currsize}/{self.memory_cache.maxsize}"
                 )
-            return value
+            return self._safe_return(value)
         except Exception as e:
             logger.error(f"cache get error, exception {e}", exc_info=True)
             return None
@@ -129,7 +140,7 @@ class CacheUtils:
             value = self._get_from_memory_cache(unique_key)
             if value is not None:
                 logger.info(f"memory hit {key} in {self.cache_name} memory")
-                return value
+                return self._safe_return(value)
 
             value = self.redis_cache.get(unique_key)
             if value is not None:
@@ -141,7 +152,7 @@ class CacheUtils:
                     f"redis hit, put {key} in {self.cache_name} memory, "
                     f"size {self.memory_cache.currsize}/{self.memory_cache.maxsize}"
                 )
-            return value
+            return self._safe_return(value)
         except Exception as e:
             logger.error(f"cache get error, exception {e}", exc_info=True)
             return None
@@ -203,6 +214,16 @@ class CacheUtils:
         """生成key"""
         return f"agent_runtime:{self.cache_name}:{key}"
 
+    def _safe_return(self, value: Any) -> Any:
+        """根据 return_copy 配置决定返回原始引用还是深拷贝。
+
+        对于缓存可变 dict（IR JSON、workflow spec）的场景，return_copy=True
+        可防止下游代码修改缓存中的原始对象，避免缓存污染。
+        """
+        if value is None or not self.return_copy:
+            return value
+        return copy.deepcopy(value)
+
     async def aget_with_source(self, key: str) -> tuple[Any, str]:
         """异步按层级查找缓存，返回 (value, source)。
 
@@ -215,31 +236,34 @@ class CacheUtils:
         value = self._get_from_memory_cache(unique_key)
         if value is not None:
             self._update_memory_cache(unique_key, value)
-            return value, "memory"
+            return self._safe_return(value), "memory"
 
         # redis 缓存
         value = await self.async_redis_cache.get(unique_key)
         if value is not None:
             value = deserialize_object(value) if self.should_serialize else value
             self._update_memory_cache(unique_key, value)
-            return value, "redis"
+            return self._safe_return(value), "redis"
 
         return None, ""
 
 
 # 缓存队列实例
+# IR / workflow 缓存存储的是可变 dict，开启 return_copy 防止下游修改污染缓存
 cache_ir_queue = CacheUtils(
     capacity=settings.cache.max_ir_cache_num,
     should_serialize=True,
     cache_name="ir",
     memory_ttl=settings.cache.mem_cache_ttl_seconds,
     redis_ttl=settings.cache.cache_ttl_seconds,
+    return_copy=True,
 )
 cache_workflow_queue = CacheUtils(
     capacity=settings.cache.max_workflow_cache_num,
     should_serialize=True,
     cache_name="workflow",
     redis_ttl=settings.cache.cache_ttl_seconds,
+    return_copy=True,
 )
 cache_agent_queue = CacheUtils(
     capacity=settings.cache.max_agent_cache_num,
