@@ -2,7 +2,14 @@
 # -*- coding: UTF-8 -*-
 """Server lifespan unit tests — LOCAL and SANDBOX SysOperation registration."""
 
+import sys
 from unittest.mock import MagicMock, patch, AsyncMock
+
+# agent_builder.app triggers SSL context creation at import time (reads YAML
+# config and tries to create an SSLContext with None certs). Pre-populate
+# sys.modules so the real module is never imported during these tests.
+if "agent_builder.app" not in sys.modules:
+    sys.modules["agent_builder.app"] = MagicMock()
 
 import pytest
 from openjiuwen.core.sys_operation import OperationMode
@@ -315,3 +322,106 @@ class TestServerLifespanSandboxSysOp:
                 if "sandbox" in str(call).lower()
             ]
             assert len(error_calls) > 0
+
+
+class TestServerLifespanS3Init:
+    @staticmethod
+    def test_initializes_s3_storage_provider():
+        """lifespan calls S3StorageProvider.initialize() on startup"""
+        from agent_runtime.serve.server import lifespan
+        from fastapi import FastAPI
+
+        mock_app = MagicMock(spec=FastAPI)
+
+        mock_resource_mgr = MagicMock()
+        mock_resource_mgr.get_sys_operation.return_value = MagicMock()
+        mock_settings = MagicMock()
+        mock_settings.security_sandbox.server = ""
+        mock_settings.workflow_log.level = "INFO"
+
+        mock_redis_mgr = MagicMock()
+        mock_redis_mgr.close = AsyncMock()
+        mock_redis_mgr.is_initialized = True
+        mock_redis_client = AsyncMock()
+        mock_redis_client.ping = AsyncMock(return_value=True)
+        mock_redis_mgr.get_client.return_value = mock_redis_client
+
+        mock_checkpointer = AsyncMock()
+
+        mock_s3_provider = MagicMock()
+        mock_s3_provider.initialize = AsyncMock()
+        mock_s3_provider.close = AsyncMock()
+
+        with patch("agent_runtime.serve.server.settings", mock_settings), \
+             patch("agent_runtime.serve.server.Runner.resource_mgr", mock_resource_mgr), \
+             patch("agent_runtime.serve.server.RedisClientManager.get_instance", return_value=mock_redis_mgr), \
+             patch("agent_runtime.serve.server.configure_log_config"), \
+             patch("agent_runtime.serve.server.CheckpointerFactory.create", return_value=mock_checkpointer), \
+             patch("agent_runtime.serve.server.CheckpointerFactory.set_default_checkpointer"), \
+             patch("agent_runtime.serve.server.build_redis_checkpointer_config"), \
+             patch("agent_runtime.serve.server.S3StorageProvider") as mock_s3_cls:
+
+            mock_s3_cls.instance.return_value = mock_s3_provider
+
+            import asyncio
+
+            async def run_lifespan():
+                async with lifespan(mock_app):
+                    pass
+
+            asyncio.run(run_lifespan())
+
+            mock_s3_cls.instance.assert_called()
+            mock_s3_provider.initialize.assert_awaited_once()
+            mock_s3_provider.close.assert_awaited_once()
+
+    @staticmethod
+    def test_s3_init_failure_does_not_crash_lifespan():
+        """If S3 initialize() fails, lifespan still completes"""
+        from agent_runtime.serve.server import lifespan
+        from fastapi import FastAPI
+
+        mock_app = MagicMock(spec=FastAPI)
+
+        mock_resource_mgr = MagicMock()
+        mock_resource_mgr.get_sys_operation.return_value = MagicMock()
+        mock_settings = MagicMock()
+        mock_settings.security_sandbox.server = ""
+        mock_settings.workflow_log.level = "INFO"
+
+        mock_redis_mgr = MagicMock()
+        mock_redis_mgr.close = AsyncMock()
+        mock_redis_mgr.is_initialized = True
+        mock_redis_client = AsyncMock()
+        mock_redis_client.ping = AsyncMock(return_value=True)
+        mock_redis_mgr.get_client.return_value = mock_redis_client
+
+        mock_checkpointer = AsyncMock()
+
+        mock_s3_provider = MagicMock()
+        mock_s3_provider.initialize = AsyncMock(side_effect=Exception("S3 unavailable"))
+        mock_s3_provider.close = AsyncMock()
+
+        with patch("agent_runtime.serve.server.settings", mock_settings), \
+             patch("agent_runtime.serve.server.Runner.resource_mgr", mock_resource_mgr), \
+             patch("agent_runtime.serve.server.RedisClientManager.get_instance", return_value=mock_redis_mgr), \
+             patch("agent_runtime.serve.server.configure_log_config"), \
+             patch("agent_runtime.serve.server.CheckpointerFactory.create", return_value=mock_checkpointer), \
+             patch("agent_runtime.serve.server.CheckpointerFactory.set_default_checkpointer"), \
+             patch("agent_runtime.serve.server.build_redis_checkpointer_config"), \
+             patch("agent_runtime.serve.server.S3StorageProvider") as mock_s3_cls:
+
+            mock_s3_cls.instance.return_value = mock_s3_provider
+
+            import asyncio
+
+            async def run_lifespan():
+                async with lifespan(mock_app):
+                    pass
+
+            # Should not raise
+            asyncio.run(run_lifespan())
+
+            mock_s3_provider.initialize.assert_awaited_once()
+            # close() should still be called in finally block
+            mock_s3_provider.close.assert_awaited_once()
