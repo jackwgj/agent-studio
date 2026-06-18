@@ -246,6 +246,18 @@ export class ExportModalComponent implements OnInit {
     this.loadData();
   }
 
+  public onClear(): void {
+    this.searchValue = '';
+    this.pageIndex = 1;
+    this.loadData();
+  }
+
+  public onRefresh(): void {
+    this.searchValue = '';
+    this.pageIndex = 1;
+    this.loadData();
+  }
+
   public onQueryParamsChange(params: any): void {
     if (params.pageIndex) {
       this.pageIndex = params.pageIndex;

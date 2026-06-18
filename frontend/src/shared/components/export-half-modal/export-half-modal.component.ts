@@ -291,6 +291,18 @@ export class ExportHalfModalComponent implements OnInit {
     this.loadData();
   }
 
+  public onClear(): void {
+    this.searchValue = '';
+    this.pageIndex = 1;
+    this.loadData();
+  }
+
+  public onRefresh(): void {
+    this.searchValue = '';
+    this.pageIndex = 1;
+    this.loadData();
+  }
+
   public onPageIndexChange(index: number): void {
     this.pageIndex = index;
     this.loadData();

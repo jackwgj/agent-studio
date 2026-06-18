@@ -25,18 +25,26 @@
   ></nz-alert>
 
   <div class="search-container mb-4">
-    <nz-input-group [nzSuffix]="suffixIconSearch">
+    <nz-input-group [nzSuffix]="suffixIconClear">
       <input
         type="text"
         nz-input
-        placeholder="{{ 'search' | i18nextEager }}"
+        placeholder="{{ 'search_placeholder' | i18nextEager }}"
         [(ngModel)]="searchValue"
         (keyup.enter)="onSearch()"
       />
     </nz-input-group>
-    <ng-template #suffixIconSearch>
-      <span nz-icon nzType="search"></span>
+    <ng-template #suffixIconClear>
+      <span *ngIf="searchValue" class="cursor-pointer" (click)="onClear()">
+        <nz-icon nzType="close" nzTheme="outline"></nz-icon>
+      </span>
     </ng-template>
+    <button nz-button nzType="default" (click)="onSearch()">
+      <span nz-icon nzType="search"></span>
+    </button>
+    <button nz-button nzType="default" (click)="onRefresh()">
+      <span nz-icon nzType="reload"></span>
+    </button>
   </div>
   <nz-table
     #remoteTable
