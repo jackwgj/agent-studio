@@ -8,6 +8,7 @@ Chunk 封装器 - 将 workflow.stream 产生的单个 chunk 转换为统一的 S
 import contextvars
 import datetime
 import time
+from dataclasses import dataclass
 from typing import Any
 
 from openjiuwen.core.common.constants.constant import INTERACTION
@@ -48,6 +49,101 @@ _SKIP_COMPONENT_KEY: list[str] = [
 
 GLOBAL_REF_PREFIX = "MEMORY_VARIABLE."
 NODE_DEFS_KEY = "__node_defs__"
+END_NODE_TYPE = "jiuwen.end"
+_SPECIAL_REF_ROOTS = {"global", "_env", "_request", "query", "sys"}
+
+
+def _extract_ref_source_id(value: Any) -> str | None:
+    """Extract source node id from a direct ${node.field} reference."""
+    if not isinstance(value, str) or not value.startswith("${") or not value.endswith("}"):
+        return None
+    origin_key = value[2:-1]
+    if not origin_key or "." not in origin_key:
+        return None
+    source_id = origin_key.split(".", 1)[0]
+    return source_id or None
+
+
+def _is_unresolved_branch_ref_value(value: Any, schema_value: Any) -> bool:
+    """Whether an input value still looks like a missing/unresolved branch ref."""
+    if value is None:
+        return True
+    return isinstance(value, str) and value == schema_value
+
+
+@dataclass(frozen=True)
+class EndRefInputFilterContext:
+    """Context required to filter unresolved End node ref inputs."""
+
+    session: Any
+    wf_defs: dict
+
+
+def _should_skip_end_ref_input(source_id: str | None, context: EndRefInputFilterContext) -> bool:
+    """Whether the ref input is not a workflow node reference to validate."""
+    if not source_id or source_id in _SPECIAL_REF_ROOTS:
+        return True
+    return source_id not in context.wf_defs or source_id == context.session.node_id()
+
+
+def _filter_empty_end_ref_inputs(
+    inputs: dict,
+    input_schema: dict,
+    uf_inputs_defs: list,
+    sf_inputs_defs: list,
+    context: EndRefInputFilterContext,
+) -> tuple[list, list]:
+    """Skip End input validation for empty/unresolved ref values.
+
+    This mirrors the old BPMN path: references are resolved from the current
+    variable pool, and missing paths become None.  End template rendering treats
+    None/empty values as empty placeholders, so these unresolved ref fields
+    should remain available for rendering but must not take part in strict
+    array/object validation.
+    """
+    if not isinstance(inputs, dict) or not isinstance(input_schema, dict):
+        return uf_inputs_defs, sf_inputs_defs
+    if not isinstance(context.wf_defs, dict):
+        return uf_inputs_defs, sf_inputs_defs
+
+    defs_by_category = {
+        "userFields": {
+            item.get("id"): item
+            for item in uf_inputs_defs
+            if isinstance(item, dict) and item.get("id")
+        },
+        "systemFields": {
+            item.get("id"): item
+            for item in sf_inputs_defs
+            if isinstance(item, dict) and item.get("id")
+        },
+    }
+    dropped: dict[str, set[str]] = {"userFields": set(), "systemFields": set()}
+    for category in ("userFields", "systemFields"):
+        schema_fields = input_schema.get(category)
+        input_fields = inputs.get(category)
+        if not isinstance(schema_fields, dict) or not isinstance(input_fields, dict):
+            continue
+        for field_id, schema_value in schema_fields.items():
+            source_id = _extract_ref_source_id(schema_value)
+            if _should_skip_end_ref_input(source_id, context):
+                continue
+            if not _is_unresolved_branch_ref_value(input_fields.get(field_id), schema_value):
+                continue
+            input_fields[field_id] = ""
+            dropped[category].add(field_id)
+
+    if dropped["userFields"]:
+        uf_inputs_defs = [
+            item for item in uf_inputs_defs
+            if not isinstance(item, dict) or item.get("id") not in dropped["userFields"]
+        ]
+    if dropped["systemFields"]:
+        sf_inputs_defs = [
+            item for item in sf_inputs_defs
+            if not isinstance(item, dict) or item.get("id") not in dropped["systemFields"]
+        ]
+    return uf_inputs_defs, sf_inputs_defs
 
 
 class WorkflowStreamDataWrapper:
@@ -956,6 +1052,7 @@ def _register_jiuwen_callbacks() -> None:
             # output 定义提前存入 ContextVar（output 回调拿不到 session）。
             node_defs = session.state().get_global(NODE_DEFS_KEY)
             node_def = None
+            wf_defs = {}
             if isinstance(node_defs, dict):
                 wf_defs = node_defs.get(session.workflow_id(), {})
                 node_def = wf_defs.get(session.node_id(), {})
@@ -981,6 +1078,22 @@ def _register_jiuwen_callbacks() -> None:
 
             if not uf_inputs_defs and not sf_inputs_defs:
                 return (args, kwargs)
+
+            if node_def and node_def.get("node_type") == END_NODE_TYPE:
+                node_config = session.node_config()
+                input_schema = None
+                if node_config and node_config.io_configs:
+                    input_schema = node_config.io_configs.inputs_schema
+                uf_inputs_defs, sf_inputs_defs = _filter_empty_end_ref_inputs(
+                    inputs=inputs,
+                    input_schema=input_schema,
+                    uf_inputs_defs=uf_inputs_defs,
+                    sf_inputs_defs=sf_inputs_defs,
+                    context=EndRefInputFilterContext(session=session, wf_defs=wf_defs),
+                )
+                if not uf_inputs_defs and not sf_inputs_defs:
+                    new_args = (inputs,) + args[1:] if len(args) >= 1 else (inputs,)
+                    return (new_args, kwargs)
 
             node_name = node_def.get("node_name", "")
             node_info = WorkflowMetadata(
