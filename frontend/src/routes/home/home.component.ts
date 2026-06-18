@@ -1,23 +1,11 @@
-import {
-  ChangeDetectionStrategy,
-  ChangeDetectorRef,
-  Component,
-  OnDestroy,
-  OnInit, ViewContainerRef,
-} from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnDestroy, OnInit, ViewContainerRef } from '@angular/core';
 import * as angularI18next from 'angular-i18next';
 import { I18nNamespace } from '@i18n';
 import { I18NEXT_NAMESPACE, I18NextEagerPipe } from 'angular-i18next';
 import { MODULES } from '@shared/modules';
-import {
-  NzLayoutModule,
-} from 'ng-zorro-antd/layout';
-import {
-  NzAlertModule,
-} from 'ng-zorro-antd/alert';
-import {
-  NzProgressModule,
-} from 'ng-zorro-antd/progress';
+import { NzLayoutModule } from 'ng-zorro-antd/layout';
+import { NzAlertModule } from 'ng-zorro-antd/alert';
+import { NzProgressModule } from 'ng-zorro-antd/progress';
 import { ContextService } from '@services/context.service';
 import { Subject, Subscription, takeUntil } from 'rxjs';
 import { environment } from 'src/environment/environment';
@@ -29,21 +17,15 @@ import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
 import { cdnAssetUrl } from '../../single-spa/assets-url';
 import { SetSidebarVisibilityService } from '@shared/services/set-sidebar-visibility.service';
 import { HttpService } from '@services/http.service';
-import {getSessionStorage, isDevelpor, setSessionStorage} from 'src/utils/utils';
+import { getSessionStorage, isDevelpor, setSessionStorage } from 'src/utils/utils';
 import { isMobile } from '../../utils/commonFn';
 import { MobileTipModalComponent } from '@routes/platform-management/resource-management/alert-model/mobile-tip-modal/mobile-tip-modal.component';
-import { NzModalService } from "ng-zorro-antd/modal";
+import { NzModalService } from 'ng-zorro-antd/modal';
 
 @Component({
   selector: 'home',
   standalone: true,
-  imports: [
-    MODULES,
-    LeftMenuComponent,
-    NzLayoutModule,
-    NzAlertModule,
-    NzProgressModule,
-  ],
+  imports: [MODULES, LeftMenuComponent, NzLayoutModule, NzAlertModule, NzProgressModule],
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.scss'],
   changeDetection: ChangeDetectionStrategy.Default,
@@ -89,14 +71,14 @@ export class HomeComponent implements OnInit, OnDestroy {
     if (isMobile() && !isHideMobileModal) {
       this.showMobileModal();
     } else {
-      this.spaceTeamManagementService.data$.subscribe((data) => {
+      this.spaceTeamManagementService.data$.subscribe(data => {
         if (data) {
           const sapce = data.cur_space;
           const is_neeed_reload = data.is_neeed_reload ?? false;
           this.is_platform_hide = sapce.type === 'PERSON';
           // 有菜单列表时才会跳转到首页,没有菜单列表时 则不需要跳转到首页
           // 渲染菜单列表
-          this.spanData = {...data};
+          this.spanData = { ...data };
           this.render_menu_list(this.is_platform_hide);
           // 具体请查看this.spaceTeamManagementService.space$.subscribe 该方法
           if (is_neeed_reload) {
@@ -111,14 +93,13 @@ export class HomeComponent implements OnInit, OnDestroy {
         }
       });
 
-      this.route.queryParams.subscribe((params) => {
+      this.route.queryParams.subscribe(params => {
         this.from_page = params.from;
       });
 
-      this.http.getFristCreateError().subscribe((res) => {
+      this.http.getFristCreateError().subscribe(res => {
         this.notAdmin_create_error = res;
       });
-
     }
   }
 
@@ -137,12 +118,12 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.ctxServ
       .isHideLeftMenuUpdate()
       .pipe(takeUntil(this.destroy$))
-      .subscribe((value) => {
+      .subscribe(value => {
         this.vm.leftmenu.config.collapsed = value;
-        this.vm.leftmenu.config = {...this.vm.leftmenu.config};
+        this.vm.leftmenu.config = { ...this.vm.leftmenu.config };
       });
 
-    this.routerEventsSubscription = this.router.events.subscribe((event) => {
+    this.routerEventsSubscription = this.router.events.subscribe(event => {
       switch (true) {
         case event instanceof NavigationEnd: {
           let arr = ['/home/agent-observatory/statistic'];
@@ -155,7 +136,6 @@ export class HomeComponent implements OnInit, OnDestroy {
     });
   }
 
-
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
@@ -167,8 +147,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     }
   }
 
-  ngAfterViewInit(): void {
-  }
+  ngAfterViewInit(): void {}
 
   private showMobileModal() {
     const modal = this.modal.create<MobileTipModalComponent, any>({
@@ -182,19 +161,18 @@ export class HomeComponent implements OnInit, OnDestroy {
           onClick: () => {
             setSessionStorage('isHideMobileModal', true);
             (<any>window).location.reload(); // 如果使用navigate跳转，因为刷新的是当前页面，无法重新触发其他弹窗的展示
-          }
-        }
-      ]
+          },
+        },
+      ],
     });
   }
 
   private filterRoutesByPermission(menuItems: IMenuItem[]) {
     for (const item of menuItems) {
-
       if (item.children) {
         this.filterRoutesByPermission(item.children);
 
-        if (item.children.every((child) => child.hide)) {
+        if (item.children.every(child => child.hide)) {
           item.hide = true;
         }
       }
@@ -205,18 +183,12 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   // 渲染菜单列表
   private render_menu_list(is_hide) {
-    const {block_nodes} =
-      this.configServ.getConfigs();
-    const isHideSql = (block_nodes ?? []).some(
-      (type) => type?.toLowerCase() === 'sql',
-    );
-    const isHideDataQuery = (block_nodes ?? []).some(
-      (type) => type?.toLowerCase() === 'dataquery',
-    );
+    const { block_nodes } = this.configServ.getConfigs();
+    const isHideSql = (block_nodes ?? []).some(type => type?.toLowerCase() === 'sql');
+    const isHideDataQuery = (block_nodes ?? []).some(type => type?.toLowerCase() === 'dataquery');
     let isDevelporFlag = isDevelpor();
     const isHideOperationCenter =
-      (isDevelporFlag && !this.configServ.getConfigs().agentops_evaluation_display) ||
-      !this.configServ.getConfigs().agentops_menu_display;
+      (isDevelporFlag && !this.configServ.getConfigs().agentops_evaluation_display) || !this.configServ.getConfigs().agentops_menu_display;
     const isHideDatasource = isHideSql && isHideDataQuery;
     let projectID: any = '';
     try {
@@ -225,9 +197,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     } catch (error) {
       projectID = '';
     }
-    const cardWhitelist = (
-      this.configServ.getConfigs()?.card_whitelist || ''
-    ).split(',');
+    const cardWhitelist = (this.configServ.getConfigs()?.card_whitelist || '').split(',');
     const showCard = cardWhitelist.indexOf(projectID) < 0;
     this.vm = {
       leftmenu: {
@@ -249,9 +219,7 @@ export class HomeComponent implements OnInit, OnDestroy {
                 name: this.i18NextEagerPipe.transform('survey'),
                 label: this.i18NextEagerPipe.transform('survey'),
                 icon: cdnAssetUrl('assets/images/menu/home.svg'),
-                iconSelected: cdnAssetUrl(
-                  'assets/images/menu/home_selected.svg',
-                ),
+                iconSelected: cdnAssetUrl('assets/images/menu/home_selected.svg'),
                 router: ['overview'],
                 isSelected: false,
               },
@@ -262,13 +230,11 @@ export class HomeComponent implements OnInit, OnDestroy {
                 label: this.i18NextEagerPipe.transform('asset_center'),
                 isGroup: false,
                 icon: cdnAssetUrl('assets/images/menu/public_planets.svg'),
-                iconSelected: cdnAssetUrl(
-                  'assets/images/menu/public_planets_selected.svg',
-                ),
+                iconSelected: cdnAssetUrl('assets/images/menu/public_planets_selected.svg'),
                 rightIcon: cdnAssetUrl('assets/images/menu/pycharm.svg'),
                 isSelected: false,
                 router: ['/app-library'],
-              }
+              },
             ],
           },
           /** 开发中心 */
@@ -286,23 +252,16 @@ export class HomeComponent implements OnInit, OnDestroy {
                     name: this.i18NextEagerPipe.transform('agent-management'),
                     label: this.i18NextEagerPipe.transform('agent-management'),
                     icon: cdnAssetUrl('assets/images/menu/agent-manage.svg'),
-                    iconSelected: cdnAssetUrl(
-                      'assets/images/menu/agent-manage_selected.svg',
-                    ),
+                    iconSelected: cdnAssetUrl('assets/images/menu/agent-manage_selected.svg'),
                     router: ['agent-center/single'],
-                    routerList: [
-                      ['agent-center/workflow'],
-                      ['agent-center/multi'],
-                    ],
+                    routerList: [['agent-center/workflow'], ['agent-center/multi']],
                     isSelected: false,
                   },
                   {
                     name: this.i18NextEagerPipe.transform('component_library'),
                     label: this.i18NextEagerPipe.transform('component_library'),
                     icon: cdnAssetUrl('assets/images/menu/com_library.svg'),
-                    iconSelected: cdnAssetUrl(
-                      'assets/images/menu/com_library_selected.svg',
-                    ),
+                    iconSelected: cdnAssetUrl('assets/images/menu/com_library_selected.svg'),
                     router: ['agent-center/library-home'],
                     isSelected: false,
                   },
@@ -310,9 +269,7 @@ export class HomeComponent implements OnInit, OnDestroy {
                     name: this.i18NextEagerPipe.transform('develop-config'),
                     label: this.i18NextEagerPipe.transform('develop-config'),
                     icon: cdnAssetUrl('assets/images/menu/develop-config.svg'),
-                    iconSelected: cdnAssetUrl(
-                      'assets/images/menu/develop-config_selected.svg',
-                    ),
+                    iconSelected: cdnAssetUrl('assets/images/menu/develop-config_selected.svg'),
                     router: ['development-configuration'],
                     isSelected: false,
                   },
@@ -333,9 +290,7 @@ export class HomeComponent implements OnInit, OnDestroy {
                 name: this.i18NextEagerPipe.transform('model_service'),
                 label: this.i18NextEagerPipe.transform('model_service'),
                 icon: cdnAssetUrl('assets/images/menu/service_deploy.svg'),
-                iconSelected: cdnAssetUrl(
-                  'assets/images/menu/service_deploy_selected.svg',
-                ),
+                iconSelected: cdnAssetUrl('assets/images/menu/service_deploy_selected.svg'),
                 router: ['model/management'],
                 isSelected: false,
               },
@@ -343,9 +298,7 @@ export class HomeComponent implements OnInit, OnDestroy {
                 name: this.i18NextEagerPipe.transform('route_policy'),
                 label: this.i18NextEagerPipe.transform('route_policy'),
                 icon: cdnAssetUrl('assets/images/menu/my_flow.svg'),
-                iconSelected: cdnAssetUrl(
-                  'assets/images/menu/my_flow_selected.svg',
-                ),
+                iconSelected: cdnAssetUrl('assets/images/menu/my_flow_selected.svg'),
                 router: ['model/route-policy'],
                 isSelected: false,
               },
@@ -353,9 +306,7 @@ export class HomeComponent implements OnInit, OnDestroy {
                 name: this.i18NextEagerPipe.transform('model_test'),
                 label: this.i18NextEagerPipe.transform('model_test'),
                 icon: cdnAssetUrl('assets/images/menu/online_test_manage.svg'),
-                iconSelected: cdnAssetUrl(
-                  'assets/images/menu/online_test_manage_selected.svg',
-                ),
+                iconSelected: cdnAssetUrl('assets/images/menu/online_test_manage_selected.svg'),
                 router: ['model/online-test-manage'],
                 isSelected: false,
               },
@@ -364,9 +315,7 @@ export class HomeComponent implements OnInit, OnDestroy {
                 label: this.i18n.transform('my_credentials'),
                 hide: !this.configServ.getConfigs()?.apikey_enable,
                 icon: cdnAssetUrl('assets/images/menu/certification.svg'),
-                iconSelected: cdnAssetUrl(
-                  'assets/images/menu/certification_selected.svg',
-                ),
+                iconSelected: cdnAssetUrl('assets/images/menu/certification_selected.svg'),
                 router: ['model/certification'],
                 isSelected: false,
               },
@@ -387,9 +336,7 @@ export class HomeComponent implements OnInit, OnDestroy {
             name: this.i18NextEagerPipe.transform('platform_management'),
             label: this.i18NextEagerPipe.transform('platform_management'),
             isGroup: true,
-            hide: ['hcs', 'hcso'].includes(environment.envType)
-              ? is_hide
-              : false,
+            hide: ['hcs', 'hcso'].includes(environment.envType) ? is_hide : false,
             children: [
               {
                 name: this.i18NextEagerPipe.transform('system-management'),
@@ -397,32 +344,20 @@ export class HomeComponent implements OnInit, OnDestroy {
                 hide: ['site'].includes(environment.envType) ? false : is_hide,
                 children: [
                   {
-                    name: this.i18NextEagerPipe.transform(
-                      'space_team_management',
-                    ),
-                    label: this.i18NextEagerPipe.transform(
-                      'space_team_management',
-                    ),
+                    name: this.i18NextEagerPipe.transform('space_team_management'),
+                    label: this.i18NextEagerPipe.transform('space_team_management'),
                     icon: cdnAssetUrl('assets/images/menu/mcp.svg'),
-                    iconSelected: cdnAssetUrl(
-                      'assets/images/menu/ic_public_teams.svg',
-                    ),
+                    iconSelected: cdnAssetUrl('assets/images/menu/ic_public_teams.svg'),
                     router: ['platform-management/space-team-management'],
                     hide: is_hide,
                     isSelected: false,
                   },
                   {
-                    name: this.i18NextEagerPipe.transform(
-                      'environment_management',
-                    ),
-                    label: this.i18NextEagerPipe.transform(
-                      'environment_management',
-                    ),
+                    name: this.i18NextEagerPipe.transform('environment_management'),
+                    label: this.i18NextEagerPipe.transform('environment_management'),
                     icon: cdnAssetUrl('assets/images/menu/env_mgt.svg'),
                     iconSelected: cdnAssetUrl('assets/env-manager/env-memu-active.svg'),
-                    router: [
-                      'platform-management/environment-management-home',
-                    ],
+                    router: ['platform-management/environment-management-home'],
                     isSelected: false,
                     hide: !['site'].includes(environment.envType),
                   },
@@ -439,16 +374,9 @@ export class HomeComponent implements OnInit, OnDestroy {
             isHide: true,
             children: [
               {
-                name: this.i18NextEagerPipe.transform(
-                  'model_access_management',
-                ),
-                label: this.i18NextEagerPipe.transform(
-                  'model_access_management',
-                ),
-                hide:
-                  environment.envType === 'hc' ||
-                  environment.envType === 'hcs' ||
-                  environment.envType === 'site',
+                name: this.i18NextEagerPipe.transform('model_access_management'),
+                label: this.i18NextEagerPipe.transform('model_access_management'),
+                hide: environment.envType === 'hc' || environment.envType === 'hcs' || environment.envType === 'site',
                 router: ['model/management'],
                 isSelected: false,
               },
@@ -468,13 +396,13 @@ export class HomeComponent implements OnInit, OnDestroy {
               },
             ],
           },
-        ].filter((v) => {
+        ].filter(v => {
           // 通过hide这个字隐藏一些菜单
           return !(v?.hide || v?.isHide);
         }),
       },
     };
-    this.vm.leftmenu.items.forEach((v) => {
+    this.vm.leftmenu.items.forEach(v => {
       if (v.children) {
         v.children = v.children.filter((ele: any) => {
           if (ele?.hide || ele?.isHide) return false;
@@ -508,25 +436,16 @@ export class HomeComponent implements OnInit, OnDestroy {
                 name: this.i18NextEagerPipe.transform('app_square'),
                 label: this.i18NextEagerPipe.transform('app_square'),
                 icon: cdnAssetUrl('assets/images/menu/app-center.svg'),
-                iconSelected: cdnAssetUrl(
-                  'assets/images/menu/app-center-selected.svg',
-                ),
+                iconSelected: cdnAssetUrl('assets/images/menu/app-center-selected.svg'),
                 isSelected: false,
                 router: ['app-library'],
-                routerList: [
-                  ['/knowledge-bot'],
-                  ['/flow/knowledge-bot'],
-                  ['/flow/preload'],
-                  ['/scenario-bot/:appType/:appId'],
-                ],
+                routerList: [['/knowledge-bot'], ['/flow/knowledge-bot'], ['/flow/preload'], ['/scenario-bot/:appType/:appId']],
               },
               {
                 name: this.i18NextEagerPipe.transform('model_square'),
                 label: this.i18NextEagerPipe.transform('model_square'),
                 icon: cdnAssetUrl('assets/images/menu/model-center.svg'),
-                iconSelected: cdnAssetUrl(
-                  'assets/images/menu/model-center-selected.svg',
-                ),
+                iconSelected: cdnAssetUrl('assets/images/menu/model-center-selected.svg'),
                 isSelected: false,
                 router: ['model-square'],
               },
@@ -534,9 +453,7 @@ export class HomeComponent implements OnInit, OnDestroy {
                 name: this.i18NextEagerPipe.transform('mcp_square'),
                 label: this.i18NextEagerPipe.transform('mcp_square'),
                 icon: cdnAssetUrl('assets/images/menu/mcp-center.svg'),
-                iconSelected: cdnAssetUrl(
-                  'assets/images/menu/mcp-center-selected.svg',
-                ),
+                iconSelected: cdnAssetUrl('assets/images/menu/mcp-center-selected.svg'),
                 isSelected: false,
                 router: ['service-market'],
               },
@@ -544,9 +461,7 @@ export class HomeComponent implements OnInit, OnDestroy {
                 name: this.i18NextEagerPipe.transform('plugin_square'),
                 label: this.i18NextEagerPipe.transform('plugin_square'),
                 icon: cdnAssetUrl('assets/images/menu/plugin-center.svg'),
-                iconSelected: cdnAssetUrl(
-                  'assets/images/menu/plugin-center-selected.svg',
-                ),
+                iconSelected: cdnAssetUrl('assets/images/menu/plugin-center-selected.svg'),
                 router: ['plugin-market'],
                 isSelected: false,
               },
@@ -554,9 +469,7 @@ export class HomeComponent implements OnInit, OnDestroy {
                 name: this.i18NextEagerPipe.transform('kb_plaza'),
                 label: this.i18NextEagerPipe.transform('kb_plaza'),
                 icon: cdnAssetUrl('assets/images/menu/knowledge_base.svg'),
-                iconSelected: cdnAssetUrl(
-                  'assets/images/menu/knowledge_base_selected.svg',
-                ),
+                iconSelected: cdnAssetUrl('assets/images/menu/knowledge_base_selected.svg'),
                 isSelected: false,
                 router: ['knowledge-center/kb-plaza'],
                 hide: !this.configServ.isSupportSharedKb(),

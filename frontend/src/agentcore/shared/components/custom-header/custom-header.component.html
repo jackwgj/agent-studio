@@ -41,12 +41,12 @@
       @if (data()?.operators?.length) {
         <div class="operator flex-align-center gap-[8px]">
           @if (data()?.operators?.length === 1) {
-            <button nz-button nzShape="round" [nzType]="data()?.operators?.[0]?.type || 'primary'" (click)="onSelect(data()?.operators?.[0])">
+            <button nz-button [nzType]="data()?.operators?.[0]?.type || 'primary'" (click)="onSelect(data()?.operators?.[0])">
               {{ data()?.operators?.[0]?.label }}
             </button>
           } @else {
               @for (op of data()?.operators; track trackByIndex($index)) {
-                <button nz-button nzShape="round" [nzType]="op.type || 'primary'" (click)="onSelect(op)">{{ op.label }}</button>
+                <button nz-button [nzType]="op.type || 'primary'" (click)="onSelect(op)">{{ op.label }}</button>
               }
           }
         </div>

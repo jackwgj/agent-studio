@@ -18,8 +18,7 @@ import { NzInputModule } from 'ng-zorro-antd/input';
 import { NzSelectModule } from 'ng-zorro-antd/select';
 import { NzButtonModule } from 'ng-zorro-antd/button';
 import { NzFormModule } from 'ng-zorro-antd/form';
-import { NzDrawerModule } from 'ng-zorro-antd/drawer';
-import { NZ_DRAWER_DATA } from 'ng-zorro-antd/drawer';
+import { NZ_DRAWER_DATA, NzDrawerModule} from 'ng-zorro-antd/drawer';
 @Component({
   selector: 'meta-prompt-save',
   standalone: true,

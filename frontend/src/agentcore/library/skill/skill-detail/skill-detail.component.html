@@ -1,55 +1,44 @@
 <layout-page [showTpLayout]="false" [newStyle]="true">
-  <custom-header mainHeader [params]="headerParams()" [responsive]="true">
-    @if (skillDetail?.viewMode) {
-      <div customArea class="alert">
-        <nz-alert class="alert-container" nzType="info">
-          <div class="text-with-link">
-            {{ 'skill.detail.versionViewTip' | i18n: { version: skillDetail?.versionName } }}
-            <div class="text-link" (click)="existView()">
-              <div class="label">{{ 'skill.detail.versionView.exit' | i18n }}</div>
-              <nz-icon nzType="logout" />
+  <div mainContent>
+    <custom-header mainHeader [params]="headerParams()" [responsive]="true">
+      @if (skillDetail?.viewMode) {
+        <div customArea class="alert">
+          <nz-alert class="alert-container" nzType="info">
+            <div class="text-with-link">
+              {{ 'skill.detail.versionViewTip' | i18n: { version: skillDetail?.versionName } }}
+              <div class="text-link" (click)="existView()">
+                <div class="label">{{ 'skill.detail.versionView.exit' | i18n }}</div>
+                <nz-icon nzType="logout" />
+              </div>
+            </div>
+          </nz-alert>
+        </div>
+      }
+    </custom-header>
+
+    <div id="fullContent" style="margin: 0 auto !important">
+      <div class="h-100p detail-container">
+        <div class="info-box">
+          <div class="section-title">基础信息</div>
+          <div class="info-row">
+            <div class="info-item">
+              <div class="info-label">名称</div>
+              <div class="info-value">{{ this.skillDetail?.skillName }}</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">更新时间</div>
+              <div class="info-value">{{ paseData(this.skillDetail?.updatedTime) }}</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">描述</div>
+              <div class="info-value">{{ this.skillDetail?.description }}</div>
             </div>
           </div>
-        </nz-alert>
-      </div>
-    }
-  </custom-header>
-
-  <div
-    mainContent
-    id="fullContent"
-    style="
-      padding-left: 96px !important;
-      padding-right: 96px !important;
-      margin: 0 auto !important;
-      padding-bottom: 32px !important;
-      padding-left: 96px !important;
-      padding-right: 96px !important;
-      margin: 0 auto !important;
-      padding-bottom: 32px !important;
-    "
-  >
-    <div class="h-100p detail-container">
-      <div class="info-box">
-        <div class="section-title">基础信息</div>
-        <div class="info-row">
-          <div class="info-item">
-            <div class="info-label">名称</div>
-            <div class="info-value">{{ this.skillDetail?.skillName }}</div>
-          </div>
-          <div class="info-item">
-            <div class="info-label">更新时间</div>
-            <div class="info-value">{{ paseData(this.skillDetail?.updatedTime) }}</div>
-          </div>
-          <div class="info-item">
-            <div class="info-label">描述</div>
-            <div class="info-value">{{ this.skillDetail?.description }}</div>
-          </div>
         </div>
-      </div>
-      <div class="editor-box-container">
-        <div class="title">{{ 'skill.detail.editor.title' | i18n }}</div>
-        <skill-single-editor [packageUrl]="packageUrl()"></skill-single-editor>
+        <div class="editor-box-container">
+          <div class="title">{{ 'skill.detail.editor.title' | i18n }}</div>
+          <skill-single-editor [packageUrl]="packageUrl()"></skill-single-editor>
+        </div>
       </div>
     </div>
   </div>

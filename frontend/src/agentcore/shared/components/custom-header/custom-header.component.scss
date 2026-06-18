@@ -1,9 +1,7 @@
 .responsive {
-  max-width: var(--tp-max-width) !important;
   margin: 0 auto !important;
   padding-left: var(--ti-content-space-horizontal) !important;
   padding-right: var(--ti-content-space-horizontal) !important;
-  min-width: calc(var(--cf-main-width-min) - 96px * 2) !important;
   background-color: var(--ti-color-bg-container-secondary);
 }
 
@@ -27,6 +25,7 @@
   align-items: center;
   justify-content: space-between;
   padding-bottom: 16px;
+  margin-top: 32px;
 }
 
 .flex-align-center {
@@ -51,5 +50,5 @@
 .header-img {
   height: 52px;
   width: 52px;
-  margin-right: var(--ti-common-space-4x);
+  margin-right: 16px;
 }

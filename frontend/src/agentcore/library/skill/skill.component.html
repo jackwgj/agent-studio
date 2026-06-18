@@ -42,12 +42,11 @@
     <nz-pagination
       [(nzPageIndex)]="currentCardPage"
       [nzTotal]="totalCardNumber"
-      nzSize="small"
-      class="mb-[8px]"
       [(nzPageSize)]="cardPageSize.size"
       [nzPageSizeOptions]="cardPageSize.options"
       nzAlign="end"
-      nzShowSizeChanger
+      [nzShowSizeChanger]="true"
+      [nzHideOnSinglePage]="false"
       (nzPageIndexChange)="querySkillList()"
       (nzPageSizeChange)="querySkillList()"
     />

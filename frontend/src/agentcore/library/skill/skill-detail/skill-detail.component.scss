@@ -75,3 +75,18 @@
 .info-value {
   font-size: 14px;
 }
+
+#fullContent {
+  max-width: 1884px !important;
+  min-width: 1884px !important;
+  padding-left: 96px !important;
+  padding-right: 96px !important;
+}
+
+@media screen and (max-width: 1884px) {
+  #fullContent {
+    max-width: 1508px !important;
+    padding-left: 96px !important;
+    padding-right: 96px !important;
+  }
+}

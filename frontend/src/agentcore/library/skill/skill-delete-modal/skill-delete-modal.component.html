@@ -1,0 +1,60 @@
+<div *nzModalTitle>删除Skill</div>
+<div>
+  <div class="flex flex-col gap-4">
+    <div class="flex flex-col gap-4">
+      @if (srcData.data.length) {
+        <nz-alert class="alert-text" nzType="warning" [nzShowIcon]="false" [nzDescription]="descriptionTemplate1">
+          <ng-template #descriptionTemplate1> 该Skill已被引用，删除Skill后引用将自动取消，可能会导致单智能体无法运行，且该操作不可撤回。 </ng-template>
+        </nz-alert>
+        <div class="flex flex-col gap-2">
+          <span class="font-semibold">{{ 'reference_ist' | i18nextEager }}</span>
+          <nz-table
+            [nzData]="srcData.data"
+            [nzFrontPagination]="false"
+            [nzShowSizeChanger]="true"
+            [nzPageSizeOptions]="pageSize.options"
+            [nzPageSize]="pageSize.size"
+            [nzTotal]="totalNumber"
+            [(nzPageIndex)]="currentPage"
+            (nzPageIndexChange)="getMappingsByPage()"
+            (nzPageSizeChange)="getMappingsByPage()"
+          >
+            <thead>
+              <tr>
+                <th *ngFor="let column of columns">
+                  {{ column.title }}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let row of srcData.data">
+                <td>
+                  <a nz-tooltip class="cursor-pointer" (click)="navigateAppDetail(row)">
+                    {{ row.app_name }}
+                  </a>
+                </td>
+                <td>{{ row.app_version || ('unpublished' | i18nextEager) }}</td>
+                <td>单智能体</td>
+              </tr>
+            </tbody>
+          </nz-table>
+        </div>
+      } @else {
+        <div style="font-size: 12px; color: #191919">即将删除以下Skill</div>
+        <ul>
+          <li>{{ name }}</li>
+        </ul>
+      }
+    </div>
+  </div>
+</div>
+<div *nzModalFooter>
+  <nz-space>
+    <button type="button" nz-button (click)="dismiss()">
+      {{ 'cancel' | i18nextEager }}
+    </button>
+    <button nzType="primary" nzDanger type="button" nz-button (click)="onConfirm()">
+      {{ 'ok' | i18nextEager }}
+    </button>
+  </nz-space>
+</div>

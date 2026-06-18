@@ -21,7 +21,7 @@ import { MODULES } from '@shared/modules';
 import { NzModalService } from 'ng-zorro-antd/modal';
 import { SkillReferenceHalfmodalComponent } from './skill-reference-halfmodal/skill-reference-halfmodal.component';
 import { SkillSingleEditorComponent } from './skill-single-editor/skill-single-editor.component';
-
+import { NzDrawerService } from 'ng-zorro-antd/drawer';
 @Component({
   templateUrl: './skill-detail.component.html',
   styleUrl: './skill-detail.component.scss',
@@ -52,12 +52,11 @@ export class SkillDetailComponent {
   packageUrl = computed(() => skillDetailSignal()?.obsUrl);
   historyModalInstance;
   headerParams: Signal<CustomHeaderParam> = computed(() => {
-
     this.skillDetail = skillDetailSignal();
     const res = {
       crumb: [
         {
-          label: this._i18n.transform('common.agentArts.crumb'),
+          label: this._i18n.transform('common.openjiuwen.crumb'),
           clickFn: () => this._router.navigate(['/home']),
         },
         {
@@ -86,7 +85,8 @@ export class SkillDetailComponent {
     private _skillApi: SkillApi,
     private _i18n: I18nService,
     private _customEditorService: CustomEditorService,
-    private _setSidebarVisibilityService: SetSidebarVisibilityService
+    private _setSidebarVisibilityService: SetSidebarVisibilityService,
+    private drawerService: NzDrawerService
   ) {}
 
   ngOnInit() {
@@ -121,12 +121,13 @@ export class SkillDetailComponent {
         label: this._i18n.transform('skill.detail.operator.reference'),
         type: 'default',
         click: (): void => {
-          const thisNzModal: any = this.nzModal.create({
+          this.drawerService.create({
             nzContent: SkillReferenceHalfmodalComponent,
-            nzWidth: '700px',
+            nzWidth: 700,
+            nzData: {
+              skillId: this.skillDetail?.skillId,
+            },
           });
-          const instance = thisNzModal.getContentComponent();
-          instance.skillId = this.skillDetail?.skillId;
         },
       },
     ];
@@ -208,12 +209,13 @@ export class SkillDetailComponent {
         iconName: 'cloudx-action-binging',
       },
       click: (): void => {
-        const thisNzModal: any = this.nzModal.create({
+        this.drawerService.create({
           nzContent: SkillReferenceHalfmodalComponent,
-          nzWidth: '700px',
+          nzWidth: 700,
+          nzData: {
+            skillId: this.skillDetail?.skillId,
+          },
         });
-        const instance = thisNzModal.getContentComponent();
-        instance.skillId = this.skillDetail?.skillId;
       },
     };
   }

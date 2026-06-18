@@ -12,6 +12,7 @@ export type CustomTreeNode = {
   path: string;
   expanded?: boolean;
   selected?: boolean;
+  isLeaf?: boolean;
 };
 
 export enum SkillResourceType {

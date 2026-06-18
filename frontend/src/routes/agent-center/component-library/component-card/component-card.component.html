@@ -1,6 +1,7 @@
 <div (click)="handleDetailView()" class="card-wrapper" [style]="{ cursor: this.data.fc_instance_status === 'creatingStack' ? 'not-allowed' : 'pointer' }">
   <div class="icon-and-name">
-    <img alt=""
+    <img
+      alt=""
       class="h-[48px] w-[48px] rounded-lg"
       [src]="!data.icon ? MCP_DEFAULT_ICON_BASE64_STR : data.icon.startsWith('data:image/') ? data.icon : 'data:image/png;base64,' + data.icon"
     />
@@ -96,17 +97,9 @@
       </div>
     </span>
     <div class="footer-action-container">
-      <a nz-dropdown [nzDropdownMenu]="menu">
-        更多
-        <span nz-icon nzType="down"></span>
-      </a>
-      <nz-dropdown-menu #menu="nzDropdownMenu">
-        <ul nz-menu nzSelectable>
-          <ng-container *ngFor="let item of cardActions; let i = index">
-            <li nz-menu-item (click)="onClickAction(item, data)">{{ item.label }}</li>
-          </ng-container>
-        </ul>
-      </nz-dropdown-menu>
+      @for (item of cardActions; track item) {
+        <button nz-button nzType="link" (click)="$event.stopPropagation();onClickAction(item, data)">{{ item.label }}</button>
+      }
     </div>
   </div>
 

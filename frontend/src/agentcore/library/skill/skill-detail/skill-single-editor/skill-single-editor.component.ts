@@ -264,9 +264,6 @@ export class SkillSingleEditorComponent {
   onFileJump(path: string) {
     const pathNode = this.findNodeByContext(this.innerData[0], this.selectedFileData.path, path);
     if (pathNode) {
-      TreeUtil.expandNode(this.innerData, pathNode);
-      TreeUtil.selectNode(this.innerData, pathNode, false);
-      this.innerData = [...this.innerData];
       this.onNodeSelect(pathNode);
     }
   }
@@ -274,11 +271,33 @@ export class SkillSingleEditorComponent {
   openSkillMd() {
     const skillMd = this.findNodeByContext(this.innerData[0], this.selectedFileData?.path ?? '', `${this.innerData[0].path}/SKILL.md`);
     if (skillMd) {
-      TreeUtil.expandNode(this.innerData, skillMd);
-      TreeUtil.selectNode(this.innerData, skillMd, false);
-      this.innerData = [...this.innerData];
       this.onNodeSelect(skillMd);
     }
+  }
+
+  changeTree(tree: CustomTreeNode[], node: CustomTreeNode, isSelect, isExpand) {
+    let res = null;
+    res = (tree || []).map(item => {
+      if (item.path === node.path) {
+        item.selected = !!isSelect;
+        if (isExpand) {
+          item.expanded = true;
+        } else {
+          item.expanded = false;
+        }
+      } else {
+        item.selected = !isSelect;
+      }
+
+      if (item.children && item.children.length > 0) {
+        item.children = this.changeTree(item.children, node, isSelect, isExpand);
+        item.isLeaf = false;
+      } else {
+        item.isLeaf = true;
+      }
+      return item;
+    });
+    return res;
   }
 
   onActiveChange($event: boolean, tabId: string): void {
@@ -343,8 +362,9 @@ export class SkillSingleEditorComponent {
 
   onNodeSelect(event: CustomTreeNode): void {
     if (event.isDir) {
-      event.expanded = !event.expanded;
+      this.innerData = this.changeTree(this.innerData, event, true, !event.expanded);
     } else {
+      this.innerData = this.changeTree(this.innerData, event, true, true);
       const { language } = event;
       this.selectedFileData = event;
       if (language) {
@@ -352,7 +372,7 @@ export class SkillSingleEditorComponent {
         this.editorTip = '';
       } else {
         this.selectedTab = '';
-        this.tabs.forEach((e) => {
+        this.tabs.forEach(e => {
           e.active = true;
           e.disabled = true;
         });
