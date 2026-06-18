@@ -10,8 +10,11 @@
             {{ 'candidate_template_templateName' | i18nextEager }}
           </div>
         </nz-form-label>
-        <nz-form-control>
+        <nz-form-control [nzErrorTip]="templateNameTpl">
           <input id="inputnumber-basic" class="tmpl-name-input" type="text" nz-input formControlName="templateName" />
+          <ng-template #templateNameTpl let-control
+            ><div style="max-width: 400px">{{ control.errors.nameChAllow.tiErrorMessage }}</div>
+          </ng-template>
         </nz-form-control>
       </nz-form-item>
     </div>
@@ -34,8 +37,9 @@
             {{ 'prompt_tmpl_industry_label' | i18nextEager }}
           </div>
         </nz-form-label>
-        <nz-form-control>
+        <nz-form-control [nzErrorTip]="industrysTpl">
           <nz-select class="tmpl-name-input" [nzOptions]="industryOptions" [nzAllowClear]="true" formControlName="industrys"></nz-select>
+          <ng-template #industrysTpl let-control> {{ control.errors.nameChAllow.tiErrorMessage }} </ng-template>
         </nz-form-control>
       </nz-form-item>
 
@@ -62,7 +66,7 @@
   </form>
   <div class="body-tmpl-content">
     <div class="tmpl-content-label label-text text-sm leading-[22x] text-[#595959]">{{ 'candidate_template_templateContent' | i18nextEager }}：</div>
-    <div class="tmpl-content-text">
+    <div class="tmpl-content-text" style="overflow: auto; max-height: 300px">
       <ng-container *ngFor="let promptChunk of modalContent">
         <ng-container [ngSwitch]="promptChunk.type">
           <span *ngSwitchCase="'COMMON'">{{ promptChunk.value }}</span>

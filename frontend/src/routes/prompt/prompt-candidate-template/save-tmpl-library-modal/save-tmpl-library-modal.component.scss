@@ -68,6 +68,8 @@
     letter-spacing: 0;
     line-height: 26px;
     font-weight: 400;
+    overflow: auto;
+    max-height: 300px;
   }
 
   .body-tmpl-content {

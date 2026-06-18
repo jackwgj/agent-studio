@@ -67,7 +67,7 @@ export class SaveTmplLibraryModalComponent implements OnInit {
     this.currentTmpl = this.nzData.currentTmpl;
     this.formName = fb.group({
       templateName: new FormControl(this.routeParamsServe.getTemplateName(), [
-        CommonValidation.templateNameVerify(this.i18NextEagerPipe.transform('prompt_writing_verifyName')),
+        CommonValidation.templateNameVerify('请输入以中文、字母开头，以中文、字母、数字结尾，长度2~20的字符。只允许输入中文、字母、数字、下划线、中划线等字符'),
       ]),
       tags: new FormControl([], []),
       industrys: new FormControl([], this.templateindustrysVerify()),
@@ -91,6 +91,32 @@ export class SaveTmplLibraryModalComponent implements OnInit {
     };
   }
 
+  showFromErrorByName(form, validatorName): boolean {
+    let res = true;
+    const keysList = Object.keys(form.controls);
+    if (keysList) {
+      for (let i = 0; i < keysList.length; i++) {
+        form.controls[keysList[i]].markAsDirty();
+        form.controls[keysList[i]].updateValueAndValidity({ onlySelf: false });
+        if (validatorName?.length > 0) {
+          for (let j = 0; j < validatorName.length; j++) {
+            if (keysList[i].indexOf(validatorName[j]) === 0) {
+              if (form.controls[keysList[i]].errors) {
+                res = false;
+              }
+            }
+          }
+        } else {
+          if (form.controls[keysList[i]].errors) {
+            res = false;
+          }
+        }
+      }
+    }
+
+    return res;
+  }
+
   ngOnInit(): void {
     this.modalContent = this.promptEditorServ.processVar(this.currentTmpl.content);
     this.getLabelsByTaskId();
@@ -98,8 +124,8 @@ export class SaveTmplLibraryModalComponent implements OnInit {
   }
 
   public checkAll(): boolean {
-    this.formName.markAllAsTouched();
-    return this.formName.valid;
+    const res= this.showFromErrorByName( this.formName,[]);
+    return res;
   }
 
   public submit() {
