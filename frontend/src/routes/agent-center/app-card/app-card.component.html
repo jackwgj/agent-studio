@@ -61,7 +61,7 @@
     </div>
   </div>
   <div class="bottom-area-menu" [id]="cardIndex + 'area-menu'">
-    @for (action of cardActions; track action.id) {
+    @for (action of visibleActions; track action.id) {
       @if (action.disabled) {
         <a nz-button nzType="link" nz-tooltip [nzTooltipTitle]="action.tipContent" class="disabled" (click)="onDisabledClick($event)">
           {{ action.label }}
@@ -71,6 +71,27 @@
           {{ action.label }}
         </a>
       }
+    }
+    @if (overflowActions.length > 0) {
+      <a nz-button nzType="link" class="action-link" nz-dropdown [nzDropdownMenu]="moreMenu" nzTrigger="hover">
+        {{ 'icon-more' | i18nextEager }}
+        <nz-icon nzType="down" nzTheme="outline"></nz-icon>
+      </a>
+      <nz-dropdown-menu #moreMenu="nzDropdownMenu">
+        <ul nz-menu>
+          @for (action of overflowActions; track action.id) {
+            @if (action.disabled) {
+              <li nz-menu-item class="disabled-menu-item" nz-tooltip [nzTooltipTitle]="action.tipContent" (click)="onDisabledClick($event)">
+                {{ action.label }}
+              </li>
+            } @else {
+              <li nz-menu-item (click)="onClickAction($event, action)">
+                {{ action.label }}
+              </li>
+            }
+          }
+        </ul>
+      </nz-dropdown-menu>
     }
   </div>
 

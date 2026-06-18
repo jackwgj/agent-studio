@@ -46,17 +46,31 @@
   display: flex;
   font-size: 14px;
   font-family: PingFang SC;
-  gap: 24px;
+  gap: 16px;
   display: none;
+  overflow: hidden;
+  flex-wrap: nowrap;
+  width: 100%;
+  align-items: center;
 
   .action-link {
     font-weight: 600;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 
   .disabled {
     color: #999;
     cursor: not-allowed !important;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
+}
+
+.disabled-menu-item {
+  color: #999 !important;
+  cursor: not-allowed !important;
+  pointer-events: none;
 }
 
 .creator-agent {

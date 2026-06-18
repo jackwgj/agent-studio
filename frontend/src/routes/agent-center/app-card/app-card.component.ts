@@ -83,6 +83,9 @@ export class AppCardComponent implements OnInit {
     CLOUD_STORE: this.i18n.transform("cloud_store")
   };
   public cardActions: CardAction[] = [];
+  public visibleActions: CardAction[] = [];
+  public overflowActions: CardAction[] = [];
+  private readonly MAX_VISIBLE_ACTIONS = 3;
   public isOpAccount = false;
   TabIndex = TabIndex;
   public channelTypeNew = [];
@@ -222,6 +225,12 @@ export class AppCardComponent implements OnInit {
     if (this.type !== TabIndex.SINGLE_AGENT) {
       this.cardActions = this.cardActions.filter((item) => item.id !== "releaseChannel");
     }
+    this.splitActions();
+  }
+
+  private splitActions(): void {
+    this.visibleActions = this.cardActions.slice(0, this.MAX_VISIBLE_ACTIONS);
+    this.overflowActions = this.cardActions.slice(this.MAX_VISIBLE_ACTIONS);
   }
 
   onMouseLeave(): void {

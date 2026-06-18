@@ -226,31 +226,29 @@ export class AgentBotPageComponent implements OnInit, OnDestroy {
 
   agentModeList = [
     {
-      name: this.i18n.transform("agent_mode_gen"),
-      description: this.i18n.transform("agent_mode_gen_description"),
-      icon: "assets/agent/general_mode.svg",
-      value: AGENT_MODE_CODE.GENERAL_MODE,
-      showFn: () => true
-    },
-    {
       name: this.i18n.transform("agent_planning_mode"),
       description: this.i18n.transform("agent_planning_mode_desc"),
       icon: "assets/agent/planning_mode.svg",
       value: AGENT_MODE_CODE.PLANNING_MODE,
-      showFn: () => this.isShowDREnter() // 当前规划模式暂时只上工行，与深度模式一样
+      showFn: () => true
+    }
+  ];
+  agentMode = {
+    [AGENT_MODE_CODE.GENERAL_MODE]: {
+      name: this.i18n.transform("agent_mode_gen"),
+      description: this.i18n.transform("agent_mode_gen_description"),
+      icon: "assets/agent/general_mode.svg",
+      value: AGENT_MODE_CODE.GENERAL_MODE,
+      showFn: () => false
     },
-    {
+    [AGENT_MODE_CODE.PLANNING_MODE]: this.agentModeList[0],
+    [AGENT_MODE_CODE.DEEP_MODE]: {
       name: this.i18n.transform("agent_mode_deep"),
       description: this.i18n.transform("agent_mode_deep_description"),
       icon: "assets/agent/deepResearch.svg",
       value: AGENT_MODE_CODE.DEEP_MODE,
-      showFn: () => this.isShowDREnter()
+      showFn: () => false
     }
-  ];
-  agentMode = {
-    [AGENT_MODE_CODE.GENERAL_MODE]: this.agentModeList[0],
-    [AGENT_MODE_CODE.PLANNING_MODE]: this.agentModeList[1],
-    [AGENT_MODE_CODE.DEEP_MODE]: this.agentModeList[2]
   };
   curAgentModeCode: AGENT_MODE_CODE;
   isShowAgentModeSelector: boolean = false;
@@ -1147,8 +1145,7 @@ export class AgentBotPageComponent implements OnInit, OnDestroy {
       this.curAgentModeCode = AGENT_MODE_CODE.DEEP_MODE;
       this.isShowDeepResearch = true;
     } else {
-      const agentSubType = this.agentInfo.agentSubType as AGENT_MODE_CODE;
-      this.curAgentModeCode = agentSubType === AGENT_MODE_CODE.PLANNING_MODE ? AGENT_MODE_CODE.PLANNING_MODE : AGENT_MODE_CODE.GENERAL_MODE;
+      this.curAgentModeCode = AGENT_MODE_CODE.PLANNING_MODE;
       this.isShowDeepResearch = false;
     }
   }
