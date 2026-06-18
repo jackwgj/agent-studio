@@ -31,7 +31,7 @@ spec:
             - name: REDIS_PASSWORD
               value: ''
             - name: REDIS_PORT
-              value: ''
+              value: '6379'
             # 集群模式时填写，格式：host1:port1,host2:port2,host3:port3
             - name: REDIS_CLUSTER_NODES
               value: ''
@@ -41,9 +41,9 @@ spec:
             # 哨兵模式时填写，格式：host1:port1,host2:port2,host3:port3
             - name: REDIS_SENTINEL_NODES
               value: ''
-            # 单机无需配置，集群填cluster，哨兵填sentinel
+            # 单机填single，集群填cluster，哨兵填sentinel
             - name: REDIS_MODE
-              value: ''
+              value: 'single'
             # Redis数据库编号，默认0
             - name: REDIS_DATABASE
               value: '0'

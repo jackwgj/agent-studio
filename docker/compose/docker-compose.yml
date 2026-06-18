@@ -36,7 +36,7 @@ services:
       spring_datasource_driver_class_name: ${SPRING_DATASOURCE_DRIVER_CLASS_NAME:-}
       redis_host: ${REDIS_HOST:-}
       redis_password: ${REDIS_PASSWORD:-}
-      redis_port: ${REDIS_PORT:-}
+      redis_port: ${REDIS_PORT:-6379}
       cluster_node_list: ${REDIS_CLUSTER_NODES:-}
       redis_master_name: ${REDIS_SENTINEL_MASTER:-}
       redis_sentinel_ports: ${REDIS_SENTINEL_PORTS:-}
@@ -79,7 +79,7 @@ services:
       spring_datasource_driver_class_name: ${SPRING_DATASOURCE_DRIVER_CLASS_NAME:-}
       redis_host: ${REDIS_HOST:-}
       redis_password: ${REDIS_PASSWORD:-}
-      redis_port: ${REDIS_PORT:-}
+      redis_port: ${REDIS_PORT:-6379}
       cluster_node_list: ${REDIS_CLUSTER_NODES:-}
       redis_master_name: ${REDIS_SENTINEL_MASTER:-}
       redis_sentinel_ports: ${REDIS_SENTINEL_PORTS:-}
@@ -115,11 +115,11 @@ services:
     environment:
       REDIS_HOST: ${REDIS_HOST:-}
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
-      REDIS_PORT: ${REDIS_PORT:-}
+      REDIS_PORT: ${REDIS_PORT:-6379}
       REDIS_CLUSTER_NODES: ${REDIS_CLUSTER_NODES:-}
       REDIS_SENTINEL_MASTER: ${REDIS_SENTINEL_MASTER:-}
       REDIS_SENTINEL_NODES: ${REDIS_SENTINEL_NODES:-}
-      REDIS_MODE: ${REDIS_MODE:-}
+      REDIS_MODE: ${REDIS_MODE:-single}
       REDIS_DATABASE: ${REDIS_DATABASE:-0}
       DATASOURCE_OBS_SERVER: ${OBS_URL:-}
       DATASOURCE_OBS_BUCKET: ${OBS_BUCKET:-}

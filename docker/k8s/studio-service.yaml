@@ -44,7 +44,7 @@ spec:
             - name: redis_password
               value: ''
             - name: redis_port
-              value: ''
+              value: '6379'
             # 集群模式时填写，格式：host1:port1,host2:port2,host3:port3
             - name: cluster_node_list
               value: ''
