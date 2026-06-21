@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnDestroy, OnInit, Output, ViewChild } from '@angular/core';
+import { Component, EventEmitter, Inject, Input, OnDestroy, OnInit, Optional, Output, ViewChild } from '@angular/core';
 import { NgForm } from '@angular/forms';
 import { I18nNamespace } from '@i18n';
 import { MonacoEditorModule } from '@materia-ui/ngx-monaco-editor';
@@ -18,7 +18,7 @@ import { IRefInfo } from '../../app-flow.types';
 import { IRequestArgsView } from '@routes/agent-center/app-plugin/app-plugin.interface';
 import { cloneDeep } from 'lodash';
 import { NewCommonNoDataWithBtnComponent } from '@shared/components/new-common-no-data-with-btn/new-common-no-data-with-btn.component';
-import { NzDrawerModule } from 'ng-zorro-antd/drawer';
+import { NzDrawerModule, NzDrawerRef } from 'ng-zorro-antd/drawer';
 import { NzButtonModule } from 'ng-zorro-antd/button';
 import { NzIconModule } from 'ng-zorro-antd/icon';
 import { NzTreeModule } from 'ng-zorro-antd/tree';
@@ -72,6 +72,7 @@ export class PluginConfigModalComponent implements OnInit, OnDestroy {
 
   @ViewChild('inputForm') inputForm: NgForm;
   @Output('confirm') confirm = new EventEmitter<{ conf: any; type: string }>();
+  @Output('cancel') cancelEvt = new EventEmitter<void>();
 
   public isLoadingParams = false;
   public nameRefOptions: IParamRef[] = [];
@@ -97,12 +98,14 @@ export class PluginConfigModalComponent implements OnInit, OnDestroy {
 
   public getType = NodeUtils.getFieldTypeView;
   public getRrequired = NodeUtils.getRequiredText;
+  public displayWithFn = (node: any) => node?.origin?.variable_key || node?.origin?.name || node?.title || '';
   private destroy$ = new Subject<void>();
 
   constructor(
     protected nodeServ: NodeService,
     protected appFlowServ: AppFlowService,
-    private i18n: I18NextEagerPipe
+    private i18n: I18NextEagerPipe,
+    @Optional() @Inject(NzDrawerRef) private drawerRef: NzDrawerRef | null
   ) {}
 
   async ngOnInit() {
@@ -135,11 +138,35 @@ export class PluginConfigModalComponent implements OnInit, OnDestroy {
         },
         { label: this.getType(v), value: 'literal' },
       ];
-      v.refs = cloneDeep(this.refInfos);
+      v.refs = this.convertRefsForTreeSelect(cloneDeep(this.refInfos));
+      v._refSelectedKey = this.extractRefKey(v.value?.content);
       if (v.children) {
         this.handelSelectOptions(v.children);
       }
     });
+  }
+
+  private extractRefKey(content: any): string {
+    if (Array.isArray(content) && content.length > 0) {
+      return content[0].variable_key || content[0].ref_var_name || '';
+    }
+    return null;
+  }
+
+  private convertRefsForTreeSelect(refInfos: any[]): any[] {
+    return refInfos.map(group => ({
+      title: group._label || group.name,
+      key: group.name,
+      expanded: group.expanded ?? true,
+      children: (group.children || []).map(child => ({
+        title: child.variable_key || child.name || child.label,
+        key: child.variable_key || child.name || child.label,
+        isLeaf: true,
+        origin: child,
+        ...child,
+      })),
+      origin: group,
+    }));
   }
 
   // 让引用参数的下拉框可以初始化的时候被选中
@@ -181,13 +208,51 @@ export class PluginConfigModalComponent implements OnInit, OnDestroy {
     row.value.content = NodeUtils.getChangeContent(row.value.type);
   }
 
+  public onRefSelectChange(selectedKey: string, param: IWorkflowField): void {
+    param._refSelectedKey = selectedKey;
+    const selectedNode = this.findNodeByKey(param.refs, selectedKey);
+    if (selectedNode) {
+      const child = selectedNode.origin || selectedNode;
+      param.value.content = [{
+        name: child.variable_key || child.key,
+        type: child.input_type || 'String',
+        variable_key: child.variable_key || child.key,
+        ref_node_id: child.ref_node_id || '',
+        ref_var_name: child.ref_var_name || child.variable_key || child.key,
+        default_value: child.default_value || '',
+        source: 'user',
+        input_type: child.input_type || undefined,
+      }];
+    }
+  }
+
+  private findNodeByKey(nodes: any[], key: string): any {
+    for (const node of nodes) {
+      if (node.key === key) return node;
+      if (node.children) {
+        const found = this.findNodeByKey(node.children, key);
+        if (found) return found;
+      }
+    }
+    return null;
+  }
+
   public isArrOrObj(type: string) {
     return type.startsWith('array') || type === 'object';
   }
 
-  dismiss(): void {}
+  dismiss(): void {
+    if (this.drawerRef) {
+      this.drawerRef.close();
+    }
+    this.cancelEvt.emit();
+  }
 
-  close(): void {}
+  close(): void {
+    if (this.drawerRef) {
+      this.drawerRef.close();
+    }
+  }
 
   onConfirm(): void {
     this.isValidated = true;
@@ -311,7 +376,7 @@ export class PluginConfigModalComponent implements OnInit, OnDestroy {
   }
 
   public getName(data) {
-    if (!data.content) {
+    if (!data || !data.content) {
       return {
         key: '',
         type: '',

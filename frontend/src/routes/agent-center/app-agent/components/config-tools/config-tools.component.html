@@ -547,8 +547,7 @@
         <!-- 追问 -->
         <div>
           <div class="common-item-title" style="padding: 12px">
-            <div class="left w-[calc(100%-84px)] flex" (click)="changeCollapsedState(probeInfo)">
-              <span>
+            <div class="left w-[calc(100%-84px)] flex gap-[8px]" (click)="changeCollapsedState(probeInfo)">
                 <span class="font-semibold"> {{ probeInfo.title }}</span>
                 <nz-icon
                   nzType="question-circle"
@@ -556,7 +555,6 @@
                   nz-tooltip
                   [nzTooltipTitle]="promptDescTip"
                 />
-              </span>
               <nz-icon
                 nzType="right"
                 nzTheme="outline"
@@ -638,6 +636,7 @@
               <span>
                 <span class="font-semibold"> {{ 'reference' | i18nextEager }}</span>
                 <nz-icon
+                  class="ml-2"
                   nzType="question-circle"
                   nzTheme="outline"
                   nz-tooltip

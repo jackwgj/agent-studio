@@ -299,6 +299,7 @@ export interface IWorkflowField {
   visibility?: boolean;
   refWithout?: boolean;
   isTemp?: string;
+  _refSelectedKey?: string | null;
 }
 
 export type IWFViewParentType = IWorkflowFieldType | 'none';

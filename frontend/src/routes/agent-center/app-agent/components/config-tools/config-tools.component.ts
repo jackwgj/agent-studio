@@ -1086,7 +1086,6 @@ export class ConfigToolsComponent implements OnInit, AfterViewInit, OnDestroy {
     const drawerRef = this.drawerServ.create<PluginConfigModalComponent, any>({
       nzTitle: null,
       nzFooter: null,
-      nzExtra: "Extra",
       nzContent: PluginConfigModalComponent,
       nzWidth: this.halfModalWidth,
       nzContentParams: {
@@ -1135,6 +1134,11 @@ export class ConfigToolsComponent implements OnInit, AfterViewInit, OnDestroy {
           }
           this.triggerSaveMcp(data, true);
         }
+        drawerRef.close();
+      });
+
+      instance.cancelEvt.subscribe(() => {
+        drawerRef.close();
       });
 
     });
@@ -1377,16 +1381,18 @@ export class ConfigToolsComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   public selectTool(mcp: any) {
-    this.nzModal.create({
+    const drawerRef = this.drawerServ.create<AddToolsComponent, any>({
       nzTitle: null,
       nzFooter: null,
       nzContent: AddToolsComponent,
-      nzViewContainerRef: this.viewContainerRef,
       nzWidth: this.halfModalWidth,
-      nzData: {
+      nzContentParams: {
         mcp,
         agentId: this.agentId
       }
+    });
+    drawerRef.afterClose.subscribe(() => {
+      this.addMcpEvent.emit();
     });
   }
 
@@ -1426,7 +1432,6 @@ export class ConfigToolsComponent implements OnInit, AfterViewInit, OnDestroy {
     const drawerRef = this.drawerServ.create<CreateMemoComponent, any>({
       nzTitle: null,
       nzFooter: null,
-      nzExtra: "Extra",
       nzContent: CreateMemoComponent,
       nzWidth: this.halfModalWidth,
       nzContentParams: {

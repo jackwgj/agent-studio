@@ -396,7 +396,6 @@ export class AddPluginsComponent {
     this.drawerServ.create({
       nzTitle: null,
       nzFooter: null,
-      nzExtra: "Extra",
       nzContent: CreatePluginBaseComponent,
       nzWidth: 700,
       nzContentParams: {

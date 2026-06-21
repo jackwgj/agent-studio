@@ -1,7 +1,8 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Input, OnInit, ViewContainerRef } from "@angular/core";
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Inject, Input, OnChanges, OnInit, Optional, SimpleChanges, ViewContainerRef } from "@angular/core";
 import { I18NEXT_NAMESPACE, I18NextEagerPipe } from 'angular-i18next';
 import { v4 as uuidV4 } from 'uuid';
 import { NzMessageService } from 'ng-zorro-antd/message';
+import { NzDrawerRef } from 'ng-zorro-antd/drawer';
 import { MCPService } from '@services/agent-center/mcp.service';
 import { MODULES } from '@shared/modules';
 import { ToolCardComponent } from '@shared/components/tool-card/tool-card.component';
@@ -35,7 +36,7 @@ import { NzSpinModule } from 'ng-zorro-antd/spin';
     },
   ]
 })
-export class AddToolsComponent implements OnInit {
+export class AddToolsComponent implements OnInit, OnChanges {
   @Input() agentId = '';
   @Input() mcp: any = null;
   public selectedTools = [];
@@ -47,6 +48,7 @@ export class AddToolsComponent implements OnInit {
   public btnLoading = false;
   public mcpServers = [];
   public getMcpIcon = getMcpIcon;
+  private initialized = false;
   public get selectedNum() {
     return this.tools.reduce((acc, item) => acc += item.selected ? 1 : 0, 0);
   }
@@ -58,10 +60,24 @@ export class AddToolsComponent implements OnInit {
     private appAgentServe: AppAgentRepoService,
     private commonLogic: agentCommonLogic,
     private messageService: NzMessageService,
+    @Optional() @Inject(NzDrawerRef) private drawerRef: NzDrawerRef,
   ) {
   }
 
   async ngOnInit() {
+    if (this.agentId) {
+      await this.initData();
+    }
+  }
+
+  ngOnChanges(changes: SimpleChanges) {
+    if (changes.agentId?.currentValue && !this.initialized) {
+      this.initData();
+    }
+  }
+
+  private async initData() {
+    this.initialized = true;
     await this.getSelectedTools();
     this.getMcpTools();
   }
@@ -143,5 +159,9 @@ export class AddToolsComponent implements OnInit {
     });
   }
 
-  public dismiss() {}
+  public dismiss() {
+    if (this.drawerRef) {
+      this.drawerRef.close();
+    }
+  }
 }

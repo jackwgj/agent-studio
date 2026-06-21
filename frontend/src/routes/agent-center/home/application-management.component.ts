@@ -48,6 +48,9 @@ import { PrevRouteService } from "@services/prev-route.service";
 import { AppAgentHighCodeService } from "@services/agent-center/app-agent-high-code.service";
 import { DifyImportModalComponent } from "../app-flow/components/dify-import-modal/dify-import-modal.component";
 import { ExportResultModalComponent } from "@shared/components/export-modal/export-result-modal/export-result-modal.component";
+import { NzInputModule } from 'ng-zorro-antd/input';
+import { NzSelectModule } from 'ng-zorro-antd/select';
+import { NzTagModule } from 'ng-zorro-antd/tag';
 
 enum mapKeys {
   FROM = "from",
@@ -65,7 +68,10 @@ enum mapKeys {
     NewCommonNoDataWithBtnComponent,
     AppExceedModalComponent,
     NoDataGuideComponentComponent,
-    NzMenuModule
+    NzMenuModule,
+    NzInputModule,
+    NzSelectModule,
+    NzTagModule
   ],
   providers: [
     {
@@ -193,7 +199,81 @@ export class ApplicationManagementComponent implements OnInit, OnDestroy {
     }
   ];
 
-  public searchName: string = "";
+  public searchItems: { label: string; field: string; options?: { label: string; id: string }[] }[] = [];
+  public searchTags: { field: string; value: string; id?: string; label: string }[] = [];
+  public searchField: string = 'name';
+  public searchInputValue: string = '';
+
+  public get currentFieldHasOptions(): boolean {
+    const item = this.searchItems.find(i => i.field === this.searchField);
+    return !!item?.options?.length;
+  }
+
+  public get currentFieldOptions(): { label: string; id: string }[] {
+    const item = this.searchItems.find(i => i.field === this.searchField);
+    return item?.options || [];
+  }
+
+  public addSearchTag() {
+    const item = this.searchItems.find(i => i.field === this.searchField);
+    if (!item || !this.searchInputValue?.trim()) return;
+    const existing = this.searchTags.find(t => t.field === this.searchField);
+    if (existing) {
+      existing.value = this.searchInputValue.trim();
+    } else {
+      this.searchTags.push({ field: this.searchField, value: this.searchInputValue.trim(), label: item.label });
+    }
+    this.searchInputValue = '';
+    this.onUserSearch();
+  }
+
+  public addSearchTagFromOption(optionId: string) {
+    const item = this.searchItems.find(i => i.field === this.searchField);
+    if (!item || !optionId) return;
+    const opt = item.options?.find(o => o.id === optionId);
+    if (!opt) return;
+    const existing = this.searchTags.find(t => t.field === this.searchField);
+    if (existing) {
+      existing.value = opt.label;
+      existing.id = opt.id;
+    } else {
+      this.searchTags.push({ field: this.searchField, value: opt.label, id: opt.id, label: item.label });
+    }
+    this.onUserSearch();
+  }
+
+  public removeSearchTag(tag: { field: string; value: string }) {
+    this.searchTags = this.searchTags.filter(t => t !== tag);
+    this.onUserSearch();
+  }
+
+  public isFieldTagged(field: string): boolean {
+    return this.searchTags.some(t => t.field === field);
+  }
+
+  public onSearchTagsChange(values: string[]) {
+    this.searchTags = values.map(v => {
+      const [field, id, label] = v.split(':');
+      const item = this.searchItems.find(i => i.field === field);
+      return { field, value: label || id, id: id || undefined, label: item?.label || field };
+    });
+    this.onSearchContentChange();
+  }
+
+  public onTextInputSearch(event: any, field: string) {
+    const value = event.target.value?.trim();
+    if (!value) return;
+    const item = this.searchItems.find(i => i.field === field);
+    if (!this.searchTags.find(t => t.field === field)) {
+      this.searchTags.push({ field, value, label: item?.label || field });
+    }
+    event.target.value = '';
+    this.onSearchContentChange();
+  }
+
+  public get searchNameIsEmpty(): boolean {
+    return this.searchTags.length === 0;
+  }
 
   public currentCardPage = 1;
 
@@ -292,10 +372,6 @@ export class ApplicationManagementComponent implements OnInit, OnDestroy {
       return "high";
     }
     return "multiQuestion";
-  }
-
-  get searchNameIsEmpty() {
-    return this.searchName.length === 0;
   }
 
   private get appTypes() {
@@ -479,8 +555,7 @@ export class ApplicationManagementComponent implements OnInit, OnDestroy {
   getIndexOfTab() {
     let index = 0;
     if (!this.appType) {
-      const tempHighIndex = this.router.url.indexOf('high') > -1 ? 3 : 2;
-      const tempIndex = this.router.url.indexOf('workflow') > -1 ? 1 : tempHighIndex;
+      const tempIndex = this.router.url.indexOf('workflow') > -1 ? 1 : 2;
       index = this.router.url.indexOf('single') > -1 ? 0 : tempIndex;
     }
     return index;
@@ -522,13 +597,19 @@ export class ApplicationManagementComponent implements OnInit, OnDestroy {
   }
 
   handleClickClearSearch(): void {
-    this.searchName = "";
-    this.onSearchContentChange();
+    this.searchTags = [];
+    this.searchInputValue = '';
+    this.onUserSearch();
   }
 
   public onSearchContentChange(): void {
     this.currentCardPage = 1;
     this.getCardData();
+  }
+
+  public onUserSearch(): void {
+    this.hasSearched = true;
+    this.onSearchContentChange();
   }
 
   private async getAppList(params, offset, limit) {
@@ -579,9 +660,14 @@ export class ApplicationManagementComponent implements OnInit, OnDestroy {
         this.isLoadingCard = true;
       }
 
-      const params: any = {
-        name: this.searchName
-      };
+      const params: any = {};
+      this.searchTags.forEach(tag => {
+        if (tag.field === 'workflow_type' || tag.field === 'status') {
+          params[tag.field] = tag.id || tag.value;
+        } else {
+          params[tag.field] = tag.value;
+        }
+      });
       if (this.currActivedTab === TabIndex.HIGH && this.highValue.value) {
         params.type = this.highValue.value;
       }
@@ -848,7 +934,66 @@ export class ApplicationManagementComponent implements OnInit, OnDestroy {
     this.warnOpen = false;
     this.currActivedTab = index;
     this.totalCardNumber = 0;
+    this.searchTags = [];
+    this.searchField = 'name';
+    this.searchInputValue = '';
+    this.initSearchItems(index);
     this.onSearchContentChange();
+  }
+
+  private initSearchItems(index: number) {
+    this.searchTags = [];
+    if (index === TabIndex.WORKFLOW) {
+      this.searchItems = [
+        { label: this.i18n.transform('name'), field: 'name' },
+        { label: this.i18n.transform('description'), field: 'description' },
+        { label: this.i18n.transform('homecomponent_1222'), field: 'author' },
+        {
+          label: this.i18n.transform('type'), field: 'workflow_type',
+          options: [
+            { label: this.i18n.transform('chat'), id: 'chat' },
+            { label: this.i18n.transform('task'), id: 'task' },
+          ],
+        },
+        {
+          label: this.i18n.transform('status'), field: 'status',
+          options: [
+            { label: this.i18n.transform('submitted'), id: 'published' },
+            { label: this.i18n.transform('not_submitted'), id: 'draft' },
+          ],
+        },
+      ];
+    } else if (index === TabIndex.SINGLE_AGENT) {
+      this.searchItems = [
+        { label: this.i18n.transform('name'), field: 'name' },
+        {
+          label: this.i18n.transform('status'), field: 'status',
+          options: [
+            { label: this.i18n.transform('submitted'), id: 'published' },
+            { label: this.i18n.transform('not_submitted'), id: 'draft' },
+          ],
+        },
+        { label: this.i18n.transform('description'), field: 'description' },
+        { label: this.i18n.transform('homecomponent_1222'), field: 'creator' },
+      ];
+    } else if (index === TabIndex.MULTI_AGENT) {
+      this.searchItems = [
+        { label: this.i18n.transform('name'), field: 'name' },
+        {
+          label: this.i18n.transform('status'), field: 'status',
+          options: [
+            { label: this.i18n.transform('submitted'), id: 'published' },
+            { label: this.i18n.transform('not_submitted'), id: 'draft' },
+          ],
+        },
+        { label: this.i18n.transform('description'), field: 'description' },
+        { label: this.i18n.transform('homecomponent_1222'), field: 'creator' },
+      ];
+    } else {
+      this.searchItems = [
+        { label: this.i18n.transform('name'), field: 'name' },
+      ];
+    }
   }
 
   public setNode(context?: any) {

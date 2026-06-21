@@ -45,6 +45,7 @@ import { ModelImageDataService } from "@routes/agent-center/app-agent/components
 import commonLogicWorkflow from "@routes/agent-center/app-flow/common-logic-workflow";
 import { AppAgentRepoService } from "@services/agent-center/app-agent-repo.service";
 import { CommonUtils } from "../../../../../utils/common.util";
+import { NzFormModule } from 'ng-zorro-antd/form';
 import { AGENT_MODE_CODE } from "../../agent-bot-page/agent-bot-page.constant";
 import { CommonService } from "@services/common.service";
 import { SkillInputPromptService } from "@services/agent-center/skill/skill-input-prompt.service";
@@ -70,7 +71,8 @@ import { MessageComponent } from '@shared/services/cfdata.service';
     TextFieldModule,
     ExampleTipModalComponent,
     IconUploadComponent,
-    CmdTextareaComponent
+    CmdTextareaComponent,
+    NzFormModule
   ],
   providers: [
     {

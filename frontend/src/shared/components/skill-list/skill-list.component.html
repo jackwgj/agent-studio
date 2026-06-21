@@ -91,6 +91,9 @@
                  nzType="info-circle"
                  nzTheme="outline"
                  class="!text-[18px] right-icon mr-[4px]"
+                 nz-tooltip
+                 [nzTooltipTitle]="inputParamsTipTmpl2"
+                 nzTooltipColor="#fff"
         />
         <nz-icon *ngIf="(type === 'workflow' || type === 'mcp') && curAgentModeCode !== AGENT_MODE_CODE.PLANNING_MODE"
                  nzType="setting"
@@ -129,13 +132,13 @@
 <!--  </div>-->
 </ng-template>
 
-<ng-template #inputParamsTipTmpl2 let-context="context">
+<ng-template #inputParamsTipTmpl2>
   <div style="width: 300px; max-height: 400px; overflow-y: scroll" (mouseenter)="handleHoverEnterTipContent()" (mouseleave)="handleHoverLeaveTipContent()">
     <p class="skill-list-input-params-title">{{ 'input_params' | i18nextEager }}</p>
-    <div *ngIf="context.length <= 0" style="color: rgb(128, 128, 128)">
+    <div *ngIf="!getParams || getParams.length <= 0" style="color: rgb(128, 128, 128)">
       {{ 'no_data' | i18nextEager }}
     </div>
-    <div *ngFor="let item of context; index as i" class="skill-list-input-params-content">
+    <div *ngFor="let item of getParams; index as i" class="skill-list-input-params-content">
       <p class="first-line">
         <span>{{ item.name }}</span>
         <span class="param-type">{{ getParamsType(item?.value?.type) ? ('reference_1' | i18nextEager) : item.type }}</span>
@@ -147,7 +150,7 @@
       <div style="margin-bottom: 12px; color: rgb(128, 128, 128);" class="text-overflow">
         {{ 'default_v' | i18nextEager }}: {{ getDefaultValue(item?.value) }}
       </div>
-      <div style="width: 100%; height: 1px; background: #eee" *ngIf="context.length > 1 && i < (context.length - 1)"></div>
+      <div style="width: 100%; height: 1px; background: #eee" *ngIf="getParams.length > 1 && i < (getParams.length - 1)"></div>
     </div>
   </div>
 </ng-template>

@@ -2,19 +2,29 @@
   width: 100%;
 }
 
+:host ::ng-deep .custom-search {
+  .ant-select-selection-item {
+    span {
+      line-height: 30px;
+    }
+  }
+}
+
 .header-style {
   padding: 0 !important;
   height: 43px;
   line-height: 43px;
   margin-bottom: 12px;
+
   ::ng-deep {
     tp-descandbuy {
       height: 43px;
       line-height: 43px;
     }
+
     .tp-helptip-label {
       font-size: 20px;
-      color: rgb(34,34,34);
+      color: rgb(34, 34, 34);
     }
   }
 }
@@ -26,10 +36,12 @@
   gap: 16px;
   border-radius: 16px;
   margin-bottom: 16px;
-  .ng-star-inserted{
+
+  .ng-star-inserted {
     background: #FFFFFF;
-    border:1px solid #E6E6E6;
-    &:hover{
+    border: 1px solid #E6E6E6;
+
+    &:hover {
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
       background-size: cover;
     }
@@ -47,6 +59,7 @@
     height: 43px;
     line-height: 43px;
     margin-top: 0px !important;
+
     .tp-helptip-label {
       font-size: 20px;
     }
@@ -70,9 +83,10 @@
 .url-break {
   word-wrap: break-word;
 }
-.tool-bar{
-  .common-btn{
-    min-width:84px !important;
+
+.tool-bar {
+  .common-btn {
+    min-width: 84px !important;
   }
 }
 

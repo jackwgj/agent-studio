@@ -25,32 +25,52 @@
       </div>
       <div class="right-area">
         <form [formGroup]="groupFormControl" class="flex flex-col gap-[12px]">
-          <div class="name-wrapper">
-            <div class="input-container">
-              <span class="char-counter"> {{ groupFormControl.get('name')?.value?.length || 0 }}/64 </span>
-            </div>
-            <input
-              nz-input
-              [(ngModel)]="openingInputed"
-              maxlength="64"
-              [placeholder]="'enter_app_name' | i18nextEager"
-              formControlName="name"
-              (input)="onInputName($event)"
-            />
-          </div>
-          <div class="desc-wrapper">
-            <textarea
-              nz-input
-              style="width: 100%; min-width: 100%; height: 104px; max-height: 62px"
-              resize="none"
-              maxlength="256"
-              [(ngModel)]="openingDescription"
-              [placeholder]="'describe_app' | i18nextEager"
-              formControlName="description"
-              (input)="onInputDesc($event)"
-            >
-            </textarea>
-          </div>
+          <nz-form-item class="name-wrapper mb-0">
+            <nz-form-control [nzErrorTip]="nameErrorTpl">
+              <div class="input-container">
+                <span class="char-counter"> {{ groupFormControl.get('name')?.value?.length || 0 }}/64 </span>
+              </div>
+              <input
+                nz-input
+                [(ngModel)]="openingInputed"
+                maxlength="64"
+                [placeholder]="'enter_app_name' | i18nextEager"
+                formControlName="name"
+                (input)="onInputName($event)"
+              />
+              <ng-template #nameErrorTpl let-control>
+                @if (control.hasError('required')) {
+                  {{ 'required' | i18nextEager }}
+                }
+                @if (control.hasError('serviceName') && !control.hasError('required')) {
+                  {{ control.getError('serviceName').tiErrorMessage }}
+                }
+              </ng-template>
+            </nz-form-control>
+          </nz-form-item>
+          <nz-form-item class="desc-wrapper mb-0">
+            <nz-form-control [nzErrorTip]="descErrorTpl">
+              <textarea
+                nz-input
+                style="width: 100%; min-width: 100%; height: 104px; max-height: 62px"
+                resize="none"
+                maxlength="256"
+                [(ngModel)]="openingDescription"
+                [placeholder]="'describe_app' | i18nextEager"
+                formControlName="description"
+                (input)="onInputDesc($event)"
+              >
+              </textarea>
+              <ng-template #descErrorTpl let-control>
+                @if (control.hasError('required')) {
+                  {{ 'required' | i18nextEager }}
+                }
+                @if (control.hasError('maxlength')) {
+                  {{ 'input_max_length' | i18nextEager : { max: 256 } }}
+                }
+              </ng-template>
+            </nz-form-control>
+          </nz-form-item>
         </form>
       </div>
     </div>

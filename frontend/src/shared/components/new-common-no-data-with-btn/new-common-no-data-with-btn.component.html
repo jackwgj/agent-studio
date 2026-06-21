@@ -23,7 +23,7 @@
       <span class="noData-new" *ngIf="!isOnlyShowBtn"></span>
       <p class="first-line-data" *ngIf="!isOnlyShowBtn">{{ firstLineData }}</p>
       <div class="second-line-data" *ngIf="!isOnlyShowBtn">{{ secondLineData }}</div>
-      <button class="btn-css" *ngIf="noDataBtnStr" tiButton (click)="onCreate()">
+      <button class="btn-css" *ngIf="noDataBtnStr" nz-button (click)="onCreate()">
         {{ noDataBtnStr }}
       </button>
     </div>
@@ -31,7 +31,7 @@
       <span class="filter-noData-new"></span>
       <p class="first-line-data">{{ filterNoData }}</p>
       <div class="second-line-data">{{ filterNoSecondData }}</div>
-      <button class="btn-css" *ngIf="filterBtn" tiButton (click)="onClear()">
+      <button class="btn-css" *ngIf="filterBtn" nz-button (click)="onClear()">
         {{ filterBtn }}
       </button>
     </div>
@@ -50,7 +50,7 @@
       <span class="filter-noData-new"></span>
       <p class="first-line-data">{{ filterNoData }}</p>
       <div class="second-line-data">{{ filterNoSecondData }}</div>
-      <button class="btn-css" *ngIf="filterBtn" tiButton (click)="onClear()">
+      <button class="btn-css" *ngIf="filterBtn" nz-button (click)="onClear()">
         {{ filterBtn }}
       </button>
     </div>
@@ -59,7 +59,7 @@
         <span class="noData-new"></span>
         <p class="first-line-data">{{ 'no_data' | i18nextEager }}</p>
         <div class="second-line-data">{{ 'no_resource_available_please_purchase' | i18nextEager }}</div>
-        <button *ngIf="is_white_list" class="btn-css" tiButton (click)="goToBuy()">
+        <button *ngIf="is_white_list" class="btn-css" nz-button (click)="goToBuy()">
           {{ 'purchase_resources' | i18nextEager }}
         </button>
       </div>
@@ -67,7 +67,7 @@
         <span class="noData-new"></span>
         <p class="first-line-data">{{ firstLineData }}</p>
         <div class="second-line-data">{{ secondLineData }}</div>
-        <button class="btn-css" *ngIf="noDataBtnStr" tiButton (click)="onCreate()">
+        <button class="btn-css" *ngIf="noDataBtnStr" nz-button (click)="onCreate()">
           {{ noDataBtnStr }}
         </button>
       </div>

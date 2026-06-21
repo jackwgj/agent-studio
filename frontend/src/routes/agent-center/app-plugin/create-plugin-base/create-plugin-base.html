@@ -1,14 +1,14 @@
 <ng-template #titleContent>
   <div class="mb-[16px]">{{ modalTitle }}</div>
 
-  <nz-alert *ngIf="!isLocked" class="text-[12px]" [nzShowIcon]="true" nzType="info" style="width: 100%" [nzAction]="actionTemplate1">
+  <nz-alert *ngIf="!isLocked && showTips" class="text-[12px]" [nzShowIcon]="true" nzType="info" style="width: 100%" [nzAction]="actionTemplate1" nzCloseable>
     <ng-template #actionTemplate1>
       <span nz-typography> {{ 'plugin_update_prompt' | i18nextEager }} </span>
       <span (click)="hideTips()" class="cursor-pointer text-[#1476ff]"> {{ 'no_more_prompt' | i18nextEager }} </span>
     </ng-template>
   </nz-alert>
 
-  <div *ngIf="!isLocked" class="header-steps">
+  <div *ngIf="!isLocked" class="header-steps mt-4">
     <nz-steps class="!justify-flex-start !flex" [nzCurrent]="step" nzSize="small">
       <nz-step [nzTitle]="step.label" *ngFor="let step of steps"></nz-step>
     </nz-steps>

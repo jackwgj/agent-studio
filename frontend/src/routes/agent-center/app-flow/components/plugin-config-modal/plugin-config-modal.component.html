@@ -1,215 +1,205 @@
-<nz-drawer [nzVisible]="true" [nzPlacement]="'right'" [nzWidth]="640" [nzMaskClosable]="false" [nzClosable]="false" nzWrapClassName="plugin-config-drawer">
-  <ng-container *nzDrawerContent>
-    <div class="flex h-full w-full flex-col">
-      <div class="drawer-header mb-[16px] block">
-        {{ getModalTitle() | i18nextEager }}
-      </div>
+<div class="flex h-full w-full flex-col">
+  <div class="drawer-header mb-[16px] block">
+    {{ getModalTitle() | i18nextEager }}
+  </div>
 
-      <div class="drawer-body" id="flow-api-modal-body">
-        <nz-spin [nzSpinning]="isLoadingParams">
-          <div class="h-full w-full overflow-auto pr-[24px]">
-            <div class="plugin-info-modal">
-              <img alt="" class="tool-common-icon" [src]="detail.icon || detail.avatar" />
-              <div style="margin-left: 10px">
-                <div class="plugin-name">{{ detail?.tool_chinese_name || detail?.name }}</div>
-                <div class="plugin-desc">{{ detail.desc }}</div>
+  <div class="drawer-body flex-1 overflow-auto pr-[24px]">
+    <nz-spin [nzSpinning]="isLoadingParams">
+      <div class="h-full w-full overflow-auto pr-[24px]">
+        <div class="plugin-info-modal">
+          <img alt="" class="tool-common-icon" [src]="detail.icon || detail.avatar" />
+          <div style="margin-left: 10px">
+            <div class="plugin-name">{{ detail?.tool_chinese_name || detail?.name }}</div>
+            <div class="plugin-desc">{{ detail.desc }}</div>
+          </div>
+        </div>
+
+        <meta-acc-block class="mt-4 block w-full" [title]="'input_params' | i18nextEager">
+          <ng-template #content>
+            <div class="flex flex-sub-no-auto items-center gap-[5px] mt-[16px]" style="padding-bottom: 8px; border-bottom: 1px solid #eee">
+              <div class="flex text-label overflow-ellipsis" [style]="{ width: getTableWidth().name }">
+                {{ 'param_name' | i18nextEager }}
+              </div>
+              <div class="flex text-label overflow-ellipsis" [style]="{ width: getTableWidth().description }">
+                {{ 'description' | i18nextEager }}
+              </div>
+              <div class="overflow-ellipsis" [style]="{ width: getTableWidth().required }">
+                {{ 'required' | i18nextEager }}
+              </div>
+              <div class="overflow-ellipsis" [style]="{ width: getTableWidth().default }">
+                {{ 'default_v' | i18nextEager }}
+              </div>
+              <div *ngIf="type !== 'mcp'" [style]="{ width: getTableWidth().visibility }">
+                <span nz-tooltip [nzTooltipTitle]="'plugin-config-modal_2' | i18nextEager">
+                  {{ 'responsestepcomponent_1073' | i18nextEager }}
+                </span>
               </div>
             </div>
+            <form *ngIf="inputs?.length" #inputForm="ngForm">
+              <nz-tree class="input-tree" [nzData]="inputs" nzBlockNode>
+                <ng-template #nzTreeTemplate let-node let-i="index">
+                  <div class="my-2 flex flex-sub-no-auto gap-[5px] w-[100%]" style="align-items: center; border-radius: 2px">
+                    <div class="text-label text-ellipsis overflow-ellipsis" [style]="{ width: getTableWidth().name }">
+                      {{ node.origin.name }}
+                    </div>
+                    <div [style]="{ width: getTableWidth().description }">
+                      <p class="w-[95%] text-label text-ellipsis overflow-ellipsis !mb-0">{{ node.origin.description }}</p>
+                    </div>
+                    <div class="overflow-ellipsis" style="color: rgb(25, 25, 25)" [style]="{ width: getTableWidth().required }">
+                      {{ getRrequired(node.origin.showRequired) }}
+                    </div>
+                    <div class="flex" [style]="{ width: getTableWidth().default }">
+                      <div class="flex h-fit items-center w-[95%]">
+                        <div class="flex w-full">
+                          <div class="w-[35%]">
+                            <nz-select
+                              class="combo-select-left"
+                              style="width: 100%"
+                              [name]="'inputFormType' + i"
+                              [nzOptions]="node.origin.options"
+                              [(ngModel)]="node.origin.value.type"
+                              nzPlaceHolder=""
+                              [nzDisabled]="node.origin.isDisabled"
+                              (ngModelChange)="onInputValueTypeChange(node.origin)"
+                            ></nz-select>
+                          </div>
+                          <div class="w-[65%]" [ngClass]="{ 'obj-diabled': node.origin.isDisabled }">
+                            <ng-container *ngIf="node.origin.value.type === 'literal'">
+                              <input
+                                class="combo-select-right"
+                                *ngIf="node.origin.type === 'string'"
+                                style="width: 100%"
+                                type="text"
+                                nz-input
+                                [name]="'inputFormValue' + i"
+                                [nonEmptyValidator]="node.origin.required"
+                                [disabled]="node.origin.isDisabled"
+                                [placeholder]="'input_placeholder' | i18nextEager"
+                                [(ngModel)]="node.origin.value.content"
+                                [title]="node.origin.value.content"
+                              />
 
-            <meta-acc-block class="mt-4 block w-full" [title]="'input_params' | i18nextEager">
-              <ng-template #content>
-                <div class="flex flex-sub-no-auto items-center gap-[5px] mt-[16px]" style="padding-bottom: 8px; border-bottom: 1px solid #eee">
-                  <div class="flex text-label overflow-ellipsis" [style]="{ width: getTableWidth().name }">
-                    {{ 'param_name' | i18nextEager }}
-                  </div>
-                  <div class="flex text-label overflow-ellipsis" [style]="{ width: getTableWidth().description }">
-                    {{ 'description' | i18nextEager }}
-                  </div>
-                  <div class="overflow-ellipsis" [style]="{ width: getTableWidth().required }">
-                    {{ 'required' | i18nextEager }}
-                  </div>
-                  <div class="overflow-ellipsis" [style]="{ width: getTableWidth().default }">
-                    {{ 'default_v' | i18nextEager }}
-                  </div>
-                  <div *ngIf="type !== 'mcp'" [style]="{ width: getTableWidth().visibility }">
-                    <span nz-tooltip [nzTooltipTitle]="'plugin-config-modal_2' | i18nextEager">
-                      {{ 'responsestepcomponent_1073' | i18nextEager }}
-                    </span>
-                  </div>
-                </div>
-                <form *ngIf="inputs?.length" #inputForm="ngForm">
-                  <nz-tree class="input-tree" [nzData]="inputs" nzBlockNode>
-                    <ng-template #nzTreeTemplate let-node let-i="index">
-                      <div class="my-2 flex flex-sub-no-auto gap-[5px] w-[100%]" style="align-items: center; border-radius: 2px">
-                        <div class="text-label text-ellipsis overflow-ellipsis" [style]="{ width: getTableWidth().name }">
-                          {{ node.origin.name }}
-                        </div>
-                        <div [style]="{ width: getTableWidth().description }">
-                          <p class="w-[95%] text-label text-ellipsis overflow-ellipsis">{{ node.origin.description }}</p>
-                        </div>
-                        <div class="overflow-ellipsis" style="color: rgb(25, 25, 25)" [style]="{ width: getTableWidth().required }">
-                          {{ getRrequired(node.origin.showRequired) }}
-                        </div>
-                        <div class="flex" [style]="{ width: getTableWidth().default }">
-                          <div class="flex h-fit items-center w-[95%]">
-                            <div class="flex w-full">
-                              <div class="w-[35%]">
-                                <nz-select
-                                  class="combo-select-left"
-                                  style="width: 100%"
-                                  [name]="'inputFormType' + i"
-                                  [nzOptions]="node.origin.options"
-                                  [(ngModel)]="node.origin.value.type"
-                                  nzPlaceHolder=""
-                                  [nzDisabled]="node.origin.isDisabled"
-                                  (ngModelChange)="onInputValueTypeChange(node.origin)"
-                                ></nz-select>
-                              </div>
-                              <div class="w-[65%]" [ngClass]="{ 'obj-diabled': node.origin.isDisabled }">
-                                <ng-container *ngIf="node.origin.value.type === 'literal'">
-                                  <input
-                                    class="combo-select-right"
-                                    *ngIf="node.origin.type === 'string'"
-                                    style="width: 100%"
-                                    type="text"
-                                    nz-input
-                                    [name]="'inputFormValue' + i"
-                                    [nonEmptyValidator]="node.origin.required"
-                                    [disabled]="node.origin.isDisabled"
-                                    [placeholder]="'input_placeholder' | i18nextEager"
-                                    [(ngModel)]="node.origin.value.content"
-                                    [title]="node.origin.value.content"
-                                  />
+                              <typed-json-input
+                                [ngClass]="{ 'obj-diabled': node.origin.isDisabled }"
+                                *ngIf="isArrOrObj(node.origin.type)"
+                                [param]="node.origin"
+                                [isValidated]="node.origin.isDisabled ? false : isValidated"
+                              ></typed-json-input>
 
-                                  <typed-json-input
-                                    [ngClass]="{ 'obj-diabled': node.origin.isDisabled }"
-                                    *ngIf="isArrOrObj(node.origin.type)"
-                                    [param]="node.origin"
-                                    [isValidated]="node.origin.isDisabled ? false : isValidated"
-                                  ></typed-json-input>
+                              <nz-select
+                                *ngIf="node.origin.type === 'boolean'"
+                                class="combo-select-right"
+                                style="width: 100%"
+                                [name]="'inputFormValue' + i"
+                                [nzOptions]="booleanOps"
+                                [(ngModel)]="node.origin.value.content"
+                                [nzPlaceHolder]="'select_placeholder' | i18nextEager"
+                                [nzAllowClear]="true"
+                              >
+                              </nz-select>
 
-                                  <nz-select
-                                    *ngIf="node.origin.type === 'boolean'"
-                                    class="combo-select-right"
-                                    style="width: 100%"
-                                    [name]="'inputFormValue' + i"
-                                    [nzOptions]="booleanOps"
-                                    [(ngModel)]="node.origin.value.content"
-                                    [nzPlaceHolder]="'select_placeholder' | i18nextEager"
-                                    [nzAllowClear]="true"
-                                  >
-                                  </nz-select>
+                              <input
+                                *ngIf="node.origin.type === 'number'"
+                                class="combo-select-right"
+                                [name]="'inputFormValue' + i"
+                                style="width: 100%"
+                                [placeholder]="'input_placeholder' | i18nextEager"
+                                type="text"
+                                nz-input
+                                [(ngModel)]="node.origin.value.content"
+                                [title]="node.origin.value.content"
+                                nonEmptyValidator
+                                numberStr
+                                [disabled]="node.origin.isDisabled"
+                              />
 
-                                  <input
-                                    *ngIf="node.origin.type === 'number'"
-                                    class="combo-select-right"
-                                    [name]="'inputFormValue' + i"
-                                    style="width: 100%"
-                                    [placeholder]="'input_placeholder' | i18nextEager"
-                                    type="text"
-                                    nz-input
-                                    [(ngModel)]="node.origin.value.content"
-                                    [title]="node.origin.value.content"
-                                    nonEmptyValidator
-                                    numberStr
-                                    [disabled]="node.origin.isDisabled"
-                                  />
+                              <input
+                                *ngIf="node.origin.type === 'integer'"
+                                class="combo-select-right"
+                                [name]="'inputFormValue' + i"
+                                style="width: 100%"
+                                [placeholder]="'input_placeholder' | i18nextEager"
+                                type="text"
+                                nz-input
+                                [(ngModel)]="node.origin.value.content"
+                                [title]="node.origin.value.content"
+                                nonEmptyValidator
+                                [disabled]="node.origin.isDisabled"
+                                integerStr
+                              />
+                            </ng-container>
+                            <nz-tree-select
+                              class="combo-select-right"
+                              style="width: 100%"
+                              *ngIf="node.origin.value.type === 'ref' || node.origin.value.type === 'input_ref'"
+                              [nzNodes]="node.origin.refs"
+                              [ngModel]="node.origin._refSelectedKey"
+                              (ngModelChange)="onRefSelectChange($event, node.origin)"
+                              [nzPlaceHolder]="'select_placeholder' | i18nextEager"
+                              [name]="'inputFormValue' + i"
+                              [nzDropdownMatchSelectWidth]="false"
+                              [nzDisabled]="node.origin.isDisabled"
+                              [nzPlacement]="'bottomRight'"
+                              [nzDisplayWith]="displayWithFn"
+                            >
+                            </nz-tree-select>
 
-                                  <input
-                                    *ngIf="node.origin.type === 'integer'"
-                                    class="combo-select-right"
-                                    [name]="'inputFormValue' + i"
-                                    style="width: 100%"
-                                    [placeholder]="'input_placeholder' | i18nextEager"
-                                    type="text"
-                                    nz-input
-                                    [(ngModel)]="node.origin.value.content"
-                                    [title]="node.origin.value.content"
-                                    nonEmptyValidator
-                                    [disabled]="node.origin.isDisabled"
-                                    integerStr
-                                  />
-                                </ng-container>
-                                <nz-tree-select
-                                  class="combo-select-right"
-                                  style="width: 100%"
-                                  *ngIf="node.origin.value.type === 'ref' || node.origin.value.type === 'input_ref'"
-                                  [nzNodes]="node.origin.refs"
-                                  [(ngModel)]="node.origin.value.content"
-                                  [nzPlaceHolder]="'select_placeholder' | i18nextEager"
-                                  refSelectedRequire
-                                  [name]="'inputFormValue' + i"
-                                  [nzDropdownMatchSelectWidth]="false"
-                                  [nzDisabled]="node.origin.isDisabled"
-                                  [nzPlacement]="'bottomRight'"
-                                  [nzTooltipTitle]="inputParamsTipTmpl3"
-                                  nz-tooltip
-                                  nzTooltipPlacement="top"
-                                  nzPlaceHolder=""
-                                >
-                                  <ng-template #nzTreeTemplate let-node let-i="index">
-                                    <meta-param-tree [item]="node.origin" />
-                                  </ng-template>
-                                </nz-tree-select>
-
-                                <div class="w-full" #valueWrapper></div>
-                              </div>
-                            </div>
+                            <div class="w-full" #valueWrapper></div>
                           </div>
                         </div>
-                        <div *ngIf="type !== 'mcp'" [style]="{ width: getTableWidth().visibility }">
-                          <nz-switch
-                            *ngIf="node.origin.depth === 0"
-                            class="mr-2"
-                            [name]="'visibility' + i"
-                            (ngModelChange)="onNgModelChange($event, node.origin)"
-                            [(ngModel)]="node.origin.visibility"
-                          ></nz-switch>
-                        </div>
                       </div>
-                    </ng-template>
-                  </nz-tree>
-                </form>
-                <div *ngIf="inputs?.length <= 0" style="margin-top: 24px">
-                  <app-new-common-no-data-with-btn [type]="'noData'" [firstLineData]="'no_data' | i18nextEager" />
+                    </div>
+                    <div *ngIf="type !== 'mcp'" [style]="{ width: getTableWidth().visibility }">
+                      <nz-switch
+                        *ngIf="node.origin.depth === 0"
+                        class="mr-2"
+                        [name]="'visibility' + i"
+                        (ngModelChange)="onNgModelChange($event, node.origin)"
+                        [(ngModel)]="node.origin.visibility"
+                      ></nz-switch>
+                    </div>
+                  </div>
+                </ng-template>
+              </nz-tree>
+            </form>
+            <div *ngIf="inputs?.length <= 0" style="margin-top: 24px">
+              <app-new-common-no-data-with-btn [type]="'noData'" [firstLineData]="'no_data' | i18nextEager" />
+            </div>
+          </ng-template>
+        </meta-acc-block>
+
+        <meta-acc-block *ngIf="outputParams?.length" class="mt-4 block w-full" [title]="'output_params' | i18nextEager">
+          <ng-template #content>
+            <nz-tree id="node-param-tree" [nzData]="outputParams" nzBlockNode>
+              <ng-template #nzTreeTemplate let-node let-i="index">
+                <div class="ml-[2px] mt-[8px] flex w-full items-center gap-3 leading-none">
+                  <span class="text-[#595959]">{{ node.origin.name }}</span>
+                  <span class="flex h-[18px] items-center justify-center rounded-sm bg-[#F5F5F5] pl-[8px] pr-[8px]">{{ getType(node.origin) }}</span>
                 </div>
               </ng-template>
-            </meta-acc-block>
-
-            <meta-acc-block *ngIf="outputParams?.length" class="mt-4 block w-full" [title]="'output_params' | i18nextEager">
-              <ng-template #content>
-                <nz-tree id="node-param-tree" [nzData]="outputParams" nzBlockNode>
-                  <ng-template #nzTreeTemplate let-node let-i="index">
-                    <div class="ml-[2px] mt-[8px] flex w-full items-center gap-3 leading-none">
-                      <span class="text-[#595959]">{{ node.origin.name }}</span>
-                      <span class="flex h-[18px] items-center justify-center rounded-sm bg-[#F5F5F5] pl-[8px] pr-[8px]">{{ getType(node.origin) }}</span>
-                    </div>
-                  </ng-template>
-                </nz-tree>
-              </ng-template>
-            </meta-acc-block>
-          </div>
-        </nz-spin>
+            </nz-tree>
+          </ng-template>
+        </meta-acc-block>
       </div>
+    </nz-spin>
+  </div>
 
-      <div class="drawer-footer">
-        <div class="flex justify-end gap-2">
-          <button type="button" nz-button (click)="dismiss()">
-            {{ 'cancel' | i18nextEager }}
-          </button>
-          <button [disabled]="isFlowReadonly || inputParams?.length <= 0" type="button" nz-button nzType="primary" (click)="onConfirm()" [nzLoading]="loading">
-            {{ 'ok' | i18nextEager }}
-          </button>
-        </div>
-      </div>
+  <div class="drawer-footer shrink-0 border-t border-[#e1e5eb] px-[20px] py-[16px]">
+    <div class="flex justify-end gap-2">
+      <button type="button" nz-button (click)="dismiss()">
+        {{ 'cancel' | i18nextEager }}
+      </button>
+      <button [disabled]="isFlowReadonly || inputParams?.length <= 0" type="button" nz-button nzType="primary" (click)="onConfirm()" [nzLoading]="loading">
+        {{ 'ok' | i18nextEager }}
+      </button>
     </div>
+  </div>
+</div>
 
-    <ng-template #inputParamsTipTmpl3 let-context="context">
-      <div style="display: flex; align-items: center; gap: 4px">
-        <span>{{ getName(context).key }}</span>
-        <span style="padding: 0 4px; background: #eee">{{ getName(context).type }}</span>
-        <span>{{ getName(context).value }}</span>
-      </div>
-    </ng-template>
-  </ng-container>
-</nz-drawer>
+<ng-template #inputParamsTipTmpl3 let-context="context">
+  <div style="display: flex; align-items: center; gap: 4px">
+    <span>{{ getName(context).key }}</span>
+    <span style="padding: 0 4px; background: #eee">{{ getName(context).type }}</span>
+    <span>{{ getName(context).value }}</span>
+  </div>
+</ng-template>

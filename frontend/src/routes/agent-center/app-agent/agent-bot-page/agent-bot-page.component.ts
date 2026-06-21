@@ -226,6 +226,13 @@ export class AgentBotPageComponent implements OnInit, OnDestroy {
 
   agentModeList = [
     {
+      name: this.i18n.transform("agent_mode_gen"),
+      description: this.i18n.transform("agent_mode_gen_description"),
+      icon: "assets/agent/general_mode.svg",
+      value: AGENT_MODE_CODE.GENERAL_MODE,
+      showFn: () => true
+    },
+    {
       name: this.i18n.transform("agent_planning_mode"),
       description: this.i18n.transform("agent_planning_mode_desc"),
       icon: "assets/agent/planning_mode.svg",
@@ -234,14 +241,8 @@ export class AgentBotPageComponent implements OnInit, OnDestroy {
     }
   ];
   agentMode = {
-    [AGENT_MODE_CODE.GENERAL_MODE]: {
-      name: this.i18n.transform("agent_mode_gen"),
-      description: this.i18n.transform("agent_mode_gen_description"),
-      icon: "assets/agent/general_mode.svg",
-      value: AGENT_MODE_CODE.GENERAL_MODE,
-      showFn: () => false
-    },
-    [AGENT_MODE_CODE.PLANNING_MODE]: this.agentModeList[0],
+    [AGENT_MODE_CODE.GENERAL_MODE]: this.agentModeList[0],
+    [AGENT_MODE_CODE.PLANNING_MODE]: this.agentModeList[1],
     [AGENT_MODE_CODE.DEEP_MODE]: {
       name: this.i18n.transform("agent_mode_deep"),
       description: this.i18n.transform("agent_mode_deep_description"),
@@ -1145,7 +1146,8 @@ export class AgentBotPageComponent implements OnInit, OnDestroy {
       this.curAgentModeCode = AGENT_MODE_CODE.DEEP_MODE;
       this.isShowDeepResearch = true;
     } else {
-      this.curAgentModeCode = AGENT_MODE_CODE.PLANNING_MODE;
+      const agentSubType = this.agentInfo.agentSubType as AGENT_MODE_CODE;
+      this.curAgentModeCode = agentSubType === AGENT_MODE_CODE.PLANNING_MODE ? AGENT_MODE_CODE.PLANNING_MODE : AGENT_MODE_CODE.GENERAL_MODE;
       this.isShowDeepResearch = false;
     }
   }
@@ -1299,7 +1301,7 @@ export class AgentBotPageComponent implements OnInit, OnDestroy {
   public configTabActiveChange(id: string) {
     if (id === this.configHeaderTabs[1].id) {
       this.goToChannelPage();
-      this.triggerSettingModal.hide();
+      this.triggerSettingModal.close();
     }
     this.curActiveConfigTabId = id;
   }

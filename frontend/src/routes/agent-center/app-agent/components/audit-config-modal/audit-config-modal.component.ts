@@ -372,7 +372,7 @@ export class AuditConfigModalComponent implements OnInit, OnChanges, OnDestroy {
           const replaceArray = this.groupFormControl.get(
             "replace"
           ) as FormArray;
-          replaceArray.setValue([]);
+          replaceArray.clear();
           replace.forEach((item) => {
             replaceArray.push(
               this.fb.group({
@@ -391,7 +391,7 @@ export class AuditConfigModalComponent implements OnInit, OnChanges, OnDestroy {
           const handlingArray = this.groupFormControl.get(
             "handling"
           ) as FormArray;
-          handlingArray.setValue([]);
+          handlingArray.clear();
           this.tempPropValues = [];
           reply.forEach((item, index) => {
             const newItem = this.fb.group({
