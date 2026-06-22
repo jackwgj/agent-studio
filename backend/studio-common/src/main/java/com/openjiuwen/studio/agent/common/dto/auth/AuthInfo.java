@@ -10,6 +10,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
 import io.swagger.annotations.ApiModel;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Size;
+import lombok.Data;
 import org.hibernate.validator.constraints.Length;
 import org.springframework.validation.annotation.Validated;
 
@@ -22,7 +23,7 @@ import java.util.Objects;
  * 工具鉴权信息
  */
 @ApiModel(description = "工具鉴权信息")
-
+@Data
 @Validated
 
 public class AuthInfo implements Serializable {

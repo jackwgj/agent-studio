@@ -2843,6 +2843,8 @@ public enum StudioError {
 
     RELEASE_PUBLISH_FAILED(BAD_REQUEST, COMPONENT, "1180"),
 
+    PLUGIN_AUTH_KEY_DOMAIN_NOT_NULL(BAD_REQUEST, COMPONENT, "1181"),
+
     /**
      * ============================== 提示词工程 ==============================
      */

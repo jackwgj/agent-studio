@@ -2872,20 +2872,14 @@ definitions:
       scope:
         type: string
         example: USER
-        description: 工具鉴权方式，分为用户级、服务级和IAM方式
+        description: 工具鉴权方式，分为用户级和无鉴权，如果auth_keys有值，scope字段为必填
         maxLength: 8
         minLength: 1
         enum:
-          - USER
           - SERVICE
-          - IAM
-          - HIS_IAM
-          - SGOV
-          - CUSTOM_IAM
-          - OAUTH
       domain:
         type: string
-        description: 工具鉴权秘钥位置
+        description: 工具鉴权秘钥位置，如果auth_keys有值，domain字段为必填
         example: HEADERS
         minLength: 1
         maxLength: 64

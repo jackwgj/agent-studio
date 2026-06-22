@@ -2068,6 +2068,9 @@ public class PluginService implements IPluginService {
 
         // authkey改成非必要
         AuthInfo authInfoReq = body.getAuthInfo();
+        if (authInfoReq.getAuthKeys() != null && (authInfoReq.getDomain() == null || authInfoReq.getScope() == null)) {
+            throw new AgentStudioException(StudioError.PLUGIN_AUTH_KEY_DOMAIN_NOT_NULL);
+        }
 
         // 2. 复用现有的加密逻辑，对最新的鉴权信息进行加密
         AuthInfo encryptedAuth = encryptedAuthInfo(authInfoReq);
