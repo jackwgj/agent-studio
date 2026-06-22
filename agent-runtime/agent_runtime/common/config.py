@@ -2,7 +2,7 @@
 # Copyright (c) Huawei Technologies Co., Ltd. 2026. All rights reserved.
 
 from enum import Enum
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -95,6 +95,9 @@ class ObjectStorageSettings(BaseSettings):
     secret_key: str = Field(default="", validation_alias="DATASOURCE_OBS_SK")
     enable_ssl: bool = Field(
         default=False, validation_alias="DATASOURCE_OBS_ENABLE_SSL"
+    )
+    path_style: Literal["path", "virtual"] = Field(
+        default="path", validation_alias="DATASOURCE_OBS_PATH_STYLE"
     )
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore"

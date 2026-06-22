@@ -10,10 +10,11 @@
 - LocalStorageProvider — 本地文件系统读取
 
 配置项（通过 settings.object_storage 或环境变量）:
-    DATASOURCE_OBS_SERVER — S3 endpoint（如 https://obs.example.com:30443）
-    DATASOURCE_OBS_BUCKET — 桶名
-    DATASOURCE_OBS_AK     — Access Key
-    DATASOURCE_OBS_SK     — Secret Key
+    DATASOURCE_OBS_SERVER      — S3 endpoint（如 https://obs.example.com:30443）
+    DATASOURCE_OBS_BUCKET      — 桶名
+    DATASOURCE_OBS_AK          — Access Key
+    DATASOURCE_OBS_SK          — Secret Key
+    DATASOURCE_OBS_PATH_STYLE  — 寻址方式："path"（默认，路径风格）或 "virtual"（虚拟托管风格）
 """
 
 import asyncio
@@ -110,7 +111,7 @@ class S3StorageProvider(ObjectStorageProvider):
             verify=settings.object_storage.enable_ssl,
             config=BotoConfig(
                 signature_version="s3v4",
-                s3={"addressing_style": "path"},
+                s3={"addressing_style": settings.object_storage.path_style},
                 connect_timeout=5,
                 read_timeout=30,
             ),
