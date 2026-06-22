@@ -396,6 +396,11 @@ def serialize_object(obj):
     try:
         return pickle.dumps(obj, protocol=pickle.HIGHEST_PROTOCOL)
     except Exception as e:
+        logger.error(
+            f"serialize_object failed: type={type(e).__name__}, "
+            f"message={str(e)}, obj_type={type(obj).__name__}",
+            exc_info=True,
+        )
         raise JiuWenBaseException(
             error_code=StatusCode.SERIALIZATION_ERROR.code,
             message=StatusCode.SERIALIZATION_ERROR.errmsg,
@@ -423,6 +428,11 @@ def deserialize_object(serialized_data: bytes):
     try:
         return RestrictedUnpickler(io.BytesIO(serialized_data)).load()
     except Exception as e:
+        logger.error(
+            f"deserialize_object failed: type={type(e).__name__}, "
+            f"message={str(e)}, data_len={len(serialized_data) if serialized_data else 0}",
+            exc_info=True,
+        )
         raise JiuWenBaseException(
             error_code=StatusCode.DESERIALIZATION_ERROR.code,
             message=StatusCode.DESERIALIZATION_ERROR.errmsg,

@@ -125,9 +125,9 @@ def log_function_timing(func):
             elapsed_time = (time.perf_counter() - start_time) * 1000
             logger.info(f"{func.__name__} completed in {elapsed_time:.2f} ms")
             return result
-        except Exception:
+        except Exception as e:
             elapsed_time = (time.perf_counter() - start_time) * 1000
-            logger.error(f"{func.__name__} failed after {elapsed_time:.2f} ms")
+            logger.error(f"{func.__name__} failed after {elapsed_time:.2f} ms", exc_info=True)
             raise
 
     @wraps(func)
@@ -138,9 +138,9 @@ def log_function_timing(func):
             elapsed_time = (time.perf_counter() - start_time) * 1000
             logger.info(f"async {func.__name__} completed in {elapsed_time:.2f} ms")
             return result
-        except Exception:
+        except Exception as e:
             elapsed_time = (time.perf_counter() - start_time) * 1000
-            logger.error(f"async {func.__name__} failed after {elapsed_time:.2f} ms")
+            logger.error(f"async {func.__name__} failed after {elapsed_time:.2f} ms", exc_info=True)
             raise
 
     if asyncio.iscoroutinefunction(func):

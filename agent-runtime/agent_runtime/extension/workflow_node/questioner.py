@@ -1779,11 +1779,25 @@ class Questioner(WorkflowComponent):
         )
         # 延迟导入避免循环依赖
         from jiuwen.serve.controllers.execution.manager import AsyncStateManager
+        from jiuwen.serve.controllers.execution.open_utils import deserialize_object
 
         state_manager = AsyncStateManager()
 
         # 首先尝试从 state_manager 恢复
-        restored_state = await state_manager.get_state(session_id)
+        restored_raw = await state_manager.get_state(session_id)
+
+        if restored_raw and isinstance(restored_raw, bytes):
+            try:
+                restored_state = deserialize_object(restored_raw)
+            except Exception:
+                logger.warning(
+                    "Failed to deserialize questioner state for session %s",
+                    session_id,
+                    exc_info=True,
+                )
+                restored_state = None
+        else:
+            restored_state = restored_raw
 
         if restored_state and isinstance(restored_state, dict):
             comp_state_updates = restored_state.get("comp_state_updates", {})
@@ -1856,16 +1870,33 @@ class Questioner(WorkflowComponent):
             if session_id:
                 # 延迟导入避免循环依赖
                 from jiuwen.serve.controllers.execution.manager import AsyncStateManager
+                from jiuwen.serve.controllers.execution.open_utils import (
+                    serialize_object,
+                    deserialize_object,
+                )
 
                 state_manager = AsyncStateManager()
-                # 先获取旧数据
-                old_state = await state_manager.get_state(session_id)
+                # 先获取旧数据并反序列化
+                old_raw = await state_manager.get_state(session_id)
+                old_state = None
+                if old_raw and isinstance(old_raw, bytes):
+                    try:
+                        old_state = deserialize_object(old_raw)
+                    except Exception:
+                        logger.warning(
+                            "Failed to deserialize old state for session %s",
+                            session_id,
+                            exc_info=True,
+                        )
+                        old_state = None
                 # 合并状态
                 if old_state and isinstance(old_state, dict):
                     for key in full_state:
                         if not full_state[key]:
                             full_state[key] = old_state.get(key, full_state[key])
-                await state_manager.save_state(session_id, full_state)
+                await state_manager.save_state(
+                    session_id, serialize_object(full_state)
+                )
 
     def should_interrupt(self) -> bool:
         return self._node_state.status == ExecutionStatus.USER_INTERACT

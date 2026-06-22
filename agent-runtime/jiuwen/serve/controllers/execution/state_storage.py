@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2024-2024. All rights reserved.
 
-import enum
-import json
 import threading
 from abc import ABC, abstractmethod
 
@@ -122,8 +120,8 @@ class AsyncRedisStateStorage(AsyncStateStorage):
         self.redis_client = get_redis_client()
 
     async def init(self):
-        """init"""
-        await self.redis_client.init()
+        """No-op: get_redis_client() 返回已初始化的 redis.asyncio.Redis 实例，无需再 init"""
+        pass
 
     async def delete_state(self, k):
         """从Redis中删除某个状态"""
@@ -131,26 +129,8 @@ class AsyncRedisStateStorage(AsyncStateStorage):
 
     async def get_state(self, k):
         """从Redis中获取状态"""
-        result = await self.redis_client.get(k)
-        if result:
-            return json.loads(result)
-        return result
+        return await self.redis_client.get(k)
 
     async def set_state(self, k, v):
         """往Redis中设置状态"""
-
-        def json_serializable(obj):
-            # 枚举类型：使用 .value 获取字符串
-            if hasattr(obj, "value") and isinstance(obj, enum.Enum):
-                return obj.value
-            # 集合类型：转换为列表
-            if isinstance(obj, (set, frozenset)):
-                return list(obj)
-            # Pydantic 模型：使用 model_dump
-            if hasattr(obj, "model_dump"):
-                return obj.model_dump()
-            if hasattr(obj, "__dict__"):
-                return obj.__dict__
-            return str(obj)
-
-        await self.redis_client.set(k, json.dumps(v, default=json_serializable))
+        await self.redis_client.set(k, v)
