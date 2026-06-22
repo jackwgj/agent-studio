@@ -431,6 +431,15 @@ export class UseCasesComponent {
     });
   }
 
+  public changePageSize(size: number) {
+    this.pageSize.size = size;
+    this.currentPage = 1;
+    this.pageChange.emit({
+      page: 1,
+      pageSize: size,
+    });
+  }
+
   getBase64(img: File, callback: (img: string) => void): void {
     const reader = new FileReader();
     reader.addEventListener('load', () => callback(reader.result!.toString()));

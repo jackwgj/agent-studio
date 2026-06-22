@@ -103,6 +103,7 @@
     <div style="display: flex; justify-content: flex-end; align-items: flex-end; width: 100%">
       <nz-pagination
         (nzPageIndexChange)="changePage({ currentPage: $event, size: pageSize.size })"
+        (nzPageSizeChange)="changePageSize($event)"
         *ngIf="useCases.length"
         [(nzPageIndex)]="currentPage"
         [nzTotal]="totalNumber"
