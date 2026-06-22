@@ -434,7 +434,7 @@ public class WorkflowManagementService implements IWorkflowManagementService {
     @Value("${publish.agent-builder.enable}")
     private boolean publishAgentBuilderEnable;
 
-    @Value("${agent-builder.publish-cross-workspace.enable:false}")
+    @Value("${agent-builder.publish-cross-workspace.enable:true}")
     private boolean publishCrossWorkspace;
 
     @Value("${prr.is-soft-delete: true}")

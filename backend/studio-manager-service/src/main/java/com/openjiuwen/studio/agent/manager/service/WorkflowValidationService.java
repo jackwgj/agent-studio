@@ -269,7 +269,7 @@ public class WorkflowValidationService {
     @Value("${env.sandbox.enable}")
     private boolean sandboxEnable;
 
-    @Value("${agent-builder.publish-cross-workspace.enable:false}")
+    @Value("${agent-builder.publish-cross-workspace.enable:true}")
     private boolean publishCrossWorkspace;
 
     @Value("${allow-plugin-cross-permission-query:false}")
