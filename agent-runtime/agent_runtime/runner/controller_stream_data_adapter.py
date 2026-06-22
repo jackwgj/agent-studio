@@ -1,3 +1,7 @@
+#!/usr/bin/env python
+# coding=utf-8
+# Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
+
 """Controller StreamData adapter - converts ControllerMode StreamData to SSE format."""
 
 import json
@@ -82,7 +86,8 @@ class ControllerStreamDataAdapter:
                 "data": data,
                 "executionId": execution_id,
                 "index": index,
-                "createTime": int(time.time()),
+                "createdTime": int(time.time()),
+                "isStructMessage": False,
             }
         ]
 
@@ -93,7 +98,8 @@ class ControllerStreamDataAdapter:
             "data": {},
             "executionId": execution_id or self._execution_id,
             "index": 0,
-            "createTime": int(time.time()),
+            "createdTime": int(time.time()),
+            "isStructMessage": False,
         }
 
     def adapt_task_start(self, execution_id: str = "") -> dict:
@@ -103,17 +109,32 @@ class ControllerStreamDataAdapter:
             "data": {},
             "executionId": execution_id or self._execution_id,
             "index": 0,
-            "createTime": int(time.time()),
+            "createdTime": int(time.time()),
+            "isStructMessage": False,
         }
 
-    def adapt_error(self, error_msg: str, execution_id: str = "") -> dict:
-        """Create an error event."""
+    def adapt_error(self, error_msg: str, execution_id: str = "", error_code: int = 103104, node_name: str = "控制器") -> dict:
+        """Create an error event.
+
+        Args:
+            error_msg: Raw error message (will be wrapped with unified format)
+            execution_id: Execution ID for tracking
+            error_code: Application-level error code (default 103104 = general execution error)
+            node_name: Display name of the node where the error occurred
+        """
+        from jiuwen.orchestration.flow.constant import WORKFLOW_UNIFIED_ERROR_INFORMATION_UNSAFE
+        formatted_msg = WORKFLOW_UNIFIED_ERROR_INFORMATION_UNSAFE.format(error_code, error_msg)
         return {
             "event": "error",
-            "data": {"message": error_msg},
+            "data": {
+                "code": error_code,
+                "message": formatted_msg,
+                "node_name": node_name,
+            },
             "executionId": execution_id or self._execution_id,
             "index": 0,
-            "createTime": int(time.time()),
+            "createdTime": int(time.time()),
+            "isStructMessage": False,
         }
 
     def adapt_execution_id(self, chunk: bytes) -> bytes:

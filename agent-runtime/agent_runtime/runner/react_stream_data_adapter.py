@@ -1,4 +1,7 @@
-# Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+#!/usr/bin/env python
+# coding=utf-8
+# Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
+
 """
 React Stream Data Adapter — 将 openjiuwen OutputSchema 和 TraceSchema 转换为 SSE 格式
 """
@@ -359,7 +362,7 @@ class ReactStreamDataAdapter:
             "data": data,
             "executionId": self._execution_id,
             "index": self._index,
-            "createTime": int(time.time() * 1000),
+            "createdTime": int(time.time() * 1000),
             "isStructMessage": False,
         }
         self._index += 1
@@ -411,7 +414,7 @@ class ReactStreamDataAdapter:
             "data": {},
             "executionId": execution_id or self._execution_id,
             "index": self._index,
-            "createTime": int(time.time() * 1000),
+            "createdTime": int(time.time() * 1000),
             "isStructMessage": False,
         }
 
@@ -456,13 +459,26 @@ class ReactStreamDataAdapter:
             outputs=outputs,
         )
 
-    def adapt_error(self, error_msg: str, execution_id: str = "") -> Dict:
-        """创建错误事件"""
+    def adapt_error(self, error_msg: str, execution_id: str = "", error_code: int = 103104, node_name: str = "Agent") -> Dict:
+        """创建错误事件
+
+        Args:
+            error_msg: 原始错误消息（会被统一格式包装）
+            execution_id: 执行ID
+            error_code: 应用级错误码（默认 103104 = 通用执行错误）
+            node_name: 发生错误的节点显示名称
+        """
+        from jiuwen.orchestration.flow.constant import WORKFLOW_UNIFIED_ERROR_INFORMATION_UNSAFE
+        formatted_msg = WORKFLOW_UNIFIED_ERROR_INFORMATION_UNSAFE.format(error_code, error_msg)
         return {
             "event": EventType.ERROR,
-            "data": {"message": error_msg},
+            "data": {
+                "code": error_code,
+                "message": formatted_msg,
+                "node_name": node_name,
+            },
             "executionId": execution_id or self._execution_id,
             "index": self._index,
-            "createTime": int(time.time() * 1000),
+            "createdTime": int(time.time() * 1000),
             "isStructMessage": False,
         }
