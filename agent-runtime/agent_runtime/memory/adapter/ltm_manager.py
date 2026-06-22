@@ -5,8 +5,6 @@ from openjiuwen.core.foundation.llm.schema.config import ModelClientConfig, Mode
 from openjiuwen.core.foundation.store.base_embedding import EmbeddingConfig
 from agent_runtime.memory.adapter.opensearch_vector_store import OpenSearchVectorStore
 from agent_runtime.memory.adapter.redis_kv_store import RedisKVStore
-from openjiuwen.core.foundation.store.db.default_db_store import DefaultDbStore
-from sqlalchemy.ext.asyncio import create_async_engine
 from openjiuwen.core.memory.config.config import MemoryEngineConfig, MemoryScopeConfig
 from openjiuwen.core.memory.long_term_memory import LongTermMemory
 from openjiuwen.core.retrieval.embedding.api_embedding import APIEmbedding
@@ -83,33 +81,36 @@ async def init_ltm(redis_client: Redis | RedisCluster) -> bool:
             "MEMORY_EMBEDDING_BASE_URL not set — embedding disabled, search/extraction will fail"
         )
 
-    # 4. MySQL db_store (persistent text storage)
-    _ensure_database(
-        host=mem_settings.db_host,
-        port=mem_settings.db_port,
-        user=mem_settings.db_user,
-        password=mem_settings.db_password,
-        database=mem_settings.db_name,
-    )
-
-    mysql_url = (
-        f"mysql+aiomysql://{mem_settings.db_user}:{mem_settings.db_password}"
-        f"@{mem_settings.db_host}:{mem_settings.db_port}/{mem_settings.db_name}?charset=utf8mb4"
-    )
-    engine = create_async_engine(
-        mysql_url, pool_size=5, max_overflow=10, pool_recycle=3600
-    )
-    db_store = DefaultDbStore(engine)
-
-    # 5. Build MemoryEngineConfig with LLM settings for extraction
+    # 4. Build MemoryEngineConfig with LLM settings for extraction
     engine_config = _build_engine_config(mem_settings)
 
-    # 6. Initialize LTM singleton
+    # 5. Initialize LTM singleton
     ltm = LongTermMemory()
+
+    # 6a. Set custom memory index BEFORE register_store. register_store
+    #     auto-registers the SDK default SimpleMemoryIndex only when
+    #     memory_index is None, so pre-setting it preserves our custom index.
+    #     The "default" index stores memory in a single 6-field OpenSearch index
+    #     with content text in OpenSearch (no Redis KV for memory body).
+    if mem_settings.index_type == "default":
+        from agent_runtime.memory.adapter.ltm_default_index import (
+            LongTermMemoryDefaultIndex,
+        )
+
+        custom_index = LongTermMemoryDefaultIndex(
+            vector_store=vector_store,
+            embedding_model=embedding_model,
+            index_name=mem_settings.index_name,
+        )
+        ltm.memory_index = custom_index
+        logger.info(
+            "Registered LongTermMemoryDefaultIndex (6-field OpenSearch, index=%s)",
+            mem_settings.index_name,
+        )
+
     await ltm.register_store(
         kv_store=kv_store,
         vector_store=vector_store,
-        db_store=db_store,
         embedding_model=embedding_model,
     )
 
@@ -128,22 +129,6 @@ async def init_ltm(redis_client: Redis | RedisCluster) -> bool:
 def get_ltm() -> Optional[LongTermMemory]:
     """Return the global LTM instance, or None if not initialized."""
     return _ltm_instance
-
-
-def _ensure_database(host: str, port: int, user: str, password: str, database: str) -> None:
-    """Create the MySQL database if it does not exist (synchronous, idempotent)."""
-    import pymysql
-
-    conn = pymysql.connect(host=host, port=port, user=user, password=password)
-    try:
-        with conn.cursor() as cur:
-            cur.execute(
-                f"CREATE DATABASE IF NOT EXISTS `{database}` "
-                "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
-            )
-        conn.commit()
-    finally:
-        conn.close()
 
 
 def build_scope_config() -> MemoryScopeConfig:

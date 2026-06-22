@@ -261,12 +261,14 @@ class MemorySettings(BaseSettings):
     llm_base_url: str = Field(default="", validation_alias="MEMORY_LLM_BASE_URL")
     llm_api_key: str = Field(default="", validation_alias="MEMORY_LLM_API_KEY")
 
-    # MySQL DB for LTM text storage
-    db_host: str = Field(default="", validation_alias="MEMORY_DB_HOST")
-    db_port: int = Field(default=3306, validation_alias="MEMORY_DB_PORT")
-    db_user: str = Field(default="", validation_alias="MEMORY_DB_USER")
-    db_password: str = Field(default="", validation_alias="MEMORY_DB_PASSWORD")
-    db_name: str = Field(default="agent-memory", validation_alias="MEMORY_DB_NAME")
+    # Memory index implementation: "default" (6-field OpenSearch, content in OS)
+    # or "simple" (SDK SimpleMemoryIndex, 2-field, content in Redis KV).
+    index_type: str = Field(default="default", validation_alias="MEMORY_INDEX_TYPE")
+    # OpenSearch index name used by the "default" index implementation.
+    index_name: str = Field(
+        default="long_term_memory_default",
+        validation_alias="VECTOR_STORE_DEFAULT_INDEX_NAME",
+    )
 
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore"

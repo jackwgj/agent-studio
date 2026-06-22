@@ -108,6 +108,8 @@ class ControllerRunner:
         )
 
         # 6. Execute agent group streaming using post_process_agent_group_streaming_output
+        # Collect assistant response for memory extraction
+        memory_response_parts: list[str] = []
         try:
             t_stream_start = time.perf_counter()
             workflow_logger.info(f"Starting agent_group.astream for query: {req.query}")
@@ -126,8 +128,36 @@ class ControllerRunner:
                 insight_queue=insight_queue,
                 is_debug=is_debug,
             ):
+                # Collect response text for memory extraction
+                try:
+                    chunk_str = chunk.decode("utf-8") if isinstance(chunk, bytes) else chunk
+                    if chunk_str.startswith("data: "):
+                        import json as _json
+                        evt_data = _json.loads(chunk_str[6:])
+                        evt_type = evt_data.get("event", "")
+                        if evt_type in ("message", "done"):
+                            answer = evt_data.get("data", {}).get("answer", "")
+                            if answer:
+                                memory_response_parts.append(str(answer))
+                except Exception as _e:
+                    # Non-critical: SSE chunk parsing failure must not break the stream.
+                    # Logged at debug level since this is best-effort collection for
+                    # memory extraction, not essential for the response flow.
+                    workflow_logger.debug(
+                        "Failed to parse SSE chunk for memory extraction: %s", _e
+                    )
                 yield adapter.adapt_execution_id(chunk)
+
             performance_logger.info(f"agent_group_stream|{round((time.perf_counter() - t_stream_start) * 1000)}")
+
+            # Trigger memory extraction after successful agent group execution
+            await self._trigger_memory_extraction(
+                ir_json=ir_json,
+                user_id=req.user_id,
+                conversation_id=req.conversation_id,
+                user_query=req.query or "",
+                assistant_response="".join(memory_response_parts),
+            )
         except Exception as e:
             workflow_logger.error(
                 f"Agent group streaming failed with exception: {e}", exc_info=True
@@ -139,6 +169,62 @@ class ControllerRunner:
             yield adapter.adapt_error(f"Agent execution failed: {e}\n{tb_str}", exec_id)
             await AsyncStateManager().delete_state(session_id)
             return
+
+    async def _trigger_memory_extraction(
+        self,
+        ir_json: dict,
+        user_id: str,
+        conversation_id: str,
+        user_query: str,
+        assistant_response: str,
+    ) -> None:
+        """Trigger memory extraction after agent group execution if memory is configured.
+
+        Checks if the IR has memory config with memory_repo_id,
+        and if so, calls the UserProfileMemoryExtractor to cache the conversation
+        turn for later extraction (based on conversation_round / time_span triggers).
+        """
+        try:
+            configs = ir_json.get("configs") or {}
+            memory_config = configs.get("memory") or {}
+            memory_repo_id = memory_config.get("memory_repo_id")
+
+            if not memory_repo_id:
+                return
+
+            if not user_query and not assistant_response:
+                return
+
+            from openjiuwen.core.foundation.llm import UserMessage, AssistantMessage
+            from agent_runtime.memory.storage.memory_extractor import get_instance
+
+            messages = []
+            if user_query:
+                messages.append(UserMessage(content=user_query))
+            if assistant_response:
+                messages.append(AssistantMessage(content=assistant_response))
+
+            if not messages:
+                return
+
+            extractor = get_instance()
+            await extractor.async_add_chat_turn(
+                user_id=user_id,
+                memory_repo_id=memory_repo_id,
+                conversation_id=conversation_id,
+                ir_data=ir_json,
+                messages=messages,
+            )
+            workflow_logger.info(
+                "Memory extraction triggered for repo=%s, user=%s, conversation=%s",
+                memory_repo_id,
+                user_id,
+                conversation_id,
+            )
+        except Exception as e:
+            workflow_logger.warning(
+                "Failed to trigger memory extraction: %s", e, exc_info=True
+            )
 
     async def run_blocking(self, req: ExecutionRequest) -> str:
         """Execute Controller mode IR and return complete result.

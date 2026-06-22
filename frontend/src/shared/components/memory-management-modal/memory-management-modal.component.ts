@@ -51,8 +51,13 @@ export class MemoryManagementModalComponent {
     instance.conversationState = this.conversationState;
 
     modalRef.afterClose.subscribe(reason => {
-      // Data processing is handled by the template's close() method.
-      // No action needed here — modal is already closed.
+      // Emit the updated conversation state (enable_retrieve/enable_extract
+      // switches) so the parent component can sync its conversationState.
+      // Memory content changes are already persisted by the template's close().
+      if (reason === 'ok' && instance) {
+        const data = instance.getData();
+        this.confirm.emit(data);
+      }
     });
   }
 

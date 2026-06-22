@@ -72,6 +72,12 @@ export class MemoryManagementTemplateComponent implements OnInit {
   // 记录修改的记忆 用于调接口
   changeIdSet = new Set<string>();
 
+  // Per-tab local data cache — preserves edits/deletes across tab switches.
+  // Keyed by tab id (MemoryStrategyType).  When a tab has local changes
+  // (entries in changeIdSet or deletions not yet persisted), the cached
+  // data is used instead of re-fetching from the backend.
+  private tabDataCache = new Map<string, Array<any>>();
+
   allTabs: Array<any> = [
     {
       title: this.i18n.transform('memory.detail.name.semanticMemory', { ns: I18nNamespace.MEMORY_LIB }),
@@ -139,12 +145,14 @@ export class MemoryManagementTemplateComponent implements OnInit {
           { memory_repo_id: this.memoryLibId },
         )
         .then(() => {
+          this.tabDataCache.clear();
           this.modalRef.close('ok');
         })
         .catch(() => {
           this.loading = false;
         });
     } else {
+      this.tabDataCache.clear();
       this.modalRef.close('ok');
     }
   }
@@ -159,6 +167,8 @@ export class MemoryManagementTemplateComponent implements OnInit {
       .clearMemory({ memory_repo_id: this.memoryLibId })
       .then(() => {
         this.srcData.data = [];
+        this.tabDataCache.set(this.currentTabId(), []);
+        this.totalNumber.set(0);
         this.memoryLoading = false;
       })
       .catch(() => {
@@ -196,6 +206,8 @@ export class MemoryManagementTemplateComponent implements OnInit {
           return current;
         });
         this.changeIdSet.add(row.id);
+        // Update cache to reflect the edit
+        this.tabDataCache.set(this.currentTabId(), [...this.srcData.data]);
         this.editingRow = undefined;
         this.editableRows(true);
       }
@@ -232,6 +244,8 @@ export class MemoryManagementTemplateComponent implements OnInit {
           MessageComponent.showSuccess(this.i18n.transform('delete_success'));
           this.srcData.data = this.srcData.data.filter((current: any): boolean => current.id !== row.id);
           this.changeIdSet.delete(row.id);
+          // Update cache to reflect the deletion
+          this.tabDataCache.set(this.currentTabId(), [...this.srcData.data]);
           this.memoryLoading = false;
         })
         .catch(() => {
@@ -242,8 +256,23 @@ export class MemoryManagementTemplateComponent implements OnInit {
 
   handleTabChange(tab) {
     if (tab.active) {
-      this.currentTabId.set(tab.id as MemoryStrategyType);
-      this.queryMemories();
+      // Save current tab data before switching
+      this.saveCurrentTabData();
+
+      const tabId = tab.id as MemoryStrategyType;
+      this.currentTabId.set(tabId);
+
+      // Use cached data if available (preserves local edits/deletes),
+      // otherwise fetch from backend.
+      // Note: a cached empty array is valid (user deleted all items),
+      // so we check has() rather than checking length.
+      const cached = this.tabDataCache.get(tabId);
+      if (this.tabDataCache.has(tabId)) {
+        this.srcData.data = cached!;
+        this.totalNumber.set(cached!.length);
+      } else {
+        this.queryMemories();
+      }
     }
   }
 
@@ -284,6 +313,16 @@ export class MemoryManagementTemplateComponent implements OnInit {
     // items array removed — edit/delete buttons now use direct template bindings
   }
 
+  /** Persist current tab's data into the per-tab cache. */
+  private saveCurrentTabData(): void {
+    const currentId = this.currentTabId();
+    // Only cache if we have data or if a cache entry already exists (to preserve deletions).
+    // Avoid caching empty data on first load before any query has been made.
+    if (currentId && (this.srcData.data.length > 0 || this.tabDataCache.has(currentId))) {
+      this.tabDataCache.set(currentId, [...this.srcData.data]);
+    }
+  }
+
   private queryMemories(): void {
     if (!this.memoryLibId || this.updatedMemoryInfo?.length) {
       return;
@@ -296,7 +335,10 @@ export class MemoryManagementTemplateComponent implements OnInit {
       memory_repo_id: this.memoryLibId,
       memory_type: this.currentTabId(),
     }).then(res => {
-      this.srcData.data = MemoryManagementUtils.standardizedMemoryInfo(res);
+      const data = MemoryManagementUtils.standardizedMemoryInfo(res);
+      this.srcData.data = data;
+      // Cache the fresh data for this tab
+      this.tabDataCache.set(this.currentTabId(), [...data]);
       this.memoryLoading = false;
       this.totalNumber.set(res.total ?? 0);
     }).catch(() => {

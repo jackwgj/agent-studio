@@ -42,6 +42,10 @@ def _field_to_mapping(field: FieldSchema) -> dict:
     if field.dtype == VectorDataType.VARCHAR and field.is_primary:
         # primary key stored as keyword for exact match
         base = {"type": "keyword"}
+    # Honor extra mapping options carried in default_value (e.g. {"index": False, "doc_values": False})
+    # so that text fields like `content` can be stored without an inverted index.
+    if isinstance(field.default_value, dict):
+        base.update(field.default_value)
     return base
 
 
@@ -157,6 +161,10 @@ class OpenSearchVectorStore(BaseVectorStore):
             "k": top_k,
         }
         if filters:
+            # Filter on keyword fields directly (our index mapping uses keyword
+            # type for user_id/app_id/memory_type). For dynamically created
+            # indexes that use text+keyword, the term query on the base field
+            # still works via the keyword sub-field analyzer fallback.
             must = [{"term": {k: v}} for k, v in filters.items()]
             query = {
                 "bool": {
@@ -213,6 +221,108 @@ class OpenSearchVectorStore(BaseVectorStore):
             for idx in indices
             if not idx["index"].startswith(".")
         ]
+
+    async def create_index_with_mapping(
+        self,
+        index_name: str,
+        mappings: Dict[str, Any],
+        settings: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """Create an OpenSearch index with a fully custom mapping (bypass CollectionSchema).
+
+        Used by LongTermMemoryDefaultIndex to define the 6-field `long_term_memory_default`
+        index where `content` must be `text` with `index=False, doc_values=False`.
+        """
+        body: Dict[str, Any] = {"mappings": mappings}
+        if settings:
+            body["settings"] = settings
+        try:
+            await self._client.indices.create(index=index_name, body=body)
+        except Exception as e:
+            err_str = str(e).lower()
+            if "resource_already_exists_exception" in err_str or "already exists" in err_str:
+                logger.debug("Index %s already exists, skipping creation", index_name)
+            else:
+                raise
+
+    async def list_docs_by_filter(
+        self,
+        collection_name: str,
+        filters: Dict[str, Any],
+        offset: int = 0,
+        limit: int = 100,
+        sort: Optional[tuple] = None,
+    ) -> List[VectorSearchResult]:
+        """List documents matching filter conditions (non-vector query) with pagination.
+
+        Args:
+            collection_name: OpenSearch index name.
+            filters: Dict of field→value term filters.
+            offset: Pagination offset.
+            limit: Page size.
+            sort: Optional ``(field, order)`` tuple, e.g. ``("last_updated", "desc")``.
+        """
+        must = [{"term": {k: v}} for k, v in filters.items()]
+        body: Dict[str, Any] = {
+            "from": offset,
+            "size": limit,
+            "query": {"bool": {"filter": must}},
+        }
+        if sort:
+            body["sort"] = [{sort[0]: {"order": sort[1]}}]
+        resp = await self._client.search(index=collection_name, body=body)
+        results: list[VectorSearchResult] = []
+        for hit in resp["hits"]["hits"]:
+            source = hit["_source"]
+            source["id"] = hit["_id"]
+            # Non-vector queries return _score=null; coerce to 0.0 for VectorSearchResult
+            score = hit.get("_score")
+            results.append(VectorSearchResult(score=score if score is not None else 0.0, fields=source))
+        return results
+
+    async def count_docs(
+        self,
+        collection_name: str,
+        filters: Optional[Dict[str, Any]] = None,
+    ) -> int:
+        """Count documents in an index, optionally filtered."""
+        body: Dict[str, Any]
+        if filters:
+            must = [{"term": {k: v}} for k, v in filters.items()]
+            body = {"query": {"bool": {"filter": must}}}
+        else:
+            body = {"query": {"match_all": {}}}
+        resp = await self._client.count(index=collection_name, body=body)
+        return resp.get("count", 0)
+
+    async def update_doc(
+        self,
+        collection_name: str,
+        doc_id: str,
+        partial_doc: Dict[str, Any],
+    ) -> None:
+        """Partially update a document by id."""
+        await self._client.update(
+            index=collection_name, id=str(doc_id), body={"doc": partial_doc}
+        )
+
+    async def delete_by_query(
+        self,
+        collection_name: str,
+        body: Dict[str, Any],
+    ) -> None:
+        """Delete documents matching a query body."""
+        await self._client.delete_by_query(
+            index=collection_name, body=body, ignore=[404]
+        )
+
+    async def raw_search(
+        self,
+        collection_name: str,
+        body: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """Execute a raw OpenSearch search query and return the full response."""
+        return await self._client.search(index=collection_name, body=body)
 
     async def update_schema(
         self, collection_name: str, operations: List[Any]

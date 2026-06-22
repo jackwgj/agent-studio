@@ -597,14 +597,14 @@ class WorkflowRunner:
             memory_repo_id = memory_config.get("memory_repo_id")
             strategies = memory_config.get("strategies") or []
 
-            if not memory_repo_id or not strategies:
+            if not memory_repo_id:
                 return
 
             if not user_query and not assistant_response:
                 return
 
             from openjiuwen.core.foundation.llm import UserMessage, AssistantMessage
-            from memory.storage.memory_extractor import get_instance
+            from agent_runtime.memory.storage.memory_extractor import get_instance
 
             messages = []
             if user_query:

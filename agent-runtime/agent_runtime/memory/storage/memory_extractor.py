@@ -490,7 +490,7 @@ class UserProfileMemoryExtractor:
         user_profile_enable = (
             user_profile_config.get("enable")
             if user_profile_config.get("enable")
-            else False
+            else bool(memory_config.get("memory_repo_id"))
         )
         user_profile_extract_config = (
             user_profile_config.get("extractConfig")
