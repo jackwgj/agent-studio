@@ -1,12 +1,4 @@
-import {
-  Component,
-  EventEmitter,
-  Input,
-  OnInit,
-  Output,
-  ViewChild,
-  ChangeDetectorRef
-} from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output, Inject, ChangeDetectorRef } from '@angular/core';
 import { ApplicationType } from '@enums/agent-center.enum';
 import { I18nNamespace } from '@i18n';
 import { AppAgentRepoService } from '@services/agent-center/app-agent-repo.service';
@@ -19,7 +11,6 @@ import { NzFormModule } from 'ng-zorro-antd/form';
 import { NzRadioModule } from 'ng-zorro-antd/radio';
 import { NzButtonModule } from 'ng-zorro-antd/button';
 import { NzModalModule } from 'ng-zorro-antd/modal';
-import { NzDrawerRef } from 'ng-zorro-antd/drawer';
 import { NzSpaceModule } from 'ng-zorro-antd/space';
 import { NzTableModule } from 'ng-zorro-antd/table';
 import { NzInputModule } from 'ng-zorro-antd/input';
@@ -31,7 +22,8 @@ import { I18NextModule } from 'angular-i18next';
 import { inject } from '@angular/core';
 import { NzToolTipModule } from 'ng-zorro-antd/tooltip';
 import { NzIconModule } from 'ng-zorro-antd/icon';
-
+import { NzPaginationModule } from 'ng-zorro-antd/pagination';
+import { NzDrawerRef, NZ_DRAWER_DATA } from 'ng-zorro-antd/drawer';
 @Component({
   selector: 'meta-export-modal',
   templateUrl: './export-half-modal.component.html',
@@ -52,6 +44,7 @@ import { NzIconModule } from 'ng-zorro-antd/icon';
     NzCheckboxModule,
     NzToolTipModule,
     NzIconModule,
+    NzPaginationModule,
   ],
   providers: [
     {
@@ -90,7 +83,7 @@ export class ExportHalfModalComponent implements OnInit {
   @Output() confirm = new EventEmitter();
 
   public get selectedType() {
-    return this.exportTypeOptions.find((item) => item.id === this.exportType);
+    return this.exportTypeOptions.find(item => item.id === this.exportType);
   }
 
   public apiList = {
@@ -120,7 +113,8 @@ export class ExportHalfModalComponent implements OnInit {
     private appPluginRepoServe: AppPluginRepoService,
     private promptService: PromptService,
     private cdr: ChangeDetectorRef,
-  ) { }
+    @Inject(NZ_DRAWER_DATA) public nzData: any
+  ) {}
 
   ngOnInit(): void {
     this.initColumns();
@@ -183,19 +177,18 @@ export class ExportHalfModalComponent implements OnInit {
           type: this.exportType,
         },
         offset,
-        limit,
-      ),
+        limit
+      )
     ).pipe(
-      map((res) => {
+      map(res => {
         const { agent_list, count } = res;
         return {
           data: agent_list || [],
           total: count || 0,
         };
-      }),
+      })
     );
   }
-
 
   private getFlowList(queryParams, offset, limit) {
     return from(
@@ -203,18 +196,17 @@ export class ExportHalfModalComponent implements OnInit {
         ...queryParams,
         offset,
         limit,
-      }),
+      })
     ).pipe(
-      map((res) => {
+      map(res => {
         const { workflow_list, count } = res;
         return {
           data: workflow_list || [],
           total: count || 0,
         };
-      }),
+      })
     );
   }
-
 
   private getPluginList(queryParams, offset, limit) {
     return from(
@@ -224,15 +216,15 @@ export class ExportHalfModalComponent implements OnInit {
         ...queryParams,
         offset,
         limit,
-      }),
+      })
     ).pipe(
-      map((res) => {
+      map(res => {
         const { plugin_list, count } = res;
         return {
           data: plugin_list || [],
           total: count || 0,
         };
-      }),
+      })
     );
   }
 
@@ -242,15 +234,15 @@ export class ExportHalfModalComponent implements OnInit {
         ...queryParams,
         offset,
         limit,
-      }),
+      })
     ).pipe(
-      map((res) => {
+      map(res => {
         const { data, count } = res;
         return {
           data: data || [],
           total: count || 0,
         };
-      }),
+      })
     );
   }
 
@@ -267,23 +259,22 @@ export class ExportHalfModalComponent implements OnInit {
         queryParams.name = this.searchValue;
       }
     }
-    this.apiList[this.exportType].call(this, queryParams, offset, this.pageSize)
-      .subscribe({
-        next: (res) => {
-          this.listOfData = res.data;
-          this.total = res.total;
-          this.loading = false;
-          this.selectedRows = [];
-          this.setOfCheckedId.clear();
-          this.cdr.detectChanges();
-        },
-        error: () => {
-          this.listOfData = [];
-          this.total = 0;
-          this.loading = false;
-          this.cdr.detectChanges();
-        },
-      });
+    this.apiList[this.exportType].call(this, queryParams, offset, this.pageSize).subscribe({
+      next: res => {
+        this.listOfData = res.data;
+        this.total = res.total;
+        this.loading = false;
+        this.selectedRows = [];
+        this.setOfCheckedId.clear();
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.listOfData = [];
+        this.total = 0;
+        this.loading = false;
+        this.cdr.detectChanges();
+      },
+    });
   }
 
   public onSearch(): void {
@@ -334,20 +325,18 @@ export class ExportHalfModalComponent implements OnInit {
 
   public onItemChecked(id: any, checked: boolean): void {
     this.updateCheckedSet(id, checked);
-    this.selectedRows = this.listOfData.filter((item) =>
-      this.setOfCheckedId.has(item[this.selectedType.rowKey])
-    );
+    this.selectedRows = this.listOfData.filter(item => this.setOfCheckedId.has(item[this.selectedType.rowKey]));
     this.refreshCheckedStatus();
   }
 
   public onAllChecked(checked: boolean): void {
-    this.listOfData.forEach((item) => this.updateCheckedSet(item[this.selectedType.rowKey], checked));
+    this.listOfData.forEach(item => this.updateCheckedSet(item[this.selectedType.rowKey], checked));
     this.selectedRows = checked ? [...this.listOfData] : [];
     this.refreshCheckedStatus();
   }
 
   public refreshCheckedStatus(): void {
-    this.isAllChecked = this.listOfData.every((item) => this.setOfCheckedId.has(item[this.selectedType.rowKey]));
+    this.isAllChecked = this.listOfData.every(item => this.setOfCheckedId.has(item[this.selectedType.rowKey]));
   }
 
   public dismiss() {
@@ -355,6 +344,12 @@ export class ExportHalfModalComponent implements OnInit {
   }
 
   public handleExport() {
+    if (this.nzData.confirm && typeof this.nzData.confirm === 'function') {
+      this.nzData.confirm({
+        type: this.exportType,
+        rows: this.selectedRows,
+      });
+    }
     this.confirm.emit({
       type: this.exportType,
       rows: this.selectedRows,

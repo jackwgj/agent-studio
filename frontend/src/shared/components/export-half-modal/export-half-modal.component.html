@@ -1,4 +1,5 @@
-<div class="main-container">
+<div class="com-drawer-title">{{exportTypeOptions[0].text}}</div>
+<div class="main-container com-drawer-content">
   <div class="search-container mb-[16px]">
     <nz-input-group [nzSuffix]="suffixIconClear">
       <input type="text" nz-input placeholder="{{ 'search_placeholder' | i18nextEager }}" [(ngModel)]="searchValue" (keyup.enter)="onSearch()" />
@@ -23,9 +24,12 @@
     [(nzPageIndex)]="pageIndex"
     [(nzPageSize)]="pageSize"
     [nzLoading]="loading"
-    [nzShowSizeChanger]="true"
+    nzShowSizeChanger
+    nzShowPagination
     [nzPageSizeOptions]="[10, 20, 50, 100]"
     (nzQueryParams)="onQueryParamsChange($event)"
+    (nzPageIndexChange)="onPageIndexChange($event)"
+    (nzPageSizeChange)="onPageSizeChange($event)"
     [nzScroll]="{ x: '500px', y: '400px' }"
   >
     <thead>
@@ -46,7 +50,7 @@
     </tbody>
   </nz-table>
 </div>
-<div style="padding-top: 16px; text-align: right;">
+<div class="com-drawer-footer">
   <nz-space>
     <button *nzSpaceItem type="button" nz-button (click)="dismiss()">
       {{ 'cancel' | i18nextEager }}

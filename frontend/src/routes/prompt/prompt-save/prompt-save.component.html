@@ -9,8 +9,11 @@
     <form nz-form nzLayout="vertical" [formGroup]="savePromptForm">
     <nz-form-item>
       <nz-form-label [nzRequired]="true">{{ savePromptFormLabel.name }}</nz-form-label>
-      <nz-form-control>
+      <nz-form-control [nzErrorTip]="nameTpl">
         <input [placeholder]="'input_placeholder' | i18nextEager" class="w-full" formControlName="name" nz-input />
+        <ng-template #nameTpl let-control>
+          @if (control.hasError('required')) { 必须输入 }@else{ {{ control.errors.invalidName.tiErrorMessage}} }
+        </ng-template>
       </nz-form-control>
     </nz-form-item>
     <nz-form-item>
@@ -75,7 +78,7 @@
               [backgroundColor]="'#ffffff'"
               [initVariables]="initVariables"
               [maxLength]="promptMaxLength"
-              [promptType]="savePromptForm.value.type.value"
+              [promptType]="savePromptForm.value.type"
               [showInserter]="isShowInserter"
               [style]="'max-height:640px;min-height:400px'"
               [variables]="variables"

@@ -226,7 +226,7 @@ export class PromptSaveComponent {
   }
 
   public handleTypeSelect(value: any) {
-    const isMultiType = value.value === 'multi';
+    const isMultiType = value === 'multi';
     const hasImageType = this.variables.some(item => item.type === 'image');
 
     if (isMultiType || !hasImageType) {

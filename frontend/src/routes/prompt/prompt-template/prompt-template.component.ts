@@ -474,8 +474,8 @@ export class PromptTemplateComponent implements OnInit, OnDestroy {
     this.getCardData();
   }
 
-  public onPageSizeChange(): void {
-    this.currentCardPage = 1;
+  public onPageSizeChange(e): void {
+    this.cardPageSize.size = e;
     this.getCardData();
   }
 
@@ -620,8 +620,7 @@ export class PromptTemplateComponent implements OnInit, OnDestroy {
   public exportTemplate() {
     this.closeCurrentModal();
     const drawerRef = this.nzDrawerService.create({
-      nzTitle: this.i18n.transform('export_template'),
-      nzWidth: '500px',
+      nzWidth: '700px',
       nzContent: ExportHalfModalComponent,
       nzData: {
         exportType: ApplicationType.PROMPT,
@@ -634,17 +633,7 @@ export class PromptTemplateComponent implements OnInit, OnDestroy {
             rowKey: 'template_id',
           },
         ],
-      },
-      nzClosable: true,
-      nzMaskClosable: true,
-      nzZIndex: 10000,
-    });
-    this.openModalRef = drawerRef;
-    // 手动订阅组件的 confirm 事件（nzData.outputs 在 Drawer 中不生效）
-    drawerRef.afterOpen.subscribe(() => {
-      const instance = drawerRef.getContentComponent();
-      if (instance && instance.confirm) {
-        instance.confirm.subscribe(({ rows }: any) => {
+        confirm: ({ rows }: any) => {
           this.service.exportPromptTmplV2(rows.map((row: any) => row.template_id)).subscribe({
             next: (res: any) => {
               CommonUtils.downloadFile(
@@ -655,8 +644,11 @@ export class PromptTemplateComponent implements OnInit, OnDestroy {
               );
             },
           });
-        });
-      }
+        },
+      },
+      nzClosable: true,
+      nzMaskClosable: true,
+      nzZIndex: 10000,
     });
     this.cdr.detectChanges();
   }

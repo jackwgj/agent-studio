@@ -178,12 +178,15 @@
           <div [hidden]="isHideCard" class="footer-card footer-flexend">
             <nz-pagination
               (nzPageIndexChange)="onPageUpdate($event)"
+              (nzPageSizeChange)="onPageSizeChange($event)"
               *ngIf="totalCardNumber"
-              [nzShowTotal]="null"
               [(nzPageIndex)]="currentCardPage"
               [nzTotal]="totalCardNumber"
               [nzPageSize]="cardPageSize.size"
               [nzPageSizeOptions]="cardPageSize.options"
+              nzAlign="end"
+              [nzShowSizeChanger]="true"
+              [nzHideOnSinglePage]="false"
               id="pagination-event"
             ></nz-pagination>
           </div>

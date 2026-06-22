@@ -33,6 +33,7 @@ import { AddMcpThirdPartyModal } from '@routes/agent-center/app-mcp-service/comp
 import { NoDataGuideComponentComponent } from '@shared/components/no-data-guide/no-data-guide.component';
 import { DebounceDecorators } from '@shared/decorators/debouncing-throttling.directive';
 import { NzModalService } from 'ng-zorro-antd/modal';
+import { NzDrawerService } from 'ng-zorro-antd/drawer';
 enum mapKeys {
   TYPE = 'type',
   VISIBILITY = 'visibility',
@@ -183,7 +184,8 @@ export class ComponentLibraryComponent implements OnInit, OnDestroy {
     private sidebarVisibilityServ: SetSidebarVisibilityService,
     private windowResizeService: WindowResizeService,
     private readonly http: HttpService,
-    private nzModal: NzModalService
+    private nzModal: NzModalService,
+    private nzDrawerService: NzDrawerService
   ) {
     this.lang = CommonUtils.getLanguage();
     this.route.queryParams.subscribe(params => {
@@ -453,13 +455,13 @@ export class ComponentLibraryComponent implements OnInit, OnDestroy {
       const instance = thisNzModal.getContentComponent();
       instance.pluginInfo = data;
       instance.pluginId = data?.tool_id;
-      instance.confirm.subscribe(()=>{
+      instance.confirm.subscribe(() => {
         if (!data?.tool_id) {
           this.searchName = '';
           this.currentCardPage = 1;
         }
         this.getCardData().then();
-      })
+      });
       return;
     }
   }
@@ -470,9 +472,9 @@ export class ComponentLibraryComponent implements OnInit, OnDestroy {
       nzContent: ImportModalComponent,
       nzWidth: '700px',
       nzData: {
-        importToolType:  ApplicationType.PLUGIN,
-        importTypeOptions: []
-      }
+        importToolType: ApplicationType.PLUGIN,
+        importTypeOptions: [],
+      },
     });
     const instance = thisNzModal.getContentComponent();
     instance.importToolType = ApplicationType.PLUGIN;
@@ -481,32 +483,33 @@ export class ComponentLibraryComponent implements OnInit, OnDestroy {
 
   /** 导出工作流或插件 */
   public exportTool() {
-    const thisNzModal: any = this.nzModal.create({
+    const drawerRef = this.nzDrawerService.create({
       nzContent: ExportHalfModalComponent,
       nzWidth: this.halfModalWidth,
-    });
-    const instance = thisNzModal.getContentComponent();
-    instance.exportType = ApplicationType.PLUGIN;
-    instance.exportTypeOptions = [
-      {
-        id: ApplicationType.PLUGIN,
-        text: this.i18n.transform('plugin_export'),
-        desc: '',
-        colName: this.i18n.transform('plugin'),
-        rowKey: 'plugin_id',
+      nzData: {
+        exportType: ApplicationType.PLUGIN,
+        exportTypeOptions: [
+          {
+            id: ApplicationType.PLUGIN,
+            text: this.i18n.transform('plugin_export'),
+            desc: '',
+            colName: this.i18n.transform('plugin'),
+            rowKey: 'plugin_id',
+          },
+        ],
+        confirm: ({ rows }) => {
+          this.appPluginRepoServ
+            .exportPlugins({
+              tool_ids: rows.map(row => row.plugin_id),
+            })
+            .then(res => {
+              if (!res) {
+                return;
+              }
+              CommonUtils.downloadFile(new Blob([res], { type: 'application/json' }), `plugin-${this.commonLogic.getFormattedDateTime()}.jsonl`, true);
+            });
+        },
       },
-    ];
-    instance.confirm.subscribe(({ rows }) => {
-      this.appPluginRepoServ
-        .exportPlugins({
-          tool_ids: rows.map(row => row.plugin_id),
-        })
-        .then(res => {
-          if (!res) {
-            return;
-          }
-          CommonUtils.downloadFile(new Blob([res], { type: 'application/json' }), `plugin-${this.commonLogic.getFormattedDateTime()}.jsonl`, true);
-        });
     });
   }
 

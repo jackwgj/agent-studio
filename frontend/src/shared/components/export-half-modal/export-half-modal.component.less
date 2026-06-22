@@ -1,6 +1,5 @@
 .main-container {
   min-height: 500px;
-  max-height: calc(100vh - 250px);
   overflow-y: scroll;
 
   .search-container {
@@ -8,4 +7,28 @@
     align-items: center;
     gap: 8px;
   }
+}
+
+.com-drawer-title {
+  font-size: 16px;
+  font-weight: 600;
+  position: absolute;
+  top: 11px;
+  left: 55px;
+}
+
+.com-drawer-content {
+  height: calc(100vh - 130px);
+  padding: 16px 0;
+  overflow: auto;
+}
+
+.com-drawer-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+::ng-deep .cdk-overlay-connected-position-bounding-box {
+  z-index: 11111;
 }
