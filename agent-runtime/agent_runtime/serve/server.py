@@ -7,6 +7,19 @@ OLE FastAPI server — lightweight version of jiwen-server/serve/server.py
 import os
 from contextlib import asynccontextmanager
 
+import opentelemetry.context as _otel_context
+_otel_runtime_ctx = getattr(_otel_context, '_RUNTIME_CONTEXT')
+
+
+def _silent_detach(token):
+    try:
+        _otel_runtime_ctx.detach(token)
+    except ValueError:
+        pass
+
+
+_otel_context.detach = _silent_detach
+
 # 在所有 jiuwen import 之前，先接管日志配置
 # 这样 jiuwen SingletonLogger 检测到标志后不再添加自己的 handler，避免重复日志
 from agent_runtime.common.logging_context import (
@@ -42,6 +55,7 @@ from agent_runtime.common.exception.errors import AgentBuilderError
 from agent_runtime.common.logging_context import COMMON_LOG_FORMAT
 from agent_runtime.common.redis_manager import RedisClientManager
 from agent_runtime.context.middleware import RequestContextMiddleware
+from agent_runtime.observability import setup_otel_tracer
 from agent_runtime.memory.adapter.ltm_manager import init_ltm
 from agent_runtime.memory.internal_routes import memory_internal_router
 from agent_runtime.serve.apis.orchestration import execution_app
@@ -114,6 +128,9 @@ async def lifespan(app: FastAPI):  # noqa: redefined-outer-name
         }
     )
     logger.info(f"Workflow logger level set to: {workflow_log_level}")
+
+    # 初始化 OpenTelemetry tracer（当 OTEL_ENABLED=true 时生效）
+    setup_otel_tracer()
 
     # 初始化 Redis 客户端
     redis_mgr = RedisClientManager.get_instance()

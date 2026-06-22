@@ -144,6 +144,46 @@ class WorkflowLogSettings(BaseSettings):
     )
 
 
+class OtelSettings(BaseSettings):
+    """OpenTelemetry tracer configuration.
+
+    All fields are optional with sensible defaults. Set ``OTEL_ENABLED=true``
+    and ``OTEL_EXPORTER_ENDPOINT`` to activate OTel span export.
+    """
+
+    enabled: bool = Field(default=True, validation_alias="OTEL_ENABLED")
+    exporter_type: str = Field(default="console", validation_alias="OTEL_EXPORTER_TYPE")
+    exporter_endpoint: str = Field(default="", validation_alias="OTEL_EXPORTER_ENDPOINT")
+    protocol: str = Field(default="grpc", validation_alias="OTEL_PROTOCOL")
+    headers: dict[str, str] = Field(default_factory=dict, validation_alias="OTEL_HEADERS")
+    service_name: str = Field(
+        default="agent-runtime", validation_alias="OTEL_SERVICE_NAME"
+    )
+    service_version: str = Field(default="", validation_alias="OTEL_SERVICE_VERSION")
+    sample_rate: float = Field(default=1.0, validation_alias="OTEL_SAMPLE_RATE")
+    schedule_delay_millis: int = Field(
+        default=5000, validation_alias="OTEL_SCHEDULE_DELAY_MILLIS"
+    )
+    export_timeout_ms: int = Field(default=30000, validation_alias="OTEL_EXPORT_TIMEOUT_MS")
+    max_export_batch_size: int = Field(
+        default=512, validation_alias="OTEL_MAX_EXPORT_BATCH_SIZE"
+    )
+    redaction_enabled: bool = Field(
+        default=False, validation_alias="OTEL_REDACTION_ENABLED"
+    )
+    redact_prompts: Optional[bool] = Field(
+        default=None, validation_alias="OTEL_REDACT_PROMPTS"
+    )
+    redact_completions: Optional[bool] = Field(
+        default=None, validation_alias="OTEL_REDACT_COMPLETIONS"
+    )
+    max_attr_length: int = Field(default=4096, validation_alias="OTEL_MAX_ATTR_LENGTH")
+
+    model_config = SettingsConfigDict(
+        env_file=".env", env_file_encoding="utf-8", extra="ignore"
+    )
+
+
 class CacheSettings(BaseSettings):
     """多级缓存配置（L1 内存 LRU + L2 Redis）。"""
 
@@ -261,6 +301,7 @@ class Settings:
     opensearch = OpenSearchSettings()
     memory = MemorySettings()
     checkpointer = CheckpointerSettings()
+    otel = OtelSettings()
 
 
 settings = Settings()

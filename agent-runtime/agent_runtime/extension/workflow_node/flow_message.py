@@ -239,6 +239,9 @@ class FlowMessage(WorkflowComponent):
 
             rendered_message = self.render_template(self._conf.template, user_fields)
 
+            if hasattr(session, 'trace'):
+                await session.trace(data={"assistant": rendered_message})
+
             await self._write_interaction_stream(session, rendered_message, node_id)
 
             self._store_state_to_session(self._node_state, session)

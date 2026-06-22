@@ -480,6 +480,15 @@ class FlowCode(WorkflowComponent):
             if outputs_schema:
                 result_dict = _coerce_outputs(result_dict, outputs_schema)
 
+            # 5.5 记录代码执行信息到 on_invoke_data
+            if hasattr(session, 'trace'):
+                await session.trace(data={
+                    "code_info": {
+                        "inputs": user_fields,
+                        "outputs": result_dict,
+                    }
+                })
+
             # 6. 包装返回格式
             return {USER_FIELDS: result_dict}
 

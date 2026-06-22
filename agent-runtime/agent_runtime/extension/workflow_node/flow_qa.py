@@ -349,6 +349,8 @@ class FlowQA(WorkflowComponent):
             if self._conf.need_reply:
                 if self._node_state.status == ExecutionStatus.START:
                     query = self._get_qa_by_strategy(user_fields)
+                    if hasattr(session, 'trace'):
+                        await session.trace(data={"assistant": query})
                     await self._write_interaction_stream(session, query, node_id, True)
 
                     self._node_state.inputs = user_fields
@@ -370,6 +372,8 @@ class FlowQA(WorkflowComponent):
 
                     if user_intent and len(user_intent) > 1:
                         query = self._get_qa_by_strategy(self._node_state.inputs)
+                        if hasattr(session, 'trace'):
+                            await session.trace(data={"assistant": query})
                         await self._write_interaction_stream(
                             session, query, node_id, True
                         )
@@ -392,6 +396,9 @@ class FlowQA(WorkflowComponent):
                             conv_history[-1].get("content") if conv_history else ""
                         )
 
+                        if hasattr(session, 'trace'):
+                            await session.trace(data={"user": user_response})
+
                         self._node_state.status = ExecutionStatus.END
                         self._store_state_to_session(self._node_state, session)
 
@@ -399,6 +406,8 @@ class FlowQA(WorkflowComponent):
             else:
                 self._node_state.status = ExecutionStatus.END
                 query = self._get_qa_by_strategy(user_fields)
+                if hasattr(session, 'trace'):
+                    await session.trace(data={"assistant": query})
                 await self._write_interaction_stream(session, query, node_id, False)
 
                 self._store_state_to_session(self._node_state, session)
