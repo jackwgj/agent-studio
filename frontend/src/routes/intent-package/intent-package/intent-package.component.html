@@ -47,7 +47,7 @@
       [nzNoResult]="noDataTpl"
       nzTableLayout="fixed"
       class="table-style"
-      [ngStyle]="{ 'border': isShowNoDataGuide ? '' : '1px solid rgba(240, 240, 240, 1)', 'overflow': 'auto', 'max-height': 'calc(100vh - 540px)' }"
+      [ngStyle]="{ 'border': isShowNoDataGuide ? '' : '1px solid rgba(240, 240, 240, 1)', 'overflow': 'auto', maxHeight: isShowNoDataGuide ? 'calc(100vh - 200px)' : isShowGuide ? 'calc(100vh - 540px)' : 'calc(100vh - 340px)' }"
     >
       <thead *ngIf="!isShowNoDataGuide">
         <tr>

@@ -40,7 +40,7 @@
 
   <nz-spin [nzSpinning]="loading">
     <div class="min-h-[200px]">
-      <div style="height: calc(100vh - 530px); overflow: auto">
+      <div [style]="{ overflow: 'auto', maxHeight: isShowNoDataGuide ? 'calc(100vh - 200px)' : isShowGuide ? 'calc(100vh - 520px)' : 'calc(100vh - 300px)' }">
         <nz-table
           #basicTable
           *ngIf="!isFirstLoading"

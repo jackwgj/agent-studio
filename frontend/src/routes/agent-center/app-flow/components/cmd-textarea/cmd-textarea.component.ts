@@ -242,8 +242,12 @@ export class CmdTextareaComponent implements ControlValueAccessor {
   }
 
   getLength() {
+    let content = this.getEditorTextContent();
+    if (content === '\n') {
+      return 0;
+    }
     return Math.max(
-      this.getEditorTextContent().replaceAll('\n', '').length,
+      this.getEditorTextContent().length,
       0,
     );
   }

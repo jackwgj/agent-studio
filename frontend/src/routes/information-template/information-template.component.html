@@ -49,6 +49,7 @@
 
   <nz-spin [nzSpinning]="loading">
     <div class="min-h-[200px]">
+      <div [style]="{ overflow:'auto', maxHeight: isShowNoDataGuide ? 'calc(100vh - 200px)' : isShowGuide ? 'calc(100vh - 520px)' : 'calc(100vh - 320px)' }">
       <nz-table
         #basicTable
         *ngIf="!isFirstLoading"
@@ -91,7 +92,7 @@
           </tr>
         </tbody>
       </nz-table>
-
+    </div>
       <ng-template #noDataTpl>
         <div class="list-no-data flex items-center justify-center">
           <app-new-common-no-data-with-btn
