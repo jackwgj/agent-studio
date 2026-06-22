@@ -452,16 +452,17 @@
           </div>
           <div class="pl-[12px] pr-[12px] w-[100%] h-[109px]" [class.mt-1]="!prologueInfo.collapsed" *ngIf="!prologueInfo.isAutoLoading && !prologueInfo.collapsed">
             <nz-spin *ngIf="prologueInfo.isAutoLoading" nzSimple class="conversation-loading-icon"></nz-spin>
-            <textarea
-              *ngIf="!prologueInfo.isAutoLoading"
-              nz-input
-              maxlength="512"
-              [placeholder]="'statement_placeholder' | i18nextEager"
-              [(ngModel)]="openingInputed"
-              [disabled]="isFlowReadonly"
-              (ngModelChange)="inputChanged.next($event)"
-              style="width: 100%; height: 109px; min-width: 100%" resize="none"
-            ></textarea>
+            <nz-textarea-count *ngIf="!prologueInfo.isAutoLoading" [nzMaxCharacterCount]="512">
+              <textarea
+                nz-input
+                maxlength="512"
+                [placeholder]="'statement_placeholder' | i18nextEager"
+                [(ngModel)]="openingInputed"
+                [disabled]="isFlowReadonly"
+                (ngModelChange)="inputChanged.next($event)"
+                style="width: 100%; height: 109px; min-width: 100%" resize="none"
+              ></textarea>
+            </nz-textarea-count>
           </div>
         </div>
 
@@ -576,15 +577,17 @@
             <span class="desc text-[#808080] no-var-text" *ngIf="!switchState">{{ probeInfo.closeDesc }}</span>
             <span class="desc text-[#808080] no-var-text" *ngIf="switchState">{{ probeInfo.openDesc }}</span>
             <div class="flex flex-col gap-[8px]" style="padding: 0 12px">
-                <textarea
-                  nz-input
-                  maxlength="512"
-                  resize="none"
-                  style="width: 100%; height: 109px; min-width: 100%"
-                  [placeholder]="followupPlaceholder"
-                  [(ngModel)]="probeInputed" [disabled]="isFlowReadonly"
-                  (ngModelChange)="updateFollowUpPrompt($event)"
-                ></textarea>
+                <nz-textarea-count [nzMaxCharacterCount]="512">
+                  <textarea
+                    nz-input
+                    maxlength="512"
+                    resize="none"
+                    style="width: 100%; height: 109px; min-width: 100%"
+                    [placeholder]="followupPlaceholder"
+                    [(ngModel)]="probeInputed" [disabled]="isFlowReadonly"
+                    (ngModelChange)="updateFollowUpPrompt($event)"
+                  ></textarea>
+                </nz-textarea-count>
             </div>
           </div>
         </div>

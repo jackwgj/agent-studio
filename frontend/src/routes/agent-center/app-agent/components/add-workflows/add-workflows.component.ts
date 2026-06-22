@@ -19,6 +19,8 @@ import { AppLibraryRepoService } from "@services/app-library/app-library-repo.se
 import { NewCommonNoDataWithBtnComponent } from "@shared/components/new-common-no-data-with-btn/new-common-no-data-with-btn.component";
 import { NoDataIconComponent } from "@shared/components/no-data-icon/no-data-icon.component";
 import { MODULES } from "@shared/modules";
+import { NzInputModule } from 'ng-zorro-antd/input';
+import { NzSelectModule } from 'ng-zorro-antd/select';
 import { I18NEXT_NAMESPACE, I18NextEagerPipe } from "angular-i18next";
 import { Subject, takeUntil } from "rxjs";
 import { CommonUtils } from "src/utils/common.util";
@@ -30,7 +32,7 @@ import { PAGINATION_LIMIT_NUM, WORKFLOW_NORMAL_STATUS } from "../../../types/my-
   templateUrl: "./add-workflows.component.html",
   styleUrls: ["./add-workflows.component.scss"],
   standalone: true,
-  imports: [MODULES, NoDataIconComponent, NewCommonNoDataWithBtnComponent],
+  imports: [MODULES, NoDataIconComponent, NewCommonNoDataWithBtnComponent, NzInputModule, NzSelectModule],
   providers: [
     {
       provide: I18NEXT_NAMESPACE,
@@ -223,11 +225,10 @@ export class AddWorkflowsComponent {
     const params: any = {
       offset: ((this.currentPage || 1) - 1) * PAGINATION_LIMIT_NUM,
       limit: PAGINATION_LIMIT_NUM,
-      name: this.searchValue,
-      description: this.searchValue,
-      author: this.searchValue
-      // 增加区分预置和当前的参数
     };
+    if (this.searchValue) {
+      params.name = this.searchValue;
+    }
 
     this.workflowData.isLoading = true;
     this.appFlowServe.getFlows(params).then(

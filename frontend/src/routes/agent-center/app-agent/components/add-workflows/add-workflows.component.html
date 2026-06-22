@@ -14,16 +14,14 @@
       <nz-input-search *ngIf="!isShareTab" nzAllowClear (nzSearch)="loadWorkflowList('search')">
         <input
           nz-input
-          id="searchbox-basic"
           class="workflow-searchbox"
           [placeholder]="emptyPlaceholder"
           [(ngModel)]="searchValue"
         />
       </nz-input-search>
-      <nz-input-search *ngIf="isShareTab" nzAllowClear (nzSearch)="initList('search')">
+      <nz-input-search *ngIf="isShareTab" nzAllowClear (nzSearch)="initShareList()" class="flex-1">
         <input
           nz-input
-          id="searchbox-basic"
           class="!w-full workflow-searchbox"
           [placeholder]="'search_placeholder'|i18nextEager"
           [(ngModel)]="shareSearchKey"
@@ -74,13 +72,13 @@
                     </div>
                   </div>
                   <div *ngIf="!isShareTab">
-                    <span class="w-[90%] text-overflow" tiOverflow>
+                    <span class="w-[90%] text-overflow" nz-tooltip [nzTooltipTitle]="item.description">
                       {{ item.description }}
                     </span>
                   </div>
                   <div class="text-[#808080]" *ngIf="isShareTab">
                     <div>
-                      <span class="w-full text-overflow" tiOverflow> {{ item.description }}</span>
+                      <span class="w-full text-overflow" nz-tooltip [nzTooltipTitle]="item.description"> {{ item.description }}</span>
                     </div>
                     <div class="flex items-center">
                       <nz-icon
@@ -88,7 +86,7 @@
                         nzTheme="outline"
                         class="mr-1 !text-[16px]"
                       />
-                      <span class="max-w-[60px] text-overflow" tiOverflow>
+                      <span class="max-w-[60px] text-overflow" nz-tooltip [nzTooltipTitle]="item.workspace_name || item.workspace_id">
                         {{ item.workspace_name || item.workspace_id }}
                       </span>
                       <span *ngIf="item.version_info_list?.length" class="pl-2 pr-2">|</span>

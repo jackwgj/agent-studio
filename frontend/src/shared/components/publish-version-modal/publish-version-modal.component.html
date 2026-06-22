@@ -1,25 +1,35 @@
 <div class="publish-version-drawer">
   <div class="drawer-content">
     <form [formGroup]="publishVersionForm" class="flex flex-col gap-[16px]">
-      <div class="name-wrapper">
-        <div class="input-container">
-          <span class="name">{{ 'version_name' | i18nextEager }}</span>
-        </div>
-        <nz-input-group [nzSuffix]="suffixCount" class="mt-[8px]">
-          <input
-            class="name-input"
-            nz-input
-            maxlength="32"
-            [placeholder]="'enter_version_name' | i18nextEager"
-            formControlName="name"
-          />
-        </nz-input-group>
-        <ng-template #suffixCount>
-          <span style="color: #bfbfbf; font-size: 12px;">
-            {{ publishVersionForm.get('name')?.value?.length || 0 }}/32
-          </span>
+      <nz-form-item class="name-wrapper mb-0">
+        <nz-form-control [nzErrorTip]="nameErrorTpl">
+          <div class="input-container">
+            <span class="name">{{ 'version_name' | i18nextEager }}</span>
+          </div>
+          <nz-input-group [nzSuffix]="suffixCount" class="mt-[8px]">
+            <input
+              class="name-input"
+              nz-input
+              maxlength="32"
+              [placeholder]="'enter_version_name' | i18nextEager"
+              formControlName="name"
+            />
+          </nz-input-group>
+          <ng-template #suffixCount>
+            <span style="color: #bfbfbf; font-size: 12px;">
+              {{ publishVersionForm.get('name')?.value?.length || 0 }}/32
+            </span>
+          </ng-template>
+        </nz-form-control>
+        <ng-template #nameErrorTpl let-control>
+          @if (control.hasError('required')) {
+            {{ 'required' | i18nextEager }}
+          }
+          @if (control.hasError('maxlength')) {
+            {{ 'input_max_length' | i18nextEager : { max: 32 } }}
+          }
         </ng-template>
-      </div>
+      </nz-form-item>
       <div class="desc-wrapper">
         <span class="name">{{ 'veision_desc'| i18nextEager }}{{'publishversionmodalcomponent_74'| i18nextEager}}</span>
         <nz-textarea-count [nzMaxCharacterCount]="256" class="mt-[8px] block">
