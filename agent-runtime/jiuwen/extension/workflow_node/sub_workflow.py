@@ -231,6 +231,7 @@ class SubWorkflow(WorkflowComponent):
         self._interrupt_child_node_id: Optional[str] = None
         self._pending_interact_prompt: str = ""
         self._global_var_names = None
+        self._last_child_completed = False
 
     @staticmethod
     def _collect_global_refs_from_schema(schema, inputs, result, global_var_names):
@@ -870,6 +871,7 @@ class SubWorkflow(WorkflowComponent):
                     session=session,
                     context=context,
                     is_sub=True,
+                    reset_sub_outputs=self._last_child_completed,
                 ),
                 timeout=invoke_timeout,
             )
@@ -899,6 +901,7 @@ class SubWorkflow(WorkflowComponent):
                 user_fields = {}
 
             self.node_state.status = ExecutionStatus.END
+            self._last_child_completed = True
 
             workflow_logger.info(
                 "SubWorkflow invoke completed",
@@ -918,6 +921,7 @@ class SubWorkflow(WorkflowComponent):
 
         except asyncio.TimeoutError:
             self.node_state.status = ExecutionStatus.USER_INTERACT
+            self._last_child_completed = False
             workflow_logger.info(
                 "SubWorkflow stream timed out, likely interactive sub-workflow",
                 event_type=LogEventType.WORKFLOW_COMPONENT_END,
@@ -935,8 +939,10 @@ class SubWorkflow(WorkflowComponent):
                     break
             await session.interact(child_inputs.get("query", ""))
         except JiuWenBaseException:
+            self._last_child_completed = False
             raise
         except GraphInterrupt:
+            self._last_child_completed = False
             partial_state = getattr(self, '_stream_state', {}) or {}
             await self._trace_interrupt_marker(
                 session,
@@ -945,6 +951,7 @@ class SubWorkflow(WorkflowComponent):
             )
             raise
         except Exception as e:
+            self._last_child_completed = False
             workflow_logger.error(
                 "SubWorkflow invoke error",
                 event_type=LogEventType.WORKFLOW_COMPONENT_ERROR,
@@ -1023,6 +1030,7 @@ class SubWorkflow(WorkflowComponent):
                 session=session,
                 context=context,
                 is_sub=True,
+                reset_sub_outputs=self._last_child_completed,
             ).__aiter__()
 
             first_chunk = True
@@ -1057,6 +1065,7 @@ class SubWorkflow(WorkflowComponent):
 
                 if processed.get("is_interaction"):
                     self.node_state.status = ExecutionStatus.USER_INTERACT
+                    self._last_child_completed = False
                     payload = processed.get("payload", {})
                     child_node_id = None
                     if hasattr(payload, "id"):
@@ -1081,6 +1090,7 @@ class SubWorkflow(WorkflowComponent):
             if self._detect_child_interrupt(
                 session
             ) or self._is_parent_workflow_interrupted(inner_session):
+                self._last_child_completed = False
                 async for item in self._emit_sub_workflow_user_interact(
                     session,
                     inner_session,
@@ -1099,6 +1109,7 @@ class SubWorkflow(WorkflowComponent):
             # 获取更新后的全局变量值
             updated_memory = self._collect_updated_memory(session)
             self.node_state.status = ExecutionStatus.END
+            self._last_child_completed = True
 
             workflow_logger.info(
                 "SubWorkflow stream completed",
@@ -1126,6 +1137,7 @@ class SubWorkflow(WorkflowComponent):
             yield result
 
         except asyncio.TimeoutError:
+            self._last_child_completed = False
             # 首帧/帧超时：子 _sub_stream 可能阻塞在 sub_workflow_stream.receive，用 session 识别中断
             self._detect_child_interrupt(session)
             timed_out = first_frame_timeout if first_chunk else frame_timeout
@@ -1145,13 +1157,16 @@ class SubWorkflow(WorkflowComponent):
                 yield item
             return
         except JiuWenBaseException:
+            self._last_child_completed = False
             raise
         except GraphInterrupt:
+            self._last_child_completed = False
             await self._trace_interrupt_marker(
                 session, final_res, final_val
             )
             raise
         except Exception as e:
+            self._last_child_completed = False
             workflow_logger.error(
                 "SubWorkflow stream error",
                 event_type=LogEventType.WORKFLOW_COMPONENT_ERROR,
@@ -1421,8 +1436,12 @@ class SubWorkflow(WorkflowComponent):
         return "sub_workflow"
 
 
+from jiuwen.extension.patches.loop_body_output_reset_patch import (
+    apply_loop_body_output_reset_patch,
+)
 from jiuwen.extension.patches.workflow_sub_stream_patch import (
     apply_workflow_sub_stream_patch,
 )
 
 apply_workflow_sub_stream_patch()
+apply_loop_body_output_reset_patch()

@@ -30,9 +30,14 @@ from openjiuwen.core.session import (
     WORKFLOW_EXECUTE_TIMEOUT,
     WORKFLOW_STREAM_FRAME_TIMEOUT,
     NodeSession,
+    SubWorkflowSession,
 )
 from openjiuwen.core.session.stream import OutputSchema, StreamEmitter
 from openjiuwen.core.workflow.components.base import ComponentAbility
+
+from jiuwen.extension.patches.aggregate_upstream_resolver import (
+    resolve_aggregate_upstream_node_ids_from_workflow,
+)
 
 _DEFAULT_SUB_STREAM_RECEIVE_TIMEOUT = 30
 
@@ -45,6 +50,14 @@ def _bounded_stream_timeout(session) -> float:
         if timeout is not None and timeout > 0:
             return float(timeout)
     return float(_DEFAULT_SUB_STREAM_RECEIVE_TIMEOUT)
+
+
+def _sub_workflow_scope_id(sub_workflow_session) -> str:
+    return (
+        sub_workflow_session.executable_id()
+        if hasattr(sub_workflow_session, "executable_id")
+        else sub_workflow_session.node_id()
+    )
 
 
 async def _patched_compiled_invoke(self, inputs, session, config=None):
@@ -64,9 +77,9 @@ async def _patched_compiled_invoke(self, inputs, session, config=None):
     try:
         if is_main:
             await self._checkpointer.pre_workflow_execute(session, inputs)
+            _maybe_clear_aggregate_upstream_on_resume("invoke", session, inputs)
         if not isinstance(inputs, InteractiveInput):
             session.state().commit_user_inputs(inputs)
-
         result = None
         exception = None
 
@@ -109,6 +122,81 @@ def _interrupt_output_schema(result: Any) -> Optional[OutputSchema]:
     return None
 
 
+def _clear_aggregate_upstream_io_state(
+    sub_workflow_session, scope_id: str, upstream_ids: tuple[str, ...]
+) -> list[str]:
+    """Drop io_state outputs for aggregate upstream branch nodes under scope."""
+    io_state = getattr(sub_workflow_session.state(), "_io_state", None)
+    if io_state is None or not scope_id or not upstream_ids:
+        return []
+
+    cleared: list[str] = []
+    for node_id in upstream_ids:
+        nested_key = f"{scope_id}.{node_id}"
+        io_state.update_by_id(nested_key, {nested_key: None})
+        cleared.append(node_id)
+    if cleared:
+        io_state.commit()
+    return cleared
+
+
+def _maybe_clear_aggregate_upstream_on_resume(
+    mode: str, sub_workflow_session, inputs: Input
+) -> None:
+    """On InteractiveInput resume, clear stale aggregate upstream branch outputs."""
+    if not isinstance(inputs, InteractiveInput):
+        return
+
+    if not isinstance(sub_workflow_session, SubWorkflowSession):
+        return
+
+    scope_id = _sub_workflow_scope_id(sub_workflow_session)
+    if not scope_id:
+        return
+
+    upstream_ids = getattr(sub_workflow_session, "_aggregate_upstream_node_ids", ()) or ()
+    _clear_aggregate_upstream_io_state(sub_workflow_session, scope_id, upstream_ids)
+
+
+def _reset_sub_workflow_runtime_state(self) -> None:
+    internal = getattr(self, "_internal", None)
+    graph = getattr(internal, "_graph", None) if internal is not None else None
+    get_nodes = getattr(graph, "get_nodes", None)
+    if get_nodes is None:
+        return
+    for vertex in get_nodes().values():
+        executable = getattr(vertex, "_executable", None)
+        if hasattr(executable, "_executed"):
+            setattr(executable, "_executed", False)
+        reset_stream_output = getattr(executable, "_reset_stream_output", None)
+        if callable(reset_stream_output):
+            reset_stream_output()
+
+
+def _reset_sub_workflow_component_outputs(self, sub_workflow_session, inputs: Input) -> None:
+    """Clear stale outputs for nodes inside a sub-workflow before a fresh run."""
+    if isinstance(inputs, InteractiveInput):
+        return
+
+    internal = getattr(self, "_internal", None)
+    if internal is None:
+        return
+    workflow_spec = internal.config().spec
+    node_ids = list((workflow_spec.comp_configs or {}).keys())
+    if not node_ids:
+        return
+
+    scope_id = _sub_workflow_scope_id(sub_workflow_session)
+    if not scope_id:
+        return
+
+    io_state = getattr(sub_workflow_session.state(), "_io_state", None)
+    if io_state is None:
+        return
+    io_state.update_by_id(scope_id, {scope_id: None})
+    io_state.commit()
+
+
 async def _patched_sub_stream(
     self,
     inputs: Input,
@@ -117,7 +205,13 @@ async def _patched_sub_stream(
     **kwargs,
 ) -> AsyncIterator[Output]:
     sub_workflow_session = self._create_workflow_session(session, is_sub=True)
+    sub_workflow_session._aggregate_upstream_node_ids = (
+        resolve_aggregate_upstream_node_ids_from_workflow(self)
+    )
     try:
+        _reset_sub_workflow_runtime_state(self)
+        if bool(kwargs.get("reset_sub_outputs")):
+            _reset_sub_workflow_component_outputs(self, sub_workflow_session, inputs)
         compiled_graph = self._internal.compile(sub_workflow_session, context=context)
         result = await compiled_graph.invoke(
             {INPUTS_KEY: inputs, CONFIG_KEY: kwargs.get(CONFIG_KEY)},
@@ -168,8 +262,14 @@ async def _patched_sub_invoke(
     **kwargs,
 ) -> Output:
     sub_workflow_session = self._create_workflow_session(session, is_sub=True)
+    sub_workflow_session._aggregate_upstream_node_ids = (
+        resolve_aggregate_upstream_node_ids_from_workflow(self)
+    )
 
     try:
+        _reset_sub_workflow_runtime_state(self)
+        if bool(kwargs.get("reset_sub_outputs")):
+            _reset_sub_workflow_component_outputs(self, sub_workflow_session, inputs)
         compiled_graph = self._internal.compile(sub_workflow_session, context)
         result = await compiled_graph.invoke(
             {INPUTS_KEY: inputs, CONFIG_KEY: kwargs.get(CONFIG_KEY)},
@@ -212,7 +312,8 @@ async def _patched_sub_invoke(
 
         node_session = NodeSession(sub_workflow_session, self._end_comp_id)
         output_key = self._end_comp_id
-        return node_session.state().get_outputs(output_key)
+        fallback_outputs = node_session.state().get_outputs(output_key)
+        return fallback_outputs
     finally:
         await asyncio.shield(sub_workflow_session.close())
         await asyncio.shield(self._internal.reset())
