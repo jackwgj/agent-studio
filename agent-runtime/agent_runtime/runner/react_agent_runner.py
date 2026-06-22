@@ -16,7 +16,6 @@ from agent_runtime.runner.react_workflow_adapter import ReactWorkflowAdapter
 from agent_runtime.schemas.orchestration_mgr import ExecutionRequest
 from jiuwen.serve.controllers.execution.open_utils import async_ir_load
 from openjiuwen.core.common.logging import workflow_logger
-from openjiuwen.core.common.logging import performance_logger
 from openjiuwen.core.foundation.llm import Model
 from openjiuwen.core.session.agent import Session, create_agent_session
 from openjiuwen.core.session.stream import BaseStreamMode
@@ -60,21 +59,59 @@ class ReActAgentRunner:
             workflow_logger.error(f"Failed to load IR from {ir_path}: {e}")
             raise
 
-    def _parse_prompt_template(self, ir_json: dict, conversation_history: list = None) -> list[dict]:
-        """解析 IR 中的提示词模板，添加工具使用说明"""
+    def _parse_prompt_template(self, ir_json: dict, conversation_history: list = None, skill_work_dir: str = "") -> \
+    list[dict]:
+        """解析 IR 中的提示词模板，添加工具使用说明和 skill 提示词"""
         configs = ir_json.get("configs", {})
         sys_prompt = configs.get("sysPromptTemplate", "")
 
         tool_instruction = "\n\n你可以通过调用工具来完成任务。可使用 available tools 中提供的工具，工具的参数优先结合上下文进行推断。"
 
+        # 构建 skill 提示词（传入实际工作目录）
+        skills_prompt = self._build_skills_prompt(ir_json, skill_work_dir)
+
         history_section = self._format_conversation_history(conversation_history)
 
         if sys_prompt:
-            full_prompt = sys_prompt + tool_instruction + history_section
+            full_prompt = sys_prompt + tool_instruction + skills_prompt + history_section
         else:
-            full_prompt = "你是一个AI助手，能够帮助用户完成任务。" + tool_instruction + history_section
+            full_prompt = "你是一个AI助手，能够帮助用户完成任务。" + tool_instruction + skills_prompt + history_section
 
         return [{"role": "system", "content": full_prompt}]
+
+    def _build_skills_prompt(self, ir_json: dict, skill_work_dir: str = "") -> str:
+        """构建 skill 提示词"""
+        import posixpath
+
+        skills_conf = ir_json.get("configs", {}).get("skills", {})
+        if not skills_conf:
+            return ""
+
+        skill_dir = skills_conf.get("skill_dir", "")
+        skill_info_list = skills_conf.get("skill_info", [])
+        if not skill_info_list:
+            return ""
+
+        skills_info = []
+        for index, skill in enumerate(skill_info_list):
+            name = skill.get("name", "")
+            description = skill.get("description", "")
+            if skill_work_dir:
+                skill_path = os.path.join(skill_work_dir, skill_dir, name) if skill_dir else os.path.join(
+                    skill_work_dir, name)
+            else:
+                skill_path = posixpath.join(skill_dir, name) if skill_dir else name
+            skills_info.append(
+                f"{index + 1}. Skill name: {name}; Skill description: {description}; Skill directory file path: {skill_path}")
+
+        return (
+                "You are an agent equipped with various skills to solve problems.\n"
+                "Before attempting any task, read the relevant skill document (SKILL.md) "
+                "using read_file and follow its workflow.\n\n"
+                "To help you better complete tasks, the following skill knowledge is equipped:\n"
+                + "\n".join(skills_info)
+                + "\nYou can use the read_file tool to read the corresponding SKILL.md file.\n"
+        )
 
     def _format_conversation_history(self, history: list) -> str:
         """格式化对话历史"""
@@ -288,19 +325,145 @@ class ReActAgentRunner:
         workflow_logger.info(f"Registered {len(workflow_ids)} workflows success")
         return workflow_ids
 
-    async def _register_skills(self, ir_json: dict, config: ReActAgentConfig) -> None:
-        """注册 Skill 配置"""
-        skills = ir_json.get("skills", {})
-        if skills:
-            skill_dir = skills.get("skillDir", "")
-            if skill_dir:
-                config.sys_operation_id = skill_dir
+    async def _download_skills(self, skill_dir: str, skill_info_list: list) -> str:
+        """下载并解压 skill 文件到本地工作目录"""
+        import os
+        import zipfile
 
-        workflow_logger.info(f"Registered skill config success")
+        workflow_logger.info(f"[SkillDownload] skill_dir='{skill_dir}', skill_count={len(skill_info_list)}")
 
-    def _create_agent(self, ir_json: dict, conversation_history: list = None) -> tuple[ReActAgent, str]:
-        """根据 IR 配置创建 ReActAgent 实例"""
-        prompt_template = self._parse_prompt_template(ir_json, conversation_history)
+        from agent_runtime.common.config import settings
+        skill_storage_dir = settings.skill_storage.skill_storage_dir
+
+        if skill_dir and not os.path.isabs(skill_dir):
+            work_dir = skill_storage_dir or os.getcwd()
+            skill_local_path_prefix = os.path.join(work_dir, skill_dir)
+        else:
+            work_dir = os.path.dirname(skill_dir) if skill_dir else os.getcwd()
+            skill_local_path_prefix = skill_dir
+
+        if not os.path.exists(skill_local_path_prefix):
+            if not os.path.exists(work_dir):
+                workflow_logger.error(f"[SkillDownload] Both {skill_local_path_prefix} and {work_dir} not found")
+                return None
+            try:
+                os.makedirs(skill_local_path_prefix, exist_ok=True)
+            except Exception as e:
+                workflow_logger.error(f"[SkillDownload] Failed to create directory: {e}")
+                return None
+
+        if not skill_info_list:
+            return skill_local_path_prefix
+
+        for skill in skill_info_list:
+            skill_name = skill.get("name")
+            skill_path = skill.get("skill_path")
+            if not skill_name or not skill_path:
+                continue
+
+            skill_md_path = os.path.join(skill_local_path_prefix, skill_name, "SKILL.md")
+            if os.path.isfile(skill_md_path):
+                continue
+
+            local_zip_path = os.path.join(skill_local_path_prefix, f"{skill_name}.zip")
+
+            try:
+                downloaded = False
+                try:
+                    from agent_runtime.storage.object_storage import S3StorageProvider
+                    content = await S3StorageProvider().get_object_bytes(skill_path)
+                    os.makedirs(os.path.dirname(local_zip_path), exist_ok=True)
+                    with open(local_zip_path, "wb") as f:
+                        f.write(content)
+                    downloaded = True
+                except Exception as s3_err:
+                    try:
+                        from jiuwen.common.store.async_obs import AsyncOBSUtil
+                        await AsyncOBSUtil.download_to_file(object_key=skill_path, local_path=local_zip_path)
+                        downloaded = True
+                    except Exception as obs_err:
+                        workflow_logger.error(
+                            f"[SkillDownload] Both failed for {skill_name}: S3={s3_err}, OBS={obs_err}")
+                        continue
+
+                with zipfile.ZipFile(local_zip_path, "r") as zip_ref:
+                    for member in zip_ref.infolist():
+                        member.filename = member.filename.replace("\\", "/")
+                        zip_ref.extract(member, skill_local_path_prefix)
+                os.remove(local_zip_path)
+
+                if os.path.isfile(skill_md_path):
+                    workflow_logger.info(f"[SkillDownload] Downloaded {skill_name}")
+            except Exception as e:
+                workflow_logger.error(f"[SkillDownload] Failed {skill_name}: {e}")
+
+        return skill_local_path_prefix
+
+    async def _register_skills(self, ir_json: dict, agent: ReActAgent, agent_id: str, skill_work_dir: str = "") -> None:
+        """注册 Skill 工具和配置"""
+        import os
+
+        skills_conf = ir_json.get("configs", {}).get("skills", {})
+        if not skills_conf:
+            return
+
+        skill_dir = skills_conf.get("skill_dir", "")
+        skill_info_list = skills_conf.get("skill_info", [])
+        if not skill_dir and not skill_info_list:
+            return
+
+        from openjiuwen.core.sys_operation import SysOperationCard, SysOperation, OperationMode
+        from openjiuwen.core.sys_operation.config import LocalWorkConfig
+        from openjiuwen.core.sys_operation.tool_adapter import SysOperationToolAdapter
+        from openjiuwen.core.runner import Runner
+
+        actual_work_dir = skill_work_dir or (os.path.join(os.getcwd(), skill_dir) if skill_dir else "")
+
+        sys_op_card = SysOperationCard(
+            id=agent_id,
+            mode=OperationMode.LOCAL,
+            work_config=LocalWorkConfig(work_dir=actual_work_dir)
+        )
+
+        tools = SysOperationToolAdapter.extract_tools(sys_op_card, SysOperation(sys_op_card))
+        try:
+            Runner.resource_mgr.add_sys_operation(sys_op_card)
+        except Exception as e:
+            if "already exist" not in str(e).lower():
+                workflow_logger.warning(f"Failed to register SysOperationCard: {e}")
+
+        agent._config.sys_operation_id = agent_id
+        agent.lazy_init_skill()
+
+        skill_tool_names = {"read_file", "execute_code", "execute_shell"}
+        for _, local_func in tools:
+            tool_name = getattr(getattr(local_func, "card", None), "name", None)
+            if tool_name in skill_tool_names:
+                try:
+                    agent.ability_manager.add(local_func.card)
+                except Exception:
+                    pass
+
+        if agent._skill_util and skill_info_list and actual_work_dir:
+            for skill in skill_info_list:
+                skill_name = skill.get("name", "")
+                try:
+                    await agent._skill_util.register_skills(
+                        os.path.join(actual_work_dir, skill_name), agent
+                    )
+                except Exception as e:
+                    workflow_logger.warning(f"Failed to register skill {skill_name}: {e}")
+
+    def _create_agent(self, ir_json: dict, conversation_history: list = None, skill_work_dir: str = "") -> tuple[
+        ReActAgent, str]:
+        """根据 IR 配置创建 ReActAgent 实例
+
+        Args:
+            ir_json: IR 配置
+            conversation_history: 对话历史
+            skill_work_dir: skill 文件的实际工作目录
+        """
+        prompt_template = self._parse_prompt_template(ir_json, conversation_history, skill_work_dir)
         max_iterations = self._parse_max_iterations(ir_json)
         agent_id = ir_json.get("agentId", "react_agent")
 
@@ -320,7 +483,7 @@ class ReActAgentRunner:
         return agent, agent_id
 
     async def run_streaming(
-        self, req: ExecutionRequest, execution_id: str | None = None
+            self, req: ExecutionRequest, execution_id: str | None = None
     ) -> AsyncGenerator[Dict, None]:
         """流式运行 ReActAgent 并 yield SSE 事件"""
         exec_id = execution_id or req.conversation_id or str(uuid.uuid4())
@@ -344,22 +507,34 @@ class ReActAgentRunner:
             yield adapter.adapt_error(f"Failed to create LLM: {e}")
             return
 
-        # 创建 Agent
+        # 1. 先下载 skill 文件（需要知道实际工作目录才能正确注入 prompt）
+        skills_conf = ir_json.get("configs", {}).get("skills", {})
+        skill_work_dir = ""
+        if skills_conf:
+            skill_dir = skills_conf.get("skill_dir", "")
+            skill_info_list = skills_conf.get("skill_info", [])
+            try:
+                skill_work_dir = await self._download_skills(skill_dir, skill_info_list) or ""
+                workflow_logger.info(f"[run_streaming] Skill download completed, skill_work_dir={skill_work_dir}")
+            except Exception as e:
+                workflow_logger.error(f"[run_streaming] Skill download failed: {e}", exc_info=True)
+
+        # 2. 创建 Agent（传入 skill_work_dir 以便正确构建 prompt）
         try:
             conversation_history = req.params.conversation_history
-            agent, agent_id = self._create_agent(ir_json, conversation_history)
+            agent, agent_id = self._create_agent(ir_json, conversation_history, skill_work_dir)
             agent.set_llm(llm)
         except Exception as e:
             workflow_logger.error(f"Failed to create agent: {e}")
             yield adapter.adapt_error(f"Failed to create agent: {e}")
             return
 
-        # 注册工具
+        # 3. 注册工具
         try:
             await self._register_plugins(ir_json, agent, agent_id)
             await self._register_mcp_servers(ir_json, agent, agent_id)
             await self._register_workflows(ir_json, agent, agent_id)
-            await self._register_skills(ir_json, agent._config)
+            await self._register_skills(ir_json, agent, agent_id, skill_work_dir)
         except Exception as e:
             workflow_logger.error(f"Failed to register tools: {e}")
             yield adapter.adapt_error(f"Failed to register tools: {e}")
@@ -399,10 +574,10 @@ class ReActAgentRunner:
             session = create_agent_session(session_id=session_id, card=agent.card)
             await session.pre_run(inputs=inputs)
 
-            async for chunk in agent.stream(inputs, session, [BaseStreamMode.OUTPUT, BaseStreamMode.TRACE, BaseStreamMode.CUSTOM]):
+            async for chunk in agent.stream(inputs, session,
+                                            [BaseStreamMode.OUTPUT, BaseStreamMode.TRACE, BaseStreamMode.CUSTOM]):
                 chunk_type = getattr(chunk, "type", None)
 
-                
                 # 第一次 llm_output 时发送 LLM 开始事件
                 if chunk_type == "llm_output" and is_first_llm_call:
                     is_first_llm_call = False
