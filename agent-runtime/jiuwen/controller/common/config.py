@@ -330,6 +330,7 @@ class StreamRequest:
     plugins: list = None
     workflows: list = None
     trace_handlers: list = None
+    session: Any = None
     runtime_context: Any = None
     contexts: dict = None
     multimodal_image: Any = None
@@ -347,6 +348,7 @@ class InvokeRequest:
     plugins: list = None
     workflows: list = None
     trace_handlers: list = None
+    session: Any = None
     contexts: dict = None
     runtime_context: Any = None
 

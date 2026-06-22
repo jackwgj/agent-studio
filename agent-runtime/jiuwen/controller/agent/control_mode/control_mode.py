@@ -146,6 +146,7 @@ class ControllerMode(BaseMode):
                 "runtime_context": request.runtime_context,
                 "multimodal_image": request.multimodal_image,
                 "trace_handlers": request.trace_handlers,
+                "session": request.session,
             }
 
             message = MessageConverter.create_user_input_message(
