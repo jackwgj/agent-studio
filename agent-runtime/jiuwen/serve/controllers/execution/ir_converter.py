@@ -1699,6 +1699,7 @@ class IRConverter:
             #   references like ${node_start.systemFields.query} can be resolved.
             break_expr = configs.get("breakCondition", "").strip()
             if break_expr:
+                break_expr = _convert_start_memory_refs_in_string(break_expr)
                 branch_id = f"_break_branch_{node_id}"
                 break_comp_id = f"_break_{node_id}"
                 pass_through_id = f"_loop_end_{node_id}"
