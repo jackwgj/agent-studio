@@ -10,6 +10,7 @@ import io.swagger.annotations.ApiModel;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Size;
 
+import lombok.Data;
 import org.hibernate.validator.constraints.Length;
 import org.springframework.validation.annotation.Validated;
 
@@ -21,7 +22,7 @@ import java.util.Objects;
  * 导入失败的结构化消息详情
  */
 @ApiModel(description = "导入失败的结构化消息详情")
-
+@Data
 @Validated
 
 public class FailedStructuredMessage implements Serializable {
@@ -45,6 +46,9 @@ public class FailedStructuredMessage implements Serializable {
 
     @JsonProperty("visibility")
     private String visibility = null;
+
+    @JsonProperty("reason")
+    private String reason = null;
 
     public String getId() {
         return id;

@@ -275,7 +275,7 @@ public class MessageManagementService implements IMessageManagementService {
                     validateStructuredMessagesName(name);
                     Set<String> currentNames = getStructuredMessagesCurrentNames(projectId, workspaceId, null);
                     if (currentNames.contains(name)) {
-                        throw new AgentStudioException(StudioError.MESSAGE_TEMPLATE_NAME_REPETITION);
+                        throw new AgentStudioException(StudioError.MESSAGE_TEMPLATE_NAME_REPETITION, "消息模板信息名字重复");
                     }
                     newStructuredMessage.setName(name);
                     // 校验并设置category
@@ -283,7 +283,7 @@ public class MessageManagementService implements IMessageManagementService {
                     String category = categoryObj instanceof String ? (String) categoryObj : "异常";
                     // 目前仅支持异常类型
                     if (!CommonConstant.EXCEPTION_CATEGORY.equals(category)) {
-                        throw new AgentStudioException(StudioError.ONLY_SUPPORTED_EXCEPTION_TYPE);
+                        throw new AgentStudioException(StudioError.ONLY_SUPPORTED_EXCEPTION_TYPE, "仅支持异常类型");
                     }
                     newStructuredMessage.setCategory(category);
 
@@ -294,7 +294,7 @@ public class MessageManagementService implements IMessageManagementService {
                         try {
                             contentMap = JSON.parseObject(contentStr);
                         } catch (Exception e) {
-                            throw new AgentStudioException(StudioError.JSON_PARSER_INSTEAD);
+                            throw new AgentStudioException(StudioError.JSON_PARSER_INSTEAD, "不符合JSON格式");
                         }
                     } else {
                         throw new IllegalArgumentException("content字段必须是字符串类型");
@@ -330,6 +330,7 @@ public class MessageManagementService implements IMessageManagementService {
                         .map(Object::toString)
                         .ifPresentOrElse(failedItem::setName, () -> failedItem.setName(null) // 或者设置默认值
                         );
+                    failedItem.setReason(e.getMessage());
                     failedList.add(failedItem);
                 }
             }

@@ -2896,6 +2896,9 @@ definitions:
       visibility:
         type: string
         description: 结构体可见范围
+      reason:
+        type: string
+        description: 失败原因
   DatasourceBatchDeleteRsp:
     type: object
     description: 删除数据源响应体
