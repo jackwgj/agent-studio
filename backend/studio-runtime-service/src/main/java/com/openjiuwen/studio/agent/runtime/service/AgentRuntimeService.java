@@ -51,6 +51,7 @@ import com.openjiuwen.studio.agent.runtime.dto.ApiExecDataEventAnswer;
 import com.openjiuwen.studio.agent.runtime.dto.AutoAddResultJsonObject;
 import com.openjiuwen.studio.agent.runtime.dto.ConversationHistory;
 import com.openjiuwen.studio.agent.runtime.dto.ErrorEvent;
+import com.openjiuwen.studio.agent.runtime.dto.FunctionCallEventAnswer;
 import com.openjiuwen.studio.agent.runtime.dto.JiuwenAgentEvent;
 import com.openjiuwen.studio.agent.runtime.dto.JiuwenAgentEventData;
 import com.openjiuwen.studio.agent.runtime.dto.JiuwenDeepResearchEvent;
@@ -64,6 +65,7 @@ import com.openjiuwen.studio.agent.runtime.dto.LongTermMemoryRuntime;
 import com.openjiuwen.studio.agent.runtime.dto.MemoryVariable;
 import com.openjiuwen.studio.agent.runtime.dto.MessageEvent;
 import com.openjiuwen.studio.agent.runtime.dto.NodeMessage;
+import com.openjiuwen.studio.agent.runtime.dto.Plugin;
 import com.openjiuwen.studio.agent.runtime.dto.ReleaseInfo;
 import com.openjiuwen.studio.agent.runtime.dto.WorkflowRunInfo;
 import com.openjiuwen.studio.agent.runtime.dto.WorkflowRunRsp;
@@ -973,6 +975,7 @@ public class AgentRuntimeService implements IAgentRuntimeService {
                 case TASK_END -> processTaskEnd(sseEmitter, executeParams, traceData);
                 case SCENE_MATCH, PLAN_START, PLAN_END, STEP_START, STEP_END, TASK_COMPLETE, TASK_START ->
                         agentEventPassThrough(sseData, sseEmitter, executeParams);
+                case FUNCTION_CALL -> processOnFunctionCall(sseEmitter, eventObj, executeParams);
                 case API_EXEC_DATA -> processOnApiExecData(sseEmitter, eventObj, executeParams);
                 case STATISTIC_DATA -> processOnStaticData(sseEmitter, eventObj, executeParams);
                 case SUMMARY_RESPONSE -> processOnSummaryResponse(sseEmitter, eventObj, executeParams);
@@ -1021,6 +1024,7 @@ public class AgentRuntimeService implements IAgentRuntimeService {
                     }
                 }
                 case MESSAGE_END -> processOnControllerMessageEnd(sseEmitter, eventObj, executeParams);
+                case FUNCTION_CALL -> processOnFunctionCall(sseEmitter, eventObj, executeParams);
                 case API_EXEC_DATA -> processOnApiExecData(sseEmitter, eventObj, executeParams);
                 case AGENT_NODE_MESSAGE -> processOnAgentNodeMessage(eventObj, executeParams, null);
                 case INTERMEDIATE_MESSAGE -> processOnIntermediateMessage(sseEmitter, eventObj, executeParams);
@@ -1066,6 +1070,7 @@ public class AgentRuntimeService implements IAgentRuntimeService {
                     }
                 }
                 case MESSAGE_END -> processOnControllerMessageEnd(sseEmitter, eventObj, executeParams);
+                case FUNCTION_CALL -> processOnFunctionCall(sseEmitter, eventObj, executeParams);
                 case API_EXEC_DATA -> processOnApiExecData(sseEmitter, eventObj, executeParams);
                 case AGENT_NODE_MESSAGE -> processOnAgentNodeMessage(eventObj, executeParams, null);
                 case INTERMEDIATE_MESSAGE -> processOnIntermediateMessage(sseEmitter, eventObj, executeParams);
@@ -1386,6 +1391,50 @@ public class AgentRuntimeService implements IAgentRuntimeService {
                 .getOutputMap()
                 .computeIfAbsent("agent", k -> new StringBuilder())
                 .append(eventData.getAnswer().toString());
+    }
+
+    // 调用插件的请求信息
+    private void processOnFunctionCall(SseEmitter sseEmitter, JiuwenAgentEvent eventObj,
+        AgentExecuteParams executeParams) {
+        FunctionCallEventAnswer pluginReq = parseEventDataAnswer(eventObj.getData().getAnswer(),
+            FunctionCallEventAnswer.class);
+        if (Objects.isNull(pluginReq)) {
+            log.warn("The format of function_call eventData.answer is incorrect, eventData [{}].", eventObj.getData());
+            return;
+        }
+        // 从九问响应块中解析插件名和参数信息
+        String name = pluginReq.getFunctionCall().getName();
+        String arguments = pluginReq.getFunctionCall().getArguments();
+        if (StringUtils.isNoneBlank(name) && StringUtils.isNoneBlank(arguments)) {
+            executeParams.getPluginInputMap().put(name, arguments);
+        }
+        log.info("Start run plugin, name: [{}], input: [{}], latency: [{}]", name, arguments,
+            com.alibaba.fastjson2.JSON.toJSONString(pluginReq.getTimeConsumption()));
+
+        // 插件信息，包括插件名、参数信息、记忆参数提取信息
+        Plugin plugin = new Plugin().setName(name).setArguments(arguments);
+        Map<String, String> memoryVariablesMap = extractMemoryVariables(executeParams.getMemoryVariables(), arguments);
+        if (MapUtils.isNotEmpty(memoryVariablesMap)) {
+            plugin.setMemoryVariables(memoryVariablesMap);
+        }
+
+        // 当前插件调用是否是workflow
+        executeParams.setWorkflow(Boolean.TRUE.equals(pluginReq.isIsWorkflow()));
+
+        AgentEvent agentEvent = new AgentEvent().setEvent(EventType.PLUGIN_START.toString())
+            .setPlugin(plugin)
+            .setLatency(new Latency().setModel(pluginReq.getTimeConsumption().getModelLatency())
+                .setOverall(getOverAllLatency(executeParams)))
+            .setType(executeParams.isWorkflow() ? AgentEvent.TypeEnum.WORKFLOW : AgentEvent.TypeEnum.PLUGIN)
+            .setCreatedTime(eventObj.getCreatedTime());
+
+        // 当前调用是MCP服务时特殊处理
+        if (pluginReq.getFunctionCall().isIsMcp()) {
+            agentEvent.setType(AgentEvent.TypeEnum.MCP);
+            plugin.setName(pluginReq.getFunctionCall().getServerName());
+            plugin.setToolName(name);
+        }
+        sendSseData(sseEmitter, agentEvent);
     }
 
     // 调用插件的响应信息
