@@ -466,6 +466,15 @@ export class HomeComponent implements OnInit, OnDestroy {
                 isSelected: false,
               },
               {
+                id: this.i18NextEagerPipe.transform('route_prompt_management'),
+                name: this.i18NextEagerPipe.transform('route_prompt_management'),
+                icon: cdnAssetUrl('assets/images/menu/prompt-center.svg'),
+                iconSelected: cdnAssetUrl('assets/images/menu/prompt-center-selected.svg'),
+                label: this.i18NextEagerPipe.transform('route_prompt_management'),
+                router: ['prompt/prompt-template'],
+                isSelected: false,
+              },
+              {
                 name: this.i18NextEagerPipe.transform('kb_plaza'),
                 label: this.i18NextEagerPipe.transform('kb_plaza'),
                 icon: cdnAssetUrl('assets/images/menu/knowledge_base.svg'),
@@ -473,6 +482,14 @@ export class HomeComponent implements OnInit, OnDestroy {
                 isSelected: false,
                 router: ['knowledge-center/kb-plaza'],
                 hide: !this.configServ.isSupportSharedKb(),
+              },
+              {
+                name: this.i18NextEagerPipe.transform('skill_market'),
+                label: this.i18NextEagerPipe.transform('skill_market'),
+                icon: cdnAssetUrl('assets/images/menu/skill_market.svg'),
+                iconSelected: cdnAssetUrl('assets/images/menu/skill_market_selected.svg'),
+                isSelected: false,
+                router: ['skill-market'],
               },
             ].filter((v: any) => {
               return !(v?.hide || v?.isHide);
