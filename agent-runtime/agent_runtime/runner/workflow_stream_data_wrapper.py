@@ -66,7 +66,7 @@ def _extract_ref_source_id(value: Any) -> str | None:
 
 def _is_unresolved_branch_ref_value(value: Any, schema_value: Any) -> bool:
     """Whether an input value still looks like a missing/unresolved branch ref."""
-    if value is None:
+    if value is None or value == "":
         return True
     return isinstance(value, str) and value == schema_value
 
