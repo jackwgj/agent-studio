@@ -20,6 +20,7 @@ import {
   ValidatorFn
 } from "@angular/forms";
 import { NzDrawerRef } from "ng-zorro-antd/drawer";
+import { NzFormModule } from 'ng-zorro-antd/form';
 import { MODULES } from "@shared/modules";
 import { Subscription } from "rxjs";
 import { v4 as uuidV4 } from "uuid";
@@ -38,7 +39,7 @@ const enablePropMap = {
   styleUrls: ["./audit-config-modal.component.less"],
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
-  imports: [MODULES],
+  imports: [MODULES, NzFormModule],
   providers: [
     {
       provide: I18NEXT_NAMESPACE,
@@ -118,6 +119,7 @@ export class AuditConfigModalComponent implements OnInit, OnChanges, OnDestroy {
   public saveAuditConfig(): void {
     if (this.groupFormControl.invalid) {
       this.groupFormControl.markAllAsTouched();
+      this.cdr.markForCheck();
       return;
     }
     const { filter, replace, handling } = this.groupFormControl.controls;
