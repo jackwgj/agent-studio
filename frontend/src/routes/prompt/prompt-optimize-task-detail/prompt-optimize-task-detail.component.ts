@@ -495,6 +495,7 @@ export class PromptOptimizeTaskDetailComponent {
       instance.iterNum = iterNum;
       instance.ptType = this.taskDetail.pt_type as any;
       instance.variables = this.variableList;
+      instance.getDetail();
     });
   }
 

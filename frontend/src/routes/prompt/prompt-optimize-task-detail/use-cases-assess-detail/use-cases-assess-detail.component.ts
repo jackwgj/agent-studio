@@ -88,7 +88,6 @@ export class UseCasesAssessDetailComponent {
   ) {}
 
   ngOnInit() {
-    this.getDetail();
     if (this.ptType === 'multi') {
       this.columns =  [
         {
@@ -143,8 +142,9 @@ export class UseCasesAssessDetailComponent {
             images
           };
         });
+        this.displayedData = this.srcData.data;
         this.pageInfo.total = res.data.length;
-        this.cdr.markForCheck();
+        this.cdr.detectChanges();
       });
   }
 }
