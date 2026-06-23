@@ -50,6 +50,9 @@ _SKIP_COMPONENT_KEY: list[str] = [
 GLOBAL_REF_PREFIX = "MEMORY_VARIABLE."
 NODE_DEFS_KEY = "__node_defs__"
 END_NODE_TYPE = "jiuwen.end"
+END_COMPONENT_TYPES = {END_NODE_TYPE, "End"}
+SUB_WORKFLOW_COMPONENT_TYPES = {"jiuwen.workflowComposite", "jiuwen.subWorkflow", "SubWorkflow"}
+END_OUTPUT_PREFIX = "#end_"
 _SPECIAL_REF_ROOTS = {"global", "_env", "_request", "query", "sys"}
 
 
@@ -69,6 +72,56 @@ def _is_unresolved_branch_ref_value(value: Any, schema_value: Any) -> bool:
     if value is None or value == "":
         return True
     return isinstance(value, str) and value == schema_value
+
+
+def _default_value_by_schema_definition(definition: dict) -> Any:
+    """Build an End output default value from an IR schema definition."""
+    if not isinstance(definition, dict):
+        return None
+    expected_type = str(definition.get("type", "")).lower()
+    if expected_type == "string":
+        return ""
+    if expected_type in {"integer", "number", "boolean"}:
+        return None
+    if expected_type == "array":
+        return []
+    if expected_type == "object":
+        schema = definition.get("schema")
+        if isinstance(schema, list):
+            return {
+                item.get("id"): _default_value_by_schema_definition(item)
+                for item in schema
+                if isinstance(item, dict) and item.get("id")
+            }
+        return {}
+    return None
+
+
+def _fill_missing_ref_outputs(result: dict, ctx: dict) -> dict:
+    """Fill missing array/object ref outputs with schema defaults before validation."""
+    if not isinstance(result, dict) or not isinstance(ctx, dict):
+        return result
+    node_type = ctx.get("node_type")
+    if node_type not in END_COMPONENT_TYPES | SUB_WORKFLOW_COMPONENT_TYPES:
+        return result
+
+    user_fields = result.get("userFields")
+    if not isinstance(user_fields, dict):
+        return result
+
+    for definition in ctx.get("uf_outputs_defs", []):
+        if not isinstance(definition, dict) or definition.get("sourceType") != "ref":
+            continue
+        field_type = str(definition.get("type", "")).lower()
+        if field_type not in {"array", "object"}:
+            continue
+        field_id = definition.get("id")
+        if not field_id:
+            continue
+        output_key = f"{END_OUTPUT_PREFIX}{field_id}" if node_type in END_COMPONENT_TYPES else field_id
+        if user_fields.get(output_key) in (None, ""):
+            user_fields[output_key] = _default_value_by_schema_definition(definition)
+    return result
 
 
 @dataclass(frozen=True)
@@ -1139,6 +1192,8 @@ def _register_jiuwen_callbacks() -> None:
                 node_type=ctx.get("node_type", ""),
                 node_name=ctx.get("node_name", ""),
             )
+
+            result = _fill_missing_ref_outputs(result, ctx)
 
             return force_convert_component_by_schema_raise_openjiuwen_exception(
                 inputs=result,
