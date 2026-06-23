@@ -7,24 +7,66 @@
 from abc import ABC, abstractmethod
 from typing import Any, Optional, Union, AsyncGenerator
 
+from openjiuwen.core.multi_agent import TeamConfig, TeamCard, BaseTeam
+
 from jiuwen.common.exception import JiuWenBaseException
 from jiuwen.common.exception.status_code import StatusCode
 from jiuwen.common.log.base import logger
-from jiuwen.multi_agent.agent_group.config import AgentGroupConfig
+from jiuwen.multi_agent.agent_group.config import AgentGroupConfig, GroupSettings
 from jiuwen.multi_agent.agent_group.group_state import AgentGroupState
 from jiuwen.multi_agent.core.runner.standalone_runner import StandaloneRunner
 
 
-class BaseAgentGroup(ABC):
+class BaseAgentGroup(BaseTeam, ABC):
     """智能体组基类"""
 
-    def __init__(self, config: AgentGroupConfig):
+    def __init__(
+        self, config: AgentGroupConfig, *, team_config: Optional[TeamConfig] = None
+    ):
+        self.group_config = config
+        resolved_team_config = team_config or self._build_team_config(config)
+        BaseTeam.__init__(
+            self,
+            card=self._build_team_card(config),
+            config=resolved_team_config,
+        )
+        self.team_config = resolved_team_config
         self.config = config
         self.control_agent: Optional[Any] = None
         self.agents: set[str] = set()
         self.runner: Optional[StandaloneRunner] = None
         self._group_state: Optional[AgentGroupState] = None
         self._running = False
+        self.runtime = None
+
+    @staticmethod
+    def _build_team_card(config: AgentGroupConfig) -> TeamCard:
+        """构建 OpenJiuWen TeamCard，仅用于暴露 team 继承关系。"""
+        return TeamCard(
+            id=config.group_id,
+            name=config.group_name,
+            description=config.description or "",
+        )
+
+    @staticmethod
+    def _build_team_config(config: AgentGroupConfig) -> TeamConfig:
+        """构建 OpenJiuWen TeamConfig，不改变既有 AgentGroup 运行时语义。"""
+        group_settings = config.group_settings or GroupSettings()
+        max_agents = 1 + len(config.agents or [])
+        return TeamConfig(
+            max_agents=max_agents,
+            max_concurrent_messages=group_settings.max_concurrent_agents,
+            message_timeout=float(group_settings.timeout),
+        )
+
+    def configure(self, config):
+        """兼容 BaseTeam 配置接口，同时保留 AgentGroupConfig 语义。"""
+        if isinstance(config, TeamConfig):
+            self.team_config = config
+            return self
+        self.group_config = config
+        self.config = config
+        return self
 
     async def start(self, state: AgentGroupState) -> None:
         """启动智能体组"""
@@ -66,6 +108,21 @@ class BaseAgentGroup(ABC):
                     reason=type(e)
                 ),
             ) from e
+
+    async def invoke(self, message, session=None) -> Any:
+        """对齐 OpenJiuWen BaseTeam 接口；保持当前 AgentGroup blocking 语义不变。"""
+        raise JiuWenBaseException(
+            error_code=StatusCode.PARAM_CHECK_FAILED_ERROR.code,
+            message="Blocking invoke is not supported yet.",
+        )
+
+    async def stream(self, message, session=None) -> AsyncGenerator:
+        """对齐 OpenJiuWen BaseTeam 接口，透传到既有 astream。"""
+        stream_kwargs = {}
+        if session is not None:
+            stream_kwargs["session"] = session
+        async for item in self.astream(message, **stream_kwargs):
+            yield item
 
     @abstractmethod
     async def get_state(self) -> AgentGroupState:
