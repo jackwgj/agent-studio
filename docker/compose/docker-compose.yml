@@ -155,11 +155,6 @@ services:
       MEMORY_LLM_MODEL: ${MEMORY_LLM_MODEL:-}
       MEMORY_LLM_BASE_URL: ${MEMORY_LLM_BASE_URL:-}
       MEMORY_LLM_API_KEY: ${MEMORY_LLM_API_KEY:-}
-      MEMORY_DB_HOST: ${MEMORY_DB_HOST:-}
-      MEMORY_DB_PORT: ${MEMORY_DB_PORT:-3306}
-      MEMORY_DB_USER: ${MEMORY_DB_USER:-}
-      MEMORY_DB_PASSWORD: ${MEMORY_DB_PASSWORD:-}
-      MEMORY_DB_NAME: ${MEMORY_DB_NAME:-agent-memory}
       JIUWEN_LOG_FILE: /opt/cloud/logs/tgf_python.log
       JIUWEN_LOG_PATH: /opt/cloud/logs/jiuwen.log
       JIUWEN_LOGGING_LOG_FILE: /opt/cloud/logs/jiuwen_python.log

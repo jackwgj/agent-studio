@@ -125,18 +125,6 @@ spec:
               value: ''
             - name: MEMORY_LLM_API_KEY
               value: ''
-            # ======== [选填] 记忆库MySQL存储（启用记忆库时必填） ========
-            # 记忆库文本数据存储，可与主库共用同一MySQL实例，使用独立数据库
-            - name: MEMORY_DB_HOST
-              value: ''
-            - name: MEMORY_DB_PORT
-              value: '3306'
-            - name: MEMORY_DB_USER
-              value: ''
-            - name: MEMORY_DB_PASSWORD
-              value: ''
-            - name: MEMORY_DB_NAME
-              value: 'agent-memory'
             # ======== [选填] 其他配置 ========
             - name: PORT
               value: '31014'
