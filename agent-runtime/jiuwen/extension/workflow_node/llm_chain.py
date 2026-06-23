@@ -17,6 +17,7 @@ LLMChain 组件 - 完整迁移自商用版本
 """
 
 import asyncio
+import html
 import ast
 import json
 import re
@@ -469,6 +470,63 @@ class LLMChain(WorkflowComponent):
                 pass
         return None
 
+    def _apply_format_instructions(self, messages: List[dict]) -> List[dict]:
+        """注入格式控制指令到 prompt，从输入端约束模型的输出格式"""
+        response_format = self._get_response_format()
+        res_type = response_format.get("type", "text")
+
+        if res_type == "text":
+            return messages
+
+        last_user_idx = None
+        for i in range(len(messages) - 1, -1, -1):
+            if messages[i].get("role") == "user":
+                last_user_idx = i
+                break
+
+        if last_user_idx is None:
+            return messages
+
+        user_content = messages[last_user_idx]["content"]
+
+        if res_type == "markdown":
+            default_instruction = (
+                "Please return the answer in markdown format.\n"
+                "- For headings, use number signs (#).\n"
+                "- For list items, start with dashes (-).\n"
+                "- To emphasize text, wrap it with asterisks (*).\n"
+                "- For code or commands, surround them with backticks (`).\n"
+                "- For quoted text, use greater than signs (>).\n"
+                "- For links, wrap the text in square brackets [], "
+                "followed by the URL in parentheses ().\n"
+                "- For images, use square brackets [] for the alt text, "
+                "followed by the image URL in parentheses ().\n"
+                "The question is: ${query}."
+            )
+            instruction = response_format.get("markdownInstruction") or default_instruction
+            if not instruction.strip():
+                instruction = default_instruction
+        elif res_type == "json":
+            default_instruction = (
+                "Carefully consider the user's question to ensure your answer "
+                "is logical and makes sense.\n"
+                "- Make sure your explanation is concise and easy to understand, "
+                "not verbose.\n"
+                "- Strictly return the answer in a valid json format only, and "
+                '"DO NOT ADD ANY COMMENTS BEFORE OR AFTER IT".\n'
+                "The question is: ${query}."
+            )
+            instruction = response_format.get("jsonInstruction") or default_instruction
+            if not instruction.strip():
+                instruction = default_instruction
+        else:
+            return messages
+
+        messages[last_user_idx]["content"] = instruction.replace(
+            "${query}", html.escape(user_content)
+        )
+        return messages
+
     def _get_chat_history(self) -> list[dict]:
         """从 context 获取对话历史"""
         if not self._context:
@@ -553,6 +611,7 @@ class LLMChain(WorkflowComponent):
             messages.append({"role": "user", "content": user_prompt})
 
         self._insert_memory_message(messages, inputs)
+        messages = self._apply_format_instructions(messages)
 
         return messages
 

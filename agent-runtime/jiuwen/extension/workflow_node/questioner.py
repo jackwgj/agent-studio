@@ -634,27 +634,30 @@ class QuestionerDirectReplyHandler:
             await self._write_assistant_message_to_context(output.question, context)
             return QuestionerUtils.format_questioner_output(output)
 
-        if self._need_extract_fields():
-            is_continue_ask = await self._initial_extract_from_chat_history(
-                chat_history, output
-            )
-            event = (
-                QuestionerEvent.USER_INTERACT_EVENT
-                if is_continue_ask
-                else QuestionerEvent.END_EVENT
-            )
-            if is_continue_ask:
-                self._update_questioner_states_question(output.question)
-                await self._write_assistant_message_to_context(output.question, context)
-            else:
-                await self._write_assistant_message_to_context(
-                    json.dumps(output.key_fields, ensure_ascii=False), context
+        if self._config.extract_fields_from_response:
+            if self._need_extract_fields():
+                is_continue_ask = await self._initial_extract_from_chat_history(
+                    chat_history, output
                 )
-            self._state = self._state.handle_event(event)
+                event = (
+                    QuestionerEvent.USER_INTERACT_EVENT
+                    if is_continue_ask
+                    else QuestionerEvent.END_EVENT
+                )
+                if is_continue_ask:
+                    self._update_questioner_states_question(output.question)
+                    await self._write_assistant_message_to_context(output.question, context)
+                else:
+                    await self._write_assistant_message_to_context(
+                        json.dumps(output.key_fields, ensure_ascii=False), context
+                    )
+                self._state = self._state.handle_event(event)
+            else:
+                self._state = self._state.handle_event(QuestionerEvent.END_EVENT)
         else:
             raise build_error(
                 StatusCode.COMPONENT_QUESTIONER_INPUT_INVALID,
-                error_msg="question_content is empty and no extractable fields are configured",
+                error_msg="question_content is empty and no extractable fields are configured"
             )
         return QuestionerUtils.format_questioner_output(output)
 
@@ -673,27 +676,24 @@ class QuestionerDirectReplyHandler:
             self._state = self._state.handle_event(QuestionerEvent.END_EVENT)
             return QuestionerUtils.format_questioner_output(output)
 
-        if self._need_extract_fields():
-            is_continue_ask = await self._repeat_extract_from_chat_history(
-                chat_history, output
-            )
-            event = (
-                QuestionerEvent.USER_INTERACT_EVENT
-                if is_continue_ask
-                else QuestionerEvent.END_EVENT
-            )
-            if is_continue_ask:
-                self._update_questioner_states_question(output.question)
-                await self._write_assistant_message_to_context(output.question, context)
+        if self._config.extract_fields_from_response:
+            if self._need_extract_fields():
+                is_continue_ask = await self._initial_extract_from_chat_history(chat_history, output)
+                event = QuestionerEvent.USER_INTERACT_EVENT if is_continue_ask else QuestionerEvent.END_EVENT
+                if is_continue_ask:
+                    self._update_questioner_states_question(output.question)
+                    await self._write_assistant_message_to_context(output.question, context)
+                else:
+                    await self._write_assistant_message_to_context(
+                        json.dumps(output.key_fields, ensure_ascii=False), context
+                    )
+                self._state = self._state.handle_event(event)
             else:
-                await self._write_assistant_message_to_context(
-                    json.dumps(output.key_fields, ensure_ascii=False), context
-                )
-            self._state = self._state.handle_event(event)
+                self._state = self._state.handle_event(QuestionerEvent.END_EVENT)
         else:
             raise build_error(
                 StatusCode.COMPONENT_QUESTIONER_INPUT_INVALID,
-                error_msg="question_content is empty and no extractable fields are configured",
+                error_msg="question_content is empty and no extractable fields are configured"
             )
         return QuestionerUtils.format_questioner_output(output)
 

@@ -50,10 +50,14 @@ class ExceptionInfo(WorkflowComponent):
         self.node_name = node_name
         self.node_type = node_type
 
-    async def invoke(
-        self, inputs: Input, session: Session, context: ModelContext
-    ) -> Output:
-        """执行异常结束逻辑，通过 session.write_custom_stream() 输出 workflow_exception。
+    async def invoke(self, inputs: Input, session: Session, context: ModelContext) -> Output:
+        """执行异常结束逻辑，通过 session.write_custom_stream() 输出 workflow_exception，
+        随后抛出 WorkflowAbortException 终止工作流。
+
+        通过 session global_state 中的 __abort__ 标志实现互斥：
+        当多个异常结束节点并行执行时，仅第一个发送 WORKFLOW_EXCEPTION，
+        其余跳过直接抛异常。与旧框架 _pass_abort_exception_info 中
+        workflow.data["__abort__"] 的行为一致。
 
         Args:
             inputs: 输入数据，预期包含 userFields 字段。
@@ -64,6 +68,15 @@ class ExceptionInfo(WorkflowComponent):
             user_fields = {}
         else:
             user_fields = inputs.get(USER_FIELDS) or {}
+
+        # 互斥守卫：检查是否已有其他异常结束节点触发。
+        # get_global_state / update_global_state 均为同步方法，
+        # 之间无 await，check-and-set 在 asyncio 协作式调度下是原子的。
+        if session.get_global_state("__abort__") is not None:
+            raise WorkflowAbortException(
+                user_fields, self.node_id, self.node_name, self.node_type
+            )
+        session.update_global_state({"__abort__": True})
         await session.write_custom_stream(
             CustomSchema(
                 type=WORKFLOW_EXCEPTION,
