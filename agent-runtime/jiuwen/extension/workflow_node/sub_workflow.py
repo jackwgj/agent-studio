@@ -536,6 +536,15 @@ class SubWorkflow(WorkflowComponent):
         if is_resume:
             self.node_state.status = ExecutionStatus.USER_INTERACT
             resume_query = self._extract_parent_resume_query(session)
+            if resume_query is None:
+                # 未取到本次用户回复，回退到 Start 节点 checkpoint 中的 query。
+                # 嵌套子工作流场景下该值通常是上一轮的陈旧输入，需要重点关注。
+                workflow_logger.warning(
+                    "SubWorkflow resume: failed to extract user reply for child %s, "
+                    "falling back to Start-node query=%r (may be stale)",
+                    self._interrupt_child_node_id,
+                    params.get("query"),
+                )
             query = resume_query if resume_query is not None else params["query"]
             return self._build_child_interactive_input(query)
         memory_fields = inputs.get("memory", {})
