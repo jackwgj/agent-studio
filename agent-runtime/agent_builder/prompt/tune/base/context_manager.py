@@ -137,6 +137,11 @@ class ContextManager(metaclass=Singleton):
         """check manager has persistence store ability"""
         return self._store is not None
 
+    def init_store(self):
+        """initialize store database tables"""
+        if self._store and hasattr(self._store, 'init_db'):
+            self._store.init_db()
+
     def set_store(
         self, store_instance: BaseContextStoreAccesser = None, store_type: str = None
     ):

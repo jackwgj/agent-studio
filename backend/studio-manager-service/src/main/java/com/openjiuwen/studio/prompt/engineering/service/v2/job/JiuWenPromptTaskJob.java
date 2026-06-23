@@ -146,6 +146,7 @@ public class JiuWenPromptTaskJob implements Job {
     public JiuWenJobInfo execTask(PromptTaskDetailVo promptTaskDetailVo, String token) {
         log.info("request jiuwen for create task");
         JiuWenCreTaskReq req = buildJiuWenCreTaskReq(promptTaskDetailVo);
+        boolean statusUpdated = false;
         try {
             String jiuwenPath = promptTaskDetailVo.getPtType() == PtTypeEnum.TEXT
                 ? TEMPLATES_OPTIMIZATION_CREATE_API
@@ -158,10 +159,18 @@ public class JiuWenPromptTaskJob implements Job {
             ResponseEntity<JiuWenCreTaskRes> response = clientTemplate.postForEntity(jiuwenBaseUrl + jiuwenPath,
                 headers, JsonUtil.object2Json(req), JiuWenCreTaskRes.class);
             if (!response.getStatusCode().is2xxSuccessful()) {
+                String errorMsg = "Runtime returned " + response.getStatusCode();
                 if (response.getBody() != null) {
+                    errorMsg = response.getBody().getMessage();
                     log.error("Create optimization task from jiuwen server error! response:{}",
-                        response.getBody().getMessage());
+                        errorMsg);
                 }
+                promptTaskMapper.updateStatusByPrimaryKey(promptTaskDetailVo.getId(),
+                    PromptTaskStatusEnum.FAILED.getCode(),
+                    promptTaskDetailVo.getProjectId(), promptTaskDetailVo.getWorkspaceId());
+                promptTaskMapper.updateMessageByPrimaryKey(promptTaskDetailVo.getId(),
+                    errorMsg, promptTaskDetailVo.getProjectId(), promptTaskDetailVo.getWorkspaceId());
+                statusUpdated = true;
                 throw new AgentStudioException(StudioError.OPTIMIZATION_TASK_FROM_JIUWEN_SERVICE_ERROR);
             }
             JiuWenCreTaskRes jiuWenCreTaskRes = response.getBody();
@@ -175,6 +184,10 @@ public class JiuWenPromptTaskJob implements Job {
                 promptTaskMapper.updateJobIdStatusByPrimaryKey(promptTaskDetailVo.getId(),
                     jiuWenCreTaskRes.getJobInfo().getId(), PromptTaskStatusEnum.FAILED.getCode(),
                     promptTaskDetailVo.getProjectId(), promptTaskDetailVo.getWorkspaceId());
+                promptTaskMapper.updateMessageByPrimaryKey(promptTaskDetailVo.getId(),
+                    jiuWenCreTaskRes.getMessage(), promptTaskDetailVo.getProjectId(),
+                    promptTaskDetailVo.getWorkspaceId());
+                statusUpdated = true;
                 throw new AgentStudioException(StudioError.OPTIMIZE_TEMPLATE_FAILED,
                     Collections.singletonList(jiuWenCreTaskRes.getMessage()));
             }
@@ -185,8 +198,14 @@ public class JiuWenPromptTaskJob implements Job {
             return jiuWenCreTaskRes.getJobInfo();
         } catch (Exception e) {
             log.error("Create optimization task from jiuwen server error! ", e);
-            promptTaskMapper.updateStatusByPrimaryKey(promptTaskDetailVo.getId(), PromptTaskStatusEnum.FAILED.getCode(),
-                promptTaskDetailVo.getProjectId(), promptTaskDetailVo.getWorkspaceId());
+            if (!statusUpdated) {
+                promptTaskMapper.updateStatusByPrimaryKey(promptTaskDetailVo.getId(), PromptTaskStatusEnum.FAILED.getCode(),
+                    promptTaskDetailVo.getProjectId(), promptTaskDetailVo.getWorkspaceId());
+                if (e.getMessage() != null && !e.getMessage().isEmpty()) {
+                    promptTaskMapper.updateMessageByPrimaryKey(promptTaskDetailVo.getId(), e.getMessage(),
+                        promptTaskDetailVo.getProjectId(), promptTaskDetailVo.getWorkspaceId());
+                }
+            }
             throw new AgentStudioException(StudioError.OPTIMIZATION_TASK_FROM_JIUWEN_SERVICE_ERROR);
         }
     }

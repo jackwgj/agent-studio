@@ -144,6 +144,19 @@ spec:
               value: '/opt/cloud/logs/'
             - name: TGF_LOG_DIR
               value: '/opt/cloud/logs/'
+            # ======== 提示词优化任务持久化存储（与 manager 共用 MySQL） ========
+            - name: STORE_MYSQL_ENABLE
+              value: 'true'
+            - name: STORE_MYSQL_HOST
+              value: ''
+            - name: STORE_MYSQL_PORT
+              value: '3306'
+            - name: STORE_MYSQL_USER
+              value: ''
+            - name: STORE_MYSQL_PASSWORD
+              value: ''
+            - name: STORE_MYSQL_DATABASE
+              value: 'agent-builder'
           resources:
             limits:
               cpu: '2'

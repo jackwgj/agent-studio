@@ -286,7 +286,7 @@
 
     <update id="updateMessageByPrimaryKey">
         UPDATE t_pe_op_task
-        set message = #{errorMsg,jdbcType=DOUBLE},
+        set message = #{errorMsg,jdbcType=VARCHAR},
             updated_time = CURRENT_TIMESTAMP
         WHERE id = #{id, jdbcType=VARCHAR}
           AND project_id = #{projectId, jdbcType=VARCHAR}

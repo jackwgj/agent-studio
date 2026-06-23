@@ -180,6 +180,15 @@ async def lifespan(app: FastAPI):  # noqa: redefined-outer-name
     except Exception as e:
         logger.warning(f"S3 async storage client initialization failed (non-critical): {e}")
 
+    # 初始化提示词优化任务的 MySQL 持久化存储
+    try:
+        from agent_builder.prompt.tune.base.context_manager import ContextManager
+        ContextManager().set_store(store_type="MYSQL")
+        ContextManager().init_store()
+        logger.info("Prompt optimization MySQL store initialized")
+    except Exception as e:
+        logger.warning(f"Prompt optimization MySQL store init failed (non-critical): {e}")
+
     # 注册 flow_code 专用的 SysOperation（local mode）
     sys_op_id = "flow_code_sys_op"
     if Runner.resource_mgr.get_sys_operation(sys_op_id) is None:
