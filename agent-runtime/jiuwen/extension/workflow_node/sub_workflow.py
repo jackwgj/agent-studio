@@ -372,6 +372,39 @@ class SubWorkflow(WorkflowComponent):
                 return nested
         return None
 
+    def _find_interactive_input_in_state_tree(
+        self, state_root: Any, target_node_id: Optional[str] = None
+    ) -> Optional[tuple[str, Any]]:
+        """在 comp_state 嵌套树中递归查找 __interactive_input__ 的值。
+
+        多层嵌套子工作流中断恢复时，父级将用户回复路由给目标 node_id，
+        pregel 把 InteractiveInput 写入「某层作用域 -> 目标 node_id ->
+        __interactive_input__」的嵌套路径下，而非平铺在 comp_state 顶层。
+        session.get_state(f"{node_id}.{INTERACTIVE_INPUT}") 只在顶层精确查找，
+        无法穿透嵌套，故需递归扫描。
+
+        当提供 target_node_id 时，仅精确匹配该节点下的 __interactive_input__，
+        避免在存在多个中断点时取到非目标节点的回复；未提供时无差别扫描兜底。
+
+        Returns:
+            Optional[tuple[str, Any]]: (所在 node_id, 原始值) 或 None
+        """
+        if not isinstance(state_root, dict):
+            return None
+
+        target_state = state_root.get(target_node_id)
+        if isinstance(target_state, dict) and INTERACTIVE_INPUT in target_state:
+            return target_node_id, target_state[INTERACTIVE_INPUT]
+        for value in state_root.values():
+            if not isinstance(value, dict):
+                continue
+            nested = self._find_interactive_input_in_state_tree(
+                value, target_node_id
+            )
+            if nested:
+                return nested
+        return None
+
     def _session_has_interactive_input(self, session: Session) -> bool:
         """父工作流以 InteractiveInput 恢复时，checkpoint 会写入 INTERACTIVE_INPUT。"""
         return self._extract_parent_resume_query(session) is not None
@@ -451,7 +484,27 @@ class SubWorkflow(WorkflowComponent):
                 )
                 or []
             )
-            return self._normalize_interactive_input_value(messages)
+            child_value = self._normalize_interactive_input_value(messages)
+            if child_value is not None:
+                return child_value
+
+        # 多层嵌套兜底：父级把回复路由给目标 node_id，pregel 写入
+        # comp_state[顶层作用域][目标node_id][__interactive_input__] 嵌套路径，
+        # 点分查找无法穿透，递归扫描 comp_state 树取值。
+        try:
+            _dump = session.dump_state() if hasattr(session, "dump_state") else {}
+        except Exception:
+            _dump = {}
+        _comp_state = _dump.get("comp_state") if isinstance(_dump, dict) else None
+        if _comp_state and self._interrupt_child_node_id:
+            found = self._find_interactive_input_in_state_tree(
+                _comp_state, self._interrupt_child_node_id
+            )
+            if found is not None:
+                found_node_id, found_raw = found
+                nested_value = self._normalize_interactive_input_value(found_raw)
+                if nested_value is not None:
+                    return nested_value
         return None
 
     def _should_resume_child_workflow(self, session: Session) -> bool:
