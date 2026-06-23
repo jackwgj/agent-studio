@@ -1751,6 +1751,7 @@
   "hit_score": "命中得分",
   "word_count": "字数",
   "trigger_time_t": "触发时间：",
+  "trigger_time_tt": "触发时间",
   "prompt_content_t": " 提示内容：",
   "invocation_method_t": "调用方式：",
   "toollistcomponent_56": "异步",

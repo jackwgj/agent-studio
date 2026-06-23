@@ -749,38 +749,40 @@
       [nzMask]="true"
       [nzClosable]="true"
       [nzWidth]="halfModalWidth"
+      [nzTitle]="addPluginTitle"
+      [nzFooter]="addPluginFooter"
       (nzOnClose)="closePluginDrawer(pluginAddModal)"
     >
       <ng-container *nzDrawerContent>
-        <div class="h-full flex flex-col">
-          <div class="flex justify-between items-center px-[24px] py-[16px] border-b border-[#e8e8e8]">
-            <span class="text-[16px] font-medium">{{ 'add_plug_tool' | i18nextEager }}</span>
-          </div>
-          <div class="flex-1 overflow-auto p-[24px]">
-            <add-plugins
-              [usedFrom]="'agent'"
-              [plugins]="pluginAdded.list"
-              (pluginAdded)="handlePluginAdded($event)"
-              (pluginReduced)="handlePluginReduced($event)"
-            ></add-plugins>
-          </div>
-          <div class="flex justify-end gap-[8px] px-[24px] py-[16px] border-t border-[#e8e8e8]">
-            <button nz-button nzType="default" id="cancel" (click)="closePluginDrawer(pluginAddModal)">
-              {{ 'cancel' | i18nextEager }}
-            </button>
-            <button
-              nz-button
-              nzType="primary"
-              id="ok"
-              (click)="closeAndSavePlugins(pluginAddModal)"
-              [disabled]="isDisabledPlugin()"
-            >
-              {{ 'ok' | i18nextEager }}
-            </button>
-          </div>
-        </div>
+        <add-plugins
+          [usedFrom]="'agent'"
+          [plugins]="pluginAdded.list"
+          (pluginAdded)="handlePluginAdded($event)"
+          (pluginReduced)="handlePluginReduced($event)"
+        ></add-plugins>
       </ng-container>
     </nz-drawer>
+
+    <ng-template #addPluginTitle>
+      <span>{{ 'add_plug_tool' | i18nextEager }}</span>
+    </ng-template>
+
+    <ng-template #addPluginFooter>
+      <div class="flex justify-end gap-[8px]">
+        <button nz-button nzType="default" id="cancel" (click)="closePluginDrawer(pluginAddModal)">
+          {{ 'cancel' | i18nextEager }}
+        </button>
+        <button
+          nz-button
+          nzType="primary"
+          id="ok"
+          (click)="closeAndSavePlugins(pluginAddModal)"
+          [disabled]="isDisabledPlugin()"
+        >
+          {{ 'ok' | i18nextEager }}
+        </button>
+      </div>
+    </ng-template>
 
     <nz-drawer
       #flowModal
@@ -790,38 +792,40 @@
       [nzMask]="true"
       [nzClosable]="true"
       [nzWidth]="halfModalWidth"
+      [nzTitle]="addFlowTitle"
+      [nzFooter]="addFlowFooter"
       (nzOnClose)="closeFlowDrawer(flowModal)"
     >
       <ng-container *nzDrawerContent>
-        <div class="h-full flex flex-col">
-          <div class="flex justify-between items-center px-[24px] py-[16px] border-b border-[#e8e8e8]">
-            <span class="text-[16px] font-medium">{{ 'add_workflow' | i18nextEager }}</span>
-          </div>
-          <div class="flex-1 overflow-auto p-[24px]">
-            <add-workflows
-              [(showAddBtn)]="showAddBtn"
-              [workflows]="flowAdded.list"
-              (workflowCreate)="createWorkflow(flowModal)"
-              (workflowAdded)="handleFlowAdded($event)"
-              (workflowReduced)="handleFlowReduced($event)"
-            ></add-workflows>
-          </div>
-          <div class="flex justify-end gap-[8px] px-[24px] py-[16px] border-t border-[#e8e8e8]">
-            <button nz-button nzType="default" id="cancel" (click)="closeFlowDrawer(flowModal)">
-              {{ 'cancel' | i18nextEager }}
-            </button>
-            <button
-              nz-button
-              nzType="primary"
-              (click)="closeAndSaveFlows(flowModal)"
-              [disabled]="isDisabledFlow()"
-            >
-              {{ 'ok' | i18nextEager }}
-            </button>
-          </div>
-        </div>
+        <add-workflows
+          [(showAddBtn)]="showAddBtn"
+          [workflows]="flowAdded.list"
+          (workflowCreate)="createWorkflow(flowModal)"
+          (workflowAdded)="handleFlowAdded($event)"
+          (workflowReduced)="handleFlowReduced($event)"
+        ></add-workflows>
       </ng-container>
     </nz-drawer>
+
+    <ng-template #addFlowTitle>
+      <span>{{ 'add_workflow' | i18nextEager }}</span>
+    </ng-template>
+
+    <ng-template #addFlowFooter>
+      <div class="flex justify-end gap-[8px]">
+        <button nz-button nzType="default" id="cancel" (click)="closeFlowDrawer(flowModal)">
+          {{ 'cancel' | i18nextEager }}
+        </button>
+        <button
+          nz-button
+          nzType="primary"
+          (click)="closeAndSaveFlows(flowModal)"
+          [disabled]="isDisabledFlow()"
+        >
+          {{ 'ok' | i18nextEager }}
+        </button>
+      </div>
+    </ng-template>
 
     <nz-drawer
       #mcpModal
@@ -831,41 +835,42 @@
       [nzMask]="true"
       [nzClosable]="true"
       [nzWidth]="halfModalWidth"
+      [nzTitle]="addMcpTitle"
+      [nzFooter]="addMcpFooter"
       (nzOnClose)="closeMcpDrawer(mcpModal)"
     >
       <ng-container *nzDrawerContent>
-        <div class="h-full flex flex-col">
-          <div class="flex justify-between items-center px-[24px] py-[16px] border-b border-[#e8e8e8]">
-            <span style="font-size: 16px">{{ 'add_mcp_service' | i18nextEager }}</span>
-          </div>
-          <div class="flex-1 overflow-auto p-[24px]">
-            <add-mcp-servers
-              [agentId]="agentId"
-              [mcpServers]="mcpServersAdded.list"
-              (mcpAdded)="handleMCPsAdded($event)"
-              (mcpReduced)="handleMCPsReduced($event)"
-              (backToMcpList)="backToMcpListEmit(mcpModal)"
-              (createMcpRes)="createMcpResEmit($event)"
-              (closeMcpList)="hideMcpHalfModal(mcpModal)"
-            ></add-mcp-servers>
-          </div>
-          <div class="flex justify-end gap-[8px] px-[24px] py-[16px] border-t border-[#e8e8e8]">
-            <button nz-button nzType="default" id="cancel" (click)="closeMcpDrawer(mcpModal)">
-              {{ 'cancel' | i18nextEager }}
-            </button>
-            <button
-              nz-button
-              nzType="primary"
-              class="ml-2"
-              (click)="closeAndSaveMCPs(mcpModal)"
-              [disabled]="isDisabledMCP()"
-            >
-              {{ 'ok' | i18nextEager }}
-            </button>
-          </div>
-        </div>
+        <add-mcp-servers
+          [agentId]="agentId"
+          [mcpServers]="mcpServersAdded.list"
+          (mcpAdded)="handleMCPsAdded($event)"
+          (mcpReduced)="handleMCPsReduced($event)"
+          (backToMcpList)="backToMcpListEmit(mcpModal)"
+          (createMcpRes)="createMcpResEmit($event)"
+          (closeMcpList)="hideMcpHalfModal(mcpModal)"
+        ></add-mcp-servers>
       </ng-container>
     </nz-drawer>
+
+    <ng-template #addMcpTitle>
+      <span>{{ 'add_mcp_service' | i18nextEager }}</span>
+    </ng-template>
+
+    <ng-template #addMcpFooter>
+      <div class="flex justify-end gap-[8px]">
+        <button nz-button nzType="default" id="cancel" (click)="closeMcpDrawer(mcpModal)">
+          {{ 'cancel' | i18nextEager }}
+        </button>
+        <button
+          nz-button
+          nzType="primary"
+          (click)="closeAndSaveMCPs(mcpModal)"
+          [disabled]="isDisabledMCP()"
+        >
+          {{ 'ok' | i18nextEager }}
+        </button>
+      </div>
+    </ng-template>
 
     <audit-config-halfmodal [auditConfig]="auditConfig" (onSaveAuditConfig)="onSaveAuditConfig($event)"></audit-config-halfmodal>
     <meta-var-memory-modal [actionType]="'EDIT'" [agentId]="agentId" (saveMemoryVars)="saveMemoryVarsFn($event)"></meta-var-memory-modal>
@@ -1000,7 +1005,7 @@
   <div class="knowledge-list" *ngIf="!context.param.collapsed">
     <ng-container *ngIf="context.data?.length > 0">
       <div style="flex-wrap: wrap; padding: 0 12px" class="flex cursor-pointer items-center gap-[8px]">
-        <nz-tag *ngFor="let memoryItem of context.data" [style.maxWidth.px]="86">
+        <nz-tag *ngFor="let memoryItem of context.data" [style.maxWidth.px]="86" class="overflow-hidden text-ellipsis whitespace-nowrap" nz-tooltip [nzTooltipTitle]="memoryItem.variable_key">
           {{ memoryItem.variable_key }}
         </nz-tag>
       </div>

@@ -1,5 +1,5 @@
 .trigger-modal-container {
-  width: 700px;
+  width: 688px;
 }
 
 .trigger-card {
@@ -51,8 +51,43 @@
   color: #ffffff;
 }
 
+.vertical-form {
+  .ant-form-item {
+    flex-direction: column;
+  }
+  .ant-form-item-label {
+    padding-bottom: 4px;
+    text-align: left;
+  }
+  .ant-form-item-label > label {
+    height: auto;
+  }
+  .ant-form-item-control {
+    flex: 1;
+    max-width: 100%;
+  }
+}
+
 nz-form-item {
   margin-bottom: 16px;
+}
+
+.form-error-tip {
+  color: #f23030;
+  font-size: 12px;
+  margin-top: 4px;
+  line-height: 1.5;
+}
+
+.input-error {
+  border-color: #f23030 !important;
+  &:hover {
+    border-color: #f23030 !important;
+  }
+  &:focus {
+    border-color: #f23030 !important;
+    box-shadow: 0 0 0 2px rgba(242, 48, 48, 0.2) !important;
+  }
 }
 
 nz-form-label {
@@ -61,11 +96,8 @@ nz-form-label {
 }
 
 .prompt-wrapper {
-  border: 1px solid rgb(194, 194, 194);
-  border-radius: 6px;
   display: flex;
   align-items: center;
-  padding: 0 3px;
 
   &:hover {
     border-color: #191919;

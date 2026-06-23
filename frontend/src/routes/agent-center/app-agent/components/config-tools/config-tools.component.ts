@@ -1382,7 +1382,7 @@ export class ConfigToolsComponent implements OnInit, AfterViewInit, OnDestroy {
 
   public selectTool(mcp: any) {
     const drawerRef = this.drawerServ.create<AddToolsComponent, any>({
-      nzTitle: null,
+      nzTitle: this.i18n.transform('select_tool'),
       nzFooter: null,
       nzContent: AddToolsComponent,
       nzWidth: this.halfModalWidth,
@@ -2271,7 +2271,7 @@ export class ConfigToolsComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
     const drawerRef = this.drawerServ.create({
-      nzTitle: undefined,
+      nzTitle: this.i18n.transform('knowledge'),
       nzContent: KnowledgeBaseSelectorComponent,
       nzWidth: this.halfModalWidth,
       nzClosable: true,

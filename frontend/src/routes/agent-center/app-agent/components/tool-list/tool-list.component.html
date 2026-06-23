@@ -50,7 +50,7 @@
   >
     @for (triggerItem of toolAdded.list; track triggerItem) {
       <div class="tool-item">
-        <div class="left w-[calc(100%-16px)]">
+        <div class="left w-[calc(100%-56px)]">
           @if (triggerItem.type === 'TIMER') {
             <svg
               width="28"
@@ -197,23 +197,26 @@
           <span
             nz-tooltip
             [nzTooltipTitle]="triggerDetailTip"
-            [nzTooltipTitleContext]="triggerItem"
+            [nzTooltipTitleContext]="{ $implicit: triggerItem }"
             nzTooltipMaxWidth="344px"
             nzTooltipPlacement="top"
-            style="word-break: break-all"
+            class="cursor-pointer"
           >
+            <nz-icon nzType="info-circle" nzTheme="outline" class="text-[14px] text-[#808080]"></nz-icon>
           </span>
           <nz-icon
             *ngIf="!isFlowReadonly"
-            nzType="cloudx-action-edit"
+            nzType="edit"
+            nzTheme="outline"
             class="delete-icon"
-            (click)="editOneTrigger(triggerItem)"
+            (click)="$event.stopPropagation(); editOneTrigger(triggerItem)"
           ></nz-icon>
           <nz-icon
             *ngIf="!isFlowReadonly"
-            nzType="cloudx-action-delete"
+            nzType="delete"
+            nzTheme="outline"
             class="delete-icon"
-            (click)="deleteOneTrigger(triggerItem)"
+            (click)="$event.stopPropagation(); deleteOneTrigger(triggerItem)"
           ></nz-icon>
         </div>
       </div>
@@ -225,9 +228,9 @@
   </div>
 }
 
-<ng-template #triggerDetailTip let-context="context">
+<ng-template #triggerDetailTip let-context>
   <ng-container *ngIf="getTipText(context,agentType) as tip">
-    <ng-container *ngIf="context.type === 'TIMER'; else eventTmpl">
+    <ng-container *ngIf="context?.type === 'TIMER'; else eventTmpl">
       <div class="flex flex-col gap-[8px]">
         <span>{{'trigger_time_t'|i18nextEager}}{{ tip.cron }}</span>
         <span>{{'prompt_content_t'|i18nextEager}}{{ tip.prompt }}</span>

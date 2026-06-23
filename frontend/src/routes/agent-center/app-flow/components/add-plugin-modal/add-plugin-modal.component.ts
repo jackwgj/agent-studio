@@ -22,6 +22,7 @@ import { ShareService } from '@routes/app-center/components/edit-share-modal/sha
 import { AppAgentRepoService } from '@services/agent-center/app-agent-repo.service';
 import { PromptService } from '@services/prompt.service';
 import { AssertSquareTagType } from '@routes/agent-center/app-agent/common-logic-agent';
+import { MultiFieldSearchComponent, ISearchTag } from '@shared/components/multi-field-search/multi-field-search.component';
 import { getQuotaTag } from '../../../utils';
 import { CommonService } from '@services/common.service';
 import { AddPluginAuthComponent } from '@routes/plugin-market/add-plugin/add-plugin-auth.component';
@@ -35,7 +36,7 @@ enum mapKeys {
   templateUrl: './add-plugin-modal.component.html',
   styleUrls: ['./add-plugin-modal.component.less'],
   standalone: true,
-  imports: [MODULES, NewCommonNoDataWithBtnComponent],
+  imports: [MODULES, NewCommonNoDataWithBtnComponent, MultiFieldSearchComponent],
   providers: [
     {
       provide: I18NEXT_NAMESPACE,
@@ -68,24 +69,19 @@ export class AddPluginModalComponent implements OnInit {
     },
   ];
   protected readonly PluginCredentialStatus = PluginCredentialStatus;
-  public searchItems: any[] = [
-    {
-      label: this.i18n.transform('plugin_name'),
-      field: 'tool_chinese_name',
-      options: [],
-    },
-    {
-      label: this.i18n.transform('plugin_en_name'),
-      field: 'name',
-      options: [],
-    },
-    {
-      label: this.i18n.transform('plugin_description'),
-      field: 'tool_desc',
-      options: [],
-    },
+  public searchItemsForPlugin = [
+    { label: this.i18n.transform('plugin_name'), field: 'tool_chinese_name' },
+    { label: this.i18n.transform('plugin_en_name'), field: 'name' },
+    { label: this.i18n.transform('plugin_description'), field: 'tool_desc' },
   ];
-  public searchedItem: any[] = [];
+  public searchTagsPlugin: ISearchTag[] = [];
+  public searchFieldPlugin: string = 'tool_chinese_name';
+
+  public searchItemsForShare = [
+    { label: this.i18n.transform('name'), field: 'resourceName' },
+  ];
+  public searchTagsShare: ISearchTag[] = [];
+  public searchFieldShare: string = 'resourceName';
   public refMap = new Map<string, number>();
   public plugins: Array<IPluginWithTools> = [];
   public currentPage = 1;
@@ -104,7 +100,10 @@ export class AddPluginModalComponent implements OnInit {
   tabSelectIndex = 1;
   childTabSelectIndex = 1;
   get searchNameIsEmpty(): boolean {
-    return this.searchedItem.length === 0;
+    if (this.currTab === 'share') {
+      return this.searchTagsShare.length === 0;
+    }
+    return this.searchTagsPlugin.length === 0;
   }
   public pluginLabels = [
     {
@@ -147,7 +146,6 @@ export class AddPluginModalComponent implements OnInit {
       },
     },
   ];
-  public shareSearchKey = '';
   appPluginTabs: AssertSquareTagType[] = [
     {
       name: this.i18n.transform('all'),
@@ -220,8 +218,9 @@ export class AddPluginModalComponent implements OnInit {
       };
       if (this.currTab === 'share') {
         params.resource_type = 'plugin';
-        if (this.shareSearchKey) {
-          params.resourceName = this.shareSearchKey;
+        const nameTag = this.searchTagsShare.find(t => t.field === 'resourceName');
+        if (nameTag?.value) {
+          params.resourceName = nameTag.value;
         }
         data = await this.shareService.getShareList(params);
         data.plugin_list = (data?.resource_list || []).map((item: any) => {
@@ -245,10 +244,10 @@ export class AddPluginModalComponent implements OnInit {
         const params: any = {
           offset: !isChangeTab ? ((this.currentPage || 1) - 1) * this.pageSize : 0,
           limit: this.pageSize,
-          name: this.searchedItem.find(item => item.field === 'name')?.value,
-          tool_chinese_name: this.searchedItem.find(item => item.field === 'tool_chinese_name')?.value,
-          tool_desc: this.searchedItem.find(item => item.field === 'tool_desc')?.value,
         };
+        this.searchTagsPlugin.forEach(tag => {
+          params[tag.field] = tag.value;
+        });
         if (this.currTab !== 'custom') {
           params.published = 1;
           params.type = this.currTab;
@@ -277,15 +276,6 @@ export class AddPluginModalComponent implements OnInit {
       }
 
       this.totalNumber = data.count;
-      this.searchItems[0].options = this.plugins.map(plugin => ({
-        label: plugin.plugin_chinese_name,
-      }));
-      this.searchItems[1].options = this.plugins.map(plugin => ({
-        label: plugin.plugin_display_name,
-      }));
-      this.searchItems[2].options = this.plugins.map(plugin => ({
-        label: plugin.plugin_desc,
-      }));
     } catch (error) {
       // do nth
     } finally {
@@ -435,7 +425,11 @@ export class AddPluginModalComponent implements OnInit {
   }
 
   handleClickClearSearch() {
-    this.searchedItem = [];
+    if (this.currTab === 'share') {
+      this.searchTagsShare = [];
+    } else {
+      this.searchTagsPlugin = [];
+    }
     this.currentPage = 1;
     this.initApiList();
   }

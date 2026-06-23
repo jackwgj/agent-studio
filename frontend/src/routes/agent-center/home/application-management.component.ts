@@ -48,9 +48,7 @@ import { PrevRouteService } from "@services/prev-route.service";
 import { AppAgentHighCodeService } from "@services/agent-center/app-agent-high-code.service";
 import { DifyImportModalComponent } from "../app-flow/components/dify-import-modal/dify-import-modal.component";
 import { ExportResultModalComponent } from "@shared/components/export-modal/export-result-modal/export-result-modal.component";
-import { NzInputModule } from 'ng-zorro-antd/input';
-import { NzSelectModule } from 'ng-zorro-antd/select';
-import { NzTagModule } from 'ng-zorro-antd/tag';
+import { MultiFieldSearchComponent } from '@shared/components/multi-field-search/multi-field-search.component';
 
 enum mapKeys {
   FROM = "from",
@@ -69,9 +67,7 @@ enum mapKeys {
     AppExceedModalComponent,
     NoDataGuideComponentComponent,
     NzMenuModule,
-    NzInputModule,
-    NzSelectModule,
-    NzTagModule
+    MultiFieldSearchComponent
   ],
   providers: [
     {
@@ -202,74 +198,6 @@ export class ApplicationManagementComponent implements OnInit, OnDestroy {
   public searchItems: { label: string; field: string; options?: { label: string; id: string }[] }[] = [];
   public searchTags: { field: string; value: string; id?: string; label: string }[] = [];
   public searchField: string = 'name';
-  public searchInputValue: string = '';
-
-  public get currentFieldHasOptions(): boolean {
-    const item = this.searchItems.find(i => i.field === this.searchField);
-    return !!item?.options?.length;
-  }
-
-  public get currentFieldOptions(): { label: string; id: string }[] {
-    const item = this.searchItems.find(i => i.field === this.searchField);
-    return item?.options || [];
-  }
-
-  public addSearchTag() {
-    const item = this.searchItems.find(i => i.field === this.searchField);
-    if (!item || !this.searchInputValue?.trim()) return;
-    const existing = this.searchTags.find(t => t.field === this.searchField);
-    if (existing) {
-      existing.value = this.searchInputValue.trim();
-    } else {
-      this.searchTags.push({ field: this.searchField, value: this.searchInputValue.trim(), label: item.label });
-    }
-    this.searchInputValue = '';
-    this.onUserSearch();
-  }
-
-  public addSearchTagFromOption(optionId: string) {
-    const item = this.searchItems.find(i => i.field === this.searchField);
-    if (!item || !optionId) return;
-    const opt = item.options?.find(o => o.id === optionId);
-    if (!opt) return;
-    const existing = this.searchTags.find(t => t.field === this.searchField);
-    if (existing) {
-      existing.value = opt.label;
-      existing.id = opt.id;
-    } else {
-      this.searchTags.push({ field: this.searchField, value: opt.label, id: opt.id, label: item.label });
-    }
-    this.onUserSearch();
-  }
-
-  public removeSearchTag(tag: { field: string; value: string }) {
-    this.searchTags = this.searchTags.filter(t => t !== tag);
-    this.onUserSearch();
-  }
-
-  public isFieldTagged(field: string): boolean {
-    return this.searchTags.some(t => t.field === field);
-  }
-
-  public onSearchTagsChange(values: string[]) {
-    this.searchTags = values.map(v => {
-      const [field, id, label] = v.split(':');
-      const item = this.searchItems.find(i => i.field === field);
-      return { field, value: label || id, id: id || undefined, label: item?.label || field };
-    });
-    this.onSearchContentChange();
-  }
-
-  public onTextInputSearch(event: any, field: string) {
-    const value = event.target.value?.trim();
-    if (!value) return;
-    const item = this.searchItems.find(i => i.field === field);
-    if (!this.searchTags.find(t => t.field === field)) {
-      this.searchTags.push({ field, value, label: item?.label || field });
-    }
-    event.target.value = '';
-    this.onSearchContentChange();
-  }
 
   public get searchNameIsEmpty(): boolean {
     return this.searchTags.length === 0;
@@ -598,7 +526,7 @@ export class ApplicationManagementComponent implements OnInit, OnDestroy {
 
   handleClickClearSearch(): void {
     this.searchTags = [];
-    this.searchInputValue = '';
+    this.searchField = 'name';
     this.onUserSearch();
   }
 
@@ -936,7 +864,6 @@ export class ApplicationManagementComponent implements OnInit, OnDestroy {
     this.totalCardNumber = 0;
     this.searchTags = [];
     this.searchField = 'name';
-    this.searchInputValue = '';
     this.initSearchItems(index);
     this.onSearchContentChange();
   }

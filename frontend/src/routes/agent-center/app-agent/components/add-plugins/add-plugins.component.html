@@ -11,15 +11,13 @@
             </nz-tab>
           </nz-tabset>
           <div class="flex w-full items-center gap-2">
-            <nz-input-search nzAllowClear (nzSearch)="getPluginListBySearch('market')">
-              <input
-                nz-input
-                id="searchbox-basic"
-                class="plugin-searchbox"
-                [placeholder]="emptyPlaceholder"
-                [(ngModel)]="searchMarketVal"
-              />
-            </nz-input-search>
+            <multi-field-search
+              [searchItems]="searchItemsMarket"
+              [(searchTags)]="searchTagsMarket"
+              [(searchField)]="searchFieldMarket"
+              (searchChange)="getPluginListBySearch('market')"
+              class="flex-1"
+            ></multi-field-search>
             <button
               (click)="getPluginListBySearch('market')"
               class="h-8 w-8"
@@ -64,15 +62,13 @@
             {{ 'plugin_limit' | i18nextEager: { number: pluginLimit } }}
           </div>
           <div class="flex w-full items-center gap-2">
-            <nz-input-search nzAllowClear (nzSearch)="getPluginListBySearch('personal')">
-              <input
-                nz-input
-                id="searchbox-personal"
-                class="plugin-searchbox"
-                [placeholder]="emptyPlaceholder"
-                [(ngModel)]="searchPersonVal"
-              />
-            </nz-input-search>
+            <multi-field-search
+              [searchItems]="searchItemsPersonal"
+              [(searchTags)]="searchTagsPersonal"
+              [(searchField)]="searchFieldPersonal"
+              (searchChange)="getPluginListBySearch('personal')"
+              class="flex-1"
+            ></multi-field-search>
             <button
               (click)="getPluginListBySearch('personal')"
               class="h-8 w-8"
@@ -116,15 +112,13 @@
             {{ 'plugin_limit' | i18nextEager: { number: pluginLimit } }}
           </div>
           <div class="flex w-full items-center gap-2">
-            <nz-input-search nzAllowClear (nzSearch)="getPluginListBySearch('share')">
-              <input
-                nz-input
-                id="searchbox-basic"
-                class="plugin-searchbox"
-                [placeholder]="emptyPlaceholder"
-                [(ngModel)]="searchShareVal"
-              />
-            </nz-input-search>
+            <multi-field-search
+              [searchItems]="searchItemsShare"
+              [(searchTags)]="searchTagsShare"
+              [(searchField)]="searchFieldShare"
+              (searchChange)="getPluginListBySearch('share')"
+              class="flex-1"
+            ></multi-field-search>
           </div>
           <nz-spin *ngIf="stateShare.isLoading; else mainSharePlugins" class="loading-icon"></nz-spin>
           <ng-template #mainSharePlugins>

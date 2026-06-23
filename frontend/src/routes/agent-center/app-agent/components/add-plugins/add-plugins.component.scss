@@ -56,7 +56,7 @@
   position: absolute;
   bottom: 42px;
   width: 100%;
-  height: calc(100% - 152px);
+  height: calc(100% - 200px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -254,18 +254,6 @@
 
   span {
     width: calc(100% - 210px);
-  }
-}
-
-.plugin-searchbox {
-  width: 100%;
-}
-
-:host ::ng-deep {
-  .plugin-searchbox {
-    .ti3-select-dominator-text.ti3-tags-input-container {
-      max-height: 58px !important;
-    }
   }
 }
 

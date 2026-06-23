@@ -174,6 +174,30 @@ export class VarMemoryModalComponent implements OnInit {
       this.beforeHideModal();
       return;
     }
+    let hasError = false;
+    if (this.isShowUserVars && this.userForm) {
+      this.markFormDirty(this.userForm);
+      if (this.userForm.invalid) {
+        hasError = true;
+      }
+    }
+    if (this.isShowInputVars && this.inputForm) {
+      this.markFormDirty(this.inputForm);
+      if (this.inputForm.invalid) {
+        hasError = true;
+      }
+    }
+    const data: any[] = [...this.customParams, ...this.inputParams];
+    for (const item of data) {
+      if (Object.prototype.hasOwnProperty.call(item, "isRight") && !item.isRight) {
+        hasError = true;
+        break;
+      }
+    }
+    if (hasError) {
+      this.cdr.markForCheck();
+      return;
+    }
     let result = {};
     if (this.isShowUserVars) {
       result[mapKeys.userVars] = this.customParams;
@@ -183,6 +207,13 @@ export class VarMemoryModalComponent implements OnInit {
       result[mapKeys.inputVars] = this.inputParams;
     }
     this.saveMemoryVars.emit(result);
+  }
+
+  private markFormDirty(form: NgForm): void {
+    Object.keys(form.controls).forEach(key => {
+      form.controls[key].markAsDirty();
+      form.controls[key].markAsTouched();
+    });
   }
 
   // 在这里发送数据给预览调试
@@ -218,6 +249,12 @@ export class VarMemoryModalComponent implements OnInit {
         result = true;
         break;
       }
+    }
+    if (this.isShowUserVars && this.userForm?.invalid) {
+      result = true;
+    }
+    if (this.isShowInputVars && this.inputForm?.invalid) {
+      result = true;
     }
     return result;
   }

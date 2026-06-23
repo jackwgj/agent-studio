@@ -7,12 +7,10 @@
   [nzFooter]="drawerFooter"
   [nzMask]="true"
   nzWidth="700px"
+  [nzTitle]="drawerTitle"
   (nzOnClose)="dismiss()"
 >
   <ng-container *nzDrawerContent>
-    <div class="drawer-header">
-      {{ 'skill.modal.title' | i18n }}
-    </div>
     <div class="drawer-body">
       <nz-alert nzType="info" class="modal-skill-limit-tip" [nzShowIcon]="false" [nzMessage]="'skill.limit' | i18n: { number: 50 }"></nz-alert>
       <nz-tabset>
@@ -104,5 +102,9 @@
         </button>
       </div>
     </div>
+  </ng-template>
+
+  <ng-template #drawerTitle>
+    {{ 'skill.modal.title' | i18n }}
   </ng-template>
 </nz-drawer>

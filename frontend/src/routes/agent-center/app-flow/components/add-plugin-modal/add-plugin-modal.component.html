@@ -19,18 +19,13 @@
               ></nz-tab>
             </nz-tabset>
           <div class="flex w-full items-center gap-2">
-            <nz-select
-              class="w-[calc(100%-32px)]"
-              [nzMaxTagCount]="1"
-              [(ngModel)]="searchedItem"
-              [nzShowSearch]="true"
-              [nzAllowClear]="true"
-              [nzPlaceHolder]="'plugin_name' | i18nextEager"
-              (ngModelChange)="initApiList('search')"
-              nzMode="multiple"
-            >
-              <nz-option *ngFor="let plugin of plugins" [nzLabel]="plugin.plugin_chinese_name" [nzValue]="plugin"></nz-option>
-            </nz-select>
+            <multi-field-search
+              [searchItems]="searchItemsForPlugin"
+              [(searchTags)]="searchTagsPlugin"
+              [(searchField)]="searchFieldPlugin"
+              (searchChange)="initApiList('search')"
+              class="flex-1"
+            ></multi-field-search>
             <button
               (click)="initApiList()"
               class="h-8 w-8"
@@ -186,19 +181,14 @@
           (nzSelect)="onActiveChange(tabs[0], true)"
           [nzTitle]="tabs[0].title"
         >
-          <div class="flex w-full items-center gap-2">
-            <nz-select
-              class="w-[calc(100%-32px)]"
-              [nzMaxTagCount]="1"
-              [(ngModel)]="searchedItem"
-              [nzShowSearch]="true"
-              [nzAllowClear]="true"
-              [nzPlaceHolder]="'plugin_name' | i18nextEager"
-              (ngModelChange)="initApiList('search')"
-              nzMode="multiple"
-            >
-              <nz-option *ngFor="let plugin of plugins" [nzLabel]="plugin.plugin_chinese_name" [nzValue]="plugin"></nz-option>
-            </nz-select>
+           <div class="flex w-full items-center gap-2">
+            <multi-field-search
+              [searchItems]="searchItemsForPlugin"
+              [(searchTags)]="searchTagsPlugin"
+              [(searchField)]="searchFieldPlugin"
+              (searchChange)="initApiList('search')"
+              class="flex-1"
+            ></multi-field-search>
             <button
               (click)="initApiList()"
               class="h-8 w-8"
@@ -209,9 +199,9 @@
             <nz-icon nzType="reload" nzTheme="outline" />
             </button>
           </div>
-          <nz-spin
-            size="middle"
-            class="flex h-[calc(100%-40px)] w-full items-center justify-center"
+           <nz-spin
+             size="middle"
+             class="flex h-[calc(100%-40px)] w-full items-center justify-center"
             *ngIf="isLoading"
           ></nz-spin>
           <div
@@ -309,15 +299,13 @@
         [nzTitle]="tabs[2].title"
       >
         <div class="flex w-full items-center gap-2 mt-3">
-          <nz-select
-          class="!w-full workflow-searchbox"
-          [nzPlaceHolder]="'search_placeholder'|i18nextEager"
-          [(ngModel)]="shareSearchKey"
-          (ngModelChange)="initApiList('share')"
-          nzShowSearch
-          nzAllowClear
-        >
-        </nz-select>
+          <multi-field-search
+            [searchItems]="searchItemsForShare"
+            [(searchTags)]="searchTagsShare"
+            [(searchField)]="searchFieldShare"
+            (searchChange)="initApiList('share')"
+            class="flex-1"
+          ></multi-field-search>
         </div>
         <nz-spin
           size="middle"

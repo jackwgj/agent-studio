@@ -8,7 +8,7 @@
       <ng-container *ngIf="triggerType === 'time'">
         <form
           [formGroup]="timeTriggerForm"
-          class="mt-[16px] h-full w-full"
+          class="mt-[16px] h-full w-full vertical-form"
           style="overflow-x: hidden; width: 100%"
         >
           <nz-form-item>
@@ -22,7 +22,17 @@
                 style="width: 100%; min-width: 100%"
                 [placeholder]="'triggerhalfmodalcomponent_87'|i18nextEager"
                 formControlName="name"
+                [class.input-error]="isControlInvalid(timeTriggerForm.get('name'))"
               />
+              @if (isControlInvalid(timeTriggerForm.get('name'))) {
+                <div class="form-error-tip">
+                  @if (timeTriggerForm.get('name')?.hasError('required')) {
+                    {{ 'required'|i18nextEager }}
+                  } @else if (timeTriggerForm.get('name')?.hasError('serviceName')) {
+                    {{ timeTriggerForm.get('name')?.errors?.serviceName?.nzErrorMessage }}
+                  }
+                </div>
+              }
             </nz-form-control>
           </nz-form-item>
           <nz-form-item>
@@ -45,7 +55,7 @@
           </nz-form-item>
           <nz-form-item>
             <nz-form-label>
-              {{ 'trigger_time_t'|i18nextEager }}
+              {{ 'trigger_time_tt'|i18nextEager }}
             </nz-form-label>
             <nz-form-control>
               <div
@@ -148,6 +158,13 @@
                   formControlName="prompt"
                 ></textarea>
               </div>
+              @if (isControlInvalid(timeTriggerForm.get('prompt'))) {
+                <div class="form-error-tip">
+                  @if (timeTriggerForm.get('prompt')?.hasError('required')) {
+                    {{ 'required'|i18nextEager }}
+                  }
+                </div>
+              }
             </nz-form-control>
           </nz-form-item>
           <nz-form-item *ngIf="showCallMethod">

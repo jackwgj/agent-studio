@@ -96,53 +96,14 @@
               [(ngModel)]="highValue">
             </nz-select>
           }
-          <div class="flex w-[calc(100%-32px)] items-center gap-[4px] bg-[#fff] border border-[#d9d9d9] rounded-[6px] px-[8px] py-[1px] min-h-[32px] flex-wrap custom-search">
-            @for (tag of searchTags; track tag.field + tag.value) {
-              <nz-tag [nzMode]="'closeable'" (nzOnClose)="removeSearchTag(tag)" class="m-[2px]">
-                {{ tag.label }}: {{ tag.value }}
-              </nz-tag>
-            }
-            <div class="flex items-center gap-[4px] flex-1 min-w-[120px] py-[2px]">
-              <nz-select
-                [(ngModel)]="searchField"
-                class="w-[100px] flex-shrink-0 !h-[24px]"
-                [nzBorderless]="true"
-                [nzSize]="'small'"
-                [nzPlaceHolder]="'select_placeholder' | i18nextEager"
-                (ngModelChange)="searchInputValue = ''"
-              >
-                @for (item of searchItems; track item.field) {
-                  <nz-option [nzLabel]="item.label" [nzValue]="item.field"></nz-option>
-                }
-              </nz-select>
-              @if (currentFieldHasOptions) {
-                <nz-select
-                  [(ngModel)]="searchInputValue"
-                  [nzPlaceHolder]="'select_placeholder' | i18nextEager"
-                  (ngModelChange)="addSearchTagFromOption($event); searchInputValue = ''"
-                  [nzBorderless]="true"
-                  [nzSize]="'small'"
-                  class="flex-1 !h-[24px]"
-                >
-                  @for (opt of currentFieldOptions; track opt.id) {
-                    <nz-option [nzLabel]="opt.label" [nzValue]="opt.id"></nz-option>
-                  }
-                </nz-select>
-              } @else {
-                <input
-                  #searchInputRef
-                  type="text"
-                  [(ngModel)]="searchInputValue"
-                  [placeholder]="'input_placeholder' | i18nextEager"
-                  (keyup.enter)="addSearchTag()"
-                  class="flex-1 outline-none border-none bg-transparent text-[14px] min-w-[60px]"
-                />
-              }
-            </div>
-            @if (searchTags.length) {
-              <span nz-icon nzType="close-circle" nzTheme="fill" class="cursor-pointer text-[14px] flex-shrink-0" style="color: #808080" (click)="handleClickClearSearch()"></span>
-            }
-          </div>
+          <multi-field-search
+            [searchItems]="searchItems"
+            [(searchTags)]="searchTags"
+            [searchField]="searchField"
+            (searchFieldChange)="searchField = $event"
+            (searchChange)="onUserSearch()"
+            class="w-full"
+          ></multi-field-search>
           <button
             type="button"
             (click)="getCardData()"

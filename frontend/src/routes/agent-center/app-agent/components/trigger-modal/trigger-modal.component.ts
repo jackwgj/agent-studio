@@ -715,7 +715,14 @@ export class TriggerHalfmodalComponent {
     return Object.keys(errors).length > 0 ? errors : null;
   }
 
-  private getNextFullHourNew() {
+  private parseTimeToDate(timeStr: string): Date {
+    const parts = timeStr.split(":").map(Number);
+    const d = new Date();
+    d.setHours(parts[0] || 0, parts[1] || 0, parts[2] || 0, 0);
+    return d;
+  }
+
+  private getNextFullHourNew(): Date {
     const now = new Date();
     let nextHour = now.getHours();
     const minutes = now.getMinutes();
@@ -725,7 +732,9 @@ export class TriggerHalfmodalComponent {
     if (nextHour === 24) {
       nextHour = 0;
     }
-    return `${nextHour.toString().padStart(2, "0")}:00:00`;
+    const result = new Date();
+    result.setHours(nextHour, 0, 0, 0);
+    return result;
   }
 
   private getSelectDataTime(type, data): string {
@@ -733,22 +742,31 @@ export class TriggerHalfmodalComponent {
       if (this.selected_type === 0) {
         const periodType = this.timeTriggerForm?.controls.periodType.value;
         const periodTime = this.timeTriggerForm?.controls.periodTime.value;
-        let periodTimeArray = periodTime.split(":");
-        periodTimeArray = periodTimeArray.map((element) => {
-          return (element = Number(element));
-        });
+        let hours: number;
+        let minutes: number;
+        let seconds: number;
+        if (periodTime instanceof Date) {
+          hours = periodTime.getHours();
+          minutes = periodTime.getMinutes();
+          seconds = periodTime.getSeconds();
+        } else {
+          const periodTimeArray = String(periodTime).split(":").map(Number);
+          seconds = periodTimeArray[2] || 0;
+          minutes = periodTimeArray[1] || 0;
+          hours = periodTimeArray[0] || 0;
+        }
 
         if (periodType === "day") {
-          return `${periodTimeArray[2]} ${periodTimeArray[1]} ${periodTimeArray[0]} * * ?`;
+          return `${seconds} ${minutes} ${hours} * * ?`;
         }
         if (periodType === "week") {
           const periodWeek = this.timeTriggerForm?.controls.periodWeek.value;
-          return `${periodTimeArray[2]} ${periodTimeArray[1]} ${periodTimeArray[0]} ? * ${periodWeek}`;
+          return `${seconds} ${minutes} ${hours} ? * ${periodWeek}`;
         }
         if (periodType === "month") {
           const periodMonthDay =
             this.timeTriggerForm?.controls.periodMonthDay.value;
-          return `${periodTimeArray[2]} ${periodTimeArray[1]} ${periodTimeArray[0]} ${periodMonthDay} * ?`;
+          return `${seconds} ${minutes} ${hours} ${periodMonthDay} * ?`;
         }
       } else {
         const IntervalType = this.timeTriggerForm?.controls.IntervalType.value;
@@ -778,18 +796,19 @@ export class TriggerHalfmodalComponent {
         const dayOfWeek = parts[5];
 
         const newTime = `${hour}:${min}:${seconds}`;
+        const newTimeDate = this.parseTimeToDate(newTime);
         if (day === "*" && month === "*" && dayOfWeek === "?") {
           this.selected_type = 0;
           this.timeTriggerForm?.controls.periodType.setValue("day");
           this.onDateSelect({ value: "day" });
-          this.timeTriggerForm?.controls.periodTime.setValue(newTime);
+          this.timeTriggerForm?.controls.periodTime.setValue(newTimeDate);
           return "";
         }
         if (day === "?" && month === "*" && dayOfWeek !== "*") {
           this.selected_type = 0;
           this.timeTriggerForm?.controls.periodType.setValue("week");
           this.onDateSelect({ value: "week" });
-          this.timeTriggerForm?.controls.periodTime.setValue(newTime);
+          this.timeTriggerForm?.controls.periodTime.setValue(newTimeDate);
           this.timeTriggerForm?.controls.periodWeek.setValue(dayOfWeek);
           return "";
         }
@@ -798,7 +817,7 @@ export class TriggerHalfmodalComponent {
           this.selected_type = 0;
           this.timeTriggerForm?.controls.periodType.setValue("month");
           this.onDateSelect({ value: "month" });
-          this.timeTriggerForm?.controls.periodTime.setValue(newTime);
+          this.timeTriggerForm?.controls.periodTime.setValue(newTimeDate);
           this.timeTriggerForm?.controls.periodMonthDay.setValue(day);
           return "";
         }
@@ -832,6 +851,11 @@ export class TriggerHalfmodalComponent {
   }
 
   private checkGroup(): boolean {
+    Object.keys(this.timeTriggerForm.controls).forEach(key => {
+      this.timeTriggerForm.controls[key].markAsDirty();
+      this.timeTriggerForm.controls[key].markAsTouched();
+      this.timeTriggerForm.controls[key].updateValueAndValidity();
+    });
     const errors: ValidationErrors | null = this.validateForm(this.timeTriggerForm);
     if (errors) {
       const firstError: any = Object.keys(errors)[0];

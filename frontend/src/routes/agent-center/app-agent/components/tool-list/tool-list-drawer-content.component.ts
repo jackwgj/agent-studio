@@ -30,6 +30,6 @@ export class ToolListDrawerContentComponent {
   @Input() isFlowReadonly: boolean = false;
 
   @Output() collapseRegionFlag = new EventEmitter<any>();
-  @Output() addBtnClickedFlag = new EventEmitter<void>();
+  @Output() addBtnClickedFlag = new EventEmitter<any>();
   @Output() deleteTrigger = new EventEmitter<any>();
 }

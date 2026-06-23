@@ -38,6 +38,7 @@ import { AddPluginAuthComponent } from "@routes/plugin-market/add-plugin/add-plu
 import { CommonService } from "@services/common.service";
 import { NzDrawerService } from "ng-zorro-antd/drawer";
 import { NzModalService } from "ng-zorro-antd/modal";
+import { MultiFieldSearchComponent, ISearchTag } from '@shared/components/multi-field-search/multi-field-search.component';
 import { getQuotaTag } from "../../../utils";
 
 enum mapKeys {
@@ -85,7 +86,7 @@ export class AuthConfigComponent {
   templateUrl: "./add-plugins.component.html",
   styleUrls: ["./add-plugins.component.scss"],
   standalone: true,
-  imports: [MODULES, NewCommonNoDataWithBtnComponent, SkillCardComponent],
+  imports: [MODULES, NewCommonNoDataWithBtnComponent, SkillCardComponent, MultiFieldSearchComponent],
   providers: [
     {
       provide: I18NEXT_NAMESPACE,
@@ -186,7 +187,27 @@ export class AddPluginsComponent {
 
   public totalNumberMarket = 0;
 
-  public searchMarketVal: string = "";
+  public searchItemsMarket = [
+    { label: this.i18n.transform('plugin_name'), field: 'tool_chinese_name' },
+    { label: this.i18n.transform('plugin_en_name'), field: 'name' },
+    { label: this.i18n.transform('plugin_description'), field: 'tool_desc' },
+  ];
+  public searchTagsMarket: ISearchTag[] = [];
+  public searchFieldMarket: string = 'name';
+
+  public searchItemsPersonal = [
+    { label: this.i18n.transform('plugin_name'), field: 'tool_chinese_name' },
+    { label: this.i18n.transform('plugin_en_name'), field: 'name' },
+    { label: this.i18n.transform('plugin_description'), field: 'tool_desc' },
+  ];
+  public searchTagsPersonal: ISearchTag[] = [];
+  public searchFieldPersonal: string = 'name';
+
+  public searchItemsShare = [
+    { label: this.i18n.transform('name'), field: 'resourceName' },
+  ];
+  public searchTagsShare: ISearchTag[] = [];
+  public searchFieldShare: string = 'resourceName';
 
   public lang = CommonUtils.getLanguage();
 
@@ -197,7 +218,6 @@ export class AddPluginsComponent {
   };
   public curPagePersonal = 1;
   public totalNumberPersonal = 0;
-  public searchPersonVal: string = "";
 
   // 共享插件Tab，对应的数据与分页
   public stateShare: any = {
@@ -206,22 +226,20 @@ export class AddPluginsComponent {
   };
   public curPageShare = 1;
   public totalNumberShare = 0;
-  public searchShareVal: string = "";
   public activeTabName = this.tabId.personal;
   public pluginTip = "";
 
   get searchNameIsEmpty(): boolean {
     return (
       (this.activeTabName === this.tabId.market &&
-        this.searchMarketVal.length === 0) ||
+        this.searchTagsMarket.length === 0) ||
       (this.activeTabName === this.tabId.personal &&
-        this.searchPersonVal.length === 0) ||
+        this.searchTagsPersonal.length === 0) ||
       (this.activeTabName === this.tabId.share &&
-        this.searchShareVal.length === 0)
+        this.searchTagsShare.length === 0)
     );
   }
 
-  public emptyPlaceholder = this.i18n.transform("search_and_filter");
   private destroy$ = new Subject<void>();
   private tabLastActive!: EPluginCategoryTabId;
   // 创建新插件之前，上一次被选中但没有点确定，没有保存到后端数据库中的plugins
@@ -584,11 +602,10 @@ export class AddPluginsComponent {
 
   /** 入参表示: 用户是否切换了tab类型 **/
   private loadPluginMarket(isChangeTab = false) {
-    const params = {
-      "name": this.searchMarketVal,
-      "tool_desc": this.searchMarketVal,
-      "tool_chinese_name": this.searchMarketVal
-    };
+    const params: any = {};
+    this.searchTagsMarket.forEach(tag => {
+      params[tag.field] = tag.value;
+    });
     const requestParams = {
       offset: !isChangeTab ? ((this.curPageMarket || 1) - 1) * PAGINATION_LIMIT_NUM : 0,
       limit: PAGINATION_LIMIT_NUM,
@@ -622,11 +639,10 @@ export class AddPluginsComponent {
   }
 
   private loadPluginPersonal() {
-    const params = {
-      "name": this.searchPersonVal,
-      "tool_desc": this.searchPersonVal,
-      "tool_chinese_name": this.searchPersonVal
-    };
+    const params: any = {};
+    this.searchTagsPersonal.forEach(tag => {
+      params[tag.field] = tag.value;
+    });
     const requestParams = {
       offset: (this.curPagePersonal - 1 || 0) * PAGINATION_LIMIT_NUM,
       limit: PAGINATION_LIMIT_NUM,
@@ -651,13 +667,14 @@ export class AddPluginsComponent {
   }
 
   private loadPluginShare() {
+    const nameTag = this.searchTagsShare.find(t => t.field === 'resourceName');
     let requestParams: any = {
       offset: (this.curPageShare - 1 || 0) * PAGINATION_LIMIT_NUM,
       limit: PAGINATION_LIMIT_NUM,
       resource_type: "plugin"
     };
-    if (this.searchShareVal) {
-      requestParams.resourceName = this.searchShareVal;
+    if (nameTag?.value) {
+      requestParams.resourceName = nameTag.value;
     }
     this.stateShare.isLoading = true;
     this.shareService.getShareList(requestParams).then(
@@ -690,26 +707,29 @@ export class AddPluginsComponent {
       pluginList: [],
       isLoading: false
     };
+    this.searchTagsMarket = [];
     this.curPagePersonal = 1;
     this.totalNumberPersonal = 0;
     this.statePersonal = {
       pluginList: [],
       isLoading: false
     };
+    this.searchTagsPersonal = [];
     this.curPageShare = 1;
     this.totalNumberShare = 0;
     this.stateShare = {
       pluginList: [],
       isLoading: false
     };
+    this.searchTagsShare = [];
     this.cdr.markForCheck();
   }
 
   /** 清空搜索框的输入值 */
   private clearSearchboxValue() {
-    this.searchMarketVal = "";
-    this.searchPersonVal = "";
-    this.searchShareVal = "";
+    this.searchTagsMarket = [];
+    this.searchTagsPersonal = [];
+    this.searchTagsShare = [];
   }
 
   /**
@@ -776,11 +796,11 @@ export class AddPluginsComponent {
 
   handleClickClearSearch(): void {
     if (this.activeTabName === this.tabId.market) {
-      this.searchMarketVal = "";
+      this.searchTagsMarket = [];
     } else if (this.activeTabName === this.tabId.personal) {
-      this.searchPersonVal = "";
+      this.searchTagsPersonal = [];
     } else if (this.activeTabName === this.tabId.share) {
-      this.searchShareVal = "";
+      this.searchTagsShare = [];
     }
 
     this.getPluginListBySearch(this.activeTabName);

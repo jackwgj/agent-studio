@@ -1726,6 +1726,7 @@
   "hit_score": "Hit Score",
   "word_count": "Word Count",
   "trigger_time_t": "Trigger Time:",
+  "trigger_time_tt": "Trigger Time",
   "prompt_content_t": " Prompt Content:",
   "invocation_method_t": "Invocation Method:",
   "toollistcomponent_56": "Asynchronous",

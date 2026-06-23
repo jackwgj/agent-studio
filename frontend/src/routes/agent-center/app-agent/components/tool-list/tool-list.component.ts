@@ -38,7 +38,7 @@ export class ToolListComponent {
 
   @Output() collapseRegionFlag = new EventEmitter<any>();
 
-  @Output() addBtnClickedFlag = new EventEmitter<void>();
+  @Output() addBtnClickedFlag = new EventEmitter<any>();
 
   @Output() deleteTrigger = new EventEmitter<any>();
   allow_add_num = 3;
@@ -68,7 +68,8 @@ export class ToolListComponent {
   }
 
   public getTipText(item: any, agentType) {
-    const { cron, hook_url, prompt, invocation } = item || {};
+    if (!item) { return null; }
+    const { cron, hook_url, prompt, invocation } = item;
     const showCallMethod = agentType === 'workflow';
     if (item.type === 'TIMER') {
       if (showCallMethod) {

@@ -72,13 +72,13 @@
                     </div>
                   </div>
                   <div *ngIf="!isShareTab">
-                    <span class="w-[90%] text-overflow" nz-tooltip [nzTooltipTitle]="item.description">
+                    <span class="block w-[90%] text-overflow" nz-tooltip [nzTooltipTitle]="item.description">
                       {{ item.description }}
                     </span>
                   </div>
                   <div class="text-[#808080]" *ngIf="isShareTab">
                     <div>
-                      <span class="w-full text-overflow" nz-tooltip [nzTooltipTitle]="item.description"> {{ item.description }}</span>
+                      <span class="block w-full text-overflow" nz-tooltip [nzTooltipTitle]="item.description"> {{ item.description }}</span>
                     </div>
                     <div class="flex items-center">
                       <nz-icon
