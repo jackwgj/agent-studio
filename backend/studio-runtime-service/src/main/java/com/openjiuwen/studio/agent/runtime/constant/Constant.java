@@ -283,6 +283,11 @@ public interface Constant {
     String NAME = "name";
 
     /**
+     * 用户自定义追问提示词模板变量
+     */
+    String USER_PROMPT = "user_prompt";
+
+    /**
      * 字符串常量
      */
     String PROMPT = "prompt";

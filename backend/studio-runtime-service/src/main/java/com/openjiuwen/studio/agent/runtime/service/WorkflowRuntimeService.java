@@ -305,7 +305,8 @@ public class WorkflowRuntimeService implements IWorkflowRuntimeService {
             isChinese ? Constant.ADDITIONAL_QUESTIONS_PROMPT : Constant.ADDITIONAL_QUESTIONS_PROMPT_EN);
         PromptTemplate promptTemplate = new PromptTemplate(template);
         String query = promptTemplate.format(KV.of(Constant.NAME, body.getName()),
-            KV.of(Constant.HISTORY_MESSAGES, historyMessages.toString()));
+            KV.of(Constant.HISTORY_MESSAGES, historyMessages.toString()),
+            KV.of(Constant.USER_PROMPT, StringUtils.defaultIfEmpty(body.getPrompt(), "")));
 
         // 调用模型并解析返回结果
         List<String> questionList = new ArrayList<>();

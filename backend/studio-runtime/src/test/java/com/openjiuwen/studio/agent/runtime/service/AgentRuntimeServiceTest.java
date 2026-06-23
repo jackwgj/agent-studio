@@ -16,6 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -35,6 +36,8 @@ import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
 import com.openjiuwen.studio.agent.common.redis.RedisClient;
 import com.openjiuwen.studio.agent.common.sensitive.SensitiveEntity;
 import com.openjiuwen.studio.agent.common.service.DelegateExchangeTokenService;
+import com.openjiuwen.studio.agent.common.utils.KV;
+import com.openjiuwen.studio.agent.common.utils.PromptTemplate;
 import com.openjiuwen.studio.agent.common.utils.SpringBeanUtils;
 import com.openjiuwen.studio.agent.runtime.constant.Constant;
 import com.openjiuwen.studio.agent.runtime.constant.ConstantTest;
@@ -66,6 +69,7 @@ import com.openjiuwen.studio.agent.runtime.rce.service.JiuWenService;
 import com.openjiuwen.studio.agent.runtime.sensitive.SensitiveTrieCache;
 import com.openjiuwen.studio.agent.runtime.sensitive.SensitiveTrieUtils;
 import com.openjiuwen.studio.agent.runtime.utils.BaseTest;
+import com.openjiuwen.studio.agent.runtime.utils.EnvVariablesUtils;
 import com.openjiuwen.studio.agent.runtime.utils.JsonUtils;
 import com.openjiuwen.studio.agent.runtime.utils.OkHttpUtils;
 import com.openjiuwen.studio.agent.common.utils.RequestContextUtils;
@@ -408,7 +412,24 @@ public class AgentRuntimeServiceTest extends BaseTest {
         return historyMessages;
     }
 
+    @Test
     void testAdditionalQuestions() {
+        // mock getModelConfigFromObs
+        AgentIrWrapper irWrapper = new AgentIrWrapper();
+        irWrapper.setModelConfig(ModelConfig.builder().modelName("test_model_name").modelType("test_model_type")
+                .hyperParameters(new HyperParameters()).build());
+        irWrapper.setMetadata(mockAgentIrMetadata());
+        when(agentIrCacheService.getLatestAgentIr(anyString())).thenReturn(irWrapper);
+
+        // mock callModel -> modelController.chatCompletions
+        com.alibaba.fastjson.JSONObject jsonObject = com.alibaba.fastjson.JSONObject.parseObject(
+                "{\"id\":\"chat-test\",\"object\":\"chat.completion\",\"created\":1764853827,\"model\":\"test_model_name\","
+                        + "\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\","
+                        + "\"content\":\"[\\\"如何分析单品的销售数据？\\\",\\\"销售数据如何分析？\\\",\\\"如何分析市场销售数据？\\\"]\"},"
+                        + "\"finish_reason\":\"stop\"}]}");
+        when(modelController.chatCompletions(any(), any(), any(), any(), anyBoolean(), anyString(), anyString()))
+                .thenReturn(jsonObject);
+
         // 构造数据
         AdditionalQuestionsReq additionalQuestionsReq = new AdditionalQuestionsReq();
         additionalQuestionsReq.setName("agent");
@@ -457,19 +478,23 @@ public class AgentRuntimeServiceTest extends BaseTest {
                 "conversation_id", "", additionalQuestionsReq);
         assertEquals(new ArrayList<>(), result.getQuestions());
 
-        // exception test
-        assertThrows(AgentStudioException.class, () -> {
-            additionalQuestionsReq.setName("app");
-            when(conversationManagementService.retrieveConversation(anyString(), anyString(), anyString(),
-                    any(RetrieveConversationQo.class))).thenReturn(mockMessageList());
-            agentRuntimeService.additionalQuestions(TEST_PROJECT_ID, TEST_AGENT_ID, "conversation_id", "",
-                    additionalQuestionsReq);
-        });
-
         // questionsList == null test
         additionalQuestionsReq.setName("exception");
         agentRuntimeService.additionalQuestions(TEST_PROJECT_ID, TEST_AGENT_ID, "conversation_id", "",
                 additionalQuestionsReq);
+
+        // with user prompt test
+        when(conversationManagementService.retrieveConversation(anyString(), anyString(), anyString(),
+                any(RetrieveConversationQo.class))).thenReturn(mockMessageList());
+        AdditionalQuestionsReq promptReq = new AdditionalQuestionsReq();
+        promptReq.setName("agent");
+        promptReq.setEnable(true);
+        promptReq.setPrompt("## 追问规范\n1. 提问简短精准,\n2. 请依第一人称生成追问");
+        AutoAddResultJsonObject promptResult = agentRuntimeService.additionalQuestions(TEST_PROJECT_ID,
+                TEST_AGENT_ID, ConstantTest.Conversation.TEST_CONVERSATION_ID, "", promptReq);
+        assertNotNull(promptResult);
+        assertEquals(3, promptResult.getQuestions().size());
+        assertTrue(promptResult.getQuestions().contains("如何分析单品的销售数据？"));
     }
 
     private Map<String, String> mockObsMap() {
@@ -646,7 +671,7 @@ public class AgentRuntimeServiceTest extends BaseTest {
         RedisClient redisClient = Mockito.mock(RedisClient.class);
         AgentIrCacheService agentIrCacheService = Mockito.mock(AgentIrCacheService.class);
         AgentRuntimeService service = new AgentRuntimeService(agentIrCacheService, conversationManagementService,
-                jiuWenService, okHttpUtils, redisClient);
+                jiuWenService, okHttpUtils, redisClient, Mockito.mock(EnvVariablesUtils.class));
 
         ObsService obs = Mockito.mock(ObsService.class);
         ReflectionTestUtils.setField(service, "obsService", obs);

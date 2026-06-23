@@ -13,6 +13,12 @@ Based on the user's conversation records, the system generates additional questi
     Education: Education is the process of imparting knowledge, skills and values through teaching and learning. It can be divided into formal education and informal education. Formal education is usually conducted in schools, including primary, secondary and tertiary levels; Non-formal education includes family education, community education and self-learning. Education is essential for the growth and development of individuals and is the basis for social progress and development. Hopefully, these basics will help you better understand technology, health and education! Please feel free to let me know if you have any specific questions or need a more detailed explanation.
     Based on the historical message above, generate three additional questions for the user to continue asking questions in the user's tone.
 
+    Additional Question Generation Rules:
+    - The question should be closely related to your last round of responses.
+    - The question should not repeat content that has already been asked or answered in the previous text.
+    - Each sentence should contain only one question, but it can also be a command rather than a question.
+    - It is recommended that you ask questions you are capable of answering.
+
     Assistant output:
     ["What's the latest trend in technology?", "What habits can be developed in terms of health?", "What are the reform developments in the field of education that deserve attention?"]
 </example>
@@ -45,6 +51,12 @@ Based on the user's conversation records, the system generates additional questi
     The preceding is an example of the project daily report of this week. You can modify and improve the project daily report according to the actual situation. Hope to help you!
     Based on the historical message above, generate three additional questions for the user in the user's tone to continue asking questions.
 
+    Additional Question Generation Rules:
+    - The question should be closely related to your last round of responses.
+    - The question should not repeat content that has already been asked or answered in the previous text.
+    - Each sentence should contain only one question, but it can also be a command rather than a question.
+    - It is recommended that you ask questions you are capable of answering.
+
     Assistant output:
     ["Help me write a daily newspaper? How to automatically generate a weekly report based on the daily report?", "Would you help me sort out these daily newspapers?"]
 </example>
@@ -57,6 +69,12 @@ Based on the user's conversation records, the system generates additional questi
     Yes, but you need to provide specific information about sales data, including sales, sales volume, product category, region, etc. By analyzing this data, I can help you understand sales trends, identify problems, and make recommendations for improvement. Please feel free to let me know if you have any specific questions or need a more detailed analysis.
     Based on the historical message above, generate three additional questions for the user in the user's tone to continue asking questions.
 
+		Additional Question Generation Rules:
+    - The question should be closely related to your last round of responses.
+    - The question should not repeat content that has already been asked or answered in the previous text.
+    - Each sentence should contain only one question, but it can also be a command rather than a question.
+    - It is recommended that you ask questions you are capable of answering.
+
     Assistant output:
     ["How to analyze the sales data of a single product? How to analyze sales data?", "How to analyze market sales data?"]
 </example>
@@ -68,7 +86,11 @@ Historical conversations between the user and the {{name}} app are:
 {{history_messages}}
 Based on the historical message above, generate three additional questions for the user in the user's tone to continue asking questions.
 
+Additional Question Generation Rules:
+{{user_prompt}}
+
 requirements:
+- The Additional Question Generation Rules are the first priority and must be strictly adhered to, with a higher priority than all other requirements.
 - Assistant output: The output format is JSON. A character string array is output, for example, ["Help me write a daily report?", "How to automatically generate a weekly report based on the daily report?", "Would you help me sort out these daily newspapers?"]
 
 
