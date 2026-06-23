@@ -126,6 +126,8 @@ services:
       DATASOURCE_OBS_AK: ${OBS_AK:-}
       DATASOURCE_OBS_SK: ${OBS_SK:-}
       DATASOURCE_OBS_ENABLE_SSL: ${DATASOURCE_OBS_ENABLE_SSL:-false}
+      # 对象存储寻址方式：path（路径风格，默认）或 virtual（虚拟托管风格）
+      DATASOURCE_OBS_PATH_STYLE: ${DATASOURCE_OBS_PATH_STYLE:-path}
       # 模型路由接口地址，HTTPS启动需要改成https
       MODEL_ROUTER_API: ${MODEL_ROUTER_API:-http://studio-service:31113/v1/agent-builder}
       HTTPS: ${SERVER_SSL_ENABLED:-false}
