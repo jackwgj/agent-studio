@@ -7,12 +7,11 @@
       <img class="h-4 w-4" [src]="changeUrl('assets/prompt/import-tip.svg')" alt="" />
       <p class="tip-content">
         <span [innerHTML]="(importType === importTypeEnum.ZIP ? 'skill.import_zip_tip' : 'skill.import_obs_tip') | i18nextEager"></span>
-        <a rel="noopener noreferrer" [href]="skillLink">{{ 'skill.import.docoument.link' | i18nextEager }}</a>
       </p>
     </div>
     <div class="import-button">
       @if (importType === importTypeEnum.ZIP) {
-        <nz-upload [nzAccept]="'.zip'" [nzLimit]="1" [nzShowUploadList]="true" (nzChange)="handleUploadChange($event)">
+        <nz-upload [nzAccept]="'.zip'" [nzLimit]="1" [(nzFileList)]="fileList" [nzShowUploadList]="true" (nzChange)="handleUploadChange($event)">
           <button nz-button>
             <span nz-icon nzType="upload"></span>
             {{ (selectedFile ? 'skill.import.reselect.file' : 'skill.import_add_file') | i18nextEager }}

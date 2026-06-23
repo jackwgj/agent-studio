@@ -91,7 +91,7 @@
             </td>
           </ng-template>
           <td>
-            @for (action of useCase?.action; track action) {
+            @for (action of useCase?.action; track action.id) {
               <button nz-button nzType="link" nz-tooltip [nzTooltipTitle]="action.tip" (click)="onSelect(action, useCase)" [disabled]="action.disabled">
                 {{ action.label }}
               </button>

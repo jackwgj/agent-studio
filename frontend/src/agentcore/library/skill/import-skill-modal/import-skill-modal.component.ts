@@ -51,7 +51,7 @@ export class ImportSkillModalComponent {
   public obsfileData;
   public obsfileName = '';
   protected readonly changeUrl = cdnAssetUrl;
-
+  public fileList: NzUploadFile[] = [];
   constructor(
     private http: HttpClient,
     fb: FormBuilder,
@@ -230,6 +230,7 @@ export class ImportSkillModalComponent {
     if (fileItem.type !== 'start') {
       return;
     }
+    this.fileList = [fileItem.file];
     if (fileItem.file.name.lastIndexOf('.zip') < 0) {
       this.onAddItemFailed({ validResults: ['type'] });
       return;
