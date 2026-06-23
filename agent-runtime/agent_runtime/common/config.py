@@ -169,7 +169,7 @@ class OtelSettings(BaseSettings):
         default=512, validation_alias="OTEL_MAX_EXPORT_BATCH_SIZE"
     )
     redaction_enabled: bool = Field(
-        default=False, validation_alias="OTEL_REDACTION_ENABLED"
+        default=True, validation_alias="OTEL_REDACTION_ENABLED"
     )
     redact_prompts: Optional[bool] = Field(
         default=None, validation_alias="OTEL_REDACT_PROMPTS"

@@ -169,6 +169,7 @@ services:
       PLUGIN_SSL_API_CERT: ${PLUGIN_SSL_API_CERT:-false}
       WORKFLOW_EXECUTE_TIMEOUT: ${WORKFLOW_EXECUTE_TIMEOUT:-900}
       IR_LLM_API_KEY: ${IR_LLM_API_KEY:-sk-placeholder}
+      OTEL_ENABLED: false
 
     networks:
       - default
