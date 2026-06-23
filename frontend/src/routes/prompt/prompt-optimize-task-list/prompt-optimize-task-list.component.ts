@@ -77,6 +77,7 @@ interface PageSizeConfig {
 })
 export class PromptOptimizeTaskListComponent {
   @Input() isLibraryPrompt = false;
+  operateLoading = false;
   isLoading = false;
   taskList = {
     data: [],
@@ -294,39 +295,63 @@ export class PromptOptimizeTaskListComponent {
       });
     } else if (action.id === 'del') {
     } else if (action.id === 'retry') {
-      this.promptOptimizeService.retryTask(task.id).then(res => {
-        MessageComponent.showSuccess(
-          this.i18n.transform('start_retry', {
-            task: task.taskName,
-          })
-        );
-        this.listTasks();
-      });
-    } else if (action.id === 'stop') {
-      this.promptOptimizeService.stopTask(task.id).then(res => {
-        MessageComponent.showSuccess(
-          this.i18n.transform('task_pause', {
-            task: task.taskName,
-          })
-        );
-        this.listTasks();
-      });
-    } else if (action.id === 'continue') {
-      this.promptOptimizeService.continueTask(task.id).then(res => {
-        MessageComponent.showSuccess(
-          this.i18n.transform('task_resume', {
-            task: task.taskName,
-          })
-        );
-        this.listTasks();
-      });
-    } else if (action.id === 'copy') {
-      this.promptOptimizeService.copyTask(task.id).then(res => {
-        MessageComponent.showSuccess(this.i18n.transform('task_copy_success'));
-        this.router.navigate(['/home/prompt/optimize/edit'], {
-          queryParams: { id: res.task_id },
+      this.operateLoading = true;
+      this.promptOptimizeService
+        .retryTask(task.id)
+        .then(res => {
+          MessageComponent.showSuccess(
+            this.i18n.transform('start_retry', {
+              task: task.taskName,
+            })
+          );
+          this.listTasks();
+        })
+        .finally(() => {
+          this.operateLoading = false;
         });
-      });
+    } else if (action.id === 'stop') {
+      this.operateLoading = true;
+      this.promptOptimizeService
+        .stopTask(task.id)
+        .then(res => {
+          MessageComponent.showSuccess(
+            this.i18n.transform('task_pause', {
+              task: task.taskName,
+            })
+          );
+          this.listTasks();
+        })
+        .finally(() => {
+          this.operateLoading = false;
+        });
+    } else if (action.id === 'continue') {
+      this.operateLoading = true;
+      this.promptOptimizeService
+        .continueTask(task.id)
+        .then(res => {
+          MessageComponent.showSuccess(
+            this.i18n.transform('task_resume', {
+              task: task.taskName,
+            })
+          );
+          this.listTasks();
+        })
+        .finally(() => {
+          this.operateLoading = false;
+        });
+    } else if (action.id === 'copy') {
+      this.operateLoading = true;
+      this.promptOptimizeService
+        .copyTask(task.id)
+        .then(res => {
+          MessageComponent.showSuccess(this.i18n.transform('task_copy_success'));
+          this.router.navigate(['/home/prompt/optimize/edit'], {
+            queryParams: { id: res.task_id },
+          });
+        })
+        .finally(() => {
+          this.operateLoading = false;
+        });
     }
   }
 

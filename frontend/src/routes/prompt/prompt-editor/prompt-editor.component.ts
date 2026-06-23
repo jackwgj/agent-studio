@@ -253,6 +253,7 @@ export class PromptEditorComponent {
       setTimeout(() => {
         this.cdr.detectChanges();
       });
+      value = value.replaceAll(this.CURSOR_MARK,'');
       // 此行代码置后，chunks2dom中的dom更新导致angular更新异常
       this.promptValue = String(value) + '';
     });
@@ -267,6 +268,12 @@ export class PromptEditorComponent {
   }
 
   public onInput(inputEvent: any | InputEvent) {
+    const myPromptValue = this.html2prompt(this.editorContainer.element.nativeElement);
+    if (myPromptValue.length > this.maxLength) {
+      document.execCommand('delete');
+      return;
+    }
+
     if (inputEvent.data === '{' || inputEvent.data === '{}') {
       if (this.promptType === 'multi') {
         this.showInserterControl = true;
@@ -283,26 +290,27 @@ export class PromptEditorComponent {
   }
 
   public rebuildPrompt() {
+    const promptValue = this.html2prompt(
+      this.editorContainer.element.nativeElement,
+    );
+    if (promptValue === this.promptValue) {
+      // 如果内容没有变化，则不触发外部事件
+      return;
+    }
+    this.promptValue = promptValue;
+    this.cdr.detectChanges();
+
     // 重构提示词
     if (!this.onlyShowControl) {
       if (this.rebuildTimer) {
         clearTimeout(this.rebuildTimer);
       }
       this.rebuildTimer = setTimeout(() => {
-        const promptValue = this.html2prompt(
-          this.editorContainer.element.nativeElement,
-        );
-        if (promptValue === this.promptValue) {
-          // 如果内容没有变化，则不触发外部事件
-          return;
-        }
-        this.promptValue = promptValue;
         if (promptValue.length > this.maxLength) {
           // 超过最大长度，不对外推送
           return;
         }
         this.onChange(this.promptValue);
-        this.cdr.detectChanges();
       }, 300);
     }
   }
@@ -355,7 +363,7 @@ export class PromptEditorComponent {
    */
   public handlePaste(clipboardEvent: ClipboardEvent) {
     clipboardEvent.preventDefault();
-    const clipboardContent =
+    let clipboardContent =
       clipboardEvent.clipboardData?.getData('text/plain');
     // 先把内容直接插入到光标位置
     // 删除
@@ -364,6 +372,18 @@ export class PromptEditorComponent {
     const selection = document.getSelection();
     if (!selection || !selection.rangeCount) {
       return;
+    }
+    const myPromptValue = this.html2prompt(this.editorContainer.element.nativeElement);
+    // 判断是否超长,超长截断
+    if (myPromptValue.length > this.maxLength) {
+      return;
+    }
+    const leaveLength = this.maxLength - myPromptValue.length;
+    let contentLength = clipboardContent.length;
+    while (contentLength > leaveLength) {
+      const extraCharactersNum = contentLength - leaveLength;
+      clipboardContent = clipboardContent.slice(0, clipboardContent.length - extraCharactersNum);
+      contentLength = clipboardContent.length;
     }
     const range = selection.getRangeAt(0);
     this.insertContentAtCursor(range, clipboardContent);
@@ -453,7 +473,7 @@ export class PromptEditorComponent {
 
   private flushDom() {
     // 重构prompt
-    const promptValue = this.html2prompt(
+    let promptValue = this.html2prompt(
       this.editorContainer.element.nativeElement,
     );
     // 最后重新解析prompt

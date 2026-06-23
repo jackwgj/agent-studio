@@ -14,7 +14,8 @@
   align-items: flex-start;
   gap: 16px;
 
-  .origin-prompt, .optimized-prompt {
+  .origin-prompt,
+  .optimized-prompt {
     height: 100%;
     width: calc(50% - 8px);
     display: flex;
@@ -58,7 +59,7 @@
         width: 100%;
         display: flex;
         flex-wrap: wrap;
-        gap:8px;
+        gap: 8px;
         flex-direction: row;
         justify-content: space-between;
         align-items: center;
@@ -106,12 +107,18 @@
         height: calc(100% - 50px);
         width: 100%;
       }
-      .early-termination-tip{
+
+      .early-termination-tip {
         width: 100%;
-        --ti-alert-warn-bg-color:none;
+        --ti-alert-warn-bg-color: none;
         --ti-alert-warn-border-color: transparent;
 
       }
     }
   }
+}
+
+.display-center {
+  display: flex;
+  align-items: center;
 }

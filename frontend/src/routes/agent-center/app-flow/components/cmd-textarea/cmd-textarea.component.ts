@@ -269,7 +269,7 @@ export class CmdTextareaComponent implements ControlValueAccessor {
 
     // 超过最大长度截断
     if (this.maxLength) {
-      let contentLength = clipboardContent.replaceAll('\n', ' ').length;
+      let contentLength = clipboardContent.length;
       const leaveLength = this.maxLength - this.getLength();
       while (contentLength > leaveLength) {
         const extraCharactersNum = contentLength - leaveLength;
@@ -277,7 +277,7 @@ export class CmdTextareaComponent implements ControlValueAccessor {
           0,
           clipboardContent.length - extraCharactersNum,
         );
-        contentLength = clipboardContent.replaceAll('\n', ' ').length;
+        contentLength = clipboardContent.length;
       }
     }
 

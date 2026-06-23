@@ -167,6 +167,7 @@ export class InformationTemplateComponent implements OnInit, OnDestroy {
     { title: this.i18n.transform('message_body') },
     { title: this.i18n.transform('message_category') },
     { title: this.i18n.transform('visible_scope') },
+    { title: '失败原因' },
   ];
 
   readonly editorOptions: MonacoEditorConstructionOptions = {
@@ -425,7 +426,10 @@ export class InformationTemplateComponent implements OnInit, OnDestroy {
       nzTitle: this.i18n.transform('import_info_template'),
       nzContent: content,
       nzFooter: null,
-      nzWidth: 800,
+      nzWidth: 900,
+      nzOnCancel: () => {
+        this.cleanupImport();
+      },
     });
   }
 
@@ -451,12 +455,17 @@ export class InformationTemplateComponent implements OnInit, OnDestroy {
       const failList = res.failed_list.map(item => ({ ...item, status: 'error' }));
 
       this.importSrcData.data.push(...successList, ...failList);
-      this.message.success(this.i18n.transform('import_info_template_success'));
+      if (successList.length > 0 && failList.length > 0) {
+        this.message.info('部分导入成功');
+      } else if (successList.length > 0) {
+        this.message.success(this.i18n.transform('import_info_template_success'));
+      } else if (failList.length > 0) {
+        this.message.error('导入失败');
+      }
 
       this.showUpload = !this.showUpload;
       this.informationTemplateFile = null;
       this.searchList();
-      this.importModalRef?.destroy();
     });
   }
 
