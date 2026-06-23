@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 
 import com.openjiuwen.studio.agent.common.redis.RedisClient;
 import com.openjiuwen.studio.agent.common.utils.CryptoUtils;
+import com.openjiuwen.studio.agent.runtime.model.AgentExecuteParams;
 import com.openjiuwen.studio.agent.runtime.model.ExecuteParams;
 import com.openjiuwen.studio.agent.runtime.service.ObsService;
 
@@ -103,5 +104,126 @@ class EnvVariablesUtilsTest {
             envMap = JsonUtils.objectToClass(wrappedMap.get("plugin_url_params"));
             assertEquals(34L, envMap.get("a"));
         }
+    }
+
+    @Test
+    void testGetEnvironmentVariablesForAgent_BlankEnvironmentId() {
+        AgentExecuteParams executeParams = AgentExecuteParams.builder()
+            .environmentId(null)
+            .build();
+        Map<String, Object> result = envVariablesUtils.getEnvironmentVariables(executeParams);
+        assertNotNull(result);
+        assertNotNull(result.get("plugin_url_params"));
+        Map<String, Object> envMap = JsonUtils.objectToClass(result.get("plugin_url_params"));
+        assertEquals(0, envMap.size());
+    }
+
+    @Test
+    void testGetEnvironmentVariablesForAgent_DebugModeFromRedis() {
+        String environmentId = "env123";
+        String workspaceId = "ws123";
+        String redisEnvStr = "[{\"name\":\"API_KEY\",\"value\":{\"content\":\"secret_value\"}}]";
+        when(redisClient.get("environment:env123:workspaceId:ws123")).thenReturn(redisEnvStr);
+        AgentExecuteParams executeParams = AgentExecuteParams.builder()
+            .debug(true)
+            .environmentId(environmentId)
+            .workspaceId(workspaceId)
+            .build();
+        Map<String, Object> result = envVariablesUtils.getEnvironmentVariables(executeParams);
+        assertNotNull(result);
+        Map<String, Object> envMap = JsonUtils.objectToClass(result.get("plugin_url_params"));
+        assertEquals("secret_value", envMap.get("API_KEY"));
+    }
+
+    @Test
+    void testGetEnvironmentVariablesForAgent_DebugModeRedisBlank() {
+        String environmentId = "env123";
+        String workspaceId = "ws123";
+        when(redisClient.get("environment:env123:workspaceId:ws123")).thenReturn(null);
+        AgentExecuteParams executeParams = AgentExecuteParams.builder()
+            .debug(true)
+            .environmentId(environmentId)
+            .workspaceId(workspaceId)
+            .build();
+        Map<String, Object> result = envVariablesUtils.getEnvironmentVariables(executeParams);
+        assertNotNull(result);
+        Map<String, Object> envMap = JsonUtils.objectToClass(result.get("plugin_url_params"));
+        assertEquals(0, envMap.size());
+    }
+
+    @Test
+    void testGetEnvironmentVariablesForAgent_ReleaseModeFromObs() {
+        String agentId = "agent123";
+        String versionId = "v1";
+        String environmentId = "env123";
+        String obsEnvStr = "[{\"name\":\"PORT\",\"value\":{\"content\":\"8080\",\"type\":\"number\"}}]";
+        envVariablesUtils.init();
+        when(obsService.getObject("workflow/ir/agent123/agent123_v1_env123_env.json")).thenReturn(obsEnvStr);
+        AgentExecuteParams executeParams = AgentExecuteParams.builder()
+            .debug(false)
+            .agentId(agentId)
+            .versionId(versionId)
+            .environmentId(environmentId)
+            .workspaceId("ws123")
+            .build();
+        Map<String, Object> result = envVariablesUtils.getEnvironmentVariables(executeParams);
+        assertNotNull(result);
+        Map<String, Object> envMap = JsonUtils.objectToClass(result.get("plugin_url_params"));
+        assertEquals(8080L, envMap.get("PORT"));
+    }
+
+    @Test
+    void testGetEnvironmentVariablesForAgent_ReleaseModeObsBlank() {
+        String agentId = "agent123";
+        String versionId = "v1";
+        String environmentId = "env123";
+        envVariablesUtils.init();
+        when(obsService.getObject("workflow/ir/agent123/agent123_v1_env123_env.json")).thenReturn(null);
+        AgentExecuteParams executeParams = AgentExecuteParams.builder()
+            .debug(false)
+            .agentId(agentId)
+            .versionId(versionId)
+            .environmentId(environmentId)
+            .workspaceId("ws123")
+            .build();
+        Map<String, Object> result = envVariablesUtils.getEnvironmentVariables(executeParams);
+        assertNotNull(result);
+        Map<String, Object> envMap = JsonUtils.objectToClass(result.get("plugin_url_params"));
+        assertEquals(0, envMap.size());
+    }
+
+    @Test
+    void testGetEnvironmentVariablesForAgent_SecretVariableDecrypted() {
+        String environmentId = "env123";
+        String workspaceId = "ws123";
+        String redisEnvStr = "[{\"name\":\"SECRET_KEY\",\"value\":{\"content\":\"encrypted_val\",\"secret\":true}}]";
+        when(redisClient.get("environment:env123:workspaceId:ws123")).thenReturn(redisEnvStr);
+        try (MockedStatic<CryptoUtils> cryptoUtilsMockedStatic = mockStatic(CryptoUtils.class)) {
+            cryptoUtilsMockedStatic.when(() -> CryptoUtils.decrypt("encrypted_val")).thenReturn("decrypted_val");
+            AgentExecuteParams executeParams = AgentExecuteParams.builder()
+                .debug(true)
+                .environmentId(environmentId)
+                .workspaceId(workspaceId)
+                .build();
+            Map<String, Object> result = envVariablesUtils.getEnvironmentVariables(executeParams);
+            Map<String, Object> envMap = JsonUtils.objectToClass(result.get("plugin_url_params"));
+            assertEquals("decrypted_val", envMap.get("SECRET_KEY"));
+        }
+    }
+
+    @Test
+    void testGetEnvironmentVariablesForAgent_EmptyContentVariable() {
+        String environmentId = "env123";
+        String workspaceId = "ws123";
+        String redisEnvStr = "[{\"name\":\"EMPTY_VAR\",\"value\":{\"content\":\"\"}}]";
+        when(redisClient.get("environment:env123:workspaceId:ws123")).thenReturn(redisEnvStr);
+        AgentExecuteParams executeParams = AgentExecuteParams.builder()
+            .debug(true)
+            .environmentId(environmentId)
+            .workspaceId(workspaceId)
+            .build();
+        Map<String, Object> result = envVariablesUtils.getEnvironmentVariables(executeParams);
+        Map<String, Object> envMap = JsonUtils.objectToClass(result.get("plugin_url_params"));
+        assertEquals("", envMap.get("EMPTY_VAR"));
     }
 }

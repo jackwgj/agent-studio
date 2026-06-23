@@ -79,6 +79,9 @@ public class ControllerVO implements Serializable {
     @JsonProperty("update_time")
     private String updateTime = null;
 
+    @JsonProperty("environment")
+    private String environment = null;
+
     public String getId() {
         return id;
     }
@@ -187,6 +190,15 @@ public class ControllerVO implements Serializable {
         return this;
     }
 
+    public String getEnvironment() {
+        return environment;
+    }
+
+    public ControllerVO setEnvironment(String environment) {
+        this.environment = environment;
+        return this;
+    }
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
@@ -204,6 +216,7 @@ public class ControllerVO implements Serializable {
         sb.append("    projectId: ").append(toIndentedString(projectId)).append("\n");
         sb.append("    workspaceId: ").append(toIndentedString(workspaceId)).append("\n");
         sb.append("    updateTime: ").append(toIndentedString(updateTime)).append("\n");
+        sb.append("    environment: ").append(toIndentedString(environment)).append("\n");
         sb.append("}");
         return sb.toString();
     }
@@ -223,13 +236,14 @@ public class ControllerVO implements Serializable {
             controllerVO.layouts) && Objects.equals(this.inputs, controllerVO.inputs) && Objects.equals(
             this.memoryConfig, controllerVO.memoryConfig) && Objects.equals(this.globalVariables,
             controllerVO.globalVariables) && Objects.equals(this.projectId, controllerVO.projectId) && Objects.equals(
-            this.workspaceId, controllerVO.workspaceId) && Objects.equals(this.updateTime, controllerVO.updateTime);
+            this.workspaceId, controllerVO.workspaceId) && Objects.equals(this.updateTime, controllerVO.updateTime)
+            && Objects.equals(this.environment, controllerVO.environment);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(id, name, description, nodes, edges, layouts, inputs, memoryConfig, globalVariables,
-            projectId, workspaceId, updateTime);
+            projectId, workspaceId, updateTime, environment);
     }
 
     /**

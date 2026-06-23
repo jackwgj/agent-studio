@@ -173,6 +173,7 @@ public interface AgentRuntimeClient {
         @PathVariable(value = "conversation_id") String conversationId,
         @RequestParam(value = "workspace_id") String workspaceId, @RequestParam(value = "agent_type") String agentType,
         @RequestParam(value = "version") String version, @RequestParam(value = "type") String type,
+        @RequestParam(value = "environment_id", required = false) String environmentId,
         @RequestBody Object request);
 
     /**
@@ -187,6 +188,7 @@ public interface AgentRuntimeClient {
         @PathVariable(value = "conversation_id") String conversationId,
         @RequestParam(value = "workspace_id") String workspaceId, @RequestParam(value = "agent_type") String agentType,
         @RequestParam(value = "version") String version, @RequestParam(value = "type") String type,
+        @RequestParam(value = "environment_id", required = false) String environmentId,
         @RequestBody Object request);
 
     /**
@@ -198,7 +200,9 @@ public interface AgentRuntimeClient {
         @RequestHeader(CommonConstant.X_AUTH_TOKEN) String authToken,
         @PathVariable(value = "project_id") String projectId, @PathVariable(value = "agent_id") String agentId,
         @RequestParam(value = "workspace_id") String workspaceId, @RequestParam(value = "agent_type") String agentType,
-        @RequestParam(value = "version") String version, @RequestBody Object request);
+        @RequestParam(value = "version") String version,
+        @RequestParam(value = "environment_id", required = false) String environmentId,
+        @RequestBody Object request);
 
     /**
      * 运行 agent，流式
@@ -210,7 +214,9 @@ public interface AgentRuntimeClient {
         @RequestHeader(value = CommonConstant.AUTHORIZATION, required = false) String authorization,
         @PathVariable(value = "project_id") String projectId, @PathVariable(value = "agent_id") String agentId,
         @RequestParam(value = "workspace_id") String workspaceId, @RequestParam(value = "agent_type") String agentType,
-        @RequestParam(value = "version") String version, @RequestBody Object request);
+        @RequestParam(value = "version") String version,
+        @RequestParam(value = "environment_id", required = false) String environmentId,
+        @RequestBody Object request);
 
     /**
      * 运行工作流

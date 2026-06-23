@@ -857,6 +857,17 @@ public class EnvironmentServiceManagerService implements IEnvironmentServiceMana
         return true;
     }
 
+    public boolean uploadEnvironmentVarToObsFileForController(String projectId, String agentId, String environmentId,
+        String workspaceId, String flowVersion) {
+        EnvironmentManagerEntity envInfo = this.queryEnvironmentDetail(projectId, environmentId);
+        EnvironmentVariableEntity variableEntity
+            = environmentVariableMapper.findByProjectIdAndWorkspaceIdAndEnvId(projectId, workspaceId,
+            environmentId);
+        obsService.uploadObsFile(agentId, StringUtils.join(agentId, "_", flowVersion, "_env"), CommonConstant.AGENT,
+            variableEntity == null ? "" : variableEntity.getEnvVariable(), CommonConstant.Workflow.IR);
+        return true;
+    }
+
     /**
      * 解析环境变量
      *

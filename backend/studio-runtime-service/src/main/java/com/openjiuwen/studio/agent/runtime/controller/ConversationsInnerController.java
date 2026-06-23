@@ -80,7 +80,7 @@ public class ConversationsInnerController {
         @NotNull @ApiParam(value = "输入参数", required = true) @Valid @RequestBody AgentRunReq body) {
         return agentRuntimeController.runWithConversation(projectId, workspaceId, agentId, conversationId, version,
             invokeMode, type, stream, invokeSource, projectId, workspaceId, body, true,
-            RequestContextUtils.getRequestUserDomainId(), agentType, executionId);
+            RequestContextUtils.getRequestUserDomainId(), agentType, executionId, null);
     }
 
     @ApiOperation(value = "run workflow applications", nickname = "runWorkflowWithConversation",

@@ -7,9 +7,11 @@ import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
 import com.openjiuwen.studio.agent.common.utils.RequestContextUtils;
 import com.openjiuwen.studio.agent.manager.dto.*;
 import com.openjiuwen.studio.agent.manager.entity.EnvironmentManagerEntity;
+import com.openjiuwen.studio.agent.manager.entity.EnvironmentVariableEntity;
 import com.openjiuwen.studio.agent.manager.mapper.EnvironmentManagerMapper;
 import com.openjiuwen.studio.agent.manager.mapper.EnvironmentVariableMapper;
 import com.openjiuwen.studio.agent.manager.mapper.workspace.WorkspaceMapper;
+import com.openjiuwen.studio.agent.manager.obs.MgObsService;
 import com.openjiuwen.studio.agent.manager.rce.service.EnvironmentClientService;
 import com.openjiuwen.studio.agent.manager.service.environment.EnvironmentCacheUtil;
 import com.openjiuwen.studio.agent.manager.service.environment.EnvironmentServiceManagerService;
@@ -32,6 +34,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -62,6 +65,9 @@ public class EnvironmentServiceManagerServiceTest {
 
     @Mock
     private EnvironmentCacheUtil environmentCacheUtil;
+
+    @Mock
+    private MgObsService obsService;
 
     @InjectMocks
     private EnvironmentServiceManagerService environmentServiceManagerService;
@@ -604,5 +610,64 @@ public class EnvironmentServiceManagerServiceTest {
         Environment result = environmentServiceManagerService.queryEnvironment(TEST_PROJECT_ID, "test_env_id");
 
         assertNotNull(result);
+    }
+
+    @Test
+    void testUploadEnvironmentVarToObsFileForController_Success() {
+        String agentId = "agent123";
+        String environmentId = "test_env_id";
+        String flowVersion = "v1";
+
+        when(environmentManagerMapper.findByIdAndProjectId(environmentId, TEST_PROJECT_ID))
+            .thenReturn(testEnvironmentEntity);
+
+        EnvironmentVariableEntity variableEntity = new EnvironmentVariableEntity();
+        variableEntity.setId("var_id");
+        variableEntity.setEnvVariable("[{\"name\":\"KEY\",\"value\":{\"content\":\"val\"}}]");
+        when(environmentVariableMapper.findByProjectIdAndWorkspaceIdAndEnvId(
+            TEST_PROJECT_ID, TEST_WORKSPACE_ID, environmentId))
+            .thenReturn(variableEntity);
+
+        boolean result = environmentServiceManagerService.uploadEnvironmentVarToObsFileForController(
+            TEST_PROJECT_ID, agentId, environmentId, TEST_WORKSPACE_ID, flowVersion);
+
+        assertTrue(result);
+        verify(obsService).uploadObsFile(
+            eq(agentId), eq("agent123_v1_env"), eq("agent"), eq("[{\"name\":\"KEY\",\"value\":{\"content\":\"val\"}}]"), anyString());
+    }
+
+    @Test
+    void testUploadEnvironmentVarToObsFileForController_NullVariableEntity() {
+        String agentId = "agent456";
+        String environmentId = "test_env_id";
+        String flowVersion = "v2";
+
+        when(environmentManagerMapper.findByIdAndProjectId(environmentId, TEST_PROJECT_ID))
+            .thenReturn(testEnvironmentEntity);
+        when(environmentVariableMapper.findByProjectIdAndWorkspaceIdAndEnvId(
+            TEST_PROJECT_ID, TEST_WORKSPACE_ID, environmentId))
+            .thenReturn(null);
+
+        boolean result = environmentServiceManagerService.uploadEnvironmentVarToObsFileForController(
+            TEST_PROJECT_ID, agentId, environmentId, TEST_WORKSPACE_ID, flowVersion);
+
+        assertTrue(result);
+        verify(obsService).uploadObsFile(
+            eq(agentId), eq("agent456_v2_env"), eq("agent"), eq(""), anyString());
+    }
+
+    @Test
+    void testUploadEnvironmentVarToObsFileForController_EnvironmentNotFound() {
+        String agentId = "agent789";
+        String environmentId = "not_exist_env";
+        String flowVersion = "v3";
+
+        when(environmentManagerMapper.findByIdAndProjectId(environmentId, TEST_PROJECT_ID))
+            .thenReturn(null);
+
+        assertThrows(AgentStudioException.class, () -> {
+            environmentServiceManagerService.uploadEnvironmentVarToObsFileForController(
+                TEST_PROJECT_ID, agentId, environmentId, TEST_WORKSPACE_ID, flowVersion);
+        });
     }
 }

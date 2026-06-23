@@ -138,6 +138,7 @@ import com.openjiuwen.studio.agent.manager.rce.service.JiuWenService;
 import com.openjiuwen.studio.agent.manager.service.adapter.AgentPluginAdapter;
 import com.openjiuwen.studio.agent.manager.service.asset.AssetFreeTrialMgmtService;
 import com.openjiuwen.studio.agent.manager.service.md.ModelServiceManager;
+import com.openjiuwen.studio.agent.manager.service.environment.EnvironmentServiceManagerService;
 import com.openjiuwen.studio.agent.manager.service.memory.AgentMemoryConfigService;
 import com.openjiuwen.studio.agent.manager.service.workspace.WorkspaceMemberService;
 import com.openjiuwen.studio.agent.manager.utils.CommonUtil;
@@ -332,6 +333,9 @@ public class AgentManagementService implements IAgentManagementService {
 
     @Autowired
     private AgentImportService agentImportService;
+
+    @Autowired
+    private EnvironmentServiceManagerService environmentServiceManagerService;
 
     @Value("${op.svc.project-id}")
     private String opSvcProjectId;
@@ -2166,6 +2170,21 @@ public class AgentManagementService implements IAgentManagementService {
                 CommonConstant.Workflow.FLOW, agentId, agentId + Constants.UNDERLINE_STR + versionId);
             releaseVersion.setDslPath(dslVersionPath);
             mgObsService.copyObsObject(agent.getDslPath(), dslVersionPath);
+
+            String controllerJson = mgObsService.downloadObsFile(agent.getDslPath());
+            ControllerVO controllerVO = JSONObject.parseObject(controllerJson, ControllerVO.class);
+
+            if (controllerVO != null && StringUtils.isNotBlank(controllerVO.getEnvironment())) {
+                String environmentId = controllerVO.getEnvironment();
+                try {
+                    this.environmentServiceManagerService.uploadEnvironmentVarToObsFileForController(projectId, agentId,
+                        environmentId, workspaceId, versionId);
+                } catch (Exception e) {
+                    log.error(
+                        "Controller version release, environment variable copy writing to obs failed; environment id is {}",
+                        environmentId, e);
+                }
+            }
         } else {
             String dslVersionPath;
             if (StringUtils.isNotBlank(agent.getDslPath()) && CommonConstant.DEEPRESEARCH_TYPE.equals(

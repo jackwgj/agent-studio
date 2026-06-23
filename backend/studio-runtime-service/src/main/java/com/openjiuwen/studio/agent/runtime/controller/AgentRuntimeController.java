@@ -120,7 +120,8 @@ public class AgentRuntimeController {
 
     public Object runWithConversation(String projectId, String workspaceId, String agentId, String conversationId,
         String version, String invokeMode, String type, Boolean stream, String invokeSource, String ownerProjectId,
-        String ownerWorkspaceId, AgentRunReq body, Boolean isWebPage, String ownerDomainId, String agentType, String executionId) {
+        String ownerWorkspaceId, AgentRunReq body, Boolean isWebPage, String ownerDomainId, String agentType,
+        String executionId, String environmentId) {
         LicenseRecord record = null;
         taskIdManager(agentId, conversationId, executionId);
         if (APIG_SOURCE.equals(invokeSource)) {
@@ -171,6 +172,7 @@ public class AgentRuntimeController {
             .isWebPage(isWebPage)
             .memoryRepoId(
                 Optional.ofNullable(body.getLongTermMemory()).map(LongTermMemoryRuntime::getMemoryRepoId).orElse(null))
+            .environmentId(environmentId)
             .build();
 
         ModelApiLog apiLog = ModelApiLogThreadLocal.getApiLog();
@@ -246,10 +248,13 @@ public class AgentRuntimeController {
         @RequestHeader(value = "stream", required = false) Boolean stream,
         @RequestHeader(value = "X-Invoke-Source", required = false) String invokeSource,
         @RequestHeader(value = "X-Execution-Id", required = false) String executionId,
+        @Pattern(regexp = "^[a-zA-Z0-9_()-]+$") @Size(max = 64)
+        @Parameter(in = ParameterIn.QUERY, description = "环境id", schema = @Schema())
+        @RequestParam(value = "environment_id", required = false) String environmentId,
         @NotNull @ApiParam(value = "输入参数", required = true) @Valid @RequestBody AgentRunReq body) {
         return runWithConversation(projectId, workspaceId, agentId, conversationId, version, invokeMode, type, stream,
             invokeSource, projectId, workspaceId, body, false, RequestContextUtils.getRequestUserDomainId(),
-            agentType, executionId);
+            agentType, executionId, environmentId);
     }
 
     /**
@@ -293,9 +298,12 @@ public class AgentRuntimeController {
         @RequestParam(value = "type", required = false) String type,
         @RequestHeader(value = "stream", required = false) Boolean stream,
         @RequestHeader(value = "X-Execution-Id", required = false) String executionId,
+        @Pattern(regexp = "^[a-zA-Z0-9_()-]+$") @Size(max = 64)
+        @Parameter(in = ParameterIn.QUERY, description = "环境id", schema = @Schema())
+        @RequestParam(value = "environment_id", required = false) String environmentId,
         @NotNull @ApiParam(value = "输入参数", required = true) @Valid @RequestBody AgentRunReq body) {
         return runWithConversation(projectId, workspaceId, agentId, conversationId, version, invokeMode, type, stream,
-            null, projectId, workspaceId, body, false, RequestContextUtils.getRequestUserDomainId(), agentType, executionId);
+            null, projectId, workspaceId, body, false, RequestContextUtils.getRequestUserDomainId(), agentType, executionId, environmentId);
     }
 
     /**
@@ -331,10 +339,13 @@ public class AgentRuntimeController {
         @RequestHeader(value = "X-Invoke-Mode", required = false) String invokeMode,
         @RequestHeader(value = "stream", required = false) Boolean stream,
         @RequestHeader(value = "X-Execution-Id", required = false) String executionId,
+        @Pattern(regexp = "^[a-zA-Z0-9_()-]+$") @Size(max = 64)
+        @Parameter(in = ParameterIn.QUERY, description = "环境id", schema = @Schema())
+        @RequestParam(value = "environment_id", required = false) String environmentId,
         @NotNull @ApiParam(value = "输入参数", required = true) @Valid @RequestBody AgentRunReq body) {
         return runWithConversation(projectId, workspaceId, agentId, UUID.randomUUID().toString(), version, invokeMode,
             Constant.AppType.AGENT, stream, null, projectId, workspaceId, body, false,
-            RequestContextUtils.getRequestUserDomainId(), agentType, executionId);
+            RequestContextUtils.getRequestUserDomainId(), agentType, executionId, environmentId);
     }
 
     /**
@@ -377,7 +388,7 @@ public class AgentRuntimeController {
 
         return runWithConversation(RequestContextUtils.getRequestProjectId(), workspaceId, releaseInfo.getAppId(),
             conversationId, releaseInfo.getVersionId(), null, Constant.AppType.AGENT, stream, null,
-            projectId, releaseInfo.getWorkspaceId(), body, true, domainId, irWrapper.getIrType().getValue(), null);
+            projectId, releaseInfo.getWorkspaceId(), body, true, domainId, irWrapper.getIrType().getValue(), null, null);
     }
 
     /**

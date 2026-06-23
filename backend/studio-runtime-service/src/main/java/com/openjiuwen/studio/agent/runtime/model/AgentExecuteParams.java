@@ -260,6 +260,8 @@ public class AgentExecuteParams {
 
     private String ownerDomainId;
 
+    private String environmentId;
+
     /**
      * 是否为网页发布调用
      */

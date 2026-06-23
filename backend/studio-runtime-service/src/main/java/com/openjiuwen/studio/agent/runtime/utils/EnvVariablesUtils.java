@@ -10,6 +10,7 @@ import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
 import com.openjiuwen.studio.agent.common.redis.RedisClient;
 import com.openjiuwen.studio.agent.common.utils.CryptoUtils;
 import com.openjiuwen.studio.agent.runtime.dto.EnvVariablesDto;
+import com.openjiuwen.studio.agent.runtime.model.AgentExecuteParams;
 import com.openjiuwen.studio.agent.runtime.model.ExecuteParams;
 import com.openjiuwen.studio.agent.runtime.service.ObsService;
 
@@ -84,6 +85,62 @@ public class EnvVariablesUtils {
         } else {
             EnvCacheKey cacheKey = new EnvCacheKey(executeParams.getWorkflowId(), executeParams.getReleasedVersion(),
                 executeParams.getEnvironmentId());
+            variablesStr = workflowEnvCache.get(cacheKey);
+            if (StringUtils.isBlank(variablesStr)) {
+                log.warn("read env from obs return invalid value, obs path: {}", cacheKey);
+                return wrappedMap(new HashMap<>());
+            }
+        }
+        List<EnvVariablesDto> variablesDtos = JsonUtils.json2Obj(variablesStr, EnvVariablesDto.TYPE_REFERENCE);
+        if (CollectionUtils.isEmpty(variablesDtos)) {
+            log.warn("read env with invalid value: {}", variablesStr);
+            return wrappedMap(new HashMap<>());
+        }
+        Map<String, Object> varMap = new HashMap<>();
+        for (EnvVariablesDto dto : variablesDtos) {
+            if (StringUtils.isBlank(dto.getName()) || dto.getValue() == null || dto.getValue().getContent() == null) {
+                continue;
+            }
+            String content = dto.getValue().getContent();
+            if (StringUtils.isBlank(content)) {
+                varMap.put(dto.getName(), content);
+                continue;
+            }
+            if (dto.getValue().isSecret()) {
+                content = CryptoUtils.decrypt(content);
+            }
+            if (Strings.CS.equals(dto.getValue().getType(), "number")) {
+                try {
+                    varMap.put(dto.getName(), NumberFormat.getInstance().parse(content));
+                } catch (ParseException e) {
+                    log.warn("Variable {} with value {} parse error", dto.getName(), content);
+                    varMap.put(dto.getName(), content);
+                }
+            } else {
+                varMap.put(dto.getName(), content);
+            }
+        }
+        return wrappedMap(varMap);
+    }
+
+    public Map<String, Object> getEnvironmentVariables(AgentExecuteParams executeParams) {
+        if (StringUtils.isBlank(executeParams.getEnvironmentId())) {
+            return wrappedMap(new HashMap<>());
+        }
+        log.info("Get environment variables for agent, isDebug: {}, environment id: {}, workspace id: {}",
+            executeParams.isDebug(), executeParams.getEnvironmentId(), executeParams.getWorkspaceId());
+        String variablesStr;
+        if (executeParams.isDebug()) {
+            String redisKey =
+                String.format(ENV_VAR_FORMAT, executeParams.getEnvironmentId(), executeParams.getWorkspaceId());
+            variablesStr = redisClient.get(redisKey);
+            if (StringUtils.isBlank(variablesStr)) {
+                log.warn("read env from redis return invalid value, redis key: {}", redisKey);
+                return wrappedMap(new HashMap<>());
+            }
+        } else {
+            EnvCacheKey cacheKey = new EnvCacheKey(executeParams.getAgentId(),
+                executeParams.getVersionId(), executeParams.getEnvironmentId());
             variablesStr = workflowEnvCache.get(cacheKey);
             if (StringUtils.isBlank(variablesStr)) {
                 log.warn("read env from obs return invalid value, obs path: {}", cacheKey);

@@ -105,6 +105,7 @@ import com.openjiuwen.studio.agent.runtime.service.md.RuntimeModelApiLogService;
 import com.openjiuwen.studio.agent.runtime.service.memory.UserMemoryCacheMgmtService;
 import com.openjiuwen.studio.agent.runtime.thread.ModelApiLogThreadLocal;
 import com.openjiuwen.studio.agent.runtime.utils.DatetimeUtils;
+import com.openjiuwen.studio.agent.runtime.utils.EnvVariablesUtils;
 import com.openjiuwen.studio.agent.runtime.utils.JsonUtils;
 import com.openjiuwen.studio.agent.runtime.utils.OkHttpUtils;
 import com.openjiuwen.studio.agent.runtime.utils.PerformUtils;
@@ -185,6 +186,8 @@ public class AgentRuntimeService implements IAgentRuntimeService {
     private final OkHttpUtils okHttpUtils;
 
     private final RedisClient redisClient;
+
+    private final EnvVariablesUtils envVariablesUtils;
 
     @Autowired
     private ObsService obsService;
@@ -358,12 +361,13 @@ public class AgentRuntimeService implements IAgentRuntimeService {
      */
     public AgentRuntimeService(AgentIrCacheService agentIrCacheService,
                                ConversationManagementService conversationManagementService, JiuWenService jiuWenService,
-                               OkHttpUtils okHttpUtils, RedisClient redisClient) {
+                               OkHttpUtils okHttpUtils, RedisClient redisClient, EnvVariablesUtils envVariablesUtils) {
         this.agentIrCacheService = agentIrCacheService;
         this.conversationManagementService = conversationManagementService;
         this.jiuWenService = jiuWenService;
         this.okHttpUtils = okHttpUtils;
         this.redisClient = redisClient;
+        this.envVariablesUtils = envVariablesUtils;
     }
 
     /**
@@ -1960,10 +1964,19 @@ public class AgentRuntimeService implements IAgentRuntimeService {
         Map<String, Object> globalVariables = extractGlobalVariables(executeParams);
         JiuwenParams jiuwenParams = new JiuwenParams();
         jiuwenParams.setGlobalVariables(globalVariables);
+        setEnvironmentVariables(executeParams, jiuwenParams);
         configureControllerParams(executeParams, jiuwenParams);
         processFileUrls(executeParams, jiuwenParams);
         configureAgentTypeParams(executeParams, jiuwenParams, historyMessageList);
         return jiuwenParams;
+    }
+
+    private void setEnvironmentVariables(AgentExecuteParams executeParams, JiuwenParams jiuwenParams) {
+        if (StringUtils.isBlank(executeParams.getEnvironmentId())) {
+            return;
+        }
+        Map<String, Object> envVars = envVariablesUtils.getEnvironmentVariables(executeParams);
+        jiuwenParams.setEnvironmentVariables(new HashMap<>(envVars));
     }
 
     private Map<String, Object> extractGlobalVariables(AgentExecuteParams executeParams) {

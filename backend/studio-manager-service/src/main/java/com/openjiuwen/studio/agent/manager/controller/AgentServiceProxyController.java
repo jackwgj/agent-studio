@@ -100,6 +100,7 @@ import jakarta.validation.constraints.Size;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.validation.annotation.Validated;
@@ -176,7 +177,7 @@ public class AgentServiceProxyController {
 
     private Object runningAgent(String projectId, String workspaceId, String agentType, String agentId,
         String conversationId, String version, String type, Boolean stream, ServiceRunAgentReq body,
-        HttpHeaders httpHeaders) {
+        HttpHeaders httpHeaders, String environmentId) {
         if (stream == null || stream) {
             String url = "%s/v1/%s/agents/%s/conversations/%s?workspace_id=%s";
             url = String.format(Locale.ROOT, url, runtimeEndpoint, projectId, agentId, conversationId, workspaceId);
@@ -188,6 +189,9 @@ public class AgentServiceProxyController {
             }
             if (type != null) {
                 url += "&type=" + type;
+            }
+            if (StringUtils.isNotBlank(environmentId)) {
+                url += "&environment_id=" + environmentId;
             }
             // 兼容X-Execution-Id不存在的场景
             if (ObjectUtils.isEmpty(httpHeaders.get("X-Execution-Id"))) {
@@ -202,7 +206,7 @@ public class AgentServiceProxyController {
             return agentServiceProxyService.stream(url, httpHeaders, JsonUtils.encode(body));
         } else {
             return runtimeClient.runAgentWithConversation(RequestContextUtils.getRequestAuthToken(), getApiCode(projectId, workspaceId), projectId,
-                agentId, conversationId, workspaceId, agentType, version, type, body).getBody();
+                agentId, conversationId, workspaceId, agentType, version, type, environmentId, body).getBody();
         }
     }
 
@@ -233,7 +237,10 @@ public class AgentServiceProxyController {
         @RequestParam(value = "type", required = false) String type,
         @RequestHeader(value = "stream", required = false) Boolean stream,
         @NotNull @ApiParam(value = "输入参数", required = true) @Valid @RequestBody ServiceRunAgentReq body,
-        @RequestHeader HttpHeaders httpHeaders) {
+        @RequestHeader HttpHeaders httpHeaders,
+        @Pattern(regexp = "^[a-zA-Z0-9_()-]+$") @Size(max = 64)
+        @Parameter(in = ParameterIn.QUERY, description = "环境id", schema = @Schema())
+        @RequestParam(value = "environment_id", required = false) String environmentId) {
         if (!assetFreeTrialMgmtService.isInFreeTrial(agentId, RequestContextUtils.getRequestUserDomainId())) {
             log.info("Agent asset {} is not in free trial for domain {}. Reject this request.", agentId,
                 RequestContextUtils.getRequestUserDomainId());
@@ -247,7 +254,7 @@ public class AgentServiceProxyController {
         httpHeaders.add(Constants.Header.X_ASSET_APP_CONVERSATION_ID, conversationId);
 
         return runningAgent(projectId, workspaceId, agentType, agentId, conversationId, version, type, stream, body,
-            httpHeaders);
+            httpHeaders, environmentId);
     }
 
     /**
@@ -277,10 +284,13 @@ public class AgentServiceProxyController {
         @RequestParam(value = "type", required = false) String type,
         @RequestHeader(value = "stream", required = false) Boolean stream,
         @NotNull @ApiParam(value = "输入参数", required = true) @Valid @RequestBody ServiceRunAgentReq body,
-        @RequestHeader HttpHeaders httpHeaders) {
+        @RequestHeader HttpHeaders httpHeaders,
+        @Pattern(regexp = "^[a-zA-Z0-9_()-]+$") @Size(max = 64)
+        @Parameter(in = ParameterIn.QUERY, description = "环境id", schema = @Schema())
+        @RequestParam(value = "environment_id", required = false) String environmentId) {
         checkAgentPermission(projectId, workspaceId, agentId, version);
         return runningAgent(projectId, workspaceId, agentType, agentId, conversationId, version, type, stream, body,
-            httpHeaders);
+            httpHeaders, environmentId);
     }
 
     /**
@@ -306,7 +316,10 @@ public class AgentServiceProxyController {
         @PathVariable("agent_id") String agentId, @RequestParam(value = "version", required = false) String version,
         @RequestHeader(value = "stream", required = false) Boolean stream,
         @NotNull @ApiParam(value = "输入参数", required = true) @Valid @RequestBody ServiceRunAgentReq body,
-        @RequestHeader HttpHeaders httpHeaders) {
+        @RequestHeader HttpHeaders httpHeaders,
+        @Pattern(regexp = "^[a-zA-Z0-9_()-]+$") @Size(max = 64)
+        @Parameter(in = ParameterIn.QUERY, description = "环境id", schema = @Schema())
+        @RequestParam(value = "environment_id", required = false) String environmentId) {
         checkAgentPermission(projectId, workspaceId, agentId, version);
 
         if (apiKeyEnable) {
@@ -321,13 +334,16 @@ public class AgentServiceProxyController {
             if (version != null) {
                 url += "&version=" + version;
             }
+            if (StringUtils.isNotBlank(environmentId)) {
+                url += "&environment_id=" + environmentId;
+            }
             if (CommonConstant.DEEPRESEARCH_TYPE.equals(agentType)) {
                 return agentServiceProxyService.stream(url, httpHeaders, JsonUtils.encode(body), 7200000L);
             }
             return agentServiceProxyService.stream(url, httpHeaders, JsonUtils.encode(body));
         } else {
             return runtimeClient.runAgent(RequestContextUtils.getRequestAuthToken(), projectId, agentId,
-                workspaceId, agentType, version, body).getBody();
+                workspaceId, agentType, version, environmentId, body).getBody();
         }
     }
 
@@ -342,7 +358,7 @@ public class AgentServiceProxyController {
         if (stream == null || stream) {
             String url = "%s/v1/%s/workflows/%s/conversations/%s?workspace_id=%s";
             url = String.format(Locale.ROOT, url, runtimeEndpoint, projectId, workflowId, conversationId, workspaceId);
-            if (environmentId != null) {
+            if (StringUtils.isNotBlank(environmentId)) {
                 url += "&environment_id=" + environmentId;
             }
             if (version != null) {

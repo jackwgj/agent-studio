@@ -3401,6 +3401,9 @@ definitions:
       update_time:
         type: string
         description: 更新时间戳。
+      environment:
+        type: string
+        description: 环境id。
   ControllerNodeVO:
     type: object
     description: 工作流节点定义。
