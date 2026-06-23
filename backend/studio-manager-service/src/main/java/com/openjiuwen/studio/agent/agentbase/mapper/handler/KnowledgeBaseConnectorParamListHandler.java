@@ -34,7 +34,7 @@ public class KnowledgeBaseConnectorParamListHandler extends BaseTypeHandler<List
     @Override
     public List<KnowledgeBaseConnectorParam> getNullableResult(ResultSet rs, String columnName) throws SQLException {
         String sqlJson = rs.getString(columnName);
-        if (sqlJson != null) {
+        if (sqlJson != null && !sqlJson.trim().isEmpty()) {
             return JacksonUtils.readValue(sqlJson, TYPE_REF);
         }
         return null;
@@ -43,7 +43,7 @@ public class KnowledgeBaseConnectorParamListHandler extends BaseTypeHandler<List
     @Override
     public List<KnowledgeBaseConnectorParam> getNullableResult(ResultSet rs, int columnIndex) throws SQLException {
         String sqlJson = rs.getString(columnIndex);
-        if (sqlJson != null) {
+        if (sqlJson != null && !sqlJson.trim().isEmpty()) {
             return JacksonUtils.readValue(sqlJson, TYPE_REF);
         }
         return null;
@@ -53,7 +53,7 @@ public class KnowledgeBaseConnectorParamListHandler extends BaseTypeHandler<List
     public List<KnowledgeBaseConnectorParam> getNullableResult(CallableStatement cs, int columnIndex)
             throws SQLException {
         String sqlJson = cs.getNString(columnIndex);
-        if (sqlJson != null) {
+        if (sqlJson != null && !sqlJson.trim().isEmpty()) {
             return JacksonUtils.readValue(sqlJson, TYPE_REF);
         }
         return null;
