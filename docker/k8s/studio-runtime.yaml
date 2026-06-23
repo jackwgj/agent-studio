@@ -83,6 +83,9 @@ spec:
             # 远程沙箱地址（配置后启用沙箱模式，为空则沙箱不可用自动走 local）
             - name: SECURITY_SANDBOX_SERVER
               value: ''
+            # 沙箱类型：aio / jiuwenbox
+            - name: SECURITY_SANDBOX_TYPE
+              value: 'jiuwenbox'
             - name: SECURITY_SANDBOX_SSL_VERIFY
               value: 'false'
             - name: SECURITY_SANDBOX_IDLE_TTL

@@ -216,7 +216,7 @@ async def lifespan(app: FastAPI):  # noqa: redefined-outer-name
                     isolation=SandboxIsolationConfig(container_scope=scope),
                     launcher_config=PreDeployLauncherConfig(
                         base_url=sandbox_server,
-                        sandbox_type="aio",
+                        sandbox_type=settings.security_sandbox.sandbox_type,
                         idle_ttl_seconds=settings.security_sandbox.idle_ttl_seconds,
                     ),
                     timeout_seconds=settings.security_sandbox.timeout_seconds,

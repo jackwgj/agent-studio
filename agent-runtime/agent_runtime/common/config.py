@@ -127,6 +127,9 @@ class SecuritySandboxSettings(BaseSettings):
     timeout_seconds: int = Field(
         default=300, validation_alias="SECURITY_SANDBOX_TIMEOUT"
     )
+    sandbox_type: str = Field(
+        default="aio", validation_alias="SECURITY_SANDBOX_TYPE"
+    )
     scope: str = Field(default="system", validation_alias="SECURITY_SANDBOX_SCOPE")
 
     model_config = SettingsConfigDict(
