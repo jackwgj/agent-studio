@@ -58,11 +58,11 @@ class FlowApiStatusCode(Enum):
     """FlowApi 组件专用错误码"""
 
     SUCCESS = (0, "success")
-    WORKFLOW_API_INIT_ERROR = (101100, "flow api init error: {msg}")
-    WORKFLOW_API_EXECUTE_ERROR = (101101, "flow api execute error")
-    WORKFLOW_API_INPUTS_ERROR = (101102, "flow api inputs error")
-    WORKFLOW_API_OUTPUTS_ERROR = (101103, "flow api outputs error")
-    WORKFLOW_API_PARAMS_CHECK_ERROR = (101104, "flow api params check error, {msg}")
+    WORKFLOW_API_INIT_ERROR = (101741, "Api component init error. msg={msg}")
+    WORKFLOW_API_EXECUTE_ERROR = (101745, "Plugin flow components execute error")
+    WORKFLOW_API_INPUTS_ERROR = (101743, "Plugin flow components input not defined, {msg}")
+    WORKFLOW_API_OUTPUTS_ERROR = (101744, "Plugin flow components output is error")
+    WORKFLOW_API_PARAMS_CHECK_ERROR = (101742, "Plugin flow components params check error")
 
 
 def _build_flow_api_error(
