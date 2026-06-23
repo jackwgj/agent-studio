@@ -97,6 +97,8 @@ spec:
               value: 'Sql,DataQuery,Agent'
             - name: share_knowledge_enabled
               value: 'true'
+            - name: workflow_async_enable
+              value: 'true'
           resources:
             limits:
               cpu: '2'

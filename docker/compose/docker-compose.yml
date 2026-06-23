@@ -61,6 +61,7 @@ services:
       server_ssl_key_password: ${SERVER_SSL_KEY_PASSWORD:-}
       front_page_block_nodes: ${FRONT_PAGE_BLOCK_NODES:-Sql,DataQuery,Agent}
       share_knowledge_enabled: ${SHARE_KNOWLEDGE_ENABLED:-true}
+      workflow_async_enable: ${WORKFLOW_ASYNC_ENABLED:-true}
     networks:
       - default
 
