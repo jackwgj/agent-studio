@@ -1,11 +1,24 @@
+import os
+
 import uvicorn
 
 from agent_runtime.common import settings
 from agent_runtime.common.uvicron_log_cfg import UvicornLogConfig
 
 
+def _get_workers() -> int:
+    """计算 uvicorn worker 数量。
+
+    优先使用环境变量 GUNICORN_WORK_NUM；未设置时回退到 CPU 核心数 + 1。
+    """
+    configured = settings.server.workers
+    if configured is not None:
+        return configured
+    return (os.cpu_count() or 1) + 1
+
+
 def get_ssl_cert_config() -> dict:
-    """读取 HTTPS 相关配置（参考商业版 agentBuilder-engine）"""
+    """读取 HTTPS 相关配置（参考旧版 agentBuilder-engine）"""
     if not settings.server.https:
         return {}
 
@@ -41,6 +54,7 @@ def main():
         port=port,
         log_level=log_level,
         log_config=log_config_instance.to_dict(),
+        workers=_get_workers(),
         **ssl_config,
     )
 

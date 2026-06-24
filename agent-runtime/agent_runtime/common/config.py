@@ -4,7 +4,7 @@
 from enum import Enum
 from typing import Literal, Optional
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -12,12 +12,21 @@ class ServerSettings(BaseSettings):
     host: str = Field(default="127.0.0.1", validation_alias="SERVER_HOST")
     port: int = Field(default=8000, validation_alias="SERVER_PORT")
     log_level: str = Field(default="INFO", validation_alias="LOG_LEVEL")
-    # HTTPS 配置（参考商业版 agentBuilder-engine）
+    # HTTPS 配置（参考 agentBuilder-engine）
     https: bool = Field(default=False, validation_alias="HTTPS")
     tls_cert_path: str = Field(default="", validation_alias="TLS_CERT_PATH")
     tls_key_path: str = Field(default="", validation_alias="TLS_CERT_KEY_PATH")
     tls_key_password: str = Field(default="", validation_alias="TLS_CERT_KEY_PASSWD")
     tls_ciphers: str = Field(default="TLSv1.2 TLSv1.3", validation_alias="TLS_CIPHERS")
+    # Uvicorn worker 数量。未设置时由 _get_workers() 回退到 CPU 核心数 + 1
+    workers: Optional[int] = Field(default=None, validation_alias="GUNICORN_WORK_NUM")
+
+    @field_validator("workers")
+    @classmethod
+    def _validate_workers(cls, v: Optional[int]) -> Optional[int]:
+        if v is not None and v < 1:
+            raise ValueError("GUNICORN_WORK_NUM must be >= 1")
+        return v
 
 
 class RedisMode(Enum):
