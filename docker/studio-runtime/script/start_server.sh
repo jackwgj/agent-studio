@@ -40,6 +40,7 @@ function env_init(){
 function server_start(){
   # 先全部停掉
   ps -ef | grep EIStart |grep -v grep | awk '{print $2}' | xargs kill -9
+  ps -ef | grep multiprocessing |grep -v grep | awk '{print $2}' | xargs kill -9
 
   echo "start to start python server"
 

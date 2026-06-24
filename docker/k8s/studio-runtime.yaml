@@ -180,16 +180,16 @@ spec:
               # https启动时，需要改成https
               scheme: HTTP
             initialDelaySeconds: 10
-            timeoutSeconds: 1
-            periodSeconds: 10
+            timeoutSeconds: 5
+            periodSeconds: 20
             successThreshold: 1
             failureThreshold: 5
           startupProbe:
             tcpSocket:
               port: 31014
-            initialDelaySeconds: 5
+            initialDelaySeconds: 10
             timeoutSeconds: 30
-            periodSeconds: 5
+            periodSeconds: 20
             successThreshold: 1
             failureThreshold: 240
           terminationMessagePath: /dev/termination-log
