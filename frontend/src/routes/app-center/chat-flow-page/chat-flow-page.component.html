@@ -295,8 +295,8 @@
             </div>
             <div class="content">
               <nz-alert nzType="info" [nzShowIcon]="false" class="mb-4"
-                        style="width: 100%;">{{ 'chat_params_required' | i18nextEager }}
-              </nz-alert>
+                        style="width: 100%;" [nzMessage]="alertMsg"></nz-alert>
+              <ng-template #alertMsg>{{ 'chat_params_required' | i18nextEager }}</ng-template>
               <div class="start-node-params-area">
                 <dynamic-node-params-chat
                   *ngIf="startNodeParams.length"

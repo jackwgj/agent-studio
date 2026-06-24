@@ -1,8 +1,9 @@
-import { Component, Input } from '@angular/core';
+import { Component, Inject, Input, Optional } from '@angular/core';
 import { MODULES } from '@shared/modules';
 import { I18nNamespace } from '@i18n';
 import * as I18next from 'angular-i18next';
 import { cdnAssetUrl } from 'src/single-spa/assets-url';
+import { NzModalRef } from 'ng-zorro-antd/modal';
 
 @Component({
   selector: 'delete-channel-modal',
@@ -22,11 +23,15 @@ export class DeleteChannelModalComponent {
 
   public changeUrl = cdnAssetUrl;
 
+  constructor(@Optional() private modalRef: NzModalRef) {}
+
   public deletePublishedChannel() {
     this.close();
   }
 
   public close() {}
 
-  public dismiss() {}
+  public dismiss() {
+    this.modalRef?.close();
+  }
 }

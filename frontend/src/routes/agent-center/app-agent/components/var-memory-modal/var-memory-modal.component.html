@@ -102,11 +102,11 @@
           [name]="'varFormName' + i"
           nz-input
           required
-          [maxlength]="100"
           [title]="param.key"
           [(ngModel)]="param.key"
           [placeholder]="'input_placeholder' | i18nextEager"
           [variableLongMemoryNameValidator]="getUserNames(i)"
+          [lengthValidator]="[1,100]"
           [style.borderColor]="userForm.form?.get('varFormName' + i)?.invalid && (userForm.form?.get('varFormName' + i)?.dirty || userForm.form?.get('varFormName' + i)?.touched) ? '#f23030' : ''"
         />
         @if (userForm.form?.get('varFormName' + i)?.invalid && (userForm.form?.get('varFormName' + i)?.dirty || userForm.form?.get('varFormName' + i)?.touched)) {
@@ -169,11 +169,11 @@
           [name]="'varFormName' + i"
           nz-input
           required
-          [maxlength]="100"
           [title]="param.key"
           [(ngModel)]="param.key"
           [placeholder]="'input_placeholder' | i18nextEager"
           [variableLongMemoryNameValidator]="getInputNames(i)"
+          [lengthValidator]="[1,100]"
           [style.borderColor]="inputForm.form?.get('varFormName' + i)?.invalid && (inputForm.form?.get('varFormName' + i)?.dirty || inputForm.form?.get('varFormName' + i)?.touched) ? '#f23030' : ''"
         />
         @if (inputForm.form?.get('varFormName' + i)?.invalid && (inputForm.form?.get('varFormName' + i)?.dirty || inputForm.form?.get('varFormName' + i)?.touched)) {
@@ -227,7 +227,7 @@
               />
               <div class="input-param-default" *ngIf="!param.isRight">
                 <span class="anticon anticon-close-circle" style="font-size: 16px"></span>
-                <span>{{ 'variable-memory-tip5' | i18nextEager }}</span>
+                <span>{{ param.errorMsg || ('variable-memory-tip5' | i18nextEager) }}</span>
               </div>
             </div>
           </div>
@@ -255,33 +255,34 @@
 </ng-template>
 
 <ng-template #userParams let-context="context">
-  <button nz-button nz-popconfirm [nzPopconfirmTitle]="'varmemorymodalcomponent_230'| i18nextEager" [disabled]="!isCanReset" (nzOnConfirm)="resetAllLongMemoryVar()" nzPopconfirmPlacement="topLeft">
+  <button nz-button nz-popconfirm [nzPopconfirmTitle]="'varmemorymodalcomponent_230'| i18nextEager" [disabled]="!isCanReset" (nzOnConfirm)="resetAllLongMemoryVar()"
+          nzPopconfirmPlacement="topLeft">
     {{ 'varmemorymodalcomponent_223'| i18nextEager }}
   </button>
   <div class="create-list-card-area mt-[16px]">
     <nz-table [nzData]="displayedData" [nzLoading]="loading" [nzBordered]="false" [nzFrontPagination]="false">
       <thead>
-        <tr>
-          <th *ngFor="let column of listColumns">{{ column.title }}</th>
-        </tr>
+      <tr>
+        <th *ngFor="let column of listColumns">{{ column.title }}</th>
+      </tr>
       </thead>
       <tbody *ngIf="displayedData.length > 0">
-        <tr *ngFor="let row of displayedData;trackBy: trackByFn">
-          <td>{{row.variable_key || '--'}}</td>
-          <td>{{row.variable_value || '--'}}</td>
-          <td>
-            <button
-              type="button"
-              nz-button
-              nzType="text"
-              nzSize="small"
-              class="!h-[20px] !w-[20px]"
-              (click)="deleteVar(row.variable_key)"
-            >
-              {{ 'varmemorymodalcomponent_224'| i18nextEager }}
-            </button>
-          </td>
-        </tr>
+      <tr *ngFor="let row of displayedData;trackBy: trackByFn">
+        <td>{{ row.variable_key || '--' }}</td>
+        <td>{{ row.variable_value || '--' }}</td>
+        <td>
+          <button
+            type="button"
+            nz-button
+            nzType="text"
+            nzSize="small"
+            class="!h-[20px] !w-[20px]"
+            (click)="deleteVar(row.variable_key)"
+          >
+            {{ 'varmemorymodalcomponent_224'| i18nextEager }}
+          </button>
+        </td>
+      </tr>
       </tbody>
     </nz-table>
   </div>

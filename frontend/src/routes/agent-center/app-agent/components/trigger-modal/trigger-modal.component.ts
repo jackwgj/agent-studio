@@ -433,7 +433,7 @@ export class TriggerHalfmodalComponent {
     this.onDateSelect({ value: "day" });
     const formConfig: any = {
       name: ["", [Validators.required, this.noDuplicateKeywordsValidator()]],
-      prompt: [""],
+      prompt: ["", [Validators.maxLength(500)]],
       periodType: ["day", []],
       periodMonthDay: ["1", [this.monthDayValidator()]],
       periodWeek: ["1", []],
@@ -442,7 +442,7 @@ export class TriggerHalfmodalComponent {
       IntervalDay: ["1", [this.dayValidator()]]
     };
     if (!this.showCallMethod) {
-      formConfig.prompt[1] = [Validators.required];
+      formConfig.prompt[1] = [Validators.required, Validators.maxLength(500)];
     }
     this.timeTriggerForm = this.fb.group(formConfig);
   }

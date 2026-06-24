@@ -143,25 +143,20 @@
               <span nz-icon nzType="question-circle" nzTheme="outline" nz-tooltip [nzTooltipTitle]="'triggermodalcomponent_144'|i18nextEager"></span>
             </nz-form-label>
             <nz-form-control>
-              <div
-                class="prompt-wrapper"
-                [ngClass]="{
-                  error: isControlInvalid(timeTriggerForm.get('prompt'))
-                }"
-              >
+              <nz-textarea-count [nzMaxCharacterCount]="500">
                 <textarea
-                  class="prompt-textarea"
                   nz-input
                   [nzAutosize]="{ minRows: 1, maxRows: 4 }"
-                  maxlength="500"
                   [placeholder]="'triggermodalcomponent_145'|i18nextEager"
                   formControlName="prompt"
                 ></textarea>
-              </div>
+              </nz-textarea-count>
               @if (isControlInvalid(timeTriggerForm.get('prompt'))) {
                 <div class="form-error-tip">
                   @if (timeTriggerForm.get('prompt')?.hasError('required')) {
                     {{ 'required'|i18nextEager }}
+                  } @else if (timeTriggerForm.get('prompt')?.hasError('maxlength')) {
+                    {{ '长度不能大于500'}}
                   }
                 </div>
               }

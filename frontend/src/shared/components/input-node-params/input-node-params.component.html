@@ -11,7 +11,7 @@
             {{ inputItem?.name }}
           </span>
           <span *ngIf="!inputItem.required">{{ 'optional' | i18nextEager }}</span>
-          <nz-icon *ngIf="inputItem.description !== ''" nzType="question-circle" nzTheme="outline" nz-tooltip [nzTooltipTitle]="inputItem.description" />
+          <nz-icon *ngIf="inputItem.description" nzType="question-circle" nzTheme="outline" nz-tooltip [nzTooltipTitle]="inputItem.description" />
           <span class="dynamic-param-type">
             {{ inputItem?.type }}
           </span>

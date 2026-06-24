@@ -431,7 +431,7 @@ export class AgentBotPageComponent implements OnInit, OnDestroy {
         if (isClicked) {
           this.isShowLogModal = true;
           this.drawerLog = this.nzDrawerService.create({
-            nzTitle: this.i18n.transform("agent_debug"),
+            nzTitle: this.i18n.transform("debugging"),
             nzContent: AgentLogModalComponent,
             nzPlacement: "right",
             nzWidth: 700,

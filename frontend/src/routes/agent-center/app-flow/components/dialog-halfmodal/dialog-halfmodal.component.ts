@@ -934,6 +934,7 @@ export class DialogHalfmodalComponent
         {
           inputs,
           ...longTermMemory,
+          environment_id: this.environment_id,
         },
         this.workflow_id,
         this.conversationId,

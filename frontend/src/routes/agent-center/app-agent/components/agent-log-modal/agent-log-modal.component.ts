@@ -27,15 +27,14 @@ import { AppAgentRepoService } from '@services/agent-center/app-agent-repo.servi
 import { ActivatedRoute } from '@angular/router';
 import { isNil } from 'lodash';
 import {
-  addConversationCount,
   ALL,
   format2ConvTime,
   format2ExecTime,
+  getDateByTemp,
   getTimeByDate,
 } from '@routes/agent-center/app-flow/utils/log-utils';
 import { IConversationRequest, LIMIT_COUNT } from '@routes/agent-center/app-flow/components/flow-log-modal/flow-log-modal.component';
 import { CONVERSATION_TYPE } from '@services/agent-center/app-controller.service';
-import { DateOptionRender } from '../date-option-render/date-option-render.component';
 
 @Component({
   selector: 'agent-log-modal',
@@ -55,7 +54,6 @@ import { DateOptionRender } from '../date-option-render/date-option-render.compo
     AssetListIconComponent,
     AssetSequenceIconComponent,
     NoDataIconComponent,
-    DateOptionRender,
   ],
   providers: [
     {
@@ -71,11 +69,11 @@ export class AgentLogModalComponent {
 
   public ALL_ITEM = ALL;
 
-  public dates: Array<{ id: string; label: string; startTime?: number; endTime?: number }> = [];
+  public dates: Array<{ value: string; label: string; startTime?: number; endTime?: number; totalCount?: number; successCount?: number; failCount?: number; disabled?: boolean }> = [];
 
   private dateRange: { start_time?: number; end_time?: number } = {};
 
-  public selectDate = this.ALL_ITEM;
+  public selectDateObj: { value: string; label: string; startTime?: number; endTime?: number; totalCount?: number; successCount?: number; failCount?: number; disabled?: boolean } = null;
 
   public activeTabIndex = 0;
 
@@ -86,11 +84,11 @@ export class AgentLogModalComponent {
 
   public conversationList: any = [];
 
-  public conversationSelected: any;
+  public conversationSelected = '';
 
   public executionList: any = [];
 
-  public executionSelected: any;
+  public executionSelected = '';
 
   // Agent整体调试信息
   public agentDebugInfo: any = {
@@ -131,35 +129,38 @@ export class AgentLogModalComponent {
 
   ngAfterViewInit() {
     this.getConversations().then(() => {
-      this.handleAllDate();
+      this.handleAllDate(this.conversationList);
+      this.selectDateObj = this.dates?.[0] || null;
     });
   }
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes.showLogModal && changes.showLogModal.currentValue) {
       this.getConversations().then(() => {
-        this.handleAllDate();
+        this.handleAllDate(this.conversationList);
+        this.selectDateObj = this.dates?.[0] || null;
       });
     }
   }
 
-  public onSelectDate(dateId: any) {
-    this.selectDate = dateId;
-    const selectedDate = this.dates.find(d => d.id === dateId);
-
-    if (this.selectDate === this.ALL_ITEM) {
+  public onSelectDate(event: { value: string; startTime?: number; endTime?: number }) {
+    if (event.value === this.ALL_ITEM) {
       this.dateRange = {};
-    } else if (selectedDate) {
+    } else {
       this.dateRange = {
-        start_time: selectedDate.startTime,
-        end_time: selectedDate.endTime,
+        start_time: event.startTime,
+        end_time: event.endTime,
       };
     }
 
     this.getConversations(this.dateRange).then(() => {
-      if (this.selectDate === this.ALL_ITEM) {
-        this.handleAllDate();
-      }
+      this.agentRepoServe.getConversationList(this.agent_id, {
+        limit: LIMIT_COUNT,
+        offset: 0,
+        type: CONVERSATION_TYPE.AGENT,
+      }).then((res) => {
+        this.handleAllDate(res.conversation_infos || []);
+      });
     });
   }
 
@@ -181,7 +182,8 @@ export class AgentLogModalComponent {
     }
   }
 
-  public onBeforeOpenConv(searchValue: string) {
+  public onConvOpenChange(open: boolean) {
+    if (!open) return;
     this.agentRepoServe
       .getConversationList(this.agent_id, {
         ...this.dateRange,
@@ -200,7 +202,8 @@ export class AgentLogModalComponent {
       });
   }
 
-  public onBeforeOpenExec(searchValue: string) {
+  public onExecOpenChange(open: boolean) {
+    if (!open) return;
     const conversation = this.conversationList.find(c => c.conversation_id === this.conversationSelected);
     if (conversation) {
       this.agentRepoServe
@@ -217,6 +220,11 @@ export class AgentLogModalComponent {
     } else {
       this.executionList = [];
     }
+  }
+
+  public getConvSelectedTime(conversationId: string): number {
+    const conv = this.conversationList.find(c => c.conversation_id === conversationId);
+    return conv?.start_time;
   }
 
   public formatToConvTime(timestamp: number): string {
@@ -355,12 +363,12 @@ export class AgentLogModalComponent {
       );
       this.conversationList = res.conversation_infos;
       if (this.conversationList.length > 0) {
-        this.conversationSelected = this.conversationList[0];
+        this.conversationSelected = this.conversationList[0].conversation_id;
         const { conversation_id } = this.conversationList[0] || {};
         this.getExecutions(conversation_id);
       } else {
-        this.conversationSelected = {};
-        this.executionSelected = {};
+        this.conversationSelected = '';
+        this.executionSelected = '';
         this.timelineData = {};
         this.callChainInfo = [];
         this.agentDebugInfo = {
@@ -387,7 +395,7 @@ export class AgentLogModalComponent {
       );
       this.executionList = res.execution_queries;
       if (this.executionList.length > 0) {
-        this.executionSelected = this.executionList[0];
+        this.executionSelected = this.executionList[0].execution_id;
         const { execution_id } = this.executionList[0] || {};
         this.getSingleExecDetail(this.agent_id, execution_id);
       }
@@ -573,12 +581,56 @@ export class AgentLogModalComponent {
       const formattedDate = `${date.getFullYear()}-${String(
         date.getMonth() + 1,
       ).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-      return { id: formattedDate, label: formattedDate, ...getTimeByDate(formattedDate) };
+      return { value: formattedDate, label: formattedDate, totalCount: 0, successCount: 0, failCount: 0, disabled: false, ...getTimeByDate(formattedDate) };
     });
-    this.dates = [{ id: this.ALL_ITEM, label: this.i18n.transform('all') }, ...dates];
+    this.dates = [{ value: this.ALL_ITEM, label: this.i18n.transform('all'), totalCount: 0, successCount: 0, failCount: 0, disabled: false }, ...dates];
   }
 
-  private handleAllDate(): void {
-    addConversationCount(this.conversationList, this.dates)
+  private handleAllDate(convListParam?: any[]): void {
+    this.resetDateCounts();
+    const convList = convListParam || this.conversationList || [];
+    if (!convList.length) {
+      this.updateDateDisabled();
+      return;
+    }
+
+    const allExecPromises = convList.map(conv =>
+      this.agentRepoServe.getExecList(this.agent_id, conv.conversation_id)
+        .then(res => res.execution_queries || [])
+        .catch(() => [])
+    );
+
+    Promise.all(allExecPromises).then(allExecutions => {
+      const flatExecutions = allExecutions.flat();
+      flatExecutions.forEach((item) => {
+        const dateString = getDateByTemp(item.start_time);
+        const dateItem = this.dates.find(date => date.value === dateString);
+        if (!dateItem) {
+          return;
+        }
+        dateItem.totalCount += 1;
+        dateItem.successCount += item.status === 'succeeded' ? 1 : 0;
+        dateItem.failCount += item.status === 'failed' ? 1 : 0;
+      });
+      this.updateDateDisabled();
+      this.cdr.markForCheck();
+    });
+  }
+
+  private resetDateCounts(): void {
+    this.dates.forEach(item => {
+      item.totalCount = 0;
+      item.successCount = 0;
+      item.failCount = 0;
+    });
+  }
+
+  private updateDateDisabled(): void {
+    this.dates.forEach(item => {
+      if (item.value === 'all') {
+        return;
+      }
+      item.disabled = !item.totalCount;
+    });
   }
 }

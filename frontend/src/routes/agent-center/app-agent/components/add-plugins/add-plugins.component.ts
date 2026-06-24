@@ -193,7 +193,7 @@ export class AddPluginsComponent {
     { label: this.i18n.transform('plugin_description'), field: 'tool_desc' },
   ];
   public searchTagsMarket: ISearchTag[] = [];
-  public searchFieldMarket: string = 'name';
+  public searchFieldMarket: string = 'tool_chinese_name';
 
   public searchItemsPersonal = [
     { label: this.i18n.transform('plugin_name'), field: 'tool_chinese_name' },
@@ -201,7 +201,7 @@ export class AddPluginsComponent {
     { label: this.i18n.transform('plugin_description'), field: 'tool_desc' },
   ];
   public searchTagsPersonal: ISearchTag[] = [];
-  public searchFieldPersonal: string = 'name';
+  public searchFieldPersonal: string = 'tool_chinese_name';
 
   public searchItemsShare = [
     { label: this.i18n.transform('name'), field: 'resourceName' },

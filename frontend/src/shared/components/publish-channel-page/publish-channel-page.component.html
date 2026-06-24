@@ -216,19 +216,6 @@
               </div>
             </td>
             <td>
-              <div *ngIf="((item.type === 'WEB_PAGE' || item.type === 'CLOUD_STORE') && item.statusIcon === 'active') else empty"
-                   style="position: relative; display: flex; gap: 8px; align-items: center"
-              >
-                <div *ngIf="item.call_count >= -1">
-                  <p>{{ (item.call_count.toString() === '-1' ? ('daily_limit'|i18nextEager) : ('daily_limit1'|i18nextEager:{times: item.call_count})) }}</p>
-                  <p>{{ (item.visibility_scope === 'TENANT' ? 'share_scope1' : 'share_scope2')|i18nextEager }}</p>
-                </div>
-                <div class="resource-config" (click)="handleClickResourceConfigBtn($event, item)" *ngIf="item.call_count >= -1">
-                  <img [src]="changeUrl('assets/agent/resource_config.svg')" alt="" style="cursor: pointer"/>
-                </div>
-              </div>
-            </td>
-            <td>
               <div
                 class="cell flex-col justify-between gap-[4px]"
                 *ngIf="(item?.type === 'WEB_PAGE' || item.type === 'CLOUD_STORE') && (item?.link || item?.url); else empty"
@@ -264,6 +251,7 @@
                       *ngIf="!isFromAgentBuilder"
                       (click)="visitNow(item)"
                       nzType="default"
+                      nzSize="small"
                     >
                       {{ 'immediate_access' | i18nextEager }}
                     </button>
@@ -272,6 +260,7 @@
                       nz-button
                       (click)="copyUrl(item.url || item.link)"
                       nzType="default"
+                      nzSize="small"
                     >
                       {{ 'copy_link' | i18nextEager }}
                     </button>
@@ -281,15 +270,9 @@
                       (click)="regenerate(item.version_id)"
                       nzType="default"
                       *ngIf="item?.type !== 'CLOUD_STORE'"
+                      nzSize="small"
                     >
                       {{ 'regenerate' | i18nextEager }}
-                    </button>
-                    <button
-                      class="!text-left"
-                      nz-button
-                      nzType="default"
-                      (click)="stopDistribution(item)"
-                    >{{ 'cancel_publish'|i18nextEager }}
                     </button>
                   </ng-container>
 
@@ -299,6 +282,7 @@
                       nz-button
                       (click)="showManage(item, templateContent)"
                       nzType="default"
+                      nzSize="small"
                     >
                       {{ 'manage' | i18nextEager }}
                     </button>
@@ -307,6 +291,7 @@
                       nz-button
                       (click)="stopDistribution(item)"
                       nzType="default"
+                      nzSize="small"
                     >
                       {{ 'stop_distribution' | i18nextEager }}
                     </button>
@@ -318,6 +303,7 @@
                       nz-button
                       (click)="visitNow(item)"
                       nzType="default"
+                      nzSize="small"
                     >
                       {{ 'immediate_access' | i18nextEager }}
                     </button>
@@ -325,6 +311,7 @@
                       class="!text-left"
                       nz-button
                       nzType="default"
+                      nzSize="small"
                       (click)="editConfig(item)"
                     >
                       {{ 'modify_configuration' | i18nextEager }}
@@ -333,6 +320,7 @@
                       class="!text-left"
                       nz-button
                       nzType="default"
+                      nzSize="small"
                       (click)="stopDistribution(item)"
                     >
                       {{ 'stop_distribution' | i18nextEager }}

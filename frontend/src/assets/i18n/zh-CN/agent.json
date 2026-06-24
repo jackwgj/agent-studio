@@ -372,6 +372,7 @@
   "variable-memory-tip3": "入参变量",
   "variable-memory-tip4": "通过API对变量进行赋值，通常用于注入业务逻辑、上下文信息或特定参数等具有确定性的场景",
   "variable-memory-tip5": "默认值不符合类型要求。",
+  "variable-memory-overflow": "数值超出范围",
   "variable-memory-tip6": "请检查数据是否填写正确",
   "variable-memory-tip7": "用户变量",
   "variable-memory-tip8": "入参变量"

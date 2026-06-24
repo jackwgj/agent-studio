@@ -1,4 +1,4 @@
-:host{
+:host {
   width: 100%;
 }
 
@@ -7,6 +7,7 @@
   display: flex;
   align-items: flex-end;
   gap: 0 8px;
+
   .clear-button {
     border-radius: 50%;
     width: 52px;
@@ -17,6 +18,7 @@
     justify-content: center;
     align-items: center;
     cursor: pointer;
+
     &.clear-disabled {
       color: #a6a6a6;
       cursor: not-allowed;
@@ -24,7 +26,7 @@
   }
 }
 
-.sender-container-full{
+.sender-container-full {
   width: 100% !important;
 }
 
@@ -37,25 +39,30 @@
   border: 1px solid #e6e6e6;
   border-radius: 24px;
   padding: 12px 10px 10px 20px;
+
   .focus-input {
     width: 100%;
     line-height: 24px;
     font-size: 16px;
     font-weight: 400;
   }
+
   .textarea-content {
     width: 100%;
     line-height: 24px;
     max-height: 206px;
     margin-bottom: 10px;
+
     &:focus {
       outline: none !important;
       resize: none;
     }
+
     &:disabled {
       background-color: #fff;
     }
   }
+
   .stop-button {
     display: flex;
     align-items: center;
@@ -66,22 +73,28 @@
     color: rgb(20, 118, 255);
     cursor: pointer;
   }
+
   &.is-sending {
     padding-top: 8px;
     padding-bottom: 8px;
     padding-right: 10px;
+
     .sending-container {
       height: 32px !important;
     }
+
     .focus-input:disabled {
       background-color: #fff;
     }
   }
+
   &.sender-disabled {
     cursor: not-allowed;
+
     .focus-input:disabled {
       background-color: #fff;
     }
+
     meta-inline-svg {
       color: #a6a6a6;
     }
@@ -149,7 +162,7 @@
   color: rgba(25, 25, 25, 1);
 }
 
-.btn{
+.btn {
   font-size: 14px;
   box-sizing: border-box;
   border: 1px solid rgba(194, 194, 194, 1);
@@ -157,11 +170,12 @@
   padding: 2px 10px;
   background: rgba(255, 255, 255, 1);
 }
-.disable_btn{
+
+.disable_btn {
   color: rgba(194, 194, 194, 1);
 }
 
-.template{
+.template {
   text-overflow: ellipsis;
   overflow: hidden;
   display: block;
@@ -177,18 +191,22 @@
 .remain-audio {
   padding-right: 12px;
 }
-.edit-item{
+
+.edit-item {
   align-items: center;
 }
-.edit{
+
+.edit {
   font-size: 14px;
 }
-::ng-deep{
-  .ti3-dropdown-container:has(.icon-size){
+
+::ng-deep {
+  .ti3-dropdown-container:has(.icon-size) {
     margin-top: -110px;
   }
-  .upload-file-menu{
-    .ti3-menu-toggle-menu{
+
+  .upload-file-menu {
+    .ti3-menu-toggle-menu {
       color: rgba(25, 25, 25, 1) !important;
       display: flex !important;
       flex-direction: row;
@@ -196,32 +214,43 @@
       align-items: center;
       max-width: 150px;
       text-decoration: none !important;
-      .ti3-icon:before{
+
+      .ti3-icon:before {
         display: none !important;
+      }
+    }
+  }
+  .sender-main {
+    .ant-input:focus {
+      border: none !important;
+      box-shadow: none !important;
+      &:focus{
+        border: none !important;
+        box-shadow: none !important;
       }
     }
   }
 }
 
-.icon-size{
+.icon-size {
   font-size: 16px;
 }
 
 
 .placeholder::-webkit-input-placeholder {
-  color: rgba(25, 25, 25, 1)!important;
+  color: rgba(25, 25, 25, 1) !important;
   font-size: 16px;
   font-weight: 400;
 }
 
 .placeholder::-moz-placeholder {
-  color: rgba(25, 25, 25, 1)!important;
+  color: rgba(25, 25, 25, 1) !important;
   font-size: 16px;
   font-weight: 400;
 }
 
 .placeholder:-moz-placeholder {
-  color: rgba(25, 25, 25, 1)!important;
+  color: rgba(25, 25, 25, 1) !important;
   font-size: 16px;
   font-weight: 400;
 }

@@ -1051,6 +1051,9 @@ export class AppAgentRepoService {
     if (version_id) {
       seeUrl = `${seeUrl}&version=${version_id}`;
     }
+    if (params.environment_id) {
+      seeUrl += `&environment_id=${params.environment_id}`;
+    }
     const { stream_first_chunk_timeout, stream_interval_timeout } =
       this.configServ.getConfigs();
 

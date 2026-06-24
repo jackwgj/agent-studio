@@ -8,6 +8,7 @@ import {
   EventEmitter,
   OnInit,
   Input,
+  Optional,
 } from '@angular/core';
 import { NgForm } from '@angular/forms';
 import { cdnAssetUrl } from 'src/single-spa/assets-url';
@@ -84,7 +85,7 @@ export class StartImportJsonModalComponent implements OnInit {
     protected readonly monacoLoader: MonacoEditorLoaderService,
     private nzModal?: NzModalService,
     private nzMessage?: NzMessageService,
-    private nzModalRef?: NzModalRef,
+    @Optional() private nzModalRef?: NzModalRef,
   ) {}
 
   ngOnInit() {

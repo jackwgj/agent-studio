@@ -89,10 +89,6 @@ export class PublishChannelPageComponent {
       width: '8%',
     },
     {
-      title: this.i18n.transform('source_config'),
-      width: '11%',
-    },
-    {
       title: this.i18n.transform('link_address'),
       width: '17%',
     },

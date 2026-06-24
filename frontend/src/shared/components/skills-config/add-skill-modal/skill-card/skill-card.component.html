@@ -21,7 +21,15 @@
       </div>
     </div>
   </div>
-  <p class="w-[100%] skill-description" nz-ellipsis>
+  <p
+    class="w-[100%] skill-description"
+    nz-typography
+    nzEllipsis
+    [nzEllipsisRows]="3"
+    nz-tooltip
+    [nzTooltipTitle]="skillItem.description"
+    nzTooltipPlacement="top"
+  >
     {{ skillItem.description }}
   </p>
   <p class="w-[100%] skill-create-time" nz-ellipsis>

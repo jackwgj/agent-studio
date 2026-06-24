@@ -360,6 +360,7 @@ export class FlowComponent implements OnInit, OnDestroy, AfterViewInit {
   public globalConfigInputs = [];
   public globalConfigVariables = [];
   public globalConfigMemoryConfig = null;
+  public globalConfigEnvironment = '';
   public globalConfigFlowId = null;
   public logConversationId = '';
   public nodeConfigNodeInfo = null;
@@ -2153,6 +2154,7 @@ export class FlowComponent implements OnInit, OnDestroy, AfterViewInit {
       this.globalConfigInputs = this.workflowDetail.details.inputs;
       this.globalConfigVariables = this.workflowDetail.details.global_variables;
       this.globalConfigMemoryConfig = this.workflowDetail.memory_config;
+      this.globalConfigEnvironment = this.workflowDetail.details.environment || '';
       this.globalConfigFlowId = this.workflowId;
     } else {
       this.globalConfigInputs = (this.workflowDetail.workflow_details.configs as any)?.inputs || [];
@@ -2235,10 +2237,12 @@ export class FlowComponent implements OnInit, OnDestroy, AfterViewInit {
     inputs: IWorkflowField[];
     global_variables: IWorkflowField[];
     memory_config: IMemoryLibBaseInfo;
+    environment: string;
   }){
     this.workflowDetail.details.inputs = configs.inputs;
     this.workflowDetail.details.global_variables =
       configs.global_variables;
+    this.workflowDetail.details.environment = configs.environment;
     if (this.configServ.isSupportUserPersona()) {
       this.workflowDetail.memory_config = configs.memory_config;
     }

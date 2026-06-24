@@ -122,3 +122,16 @@
     transform: rotate(360deg);
   }
 }
+
+::ng-deep {
+  .online-sender {
+    .ant-input:focus {
+      border: none !important;
+      box-shadow: none !important;
+      &:focus{
+        border: none !important;
+        box-shadow: none !important;
+      }
+    }
+  }
+}

@@ -8,7 +8,7 @@
           </span>
           <span *ngIf="!inputItem.required">{{ 'optional' | i18nextEager }}</span>
           <nz-icon
-            *ngIf="inputItem.description !== ''"
+            *ngIf="inputItem.description"
             nzType="question-circle"
             nzTheme="outline"
             nz-tooltip

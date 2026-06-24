@@ -11,6 +11,7 @@ import { I18nNamespace } from "@i18n";
 import { NgForm } from "@angular/forms";
 import { AccBlockComponent } from "@routes/agent-center/app-flow/components/acc-block/acc-block.component";
 import {
+  LengthValidatorDirective,
   variableLongMemoryNameValidatorDirective
 } from "@shared/directives/variable-name-validator.directive";
 import { cdnAssetUrl } from "../../../../../single-spa/assets-url";
@@ -26,6 +27,7 @@ import {
 } from "@routes/agent-center/interfaces/agent/app-agent.interface";
 import { AgentDataService } from "@services/agent-center/agent-data.service";
 import { cloneDeep } from "lodash";
+import { NzInputNumberModule } from 'ng-zorro-antd/input-number';
 
 enum mapKeys {
   userVars = "userVars",
@@ -34,7 +36,7 @@ enum mapKeys {
 
 @Component({
   selector: "meta-var-memory-modal",
-  imports: [MODULES, AccBlockComponent, variableLongMemoryNameValidatorDirective],
+  imports: [MODULES, AccBlockComponent, variableLongMemoryNameValidatorDirective, LengthValidatorDirective],
   templateUrl: "./var-memory-modal.component.html",
   styleUrls: ["./var-memory-modal.component.scss"],
   providers: [
@@ -422,23 +424,51 @@ export class VarMemoryModalComponent implements OnInit {
 
   // 当切换下拉框中的数据类型时，需要判断输入框中的数据格式是否正确
   public handleChangeInputParamType(data: MemoryVariableInputParamType) {
+    data.errorMsg = '';
     if (data.type === "string") {
       data.isRight = true;
       return;
     }
     if (data.type === "integer") {
-      data.isRight = this.isIntegerString(data.value as string);
+      if (!this.isIntegerString(data.value as string)) {
+        data.isRight = false;
+        data.errorMsg = this.getIntegerErrorMsg(data.value as string);
+      } else {
+        data.isRight = true;
+      }
       return;
     }
     if (data.type === "number") {
-      data.isRight = this.isNumberString(data.value as string);
+      if (!this.isNumberString(data.value as string)) {
+        data.isRight = false;
+        data.errorMsg = this.getNumberErrorMsg(data.value as string);
+      } else {
+        data.isRight = true;
+      }
       return;
     }
     if (data.type === "boolean") {
       data.isRight = this.isBooleanString(data.value as string);
+      if (!data.isRight) {
+        data.errorMsg = this.i18n.transform('variable-memory-tip5');
+      }
       return;
     }
     return;
+  }
+
+  private getIntegerErrorMsg(str: string): string {
+    if (!/^[-+]?\d+$/.test(str)) {
+      return this.i18n.transform('variable-memory-tip5');
+    }
+    return this.i18n.transform('variable-memory-overflow');
+  }
+
+  private getNumberErrorMsg(str: string): string {
+    if (!/^[-+]?(\d+\.?\d*|\.\d+)$/.test(str)) {
+      return this.i18n.transform('variable-memory-tip5');
+    }
+    return this.i18n.transform('variable-memory-overflow');
   }
 
   // 判断是否是Integer类型
@@ -446,15 +476,20 @@ export class VarMemoryModalComponent implements OnInit {
     if (str === "") {
       return true;
     }
-    return /^[-+]?\d+$/.test(str);
+    if (!/^[-+]?\d+$/.test(str)) {
+      return false;
+    }
+    return Math.abs(Number(str)) <= Number.MAX_SAFE_INTEGER;
   }
 
-  // 判断是否是Number类型
   private isNumberString(str: string): boolean {
     if (str === "") {
       return true;
     }
-    return /^[-+]?(\d+\.?\d*|\.\d+)$/.test(str);
+    if (!/^[-+]?(\d+\.?\d*|\.\d+)$/.test(str)) {
+      return false;
+    }
+    return Math.abs(Number(str)) <= Number.MAX_SAFE_INTEGER;
   }
 
   // 判断是否是Boolean类型

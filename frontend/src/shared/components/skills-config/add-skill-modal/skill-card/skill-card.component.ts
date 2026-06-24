@@ -2,6 +2,8 @@ import { Component, Input, OnInit } from '@angular/core';
 
 import { NzIconModule } from 'ng-zorro-antd/icon';
 import { NzTagModule } from 'ng-zorro-antd/tag';
+import { NzToolTipModule } from 'ng-zorro-antd/tooltip';
+import { NzTypographyModule } from 'ng-zorro-antd/typography';
 
 import { MODULES } from '@shared/modules';
 import { SkillSource, SkillStatus } from '@enums/skill.enum';
@@ -14,7 +16,7 @@ import { PipesModule } from 'src/pipes/pipes.module';
   templateUrl: './skill-card.component.html',
   styleUrls: ['./skill-card.component.scss'],
   standalone: true,
-  imports: [MODULES, I18nPipe, PipesModule, NzIconModule, NzTagModule],
+  imports: [MODULES, I18nPipe, PipesModule, NzIconModule, NzTagModule, NzToolTipModule, NzTypographyModule],
   providers: [I18nService],
 })
 export class SkillCardComponent implements OnInit {

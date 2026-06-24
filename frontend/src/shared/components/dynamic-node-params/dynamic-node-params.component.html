@@ -1,41 +1,42 @@
-<form [formGroup]="parameterFromGroup" class="form-container">
+<form [formGroup]="parameterFromGroup" class="form-container" nz-form nzLayout="vertical">
   <nz-form-item
-    tiScroll
     class="formfield-style"
   >
     <!-- 开始节点的输入参数列表 -->
     <nz-form-item *ngFor="let inputItem of inputList; let i = index">
-      <nz-form-label class="flex justify-between">
-        <div class="flex-center-left">
-          <span tiOverflow class="dynamic-param-label">
-            {{ inputItem?.front_name || inputItem?.name }}
-          </span>
-          <span *ngIf="!inputItem.required">{{'optional' | i18nextEager }}</span>
-          <nz-icon
-            nzType="question-circle"
-            nzTheme="outline"
-            style="word-break: break-all"
-            *ngIf="inputItem.description !== ''"
-            nz-tooltip
-            nzTooltipTitle="inputItem.description"
-          />
-          <span class="dynamic-param-type">
-            {{ getType(inputItem) }}
-          </span>
-        </div>
-        <button
-          *ngIf="isShowMultiBtn(inputItem)"
-          nz-button
-          class="flex"
-          [disabled]="inputItem.uploadDatas?.length >= 10 || isUploading"
-          (click)="addMultiFile(i)"
-        >
-          <span class="flex items-center">
-            <nz-icon nzType="plus" nzTheme="outline" />
-            {{ 'add' | i18nextEager }}
-          </span
+      <nz-form-label>
+        <div class="flex items-center justify-between">
+          <div class="flex-center-left">
+            <span nz-typography nzEllipsis class="dynamic-param-label">
+              {{ inputItem?.front_name || inputItem?.name }}
+            </span>
+            <span *ngIf="!inputItem.required">{{'optional' | i18nextEager }}</span>
+            <nz-icon
+              nzType="question-circle"
+              nzTheme="outline"
+              style="word-break: break-all"
+              *ngIf="inputItem.description"
+              nz-tooltip
+              [nzTooltipTitle]="inputItem.description"
+            />
+            <span class="dynamic-param-type">
+              {{ getType(inputItem) }}
+            </span>
+          </div>
+          <button
+            *ngIf="isShowMultiBtn(inputItem)"
+            nz-button
+            class="flex"
+            [disabled]="inputItem.uploadDatas?.length >= 10 || isUploading"
+            (click)="addMultiFile(i)"
           >
-        </button>
+            <span class="flex items-center">
+              <nz-icon nzType="plus" nzTheme="outline" />
+              {{ 'add' | i18nextEager }}
+            </span
+            >
+          </button>
+        </div>
       </nz-form-label>
       <nz-form-control>
         <!-- string类型的输入参数 -->
@@ -237,7 +238,7 @@
               <span
                 class="ml-[12px]"
                 [ngClass]="{ 'text-[#F23030]': fileItem.progress === 'failed' }"
-                tiOverflow
+                nz-typography nzEllipsis
               >
               {{ fileItem.name }}</span
               >

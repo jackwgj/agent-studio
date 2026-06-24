@@ -39,6 +39,14 @@
       border: 1px solid transparent;
       padding: 16px;
       margin: 0;
+      position: relative;
+
+      .skill-checkbox {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        z-index: 1;
+      }
 
       &.hover-item:hover {
         border: 1px solid #5E7CE0;

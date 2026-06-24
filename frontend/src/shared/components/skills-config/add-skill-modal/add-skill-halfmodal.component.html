@@ -62,6 +62,14 @@
                 [nz-tooltip]="skillItem.tip"
                 nzTooltipPlacement="top"
               >
+                <label
+                  class="skill-checkbox"
+                  nz-checkbox
+                  [nzDisabled]="skillItem.disabled"
+                  [nzChecked]="selectedIds.includes(skillItem.skill_id)"
+                  (nzCheckedChange)="onSkillItemClick(skillItem)"
+                  (click)="$event.stopPropagation()"
+                ></label>
                 <app-skill-card [skillItem]="skillItem"></app-skill-card>
               </div>
             }

@@ -162,6 +162,7 @@ export interface IWorkflowDetail {
   inputs?: IWorkflowField[];
   global_variables?: IWorkflowField[];
   memory_config?: IMemoryLibBaseInfo;
+  environment?: string;
 }
 
 export interface SourceTargetCell {

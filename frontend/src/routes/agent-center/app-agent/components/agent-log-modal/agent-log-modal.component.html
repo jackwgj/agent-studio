@@ -2,23 +2,34 @@
   <div class="exec-list">
     <nz-select
       class="date-selector"
-      style="width: 200px"
-      [nzPlaceHolder]="'select_date' | i18nextEager"
-      nzAllowClear
+      style="width: 150px"
+      [nzPlaceHolder]="'select_placeholder' | i18nextEager"
+      [nzSuffixIcon]="calendarIcon"
+      [nzDropdownMatchSelectWidth]="false"
+      [(ngModel)]="selectDateObj"
       (ngModelChange)="onSelectDate($event)"
     >
-      @for (date of dates; track date.id) {
-        <nz-option
-          [nzValue]="date.id"
-          [nzLabel]="date.label"
-        >
-          <date-option-render
-            [selectDate]="selectDate"
-            [optionData]="date"
-          ></date-option-render>
+      @for (date of dates; track date.value) {
+        <nz-option [nzValue]="date" [nzLabel]="date.label" [nzDisabled]="date.disabled" [nzCustomContent]="true">
+          <span class="flex items-center gap-[4px]">
+            {{ date.label }}
+            <ng-container *ngIf="!date.disabled && date.value !== 'all'">
+              <span class="flex items-center gap-[4px] ml-[24px]">
+                <asset-success-icon></asset-success-icon>
+                <span class="w-[20px]">{{ date.successCount }}</span>
+              </span>
+              <span class="flex items-center gap-[4px]">
+                <asset-error-icon></asset-error-icon>
+                <span>{{ date.failCount }}</span>
+              </span>
+            </ng-container>
+          </span>
         </nz-option>
       }
     </nz-select>
+    <ng-template #calendarIcon>
+      <asset-calendar-icon></asset-calendar-icon>
+    </ng-template>
 
     <div class="flex w-[calc(100%-36px)] gap-[8px]">
       <div class="flex h-fit w-[calc(100%-8px)] items-center gap-2">
@@ -28,24 +39,31 @@
               class="combo-select-left"
               style="width: 100%; min-width: 100%; margin-bottom: 20px"
               [nzPlaceHolder]="'select_placeholder' | i18nextEager"
-              nzAllowClear
               [(ngModel)]="conversationSelected"
               (ngModelChange)="changeConvSelected()"
-              [nzServerSearch]="true"
-              (nzOnSearch)="onBeforeOpenConv($event)"
+              [nzCustomTemplate]="convSelectedTemplate"
+              (nzOpenChange)="onConvOpenChange($event)"
             >
               @for (item of conversationList; track item.conversation_id) {
                 <nz-option
                   [nzValue]="item.conversation_id"
                   [nzLabel]="item.conversation_id"
+                  nzCustomContent
                 >
-                  <span class="flex justify-between">
+                  <span class="flex items-center justify-between">
                     {{ 'conversation' | i18nextEager }}
                     <span class="text-[#808080]">{{ formatToConvTime(item.start_time) }}</span>
                   </span>
                 </nz-option>
               }
             </nz-select>
+            <ng-template #convSelectedTemplate let-selected>
+              <span *ngIf="conversationSelected; else emptyConvTmpl">
+                {{ 'conversation' | i18nextEager }}
+                <span>{{ formatToConvTime(getConvSelectedTime(selected.nzValue)) }}</span>
+              </span>
+              <ng-template #emptyConvTmpl>{{ selected.nzLabel }}</ng-template>
+            </ng-template>
           </div>
 
           <div class="right-select-area">
@@ -53,16 +71,16 @@
               class="combo-select-right"
               style="width: 100%; min-width: 100%; margin-bottom: 20px"
               [nzPlaceHolder]="'select_placeholder' | i18nextEager"
-              nzAllowClear
               [(ngModel)]="executionSelected"
               (ngModelChange)="changeExecSelected()"
-              [nzServerSearch]="true"
-              (nzOnSearch)="onBeforeOpenExec($event)"
+              [nzCustomTemplate]="execSelectedTemplate"
+              (nzOpenChange)="onExecOpenChange($event)"
             >
               @for (item of executionList; track item.execution_id) {
                 <nz-option
                   [nzValue]="item.execution_id"
                   [nzLabel]="item.query"
+                  nzCustomContent
                 >
                   <span class="flex justify-between">
                     <span class="text-overflow w-[calc(100%-70px)]">{{ item?.query }}</span>
@@ -79,6 +97,9 @@
                 </nz-option>
               }
             </nz-select>
+            <ng-template #execSelectedTemplate let-selected>
+              <span class="text-overflow">{{ selected.nzLabel }}</span>
+            </ng-template>
             <div class="w-full" #inputErrWrapper></div>
           </div>
         </div>

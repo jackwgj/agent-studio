@@ -367,6 +367,7 @@
   "variable-memory-tip3": "Input Parameter",
   "variable-memory-tip4": "Assigning values to variables via an API is used to specific parameters in deterministic scenarios",
   "variable-memory-tip5": "The default value error.",
+  "variable-memory-overflow": "Value exceeds safe range",
   "variable-memory-tip6": "Error Data",
   "variable-memory-tip7": "User Vars",
   "variable-memory-tip8": "Input Vars",

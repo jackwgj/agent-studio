@@ -16,6 +16,7 @@ export interface MemoryVariableInputParamType {
   type: string;
   description: string;
   isRight: boolean;
+  errorMsg?: string;
 }
 
 export interface CommonSelectType {

@@ -3,7 +3,7 @@
     <div class="title">{{ 'preview_debugging' | i18nextEager }}</div>
     <div class="flex items-center gap-[8px]">
       <div class="chat-header-icon" nz-tooltip [nzTooltipMouseEnterDelay]="0.5" [nzTooltipTitle]="'agent_clear' | i18nextEager" >
-        <span nz-icon nzType="rest" (click)="onClear()"></span>
+        <span nz-icon nzType="clear" (click)="onClear()" class="text-[20px]"></span>
       </div>
       @if (!isF1 && dispatchSelectedType === 'ReAct') {
         <div class="chat-header-icon">

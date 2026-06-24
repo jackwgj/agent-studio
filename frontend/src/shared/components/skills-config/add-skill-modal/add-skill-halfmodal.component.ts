@@ -12,6 +12,7 @@ import { NzEmptyModule } from 'ng-zorro-antd/empty';
 import { NzSpinModule } from 'ng-zorro-antd/spin';
 import { NzToolTipModule } from 'ng-zorro-antd/tooltip';
 import { NzModalModule, NzModalService } from 'ng-zorro-antd/modal';
+import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
 
 import { MODULES } from '@shared/modules';
 import { AgentConfigService } from '@routes/agent-center/agent-config.service';
@@ -32,7 +33,7 @@ import { NewCommonNoDataWithBtnComponent } from "@shared/components/new-common-n
   templateUrl: './add-skill-halfmodal.component.html',
   styleUrls: ['./add-skill-halfmodal.component.scss'],
   standalone: true,
-  imports: [MODULES, I18nPipe, SkillCardComponent, ImportSkillButtonComponent, NzDrawerModule, NzTabsModule, NzAlertModule, NzInputModule, NzButtonModule, NzIconModule, NzEmptyModule, NzSpinModule, NzToolTipModule, NzModalModule, NewCommonNoDataWithBtnComponent],
+  imports: [MODULES, I18nPipe, SkillCardComponent, ImportSkillButtonComponent, NzDrawerModule, NzTabsModule, NzAlertModule, NzInputModule, NzButtonModule, NzIconModule, NzEmptyModule, NzSpinModule, NzToolTipModule, NzModalModule, NzCheckboxModule, NewCommonNoDataWithBtnComponent],
   providers: [I18nService, NzModalService],
 })
 export class AddSkillHalfModalComponent implements OnInit, OnDestroy {
