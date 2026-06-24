@@ -83,12 +83,12 @@ class LoopSetVariable(LoopSetVariableComponent):
                 # Handle increment/decrement for global vars
                 operator = self._operator_mapping.get(left, "")
                 if operator == "increment":
-                    current = session.state().get_global(left_ref_str) or 0
+                    current = session.get_global_state(left_ref_str) or 0
                     if isinstance(current, str):
                         current = int(current)
                     value = current + 1
                 elif operator == "decrement":
-                    current = session.state().get_global(left_ref_str) or 0
+                    current = session.get_global_state(left_ref_str) or 0
                     if isinstance(current, str):
                         current = int(current)
                     value = current - 1
