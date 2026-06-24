@@ -129,7 +129,7 @@ export class AgentLogModalComponent {
 
   ngAfterViewInit() {
     this.getConversations().then(() => {
-      this.handleAllDate(this.conversationList);
+      this.handleAllDate();
       this.selectDateObj = this.dates?.[0] || null;
     });
   }
@@ -137,7 +137,7 @@ export class AgentLogModalComponent {
   ngOnChanges(changes: SimpleChanges) {
     if (changes.showLogModal && changes.showLogModal.currentValue) {
       this.getConversations().then(() => {
-        this.handleAllDate(this.conversationList);
+        this.handleAllDate();
         this.selectDateObj = this.dates?.[0] || null;
       });
     }
@@ -154,13 +154,7 @@ export class AgentLogModalComponent {
     }
 
     this.getConversations(this.dateRange).then(() => {
-      this.agentRepoServe.getConversationList(this.agent_id, {
-        limit: LIMIT_COUNT,
-        offset: 0,
-        type: CONVERSATION_TYPE.AGENT,
-      }).then((res) => {
-        this.handleAllDate(res.conversation_infos || []);
-      });
+      this.handleAllDate();
     });
   }
 
@@ -586,9 +580,9 @@ export class AgentLogModalComponent {
     this.dates = [{ value: this.ALL_ITEM, label: this.i18n.transform('all'), totalCount: 0, successCount: 0, failCount: 0, disabled: false }, ...dates];
   }
 
-  private handleAllDate(convListParam?: any[]): void {
+  private handleAllDate(): void {
     this.resetDateCounts();
-    const convList = convListParam || this.conversationList || [];
+    const convList = this.conversationList || [];
     if (!convList.length) {
       this.updateDateDisabled();
       return;
