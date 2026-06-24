@@ -2,6 +2,10 @@
 
 import argparse
 
+# 在 openjiuwen 导入之前应用 patch
+from agent_runtime.patch import apply_patches
+apply_patches()
+
 from EIStart_base import main as start_server
 
 

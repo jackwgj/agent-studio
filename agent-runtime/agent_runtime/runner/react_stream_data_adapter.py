@@ -129,7 +129,7 @@ class ReactStreamDataAdapter:
         reasoning = payload.get("content", "") or ""
 
         if reasoning:
-            events.append(self._create_event(EventType.MESSAGE, {"answer": reasoning, "isReasoning": True}))
+            events.append(self._create_event(EventType.MESSAGE, {"think": reasoning, "isReasoning": True}))
 
         return events
 
