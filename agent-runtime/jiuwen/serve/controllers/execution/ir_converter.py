@@ -1393,10 +1393,12 @@ class IRConverter:
         # Add missing connections based on schema references.
         # Strategy:
         # - Auto-complete stream edges only when target supports stream input.
-        # - Auto-complete batch edges for mix-mode targets (Message/End/Aggregate/...)
-        #   when schema references a stream source. Do NOT auto-add batch edges to
-        #   pure-batch nodes like Code — that bypasses intermediate nodes and can
-        #   schedule them before the stream producer finishes.
+        # - Auto-complete batch edges for mix-mode targets (Message/End/Card/...)
+        #   when schema references a stream source. Aggregate reads all $ref fields
+        #   from io_state (incl. stream LLM via get_stream_output) and must not get
+        #   extra batch triggers here. Do NOT auto-add batch edges to pure-batch
+        #   nodes like Code — that bypasses intermediate nodes and can schedule them
+        #   before the stream producer finishes.
         all_target_ids: set[str] = set()
         for connection in connections:
             s = ((connection.get("source") or {}).get("componentId") or "").strip()
@@ -1432,6 +1434,7 @@ class IRConverter:
                 elif (
                     has_stream_ref
                     and target_type in IRConverter._STREAM_INPUT_CAPABLE_TARGET_TYPES
+                    and target_type not in IRConverter._AGGREGATE_TYPES
                 ):
                     workflow.add_connection(source_id, target_id)
                     existing_connections.add((source_id, target_id))
