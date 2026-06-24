@@ -59,6 +59,10 @@ export class SkillDeleteModalComponent {
 
   public currentPage: number = 1;
 
+  public deleteVal = '';
+
+  public errorClass = false;
+
   constructor(
     private readonly http: HttpService,
     private _skillApi: SkillApi,
@@ -78,8 +82,12 @@ export class SkillDeleteModalComponent {
   }
 
   public onConfirm() {
-    this.close();
-    this.confirm.emit();
+    if (this.deleteVal === 'DELETE' || this.srcData.data.length === 0) {
+      this.close();
+      this.confirm.emit();
+    } else {
+      this.errorClass = true;
+    }
   }
 
   public getMappingsByPage() {

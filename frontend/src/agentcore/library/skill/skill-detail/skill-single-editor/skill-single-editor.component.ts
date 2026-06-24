@@ -1,20 +1,17 @@
 import { CommonModule } from '@angular/common';
 import { Component, effect, ElementRef, HostListener, input, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-
 import { MonacoEditorModule } from '@materia-ui/ngx-monaco-editor';
 import { MarkdownComponent, MarkdownService, MarkedOptions, MarkedRenderer } from 'ngx-markdown';
-
 import { NzIconModule } from 'ng-zorro-antd/icon';
 import { NzTabsModule } from 'ng-zorro-antd/tabs';
 import { NzSpinModule } from 'ng-zorro-antd/spin';
-
 import { CustomTreeNode, SkillEditorTab } from '@agentcore/constants/skill.model';
 import { I18nService } from '@agentcore/core/i18n.service';
 import { CustomFileTreeComponent } from '@agentcore/shared/components/custom-editor/custom-file-tree/custom-file-tree.component';
 import { I18nPipe } from '@agentcore/shared/pipes/i18n.pipe';
 import { CustomEditorService } from '@agentcore/shared/services/custom-editor.service';
-
+import { NzRadioModule } from 'ng-zorro-antd/radio';
 import { CustomEditorIconComponent } from '@agentcore/shared/components/custom-editor/custom-editor-icon/custom-editor-icon.component';
 
 class TreeUtil {
@@ -43,16 +40,17 @@ class TreeUtil {
     MarkdownComponent,
     CustomFileTreeComponent,
     I18nPipe,
+    NzRadioModule
   ],
   providers: [CustomEditorService, I18nService],
 })
 export class SkillSingleEditorComponent {
   @ViewChild('container') containerRef!: ElementRef;
   @ViewChild('scrollContainer') scrollContainer!: ElementRef;
-
+  radioValue = SkillEditorTab.MD;
   tabs: Array<any> = [
     {
-      iconName: 'md-tab',
+      iconName: 'md-icon',
       id: SkillEditorTab.MD,
       active: false,
       disabled: true,
@@ -61,7 +59,7 @@ export class SkillSingleEditorComponent {
     {
       id: SkillEditorTab.CODE,
       active: false,
-      iconName: 'code',
+      iconName: 'code-icon',
       disabled: true,
       tip: this._i18n.transform('skill.detail.codeEditor.codeTab.tip'),
     },
@@ -298,19 +296,6 @@ export class SkillSingleEditorComponent {
       return item;
     });
     return res;
-  }
-
-  onActiveChange($event: boolean, tabId: string): void {
-    if ($event) {
-      this.selectedTab = tabId;
-    }
-  }
-
-  onTabSelected(index: number): void {
-    const tab = this.tabs[index];
-    if (tab && !tab.disabled) {
-      this.selectedTab = tab.id;
-    }
   }
 
   async loadPackage(packageUrl: string) {

@@ -4,6 +4,7 @@
   justify-content: flex-start;
   align-items: flex-start;
   gap: 16px;
+
   .import-tip {
     width: 100%;
     display: flex;
@@ -16,30 +17,40 @@
     border-radius: 8px;
     background: rgba(222, 236, 255, 1);
   }
+
   .import-button {
     input {
       width: 464px;
     }
+
     button {
       margin-left: 8px;
     }
   }
+
   .parse-result {
     div {
       display: flex;
       color: #595959;
+
       span {
         display: block;
         width: 50px;
         flex-shrink: 0;
       }
     }
+
     .error-info {
       color: #f23030;
     }
   }
 }
+
 .flex {
   display: flex;
   align-items: baseline;
+}
+
+.obs-form {
+  display: flex;
 }

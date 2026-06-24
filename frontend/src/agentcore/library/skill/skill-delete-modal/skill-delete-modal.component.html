@@ -1,7 +1,7 @@
 <div *nzModalTitle>删除Skill</div>
 <div>
   <div class="flex flex-col gap-4">
-    <div class="flex flex-col gap-4">
+    <div class="flex flex-col gap-2">
       @if (srcData.data.length) {
         <nz-alert class="alert-text" nzType="warning" [nzShowIcon]="false" [nzDescription]="descriptionTemplate1">
           <ng-template #descriptionTemplate1> 该Skill已被引用，删除Skill后引用将自动取消，可能会导致单智能体无法运行，且该操作不可撤回。 </ng-template>
@@ -39,6 +39,16 @@
             </tbody>
           </nz-table>
         </div>
+        <div>
+          <span>如您确定要删除，请输入<b style="margin: 0px 6px">DELETE</b></span>
+          <a (click)="deleteVal = 'DELETE'">一键输入</a>
+        </div>
+        <div>
+          <input [style]="{ 'border-color': errorClass ? '#ff4d4f !important' : '' }" nz-input [(ngModel)]="deleteVal" />
+        </div>
+        @if (errorClass) {
+          <div style="color: #ff4d4f; font-size: 12px">请完整输入“DELETE”</div>
+        }
       } @else {
         <div style="font-size: 12px; color: #191919">即将删除以下Skill</div>
         <ul>

@@ -17,6 +17,7 @@ import { QueryParams, SkillCard } from './interface/skill.interface';
 import { SkillCommonService } from './services/skill.common.service';
 import { NewCommonNoDataWithBtnComponent } from '@shared/components/new-common-no-data-with-btn/new-common-no-data-with-btn.component';
 import { NoDataGuideComponentComponent } from '@shared/components/no-data-guide/no-data-guide.component';
+import { MultiFieldSearchComponent, ISearchTag } from '@shared/components/multi-field-search/multi-field-search.component';
 enum mapKeys {
   TYPE = 'type',
   VISIBILITY = 'visibility',
@@ -38,6 +39,7 @@ enum mapKeys {
     ImportSkillButtonComponent,
     NewCommonNoDataWithBtnComponent,
     I18nPipe,
+    MultiFieldSearchComponent,
   ],
   providers: [I18nService],
 })
@@ -57,7 +59,6 @@ export class SkillComponent implements OnInit {
   public windowWidth: number;
   // 兼容agentBuilder
   workSpaceId = '';
-  public searchName = '';
   public currentCardPage = 1;
   public isLoadingCard = false;
   public cards: SkillCard[] = [];
@@ -69,6 +70,18 @@ export class SkillComponent implements OnInit {
   public materialUseType = MaterialUseType;
   title: string = this._i18n.transform('common.noData');
   private destroyRef = inject(DestroyRef);
+  searchName = [];
+  searchField = 'name';
+  public searchItems = [
+    {
+      label: this._i18n.transform('skill.list.name'),
+      field: 'name',
+    },
+    {
+      label: this._i18n.transform('skill.list.description'),
+      field: 'description',
+    },
+  ];
 
   constructor(
     private _skillApi: SkillApi,
@@ -106,7 +119,7 @@ export class SkillComponent implements OnInit {
       [mapKeys.LANGUAGE]: this.isZH() ? 'ZH' : 'EN', // 直接初始化语言参数
     };
     if (this.searchName.length > 0) {
-      const searchParams = { name: this.searchName };
+      const searchParams = Object.fromEntries(this.searchName.map(item => [item.field, item.id || item.value]));
       Object.assign(params, searchParams);
     }
     const calculatePagination = (page: number, pageSize: number) => ({
@@ -126,7 +139,7 @@ export class SkillComponent implements OnInit {
   }
 
   handleClickClearSearch(): void {
-    this.searchName = '';
+    this.searchName = [];
     this.querySkillList();
   }
 }

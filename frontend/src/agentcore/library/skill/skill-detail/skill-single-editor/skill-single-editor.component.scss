@@ -88,6 +88,9 @@ $editor-head-height: 40px;
 
   .editor-tab {
     width: fit-content;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .code-box {
@@ -142,4 +145,9 @@ $editor-head-height: 40px;
   padding: var(--ti-common-space-4x);
   font-size: 16px;
   font-weight: 600;
+}
+
+.tab-class {
+  top: 3px;
+  left: -8px;
 }

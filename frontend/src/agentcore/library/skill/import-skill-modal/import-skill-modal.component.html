@@ -5,9 +5,10 @@
   <div class="import-body">
     <div class="import-tip">
       <img class="h-4 w-4" [src]="changeUrl('assets/prompt/import-tip.svg')" alt="" />
-      <p class="tip-content">
+      <span>
         <span [innerHTML]="(importType === importTypeEnum.ZIP ? 'skill.import_zip_tip' : 'skill.import_obs_tip') | i18nextEager"></span>
-      </p>
+        <span>{{ 'skill.import.docoument.link' | i18nextEager }}</span>
+      </span>
     </div>
     <div class="import-button">
       @if (importType === importTypeEnum.ZIP) {
@@ -21,9 +22,9 @@
       @if (importType === importTypeEnum.OBS) {
         <form vertical [formGroup]="obsForm">
           <nz-form-item class="flex">
-            <nz-form-label [nzSm]="6" [nzXs]="24" nzRequired>{{ 'skill.import.obs.label' | i18nextEager }}</nz-form-label>
-            <nz-form-control [nzSm]="14" [nzXs]="24" nzErrorTip="The input is not valid E-mail!">
-              <div>
+            <nz-form-label nzLabelAlign="left" nzRequired>{{ 'skill.import.obs.label' | i18nextEager }}</nz-form-label>
+            <nz-form-control [nzErrorTip]="'skill.import.obs.input.valid.address' | i18nextEager">
+              <div class="obs-form">
                 <input
                   type="text"
                   nz-input
@@ -31,17 +32,17 @@
                   [placeholder]="'skill.import.obs.input.placeholder' | i18nextEager"
                   (ngModelChange)="onObsAddressChange($event)"
                 />
+                <button
+                  id="button-hasborder-disabled"
+                  nz-button
+                  [nzType]="'default'"
+                  [nz-tooltip]="!obsAddressValue ? ('skill.import.obs.input.tip' | i18nextEager) : ''"
+                  [disabled]="isButtonDisabled"
+                  (click)="downloadAndUnzip()"
+                >
+                  {{ 'skill.import.result.valid.unzip' | i18nextEager }}
+                </button>
               </div>
-              <button
-                id="button-hasborder-disabled"
-                nz-button
-                [nzType]="'default'"
-                [nz-tooltip]="!obsAddressValue ? ('skill.import.obs.input.tip' | i18nextEager) : ''"
-                [disabled]="isButtonDisabled"
-                (click)="downloadAndUnzip()"
-              >
-                {{ 'skill.import.result.valid.unzip' | i18nextEager }}
-              </button>
             </nz-form-control>
           </nz-form-item>
         </form>

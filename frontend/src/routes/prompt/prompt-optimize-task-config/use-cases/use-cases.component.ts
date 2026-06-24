@@ -10,6 +10,7 @@ import { OptimizeUseCase, PromptType, VariableType } from '@interfaces/prompt/pr
 import { PromptOptimizeService, UseCaseService } from '@services/agent-center/prompt-optimize-task/prompt-optimize.service';
 import { I18nNamespace } from '@i18n';
 import { CommonUtils } from 'src/utils/common.util';
+import { NzMessageService } from 'ng-zorro-antd/message';
 
 @Component({
   selector: 'meta-use-cases',
@@ -71,7 +72,8 @@ export class UseCasesComponent {
     private nzModal: NzModalService,
     private promptOptimizeService: PromptOptimizeService,
     private cdr: ChangeDetectorRef,
-    private i18n: I18NextEagerPipe
+    private i18n: I18NextEagerPipe,
+    private message: NzMessageService
   ) {}
 
   ngOnChanges(changes: SimpleChanges) {
@@ -451,6 +453,10 @@ export class UseCasesComponent {
       return;
     }
     if (fileItem.type !== 'start') {
+      return;
+    }
+    if (['image/png', 'image/jpeg'].indexOf(fileItem.file.type) < 0) {
+      this.message.error('请上传png、jpg图片');
       return;
     }
     useCase.images[variable] = fileItem.file.originFileObj;

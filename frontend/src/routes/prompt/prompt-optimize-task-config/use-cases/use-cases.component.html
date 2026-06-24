@@ -33,7 +33,9 @@
                 {{ useCase.variables[variable.value] }}
               </ng-container>
               <ng-template #imageTmpl>
-                <img [src]="useCase.variables[variable.value]" style="height: 102px; width: 102px" />
+                @if (useCase.variables[variable.value]) {
+                  <img [src]="useCase.variables[variable.value]" style="height: 102px; width: 102px" />
+                }
               </ng-template>
             </td>
             <td>{{ useCase.expectedOutput }}</td>
@@ -63,6 +65,8 @@
                     [nzMultiple]="false"
                     [nzShowUploadList]="false"
                     style="height: 100px; width: 100px"
+                    [nzSize]="50000"
+                    nzAccept=".png,.jpg"
                   >
                     @if (useCase?.variables[variable?.value]) {
                       <img [src]="useCase?.variables[variable?.value]" style="height: 100px; width: 100px" />

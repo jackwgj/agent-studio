@@ -62,7 +62,7 @@ export class ImportSkillModalComponent {
     private message: NzMessageService
   ) {
     this.obsForm = fb.group({
-      obsAddress: new FormControl('', []),
+      obsAddress: new FormControl('', [this.obsAddressValidator()]),
     });
   }
 
@@ -78,6 +78,18 @@ export class ImportSkillModalComponent {
     this.skillLink = this.helpLinksService.getHelpCenterLink(HelpDocKey.MODELARTS_PRICES);
     this.obsForm.controls.obsAddress?.valueChanges.pipe(debounceTime(300), distinctUntilChanged()).subscribe(value => this.onObsAddressChange(value));
     this.skillCommonService.initObsEndpoint();
+  }
+
+  private obsAddressValidator() {
+    const obsAddressReg = /^(https?:\/\/).+$/;
+    return (control: AbstractControl): ValidationErrors | null =>
+      obsAddressReg.test(control.value)
+        ? null
+        : {
+            obsAddress: {
+              tiErrorMessage: this.i18n.transform('skill.import.obs.input.valid.address'),
+            },
+          };
   }
 
   async onAddFileSuccess(fileItem: any) {

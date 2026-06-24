@@ -6,10 +6,13 @@
   <meta-import-skill-button type="danger" #skillMenu></meta-import-skill-button>
 </div>
 <div class="mb-[24px] mt-[24px] flex items-center gap-2">
-  <input nz-input [(ngModel)]="searchName" class="w-[calc(100%-32px)]" (ngModelChange)="onSearchContentChange()" />
-  <button nz-button nzType="default" (click)="querySkillList()" class="h-8 w-8">
-    <nz-icon nzType="reload" />
-  </button>
+  <multi-field-search
+    [searchItems]="searchItems"
+    [(searchTags)]="searchName"
+    [(searchField)]="searchField"
+    (searchChange)="onSearchContentChange()"
+    class="flex-1"
+  ></multi-field-search>
 </div>
 @if (isLoading) {
   <nz-spin nzSimple class="flex-column flex justify-center items-center mt-[20%]" />
