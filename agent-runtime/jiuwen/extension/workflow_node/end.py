@@ -38,6 +38,8 @@ STRING_TYPE = "string"
 INTEGER_TYPE = "integer"
 NUMBER_TYPE = "number"
 BOOLEAN_TYPE = "boolean"
+ARRAY_TYPE = "array"
+OBJECT_TYPE = "object"
 
 _SIMPLE_TYPE_CONVERT = {
     STRING_TYPE: str,
@@ -338,6 +340,10 @@ class End(BaseEnd):
             return actual_value
         if actual_value is None:
             return _TYPE_DEFAULT_VALUE.get(expected_type)
+        if expected_type == ARRAY_TYPE and isinstance(actual_value, list):
+            return "" if not actual_value else str(actual_value)
+        if expected_type == OBJECT_TYPE and isinstance(actual_value, dict):
+            return "" if not actual_value else str(actual_value)
         convert_action = _SIMPLE_TYPE_CONVERT.get(expected_type, str)
         # bool 是特殊的 int，需额外判断
         if not isinstance(actual_value, convert_action) or (

@@ -67,34 +67,104 @@ def _extract_ref_source_id(value: Any) -> str | None:
     return source_id or None
 
 
-def _is_unresolved_branch_ref_value(value: Any, schema_value: Any) -> bool:
-    """Whether an input value still looks like a missing/unresolved branch ref."""
-    if value is None or value == "":
+def _is_unresolved_end_ref_literal(value: Any, schema_value: Any) -> bool:
+    """Whether the input is still the unresolved ${node.field} ref literal from schema."""
+    if not isinstance(value, str) or not isinstance(schema_value, str):
+        return False
+    if value != schema_value:
+        return False
+    return _extract_ref_source_id(schema_value) is not None
+
+
+@dataclass(frozen=True)
+class EndRefInputFilterContext:
+    """Context required to filter unresolved End node ref inputs."""
+
+    session: Any
+    wf_defs: dict
+
+
+def _should_skip_end_ref_input(source_id: str | None, context: EndRefInputFilterContext) -> bool:
+    """Whether the ref input is not a workflow node reference to validate."""
+    if not source_id or source_id in _SPECIAL_REF_ROOTS:
         return True
-    return isinstance(value, str) and value == schema_value
+    return source_id not in context.wf_defs or source_id == context.session.node_id()
 
 
-def _default_value_by_schema_definition(definition: dict) -> Any:
-    """Build an End output default value from an IR schema definition."""
+def _schema_value_by_definition(definition: dict, *, for_input: bool = False) -> Any:
+    """Build schema default/placeholder for End ref fill before validation."""
     if not isinstance(definition, dict):
-        return None
+        return "" if for_input else None
     expected_type = str(definition.get("type", "")).lower()
     if expected_type == "string":
         return ""
-    if expected_type in {"integer", "number", "boolean"}:
-        return None
     if expected_type == "array":
         return []
     if expected_type == "object":
         schema = definition.get("schema")
         if isinstance(schema, list):
             return {
-                item.get("id"): _default_value_by_schema_definition(item)
+                item.get("id"): _schema_value_by_definition(item, for_input=for_input)
                 for item in schema
                 if isinstance(item, dict) and item.get("id")
             }
         return {}
+    if for_input:
+        if expected_type == "integer":
+            return 0
+        if expected_type == "number":
+            return 0.0
+        if expected_type == "boolean":
+            return False
+        return ""
+    if expected_type in {"integer", "number", "boolean"}:
+        return None
     return None
+
+
+def _fill_unexecuted_end_branch_inputs(
+    inputs: dict,
+    input_schema: dict,
+    uf_inputs_defs: list,
+    sf_inputs_defs: list,
+    context: EndRefInputFilterContext,
+) -> dict:
+    """Fill missing End ref inputs from unexecuted branches with typed placeholders.
+
+    Vertex sanitize may set these fields to ``""``; array/object fields need typed
+    values so force_convert strict validation passes and fields stay in userFields.
+    """
+    if not isinstance(inputs, dict) or not isinstance(input_schema, dict):
+        return inputs
+
+    executed_nodes = context.session.state().get_workflow_state("executed_nodes") or []
+    for category, defs in (
+        ("userFields", uf_inputs_defs),
+        ("systemFields", sf_inputs_defs),
+    ):
+        schema_fields = input_schema.get(category)
+        input_fields = inputs.get(category)
+        if not isinstance(schema_fields, dict) or not isinstance(input_fields, dict):
+            continue
+        defs_by_id = {
+            item["id"]: item
+            for item in defs
+            if isinstance(item, dict) and item.get("id")
+        }
+        for field_id, schema_value in schema_fields.items():
+            source_id = _extract_ref_source_id(schema_value)
+            if _should_skip_end_ref_input(source_id, context):
+                continue
+            if source_id in executed_nodes:
+                continue
+            current_value = input_fields.get(field_id)
+            if current_value is not None and current_value != "":
+                continue
+            definition = defs_by_id.get(field_id)
+            if definition is None:
+                continue
+            input_fields[field_id] = _schema_value_by_definition(definition, for_input=True)
+    return inputs
 
 
 def _fill_missing_ref_outputs(result: dict, ctx: dict) -> dict:
@@ -120,23 +190,8 @@ def _fill_missing_ref_outputs(result: dict, ctx: dict) -> dict:
             continue
         output_key = f"{END_OUTPUT_PREFIX}{field_id}" if node_type in END_COMPONENT_TYPES else field_id
         if user_fields.get(output_key) in (None, ""):
-            user_fields[output_key] = _default_value_by_schema_definition(definition)
+            user_fields[output_key] = _schema_value_by_definition(definition)
     return result
-
-
-@dataclass(frozen=True)
-class EndRefInputFilterContext:
-    """Context required to filter unresolved End node ref inputs."""
-
-    session: Any
-    wf_defs: dict
-
-
-def _should_skip_end_ref_input(source_id: str | None, context: EndRefInputFilterContext) -> bool:
-    """Whether the ref input is not a workflow node reference to validate."""
-    if not source_id or source_id in _SPECIAL_REF_ROOTS:
-        return True
-    return source_id not in context.wf_defs or source_id == context.session.node_id()
 
 
 def _filter_empty_end_ref_inputs(
@@ -146,31 +201,20 @@ def _filter_empty_end_ref_inputs(
     sf_inputs_defs: list,
     context: EndRefInputFilterContext,
 ) -> tuple[list, list]:
-    """Skip End input validation for empty/unresolved ref values.
+    """Skip End strict validation only for unresolved ${node.field} ref literals.
 
-    This mirrors the old BPMN path: references are resolved from the current
-    variable pool, and missing paths become None.  End template rendering treats
-    None/empty values as empty placeholders, so these unresolved ref fields
-    should remain available for rendering but must not take part in strict
-    array/object validation.
+    Missing branch values are filled with typed placeholders by
+    ``_fill_unexecuted_end_branch_inputs`` before force_convert runs.
+
+    Only when a field value is still the exact ref string from inputs_schema
+    (variable pool did not resolve it) do we drop that field from the type
+    definition list so array/object strict validation does not fail.
     """
     if not isinstance(inputs, dict) or not isinstance(input_schema, dict):
         return uf_inputs_defs, sf_inputs_defs
     if not isinstance(context.wf_defs, dict):
         return uf_inputs_defs, sf_inputs_defs
 
-    defs_by_category = {
-        "userFields": {
-            item.get("id"): item
-            for item in uf_inputs_defs
-            if isinstance(item, dict) and item.get("id")
-        },
-        "systemFields": {
-            item.get("id"): item
-            for item in sf_inputs_defs
-            if isinstance(item, dict) and item.get("id")
-        },
-    }
     dropped: dict[str, set[str]] = {"userFields": set(), "systemFields": set()}
     for category in ("userFields", "systemFields"):
         schema_fields = input_schema.get(category)
@@ -181,9 +225,8 @@ def _filter_empty_end_ref_inputs(
             source_id = _extract_ref_source_id(schema_value)
             if _should_skip_end_ref_input(source_id, context):
                 continue
-            if not _is_unresolved_branch_ref_value(input_fields.get(field_id), schema_value):
+            if not _is_unresolved_end_ref_literal(input_fields.get(field_id), schema_value):
                 continue
-            input_fields[field_id] = ""
             dropped[category].add(field_id)
 
     if dropped["userFields"]:
@@ -1137,12 +1180,21 @@ def _register_jiuwen_callbacks() -> None:
                 input_schema = None
                 if node_config and node_config.io_configs:
                     input_schema = node_config.io_configs.inputs_schema
+                end_ctx = EndRefInputFilterContext(session=session, wf_defs=wf_defs)
+                if isinstance(input_schema, dict):
+                    inputs = _fill_unexecuted_end_branch_inputs(
+                        inputs=inputs,
+                        input_schema=input_schema,
+                        uf_inputs_defs=uf_inputs_defs,
+                        sf_inputs_defs=sf_inputs_defs,
+                        context=end_ctx,
+                    )
                 uf_inputs_defs, sf_inputs_defs = _filter_empty_end_ref_inputs(
                     inputs=inputs,
                     input_schema=input_schema,
                     uf_inputs_defs=uf_inputs_defs,
                     sf_inputs_defs=sf_inputs_defs,
-                    context=EndRefInputFilterContext(session=session, wf_defs=wf_defs),
+                    context=end_ctx,
                 )
                 if not uf_inputs_defs and not sf_inputs_defs:
                     new_args = (inputs,) + args[1:] if len(args) >= 1 else (inputs,)
