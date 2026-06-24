@@ -7,6 +7,7 @@ import time
 import uuid
 from typing import AsyncGenerator, Any
 
+from agent_runtime.observability import setup_otel_tracer
 from agent_runtime.runner.controller_stream_data_adapter import (
     ControllerStreamDataAdapter,
 )
@@ -22,6 +23,7 @@ from jiuwen.serve.controllers.execution.utils import (
 )
 from openjiuwen.core.common.logging import workflow_logger
 from openjiuwen.core.common.logging import performance_logger
+from openjiuwen.core.session.agent import Session, create_agent_session
 
 
 class ControllerRunner:
@@ -110,15 +112,28 @@ class ControllerRunner:
         # 6. Execute agent group streaming using post_process_agent_group_streaming_output
         # Collect assistant response for memory extraction
         memory_response_parts: list[str] = []
+        session: Session | None = None
         try:
             t_stream_start = time.perf_counter()
             workflow_logger.info(f"Starting agent_group.astream for query: {req.query}")
+
+            session_id = req.conversation_id or "default_session"
+            session_inputs = {
+                "query": req.query or "",
+                "conversation_id": req.conversation_id,
+                "user_id": req.user_id,
+            }
+            setup_otel_tracer()
+            session = create_agent_session(session_id=session_id, card=agent_group.card)
+            await session.pre_run(inputs=session_inputs)
+
             streaming_output = agent_group.astream(
                 req.query,
                 stream=True,
                 runtime_context=runtime_context,
                 tool_switch_dict=getattr(req.params, "tool_switch_dict", None),
                 trace_handlers=tracer,
+                session=session,
             )
 
             async for chunk in post_process_agent_group_streaming_output(
@@ -169,6 +184,9 @@ class ControllerRunner:
             yield adapter.adapt_error(f"Agent execution failed: {e}\n{tb_str}", exec_id)
             await AsyncStateManager().delete_state(session_id)
             return
+        finally:
+            if session is not None:
+                await session.post_run()
 
     async def _trigger_memory_extraction(
         self,

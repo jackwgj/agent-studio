@@ -161,7 +161,7 @@ class RestFulAPI(Invokable, ABC):
         """
         trace_manager = self._create_tracer_manager(**kwargs)
         try:
-            trace_manager.on_plugin_start(inputs)
+            await trace_manager.on_plugin_start(inputs)
             request_params = self.request_params_creator.create(
                 inputs, file_params_list_type=False, **kwargs
             )
@@ -172,7 +172,7 @@ class RestFulAPI(Invokable, ABC):
             )
             if has_multi_queries:
                 # 并行工具调用将参数合并为multi_queries参数
-                response_data = self._send_multi_queries_request(
+                response_data = await self._send_multi_queries_request(
                     request_params, inputs.get("multi_queries")
                 )
             elif self.async_switch:
@@ -184,7 +184,7 @@ class RestFulAPI(Invokable, ABC):
                     request_params, trace_manager
                 )
         except Exception as error:
-            trace_manager.on_plugin_error(error)
+            await trace_manager.on_plugin_error(error)
             response_data = self._create_error_invoke_response(error)
         return response_data
 
@@ -201,7 +201,7 @@ class RestFulAPI(Invokable, ABC):
         """
         trace_manager = self._create_tracer_manager(**kwargs)
         try:
-            trace_manager.on_plugin_start(inputs)
+            await trace_manager.on_plugin_start(inputs)
             request_params = self.request_params_creator.create(inputs, **kwargs)
             self._validate_request_params(request_params)
 
@@ -223,7 +223,7 @@ class RestFulAPI(Invokable, ABC):
                             code=StatusCode.PLUGIN_RESPONSE_HTTP_CODE_ERROR,
                             message=f"plugin response code {response.status} error.",
                         )
-                    trace_manager.on_plugin_end(response)
+                    await trace_manager.on_plugin_end(response)
                     async for line_bytes in response.content:
                         try:
                             line = line_bytes.decode("utf-8").strip()
@@ -234,7 +234,7 @@ class RestFulAPI(Invokable, ABC):
                             # 处理编码错误，跳过无效行
                             continue
         except Exception as error:
-            trace_manager.on_plugin_error(error)
+            await trace_manager.on_plugin_error(error)
             self._create_error_stream_response(error)
 
     def _create_post_request(self, request_params):
@@ -485,26 +485,26 @@ class RestFulAPI(Invokable, ABC):
             isinstance(response_data, dict)
             and response_data.get(constant.ERR_CODE, 0) != 0
         ):
-            trace_manager.on_plugin_error(
+            await trace_manager.on_plugin_error(
                 exception.PluginCommonException(
                     message=response_data.get(constant.ERR_MESSAGE, "plugin error")
                 )
             )
         else:
-            trace_manager.on_plugin_end(response_data)
+            await trace_manager.on_plugin_end(response_data)
         return response_data
 
-    def _send_multi_queries_request(self, request_params, multi_queries) -> dict:
+    async def _send_multi_queries_request(self, request_params, multi_queries) -> dict:
         result = []
         for simple_input in multi_queries:
             simple_arg = dict(json=simple_input) if simple_input else dict()
-            response = self._send_request(
+            response = await self._send_request(
                 request_params, simple_arg, need_headers_when_has_file_params=True
             )
             result.append(response.get(constant.RESTFUL_DATA))
         return self._format_output(0, "success", result)
 
-    def _send_request(
+    async def _send_request(
         self,
         request_params,
         request_args,
@@ -529,16 +529,16 @@ class RestFulAPI(Invokable, ABC):
             request["headers"] = request_params.headers
         response = requests.request(**request, **request_args)
         if is_stream:
-            return self._format_stream_response(response, trace_manager)
+            return await self._format_stream_response(response, trace_manager)
         return self._format_response(response, request_params)
 
-    def _format_stream_response(self, stream_response, trace_manager):
+    async def _format_stream_response(self, stream_response, trace_manager):
         if not self._check_status_ok(stream_response.status_code):
             raise exception.PluginCommonException(
                 code=StatusCode.PLUGIN_RESPONSE_HTTP_CODE_ERROR,
                 message=f"plugin response code {stream_response.status_code} error.",
             )
-        trace_manager.on_plugin_end(stream_response)
+        await trace_manager.on_plugin_end(stream_response)
         for line in stream_response.iter_lines():
             line = line.decode("utf-8")
             if line and line.startswith(DATA_PREFIX):

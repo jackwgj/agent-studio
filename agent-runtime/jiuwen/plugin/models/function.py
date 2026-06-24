@@ -38,36 +38,6 @@ class Function(Invokable, ABC):
         self.principle: str = kwargs.get("principle")
         self.user_id: str = kwargs.get("user_id", "")
 
-    def invoke(self, inputs: Input, **kwargs) -> Output:
-        """
-        Args:
-            inputs: params
-            **kwargs:
-        Returns:
-            Output
-        """
-        if not isinstance(inputs, dict):
-            raise TypeError(
-                "Plugin.invoke() excepted 'dict', but got {}".format(
-                    type(inputs).__name__
-                )
-            )
-        inputs = self._format_input_with_default_when_required(inputs)
-        trace_manager = TraceManager.generate_manager(
-            kwargs.pop("trace_handlers", None), get_instance_info(self)
-        )
-        trace_manager.on_plugin_start(inputs)
-        try:
-            # 去掉cloudpickle以后，在当前运行程序运行状态下，invoke正常
-            # 如果当前程序结束，开启新的程序，但不重新进行插件更新或者注册，从数据库中获取的callable_function将无法运行
-            # 如果运行失败，这里的运行请考虑使用其他方式实现
-            res = self.callable_function(**inputs)
-            trace_manager.on_plugin_end(res)
-            return res
-        except Exception as error:
-            trace_manager.on_plugin_error(error)
-            raise error
-
     async def ainvoke(self, inputs: Input, **kwargs) -> Output:
         if not isinstance(inputs, dict):
             raise TypeError(
@@ -79,15 +49,15 @@ class Function(Invokable, ABC):
         trace_manager = TraceManager.generate_manager(
             kwargs.pop("trace_handlers", None), get_instance_info(self)
         )
-        trace_manager.on_plugin_start(inputs)
+        await trace_manager.on_plugin_start(inputs)
         try:
             res = self.callable_function(**inputs)
             if inspect.isawaitable(res):
                 res = await res
-            trace_manager.on_plugin_end(res)
+            await trace_manager.on_plugin_end(res)
             return res
         except Exception as error:
-            trace_manager.on_plugin_error(error)
+            await trace_manager.on_plugin_error(error)
             raise error
 
     def _format_input_with_default_when_required(self, inputs: dict):

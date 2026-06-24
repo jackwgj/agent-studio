@@ -131,7 +131,7 @@ class McpToolWrapper:
         trace_manager = self._create_tracer_manager(**kwargs)
 
         try:
-            trace_manager.on_plugin_start(inputs)
+            await trace_manager.on_plugin_start(inputs)
 
             jiuwen_kwargs = {
                 k: v
@@ -146,17 +146,17 @@ class McpToolWrapper:
 
             formatted_result = self._convert_result(result)
 
-            trace_manager.on_plugin_end(formatted_result)
+            await trace_manager.on_plugin_end(formatted_result)
             return formatted_result
 
         except BaseError as tool_error:
-            trace_manager.on_plugin_error(tool_error.cause)
+            await trace_manager.on_plugin_error(tool_error.cause)
             return self._create_error_response(tool_error.cause)
         except ExceptionGroup as eg:
-            trace_manager.on_plugin_error(eg)
+            await trace_manager.on_plugin_error(eg)
             return self._create_error_response(eg)
         except Exception as e:
-            trace_manager.on_plugin_error(e)
+            await trace_manager.on_plugin_error(e)
             return self._create_error_response(e)
 
     def _convert_result(self, result: dict) -> dict:

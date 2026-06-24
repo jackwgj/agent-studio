@@ -86,9 +86,12 @@ class FlowMessage(Invokable, MessageComponentBase):
             self.end_interrupt = True
 
     def invoke(self, inputs, **kwargs):
+        ...
+
+    async def ainvoke(self, inputs, **kwargs):
         """Invoke to assemble message outputs."""
         try:
-            flow_message = self.template.invoke(inputs.get(USER_FIELDS))
+            flow_message = await self.template.ainvoke(inputs.get(USER_FIELDS))
         except JiuWenBaseException:
             raise
         except Exception as e:
@@ -112,7 +115,7 @@ class FlowMessage(Invokable, MessageComponentBase):
         """Asynchronous invoke to assemble end outputs."""
         stream_callback = kwargs.get("stream_callback")
         if stream_callback is None:
-            return self.invoke(inputs, **kwargs)
+            return await self.invoke(inputs, **kwargs)
 
         inputs = inputs.get(USER_FIELDS)
         span: Span = kwargs.get("span")
@@ -137,7 +140,7 @@ class FlowMessage(Invokable, MessageComponentBase):
             ) from e
 
         try:
-            final_res = self.template.invoke(inputs)
+            final_res = await self.template.ainvoke(inputs)
         except JiuWenBaseException:
             raise
         except Exception as e:

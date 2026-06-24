@@ -150,11 +150,11 @@ class End(Invokable, MessageComponentBase):
         if self.event and self.event.get("type", "") == TaskType.TASK_COMPLETION:
             self.end_interrupt = True
 
-    def invoke(self, inputs: dict[str, Any], **kwargs):
+    async def invoke(self, inputs: dict[str, Any], **kwargs):
         """Invoke to assemble final answer."""
         try:
             answer = (
-                self.template.invoke(inputs.get(USER_FIELDS)) if self.template else ""
+                await self.template.ainvoke(inputs.get(USER_FIELDS)) if self.template else ""
             )
             output = {
                 k[len(OUTPUT_PREFIX) :]: v
@@ -219,7 +219,7 @@ class End(Invokable, MessageComponentBase):
 
         # 模板拼接
         try:
-            final_output = self.template.invoke(inputs) if self.template else ""
+            final_output = await self.template.ainvoke(inputs) if self.template else ""
         except Exception as e:
             raise JiuWenBaseException(
                 message=StatusCode.WORKFLOW_END_TEMPLATE_ASSEMBLE_ERROR.errmsg,

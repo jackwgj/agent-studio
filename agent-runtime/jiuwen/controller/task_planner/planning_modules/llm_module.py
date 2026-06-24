@@ -278,7 +278,7 @@ class LLMModule:
         trace_manager = create_trace_manager(
             self.llm, functions, runtime_data.get("trace_handlers")
         )
-        trace_manager.on_llm_start(messages)
+        await trace_manager.on_llm_start(messages)
 
         llm_output, time_dict, model_stat, model_usage = dict(), dict(), dict(), dict()
         try:
@@ -297,7 +297,7 @@ class LLMModule:
             ):
                 yield item
         except Exception as e:
-            trace_manager.on_llm_error(e)
+            await trace_manager.on_llm_error(e)
             raise LLMInvocationFailedException(
                 str(e) if LOG_VERBOSE_MODE else "Failed to stream calling LLM"
             ) from e
@@ -309,7 +309,7 @@ class LLMModule:
         output_on_insights.update({LATENCY: time_dict})
         output_on_insights.update({MODEL_STAT: model_stat})
         output_on_insights.update({MODEL_USAGE: model_usage})
-        trace_manager.on_llm_end(output_on_insights)
+        await trace_manager.on_llm_end(output_on_insights)
 
     def _is_thinking_enabled(self) -> bool:
         """检查是否开启了思考模式"""

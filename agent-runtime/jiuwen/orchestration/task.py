@@ -251,7 +251,7 @@ class Task(Invokable):
         )
         return workflow_info
 
-    def invoke(self, inputs: Union[dict, str], **kwargs) -> Output:
+    async def ainvoke(self, inputs: Union[dict, str], **kwargs) -> Output:
         """
         Invoke the planning assistance engine to execute the input instruction and output the result.
 
@@ -277,7 +277,7 @@ class Task(Invokable):
                 ],
             ),
         )
-        trace_manager.on_chain_start(inputs)
+        await trace_manager.on_chain_start(inputs)
         # call memory
         self.results = list()
         # call planning assistance engine
@@ -310,7 +310,7 @@ class Task(Invokable):
             if plan_status_code == RetCode.FAILED:
                 self._invoke_status = TaskInvokeStatus.FAILED
                 err = ValueError("Planning assistance engine failed to plan or execute")
-                trace_manager.on_chain_error(err)
+                await trace_manager.on_chain_error(err)
                 raise err
             if plan_status_code == RetCode.SUCCESS:
                 self.is_in_react[index] = False
@@ -322,7 +322,7 @@ class Task(Invokable):
             else:
                 self._invoke_status = TaskInvokeStatus.UNKNOWN
                 err = ValueError(f"Unsupported plan_states_code: {plan_status_code}.")
-                trace_manager.on_chain_error(err)
+                await trace_manager.on_chain_error(err)
                 raise err
             self.results.append(
                 execute_res.get(self.planning_key_word)
@@ -332,10 +332,10 @@ class Task(Invokable):
         res = self._process_results()
         if self.memory and not all(self.is_in_react):
             self.memory.save_context(inputs=self.memory_inputs, outputs=res)
-        trace_manager.on_chain_end(res)
+        await trace_manager.on_chain_end(res)
         return res
 
-    def stream(self, inputs: Union[dict, str], **kwargs) -> Iterator:
+    async def astream(self, inputs: Union[dict, str], **kwargs) -> Iterator:
         """
         Execute the planning assistance engine to execute the input instruction and output the result as stream type.
 
@@ -371,7 +371,7 @@ class Task(Invokable):
                 ],
             ),
         )
-        trace_manager.on_chain_start(inputs)
+        await trace_manager.on_chain_start(inputs)
         # call memory
         self.results = list()
         # if task want support multi plan type, the memory_inputs may need to be a list.
@@ -401,9 +401,10 @@ class Task(Invokable):
                     round_id=kwargs.get("round_id"),
                     session_id=kwargs.get("session_id"),
                 )
-                yield from self._iterate_stream_planner_res(
+                async for chunk in self._iterate_stream_planner_res(
                     index=index, yield_res=yield_res, trace_manager=trace_manager
-                )
+                ):
+                    yield chunk
             except Exception as e:
                 formatted_exception = JiuWenBaseException(
                     error_code=StatusCode.PLANNER_STREAM_EXCEPTION_ERROR.code,
@@ -416,7 +417,7 @@ class Task(Invokable):
         res = self._process_results()
         if self.memory and not all(self.is_in_react):
             self.memory.save_context(inputs=self.memory_inputs, outputs=res)
-        trace_manager.on_chain_end(res)
+        await trace_manager.on_chain_end(res)
         yield res
 
     def get_invoke_status(self):
@@ -657,7 +658,7 @@ class Task(Invokable):
             plugin_ErrCode,
         )
 
-    def _iterate_stream_planner_res(
+    async def _iterate_stream_planner_res(
         self, index: int, yield_res: Generator, trace_manager: TraceManager
     ):
         """
@@ -688,9 +689,9 @@ class Task(Invokable):
                     err = ValueError(
                         "Planning assistance engine failed to plan or execute"
                     )
-                    trace_manager.on_chain_error(err)
+                    await trace_manager.on_chain_error(err)
                     raise err
                 else:
                     err = ValueError("Unsupported plan_states_code.")
-                    trace_manager.on_chain_error(err)
+                    await trace_manager.on_chain_error(err)
                     raise err

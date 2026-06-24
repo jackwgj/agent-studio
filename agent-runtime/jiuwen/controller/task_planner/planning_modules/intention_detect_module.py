@@ -506,7 +506,7 @@ class IntentionDetectModule:
 
         return category_info
 
-    def create_intention_detect_llm_input(self, category_info, chat_history, query):
+    async def create_intention_detect_llm_input(self, category_info, chat_history, query):
         """create intent detect llm input"""
         current_inputs = {
             IntentionDetectConstants.CATEGORY_INFO: category_info,
@@ -539,7 +539,7 @@ class IntentionDetectModule:
             current_inputs[IntentionDetectConstants.CHAT_HISTORY] = "\n".join(
                 format_history_entry(h) for h in chat_history_sliced
             )
-        llm_inputs, final_prompts = self._pre_process(current_inputs)
+        llm_inputs, final_prompts = await self._pre_process(current_inputs)
         return llm_inputs, final_prompts
 
     def _handle_specified_intent(self, specified_intent, active_workflows, task_id):
@@ -700,7 +700,7 @@ class IntentionDetectModule:
             active_workflows, kwargs.get("global_only", False)
         )
         query = self.context_manager.get_latest_user_content()
-        llm_input, final_prompts = self.create_intention_detect_llm_input(
+        llm_input, final_prompts = await self.create_intention_detect_llm_input(
             category_info, chat_history, query
         )
         memory_message = await self.context_manager.get_memory_message(query)
@@ -765,17 +765,17 @@ class IntentionDetectModule:
             trace_handlers=runtime_data.get("trace_handlers"),
         )
 
-        trace_manager.on_llm_start(messages)
+        await trace_manager.on_llm_start(messages)
 
         try:
             result = await self._execute_llm_call(llm_input)
             output_on_insights = self._prepare_insights_output(result)
-            trace_manager.on_llm_end(output_on_insights)
+            await trace_manager.on_llm_end(output_on_insights)
 
             return result.converted_output
 
         except Exception as e:
-            trace_manager.on_llm_error(e)
+            await trace_manager.on_llm_error(e)
             raise LLMInvocationFailedException(
                 str(e) if LOG_VERBOSE_MODE else "Failed to invoke LLM"
             ) from e
@@ -1441,22 +1441,24 @@ class IntentionDetectModule:
             )
             return self._get_default_intent()
 
-    def _pre_process(self, inputs: dict):
+    async def _pre_process(self, inputs: dict):
         """
         Pre-process inputs for model
         """
         try:
-            final_prompts = [
-                {
-                    IntentionDetectConstants.ROLE: prompt_message.get(
-                        IntentionDetectConstants.ROLE, ""
-                    ),
-                    IntentionDetectConstants.CONTENT: Prompt(
-                        template=Template(name="template", content=[prompt_message])
-                    ).invoke(inputs),
-                }
-                for prompt_message in self.intent_config.intent_detection_template.content
-            ]
+            final_prompts = []
+            for prompt_message in self.intent_config.intent_detection_template.content:
+                rendered_content = await Prompt(
+                    template=Template(name="template", content=[prompt_message])
+                ).ainvoke(inputs)
+                final_prompts.append(
+                    {
+                        IntentionDetectConstants.ROLE: prompt_message.get(
+                            IntentionDetectConstants.ROLE, ""
+                        ),
+                        IntentionDetectConstants.CONTENT: rendered_content,
+                    }
+                )
             llm_inputs = LanguageModelInput(
                 messages=ModelUtil.switch_message(final_prompts), tools=[]
             )

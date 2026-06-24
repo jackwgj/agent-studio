@@ -145,12 +145,12 @@ class LlmPlanningModule(PlanningModuleBase, ABC):
                 yield item
 
     @staticmethod
-    def _insights_llm_output(llm_message, llm_output, trace_manager):
+    async def _insights_llm_output(llm_message, llm_output, trace_manager):
         usage_metadata = llm_message.usage_metadata
         model_stat = dict()
         if usage_metadata is not None:
             model_stat = usage_metadata.model_stats
-        trace_manager.on_llm_end(
+        await trace_manager.on_llm_end(
             dict(content=llm_output.content, model_stat=model_stat)
         )
 
@@ -193,7 +193,7 @@ class LlmPlanningModule(PlanningModuleBase, ABC):
         trace_manager = create_trace_manager(
             self.llm, functions, kwargs.get("trace_handlers", None)
         )
-        trace_manager.on_llm_start(prompt)
+        await trace_manager.on_llm_start(prompt)
 
         llm_message: AIMessage = await self.llm.ainvoke(
             LanguageModelInput(
@@ -206,7 +206,7 @@ class LlmPlanningModule(PlanningModuleBase, ABC):
             "llm_output": llm_output.dict(exclude_defaults=True),
             "planning_state": kwargs.get("planning_state"),
         }
-        self._insights_llm_output(llm_message, llm_output, trace_manager)
+        await self._insights_llm_output(llm_message, llm_output, trace_manager)
         self.update_planning_state(**updated_state)
 
     async def stream(self, **kwargs):

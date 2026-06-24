@@ -153,7 +153,7 @@ class LLMChatService(
     def set_message_id(self, message_id: str) -> None:
         self.message_id = message_id
 
-    def invoke(self, inputs: InputType, **kwargs) -> MessageBatch:
+    async def ainvoke(self, inputs: InputType, **kwargs) -> MessageBatch:
         """chat_agent invoke"""
         utf_str = "utf-8"
         trace_manager = self._before_action(inputs, kwargs)
@@ -203,15 +203,15 @@ class LLMChatService(
 
             return [res]
         except Exception as e:
-            trace_manager.on_llm_error(e)
+            await trace_manager.on_llm_error(e)
             raise e
 
-    def stream(self, inputs: InputType, **kwargs) -> Iterator[ListChunk[MessageChunk]]:
+    async def astream(self, inputs: InputType, **kwargs) -> Iterator[ListChunk[MessageChunk]]:
         """
         Used to read data from the response of an HTTP request in streaming mode.
         """
         utf_str = "utf-8"
-        trace_manager = self._before_action(inputs, kwargs)
+        trace_manager = asyncio.run(self._before_action(inputs, kwargs))
         try:
             _, body = self._to_request_param(
                 self._ensure_query_dialog(inputs), stream_mode=True
@@ -241,7 +241,7 @@ class LLMChatService(
                     yield [res]
 
         except Exception as e:
-            trace_manager.on_llm_error(e)
+            await trace_manager.on_llm_error(e)
             raise e
 
     def _to_request_param(

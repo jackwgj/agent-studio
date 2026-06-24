@@ -98,21 +98,22 @@ class DetectIntention(LlmPlanningModule, ABC):
         self.intent_config = IntentDetectionConfig(**_get_config_info())
         self.intent_function_map = {}
 
-    @staticmethod
-    def pre_process(inputs: dict, intent_config):
+    async def pre_process(self, inputs: dict, intent_config):
         """
         Pre-process inputs for model
         """
         try:
-            final_prompts = [
-                {
-                    ROLE: prompt_message.get(ROLE, ""),
-                    CONTENT: Prompt(
-                        template=Template(name="template", content=[prompt_message])
-                    ).invoke(inputs),
-                }
-                for prompt_message in intent_config.intent_detection_template.content
-            ]
+            final_prompts = []
+            for prompt_message in intent_config.intent_detection_template.content:
+                rendered_content = await Prompt(
+                    template=Template(name="template", content=[prompt_message])
+                ).ainvoke(inputs)
+                final_prompts.append(
+                    {
+                        ROLE: prompt_message.get(ROLE, ""),
+                        CONTENT: rendered_content,
+                    }
+                )
         except JiuWenBaseException:
             raise
         except Exception as e:
@@ -136,7 +137,7 @@ class DetectIntention(LlmPlanningModule, ABC):
             ) from e
         return llm_inputs
 
-    def create_llm_input(self, **kwargs):
+    async def create_llm_input(self, **kwargs):
         planning_state = kwargs.get("planning_state")
         steps = planning_state.context.get("steps", [])
         max_turn = self.intent_config.chat_history_max_turn
@@ -176,11 +177,11 @@ class DetectIntention(LlmPlanningModule, ABC):
                 for h in chat_history_sliced
             )
 
-        llm_inputs = self.pre_process(current_inputs, self.intent_config)
+        llm_inputs = await self.pre_process(current_inputs, self.intent_config)
         return llm_inputs
 
     async def invoke(self, **kwargs):
-        llm_input = self.create_llm_input(**kwargs)
+        llm_input = await self.create_llm_input(**kwargs)
 
         llm_message: AIMessage = await self.llm.ainvoke(llm_input)
         llm_output = convert_ai_message_to_llm_output(llm_message)

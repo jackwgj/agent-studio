@@ -216,7 +216,7 @@ async def stream_function_call(
     if contexts:
         messages = insert_contexts_before_user_query(contexts, messages)
     trace_manager = create_trace_manager(llm, functions, trace_handlers)
-    trace_manager.on_llm_start(messages)
+    await trace_manager.on_llm_start(messages)
 
     # Combined output dictionary to reduce local variables
     output_data_for_insights = {
@@ -242,7 +242,7 @@ async def stream_function_call(
             yield format_result
 
     except Exception as e:
-        trace_manager.on_llm_error(BaseException("stream function call error"))
+        await trace_manager.on_llm_error(BaseException("stream function call error"))
         raise JiuWenBaseException(
             error_code=StatusCode.INVOKE_LLM_FAILED.value[0],
             message=format_exception_reason(e, reason="stream function call error"),
@@ -257,4 +257,4 @@ async def stream_function_call(
     output_on_insights.update({LATENCY: output_data_for_insights["time_dict"]})
     output_on_insights.update({MODEL_STAT: output_data_for_insights["model_stat"]})
     output_on_insights.update({MODEL_USAGE: output_data_for_insights["model_usage"]})
-    trace_manager.on_llm_end(output_on_insights)
+    await trace_manager.on_llm_end(output_on_insights)

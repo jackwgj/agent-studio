@@ -102,7 +102,7 @@ class LLMMatcher(BaseMatcher):
             }
             examples = await self._get_intent_examples(candidates)
 
-            llm_input = self._build_llm_input(
+            llm_input = await self._build_llm_input(
                 input_data, candidates, descriptions, examples
             )
             logger.info(
@@ -311,7 +311,7 @@ class LLMMatcher(BaseMatcher):
 
         return "\n".join(formatted_parts)
 
-    def _pre_process(self, inputs: Dict[str, Any]) -> Any:
+    async def _pre_process(self, inputs: Dict[str, Any]) -> Any:
         """
         创建llm inputs
 
@@ -326,9 +326,9 @@ class LLMMatcher(BaseMatcher):
             for (
                 prompt_message
             ) in self.llm_retrival_config.intent_detection_template.content:
-                rendered_content = Prompt(
+                rendered_content = await Prompt(
                     template=Template(name="template", content=[prompt_message])
-                ).invoke(inputs)
+                ).ainvoke(inputs)
 
                 final_prompts.append(
                     {
@@ -348,7 +348,7 @@ class LLMMatcher(BaseMatcher):
             logger.error(f"Failed to pre-process inputs: {e}", exc_info=True)
             raise e
 
-    def _build_llm_input(
+    async def _build_llm_input(
         self,
         input_data: IntentInput,
         intent_ids: List[str],

@@ -573,6 +573,8 @@ class ReActAgentRunner:
             session_id = req.conversation_id or "default_session"
             session = create_agent_session(session_id=session_id, card=agent.card)
             await session.pre_run(inputs=inputs)
+            # 提取 openjiuwen tracer 并注入到 inputs 中
+            inputs.setdefault("_jiuwen_runtime_kwargs", {})["session"] = session
 
             async for chunk in agent.stream(inputs, session,
                                             [BaseStreamMode.OUTPUT, BaseStreamMode.TRACE, BaseStreamMode.CUSTOM]):

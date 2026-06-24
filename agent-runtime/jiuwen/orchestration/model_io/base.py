@@ -110,7 +110,7 @@ class BaseModel(Invokable[InputType, MessageBatch], pydantic_BaseModel):
             if not self.extra_headers.get(k):
                 self.extra_headers[k] = v
 
-    def _before_action(self, inputs, kwargs: Dict[str, Any]) -> TraceManager:
+    async def _before_action(self, inputs, kwargs: Dict[str, Any]) -> TraceManager:
         trace_manager = TraceManager.generate_manager(
             kwargs.pop("trace_handlers", None),
             get_instance_info(
@@ -124,13 +124,13 @@ class BaseModel(Invokable[InputType, MessageBatch], pydantic_BaseModel):
                 ],
             ),
         )
-        trace_manager.on_llm_start(inputs)
+        await trace_manager.on_llm_start(inputs)
 
         if not self.url:
             mie = ModelInvokeError(
                 ModelErrStatus.MISS_ARGUMENTS,
                 "Url of model service is required but get empty/None.",
             )
-            trace_manager.on_llm_error(mie)
+            await trace_manager.on_llm_error(mie)
             raise mie
         return trace_manager

@@ -84,50 +84,7 @@ class InvokableBranch(Invokable[Input, Output]):
         self.default = default_
 
     def invoke(self, inputs: Input, **kwargs: Any) -> Output:
-        """First evaluates the condition, then delegate to true or false branch."""
-        trace_manager = TraceManager.generate_manager(
-            kwargs.pop("trace_handlers", None), get_instance_info(self)
-        )
-        trace_manager.on_chain_start(inputs)
-        try:
-            for i, branch in enumerate(self.branches):
-                condition_function, invokable = branch
-                expression_value = condition_function.invoke(
-                    inputs,
-                    trace_handlers=get_child_manager(
-                        trace_manager, name=f"Branch{i}.condition"
-                    )
-                    if trace_manager
-                    else None,
-                    kwargs=kwargs,
-                )
-
-                if expression_value:
-                    output = invokable.invoke(
-                        inputs,
-                        trace_handlers=get_child_manager(
-                            trace_manager, name=f"Branch{i}.invoke"
-                        )
-                        if trace_manager
-                        else None,
-                        kwargs=kwargs,
-                    )
-                    break
-            else:
-                output = self.default.invoke(
-                    inputs,
-                    trace_handlers=get_child_manager(
-                        trace_manager, name="DefaultBranch"
-                    )
-                    if trace_manager
-                    else None,
-                    kwargs=kwargs,
-                )
-        except Exception as e:
-            trace_manager.on_chain_error(e)
-            raise
-        trace_manager.on_chain_end(output)
-        return output
+       ...
 
     async def ainvoke(self, inputs: Input, **kwargs: Any) -> Output:
         """Async version of invoke."""

@@ -116,7 +116,7 @@ class McpAPI(Invokable, ABC):
             kwargs.pop("trace_handlers", None),
             get_instance_info(self, blacklist=["auth", "headers", "query_params"]),
         )
-        trace_manager.on_plugin_start(inputs)
+        await trace_manager.on_plugin_start(inputs)
 
         try:
             request_params = await self.request_params_creator.create(inputs, **kwargs)
@@ -161,7 +161,7 @@ class McpAPI(Invokable, ABC):
                         await session.initialize()
                         result = await session.call_tool(self.name, inputs)
                         content = self._transform_result(result)
-                        trace_manager.on_plugin_end(content)
+                        await trace_manager.on_plugin_end(content)
                         return {
                             constant.ERR_CODE: 0,
                             constant.ERR_MESSAGE: "success",
@@ -179,7 +179,7 @@ class McpAPI(Invokable, ABC):
                         await session.initialize()
                         result = await session.call_tool(self.name, inputs)
                         content = self._transform_result(result)
-                        trace_manager.on_plugin_end(content)
+                        await trace_manager.on_plugin_end(content)
                         return {
                             constant.ERR_CODE: 0,
                             constant.ERR_MESSAGE: "success",
@@ -201,7 +201,7 @@ class McpAPI(Invokable, ABC):
 
         except ExceptionGroup as eg:
             logger.error("MCP client invocation failed :", exc_info=True)
-            trace_manager.on_plugin_error(eg)
+            await trace_manager.on_plugin_error(eg)
             return {
                 constant.ERR_CODE: StatusCode.WORKFLOW_MCP_EXECUTE_ERROR.code,
                 constant.ERR_MESSAGE: StatusCode.WORKFLOW_MCP_EXECUTE_ERROR.errmsg.format(
@@ -211,7 +211,7 @@ class McpAPI(Invokable, ABC):
             }
         except Exception as error:
             logger.error("MCP client invocation failed :", exc_info=True)
-            trace_manager.on_plugin_error(error)
+            await trace_manager.on_plugin_error(error)
             return {
                 constant.ERR_CODE: StatusCode.WORKFLOW_MCP_EXECUTE_ERROR.code,
                 constant.ERR_MESSAGE: StatusCode.WORKFLOW_MCP_EXECUTE_ERROR.errmsg.format(
@@ -325,7 +325,7 @@ class McpServer(McpAPI, ABC):
             kwargs.pop("trace_handlers", None),
             get_instance_info(self, blacklist=["auth", "headers"]),
         )
-        trace_manager.on_plugin_start(inputs)
+        await trace_manager.on_plugin_start(inputs)
         try:
             request_params = await self.request_params_creator.create(inputs, **kwargs)
             request_params.headers[X_REQUEST_ID] = get_x_request_id()
@@ -388,11 +388,11 @@ class McpServer(McpAPI, ABC):
 
         except ExceptionGroup as eg:
             eg_str = exception_group_to_str_simple(eg)
-            trace_manager.on_plugin_error(eg)
+            await trace_manager.on_plugin_error(eg)
             logger.warning(f"get mcp tools list error, {eg_str}")
             return []
         except Exception as error:
-            trace_manager.on_plugin_error(error)
+            await trace_manager.on_plugin_error(error)
             logger.warning("get mcp tools list error, please check mcp server.")
             return []
 

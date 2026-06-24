@@ -117,6 +117,7 @@ class OpenJiuwenAgentFacade(BaseAgent):
             "runtime_context": runtime_kwargs.get("runtime_context"),
             "tool_switch_dict": runtime_kwargs.get("tool_switch_dict"),
             "trace_handlers": runtime_kwargs.get("trace_handlers"),
+            "session": runtime_kwargs.get("session"),
         }
 
     async def invoke(self, inputs: Any, session: Optional[Any] = None, **kwargs) -> Any:
@@ -163,6 +164,7 @@ class OpenJiuwenAgentFacade(BaseAgent):
             runtime_context=runtime_kwargs["runtime_context"],
             tool_switch_dict=runtime_kwargs["tool_switch_dict"],
             trace_handlers=runtime_kwargs["trace_handlers"],
+            session=runtime_kwargs["session"],
         ):
             yield item
 

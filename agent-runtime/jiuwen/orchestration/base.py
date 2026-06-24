@@ -273,7 +273,7 @@ class Invokable(Generic[Input, Output], InvokableBase):
         """
         yield await self.ainvoke(inputs, **kwargs)
 
-    def batch(self, input_list: List[Input], **kwargs):
+    async def batch(self, input_list: List[Input], **kwargs):
         """Default implementation runs invoke in parallel using a thread pool executor."""
         trace_manager = TraceManager.generate_manager(
             kwargs.pop("trace_handlers", None),
@@ -281,7 +281,7 @@ class Invokable(Generic[Input, Output], InvokableBase):
                 self, blacklist=["memory", "local_params", "global_params"]
             ),
         )
-        trace_manager.on_chain_start(input_list)
+        await trace_manager.on_chain_start(input_list)
         try:
             with ThreadPoolExecutor() as executor:
                 futures = [
@@ -297,9 +297,9 @@ class Invokable(Generic[Input, Output], InvokableBase):
                 ]
                 outputs = [future.result() for future in futures]
         except BaseException as e:
-            trace_manager.on_chain_error(e)
+            await trace_manager.on_chain_error(e)
             raise
-        trace_manager.on_chain_end(outputs)
+        await trace_manager.on_chain_end(outputs)
         return outputs
 
     def with_memory(self, memory: "ConversationMemory", auto_save=True) -> "Invokable":
@@ -450,7 +450,7 @@ class InvokableSequence(Invokable[Input, Output], ABC):
         trace_manager = TraceManager.generate_manager(
             kwargs.pop("trace_handlers", None), get_instance_info(self)
         )
-        trace_manager.on_chain_start(inputs)
+        asyncio.run(trace_manager.on_chain_start(inputs))
 
         try:
             self.global_params["input"] = deepcopy(inputs)
@@ -485,9 +485,9 @@ class InvokableSequence(Invokable[Input, Output], ABC):
                 origin_input = self.global_params.get("input")
                 self.memory.save_context(origin_input, inputs)
         except BaseException as e:
-            trace_manager.on_chain_error(e)
+            asyncio.run(trace_manager.on_chain_error(e))
             raise
-        trace_manager.on_chain_end(inputs)
+        asyncio.run(trace_manager.on_chain_end(inputs))
         return cast(Output, inputs)
 
     async def ainvoke(self, inputs: Input, **kwargs) -> Output:
@@ -599,7 +599,7 @@ class InvokableParallel(Invokable[Input, Dict[str, Any]]):
         trace_manager = TraceManager.generate_manager(
             kwargs.pop("trace_handlers", None), get_instance_info(self)
         )
-        trace_manager.on_chain_start(inputs)
+        asyncio.run(trace_manager.on_chain_start(inputs))
 
         try:
             with ThreadPoolExecutor() as executor:
@@ -618,9 +618,9 @@ class InvokableParallel(Invokable[Input, Dict[str, Any]]):
                     key: future.result() for key, future in zip(self.actions, futures)
                 }
         except BaseException as e:
-            trace_manager.on_chain_error(e)
+            asyncio.run(trace_manager.on_chain_error(e))
             raise
-        trace_manager.on_chain_end(outputs)
+        asyncio.run(trace_manager.on_chain_end(outputs))
         return outputs
 
     async def ainvoke(self, inputs: Input, **kwargs) -> Output:
@@ -700,7 +700,7 @@ class InvokableLambda(Invokable[Input, Output]):
             kwargs.pop("trace_handlers", None),
             get_instance_info(self, blacklist=blacklist),
         )
-        trace_manager.on_chain_start(inputs)
+        asyncio.run(trace_manager.on_chain_start(inputs))
         if hasattr(self, "func"):
             try:
                 param_num = _get_function_param_num(self.func)
@@ -708,10 +708,10 @@ class InvokableLambda(Invokable[Input, Output]):
                     outputs = self.func(inputs)
                 else:
                     outputs = self.func(inputs, **kwargs)
-                trace_manager.on_chain_end(outputs)
+                asyncio.run(trace_manager.on_chain_end(outputs))
                 return outputs
             except BaseException as e:
-                trace_manager.on_chain_error(e)
+                asyncio.run(trace_manager.on_chain_error(e))
                 raise e
         else:
             raise TypeError(

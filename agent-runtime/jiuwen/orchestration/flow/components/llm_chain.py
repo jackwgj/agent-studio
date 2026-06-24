@@ -122,10 +122,13 @@ class LLMChain(Invokable):
         self.mem_conf = conf.get("memory", {})
 
     def invoke(self, inputs: dict[str, Any], **kwargs):
+        ...
+
+    async def ainvoke(self, inputs: dict[str, Any], **kwargs):
         """LLM组件非流式调用接口"""
         inputs = inputs.get(USER_FIELDS)
         self._process_inputs(inputs)
-        language_model_inputs = self._get_model_input(inputs=inputs)
+        language_model_inputs = await self._get_model_input(inputs=inputs)
         llm_output = self.llm.invoke(language_model_inputs)
         formatted_res = format_response(
             llm_output.content,
@@ -138,12 +141,12 @@ class LLMChain(Invokable):
         self.__append_usage_metadata(llm_output, final_output)
         return final_output
 
-    def stream(self, inputs: dict[str, Any], **kwargs):
+    async def stream(self, inputs: dict[str, Any], **kwargs):
         """LLM组件流式蹦字调用接口"""
         if self._get_response_format().get("type") == "json":
             inputs = inputs.get(USER_FIELDS)
             self._process_inputs(inputs)
-            language_model_inputs = self._get_model_input(inputs=inputs)
+            language_model_inputs = await self._get_model_input(inputs=inputs)
             llm_output = self.llm.invoke(language_model_inputs)
             final_res = format_response(
                 llm_output.content,
@@ -157,7 +160,7 @@ class LLMChain(Invokable):
         else:
             inputs = inputs.get(USER_FIELDS)
             self._process_inputs(inputs)
-            language_model_inputs = self._get_model_input(inputs=inputs)
+            language_model_inputs = await self._get_model_input(inputs=inputs)
             result = self.llm.stream(language_model_inputs)
             llm_inputs = dict(language_model_inputs)
             generator_res = self._get_streaming_generator(
@@ -177,7 +180,7 @@ class LLMChain(Invokable):
         if self._get_response_format().get("type") == "json":
             inputs = inputs.get(USER_FIELDS)
             self._process_inputs(inputs)
-            language_model_inputs = self._get_model_input(inputs=inputs)
+            language_model_inputs = await self._get_model_input(inputs=inputs)
             user_profile = self.mem_conf.get(USER_PROFILE_KEY)
             if isinstance(user_profile, dict) and user_profile.get(ENABLE_KEY, False):
                 memory_msg = self._runtime_context.get(MEMORY_MESSAGE)
@@ -197,7 +200,7 @@ class LLMChain(Invokable):
         else:
             inputs = inputs.get(USER_FIELDS)
             self._process_inputs(inputs)
-            language_model_inputs = self._get_model_input(inputs=inputs)
+            language_model_inputs = await self._get_model_input(inputs=inputs)
             user_profile = self.mem_conf.get(USER_PROFILE_KEY)
             if isinstance(user_profile, dict) and user_profile.get(ENABLE_KEY, False):
                 memory_msg = self._runtime_context.get(MEMORY_MESSAGE)
@@ -831,7 +834,7 @@ class LLMChain(Invokable):
             execution_id=execution_id,
         )
 
-    def _get_model_input(self, inputs: dict) -> LanguageModelInput:
+    async def _get_model_input(self, inputs: dict) -> LanguageModelInput:
         """
         获取模型输入
         """
@@ -841,7 +844,7 @@ class LLMChain(Invokable):
         )
         try:
             self._validate_prompt_instance(prompt_instance)
-            user_prompt = prompt_instance.invoke(inputs)
+            user_prompt = await prompt_instance.ainvoke(inputs)
         except JiuWenBaseException:
             raise
         except Exception as e:

@@ -76,7 +76,7 @@ class ReActStrategy(AgentStrategy):
         iteration = 0
         try:
             while iteration < context.max_iteration:
-                llm_input = self._prepare_llm_input(context, messages)
+                llm_input = await self._prepare_llm_input(context, messages)
 
                 llm_output = await self.llm.ainvoke(llm_input)
                 if llm_output.tool_calls.name:
@@ -116,7 +116,7 @@ class ReActStrategy(AgentStrategy):
     async def astream(self, context: AgentStrategyContext) -> AsyncIterator[str]:
         pass
 
-    def _get_model_input(
+    async def _get_model_input(
         self,
         inputs: dict,
         context: AgentStrategyContext,
@@ -129,7 +129,7 @@ class ReActStrategy(AgentStrategy):
         # 将模型IR配置中的systemPrompt占位符替换为真实输入
         prompt_instance = self._get_prompt_instance_by_template(context.system_prompt)
         try:
-            system_prompt = prompt_instance.invoke(inputs)
+            system_prompt = await prompt_instance.ainvoke(inputs)
         except JiuWenBaseException:
             raise
         except Exception as e:
@@ -157,7 +157,7 @@ class ReActStrategy(AgentStrategy):
         final_prompt.extend(history)
         return final_prompt
 
-    def _prepare_llm_input(self, context: AgentStrategyContext, messages: list) -> dict:
+    async def _prepare_llm_input(self, context: AgentStrategyContext, messages: list) -> dict:
         inputs = context.user_inputs.get(USER_FIELDS)
 
         formatted_tools = (
@@ -170,7 +170,7 @@ class ReActStrategy(AgentStrategy):
             else []
         )
 
-        return self._get_model_input(
+        return await self._get_model_input(
             inputs=inputs,
             context=context,
             function=messages,

@@ -77,9 +77,12 @@ class FlowCard(Invokable, MessageComponentBase):
             self.end_interrupt = True
 
     def invoke(self, inputs, **kwargs):
+        ...
+
+    async def ainvoke(self, inputs, **kwargs):
         """Invoke to assemble card outputs."""
         try:
-            flow_card = self.template.invoke(inputs.get(USER_FIELDS))
+            flow_card = await self.template.ainvoke(inputs.get(USER_FIELDS))
         except JiuWenBaseException:
             raise
         except Exception as e:
@@ -127,7 +130,7 @@ class FlowCard(Invokable, MessageComponentBase):
             ) from e
 
         try:
-            final_res = self.template.invoke(inputs)
+            final_res = await self.template.ainvoke(inputs)
         except JiuWenBaseException:
             raise
         except Exception as e:

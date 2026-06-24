@@ -41,8 +41,7 @@ class MessageComponentBase(ABC):
            Sends interactive messages during the intermediate running process of nodes.
     """
 
-    @staticmethod
-    def _format_output_answer(origin_output: str, struct_answer_item: dict):
+    async def _format_output_answer(self, origin_output: str, struct_answer_item: dict):
         """format struct output answer
         Args:
             origin_output: origin output answer.
@@ -59,9 +58,9 @@ class MessageComponentBase(ABC):
             if isinstance(origin_output, dict)
             else origin_output
         )
-        return Prompt(
+        return await Prompt(
             template=Template(name="struct_answer_template", content=template_answer)
-        ).invoke(variables)
+        ).ainvoke(variables)
 
     @staticmethod
     def _get_message_end_generator(
@@ -108,7 +107,7 @@ class MessageComponentBase(ABC):
     ):
         """format workflow message node output directly"""
         struct_answer = (
-            self._format_output_answer(origin_output, struct_answer_item)
+            await self._format_output_answer(origin_output, struct_answer_item)
             if struct_answer_item
             else ""
         )
@@ -184,7 +183,7 @@ class MessageComponentBase(ABC):
         chat_manager: ChatManager,
     ):
         """format workflow interaction message output"""
-        struct_answer = self._format_output_answer(origin_output, struct_answer_item)
+        struct_answer = await self._format_output_answer(origin_output, struct_answer_item)
         # check if interaction nodes should be interrupted
         if isinstance(self, InteractiveComponent):
             try:

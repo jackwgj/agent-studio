@@ -65,6 +65,9 @@ class Prompt(Invokable):
         return cls(template=template)
 
     def invoke(self, inputs: Input, **kwargs) -> Output:
+        ...
+
+    async def ainvoke(self, inputs: Input, **kwargs) -> Output:
         """Prompt invoke
 
         Args:
@@ -86,7 +89,7 @@ class Prompt(Invokable):
         trace_manager = TraceManager.generate_manager(
             kwargs.pop("trace_handlers", None), get_instance_info(self)
         )
-        trace_manager.on_prompt_start(inputs)
+        await trace_manager.on_prompt_start(inputs)
         if isinstance(cpy_template.content, list):
             cpy_template.content = messages_to_template(cpy_template.content)
         assembler = PromptAssembler(template=cpy_template)
@@ -94,5 +97,5 @@ class Prompt(Invokable):
         formatted_prompt = assembler.assemble(**assemble_inputs)
         if isinstance(formatted_prompt, list):
             formatted_prompt = self._concatenate_message(formatted_prompt)
-        trace_manager.on_prompt_end(formatted_prompt)
+        await trace_manager.on_prompt_end(formatted_prompt)
         return formatted_prompt

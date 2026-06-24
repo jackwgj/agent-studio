@@ -305,7 +305,7 @@ class RestfulApiToolNew(Tool):
         """
         trace_manager = self._create_tracer_manager(**kwargs)
         try:
-            trace_manager.on_plugin_start(inputs)
+            await trace_manager.on_plugin_start(inputs)
             request_params = self._request_params_creator.create(
                 inputs, file_params_list_type=False, **kwargs
             )
@@ -326,7 +326,7 @@ class RestfulApiToolNew(Tool):
                     request_params, trace_manager
                 )
         except Exception as error:
-            trace_manager.on_plugin_error(error)
+            await trace_manager.on_plugin_error(error)
             response_data = self._create_error_invoke_response(error)
         return response_data
 
@@ -342,7 +342,7 @@ class RestfulApiToolNew(Tool):
         """
         trace_manager = self._create_tracer_manager(**kwargs)
         try:
-            trace_manager.on_plugin_start(inputs)
+            await trace_manager.on_plugin_start(inputs)
             request_params = self._request_params_creator.create(inputs, **kwargs)
             self._validate_request_params(request_params)
 
@@ -363,7 +363,7 @@ class RestfulApiToolNew(Tool):
                             code=StatusCode.PLUGIN_RESPONSE_HTTP_CODE_ERROR,
                             message=f"plugin response code {response.status} error.",
                         )
-                    trace_manager.on_plugin_end(response)
+                    await trace_manager.on_plugin_end(response)
                     async for line_bytes in response.content:
                         try:
                             line = line_bytes.decode("utf-8").strip()
@@ -373,7 +373,7 @@ class RestfulApiToolNew(Tool):
                         except UnicodeDecodeError:
                             continue
         except Exception as error:
-            trace_manager.on_plugin_error(error)
+            await trace_manager.on_plugin_error(error)
             self._create_error_stream_response(error)
 
     def _create_post_request(self, request_params: RequestParams) -> dict:
@@ -639,13 +639,13 @@ class RestfulApiToolNew(Tool):
             isinstance(response_data, dict)
             and response_data.get(constant.ERR_CODE, 0) != 0
         ):
-            trace_manager.on_plugin_error(
+            await trace_manager.on_plugin_error(
                 exception.PluginCommonException(
                     message=response_data.get(constant.ERR_MESSAGE, "plugin error")
                 )
             )
         else:
-            trace_manager.on_plugin_end(response_data)
+            await trace_manager.on_plugin_end(response_data)
 
         return response_data
 
@@ -702,7 +702,7 @@ class RestfulApiToolNew(Tool):
                 message=f"plugin response code {stream_response.status_code} error.",
             )
 
-        trace_manager.on_plugin_end(stream_response)
+        asyncio.ensure_future(trace_manager.on_plugin_end(stream_response))
 
         for line in stream_response.iter_lines():
             line = line.decode("utf-8")

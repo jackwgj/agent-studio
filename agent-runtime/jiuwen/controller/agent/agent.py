@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # coding=utf-8
 #  Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
-import asyncio
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
@@ -30,179 +29,6 @@ from jiuwen.orchestration import Invokable
 from jiuwen.serve.controllers.execution.manager import AsyncStateManager
 from jiuwen.serve.controllers.execution.open_utils import serialize_object
 from openjiuwen.core.sys_operation.cwd import init_cwd
-
-
-_OPENJIUWEN_BASE_AGENT_CLASS = None
-_OPENJIUWEN_AGENT_CARD_CLASS = None
-_OPENJIUWEN_BRIDGE_CLASS = None
-
-
-def _get_openjiuwen_base_agent_class():
-    global _OPENJIUWEN_BASE_AGENT_CLASS
-    if _OPENJIUWEN_BASE_AGENT_CLASS is None:
-        from openjiuwen.core.single_agent import BaseAgent as OpenjiuwenBaseAgent
-
-        _OPENJIUWEN_BASE_AGENT_CLASS = OpenjiuwenBaseAgent
-    return _OPENJIUWEN_BASE_AGENT_CLASS
-
-
-def _get_openjiuwen_agent_card_class():
-    global _OPENJIUWEN_AGENT_CARD_CLASS
-    if _OPENJIUWEN_AGENT_CARD_CLASS is None:
-        from openjiuwen.core.single_agent.schema.agent_card import AgentCard
-
-        _OPENJIUWEN_AGENT_CARD_CLASS = AgentCard
-    return _OPENJIUWEN_AGENT_CARD_CLASS
-
-
-def _initialize_agent_runtime(agent: Any, config: AgentConfig) -> None:
-    if config is None:
-        config = AgentConfig()
-
-    agent.context_manager = ContextManager(agent_config=config)
-
-    agent.control_mode = ControlFactory.create_control_mode(
-        agent_config=config, context_manager=agent.context_manager
-    )
-    agent.workflows = config.workflows or []
-    agent.plugins = config.plugins or []
-    agent.mcps = []
-    agent.result = None
-    agent.task_id = config.task_id
-    agent.agent_id = config.agent_id
-    object.__setattr__(agent, "_invoke_status", TaskInvokeStatus.INIT)
-    agent.skill_dir = config.skill_dir or ""
-    agent.skill_info = config.skill_info or []
-
-
-def _get_openjiuwen_bridge_class():
-    global _OPENJIUWEN_BRIDGE_CLASS
-    if _OPENJIUWEN_BRIDGE_CLASS is not None:
-        return _OPENJIUWEN_BRIDGE_CLASS
-
-    openjiuwen_base_agent = _get_openjiuwen_base_agent_class()
-    agent_card_class = _get_openjiuwen_agent_card_class()
-
-    class _OpenJiuwenAgentBridge(openjiuwen_base_agent):
-        """Internal bridge that only adapts the OpenJiuWen BaseAgent contract."""
-
-        def __init__(self, inner_agent: "InnerAgent"):
-            if inner_agent is None:
-                raise ValueError("inner_agent is required")
-            self._inner_agent = inner_agent
-            self._config = None
-            super().__init__(card=self._build_card(inner_agent))
-
-        @staticmethod
-        def _build_card(inner_agent: "InnerAgent") -> Any:
-            agent_id = (
-                getattr(inner_agent, "agent_id", None)
-                or getattr(inner_agent, "task_id", None)
-                or "jiuwen_agent"
-            )
-            return agent_card_class(
-                id=agent_id,
-                name=agent_id,
-                description="Jiuwen internal agent bridge",
-            )
-
-        @staticmethod
-        def _extract_runtime_kwargs(inputs: Any) -> dict:
-            if not isinstance(inputs, dict):
-                return {}
-            runtime_kwargs = inputs.get("_jiuwen_runtime_kwargs", {})
-            return runtime_kwargs if isinstance(runtime_kwargs, dict) else {}
-
-        def configure(self, config) -> "_OpenJiuwenAgentBridge":
-            self._config = config
-            return self
-
-        async def invoke(
-            self, inputs: Any, session: Optional[Any] = None, **kwargs
-        ) -> Any:
-            merged_kwargs = {**self._extract_runtime_kwargs(inputs), **kwargs}
-            if session is not None:
-                merged_kwargs["session"] = session
-            return await self._inner_agent.invoke(inputs, **merged_kwargs)
-
-        async def stream(
-            self,
-            inputs: Any,
-            session: Optional[Any] = None,
-            stream_modes: Optional[list[Any]] = None,
-            **kwargs,
-        ) -> AsyncGenerator[Any, None]:
-            merged_kwargs = {**self._extract_runtime_kwargs(inputs), **kwargs}
-            if session is not None:
-                merged_kwargs["session"] = session
-            async for item in self._inner_agent.astream(inputs, **merged_kwargs):
-                yield item
-
-        async def save_state(self, key):
-            return await self._inner_agent.save_state(key)
-
-        async def get_state(self):
-            return await self._inner_agent.get_state()
-
-        async def load_state(self, state):
-            return await self._inner_agent.load_state(state)
-
-        def clear_state(self):
-            return self._inner_agent.clear_state()
-
-        def get_control_mode(self):
-            return self._inner_agent.get_control_mode()
-
-        def get_task_end(self):
-            return self._inner_agent.get_task_end()
-
-        async def prepare_execution(self, inputs, kwargs):
-            return await self._inner_agent.prepare_execution(inputs, kwargs)
-
-        def update_controller_global_variables(self, runtime_context):
-            return self._inner_agent.update_controller_global_variables(runtime_context)
-
-        async def get_tools(self, query, kwargs):
-            return await self._inner_agent.get_tools(query, kwargs)
-
-        def handle_execution_result(self, plan_status_code, execute_res, trace_manager):
-            return self._inner_agent.handle_execution_result(
-                plan_status_code, execute_res, trace_manager
-            )
-
-        def update_plugins(self, plugins):
-            return self._inner_agent.update_plugins(plugins)
-
-        def update_mcps(self, mcps):
-            return self._inner_agent.update_mcps(mcps)
-
-        def __getattr__(self, name: str):
-            return getattr(self._inner_agent, name)
-
-    _OPENJIUWEN_BRIDGE_CLASS = _OpenJiuwenAgentBridge
-    return _OPENJIUWEN_BRIDGE_CLASS
-
-
-def _build_openjiuwen_agent_bridge(inner_agent: "InnerAgent"):
-    return _get_openjiuwen_bridge_class()(inner_agent)
-
-
-_INNER_NO_OVERRIDE = object()
-
-
-def _get_facade_method_override(inner_agent: Any, method_name: str):
-    facade = getattr(inner_agent, "_facade", None)
-    if facade is None:
-        return _INNER_NO_OVERRIDE
-
-    facade_method = getattr(type(facade), method_name, None)
-    default_method = _AGENT_FACADE_DEFAULT_METHODS.get(method_name)
-    if facade_method is None or facade_method is default_method:
-        return _INNER_NO_OVERRIDE
-
-    if hasattr(facade_method, "__get__"):
-        return facade_method.__get__(facade, type(facade))
-    return facade_method
 
 
 class TaskInvokeStatus(Enum):
@@ -254,21 +80,27 @@ class Agent(BaseAgent):
 
     def __init__(self, config: AgentConfig = None):
         """初始化Agent实例"""
-        object.__setattr__(self, "_bridge_enabled", False)
-        object.__setattr__(self, "_inner_agent", None)
-        object.__setattr__(self, "_bridge", None)
-
         if config is None:
             config = AgentConfig()
 
-        self._attach_inner_agent(InnerAgent(config=config))
-        return
+        super().__init__(config=config)
 
-    def _attach_inner_agent(self, inner_agent: "InnerAgent") -> None:
-        object.__setattr__(inner_agent, "_facade", self)
-        object.__setattr__(self, "_inner_agent", inner_agent)
-        object.__setattr__(self, "_bridge", _build_openjiuwen_agent_bridge(inner_agent))
-        object.__setattr__(self, "_bridge_enabled", True)
+        self.context_manager = ContextManager(agent_config=config)
+
+        self.control_mode = ControlFactory.create_control_mode(
+            agent_config=config, context_manager=self.context_manager
+        )
+        self.workflows = config.workflows or []
+        self.plugins = config.plugins or []
+        self.mcps = []
+        self.result = None
+        self.task_id = config.task_id
+        self.agent_id = config.agent_id
+        self._invoke_status = TaskInvokeStatus.INIT
+
+        # 保存 skill 配置
+        self.skill_dir = config.skill_dir or ""
+        self.skill_info = config.skill_info or []
 
     @classmethod
     def from_state(cls, agent_config: AgentConfig, agent_state: AgentState):
@@ -284,49 +116,32 @@ class Agent(BaseAgent):
         logger.info(
             f"task_id {agent_config.task_id} |agent_state from_state created at: {agent_state.created_at}"
         )
-        agent = cls.__new__(cls)
-        object.__setattr__(agent, "_bridge_enabled", False)
-        object.__setattr__(agent, "_inner_agent", None)
-        object.__setattr__(agent, "_bridge", None)
-        inner_agent = cls._create_inner_agent_from_state(agent_config, agent_state)
-        agent._attach_inner_agent(inner_agent)
+        agent = cls(config=agent_config)
+        if agent_state is not None:
+            agent.context_manager.load_state(agent_state=agent_state)
+            agent.control_mode.task_planner.load_state(state=agent_state)
         return agent
-
-    @staticmethod
-    def _create_inner_agent_from_state(
-        agent_config: AgentConfig, agent_state: AgentState
-    ) -> "InnerAgent":
-        from_state = getattr(InnerAgent, "from_state", None)
-        if callable(from_state):
-            return from_state(agent_config, agent_state)
-
-        inner_agent = InnerAgent(config=agent_config)
-        load_state_sync = getattr(inner_agent, "_load_state_sync", None)
-        if callable(load_state_sync):
-            load_state_sync(agent_state)
-        else:
-            setattr(inner_agent, "state", agent_state)
-        return inner_agent
 
     def get_control_mode(self):
         """
         获取控制模式
         Returns: plan_mode
         """
-        return self._bridge.get_control_mode()
+        return self.control_mode.plan_config.plan_mode
 
     def get_task_end(self):
         """
         获取任务状态
         Returns: task_end
         """
-        return self._bridge.get_task_end()
+        return self.control_mode.task_end
 
     def clear_state(self):
         """
         清理Agent中不需要的内存
         """
-        return self._bridge.clear_state()
+        self.context_manager.clear_all()
+        self.control_mode.task_planner.task_queue.clear_all_tasks()
 
     async def save_state(self, key):
         """
@@ -335,13 +150,49 @@ class Agent(BaseAgent):
         Args:
             key: 状态存储的键名
         """
-        return await self._bridge.save_state(key)
+        planner_state = self.control_mode.task_planner.get_state()
+        controller_state = planner_state
+        plan_execute_state = None
+        if isinstance(planner_state, PlanExecuteState):
+            controller_state = None
+            plan_execute_state = planner_state
+        agent_state = AgentState(
+            workflow_states=self.control_mode.get_interrupted_workflow_state(),
+            task_queue_state=self.control_mode.task_planner.task_queue.get_state(),
+            controller_state=controller_state,
+            plan_execute_state=plan_execute_state,
+            controller_global_variables=self.context_manager.get_global_variables(
+                "controller_global_variables", {}
+            ),
+        )
+        serialized_agent_state = serialize_object(agent_state)
+        logger.info(
+            f"task_id {self.task_id}| agent_state create at: {agent_state.created_at},"
+            f" controller_state: {agent_state.controller_state}",
+            simple_log="agent state saved successfully",
+        )
+        await AsyncStateManager().save_state(key, serialized_agent_state)
 
     async def get_state(self):
         """
         获取AgentState，Workflow的序列化方法由Workflow提供
         """
-        return await self._bridge.get_state()
+        planner_state = self.control_mode.task_planner.get_state()
+        controller_state = planner_state
+        plan_execute_state = None
+        if isinstance(planner_state, PlanExecuteState):
+            controller_state = None
+            plan_execute_state = planner_state
+        agent_state = AgentState(
+            workflow_states=self.control_mode.get_interrupted_workflow_state(),
+            task_queue_state=self.control_mode.task_planner.task_queue.get_state(),
+            controller_state=controller_state,
+            plan_execute_state=plan_execute_state,
+            controller_global_variables=self.context_manager.get_global_variables(
+                "controller_global_variables", {}
+            ),
+        )
+        return agent_state
 
     async def load_state(self, state: AgentState):
         """
@@ -351,7 +202,8 @@ class Agent(BaseAgent):
             state: Agent状态对象
             ir_data: IR数据，用于恢复工作流实例
         """
-        return await self._bridge.load_state(state)
+        self.context_manager.load_state(agent_state=state)
+        self.control_mode.task_planner.load_state(state=state)
 
     async def prepare_execution(self, inputs, kwargs):
         """
@@ -364,7 +216,29 @@ class Agent(BaseAgent):
         Returns:
             Tuple: (查询文本, 提示信息, 运行时上下文, 追踪管理器)
         """
-        return await self._bridge.prepare_execution(inputs, kwargs)
+        runtime_context = kwargs.get("runtime_context")
+
+        # 初始化聊天历史
+        self._initialize_chat_history(runtime_context)
+
+        # 传递记忆使用请求级参数
+        params = runtime_context.agent_workflow_context.get(
+            WorkflowConstants.WORKFLOW_REQ_PARAMS_KEY, {}
+        )
+        self.context_manager.set_memory_request_params(
+            memory_app_id=params.get("app_id", ""),
+            memory_enable_user_profile=params.get("enable_memory_retrieve", False),
+        )
+
+        # 处理输入
+        query, prompt_info = AgentUtils.process_input(
+            inputs, self.query_key_word, self.plan_prompt_key_word
+        )
+
+        # 根据模式处理特定逻辑
+        trace_manager = await self._handle_mode_specific_logic(runtime_context, kwargs)
+
+        return query, prompt_info, runtime_context, trace_manager
 
     def update_controller_global_variables(self, runtime_context):
         """
@@ -373,7 +247,31 @@ class Agent(BaseAgent):
         Args:
             runtime_context: 上下文
         """
-        return self._bridge.update_controller_global_variables(runtime_context)
+        global_variables = runtime_context.agent_workflow_context.get(
+            "workflow_req_params", {}
+        ).get("global_variables", {})
+        logger.info(
+            f"received global_variables: {global_variables}",
+            simple_log="global_variables saved successfully",
+        )
+        controller_global_vars = self.context_manager.get_global_variables(
+            "controller_global_variables"
+        )
+        if controller_global_vars:
+            # 遍历controller_global_variables中的每个键值对
+            for key, value in controller_global_vars.items():
+                # 只有当global_variables中该key不存在，或者值为None或空字符串时，才使用controller的值
+                if (
+                    key not in global_variables
+                    or global_variables[key] is None
+                    or global_variables[key] == ""
+                ):
+                    global_variables[key] = value
+
+            logger.info(
+                f"update_controller_global_variables global variables updated: {controller_global_vars}",
+                simple_log="update_controller_global_variables global variables updated",
+            )
 
     async def get_tools(self, query, kwargs):
         """
@@ -386,23 +284,25 @@ class Agent(BaseAgent):
         Returns:
             Tuple: (plugins, workflows)
         """
-        return await self._bridge.get_tools(query, kwargs)
-
-    def handle_execution_result(self, plan_status_code, execute_res, trace_manager):
-        """
-        处理执行结果，设置状态和结果
-
-        Args:
-            plan_status_code: 计划状态码
-            execute_res: 执行结果
-            trace_manager: 追踪管理器
-
-        Returns:
-            执行结果
-        """
-        return self._bridge.handle_execution_result(
-            plan_status_code, execute_res, trace_manager
+        # 生成工具 - 返回plugins和workflows
+        plugins, workflows, mcps = await WorkspaceUtils.gen_tools(
+            query,
+            self.plugins,
+            self.workflows,
+            self.mcps,
+            agent_id=self.agent_id,
+            **kwargs,
         )
+
+        # 处理工具开关
+        tool_switch_dict = kwargs.get("tool_switch_dict")
+        if tool_switch_dict:
+            plugins, workflows = WorkspaceUtils.update_tool_switch(
+                plugins, workflows, tool_switch_dict
+            )
+
+        return plugins, workflows, mcps
+
 
     async def invoke(self, inputs, *, session=None, **kwargs):
         """
@@ -415,11 +315,23 @@ class Agent(BaseAgent):
         Returns:
             执行结果
         """
-        return await self._bridge.invoke(inputs, session=session, **kwargs)
+        if session is not None:
+            kwargs["session"] = session
+        raise NotImplementedError()
+
+    async def stream(
+        self, inputs: Union[dict, str], *, session=None, **kwargs
+    ) -> AsyncGenerator:
+        if session is not None:
+            kwargs["session"] = session
+        async for item in self.astream(inputs, **kwargs):
+            yield item
 
     async def astream(
         self, inputs: Union[dict, str], *, session=None, **kwargs
     ) -> AsyncGenerator:
+        if session is not None:
+            kwargs["session"] = session
         """
         Execute the planning assistance engine to execute the input instruction and output the result as stream type.
 
@@ -430,8 +342,44 @@ class Agent(BaseAgent):
         Returns:
             流式输出迭代器
         """
-        async for item in self._bridge.stream(inputs, session=session, **kwargs):
-            yield item
+        # 准备执行环境
+        (
+            query,
+            prompt_info,
+            runtime_context,
+            trace_manager,
+        ) = await self.prepare_execution(inputs, kwargs)
+
+        # 获取工具
+        plugins, workflows, mcps = await self.get_tools(query, kwargs)
+        plugins, skill_ctx = await self._inject_skills_if_needed(runtime_context, plugins)
+
+        # 构建流式参数
+        stream_params = self._build_stream_params(
+            query,
+            prompt_info,
+            plugins,
+            workflows,
+            mcps,
+            trace_manager,
+            runtime_context,
+            kwargs,
+            skill_context=skill_ctx,
+        )
+
+        original_template = self._patch_system_prompt(skill_ctx.prompt_suffix)
+        try:
+            async for item in self._execute_stream_by_mode(
+                stream_params, trace_manager
+            ):
+                yield item
+        except Exception as e:
+            raise JiuWenBaseException(
+                StatusCode.AGENT_UPDATE_PLUGIN_WITH_TYPE_ERROR.code,
+                f"controller agent astream error. {format_exception_reason(e)}",
+            ) from e
+        finally:
+            self._restore_system_prompt(skill_ctx.prompt_suffix, original_template)
 
     def update_plugins(self, plugins: list) -> None:
         """
@@ -440,7 +388,29 @@ class Agent(BaseAgent):
         Args:
             plugins: 新的插件列表
         """
-        return self._bridge.update_plugins(plugins)
+        if plugins is None:
+            self.plugins = []
+        elif isinstance(plugins, list):
+            from jiuwen.extension.wrapper.tool_wrapper import ToolWrapper
+
+            invalid_plugins = [
+                p for p in plugins if not isinstance(p, (Invokable, ToolWrapper))
+            ]
+            if invalid_plugins:
+                raise JiuWenBaseException(
+                    StatusCode.AGENT_UPDATE_PLUGIN_WITH_TYPE_ERROR.code,
+                    StatusCode.AGENT_UPDATE_PLUGIN_WITH_TYPE_ERROR.errmsg.format(
+                        type(invalid_plugins[0])
+                    ),
+                )
+            self.plugins = plugins
+        else:
+            raise JiuWenBaseException(
+                StatusCode.AGENT_UPDATE_PLUGIN_WITH_TYPE_ERROR.code,
+                StatusCode.AGENT_UPDATE_PLUGIN_WITH_TYPE_ERROR.errmsg.format(
+                    type(plugins)
+                ),
+            )
 
     def update_mcps(self, mcps: list) -> None:
         """
@@ -449,36 +419,25 @@ class Agent(BaseAgent):
         Args:
             mcps: 新的mcp列表
         """
-        return self._bridge.update_mcps(mcps)
-
-    def __getattr__(self, name: str):
-        inner_agent = self.__dict__.get("_inner_agent")
-        if self.__dict__.get("_bridge_enabled") and inner_agent is not None:
-            return getattr(inner_agent, name)
-        raise AttributeError(f"{type(self).__name__!s} object has no attribute {name!r}")
-
-    def __setattr__(self, name: str, value: Any) -> None:
-        if name in {"_bridge_enabled", "_inner_agent", "_bridge"}:
-            object.__setattr__(self, name, value)
-            return
-
-        inner_agent = self.__dict__.get("_inner_agent")
-        if self.__dict__.get("_bridge_enabled") and inner_agent is not None:
-            setattr(inner_agent, name, value)
-            return
-
-        object.__setattr__(self, name, value)
-
-
-class _AgentExecutionMixin:
-    """Historical Agent execution logic, separated from the facade layer."""
-
-    query_key_word = "query"
-    result_key_word = "result"
-    plan_prompt_key_word = "prompt_info"
-    ret_code_key_word = "ret_code"
-    _max_task_id_length = 32
-    agent_mode = ""
+        if mcps is None:
+            self.mcps = []
+        elif isinstance(mcps, list):
+            invalid_mcps = [p for p in mcps if not isinstance(p, Invokable)]
+            if invalid_mcps:
+                raise JiuWenBaseException(
+                    StatusCode.AGENT_UPDATE_PLUGIN_WITH_TYPE_ERROR.code,
+                    StatusCode.AGENT_UPDATE_PLUGIN_WITH_TYPE_ERROR.errmsg.format(
+                        type(invalid_mcps[0])
+                    ),
+                )
+            self.mcps = mcps
+        else:
+            raise JiuWenBaseException(
+                StatusCode.AGENT_UPDATE_PLUGIN_WITH_TYPE_ERROR.code,
+                StatusCode.AGENT_UPDATE_PLUGIN_WITH_TYPE_ERROR.errmsg.format(
+                    type(mcps)
+                ),
+            )
 
     async def _iterate_stream_planner_res(
         self, yield_res: Generator, trace_manager: TraceManager
@@ -520,12 +479,12 @@ class _AgentExecutionMixin:
                         error_code = -1
 
                     err = ValueError(err_msg)
-                    trace_manager.on_chain_error(err)
+                    await trace_manager.on_chain_error(err)
 
                     yield JiuWenBaseException(error_code=error_code, message=err_msg)
                 else:
                     err = ValueError("Unsupported plan_states_code.")
-                    trace_manager.on_chain_error(err)
+                    await trace_manager.on_chain_error(err)
                     raise err
 
     def _initialize_chat_history(self, runtime_context):
@@ -544,7 +503,7 @@ class _AgentExecutionMixin:
         # React 模式的特定处理
         if self._is_react_mode():
             await self._handle_react_mode_variables(runtime_context)
-        return self._setup_trace_manager(kwargs)
+        return await self._setup_trace_manager(kwargs)
 
     async def _handle_react_mode_variables(self, runtime_context):
         """
@@ -645,7 +604,7 @@ class _AgentExecutionMixin:
         """检查是否为 ToolUse 模式"""
         return self.control_mode.plan_config.plan_mode == "ToolUse"
 
-    def _setup_trace_manager(self, kwargs):
+    async def _setup_trace_manager(self, kwargs):
         """设置并初始化追踪管理器"""
         trace_manager = TraceManager.generate_manager(
             kwargs.pop("trace_handlers", None),
@@ -660,12 +619,13 @@ class _AgentExecutionMixin:
                     "workflows",
                 ],
             ),
+            session=kwargs.pop("session", None),
         )
-        trace_manager.on_chain_start(kwargs.get("inputs"))  # 使用原始inputs
+        await trace_manager.on_chain_start(kwargs.get("inputs"))  # 使用原始inputs
         return trace_manager
 
-    @staticmethod
     def _build_stream_params(
+        self,
         query,
         prompt_info,
         plugins,
@@ -726,7 +686,7 @@ class _AgentExecutionMixin:
         async for item in self._iterate_stream_planner_res(yield_res, trace_manager):
             yield item
         if trace_manager:
-            trace_manager.on_chain_end(self.result)
+            await trace_manager.on_chain_end(self.result)
         yield self.result
 
     async def _handle_tooluse_mode_stream(self, yield_res, trace_manager):
@@ -734,7 +694,7 @@ class _AgentExecutionMixin:
         async for item in self._iterate_stream_planner_res(yield_res, trace_manager):
             yield item
         if trace_manager:
-            trace_manager.on_chain_end(self.result)
+            await trace_manager.on_chain_end(self.result)
         yield self.result
 
     async def _handle_default_mode_stream(self, yield_res):
@@ -1102,277 +1062,3 @@ class _AgentExecutionMixin:
                 all_success = False
 
         return all_success
-
-
-class _AgentRuntimeMixin:
-    """Shared historical Agent runtime initialization without facade recursion."""
-
-    def _init_agent_runtime(self, config: AgentConfig = None) -> None:
-        _initialize_agent_runtime(self, config)
-
-
-class InnerAgent(_AgentRuntimeMixin, _AgentExecutionMixin):
-    """Internal execution implementation that preserves the historical Agent logic."""
-
-    def __init__(self, config: AgentConfig = None):
-        self._bridge_enabled = False
-        self._inner_agent = None
-        self._bridge = None
-        self._facade = None
-        self._init_agent_runtime(config)
-
-    @classmethod
-    def from_state(cls, config: AgentConfig, state: AgentState) -> "InnerAgent":
-        inner_agent = cls(config=config)
-        inner_agent._load_state_sync(state)
-        return inner_agent
-
-    def _load_state_sync(self, state: AgentState) -> None:
-        if state is None:
-            return
-
-        self.state = state
-        self.context_manager.load_state(agent_state=state)
-        self.control_mode.task_planner.load_state(state=state)
-
-    def get_control_mode(self):
-        return self.control_mode.plan_config.plan_mode
-
-    def get_task_end(self):
-        return self.control_mode.task_end
-
-    def clear_state(self):
-        self.context_manager.clear_all()
-        self.control_mode.task_planner.task_queue.clear_all_tasks()
-
-    async def save_state(self, key):
-        planner_state = self.control_mode.task_planner.get_state()
-        controller_state = planner_state
-        plan_execute_state = None
-        if isinstance(planner_state, PlanExecuteState):
-            controller_state = None
-            plan_execute_state = planner_state
-        agent_state = AgentState(
-            workflow_states=self.control_mode.get_interrupted_workflow_state(),
-            task_queue_state=self.control_mode.task_planner.task_queue.get_state(),
-            controller_state=controller_state,
-            plan_execute_state=plan_execute_state,
-            controller_global_variables=self.context_manager.get_global_variables(
-                "controller_global_variables", {}
-            ),
-        )
-        serialized_agent_state = serialize_object(agent_state)
-        logger.info(
-            f"task_id {self.task_id}| agent_state create at: {agent_state.created_at},"
-            f" controller_state: {agent_state.controller_state}",
-            simple_log="agent state saved successfully",
-        )
-        await AsyncStateManager().save_state(key, serialized_agent_state)
-
-    async def get_state(self):
-        planner_state = self.control_mode.task_planner.get_state()
-        controller_state = planner_state
-        plan_execute_state = None
-        if isinstance(planner_state, PlanExecuteState):
-            controller_state = None
-            plan_execute_state = planner_state
-        agent_state = AgentState(
-            workflow_states=self.control_mode.get_interrupted_workflow_state(),
-            task_queue_state=self.control_mode.task_planner.task_queue.get_state(),
-            controller_state=controller_state,
-            plan_execute_state=plan_execute_state,
-            controller_global_variables=self.context_manager.get_global_variables(
-                "controller_global_variables", {}
-            ),
-        )
-        return agent_state
-
-    async def load_state(self, state: AgentState):
-        self._load_state_sync(state)
-
-    async def prepare_execution(self, inputs, kwargs):
-        runtime_context = kwargs.get("runtime_context")
-
-        self._initialize_chat_history(runtime_context)
-
-        params = runtime_context.agent_workflow_context.get(
-            WorkflowConstants.WORKFLOW_REQ_PARAMS_KEY, {}
-        )
-        self.context_manager.set_memory_request_params(
-            memory_app_id=params.get("app_id", ""),
-            memory_enable_user_profile=params.get("enable_memory_retrieve", False),
-        )
-
-        query, prompt_info = AgentUtils.process_input(
-            inputs, self.query_key_word, self.plan_prompt_key_word
-        )
-
-        trace_manager = await self._handle_mode_specific_logic(runtime_context, kwargs)
-
-        return query, prompt_info, runtime_context, trace_manager
-
-    def update_controller_global_variables(self, runtime_context):
-        global_variables = runtime_context.agent_workflow_context.get(
-            "workflow_req_params", {}
-        ).get("global_variables", {})
-        logger.info(
-            f"received global_variables: {global_variables}",
-            simple_log="global_variables saved successfully",
-        )
-        controller_global_vars = self.context_manager.get_global_variables(
-            "controller_global_variables"
-        )
-        if controller_global_vars:
-            for key, value in controller_global_vars.items():
-                if (
-                    key not in global_variables
-                    or global_variables[key] is None
-                    or global_variables[key] == ""
-                ):
-                    global_variables[key] = value
-
-            logger.info(
-                f"update_controller_global_variables global variables updated: {controller_global_vars}",
-                simple_log="update_controller_global_variables global variables updated",
-            )
-
-    async def get_tools(self, query, kwargs):
-        facade_override = _get_facade_method_override(self, "get_tools")
-        if facade_override is not _INNER_NO_OVERRIDE:
-            return await facade_override(query, kwargs)
-
-        plugins, workflows, mcps = await WorkspaceUtils.gen_tools(
-            query,
-            self.plugins,
-            self.workflows,
-            self.mcps,
-            agent_id=self.agent_id,
-            **kwargs,
-        )
-
-        tool_switch_dict = kwargs.get("tool_switch_dict")
-        if tool_switch_dict:
-            plugins, workflows = WorkspaceUtils.update_tool_switch(
-                plugins, workflows, tool_switch_dict
-            )
-
-        return plugins, workflows, mcps
-
-    def handle_execution_result(self, plan_status_code, execute_res, trace_manager):
-        if plan_status_code == RetCode.FAILED:
-            self._invoke_status = TaskInvokeStatus.FAILED
-            err = ValueError("Planning assistance engine failed to plan or execute")
-            trace_manager.on_chain_error(err)
-            raise err
-        if plan_status_code == RetCode.SUCCESS:
-            self._invoke_status = TaskInvokeStatus.SUCCESS
-        elif plan_status_code == RetCode.WAIT_USER_INPUT:
-            self._invoke_status = TaskInvokeStatus.WAIT_USER_INPUT
-        else:
-            self._invoke_status = TaskInvokeStatus.UNKNOWN
-            err = ValueError(f"Unsupported plan_states_code: {plan_status_code}.")
-            trace_manager.on_chain_error(err)
-            raise err
-
-        self.result = (
-            execute_res.get(self.result_key_word)
-            if execute_res and isinstance(execute_res, dict)
-            else ""
-        )
-        trace_manager.on_chain_end(self.result)
-        return self.result
-
-    async def invoke(self, inputs, **kwargs):
-        facade_override = _get_facade_method_override(self, "invoke")
-        if facade_override is not _INNER_NO_OVERRIDE:
-            return await facade_override(inputs, **kwargs)
-        raise NotImplementedError()
-
-    async def astream(self, inputs: Union[dict, str], **kwargs) -> AsyncGenerator:
-        (
-            query,
-            prompt_info,
-            runtime_context,
-            trace_manager,
-        ) = await self.prepare_execution(inputs, kwargs)
-
-        plugins, workflows, mcps = await self.get_tools(query, kwargs)
-        plugins, skill_ctx = await self._inject_skills_if_needed(runtime_context, plugins)
-
-        stream_params = self._build_stream_params(
-            query,
-            prompt_info,
-            plugins,
-            workflows,
-            mcps,
-            trace_manager,
-            runtime_context,
-            kwargs,
-            skill_context=skill_ctx,
-        )
-
-        original_template = self._patch_system_prompt(skill_ctx.prompt_suffix)
-        try:
-            async for item in self._execute_stream_by_mode(
-                stream_params, trace_manager
-            ):
-                yield item
-        except Exception as e:
-            raise JiuWenBaseException(
-                StatusCode.AGENT_UPDATE_PLUGIN_WITH_TYPE_ERROR.code,
-                f"controller agent astream error. {format_exception_reason(e)}",
-            ) from e
-        finally:
-            self._restore_system_prompt(skill_ctx.prompt_suffix, original_template)
-
-    def update_plugins(self, plugins: list) -> None:
-        if plugins is None:
-            self.plugins = []
-        elif isinstance(plugins, list):
-            from jiuwen.extension.wrapper.tool_wrapper import ToolWrapper
-
-            invalid_plugins = [
-                p for p in plugins if not isinstance(p, (Invokable, ToolWrapper))
-            ]
-            if invalid_plugins:
-                raise JiuWenBaseException(
-                    StatusCode.AGENT_UPDATE_PLUGIN_WITH_TYPE_ERROR.code,
-                    StatusCode.AGENT_UPDATE_PLUGIN_WITH_TYPE_ERROR.errmsg.format(
-                        type(invalid_plugins[0])
-                    ),
-                )
-            self.plugins = plugins
-        else:
-            raise JiuWenBaseException(
-                StatusCode.AGENT_UPDATE_PLUGIN_WITH_TYPE_ERROR.code,
-                StatusCode.AGENT_UPDATE_PLUGIN_WITH_TYPE_ERROR.errmsg.format(
-                    type(plugins)
-                ),
-            )
-
-    def update_mcps(self, mcps: list) -> None:
-        if mcps is None:
-            self.mcps = []
-        elif isinstance(mcps, list):
-            invalid_mcps = [p for p in mcps if not isinstance(p, Invokable)]
-            if invalid_mcps:
-                raise JiuWenBaseException(
-                    StatusCode.AGENT_UPDATE_PLUGIN_WITH_TYPE_ERROR.code,
-                    StatusCode.AGENT_UPDATE_PLUGIN_WITH_TYPE_ERROR.errmsg.format(
-                        type(invalid_mcps[0])
-                    ),
-                )
-            self.mcps = mcps
-        else:
-            raise JiuWenBaseException(
-                StatusCode.AGENT_UPDATE_PLUGIN_WITH_TYPE_ERROR.code,
-                StatusCode.AGENT_UPDATE_PLUGIN_WITH_TYPE_ERROR.errmsg.format(
-                    type(mcps)
-                ),
-            )
-
-
-_AGENT_FACADE_DEFAULT_METHODS = {
-    "get_tools": Agent.get_tools,
-    "invoke": Agent.invoke,
-}
