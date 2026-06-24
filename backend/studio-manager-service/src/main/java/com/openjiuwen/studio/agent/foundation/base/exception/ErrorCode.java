@@ -151,6 +151,12 @@ public enum ErrorCode {
     KNOWLEDGE_BASE_DEFAULT_CONNECTION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR.value(), "0025",
         "Connect to Knowledge base failed."),
 
+    /**
+     * 知识库连接失败（未配置知识库或默认连接信息缺失）
+     */
+    KNOWLEDGE_BASE_NOT_CONFIGURED(HttpStatus.INTERNAL_SERVER_ERROR.value(), "0026",
+        "Connect to knowledge base failed."),
+
     /********************************************** 业务通用的一些错误码 *************************************************/
 
     /**

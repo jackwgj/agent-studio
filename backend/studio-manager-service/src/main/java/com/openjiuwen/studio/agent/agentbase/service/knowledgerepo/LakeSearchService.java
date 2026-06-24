@@ -655,6 +655,14 @@ public class LakeSearchService implements KnowledgeRepoService {
             return models.stream().map(model -> {
                 return new ModelInfo().setName(model.getName()).setType(model.getType()).setStatus(model.getStatus());
             }).toList();
+        } catch (AgentBaseException exception) {
+            // 已带明确错误码。若为“知识库默认连接信息缺失”（即未配置知识库连接），
+            // 重新映射为更面向用户的“知识库连接失败”码；其余 AgentBaseException 原样抛出，不丢失错误码。
+            if (ErrorCode.FAILED_TO_FIND_DEFAULT_CONNECTION_INFO.equals(exception.getErrorCode())) {
+                log.error("Fail to list models, knowledge base connection not configured.");
+                throw new AgentBaseException(ErrorCode.KNOWLEDGE_BASE_NOT_CONFIGURED);
+            }
+            throw exception;
         } catch (Exception exception) {
             log.error("Fail to list models.", exception);
             throw new AgentBaseException(ErrorCode.SERVER_INTERNAL_ERROR, exception);
