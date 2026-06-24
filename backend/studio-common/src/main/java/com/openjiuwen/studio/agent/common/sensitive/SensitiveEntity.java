@@ -4,9 +4,11 @@
 
 package com.openjiuwen.studio.agent.common.sensitive;
 
+import com.alibaba.fastjson2.annotation.JSONField;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -19,10 +21,12 @@ import java.util.stream.Stream;
  * 敏感词配置实体类
  *
  */
-@Data
+@Getter
+@Setter
 public class SensitiveEntity {
     @JsonProperty("enabled")
-    boolean isEnabled;
+    @JSONField(name = "enabled")
+    private boolean enabled;
 
     WordsWrapper filter;
 
@@ -32,24 +36,29 @@ public class SensitiveEntity {
 
     /**
      * 敏感词包装类
-     *
+     * 
      */
-    @Data
+    @Getter
+    @Setter
     public static class WordsWrapper {
         String keywords;
 
         String replace;
 
         @JsonProperty("input_enable")
-        boolean isInputEnable;
+        @JSONField(name = "input_enable")
+        private boolean inputEnable;
 
         @JsonProperty("input_text")
+        @JSONField(name = "input_text")
         String inputReplyText;
 
         @JsonProperty("output_enable")
-        boolean isOutputEnable;
+        @JSONField(name = "output_enable")
+        private boolean outputEnable;
 
         @JsonProperty("output_text")
+        @JSONField(name = "output_text")
         String outputReplyText;
 
         public List<String> getKeywordsList() {

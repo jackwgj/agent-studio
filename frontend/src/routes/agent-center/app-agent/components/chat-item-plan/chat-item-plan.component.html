@@ -293,7 +293,11 @@
             </div>
 
           </div>
-          <div class="summary">{{item.result_summary}}</div>
+          <app-markdown-answer
+            *ngIf="item.result_summary"
+            class="summary markdown-no-bg"
+            [(answer)]="item.result_summary"
+          ></app-markdown-answer>
         </div>
 
       </div>

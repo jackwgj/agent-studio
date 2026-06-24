@@ -1471,6 +1471,8 @@ public class AgentManagementService implements IAgentManagementService {
                 "DSL merge for agentId: " + agentId);
             String finalMergedJson = JsonUtils.mergeDslData(updatedAgentJson, intermediateJson, log,
                 "DSL merge for agentId: " + agentId);
+            // 确保 DSL 文件中的 content_review 字段是 JSONObject，避免被转义为字符串
+            finalMergedJson = JsonUtils.ensureJsonObjectField(finalMergedJson, "content_review");
             dslVersionPath = mgObsService.uploadObsFile(agentId, agentId, CommonConstant.AGENT, finalMergedJson,
                 CommonConstant.DSL_STR);
         } else {
@@ -1478,6 +1480,8 @@ public class AgentManagementService implements IAgentManagementService {
                 "DSL merge for agentId: " + agentId);
             String finalMergedJson = JsonUtils.mergeDslData(updatedAgentJson, intermediateJson, log,
                 "DSL merge for agentId: " + agentId);
+            // 确保 DSL 文件中的 content_review 字段是 JSONObject，避免被转义为字符串
+            finalMergedJson = JsonUtils.ensureJsonObjectField(finalMergedJson, "content_review");
             dslVersionPath = mgObsService.uploadObsFile(agentId, agentId, CommonConstant.AGENT, finalMergedJson,
                 CommonConstant.DSL_STR);
         }
@@ -1884,12 +1888,24 @@ public class AgentManagementService implements IAgentManagementService {
         return oldAgent;
     }
 
+    /**
+     * 上传智能体 IR（中间表示）文件到 OBS
+     *
+     * <p>IR 文件包含智能体的运行时配置，包括内容审核配置。
+     * 在上传前需要确保 content_review 字段是 JSONObject 而非转义字符串，
+     * 否则运行时无法正确解析敏感词配置（参见 {@link JsonUtils#ensureJsonObjectField}）。
+     *
+     * @param agent 智能体实体
+     * @return OBS 上的 IR 文件路径
+     */
     private String uploadAgentIr(Agent agent) {
-        // ir转换并上传obs
         Map<String, Object> metadata = agentImportExportService.parseMetadata(agent);
         Map<String, Object> irInfo = processIrBySubType(agent, metadata, agent.getSubType());
+        String irJson = JSON.toJSONString(irInfo, JSONWriter.Feature.WriteMapNullValue);
+        // 确保 content_review 字段是 JSONObject，避免运行时解析失败
+        irJson = JsonUtils.ensureJsonObjectField(irJson, Constants.Workflow.CONTENT_REVIEW);
         return mgObsService.uploadObsFile(agent.getAgentId(), agent.getAgentId(), CommonConstant.AGENT,
-            JSON.toJSONString(irInfo, JSONWriter.Feature.WriteMapNullValue), CommonConstant.Workflow.IR);
+            irJson, CommonConstant.Workflow.IR);
     }
 
     /**

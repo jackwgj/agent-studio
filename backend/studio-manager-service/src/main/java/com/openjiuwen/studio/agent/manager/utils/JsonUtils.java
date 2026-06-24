@@ -317,6 +317,44 @@ public class JsonUtils {
         }
     }
 
+    /**
+     * 确保 JSON 字符串中指定字段的值是 JSONObject 而非转义字符串
+     * 检测指定字段是否为转义的 JSON 字符串，如果是则将其还原为真正的 JSONObject。
+     * 调用场景：
+     * DSL 文件合并后（AgentManagementService.modifySingleAgent）</li>
+     * IR 文件生成后（AgentManagementService.uploadAgentIr）</li>
+     *
+     * @param jsonStr   原始 JSON 字符串
+     * @param fieldName 需要检查的字段名
+     * @return 处理后的 JSON 字符串，确保指定字段是 JSONObject
+     */
+    public static String ensureJsonObjectField(String jsonStr, String fieldName) {
+        if (StringUtils.isBlank(jsonStr) || StringUtils.isBlank(fieldName)) {
+            return jsonStr;
+        }
+        try {
+            JSONObject jsonObj = JSON.parseObject(jsonStr);
+            Object fieldValue = jsonObj.get(fieldName);
+            if (fieldValue instanceof String) {
+                String strValue = (String) fieldValue;
+                if (StringUtils.isNotBlank(strValue)) {
+                    try {
+                        JSONObject parsedValue = JSON.parseObject(strValue);
+                        if (parsedValue != null) {
+                            jsonObj.put(fieldName, parsedValue);
+                        }
+                    } catch (Exception e) {
+                        log.error("Field {} value is not a valid JSON object string, keeping original value", fieldName);
+                    }
+                }
+            }
+            return JSON.toJSONString(jsonObj, String.valueOf(SerializerFeature.WriteDateUseDateFormat));
+        } catch (Exception e) {
+            log.error("Failed to ensure field {} as JSON object: {}", fieldName, e.getMessage(), e);
+            return jsonStr;
+        }
+    }
+
     public static boolean isJsonString(String input) {
         if (input == null || input.trim().isEmpty()) {
             return false;

@@ -172,7 +172,11 @@ class ModelUtil:
     @classmethod
     def check_and_trans2json(cls, text: str):
         """check and trans to json"""
-        # 针对boolean型python和json格式不一致问题, 使用正则表达式将所有的仅为True/TRUE 和 False/FALSE 的转换为小写 true 和 false
+        try:
+            json_text = json.loads(text, strict=False)
+            return True, json_text
+        except json.JSONDecodeError:
+            pass
         replaced_text = re.sub(
             r"\b(True|TRUE|False|FALSE)\b", lambda match: match.group(0).lower(), text
         )

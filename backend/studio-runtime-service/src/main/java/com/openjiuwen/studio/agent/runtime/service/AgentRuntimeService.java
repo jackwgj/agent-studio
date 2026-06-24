@@ -900,7 +900,8 @@ public class AgentRuntimeService implements IAgentRuntimeService {
     }
 
     private boolean handleInputSensitiveMatch(AgentExecuteParams executeParams, SseEmitter sseEmitter) {
-        if (Constant.AppType.CONTROLLER.equals(executeParams.getExecuteType())) {
+        String executeType = executeParams.getExecuteType();
+        if (Constant.AppType.CONTROLLER.equals(executeType) || Constant.AppType.PLAN_EXECUTE.equals(executeType)) {
             return false;
         }
         SensitiveTrieUtils trieUtils = executeParams.getTrieUtils();
@@ -1271,10 +1272,11 @@ public class AgentRuntimeService implements IAgentRuntimeService {
     private void agentEventPassThrough(String sseData, SseEmitter sseEmitter, AgentExecuteParams executeParams) {
         WorkflowRunStreamRsp workflowRunStreamRsp = WorkflowStreamEventFactory.workflowPassThrough(sseData,
                 executeParams.getConversationId());
-        if (workflowRunStreamRsp != null) {
-            log.error("pass throught event is emtpy.");
-            eventProcessor.sendEvent(executeParams.getAgentId(), sseEmitter, workflowRunStreamRsp);
+        if (workflowRunStreamRsp == null) {
+            log.error("pass throught event is empty.");
+            return;
         }
+        eventProcessor.sendEvent(executeParams.getAgentId(), sseEmitter, workflowRunStreamRsp);
     }
 
     // agent开始执行
@@ -1335,6 +1337,7 @@ public class AgentRuntimeService implements IAgentRuntimeService {
         messageEvent.setNodeType(nodeType.getEiType());
         messageEvent.setWorkflowId(jiuwenAgentEventData.getWorkflowId());
         messageEvent.setWorkflowName(jiuwenAgentEventData.getWorkflowName());
+        messageEvent.setReasoningContent(jiuwenAgentEventData.getThink());
         eventProcessor.sendEvent(executeParams.getAgentId(), sseEmitter,
                 WorkflowStreamEventFactory.message(messageEvent));
 

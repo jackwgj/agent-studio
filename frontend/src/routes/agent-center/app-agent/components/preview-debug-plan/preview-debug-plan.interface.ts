@@ -9,7 +9,8 @@ export interface sceneMessageType {
   content?: string;
   time_consumption?: object;
   event?:string;
-  cards?:any[]
+  cards?:any[];
+  isFallbackReply?: boolean;
 }
 
 export interface waitNodeType {

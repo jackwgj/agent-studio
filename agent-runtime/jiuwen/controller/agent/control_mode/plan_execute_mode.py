@@ -14,6 +14,7 @@ import json
 import time
 import uuid
 from collections.abc import AsyncGenerator
+from dataclasses import dataclass, field
 from typing import List, Tuple, Dict
 
 from jiuwen.common.log.base import logger
@@ -37,6 +38,13 @@ from jiuwen.controller.task_planner.planning_modules.plan_tracker import (
 )
 from jiuwen.controller.utils.utils import MessageConverter, ToolFormatter
 from jiuwen.orchestration.flow.stream.base import StreamData, StreamCode
+
+
+@dataclass
+class StreamProcessContext:
+    llm_output: dict = field(default_factory=lambda: {"content": "", "role": "assistant"})
+    content_parts: list = field(default_factory=list)
+    reasoning_parts: list = field(default_factory=list)
 
 
 class PlanExecuteMode(BaseMode):
@@ -87,6 +95,7 @@ class PlanExecuteMode(BaseMode):
         self._interrupted_by_workflow = False
         self._workflow_completed = False
         self._last_workflow_result = ""
+        self._current_round_msg_start_idx = self._get_message_count()
         from jiuwen.controller.common.config import SkillInjectionContext
 
         skill_ctx = kwargs.get("skill_context") or SkillInjectionContext.empty()
@@ -225,21 +234,30 @@ class PlanExecuteMode(BaseMode):
             "plan": plan,
         }
         self._temp_messages_start_idx = self._get_message_count()
+        self._all_step_results = []
 
         async for event in self._iterate_steps():
+            if isinstance(event, StreamData):
+                self._all_step_results.append(event)
             yield event
 
         if not self.terminate:
             # 调用 _finalize_plan_execution 获取最终结果
             final_data = await self._finalize_plan_execution()
 
-            # 先发送 task_complete 事件
+            # 先发送 task_complete 事件和基础统计数据
             yield self._create_task_complete_stream_data(plan)
-
-            # 如果有最终汇总数据，生成统计和汇总事件
+            yield self._create_statistic_data_stream_data()
+            # 如果有最终汇总数据，生成汇总数据
             if final_data:
-                yield self._create_statistic_data_stream_data()
                 yield self._create_summary_response_stream_data(final_data)
+        # 任务被中途终止时，发送完整的结束事件序列和执行详情 。
+        else:
+            yield self._create_task_complete_stream_data(plan)
+            yield self._create_statistic_data_stream_data()
+            latest_msg = self.context_manager.get_latest_assistant_message()
+            summary_content = latest_msg.content if latest_msg and latest_msg.content else "任务执行完成"
+            yield self._create_summary_response_stream_data(summary_content)
 
     async def _iterate_steps(self) -> AsyncGenerator:
         """迭代执行所有步骤"""
@@ -263,8 +281,10 @@ class PlanExecuteMode(BaseMode):
             )
 
             async for item in self._execute_single_step(current_step, ctx):
-                # 中间流式事件，实时yield
-                yield item
+                if isinstance(item, tuple) and len(item) == 2:
+                    pass  # 内部状态信号，吞掉不往外传
+                else:
+                    yield item  # 中间流式事件，实时yield
 
             # 无论事件是否提前终止 生成step_end事件 step_start和step_end成对出现
             yield self._create_step_end_stream_data(current_step)
@@ -276,9 +296,14 @@ class PlanExecuteMode(BaseMode):
         """执行单个步骤，yield流式事件，最后汇总结果通过step.result返回"""
         result_content = ""
         step_done = False
-
+        max_iterations = 5
         step_iteration = 0
-        while step_iteration < 5 and not step_done:
+        # last_error_content 、 consecutive_same_error_count 、 max_same_error_retries 用于死循环检测
+        last_error_content = None
+        consecutive_same_error_count = 0
+        max_same_error_retries = 3
+        
+        while step_iteration < max_iterations and not step_done:
             step_iteration += 1
             if self.terminate:
                 break
@@ -288,34 +313,108 @@ class PlanExecuteMode(BaseMode):
             else:
                 hint_message = self._build_step_hint(step_iteration, ctx)
                 self._log_step_iteration(step, step_iteration, hint_message)
-                llm_result = await self._call_llm_with_hint(
+                llm_result = None
+                async for item in self._call_llm_with_hint(
                     hint_message, ctx["filtered_tools"]
-                )
+                ):
+                    if isinstance(item, StreamData):
+                        yield item
+                    elif isinstance(item, dict) and "has_tool_calls" in item:
+                        llm_result = item
 
-            # 实时消费并yield流式事件，提取最终的完成状态
             async for item in self._process_llm_result(
                 llm_result, step, step_iteration, ctx["plan"]
             ):
                 if isinstance(item, tuple) and len(item) == 2:
-                    # 最后的完成状态 (step_done, result_content)
                     step_done, result_content = item
                 else:
-                    # 实时yield中间的流式事件
                     yield item
 
             if step_done:
                 break
+
+            if not step_done and result_content:
+                error_key = self._extract_error_signature(result_content)
+                if error_key and error_key == last_error_content:
+                    consecutive_same_error_count += 1
+                    if consecutive_same_error_count >= max_same_error_retries:
+                        logger.warning(
+                            f"task_id: {self.task_id}| Step {step.step_idx} "
+                            f"same error repeated {consecutive_same_error_count} times, "
+                            f"stopping retry early. Error: {error_key[:200]}"
+                        )
+                        result_content = f"相同错误重复出现{consecutive_same_error_count}次，终止重试。最后错误：{result_content}"
+                        self.task_planner.plan_tracker.mark_step_completed(
+                            step.step_idx, result=result_content
+                        )
+                        self.terminate = True
+                        yield self._create_step_timeout_stream_data(step, result_content)
+                        break
+                else:
+                    last_error_content = error_key
+                    consecutive_same_error_count = 1
+            
+            if step_iteration >= max_iterations:
+                last_iteration_had_tool_call = llm_result.get("has_tool_calls", False)
+                if last_iteration_had_tool_call:
+                    logger.info(
+                        f"task_id: {self.task_id}| Step {step.step_idx} iteration {step_iteration} "
+                        f"completed with tool call, adding extra iteration to process result"
+                    )
+                    step_iteration += 1
+                    hint_message = self._build_step_hint(step_iteration, ctx)
+                    self._log_step_iteration(step, step_iteration, hint_message)
+                    llm_result = None
+                    async for item in self._call_llm_with_hint(
+                        hint_message, ctx["filtered_tools"]
+                    ):
+                        if isinstance(item, StreamData):
+                            yield item
+                        elif isinstance(item, dict) and "has_tool_calls" in item:
+                            llm_result = item
+                    
+                    async for item in self._process_llm_result(
+                        llm_result, step, step_iteration, ctx["plan"]
+                    ):
+                        if isinstance(item, tuple) and len(item) == 2:
+                            step_done, result_content = item
+                        else:
+                            yield item
+                    
+                    if step_done:
+                        break
         else:
-            # 超出最大迭代次数：强制完成当前 step，并终止整个任务（不再执行后续 step）
-            result_content = result_content or f"{step.step_name}执行超时"
-            logger.warning(
-                f"task_id: {self.task_id}| Step {step.step_idx} exceed max iteration 5, "
-                f"force completing and terminating task"
-            )
-            self.task_planner.plan_tracker.mark_step_completed(
-                step.step_idx, result=result_content
-            )
-            self.terminate = True
+            if not step_done:
+                result_content = result_content or f"{step.step_name}执行超时"
+                logger.warning(
+                    f"task_id: {self.task_id}| Step {step.step_idx} exceed max iteration {max_iterations}, "
+                    f"force completing and terminating task"
+                )
+                self.task_planner.plan_tracker.mark_step_completed(
+                    step.step_idx, result=result_content
+                )
+                self.terminate = True
+                yield self._create_step_timeout_stream_data(step, result_content)
+
+    def _extract_error_signature(self, content: str) -> str:
+        """提取错误信息的特征签名，用于判断是否为重复出现的相同错误"""
+        if not content:
+            return None
+        import re as re_module
+        patterns = [
+            r"NameError:\s*name\s+'[^']+'\s+is\s+not\s+defined",
+            r"SyntaxError:\s*.*",
+            r"TypeError:\s*.*",
+            r"ValueError:\s*.*",
+            r"ImportError:\s*.*",
+            r"exit_code:\s*\d+",
+            r"stderr:\s*.*",
+        ]
+        for pattern in patterns:
+            match = re_module.search(pattern, content)
+            if match:
+                return match.group(0)[:200]
+        return content[:200] if len(content) > 10 else None
 
     def _build_workflow_resume_call(self, step: PlanStep) -> dict:
         """工作流中断恢复时，直接构造 tool call 结果（跳过 LLM 调用）"""
@@ -487,7 +586,7 @@ class PlanExecuteMode(BaseMode):
         # 当计划有0个步骤时，传递filtered_tools以便LLM能使用skill等工具完成任务；
         # 当计划有实际步骤时，finalize仅做汇总，不需要工具，传空列表
         finalize_tools = ctx["filtered_tools"] if len(ctx["plan"].steps) == 0 else []
-        final_result = await self._call_llm_with_hint(final_hint, finalize_tools)
+        final_result = await self._collect_call_llm_result(final_hint, finalize_tools)
 
         content = final_result.get("content", "任务执行完成")
         self.context_manager.set_result_message(content)
@@ -586,17 +685,44 @@ class PlanExecuteMode(BaseMode):
         except Exception:
             return 0
 
-    async def _call_llm_with_hint(self, hint_message: str, tools: List) -> dict:
-        """使用 hint 消息调用 LLM"""
+    def _get_current_round_function_messages(self) -> list:
+        """获取当前轮次的function消息，避免跨轮次污染"""
+        try:
+            all_msgs = self.context_manager.engine.get_messages()
+            start_idx = getattr(self, "_current_round_msg_start_idx", 0)
+            return [msg for msg in all_msgs[start_idx:] if msg.role == "function"]
+        except Exception:
+            return []
+
+    async def _call_llm_with_hint(self, hint_message: str, tools: List) -> AsyncGenerator:
+        """使用 hint 消息调用 LLM，yield reasoning_content的SSE事件和最终结果"""
         messages = self._build_llm_messages(hint_message)
-        llm_output = await self._stream_llm_response(messages, tools)
+        llm_output = None
+        async for item in self._stream_llm_response(messages, tools):
+            if isinstance(item, StreamData):
+                yield item
+            elif isinstance(item, dict):
+                llm_output = item
+
+        if llm_output is None:
+            llm_output = {"content": "", "role": "assistant"}
+
         tool_calls, has_tool_calls = self._parse_tool_calls(llm_output)
         self._save_llm_response_to_context(llm_output, has_tool_calls, tool_calls)
-        return {
+        yield {
             "content": llm_output.get("content", ""),
             "has_tool_calls": has_tool_calls,
             "tool_calls": tool_calls,
+            "reasoning_content": llm_output.get("reasoning_content", ""),
         }
+
+    async def _collect_call_llm_result(self, hint_message: str, tools: List) -> dict:
+        """收集 _call_llm_with_hint 的最终结果（不yield SSE事件）"""
+        result = None
+        async for item in self._call_llm_with_hint(hint_message, tools):
+            if isinstance(item, dict) and "has_tool_calls" in item:
+                result = item
+        return result or {"content": "", "has_tool_calls": False, "tool_calls": [], "reasoning_content": ""}
 
     def _build_llm_messages(self, hint_message: str) -> List[dict]:
         """构建LLM消息列表"""
@@ -623,10 +749,9 @@ class PlanExecuteMode(BaseMode):
 4. 当确认当前步骤已完成时，必须在回复末尾输出 [STEP_DONE] 标记
 5. 当需要向用户收集信息或确认时，必须在回复末尾输出 [ASK_USER] 标记"""
 
-    async def _stream_llm_response(self, messages: List[dict], tools: List) -> dict:
-        """流式调用LLM并收集响应"""
-        llm_output = {"content": "", "role": "assistant"}
-        content_parts = []
+    async def _stream_llm_response(self, messages: List[dict], tools: List) -> AsyncGenerator:
+        """流式调用LLM并收集响应，同时yield reasoning_content的SSE事件"""
+        ctx = StreamProcessContext()
 
         try:
             from jiuwen.common.llm_service.language_model.base import LanguageModelInput
@@ -643,44 +768,57 @@ class PlanExecuteMode(BaseMode):
             self._log_llm_input(messages, tools)
 
             async for item in self.model.astream(llm_input):
-                self._process_stream_item(
-                    item,
-                    llm_output,
-                    content_parts,
-                    convert_ai_message_to_llm_output,
-                    AIMessage,
+                new_reasoning = self._process_stream_item(
+                    item, ctx, convert_ai_message_to_llm_output, AIMessage,
                 )
+                if new_reasoning:
+                    yield StreamData(
+                        code=StreamCode.PARTIAL_CONTENT.value,
+                        msg="think",
+                        data={"think": new_reasoning},
+                        execution_id=self.task_id,
+                    )
 
-            if not llm_output.get("content") and content_parts:
-                llm_output["content"] = "".join(content_parts)
+            if not ctx.llm_output.get("content") and ctx.content_parts:
+                ctx.llm_output["content"] = "".join(ctx.content_parts)
+            if ctx.reasoning_parts:
+                ctx.llm_output["reasoning_content"] = "".join(ctx.reasoning_parts)
         except Exception as e:
             logger.exception(
                 f"task_id: {self.task_id}| [StepExecute] LLM call failed: {e}"
             )
-            llm_output["content"] = ""
-            llm_output["error"] = str(e)
+            ctx.llm_output["content"] = ""
+            ctx.llm_output["error"] = str(e)
 
-        self._log_llm_output(llm_output)
-        return llm_output
+        self._log_llm_output(ctx.llm_output)
+        yield ctx.llm_output
 
     def _process_stream_item(
-        self, item, llm_output: dict, content_parts: list, convert_func, ai_message_cls
+        self, item, ctx: StreamProcessContext, convert_func, ai_message_cls
     ):
-        """处理流式响应中的单个项"""
+        """处理流式响应中的单个项，捕获 reasoning_content"""
+        new_reasoning = ""
         if isinstance(item, ai_message_cls):
             finish_reason = (
                 item.usage_metadata.finish_reason if item.usage_metadata else None
             )
             if finish_reason in ["stop", "function_call"]:
-                llm_output.update(convert_func(item).dict(exclude_defaults=True))
+                ctx.llm_output.update(convert_func(item).dict(exclude_defaults=True))
             elif item.content:
-                content_parts.append(item.content)
+                ctx.content_parts.append(item.content)
+            if hasattr(item, "reasoning_content") and item.reasoning_content:
+                ctx.reasoning_parts.append(item.reasoning_content)
+                new_reasoning = item.reasoning_content
         elif isinstance(item, dict):
             if item.get("content"):
-                content_parts.append(item["content"])
+                ctx.content_parts.append(item["content"])
+            if item.get("think"):
+                ctx.reasoning_parts.append(item["think"])
+                new_reasoning = item["think"]
             for key in ["function_call", "function_call_list"]:
                 if key in item:
-                    llm_output[key] = item[key]
+                    ctx.llm_output[key] = item[key]
+        return new_reasoning
 
     def _log_llm_input(self, messages: List, tools: List):
         """记录LLM输入日志，逐条打印每条消息的原始内容"""
@@ -892,8 +1030,8 @@ class PlanExecuteMode(BaseMode):
         elif event_type == "error":
             # 插件执行错误
             yield StreamData(
-                code=StreamCode.PE_FUNCTION_CALL.value,
-                msg="api_exception",
+                code=StreamCode.PE_API_EXEC_DATA.value,
+                msg="api_exec_data",
                 data={"answer": normalized_data},
                 execution_id=self.task_id,
             )
@@ -1369,20 +1507,15 @@ class PlanExecuteMode(BaseMode):
 
     def _extract_step_result(self, content: str) -> str:
         """
-        从 LLM 输出中提取步骤结果摘要
+        从 LLM 输出中提取步骤结果
 
         Args:
             content: LLM 输出内容
 
         Returns:
-            步骤结果摘要
+            步骤结果（保留完整内容，供最终总结LLM参考）
         """
-        # 移除步骤完成标识
         clean_content = content.replace(self.STEP_DONE_MARKER, "").strip()
-
-        # 截取前 100 个字符作为摘要
-        if len(clean_content) > 100:
-            return clean_content[:100] + "..."
         return clean_content if clean_content else "步骤执行完成"
 
     def _create_scene_match_stream_data(self, event: SceneMatchEvent) -> StreamData:
@@ -1440,13 +1573,15 @@ class PlanExecuteMode(BaseMode):
 
     def _create_step_end_stream_data(self, step) -> StreamData:
         """创建步骤结束事件数据"""
+        result_summary = self._generate_step_summary(step)
+        
         data = {
             "step_idx": step.step_idx,
             "step_name": step.step_name,
             "status": step.status.value
             if hasattr(step.status, "value")
             else str(step.status),
-            "result_summary": step.result if step.result else f"{step.step_name}完成",
+            "result_summary": result_summary,
         }
         return StreamData(
             code=StreamCode.PE_STEP_END.value,
@@ -1454,6 +1589,95 @@ class PlanExecuteMode(BaseMode):
             data=data,
             execution_id=self.task_id,
         )
+
+    def _generate_step_summary(self, step) -> str:
+        """生成步骤执行总结，包括工具调用结果"""
+        current_round_funcs = self._get_current_round_function_messages()
+        latest_function_msg = current_round_funcs[-1] if current_round_funcs else None
+        
+        if not latest_function_msg:
+            return step.result if step.result else f"{step.step_name}完成"
+        
+        try:
+            content = latest_function_msg.content
+            if isinstance(content, str):
+                result = json.loads(content)
+            else:
+                result = content
+                
+            if isinstance(result, dict):
+                if "result" in result:
+                    inner_result = result.get("result", {})
+                    if isinstance(inner_result, dict):
+                        stdout = inner_result.get("stdout", "")
+                        stderr = inner_result.get("stderr", "")
+                        exit_code = inner_result.get("exit_code", 0)
+                        code_content = inner_result.get("code_content", "")
+                        
+                        if exit_code == 0 and stdout:
+                            return self._format_success_summary(
+                                stdout, code_content, step.step_name
+                            )
+                        elif exit_code != 0:
+                            return self._format_error_summary(
+                                stdout, stderr, code_content, step.step_name
+                            )
+                
+                code_result = result.get("code_content", "")
+                if code_result:
+                    return f"代码执行完成\n\n```python\n{code_result}\n```"
+        
+        except (json.JSONDecodeError, TypeError, KeyError):
+            pass
+        
+        return step.result if step.result else f"{step.step_name}完成"
+
+    def _format_success_summary(
+        self, stdout: str, code_content: str, step_name: str
+    ) -> str:
+        """格式化成功执行结果"""
+        parts = []
+        
+        if stdout.strip():
+            stdout_lines = stdout.strip().split("\n")
+            if len(stdout_lines) > 10:
+                summary_lines = stdout_lines[:5]
+                summary_lines.append("...")
+                summary_lines.extend(stdout_lines[-3:])
+                parts.append(f"执行结果：\n```\n" + "\n".join(summary_lines) + "\n```")
+            else:
+                parts.append(f"执行结果：\n```\n{stdout.strip()}\n```")
+        
+        if code_content.strip():
+            parts.insert(0, f"执行的代码：\n```python\n{code_content.strip()}\n```")
+        
+        parts.append(f"✅ {step_name} 执行成功")
+        
+        return "\n\n".join(parts)
+
+    def _format_error_summary(
+        self, stdout: str, stderr: str, code_content: str, step_name: str
+    ) -> str:
+        """格式化错误执行结果"""
+        parts = []
+        
+        if code_content.strip():
+            parts.append(f"执行的代码：\n```python\n{code_content.strip()}\n```")
+        
+        output = stdout.strip() if stdout.strip() else ""
+        if stderr.strip():
+            if output:
+                output += "\n\n错误信息：\n" + stderr.strip()
+            else:
+                output = "错误信息：\n" + stderr.strip()
+        
+        if output:
+            parts.append(f"执行结果：\n```\n{output}\n```")
+        
+        parts.append(f"⚠️ {step_name} 执行失败\n\n")
+        parts.append("说明：代码执行过程中出现错误。请检查代码语法或逻辑后重试。")
+        
+        return "\n\n".join(parts)
 
     def _create_task_complete_stream_data(self, plan) -> StreamData:
         """创建任务完成事件数据"""
@@ -1542,6 +1766,25 @@ class PlanExecuteMode(BaseMode):
             code=StreamCode.STATISTIC_DATA.value,
             msg="statistic_data",
             data={"answer": time_consumption},
+            execution_id=self.task_id,
+        )
+
+    def _create_step_timeout_stream_data(self, step: PlanStep, error_msg: str) -> StreamData:
+        """创建步骤超时/终止事件数据"""
+        if error_msg and "相同错误重复出现" in error_msg:
+            content = f"⚠️ 步骤执行终止\n\n{error_msg}\n\n说明：由于相同错误重复出现多次，系统判定无法通过重试修复，已终止任务。"
+        else:
+            content = f"⚠️ 步骤执行超时\n\n{error_msg}\n\n说明：由于步骤执行超出最大迭代次数，系统强制终止任务。请检查代码逻辑或增加迭代次数。"
+        data = {
+            "answer": {
+                "role": "assistant",
+                "content": content
+            }
+        }
+        return StreamData(
+            code=StreamCode.SUMMARY_RESPONSE.value,
+            msg="step_timeout",
+            data=data,
             execution_id=self.task_id,
         )
 

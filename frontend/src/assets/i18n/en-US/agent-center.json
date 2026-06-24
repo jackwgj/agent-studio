@@ -2876,7 +2876,8 @@
     "tip_4": "Matched to a general scene",
     "action_1": "Calling the plugin {{name}}",
     "action_2": "Calling {{name}} node",
-    "action_3": "Calling the SKILL {{name}}"
+    "action_3": "Calling the SKILL {{name}}",
+    "action_4": "Thinking"
   },
   "end_message_placeholder": "Enter a value. You can use {{variable name}} to reference the variable in the input parameter. You can use { to quickly reference parameters",
   "import_jiuwen_dsl": "Import Jiuwen DSL",

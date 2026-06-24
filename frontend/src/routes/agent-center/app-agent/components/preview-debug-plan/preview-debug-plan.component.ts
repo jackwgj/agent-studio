@@ -239,7 +239,9 @@ export class PreviewDebugPlanComponent extends PreviewDebugComponent {
 
   handleMessage(chunkDataObj: any, currentIndex: number): void {
     try {
-      const { event, data, latency, content, createdTime } = chunkDataObj || {};
+      const { event, data, latency, content, createdTime, reasoning_content } = chunkDataObj || {};
+      const effectiveContent = content || (data && data.text);
+      const effectiveReasoningContent = reasoning_content || (data && data.reasoning_content);
       switch (event) {
         case "scene_match":
           this.handleSceneMatch(data, currentIndex);
@@ -257,13 +259,13 @@ export class PreviewDebugPlanComponent extends PreviewDebugComponent {
           this.handlePluginStart(chunkDataObj, currentIndex);
           break;
         case "plugin_end":
-          this.handlePluginEnd();
+          this.handlePluginEnd(chunkDataObj, currentIndex);
           break;
         case "task_complete":
           this.handleTaskComplete(currentIndex);
           break;
         case "message":
-          this.handleMessageEvent(content, currentIndex, chunkDataObj);
+          this.handleMessageEvent(effectiveContent, currentIndex, chunkDataObj, effectiveReasoningContent);
           break;
         case "agent_interrupted":
           this.handleAgentInterrupted(currentIndex);
@@ -379,6 +381,7 @@ export class PreviewDebugPlanComponent extends PreviewDebugComponent {
     const lastPlan = sceneMessage.plans[sceneMessage.plans.length - 1];
     let action = lastPlan.actionSteps[lastPlan.actionSteps.length - 1];
     action.result_summary = stepData.result_summary;
+    this.dialogHistory[currentIndex] = [...this.dialogHistory[currentIndex]];
   }
 
   /**
@@ -400,8 +403,8 @@ export class PreviewDebugPlanComponent extends PreviewDebugComponent {
   /**
    * 处理插件结束事件
    */
-  private handlePluginEnd(): void {
-    // todo: 需要重新设计显示样式 actionSteps.result_summary = data.answer.content.answer
+  private handlePluginEnd(chunkDataObj: any, currentIndex: number): void {
+    // Plugin end event - no content display needed, just keep the "正在调用插件" title
   }
 
   /**
@@ -414,12 +417,59 @@ export class PreviewDebugPlanComponent extends PreviewDebugComponent {
   /**
    * 处理消息事件
    */
-  private handleMessageEvent(content: string, currentIndex: number, chunkDataObj: any): void {
+  private handleMessageEvent(content: string, currentIndex: number, chunkDataObj: any, reasoning_content?: string): void {
+    if (reasoning_content && reasoning_content !== "\n\n" && reasoning_content !== "\n") {
+      this.handleReasoningContent(currentIndex, reasoning_content);
+    }
+
     if (this.dialogHistory[currentIndex]?.[0]) {
       this.dialogHistory[currentIndex][0].isFinished = true;
     }
+
+    const hasExistingMessage = this.dialogHistory[currentIndex].some(
+      (item) => item.role === "assistant" && (item.event === "message" || item.event === "sensitive")
+    );
+
+    if (hasExistingMessage) {
+      this.updateStatus(currentIndex, "finished", true);
+      this.handleWorkFlowEvent(currentIndex, chunkDataObj);
+      return;
+    }
+
     this.updateStatus(currentIndex, "finished", true);
+    if (content && content.trim()) {
+      const sceneMessage = this.getSceneMessage(currentIndex);
+      if (sceneMessage) {
+        sceneMessage.content = content;
+        this.dialogHistory[currentIndex] = [...this.dialogHistory[currentIndex]];
+      } else {
+        this.dialogHistory[currentIndex].push({
+          role: "assistant",
+          content: content,
+          event: "message"
+        });
+      }
+    }
     this.handleWorkFlowEvent(currentIndex, chunkDataObj);
+  }
+
+  private handleReasoningContent(currentIndex: number, reasoning_content: string): void {
+    const sceneMessage = this.getSceneMessage(currentIndex);
+    if (!sceneMessage) return;
+    const lastPlan = sceneMessage.plans[sceneMessage.plans.length - 1];
+    if (!lastPlan?.actionSteps?.length) return;
+    let actions = this.getAtions(currentIndex);
+    let lastAction = actions[actions.length - 1];
+    if (lastAction && lastAction.actionType === "reasoning") {
+      lastAction.content = lastAction.content + reasoning_content;
+    } else {
+      actions.push({
+        title: this.i18n.transform(this.getActionTitle("reasoning")),
+        actionType: "reasoning",
+        content: reasoning_content
+      });
+    }
+    this.dialogHistory[currentIndex] = [...this.dialogHistory[currentIndex]];
   }
 
   /**
@@ -457,13 +507,23 @@ export class PreviewDebugPlanComponent extends PreviewDebugComponent {
     this.sensitiveFlag = true;
     const { offset, text } = data;
 
-    const sceneMessage = this.getSceneMessage(currentIndex);
+    if (text && text.trim()) {
+      const sceneMessage = this.getSceneMessage(currentIndex);
 
-    if (sceneMessage?.content !== undefined) {
-      const currentContent = sceneMessage.content;
-      const safeOffset = Math.min(offset, currentContent.length);
-      sceneMessage.content = currentContent.slice(0, safeOffset) + (text ?? "");
-      this.dialogHistory[currentIndex] = [...this.dialogHistory[currentIndex]];
+      if (sceneMessage && sceneMessage.content !== undefined) {
+        const currentContent = sceneMessage.content;
+        const safeOffset = Math.min(offset, currentContent.length);
+        sceneMessage.content = currentContent.slice(0, safeOffset) + (text ?? "");
+        sceneMessage.isFallbackReply = true;
+        this.dialogHistory[currentIndex] = [...this.dialogHistory[currentIndex]];
+      } else {
+        this.dialogHistory[currentIndex].push({
+          role: "assistant",
+          content: text,
+          event: "sensitive",
+          isFallbackReply: true
+        });
+      }
     }
 
     this.endThink(currentIndex);
@@ -576,6 +636,7 @@ export class PreviewDebugPlanComponent extends PreviewDebugComponent {
     if (isScene) {
       sceneMessage.status = status;
     }
+    this.dialogHistory[currentIndex] = [...this.dialogHistory[currentIndex]];
   }
 
 
@@ -702,6 +763,8 @@ export class PreviewDebugPlanComponent extends PreviewDebugComponent {
         return "plan_model.action_1";
       case "skill":
         return "plan_model.action_3";
+      case "reasoning":
+        return "plan_model.action_4";
       default:
         return "plan_model.action_2";
     }
