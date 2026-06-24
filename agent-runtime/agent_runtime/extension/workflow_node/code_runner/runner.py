@@ -46,18 +46,31 @@ class Runner(ABC):
 
 
 class LocalRunner(Runner):
-    """Runner for local code execution."""
+    """Runner for local code execution.
+
+    根据 LOCAL_CODE_EXEC_MODE 环境变量选择执行方式：
+    - inprocess（默认）: InprocessCodeRunner，进程内 exec() 执行
+    - subprocess: LocalCodeRunner，子进程执行
+    """
 
     def create(self, code_operation: BaseCodeOperation) -> Any:
-        """Create a LocalCodeRunner instance.
+        """Create a code runner instance based on LOCAL_CODE_EXEC_MODE.
 
         Args:
-            code_operation: Code operation for subprocess execution.
+            code_operation: Code operation for subprocess execution (仅 subprocess 模式使用).
 
         Returns:
-            LocalCodeRunner instance.
+            InprocessCodeRunner 或 LocalCodeRunner 实例.
         """
-        return create_local_code_runner(code_operation)
+        from agent_runtime.common.config import settings
+
+        mode = settings.code_execution.local_exec_mode
+
+        if mode == "inprocess":
+            from .inprocess_code_runner import InprocessCodeRunner
+            return InprocessCodeRunner()
+        else:
+            return create_local_code_runner(code_operation)
 
     def name(self) -> str:
         """Return runner name.

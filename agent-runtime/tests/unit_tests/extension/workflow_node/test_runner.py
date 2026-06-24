@@ -24,11 +24,26 @@ class TestLocalRunner:
         assert LocalRunner().name() == "local"
 
     @staticmethod
-    def test_create_returns_local_code_runner():
+    def test_create_returns_inprocess_code_runner_by_default():
+        """默认 LOCAL_CODE_EXEC_MODE=inprocess，LocalRunner.create() 返回 InprocessCodeRunner"""
+        from agent_runtime.extension.workflow_node.code_runner.inprocess_code_runner import (
+            InprocessCodeRunner,
+        )
+
+        runner = LocalRunner()
+        created = runner.create(MagicMock())
+        assert isinstance(created, InprocessCodeRunner)
+
+    @staticmethod
+    def test_create_returns_local_code_runner_when_subprocess():
+        """LOCAL_CODE_EXEC_MODE=subprocess 时，LocalRunner.create() 返回 LocalCodeRunner"""
         runner = LocalRunner()
         mock_code_op = MagicMock()
-        created = runner.create(mock_code_op)
-        assert isinstance(created, LocalCodeRunner)
+
+        with patch("agent_runtime.common.config.settings") as mock_settings:
+            mock_settings.code_execution.local_exec_mode = "subprocess"
+            created = runner.create(mock_code_op)
+            assert isinstance(created, LocalCodeRunner)
 
 
 class TestSandboxRunner:

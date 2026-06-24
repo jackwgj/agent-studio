@@ -332,15 +332,23 @@ class FlowCode(WorkflowComponent):
         """Helper to create a local runner. Used by fallback logic.
 
         Returns:
-            A new LocalCodeRunner instance for subprocess execution.
+            A new InprocessCodeRunner 或 LocalCodeRunner instance.
 
         Raises:
-            BuildError: If SysOperation not found.
+            BuildError: If SysOperation not found (subprocess 模式).
         """
-        from openjiuwen.core.runner import Runner
+        from agent_runtime.common.config import settings
         from agent_runtime.extension.workflow_node.code_runner.runner import (
             CodeRunnerFactory,
         )
+
+        # inprocess 模式不需要 sys_operation
+        if settings.code_execution.local_exec_mode == "inprocess":
+            from agent_runtime.extension.workflow_node.code_runner.inprocess_code_runner import InprocessCodeRunner
+            return InprocessCodeRunner()
+
+        # subprocess 模式需要 sys_operation
+        from openjiuwen.core.runner import Runner
 
         sys_op_id = "flow_code_sys_op"
         sys_op = Runner.resource_mgr.get_sys_operation(sys_op_id)
@@ -359,9 +367,10 @@ class FlowCode(WorkflowComponent):
     def _ensure_code_runner(self):
         """Lazy-load CodeRunner instance using Runner pattern.
 
-        Selects the appropriate CodeRunner based on exec_env configuration:
-        - 'sandbox': Uses SandboxRunner -> SandboxCodeRunner (with fallback to local if not configured)
-        - 'local' (default): Uses LocalRunner -> LocalCodeRunner
+        Selects the appropriate CodeRunner based on exec_env configuration and LOCAL_CODE_EXEC_MODE:
+        - 'local' + inprocess: InprocessCodeRunner（进程内 exec，不依赖 sys_operation）
+        - 'local' + subprocess: LocalCodeRunner（子进程执行，依赖 sys_operation）
+        - 'sandbox': SandboxCodeRunner (with fallback to local if not configured)
 
         Raises:
             BuildError: SysOperation not found or critical failure.
@@ -369,6 +378,17 @@ class FlowCode(WorkflowComponent):
         if self._code_runner is not None:
             return
 
+        from agent_runtime.common.config import settings
+
+        exec_env = self._conf.exec_env or "local"
+
+        # inprocess 模式直接创建，不依赖 sys_operation
+        if exec_env == "local" and settings.code_execution.local_exec_mode == "inprocess":
+            from agent_runtime.extension.workflow_node.code_runner.inprocess_code_runner import InprocessCodeRunner
+            self._code_runner = InprocessCodeRunner()
+            return
+
+        # 原有逻辑：subprocess/sandbox 需要依赖 sys_operation
         from openjiuwen.core.runner import Runner
         from agent_runtime.extension.workflow_node.code_runner.runner import (
             CodeRunnerFactory,
@@ -385,7 +405,6 @@ class FlowCode(WorkflowComponent):
             )
 
         code_op = sys_op.code()
-        exec_env = self._conf.exec_env or "local"
 
         try:
             runner_strategy = CodeRunnerFactory.get_runner(exec_env)

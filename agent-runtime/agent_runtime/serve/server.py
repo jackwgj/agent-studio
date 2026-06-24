@@ -190,6 +190,8 @@ async def lifespan(app: FastAPI):  # noqa: redefined-outer-name
         logger.warning(f"Prompt optimization MySQL store init failed (non-critical): {e}")
 
     # 注册 flow_code 专用的 SysOperation（local mode）
+    # 注意：当 LOCAL_CODE_EXEC_MODE=inprocess（默认）时，代码节点使用进程内 exec() 执行，
+    # 不依赖此 sys_operation。仅 LOCAL_CODE_EXEC_MODE=subprocess 时才会使用。
     sys_op_id = "flow_code_sys_op"
     if Runner.resource_mgr.get_sys_operation(sys_op_id) is None:
         card = SysOperationCard(id=sys_op_id, mode=OperationMode.LOCAL)

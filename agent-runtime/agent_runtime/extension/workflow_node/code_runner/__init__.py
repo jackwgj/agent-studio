@@ -3,6 +3,9 @@ from agent_runtime.extension.workflow_node.code_runner.base_code_runner import (
     build_wrapped_code,
     parse_execution_result,
 )
+from agent_runtime.extension.workflow_node.code_runner.inprocess_code_runner import (
+    InprocessCodeRunner,
+)
 from agent_runtime.extension.workflow_node.code_runner.local_code_runner import (
     LocalCodeRunner,
     create_local_code_runner,
@@ -21,6 +24,7 @@ __all__ = [
     "CodeRunner",
     "build_wrapped_code",
     "parse_execution_result",
+    "InprocessCodeRunner",
     "LocalCodeRunner",
     "create_local_code_runner",
     "SandboxCodeRunner",

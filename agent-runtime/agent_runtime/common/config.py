@@ -302,6 +302,24 @@ class CheckpointerSettings(BaseSettings):
     )
 
 
+class CodeExecutionSettings(BaseSettings):
+    """代码节点本地执行模式配置。
+
+    LOCAL_CODE_EXEC_MODE 环境变量控制代码节点的本地执行方式：
+    - inprocess: 进程内 exec() 执行（默认，高性能，无隔离）
+    - subprocess: 子进程执行（有进程级隔离，但启动开销约 50-200ms）
+    """
+
+    local_exec_mode: Literal["inprocess", "subprocess"] = Field(
+        default="inprocess",
+        validation_alias="LOCAL_CODE_EXEC_MODE",
+    )
+
+    model_config = SettingsConfigDict(
+        env_file=".env", env_file_encoding="utf-8", extra="ignore"
+    )
+
+
 class Settings:
     server = ServerSettings()
     redis = RedisSettings()
@@ -316,6 +334,7 @@ class Settings:
     memory = MemorySettings()
     checkpointer = CheckpointerSettings()
     otel = OtelSettings()
+    code_execution = CodeExecutionSettings()
 
 
 settings = Settings()

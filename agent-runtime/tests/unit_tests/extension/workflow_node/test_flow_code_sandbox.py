@@ -60,7 +60,9 @@ class TestFlowCodeExecEnv:
         mock_sys_op = _mock_sys_op()
         mock_mgr = _mock_resource_mgr(local_op=mock_sys_op)
 
-        with patch("openjiuwen.core.runner.Runner.resource_mgr", mock_mgr):
+        with patch("openjiuwen.core.runner.Runner.resource_mgr", mock_mgr), \
+             patch("agent_runtime.common.config.settings") as mock_settings:
+            mock_settings.code_execution.local_exec_mode = "subprocess"
             _call_ensure_code_runner(flow_code)
             assert isinstance(_get_code_runner(flow_code), LocalCodeRunner)
 
@@ -75,7 +77,9 @@ class TestFlowCodeExecEnv:
         sandbox_op = _mock_sys_op()
         mock_mgr = _mock_resource_mgr(local_op=local_op, sandbox_op=sandbox_op)
 
-        with patch("openjiuwen.core.runner.Runner.resource_mgr", mock_mgr):
+        with patch("openjiuwen.core.runner.Runner.resource_mgr", mock_mgr), \
+             patch("agent_runtime.common.config.settings") as mock_settings:
+            mock_settings.code_execution.local_exec_mode = "subprocess"
             _call_ensure_code_runner(flow_code)
             assert isinstance(_get_code_runner(flow_code), SandboxCodeRunner)
 
@@ -89,7 +93,9 @@ class TestFlowCodeExecEnv:
         local_op = _mock_sys_op()
         mock_mgr = _mock_resource_mgr(local_op=local_op)
 
-        with patch("openjiuwen.core.runner.Runner.resource_mgr", mock_mgr):
+        with patch("openjiuwen.core.runner.Runner.resource_mgr", mock_mgr), \
+             patch("agent_runtime.common.config.settings") as mock_settings:
+            mock_settings.code_execution.local_exec_mode = "subprocess"
             _call_ensure_code_runner(flow_code)
             assert isinstance(_get_code_runner(flow_code), LocalCodeRunner)
 
@@ -103,7 +109,9 @@ class TestFlowCodeExecEnv:
         mock_sys_op = _mock_sys_op()
         mock_mgr = _mock_resource_mgr(local_op=mock_sys_op)
 
-        with patch("openjiuwen.core.runner.Runner.resource_mgr", mock_mgr):
+        with patch("openjiuwen.core.runner.Runner.resource_mgr", mock_mgr), \
+             patch("agent_runtime.common.config.settings") as mock_settings:
+            mock_settings.code_execution.local_exec_mode = "subprocess"
             _call_ensure_code_runner(flow_code)
             assert isinstance(_get_code_runner(flow_code), LocalCodeRunner)
 
@@ -116,7 +124,9 @@ class TestFlowCodeExecEnv:
 
         mock_mgr = _mock_resource_mgr()
 
-        with patch("openjiuwen.core.runner.Runner.resource_mgr", mock_mgr):
+        with patch("openjiuwen.core.runner.Runner.resource_mgr", mock_mgr), \
+             patch("agent_runtime.common.config.settings") as mock_settings:
+            mock_settings.code_execution.local_exec_mode = "subprocess"
             with pytest.raises(Exception, match="flow_code_sys_op.*not found"):
                 _call_ensure_code_runner(flow_code)
 
@@ -149,6 +159,7 @@ class TestFlowCodeSandboxFallback:
         mock_session.get_component_id.return_value = "test"
         mock_session.get_session_id.return_value = "sess"
         mock_session.get_workflow_id.return_value = "wf"
+        mock_session.trace = AsyncMock()
         mock_context = MagicMock()
 
         with patch(
@@ -190,6 +201,7 @@ class TestFlowCodeSandboxFallback:
         mock_session.get_component_id.return_value = "test"
         mock_session.get_session_id.return_value = "sess"
         mock_session.get_workflow_id.return_value = "wf"
+        mock_session.trace = AsyncMock()
         mock_context = MagicMock()
 
         with patch(
@@ -235,6 +247,7 @@ class TestFlowCodeSandboxFallback:
         mock_session.get_component_id.return_value = "test"
         mock_session.get_session_id.return_value = "sess"
         mock_session.get_workflow_id.return_value = "wf"
+        mock_session.trace = AsyncMock()
         mock_context = MagicMock()
 
         with patch(
@@ -273,6 +286,7 @@ class TestFlowCodeSandboxFallback:
         mock_session.get_component_id.return_value = "test"
         mock_session.get_session_id.return_value = "sess"
         mock_session.get_workflow_id.return_value = "wf"
+        mock_session.trace = AsyncMock()
         mock_context = MagicMock()
 
         with patch(
@@ -292,3 +306,62 @@ class TestFlowCodeSandboxFallback:
                     session=mock_session,
                     context=mock_context,
                 )
+
+
+class TestFlowCodeInprocessMode:
+    """FlowCode._ensure_code_runner 在 inprocess 模式下的行为测试"""
+
+    @staticmethod
+    def test_inprocess_mode_creates_inprocess_runner():
+        """LOCAL_CODE_EXEC_MODE=inprocess 时，_ensure_code_runner 创建 InprocessCodeRunner"""
+        from agent_runtime.extension.workflow_node.code_runner.inprocess_code_runner import (
+            InprocessCodeRunner,
+        )
+
+        config = FlowCodeConfig(
+            code="def main(args): return {}", exec_env="local"
+        )
+        flow_code = FlowCode(config)
+
+        with patch("agent_runtime.common.config.settings") as mock_settings:
+            mock_settings.code_execution.local_exec_mode = "inprocess"
+            _call_ensure_code_runner(flow_code)
+
+        runner = _get_code_runner(flow_code)
+        assert isinstance(runner, InprocessCodeRunner)
+
+    @staticmethod
+    def test_inprocess_mode_no_sys_operation_required():
+        """inprocess 模式下，不依赖 sys_operation 也能创建 runner"""
+        from agent_runtime.extension.workflow_node.code_runner.inprocess_code_runner import (
+            InprocessCodeRunner,
+        )
+
+        config = FlowCodeConfig(
+            code="def main(args): return {}", exec_env="local"
+        )
+        flow_code = FlowCode(config)
+
+        # inprocess 模式下即使 sys_operation 未注册也不报错
+        with patch("agent_runtime.common.config.settings") as mock_settings:
+            mock_settings.code_execution.local_exec_mode = "inprocess"
+            _call_ensure_code_runner(flow_code)
+
+        runner = _get_code_runner(flow_code)
+        assert isinstance(runner, InprocessCodeRunner)
+
+    @staticmethod
+    def test_subprocess_mode_requires_sys_operation():
+        """LOCAL_CODE_EXEC_MODE=subprocess 时，仍需要 sys_operation"""
+        config = FlowCodeConfig(
+            code="def main(args): return {}", exec_env="local"
+        )
+        flow_code = FlowCode(config)
+
+        # 模拟 sys_operation 未注册
+        mock_mgr = _mock_resource_mgr(local_op=None)
+        with patch("openjiuwen.core.runner.Runner.resource_mgr", mock_mgr), \
+             patch("agent_runtime.common.config.settings") as mock_settings:
+            mock_settings.code_execution.local_exec_mode = "subprocess"
+            with pytest.raises(Exception, match="flow_code_sys_op"):
+                _call_ensure_code_runner(flow_code)
