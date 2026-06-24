@@ -1352,9 +1352,14 @@ class IRConverter:
             batch_schema, stream_schema = _split_inputs_schema_by_source(
                 inputs_schema, IRConverter._STREAM_SOURCE_IDS
             )
-            # Determine incoming edge types for this End node
+            # Determine incoming edge types for this End node.
+            # #end_ output placeholders are internal markers, not real upstream batch inputs.
+            batch_has_refs = bool(_extract_source_component_ids(batch_schema, component_by_id))
             has_stream = node_id in stream_connection_targets or stream_schema
-            has_batch = node_id in batch_connection_targets or batch_schema
+            has_batch = node_id in batch_connection_targets or batch_has_refs
+
+            if hasattr(end, "set_expect_mix"):
+                end.set_expect_mix(has_batch and has_stream)
 
             set_end_kwargs: dict = {}
             if has_batch and has_stream:

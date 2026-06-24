@@ -268,6 +268,8 @@ class End(BaseEnd):
 
         # mix 模式协调：batch 路径只注入数据不渲染（防止 engine pickle 失败），
         # stream 路径负责 merge + render + signal
+        # None 表示兼容 openjiuwen 默认行为；IR converter 会显式标记纯流式/混合场景。
+        self._expect_mix: Optional[bool] = None
         self._mix_condition = None  # asyncio.Condition，lazy init
         self._mix_data = {}  # {'batch': {inputs, outputs}, 'stream': {inputs, outputs}}
         self._mix_push_count = 0  # 已 push 的路径数 (0/1/2)
@@ -346,6 +348,14 @@ class End(BaseEnd):
             except (ValueError, TypeError):
                 return None
         return actual_value
+
+    def set_expect_mix(self, expect_mix: bool) -> None:
+        self._expect_mix = expect_mix
+
+    def set_mix(self):
+        if self._expect_mix is False:
+            return
+        super().set_mix()
 
     def _reset_stream_output(self) -> None:
         self._stream_output = None
