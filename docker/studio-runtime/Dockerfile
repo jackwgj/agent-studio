@@ -17,7 +17,8 @@ RUN if [ -f /etc/apt/sources.list.d/debian.sources ]; then \
       sed -i 's|deb.debian.org|mirrors.aliyun.com|g' /etc/apt/sources.list; \
     fi \
     && apt-get update && apt-get install -y curl tar unzip net-tools wget iptables cron libpq-dev vim procps gawk hostname sed coreutils findutils bash \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+    && apt-get clean && rm -rf /var/lib/apt/lists/* \
+    && echo 'alias ll="ls -alF"' >> /etc/bash.bashrc
 
 # 先复制 requirements.txt，单独安装依赖以利用 Docker 层缓存
 COPY requirements.txt $SERVICE_HOME/app/
