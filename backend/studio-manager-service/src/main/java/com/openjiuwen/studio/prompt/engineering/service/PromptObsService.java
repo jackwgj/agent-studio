@@ -5,6 +5,7 @@
 package com.openjiuwen.studio.prompt.engineering.service;
 
 import com.obs.services.ObsClient;
+import com.obs.services.ObsConfiguration;
 import com.obs.services.exception.ObsException;
 import com.obs.services.model.AccessControlList;
 import com.obs.services.model.BucketVersioningConfiguration;
@@ -79,13 +80,19 @@ public class PromptObsService {
     @Value("${obs.bucket}")
     private String bucket;
 
+    @Value("${obs.path.style}")
+    private String pathStyle;
+
     @Setter
     private volatile ObsClient obsClient;
 
     @PostConstruct
     public void init() throws IOException {
         try {
-            obsClient = new ObsClient(accessKey, secretKey, url);
+            ObsConfiguration config = new ObsConfiguration();
+            config.setEndPoint(url);
+            config.setPathStyle(pathStyle.equals("path"));
+            obsClient = new ObsClient(accessKey, secretKey, config);
         } catch (ObsException e) {
             log.error("init obs client failed!", e);
             obsClient.close();
@@ -116,7 +123,10 @@ public class PromptObsService {
         Map<String, List<ObsResp>> mapResp = new HashMap<>();
         ObsClient obsClient = null;
         try {
-            obsClient = new ObsClient(accessKey, secretKey, url);
+            ObsConfiguration config = new ObsConfiguration();
+            config.setEndPoint(url);
+            config.setPathStyle(pathStyle.equals("path"));
+            obsClient = new ObsClient(accessKey, secretKey, config);
             ListObjectsRequest request = new ListObjectsRequest(req.getBucket());
             request.setDelimiter(CommonConstant.FOLDER_SEPARATOR);
             /* 如果path不以/结尾会出现如查询data返回data2/之类的错误文件夹信息 */

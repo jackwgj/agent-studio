@@ -221,6 +221,8 @@ obs:
   stagingBucket: ${obs_stagingBucket:}
   opensource: ${obs_opensource:true}
   expires: ${obs_expires:7}
+  path:
+    style: ${DATASOURCE_OBS_PATH_STYLE:path}
 
 model:
   platform:

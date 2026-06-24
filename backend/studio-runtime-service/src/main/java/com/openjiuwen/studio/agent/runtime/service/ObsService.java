@@ -5,6 +5,7 @@
 package com.openjiuwen.studio.agent.runtime.service;
 
 import com.obs.services.ObsClient;
+import com.obs.services.ObsConfiguration;
 import com.obs.services.exception.ObsException;
 import com.obs.services.model.AccessControlList;
 import com.obs.services.model.BucketStorageInfo;
@@ -82,6 +83,9 @@ public class ObsService implements CommonObsService {
     @Value("${obs.bucket.auto-create:true}")
     private boolean isBucketAutoCreate;
 
+    @Value("${obs.path.style}")
+    private String pathStyle;
+
     @Setter
     private volatile ObsClient obsClient;
 
@@ -94,7 +98,10 @@ public class ObsService implements CommonObsService {
    @PostConstruct
     public void init() throws IOException {
         try {
-            obsClient = new ObsClient(accessKey, secretKey, url);
+            ObsConfiguration config = new ObsConfiguration();
+            config.setEndPoint(url);
+            config.setPathStyle(pathStyle.equals("path"));
+            obsClient = new ObsClient(accessKey, secretKey, config);
         } catch (ObsException e) {
             log.error("init obs client failed!", e);
             alarmLogUtil.logAlarm("OBS", "init obs client failed! url: " + url, e.getErrorMessage());

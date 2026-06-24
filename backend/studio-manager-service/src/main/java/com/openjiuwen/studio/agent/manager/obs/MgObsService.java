@@ -5,6 +5,7 @@
 package com.openjiuwen.studio.agent.manager.obs;
 
 import com.obs.services.ObsClient;
+import com.obs.services.ObsConfiguration;
 import com.obs.services.exception.ObsException;
 import com.obs.services.model.AccessControlList;
 import com.obs.services.model.BucketVersioningConfiguration;
@@ -78,12 +79,18 @@ public class MgObsService implements CommonObsService {
     @Value("${obs.stagingBucket}")
     private String stagingBucket;
 
+    @Value("${obs.path.style}")
+    private String pathStyle;
+
     private volatile ObsClient obsClient;
 
     @PostConstruct
     public void init() throws IOException {
         try {
-            obsClient = new ObsClient(accessKey, secretKey, url);
+            ObsConfiguration config = new ObsConfiguration();
+            config.setEndPoint(url);
+            config.setPathStyle(pathStyle.equals("path"));
+            obsClient = new ObsClient(accessKey, secretKey, config);
         } catch (ObsException e) {
             log.error("init obs client failed!", e);
             obsClient.close();

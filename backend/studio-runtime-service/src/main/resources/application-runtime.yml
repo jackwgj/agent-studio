@@ -138,6 +138,8 @@ obs:
   opensource: ${obs_opensource:true}
   expire-time: ${obs_expire_time:7}
   bucket_storage_limit: ${obs_bucket_storage_limit:100}
+  path:
+    style: ${DATASOURCE_OBS_PATH_STYLE:path}
 
 iam:
   url: ${iam_endpoint:}

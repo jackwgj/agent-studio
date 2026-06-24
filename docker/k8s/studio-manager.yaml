@@ -99,6 +99,9 @@ spec:
               value: 'true'
             - name: workflow_async_enable
               value: 'true'
+            # 寻址方式：path（路径风格，默认）或 virtual（虚拟托管风格）
+            - name: DATASOURCE_OBS_PATH_STYLE
+              value: 'path'
           resources:
             limits:
               cpu: '2'

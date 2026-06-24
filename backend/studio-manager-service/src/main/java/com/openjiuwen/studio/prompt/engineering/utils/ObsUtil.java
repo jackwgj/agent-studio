@@ -63,6 +63,9 @@ public class ObsUtil {
     @Value("${obs.url}")
     private String url;
 
+    @Value("${obs.path.style}")
+    private String pathStyle;
+
     private ObsUtil() {
     }
 
@@ -75,7 +78,10 @@ public class ObsUtil {
      * obsClient初始化
      */
     public void init(String xAuthToken) {
-        ObsUtil.obsClient = new ObsClient(accessKey, secretKey, url);
+        ObsConfiguration config = new ObsConfiguration();
+        config.setEndPoint(url);
+        config.setPathStyle(pathStyle.equals("path"));
+        ObsUtil.obsClient = new ObsClient(accessKey, secretKey, config);
     }
 
     /**
@@ -86,7 +92,10 @@ public class ObsUtil {
      * @param obsConfiguration
      */
     public void setObsClient(String ak, String sk, String secToken, ObsConfiguration obsConfiguration) {
-        ObsUtil.obsClient = new ObsClient(accessKey, secretKey, url);
+        ObsConfiguration config = new ObsConfiguration();
+        config.setEndPoint(url);
+        config.setPathStyle(pathStyle.equals("path"));
+        ObsUtil.obsClient = new ObsClient(accessKey, secretKey, config);
     }
 
     /**
