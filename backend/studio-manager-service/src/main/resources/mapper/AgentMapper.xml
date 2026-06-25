@@ -956,7 +956,7 @@
         FROM t_agent
         WHERE deleted = 0
           AND memory_config IS NOT NULL
-          AND JSON_VALUE(memory_config, '$.memory_repo_id') = #{memoryRepoId}
+          AND memory_config LIKE CONCAT('%', #{memoryRepoId}, '%')
     </select>
 
     <update id="clearMemoryConfig">
