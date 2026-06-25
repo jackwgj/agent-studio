@@ -22,7 +22,7 @@
           <div class="editor-tab">
             <nz-radio-group [(ngModel)]="selectedTab">
             @for (tab of tabs; track tab.id; let i = $index) {
-              <label nz-radio-button [nzValue]="tab.id" [title]="tab.titleTemplate" [nzDisabled]="tab.disabled">
+              <label nz-radio-button [nzValue]="tab.id" [title]="tab.tip" [nzDisabled]="tab.disabled">
                 <custom-editor-icon class="tab-class" [name]="tab.iconName"></custom-editor-icon>
               </label>
             }

@@ -80,8 +80,8 @@ export class MemoryLibCreationHalfmodalComponent implements OnInit, OnDestroy {
   });
 
   extractionFrequencyFormGroup = this.fb.group({
-    conversation_round: [null as number | null, [Validators.min(1), Validators.max(30)]],
-    time_span: [null as number | null, [Validators.min(5), Validators.max(60)]],
+    conversation_round: [null as number | null, [this.valueErrorValidator(1, 30)]],
+    time_span: [null as number | null, [this.valueErrorValidator(5, 60)]],
   });
 
   private destroy$ = new Subject<void>();
@@ -156,6 +156,20 @@ export class MemoryLibCreationHalfmodalComponent implements OnInit, OnDestroy {
     });
   }
 
+  valueErrorValidator(min, max): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      const value = control.value;
+      return !value || value.length < min || value.length < max
+        ? {
+            isStrategyRequired: {
+              value: control.value,
+              errorMsg: 'valueerror',
+            },
+          }
+        : null;
+    };
+  }
+
   strategyRequiredValidator(): ValidatorFn {
     return (control: AbstractControl): ValidationErrors | null => {
       const value = control.value;
@@ -178,10 +192,42 @@ export class MemoryLibCreationHalfmodalComponent implements OnInit, OnDestroy {
     }
   }
   close(): void {
+    const errorBasicInfoForm = !this.showFromErrorByName(this.basicInfoFormGroup, []);
+    const errorLtmRetrievalStrategyForm = !this.showFromErrorByName(this.ltmRetrievalStrategyFormGroup, []);
+    const errorExtractionFrequencyForm = !this.showFromErrorByName(this.extractionFrequencyFormGroup, []);
+    if (errorBasicInfoForm || errorLtmRetrievalStrategyForm || errorExtractionFrequencyForm) {
+      return;
+    }
     if (this.nzData.beforeHide && typeof this.nzData.beforeHide === 'function') {
       this.nzData.beforeHide({
         reason: true,
       });
     }
+  }
+
+  showFromErrorByName(form, validatorName): boolean {
+    let res = true;
+    const keysList = Object.keys(form.controls);
+    if (keysList) {
+      for (let i = 0; i < keysList.length; i++) {
+        form.controls[keysList[i]].markAsDirty();
+        form.controls[keysList[i]].updateValueAndValidity({ onlySelf: false });
+        if (validatorName?.length > 0) {
+          for (let j = 0; j < validatorName.length; j++) {
+            if (keysList[i].indexOf(validatorName[j]) === 0) {
+              if (form.controls[keysList[i]].errors) {
+                res = false;
+              }
+            }
+          }
+        } else {
+          if (form.controls[keysList[i]].errors) {
+            res = false;
+          }
+        }
+      }
+    }
+
+    return res;
   }
 }

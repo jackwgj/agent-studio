@@ -40,7 +40,7 @@ class TreeUtil {
     MarkdownComponent,
     CustomFileTreeComponent,
     I18nPipe,
-    NzRadioModule
+    NzRadioModule,
   ],
   providers: [CustomEditorService, I18nService],
 })
@@ -321,8 +321,10 @@ export class SkillSingleEditorComponent {
       });
       this.tabs = [...this.tabs];
       this.selectedTab = SkillEditorTab.MD;
-      const element = this.scrollContainer.nativeElement;
-      element.scrollTop = 0;
+      const element = this.scrollContainer?.nativeElement;
+      if (element) {
+        element.scrollTop = 0;
+      }
     } else {
       this.tabs.forEach(e => {
         e.active = e.id === SkillEditorTab.CODE;
