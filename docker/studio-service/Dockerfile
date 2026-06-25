@@ -1,6 +1,13 @@
 ARG BASE_IMAGE
 FROM $BASE_IMAGE
-RUN echo "Built on $BASE_IMAGE"
+RUN echo "Built on $BASE_IMAGE" \
+    && if [ -f /etc/apt/sources.list.d/debian.sources ]; then \
+         sed -i 's|deb.debian.org|mirrors.aliyun.com|g' /etc/apt/sources.list.d/debian.sources; \
+       elif [ -f /etc/apt/sources.list ]; then \
+         sed -i 's|deb.debian.org|mirrors.aliyun.com|g' /etc/apt/sources.list; \
+       fi \
+    && apt-get update && apt-get install -y vim \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # 注：此处修改需同步修改studio-service.yaml中的runAsUser、runAsGroup、fsGroup
 RUN groupadd -g 1001 service && useradd -u 1001 -g service -s /bin/bash -m service
@@ -20,9 +27,10 @@ COPY script/ bin/
 COPY config/ config/
 
 # 赋权
-RUN chmod -R 550 app/ \
-    && chmod -R 750 bin/ config/ \
-    && chown -R service:service app/ bin/ config/
+RUN mkdir -p logs \
+    && chmod -R 550 app/ \
+    && chmod -R 750 bin/ config/ logs/ \
+    && chown -R service:service app/ bin/ config/ logs/
 
 # 切换到非 root 用户运行
 USER service
