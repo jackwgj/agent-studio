@@ -17,6 +17,7 @@ LLMChain 组件 - 完整迁移自商用版本
 """
 
 import asyncio
+import base64
 import html
 import ast
 import json
@@ -152,6 +153,7 @@ class LLMChain(WorkflowComponent):
 
         inputs_data = inputs.get(USER_FIELDS, {})
         self._process_inputs(inputs_data)
+        await self._resolve_vision_urls(inputs_data)
 
         language_model_inputs = self._get_model_input(inputs=inputs_data)
 
@@ -212,6 +214,7 @@ class LLMChain(WorkflowComponent):
             self._stream_final_output = result
             yield result
         else:
+            await self._resolve_vision_urls(inputs_data)
             language_model_inputs = self._get_model_input(inputs=inputs_data)
 
             try:
@@ -613,7 +616,91 @@ class LLMChain(WorkflowComponent):
         self._insert_memory_message(messages, inputs)
         messages = self._apply_format_instructions(messages)
 
+        # 多模态视觉输入注入
+        messages = self._get_vision(messages, inputs)
+
         return messages
+
+    async def _resolve_vision_urls(self, inputs: dict) -> None:
+        """提前将图片 URL 下载并转为 base64 data URI，就地替换 inputs 中的值
+
+        在 invoke/stream 入口调用，将网络 I/O 与消息组装解耦。
+        """
+        model_conf = self._conf.get("model", {})
+        extension = model_conf.get("extension", {})
+        if not extension.get("vl_enable"):
+            return
+        for key in list(inputs.keys()):
+            if "image_vision" not in key.lower():
+                continue
+            urls = inputs[key]
+            if isinstance(urls, str):
+                urls = [urls]
+            resolved = []
+            for url in urls:
+                if isinstance(url, str) and url:
+                    resolved.append(await self._resolve_image_url(url))
+                else:
+                    resolved.append(url)
+            inputs[key] = resolved
+
+    def _get_vision(self, messages: list[dict], inputs: dict) -> list[dict]:
+        """多模态理解大模型视觉输入填充，考虑到历史会话将视觉输入放在最后一条 user 消息"""
+        model_conf = self._conf.get("model", {})
+        extension = model_conf.get("extension", {})
+        vl_enable = extension.get("vl_enable")
+        if not vl_enable:
+            return messages
+
+        # 收集视觉 URL
+        vision_items = []
+        for key, value in inputs.items():
+            if "image_vision" in key.lower():
+                urls = value if isinstance(value, list) else [value]
+                for url in urls:
+                    if isinstance(url, str) and url:
+                        vision_items.append({"type": "image_url", "image_url": {"url": url}})
+            if "video_vision" in key.lower():
+                urls = value if isinstance(value, list) else [value]
+                for url in urls:
+                    if isinstance(url, str) and url:
+                        vision_items.append({"type": "video_url", "video_url": {"url": url}})
+
+        # 没有实际视觉内容时不转换消息格式，保持纯文本 content
+        if not vision_items:
+            return messages
+
+        # 找到最后一条 user 消息并注入视觉内容
+        for i in range(len(messages) - 1, -1, -1):
+            if messages[i].get("role") == "user":
+                content = [{"type": "text", "text": messages[i]["content"]}]
+                content.extend(vision_items)
+                messages[i]["content"] = content
+                break
+        return messages
+
+    @staticmethod
+    async def _resolve_image_url(url: str) -> str:
+        """将图片 URL 转为 base64 data URI，确保模型服务端可直接使用
+
+        如果 URL 已经是 data URI 则直接返回；否则尝试下载并转为 base64。
+        下载失败时返回原始 URL 作为兜底。
+        """
+        if url.startswith("data:"):
+            return url
+        try:
+            import httpx
+            async with httpx.AsyncClient(verify=False, timeout=30) as client:
+                resp = await client.get(url)
+                resp.raise_for_status()
+                content_type = resp.headers.get("content-type", "image/jpeg")
+                if ";" in content_type:
+                    content_type = content_type.split(";")[0].strip()
+                b64 = base64.b64encode(resp.content).decode("utf-8")
+                return f"data:{content_type};base64,{b64}"
+        except Exception as e:
+            workflow_logger.warning(f"Failed to resolve image URL to base64, using original URL: {url}, error: {e}")
+            return url
 
     def _insert_memory_message(self, messages: list[dict], inputs: dict) -> None:
         """Inject retrieved long-term memory before the current user prompt."""
