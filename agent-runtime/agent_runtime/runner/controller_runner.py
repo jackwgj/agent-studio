@@ -12,6 +12,7 @@ from agent_runtime.runner.controller_stream_data_adapter import (
     ControllerStreamDataAdapter,
 )
 from agent_runtime.schemas.orchestration_mgr import ExecutionRequest
+from agent_runtime.runner.memory_extraction_context import MemoryExtractionContext
 from jiuwen.serve.controllers.execution.enum import IRType
 from jiuwen.serve.controllers.execution.ir_converter import IRConverter
 from jiuwen.serve.controllers.execution.open_utils import async_ir_load
@@ -193,11 +194,14 @@ class ControllerRunner:
 
             # Trigger memory extraction after successful agent group execution
             await self._trigger_memory_extraction(
-                ir_json=ir_json,
-                user_id=req.user_id,
-                conversation_id=req.conversation_id,
-                user_query=req.query or "",
-                assistant_response="".join(memory_response_parts),
+                MemoryExtractionContext(
+                    ir_json=ir_json,
+                    user_id=req.user_id,
+                    conversation_id=req.conversation_id,
+                    user_query=req.query or "",
+                    assistant_response="".join(memory_response_parts),
+                    enable_memory_extract=bool(req.params.enable_memory_extract),
+                )
             )
         except Exception as e:
             workflow_logger.error(
@@ -216,54 +220,56 @@ class ControllerRunner:
 
     async def _trigger_memory_extraction(
         self,
-        ir_json: dict,
-        user_id: str,
-        conversation_id: str,
-        user_query: str,
-        assistant_response: str,
+        ctx: MemoryExtractionContext,
     ) -> None:
         """Trigger memory extraction after agent group execution if memory is configured.
 
         Checks if the IR has memory config with memory_repo_id,
         and if so, calls the UserProfileMemoryExtractor to cache the conversation
         turn for later extraction (based on conversation_round / time_span triggers).
+
+        Skipped when ``ctx.enable_memory_extract`` is False (the "对话中存储记忆"
+        switch is off).
         """
         try:
-            configs = ir_json.get("configs") or {}
+            if not ctx.enable_memory_extract:
+                return
+
+            configs = ctx.ir_json.get("configs") or {}
             memory_config = configs.get("memory") or {}
             memory_repo_id = memory_config.get("memory_repo_id")
 
             if not memory_repo_id:
                 return
 
-            if not user_query and not assistant_response:
+            if not ctx.user_query and not ctx.assistant_response:
                 return
 
             from openjiuwen.core.foundation.llm import UserMessage, AssistantMessage
             from agent_runtime.memory.storage.memory_extractor import get_instance
 
             messages = []
-            if user_query:
-                messages.append(UserMessage(content=user_query))
-            if assistant_response:
-                messages.append(AssistantMessage(content=assistant_response))
+            if ctx.user_query:
+                messages.append(UserMessage(content=ctx.user_query))
+            if ctx.assistant_response:
+                messages.append(AssistantMessage(content=ctx.assistant_response))
 
             if not messages:
                 return
 
             extractor = get_instance()
             await extractor.async_add_chat_turn(
-                user_id=user_id,
+                user_id=ctx.user_id,
                 memory_repo_id=memory_repo_id,
-                conversation_id=conversation_id,
-                ir_data=ir_json,
+                conversation_id=ctx.conversation_id,
+                ir_data=ctx.ir_json,
                 messages=messages,
             )
             workflow_logger.info(
                 "Memory extraction triggered for repo=%s, user=%s, conversation=%s",
                 memory_repo_id,
-                user_id,
-                conversation_id,
+                ctx.user_id,
+                ctx.conversation_id,
             )
         except Exception as e:
             workflow_logger.warning(

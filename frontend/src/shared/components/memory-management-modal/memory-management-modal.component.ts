@@ -51,10 +51,11 @@ export class MemoryManagementModalComponent {
     instance.conversationState = this.conversationState;
 
     modalRef.afterClose.subscribe(reason => {
-      // Emit the updated conversation state (enable_retrieve/enable_extract
-      // switches) so the parent component can sync its conversationState.
-      // Memory content changes are already persisted by the template's close().
-      if (reason === 'ok' && instance) {
+      // 开关（enable_retrieve/enable_extract）是即时配置，弹窗无论以何种方式
+      // 关闭（确定/取消/点 X）都同步到父组件 conversationState，保证关掉再打开
+      // 之前的值仍存在（未刷新页面/未关工作流详情期间生效）。
+      // 记忆内容编辑的持久化只在 template 的 close()（点确定）里执行，此处不重复。
+      if (instance) {
         const data = instance.getData();
         this.confirm.emit(data);
       }

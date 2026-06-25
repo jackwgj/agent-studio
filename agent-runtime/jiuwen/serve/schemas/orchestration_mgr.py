@@ -204,6 +204,9 @@ class ExecutionParams(BaseModel):
     enable_memory_retrieve: Optional[bool] = Field(
         alias="enableMemoryRetrieve", default=False
     )
+    enable_memory_extract: Optional[bool] = Field(
+        alias="enableMemoryExtract", default=False
+    )
     sys_operation_card: Optional[dict] = Field(alias="sysOperationCard", default=None)
 
     @field_validator("global_variables", mode="before")  # noqa: pydantic.field_validator accepts a classmethod

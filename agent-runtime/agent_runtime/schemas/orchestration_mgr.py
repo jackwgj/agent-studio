@@ -79,6 +79,9 @@ class ExecutionParams(BaseModel):
     enable_memory_retrieve: Optional[bool] = Field(
         alias="enableMemoryRetrieve", default=False
     )
+    enable_memory_extract: Optional[bool] = Field(
+        alias="enableMemoryExtract", default=False
+    )
     sys_operation_card: Optional[dict] = Field(alias="sysOperationCard", default=None)
     # Internal: cached IR data to avoid redundant storage reads (excluded from JSON serialization)
     ir_cache: Optional[dict] = None
