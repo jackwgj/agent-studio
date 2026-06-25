@@ -360,7 +360,8 @@
         <div class="common-main-title">{{ 'memory' | i18nextEager }}</div>
         <!-- 变量 -->
         <div class="config-tool-items">
-          <ng-container *ngTemplateOutlet="params; context: {context: {param: memoryParamAdded, data: agent_variables, type: 'userVars'}}"></ng-container>
+          <!-- 用户变量功能暂时不对外开放，隐藏入口 -->
+          <!-- <ng-container *ngTemplateOutlet="params; context: {context: {param: memoryParamAdded, data: agent_variables, type: 'userVars'}}"></ng-container> -->
           <ng-container *ngTemplateOutlet="params; context: {context: {param: inputParamAdded, data: input_variables, type: 'inputVars'}}"></ng-container>
         </div>
         <div class="common-separator-line"></div>

@@ -40,14 +40,17 @@
       <ng-container *ngIf="actionType === 'VIEW'">
         <nz-tabset style="margin-bottom: 12px">
           <nz-tab
-            *ngFor="let tab of variableMemoryTabs; let i = index"
+            *ngFor="let tab of visibleMemoryTabs; let i = index"
             [nzTitle]="tab.name"
           ></nz-tab>
         </nz-tabset>
-        <div *ngIf="variableMemoryTabs[0].active">
+        <div *ngIf="isShowUserVars && variableMemoryTabs[0].active">
           <ng-container *ngTemplateOutlet="userParams; context: {}"></ng-container>
         </div>
-        <div *ngIf="variableMemoryTabs[1].active">
+        <div *ngIf="!isShowUserVars">
+          <ng-container *ngTemplateOutlet="userParams; context: {}"></ng-container>
+        </div>
+        <div *ngIf="isShowUserVars && variableMemoryTabs[1].active">
           <ng-container *ngTemplateOutlet="inputParam; context: {}"></ng-container>
         </div>
       </ng-container>

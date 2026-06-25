@@ -124,6 +124,13 @@ export class VarMemoryModalComponent implements OnInit {
       active: false
     }
   ];
+
+  // 用户变量功能暂时不对外开放：isShowUserVars=false 时仅展示入参变量 tab
+  public get visibleMemoryTabs(): MemoryVariableType[] {
+    return this.isShowUserVars
+      ? this.variableMemoryTabs
+      : this.variableMemoryTabs.filter(tab => tab.id !== "user");
+  }
   private destroy$ = new Subject<void>();
 
   constructor(
@@ -268,6 +275,8 @@ export class VarMemoryModalComponent implements OnInit {
     this.customParams = [];
     this.inputParams = [];
     if (this.actionType === "VIEW") {
+      // 用户变量功能暂时不对外开放，VIEW 模式（预览调试查看记忆）不展示用户变量
+      this.isShowUserVars = false;
       this.queryMemoryVarList();
     } else {
       if (data?.length) {
