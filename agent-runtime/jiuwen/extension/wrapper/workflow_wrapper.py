@@ -169,10 +169,20 @@ class WorkflowWrapper:
         ]
         # Controller 模式下，Handler 从 context_manager 传入带 intent 的完整对话历史，不需要再追加用户查询；
         # 非 Controller 模式下（如 Plan/React 调用），需要手动追加用户查询
-        if not is_resuming and not params.get(CONTROLLER_MODE_SWITCH, False):
-            origin_chat_history.append(
-                dict(role=ChatHistoryRole.USER.value, content=query)
-            )
+        if not params.get(CONTROLLER_MODE_SWITCH, False):
+            if not is_resuming:
+                origin_chat_history.append(
+                    dict(role=ChatHistoryRole.USER.value, content=query)
+                )
+            else:
+                # 恢复模式：追加用户最新回复，确保 LLM 上下文完整
+                resume_content = self._extract_resume_query(query)
+                if resume_content:
+                    # 检查是否已存在（避免 Handler 层已追加导致重复）
+                    if not origin_chat_history or origin_chat_history[-1].get("content") != resume_content:
+                        origin_chat_history.append(
+                            dict(role=ChatHistoryRole.USER.value, content=resume_content)
+                        )
         self._chat_history = ConversationHistory(origin_chat_history)
 
         # 保存当前工作流级别的 query，供 _create_intermediate_messages 在子工作流中断场景下
@@ -1457,7 +1467,7 @@ class WorkflowWrapper:
             # sub_workflow_query 为空，使用 WorkflowWrapper 保存的工作流级 query 作为 fallback
             # 恢复场景：SubWorkflow 的 _current_query 未更新，sub_workflow_query 为旧值，
             # 使用 WorkflowWrapper 保存的工作流级 query（从 InteractiveInput 更新）作为 fallback
-            if not sub_query or is_resuming:
+            if not sub_query:
                 sub_query = getattr(self, "_current_workflow_query", "")
             # 顶层 7000（不带 parentNodeId）：不含 sub_query，仅含 content
             answer_for_top = list(base_answer)
@@ -1525,6 +1535,22 @@ class WorkflowWrapper:
             )
         )
         return result
+
+    def _extract_resume_query(self, query) -> str:
+        """从 InteractiveInput 中提取恢复时的用户回复文本。
+
+        Args:
+            query: InteractiveInput 实例或其他类型的 query
+
+        Returns:
+            str: 用户回复文本，未找到则返回空字符串
+        """
+        if isinstance(query, InteractiveInput):
+            if query.raw_inputs:
+                return str(query.raw_inputs)
+            if query.user_inputs:
+                return str(list(query.user_inputs.values())[-1])
+        return str(query) if query else ""
 
     def _register_global_variable_trigger(self):
         """Register trigger handler to resolve ${global.xxx} references in input_schema."""

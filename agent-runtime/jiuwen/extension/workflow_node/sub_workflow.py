@@ -507,6 +507,32 @@ class SubWorkflow(WorkflowComponent):
                     return nested_value
         return None
 
+    def _extract_from_interactive_input(self, inputs: InteractiveInput) -> Optional[str]:
+        """从 InteractiveInput 中提取用户最新输入作为兜底。
+
+        当 _extract_parent_resume_query 的三层查找全部失败时，
+        尝试直接从传入的 InteractiveInput 中获取用户回复，
+        避免回退到 Start 节点 checkpoint 中的陈旧 query。
+
+        Args:
+            inputs: InteractiveInput 实例
+
+        Returns:
+            Optional[str]: 提取到的用户输入，未找到则返回 None
+        """
+        if not isinstance(inputs, InteractiveInput):
+            return None
+        # 优先从 user_inputs 中取最新值
+        if inputs.user_inputs:
+            last_key = list(inputs.user_inputs.keys())[-1]
+            val = inputs.user_inputs[last_key]
+            if val:
+                return str(val)
+        # 其次从 raw_inputs 中取
+        if inputs.raw_inputs:
+            return str(inputs.raw_inputs)
+        return None
+
     def _should_resume_child_workflow(self, session: Session) -> bool:
         """是否应向子工作流传递 InteractiveInput 以恢复 checkpoint。
 
@@ -537,8 +563,12 @@ class SubWorkflow(WorkflowComponent):
             self.node_state.status = ExecutionStatus.USER_INTERACT
             resume_query = self._extract_parent_resume_query(session)
             if resume_query is None:
-                # 未取到本次用户回复，回退到 Start 节点 checkpoint 中的 query。
-                # 嵌套子工作流场景下该值通常是上一轮的陈旧输入，需要重点关注。
+                # 兜底：尝试从 inputs（InteractiveInput）中直接提取用户最新输入，
+                # 避免回退到 Start 节点 checkpoint 中的陈旧 query。
+                resume_query = self._extract_from_interactive_input(inputs)
+            if resume_query is None:
+                # 所有提取方式均失败，回退到 Start 节点 checkpoint 中的 query。
+                # 嵌套子工作流场景下该值通常是上一轮的陈旧输入。
                 workflow_logger.warning(
                     "SubWorkflow resume: failed to extract user reply for child %s, "
                     "falling back to Start-node query=%r (may be stale)",
@@ -1140,7 +1170,22 @@ class SubWorkflow(WorkflowComponent):
                         inner_session.state().update_and_commit_workflow_state(
                             {"__interrupted": True}
                         )
-                    await session.interact(self._resolve_interact_value(payload))
+                    # 中断时也写入 sub_workflow_query，避免恢复时丢失
+                    interact_value = self._resolve_interact_value(payload)
+                    current_query = getattr(self, '_current_query', '')
+                    if current_query:
+                        interact_payload = {
+                            "sub_workflow_query": current_query,
+                            "parentNodeId": session.get_component_id(),
+                        }
+                        if isinstance(interact_value, dict):
+                            interact_payload.update(interact_value)
+                        else:
+                            interact_payload["value"] = interact_value
+                        await session.write_custom_stream(
+                            CustomSchema(type=MESSAGE_NODE_END, index=1, data=interact_payload)
+                        )
+                    await session.interact(interact_value)
                     return
 
                 if "answer" in processed:
