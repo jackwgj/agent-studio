@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from openjiuwen.core.common.logging import workflow_logger
 from openjiuwen.core.runner import Runner
 
 _JIUWEN_IR_PATH_ATTR = "_jiuwen_ir_path"
@@ -30,15 +31,24 @@ async def ensure_openjiuwen_workflow_registered(
     """
     workflow_id = workflow_id or workflow_ir.get("workflowId")
     tag = agent_id or None
+    current_ir_path = _resolve_workflow_ir_path(workflow_ir)
     if not workflow_id:
         raise ValueError("workflow_id is required to register openjiuwen workflow")
 
-    _remove_workflow_if_exists(workflow_id, tag)
+    existing = await _get_workflow_if_exists(workflow_id, tag)
+    if existing is not None:
+        if _workflow_matches_ir_path(existing, current_ir_path):
+            _reset_workflow_components(existing)
+            return existing
+        _remove_workflow_if_exists(workflow_id, tag)
 
     from jiuwen.serve.controllers.execution.ir_converter import IRConverter
 
     workflow = await IRConverter.ir_to_workflow(workflow_ir)
-    _attach_workflow_ir_path(workflow, _resolve_workflow_ir_path(workflow_ir))
+    Runner.resource_mgr.remove_workflow(
+        workflow_id=workflow.card.id, tag=workflow.card.id
+    )
+    _attach_workflow_ir_path(workflow, current_ir_path)
 
     result = Runner.resource_mgr.add_workflow(
         card=workflow.card,
@@ -56,6 +66,42 @@ def _resolve_workflow_ir_path(workflow_ir: dict) -> str:
     if not isinstance(workflow_ir, dict):
         return ""
     return str(workflow_ir.get("ir_path") or workflow_ir.get("irPath") or "")
+
+
+def _reset_workflow_components(workflow: Any) -> None:
+    """Reset mutable per-request state on cached workflow components.
+
+    The workflow instance is cached by ``ensure_openjiuwen_workflow_registered``
+    and reused across requests. Components like the End node use an
+    ``_executed`` flag for intra-request idempotency; without resetting it
+    before reuse, the second request's End ``transform`` is skipped, yielding
+    zero chunks and an empty answer.
+    """
+    try:
+        from jiuwen.extension.workflow_node.end import End
+
+        for comp in _iter_workflow_components(workflow):
+            if isinstance(comp, End):
+                comp.reset_execution_state()
+    except Exception as e:
+        workflow_logger.warning("Failed to reset workflow components: %s", e, exc_info=True)
+
+
+def _iter_workflow_components(workflow: Any):
+    """Best-effort iterator over component instances inside a workflow."""
+    bpmn = getattr(workflow, "_bpmn_workflow_instance", None)
+    if bpmn is None:
+        return
+    graph = getattr(bpmn, "graph", None)
+    if graph is None:
+        return
+    nodes = getattr(graph, "nodes", None)
+    if not nodes:
+        return
+    for vertex in nodes.values():
+        executable = getattr(vertex, "_executable", None)
+        if executable is not None:
+            yield executable
 
 
 def _attach_workflow_ir_path(workflow: Any, ir_path: str) -> None:

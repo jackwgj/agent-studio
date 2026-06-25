@@ -217,6 +217,14 @@ class LLMChain(WorkflowComponent):
             await self._resolve_vision_urls(inputs_data)
             language_model_inputs = self._get_model_input(inputs=inputs_data)
 
+            # Multi-agent path: the sub-workflow LLM node's own ``memory.enable``
+            # is False, and the jiuwen ``Workflow._update_runtime_context``
+            # retrieval hook is bypassed (sub-workflows run via the agent-core
+            # engine). Retrieve memory here when the multi-agent-level switch
+            # ``enable_memory_retrieve`` is on, so the LLM can use long-term
+            # memory in controller mode just like in direct-workflow mode.
+            await self._inject_retrieved_memory(language_model_inputs, inputs_data)
+
             try:
                 # 获取用户配置的输出字段名，默认使用 "raw_output"
                 outputs_list = self._get_outputs_list_from_conf()
@@ -760,6 +768,72 @@ class LLMChain(WorkflowComponent):
             return str(ast.literal_eval(match.group(1)))
         except Exception:
             return match.group(1).strip("'\"")
+
+    async def _inject_retrieved_memory(
+        self, messages: list[dict], inputs: dict
+    ) -> None:
+        """Retrieve long-term memory for the multi-agent (controller) path.
+
+        In controller mode the sub-workflow LLM node runs with
+        ``memory.enable=False`` and the jiuwen retrieval hook is bypassed,
+        so ``_insert_memory_message`` does nothing. This helper re-enables
+        retrieval driven by the multi-agent-level ``enable_memory_retrieve``
+        switch: it reads ``memory_repo_id`` / ``userId`` from the session
+        global_state (populated from workflow_req_params), retrieves matching
+        memories, and inserts them before the current user message.
+
+        No-op when retrieval is disabled, params are missing, or no memory
+        is found — so direct-workflow mode (which pre-injects via
+        ``_insert_memory_message``) is unaffected.
+        """
+        try:
+            if not (self._session and hasattr(self._session, "get_global_state")):
+                return
+            emr = self._session.get_global_state("enable_memory_retrieve")
+            if not emr:
+                return
+            scope_id = self._session.get_global_state("memory_repo_id")
+            if not scope_id:
+                return
+            gv = self._session.get_global_state("global_variables") or {}
+            user_id = ""
+            if isinstance(gv, dict):
+                user_id = gv.get("userId", "") or ""
+                # Fallback: in multi-agent mode the top-level userId is often
+                # empty even though sys.userId carries the real user id.
+                if not user_id:
+                    sys_args = gv.get("sys") or {}
+                    if isinstance(sys_args, dict):
+                        user_id = sys_args.get("userId", "") or ""
+            if not user_id:
+                return
+            query = ""
+            if isinstance(inputs, dict):
+                query = str(inputs.get("query", "") or "")
+            if not query:
+                return
+
+            from agent_runtime.memory.memory_retrieval import retrieve_memory_prompt
+
+            memory_prompt = await retrieve_memory_prompt(
+                user_id=user_id, scope_id=scope_id, query=query
+            )
+            if not memory_prompt:
+                return
+            # Insert memory as a user message right before the last user message,
+            # mirroring _insert_memory_message placement.
+            insert_index = len(messages)
+            for idx in range(len(messages) - 1, -1, -1):
+                if messages[idx].get("role") == "user":
+                    insert_index = idx
+                    break
+            messages.insert(insert_index, {"role": "user", "content": memory_prompt})
+        except Exception as e:
+            workflow_logger.warning(
+                "Failed to inject retrieved memory in controller mode: %s",
+                e,
+                exc_info=True,
+            )
 
     def _validate_prompt_template(self, template: str) -> None:
         """

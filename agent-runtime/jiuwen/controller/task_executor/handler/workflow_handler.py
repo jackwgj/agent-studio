@@ -466,6 +466,12 @@ class WorkflowHandler(BaseHandler):
         workflow_req_params = task.input_data.get(
             WorkflowConstants.WORKFLOW_REQ_PARAMS_KEY
         )
+        # Fallback: if not in task.input_data, get from context_manager
+        # (controller_planner stores it as a global variable).
+        if not workflow_req_params:
+            workflow_req_params = self.context_manager.get_global_variables(
+                WorkflowConstants.WORKFLOW_REQ_PARAMS_KEY, {}
+            )
 
         # 处理非顺序执行的工作流
         if not self._has_workflow_sequence():

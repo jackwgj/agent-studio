@@ -1123,9 +1123,15 @@ class Workflow:
             isinstance(self._memory_proxy, MemoryProxy)
             and self._memory_proxy.enable_memory
         ):
-            if enable_memory_retrieve and user_id != "" and app_id != "":
+            # Use memory_repo_id from params (multi-agent override) or IR,
+            # not app_id, so that memory is retrieved from the correct repo.
+            memory_repo_id = params.get("memory_repo_id", "") or (
+                self._ir.get("configs", {}).get("memory", {}).get("memory_repo_id", "")
+            )
+            scope_id = memory_repo_id or app_id
+            if enable_memory_retrieve and user_id != "" and scope_id != "":
                 memory_message = await self._memory_proxy.get_related_memory_msg(
-                    user_id=user_id, scope_id=app_id, query=query
+                    user_id=user_id, scope_id=scope_id, query=query
                 )
                 if memory_message is not None:
                     self.runtime_context.set(MEMORY_MESSAGE, memory_message)

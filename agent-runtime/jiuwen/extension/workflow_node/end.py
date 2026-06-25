@@ -282,6 +282,17 @@ class End(BaseEnd):
         # 导致 stream()/invoke() 被多次调用。用此标志保证幂等。
         self._executed = False
 
+    def reset_execution_state(self) -> None:
+        """Reset the idempotent execution flag so the End node can be reused
+        across multiple requests when the workflow instance is cached by
+        ``ensure_openjiuwen_workflow_registered``.
+
+        Called before each request reuses a cached workflow to avoid the
+        ``_executed=True`` guard from skipping ``transform``/``stream``/
+        ``invoke``/``collect`` on the second and subsequent requests.
+        """
+        self._executed = False
+
     @staticmethod
     def _is_workflow_interrupted(session: Session) -> bool:
         """检查工作流是否处于中断状态，通过 workflow_state 中的 __interrupted 标志判断。"""

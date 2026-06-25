@@ -6,6 +6,8 @@
 import datetime
 from typing import AsyncGenerator, Union, Any
 
+from openjiuwen.core.common.logging import workflow_logger
+
 from jiuwen.context.history import ConversationMessage, ConversationHistory
 from jiuwen.controller.common.message import Message
 from jiuwen.controller.common.message_type import MessageType
@@ -56,6 +58,35 @@ _DEBUG_EVENT_RETURN_TO_SERVICE: dict[str, str] = {
     "jiuwen.paramExtraction": "jiuwen.paramExtraction",
     "FlowMcp": "jiuwen.mcp",
 }
+
+
+def _reset_cached_workflow_state(workflow: Any) -> None:
+    """Reset per-request mutable state on cached workflow components.
+
+    The workflow instance is cached by ``Runner.resource_mgr`` and reused
+    across requests. Components like the End node use an ``_executed`` flag
+    for intra-request idempotency; without resetting it before each reuse,
+    the second request's End ``transform`` is skipped (yield 0), producing
+    an empty answer.
+    """
+    try:
+        from jiuwen.extension.workflow_node.end import End
+
+        internal = getattr(workflow, "_internal", None)
+        if internal is None:
+            return
+        graph = getattr(internal, "_graph", None)
+        if graph is None:
+            return
+        nodes = getattr(graph, "nodes", None)
+        if not nodes:
+            return
+        for vertex in nodes.values():
+            executable = getattr(vertex, "_executable", None)
+            if isinstance(executable, End):
+                executable.reset_execution_state()
+    except Exception as e:
+        workflow_logger.warning("Failed to reset cached workflow state: %s", e, exc_info=True)
 
 
 class WorkflowWrapper:
@@ -161,6 +192,9 @@ class WorkflowWrapper:
         )
         if workflow is None:
             raise ValueError(f"Workflow not found: {workflow_id}")
+
+        # Reset per-request state on cached components (e.g. End _executed flag)
+        _reset_cached_workflow_state(workflow)
 
         if is_resuming:
             inputs = query
@@ -467,6 +501,7 @@ class WorkflowWrapper:
             "environment_variables",
             "mem_map",
             "enable_memory_retrieve",
+            "memory_repo_id",
         ]
         for key in runtime_keys:
             if key in params:

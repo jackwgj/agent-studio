@@ -78,6 +78,32 @@ class ControllerRunner:
             t_build_input = time.perf_counter()
             insight_client, runtime_context, tracer = await build_agent_input(req)
             performance_logger.info(f"build_agent_input|{round((time.perf_counter() - t_build_input) * 1000)}")
+
+            # Inject the multi-agent's memory_repo_id and user_id into the
+            # runtime_context's workflow_req_params so that sub-workflows use
+            # the multi-agent's memory repo (not the sub-workflow's own) for
+            # memory retrieval, and can resolve the user_id needed to query it.
+            # This ensures memory extraction and retrieval share the same repo.
+            controller_memory_repo_id = (
+                (ir_json.get("configs") or {}).get("memory") or {}
+            ).get("memory_repo_id", "")
+            if controller_memory_repo_id:
+                from jiuwen.controller.common.constants import WorkflowConstants
+                req_params = runtime_context.agent_workflow_context.get(
+                    WorkflowConstants.WORKFLOW_REQ_PARAMS_KEY, {}
+                )
+                req_params["memory_repo_id"] = controller_memory_repo_id
+                # Ensure user_id reaches sub-workflow global_variables; the
+                # multi-agent request's global_variables.userId is often empty
+                # even though req.user_id is set (e.g. "testUser").
+                if req.user_id:
+                    gv = dict(req_params.get("global_variables") or {})
+                    if not gv.get("userId"):
+                        gv["userId"] = req.user_id
+                    req_params["global_variables"] = gv
+                runtime_context.agent_workflow_context[
+                    WorkflowConstants.WORKFLOW_REQ_PARAMS_KEY
+                ] = req_params
         except Exception as e:
             workflow_logger.error(f"Failed to build agent input: {e}", exc_info=True)
             yield adapter.adapt_error(f"Failed to build runtime context: {e}", exec_id)

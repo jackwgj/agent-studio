@@ -70,10 +70,25 @@ class MemoryIrConfig(BaseModel):
             return cls()
         # parse user profile config from memory config
         enable_memory = memory_config.get(ENABLE_KEY, False)
+        # New IR structure: if memory_repo_id or strategies present, enable memory
+        # even when "enable" field is missing (new IR sets enable=true only for
+        # LLM node injection, not for the overall memory switch).
+        if not enable_memory:
+            memory_repo_id = memory_config.get("memory_repo_id", "")
+            strategies = memory_config.get("strategies") or []
+            if memory_repo_id or strategies:
+                enable_memory = True
         user_profile = memory_config.get(USER_PROFILE_KEY, DEFAULT_USER_PROFILE_CONFIG)
         enable_user_profile, user_profile_topics = cls._get_and_validate_user_profile(
             user_profile
         )
+        # For new IR structure without userProfile, enable user_profile when
+        # strategies contain user_profile type.
+        if not enable_user_profile:
+            strategies = memory_config.get("strategies") or []
+            strategy_types = {s.get("type") for s in strategies if isinstance(s, dict)}
+            if "user_profile" in strategy_types or strategy_types:
+                enable_user_profile = True
         return cls(
             enable_memory=enable_memory,
             enable_user_profile=enable_user_profile,

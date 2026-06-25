@@ -192,7 +192,10 @@ class WorkflowRunner:
         # 5.1 记忆检索：在工作流执行前检索相关记忆
         if not is_resuming:
             enable_memory_retrieve = inputs.get("enable_memory_retrieve", False)
-            memory_repo_id = (
+            # Prefer memory_repo_id from inputs (multi-agent injects its own
+            # repo id so sub-workflows use the multi-agent's memory repo),
+            # fall back to IR's configs.memory.memory_repo_id.
+            memory_repo_id = inputs.get("memory_repo_id", "") or (
                 (ir_json.get("configs") or {}).get("memory") or {}
             ).get("memory_repo_id", "")
             if enable_memory_retrieve and req.user_id and memory_repo_id:

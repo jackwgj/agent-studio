@@ -172,6 +172,10 @@ class LongTermMemoryDefaultIndex(BaseMemoryIndex):
         """写入记忆条目（6 字段文档，含正文与向量，原子写入 OpenSearch）。"""
         if not memories:
             return
+        # Filter out empty-text memories to avoid embedding errors
+        memories = [m for m in memories if m.text and m.text.strip()]
+        if not memories:
+            return
         texts = [m.text for m in memories]
         embeddings = await self._embed(texts)
         if embeddings:
