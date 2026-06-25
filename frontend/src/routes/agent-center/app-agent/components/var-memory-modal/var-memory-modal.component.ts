@@ -421,6 +421,12 @@ export class VarMemoryModalComponent implements OnInit {
   changeAppTab(tabData: MemoryVariableType) {
   }
 
+  onVariableMemoryTabChange(index: number) {
+    this.variableMemoryTabs.forEach((tab, i) => {
+      tab.active = i === index;
+    });
+  }
+
   // 当确认按钮失效时，按钮的提示信息告诉用户缺填的信息
   public disabledBtnContent() {
     return this.isDisabledConfirmBtn() ? this.i18n.transform("variable-memory-tip6") : "";

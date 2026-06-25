@@ -38,7 +38,7 @@
         </div>
       </ng-container>
       <ng-container *ngIf="actionType === 'VIEW'">
-        <nz-tabset style="margin-bottom: 12px">
+        <nz-tabset style="margin-bottom: 12px" [(nzSelectedIndex)]="variableMemoryTabIndex" (nzSelectedIndexChange)="onVariableMemoryTabChange($event)">
           <nz-tab
             *ngFor="let tab of visibleMemoryTabs; let i = index"
             [nzTitle]="tab.name"
@@ -295,7 +295,7 @@
   <form #memoryVariableInputParams="ngForm">
     <div *ngFor="let params of copyInputParams; index as index" style="margin-bottom: 16px">
       <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px">
-        <span>{{ params.key }}</span>
+        <span style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap" [nz-tooltip]="params.key">{{ params.key }}</span>
         <span
           *ngIf="params.description !== ''"
           class="anticon anticon-question-circle-o cursor-pointer text-[16px] text-[#191919]"
