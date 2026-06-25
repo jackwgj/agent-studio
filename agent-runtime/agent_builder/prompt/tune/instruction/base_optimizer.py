@@ -26,9 +26,9 @@ class OptimizeOutput(BaseModel):
     prompt: Optional[str] = None
     placeholder: Optional[Any] = None
     score: Optional[float] = None
-    error_cases: List = Field(default=[])
-    evaluations: List = Field(default=[])
-    examples: List = Field(default=[])
+    error_cases: Optional[List] = Field(default=[])
+    evaluations: Optional[List] = Field(default=[])
+    examples: Optional[List] = Field(default=[])
 
 
 class BasicOptimizer(ABC):

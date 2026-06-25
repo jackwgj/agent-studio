@@ -735,7 +735,8 @@ class JointOptimizer:
             logger.info(f"Joint optimize task-{task_info.task_id} stopped.")
             return
         except Exception as e:
-            logger.error(f"failed to do optimize by error: {e}")
+            import traceback
+            logger.error(f"failed to do optimize by error: {e}\n{traceback.format_exc()}")
             progress_info[TaskStatus.TASK_STATUS] = TaskStatus.TASK_FAILED
             progress_info["run_time"] = calc_run_time(progress_info["create_time"])
             check_point = (
@@ -752,9 +753,10 @@ class JointOptimizer:
                 if ContextManager().has_store():
                     try:
                         ContextManager().store_context(task_info.task_id, check_point)
-                    except Exception:
+                    except Exception as store_err:
+                        import traceback as tb
                         logger.error(
-                            "store context failed, please check storage service"
+                            f"store context failed: {store_err}\n{tb.format_exc()}"
                         )
                     ContextManager().delete(task_info.task_id)
                 else:
