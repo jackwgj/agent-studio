@@ -21,6 +21,14 @@ class ServerSettings(BaseSettings):
     # Uvicorn worker 数量。未设置时由 _get_workers() 回退到 CPU 核心数 + 1
     workers: Optional[int] = Field(default=None, validation_alias="GUNICORN_WORK_NUM")
 
+    @field_validator("workers", mode="before")
+    @classmethod
+    def _empty_str_to_none(cls, v):
+        """K8s YAML 中空字符串 value: '' 会导致 Pydantic 类型转换失败，需转为 None。"""
+        if v == "":
+            return None
+        return v
+
     @field_validator("workers")
     @classmethod
     def _validate_workers(cls, v: Optional[int]) -> Optional[int]:
