@@ -89,6 +89,7 @@ export class VarMemoryModalComponent implements OnInit {
   // 用户变量
   public oldCustomParamsName: Array<string> = [];
   isCanReset = true;
+  selectedTabIndex = 0;
   displayedData: any[] = [];
   srcData: any = {
     data: [],
@@ -275,10 +276,13 @@ export class VarMemoryModalComponent implements OnInit {
     this.customParams = [];
     this.inputParams = [];
     if (this.actionType === "VIEW") {
-      // 用户变量功能暂时不对外开放，VIEW 模式（预览调试查看记忆）不展示用户变量
       this.isShowUserVars = false;
+      this.variableMemoryTabs[0].active = false;
+      this.variableMemoryTabs[1].active = true;
+      this.selectedTabIndex = this.isShowUserVars ? 0 : 1;
       this.queryMemoryVarList();
     } else {
+      this.selectedTabIndex = 0;
       if (data?.length) {
         if (this.isShowUserVars) {
           this.setUserParamsData(data as Array<AgentVarInfo>);
@@ -421,6 +425,13 @@ export class VarMemoryModalComponent implements OnInit {
   changeAppTab(tabData: MemoryVariableType) {
   }
 
+  onVariableMemoryTabChange(index: number) {
+    this.selectedTabIndex = index;
+    this.variableMemoryTabs.forEach((tab, i) => {
+      tab.active = i === index;
+    });
+  }
+
   // 当确认按钮失效时，按钮的提示信息告诉用户缺填的信息
   public disabledBtnContent() {
     return this.isDisabledConfirmBtn() ? this.i18n.transform("variable-memory-tip6") : "";
@@ -546,6 +557,7 @@ export class VarMemoryModalComponent implements OnInit {
     this.varMemoryModal.close();
     this.variableMemoryTabs[0].active = true;
     this.variableMemoryTabs[1].active = false;
+    this.selectedTabIndex = 0;
   }
 
   // 关闭弹框前要判断用户输入的入参变量是否合法，不合法要回滚数据

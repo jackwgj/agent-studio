@@ -16,9 +16,9 @@
           class="common-tip-config"
           nz-tooltip
           [nzTooltipTitle]="modeSelectTip"
-          [nzTooltipTitleContext]="modeSelectTipText"
+          [nzTooltipTitleContext]="{ $implicit: modeSelectTipText }"
         />
-        <ng-template #modeSelectTip let-context="context">
+        <ng-template #modeSelectTip let-context>
           <div *ngFor="let item of context; index as i">
             <div style="font-weight: 600">{{ item.mode }}</div>
             <div>{{ item.desc }}</div>

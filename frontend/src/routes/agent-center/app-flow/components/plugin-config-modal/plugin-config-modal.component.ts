@@ -28,6 +28,7 @@ import { NzInputModule } from 'ng-zorro-antd/input';
 import { NzSpinModule } from 'ng-zorro-antd/spin';
 import { NzToolTipModule } from 'ng-zorro-antd/tooltip';
 import { FormsModule } from '@angular/forms';
+import { ParamLabelPipe } from 'src/pipes/param-label.pipe';
 
 @Component({
   selector: 'meta-plugin-config-modal',
@@ -39,6 +40,7 @@ import { FormsModule } from '@angular/forms';
     AccBlockComponent,
     NonEmptyValidatorDirective,
     RefSelectedRequireDirective,
+    ParamLabelPipe,
     NumberStrValidatorDirective,
     MonacoEditorModule,
     ParamTreeComponent,
@@ -154,10 +156,11 @@ export class PluginConfigModalComponent implements OnInit, OnDestroy {
   }
 
   private convertRefsForTreeSelect(refInfos: any[]): any[] {
-    return refInfos.map(group => ({
+    return refInfos.filter(group => !group.hidden).map(group => ({
       title: group._label || group.name,
       key: group.name,
       expanded: group.expanded ?? true,
+      disabled: true,
       children: (group.children || []).map(child => ({
         title: child.variable_key || child.name || child.label,
         key: child.variable_key || child.name || child.label,
@@ -348,6 +351,7 @@ export class PluginConfigModalComponent implements OnInit, OnDestroy {
     if (this.type === 'mcp') {
       return {
         name: '25%',
+        nameTitle: 'calc(25% + 24px)',
         description: '20%',
         required: '15%',
         default: '40%',
@@ -355,10 +359,11 @@ export class PluginConfigModalComponent implements OnInit, OnDestroy {
     }
     return {
       name: '20%',
+      nameTitle: 'calc(20% + 24px)',
       description: '15%',
       required: '10%',
       default: '40%',
-      visibility: '15%',
+      visibility: '50px',
     };
   }
 

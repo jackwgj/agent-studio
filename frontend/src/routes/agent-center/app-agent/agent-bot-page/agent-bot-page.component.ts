@@ -1110,7 +1110,8 @@ export class AgentBotPageComponent implements OnInit, OnDestroy {
       history_size: model_config?.history_size,
       max_tokens: model_config?.max_tokens,
       frequency_penalty: model_config?.frequency_penalty,
-      output_format: model_config?.output_format
+      output_format: model_config?.output_format,
+      enable_thinking: model_config?.enable_thinking
     };
 
     this.agentDataServe.setPromptAndModelConfig({

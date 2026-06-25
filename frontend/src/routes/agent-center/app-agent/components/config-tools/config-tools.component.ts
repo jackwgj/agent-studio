@@ -1062,7 +1062,8 @@ export class ConfigToolsComponent implements OnInit, AfterViewInit, OnDestroy {
         _label: this.i18n.transform("variable-memory-tip7"),
         expanded: true,
         children: [],
-        checked: "indeterminate"
+        checked: "indeterminate",
+        hidden: true
       },
       {
         name: this.i18n.transform("variable-memory-tip8"),
@@ -2249,8 +2250,11 @@ export class ConfigToolsComponent implements OnInit, AfterViewInit, OnDestroy {
         context: this.i18n.transform("addplugincomponent_12")
       }
     });
-    modalRef.afterClose.subscribe(() => {
-      this.flowComponent.addExtraWorkflow(info);
+    modalRef.afterClose.subscribe((result) => {
+      if (!result) return;
+      const item: any = { ...info, workflow_id: info.id };
+      this.flowAdded.list.push(item);
+      this.confirmSaveFlows = [...this.flowAdded.list];
       this.triggerSaveFlows(this.confirmSaveFlows, true, this.i18n.transform("addplugincomponent_10"));
     });
 
@@ -2359,10 +2363,8 @@ export class ConfigToolsComponent implements OnInit, AfterViewInit, OnDestroy {
       nzContent: AddPluginAuthComponent,
       nzViewContainerRef: this.viewContainerRef,
       nzWidth: this.halfModalWidth,
-      nzData: {
-        pluginInfo: e
-      }
     });
+    modalRef.componentInstance.pluginInfo = e;
     modalRef.afterClose.subscribe(() => {
       this.saveAgent.emit({});
     });
@@ -2509,7 +2511,8 @@ export class ConfigToolsComponent implements OnInit, AfterViewInit, OnDestroy {
             model_deployment_id: data.model_deployment_id,
             model_type: data.model_type,
             model_name: data.model_name,
-            service_name: data.service_name
+            service_name: data.service_name,
+            enable_thinking: data.model_config?.enable_thinking
           }
         });
       }

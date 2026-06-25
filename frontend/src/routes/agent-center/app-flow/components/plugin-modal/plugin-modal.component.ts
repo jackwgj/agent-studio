@@ -512,13 +512,12 @@ export class PluginModalComponent extends ModalBaseComponent implements OnInit {
       nzTitle: '',
       nzContent: AddPluginAuthComponent,
       nzClassName: 'createPluginAuth',
-      nzData: {
-        pluginInfo: this.pluginInfo,
-      },
       nzOnOk: () => {
         this.pluginInfo[mapKeys.credential_status] = PluginCredentialStatus.AUTHENTICATED;
       },
     });
+    const instance = modal.getContentComponent();
+    instance.pluginInfo = this.pluginInfo;
   }
 
   treeSelect() {

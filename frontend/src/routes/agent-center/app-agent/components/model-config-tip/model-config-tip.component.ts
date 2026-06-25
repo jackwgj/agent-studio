@@ -62,6 +62,22 @@ export class ModelConfigTipComponent implements OnInit, OnDestroy {
     if (!this.modelConfigTipService.isShowAdvancedConfig) {
 
     }
+    const mode = this.modelConfigTipService.useModelMode;
+    const latestModelConfig = this.agentDataServe.getPromptAndModelConfig() || this.modelConfig;
+    const currentModelId = mode === 'plan' ? latestModelConfig?.plan_model_deployment_id : latestModelConfig?.model_deployment_id;
+    if (currentModelId) {
+      const found = this.availableModelList.find(
+        (item) => item.model_deployment_id === currentModelId,
+      );
+      if (mode === 'plan') {
+        this.planModelSelected = currentModelId;
+        this.planModelSelectedObj = found;
+      } else {
+        this.modelSelected = currentModelId;
+        this.modelSelectedInfo = found;
+      }
+    }
+    this.cdr.markForCheck();
   }
 
   public availableModelList = [];
