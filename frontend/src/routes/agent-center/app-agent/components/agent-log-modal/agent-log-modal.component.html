@@ -80,11 +80,12 @@
                 <nz-option
                   [nzValue]="item.execution_id"
                   [nzLabel]="item.query"
+                  [nzTitle]="''"
                   nzCustomContent
                 >
                   <span class="flex justify-between">
-                    <span class="text-overflow w-[calc(100%-70px)]">{{ item?.query }}</span>
-                    <span class="flex gap-[8px] text-[#808080]">
+                    <span class="text-overflow w-[calc(100%-70px)]" nz-tooltip [nzTooltipTitle]="item?.query">{{ item?.query }}</span>
+                    <span class="flex gap-[8px] text-[#808080]" style="align-items: center">
                       <span>{{ formatToExecTime(item.start_time) }}</span>
                       <asset-success-icon
                         *ngIf="item.status === 'succeed' || item.status === 'succeeded'"
@@ -98,7 +99,7 @@
               }
             </nz-select>
             <ng-template #execSelectedTemplate let-selected>
-              <span class="text-overflow">{{ selected.nzLabel }}</span>
+              <span class="text-overflow" nz-tooltip [nzTooltipTitle]="selected.nzLabel">{{ selected.nzLabel }}</span>
             </ng-template>
             <div class="w-full" #inputErrWrapper></div>
           </div>

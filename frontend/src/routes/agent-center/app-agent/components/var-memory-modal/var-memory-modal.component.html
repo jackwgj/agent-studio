@@ -38,7 +38,7 @@
         </div>
       </ng-container>
       <ng-container *ngIf="actionType === 'VIEW'">
-        <nz-tabset style="margin-bottom: 12px" [(nzSelectedIndex)]="variableMemoryTabIndex" (nzSelectedIndexChange)="onVariableMemoryTabChange($event)">
+        <nz-tabset style="margin-bottom: 12px">
           <nz-tab
             *ngFor="let tab of visibleMemoryTabs; let i = index"
             [nzTitle]="tab.name"

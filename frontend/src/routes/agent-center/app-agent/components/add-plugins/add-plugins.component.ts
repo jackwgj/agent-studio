@@ -71,10 +71,8 @@ export class AuthConfigComponent {
       nzFooter: null,
       nzContent: AddPluginAuthComponent,
       nzWidth: 700,
-      nzData: {
-        pluginInfo: this.data
-      }
     });
+    modalRef.componentInstance.pluginInfo = this.data;
     modalRef.afterClose.subscribe(() => {
       this.confirm.emit(true);
     });

@@ -355,6 +355,10 @@ export class AgentDataService {
     return this.promptAndModelConfig$.asObservable();
   }
 
+  public getPromptAndModelConfig(): any {
+    return this.promptAndModelConfig$.getValue()?.modelConfig;
+  }
+
   /** 用于保存模型 */
   public setAgentConfig(data: {
     name?: string;

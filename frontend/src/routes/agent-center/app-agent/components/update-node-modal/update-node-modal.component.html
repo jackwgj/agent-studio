@@ -1,12 +1,12 @@
 <div *nzModalTitle>
   <div class="title-box">
-    <img alt="" [src]=" changeUrl('assets/agent-observatory/success.svg')"/> {{title}}
+    <img alt="" [src]=" changeUrl('assets/agent-observatory/success.svg')"/> {{nzModalData?.title}}
   </div>
 
 </div>
 
 <div>
-  <span class="context">{{context}}</span>
+  <span class="context">{{nzModalData?.context}}</span>
 </div>
 
 <div *nzModalFooter>
