@@ -1353,7 +1353,8 @@ public class AgentRuntimeService implements IAgentRuntimeService {
         if (!trieUtils.isOutputMatchEnabled()) {
             return null;
         }
-        String text = isFinished ? "" : eventObj.getData().getAnswer().toString();
+        Object answer = eventObj.getData().getAnswer();
+        String text = isFinished || answer == null ? "" : answer.toString();
         SensitiveTrieUtils.MatchResultWrapper resultWrapper = trieUtils.handleOutputSensitiveMatch(text, "agent",
                 isFinished);
 
@@ -1659,7 +1660,6 @@ public class AgentRuntimeService implements IAgentRuntimeService {
     // 会话总结
     private void processOnSummaryResponse(SseEmitter sseEmitter, JiuwenAgentEvent eventObj,
                                           AgentExecuteParams executeParams) {
-        final boolean isMessageMatching = executeParams.getTrieUtils().isMatchingWithId("agent");
         processOnSensitiveMessage(executeParams, sseEmitter, eventObj, true);
         JiuwenAgentEventData eventData = eventObj.getData();
         Message message = parseEventDataAnswer(eventData.getAnswer(), Message.class);
@@ -1688,8 +1688,8 @@ public class AgentRuntimeService implements IAgentRuntimeService {
 
         String answer = message.getContent();
         log.info("Final total answer is: [{}]", answer);
-        // 没有流式消息，则对 summary_response 做全量匹配
-        if (!isMessageMatching && executeParams.getTrieUtils().isOutputMatchEnabled()) {
+        // 对 summary_response 做全量匹配，作为流式匹配的兜底
+        if (executeParams.getTrieUtils().isOutputMatchEnabled()) {
             log.info("[Sensitive]: start to match agent summary response");
             answer = executeParams.getTrieUtils().handleSensitiveMatch(answer, false).getRight();
         }
