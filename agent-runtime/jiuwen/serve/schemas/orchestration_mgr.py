@@ -124,7 +124,7 @@ class ToolCallSchema(BaseModel):
 
     type: Optional[str] = Field(default="")
     id: Optional[str] = Field(default="")
-    function: Optional[Dict[str, str]] = Field(default_factory=dict)
+    function: Optional[Dict[str, Any]] = Field(default_factory=dict)
 
 
 class ConversationHistoryMessage(BaseModel):
