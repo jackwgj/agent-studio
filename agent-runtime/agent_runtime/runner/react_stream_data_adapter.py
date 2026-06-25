@@ -183,6 +183,9 @@ class ReactStreamDataAdapter:
         payload = getattr(output, "payload", {}) or {}
         output_text = payload.get("output", "") or ""
 
+        if payload.get("result_type", "") == "error":
+            return [self.adapt_error(error_msg=output_text, error_code=103004)]
+
         if output_text:
             self._final_output = output_text
 

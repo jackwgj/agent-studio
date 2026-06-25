@@ -412,37 +412,9 @@ class ReActAgentRunner:
         if not skill_dir and not skill_info_list:
             return
 
-        from openjiuwen.core.sys_operation import SysOperationCard, SysOperation, OperationMode
-        from openjiuwen.core.sys_operation.config import LocalWorkConfig
-        from openjiuwen.core.sys_operation.tool_adapter import SysOperationToolAdapter
-        from openjiuwen.core.runner import Runner
-
         actual_work_dir = skill_work_dir or (os.path.join(os.getcwd(), skill_dir) if skill_dir else "")
 
-        sys_op_card = SysOperationCard(
-            id=agent_id,
-            mode=OperationMode.LOCAL,
-            work_config=LocalWorkConfig(work_dir=actual_work_dir)
-        )
-
-        tools = SysOperationToolAdapter.extract_tools(sys_op_card, SysOperation(sys_op_card))
-        try:
-            Runner.resource_mgr.add_sys_operation(sys_op_card)
-        except Exception as e:
-            if "already exist" not in str(e).lower():
-                workflow_logger.warning(f"Failed to register SysOperationCard: {e}")
-
-        agent._config.sys_operation_id = agent_id
         agent.lazy_init_skill()
-
-        skill_tool_names = {"read_file", "execute_code", "execute_shell"}
-        for _, local_func in tools:
-            tool_name = getattr(getattr(local_func, "card", None), "name", None)
-            if tool_name in skill_tool_names:
-                try:
-                    agent.ability_manager.add(local_func.card)
-                except Exception:
-                    pass
 
         if agent._skill_util and skill_info_list and actual_work_dir:
             for skill in skill_info_list:

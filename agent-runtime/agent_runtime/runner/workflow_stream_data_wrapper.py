@@ -340,6 +340,12 @@ class WorkflowStreamDataWrapper:
             ):
                 events = [trace_event]
                 for cached_chunk in self._interrupt_trace_cache:
+                    # 补充结束时间
+                    if cached_chunk.payload and not cached_chunk.payload.get("endTime"):
+                        data = trace_event.get("data", {})
+                        cached_chunk.payload["endTime"] = (
+                            data.get("endTime", self._serialize_datetime(datetime.datetime.now())))
+
                     cached_event = self._convert_trace_schema_to_stream_data(
                         cached_chunk
                     )
@@ -968,6 +974,9 @@ class WorkflowStreamDataWrapper:
             "memory": memory,
             "parentNodeId": parent_node_id if not payload.get("loopNodeId") else None,
         }
+
+        if (data["startTime"] and data["endTime"]) and (data["startTime"] > data["endTime"]):
+            data["endTime"] = self._serialize_datetime(datetime.datetime.now())
 
         if data["outputs"] == "":
             data["outputs"] = None
