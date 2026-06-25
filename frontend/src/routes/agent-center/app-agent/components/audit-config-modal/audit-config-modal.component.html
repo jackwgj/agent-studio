@@ -31,15 +31,17 @@
         <form [formGroup]="groupFormControl" class="flex flex-col">
           <nz-form-item class="mb-0">
             <nz-form-control [nzValidateStatus]="groupFormControl.get('filter')" [nzErrorTip]="filterErrorTpl">
-              <textarea
-                nz-input
-                nzType="textarea"
-                [nzAutosize]="{ minRows: 6, maxRows: 12 }"
-                maxlength="1000"
-                formControlName="filter"
-                class="w-full"
-                [placeholder]="'content_review_keyword_input_placeholder' | i18nextEager"
-              ></textarea>
+              <nz-textarea-count [nzMaxCharacterCount]="1000">
+                <textarea
+                  nz-input
+                  nzType="textarea"
+                  [nzAutosize]="{ minRows: 6, maxRows: 12 }"
+                  maxlength="1000"
+                  formControlName="filter"
+                  class="w-full"
+                  [placeholder]="'content_review_keyword_input_placeholder' | i18nextEager"
+                ></textarea>
+              </nz-textarea-count>
             </nz-form-control>
             <ng-template #filterErrorTpl let-control>
               @if (control.hasError('serviceName')) {
@@ -92,16 +94,18 @@
           @for (item of getFormArray('replace').controls; track item; let i = $index) {
             <div class="mb-[10px] flex w-full items-start gap-[8px]">
               <div class="flex-1">
-                <textarea
-                  nz-input
-                  nzType="textarea"
-                  [nzAutosize]="{ minRows: 3, maxRows: 6 }"
-                  maxlength="1000"
-                  class="!w-full"
-                  [class.!border-[#ff4d4f]]="getFormControl(item, 'keywords')?.invalid && getFormControl(item, 'keywords')?.touched"
-                  [placeholder]="'content_review_keyword_input_placeholder' | i18nextEager"
-                  [formControl]="getFormControl(item, 'keywords')"
-                ></textarea>
+                <nz-textarea-count [nzMaxCharacterCount]="1000">
+                  <textarea
+                    nz-input
+                    nzType="textarea"
+                    [nzAutosize]="{ minRows: 3, maxRows: 6 }"
+                    maxlength="1000"
+                    class="!w-full"
+                    [class.!border-[#ff4d4f]]="getFormControl(item, 'keywords')?.invalid && getFormControl(item, 'keywords')?.touched"
+                    [placeholder]="'content_review_keyword_input_placeholder' | i18nextEager"
+                    [formControl]="getFormControl(item, 'keywords')"
+                  ></textarea>
+                </nz-textarea-count>
                 @if (getFormControl(item, 'keywords')?.invalid && getFormControl(item, 'keywords')?.touched) {
                   <div class="text-[#ff4d4f] text-[12px] mt-[4px]">
                     @if (getFormControl(item, 'keywords')?.hasError('required')) {
@@ -114,16 +118,18 @@
                 }
               </div>
               <div class="flex-1">
-                <textarea
-                  nz-input
-                  nzType="textarea"
-                  [nzAutosize]="{ minRows: 3, maxRows: 6 }"
-                  maxlength="1000"
-                  class="!w-full"
-                  [class.!border-[#ff4d4f]]="getFormControl(item, 'replaceWords')?.invalid && getFormControl(item, 'replaceWords')?.touched"
-                  [placeholder]="'content_review_replace_input_placeholder' | i18nextEager"
-                  [formControl]="getFormControl(item, 'replaceWords')"
-                ></textarea>
+                <nz-textarea-count [nzMaxCharacterCount]="1000">
+                  <textarea
+                    nz-input
+                    nzType="textarea"
+                    [nzAutosize]="{ minRows: 3, maxRows: 6 }"
+                    maxlength="1000"
+                    class="!w-full"
+                    [class.!border-[#ff4d4f]]="getFormControl(item, 'replaceWords')?.invalid && getFormControl(item, 'replaceWords')?.touched"
+                    [placeholder]="'content_review_replace_input_placeholder' | i18nextEager"
+                    [formControl]="getFormControl(item, 'replaceWords')"
+                  ></textarea>
+                </nz-textarea-count>
                 @if (getFormControl(item, 'replaceWords')?.invalid && getFormControl(item, 'replaceWords')?.touched) {
                   <div class="text-[#ff4d4f] text-[12px] mt-[4px]">
                     @if (getFormControl(item, 'replaceWords')?.hasError('required')) {
@@ -187,16 +193,18 @@
           @for (item of getFormArray('handling').controls; track item; let i = $index) {
             <div class="mb-[10px] flex w-full items-start gap-[8px]">
               <div class="flex-1">
-                <textarea
-                  nz-input
-                  nzType="textarea"
-                  [nzAutosize]="{ minRows: 3, maxRows: 6 }"
-                  maxlength="1000"
-                  class="!w-full"
-                  [class.!border-[#ff4d4f]]="getFormControl(item, 'keywords')?.invalid && getFormControl(item, 'keywords')?.touched"
-                  [placeholder]="'content_review_keyword_input_placeholder' | i18nextEager"
-                  [formControl]="getFormControl(item, 'keywords')"
-                ></textarea>
+                <nz-textarea-count [nzMaxCharacterCount]="1000">
+                  <textarea
+                    nz-input
+                    nzType="textarea"
+                    [nzAutosize]="{ minRows: 3, maxRows: 6 }"
+                    maxlength="1000"
+                    class="!w-full"
+                    [class.!border-[#ff4d4f]]="getFormControl(item, 'keywords')?.invalid && getFormControl(item, 'keywords')?.touched"
+                    [placeholder]="'content_review_keyword_input_placeholder' | i18nextEager"
+                    [formControl]="getFormControl(item, 'keywords')"
+                  ></textarea>
+                </nz-textarea-count>
                 @if (getFormControl(item, 'keywords')?.invalid && getFormControl(item, 'keywords')?.touched) {
                   <div class="text-[#ff4d4f] text-[12px] mt-[4px]">
                     @if (getFormControl(item, 'keywords')?.hasError('required')) {
@@ -217,16 +225,18 @@
                   ></label>
                 </div>
                 <div class="flex-1">
-                  <textarea
-                    nz-input
-                    nzType="textarea"
-                    [nzAutosize]="{ minRows: 3, maxRows: 6 }"
-                    maxlength="1000"
-                    class="!w-full"
-                    [class.!border-[#ff4d4f]]="getFormControl(item, 'input')?.invalid && getFormControl(item, 'input')?.touched"
-                    [placeholder]="'content_review_input_input_placeholder' | i18nextEager"
-                    [formControl]="getFormControl(item, 'input')"
-                  ></textarea>
+                  <nz-textarea-count [nzMaxCharacterCount]="1000">
+                    <textarea
+                      nz-input
+                      nzType="textarea"
+                      [nzAutosize]="{ minRows: 3, maxRows: 6 }"
+                      maxlength="1000"
+                      class="!w-full"
+                      [class.!border-[#ff4d4f]]="getFormControl(item, 'input')?.invalid && getFormControl(item, 'input')?.touched"
+                      [placeholder]="'content_review_input_input_placeholder' | i18nextEager"
+                      [formControl]="getFormControl(item, 'input')"
+                    ></textarea>
+                  </nz-textarea-count>
                   @if (getFormControl(item, 'input')?.invalid && getFormControl(item, 'input')?.touched) {
                     <div class="text-[#ff4d4f] text-[12px] mt-[4px]">
                       @if (getFormControl(item, 'input')?.hasError('empty')) {
@@ -245,16 +255,18 @@
                   ></label>
                 </div>
                 <div class="flex-1">
-                  <textarea
-                    nz-input
-                    nzType="textarea"
-                    [nzAutosize]="{ minRows: 3, maxRows: 6 }"
-                    maxlength="1000"
-                    class="!w-full"
-                    [class.!border-[#ff4d4f]]="getFormControl(item, 'output')?.invalid && getFormControl(item, 'output')?.touched"
-                    [placeholder]="'content_review_output_input_placeholder' | i18nextEager"
-                    [formControl]="getFormControl(item, 'output')"
-                  ></textarea>
+                  <nz-textarea-count [nzMaxCharacterCount]="1000">
+                    <textarea
+                      nz-input
+                      nzType="textarea"
+                      [nzAutosize]="{ minRows: 3, maxRows: 6 }"
+                      maxlength="1000"
+                      class="!w-full"
+                      [class.!border-[#ff4d4f]]="getFormControl(item, 'output')?.invalid && getFormControl(item, 'output')?.touched"
+                      [placeholder]="'content_review_output_input_placeholder' | i18nextEager"
+                      [formControl]="getFormControl(item, 'output')"
+                    ></textarea>
+                  </nz-textarea-count>
                   @if (getFormControl(item, 'output')?.invalid && getFormControl(item, 'output')?.touched) {
                     <div class="text-[#ff4d4f] text-[12px] mt-[4px]">
                       @if (getFormControl(item, 'output')?.hasError('empty')) {
