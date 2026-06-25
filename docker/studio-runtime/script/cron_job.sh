@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SCRIPT_PATH=$(readlink -f "$0")
+SCRIPT_PATH=$(readlink -f "${BASH_SOURCE[0]}")
 SCRIPT_DIR=$(dirname "$SCRIPT_PATH")
 SCRIPT_NAME=$(basename "${BASH_SOURCE[0]}")
 FUNCTION_NAME_BACKUP_COMMON_LOG=backup_common_log
@@ -23,6 +23,8 @@ function start_cron_job() {
     if [[ "${BACKUP_COMMON_LOG:-true}" == "true" ]]; then
       echo "BACKUP_COMMON_LOG_PERIOD_HOUR=${BACKUP_COMMON_LOG_PERIOD_HOUR}" > /tmp/cron_jobs
       echo "BACKUP_COMMON_LOG_BACKUP_NUM=${BACKUP_COMMON_LOG_BACKUP_NUM}" >> /tmp/cron_jobs
+      echo "BACKUP_COMMON_LOG_DIR=${BACKUP_COMMON_LOG_DIR}" >> /tmp/cron_jobs
+      echo "BACKUP_COMMON_LOG_FILE=${BACKUP_COMMON_LOG_FILE}" >> /tmp/cron_jobs
       echo "0 */${PERIOD_HOUR} * * * bash -c 'cd ${SCRIPT_DIR} && source ${SCRIPT_DIR}/${SCRIPT_NAME} && ${FUNCTION_NAME_BACKUP_COMMON_LOG}'" >> /tmp/cron_jobs
     fi
     crontab /tmp/cron_jobs
@@ -36,8 +38,8 @@ function backup_common_log() {
 }
 
 function backup_server_log() {
-    BACKUP_PATH="/opt/cloud/logs/common_log_backup"
-    COMMON_LOG_FILE="/opt/cloud/logs/common.log"
+    BACKUP_PATH=${BACKUP_COMMON_LOG_DIR:-"/opt/cloud/logs/common_log_backup"}
+    COMMON_LOG_FILE=${BACKUP_COMMON_LOG_FILE:-"/opt/cloud/logs/common.log"}
     BACKUP_NUM=${BACKUP_COMMON_LOG_BACKUP_NUM:-10}
 
     # 仅判断是否为空，行里的函数无法获取文件信息

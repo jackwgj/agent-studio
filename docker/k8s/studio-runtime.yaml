@@ -150,6 +150,12 @@ spec:
               value: '/opt/cloud/logs/'
             - name: TGF_LOG_DIR
               value: '/opt/cloud/logs/'
+            # 日志转存目录，默认 /opt/cloud/logs/common_log_backup
+            - name: BACKUP_COMMON_LOG_DIR
+              value: ''
+            # 源日志文件路径，默认 /opt/cloud/logs/common.log
+            - name: BACKUP_COMMON_LOG_FILE
+              value: ''
             # ======== [选填] 提示词优化任务持久化存储（不填则仅存内存） ========
             # 数据库类型：mysql 或 gaussdb，默认mysql
             - name: STORE_DB_TYPE
