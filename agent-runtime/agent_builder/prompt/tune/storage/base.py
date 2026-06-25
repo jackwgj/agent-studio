@@ -24,13 +24,6 @@ class BaseContextStoreAccesser(ABC):
         """
 
     @abstractmethod
-    def load_context_ids(self) -> List[str]:
-        """load context ids from store
-        Returns:
-            optimizer context
-        """
-
-    @abstractmethod
     def store_context(self, ctx_id: str, context: Dict[str, Any]):
         """save context to store
         Args:

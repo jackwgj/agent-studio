@@ -319,6 +319,20 @@ class CodeExecutionSettings(BaseSettings):
         env_file=".env", env_file_encoding="utf-8", extra="ignore"
     )
 
+class DataBaseSettings(BaseSettings):
+    db_type: Literal["mysql", "gaussdb"] = Field(
+        default="mysql", validation_alias="STORE_DB_TYPE"
+    )
+    host: str = Field(default="", validation_alias="STORE_DB_HOST")
+    port: str = Field(default="", validation_alias="STORE_DB_PORT")
+    user: str = Field(default="", validation_alias="STORE_DB_USER")
+    password: str = Field(default="", validation_alias="STORE_DB_PASSWORD")
+    database: str = Field(default="", validation_alias="STORE_DB_DATABASE")
+    sslmode: str = Field(default="disable", validation_alias="STORE_DB_SSLMODE")
+    model_config = SettingsConfigDict(
+        env_file=".env", env_file_encoding="utf-8", extra="ignore"
+    )
+
 
 class Settings:
     server = ServerSettings()
@@ -335,6 +349,6 @@ class Settings:
     checkpointer = CheckpointerSettings()
     otel = OtelSettings()
     code_execution = CodeExecutionSettings()
-
+    db_config = DataBaseSettings()
 
 settings = Settings()

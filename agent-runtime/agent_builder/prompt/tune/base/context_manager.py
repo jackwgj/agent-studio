@@ -24,7 +24,7 @@ from agent_builder.prompt.tune.base.utils import (
     calc_run_time,
 )
 from agent_builder.prompt.tune.storage.base import BaseContextStoreAccesser
-from agent_builder.prompt.tune.storage.mysql_accesser import ContextMysqlAccesser
+from agent_builder.prompt.tune.storage.db_accesser import DbContextAccesser
 from cacheout import Cache
 from agent_builder.adapter.exception_bridge import JiuWenBaseException
 from agent_builder.adapter.singleton import Singleton
@@ -141,26 +141,55 @@ class ContextManager(metaclass=Singleton):
         """initialize store database tables"""
         if self._store and hasattr(self._store, 'init_db'):
             self._store.init_db()
+        if self._store and hasattr(self._store, 'fix_stale_tasks'):
+            self._store.fix_stale_tasks()
 
     def set_store(
         self, store_instance: BaseContextStoreAccesser = None, store_type: str = None
     ):
-        """set store service for ContextManager"""
+        """set store service for ContextManager.
+
+        If called without arguments, auto-detects store type from db_config.
+        If no database is configured, silently returns without error.
+        """
         with self._lock:
             if self._store:
-                logger.warning("store is already set.")
+                logger.debug("store is already set.")
                 return
             try:
                 if store_instance:
                     self._store = store_instance
-                    return
-                if store_type == TuneConstant.MYSQL_STORAGE:
-                    self._store = ContextMysqlAccesser()
-                    return
-                logger.error(f"Unknown store type: {store_type}")
+                elif store_type is None:
+                    store_type = self._resolve_store_type()
+                    if store_type is None:
+                        logger.info("No database configured, prompt optimization persistence disabled.")
+                        return
+                    self._store = self._create_accesser(store_type)
+                else:
+                    self._store = self._create_accesser(store_type)
+
+                if self._store:
+                    self.init_store()
             except Exception as e:
-                logger.error(f"Failed to set store type: {store_type}: {e}")
                 self._store = None
+                raise
+
+    @staticmethod
+    def _resolve_store_type() -> str:
+        """Auto-detect store type from settings.db_config."""
+        from agent_runtime.common.config import settings
+
+        db = settings.db_config
+        if not db.host:
+            return None
+        return db.db_type.upper()
+
+    @staticmethod
+    def _create_accesser(store_type: str) -> BaseContextStoreAccesser:
+        """Create the appropriate store accesser based on store_type."""
+        if store_type in (TuneConstant.MYSQL_STORAGE, TuneConstant.GAUSSDB_STORAGE):
+            return DbContextAccesser()
+        raise ValueError(f"Unknown store type: {store_type}")
 
     def load_context(
         self, ctx_id: str, convert_func: Callable = None, mode: str = JNT_MODE

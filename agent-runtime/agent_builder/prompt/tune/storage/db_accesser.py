@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 # Copyright (c) Huawei Technologies Co., Ltd. 2024-2024. All rights reserved.
 """
 agent builder chain Template optimizer
@@ -9,7 +9,7 @@ from typing import List, Dict, Any
 
 from agent_builder.common.exception.status_code import StatusCode
 from agent_builder.common.logging.base import logger
-from agent_builder.common.store.mysql import MysqlUtil, MysqlTable
+from agent_builder.common.store.db import DBUtil, DBTable
 from agent_builder.prompt.mmapo.utils import ApoParams, JNT_MODE
 from agent_builder.prompt.tune.base.case import Case
 from agent_builder.prompt.tune.base.context import History
@@ -19,13 +19,15 @@ from agent_builder.prompt.tune.base.utils import (
     JointParams,
     placeholder_to_dict,
 )
+from agent_builder.common.status import TaskStatus
+from agent_builder.common.store.dialect import GaussDBDialect
 from agent_builder.prompt.tune.storage.base import BaseContextStoreAccesser
 from agent_builder.adapter.exception_bridge import JiuWenBaseException
 from agent_builder.adapter.json_utils import safe_json_loads_raise_exception
 
 
-class MysqlConstant:
-    """constant of Mysql"""
+class DBConstant:
+    """database constants"""
 
     """ table name"""
     JOB_INFO_TABLE = "job_info"
@@ -35,102 +37,102 @@ class MysqlConstant:
     CASES_TABLE = "cases"
 
     """ table column fields """
-    JOB_INFO_COLUMNS: List[MysqlTable.Field] = [
-        MysqlTable.Field(name="id", type="VARCHAR(256)"),
-        MysqlTable.Field(name="name", type="VARCHAR(256)"),
-        MysqlTable.Field(name="desc", type="VARCHAR(256)"),
-        MysqlTable.Field(name="num_iter", type="INT"),
-        MysqlTable.Field(name="created_at", type="TEXT"),
-        MysqlTable.Field(name="optimized_model_name", type="VARCHAR(128)"),
-        MysqlTable.Field(name="optimized_model_source", type="VARCHAR(128)"),
-        MysqlTable.Field(name="optimized_model_url", type="VARCHAR(128)"),
-        MysqlTable.Field(name="optimized_model_token", type="VARCHAR(128)"),
-        MysqlTable.Field(name="assistant_model_name", type="VARCHAR(128)"),
-        MysqlTable.Field(name="assistant_model_source", type="VARCHAR(128)"),
-        MysqlTable.Field(name="assistant_model_url", type="VARCHAR(128)"),
-        MysqlTable.Field(name="assistant_model_token", type="VARCHAR(128)"),
+    JOB_INFO_COLUMNS: List[DBTable.Field] = [
+        DBTable.Field(name="id", type="VARCHAR(256)"),
+        DBTable.Field(name="name", type="VARCHAR(256)"),
+        DBTable.Field(name="desc", type="VARCHAR(256)"),
+        DBTable.Field(name="num_iter", type="INT"),
+        DBTable.Field(name="created_at", type="TEXT"),
+        DBTable.Field(name="optimized_model_name", type="VARCHAR(128)"),
+        DBTable.Field(name="optimized_model_source", type="VARCHAR(128)"),
+        DBTable.Field(name="optimized_model_url", type="VARCHAR(128)"),
+        DBTable.Field(name="optimized_model_token", type="VARCHAR(128)"),
+        DBTable.Field(name="assistant_model_name", type="VARCHAR(128)"),
+        DBTable.Field(name="assistant_model_source", type="VARCHAR(128)"),
+        DBTable.Field(name="assistant_model_url", type="VARCHAR(128)"),
+        DBTable.Field(name="assistant_model_token", type="VARCHAR(128)"),
     ]
 
-    OPTIMIZE_INFO_COLUMNS: List[MysqlTable.Field] = [
-        MysqlTable.Field(name="id", type="VARCHAR(256)"),
-        MysqlTable.Field(name="num_iter", type="INT"),
-        MysqlTable.Field(name="llm_parallel", type="INT"),
-        MysqlTable.Field(name="example_num", type="INT"),
-        MysqlTable.Field(name="cot_example_num", type="INT"),
-        MysqlTable.Field(name="optimize_method", type="VARCHAR(128)"),
-        MysqlTable.Field(name="base_prompt", type="TEXT"),
-        MysqlTable.Field(name="placeholders", type="TEXT"),
-        MysqlTable.Field(name="evaluation_method", type="VARCHAR(128)"),
-        MysqlTable.Field(name="tools", type="TEXT"),
-        MysqlTable.Field(name="extra_data", type="TEXT"),
+    OPTIMIZE_INFO_COLUMNS: List[DBTable.Field] = [
+        DBTable.Field(name="id", type="VARCHAR(256)"),
+        DBTable.Field(name="num_iter", type="INT"),
+        DBTable.Field(name="llm_parallel", type="INT"),
+        DBTable.Field(name="example_num", type="INT"),
+        DBTable.Field(name="cot_example_num", type="INT"),
+        DBTable.Field(name="optimize_method", type="VARCHAR(128)"),
+        DBTable.Field(name="base_prompt", type="TEXT"),
+        DBTable.Field(name="placeholders", type="TEXT"),
+        DBTable.Field(name="evaluation_method", type="VARCHAR(128)"),
+        DBTable.Field(name="tools", type="TEXT"),
+        DBTable.Field(name="extra_data", type="TEXT"),
     ]
 
-    CASES_COLUMNS: List[MysqlTable.Field] = [
-        MysqlTable.Field(name="id", type="VARCHAR(256)"),
-        MysqlTable.Field(name="cases", type="MEDIUMTEXT"),
+    CASES_COLUMNS: List[DBTable.Field] = [
+        DBTable.Field(name="id", type="VARCHAR(256)"),
+        DBTable.Field(name="cases", type="TEXT"),
     ]
 
-    PROGRESS_COLUMNS: List[MysqlTable.Field] = [
-        MysqlTable.Field(name="id", type="VARCHAR(256)"),
-        MysqlTable.Field(name="base_instruction", type="TEXT"),
-        MysqlTable.Field(name="best_prompt", type="TEXT"),
-        MysqlTable.Field(name="best_placeholder", type="TEXT"),
-        MysqlTable.Field(name="examples", type="TEXT"),
-        MysqlTable.Field(name="cot_examples", type="TEXT"),
-        MysqlTable.Field(name="filled_prompt", type="TEXT"),
-        MysqlTable.Field(name="success_rate", type="FLOAT"),
-        MysqlTable.Field(name="error_msg", type="TEXT"),
-        MysqlTable.Field(name="progress_rate", type="FLOAT"),
-        MysqlTable.Field(name="time_cost", type="INT"),
-        MysqlTable.Field(name="status", type="VARCHAR(64)"),
-        MysqlTable.Field(name="iteration_round", type="INT"),
-        MysqlTable.Field(name="answer_format", type="TEXT"),
-        MysqlTable.Field(name="task_description", type="TEXT"),
-        MysqlTable.Field(name="opt_placeholder", type="TEXT"),
-        MysqlTable.Field(name="sampled_error_case", type="TEXT"),
+    PROGRESS_COLUMNS: List[DBTable.Field] = [
+        DBTable.Field(name="id", type="VARCHAR(256)"),
+        DBTable.Field(name="base_instruction", type="TEXT"),
+        DBTable.Field(name="best_prompt", type="TEXT"),
+        DBTable.Field(name="best_placeholder", type="TEXT"),
+        DBTable.Field(name="examples", type="TEXT"),
+        DBTable.Field(name="cot_examples", type="TEXT"),
+        DBTable.Field(name="filled_prompt", type="TEXT"),
+        DBTable.Field(name="success_rate", type="FLOAT"),
+        DBTable.Field(name="error_msg", type="TEXT"),
+        DBTable.Field(name="progress_rate", type="FLOAT"),
+        DBTable.Field(name="time_cost", type="INT"),
+        DBTable.Field(name="status", type="VARCHAR(64)"),
+        DBTable.Field(name="iteration_round", type="INT"),
+        DBTable.Field(name="answer_format", type="TEXT"),
+        DBTable.Field(name="task_description", type="TEXT"),
+        DBTable.Field(name="opt_placeholder", type="TEXT"),
+        DBTable.Field(name="sampled_error_case", type="TEXT"),
     ]
 
-    HISTORY_COLUMNS: List[MysqlTable.Field] = [
-        MysqlTable.Field(name="id", type="VARCHAR(256)"),
-        MysqlTable.Field(name="optimized_prompt", type="TEXT"),
-        MysqlTable.Field(name="optimized_placeholder", type="TEXT"),
-        MysqlTable.Field(name="examples", type="TEXT"),
-        MysqlTable.Field(name="cot_examples", type="TEXT"),
-        MysqlTable.Field(name="filled_prompt", type="TEXT"),
-        MysqlTable.Field(name="success_rate", type="FLOAT"),
-        MysqlTable.Field(name="iteration_round", type="INT"),
-        MysqlTable.Field(name="evaluations", type="TEXT"),
+    HISTORY_COLUMNS: List[DBTable.Field] = [
+        DBTable.Field(name="id", type="VARCHAR(256)"),
+        DBTable.Field(name="optimized_prompt", type="TEXT"),
+        DBTable.Field(name="optimized_placeholder", type="TEXT"),
+        DBTable.Field(name="examples", type="TEXT"),
+        DBTable.Field(name="cot_examples", type="TEXT"),
+        DBTable.Field(name="filled_prompt", type="TEXT"),
+        DBTable.Field(name="success_rate", type="FLOAT"),
+        DBTable.Field(name="iteration_round", type="INT"),
+        DBTable.Field(name="evaluations", type="TEXT"),
     ]
 
 
-class ContextMysqlAccesser(BaseContextStoreAccesser):
-    """ContextMysqlAccesser"""
+class DbContextAccesser(BaseContextStoreAccesser):
+    """DbContextAccesser"""
 
     def __init__(self):
         super().__init__()
-        self._job_info_table = MysqlTable(
-            table_name=MysqlConstant.JOB_INFO_TABLE,
-            fields=MysqlConstant.JOB_INFO_COLUMNS,
+        self._job_info_table = DBTable(
+            table_name=DBConstant.JOB_INFO_TABLE,
+            fields=DBConstant.JOB_INFO_COLUMNS,
             primary_keys=["id"],
         )
-        self._optimize_info_table = MysqlTable(
-            table_name=MysqlConstant.OPTIMIZE_INFO_TABLE,
-            fields=MysqlConstant.OPTIMIZE_INFO_COLUMNS,
+        self._optimize_info_table = DBTable(
+            table_name=DBConstant.OPTIMIZE_INFO_TABLE,
+            fields=DBConstant.OPTIMIZE_INFO_COLUMNS,
             primary_keys=["id"],
         )
-        self._cases_table = MysqlTable(
-            table_name=MysqlConstant.CASES_TABLE,
-            fields=MysqlConstant.CASES_COLUMNS,
+        self._cases_table = DBTable(
+            table_name=DBConstant.CASES_TABLE,
+            fields=DBConstant.CASES_COLUMNS,
             primary_keys=["id"],
         )
-        self._progress_table = MysqlTable(
-            table_name=MysqlConstant.PROGRESS_TABLE,
-            fields=MysqlConstant.PROGRESS_COLUMNS,
+        self._progress_table = DBTable(
+            table_name=DBConstant.PROGRESS_TABLE,
+            fields=DBConstant.PROGRESS_COLUMNS,
             primary_keys=["id"],
         )
-        self._history_table = MysqlTable(
-            table_name=MysqlConstant.HISTORY_TABLE,
-            fields=MysqlConstant.HISTORY_COLUMNS,
+        self._history_table = DBTable(
+            table_name=DBConstant.HISTORY_TABLE,
+            fields=DBConstant.HISTORY_COLUMNS,
             primary_keys=["id", "iteration_round"],
         )
         self._available_table_fields = set()
@@ -149,7 +151,7 @@ class ContextMysqlAccesser(BaseContextStoreAccesser):
         self._available_table_fields.update(
             {field.name for field in self._history_table.fields}
         )
-        MysqlUtil.instance()
+        DBUtil.instance()
 
     def store_context_ids(self, ctx_ids: List[str]):
         """save context ids to store
@@ -158,16 +160,8 @@ class ContextMysqlAccesser(BaseContextStoreAccesser):
         """
         pass
 
-    def load_context_ids(self) -> List[str]:
-        """load context ids from store
-        Returns:
-            optimizer context
-        """
-        result = MysqlUtil.execute(f"SELECT id from {MysqlConstant.JOB_INFO_TABLE}")
-        return [item[0] for item in result]
-
     def store_context(self, ctx_id: str, context: Dict[str, Any]):
-        """store context to mysql db"""
+        """store context to database"""
 
         job_info = dict(
             id=ctx_id,
@@ -297,7 +291,7 @@ class ContextMysqlAccesser(BaseContextStoreAccesser):
     def load_context(
         self, ctx_id: str, load_all: bool = False, mode: str = JNT_MODE
     ) -> Dict[str, Any]:
-        """load context from mysql db"""
+        """load context from database"""
         context = dict()
         try:
             result = self._job_info_table.query(id=ctx_id)
@@ -337,7 +331,7 @@ class ContextMysqlAccesser(BaseContextStoreAccesser):
         self._progress_table.update(attr_name, attr_value, id=ctx_id)
 
     def delete_context(self, ctx_id: str):
-        """delete context from mysql store"""
+        """delete context from database"""
         self._job_info_table.delete(id=ctx_id)
         self._optimize_info_table.delete(id=ctx_id)
         self._cases_table.delete(id=ctx_id)
@@ -351,7 +345,23 @@ class ContextMysqlAccesser(BaseContextStoreAccesser):
         self._cases_table.create()
         self._progress_table.create()
         self._history_table.create()
-        self.update_column_type("history", "evaluations", "MEDIUMTEXT")
+        logger.info("init db success")
+
+    def fix_stale_tasks(self):
+        """Fix stale running/stopping tasks left from previous process crash/restart"""
+        d = self._job_info_table.dialect
+        q = d.quote
+        stale_statuses = (TaskStatus.TASK_RUNNING, TaskStatus.TASK_STOPPING)
+        for status in stale_statuses:
+            sql = (
+                f"UPDATE {q(DBConstant.PROGRESS_TABLE)} "
+                f"SET {q('status')} = '{TaskStatus.TASK_FAILED}' "
+                f"WHERE {q('status')} = '{status}'"
+            )
+            try:
+                DBUtil.execute(sql, fetch_all=False)
+            except Exception as e:
+                logger.warning(f"Failed to fix stale tasks with status={status}: {e}")
 
     def update_column_type(self, table_name: str, column_name: str, new_type: str):
         """update column type"""
@@ -359,29 +369,39 @@ class ContextMysqlAccesser(BaseContextStoreAccesser):
             logger.warning("The table_name, column_name, and new_type cannot be empty.")
             return
 
-        check_sql = (
-            "SELECT COUNT(*) FROM information_schema.columns "
-            "WHERE table_schema = DATABASE() AND table_name = %s AND column_name = %s"
-        )
-        result = MysqlUtil.execute(check_sql, params=[table_name, column_name])
-        if not result or result[0][0] == 0:
-            logger.warning("The column name does not exist in the table.")
-            return
+        d = self._job_info_table.dialect
+        describe_sql = d.describe_column_type_sql(table_name, column_name)
 
-        describe_sql = f"DESCRIBE `{table_name}`"
+        if isinstance(d, GaussDBDialect):
+            check_sql = (
+                "SELECT COUNT(*) FROM information_schema.columns "
+                f"WHERE table_name = '{table_name}' AND column_name = '{column_name}'"
+            )
+            result = DBUtil.execute(check_sql)
+            if not result or result[0][0] == 0:
+                logger.warning("The column name does not exist in the table.")
+                return
+
         try:
-            columns_info = MysqlUtil.execute(describe_sql)
-            current_type = None
-            for row in columns_info:
-                if row[0] == column_name:
-                    current_type = row[1]
-                    break
-            if current_type is None:
+            type_result = DBUtil.execute(describe_sql, fetch_all=False)
+            if not type_result:
                 logger.warning(
                     f"Unable to retrieve the current type of the column {column_name}."
                 )
                 return
-
+            if isinstance(d, GaussDBDialect):
+                current_type = str(type_result[0])
+            else:
+                current_type = None
+                for row in (type_result if isinstance(type_result, list) else [type_result]):
+                    if isinstance(row, (tuple, list)) and row[0] == column_name:
+                        current_type = row[1]
+                        break
+                if current_type is None:
+                    logger.warning(
+                        f"Unable to retrieve the current type of the column {column_name}."
+                    )
+                    return
         except Exception:
             logger.warning(
                 f"Failed to retrieve the type of column {column_name}. Skipping."
@@ -395,14 +415,11 @@ class ContextMysqlAccesser(BaseContextStoreAccesser):
             return
 
         try:
-            alter_sql = (
-                f"ALTER TABLE `{table_name}` MODIFY COLUMN `{column_name}` {new_type}"
-            )
-            MysqlUtil.execute(alter_sql)
+            alter_sql = d.alter_column_type_sql(table_name, column_name, new_type)
+            DBUtil.execute(alter_sql)
             logger.info(
                 f"Successfully updated the column '{column_name}' in table '{table_name}'"
             )
-            return
         except Exception as e:
             logger.warning(f"Update failed: {e}")
 
