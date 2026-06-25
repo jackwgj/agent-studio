@@ -1096,7 +1096,7 @@ export class AppAgentRepoService {
   getHealth(paramsUserId?: string, paramsProjectId?: string): Promise<any> {
     const config: any = {
       method: 'GET',
-      url: `/v1/agent-manager/health`,
+      url: `${this.resource_prefix}/agent-manager/health`,
     };
     if (paramsUserId && paramsProjectId) {
       config.query = {
@@ -1104,7 +1104,7 @@ export class AppAgentRepoService {
         'x-project-id': paramsProjectId,
       };
     }
-    return this.http.fetchAsyncDefaultWorkspaceId(config);
+    return this.http.getAsync(config);
   }
 
 
