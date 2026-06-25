@@ -128,8 +128,8 @@ class GreedyOptimizer(BasicOptimizer):
             prompt=prompt_update,
             placeholder=placeholder_update,
             score=acc,
-            error_cases=sampled_incorrect_data,
-            evaluations=evaluations,
+            error_cases=sampled_incorrect_data or [],
+            evaluations=evaluations or [],
         )
 
     def _process_with_placeholder(
@@ -317,7 +317,7 @@ class BeamSearchOptimizer(GreedyOptimizer):
                 (opt_result.prompt, opt_result.placeholder, score)
             )
         self._candidates = sorted(
-            candidate_prompts_with_score, key=lambda x: x[2], reverse=True
+            candidate_prompts_with_score, key=lambda x: x[2] if x[2] is not None else -1, reverse=True
         )[: TuneConstant.DEFAULT_PROMPT_CANDIDATES_NUM]
         return self._evaluate_topn_candidate(dataset)
 
@@ -343,8 +343,8 @@ class BeamSearchOptimizer(GreedyOptimizer):
             prompt=best_candidate[0],
             placeholder=best_candidate[1],
             score=best_score,
-            error_cases=best_error_cases,
-            evaluations=best_evaluations,
+            error_cases=best_error_cases or [],
+            evaluations=best_evaluations or [],
         )
 
 

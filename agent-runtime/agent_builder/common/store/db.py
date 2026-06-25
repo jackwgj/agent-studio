@@ -197,6 +197,29 @@ class DBTable:
     def _q(self, name: str) -> str:
         return self._dialect.quote(self._dialect.col_alias(name))
 
+    @staticmethod
+    def _cast(field: "DBTable.Field", value):
+        """Cast value to Python type based on field type (needed for GaussDB text-mode results)."""
+        if value is None:
+            return None
+        if not isinstance(value, str):
+            return value
+        t = field.type.upper()
+        if "INT" in t:
+            try:
+                return int(value)
+            except (ValueError, TypeError):
+                return value
+        float_types = ("FLOAT", "DOUBLE", "DECIMAL", "NUMERIC", "REAL")
+        if any(ft in t for ft in float_types):
+            try:
+                return float(value)
+            except (ValueError, TypeError):
+                return value
+        if t == "BOOLEAN":
+            return value.lower() in ("true", "1", "yes")
+        return value
+
     def create(self):
         """create table"""
         check_sql = self._dialect.check_table_exists_sql(self._table_name)
@@ -233,7 +256,11 @@ class DBTable:
             val_list = ", ".join([self._dialect.escape_value(values[f.name]) for f in self._fields])
             conflict_cols = ", ".join([self._q(k) for k in self._primary_keys])
             update_cols = ", ".join(
-                [f"{self._q(f.name)} = EXCLUDED.{self._q(f.name)}" for f in self._fields if f.name not in self._primary_keys]
+                [
+                    f"{self._q(f.name)} = VALUES({self._q(f.name)})"
+                    for f in self._fields
+                    if f.name not in self._primary_keys
+                ]
             )
             sql = self._dialect.upsert_sql(self._table_name, cols, val_list, conflict_cols, update_cols)
             DBUtil.execute(sql)
@@ -311,9 +338,10 @@ class DBTable:
         output = {}
         if target == "*":
             for field, value in zip(self._fields, result):
-                output[field.name] = value
+                output[field.name] = self._cast(field, value)
         else:
-            output[target] = result[0]
+            target_field = next((f for f in self._fields if f.name == target), None)
+            output[target] = self._cast(target_field, result[0]) if target_field else result[0]
 
         return output
 
@@ -350,7 +378,7 @@ class DBTable:
         for res in results:
             output.append(dict())
             for field, value in zip(self._fields, res):
-                output[-1][field.name] = value
+                output[-1][field.name] = self._cast(field, value)
 
         return output
 

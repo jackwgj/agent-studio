@@ -101,8 +101,7 @@ class MysqlDialect(Dialect):
         conflict_cols: str,
         update_cols: str,
     ) -> str:
-        placeholders = ", ".join(["%s"] * val_list)
-        return f"REPLACE INTO {table_name} ({cols}) VALUES ({placeholders});"
+        return f"REPLACE INTO {table_name} ({cols}) VALUES ({val_list});"
 
     def alter_column_type_sql(self, table_name: str, column_name: str, new_type: str) -> str:
         return f"ALTER TABLE `{table_name}` MODIFY COLUMN `{column_name}` {new_type}"
@@ -147,8 +146,8 @@ class GaussDBDialect(Dialect):
         update_cols: str,
     ) -> str:
         if update_cols:
-            return f"INSERT INTO {table_name} ({cols}) VALUES ({val_list}) ON CONFLICT ({conflict_cols}) DO UPDATE SET {update_cols};"
-        return f"INSERT INTO {table_name} ({cols}) VALUES ({val_list}) ON CONFLICT ({conflict_cols}) DO NOTHING;"
+            return f"INSERT INTO {table_name} ({cols}) VALUES ({val_list}) ON DUPLICATE KEY UPDATE {update_cols};"
+        return f"INSERT INTO {table_name} ({cols}) VALUES ({val_list}) ON DUPLICATE KEY UPDATE {update_cols};"
 
     def alter_column_type_sql(self, table_name: str, column_name: str, new_type: str) -> str:
         return f"ALTER TABLE {table_name} ALTER COLUMN {column_name} TYPE {new_type}"
