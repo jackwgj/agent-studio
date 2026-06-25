@@ -2,7 +2,7 @@
   <ng-container *ngIf="statusConfigMap[status].isProgressBar; else statusTmpl">
     <div class="w-full">
       <div class="inline-block w-[calc(100%-27px)]">
-        <nz-progress [nzPercent]="progressRate * 100"> </nz-progress>
+        <nz-progress [nzPercent]="progressRate * 100" [nzShowInfo]="false"> </nz-progress>
       </div>
       <span *ngIf="statusConfigMap[status].showProgress" class="w-[27px]">{{ (progressRate * 100).toFixed(2) }}%</span>
       <span *ngIf="!statusConfigMap[status].showProgress" class="w-[27px]">{{ statusConfigMap[status].label }}</span>
@@ -14,7 +14,7 @@
       [nz-tooltip]="tip"
       nzTooltipPlacement="top"
       [nzColor]="getStatusColor(statusConfigMap[status].type)"
-      style="margin-right: 8px;"
+      style="margin-right: 8px"
     >
       {{ statusConfigMap[status].label }}
     </nz-tag>
