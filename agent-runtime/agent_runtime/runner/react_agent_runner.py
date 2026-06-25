@@ -194,6 +194,33 @@ class ReActAgentRunner:
         }
         return type_mapping.get(arg_type.lower(), "string")
 
+    def _get_agent_functions(self, agent: ReActAgent) -> list[dict]:
+        """从 agent 的 ability_manager 获取工具列表，转换为 OpenAI function calling 格式"""
+        functions = []
+        if not hasattr(agent, "ability_manager"):
+            return functions
+
+        try:
+            ability_manager = agent.ability_manager
+            # 使用 list() 方法获取已注册的工具
+            abilities = ability_manager.list()
+            for ability in abilities:
+                # 获取工具的 input_params（已经是 JSON Schema 格式）
+                input_params = {}
+                if hasattr(ability, "input_params") and ability.input_params:
+                    input_params = ability.input_params
+
+                func = {
+                    "name": getattr(ability, "name", "") or getattr(ability, "id", ""),
+                    "description": getattr(ability, "description", "") or "",
+                    "parameters": input_params if input_params else {"type": "object", "properties": {}},
+                }
+                functions.append(func)
+        except Exception as e:
+            workflow_logger.warning(f"Failed to get agent functions: {e}")
+
+        return functions
+
     async def _register_plugins(self, ir_json: dict, agent: ReActAgent, agent_id: str) -> list[str]:
         """注册 Plugin 工具"""
         from jiuwen.extension.wrapper.restful_api_loader import load_restful_api_from_ir
@@ -525,13 +552,13 @@ class ReActAgentRunner:
         adapter.start_time = int(time.time() * 1000)
 
         chain_id = str(uuid.uuid4())
-        agent_node_id = str(uuid.uuid4())
 
-        # 设置 adapter 的 chain 和 agent ID（必须在创建事件之前）
-        adapter.set_chain_and_agent_ids(chain_id, agent_node_id)
+        # 设置 adapter 的 chain ID（chain 节点 ID 与 chain_id 相同）
+        adapter.set_chain_and_agent_ids(chain_id, chain_id)
 
+        # 发送 chain 开始事件
         yield adapter.create_agent_node_start_event(
-            invoke_id=agent_node_id,
+            invoke_id=chain_id,
             chain_id=chain_id,
             invoke_type="chain",
             name=ir_json.get("agentName", "Agent"),
@@ -548,6 +575,22 @@ class ReActAgentRunner:
             # 提取 openjiuwen tracer 并注入到 inputs 中
             inputs.setdefault("_jiuwen_runtime_kwargs", {})["session"] = session
 
+            # 构建 LLM inputs（用于事件记录）
+            llm_inputs = [{"role": "user", "content": query}]
+
+            # 构建 LLM metaData（模型参数）
+            # 从 agent 的 ability_manager 获取已注册的工具
+            functions = self._get_agent_functions(agent)
+            llm_meta_data = {
+                "class_name": "Openai",
+                "instance_attributes": {
+                    "model": ir_json.get("configs", {}).get("modelConfig", {}).get("modelName", ""),
+                    "temperature": ir_json.get("configs", {}).get("modelConfig", {}).get("hyperParameters", {}).get("temperature", 0.0),
+                    "top_p": ir_json.get("configs", {}).get("modelConfig", {}).get("hyperParameters", {}).get("top_p", 1.0),
+                    "functions": functions,
+                }
+            }
+
             async for chunk in agent.stream(inputs, session,
                                             [BaseStreamMode.OUTPUT, BaseStreamMode.TRACE, BaseStreamMode.CUSTOM]):
                 chunk_type = getattr(chunk, "type", None)
@@ -557,6 +600,8 @@ class ReActAgentRunner:
                     is_first_llm_call = False
                     llm_invoke_id = str(uuid.uuid4())
                     adapter.set_llm_invoke_id(llm_invoke_id)
+                    adapter.set_llm_inputs(llm_inputs)
+                    adapter.set_llm_meta_data(llm_meta_data)
                     adapter.add_child_invoke_id(llm_invoke_id)
                     adapter._is_llm_call_started = True
 
@@ -565,6 +610,8 @@ class ReActAgentRunner:
                         chain_id=chain_id,
                         invoke_type="llm",
                         name="Openai",
+                        inputs=llm_inputs,
+                        meta_data=llm_meta_data,
                     )
 
                 # 处理 chunk，适配器会自动生成对应事件
@@ -574,7 +621,7 @@ class ReActAgentRunner:
 
             # 发送 Agent 链结束事件
             yield adapter.create_agent_node_end_event(
-                invoke_id=agent_node_id,
+                invoke_id=chain_id,
                 chain_id=chain_id,
                 invoke_type="chain",
                 name=ir_json.get("agentName", "Agent"),

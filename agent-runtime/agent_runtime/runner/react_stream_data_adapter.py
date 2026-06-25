@@ -52,6 +52,8 @@ class ReactStreamDataAdapter:
         self._agent_node_id: Optional[str] = None
         self._llm_invoke_id: Optional[str] = None
         self._llm_start_time: Optional[datetime] = None
+        self._llm_inputs: Optional[List[Dict]] = None
+        self._llm_meta_data: Optional[Dict] = None
         self._accumulated_text = ""
         self._child_invoke_ids: List[str] = []
         self._final_output = ""
@@ -90,6 +92,14 @@ class ReactStreamDataAdapter:
         """添加子调用 ID"""
         self._child_invoke_ids.append(invoke_id)
 
+    def set_llm_inputs(self, inputs: List[Dict]) -> None:
+        """设置 LLM 输入消息"""
+        self._llm_inputs = inputs
+
+    def set_llm_meta_data(self, meta_data: Dict) -> None:
+        """设置 LLM 元数据（模型参数）"""
+        self._llm_meta_data = meta_data
+
     def adapt(self, chunk: Any) -> List[Dict]:
         """将 OutputSchema 或 TraceSchema 转换为 SSE 事件列表"""
         if chunk is None:
@@ -99,7 +109,7 @@ class ReactStreamDataAdapter:
             self._start_time = int(time.time() * 1000)
 
         chunk_type = getattr(chunk, "type", None)
-        
+
         if chunk_type in OUTPUT_TYPE_HANDLERS:
             handler_name = OUTPUT_TYPE_HANDLERS[chunk_type]
             handler = getattr(self, handler_name)
@@ -163,12 +173,15 @@ class ReactStreamDataAdapter:
 
             events.append(
                 self._create_agent_node_event(
+                    invoke_id=self._llm_invoke_id,
                     invoke_type="llm",
                     name="Openai",
                     start_time=self._llm_start_time,
                     end_time=llm_end_time,
                     elapsed=elapsed,
+                    inputs=self._llm_inputs,
                     outputs=outputs,
+                    meta_data=self._llm_meta_data,
                 )
             )
 
@@ -193,7 +206,8 @@ class ReactStreamDataAdapter:
 
         events.append(self._create_event(EventType.DONE, {}))
         events.append(self._create_event(EventType.STATISTIC_DATA, {"answer": {"overall_latency": elapsed}}))
-        events.append(self._create_event(EventType.SUMMARY_RESPONSE, {"answer": {"role": "assistant", "content": output_text}}))
+        events.append(
+            self._create_event(EventType.SUMMARY_RESPONSE, {"answer": {"role": "assistant", "content": output_text}}))
 
         # 构建完整的 intermediate_message，包含工具调用信息
         answer_content = []
@@ -298,7 +312,8 @@ class ReactStreamDataAdapter:
             self._tool_results.append({
                 "role": "tool",
                 "name": plugin_name,
-                "content": json.dumps(output_data, ensure_ascii=False) if isinstance(output_data, dict) else str(output_data),
+                "content": json.dumps(output_data, ensure_ascii=False) if isinstance(output_data, dict) else str(
+                    output_data),
                 "tool_call_id": invoke_id,
             })
 
@@ -372,24 +387,25 @@ class ReactStreamDataAdapter:
         return event
 
     def _create_agent_node_event(
-        self,
-        invoke_id: Optional[str] = None,
-        invoke_type: str = "chain",
-        name: str = "Agent",
-        start_time: Optional[datetime] = None,
-        end_time: Optional[datetime] = None,
-        elapsed: Optional[str] = None,
-        inputs: Any = None,
-        outputs: Any = None,
-        child_invokes: Optional[List[str]] = None,
+            self,
+            invoke_id: Optional[str] = None,
+            invoke_type: str = "chain",
+            name: str = "Agent",
+            start_time: Optional[datetime] = None,
+            end_time: Optional[datetime] = None,
+            elapsed: Optional[str] = None,
+            inputs: Any = None,
+            outputs: Any = None,
+            child_invokes: Optional[List[str]] = None,
+            meta_data: Optional[Dict] = None,
     ) -> Dict:
         """创建 agent_node_message 事件"""
         invoke_id = invoke_id or str(uuid.uuid4())
         chain_id = self._chain_id or invoke_id
         start_time = start_time or datetime.now()
-        end_time = end_time or datetime.now()
 
-        if elapsed is None and start_time and end_time:
+        # 只有当 end_time 有值时才设置，避免开始事件也被添加到 invokeList
+        if end_time and elapsed is None:
             elapsed = self._calc_elapsed_time(start_time, end_time) or "0.00s"
 
         node_data = {
@@ -399,13 +415,13 @@ class ReactStreamDataAdapter:
             "invokeType": invoke_type,
             "name": name,
             "startTime": start_time.isoformat() if isinstance(start_time, datetime) else start_time,
-            "endTime": end_time.isoformat() if isinstance(end_time, datetime) else end_time,
+            "endTime": end_time.isoformat() if isinstance(end_time, datetime) and end_time else None,
             "elapsedTime": elapsed,
             "inputs": inputs,
             "outputs": outputs,
             "error": None,
             "childInvokes": child_invokes or [],
-            "metaData": {},
+            "metaData": meta_data or {},
         }
 
         return self._create_event(EventType.AGENT_NODE_MESSAGE, node_data)
@@ -422,13 +438,14 @@ class ReactStreamDataAdapter:
         }
 
     def create_agent_node_start_event(
-        self,
-        invoke_id: str = "",
-        chain_id: str = "",
-        invoke_type: str = "chain",
-        name: str = "Agent",
-        inputs: Any = None,
-        child_invokes: Optional[List[str]] = None,
+            self,
+            invoke_id: str = "",
+            chain_id: str = "",
+            invoke_type: str = "chain",
+            name: str = "Agent",
+            inputs: Any = None,
+            child_invokes: Optional[List[str]] = None,
+            meta_data: Optional[Dict] = None,
     ) -> Dict:
         """创建 agent_node_message 开始事件"""
         return self._create_agent_node_event(
@@ -438,17 +455,18 @@ class ReactStreamDataAdapter:
             start_time=datetime.now(),
             inputs=inputs,
             child_invokes=child_invokes,
+            meta_data=meta_data,
         )
 
     def create_agent_node_end_event(
-        self,
-        invoke_id: str,
-        chain_id: str = "",
-        invoke_type: str = "chain",
-        name: str = "Agent",
-        inputs: Any = None,
-        outputs: Any = None,
-        child_invokes: Optional[List[str]] = None,
+            self,
+            invoke_id: str,
+            chain_id: str = "",
+            invoke_type: str = "chain",
+            name: str = "Agent",
+            inputs: Any = None,
+            outputs: Any = None,
+            child_invokes: Optional[List[str]] = None,
     ) -> Dict:
         """创建 agent_node_message 结束事件"""
         return self._create_agent_node_event(
@@ -462,7 +480,8 @@ class ReactStreamDataAdapter:
             outputs=outputs,
         )
 
-    def adapt_error(self, error_msg: str, execution_id: str = "", error_code: int = 103104, node_name: str = "Agent") -> Dict:
+    def adapt_error(self, error_msg: str, execution_id: str = "", error_code: int = 103104,
+                    node_name: str = "Agent") -> Dict:
         """创建错误事件
 
         Args:
