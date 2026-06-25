@@ -375,7 +375,11 @@ public interface AgentRuntimeClient {
     ResponseEntity<TaskListRsp> listTask(
         @RequestHeader(CommonConstant.X_AUTH_TOKEN) String authToken,
         @PathVariable("project_id") String projectId,
-        @PathVariable("workflow_id") String workflowId, @RequestBody ListTaskQo listTaskQo,
+        @PathVariable("workflow_id") String workflowId,
+        @RequestParam("status") String status,
+        @RequestParam("type") String type,
+        @RequestParam("sort") String sort,
+        @RequestParam("order") String order,
         @RequestParam("workspace_id") String workspaceId);
 
     @GetMapping("/v1/{project_id}/workflows/{workflow_id}/tasks/{task_id}")
@@ -383,7 +387,7 @@ public interface AgentRuntimeClient {
         @RequestHeader(CommonConstant.X_AUTH_TOKEN) String authToken,
         @PathVariable("project_id") String projectId,
         @PathVariable("workflow_id") String workflowId, @PathVariable("task_id") String taskId,
-        @RequestBody RetrieveTaskQo retrieveTaskQo, @RequestParam("workspace_id") String workspaceId);
+        @RequestParam("workspace_id") String workspaceId);
 
     @PostMapping("/v1/{project_id}/workflows/{workflow_id}/tasks/{task_id}")
     ResponseEntity<TaskRsp> resumeTask(

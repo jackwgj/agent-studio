@@ -272,14 +272,13 @@ public class AgentServiceProxyService {
         String workspaceId) {
 
         checkWorkflowPermission(projectId, workspaceId, workflowId);
-        return runtimeClient.listTask(getToken(), projectId, workflowId, listTaskQo, workspaceId);
+        return runtimeClient.listTask(getToken(), projectId, workflowId, listTaskQo.getStatus(), listTaskQo.getType(), listTaskQo.getSort(), listTaskQo.getOrder(), workspaceId);
     }
 
-    public ResponseEntity<TaskRsp> retrieveTask(String projectId, String workflowId, String taskId,
-        RetrieveTaskQo retrieveTaskQo, String workspaceId) {
+    public ResponseEntity<TaskRsp> retrieveTask(String projectId, String workflowId, String taskId, String workspaceId) {
 
         checkWorkflowPermission(projectId, workspaceId, workflowId);
-        return runtimeClient.retrieveTask(getToken(), projectId, workflowId, taskId, retrieveTaskQo, workspaceId);
+        return runtimeClient.retrieveTask(getToken(), projectId, workflowId, taskId, workspaceId);
     }
 
     public ResponseEntity<TaskRsp> resumeTask(String projectId, String workflowId, String taskId, String workspaceId,
