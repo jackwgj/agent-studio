@@ -348,6 +348,7 @@ export class PluginConfigModalComponent implements OnInit, OnDestroy {
     if (this.type === 'mcp') {
       return {
         name: '25%',
+        nameTitle: 'calc(25% + 24px)',
         description: '20%',
         required: '15%',
         default: '40%',
@@ -355,10 +356,11 @@ export class PluginConfigModalComponent implements OnInit, OnDestroy {
     }
     return {
       name: '20%',
+      nameTitle: 'calc(20% + 24px)',
       description: '15%',
       required: '10%',
       default: '40%',
-      visibility: '15%',
+      visibility: '50px',
     };
   }
 
