@@ -38,7 +38,7 @@
         </div>
       </ng-container>
       <ng-container *ngIf="actionType === 'VIEW'">
-        <nz-tabset style="margin-bottom: 12px">
+        <nz-tabset style="margin-bottom: 12px" [nzSelectedIndex]="selectedTabIndex" (nzSelectedIndexChange)="onVariableMemoryTabChange($event)">
           <nz-tab
             *ngFor="let tab of visibleMemoryTabs; let i = index"
             [nzTitle]="tab.name"
@@ -47,10 +47,7 @@
         <div *ngIf="isShowUserVars && variableMemoryTabs[0].active">
           <ng-container *ngTemplateOutlet="userParams; context: {}"></ng-container>
         </div>
-        <div *ngIf="!isShowUserVars">
-          <ng-container *ngTemplateOutlet="userParams; context: {}"></ng-container>
-        </div>
-        <div *ngIf="isShowUserVars && variableMemoryTabs[1].active">
+        <div *ngIf="isShowInputVars && variableMemoryTabs[1].active">
           <ng-container *ngTemplateOutlet="inputParam; context: {}"></ng-container>
         </div>
       </ng-container>
