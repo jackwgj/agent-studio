@@ -294,6 +294,28 @@ class HintBuilder:
         # 使用 Prompt 和 Template 替换变量
         return self._render_template(inputs)
 
+    def build_hint_incomplete(self, plan: ExecutionPlan) -> str:
+        """
+        构建计划未完成时的 hint，让模型基于已有结果给出最终回答
+
+        Args:
+            plan: 执行计划
+
+        Returns:
+            hint 消息字符串
+        """
+        steps_text = self._build_steps_text(plan)
+
+        # 准备模板参数
+        inputs = {
+            "steps_text": steps_text,
+            "current_step_info": "计划未完全执行，部分步骤可能未完成或被跳过。请基于已完成的步骤结果给出回答。",
+            "actions": "基于已完成的步骤结果，输出你能给出的最佳回答。如果无法给出完整回答，说明哪些部分未完成及原因。",
+        }
+
+        # 使用 Prompt 和 Template 替换变量
+        return self._render_template(inputs)
+
     def _render_template(self, inputs: dict) -> str:
         """
         渲染模板，替换变量

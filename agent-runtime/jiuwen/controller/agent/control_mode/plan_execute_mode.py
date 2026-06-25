@@ -161,7 +161,7 @@ class PlanExecuteMode(BaseMode):
                 # ask_user 或 workflow blocked 中断 → AgentGroup 保留 PE Agent 中断状态，等待下一轮对话
                 yield self._create_interrupt_stream_data()
             else:
-                # 正常完成 或 step 超出最大迭代强退，任务结束，不恢复
+                # 正常完成，任务结束
                 yield self._create_task_end_stream_data()
 
         except Exception as e:
@@ -297,8 +297,10 @@ class PlanExecuteMode(BaseMode):
         last_error_content = None
         consecutive_same_error_count = 0
         max_same_error_retries = 3
+        # 工具切换时重置迭代计数器
+        last_tool_name = None
         
-        while step_iteration < max_iterations and not step_done:
+        while not step_done:
             step_iteration += 1
             if self.terminate:
                 break
@@ -323,6 +325,20 @@ class PlanExecuteMode(BaseMode):
             if step_done:
                 break
 
+            # 工具切换检测：当LLM调用了不同的工具时，重置迭代计数器
+            if not step_done and llm_result.get("has_tool_calls"):
+                current_tool_names = [tc.get("name", "") for tc in llm_result.get("tool_calls", [])]
+                current_tool_name = current_tool_names[0] if current_tool_names else None
+                if current_tool_name and current_tool_name != last_tool_name:
+                    logger.info(
+                        f"task_id: {self.task_id}| Step {step.step_idx} tool switched from "
+                        f"'{last_tool_name}' to '{current_tool_name}', resetting iteration counter"
+                    )
+                    step_iteration = 0
+                    last_tool_name = current_tool_name
+                elif current_tool_name:
+                    last_tool_name = current_tool_name
+
             if not step_done and result_content:
                 error_key = self._extract_error_signature(result_content)
                 if error_key and error_key == last_error_content:
@@ -331,27 +347,34 @@ class PlanExecuteMode(BaseMode):
                         logger.warning(
                             f"task_id: {self.task_id}| Step {step.step_idx} "
                             f"same error repeated {consecutive_same_error_count} times, "
-                            f"stopping retry early. Error: {error_key[:200]}"
+                            f"stopping tool retry. Error: {error_key[:200]}"
                         )
-                        result_content = f"相同错误重复出现{consecutive_same_error_count}次，终止重试。最后错误：{result_content}"
-                        self.task_planner.plan_tracker.mark_step_completed(
-                            step.step_idx, result=result_content
+                        # 不终止整个任务，只停止当前工具的重试
+                        # 将错误信息写入context，让模型在下一轮迭代中能看到并决定下一步
+                        error_notice = f"工具连续报错{consecutive_same_error_count}次，已停止重试。最后错误：{result_content}"
+                        self.context_manager.add_function_message(
+                            name=last_tool_name or "unknown",
+                            intent=last_tool_name or "unknown",
+                            content=error_notice,
+                            tool_call_id="dead_loop_detection",
                         )
-                        self.terminate = True
-                        yield self._create_step_timeout_stream_data(step, result_content)
-                        break
+                        # 重置计数器，让模型有机会尝试其他工具
+                        consecutive_same_error_count = 0
+                        last_error_content = None
+                        step_iteration = 0
+                        last_tool_name = None
                 else:
                     last_error_content = error_key
                     consecutive_same_error_count = 1
             
-            if step_iteration >= max_iterations:
+            if step_iteration == max_iterations:
                 last_iteration_had_tool_call = llm_result.get("has_tool_calls", False)
                 if last_iteration_had_tool_call:
                     logger.info(
                         f"task_id: {self.task_id}| Step {step.step_idx} iteration {step_iteration} "
                         f"completed with tool call, adding extra iteration to process result"
                     )
-                    step_iteration += 1
+                    step_iteration = max_iterations + 1
                     hint_message = self._build_step_hint(step_iteration, ctx)
                     self._log_step_iteration(step, step_iteration, hint_message)
                     llm_result = await self._call_llm_with_hint(
@@ -368,18 +391,6 @@ class PlanExecuteMode(BaseMode):
                     
                     if step_done:
                         break
-        else:
-            if not step_done:
-                result_content = result_content or f"{step.step_name}执行超时"
-                logger.warning(
-                    f"task_id: {self.task_id}| Step {step.step_idx} exceed max iteration {max_iterations}, "
-                    f"force completing and terminating task"
-                )
-                self.task_planner.plan_tracker.mark_step_completed(
-                    step.step_idx, result=result_content
-                )
-                self.terminate = True
-                yield self._create_step_timeout_stream_data(step, result_content)
 
     def _extract_error_signature(self, content: str) -> str:
         """提取错误信息的特征签名，用于判断是否为重复出现的相同错误"""
@@ -569,7 +580,12 @@ class PlanExecuteMode(BaseMode):
             None: 如果计划未完成
         """
         if not self.task_planner.plan_tracker.is_completed():
-            self._final_content = None
+            # 计划未完成时，仍需返回汇总响应，确保用户始终能得到最终回答
+            ctx = self._step_exec_ctx
+            final_hint = ctx["hint_builder"].build_hint_incomplete(ctx["plan"])
+            final_result = await self._call_llm_with_hint(final_hint, ctx["filtered_tools"])
+            self._final_content = (final_result or {"content": "任务执行未完成，请稍后重试"}).get("content", "任务执行未完成，请稍后重试")
+            self.context_manager.set_result_message(self._final_content)
             return
 
         ctx = self._step_exec_ctx
@@ -1043,6 +1059,13 @@ class PlanExecuteMode(BaseMode):
                     yield stream_data
             else:
                 self._handle_tool_not_found(function_name, tool_call_id)
+                # 工具未找到时向前端发送错误事件，确保用户能看到反馈
+                yield StreamData(
+                    code=StreamCode.ERROR.value,
+                    msg="tool_not_found",
+                    data={"message": f"工具 {function_name} 未找到", "error_type": "tool_not_found"},
+                    execution_id=self.task_id,
+                )
 
     async def _execute_plugin_tool(
         self, plugin, arguments: dict, tool_call_id: str
@@ -1133,14 +1156,18 @@ class PlanExecuteMode(BaseMode):
                     return
                 if result.code == StreamCode.ERROR.value:
                     error_msg = result.data.get("message", "工作流执行失败")
+                    error_type = result.data.get("error_type", "")
+                    enhanced_msg = f"{workflow_context.workflow_name}执行失败: {error_msg}"
+                    if error_type:
+                        enhanced_msg = f"{workflow_context.workflow_name}({error_type})执行失败: {error_msg}"
                     self.context_manager.add_function_message(
                         name=workflow_context.workflow_name,
                         intent=workflow_context.workflow_name,
-                        content=f"工具执行失败: {error_msg}",
+                        content=enhanced_msg,
                         tool_call_id=tool_call_id,
                     )
                     yield result
-                    return  # 退出本次iteration 继续下一次
+                    return  # 工作流ERROR后结束当前generator，_handle_tool_calls会继续出口判断
                 yield result
                 continue
 
@@ -1400,10 +1427,8 @@ class PlanExecuteMode(BaseMode):
         if self.ASK_USER_MARKER in content:
             return True
 
-        # 降级方案：检测以问号结尾的内容（兼容旧版本或模型未遵循约定的情况）
-        content_stripped = content.strip()
-        if content_stripped.endswith("?") or content_stripped.endswith("？"):
-            return True
+        # 不再使用问号结尾作为降级检测，避免模型在陈述/推理中使用问号时误判为提问中断
+        # 模型应严格使用 [ASK_USER] 标记来表示需要用户输入
 
         return False
 
@@ -1436,6 +1461,7 @@ class PlanExecuteMode(BaseMode):
         判断 LLM 输出是否表示步骤完成
 
         通过检测约定的精简标识 [STEP_DONE] 来判断，节省 token 消耗。
+        同时支持 JSON 格式的完成信号检测（补充方式）。
 
         Args:
             content: LLM 输出内容
@@ -1446,6 +1472,10 @@ class PlanExecuteMode(BaseMode):
         """
         # 优先检测约定的精简标识（推荐方式，节省 token）
         if self.STEP_DONE_MARKER in content:
+            return True
+
+        # 补充检测：JSON 格式完成信号（如 {"step_done": true}）
+        if self._detect_json_step_done(content):
             return True
 
         # 兼容旧版本：仅匹配与当前步骤索引精确对应的完成标记
@@ -1464,6 +1494,24 @@ class PlanExecuteMode(BaseMode):
             if marker.lower() in content_lower:
                 return True
 
+        return False
+
+    def _detect_json_step_done(self, content: str) -> bool:
+        """检测 LLM 输出中的 JSON 格式步骤完成信号"""
+        import re
+        try:
+            # 尝试从内容中提取 JSON 对象
+            json_match = re.search(r'\{[^{}]*"step_done"\s*:\s*(true|True|1)\s*[^{}]*\}', content)
+            if json_match:
+                json_str = json_match.group(0)
+                parsed = json.loads(json_str)
+                if parsed.get("step_done") in (True, "true", 1, "1"):
+                    logger.info(
+                        f"task_id: {self.task_id}| Detected JSON step_done signal: {json_str[:100]}"
+                    )
+                    return True
+        except json.JSONDecodeError:
+            pass
         return False
 
     def _extract_step_result(self, content: str) -> str:

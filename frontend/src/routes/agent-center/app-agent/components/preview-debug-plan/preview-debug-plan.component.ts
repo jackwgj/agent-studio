@@ -251,7 +251,26 @@ export class PreviewDebugPlanComponent extends PreviewDebugComponent {
         this.isLoading = false;
         this.isShowStopIcon = false;
         this.isTimeoutOrError = true;
-        this.msgServ.error(this.i18n.transform("streaming_timeout"), { nzDuration: 3000 });
+        // SSE超时：使用分类错误提示替代硬编码文案
+        this.msgServ.error(this.i18n.transform("sse_timeout_model"), { nzDuration: 3000 });
+        // 在dialogHistory中写入超时错误消息
+        const currentIndex = this.dialogHistory.length - 1;
+        if (currentIndex >= 0) {
+          const errorItem = {
+            event: "error",
+            role: "assistant",
+            content: this.i18n.transform("sse_timeout_model")
+          };
+          this.dialogHistory[currentIndex] = [
+            ...this.dialogHistory[currentIndex],
+            errorItem
+          ];
+          if (this.dialogHistory[currentIndex]?.[0]) {
+            this.dialogHistory[currentIndex][0].isError = true;
+          }
+          this.updateStatus(currentIndex, "finished", true);
+        }
+        this.sseInstance?.close();
         this.scrollToBottom();
         this.cdr.markForCheck();
       }
@@ -300,7 +319,7 @@ export class PreviewDebugPlanComponent extends PreviewDebugComponent {
           this.handleSensitiveData(data, currentIndex);
           break;
         case "error":
-          this.handleEventError(currentIndex);
+          this.handleEventError(currentIndex, chunkDataObj);
           break;
         default:
           break;
@@ -402,6 +421,15 @@ export class PreviewDebugPlanComponent extends PreviewDebugComponent {
     const lastPlan = sceneMessage.plans[sceneMessage.plans.length - 1];
     let action = lastPlan.actionSteps[lastPlan.actionSteps.length - 1];
     action.result_summary = stepData.result_summary;
+    // 步骤错误标记：当步骤结果包含错误信息时标记步骤为错误状态
+    if (stepData.result_summary && (
+      stepData.result_summary.includes("失败") ||
+      stepData.result_summary.includes("error") ||
+      stepData.result_summary.includes("超时") ||
+      stepData.result_summary.includes("终止")
+    )) {
+      action.status = "error";
+    }
     this.dialogHistory[currentIndex] = [...this.dialogHistory[currentIndex]];
   }
 
@@ -573,12 +601,34 @@ export class PreviewDebugPlanComponent extends PreviewDebugComponent {
   /**
    * 处理错误事件
    */
-  private handleEventError(currentIndex: number): void {
+  private handleEventError(currentIndex: number, chunkDataObj?: any): void {
     const existingMessage = this.dialogHistory[currentIndex].find(
       (item) => item.role === "assistant" && !item.plans && !item.content
     );
 
-    const errorMessage = this.i18n.transform("run_error");
+    // 从SSE error事件提取结构化错误信息
+    const errorData = chunkDataObj?.data || chunkDataObj;
+    const errorType = errorData?.error_reason || errorData?.error_type || "";
+    const errorCode = errorData?.error_code || "";
+    const userMessage = errorData?.error_msg || errorData?.message || "";
+
+    // 根据error_type选择对应的i18n文案
+    let errorMessage: string;
+    if (errorType) {
+      const i18nKeyMap: Record<string, string> = {
+        "model_timeout": "sse_timeout_model",
+        "gateway_timeout": "sse_timeout_gateway",
+        "network_error": "sse_timeout_network",
+        "iteration_exceeded": "sse_timeout_iteration",
+      };
+      const i18nKey = i18nKeyMap[errorType] || "sse_timeout_default";
+      errorMessage = this.i18n.transform(i18nKey);
+    } else if (userMessage) {
+      // 如果有user_message但没有error_type，直接使用user_message
+      errorMessage = userMessage;
+    } else {
+      errorMessage = this.i18n.transform("run_error");
+    }
 
     if (existingMessage) {
       existingMessage.event = "error";

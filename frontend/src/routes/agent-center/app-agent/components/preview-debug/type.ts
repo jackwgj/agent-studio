@@ -94,4 +94,6 @@ export interface FuncCallItem {
   title: string;
   isRuning: boolean;
   time_consumption: TimeConsumption & { totalEx?: number };
+  error_type?: string;
+  error_summary?: string;
 }

@@ -48,8 +48,8 @@
         </ng-template>
 
         <div class="cursor-pointer ml-[5px]" (click)="handleCollapsedChat(content)">
-          <span *ngIf="!content.collapsed" nz-icon nzType="unfold" nzTheme="outline"></span>
-          <span *ngIf="content.collapsed" nz-icon nzType="fold" nzTheme="outline"></span>
+          <span *ngIf="!content.collapsed" nz-icon nzType="up" nzTheme="outline"></span>
+          <span *ngIf="content.collapsed" nz-icon nzType="down" nzTheme="outline"></span>
         </div>
       </div>
       <ng-container>
@@ -255,8 +255,8 @@
       <div class="flex" style="align-items: center"  (click)="handleCollapsedChat(answer)">
         <div class="answer-title-text">{{answer.title}}</div>
         <ng-container *ngIf="index > 0">
-          <span *ngIf="!answer.collapsed" nz-icon nzType="unfold" nzTheme="outline"></span>
-          <span *ngIf="answer.collapsed" nz-icon nzType="fold" nzTheme="outline"></span>
+          <span *ngIf="!answer.collapsed" nz-icon nzType="up" nzTheme="outline"></span>
+          <span *ngIf="answer.collapsed" nz-icon nzType="down" nzTheme="outline"></span>
         </ng-container>
 
       </div>

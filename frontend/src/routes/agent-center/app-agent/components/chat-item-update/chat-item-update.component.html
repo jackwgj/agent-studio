@@ -46,8 +46,8 @@
           </div>
 
           <div class="cursor-pointer ml-[8px]" (click)="changeCollapsedState()">
-            <span nz-icon *ngIf="!collapsed" nzType="unfold" nzTheme="outline"></span>
-            <span nz-icon *ngIf="collapsed" nzType="fold" nzTheme="outline"></span>
+            <span nz-icon *ngIf="!collapsed" nzType="up" nzTheme="outline"></span>
+            <span nz-icon *ngIf="collapsed" nzType="down" nzTheme="outline"></span>
           </div>
         </div>
         <div class="answer-box" [style.height]="collapsed ? '0' : 'auto'">
@@ -310,8 +310,8 @@
     <div class="content-title">{{answer.title}}
       <div *ngIf="!thoughtFinished" class="collapse-btn-title">
         <div class="cursor-pointer" style="white-space: normal" (click)="changeCollapsedState(answer)">
-          <span nz-icon *ngIf="!answer.collapsed" nzType="unfold" nzTheme="outline"></span>
-          <span nz-icon *ngIf="answer.collapsed" nzType="fold" nzTheme="outline"></span>
+          <span nz-icon *ngIf="!answer.collapsed" nzType="up" nzTheme="outline"></span>
+          <span nz-icon *ngIf="answer.collapsed" nzType="down" nzTheme="outline"></span>
         </div>
       </div>
     </div>
@@ -350,8 +350,8 @@
       <div class="content-title">{{answer.title}}
         <div *ngIf="!thoughtFinished" class="collapse-btn-title">
           <div class="cursor-pointer" style="white-space: normal" (click)="changeCollapsedState(answer)">
-            <span nz-icon *ngIf="!answer.collapsed" nzType="unfold" nzTheme="outline"></span>
-            <span nz-icon *ngIf="answer.collapsed" nzType="fold" nzTheme="outline"></span>
+            <span nz-icon *ngIf="!answer.collapsed" nzType="up" nzTheme="outline"></span>
+            <span nz-icon *ngIf="answer.collapsed" nzType="down" nzTheme="outline"></span>
           </div>
         </div>
       </div>

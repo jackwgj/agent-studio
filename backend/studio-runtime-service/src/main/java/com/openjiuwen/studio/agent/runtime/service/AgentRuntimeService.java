@@ -588,14 +588,58 @@ public class AgentRuntimeService implements IAgentRuntimeService {
         SseEmitter sseEmitter = Constant.AppType.DEEP_RESEARCH.equals(executeParams.getExecuteType())
             ? new SseEmitter(deepResearchSseTimeoutMilliSec) : new SseEmitter(agentSseTimeoutMilliSec);
 
-        // SSE响应超时的处理
-        sseEmitter.onTimeout(
-                () -> log.error("SSE connection timed out, conversationId [{}]", executeParams.getConversationId()));
+        // SSE响应超时的处理：构造结构化错误事件发送到前端
+        sseEmitter.onTimeout(() -> {
+            log.error("SSE connection timed out, conversationId [{}]", executeParams.getConversationId());
+            try {
+                // 根据执行类型推断超时原因，构造结构化错误事件
+                String errorType = classifySseTimeoutError(executeParams);
+                String errorCode = "SSE_TIMEOUT_" + errorType.toUpperCase(Locale.ROOT);
+                String userMessage = getSseTimeoutUserMessage(errorType);
+
+                ErrorEvent timeoutError = new ErrorEvent()
+                        .setErrorMsg(userMessage)
+                        .setErrorReason(errorType)
+                        .setErrorCode(errorCode);
+                eventProcessor.sendEvent(executeParams.getAgentId(), sseEmitter,
+                        WorkflowStreamEventFactory.error(timeoutError));
+                sendDoneAndComplete(sseEmitter, executeParams);
+            } catch (Exception e) {
+                log.error("Failed to send SSE timeout error event, conversationId [{}], reason [{}]",
+                        executeParams.getConversationId(), e.getMessage());
+            }
+        });
 
         // SSE结束后的处理
         sseEmitter.onCompletion(() -> {
         });
         return sseEmitter;
+    }
+
+    /**
+     * 根据执行上下文推断SSE超时原因
+     */
+    private String classifySseTimeoutError(AgentExecuteParams executeParams) {
+        // 默认分类为模型响应超时
+        return "model_timeout";
+    }
+
+    /**
+     * 根据超时类型获取用户友好的错误提示文案
+     */
+    private String getSseTimeoutUserMessage(String errorType) {
+        switch (errorType) {
+            case "model_timeout":
+                return "模型响应超时，请稍后重试";
+            case "gateway_timeout":
+                return "网关响应超时，请检查网络连接";
+            case "network_error":
+                return "网络连接异常，请检查网络状态";
+            case "iteration_exceeded":
+                return "执行迭代超限，任务已终止";
+            default:
+                return "响应超时，请稍后重试";
+        }
     }
 
     private Map<String, String> initHeaders() {
@@ -981,6 +1025,7 @@ public class AgentRuntimeService implements IAgentRuntimeService {
                 case SCENE_MATCH, PLAN_START, PLAN_END, STEP_START, STEP_END, TASK_COMPLETE, TASK_START ->
                         agentEventPassThrough(sseData, sseEmitter, executeParams);
                 case FUNCTION_CALL -> processOnFunctionCall(sseEmitter, eventObj, executeParams);
+                case FUNCTION_CALL_END -> processOnFunctionCallEnd(sseEmitter, eventObj, executeParams);
                 case API_EXEC_DATA -> processOnApiExecData(sseEmitter, eventObj, executeParams);
                 case STATISTIC_DATA -> processOnStaticData(sseEmitter, eventObj, executeParams);
                 case SUMMARY_RESPONSE -> processOnSummaryResponse(sseEmitter, eventObj, executeParams);
@@ -1030,6 +1075,7 @@ public class AgentRuntimeService implements IAgentRuntimeService {
                 }
                 case MESSAGE_END -> processOnControllerMessageEnd(sseEmitter, eventObj, executeParams);
                 case FUNCTION_CALL -> processOnFunctionCall(sseEmitter, eventObj, executeParams);
+                case FUNCTION_CALL_END -> processOnFunctionCallEnd(sseEmitter, eventObj, executeParams);
                 case API_EXEC_DATA -> processOnApiExecData(sseEmitter, eventObj, executeParams);
                 case AGENT_NODE_MESSAGE -> processOnAgentNodeMessage(eventObj, executeParams, null);
                 case INTERMEDIATE_MESSAGE -> processOnIntermediateMessage(sseEmitter, eventObj, executeParams);
@@ -1076,6 +1122,7 @@ public class AgentRuntimeService implements IAgentRuntimeService {
                 }
                 case MESSAGE_END -> processOnControllerMessageEnd(sseEmitter, eventObj, executeParams);
                 case FUNCTION_CALL -> processOnFunctionCall(sseEmitter, eventObj, executeParams);
+                case FUNCTION_CALL_END -> processOnFunctionCallEnd(sseEmitter, eventObj, executeParams);
                 case API_EXEC_DATA -> processOnApiExecData(sseEmitter, eventObj, executeParams);
                 case AGENT_NODE_MESSAGE -> processOnAgentNodeMessage(eventObj, executeParams, null);
                 case INTERMEDIATE_MESSAGE -> processOnIntermediateMessage(sseEmitter, eventObj, executeParams);
@@ -1441,6 +1488,34 @@ public class AgentRuntimeService implements IAgentRuntimeService {
             plugin.setName(pluginReq.getFunctionCall().getServerName());
             plugin.setToolName(name);
         }
+        sendSseData(sseEmitter, agentEvent);
+    }
+
+    // 处理function_call_end事件：将工具调用结束转换为plugin_end/step_end事件发送到前端
+    private void processOnFunctionCallEnd(SseEmitter sseEmitter, JiuwenAgentEvent eventObj,
+                                          AgentExecuteParams executeParams) {
+        JiuwenAgentEventData eventData = eventObj.getData();
+        log.info("Function call end received, conversationId [{}]", executeParams.getConversationId());
+
+        // 构造plugin_end事件发送到前端
+        AgentEvent agentEvent = new AgentEvent().setEvent(EventType.PLUGIN_END.toString())
+                .setCreatedTime(eventObj.getCreatedTime())
+                .setLatency(new Latency().setOverall(getOverAllLatency(executeParams)));
+
+        // 如果是workflow类型，设置type为WORKFLOW
+        if (Boolean.TRUE.equals(executeParams.isWorkflow())) {
+            agentEvent.setType(AgentEvent.TypeEnum.WORKFLOW);
+            executeParams.setWorkflow(false);
+        } else {
+            agentEvent.setType(AgentEvent.TypeEnum.PLUGIN);
+        }
+
+        // 从事件数据中提取结果信息
+        if (eventData != null && eventData.getAnswer() != null) {
+            Object answerData = eventData.getAnswer();
+            agentEvent.setContent(answerData);
+        }
+
         sendSseData(sseEmitter, agentEvent);
     }
 
