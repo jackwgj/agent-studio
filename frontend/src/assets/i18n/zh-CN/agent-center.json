@@ -2902,8 +2902,7 @@
     "tip_4": "匹配到通用场景",
     "action_1": "正在调用插件 {{name}}",
     "action_2": "正在调用{{name}}节点",
-    "action_3": "正在调用SKILL {{name}}",
-    "action_4": "正在思考"
+    "action_3": "正在调用SKILL {{name}}"
   },
   "end_message_placeholder": "请输入，可以通过{{变量名}}引用输入参数中的变量,可以输入 { 快速引用参数",
   "import_jiuwen_dsl": "导入Jiuwen DSL",

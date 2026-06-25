@@ -38,7 +38,7 @@
   <ng-template #answerContent>
     <div *ngIf="content.role ==='assistant'" style="width: 100%;overflow-x: auto">
       <div class="collapse-btn"  *ngIf="content.plans && content.plans.length;else summary">
-        <div class="flex" style="align-items: center;" *ngIf="content.status !='finished' && !isFinished;else success">
+        <div class="flex" style="align-items: center;" *ngIf="content.status !='finished';else success">
           <img alt="" [src]="cdnUrl('assets/agent-center/images/running.webp')"/>
           <span>{{'plan_model.thinking' | i18nextEager}}</span>
         </div>

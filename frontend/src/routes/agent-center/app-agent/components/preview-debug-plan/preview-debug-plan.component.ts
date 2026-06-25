@@ -69,6 +69,21 @@ export class PreviewDebugPlanComponent extends PreviewDebugComponent {
 
   msgServ = inject(NzMessageService);
 
+  /**
+   * 重写停止方法：关闭SSE后更新PlanExecute模式的状态为finished
+   * 父类stopChat只处理了普通对话模式，没有更新sceneMessage.status和isFinished
+   */
+  override stopChat() {
+    super.stopChat();
+    const currentIndex = this.dialogHistory.length - 1;
+    if (currentIndex >= 0) {
+      this.updateStatus(currentIndex, "finished", true);
+      if (this.dialogHistory[currentIndex]?.[0]) {
+        this.dialogHistory[currentIndex][0].isFinished = true;
+      }
+    }
+  }
+
   //上一次会话以中断节点结束，记录中断节点的index 跟当前index 比较 相邻则提取 思考ing
   public waitNode = {
     index: -1,
@@ -196,6 +211,12 @@ export class PreviewDebugPlanComponent extends PreviewDebugComponent {
           this.dialogHistory.length > 0 &&
           this.dialogHistory[0].some((item) => item.role === "assistant");
         this.dialogHistory[currentIndex][0].isFinished = true;
+        // 兜底更新sceneMessage.status，确保SSE流结束时状态一定为finished
+        const sceneMessage = this.getSceneMessage(currentIndex);
+        if (sceneMessage && sceneMessage.status !== "finished") {
+          sceneMessage.status = "finished";
+          this.dialogHistory[currentIndex] = [...this.dialogHistory[currentIndex]];
+        }
         this.agentDataServe.setHasQAFlag(hasHistory);
         this.scrollToBottom();
         this.cdr.markForCheck();
@@ -239,9 +260,8 @@ export class PreviewDebugPlanComponent extends PreviewDebugComponent {
 
   handleMessage(chunkDataObj: any, currentIndex: number): void {
     try {
-      const { event, data, latency, content, createdTime, reasoning_content } = chunkDataObj || {};
+      const { event, data, latency, content, createdTime } = chunkDataObj || {};
       const effectiveContent = content || (data && data.text);
-      const effectiveReasoningContent = reasoning_content || (data && data.reasoning_content);
       switch (event) {
         case "scene_match":
           this.handleSceneMatch(data, currentIndex);
@@ -265,7 +285,7 @@ export class PreviewDebugPlanComponent extends PreviewDebugComponent {
           this.handleTaskComplete(currentIndex);
           break;
         case "message":
-          this.handleMessageEvent(effectiveContent, currentIndex, chunkDataObj, effectiveReasoningContent);
+          this.handleMessageEvent(effectiveContent, currentIndex, chunkDataObj);
           break;
         case "agent_interrupted":
           this.handleAgentInterrupted(currentIndex);
@@ -370,6 +390,7 @@ export class PreviewDebugPlanComponent extends PreviewDebugComponent {
         actions: []
       });
     }
+    this.dialogHistory[currentIndex] = [...this.dialogHistory[currentIndex]];
   }
 
   /**
@@ -417,11 +438,7 @@ export class PreviewDebugPlanComponent extends PreviewDebugComponent {
   /**
    * 处理消息事件
    */
-  private handleMessageEvent(content: string, currentIndex: number, chunkDataObj: any, reasoning_content?: string): void {
-    if (reasoning_content && reasoning_content !== "\n\n" && reasoning_content !== "\n") {
-      this.handleReasoningContent(currentIndex, reasoning_content);
-    }
-
+  private handleMessageEvent(content: string, currentIndex: number, chunkDataObj: any): void {
     if (this.dialogHistory[currentIndex]?.[0]) {
       this.dialogHistory[currentIndex][0].isFinished = true;
     }
@@ -451,25 +468,6 @@ export class PreviewDebugPlanComponent extends PreviewDebugComponent {
       }
     }
     this.handleWorkFlowEvent(currentIndex, chunkDataObj);
-  }
-
-  private handleReasoningContent(currentIndex: number, reasoning_content: string): void {
-    const sceneMessage = this.getSceneMessage(currentIndex);
-    if (!sceneMessage) return;
-    const lastPlan = sceneMessage.plans[sceneMessage.plans.length - 1];
-    if (!lastPlan?.actionSteps?.length) return;
-    let actions = this.getAtions(currentIndex);
-    let lastAction = actions[actions.length - 1];
-    if (lastAction && lastAction.actionType === "reasoning") {
-      lastAction.content = lastAction.content + reasoning_content;
-    } else {
-      actions.push({
-        title: this.i18n.transform(this.getActionTitle("reasoning")),
-        actionType: "reasoning",
-        content: reasoning_content
-      });
-    }
-    this.dialogHistory[currentIndex] = [...this.dialogHistory[currentIndex]];
   }
 
   /**
@@ -537,43 +535,38 @@ export class PreviewDebugPlanComponent extends PreviewDebugComponent {
       this.dialogHistory[currentIndex][0].messageId = createdTime;
     }
 
-    const hasAssistant = this.dialogHistory[currentIndex].some(item => item.role === "assistant");
     const quoteList = [];
     const finalContent = this.sensitiveFlag ? this.getLastMessageContent(currentIndex) : content;
+    const sceneMessage = this.getSceneMessage(currentIndex);
 
-    const updatedItem = this.dialogHistory[currentIndex].map((item, index) => {
-      if (item.role === "assistant" && (!item.content || index === this.dialogHistory[currentIndex].length - 1)) {
-        return {
-          event: "summary_response",
-          ...item,
-          content: finalContent,
-          res: finalContent,
-          quoteList,
-          hasAssistant: true,
-          executionId: chunkDataObj.executionId,
-          tagNum: 0
-        };
-      }
-      return item;
-    });
+    if (sceneMessage) {
+      sceneMessage.status = "finished";
+    }
 
-    if (!hasAssistant) {
-      updatedItem.push({
+    const existingSummary = this.dialogHistory[currentIndex].find(
+      (item) => item.role === "assistant" && item.event === "summary_response"
+    );
+
+    if (existingSummary) {
+      existingSummary.content = finalContent;
+      existingSummary.res = finalContent;
+      existingSummary.quoteList = quoteList;
+      existingSummary.executionId = chunkDataObj.executionId;
+      existingSummary.tagNum = 0;
+    } else {
+      this.dialogHistory[currentIndex].push({
         role: "assistant",
+        event: "summary_response",
+        content: finalContent,
+        res: finalContent,
+        quoteList,
         executionId: chunkDataObj.executionId,
         tagNum: 0,
-        hasAssistant: false,
-        content,
-        quoteList
+        hasAssistant: true
       });
     }
 
-    this.dialogHistory = [
-      ...this.dialogHistory.slice(0, currentIndex),
-      updatedItem,
-      ...this.dialogHistory.slice(currentIndex + 1)
-    ];
-
+    this.dialogHistory[currentIndex] = [...this.dialogHistory[currentIndex]];
     this.endThink(currentIndex);
   }
 
@@ -620,7 +613,7 @@ export class PreviewDebugPlanComponent extends PreviewDebugComponent {
 
   public getSceneMessage(currentIndex) {
     let sceneMessage: sceneMessageType = this.dialogHistory[currentIndex].find(
-      (item) => item.role === "assistant"
+      (item) => item.role === "assistant" && item.plans
     );
     return sceneMessage;
   }
@@ -631,14 +624,17 @@ export class PreviewDebugPlanComponent extends PreviewDebugComponent {
 
   updateStatus(currentIndex, status, isScene?: boolean) {
     let sceneMessage = this.getSceneMessage(currentIndex);
-    let plan = sceneMessage.plans[sceneMessage.plans.length - 1];
-    plan.status = status;
+    if (!sceneMessage) return;
+    // 即使plans为空，也需要更新sceneMessage.status（如task_complete事件到达时plans可能尚未创建）
     if (isScene) {
       sceneMessage.status = status;
     }
+    if (sceneMessage.plans?.length) {
+      let plan = sceneMessage.plans[sceneMessage.plans.length - 1];
+      plan.status = status;
+    }
     this.dialogHistory[currentIndex] = [...this.dialogHistory[currentIndex]];
   }
-
 
   isNeedExtractNode(currentIndex) {
     return this.waitNode?.index >= 0 && currentIndex - this.waitNode?.index === 1;
@@ -746,6 +742,7 @@ export class PreviewDebugPlanComponent extends PreviewDebugComponent {
       title: this.i18n.transform(this.getActionTitle(type), { name: name }),
       content: ""
     });
+    this.dialogHistory[currentIndex] = [...this.dialogHistory[currentIndex]];
   }
 
   handleToolOrNodeAndContent(currentIndex, name, type, nodeType) {
@@ -763,8 +760,6 @@ export class PreviewDebugPlanComponent extends PreviewDebugComponent {
         return "plan_model.action_1";
       case "skill":
         return "plan_model.action_3";
-      case "reasoning":
-        return "plan_model.action_4";
       default:
         return "plan_model.action_2";
     }

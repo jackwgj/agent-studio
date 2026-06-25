@@ -14,7 +14,6 @@ import json
 import time
 import uuid
 from collections.abc import AsyncGenerator
-from dataclasses import dataclass, field
 from typing import List, Tuple, Dict
 
 from jiuwen.common.log.base import logger
@@ -40,12 +39,6 @@ from jiuwen.controller.utils.utils import MessageConverter, ToolFormatter
 from jiuwen.orchestration.flow.stream.base import StreamData, StreamCode
 
 
-@dataclass
-class StreamProcessContext:
-    llm_output: dict = field(default_factory=lambda: {"content": "", "role": "assistant"})
-    content_parts: list = field(default_factory=list)
-    reasoning_parts: list = field(default_factory=list)
-
 
 class PlanExecuteMode(BaseMode):
     """
@@ -62,6 +55,7 @@ class PlanExecuteMode(BaseMode):
         self._workflow_completed = False  # 标记工作流是否已完成（用于跳过 LLM 判断）
         self._last_workflow_result = ""  # 保存工作流执行结果
         self._skill_context = None
+        self._final_content = None
 
     def __call__(self, **kwargs):
         """兼容性方法，实际调用 invoke"""
@@ -95,6 +89,7 @@ class PlanExecuteMode(BaseMode):
         self._interrupted_by_workflow = False
         self._workflow_completed = False
         self._last_workflow_result = ""
+        self._final_content = None
         self._current_round_msg_start_idx = self._get_message_count()
         from jiuwen.controller.common.config import SkillInjectionContext
 
@@ -242,8 +237,8 @@ class PlanExecuteMode(BaseMode):
             yield event
 
         if not self.terminate:
-            # 调用 _finalize_plan_execution 获取最终结果
-            final_data = await self._finalize_plan_execution()
+            await self._finalize_plan_execution()
+            final_data = self._final_content
 
             # 先发送 task_complete 事件和基础统计数据
             yield self._create_task_complete_stream_data(plan)
@@ -313,14 +308,9 @@ class PlanExecuteMode(BaseMode):
             else:
                 hint_message = self._build_step_hint(step_iteration, ctx)
                 self._log_step_iteration(step, step_iteration, hint_message)
-                llm_result = None
-                async for item in self._call_llm_with_hint(
+                llm_result = await self._call_llm_with_hint(
                     hint_message, ctx["filtered_tools"]
-                ):
-                    if isinstance(item, StreamData):
-                        yield item
-                    elif isinstance(item, dict) and "has_tool_calls" in item:
-                        llm_result = item
+                )
 
             async for item in self._process_llm_result(
                 llm_result, step, step_iteration, ctx["plan"]
@@ -364,14 +354,9 @@ class PlanExecuteMode(BaseMode):
                     step_iteration += 1
                     hint_message = self._build_step_hint(step_iteration, ctx)
                     self._log_step_iteration(step, step_iteration, hint_message)
-                    llm_result = None
-                    async for item in self._call_llm_with_hint(
+                    llm_result = await self._call_llm_with_hint(
                         hint_message, ctx["filtered_tools"]
-                    ):
-                        if isinstance(item, StreamData):
-                            yield item
-                        elif isinstance(item, dict) and "has_tool_calls" in item:
-                            llm_result = item
+                    )
                     
                     async for item in self._process_llm_result(
                         llm_result, step, step_iteration, ctx["plan"]
@@ -538,8 +523,13 @@ class PlanExecuteMode(BaseMode):
         return False, content
 
     def _mark_step_done(self, step: PlanStep, content: str) -> tuple:
-        """标记步骤完成"""
-        result = self._extract_step_result(content)
+        """标记步骤完成，优先使用工具执行结果作为step.result"""
+        # 优先从工具执行结果中提取有意义的summary
+        tool_summary = self._generate_step_summary(step)
+        if tool_summary and tool_summary != f"{step.step_name}完成":
+            result = tool_summary
+        else:
+            result = self._extract_step_result(content)
         self.task_planner.plan_tracker.mark_step_completed(step.step_idx, result=result)
         self._log_step_completed(step, result)
         return True, result
@@ -575,23 +565,20 @@ class PlanExecuteMode(BaseMode):
         """完成计划执行的收尾工作
 
         Returns:
-            str: 最终结果
+            str: 最终结果（通过self._final_content存储）
             None: 如果计划未完成
         """
         if not self.task_planner.plan_tracker.is_completed():
-            return None
+            self._final_content = None
+            return
 
         ctx = self._step_exec_ctx
         final_hint = ctx["hint_builder"].build_hint_all_completed(ctx["plan"])
-        # 当计划有0个步骤时，传递filtered_tools以便LLM能使用skill等工具完成任务；
-        # 当计划有实际步骤时，finalize仅做汇总，不需要工具，传空列表
         finalize_tools = ctx["filtered_tools"] if len(ctx["plan"].steps) == 0 else []
-        final_result = await self._collect_call_llm_result(final_hint, finalize_tools)
 
-        content = final_result.get("content", "任务执行完成")
-        self.context_manager.set_result_message(content)
-
-        return content
+        final_result = await self._call_llm_with_hint(final_hint, finalize_tools)
+        self._final_content = (final_result or {"content": "任务执行完成"}).get("content", "任务执行完成")
+        self.context_manager.set_result_message(self._final_content)
 
     def _get_filtered_tools(self, plan: ExecutionPlan) -> List:
         """获取过滤后的工具列表"""
@@ -694,35 +681,20 @@ class PlanExecuteMode(BaseMode):
         except Exception:
             return []
 
-    async def _call_llm_with_hint(self, hint_message: str, tools: List) -> AsyncGenerator:
-        """使用 hint 消息调用 LLM，yield reasoning_content的SSE事件和最终结果"""
+    async def _call_llm_with_hint(self, hint_message: str, tools: List) -> dict:
+        """使用 hint 消息调用 LLM"""
         messages = self._build_llm_messages(hint_message)
-        llm_output = None
-        async for item in self._stream_llm_response(messages, tools):
-            if isinstance(item, StreamData):
-                yield item
-            elif isinstance(item, dict):
-                llm_output = item
-
-        if llm_output is None:
-            llm_output = {"content": "", "role": "assistant"}
+        llm_output = await self._stream_llm_response(messages, tools)
 
         tool_calls, has_tool_calls = self._parse_tool_calls(llm_output)
         self._save_llm_response_to_context(llm_output, has_tool_calls, tool_calls)
-        yield {
+        return {
             "content": llm_output.get("content", ""),
             "has_tool_calls": has_tool_calls,
             "tool_calls": tool_calls,
-            "reasoning_content": llm_output.get("reasoning_content", ""),
         }
 
-    async def _collect_call_llm_result(self, hint_message: str, tools: List) -> dict:
-        """收集 _call_llm_with_hint 的最终结果（不yield SSE事件）"""
-        result = None
-        async for item in self._call_llm_with_hint(hint_message, tools):
-            if isinstance(item, dict) and "has_tool_calls" in item:
-                result = item
-        return result or {"content": "", "has_tool_calls": False, "tool_calls": [], "reasoning_content": ""}
+
 
     def _build_llm_messages(self, hint_message: str) -> List[dict]:
         """构建LLM消息列表"""
@@ -749,9 +721,10 @@ class PlanExecuteMode(BaseMode):
 4. 当确认当前步骤已完成时，必须在回复末尾输出 [STEP_DONE] 标记
 5. 当需要向用户收集信息或确认时，必须在回复末尾输出 [ASK_USER] 标记"""
 
-    async def _stream_llm_response(self, messages: List[dict], tools: List) -> AsyncGenerator:
-        """流式调用LLM并收集响应，同时yield reasoning_content的SSE事件"""
-        ctx = StreamProcessContext()
+    async def _stream_llm_response(self, messages: List[dict], tools: List) -> dict:
+        """流式调用LLM并收集响应"""
+        llm_output = {"content": "", "role": "assistant"}
+        content_parts = []
 
         try:
             from jiuwen.common.llm_service.language_model.base import LanguageModelInput
@@ -768,57 +741,44 @@ class PlanExecuteMode(BaseMode):
             self._log_llm_input(messages, tools)
 
             async for item in self.model.astream(llm_input):
-                new_reasoning = self._process_stream_item(
-                    item, ctx, convert_ai_message_to_llm_output, AIMessage,
+                self._process_stream_item(
+                    item,
+                    llm_output,
+                    content_parts,
+                    convert_ai_message_to_llm_output,
+                    AIMessage,
                 )
-                if new_reasoning:
-                    yield StreamData(
-                        code=StreamCode.PARTIAL_CONTENT.value,
-                        msg="think",
-                        data={"think": new_reasoning},
-                        execution_id=self.task_id,
-                    )
 
-            if not ctx.llm_output.get("content") and ctx.content_parts:
-                ctx.llm_output["content"] = "".join(ctx.content_parts)
-            if ctx.reasoning_parts:
-                ctx.llm_output["reasoning_content"] = "".join(ctx.reasoning_parts)
+            if not llm_output.get("content") and content_parts:
+                llm_output["content"] = "".join(content_parts)
         except Exception as e:
             logger.exception(
                 f"task_id: {self.task_id}| [StepExecute] LLM call failed: {e}"
             )
-            ctx.llm_output["content"] = ""
-            ctx.llm_output["error"] = str(e)
+            llm_output["content"] = ""
+            llm_output["error"] = str(e)
 
-        self._log_llm_output(ctx.llm_output)
-        yield ctx.llm_output
+        self._log_llm_output(llm_output)
+        return llm_output
 
     def _process_stream_item(
-        self, item, ctx: StreamProcessContext, convert_func, ai_message_cls
+        self, item, llm_output: dict, content_parts: list, convert_func, ai_message_cls
     ):
-        """处理流式响应中的单个项，捕获 reasoning_content"""
-        new_reasoning = ""
+        """处理流式响应中的单个项"""
         if isinstance(item, ai_message_cls):
             finish_reason = (
                 item.usage_metadata.finish_reason if item.usage_metadata else None
             )
             if finish_reason in ["stop", "function_call"]:
-                ctx.llm_output.update(convert_func(item).dict(exclude_defaults=True))
+                llm_output.update(convert_func(item).dict(exclude_defaults=True))
             elif item.content:
-                ctx.content_parts.append(item.content)
-            if hasattr(item, "reasoning_content") and item.reasoning_content:
-                ctx.reasoning_parts.append(item.reasoning_content)
-                new_reasoning = item.reasoning_content
+                content_parts.append(item.content)
         elif isinstance(item, dict):
             if item.get("content"):
-                ctx.content_parts.append(item["content"])
-            if item.get("think"):
-                ctx.reasoning_parts.append(item["think"])
-                new_reasoning = item["think"]
+                content_parts.append(item["content"])
             for key in ["function_call", "function_call_list"]:
                 if key in item:
-                    ctx.llm_output[key] = item[key]
-        return new_reasoning
+                    llm_output[key] = item[key]
 
     def _log_llm_input(self, messages: List, tools: List):
         """记录LLM输入日志，逐条打印每条消息的原始内容"""
@@ -1488,14 +1448,15 @@ class PlanExecuteMode(BaseMode):
         if self.STEP_DONE_MARKER in content:
             return True
 
-        # 兼容旧版本：检查常见的完成标记（降级方案）
+        # 兼容旧版本：仅匹配与当前步骤索引精确对应的完成标记
+        # 注意：不使用"已完成"、"步骤完成"等宽泛标记，避免误判其他步骤的完成声明
         fallback_markers = [
-            "步骤完成",
-            "已完成",
-            "执行完成",
             f"第{step.step_idx}步完成",
+            f"第{step.step_idx}步已完成",
+            f"step {step.step_idx} done",
+            f"step {step.step_idx} completed",
             "[step_done]",
-            "[done]",  # 大小写变体
+            "[done]",
         ]
 
         content_lower = content.lower()
@@ -1591,46 +1552,77 @@ class PlanExecuteMode(BaseMode):
         )
 
     def _generate_step_summary(self, step) -> str:
-        """生成步骤执行总结，包括工具调用结果"""
+        """生成步骤执行总结，优先使用工具调用结果而非LLM过渡文本"""
         current_round_funcs = self._get_current_round_function_messages()
-        latest_function_msg = current_round_funcs[-1] if current_round_funcs else None
-        
-        if not latest_function_msg:
-            return step.result if step.result else f"{step.step_name}完成"
-        
-        try:
-            content = latest_function_msg.content
-            if isinstance(content, str):
-                result = json.loads(content)
-            else:
-                result = content
-                
-            if isinstance(result, dict):
-                if "result" in result:
-                    inner_result = result.get("result", {})
-                    if isinstance(inner_result, dict):
-                        stdout = inner_result.get("stdout", "")
-                        stderr = inner_result.get("stderr", "")
-                        exit_code = inner_result.get("exit_code", 0)
-                        code_content = inner_result.get("code_content", "")
-                        
-                        if exit_code == 0 and stdout:
-                            return self._format_success_summary(
-                                stdout, code_content, step.step_name
-                            )
-                        elif exit_code != 0:
-                            return self._format_error_summary(
-                                stdout, stderr, code_content, step.step_name
-                            )
-                
-                code_result = result.get("code_content", "")
-                if code_result:
-                    return f"代码执行完成\n\n```python\n{code_result}\n```"
-        
-        except (json.JSONDecodeError, TypeError, KeyError):
-            pass
-        
+
+        # 尝试从所有function消息中提取有意义的工具执行结果
+        tool_result_summary = self._extract_tool_results_summary(current_round_funcs, step)
+        if tool_result_summary:
+            return tool_result_summary
+
+        # 无工具结果时 fallback 到 step.result
         return step.result if step.result else f"{step.step_name}完成"
+
+    def _extract_tool_results_summary(self, function_msgs: list, step) -> str:
+        """从function消息列表中提取工具执行结果摘要"""
+        if not function_msgs:
+            return ""
+
+        parts = []
+        for func_msg in function_msgs:
+            try:
+                content = func_msg.content
+                if isinstance(content, str):
+                    result = json.loads(content)
+                else:
+                    result = content
+
+                if isinstance(result, dict):
+                    summary = self._format_dict_result(result, step.step_name)
+                    if summary:
+                        parts.append(summary)
+                elif isinstance(result, str) and result.strip():
+                    # 非JSON的纯文本结果（如workflow返回的文本内容）
+                    truncated = result.strip()[:500]
+                    parts.append(truncated)
+            except (json.JSONDecodeError, TypeError, KeyError):
+                # JSON解析失败，尝试直接使用原始文本
+                if isinstance(content, str) and content.strip():
+                    truncated = content.strip()[:500]
+                    parts.append(truncated)
+
+        return "\n\n".join(parts) if parts else ""
+
+    def _format_dict_result(self, result: dict, step_name: str) -> str:
+        """格式化字典类型的工具执行结果"""
+        if "result" in result:
+            inner_result = result.get("result", {})
+            if isinstance(inner_result, dict):
+                stdout = inner_result.get("stdout", "")
+                stderr = inner_result.get("stderr", "")
+                exit_code = inner_result.get("exit_code", 0)
+                code_content = inner_result.get("code_content", "")
+
+                if exit_code == 0 and stdout:
+                    return self._format_success_summary(stdout, code_content, step_name)
+                elif exit_code != 0:
+                    return self._format_error_summary(stdout, stderr, code_content, step_name)
+
+        code_result = result.get("code_content", "")
+        if code_result:
+            return f"代码执行完成\n\n```python\n{code_result}\n```"
+
+        # 尝试提取其他常见字段（如workflow返回的content/output等）
+        for key in ("content", "output", "text", "response", "data"):
+            val = result.get(key)
+            if isinstance(val, str) and val.strip():
+                return val.strip()[:500]
+            elif isinstance(val, dict):
+                inner_text = val.get("content") or val.get("output") or val.get("text")
+                if isinstance(inner_text, str) and inner_text.strip():
+                    return inner_text.strip()[:500]
+
+        return ""
 
     def _format_success_summary(
         self, stdout: str, code_content: str, step_name: str

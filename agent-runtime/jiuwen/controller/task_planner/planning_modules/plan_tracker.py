@@ -288,7 +288,7 @@ class HintBuilder:
         inputs = {
             "steps_text": steps_text,
             "current_step_info": "所有步骤已完成。",
-            "actions": "1. 任务成功，输出任务完成结果并结束\n2. 任务失败，输出任务失败原因",
+            "actions": "1. 任务成功，综合所有步骤的执行结果，输出完整的任务完成结果（必须包含关键代码、计算结果、重要输出等实质性内容，不要仅做概括性描述）并结束\n2. 任务失败，输出任务失败原因",
         }
 
         # 使用 Prompt 和 Template 替换变量
