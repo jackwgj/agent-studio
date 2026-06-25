@@ -349,6 +349,9 @@ public class AgentManagementService implements IAgentManagementService {
     @Value("${agent.endpoint-template:}")
     private String endpointTemplate;
 
+    @Value("${front-page.runtime-host:}")
+    private String runtimeHost;
+
     private String controllerEndPointTemplate;
 
     @Value("${agent.max-release-version-size}")
@@ -1092,10 +1095,12 @@ public class AgentManagementService implements IAgentManagementService {
         List<AgentInfo> agentInfoList = agentList.stream().map(Agent::convertToDto).toList();
         agentInfoList.forEach(item -> {
             AgentType type = AgentType.naValueOf(item.getType());
-            switch (type) {
-                case CONTROLLER -> item.setUrl(String.format(controllerEndPointTemplate, projectId, item.getAgentId()));
-                default -> item.setUrl(String.format(endpointTemplate, projectId, item.getAgentId()));
+            String agentTemplate = type == AgentType.CONTROLLER ? controllerEndPointTemplate : endpointTemplate;
+            String agentUrl = String.format(agentTemplate, projectId, item.getAgentId());
+            if (StringUtils.isNotEmpty(runtimeHost)) {
+                agentUrl = "https://" + runtimeHost.replaceFirst("^https?://", "") + agentUrl;
             }
+            item.setUrl(agentUrl);
         });
         // 更新发布渠道信息
         agentInfoList.forEach(item -> {

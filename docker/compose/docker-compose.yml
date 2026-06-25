@@ -62,6 +62,8 @@ services:
       front_page_block_nodes: ${FRONT_PAGE_BLOCK_NODES:-Sql,DataQuery,Agent}
       share_knowledge_enabled: ${SHARE_KNOWLEDGE_ENABLED:-true}
       workflow_async_enable: ${WORKFLOW_ASYNC_ENABLED:-true}
+      # 运行时API地址前缀（IP:Port格式），用于前端拼接API调用地址
+      front_page_runtime_host: ${FRONT_PAGE_RUNTIME_HOST:-}
     networks:
       - default
 

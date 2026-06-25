@@ -403,9 +403,12 @@ public class CommonManagementService implements ICommonManagementService {
 
         defConfigJsonObject.put("license-default-display-time", licenseDefaultDisplayTime);
 
-        if (Strings.CI.equals(envType, Constants.EnvType.HC) && StringUtils.isNotEmpty(runtimeHost)) {
-            defConfigJsonObject.put("runtime_api_endpoint_prefix",
-                String.format(runtimeHost, RequestContextUtils.getRequestUserDomainId(), regionId));
+        if (StringUtils.isNotEmpty(runtimeHost)) {
+            String runtimeApiEndpointPrefix = String.format(runtimeHost,
+                RequestContextUtils.getRequestUserDomainId(), regionId);
+            // 去除协议前缀，前端拼接时会自行添加https://
+            runtimeApiEndpointPrefix = runtimeApiEndpointPrefix.replaceFirst("^https?://", "");
+            defConfigJsonObject.put("runtime_api_endpoint_prefix", runtimeApiEndpointPrefix);
         }
 
         return defConfigJsonObject;

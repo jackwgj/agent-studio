@@ -400,6 +400,9 @@ public class WorkflowManagementService implements IWorkflowManagementService {
     @Value("${workflow.endpoint-template:}")
     private String endpointTemplate;
 
+    @Value("${front-page.runtime-host:}")
+    private String runtimeHost;
+
     @Value("${workflow.default-icon}")
     private String defaultIcon;
 
@@ -1305,7 +1308,11 @@ public class WorkflowManagementService implements IWorkflowManagementService {
             workflowListItem.setCreator(workflowEntity.getCreatedBy());
             workflowListItem.setType(
                 workflowEntity.getWorkflowType() == null ? CommonConstant.CHAT : workflowEntity.getWorkflowType());
-            workflowListItem.setUrl(String.format(endpointTemplate, projectId, workflowEntity.getId()));
+            String workflowUrl = String.format(endpointTemplate, projectId, workflowEntity.getId());
+            if (StringUtils.isNotEmpty(runtimeHost)) {
+                workflowUrl = "https://" + runtimeHost.replaceFirst("^https?://", "") + workflowUrl;
+            }
+            workflowListItem.setUrl(workflowUrl);
             workflowListItem
                 .setStatus(Strings.CS.equals(workflowEntity.getStatus(), CommonConstant.WORKFLOW_DEVELOP) ? 0 : 1);
             if (Objects.equals(workflowEntity.getCustomizeNode(), 1)) {
