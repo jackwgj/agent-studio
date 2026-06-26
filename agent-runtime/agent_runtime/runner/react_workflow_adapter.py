@@ -8,6 +8,7 @@ from typing import List, Any
 
 from openjiuwen.core.foundation.tool import Tool, ToolCard
 from openjiuwen.core.session.stream import BaseStreamMode
+from datetime import datetime
 
 
 class ReactWorkflowAdapter(Tool):
@@ -68,12 +69,13 @@ class ReactWorkflowAdapter(Tool):
         yield result
 
     def _convert_inputs(self, inputs: dict) -> dict:
-        """将 agent 的 flat 输入转换为工作流期望的嵌套格式"""
-        user_fields = {
-            key: inputs[key] for key in self._user_fields_keys if key in inputs
-        }
-        system_fields = {
-            "query": inputs.get("query", ""),
-            "sys": inputs.get("sys", {}),
-        }
-        return {"userFields": user_fields, "systemFields": system_fields}
+        """将 agent 的输入直接传递给工作流（扁平格式）"""
+        if "sys" not in inputs:
+            sys = dict(
+                conversationHistory=[],
+                conversationId=str(uuid.uuid4()),
+                userId="",
+                dialogueCount=1,
+                currentTime=datetime.now().strftime("%Y-%m-%d%H:%M:%S"))
+            inputs["global_variables"] = {"sys": sys}
+        return inputs
