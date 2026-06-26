@@ -6,6 +6,7 @@ ReActAgent Runner — 使用 openjiuwen ReActAgent 执行用户请求
 from __future__ import annotations
 
 import os
+import re
 import time
 import uuid
 import json
@@ -59,11 +60,37 @@ class ReActAgentRunner:
             workflow_logger.error(f"Failed to load IR from {ir_path}: {e}")
             raise
 
-    def _parse_prompt_template(self, ir_json: dict, conversation_history: list = None, skill_work_dir: str = "") -> \
+    @staticmethod
+    def _resolve_variable_references(template: str, global_variables: dict) -> str:
+        """替换模板中的 {{inputs.xxx}} 变量引用
+
+        从 global_variables 中按路径查找变量值并替换。
+        若路径不存在，替换为空字符串。支持嵌套路径如 {{inputs.user.name}}。
+        """
+
+        def replace_inputs(match):
+            path = match.group(1)
+            keys = path.split(".")
+            value = global_variables
+            for key in keys:
+                if isinstance(value, dict) and key in value:
+                    value = value[key]
+                else:
+                    return ""
+            return str(value) if value is not None else ""
+
+        template = re.sub(r"\{\{inputs\.([\w.]+)\}\}", replace_inputs, template)
+        return template
+
+    def _parse_prompt_template(self, ir_json: dict, conversation_history: list = None, skill_work_dir: str = "", global_variables: dict = None) -> \
     list[dict]:
         """解析 IR 中的提示词模板，添加工具使用说明和 skill 提示词"""
         configs = ir_json.get("configs", {})
         sys_prompt = configs.get("sysPromptTemplate", "")
+
+        # 替换 {{inputs.xxx}} 入参变量
+        if global_variables and sys_prompt:
+            sys_prompt = self._resolve_variable_references(sys_prompt, global_variables)
 
         tool_instruction = "\n\n你可以通过调用工具来完成任务。可使用 available tools 中提供的工具，工具的参数优先结合上下文进行推断。"
 
@@ -453,7 +480,7 @@ class ReActAgentRunner:
                 except Exception as e:
                     workflow_logger.warning(f"Failed to register skill {skill_name}: {e}")
 
-    def _create_agent(self, ir_json: dict, conversation_history: list = None, skill_work_dir: str = "") -> tuple[
+    def _create_agent(self, ir_json: dict, conversation_history: list = None, skill_work_dir: str = "", global_variables: dict = None) -> tuple[
         ReActAgent, str]:
         """根据 IR 配置创建 ReActAgent 实例
 
@@ -461,8 +488,9 @@ class ReActAgentRunner:
             ir_json: IR 配置
             conversation_history: 对话历史
             skill_work_dir: skill 文件的实际工作目录
+            global_variables: 全局变量（含用户入参变量）
         """
-        prompt_template = self._parse_prompt_template(ir_json, conversation_history, skill_work_dir)
+        prompt_template = self._parse_prompt_template(ir_json, conversation_history, skill_work_dir, global_variables)
         max_iterations = self._parse_max_iterations(ir_json)
         agent_id = ir_json.get("agentId", "react_agent")
 
@@ -521,7 +549,8 @@ class ReActAgentRunner:
         # 2. 创建 Agent（传入 skill_work_dir 以便正确构建 prompt）
         try:
             conversation_history = req.params.conversation_history
-            agent, agent_id = self._create_agent(ir_json, conversation_history, skill_work_dir)
+            global_variables = req.params.global_variables or {}
+            agent, agent_id = self._create_agent(ir_json, conversation_history, skill_work_dir, global_variables)
             agent.set_llm(llm)
         except Exception as e:
             workflow_logger.error(f"Failed to create agent: {e}")
