@@ -135,7 +135,7 @@ function copy_service() {
   fi
   mkdir -pv ${SERVICE_TARGET_PATH}/config
   cp -f ${WORKSPACE}/backend/studio-runtime-service/src/main/resources/application-runtime.yml ${SERVICE_TARGET_PATH}/config/
-  cp -f ${WORKSPACE}/backend/studio-runtime/src/main/resources/log4j2.xml ${SERVICE_TARGET_PATH}/config/
+  cp -f ${WORKSPACE}/backend/studio-runtime-service/src/main/resources/log4j2.xml ${SERVICE_TARGET_PATH}/config/
 }
 
 function package() {
