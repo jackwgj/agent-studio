@@ -681,7 +681,7 @@ export class PreviewDebugComponent {
                 (item) => {
                   if (item.role === "assistant") {
                     hasAssistant = true;
-                    let res = this.sensitiveFlag ? item.content : content;
+                    let res = content ?? item.content;
                     return {
                       ...item,
                       content: res,
@@ -699,7 +699,7 @@ export class PreviewDebugComponent {
                   role: "assistant",
                   executionId: chunkDataObj.executionId,
                   tagNum: 0,
-                  content,
+                  content: content ?? "",
                   quoteList
                 });
               }
