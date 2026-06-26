@@ -33,19 +33,13 @@ export const I18NEXT_CONFIG: InitOptions = {
   },
   backend: {
     loadPath: (langs: string[], namespaces: string[]) => {
-      const pathList = [];
-      langs.forEach(lang => {
-        namespaces.forEach((namespace: string) => {
-          // agentcore 额外处理下
-          if (namespace.startsWith(AGENT_CORE)) {
-            const i18nDir = `${Network.ASSETS_PATH}agentcore/i18n`;
-            pathList.push(`${i18nDir}/${lang}/${namespace.replace(`${AGENT_CORE}.`, '')}.json`);
-            return;
-          }
-          pathList.push(`${Network.ASSETS_PATH}i18n/${lang}/${namespace}.json`);
-        });
-      });
-      return pathList;
+      const lang = langs[0] ?? Lang.Language['zh-CN'];
+      const namespace = namespaces[0];
+      if (namespace?.startsWith(AGENT_CORE)) {
+        const i18nDir = `${Network.ASSETS_PATH}agentcore/i18n`;
+        return `${i18nDir}/${lang}/${namespace.replace(`${AGENT_CORE}.`, '')}.json`;
+      }
+      return `${Network.ASSETS_PATH}i18n/${lang}/${namespace}.json`;
     },
   },
 };
