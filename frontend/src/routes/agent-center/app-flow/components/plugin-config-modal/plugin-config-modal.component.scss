@@ -105,3 +105,20 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.error-tip {
+  color: #ff4d4f;
+  font-size: 12px;
+  margin-top: 4px;
+  line-height: 1;
+}
+
+.input-error {
+  border-color: #ff4d4f !important;
+}
+
+::ng-deep {
+  .input-error.ant-select .ant-select-selector {
+    border-color: #ff4d4f !important;
+  }
+}

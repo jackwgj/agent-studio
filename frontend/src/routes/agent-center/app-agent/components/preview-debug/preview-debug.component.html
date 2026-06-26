@@ -67,9 +67,9 @@
                     @if (getOpenTextAndQuestions.openText) {
                       <div
                         class="prologue-text-style"
-                        nz-ellipsis
-                        nz-tooltip
+                        [nz-tooltip]="prologueTextOverflow ? getOpenTextAndQuestions.openText : ''"
                         nzTooltipMaxWidth="500px"
+                        #prologueTextEl
                       >
                         {{ getOpenTextAndQuestions.openText }}
                       </div>
@@ -82,10 +82,10 @@
                         @for (item of getOpenTextAndQuestions.openQuestions; track item) {
                           <span
                             class="suggest-question-text-style"
-                            nz-ellipsis
-                            nz-tooltip
+                            [nz-tooltip]="isQuestionOverflow[item] ? item : ''"
                             nzTooltipMaxWidth="500px"
                             (click)="submitQuestion(item)"
+                            #questionEl
                             >{{ item }}</span
                           >
                         }
