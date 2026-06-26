@@ -2637,7 +2637,7 @@
   "data_query_node_1": "未配置查询条件",
   "param_extraction_log_1": "暂无对象处理流",
   "plugin-config-modal_1": "工作流参数配置",
-  "plugin-config-modal_2": "当参数设置为不可见时，智能体将无法看到。针对一些不需要智能体动态提取的固定参数，如密钥等，可以关闭其可见性，避免参数值发生不必要的修改",
+  "plugin-config-modal_2": "当参数设置为不可见时，智能体将无法看到。针对一些不需要智能体动态提取的固定参数，如密钥等，可以关闭其可见性，避免参数值发生不必要的修改，关闭时默认值必填",
   "sub-controller-node_1": "更新到最新的版本{{version}}",
   "workflow_node_1": "当前工作流是未发布状态，已存在新版本{{last_version_name}}",
   "agent-bot-1": "创建MCP成功，可以",

@@ -259,8 +259,9 @@ export class PluginConfigModalComponent implements OnInit, OnDestroy {
 
   onConfirm(): void {
     this.isValidated = true;
-    const isJsonTypeInvalid = this.inputs.some(obj => this.isArrOrObj(obj.type) && obj.value?.content === '' && obj.required);
     this.inputForm.form.markAllAsTouched();
+    Object.values(this.inputForm.controls).forEach(control => control.updateValueAndValidity());
+    const isJsonTypeInvalid = this.inputs.some(obj => this.type !== 'mcp' && obj.depth === 0 && !obj.visibility && obj.type?.startsWith('array') && obj.value?.content === '' && obj.required);
     if (this.inputForm.form.invalid || isJsonTypeInvalid) {
       return;
     }
@@ -363,7 +364,7 @@ export class PluginConfigModalComponent implements OnInit, OnDestroy {
       description: '15%',
       required: '10%',
       default: '40%',
-      visibility: '50px',
+      visibility: '65px',
     };
   }
 

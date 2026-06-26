@@ -7,7 +7,7 @@
     <nz-spin [nzSpinning]="isLoadingParams">
       <div class="h-full w-full overflow-auto">
         <div class="plugin-info-modal">
-          <img alt="" class="tool-common-icon" [src]="detail.icon || detail.avatar" />
+          <img alt="" class="tool-common-icon" [src]="detail.icon || detail.avatar"/>
           <div style="margin-left: 10px">
             <div class="plugin-name">{{ detail?.tool_chinese_name || detail?.name }}</div>
             <div class="plugin-desc">{{ detail.desc }}</div>
@@ -29,23 +29,26 @@
               <div class="overflow-ellipsis" [style]="{ width: getTableWidth().default }">
                 {{ 'default_v' | i18nextEager }}
               </div>
-              <div *ngIf="type !== 'mcp'" [style]="{ width: getTableWidth().visibility }">
-                <span nz-tooltip [nzTooltipTitle]="'plugin-config-modal_2' | i18nextEager">
+              <div *ngIf="type !== 'mcp'" [style]="{ width: getTableWidth().visibility }" class="flex align-center">
+                <span>
                   {{ 'responsestepcomponent_1073' | i18nextEager }}
                 </span>
+                <span nz-tooltip [nzTooltipTitle]="'plugin-config-modal_2' | i18nextEager" class="ml-1">
+                <nz-icon nzType="question-circle" nzTheme="outline"/>
+               </span>
               </div>
             </div>
             <form *ngIf="inputs?.length" #inputForm="ngForm">
               <nz-tree class="input-tree" [nzData]="inputs" nzBlockNode>
                 <ng-template #nzTreeTemplate let-node let-i="index">
-                  <div class="my-2 flex flex-sub-no-auto gap-[5px] w-[100%]" style="align-items: center; border-radius: 2px">
-                    <div class="text-label text-ellipsis overflow-ellipsis" [style]="{ width: getTableWidth().name }">
+                  <div class="my-2 flex flex-sub-no-auto gap-[5px] w-[100%]" style="align-items: flex-start; border-radius: 2px">
+                    <div class="self-center text-label text-ellipsis overflow-ellipsis" [style]="{ width: getTableWidth().name }">
                       {{ node.origin.name }}
                     </div>
-                    <div [style]="{ width: getTableWidth().description }">
+                    <div class="self-center" [style]="{ width: getTableWidth().description }">
                       <p class="w-[95%] text-label text-ellipsis overflow-ellipsis !mb-0" nz-tooltip [nzTooltipTitle]="node.origin.description">{{ node.origin.description }}</p>
                     </div>
-                    <div class="overflow-ellipsis" style="color: rgb(25, 25, 25)" [style]="{ width: getTableWidth().required }">
+                    <div class="self-center overflow-ellipsis" style="color: rgb(25, 25, 25)" [style]="{ width: getTableWidth().required }">
                       {{ getRrequired(node.origin.showRequired) }}
                     </div>
                     <div class="flex" [style]="{ width: getTableWidth().default }">
@@ -55,7 +58,7 @@
                             <nz-select
                               class="combo-select-left"
                               style="width: 100%"
-                              [name]="'inputFormType' + i"
+                              [name]="'inputFormType_' + node.origin.name"
                               [nzOptions]="node.origin.options"
                               [(ngModel)]="node.origin.value.type"
                               nzPlaceHolder=""
@@ -65,19 +68,27 @@
                           </div>
                           <div class="w-[65%]" [ngClass]="{ 'obj-diabled': node.origin.isDisabled }">
                             <ng-container *ngIf="node.origin.value.type === 'literal'">
-                              <input
-                                class="combo-select-right"
-                                *ngIf="node.origin.type === 'string'"
-                                style="width: 100%"
-                                type="text"
-                                nz-input
-                                [name]="'inputFormValue' + i"
-                                [nonEmptyValidator]="node.origin.required"
-                                [disabled]="node.origin.isDisabled"
-                                [placeholder]="'input_placeholder' | i18nextEager"
-                                [(ngModel)]="node.origin.value.content"
-                                [title]="node.origin.value.content"
-                              />
+                              <div class="w-full">
+                                <input
+                                  class="combo-select-right"
+                                  *ngIf="node.origin.type === 'string'"
+                                  style="width: 100%"
+                                  type="text"
+                                  nz-input
+                                  [name]="'inputFormValue_' + node.origin.name"
+                                  [nonEmptyValidator]="node.origin.required && type !== 'mcp' && node.origin.depth === 0 && !node.origin.visibility"
+                                  [disabled]="node.origin.isDisabled"
+                                  [placeholder]="'input_placeholder' | i18nextEager"
+                                  [(ngModel)]="node.origin.value.content"
+                                  [title]="node.origin.value.content"
+                                  [class.input-error]="type !== 'mcp' && node.origin.depth === 0 && !node.origin.visibility && inputForm?.controls['inputFormValue_' + node.origin.name]?.invalid && (inputForm?.controls['inputFormValue_' + node.origin.name]?.dirty || inputForm?.controls['inputFormValue_' + node.origin.name]?.touched)"
+                                />
+                                <div
+                                  *ngIf="node.origin.type === 'string' && type !== 'mcp' && node.origin.depth === 0 && !node.origin.visibility && inputForm?.controls['inputFormValue_' + node.origin.name]?.invalid && (inputForm?.controls['inputFormValue_' + node.origin.name]?.dirty || inputForm?.controls['inputFormValue_' + node.origin.name]?.touched)"
+                                  class="error-tip">
+                                  {{ inputForm?.controls['inputFormValue_' + node.origin.name]?.errors?.serviceName?.tiErrorMessage }}
+                                </div>
+                              </div>
 
                               <typed-json-input
                                 [ngClass]="{ 'obj-diabled': node.origin.isDisabled }"
@@ -98,56 +109,78 @@
                               >
                               </nz-select>
 
-                              <input
-                                *ngIf="node.origin.type === 'number'"
-                                class="combo-select-right"
-                                [name]="'inputFormValue' + i"
-                                style="width: 100%"
-                                [placeholder]="'input_placeholder' | i18nextEager"
-                                type="text"
-                                nz-input
-                                [(ngModel)]="node.origin.value.content"
-                                [title]="node.origin.value.content"
-                                nonEmptyValidator
-                                numberStr
-                                [disabled]="node.origin.isDisabled"
-                              />
+                              <div class="w-full relative" *ngIf="node.origin.type === 'number'">
+                                <input
+                                  class="combo-select-right"
+                                  [name]="'inputFormValueNum_' + node.origin.name"
+                                  style="width: 100%"
+                                  [placeholder]="'input_placeholder' | i18nextEager"
+                                  type="text"
+                                  nz-input
+                                  [(ngModel)]="node.origin.value.content"
+                                  [title]="node.origin.value.content"
+                                  [nonEmptyValidator]="type !== 'mcp' && node.origin.depth === 0 && !node.origin.visibility"
+                                  numberStr
+                                  [disabled]="node.origin.isDisabled"
+                                  [class.input-error]="type !== 'mcp' && node.origin.depth === 0 && !node.origin.visibility && inputForm?.controls['inputFormValueNum_' + node.origin.name]?.invalid && (inputForm?.controls['inputFormValueNum_' + node.origin.name]?.dirty || inputForm?.controls['inputFormValueNum_' + node.origin.name]?.touched)"
+                                />
+                                <div
+                                  *ngIf="type !== 'mcp' && node.origin.depth === 0 && !node.origin.visibility && inputForm?.controls['inputFormValueNum_' + node.origin.name]?.invalid && (inputForm?.controls['inputFormValueNum_' + node.origin.name]?.dirty || inputForm?.controls['inputFormValueNum_' + node.origin.name]?.touched)"
+                                  class="error-tip">
+                                  {{ inputForm?.controls['inputFormValueNum_' + node.origin.name]?.errors?.serviceName?.tiErrorMessage }}
+                                </div>
+                              </div>
 
-                              <input
-                                *ngIf="node.origin.type === 'integer'"
-                                class="combo-select-right"
-                                [name]="'inputFormValue' + i"
-                                style="width: 100%"
-                                [placeholder]="'input_placeholder' | i18nextEager"
-                                type="text"
-                                nz-input
-                                [(ngModel)]="node.origin.value.content"
-                                [title]="node.origin.value.content"
-                                nonEmptyValidator
-                                [disabled]="node.origin.isDisabled"
-                                integerStr
-                              />
+                              <div class="w-full relative" *ngIf="node.origin.type === 'integer'">
+                                <input
+                                  class="combo-select-right"
+                                  [name]="'inputFormValueInt_' + node.origin.name"
+                                  style="width: 100%"
+                                  [placeholder]="'input_placeholder' | i18nextEager"
+                                  type="text"
+                                  nz-input
+                                  [(ngModel)]="node.origin.value.content"
+                                  [title]="node.origin.value.content"
+                                  [nonEmptyValidator]="type !== 'mcp' && node.origin.depth === 0 && !node.origin.visibility"
+                                  [disabled]="node.origin.isDisabled"
+                                  integerStr
+                                  [class.input-error]="type !== 'mcp' && node.origin.depth === 0 && !node.origin.visibility && inputForm?.controls['inputFormValueInt_' + node.origin.name]?.invalid && (inputForm?.controls['inputFormValueInt_' + node.origin.name]?.dirty || inputForm?.controls['inputFormValueInt_' + node.origin.name]?.touched)"
+                                />
+                                <div
+                                  *ngIf="type !== 'mcp' && node.origin.depth === 0 && !node.origin.visibility && inputForm?.controls['inputFormValueInt_' + node.origin.name]?.invalid && (inputForm?.controls['inputFormValueInt_' + node.origin.name]?.dirty || inputForm?.controls['inputFormValueInt_' + node.origin.name]?.touched)"
+                                  class="error-tip">
+                                  {{ inputForm?.controls['inputFormValueInt_' + node.origin.name]?.errors?.serviceName?.tiErrorMessage }}
+                                </div>
+                              </div>
                             </ng-container>
-                            <nz-tree-select
-                              class="combo-select-right"
-                              style="width: 100%"
-                              *ngIf="node.origin.value.type === 'ref' || node.origin.value.type === 'input_ref'"
-                              [nzNodes]="node.origin.refs"
-                              [ngModel]="node.origin._refSelectedKey"
-                              (ngModelChange)="onRefSelectChange($event, node.origin)"
-                              [nzPlaceHolder]="'select_placeholder' | i18nextEager"
-                              [name]="'inputFormValue' + i"
-                              [nzDropdownMatchSelectWidth]="false"
-                              [nzDisabled]="node.origin.isDisabled"
-                              [nzPlacement]="'bottomRight'"
-                              [nzDisplayWith]="displayWithFn"
-                              [nzTreeTemplate]="refTreeSelectTpl"
-                            >
-                            </nz-tree-select>
+                            <div class="w-full" *ngIf="node.origin.value.type === 'ref' || node.origin.value.type === 'input_ref'">
+                              <nz-tree-select
+                                style="width: 100%"
+                                [nzNodes]="node.origin.refs"
+                                [ngModel]="node.origin._refSelectedKey"
+                                (ngModelChange)="onRefSelectChange($event, node.origin)"
+                                [nzPlaceHolder]="'select_placeholder' | i18nextEager"
+                                [name]="'inputFormValueRef_' + node.origin.name"
+                                [nzDropdownMatchSelectWidth]="false"
+                                [nzDisabled]="node.origin.isDisabled"
+                                [nzPlacement]="'bottomRight'"
+                                [nzDisplayWith]="displayWithFn"
+                                [nzTreeTemplate]="refTreeSelectTpl"
+                                refSelectedRequire
+                                [class.input-error]="type !== 'mcp' && node.origin.depth === 0 && !node.origin.visibility && inputForm?.controls['inputFormValueRef_' + node.origin.name]?.invalid && (inputForm?.controls['inputFormValueRef_' + node.origin.name]?.dirty || inputForm?.controls['inputFormValueRef_' + node.origin.name]?.touched)"
+                              >
+                              </nz-tree-select>
+                              <div
+                                *ngIf="type !== 'mcp' && node.origin.depth === 0 && !node.origin.visibility && inputForm?.controls['inputFormValueRef_' + node.origin.name]?.invalid && (inputForm?.controls['inputFormValueRef_' + node.origin.name]?.dirty || inputForm?.controls['inputFormValueRef_' + node.origin.name]?.touched)"
+                                class="error-tip">
+                                {{ inputForm?.controls['inputFormValueRef_' + node.origin.name]?.errors?.serviceName?.tiErrorMessage }}
+                              </div>
+                            </div>
                             <ng-template #refTreeSelectTpl let-node let-origin="origin">
                               <span class="flex items-center justify-between w-full">
                                 <span class="max-w-[100px] overflow-hidden text-ellipsis whitespace-nowrap" nz-tooltip [nzTooltipTitle]="node.title">{{ node.title }}</span>
-                                <span *ngIf="origin?.type || origin?.input_type" class="ml-[4px] shrink-0 rounded-[2px] bg-[#f5f5f5] px-[4px] text-[12px] leading-5 text-[#191919]">{{origin.type || origin.input_type | paramLabel }}</span>
+                                <span *ngIf="origin?.type || origin?.input_type"
+                                      class="ml-[4px] shrink-0 rounded-[2px] bg-[#f5f5f5] px-[4px] text-[12px] leading-5 text-[#191919]">{{ origin.type || origin.input_type | paramLabel }}</span>
                               </span>
                             </ng-template>
 
@@ -156,11 +189,11 @@
                         </div>
                       </div>
                     </div>
-                    <div *ngIf="type !== 'mcp'" [style]="{ width: getTableWidth().visibility }">
+                    <div class="self-center" *ngIf="type !== 'mcp'" [style]="{ width: getTableWidth().visibility }">
                       <nz-switch
                         *ngIf="node.origin.depth === 0"
                         class="mr-2"
-                        [name]="'visibility' + i"
+                        [name]="'visibility_' + node.origin.name"
                         (ngModelChange)="onNgModelChange($event, node.origin)"
                         [(ngModel)]="node.origin.visibility"
                       ></nz-switch>
@@ -170,7 +203,7 @@
               </nz-tree>
             </form>
             <div *ngIf="inputs?.length <= 0" style="margin-top: 24px">
-              <app-new-common-no-data-with-btn [type]="'noData'" [firstLineData]="'no_data' | i18nextEager" />
+              <app-new-common-no-data-with-btn [type]="'noData'" [firstLineData]="'no_data' | i18nextEager"/>
             </div>
           </ng-template>
         </meta-acc-block>
