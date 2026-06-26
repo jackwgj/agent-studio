@@ -88,6 +88,15 @@ class ReActAgentRunner:
         configs = ir_json.get("configs", {})
         sys_prompt = configs.get("sysPromptTemplate", "")
 
+        # 将 IR 中声明的入参变量默认值合并到 global_variables（用户未传值时回退到默认值）
+        if global_variables is not None:
+            input_vars = configs.get("inputVariables", [])
+            for var in (input_vars or []):
+                key = var.get("variable_key", "")
+                default = var.get("default_value", "")
+                if key and key not in global_variables:
+                    global_variables[key] = default
+
         # 替换 {{inputs.xxx}} 入参变量
         if global_variables and sys_prompt:
             sys_prompt = self._resolve_variable_references(sys_prompt, global_variables)
@@ -611,8 +620,9 @@ class ReActAgentRunner:
             # 提取 openjiuwen tracer 并注入到 inputs 中
             inputs.setdefault("_jiuwen_runtime_kwargs", {})["session"] = session
 
-            # 构建 LLM inputs（用于事件记录）
-            llm_inputs = [{"role": "user", "content": query}]
+            # 构建 LLM inputs（用于事件记录）—— 包含系统提示词以便调试查看
+            prompt_messages = self._parse_prompt_template(ir_json, conversation_history, skill_work_dir, global_variables)
+            llm_inputs = list(prompt_messages) + [{"role": "user", "content": query}]
 
             # 构建 LLM metaData（模型参数）
             # 从 agent 的 ability_manager 获取已注册的工具

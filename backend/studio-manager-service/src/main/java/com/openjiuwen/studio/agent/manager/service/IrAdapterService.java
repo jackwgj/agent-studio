@@ -2369,6 +2369,7 @@ public class IrAdapterService {
         }
 
         configs.put("sysPromptTemplate", getSysPromptTemplate(agent));
+        configs.put("inputVariables", agent.getInputVariables());
         configs.put("plugins", pluginConfigs);
         configs.put("mcps", mcpConfigs);
         configs.put("mode", StringUtils.isBlank(agent.getSchedulingMode()) ? "ReAct" : agent.getSchedulingMode());
