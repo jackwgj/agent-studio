@@ -453,7 +453,73 @@ export class PreviewDebugPlanComponent extends PreviewDebugComponent {
    * 处理插件结束事件
    */
   private handlePluginEnd(chunkDataObj: any, currentIndex: number): void {
-    // Plugin end event - no content display needed, just keep the "正在调用插件" title
+    // 获取当前插件调用的结果
+    const content = chunkDataObj?.content;
+    const latency = chunkDataObj?.latency;
+    
+    // 获取当前的actions数组
+    let actions = this.getAtions(currentIndex);
+    if (actions && actions.length > 0) {
+      // 更新最后一个action的内容和状态
+      let lastAction = actions[actions.length - 1];
+      
+      // 如果有内容结果，判断成功/失败并显示简化信息
+      if (content !== undefined && content !== null) {
+        let displayContent = '';
+        
+        // 尝试解析content（可能是JSON数组格式）
+        try {
+          const parsedContent = typeof content === 'string' ? JSON.parse(content) : content;
+          // 检查是否有error_code（错误码存在表示失败）
+          const errorCode = this.extractErrorCode(parsedContent);
+          
+          if (errorCode) {
+            // 失败情况：显示"调用失败，错误码：xxx"
+            displayContent = `调用失败，错误码：${errorCode}`;
+            lastAction.status = "error";
+          } else {
+            // 成功情况：显示"调用成功"
+            displayContent = '调用成功';
+            lastAction.status = "finished";
+          }
+        } catch {
+          // 解析失败，当作成功处理
+          displayContent = '调用成功';
+          lastAction.status = "finished";
+        }
+        
+        lastAction.content = displayContent;
+      } else {
+        lastAction.status = "finished";
+      }
+      
+      // 如果有延迟信息，可以选择显示
+      if (latency) {
+        lastAction.latency = latency;
+      }
+      
+      this.dialogHistory[currentIndex] = [...this.dialogHistory[currentIndex]];
+    }
+  }
+
+  /**
+   * 从content中提取错误码
+   */
+  private extractErrorCode(content: any): string | null {
+    if (!content) return null;
+    
+    // 如果是数组，遍历查找error_code
+    if (Array.isArray(content)) {
+      for (const item of content) {
+        if (item?.error_code) {
+          return item.error_code;
+        }
+      }
+    } else if (content?.error_code) {
+      return content.error_code;
+    }
+    
+    return null;
   }
 
   /**
@@ -485,8 +551,11 @@ export class PreviewDebugPlanComponent extends PreviewDebugComponent {
     if (content && content.trim()) {
       const sceneMessage = this.getSceneMessage(currentIndex);
       if (sceneMessage) {
-        sceneMessage.content = content;
-        this.dialogHistory[currentIndex] = [...this.dialogHistory[currentIndex]];
+        // 如果已经通过sensitive事件更新过内容，不应再覆盖（避免敏感词过滤后的内容被未过滤的message内容覆盖）
+        if (!this.sensitiveFlag) {
+          sceneMessage.content = content;
+          this.dialogHistory[currentIndex] = [...this.dialogHistory[currentIndex]];
+        }
       } else {
         this.dialogHistory[currentIndex].push({
           role: "assistant",

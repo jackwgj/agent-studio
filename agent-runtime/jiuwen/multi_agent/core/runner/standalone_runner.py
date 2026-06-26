@@ -233,7 +233,7 @@ class StandaloneRunner:
                 exc_info=True,
                 simple_log="Error occurred while processing message",
             )
-            return ProcessResult(status=ProcessStatus.ERROR, error_message=str(type(e)))
+            return ProcessResult(status=ProcessStatus.ERROR, error_message=str(e))
 
     async def _process_send_message(self, envelope: SendMessageEnvelope) -> Any:
         """Process send message"""

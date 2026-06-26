@@ -648,6 +648,12 @@ public class JiuwenEventProcessor {
             messageEvent.setEnableHistory(eventData.isEnableHistory());
         }
         if (executeParams.isStream()) {
+            // 兜底敏感词过滤：确保流式消息发送前进行敏感词过滤
+            SensitiveTrieUtils trieUtils = executeParams.getSensitiveTrieUtils();
+            if (trieUtils != null && trieUtils.isOutputMatchEnabled() && StringUtils.isNotEmpty(text)) {
+                text = trieUtils.handleSensitiveMatch(text, false).getRight();
+                messageEvent.setText(text);
+            }
             sendEvent(executeParams.getWorkflowId(), executeParams.getSseEmitter(),
                 WorkflowStreamEventFactory.message(messageEvent));
         }
@@ -788,6 +794,13 @@ public class JiuwenEventProcessor {
         msgBuilder.setLength(0);
 
         if (executeParams.isStream()) {
+            // 兜底敏感词过滤：对于ASK_USER等交互节点，在发送message事件前进行敏感词过滤
+            SensitiveTrieUtils trieUtils = executeParams.getSensitiveTrieUtils();
+            if (trieUtils != null && trieUtils.isOutputMatchEnabled() && StringUtils.isNotEmpty(text)) {
+                text = trieUtils.handleSensitiveMatch(text, false).getRight();
+                messageEvent.setSummary(text);
+                messageEvent.setText(text);
+            }
             sendEvent(executeParams.getWorkflowId(), executeParams.getSseEmitter(),
                 WorkflowStreamEventFactory.message(messageEvent));
         }

@@ -1335,16 +1335,25 @@ public class AgentRuntimeService implements IAgentRuntimeService {
 
     // agent执行的消息
     private void processOnMessage(SseEmitter sseEmitter, JiuwenAgentEvent eventObj, AgentExecuteParams executeParams) {
+        Object answerObj = eventObj.getData().getAnswer();
+        String answer = answerObj != null ? answerObj.toString() : "";
+        
+        // 兜底敏感词过滤：确保发送给前端的message事件内容已过滤敏感词
+        SensitiveTrieUtils trieUtils = executeParams.getTrieUtils();
+        if (trieUtils != null && trieUtils.isOutputMatchEnabled() && StringUtils.isNotEmpty(answer)) {
+            answer = trieUtils.handleSensitiveMatch(answer, false).getRight();
+        }
+        
         AgentEvent agentEvent = new AgentEvent();
         agentEvent.setEvent(EventType.MESSAGE.toString())
-                .setContent(eventObj.getData().getAnswer()).setReasoningContent(eventObj.getData().getThink())
+                .setContent(answer).setReasoningContent(eventObj.getData().getThink())
                 .setCreatedTime(eventObj.getCreatedTime());
         sendSseData(sseEmitter, agentEvent);
 
         executeParams.getApiLog()
                 .getOutputMap()
                 .computeIfAbsent("agent", k -> new StringBuilder())
-                .append(eventObj.getData().getAnswer());
+                .append(answer);
     }
 
     public SensitiveTrieUtils.MatchResultWrapper processOnSensitiveMessage(AgentExecuteParams executeParams,
@@ -1378,6 +1387,13 @@ public class AgentRuntimeService implements IAgentRuntimeService {
                 .map(Object::toString)
                 .orElse(StringUtils.EMPTY);
         NodeType nodeType = NodeType.fromJiuwen(jiuwenAgentEventData.getNodeType());
+        
+        // 兜底敏感词过滤：确保发送给前端的message事件内容已过滤敏感词
+        SensitiveTrieUtils trieUtils = executeParams.getTrieUtils();
+        if (trieUtils != null && trieUtils.isOutputMatchEnabled() && StringUtils.isNotEmpty(answer)) {
+            answer = trieUtils.handleSensitiveMatch(answer, false).getRight();
+        }
+        
         messageEvent.setText(answer);
         messageEvent.setIndex(eventObj.getIndex());
         messageEvent.setNodeId(jiuwenAgentEventData.getNodeId());
@@ -1402,8 +1418,15 @@ public class AgentRuntimeService implements IAgentRuntimeService {
         MessageEvent messageEvent = new MessageEvent();
         JiuwenAgentEventData jiuwenAgentEventData = eventObj.getData();
 
-        messageEvent.setSummary(jiuwenAgentEventData.getAnswer().toString());
-        messageEvent.setText(finishKeepText ?messageEvent.getSummary() : "");
+        String summary = jiuwenAgentEventData.getAnswer().toString();
+        // 兜底敏感词过滤：确保发送给前端的message事件内容已过滤敏感词
+        SensitiveTrieUtils trieUtils = executeParams.getTrieUtils();
+        if (trieUtils != null && trieUtils.isOutputMatchEnabled() && StringUtils.isNotEmpty(summary)) {
+            summary = trieUtils.handleSensitiveMatch(summary, false).getRight();
+        }
+        
+        messageEvent.setSummary(summary);
+        messageEvent.setText(finishKeepText ? summary : "");
         if (jiuwenAgentEventData.getOriginAnswer() != null) {
             messageEvent.setOrigin(jiuwenAgentEventData.getOriginAnswer().toString());
         }

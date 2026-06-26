@@ -526,6 +526,7 @@ class WorkflowHandler(BaseHandler):
     ) -> AsyncGenerator[Any, None]:
         """处理来自 PlanExecute 的工作流启动任务流式输出"""
         workflow_context: WorkflowContext = task.workflow_context
+        workflow_name = workflow_context.workflow_name
         workflow_req_params = (
             task.input_data.get(WorkflowConstants.WORKFLOW_REQ_PARAMS_KEY) or {}
         )
@@ -542,6 +543,15 @@ class WorkflowHandler(BaseHandler):
                 content = exe_res.content
                 if isinstance(content, dict):
                     final_answer = content.get("exec_res", {}).get("answer", "")
+            
+            # 为 StreamData 类型的事件添加 sub_workflow 标识，便于前端归类显示
+            # 子工作流的输出不应该混入父步骤的执行过程中
+            if isinstance(exe_res, StreamData):
+                if exe_res.data and isinstance(exe_res.data, dict):
+                    # 添加子工作流标识，前端可据此判断是否为嵌套的工作流输出
+                    exe_res.data["sub_workflow"] = workflow_name
+                    exe_res.data["sub_workflow_id"] = workflow_context.workflow_id
+            
             yield exe_res
 
         # 工作流完成后写入 context_manager tool_message（参考 react）

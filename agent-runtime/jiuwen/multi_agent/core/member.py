@@ -8,6 +8,7 @@ from typing import Any, Dict, Optional, AsyncGenerator, Sequence, Union
 
 from jiuwen.common.exception.base import JiuWenBaseException
 from jiuwen.common.exception.status_code import StatusCode
+from jiuwen.common.log.base import logger
 from jiuwen.orchestration.flow.enum import StreamDataMsg
 from jiuwen.orchestration.flow.stream.base import StreamData, StreamCode
 
@@ -168,7 +169,12 @@ class Member:
             except JiuWenBaseException:
                 raise
             except Exception as e:
-                error_msg = f"Error occurred while processing message: {type(str(e))}"
+                error_msg = f"Error occurred while processing message: {str(e)}"
+                logger.error(
+                    f"Error occurred while processing message: {str(e)}",
+                    exc_info=True,
+                    simple_log="Error occurred while processing message",
+                )
                 yield Message(
                     type=MemberMessageType.ERROR,
                     agent_id=self._member_id,

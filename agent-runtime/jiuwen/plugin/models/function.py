@@ -60,6 +60,11 @@ class Function(Invokable, ABC):
             await trace_manager.on_plugin_error(error)
             raise error
 
+    def invoke(self, inputs: Input, **kwargs) -> Output:
+        """Synchronous invoke, delegates to ainvoke."""
+        import asyncio
+        return asyncio.get_event_loop().run_until_complete(self.ainvoke(inputs, **kwargs))
+
     def _format_input_with_default_when_required(self, inputs: dict):
         params_default_dict = {}
         for param in self.params:

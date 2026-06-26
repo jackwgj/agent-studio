@@ -67,11 +67,43 @@ public class ProxyEventSourceListener extends EventSourceListener {
             this.errorRsp = createErrorRsp(t, response);
             this.openConnect = true;
             log.error("Fail handler stream event.", t);
+            // 发送错误事件到前端
+            sendErrorEvent(t, response);
             sseEmitter.complete();
         } catch (Throwable e) {
             log.warn("Fail handler exception. {}", e.getMessage());
         } finally {
             latch.countDown();
+        }
+    }
+
+    private void sendErrorEvent(@Nullable Throwable t, @Nullable Response response) {
+        try {
+            String errorMsg = "Internal error.";
+            String errorCode = "SERVER_INTERNAL_ERROR";
+            
+            if (response != null) {
+                if (response.body() != null) {
+                    String rsp = new String(response.body().bytes(), StandardCharsets.UTF_8);
+                    // 尝试解析错误响应中的错误信息
+                    if (rsp.contains("error_code")) {
+                        errorMsg = rsp;
+                    } else {
+                        errorMsg = "HTTP " + response.code() + ": " + rsp;
+                    }
+                }
+            } else if (t != null) {
+                errorMsg = t.getMessage();
+            }
+            
+            // 构建错误事件JSON
+            String errorEvent = String.format(
+                "{\"event\":\"error\",\"data\":{\"code\":\"%s\",\"message\":\"%s\",\"errorMsg\":\"%s\"}}",
+                errorCode, errorMsg, errorMsg
+            );
+            sseEmitter.send(SseEmitter.event().name("error").data(errorEvent).build());
+        } catch (Throwable e) {
+            log.warn("Failed to send error event to frontend: {}", e.getMessage());
         }
     }
 

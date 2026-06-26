@@ -100,8 +100,10 @@ public class RuntimeI18nService {
         errorEvent.setNodeId(eventData.getNodeId());
         errorEvent.setNodeType(NodeType.fromJiuwen(eventData.getNodeType()).getEiType());
         errorEvent.setNodeName(eventData.getNodeName());
-        errorEvent.setCode(eventData.getCode().toString());
-        errorEvent.setErrorCode("openjiuwen." + eventData.getCode().toString());
+        Integer code = eventData.getCode();
+        String codeStr = code != null ? code.toString() : "SYSTEM_ERROR";
+        errorEvent.setCode(codeStr);
+        errorEvent.setErrorCode("openjiuwen." + codeStr);
         String msg = eventData.getMessage() + " node:" + errorEvent.getNodeName() + " nodeType:"
             + errorEvent.getNodeType();
         if (StringUtils.isNotBlank(msg)) {
@@ -111,7 +113,7 @@ public class RuntimeI18nService {
         errorEvent.setWorkflowId(eventData.getWorkflowId());
         errorEvent.setWorkflowName(eventData.getWorkflowName());
 
-        return setErrorMessages(eventData.getCode(), errorEvent);
+        return setErrorMessages(code, errorEvent);
     }
 
     private String safeGetMessage(String key, Locale locale) {

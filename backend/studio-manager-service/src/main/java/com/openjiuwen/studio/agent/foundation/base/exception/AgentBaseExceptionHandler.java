@@ -4,8 +4,12 @@
 
 package com.openjiuwen.studio.agent.foundation.base.exception;
 
+import com.alibaba.fastjson2.JSONArray;
+import com.alibaba.fastjson2.JSONObject;
 import com.openjiuwen.studio.agent.common.utils.ResponseModel;
 import com.openjiuwen.studio.agent.foundation.i18n.I18nUtils;
+
+import feign.FeignException;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -20,6 +24,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
 
 import java.sql.SQLException;
+import java.util.Optional;
 
 /**
  * 功能描述 异常捕获类
@@ -47,6 +52,78 @@ public class AgentBaseExceptionHandler {
         errorResponse.setErrorSuggestion(agentBaseException.getErrorSuggestion());
         return new ResponseEntity<>(errorResponse,
             ResponseModel.num2HttpStatus(Integer.toString(agentBaseException.getErrorCode().getHttpCode())));
+    }
+
+    /**
+     * Processor FeignException to extract original error details
+     *
+     * @param exception FeignException
+     * @return Return result
+     */
+    @ExceptionHandler(FeignException.class)
+    @ResponseBody
+    public ResponseEntity<ErrorResponse> handleFeignException(FeignException exception) {
+        log.error("Feign exception: {}", exception.getMessage(), exception);
+        ErrorResponse errorResponse = new ErrorResponse();
+        
+        // Try to extract error details from the exception message
+        String errorMsg = exception.getMessage();
+        if (errorMsg != null && errorMsg.startsWith("[")) {
+            try {
+                JSONArray errorArray = JSONArray.parseArray(errorMsg);
+                if (errorArray != null && !errorArray.isEmpty()) {
+                    JSONObject errorObj = errorArray.getJSONObject(0);
+                    if (errorObj != null) {
+                        String errorCode = errorObj.getString("error_code");
+                        String errorMsgDetail = errorObj.getString("error_msg");
+                        String errorReason = errorObj.getString("error_reason");
+                        String errorSuggestion = errorObj.getString("error_suggestion");
+                        
+                        if (errorCode != null) {
+                            errorResponse.setErrorCode(errorCode);
+                        }
+                        if (errorMsgDetail != null) {
+                            errorResponse.setErrorMsg(errorMsgDetail);
+                        }
+                        if (errorReason != null) {
+                            errorResponse.setErrorReason(errorReason);
+                        }
+                        if (errorSuggestion != null) {
+                            errorResponse.setErrorSuggestion(errorSuggestion);
+                        }
+                        
+                        // If we successfully extracted error details, return with original HTTP status
+                        if (errorCode != null || errorMsgDetail != null) {
+                            int httpStatus = getHttpStatusFromFeignException(exception);
+                            return new ResponseEntity<>(errorResponse, 
+                                ResponseModel.num2HttpStatus(Integer.toString(httpStatus)));
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Failed to parse Feign exception message as JSON: {}", errorMsg);
+            }
+        }
+        
+        // Fallback: if we couldn't extract details, use the exception message
+        return handleAgentBaseException(new AgentBaseException(
+            ErrorCode.SERVER_INTERNAL_ERROR, 
+            Optional.ofNullable(errorMsg).orElse("Feign call failed")));
+    }
+    
+    private int getHttpStatusFromFeignException(FeignException exception) {
+        if (exception instanceof FeignException.BadRequest) {
+            return 400;
+        } else if (exception instanceof FeignException.Unauthorized) {
+            return 401;
+        } else if (exception instanceof FeignException.Forbidden) {
+            return 403;
+        } else if (exception instanceof FeignException.NotFound) {
+            return 404;
+        } else if (exception instanceof FeignException.TooManyRequests) {
+            return 429;
+        }
+        return exception.status() > 0 ? exception.status() : 500;
     }
 
     /**

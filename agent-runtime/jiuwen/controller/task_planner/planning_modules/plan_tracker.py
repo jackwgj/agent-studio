@@ -347,6 +347,21 @@ class HintBuilder:
 
         return result
 
+    def build_steps_text(
+        self, plan: ExecutionPlan, mark_in_progress: bool = False
+    ) -> str:
+        """
+        构建步骤列表文本
+
+        Args:
+            plan: 执行计划
+            mark_in_progress: 是否标记执行中的步骤
+
+        Returns:
+            步骤列表文本
+        """
+        return self._build_steps_text(plan, mark_in_progress)
+
     def _build_steps_text(
         self, plan: ExecutionPlan, mark_in_progress: bool = False
     ) -> str:

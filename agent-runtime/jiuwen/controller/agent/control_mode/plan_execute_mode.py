@@ -91,6 +91,9 @@ class PlanExecuteMode(BaseMode):
         self._last_workflow_result = ""
         self._final_content = None
         self._current_round_msg_start_idx = self._get_message_count()
+        # 初始化任务级别的工具失败状态
+        self._tool_failure_count = {}  # {tool_name: consecutive_failure_count}
+        self._current_step_tool_errors = []  # 当前步骤的工具错误列表
         from jiuwen.controller.common.config import SkillInjectionContext
 
         skill_ctx = kwargs.get("skill_context") or SkillInjectionContext.empty()
@@ -338,6 +341,15 @@ class PlanExecuteMode(BaseMode):
                     last_tool_name = current_tool_name
                 elif current_tool_name:
                     last_tool_name = current_tool_name
+                
+                # 如果切换到的工具之前已经连续失败3次，给出警告
+                broken_tools = {k for k, v in self._tool_failure_count.items() if v >= 3}
+                if current_tool_name and current_tool_name in broken_tools:
+                    failure_count = self._tool_failure_count[current_tool_name]
+                    logger.warning(
+                        f"task_id: {self.task_id}| Tool '{current_tool_name}' "
+                        f"failed {failure_count} times, temporarily unavailable"
+                    )
 
             if not step_done and result_content:
                 error_key = self._extract_error_signature(result_content)
@@ -448,7 +460,52 @@ class PlanExecuteMode(BaseMode):
         """构建步骤hint消息"""
         if step_iteration == 1:
             return ctx["hint_builder"].build_hint_start_step(ctx["plan"])
+        
+        # 检查是否有工具失败
+        tool_errors = getattr(self, "_current_step_tool_errors", [])
+        if tool_errors:
+            return self._build_hint_with_tool_error(ctx, tool_errors)
+        
         return ctx["hint_builder"].build_hint_step_in_progress(ctx["plan"])
+
+    def _build_hint_with_tool_error(self, ctx: dict, tool_errors: list) -> str:
+        """构建带有工具错误提示的 hint"""
+        plan = ctx["plan"]
+        current_step = plan.steps[plan.current_step_idx - 1]
+        
+        # 构建错误信息
+        error_parts = []
+        for err in tool_errors:
+            count = self._tool_failure_count.get(err["tool"], 0)
+            error_parts.append(f"- {err['tool']}: {err['error']} (已连续失败{count}次)")
+        error_summary = "\n".join(error_parts)
+        
+        # 构建可用工具列表提示（排除连续失败3次的）
+        broken_tools = {k for k, v in self._tool_failure_count.items() if v >= 3}
+        broken_tools_hint = ""
+        if broken_tools:
+            broken_tools_hint = f"\n注意：以下工具已连续失败3次，暂时不可用：{', '.join(broken_tools)}"
+        
+        # 通过 hint_builder 构建步骤状态信息
+        steps_text = ctx["hint_builder"].build_steps_text(plan, mark_in_progress=True)
+        
+        hint_template = f"""当前执行进度：
+{steps_text}
+
+当前正在执行第{plan.current_step_idx}步：{current_step.step_name}，{current_step.description}
+
+上一步工具执行失败：
+{error_summary}
+{broken_tools_hint}
+
+请选择以下操作之一：
+1. 调整参数后重试（如果失败次数<3）
+2. 使用其他工具完成相同功能
+3. 使用代码编写方式直接实现
+
+完成后必须输出 [STEP_DONE]"""
+        
+        return hint_template
 
     def _log_step_iteration(self, step: PlanStep, iteration: int, hint: str):
         """记录步骤迭代日志"""
@@ -485,11 +542,58 @@ class PlanExecuteMode(BaseMode):
         tool_calls = llm_result.get("tool_calls", [])
         self._inject_query_to_workflow_calls(tool_calls)
 
+        # 收集工具执行结果，使用字典跟踪每个工具的状态
+        tool_execution_results = {}  # {tool_name: {"success": bool, "error": str}}
+        tool_execution_errors = []
+
         for tool_call in tool_calls:
+            tool_name = tool_call.get("name", "unknown")
+            tool_execution_results[tool_name] = {"success": False, "error": None}
+            
             async for execute_result in self._execute_tool_call(tool_call, plan, step):
+                # 检查是否是 api_exec_data 类型的结果
+                if isinstance(execute_result, StreamData):
+                    data = execute_result.data or {}
+                    answer = data.get("answer", {})
+                    if isinstance(answer, dict):
+                        error_code = answer.get("error_code")
+                        result_data = answer.get("result", {})
+                        if isinstance(result_data, dict):
+                            stderr = result_data.get("stderr", "")
+                            exit_code = result_data.get("exit_code", 0)
+                            
+                            # 判断工具是否成功：error_code == 0 且 exit_code == 0（或者没有exit_code字段）
+                            is_success = (error_code == 0) and (exit_code == 0 or result_data.get("exit_code") is None)
+                            # 判断工具是否失败：有错误码且非0，或者有exit_code且非0且有stderr
+                            is_failed = (error_code != 0) or (exit_code != 0 and stderr)
+                            
+                            if is_failed:
+                                # 工具执行失败
+                                error_msg = stderr or str(answer)
+                                tool_execution_results[tool_name] = {
+                                    "success": False, 
+                                    "error": error_msg
+                                }
+                                if tool_name not in [e["tool"] for e in tool_execution_errors]:
+                                    tool_execution_errors.append({
+                                        "tool": tool_name,
+                                        "error": error_msg,
+                                        "result": result_data
+                                    })
+                                # 更新失败计数
+                                self._tool_failure_count[tool_name] = \
+                                    self._tool_failure_count.get(tool_name, 0) + 1
+                            elif is_success:
+                                # 工具执行成功，清零失败计数
+                                self._tool_failure_count[tool_name] = 0
+                                tool_execution_results[tool_name] = {"success": True, "error": None}
                 yield execute_result
+            
             if self.terminate:
                 break
+
+        # 记录当前步骤的错误，供 hint 构建使用
+        self._current_step_tool_errors = tool_execution_errors
 
         content = llm_result.get("content", "")
         if self.terminate and self._interrupted_by_workflow:
@@ -603,9 +707,32 @@ class PlanExecuteMode(BaseMode):
             plugins_source, plan.matched_scene
         )
         filtered_workflows = self._filter_workflows_by_scene(plan.matched_scene)
-        return ToolFormatter.format_tools(
+        
+        all_tools = ToolFormatter.format_tools(
             plugins=filtered_plugins, mcps=None, workflow_contexts=filtered_workflows
         )
+        
+        # 动态过滤连续失败3次的工具
+        broken_tools = {k for k, v in self._tool_failure_count.items() if v >= 3}
+        if broken_tools:
+            logger.info(
+                f"task_id: {self.task_id}| [StepExecute] Filtering out broken tools: {broken_tools}",
+                simple_log=f"task_id: {self.task_id}| [StepExecute] Filtering broken tools",
+            )
+        
+        filtered_tools = [
+            t for t in all_tools 
+            if self._get_plugin_name(t) not in broken_tools
+        ]
+        
+        # 如果所有工具都被过滤掉了，保留原列表让模型知道情况
+        if not filtered_tools and all_tools:
+            logger.warning(
+                f"task_id: {self.task_id}| [StepExecute] All tools filtered out, using original list"
+            )
+            filtered_tools = all_tools
+        
+        return filtered_tools
 
     def _get_plugins_source(self) -> List:
         """获取插件来源"""
