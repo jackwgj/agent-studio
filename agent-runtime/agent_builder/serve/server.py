@@ -14,7 +14,6 @@ from agent_builder.adapter.exception_bridge import JiuWenException
 from agent_builder.adapter.init_server import load_yaml_config, env_to_config
 from agent_builder.common.logging.base import set_thread_session, logger
 from agent_builder.common.security.sts_service import sts_init
-from agent_builder.prompt.tune.base.context_manager import ContextManager
 from agent_builder.serve.apis.mmapo import mmapo_app
 from agent_builder.serve.apis.prompt import prompt_manage_app
 from agent_builder.serve.common.ssl_ctx import create_context
@@ -96,9 +95,6 @@ class ServerApp:
             create_context(self.tls_config) if self.server_config.get("https") else None
         )
         self.app = self.instance_app()
-
-        # 设置prompt ContextManager持久化实例，可以通过store_instance传入自定义对象
-        ContextManager().set_store(store_type="MYSQL")
 
     @staticmethod
     def init_sts_config():
