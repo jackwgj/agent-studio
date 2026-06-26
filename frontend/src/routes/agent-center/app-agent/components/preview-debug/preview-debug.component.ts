@@ -86,6 +86,7 @@ export class PreviewDebugComponent {
   @ViewChild("varMemoryModalView") varMemoryModal: any;
   @ViewChild("longMemoryModalView") longMemoryModal: any;
   @ViewChild("varConfRef") varConfRef!: VarConfigComponent;
+  @ViewChild("prologueTextEl") prologueTextEl!: ElementRef;
   @Output() expandDialogEnv = new EventEmitter<boolean>();
 
   public isShowStopIcon = false;
@@ -97,6 +98,8 @@ export class PreviewDebugComponent {
     openText: "",
     openQuestions: []
   };
+  public prologueTextOverflow = false;
+  public isQuestionOverflow: Record<string, boolean> = {};
 
   public modelSelected = "";
   public memos: IMemoParam[] = [];
@@ -202,6 +205,7 @@ export class PreviewDebugComponent {
           openQuestions: suggest_queries
         };
         this.cdr.markForCheck();
+        this.checkPrologueTextOverflow();
       });
 
     this.agentDataServe
@@ -312,12 +316,31 @@ export class PreviewDebugComponent {
       };
       this.deploymentId = deploymentId;
       this.cdr.markForCheck();
+      this.checkPrologueTextOverflow();
     }
   }
 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  private checkPrologueTextOverflow(): void {
+    setTimeout(() => {
+      const el = this.prologueTextEl?.nativeElement;
+      if (el) {
+        this.prologueTextOverflow = el.scrollHeight > el.clientHeight;
+      }
+      this.isQuestionOverflow = {};
+      const questionEls = document.querySelectorAll('.suggest-question-text-style');
+      const questions = this.getOpenTextAndQuestions.openQuestions || [];
+      questionEls.forEach((qEl, index) => {
+        if (questions[index]) {
+          this.isQuestionOverflow[questions[index]] = qEl.scrollWidth > qEl.clientWidth;
+        }
+      });
+      this.cdr.markForCheck();
+    });
   }
 
   public openMemoModal() {
