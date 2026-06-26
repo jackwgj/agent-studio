@@ -226,6 +226,9 @@ class FlowApi(WorkflowComponent):
             component_type_str="FlowApi",
             metadata={"api_id": self._api_id},
         )
+        await session.trace(
+            data={"performance_metric": {"api_invoke_enter": True, "api_id": self._api_id}}
+        )
 
         try:
             validated = inputs.get("validated", False)
@@ -255,6 +258,14 @@ class FlowApi(WorkflowComponent):
                 event_type=LogEventType.WORKFLOW_COMPONENT_END,
                 component_type_str="FlowApi",
                 metadata={"api_id": self._api_id, "duration_ms": duration},
+            )
+            await session.trace(
+                data={
+                    "performance_metric": {
+                        "api_invoke_duration": duration,
+                        "api_id": self._api_id,
+                    }
+                }
             )
             return outputs
 
@@ -292,6 +303,9 @@ class FlowApi(WorkflowComponent):
             component_type_str="FlowApi",
             metadata={"api_id": self._api_id},
         )
+        await session.trace(
+            data={"performance_metric": {"api_invoke_enter": True, "api_id": self._api_id}}
+        )
 
         try:
             inputs_data = inputs.get(USER_FIELDS, {}) or {}
@@ -314,6 +328,14 @@ class FlowApi(WorkflowComponent):
                 event_type=LogEventType.WORKFLOW_COMPONENT_END,
                 component_type_str="FlowApi",
                 metadata={"api_id": self._api_id, "duration_ms": duration},
+            )
+            await session.trace(
+                data={
+                    "performance_metric": {
+                        "api_invoke_duration": duration,
+                        "api_id": self._api_id,
+                    }
+                }
             )
 
         except JiuWenBaseException:

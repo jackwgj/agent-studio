@@ -497,6 +497,13 @@ class IntentDetection(WorkflowComponent):
             component_type_str="IntentDetection",
             session_id=self.conversation_id,
         )
+        # 对齐 OLD wf_performance_buffer：额外通过 session.trace 把性能指标送入调试信息
+        if self._session:
+            await self._session.trace(data={
+                "performance_metric": {
+                    "intent llm cost": get_intent_duration,
+                }
+            })
         return intent_res
 
     # --------------------------------------------------------------------------
@@ -771,6 +778,13 @@ class IntentDetection(WorkflowComponent):
         workflow_logger.debug(
             f"{self.conversation_id}|intent detection llm_inputs prepared"
         )
+
+        # 对齐 OLD process_on_invoke_info：在 LLM 调用前发送调试信息
+        # 载荷字段与 OLD 一致（input / llm_inputs / chat_history 等合并到 current_inputs）
+        trace_data = dict(current_inputs)
+        trace_data[LLM_INPUTS] = llm_inputs
+        if self._session:
+            await self._session.trace(data=trace_data)
 
         try:
             llm_output = await self.llm.invoke(messages=llm_inputs)

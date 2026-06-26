@@ -575,6 +575,7 @@ class QuestionerDirectReplyHandler:
         self._default_rail = None
         self._execute_rail = None
         self._input_rail = None
+        self._session = None
 
     def config(self, config: QuestionerConfig):
         self._config = config
@@ -606,6 +607,7 @@ class QuestionerDirectReplyHandler:
         return self
 
     async def handle(self, inputs: Input, session: Session, context):
+        self._session = session
         if self._state.status == ExecutionStatus.START:
             return await self._handle_start_state(inputs, session, context)
         if self._state.status == ExecutionStatus.USER_INTERACT:
@@ -631,6 +633,8 @@ class QuestionerDirectReplyHandler:
             self._update_questioner_states_question(output.question)
             self._state = self._state.handle_event(QuestionerEvent.USER_INTERACT_EVENT)
 
+            await session.trace(data={"user": self._query})
+            await session.trace(data={"assistant": output.question})
             await self._write_assistant_message_to_context(output.question, context)
             return QuestionerUtils.format_questioner_output(output)
 
@@ -646,8 +650,11 @@ class QuestionerDirectReplyHandler:
                 )
                 if is_continue_ask:
                     self._update_questioner_states_question(output.question)
+                    await session.trace(data={"user": self._query})
+                    await session.trace(data={"assistant": output.question})
                     await self._write_assistant_message_to_context(output.question, context)
                 else:
+                    await session.trace(data={"user": self._query})
                     await self._write_assistant_message_to_context(
                         json.dumps(output.key_fields, ensure_ascii=False), context
                     )
@@ -673,6 +680,7 @@ class QuestionerDirectReplyHandler:
 
         if self._is_set_question_content() and not self._need_extract_fields():
             output.user_response = user_response
+            await session.trace(data={"user": user_response})
             self._state = self._state.handle_event(QuestionerEvent.END_EVENT)
             return QuestionerUtils.format_questioner_output(output)
 
@@ -682,8 +690,11 @@ class QuestionerDirectReplyHandler:
                 event = QuestionerEvent.USER_INTERACT_EVENT if is_continue_ask else QuestionerEvent.END_EVENT
                 if is_continue_ask:
                     self._update_questioner_states_question(output.question)
+                    await session.trace(data={"user": user_response})
+                    await session.trace(data={"assistant": output.question})
                     await self._write_assistant_message_to_context(output.question, context)
                 else:
+                    await session.trace(data={"user": user_response})
                     await self._write_assistant_message_to_context(
                         json.dumps(output.key_fields, ensure_ascii=False), context
                     )
@@ -802,6 +813,8 @@ class QuestionerDirectReplyHandler:
             component_type_str="Questioner",
         )
 
+        await self._session.trace(data={"llm_inputs": llm_inputs})
+
         try:
             response = (await self._model.invoke(messages=llm_inputs)).content
         except Exception as e:
@@ -810,6 +823,8 @@ class QuestionerDirectReplyHandler:
                 error_msg="failed to invoke llm for extraction",
                 cause=e,
             ) from e
+
+        await self._session.trace(data={"llm_outputs": response})
 
         workflow_logger.info(
             "Questioner LLM extraction completed",

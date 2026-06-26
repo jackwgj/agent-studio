@@ -235,6 +235,7 @@ class LLMChain(WorkflowComponent):
                     (
                         raw_output_gen,
                         reasoning_content,
+                        thinking_state,
                     ) = await self._process_thinking_stream(
                         self._llm.stream(messages=language_model_inputs),
                         language_model_inputs,
@@ -244,6 +245,11 @@ class LLMChain(WorkflowComponent):
                             "final_output", ""
                         )
                         if chunk_data.get("final_output"):
+                            usage_metadata = thinking_state.get("usage_metadata")
+                            model_stats = (
+                                getattr(usage_metadata, 'model_stats', {}) or {}
+                                if usage_metadata else {}
+                            )
                             custom_data = {
                                 "rawOutput": raw_output.get("rawOutput") if
                                     isinstance(raw_output, dict) else raw_output,
@@ -252,34 +258,58 @@ class LLMChain(WorkflowComponent):
                                 "node_type": JIUWEN_LLM_TYPE,
                                 "componentType": "LLM",
                                 "userFields": raw_output,
-                                "model_stats": chunk_data.get("metadata", {}),
+                                "model_stats": model_stats,
                             }
                             if isinstance(raw_output, dict) and raw_output.get("reasoning_content"):
                                 custom_data["think"] = raw_output.get("reasoning_content")
+                            # llm_info trace
                             await session.trace(data={"llm_info": {
                                 "llm_inputs": language_model_inputs,
                                 "llm_outputs": chunk_data.get("llm_outputs") or chunk_data.get("final_output"),
                                 "reasoning_content": reasoning_content
                             }})
+                            # 性能 trace（批量）
+                            await session.trace(data={"performance_metric": {
+                                "first_token<llm>": thinking_state.get("first_token_ms"),
+                                "total_token<llm>": thinking_state.get("total_token_ms"),
+                            }})
                             self._stream_final_output = custom_data
+                            # 调试信息走 yield（最后一帧，含 reasoning_content + usage）
+                            usage_dict = usage_metadata.model_dump() if usage_metadata else {}
                             yield {
-                                USER_FIELDS: {"reasoning_content": reasoning_content}
+                                    USER_FIELDS: {"reasoning_content": reasoning_content},
+                                    **usage_dict,
                             }
                         else:
                             yield {USER_FIELDS: {output_id: raw_output}}
                 else:
                     accumulated_content = ""
+                    model_stats = {}
+                    stream_state = {
+                        "start_time": time.perf_counter(),
+                        "is_first_token": True,
+                        "usage_metadata": None,
+                    }
                     async for chunk in self._llm.stream(
                         messages=language_model_inputs, tools=inputs.get("tools", [])):
                         if hasattr(chunk, 'usage_metadata') and chunk.usage_metadata:
-                            model_stats = getattr(chunk.usage_metadata, 'model_stats', {})
+                            stream_state["usage_metadata"] = chunk.usage_metadata
+                            model_stats = getattr(chunk.usage_metadata, 'model_stats', {}) or {}
                         if hasattr(chunk, 'metadata') and chunk.metadata:
                             model_stats.update(chunk.metadata)
+                        if stream_state["is_first_token"]:
+                            first_token_ms = round(
+                                (time.perf_counter() - stream_state["start_time"]) * 1000)
+                            workflow_logger.info(f"first_token<llm>|{first_token_ms}")
+                            stream_state["is_first_token"] = False
                         if chunk.content and chunk.content != "":
                             if getattr(chunk, "finish_reason", "null") == "null":
                                 accumulated_content += chunk.content
                             yield {USER_FIELDS: {output_id: chunk.content}}
 
+                    total_token_ms = round(
+                        (time.perf_counter() - stream_state["start_time"]) * 1000)
+                    workflow_logger.info(f"total_token<llm>|{total_token_ms}")
                     formatted_res = self._format_response(
                         accumulated_content,
                         self._get_response_format().get("type"),
@@ -295,12 +325,27 @@ class LLMChain(WorkflowComponent):
                         "model_stats": model_stats,
                         "status": "finish"
                     }
+                    # llm_info trace（对齐 OLD process_on_invoke_info，补 reasoning_content=null）
                     await session.trace(data={"llm_info": {
-                            "llm_inputs": language_model_inputs,
-                            "llm_outputs": accumulated_content,
-                        }})
+                        "llm_inputs": language_model_inputs,
+                        "llm_outputs": accumulated_content,
+                        "reasoning_content": None,
+                    }})
+                    # 性能 trace（批量）
+                    await session.trace(data={"performance_metric": {
+                        "first_token<llm>": first_token_ms if not stream_state["is_first_token"] else None,
+                        "total_token<llm>": total_token_ms,
+                    }})
                     self._stream_final_output = custom_data
-                    yield {USER_FIELDS: {"final_output": formatted_res}}
+                    # 调试信息走 yield（最后一帧）
+                    usage_dict = (
+                        stream_state["usage_metadata"].model_dump()
+                        if stream_state["usage_metadata"] else {}
+                    )
+                    yield {
+                            USER_FIELDS: {"final_output": formatted_res},
+                            **usage_dict,
+                    }
 
             except Exception as e:
                 raise build_error(
@@ -310,7 +355,7 @@ class LLMChain(WorkflowComponent):
 
     async def _process_thinking_stream(
         self, model_result, llm_inputs: dict
-    ) -> tuple[AsyncGenerator, str]:
+    ) -> tuple[AsyncGenerator, str, dict]:
         """
         预消费模型流，分离 content 和 reasoning_content
 
@@ -318,10 +363,12 @@ class LLMChain(WorkflowComponent):
         1. 完整遍历模型返回流
         2. 收集所有 content chunks 到列表
         3. 累积所有 reasoning_content 到字符串
-        4. 基于缓存的 content_chunks 构造异步迭代器
+        4. 收集 usage_metadata 和性能指标到 state
+        5. 基于缓存的 content_chunks 构造异步迭代器
 
         Returns:
-            tuple: (rawOutput generator, reasoning_content 完整字符串)
+            tuple: (rawOutput generator, reasoning_content 完整字符串, state dict)
+                   state 含 usage_metadata / first_token_ms / total_token_ms
         """
         content_chunks: list[str] = []
         reasoning_content: str = ""
@@ -329,6 +376,9 @@ class LLMChain(WorkflowComponent):
         state = {
             "start_time": time.perf_counter(),
             "is_first_token": True,
+            "usage_metadata": None,
+            "first_token_ms": None,
+            "total_token_ms": None,
         }
 
         try:
@@ -346,6 +396,11 @@ class LLMChain(WorkflowComponent):
                 StatusCode.COMPONENT_LLM_INVOKE_CALL_FAILED,
                 error_msg=f"LLM stream failed: {str(e)}",
             ) from e
+
+        # 流消费完成，记录 total_token 性能指标
+        state["total_token_ms"] = round(
+            (time.perf_counter() - state["start_time"]) * 1000)
+        workflow_logger.info(f"total_token<llm>|{state['total_token_ms']}")
 
         accumulated_content = "".join(content_chunks)
         formatted_res = self._format_response(
@@ -384,22 +439,26 @@ class LLMChain(WorkflowComponent):
 
             yield {"final_output": formatted_res}
 
-        return raw_output_generator(), reasoning_content
+        return raw_output_generator(), reasoning_content, state
 
     async def _consume_llm_stream(
         self, content_chunks, reasoning_content, result_iter, state
     ):
-        """消费 LLM 流，分离 content 和 reasoning_content"""
+        """消费 LLM 流，分离 content 和 reasoning_content，并收集 usage_metadata"""
         node_id = self._session.get_component_id() if self._session else ""
         node_name = self._conf.get("name") or node_id
         index = 0
 
         async for item in result_iter:
             if state["is_first_token"]:
-                workflow_logger.info(
-                    f"first_token<llm>|{round((time.perf_counter() - state['start_time']) * 1000)}"
-                )
+                state["first_token_ms"] = round(
+                    (time.perf_counter() - state["start_time"]) * 1000)
+                workflow_logger.info(f"first_token<llm>|{state['first_token_ms']}")
                 state["is_first_token"] = False
+
+            # 收集 usage_metadata（取最后一个非空的）
+            if hasattr(item, "usage_metadata") and item.usage_metadata:
+                state["usage_metadata"] = item.usage_metadata
 
             if hasattr(item, "reasoning_content") and item.reasoning_content:
                 reasoning_content += item.reasoning_content
@@ -577,20 +636,17 @@ class LLMChain(WorkflowComponent):
         return messages
 
     def _append_usage_metadata(self, llm_output, final_output: dict):
-        """添加使用信息"""
+        """添加使用信息
+
+        以 NEW openjiuwen 原生字段集为准，全字段铺平到 final_output 顶层。
+        不做字段名映射、不补缺失字段、不删 NEW 多出的 cost 字段。
+        """
         if (
             llm_output
             and hasattr(llm_output, "usage_metadata")
             and llm_output.usage_metadata
         ):
-            usage = llm_output.usage_metadata
-            final_output.update(
-                {
-                    "input_tokens": getattr(usage, "input_tokens", 0),
-                    "output_tokens": getattr(usage, "output_tokens", 0),
-                    "total_tokens": getattr(usage, "total_tokens", 0),
-                }
-            )
+            final_output.update(llm_output.usage_metadata.model_dump())
 
     def _get_model_input(self, inputs: dict) -> List[dict]:
         """获取模型输入，包含系统提示和对话历史"""
