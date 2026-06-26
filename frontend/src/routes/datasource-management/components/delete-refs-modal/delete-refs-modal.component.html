@@ -39,6 +39,19 @@
             </tr>
           </tbody>
         </nz-table>
+
+        <div style="gap: 8px; display: flex; flex-direction: column">
+          <div>
+            <span>如您确定要删除，请输入<b style="margin: 0px 6px">DELETE</b></span>
+            <a (click)="deleteVal = 'DELETE'">一键输入</a>
+          </div>
+          <div>
+            <input [style]="{ 'border-color': errorClass ? '#ff4d4f !important' : '' }" nz-input [(ngModel)]="deleteVal" />
+          </div>
+          @if (errorClass) {
+            <div style="color: #ff4d4f; font-size: 12px">请完整输入“DELETE”</div>
+          }
+        </div>
       </div>
     </div>
   </div>

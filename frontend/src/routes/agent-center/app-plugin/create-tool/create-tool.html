@@ -157,7 +157,7 @@
                     </ng-template>
                     <ng-template #content>
                       <div class="mt-2 flex items-center gap-2">
-                        <div class="text-label" class="w-[220px]">{{ 'param_name' | i18nextEager }}</div>
+                        <div class="text-label" style="flex: 1; padding-left: 30px">{{ 'param_name' | i18nextEager }}</div>
                         <div class="w-[86px] text-label">{{ 'chinese_name' | i18nextEager }}</div>
                         <div class="w-[110px] text-label">{{ 'param_type' | i18nextEager }}</div>
                         <div class="w-[86px] text-label">{{ 'default_v' | i18nextEager }}</div>
@@ -169,24 +169,31 @@
                         </div>
                         <div class="w-[60px] text-label">{{ 'param_validate' | i18nextEager }}</div>
 
-                        <div class="w-[96px] text-label">{{ 'required' | i18nextEager }}</div>
+                        <div class="w-[85px] text-label">{{ 'required' | i18nextEager }}</div>
                       </div>
-
-                      <nz-tree id="cp-req-tree" [nzData]="showParams" nzShowLine [nzTreeTemplate]="nzTreeTemplate1">
+                      @for(tabItem of tabs; track tabItem.id) {
+                      <nz-tree
+                        id="cp-req-tree"
+                        [hidden]="tabItem.id !== selectedTab"
+                        [nzData]="showParams(tabItem.id)"
+                        bnzBlockNode
+                        nzShowLine
+                        [nzTreeTemplate]="nzTreeTemplate1"
+                      >
                         <ng-template #nzTreeTemplate1 let-node let-origin="origin" let-i="index">
                           <div class="mt-[8px] flex gap-2 leading-none" style="flex: 1">
                             <!-- 参数名称 -->
-                            <div id="argName" style="flex: 1">
+                            <div id="argName" style="flex: 1" class="getresponseargs">
                               <input
                                 style="width: 100%"
                                 type="text"
                                 (keydown)="$event.stopPropagation()"
-                                [name]="'inputFormName'+ origin.keyindex"
+                                [name]="'inputFormName' + tabItem.id + origin.keyindex"
                                 nz-input
                                 nonEmptyValidator
                                 [pluginRequestArgsNameValidatorNew]="
-                                        getReqExistingNames(origin)
-                                      "
+                                          getReqExistingNames(origin)
+                                        "
                                 (input)="onInput()"
                                 [isEmptyObjReq]="origin"
                                 maxlength="200"
@@ -194,18 +201,18 @@
                                 [title]="origin.name"
                                 [placeholder]="'input_placeholder' | i18nextEager"
                                 [class.input-error]="
-                                               inputForm?.controls['inputFormName'+ origin.keyindex]?.invalid &&
-                                               (inputForm?.controls['inputFormName'+ origin.keyindex]?.dirty || inputForm?.controls['inputFormName'+ origin.keyindex]?.touched)
-                                             "
+                                                 inputForm?.controls['inputFormName' + tabItem.id + origin.keyindex]?.invalid &&
+                                                 (inputForm?.controls['inputFormName' + tabItem.id + origin.keyindex]?.dirty || inputForm?.controls['inputFormName' + tabItem.id + origin.keyindex]?.touched)
+                                               "
                               />
                               <div
                                 *ngIf="
-                            inputForm?.controls['inputFormName'+ origin.keyindex]?.invalid &&
-                            (inputForm?.controls['inputFormName'+ origin.keyindex]?.dirty || inputForm?.controls['inputFormName'+ origin.keyindex]?.touched)
-                          "
+                              inputForm?.controls['inputFormName' + tabItem.id + origin.keyindex]?.invalid &&
+                              (inputForm?.controls['inputFormName' + tabItem.id + origin.keyindex]?.dirty || inputForm?.controls['inputFormName' + tabItem.id + origin.keyindex]?.touched)
+                            "
                                 class="error-tip"
                               >
-                                {{inputForm?.controls['inputFormName'+ origin.keyindex]?.errors?.serviceName?.tiErrorMessage}}
+                                {{inputForm?.controls['inputFormName' + tabItem.id + origin.keyindex]?.errors?.serviceName?.tiErrorMessage}}
                               </div>
                             </div>
 
@@ -215,15 +222,15 @@
                                 (keydown)="$event.stopPropagation()"
                                 style="width: 100%"
                                 type="text"
-                                [name]="'inputFormCnName' + origin.keyindex"
+                                [name]="'inputFormCnName' + tabItem.id + origin.keyindex"
                                 nz-input
                                 (input)="onInput()"
                                 maxlength="200"
                                 [(ngModel)]="origin.name_cn"
                                 [title]="origin.name_cn"
                                 [placeholder]="
-                                        'input_placeholder' | i18nextEager
-                                      "
+                                          'input_placeholder' | i18nextEager
+                                        "
                               />
                               <div class="w-full" #cnWrapper></div>
                             </div>
@@ -233,7 +240,7 @@
                               <nz-select
                                 *ngIf="origin.depth === 5||tabs[2].active; else otherTypes"
                                 style="width: 100%"
-                                [name]="'inputFormType' + origin.keyindex"
+                                [name]="'inputFormType' + tabItem.id + origin.keyindex"
                                 [nzOptions]="reqeustArgNoneObjTypeOptions"
                                 [(ngModel)]="origin.type"
                                 [nzDisabled]="tabs[0].active"
@@ -245,12 +252,12 @@
                               <ng-template #otherTypes>
                                 <nz-select
                                   style="width: 100%"
-                                  [name]="'inputFormType'+ origin.keyindex"
+                                  [name]="'inputFormType' + tabItem.id + origin.keyindex"
                                   [nzOptions]="reqeustArgTypeOptions"
                                   [(ngModel)]="origin.type"
                                   (ngModelChange)="
-                                          onParamTypeChange(origin)
-                                        "
+                                            onParamTypeChange(origin)
+                                          "
                                   [nzDisabled]="tabs[0].active"
                                   [nzPlaceHolder]="'select_placeholder' | i18nextEager"
                                 >
@@ -266,14 +273,14 @@
                                 *ngIf="origin.type === 'string'"
                                 style="width: 100%"
                                 type="text"
-                                [name]="'inputFormDefault'+ origin.keyindex"
+                                [name]="'inputFormDefault' + tabItem.id + origin.keyindex"
                                 nz-input
                                 maxlength="10000000"
                                 [(ngModel)]="origin.default"
                                 [title]="origin.default"
                                 [placeholder]="
-                                        'input_placeholder' | i18nextEager
-                                      "
+                                          'input_placeholder' | i18nextEager
+                                        "
                               />
 
                               <input
@@ -281,15 +288,15 @@
                                 *ngIf="origin.type === 'integer'"
                                 style="width: 100%"
                                 type="text"
-                                [name]="'inputFormDefault'+ origin.keyindex"
+                                [name]="'inputFormDefault' + tabItem.id + origin.keyindex"
                                 maxlength="2000"
                                 integerStr
                                 nz-input
                                 [(ngModel)]="origin.default"
                                 [title]="origin.default"
                                 [placeholder]="
-                                        'input_placeholder' | i18nextEager
-                                      "
+                                          'input_placeholder' | i18nextEager
+                                        "
                               />
 
                               <input
@@ -297,15 +304,15 @@
                                 *ngIf="origin.type === 'number'"
                                 style="width: 100%"
                                 type="text"
-                                [name]="'inputFormDefault'+ origin.keyindex"
+                                [name]="'inputFormDefault' + tabItem.id + origin.keyindex"
                                 numberStr
                                 maxlength="2000"
                                 nz-input
                                 [(ngModel)]="origin.default"
                                 [title]="origin.default"
                                 [placeholder]="
-                                        'input_placeholder' | i18nextEager
-                                      "
+                                          'input_placeholder' | i18nextEager
+                                        "
                               />
 
                               <input
@@ -313,26 +320,26 @@
                                 *ngIf="!isSimpleType(origin.type)"
                                 style="width: 100%"
                                 type="text"
-                                [name]="'inputFormDefault'+ origin.keyindex"
+                                [name]="'inputFormDefault' + tabItem.id + origin.keyindex"
                                 maxlength="2000"
                                 nz-input
                                 [(ngModel)]="origin.default"
                                 [title]="origin.default"
                                 [disabled]="true"
                                 [placeholder]="
-                                        'input_placeholder' | i18nextEager
-                                      "
+                                          'input_placeholder' | i18nextEager
+                                        "
                               />
 
                               <nz-select
                                 *ngIf="origin.type === 'boolean'"
                                 style="width: 100%"
-                                [name]="'inputFormDefault'+ origin.keyindex"
+                                [name]="'inputFormDefault' + tabItem.id + origin.keyindex"
                                 [nzOptions]="booleanOps"
                                 [(ngModel)]="origin.default"
                                 [nzPlaceHolder]="
-                                        'select_placeholder' | i18nextEager
-                                      "
+                                          'select_placeholder' | i18nextEager
+                                        "
                               >
                               </nz-select>
 
@@ -347,38 +354,38 @@
                                 (keydown)="$event.stopPropagation()"
                                 [(ngModel)]="origin.description"
                                 [title]="origin.description"
-                                [name]="'inputFormDesc' + origin.keyindex"
+                                [name]="'inputFormDesc' + tabItem.id + origin.keyindex"
                                 [maxlength]="2000"
                                 [placeholder]="
-                                        'input_placeholder' | i18nextEager
-                                      "
+                                          'input_placeholder' | i18nextEager
+                                        "
                                 nonEmptyValidator
                                 [class.input-error]="
-                                inputForm?.controls['inputFormDesc' + origin.keyindex]?.invalid &&
-                                (inputForm?.controls['inputFormDesc' + origin.keyindex]?.dirty || inputForm?.controls['inputFormDesc' + origin.keyindex]?.touched)
-                              "
+                                  inputForm?.controls['inputFormDesc' + tabItem.id + origin.keyindex]?.invalid &&
+                                  (inputForm?.controls['inputFormDesc' + tabItem.id + origin.keyindex]?.dirty || inputForm?.controls['inputFormDesc' + tabItem.id + origin.keyindex]?.touched)
+                                "
                               />
                               <div
                                 *ngIf="
-                            inputForm?.controls['inputFormDesc' + origin.keyindex]?.invalid &&
-                            (inputForm?.controls['inputFormDesc' + origin.keyindex]?.dirty || inputForm?.controls['inputFormDesc' + origin.keyindex]?.touched)
-                          "
+                              inputForm?.controls['inputFormDesc' + tabItem.id + origin.keyindex]?.invalid &&
+                              (inputForm?.controls['inputFormDesc' + tabItem.id + origin.keyindex]?.dirty || inputForm?.controls['inputFormDesc' + tabItem.id + origin.keyindex]?.touched)
+                            "
                                 class="error-tip"
                               >
-                                {{inputForm?.controls['inputFormDesc' + origin.keyindex]?.errors?.serviceName?.tiErrorMessage}}
+                                {{inputForm?.controls['inputFormDesc' + tabItem.id + origin.keyindex]?.errors?.serviceName?.tiErrorMessage}}
                               </div>
                             </div>
                             <!-- 参数校验 -->
                             <div class="a-form-checkbox flex h-[28px] w-[60px] items-center justify-center">
                               <label
-                                [id]="'inputFormCheckCheckbox' + origin.keyindex"
+                                [id]="'inputFormCheckCheckbox' + tabItem.id + origin.keyindex"
                                 nz-checkbox
-                                [name]="'inputFormCheck'+ origin.keyindex"
+                                [name]="'inputFormCheck' + tabItem.id + origin.keyindex"
                                 [nzDisabled]="
-                                        origin.depth > 0 ||
-                                        !isSimpleType(origin.type) ||
-                                        origin.type === 'boolean'
-                                      "
+                                          origin.depth > 0 ||
+                                          !isSimpleType(origin.type) ||
+                                          origin.type === 'boolean'
+                                        "
                                 [(ngModel)]="origin.validated"
                               >
                               </label>
@@ -387,9 +394,9 @@
                             <!-- 必填 -->
                             <div class="a-form-checkbox flex h-[28px] w-[28px] items-center justify-center">
                               <label
-                                [id]="'inputFormRequiredCheckbox' + origin.keyindex"
+                                [id]="'inputFormRequiredCheckbox' + tabItem.id + origin.keyindex"
                                 nz-checkbox
-                                [name]="'inputFormRequired'+ origin.keyindex"
+                                [name]="'inputFormRequired' + tabItem.id + origin.keyindex"
                                 [(ngModel)]="origin.required"
                               >
                               </label>
@@ -409,6 +416,7 @@
                           </div>
                         </ng-template>
                       </nz-tree>
+                      }
                     </ng-template>
                   </collapse-text>
                 </div>
@@ -553,18 +561,14 @@
                 <!-- 自定义非流式响应参数 或 流式响应样例 -->
                 <div class="flex w-full flex-col gap-[8px]" *ngIf="patchArgs?.length > 0; else pathEmpty">
                   <div class="flex items-center gap-2">
-                    <div class="w-[310px] text-label">{{ 'pathParamName' | i18nextEager }}</div>
+                    <div class="text-label" style="flex: 1; padding-left: 30px">{{ 'pathParamName' | i18nextEager }}</div>
                     <div class="w-[96px] text-label">{{ 'param_type' | i18nextEager }}</div>
                     <div class="w-[400px] text-label">{{ 'param_desc' | i18nextEager }}</div>
                   </div>
-                  <nz-tree id="cp-res-tree" [nzData]="patchArgs" nzShowLine [nzTreeTemplate]="nzTreeTemplate2">
+                  <nz-tree id="cp-res-tree" [nzData]="patchArgs" bnzBlockNode nzShowLine [nzTreeTemplate]="nzTreeTemplate2">
                     <ng-template #nzTreeTemplate2 let-node let-origin="origin" let-i="index">
                       <div class="mt-[8px] flex gap-2 leading-none">
-                        <div
-                          [ngStyle]="{
-                                width: getResLayerIndexWidth(origin)
-                              }"
-                        >
+                        <div style="flex: 1">
                           <input
                             [disabled]="true"
                             style="width: 100%"
@@ -686,12 +690,12 @@
             <ng-template #content>
               <form #responseForm="ngForm">
                 <div class="mt-2 flex items-center gap-2">
-                  <div class="text-label" style="flex: 1">{{ 'param_name' | i18nextEager }}</div>
+                  <div class="text-label" style="flex: 1; padding-left: 30px">{{ 'param_name' | i18nextEager }}</div>
                   <div class="w-[290px] text-label">{{ 'description' | i18nextEager }}</div>
                   <div class="w-[115px] text-label">{{ 'param_type' | i18nextEager }}</div>
-                  <div class="w-[106px] text-label">{{ 'required' | i18nextEager }}</div>
+                  <div class="w-[90px] text-label">{{ 'required' | i18nextEager }}</div>
                 </div>
-                <nz-tree id="cp-res-tree" [nzData]="responseArgs" nzShowLine [nzTreeTemplate]="nzTreeTemplate3">
+                <nz-tree id="cp-res-tree" [nzData]="responseArgs" nzBlockNode nzShowLine [nzTreeTemplate]="nzTreeTemplate3">
                   <ng-template #nzTreeTemplate3 let-node let-origin="origin" let-i="index">
                     <div class="mt-[8px] flex gap-2 leading-none" style="flex: 1">
                       <div style="flex: 1" class="getresponseargs">

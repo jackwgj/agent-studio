@@ -399,8 +399,8 @@ export class CreateToolComponent implements OnInit {
     },
   ];
 
-  public get showParams(): any[] {
-    return this.requestArgs.filter(args => args.location === this.selectedTab);
+  public showParams(id): any[] {
+    return this.requestArgs.filter(args => args.location === id);
   }
 
   public responseArgs: any[] = [];
@@ -895,7 +895,8 @@ export class CreateToolComponent implements OnInit {
     return true;
   }
 
-  showFromErrorByName(form, validatorName): boolean {
+  showFromErrorByName(form, validatorName, showSelect = false): boolean {
+    let errorIndex = -1;
     let res = true;
     const keysList = Object.keys(form.controls);
     if (keysList) {
@@ -906,6 +907,17 @@ export class CreateToolComponent implements OnInit {
           for (let j = 0; j < validatorName.length; j++) {
             if (keysList[i].indexOf(validatorName[j]) === 0) {
               if (form.controls[keysList[i]].errors) {
+                if (showSelect) {
+                  if (keysList[i].indexOf('Headers') > 0) {
+                    errorIndex = 0;
+                  } else if (keysList[i].indexOf('Body') > 0) {
+                    errorIndex = 1;
+                  } else if (keysList[i].indexOf('Query') > 0) {
+                    errorIndex = 2;
+                  } else if (keysList[i].indexOf('Path') > 0) {
+                    errorIndex = 3;
+                  }
+                }
                 res = false;
               }
             }
@@ -918,6 +930,10 @@ export class CreateToolComponent implements OnInit {
       }
     }
 
+    if (showSelect && errorIndex >= 0) {
+      this.tabSelectIndex = errorIndex;
+      this.beforeActiveChange(errorIndex);
+    }
     return res;
   }
 
@@ -925,28 +941,16 @@ export class CreateToolComponent implements OnInit {
     if (!this.showFromErrorByName(this.groupFormControl, [])) {
       return;
     }
-    if (!this.showFromError(this.inputForm.form)) {
-      return;
-    }
-    if (!this.showFromError(this.responseForm.form)) {
-      return;
-    }
-    if (!this.showFromErrorByName(this.inputForm.form, ['inputFormName', 'inputFormDesc'])) {
+    if (!this.showFromErrorByName(this.inputForm.form, ['inputFormName', 'inputFormDesc'], true)) {
       return;
     }
     if (!this.showFromErrorByName(this.responseForm.form, ['responseFormName'])) {
       return;
     }
-
-    for (let i = 0; i < this.requestArgs.length; i++) {
-      if (this.requestArgs[i].validated && !this.requestArgs[i].validate_rule) {
-        return;
-      }
-    }
-
-    if (this.patchArgs && this.patchArgs.length > 0 && this.pathForm.invalid) {
+    if (!this.showFromErrorByName(this.pathForm.form, ['responseFormDesc'])) {
       return;
     }
+
     const data = this.buildRequestBody();
     this.loading = true;
     if (this.toolId) {
@@ -1061,16 +1065,16 @@ export class CreateToolComponent implements OnInit {
   }
 
   public openDebugModal() {
-    if (!this.showFromError(this.groupFormControl)) {
+    if (!this.showFromErrorByName(this.groupFormControl, [])) {
       return;
     }
-    if (!this.showFromError(this.inputForm.form)) {
+    if (!this.showFromErrorByName(this.inputForm.form, ['inputFormName', 'inputFormDesc'], true)) {
       return;
     }
-    if (!this.showFromError(this.responseForm.form)) {
+    if (!this.showFromErrorByName(this.responseForm.form, ['responseFormName'])) {
       return;
     }
-    if (this.patchArgs && this.patchArgs.length > 0 && this.pathForm.invalid) {
+    if (!this.showFromErrorByName(this.pathForm.form, ['responseFormDesc'])) {
       return;
     }
 

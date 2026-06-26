@@ -201,3 +201,7 @@
 .input-error {
   border-color: #ff4d4f !important;
 }
+
+::ng-deep nz-tree-node-title{
+  flex: auto !important;
+  }

@@ -63,6 +63,10 @@ export class DeleteRefsModalComponent {
 
   public currentPage: number = 1;
 
+  public errorClass = false;
+
+  public deleteVal = '';
+
   constructor(
     private i18n: I18NextEagerPipe,
     private readonly http: HttpService
@@ -80,8 +84,12 @@ export class DeleteRefsModalComponent {
   }
 
   public onConfirm() {
-    this.close();
-    this.confirm.emit();
+    if (this.deleteVal === 'DELETE' || this.srcData.data.length === 0) {
+      this.close();
+      this.confirm.emit();
+    } else {
+      this.errorClass = true;
+    }
   }
 
   public getMappingsByPage() {

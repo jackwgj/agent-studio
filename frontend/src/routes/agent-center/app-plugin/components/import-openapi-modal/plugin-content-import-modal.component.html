@@ -22,8 +22,8 @@
         <asset-format-icon
           (click)="formatDoc()"
           nz-tooltip
-          nzTooltipTitle="{{ 'format' | i18nextEager }}"
-          nzTooltipPlacement="top"
+          [tiTip]="'format' | i18nextEager"
+          [tiTipPosition]="'top'"
           class="cursor-pointer"
         ></asset-format-icon>
       </div>
