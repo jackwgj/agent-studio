@@ -235,6 +235,9 @@ class PromptOptimizeModelProvider:
         if not api_key or api_key == "sk-placeholder":
             api_key = getattr(model_info, "api_key", "") or ""
 
+        # 走 Model Router 时，鉴权由 Router 服务端处理，客户端 api_key 仅需通过 agent-core 校验
+        api_key = api_key or "sk-placeholder"
+
         # --- 模型参数：modelInfo 优先，settings.llm 兜底 ---
         # model_info.model 已是 UUID（deploymentId），模型路由服务需要 UUID 作为 model 参数
         model_name = getattr(model_info, "model", "") or base.model_name

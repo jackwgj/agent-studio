@@ -172,11 +172,11 @@ class DbContextAccesser(BaseContextStoreAccesser):
             optimized_model_name=context["model_info"].model,
             optimized_model_source=context["model_info"].model_source,
             optimized_model_url=context["model_info"].url,
-            optimized_model_token=context["model_info"].api_key,
+            optimized_model_token="",
             assistant_model_name=context["assistant_info"].model,
             assistant_model_source=context["assistant_info"].model_source,
             assistant_model_url=context["assistant_info"].url,
-            assistant_model_token=context["assistant_info"].api_key,
+            assistant_model_token="",
         )
         self._job_info_table.insert(job_info)
 
@@ -549,15 +549,11 @@ class DbContextAccesser(BaseContextStoreAccesser):
         context["model_info"] = model_info
         model_info.model = result.get("optimized_model_name")
         model_info.model_source = result.get("optimized_model_source")
-        model_info.url = result.get("optimized_model_url", "")
-        model_info.api_key = result.get("optimized_model_token", "")
 
         assistant_info = LLMModelInfo(headers={})
         context["assistant_info"] = assistant_info
         assistant_info.model = result.get("assistant_model_name")
         assistant_info.model_source = result.get("assistant_model_source")
-        assistant_info.url = result.get("assistant_model_url", "")
-        assistant_info.api_key = result.get("assistant_model_token", "")
 
         context["name"] = result.get("name")
         context["desc"] = result.get("desc")
