@@ -23,12 +23,12 @@
             <dependency>
                 <groupId>org.springframework</groupId>
                 <artifactId>spring-context</artifactId>
-                <version>6.2.12</version>
+                <version>6.2.19</version>
             </dependency>
             <dependency>
                 <groupId>org.springframework</groupId>
                 <artifactId>spring-tx</artifactId>
-                <version>6.2.12</version>
+                <version>6.2.19</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -103,7 +103,7 @@
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-handler</artifactId>
-            <version>4.2.1.Final</version>
+            <version>4.1.135.Final</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.security</groupId>
@@ -209,7 +209,7 @@
         <dependency>
             <artifactId>spring-context-support</artifactId>
             <groupId>org.springframework</groupId>
-            <version>6.2.11</version>
+            <version>6.2.19</version>
         </dependency>
         <dependency>
             <artifactId>wiremock</artifactId>
@@ -350,12 +350,12 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-web</artifactId>
-            <version>6.2.12</version>
+            <version>6.2.19</version>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-webmvc</artifactId>
-            <version>6.2.12</version>
+            <version>6.2.19</version>
         </dependency>
         <dependency>
             <groupId>com.baomidou</groupId>

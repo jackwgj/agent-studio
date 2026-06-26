@@ -173,6 +173,7 @@ services:
       WORKFLOW_EXECUTE_TIMEOUT: ${WORKFLOW_EXECUTE_TIMEOUT:-900}
       IR_LLM_API_KEY: ${IR_LLM_API_KEY:-sk-placeholder}
       OTEL_ENABLED: false
+      ENABLE_INTENT_WORKFLOW: ${ENABLE_INTENT_WORKFLOW:-true}
       # 提示词优化任务持久化存储
       STORE_DB_TYPE: ${STORE_DB_TYPE:-mysql}
       STORE_DB_HOST: ${STORE_DB_HOST:-}

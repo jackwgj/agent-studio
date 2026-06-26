@@ -18,7 +18,7 @@
 
         <spring-boot.repackage.skip>true</spring-boot.repackage.skip>
         <lang3.version>3.18.0</lang3.version>
-        <springframework.version>6.2.12</springframework.version>
+        <springframework.version>6.2.19</springframework.version>
         <netty.version>4.2.7.Final</netty.version>
     </properties>
 
@@ -224,12 +224,12 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-context</artifactId>
-            <version>6.2.12</version>
+            <version>6.2.19</version>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-web</artifactId>
-            <version>6.2.11</version>
+            <version>6.2.19</version>
         </dependency>
         <dependency>
             <groupId>io.swagger</groupId>
@@ -472,7 +472,7 @@
         <dependency>
             <groupId>org.springframework.security</groupId>
             <artifactId>spring-security-web</artifactId>
-            <version>7.0.5</version>
+            <version>7.0.6</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.springframework.security</groupId>
@@ -729,7 +729,7 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
-            <version>3.5.14</version>
+            <version>3.5.15</version>
         </dependency>
         <dependency>
             <groupId>io.kubernetes</groupId>
