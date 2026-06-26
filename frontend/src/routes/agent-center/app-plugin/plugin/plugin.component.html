@@ -248,18 +248,37 @@
                       <a class="name-txt" (click)="goDetail(row)">{{ row.toolName }}</a>
                     </td>
                     <td>{{ row.tool_info.tool_desc }}</td>
-                    <td class="baseinfo-row-content">
-                      <img alt="" *ngIf="row.debuggingStatus === 0" src="{{ changeUrl('assets/images/status/tool-error.png') }}" class="baseinfo-row-content-img" />
-                      <img alt="" *ngIf="row.debuggingStatus === 1" src="{{ changeUrl('assets/images/status/tool-success.png') }}" class="baseinfo-row-content-img" />
-                      <img alt="" *ngIf="row.debuggingStatus === 2" src="{{ changeUrl('assets/images/status/tool-wait.png') }}" class="baseinfo-row-content-img" />
-                      <span>{{ getDebuggingStatus(row.debuggingStatus) }}</span>
+                    <td>
+                      <div class="baseinfo-row-content">
+                        <img
+                          alt=""
+                          *ngIf="row.debuggingStatus === 0"
+                          src="{{ changeUrl('assets/images/status/tool-error.png') }}"
+                          class="baseinfo-row-content-img"
+                        />
+                        <img
+                          alt=""
+                          *ngIf="row.debuggingStatus === 1"
+                          src="{{ changeUrl('assets/images/status/tool-success.png') }}"
+                          class="baseinfo-row-content-img"
+                        />
+                        <img
+                          alt=""
+                          *ngIf="row.debuggingStatus === 2"
+                          src="{{ changeUrl('assets/images/status/tool-wait.png') }}"
+                          class="baseinfo-row-content-img"
+                        />
+                        <span>{{ getDebuggingStatus(row.debuggingStatus) }}</span>
+                      </div>
                     </td>
                     <td>{{ row.toolDependency?.dependency_on_agent }}</td>
                     <td>{{ row.toolDependency?.dependency_on_workflow }}</td>
                     <td>
-                      <ng-container *ngFor="let item of toolsTableFn">
-                        <a nzType="text" nz-button [disabled]="item.disabled" (click)="handleToolsAction(item, row)">{{ item.label }}</a>
-                      </ng-container>
+                      <div>
+                        <ng-container *ngFor="let item of toolsTableFn">
+                          <a nzType="text" nz-button [disabled]="item.disabled" (click)="handleToolsAction(item, row)">{{ item.label }}</a>
+                        </ng-container>
+                      </div>
                     </td>
                   </tr>
                 </tbody>
