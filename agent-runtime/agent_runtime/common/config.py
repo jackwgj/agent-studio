@@ -171,7 +171,7 @@ class OtelSettings(BaseSettings):
     and ``OTEL_EXPORTER_ENDPOINT`` to activate OTel span export.
     """
 
-    enabled: bool = Field(default=True, validation_alias="OTEL_ENABLED")
+    enabled: bool = Field(default=False, validation_alias="OTEL_ENABLED")
     exporter_type: str = Field(default="console", validation_alias="OTEL_EXPORTER_TYPE")
     exporter_endpoint: str = Field(default="", validation_alias="OTEL_EXPORTER_ENDPOINT")
     protocol: str = Field(default="grpc", validation_alias="OTEL_PROTOCOL")

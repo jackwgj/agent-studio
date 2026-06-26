@@ -528,7 +528,14 @@ class ReActAgentRunner:
             yield adapter.adapt_error(f"Failed to create agent: {e}")
             return
 
-        # 3. 注册工具
+        # 3. 注册 OtelRail 以触发 OTel span 生命周期管理
+        try:
+            from openjiuwen.extensions.tracer_otel.otel_rail import OtelRail
+            await agent.register_rail(OtelRail())
+        except Exception as e:
+            workflow_logger.debug(f"OtelRail registration skipped: {e}")
+
+        # 4. 注册工具
         try:
             await self._register_plugins(ir_json, agent, agent_id)
             await self._register_mcp_servers(ir_json, agent, agent_id)
