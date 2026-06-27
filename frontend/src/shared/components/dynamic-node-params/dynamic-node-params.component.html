@@ -26,7 +26,8 @@
           <button
             *ngIf="isShowMultiBtn(inputItem)"
             nz-button
-            class="flex"
+            class="flex !w-[96px] ml-2"
+            nzSize="small"
             [disabled]="inputItem.uploadDatas?.length >= 10 || isUploading"
             (click)="addMultiFile(i)"
           >
@@ -120,7 +121,7 @@
           <input
             type="file"
             #fileInput
-            class="hidden"
+            style="display:none"
             [multiple]="false"
             [accept]="inputItem.type | fileAcc"
             (change)="onUploadFile($event, inputItem, 'single')"
@@ -189,7 +190,7 @@
           <input
             type="file"
             #fileInput
-            class="hidden"
+            style="display:none"
             [ngClass]="'input' + i"
             multiple="multiple"
             [accept]="inputItem.type | fileAcc"

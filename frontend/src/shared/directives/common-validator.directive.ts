@@ -393,7 +393,6 @@ export class RefSelectedRequireDirective implements Validator {
 
   @Input('refSelectedRequire')
   set shouldValidate(value: boolean | string) {
-    // value === ''：适配直接使用refSelectedRequire，会进行非空校验
     this.isValidate = value === '' || value === 'true' || value === true;
   }
 
@@ -403,6 +402,52 @@ export class RefSelectedRequireDirective implements Validator {
     }
 
     if (!control?.value || !Array.isArray(control.value)) {
+      return {
+        serviceName: { tiErrorMessage: i18next.t('select_placeholder') },
+      };
+    }
+
+    return null;
+  }
+}
+
+@Directive({
+  selector: '[nzTreeRefSelectedRequire]',
+  providers: [
+    {
+      provide: NG_VALIDATORS,
+      useExisting: forwardRef(() => NzTreeRefSelectedRequireDirective),
+      multi: true,
+    },
+  ],
+  standalone: true,
+})
+export class NzTreeRefSelectedRequireDirective implements Validator {
+  private isValidate: boolean = true;
+
+  @Input('nzTreeRefSelectedRequire')
+  set shouldValidate(value: boolean | string) {
+    this.isValidate = value === '' || value === 'true' || value === true;
+  }
+
+  validate(control: AbstractControl): ValidationErrors | null {
+    if (!this.isValidate) {
+      return null;
+    }
+
+    if (!control?.value || (typeof control.value !== 'string' && !Array.isArray(control.value))) {
+      return {
+        serviceName: { tiErrorMessage: i18next.t('select_placeholder') },
+      };
+    }
+
+    if (typeof control.value === 'string' && !control.value.trim()) {
+      return {
+        serviceName: { tiErrorMessage: i18next.t('select_placeholder') },
+      };
+    }
+
+    if (Array.isArray(control.value) && control.value.length === 0) {
       return {
         serviceName: { tiErrorMessage: i18next.t('select_placeholder') },
       };

@@ -208,6 +208,7 @@ import { IMemoryLibBaseInfo } from '@routes/memory-lib/memory-lib-interfaces';
 import {
   ControllerLogModalComponent,
 } from '@routes/agent-center/app-flow/components/controller-log-modal/controller-log-modal.component';
+
 enum mapKeys {
   version_id = 'version_id',
   version_name = 'version_name',
@@ -1414,9 +1415,9 @@ export class FlowComponent implements OnInit, OnDestroy, AfterViewInit {
         // 更新画布上的node
         if (nodeData?.type === 'SubController') {
           const exceedsList = this.appFlowServ.judgeExceedsSubController(this.graph)
-          if(exceedsList.length){
+          if (exceedsList.length) {
             const exceedsStr = exceedsList.join(',')
-            MessageComponent.showError(`绑定子智能体【${exceedsStr}】达到最大深度限制，请删除后重试`,5000);
+            MessageComponent.showError(`绑定子智能体【${exceedsStr}】达到最大深度限制，请删除后重试`, 5000);
             return
           }
           const controller_node: any = this.workflowDetail.details.nodes.find(contr_item => contr_item.type === 'Controller');
@@ -2194,7 +2195,7 @@ export class FlowComponent implements OnInit, OnDestroy, AfterViewInit {
               model_type,
               model,
             };
-          } else if (node.type === 'LLM') {
+          } else if (node.type === 'LLM' || node.type === 'ParamExtraction') {
             (node as ILLMNode).configs.model = {
               model_deployment_id,
               model_name,
@@ -2233,12 +2234,12 @@ export class FlowComponent implements OnInit, OnDestroy, AfterViewInit {
     });
   }
 
-  onGlobalConfigsMultiChange( configs:{
+  onGlobalConfigsMultiChange(configs: {
     inputs: IWorkflowField[];
     global_variables: IWorkflowField[];
     memory_config: IMemoryLibBaseInfo;
     environment: string;
-  }){
+  }) {
     this.workflowDetail.details.inputs = configs.inputs;
     this.workflowDetail.details.global_variables =
       configs.global_variables;
@@ -4487,7 +4488,7 @@ export class FlowComponent implements OnInit, OnDestroy, AfterViewInit {
       pluginChange: callback,
     };
     this.pluginModalRef = this.nzDrawerService.create({
-      nzTitle:this.i18n.transform('addpluginmodalcomponent_252'),
+      nzTitle: this.i18n.transform('addpluginmodalcomponent_252'),
       nzContent: AddPluginModalComponent,
       nzPlacement: 'right',
       nzWidth: '700px',
@@ -5327,9 +5328,9 @@ export class FlowComponent implements OnInit, OnDestroy, AfterViewInit {
 
         if (nodeData.type === 'SubController') {
           const exceedsList = this.appFlowServ.judgeExceedsSubController(this.graph)
-          if(exceedsList.length){
+          if (exceedsList.length) {
             const exceedsStr = exceedsList.join(',')
-            MessageComponent.showError(`绑定子智能体【${exceedsStr}】达到最大深度限制，请删除后重试`,5000);
+            MessageComponent.showError(`绑定子智能体【${exceedsStr}】达到最大深度限制，请删除后重试`, 5000);
             return
           }
           const controller_node: any =

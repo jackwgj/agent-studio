@@ -94,6 +94,12 @@
 .task-item{
   height: 40px;
   border-radius: 8px;
+
+  .task-name-ellipsis {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
 
 .edit{
@@ -139,11 +145,11 @@
   height: 14px;
   flex-shrink: 0;
   flex-grow: 0;
-  
+
   .running {
     animation: rotate 1.5s linear infinite;
   }
-  
+
   @keyframes rotate {
     0% {
       transform: rotate(0deg);

@@ -38,7 +38,7 @@
         (click)="handleTask($event, 'select', item)"
       >
         <div *ngIf="!item.isEdit" class="w-full flex-between">
-          <div nzEllipsis>{{item.name}}</div>
+          <div nz-tooltip [nzTooltipTitle]="item.name" class="task-name-ellipsis">{{item.name}}</div>
           <div class="edit-box">
             <div class="edit-content">
               <span

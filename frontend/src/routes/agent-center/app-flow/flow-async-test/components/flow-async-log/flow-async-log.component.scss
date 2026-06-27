@@ -301,3 +301,9 @@
   margin-right: 4px;
   color: rgb(59 130 246);
 }
+
+.text-overflow {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

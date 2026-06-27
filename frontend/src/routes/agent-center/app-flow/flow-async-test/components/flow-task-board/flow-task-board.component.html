@@ -68,7 +68,7 @@
           class="run-workflow-btn"
           type="button"
           nz-button
-          nzDanger
+          nzType="primary"
           (click)="runWorkflow()"
           [nz-tooltip]="dynamicNodeParams?.fileLoading
             ? ('waiting_for_file_upload_to_complete' | i18nextEager)

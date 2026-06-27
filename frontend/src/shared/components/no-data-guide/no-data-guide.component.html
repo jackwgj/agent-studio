@@ -12,7 +12,7 @@
       }">
       <div class="step-item" *ngFor="let item of guideConfig.stepList;let i = index;">
         <div class="item-title">{{ item.title }}</div>
-        <div class="item-desc" nz-tooltip [nzTooltipTitle]="tipContent">
+        <div class="item-desc" nz-tooltip [nzTooltipTitle]="tipContent" [nzTooltipTitleContext]="{ $implicit: item }">
           <ng-container *ngTemplateOutlet="descTem;context: { item: item }"></ng-container>
         </div>
         <div class="item-index">0{{i+1}}</div>
@@ -45,8 +45,8 @@
   </div>
 </div>
 
-<ng-template #tipContent let-context="context">
-  <ng-container *ngTemplateOutlet="descTem;context: { item: context }"></ng-container>
+<ng-template #tipContent let-item>
+  <ng-container *ngTemplateOutlet="descTem;context: { item: item }"></ng-container>
 </ng-template>
 
 <ng-template #descTem let-item="item">
