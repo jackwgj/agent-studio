@@ -27,7 +27,7 @@
           </nz-form-item>
           <div class="dividing-line"></div>
           <div style="width: 100%">
-            <div class="the-obj-to-apply mb-2">{{ basicInfoFormLabel.theObjectToApply }}</div>
+            <nz-form-label [nzSpan]="24" nzRequired>{{  basicInfoFormLabel.theObjectToApply }}</nz-form-label>
             <nz-form-item>
               <nz-form-control>
                 <nz-select formControlName="theTypeOfObjectToApply">
