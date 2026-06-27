@@ -87,6 +87,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -690,6 +691,25 @@ public class AgentImportService {
             .collect(Collectors.toMap(ImportResourceResult::getId, result -> result, (existing, incoming) -> existing));
         Map<String, ImportInfo> resourceMap = resourceList.stream()
             .collect(Collectors.toMap(ImportInfo::getResourceId, result -> result, (existing, incoming) -> existing));
+
+        // 构建完整 ID 映射：resource_id 和 metadata.trace_id 都映射到 newId
+        // 解决导出包 DSL 里 configs.id 是上次导入生成的旧 ID（= trace_id）而非原始 resource_id 的问题
+        Map<String, String> allIdMappings = new HashMap<>();
+        for (ImportResourceResult result : resultList) {
+            String newId = StringUtils.isNotEmpty(result.getNewId()) ? result.getNewId() : result.getId();
+            allIdMappings.put(result.getId(), newId);
+            ImportInfo info = resourceMap.get(result.getId());
+            if (info != null && info.getMetadata() != null) {
+                try {
+                    WorkflowEntity workflowMeta = JsonUtils.objectToClassType(info.getMetadata(), WorkflowEntity.class);
+                    if (StringUtils.isNotEmpty(workflowMeta.getTraceId())
+                        && !Strings.CS.equals(workflowMeta.getTraceId(), result.getId())) {
+                        allIdMappings.put(workflowMeta.getTraceId(), newId);
+                    }
+                } catch (Exception ignored) {
+                }
+            }
+        }
         resourceList.stream().filter(v -> CollectionUtils.isNotEmpty(v.getParents())).forEach(p -> {
             ImportResourceResult result = resultMap.get(p.getResourceId());
             if (result == null || Strings.CS.equals(result.getStatus(), ImportExportStatusEnum.FAILED.getCode())) {
@@ -710,7 +730,7 @@ public class AgentImportService {
                     case WORKFLOW -> handleWorkflowDsl(parentResource, parentResult, result);
                     case AGENT -> handleAgentDsl(parentResource, parentResult, result);
                     case CONTROLLER -> {
-                        handleControllerDsl(parentResource, parentResult, result);
+                        handleControllerDsl(parentResource, parentResult, result, allIdMappings);
                         if (CollectionUtils.isNotEmpty(parentResource.getParents())) {
                             parentResource.getParents().forEach(grandParentId -> {
                                 ImportInfo grandParentResource = resourceMap.get(grandParentId);
@@ -900,7 +920,7 @@ public class AgentImportService {
     }
 
     private void handleControllerDsl(ImportInfo parentResource, ImportResourceResult parentResult,
-        ImportResourceResult result) {
+        ImportResourceResult result, Map<String, String> allIdMappings) {
         ControllerVO controllerVO = JsonUtils.objectToClassType(parentResource.getDsl(), ControllerVO.class);
         controllerVO.setProjectId(parentResource.getTargetProjectId());
         controllerVO.setWorkspaceId(parentResource.getTargetWorkspaceId());
@@ -911,7 +931,7 @@ public class AgentImportService {
             controllerVO.setName(parentResult.getNewName());
         }
         switch (ResourceTypeEnum.fromValue(result.getType())) {
-            case WORKFLOW -> handleControllerWorkflow(result, controllerVO);
+            case WORKFLOW -> handleControllerWorkflow(result, controllerVO, allIdMappings);
             case CONTROLLER -> handleSubController(result, controllerVO);
             case MODEL -> handleControllerModel(result, controllerVO);
             case AGENT -> handleControllerAgent(result, controllerVO);
@@ -940,7 +960,8 @@ public class AgentImportService {
         grandParentResource.setDsl(controllerVO);
     }
 
-    private void handleControllerWorkflow(ImportResourceResult result, ControllerVO controllerVO) {
+    private void handleControllerWorkflow(ImportResourceResult result, ControllerVO controllerVO,
+        Map<String, String> allIdMappings) {
         if (StringUtils.isEmpty(result.getNewId()) && StringUtils.isEmpty(result.getNewName()) && StringUtils.isEmpty(
             result.getNewVersion())) {
             return;
@@ -948,6 +969,16 @@ public class AgentImportService {
         controllerVO.getNodes().stream().forEach(node -> {
             if (Strings.CS.equals(node.getType(), AgentNodeType.WORKFLOW.getType())) {
                 Map<String, Object> configs = MapReadUtil.safeCastToMapWithStringKey(node.getConfigs());
+                String configId = configs.get("id") != null ? configs.get("id").toString() : "";
+                boolean match = Strings.CS.equals(configId, result.getId());
+                // 如果 configId 不匹配 result.id，检查 allIdMappings（可能是上次导入生成的旧 ID = trace_id）
+                if (!match && allIdMappings.containsKey(configId)) {
+                    String mappedNewId = allIdMappings.get(configId);
+                    // 用 allIdMappings 里的 newId 替换（不是当前 result 的 newId）
+                    configs.put("id", mappedNewId);
+                    node.setConfigs(configs);
+                    return;
+                }
                 handleVersionResource(result, configs);
                 node.setConfigs(configs);
             }
@@ -1483,7 +1514,10 @@ public class AgentImportService {
     }
 
     private void handleNoVersionResource(ImportResourceResult result, Map<String, Object> config) {
-        if (!Strings.CS.equals(config.get("id").toString(), result.getId())) {
+        String configId = config.get("id") != null ? config.get("id").toString() : "null";
+        String resultId = result.getId();
+        boolean match = Strings.CS.equals(configId, resultId);
+        if (!match) {
             return;
         }
         if (StringUtils.isNotEmpty(result.getNewId())) {
