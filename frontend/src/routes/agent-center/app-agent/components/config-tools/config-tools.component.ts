@@ -2283,16 +2283,26 @@ export class ConfigToolsComponent implements OnInit, AfterViewInit, OnDestroy {
       nzMask: true,
       nzFooter: null,
       nzData: {
-        existedKbs: this.knowledgeAdded.list.map(kb => this.kbAbilitiesService.getKbId(kb)),
-        outputs: {
-          createKB: () => {
-            drawerRef.close();
-            this.kbCreation.createKb();
-          }
-        }
+        existedKbs: this.knowledgeAdded.list.map(kb => this.kbAbilitiesService.getKbId(kb))
+      }
+    });
+    let confirmed = false;
+    drawerRef.afterOpen.subscribe(() => {
+      const comp = drawerRef.getContentComponent();
+      if (comp) {
+        comp.createKB.subscribe(() => {
+          drawerRef.close();
+          this.kbCreation.createKb();
+        });
+        comp.addKB.subscribe(() => {
+          confirmed = true;
+        });
       }
     });
     drawerRef.afterClose.subscribe(() => {
+      if (!confirmed) {
+        return;
+      }
       const selectedKbIds = drawerRef.getContentComponent()?.selectedIds ?? [];
       const selectedKbs = drawerRef.getContentComponent()?.selectedKbs ?? [];
       this.knowledgeAdded.isLoading = true;
