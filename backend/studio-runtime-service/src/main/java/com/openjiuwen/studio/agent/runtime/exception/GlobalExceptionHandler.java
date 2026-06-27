@@ -12,6 +12,9 @@ import com.openjiuwen.studio.agent.common.utils.ErrorInfo;
 import com.openjiuwen.studio.agent.common.utils.I18nUtil;
 import com.openjiuwen.studio.agent.common.utils.ResponseModel;
 
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -61,6 +64,26 @@ public class GlobalExceptionHandler {
         ErrorRsp errorRsp = new ErrorRsp().setErrorCode(StudioError.METHOD_ARGUMENT_NOT_VALID.getCode())
             .setErrorMsg(errMessage);
         return new ResponseEntity<>(errorRsp, StudioError.STATIC_RESOURCE_NOT_EXIST.getHttpStatus());
+    }
+
+    /**
+     * 处理 @PathVariable / @RequestParam 上的校验注解（@Size, @Pattern 等）失败
+     */
+    @ExceptionHandler(ConstraintViolationException.class)
+    @ResponseBody
+    public ResponseEntity<ErrorRsp> handleConstraintViolationException(ConstraintViolationException exception) {
+        StringBuilder errMsg = new StringBuilder();
+        for (ConstraintViolation<?> violation : exception.getConstraintViolations()) {
+            String paramName = violation.getPropertyPath().toString();
+            if (paramName.contains(".")) {
+                paramName = paramName.substring(paramName.lastIndexOf('.') + 1);
+            }
+            errMsg.append(paramName).append(violation.getMessage()).append("; ");
+        }
+        log.error("throw ConstraintViolationException: {}", errMsg);
+        ErrorRsp errorRsp = new ErrorRsp().setErrorCode(StudioError.METHOD_ARGUMENT_NOT_VALID.getFullCode())
+            .setErrorMsg(errMsg.toString());
+        return new ResponseEntity<>(errorRsp, StudioError.METHOD_ARGUMENT_NOT_VALID.getHttpStatus());
     }
 
     /**

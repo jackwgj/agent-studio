@@ -869,7 +869,9 @@ public class AgentServiceProxyController {
         @Parameter(in = ParameterIn.PATH, description = "工作流id", required = true, schema = @Schema())
         @PathVariable("workflow_id") String workflowId, @Pattern(regexp = "^[a-zA-Z0-9_-]+$") @Size(min = 1, max = 64)
         @Parameter(in = ParameterIn.PATH, description = "异步任务id", required = true, schema = @Schema())
-        @PathVariable("task_id") String taskId, @RequestParam(value = "workspace_id", required = false) String workspaceId) {
+        @PathVariable("task_id") String taskId,
+        @Pattern(regexp = "^[a-zA-Z0-9_()\\-]+$") @Size(min = 1, max = 64) @ApiParam(value = "项目空间id")
+        @RequestParam(value = "workspace_id", required = false) String workspaceId) {
 
         return agentServiceProxyService.retrieveTask(projectId, workflowId, taskId, workspaceId).getBody();
     }

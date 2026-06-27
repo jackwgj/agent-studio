@@ -368,54 +368,54 @@ public interface AgentRuntimeClient {
     ResponseEntity<TaskRsp> createTask(
         @RequestHeader(CommonConstant.X_AUTH_TOKEN) String authToken,
         @PathVariable("project_id") String projectId,
-        @PathVariable("workflow_id") String workflowId, @RequestParam("version") String version,
-        @RequestParam("workspace_id") String workspaceId, @RequestBody @NotNull @Valid CreateTaskReq body);
+        @PathVariable("workflow_id") String workflowId, @RequestParam(value = "version", required = false) String version,
+        @RequestParam(value = "workspace_id", required = false) String workspaceId, @RequestBody @NotNull @Valid CreateTaskReq body);
 
     @GetMapping("/v1/{project_id}/workflows/{workflow_id}/tasks")
     ResponseEntity<TaskListRsp> listTask(
         @RequestHeader(CommonConstant.X_AUTH_TOKEN) String authToken,
         @PathVariable("project_id") String projectId,
         @PathVariable("workflow_id") String workflowId,
-        @RequestParam("status") String status,
-        @RequestParam("type") String type,
-        @RequestParam("sort") String sort,
-        @RequestParam("order") String order,
-        @RequestParam("workspace_id") String workspaceId);
+        @RequestParam(value = "status", required = false) String status,
+        @RequestParam(value = "type", required = false) String type,
+        @RequestParam(value = "sort", required = false) String sort,
+        @RequestParam(value = "order", required = false) String order,
+        @RequestParam(value = "workspace_id", required = false) String workspaceId);
 
     @GetMapping("/v1/{project_id}/workflows/{workflow_id}/tasks/{task_id}")
     ResponseEntity<TaskRsp> retrieveTask(
         @RequestHeader(CommonConstant.X_AUTH_TOKEN) String authToken,
         @PathVariable("project_id") String projectId,
         @PathVariable("workflow_id") String workflowId, @PathVariable("task_id") String taskId,
-        @RequestParam("workspace_id") String workspaceId);
+        @RequestParam(value = "workspace_id", required = false) String workspaceId);
 
     @PostMapping("/v1/{project_id}/workflows/{workflow_id}/tasks/{task_id}")
     ResponseEntity<TaskRsp> resumeTask(
         @RequestHeader(CommonConstant.X_AUTH_TOKEN) String authToken,
         @PathVariable("project_id") String projectId,
         @PathVariable("workflow_id") String workflowId, @PathVariable("task_id") String taskId,
-        @RequestParam("workspace_id") String workspaceId, @RequestBody @Valid @NotNull ResumeTaskReq bpdy);
+        @RequestParam(value = "workspace_id", required = false) String workspaceId, @RequestBody @Valid @NotNull ResumeTaskReq bpdy);
 
     @PutMapping("/v1/{project_id}/workflows/{workflow_id}/tasks/{task_id}")
     ResponseEntity<TaskRsp> modifyTask(
         @RequestHeader(CommonConstant.X_AUTH_TOKEN) String authToken,
         @PathVariable("project_id") String projectId,
         @PathVariable("workflow_id") String workflowId, @PathVariable("task_id") String taskId,
-        @RequestParam("workspace_id") String workspaceId, @RequestBody @NotNull @Valid ModifyTaskReq body);
+        @RequestParam(value = "workspace_id", required = false) String workspaceId, @RequestBody @NotNull @Valid ModifyTaskReq body);
 
     @DeleteMapping("/v1/{project_id}/workflows/{workflow_id}/tasks/{task_id}")
     ResponseEntity<CommonDeleteRsp> deleteTask(
         @RequestHeader(CommonConstant.X_AUTH_TOKEN) String authToken,
         @PathVariable("project_id") String projectId,
         @PathVariable("workflow_id") String workflowId, @PathVariable("task_id") String taskId,
-        @RequestParam("workspace_id") String workspaceId);
+        @RequestParam(value = "workspace_id", required = false) String workspaceId);
 
     @DeleteMapping("/v1/{project_id}/workflows/{workflow_id}/tasks/{task_id}/cancel")
     ResponseEntity<CancelTaskRsp> cancelTask(
         @RequestHeader(CommonConstant.X_AUTH_TOKEN) String authToken,
         @PathVariable("project_id") String projectId,
         @PathVariable("workflow_id") String workflowId, @PathVariable("task_id") String taskId,
-        @RequestParam("workspace_id") String workspaceId);
+        @RequestParam(value = "workspace_id", required = false) String workspaceId);
 
     @PostMapping("/v1/{project_id}/mcp-servers/test")
     ResponseEntity<McpValidationResp> testServer(
