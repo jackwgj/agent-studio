@@ -249,33 +249,61 @@ def _convert_refs_in_schema(schema: dict | list) -> None:
                 _convert_refs_in_schema(item)
 
 
-def _extract_global_var_mappings_from_schema(schema: dict) -> dict:
-    """Extract global variable mappings from SubWorkflow input_schema.
+def _extract_memory_var_mappings(memory_section: dict) -> dict:
+    """Recursively extract parent global variable mappings from a memory section.
 
-    input_schema format: {"userFields": {"child_key": "${global.parent_var"}, ...}
-    Returns mapping: {"child_key": "parent_var", ...}
+    Each entry may be either:
+      - "${MEMORY_VARIABLE.parent_var}" -> maps this key to parent_var
+      - a nested dict -> recurse into it
 
     Args:
-        schema: Input schema dict (e.g., userFields section).
+        memory_section: The 'memory' section of SubWorkflow input_schema.
 
     Returns:
         dict: Mapping from child key name to parent global variable name.
     """
     mappings = {}
-    if not isinstance(schema, dict):
+    if not isinstance(memory_section, dict):
         return mappings
 
-    for child_key, value in schema.items():
+    for child_key, value in memory_section.items():
         if isinstance(value, str) and value.startswith("${MEMORY_VARIABLE.") and value.endswith("}"):
-            # Extract parent variable name: ${global.parent_var} -> parent_var
-            parent_var = value[len("${MEMORY_VARIABLE."):-1]  # len("${global.") = 9
+            # Extract parent variable name: ${MEMORY_VARIABLE.parent_var} -> parent_var
+            parent_var = value[len("${MEMORY_VARIABLE."):-1]
             mappings[child_key] = parent_var
         elif isinstance(value, dict):
-            # Recursively extract from nested dicts (e.g., userFields section)
-            nested_mappings = _extract_global_var_mappings_from_schema(value)
-            mappings.update(nested_mappings)
+            # Recursively extract from nested dicts within memory section
+            mappings.update(_extract_memory_var_mappings(value))
 
     return mappings
+
+
+def _extract_global_var_mappings_from_schema(schema: dict) -> dict:
+    """Extract global variable mappings from SubWorkflow input_schema.
+
+    Only the 'memory' section contributes mappings. Fields under other
+    sections (e.g., 'systemFields.query') must NOT be collected, because
+    they reference parent workflow system fields and should not override
+    the child workflow's own variable names.
+
+    input_schema format:
+        {"userFields": {...}, "memory": {"child_key": "${MEMORY_VARIABLE.parent_var}"}, ...}
+    Returns mapping: {"child_key": "parent_var", ...}
+
+    Args:
+        schema: Input schema dict containing 'memory'/'userFields'/'systemFields' keys.
+
+    Returns:
+        dict: Mapping from child key name to parent global variable name.
+    """
+    if not isinstance(schema, dict):
+        return {}
+
+    memory_section = schema.get("memory")
+    if not isinstance(memory_section, dict):
+        return {}
+
+    return _extract_memory_var_mappings(memory_section)
 
 
 def _convert_subworkflow_global_var_refs(
