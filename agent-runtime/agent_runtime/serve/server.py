@@ -225,8 +225,12 @@ async def lifespan(app: FastAPI):  # noqa: redefined-outer-name
             )
             sandbox_res = Runner.resource_mgr.add_sys_operation(sandbox_card)
             if sandbox_res.is_ok():
+                sb = settings.security_sandbox
                 logger.info(
-                    f"Registered SysOperation: {sandbox_sys_op_id} (mode={OperationMode.SANDBOX})"
+                    f"Registered SysOperation: {sandbox_sys_op_id} (mode={OperationMode.SANDBOX}) | "
+                    f"server={sb.server} type={sb.sandbox_type} scope={sb.scope} "
+                    f"ssl_verify={sb.ssl_verify} idle_ttl={sb.idle_ttl_seconds}s "
+                    f"timeout={sb.timeout_seconds}s"
                 )
             else:
                 logger.error(f"Failed to register sandbox SysOperation: {sandbox_res}")

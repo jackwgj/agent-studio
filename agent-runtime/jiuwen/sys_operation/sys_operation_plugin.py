@@ -174,9 +174,9 @@ class SysOperationPlugin(FunctionPlugin):
             Param(
                 "timeout",
                 "Maximum execution time in seconds."
-                " Defaults to 300 seconds (5 minutes).",
+                " Defaults to the configured SECURITY_SANDBOX_TIMEOUT.",
                 param_type="integer",
-                default_value=300,
+                default_value=None,
                 required=False,
             ),
             Param(
@@ -199,7 +199,7 @@ class SysOperationPlugin(FunctionPlugin):
         code: str,
         *,
         language: Literal["python", "javascript"] = "python",
-        timeout: int = 300,
+        timeout: Optional[int] = None,
         environment: Optional[Dict[str, str]] = None,
         options: Optional[Dict[str, Any]] = None,
     ) -> dict:
@@ -209,7 +209,7 @@ class SysOperationPlugin(FunctionPlugin):
         Args:
             code: Non-empty string containing the source code to execute (required positional argument).
             language: Programming language of the code. Strict type constraint to 'python' or 'javascript'.
-            timeout: Maximum execution time in seconds. Defaults to 300 seconds (5 minutes).
+            timeout: Maximum execution time in seconds. Defaults to the configured SECURITY_SANDBOX_TIMEOUT.
             environment: Key-value dict of custom environment variables.
             options: Additional execution configuration options.
 
@@ -218,6 +218,10 @@ class SysOperationPlugin(FunctionPlugin):
         """
         if language not in ("python", "javascript"):
             language = "python"
+        if timeout is None:
+            from agent_runtime.common.config import settings
+
+            timeout = settings.security_sandbox.timeout_seconds
         code_op = self._sys_op.code()
         if code_op is None:
             return {
@@ -251,7 +255,7 @@ class SysOperationPlugin(FunctionPlugin):
             ),
             Param(
                 "timeout",
-                "Command execution timeout in seconds (default: 300 seconds).",
+                "Command execution timeout in seconds (defaults to the configured SECURITY_SANDBOX_TIMEOUT).",
                 param_type="integer",
                 required=False,
             ),
@@ -275,7 +279,7 @@ class SysOperationPlugin(FunctionPlugin):
         command: str,
         *,
         cwd: Optional[str] = None,
-        timeout: Optional[int] = 300,
+        timeout: Optional[int] = None,
         environment: Optional[Dict[str, str]] = None,
         options: Optional[Dict[str, Any]] = None,
     ) -> dict:
@@ -285,13 +289,17 @@ class SysOperationPlugin(FunctionPlugin):
         Args:
             command: Command to execute.
             cwd: Working directory for command execution (default: current directory).
-            timeout: Command execution timeout in seconds (default: 300 seconds).
+            timeout: Command execution timeout in seconds (defaults to the configured SECURITY_SANDBOX_TIMEOUT).
             environment: Key-value dict of custom environment variables.
             options: Additional execution configuration options.
 
         Returns:
             ExecuteCmdResult: Execution result.
         """
+        if timeout is None:
+            from agent_runtime.common.config import settings
+
+            timeout = settings.security_sandbox.timeout_seconds
         shell_op = self._sys_op.shell()
         if shell_op is None:
             return {

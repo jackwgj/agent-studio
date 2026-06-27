@@ -455,17 +455,30 @@ class FlowCode(WorkflowComponent):
                 user_fields = _coerce_inputs(user_fields, inputs_schema)
 
             # 4. 执行代码（带 sandbox 失败 fallback 到 local）
+            from agent_runtime.common.config import settings
+
+            exec_timeout = settings.security_sandbox.timeout_seconds
+            workflow_logger.info(
+                "[FlowCode] exec_timeout=%s (from SECURITY_SANDBOX_TIMEOUT)",
+                exec_timeout,
+            )
             active_runner = self._code_runner
             try:
                 result_dict = await self._code_runner.run(
                     user_code=self._conf.code,
                     inputs=user_fields,
-                    timeout=300,
+                    timeout=exec_timeout,
                 )
             except Exception as e:
                 # Sandbox execution failed, fallback to local
                 exec_env = self._conf.exec_env or "local"
                 if exec_env == "sandbox":
+                    if "timeout" in str(e).lower():
+                        # 超时不应 fallback 到本地，否则同样的代码会再次超时
+                        raise RuntimeError(
+                            f"代码执行超时（已超过 {exec_timeout} 秒限制），"
+                            f"请优化代码或调整 SECURITY_SANDBOX_TIMEOUT 配置"
+                        ) from e
                     workflow_logger.warning(
                         f"Sandbox execution failed: {e}, fallback to local"
                     )
@@ -473,7 +486,7 @@ class FlowCode(WorkflowComponent):
                     result_dict = await active_runner.run(
                         user_code=self._conf.code,
                         inputs=user_fields,
-                        timeout=300,
+                        timeout=exec_timeout,
                     )
                 else:
                     raise  # Re-raise for non-sandbox environments
