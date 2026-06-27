@@ -26,6 +26,7 @@ from datetime import datetime, timezone
 from typing import Any, Optional
 
 from openjiuwen.core.foundation.store.base_memory_index import BaseMemoryIndex, MemoryDoc
+from openjiuwen.core.common.logging import memory_logger as _mem_logger
 
 from agent_runtime.memory.adapter.opensearch_vector_store import OpenSearchVectorStore
 
@@ -127,9 +128,23 @@ class LongTermMemoryDefaultIndex(BaseMemoryIndex):
     # ------------------------------------------------------------------ #
 
     async def _ensure_index(self, dim: int) -> None:
-        """确保索引存在，按 6 字段 mapping 创建（若不存在）。"""
+        """确保索引存在，按 6 字段 mapping 创建（若不存在）。
+
+        防御：``_index_ensured`` 标志只代表"本进程曾建过索引"，不代表索引当前仍存在
+        （可能被外部删除，如 UI"删除全部"按钮）。因此标志为 True 时仍需校验索引真实
+        存在，否则后续 ``add_docs`` 会因索引不存在触发 OpenSearch 动态映射，把
+        ``content_vector`` 建成 ``float`` 而非 ``knn_vector``，导致 knn 检索失败。
+        """
         if self._index_ensured and self._dim == dim:
-            return
+            # 标志为 True，但索引可能已被外部删除，必须校验真实存在
+            if await self._index_exists():
+                return
+            # 索引被外部删除，重置标志并重建（按正确 knn_vector mapping）
+            _mem_logger.warning(
+                "Index %s was removed externally; recreating with knn_vector mapping",
+                self._index_name,
+            )
+            self._index_ensured = False
         self._dim = dim
         mapping = _build_index_mapping(dim)
         settings = {"index": {"knn": True}}

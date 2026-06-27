@@ -13,6 +13,12 @@ from opensearchpy.helpers import async_bulk
 
 logger = logging.getLogger(__name__)
 
+
+def _ml():
+    """lazy memory_logger (写 memory.log, 实时持久, 不被 stdout 缓冲)"""
+    from openjiuwen.core.common.logging import memory_logger
+    return memory_logger
+
 _TYPE_MAP: dict[VectorDataType, dict] = {
     VectorDataType.VARCHAR: {"type": "text"},
     VectorDataType.INT64: {"type": "long"},
@@ -241,7 +247,25 @@ class OpenSearchVectorStore(BaseVectorStore):
         except Exception as e:
             err_str = str(e).lower()
             if "resource_already_exists_exception" in err_str or "already exists" in err_str:
-                logger.debug("Index %s already exists, skipping creation", index_name)
+                # 索引已存在：校验 content_vector 类型，若被动态映射污染成 float 则删重建
+                # （OpenSearch mapping 不可变，float 无法直接改回 knn_vector，只能删重建）
+                try:
+                    existing = await self._client.indices.get_mapping(index=index_name)
+                    cv_type = (
+                        existing[index_name]["mappings"]["properties"]
+                        .get("content_vector", {})
+                        .get("type")
+                    )
+                except Exception:
+                    cv_type = None
+                expected_cv = mappings.get("properties", {}).get("content_vector", {}).get("type")
+                if cv_type and expected_cv and cv_type != expected_cv:
+                    _ml().warning(
+                        "Index %s content_vector is %s (expected %s); recreating index",
+                        index_name, cv_type, expected_cv,
+                    )
+                    await self._client.indices.delete(index=index_name, ignore=[404])
+                    await self._client.indices.create(index=index_name, body=body)
             else:
                 raise
 
