@@ -765,6 +765,8 @@ export class CreateToolComponent implements OnInit {
         }
       });
       this.patchArgs = mapTreeAddKeyIndex(newPatchArgs, 0);
+    } else {
+      this.patchArgs = [];
     }
   }
 
@@ -895,7 +897,7 @@ export class CreateToolComponent implements OnInit {
     return true;
   }
 
-  showFromErrorByName(form, validatorName, showSelect = false): boolean {
+  showFromErrorByName(form, validatorName, showSelect = false, forceTab = -1): boolean {
     let errorIndex = -1;
     let res = true;
     const keysList = Object.keys(form.controls);
@@ -916,6 +918,8 @@ export class CreateToolComponent implements OnInit {
                     errorIndex = 2;
                   } else if (keysList[i].indexOf('Path') > 0) {
                     errorIndex = 3;
+                  } else if (forceTab >= 0) {
+                    errorIndex = forceTab;
                   }
                 }
                 res = false;
@@ -947,7 +951,7 @@ export class CreateToolComponent implements OnInit {
     if (!this.showFromErrorByName(this.responseForm.form, ['responseFormName'])) {
       return;
     }
-    if (!this.showFromErrorByName(this.pathForm.form, ['responseFormDesc'])) {
+    if (!this.showFromErrorByName(this.pathForm.form, ['responseFormDesc'], true, 3)) {
       return;
     }
 
@@ -1074,7 +1078,7 @@ export class CreateToolComponent implements OnInit {
     if (!this.showFromErrorByName(this.responseForm.form, ['responseFormName'])) {
       return;
     }
-    if (!this.showFromErrorByName(this.pathForm.form, ['responseFormDesc'])) {
+    if (!this.showFromErrorByName(this.pathForm.form, ['responseFormDesc'], true, 3)) {
       return;
     }
 

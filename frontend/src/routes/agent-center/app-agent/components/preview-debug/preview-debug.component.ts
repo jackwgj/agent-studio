@@ -155,6 +155,7 @@ export class PreviewDebugComponent {
   public isUserScrolling = false;
   /** 表示纵向滚动条的当前位置 */
   public lastScrollTop = 0;
+  private isAutoScrolling = false;
   public deploymentId: string;
   public isDisabledSenderBtn: boolean = false;
   public isExpandDialog: boolean = false; // 控制对话框的伸缩功能
@@ -895,9 +896,13 @@ export class PreviewDebugComponent {
   /** 回答完成 或 发送新问题时，页面滚动条到最底部 */
   public scrollToBottom() {
     if (!this.isUserScrolling) {
+      this.isAutoScrolling = true;
       setTimeout(() => {
         this.chatContainerRef.nativeElement.scrollTop =
           this.chatContainerRef.nativeElement.scrollHeight;
+        setTimeout(() => {
+          this.isAutoScrolling = false;
+        }, 50);
       }, 0);
     }
   }
@@ -1072,16 +1077,18 @@ export class PreviewDebugComponent {
     if (this.chatItemRef) {
       this.chatItemRef?.kbConfRef?.hide();
     }
+    if (this.isAutoScrolling) {
+      return;
+    }
     const currentScrollTop = target.scrollTop;
 
-    // 判断是否向上滚动
     if (currentScrollTop < this.lastScrollTop) {
-      this.isUserScrolling = true; // 停止自动滚动
+      this.isUserScrolling = true;
     } else if (
       currentScrollTop + target.clientHeight >=
       target.scrollHeight - 2
     ) {
-      this.isUserScrolling = false; // 继续自动滚动（当用户手动滚动到最底部）
+      this.isUserScrolling = false;
     }
     this.lastScrollTop = currentScrollTop;
   }

@@ -38,7 +38,7 @@
       </ng-template>
 
       <div class="flex w-[calc(100%-36px)] gap-[8px]">
-        <div class="flex h-fit w-[calc(100%-8px)] items-center gap-2">
+        <div class="flex h-fit w-[432px] items-center gap-2">
           <div class="flex w-full">
             <nz-select
               class="combo-select-right"
@@ -48,6 +48,7 @@
               (ngModelChange)="changeExecSelected()"
               [nzCustomTemplate]="execTemplate"
               [nzShowSearch]="false"
+              [nzAllowClear]="false"
             >
               @for (item of executionList; track item.execution_id) {
                 <nz-option
@@ -55,27 +56,30 @@
                   [nzValue]="item"
                 >
                   <div>
-                    <span class="flex justify-between">
-                      <span class="w-[calc(100%-70px)] overflow-hidden text-ellipsis">{{
+                    <span class="flex justify-between align-center">
+                      <span class="text-overflow w-[calc(100%-70px)]" nz-tooltip [nzTooltipTitle]="item?.inputs?.query">{{
                           item?.inputs?.query
                         }}</span>
-                      <span class="flex gap-[8px] text-[#808080]">
+                      <span class="flex gap-[8px] text-[#808080] align-center">
                         <span>{{ formatToExecTime(item.start_time) }}</span>
                         <asset-loading-icon
                           *ngIf="
                             item.status === 'waiting' || item.status === 'loading'
                           "
+                          class="h-[14px] mt-[4px]"
                         ></asset-loading-icon>
                         <asset-success-icon
                           *ngIf="
                             item.status === 'succeed' ||
                             item.status === 'succeeded'
                           "
+                          class="h-[14px] mt-[4px]"
                         ></asset-success-icon>
                         <asset-error-icon
                           *ngIf="
                             item.status === 'failed' || item.status === 'FAILED'
                           "
+                          class="h-[14px] mt-[4px]"
                         ></asset-error-icon>
                       </span>
                     </span>
@@ -84,7 +88,7 @@
               }
             </nz-select>
             <ng-template #execTemplate let-item>
-              <div>
+              <div class="text-overflow" nz-tooltip [nzTooltipTitle]="executionSelected?.inputs?.query">
                 {{ executionSelected?.inputs?.query }}
               </div>
             </ng-template>

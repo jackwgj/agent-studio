@@ -42,8 +42,8 @@
               <nz-tree class="input-tree" [nzData]="inputs" nzBlockNode>
                 <ng-template #nzTreeTemplate let-node let-i="index">
                   <div class="my-2 flex flex-sub-no-auto gap-[5px] w-[100%]" style="align-items: flex-start; border-radius: 2px">
-                    <div class="self-center text-label text-ellipsis overflow-ellipsis" [style]="{ width: getTableWidth().name }">
-                      {{ node.origin.name }}
+                    <div class="self-center" nz-tooltip [nzTooltipTitle]="node.origin.name" [style]="{ width: getTableWidth().name }">
+                      <p class="w-[95%] text-label text-ellipsis overflow-ellipsis !mb-0" nz-tooltip [nzTooltipTitle]="node.origin.name">{{ node.origin.name }}</p>
                     </div>
                     <div class="self-center" [style]="{ width: getTableWidth().description }">
                       <p class="w-[95%] text-label text-ellipsis overflow-ellipsis !mb-0" nz-tooltip [nzTooltipTitle]="node.origin.description">{{ node.origin.description }}</p>
@@ -166,12 +166,12 @@
                                 [nzPlacement]="'bottomRight'"
                                 [nzDisplayWith]="displayWithFn"
                                 [nzTreeTemplate]="refTreeSelectTpl"
-                                refSelectedRequire
-                                [class.input-error]="type !== 'mcp' && node.origin.depth === 0 && !node.origin.visibility && inputForm?.controls['inputFormValueRef_' + node.origin.name]?.invalid && (inputForm?.controls['inputFormValueRef_' + node.origin.name]?.dirty || inputForm?.controls['inputFormValueRef_' + node.origin.name]?.touched)"
+                                nzTreeRefSelectedRequire
+                                [class.input-error]="type !== 'mcp' && node.origin.depth === 0 && inputForm?.controls['inputFormValueRef_' + node.origin.name]?.invalid && (isValidated || inputForm?.controls['inputFormValueRef_' + node.origin.name]?.dirty || inputForm?.controls['inputFormValueRef_' + node.origin.name]?.touched)"
                               >
                               </nz-tree-select>
                               <div
-                                *ngIf="type !== 'mcp' && node.origin.depth === 0 && !node.origin.visibility && inputForm?.controls['inputFormValueRef_' + node.origin.name]?.invalid && (inputForm?.controls['inputFormValueRef_' + node.origin.name]?.dirty || inputForm?.controls['inputFormValueRef_' + node.origin.name]?.touched)"
+                                *ngIf="type !== 'mcp' && node.origin.depth === 0 && inputForm?.controls['inputFormValueRef_' + node.origin.name]?.invalid && (isValidated || inputForm?.controls['inputFormValueRef_' + node.origin.name]?.dirty || inputForm?.controls['inputFormValueRef_' + node.origin.name]?.touched)"
                                 class="error-tip">
                                 {{ inputForm?.controls['inputFormValueRef_' + node.origin.name]?.errors?.serviceName?.tiErrorMessage }}
                               </div>

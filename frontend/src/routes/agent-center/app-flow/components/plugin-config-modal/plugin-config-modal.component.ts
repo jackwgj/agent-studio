@@ -1,9 +1,9 @@
-import { Component, EventEmitter, Inject, Input, OnDestroy, OnInit, Optional, Output, ViewChild } from '@angular/core';
+import { ChangeDetectorRef, Component, EventEmitter, Inject, Input, OnDestroy, OnInit, Optional, Output, ViewChild } from '@angular/core';
 import { NgForm } from '@angular/forms';
 import { I18nNamespace } from '@i18n';
 import { MonacoEditorModule } from '@materia-ui/ngx-monaco-editor';
 import { TypedJsonInputComponent } from '@shared/components/typed-json-input/typed-json-input.component';
-import { NumberStrValidatorDirective, RefSelectedRequireDirective } from '@shared/directives/common-validator.directive';
+import { NumberStrValidatorDirective, NzTreeRefSelectedRequireDirective, RefSelectedRequireDirective } from '@shared/directives/common-validator.directive';
 import { NonEmptyValidatorDirective } from '@shared/directives/variable-name-validator.directive';
 import { MODULES } from '@shared/modules';
 import { I18NEXT_NAMESPACE, I18NextEagerPipe } from 'angular-i18next';
@@ -40,6 +40,7 @@ import { ParamLabelPipe } from 'src/pipes/param-label.pipe';
     AccBlockComponent,
     NonEmptyValidatorDirective,
     RefSelectedRequireDirective,
+    NzTreeRefSelectedRequireDirective,
     ParamLabelPipe,
     NumberStrValidatorDirective,
     MonacoEditorModule,
@@ -107,6 +108,7 @@ export class PluginConfigModalComponent implements OnInit, OnDestroy {
     protected nodeServ: NodeService,
     protected appFlowServ: AppFlowService,
     private i18n: I18NextEagerPipe,
+    private cdr: ChangeDetectorRef,
     @Optional() @Inject(NzDrawerRef) private drawerRef: NzDrawerRef | null
   ) {}
 
@@ -260,7 +262,11 @@ export class PluginConfigModalComponent implements OnInit, OnDestroy {
   onConfirm(): void {
     this.isValidated = true;
     this.inputForm.form.markAllAsTouched();
-    Object.values(this.inputForm.controls).forEach(control => control.updateValueAndValidity());
+    Object.values(this.inputForm.controls).forEach(control => {
+      control.markAsTouched();
+      control.updateValueAndValidity();
+    });
+    this.cdr.markForCheck();
     const isJsonTypeInvalid = this.inputs.some(obj => this.type !== 'mcp' && obj.depth === 0 && !obj.visibility && obj.type?.startsWith('array') && obj.value?.content === '' && obj.required);
     if (this.inputForm.form.invalid || isJsonTypeInvalid) {
       return;
@@ -351,18 +357,18 @@ export class PluginConfigModalComponent implements OnInit, OnDestroy {
   public getTableWidth() {
     if (this.type === 'mcp') {
       return {
-        name: '25%',
-        nameTitle: 'calc(25% + 24px)',
-        description: '20%',
-        required: '15%',
+        name: '130px',
+        nameTitle: '156px',
+        description: '100px',
+        required: '8%',
         default: '40%',
       };
     }
     return {
-      name: '20%',
-      nameTitle: 'calc(20% + 24px)',
-      description: '15%',
-      required: '10%',
+      name: '110px',
+      nameTitle: '136px',
+      description: '75px',
+      required: '8%',
       default: '40%',
       visibility: '65px',
     };

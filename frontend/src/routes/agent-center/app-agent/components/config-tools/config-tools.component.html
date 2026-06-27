@@ -1030,7 +1030,7 @@
       <div class="param-desc text-overflow">
         {{ 'description' | i18nextEager }}: {{ (item.description || '--') }}
       </div>
-      <p style="display: flex; align-items: center; gap: 4px; margin-bottom: 12px; color: rgb(128, 128, 128);">
+      <p style="display: flex; align-items: center; gap: 4px; margin-bottom: 12px; color: rgb(128, 128, 128);" class="text-overflow">
         <span>{{ 'default_v' | i18nextEager }}: {{ getDefaultValue(item?.value) }}</span>
       </p>
       <div style="width: 100%; height: 1px; background: #eee" *ngIf="getInputParams.length > 1 && i < (getInputParams.length - 1)"></div>

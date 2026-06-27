@@ -34,7 +34,8 @@
     align-items: center;
     width: 100%;
     max-width: 1080px;
-    height: calc(100% - 176px);
+    flex: 1;
+    min-height: 0;
 
     .empty-content {
       height: fit-content;
@@ -51,7 +52,7 @@
         height: 58px;
         border-radius: 12px;
       }
-      
+
       .flow-name {
         font-size: 32px;
         font-weight: 600;
@@ -60,6 +61,7 @@
         text-overflow: ellipsis;
         overflow: hidden;
         white-space: nowrap;
+        max-width: 300px;
       }
     }
 
@@ -80,6 +82,7 @@
       display: flex;
       flex-direction: column;
       max-height: 100%;
+      overflow-y: auto;
       gap: 8px;
       padding: 24px;
       border-radius: 16px;

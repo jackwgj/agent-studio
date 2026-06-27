@@ -222,4 +222,10 @@
     color: rgb(128, 128, 128);
     margin-bottom: 8px;
   }
+  .text-overflow {
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }

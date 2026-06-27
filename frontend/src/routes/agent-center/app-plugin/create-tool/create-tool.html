@@ -70,7 +70,7 @@
         <ng-template #content>
           <form [formGroup]="groupFormControl" nz-form [nzLayout]="'vertical'">
             <nz-form-item>
-              <nz-form-label>{{ createPluginFormLabel.pluginMethod }}</nz-form-label>
+              <nz-form-label nzRequired>{{ createPluginFormLabel.pluginMethod }}</nz-form-label>
               <nz-form-control [nzErrorTip]="pluginMethodTpl">
                 <nz-select
                   [nzOptions]="methods"
@@ -518,7 +518,7 @@
                             [name]="'requestValidateRule' + param.name"
                             nonEmptyValidator
                             [showError]="
-                          requestArgsForm?.controls['requestValidateRule' + param.name]?.invalid 
+                          requestArgsForm?.controls['requestValidateRule' + param.name]?.invalid
                         "
                           />
                         </ng-container>

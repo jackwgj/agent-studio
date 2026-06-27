@@ -118,13 +118,15 @@ export class SkillListComponent implements OnInit {
     for (let index = 0; index < filterData.length; index++) {
       if (this.type === "mcp") {
         this.hoverToolId = filterData[index].server_id;
-        const params = JSON.parse(filterData[index].mcp_parameter);
+        const raw = filterData[index].mcp_parameter;
+        const params = raw ? JSON.parse(raw) : [];
         for (let i = 0; i < params.length; i++) {
           result.push(params[i]);
         }
       } else if (this.type === "workflow") {
         this.hoverToolId = filterData[index].workflow_id;
-        const params = JSON.parse(filterData[index].workflow_parameter);
+        const raw = filterData[index].workflow_parameter;
+        const params = raw ? JSON.parse(raw) : [];
         for (let i = 0; i < params.length; i++) {
           result.push(params[i]);
         }
