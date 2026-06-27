@@ -46,6 +46,7 @@ export interface FormConfig {
     defaultValue?: any;
     children?: FormConfig;
     helpTip?: string;
+    errorTip?: string;
     type?: FIELD_TYPE;
   };
 }

@@ -8,8 +8,8 @@ import {
   OnInit
 } from "@angular/core";
 import { CommonModule } from "@angular/common";
-import { FormsModule, UntypedFormArray, UntypedFormBuilder, UntypedFormGroup, AbstractControl, ValidationErrors } from "@angular/forms";
-import { NzDrawerModule, NzDrawerService } from "ng-zorro-antd/drawer";
+import { FormsModule, UntypedFormArray, UntypedFormBuilder, UntypedFormGroup, AbstractControl, ValidationErrors, Validators } from "@angular/forms";
+import { NzDrawerModule, NzDrawerRef } from "ng-zorro-antd/drawer";
 import { NzAlertModule } from "ng-zorro-antd/alert";
 import { NzButtonModule } from "ng-zorro-antd/button";
 import { NzIconModule } from "ng-zorro-antd/icon";
@@ -94,7 +94,10 @@ export class ScenarioGuideModalComponent implements OnInit, AfterViewInit, OnDes
       label: this.i18n.transform("trigger_condition_label"),
       id: SCENARIO_FIELD_ID.TRIGGER_CONDITION,
       helpTip: this.i18n.transform("trigger_condition_tip"),
+      required: true,
+      errorTip: this.i18n.transform("trigger_condition_not_empty_tip"),
       validators: [
+        Validators.required,
         (control: AbstractControl): ValidationErrors | null => this.getTriggerRenameValidator()(control)
       ],
       type: FIELD_TYPE.TEXT_INPUT
@@ -103,7 +106,9 @@ export class ScenarioGuideModalComponent implements OnInit, AfterViewInit, OnDes
       label: this.i18n.transform("perform_action_label"),
       id: SCENARIO_FIELD_ID.PERFORM_ACTION,
       helpTip: this.i18n.transform("perform_action_tip"),
-      validators: [],
+      required: true,
+      errorTip: this.i18n.transform("perform_action_not_empty_tip"),
+      validators: [Validators.required],
       type: FIELD_TYPE.TEXT_INPUT
     },
     [SCENARIO_FIELD_ID.SKILL_SET]: {
@@ -141,7 +146,8 @@ export class ScenarioGuideModalComponent implements OnInit, AfterViewInit, OnDes
       label: this.i18n.transform("scene_label"),
       id: SCENARIO_FIELD_ID.SCENE_NAME,
       required: true,
-      validators: [],
+      errorTip: this.i18n.transform("scene_name_not_empty_tip"),
+      validators: [Validators.required],
       defaultValue: ""
     },
     [SCENARIO_FIELD_ID.SCENE_DESC]: {
@@ -175,8 +181,12 @@ export class ScenarioGuideModalComponent implements OnInit, AfterViewInit, OnDes
     private scenarioGuideModalServ: ScenarioGuideModalService,
     private cdr: ChangeDetectorRef,
     private elementRef: ElementRef,
-    private nzDrawerService: NzDrawerService
+    private drawerRef: NzDrawerRef
   ) {
+  }
+
+  public cancel(): void {
+    this.drawerRef.close();
   }
 
   ngOnInit(): void {
@@ -563,18 +573,18 @@ export class ScenarioGuideModalComponent implements OnInit, AfterViewInit, OnDes
 
   private checkFormValid(): boolean {
     this.modalFormGroup.markAllAsTouched();
+    this.triggerControlStatusChanges(this.modalFormGroup);
     if (this.modalFormGroup.valid) {
+      this.guideFormListData.forEach((item) => { item.inValid = false; });
       return true;
     }
 
-    const guideErrorKeys = Object.keys(this.modalFormGroup.get(SCENARIO_FIELD_ID.GUIDE_CONFIG_LIST)?.errors || {});
-    const dependencyErrorKeys = Object.keys(this.modalFormGroup.get(SCENARIO_FIELD_ID.DEPENDENCY_LIST)?.errors || {});
+    this.guideFormListData.forEach((item, index) => {
+      const guideGroup = this.guideFormList.at(index) as UntypedFormGroup;
+      item.inValid = guideGroup.invalid;
+    });
 
-    if (guideErrorKeys.length) {
-      this.guideFormListData.forEach((item, index) => {
-        item.inValid = guideErrorKeys.includes(String(index));
-      });
-    }
+    const dependencyErrorKeys = Object.keys(this.modalFormGroup.get(SCENARIO_FIELD_ID.DEPENDENCY_LIST)?.errors || {});
 
     if (dependencyErrorKeys.length || this.cycleErrorMessage) {
       this.dependencyCollapsed = false;
@@ -584,15 +594,27 @@ export class ScenarioGuideModalComponent implements OnInit, AfterViewInit, OnDes
       let elementRef;
       if (this.modalFormGroup.get(SCENARIO_FIELD_ID.SCENE_NAME)?.invalid) {
         elementRef = this.elementRef.nativeElement.querySelector(`[id=${SCENARIO_FIELD_ID.SCENE_NAME}]`);
-      } else if (guideErrorKeys.length) {
-        elementRef = this.elementRef.nativeElement.querySelector(`[id=guideCard${guideErrorKeys[0]}]`);
-        this.changeCardCollapse(this.guideFormListData[Number(guideErrorKeys[0])], this.guideFormList?.controls?.[Number(guideErrorKeys[0])], false);
       } else {
-        elementRef = this.elementRef.nativeElement.querySelector(`[id=dependency${dependencyErrorKeys[0]}]`);
+        const firstInvalidGuideIndex = this.guideFormListData.findIndex((item) => item.inValid);
+        if (firstInvalidGuideIndex !== -1) {
+          elementRef = this.elementRef.nativeElement.querySelector(`[id=guideCard${firstInvalidGuideIndex}]`);
+          this.changeCardCollapse(this.guideFormListData[firstInvalidGuideIndex], this.guideFormList?.controls?.[firstInvalidGuideIndex], false);
+        } else if (dependencyErrorKeys.length) {
+          elementRef = this.elementRef.nativeElement.querySelector(`[id=dependency${dependencyErrorKeys[0]}]`);
+        }
       }
       elementRef?.scrollIntoView({ behavior: "smooth" });
     }, 100);
 
     return false;
+  }
+
+  private triggerControlStatusChanges(control: AbstractControl): void {
+    if (control instanceof UntypedFormArray) {
+      control.controls.forEach(child => this.triggerControlStatusChanges(child));
+    } else if (control instanceof UntypedFormGroup) {
+      Object.values(control.controls).forEach(child => this.triggerControlStatusChanges(child));
+    }
+    control.updateValueAndValidity({ emitEvent: true, onlySelf: true });
   }
 }

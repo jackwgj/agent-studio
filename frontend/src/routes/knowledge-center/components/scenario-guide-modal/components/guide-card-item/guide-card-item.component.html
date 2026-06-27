@@ -58,7 +58,7 @@
               </span>
             }
           </nz-form-label>
-          <nz-form-control>
+          <nz-form-control [nzErrorTip]="fieldErrorTpl">
             @if (formItem.type === FIELD_TYPE.TEXT_INPUT) {
               <input
                 nz-input
@@ -105,6 +105,13 @@
               </nz-select>
             }
           </nz-form-control>
+          <ng-template #fieldErrorTpl let-control>
+            @if (control.hasError('reName')) {
+              {{ control.errors?.reName?.message }}
+            } @else if (control.hasError('required')) {
+              {{ formItem.errorTip }}
+            }
+          </ng-template>
         </nz-form-item>
       }
     </form>
