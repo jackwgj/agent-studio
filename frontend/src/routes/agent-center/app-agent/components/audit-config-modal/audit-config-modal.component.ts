@@ -113,6 +113,7 @@ export class AuditConfigModalComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   public dismiss(): void {
+    this.resetFormToAuditConfig();
     this.auditConfigDrawer.close();
   }
 
@@ -363,68 +364,72 @@ export class AuditConfigModalComponent implements OnInit, OnChanges, OnDestroy {
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes?.auditConfig) {
-      if (this.auditConfig) {
-        const { filter, replace, reply } =
-        changes.auditConfig.currentValue ?? {};
-        this.groupFormControl.patchValue({
-          filter: filter?.keywords || ""
-        });
-
-        if (replace && Array.isArray(replace)) {
-          const replaceArray = this.groupFormControl.get(
-            "replace"
-          ) as FormArray;
-          replaceArray.clear();
-          replace.forEach((item) => {
-            replaceArray.push(
-              this.fb.group({
-                uuid: item.uuid || uuidV4(),
-                keywords: [
-                  item.keywords || "",
-                  [this.requiredValidator, this.noDuplicateKeywordsValidator()]
-                ],
-                replaceWords: [item.replace || "", [this.requiredValidator]]
-              })
-            );
-          });
-        }
-
-        if (reply && Array.isArray(reply)) {
-          const handlingArray = this.groupFormControl.get(
-            "handling"
-          ) as FormArray;
-          handlingArray.clear();
-          this.tempPropValues = [];
-          reply.forEach((item, index) => {
-            const newItem = this.fb.group({
-              uuid: item.uuid || uuidV4(),
-              keywords: [
-                item.keywords || "",
-                [this.requiredValidator, this.noDuplicateKeywordsValidator()]
-              ],
-              input: [
-                item.input_text || "",
-                [this.handlingContentValidator("input")]
-              ],
-              inputEnable: item.input_enable || false,
-              output: [
-                item.output_text || "",
-                [this.handlingContentValidator("output")]
-              ],
-              outputEnable: item.output_enable || false
-            });
-            handlingArray.push(newItem);
-            this.tempPropValues.push({
-              input: "",
-              output: ""
-            });
-            this.onCheckboxChange(newItem, "input", index);
-            this.onCheckboxChange(newItem, "output", index);
-          });
-        }
-        this.cdr.detectChanges();
-      }
+      this.resetFormToAuditConfig();
     }
+  }
+
+  private resetFormToAuditConfig() {
+    if (!this.auditConfig) {
+      return;
+    }
+    const { filter, replace, reply } = this.auditConfig;
+    this.groupFormControl.patchValue({
+      filter: filter?.keywords || ""
+    });
+
+    if (replace && Array.isArray(replace)) {
+      const replaceArray = this.groupFormControl.get(
+        "replace"
+      ) as FormArray;
+      replaceArray.clear();
+      replace.forEach((item) => {
+        replaceArray.push(
+          this.fb.group({
+            uuid: item.uuid || uuidV4(),
+            keywords: [
+              item.keywords || "",
+              [this.requiredValidator, this.noDuplicateKeywordsValidator()]
+            ],
+            replaceWords: [item.replace || "", [this.requiredValidator]]
+          })
+        );
+      });
+    }
+
+    if (reply && Array.isArray(reply)) {
+      const handlingArray = this.groupFormControl.get(
+        "handling"
+      ) as FormArray;
+      handlingArray.clear();
+      this.tempPropValues = [];
+      reply.forEach((item, index) => {
+        const newItem = this.fb.group({
+          uuid: item.uuid || uuidV4(),
+          keywords: [
+            item.keywords || "",
+            [this.requiredValidator, this.noDuplicateKeywordsValidator()]
+          ],
+          input: [
+            item.input_text || "",
+            [this.handlingContentValidator("input")]
+          ],
+          inputEnable: item.input_enable || false,
+          output: [
+            item.output_text || "",
+            [this.handlingContentValidator("output")]
+          ],
+          outputEnable: item.output_enable || false
+        });
+        handlingArray.push(newItem);
+        this.tempPropValues.push({
+          input: "",
+          output: ""
+        });
+        this.onCheckboxChange(newItem, "input", index);
+        this.onCheckboxChange(newItem, "output", index);
+      });
+    }
+    this.cdr.detectChanges();
   }
 
   get isReplaceArrayLimit() {

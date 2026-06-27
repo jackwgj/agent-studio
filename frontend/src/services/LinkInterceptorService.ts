@@ -72,6 +72,10 @@ export class LinkInterceptorService implements OnDestroy {
    * 处理a标签点击事件
    */
   private handleClick(e: MouseEvent): void {
+    if (this.canNavigation) {
+      this.updateOptions(false);
+      return;
+    }
     const target = e.target as HTMLElement;
     if (target?.tagName !== 'A') {
       return;

@@ -16,6 +16,7 @@ import { NzToolTipModule } from "ng-zorro-antd/tooltip";
 import { NzMessageService } from "ng-zorro-antd/message";
 import { cdnAssetUrl } from "src/single-spa/assets-url";
 import { NZ_MODAL_DATA, NzModalRef } from "ng-zorro-antd/modal";
+import { LinkInterceptorService } from "@services/LinkInterceptorService";
 
 interface ChildResult {
   status: string;
@@ -125,6 +126,7 @@ export class ExportResultModalComponent {
     private i18n: I18NextEagerPipe,
     private message: NzMessageService,
     private modalRef: NzModalRef,
+    private linkInterceptorService: LinkInterceptorService,
     @Inject(NZ_MODAL_DATA) private modalData: any
   ) {
     this.exportResult = modalData.exportResult;
@@ -166,9 +168,7 @@ export class ExportResultModalComponent {
     }
     const downloadUrlObj = new URL(this.exportResult?.download_url);
     this.isShowCopyUrl = downloadUrlObj.protocol !== window.location.protocol;
-    if (this.isShowCopyUrl) {
-      return; // 不同协议的话就显示复制下载链接按钮
-    }
+    this.linkInterceptorService.updateOptions(true);
     const link = document.createElement("a");
     link.href = this.exportResult?.download_url;
     document.body.appendChild(link);
