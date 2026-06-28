@@ -1336,7 +1336,7 @@ public class AgentRuntimeService implements IAgentRuntimeService {
     // agent执行的消息
     private void processOnMessage(SseEmitter sseEmitter, JiuwenAgentEvent eventObj, AgentExecuteParams executeParams) {
         Object answerObj = eventObj.getData().getAnswer();
-        String answer = answerObj != null ? answerObj.toString() : "";
+        String answer = answerObj != null ? answerObj.toString() : null;// answer无内容，说明是模型思考内容，不传值
         
         // 兜底敏感词过滤：确保发送给前端的message事件内容已过滤敏感词
         SensitiveTrieUtils trieUtils = executeParams.getTrieUtils();

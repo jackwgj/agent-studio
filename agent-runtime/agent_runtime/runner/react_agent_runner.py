@@ -14,6 +14,7 @@ from typing import AsyncGenerator, Optional, Dict
 
 from agent_runtime.runner.react_stream_data_adapter import ReactStreamDataAdapter
 from agent_runtime.runner.react_workflow_adapter import ReactWorkflowAdapter
+from agent_runtime.runner.react_file_reader_adapter import ReactFileReaderAdapter
 from agent_runtime.schemas.orchestration_mgr import ExecutionRequest
 from jiuwen.serve.controllers.execution.open_utils import async_ir_load
 from openjiuwen.core.common.logging import workflow_logger
@@ -82,7 +83,7 @@ class ReActAgentRunner:
         template = re.sub(r"\{\{inputs\.([\w.]+)\}\}", replace_inputs, template)
         return template
 
-    def _parse_prompt_template(self, ir_json: dict, conversation_history: list = None, skill_work_dir: str = "", global_variables: dict = None) -> \
+    def _parse_prompt_template(self, ir_json: dict, conversation_history: list = None, skill_work_dir: str = "", global_variables: dict = None, has_file_links: bool = False) -> \
     list[dict]:
         """解析 IR 中的提示词模板，添加工具使用说明和 skill 提示词"""
         configs = ir_json.get("configs", {})
@@ -106,14 +107,26 @@ class ReActAgentRunner:
         # 构建 skill 提示词（传入实际工作目录）
         skills_prompt = self._build_skills_prompt(ir_json, skill_work_dir)
 
+        # 文件链接提示词
+        file_links_prompt = self._build_file_links_prompt() if has_file_links else ""
+
         history_section = self._format_conversation_history(conversation_history)
 
         if sys_prompt:
-            full_prompt = sys_prompt + tool_instruction + skills_prompt + history_section
+            full_prompt = sys_prompt + tool_instruction + skills_prompt + file_links_prompt + history_section
         else:
-            full_prompt = "你是一个AI助手，能够帮助用户完成任务。" + tool_instruction + skills_prompt + history_section
+            full_prompt = "你是一个AI助手，能够帮助用户完成任务。" + tool_instruction + skills_prompt + file_links_prompt + history_section
 
         return [{"role": "system", "content": full_prompt}]
+
+    def _build_file_links_prompt(self) -> str:
+        """构建文件链接提示词"""
+        return (
+            "\n\n## 文件读取指令（重要）\n"
+            "用户提供了文件链接（如 .docx, .txt, .pdf 等格式）。\n"
+            "可以使用预置的 read_file_from_url 工具来读取文件内容，"
+            "当工具返回文件内容后，基于内容回复用户。\n"
+        )
 
     def _build_skills_prompt(self, ir_json: dict, skill_work_dir: str = "") -> str:
         """构建 skill 提示词"""
@@ -462,6 +475,44 @@ class ReActAgentRunner:
 
         return skill_local_path_prefix
 
+    def _has_file_links(self, query: str) -> bool:
+        """检测 query 中是否包含可读取的文件链接（排除图片）"""
+        if not query:
+            return False
+        from urllib.parse import urlparse
+
+        urls = re.findall(r'https?://[^\s\]\"\'<>]+', query)
+        # 图片格式扩展名
+        image_extensions = ('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg', '.ico')
+
+        if not urls:
+            return False
+
+        for url in urls:
+            # 解析 URL 获取路径部分（去掉查询参数）
+            path = urlparse(url).path.lower()
+            # 如果路径以图片格式结尾，排除
+            if any(path.endswith(ext) for ext in image_extensions):
+                return False
+        return True
+
+    def _register_file_reader_tool(self, agent: ReActAgent, agent_id: str) -> None:
+        """注册轻量级的文件读取工具（从 URL 下载并读取内容）"""
+        from openjiuwen.core.foundation.tool import ToolCard
+        from openjiuwen.core.runner import Runner
+
+        try:
+            file_reader = ReactFileReaderAdapter()
+
+            # 1. 注册执行器到 resource_mgr
+            Runner.resource_mgr.add_tool(tool=file_reader, tag=agent_id)
+
+            # 2. 注册 ToolCard 到 ability_manager
+            agent.ability_manager.add(file_reader.card)
+
+        except Exception as e:
+            workflow_logger.error(f"Failed to register: {e}", exc_info=True)
+
     async def _register_skills(self, ir_json: dict, agent: ReActAgent, agent_id: str, skill_work_dir: str = "") -> None:
         """注册 Skill 工具和配置"""
         import os
@@ -489,7 +540,7 @@ class ReActAgentRunner:
                 except Exception as e:
                     workflow_logger.warning(f"Failed to register skill {skill_name}: {e}")
 
-    def _create_agent(self, ir_json: dict, conversation_history: list = None, skill_work_dir: str = "", global_variables: dict = None) -> tuple[
+    def _create_agent(self, ir_json: dict, conversation_history: list = None, skill_work_dir: str = "", global_variables: dict = None, has_file_links: bool = False) -> tuple[
         ReActAgent, str]:
         """根据 IR 配置创建 ReActAgent 实例
 
@@ -498,8 +549,9 @@ class ReActAgentRunner:
             conversation_history: 对话历史
             skill_work_dir: skill 文件的实际工作目录
             global_variables: 全局变量（含用户入参变量）
+            has_file_links: query 中是否包含文件链接
         """
-        prompt_template = self._parse_prompt_template(ir_json, conversation_history, skill_work_dir, global_variables)
+        prompt_template = self._parse_prompt_template(ir_json, conversation_history, skill_work_dir, global_variables, has_file_links)
         max_iterations = self._parse_max_iterations(ir_json)
         agent_id = ir_json.get("agentId", "react_agent")
 
@@ -555,11 +607,15 @@ class ReActAgentRunner:
             except Exception as e:
                 workflow_logger.error(f"[run_streaming] Skill download failed: {e}", exc_info=True)
 
-        # 2. 创建 Agent（传入 skill_work_dir 以便正确构建 prompt）
+        # 获取 query 并检测文件链接
+        query = req.query or "Hello"
+        has_file_links = self._has_file_links(query)
+
+        # 2. 创建 Agent（传入 skill_work_dir 和 has_file_links 以便正确构建 prompt）
         try:
             conversation_history = req.params.conversation_history
             global_variables = req.params.global_variables or {}
-            agent, agent_id = self._create_agent(ir_json, conversation_history, skill_work_dir, global_variables)
+            agent, agent_id = self._create_agent(ir_json, conversation_history, skill_work_dir, global_variables, has_file_links)
             agent.set_llm(llm)
         except Exception as e:
             workflow_logger.error(f"Failed to create agent: {e}")
@@ -579,6 +635,9 @@ class ReActAgentRunner:
             await self._register_mcp_servers(ir_json, agent, agent_id)
             await self._register_workflows(ir_json, agent, agent_id)
             await self._register_skills(ir_json, agent, agent_id, skill_work_dir)
+            # 有文件链接时注册读文件工具
+            if has_file_links:
+                self._register_file_reader_tool(agent, agent_id)
         except Exception as e:
             workflow_logger.error(f"Failed to register tools: {e}")
             yield adapter.adapt_error(f"Failed to register tools: {e}")
@@ -621,7 +680,7 @@ class ReActAgentRunner:
             inputs.setdefault("_jiuwen_runtime_kwargs", {})["session"] = session
 
             # 构建 LLM inputs（用于事件记录）—— 包含系统提示词以便调试查看
-            prompt_messages = self._parse_prompt_template(ir_json, conversation_history, skill_work_dir, global_variables)
+            prompt_messages = self._parse_prompt_template(ir_json, conversation_history, skill_work_dir, global_variables, has_file_links)
             llm_inputs = list(prompt_messages) + [{"role": "user", "content": query}]
 
             # 构建 LLM metaData（模型参数）
