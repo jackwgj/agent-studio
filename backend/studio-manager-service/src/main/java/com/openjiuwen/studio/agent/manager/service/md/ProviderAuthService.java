@@ -143,12 +143,12 @@ public class ProviderAuthService {
 
     public void deleteByProvider(String projectId, String workspaceId, String providerId) {
         List<ProviderAuthData> datas = authMapper.selectByProviderId(projectId, workspaceId, providerId);
-        authMapper.clearByProviderId(projectId, workspaceId, providerId);
         for (ProviderAuthData data : datas) {
             String path = String.format(AUTH_INFO_PATH, projectId, providerId, data.getId());
             obsService.deleteObject(path);
             redisClient.delete(REDIS_PREFIX + data.getId());
         }
+        authMapper.deleteByProviderId(projectId, workspaceId, providerId);
     }
 
     public void backupByProvider(String projectId, String workspaceId, String providerId) {

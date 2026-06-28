@@ -7,6 +7,8 @@ import com.openjiuwen.studio.agent.common.enums.StudioError;
 import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
 import com.openjiuwen.studio.agent.manager.entity.ProviderExportMetadata;
 import com.openjiuwen.studio.agent.manager.entity.md.ModelServiceProvider;
+import com.openjiuwen.studio.agent.manager.mapper.md.ProviderAuthDataMapper;
+import com.openjiuwen.studio.agent.manager.mapper.md.ProviderAuthMetadataMapper;
 import com.openjiuwen.studio.agent.manager.mapper.md.SysModelServiceProviderMapper;
 import com.openjiuwen.studio.agent.manager.mapper.md.UserModelServiceProviderMapper;
 import com.openjiuwen.studio.agent.manager.service.md.ProviderMgmtService;
@@ -43,6 +45,12 @@ public class ProviderAdapter extends ResourceAdapter {
 
     @Autowired
     private UserModelServiceProviderMapper userModelServiceProviderMapper;
+
+    @Autowired
+    private ProviderAuthMetadataMapper metadataMapper;
+
+    @Autowired
+    private ProviderAuthDataMapper authDataMapper;
 
 
     @Override
@@ -174,6 +182,15 @@ public class ProviderAdapter extends ResourceAdapter {
                 String newId = UUID.randomUUID().toString();
                 setProviderIds(provider, newId);
                 result.setNewId(newId);
+            }
+            // 检查 auth_metadata ID 是否已存在（可能残留自上次删除不干净）
+            if (metadataMapper.selectById(provider.getProviderAuthMetadata().getId()) != null) {
+                provider.getProviderAuthMetadata().setId(UUID.randomUUID().toString());
+                provider.getProviderAuthData().setAuthMetadataId(provider.getProviderAuthMetadata().getId());
+            }
+            // 检查 auth_info ID 是否已存在（可能残留自上次删除不干净）
+            if (authDataMapper.selectById(provider.getProviderAuthData().getId()) != null) {
+                provider.getProviderAuthData().setId(UUID.randomUUID().toString());
             }
             providerMgmtService.createProviderFromMetadata(importInfo.getTargetProjectId(),
                 importInfo.getTargetWorkspaceId(), provider);
