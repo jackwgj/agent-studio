@@ -297,7 +297,21 @@
                                 [placeholder]="
                                           'input_placeholder' | i18nextEager
                                         "
+                                [class.input-error]="
+                                  inputForm?.controls['inputFormDefault' + tabItem.id + origin.keyindex]?.invalid &&
+                                  (inputForm?.controls['inputFormDefault' + tabItem.id + origin.keyindex]?.dirty || inputForm?.controls['inputFormDefault' + tabItem.id + origin.keyindex]?.touched)
+                                "
                               />
+                              <div
+                                *ngIf="
+                                  origin.type === 'integer' &&
+                                  inputForm?.controls['inputFormDefault' + tabItem.id + origin.keyindex]?.invalid &&
+                                  (inputForm?.controls['inputFormDefault' + tabItem.id + origin.keyindex]?.dirty || inputForm?.controls['inputFormDefault' + tabItem.id + origin.keyindex]?.touched)
+                                "
+                                class="error-tip"
+                              >
+                                {{inputForm?.controls['inputFormDefault' + tabItem.id + origin.keyindex]?.errors?.serviceName?.tiErrorMessage}}
+                              </div>
 
                               <input
                                 (keydown)="$event.stopPropagation()"
@@ -313,7 +327,21 @@
                                 [placeholder]="
                                           'input_placeholder' | i18nextEager
                                         "
+                                [class.input-error]="
+                                  inputForm?.controls['inputFormDefault' + tabItem.id + origin.keyindex]?.invalid &&
+                                  (inputForm?.controls['inputFormDefault' + tabItem.id + origin.keyindex]?.dirty || inputForm?.controls['inputFormDefault' + tabItem.id + origin.keyindex]?.touched)
+                                "
                               />
+                              <div
+                                *ngIf="
+                                  origin.type === 'number' &&
+                                  inputForm?.controls['inputFormDefault' + tabItem.id + origin.keyindex]?.invalid &&
+                                  (inputForm?.controls['inputFormDefault' + tabItem.id + origin.keyindex]?.dirty || inputForm?.controls['inputFormDefault' + tabItem.id + origin.keyindex]?.touched)
+                                "
+                                class="error-tip"
+                              >
+                                {{inputForm?.controls['inputFormDefault' + tabItem.id + origin.keyindex]?.errors?.serviceName?.tiErrorMessage}}
+                              </div>
 
                               <input
                                 (keydown)="$event.stopPropagation()"

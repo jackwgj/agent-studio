@@ -945,7 +945,7 @@ export class CreateToolComponent implements OnInit {
     if (!this.showFromErrorByName(this.groupFormControl, [])) {
       return;
     }
-    if (!this.showFromErrorByName(this.inputForm.form, ['inputFormName', 'inputFormDesc'], true)) {
+    if (!this.showFromErrorByName(this.inputForm.form, ['inputFormName', 'inputFormDesc', 'inputFormDefault'], true)) {
       return;
     }
     if (!this.showFromErrorByName(this.responseForm.form, ['responseFormName'])) {
@@ -1015,7 +1015,7 @@ export class CreateToolComponent implements OnInit {
     const instance = thisNzModal.getContentComponent();
     instance.isEdit = !!this.toolInfo;
     instance.pluginInfo = this.pluginInfo;
-    instance.importSuccess.subscribe(json => {
+    instance.confirm.subscribe(json => {
       try {
         const url = new URL(json.url);
         const basePath = this.pluginInfo.request_info.basic_info.path;
