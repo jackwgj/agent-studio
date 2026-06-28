@@ -19,7 +19,7 @@ import {
 import { MODULES } from '@shared/modules';
 import { I18NEXT_NAMESPACE, I18NextEagerPipe } from 'angular-i18next';
 import { cloneDeep } from 'lodash';
-import { BehaviorSubject, takeUntil } from 'rxjs';
+import { BehaviorSubject, Subject, takeUntil } from 'rxjs';
 import { ParamLabelPipe } from 'src/pipes/param-label.pipe';
 import { AppFlowService } from '../../app-flow.service';
 import { getInitInputParamConfig } from '../../flow.const';
@@ -94,7 +94,7 @@ export class EndModalComponent extends ModalBaseComponent implements OnInit {
   get tipVals() {
     return this.inputParams.map((param) => param.name);
   }
-  readonly showVarListSubject$ = new BehaviorSubject<boolean>(false);
+  readonly showVarListSubject$ = new Subject<boolean>();
   constructor(
     private i18n: I18NextEagerPipe,
     protected override nodeServ: NodeService,

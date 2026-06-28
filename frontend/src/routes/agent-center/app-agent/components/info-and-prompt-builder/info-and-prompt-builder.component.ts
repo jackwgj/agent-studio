@@ -161,7 +161,7 @@ export class InfoAndPromptBuilderComponent implements OnInit {
     return this.configServ.getConfigs().prompt_max_length ?? 20000;
   }
 
-  private readonly showVarListSubject$ = new BehaviorSubject<boolean>(false);
+  private readonly showVarListSubject$ = new Subject<boolean>();
   experienceCreation = false;
 
   constructor(

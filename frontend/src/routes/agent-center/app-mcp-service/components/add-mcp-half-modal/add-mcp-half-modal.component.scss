@@ -240,3 +240,11 @@
   gap: 8px;
   justify-content: flex-end;
 }
+.error-tip {
+  color: #f13132;
+  font-size: 12px;
+}
+.input-error {
+  border-color: #FF8A5B !important;
+  background-color: #FCE3E1 !important;
+}

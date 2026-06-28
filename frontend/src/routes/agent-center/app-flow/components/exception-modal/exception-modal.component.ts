@@ -19,7 +19,7 @@ import { NodeService } from '../../node.service';
 import type { IMessageNode, IParamRef } from '../../node.type';
 import { AccBlockComponent } from '../acc-block/acc-block.component';
 import { ModalBaseComponent } from '../base/modal-base.component';
-import { MonacoEditorModule } from '@materia-ui/ngx-monaco-editor';
+import { MonacoEditorModule, MonacoEditorComponent } from '@materia-ui/ngx-monaco-editor';
 import { ExTempComponent } from '@routes/agent-center/app-flow/components/exception-modal/ex-temp.component';
 import { ObjTypeValidatorDirective } from '@shared/directives/obj-type-validator.directive';
 import {
@@ -67,6 +67,8 @@ export class ExceptionModalComponent
   @Output('confirm') confirm = new EventEmitter<any>();
 
   @ViewChild('tempForm') tempForm: NgForm;
+
+  @ViewChild(MonacoEditorComponent) monacoEditor: MonacoEditorComponent;
 
   public icon = WORKFLOW_SVGS.StructuredMessagesException;
 
@@ -207,8 +209,12 @@ export class ExceptionModalComponent
     });
     modal.componentInstance.select.subscribe((tmpl: any) => {
       this.responseTemplate = tmpl.content;
-      this.onSave();
-      modal.destroy();
+      this.changeUpdateTime();
+      this.handelSave();
+      setTimeout(() => {
+        this.monacoEditor?.editor?.setValue(this.responseTemplate);
+        modal.destroy();
+      });
     });
   }
 

@@ -75,16 +75,6 @@
     </div>
     <div class="right-area flex-1 justify-end">
       <span
-        class="h-[30px] w-[30px] inline-flex items-center justify-center cursor-pointer"
-        nz-tooltip
-        [nzTooltipTitle]="'trigger_setting' | i18nextEager"
-        nzTooltipPlacement="bottom"
-        (click)="openTriggerDrawer()"
-        *ngIf="!isShowDeepResearch"
-      >
-        <img alt="" [src]="changeUrl('assets/agent-center/icons/trigger.png')" />
-      </span>
-      <span
         class="icon-border inline-flex items-center justify-center cursor-pointer"
         nz-tooltip
         [nzTooltipTitle]="'release_history' | i18nextEager"

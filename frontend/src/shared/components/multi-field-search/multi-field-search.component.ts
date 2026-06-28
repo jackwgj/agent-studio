@@ -103,6 +103,8 @@ export class MultiFieldSearchComponent {
   public clearSearch() {
     this.searchTags = [];
     this.searchInputValue = '';
+    this.searchField = this.searchItems[0]?.field || '';
+    this.searchFieldChange.emit(this.searchField);
     this.emitChange();
   }
 

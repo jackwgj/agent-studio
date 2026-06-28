@@ -193,6 +193,17 @@ export class AddMcpHalfModalComponent implements OnInit {
     },
   };
 
+  oauthErrors = {
+    url: false,
+    id: false,
+    secret: false,
+    scope: false,
+  };
+
+  validateOauthField(field: string) {
+    this.oauthErrors[field] = !this.mcpAuthConfigData.authParams[field]?.trim();
+  }
+
   constructor(
     private readonly api: MCPService,
     private readonly i18n: angularI18next.I18NextEagerPipe,
@@ -564,6 +575,16 @@ export class AddMcpHalfModalComponent implements OnInit {
     if (this.mcpModalSelected.name === '' || this.mcpModalSelected.description === '') {
       MessageComponent.showError(this.i18n.transform('MCPValidateError'));
       return;
+    }
+    if (this.mcpAuthConfigData.selectedAuthType === 'OAUTH') {
+      this.oauthErrors.url = !this.mcpAuthConfigData.authParams.url?.trim();
+      this.oauthErrors.id = !this.mcpAuthConfigData.authParams.id?.trim();
+      this.oauthErrors.secret = !this.mcpAuthConfigData.authParams.secret?.trim();
+      this.oauthErrors.scope = !this.mcpAuthConfigData.authParams.scope?.trim();
+      if (this.oauthErrors.url || this.oauthErrors.id || this.oauthErrors.secret || this.oauthErrors.scope) {
+        this.cdr.detectChanges();
+        return;
+      }
     }
     try {
       JSON.parse(this.mcpModalData.editor);
@@ -1111,6 +1132,7 @@ export class AddMcpHalfModalComponent implements OnInit {
 
   // 切换鉴权方式要取消按钮的置灰操作
   handleChangeAuthWay() {
+    this.oauthErrors = { url: false, id: false, secret: false, scope: false };
     if (this.mcpAuthConfigData.selectedAuthType === 'SERVICE') {
       this.handleChangeAPIKeyRadio();
       return;

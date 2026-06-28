@@ -378,7 +378,8 @@
           <img [src]="changeUrl('assets/model/online-test-help.svg')" alt="" />
         </span>
       </span>
-      <input nz-input [(ngModel)]="mcpAuthConfigData.authParams.url" [placeholder]="'input_placeholder' | i18nextEager" />
+      <input nz-input [(ngModel)]="mcpAuthConfigData.authParams.url" [placeholder]="'input_placeholder' | i18nextEager" [class.input-error]="oauthErrors.url" (ngModelChange)="oauthErrors.url = false" (blur)="validateOauthField('url')" />
+      <span *ngIf="oauthErrors.url" class="error-tip">{{ 'param_1' | i18nextEager }}</span>
     </p>
     <p style="display: flex; flex-direction: column; gap: 10px; margin-top: 16px">
       <span style="display: inline-flex; gap: 8px; align-items: center">
@@ -387,7 +388,8 @@
           <img [src]="changeUrl('assets/model/online-test-help.svg')" alt="" />
         </span>
       </span>
-      <input nz-input [(ngModel)]="mcpAuthConfigData.authParams.id" [placeholder]="'input_placeholder' | i18nextEager" />
+      <input nz-input [(ngModel)]="mcpAuthConfigData.authParams.id" [placeholder]="'input_placeholder' | i18nextEager" [class.input-error]="oauthErrors.id" (ngModelChange)="oauthErrors.id = false" (blur)="validateOauthField('id')" />
+      <span *ngIf="oauthErrors.id" class="error-tip">{{ 'param_1' | i18nextEager }}</span>
     </p>
     <p style="display: flex; flex-direction: column; gap: 10px; margin-top: 16px">
       <span style="display: inline-flex; gap: 8px; align-items: center">
@@ -397,8 +399,9 @@
         </span>
       </span>
       <nz-input-password>
-        <input nz-input [(ngModel)]="mcpAuthConfigData.authParams.secret" [placeholder]="'input_placeholder' | i18nextEager" />
+        <input nz-input [(ngModel)]="mcpAuthConfigData.authParams.secret" [placeholder]="'input_placeholder' | i18nextEager" [class.input-error]="oauthErrors.secret" (ngModelChange)="oauthErrors.secret = false" (blur)="validateOauthField('secret')" />
       </nz-input-password>
+      <span *ngIf="oauthErrors.secret" class="error-tip">{{ 'param_1' | i18nextEager }}</span>
     </p>
     <p style="display: flex; flex-direction: column; gap: 10px; margin-top: 16px; margin-bottom: 24px">
       <span style="display: inline-flex; gap: 8px; align-items: center">
@@ -407,7 +410,8 @@
           <img [src]="changeUrl('assets/model/online-test-help.svg')" alt="" />
         </span>
       </span>
-      <input nz-input [(ngModel)]="mcpAuthConfigData.authParams.scope" [placeholder]="'input_placeholder' | i18nextEager" />
+      <input nz-input [(ngModel)]="mcpAuthConfigData.authParams.scope" [placeholder]="'input_placeholder' | i18nextEager" [class.input-error]="oauthErrors.scope" (ngModelChange)="oauthErrors.scope = false" (blur)="validateOauthField('scope')" />
+      <span *ngIf="oauthErrors.scope" class="error-tip">{{ 'param_1' | i18nextEager }}</span>
     </p>
   </div>
 </ng-template>

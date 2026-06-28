@@ -142,13 +142,22 @@ export class InputTreeSelect implements ControlValueAccessor {
     this.setShowValRoute();
   }
 
-  selectClick() {
-    this.showSelectDiv = true;
-    this.searchVal = '';
-    this.setDifferentTypeDisabled();
-    setTimeout(() => {
-      this.findTreeSelectIndex();
-    }, 0);
+  selectClick(event: Event) {
+    event.stopPropagation();
+    if (this.showSelectDiv) {
+      this.showSelectDiv = false;
+      this.treeSelectIndexList = [];
+      this.treeSelectIndex = -1;
+      this.control?.controls?.[this.name]?.markAsDirty();
+      this.vInvalid = !!this.control?.controls?.[this.name]?.errors && this.control?.controls?.[this.name]?.dirty;
+    } else {
+      this.showSelectDiv = true;
+      this.searchVal = '';
+      this.setDifferentTypeDisabled();
+      setTimeout(() => {
+        this.findTreeSelectIndex();
+      }, 0);
+    }
   }
 
   setDifferentTypeDisabled() {
@@ -199,7 +208,7 @@ export class InputTreeSelect implements ControlValueAccessor {
   }
 
   findTreeSelectIndex() {
-    if (this.path.length <= 0) {
+    if (this.path.length <= 0 || !this.selectDivDom?.nativeElement) {
       return;
     }
     const i = this.path[0].treeIndex;
@@ -257,14 +266,15 @@ export class InputTreeSelect implements ControlValueAccessor {
 
   @HostListener('document:click', ['$event'])
   onClick(event: MouseEvent) {
+    if (!this.showSelectDiv) {
+      return;
+    }
     const target = event.target as Node;
     const isInside = this.el.nativeElement.contains(target);
-    const isOverlayClick = !!(target as HTMLElement)?.closest?.('.cdk-overlay-pane');
-    if (!isInside && !isOverlayClick) {
-      if (this.showSelectDiv) {
-        this.control?.controls?.[this.name]?.markAsDirty();
-        this.vInvalid = !!this.control?.controls?.[this.name]?.errors && this.control?.controls?.[this.name]?.dirty;
-      }
+    const isOwnOverlay = !!(target as HTMLElement)?.closest?.('.select-tree-dom');
+    if (!isInside && !isOwnOverlay) {
+      this.control?.controls?.[this.name]?.markAsDirty();
+      this.vInvalid = !!this.control?.controls?.[this.name]?.errors && this.control?.controls?.[this.name]?.dirty;
       this.showSelectDiv = false;
       this.treeSelectIndexList = [];
       this.treeSelectIndex = -1;

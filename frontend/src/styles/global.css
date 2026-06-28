@@ -112,3 +112,7 @@ tp-layout-content {
 .ant-select-selection-item {
   height: 30px;
 }
+
+.ant-breadcrumb{
+  cursor: pointer !important;
+}
