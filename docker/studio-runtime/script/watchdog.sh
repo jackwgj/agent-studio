@@ -83,15 +83,27 @@ function watchdog() {
     CHECK_RSP="${CUSTOM_HEALTH_CHECK_RSP}"
   fi
   HEALTH_CHECK_TIMEOUT=${HEALTH_CHECK_TIMEOUT:-10}
-
   PERIOD_SECONDS=${HEALTH_CHECK_PERIOD_SECONDS:-15}
-
   SERVER_PORT=${PORT:-8000}
 
-  while [ 1 ]; do
-    sleep ${PERIOD_SECONDS}
-    server_health_check "${CHECK_RSP}" "${HEALTH_CHECK_TIMEOUT}" "${SERVER_PORT}"
-  done
+  if [[ "${NGINX_LOAD_BALANCING}" == "true" ]]; then
+    # Multi-port mode: monitor all worker ports
+    WORKER_NUM=${GUNICORN_WORK_NUM:-4}
+    echo "Watchdog: monitoring ${WORKER_NUM} workers (ports $((SERVER_PORT+1)) to $((SERVER_PORT+WORKER_NUM)))"
+    while [ 1 ]; do
+      sleep ${PERIOD_SECONDS}
+      for i in $(seq 1 ${WORKER_NUM}); do
+        WORKER_PORT=$((SERVER_PORT + i))
+        server_health_check "${CHECK_RSP}" "${HEALTH_CHECK_TIMEOUT}" "${WORKER_PORT}"
+      done
+    done
+  else
+    # Original single-port mode
+    while [ 1 ]; do
+      sleep ${PERIOD_SECONDS}
+      server_health_check "${CHECK_RSP}" "${HEALTH_CHECK_TIMEOUT}" "${SERVER_PORT}"
+    done
+  fi
 }
 
 watchdog

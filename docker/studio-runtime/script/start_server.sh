@@ -57,7 +57,7 @@ function start_all(){
 
 function start_sub_process(){
   server_port=$1
-  ps -ef | grep EIStart |grep "--port ${server_port}" |grep -v grep | awk '{print $2}' | xargs kill -9
+  ps -ef | grep EIStart | grep -- "--port ${server_port}" |grep -v grep | awk '{print $2}' | xargs kill -9
 
   env_init
 

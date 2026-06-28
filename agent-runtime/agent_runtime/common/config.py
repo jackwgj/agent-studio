@@ -20,6 +20,16 @@ class ServerSettings(BaseSettings):
     tls_ciphers: str = Field(default="TLSv1.2 TLSv1.3", validation_alias="TLS_CIPHERS")
     # Uvicorn worker 数量。未设置时由 _get_workers() 回退到 CPU 核心数 + 1
     workers: Optional[int] = Field(default=None, validation_alias="GUNICORN_WORK_NUM")
+    # Nginx 负载均衡模式。启用时 uvicorn 以单 worker 运行，由 Nginx 做负载均衡
+    nginx_load_balancing: bool = Field(default=False, validation_alias="NGINX_LOAD_BALANCING")
+
+    @field_validator("nginx_load_balancing", mode="before")
+    @classmethod
+    def _empty_str_to_false(cls, v):
+        """K8s YAML 中空字符串 value: '' 会导致 bool 解析失败，需转为 False。"""
+        if v == "" or v is None:
+            return False
+        return v
 
     @field_validator("workers", mode="before")
     @classmethod

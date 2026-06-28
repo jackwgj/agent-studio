@@ -10,7 +10,10 @@ def _get_workers() -> int:
     """计算 uvicorn worker 数量。
 
     优先使用环境变量 GUNICORN_WORK_NUM；未设置时回退到 CPU 核心数 + 1。
+    当 NGINX_LOAD_BALANCING=true 时强制返回 1，由 Nginx 管理多实例。
     """
+    if settings.server.nginx_load_balancing:
+        return 1
     configured = settings.server.workers
     if configured is not None:
         return configured

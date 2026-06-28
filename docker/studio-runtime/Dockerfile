@@ -16,9 +16,8 @@ RUN if [ -f /etc/apt/sources.list.d/debian.sources ]; then \
     elif [ -f /etc/apt/sources.list ]; then \
       sed -i 's|deb.debian.org|mirrors.aliyun.com|g' /etc/apt/sources.list; \
     fi \
-    && apt-get update && apt-get install -y curl tar unzip net-tools wget iptables cron libpq-dev vim procps gawk hostname sed coreutils findutils bash \
-    && apt-get clean && rm -rf /var/lib/apt/lists/* \
-    && echo 'alias ll="ls -alF"' >> /etc/bash.bashrc
+    && apt-get update && apt-get install -y curl tar unzip net-tools wget iptables cron libpq-dev vim procps gawk hostname sed coreutils findutils bash nginx \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # 先复制 requirements.txt，单独安装依赖以利用 Docker 层缓存
 COPY requirements.txt $SERVICE_HOME/app/
@@ -33,10 +32,13 @@ COPY agent_runtime/ $SERVICE_HOME/app/agent_runtime/
 COPY jiuwen/ $SERVICE_HOME/app/jiuwen/
 COPY tests/ $SERVICE_HOME/app/tests/
 COPY bin/ $SERVICE_HOME/bin/
+# Nginx load balancing configuration and scripts
+COPY nginx/ $SERVICE_HOME/nginx/
 
 # 设置目录与权限
 RUN mkdir -p $SERVICE_HOME/bin \
     && chmod +x $SERVICE_HOME/bin/*.sh \
+    && chmod +x $SERVICE_HOME/nginx/nginx_launcher.py \
     && mkdir -p $SERVICE_HOME/tls \
     && mkdir -p /opt/cloud/logs \
     && mkdir -p /opt/cloud/tool \
@@ -54,13 +56,19 @@ RUN mkdir -p $SERVICE_HOME/bin \
     && chown -R service:service /opt/tmp/agent \
     && chmod 755 /home
 
-# 定义定时任务需要的权限
+# 定义定时任务需要的权限 + Nginx 运行时目录权限
 USER root
 RUN chmod 700 /opt/cloud/logs \
     && echo service >> /etc/cron.allow \
     && chmod u+s /usr/sbin/cron \
-    && touch /var/run/crond.pid && chmod 760 /var/run/crond.pid
+    && touch /var/run/crond.pid && chmod 760 /var/run/crond.pid \
+    && mkdir -p /var/lib/nginx/body /var/lib/nginx/proxy /var/lib/nginx/fastcgi /var/lib/nginx/uwsgi /var/lib/nginx/scgi \
+    && chown -R service:service /var/lib/nginx \
+    && mkdir -p /var/log/nginx \
+    && chown -R service:service /var/log/nginx \
+    && touch /run/nginx.pid \
+    && chown service:service /run/nginx.pid
 
 USER service
 
-CMD ["/bin/bash", "-c", "cron;cd ${SERVICE_HOME};./bin/init.sh;./bin/start.sh"]
+CMD ["/bin/bash", "-c", "cron;cd ${SERVICE_HOME};./bin/init.sh; if [ \"${NGINX_LOAD_BALANCING}\" = \"true\" ]; then ./bin/start_nginx_lb.sh; else ./bin/start.sh; fi"]
