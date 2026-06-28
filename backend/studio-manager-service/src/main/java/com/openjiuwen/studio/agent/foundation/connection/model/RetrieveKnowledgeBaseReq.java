@@ -21,7 +21,7 @@ import java.util.stream.Stream;
 @Data
 public class RetrieveKnowledgeBaseReq {
 
-    private List<knowledgeBaseRetrieval> knowledgeBaseRetrievals;
+    private List<KnowledgeBaseRetrieval> knowledgeBaseRetrievals;
 
     /**
      * 知识检索的输入
@@ -33,14 +33,12 @@ public class RetrieveKnowledgeBaseReq {
      */
     private QueryModeEnum queryMode;
 
-    private List<KnowledgeBaseExtraParam> extraParams;
-
     private Integer topK;
 
     private Float searchThreshold;
 
     public List<String> getKnowledgeBaseIds() {
-        return knowledgeBaseRetrievals.stream().map(knowledgeBaseRetrieval::getKnowledgeBaseId).toList();
+        return knowledgeBaseRetrievals.stream().map(kb -> kb.getKnowledgeBaseId()).toList();
     }
 
     public List<String> getAllTags() {

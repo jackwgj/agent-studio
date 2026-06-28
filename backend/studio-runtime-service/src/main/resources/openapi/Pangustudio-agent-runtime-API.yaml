@@ -5028,12 +5028,6 @@ definitions:
         items:
           $ref: '#/definitions/KnowledgeIdTags'
         maxLength: 1000
-      extra_params:
-        type: array
-        description: 拓展参数
-        items:
-          $ref: '#/definitions/KnowledgeExtraParams'
-        maxLength: 1000
       scope:
         type: string
         description: 取值为doc或者faq，表示在doc或者faq中搜索。
@@ -5106,17 +5100,6 @@ definitions:
         items:
           type: string
         maxLength: 1000
-  KnowledgeExtraParams:
-    type: object
-    properties:
-      key:
-        type: string
-        description: 拓展参数key
-        maxLength: 1024
-      value:
-        type: string
-        description: 拓展参数value
-        maxLength: 1024
   KnowledgeToolCallReq:
     type: object
     required:

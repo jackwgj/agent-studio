@@ -2342,13 +2342,13 @@ public class WorkflowManagementService implements IWorkflowManagementService {
 
         // 权限校验
         workflowValidationService.validateModifyPrivilege(workflowEntity, projectId, workspaceId);
-        if (!Objects.equals(workflowEntity.getUpdatedAt(), body.getUpdateTime())) {
+    /*    if (!Objects.equals(workflowEntity.getUpdatedAt(), body.getUpdateTime())) {
             log.error("workflow version does not match, latest = {}, now = {}", workflowEntity.getUpdatedAt(),
                 body.getUpdateTime());
             if (!"hc".equals(envType)) {
                 throw new AgentStudioException(StudioError.WORKFLOW_VERSION_NOT_MATCH);
             }
-        }
+        }*/
 
         if (body.getAvatar() == null) {
             body.setAvatar(workflowEntity.getAvatar());
@@ -2606,7 +2606,6 @@ public class WorkflowManagementService implements IWorkflowManagementService {
             .filter(item -> item.getType().equals(NodeType.KNOWLEDGE_REPO.getType()))
             .forEach(item -> {
                 Map<String, Object> configs = item.getConfigs();
-                checkExtraParams(configs);
                 List<Map<String, Object>> repos = JsonUtils.objectToClass(configs.get(CommonConstant.REPOS));
                 List<String> singleNodeKnowledgeIds = new ArrayList<>();
                 if (!CollectionUtils.isEmpty(repos)) {
@@ -2670,48 +2669,6 @@ public class WorkflowManagementService implements IWorkflowManagementService {
         });
     }
 
-    private void checkExtraParams(Map<String, Object> configs) {
-        Object extraParamsObj = configs.get(CommonConstant.EXTRA_PARAMS);
-        if (extraParamsObj == null) {
-            return;
-        }
-        List<Map<String, String>> extraParamList;
-        try {
-            extraParamList = JsonUtils.objectToClass(extraParamsObj);
-        } catch (Exception e) {
-            log.error("Failed to deserialize extraParams", e);
-            throw new AgentStudioException(StudioError.INVALID_KNOWLEDGE_BASE_EXPANSION_PARAMETER);
-        }
-        if (CollectionUtils.isEmpty(extraParamList)) {
-            return;
-        }
-
-        if (extraParamList.size() > CommonConstant.EXTRA_PARAMS_SIZE) {
-            log.error("ExtraParams size exceeds limit: {} > {}", extraParamList.size(),
-                CommonConstant.EXTRA_PARAMS_SIZE);
-            throw new AgentStudioException(StudioError.INVALID_KNOWLEDGE_BASE_EXPANSION_PARAMETER);
-        }
-        List<String> errors = new ArrayList<>();
-        for (int i = 0; i < extraParamList.size(); i++) {
-            Map<String, String> item = extraParamList.get(i);
-            String key = item.get(CommonConstant.EXTRA_KEY);
-            String value = item.get(CommonConstant.EXTRA_VALUE);
-            // 校验 key
-            if (key != null && key.length() > CommonConstant.EXTRA_KEY_LENGTH) {
-                errors.add(String.format(Locale.ROOT, "[%d] key=\"%s\", value=\"%s\" (key length=%d, max=%d)", i, key,
-                    value, key.length(), CommonConstant.EXTRA_KEY_LENGTH));
-            }
-            // 校验 value
-            if (value != null && value.length() > CommonConstant.EXTRA_VALUE_LENGTH) {
-                errors.add(String.format(Locale.ROOT, "[%d] key=\"%s\", value=\"%s\" (value length=%d, max=%d)", i, key,
-                    value, value.length(), CommonConstant.EXTRA_VALUE_LENGTH));
-            }
-        }
-        if (!errors.isEmpty()) {
-            log.error("Invalid extraParams: {}", String.join("; ", errors));
-            throw new AgentStudioException(StudioError.INVALID_KNOWLEDGE_BASE_EXPANSION_PARAMETER);
-        }
-    }
 
     /**
      * 从全局配置参数中，提取模型信息

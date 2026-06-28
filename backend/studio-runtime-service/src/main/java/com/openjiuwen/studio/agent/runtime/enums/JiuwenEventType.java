@@ -40,5 +40,6 @@ public enum JiuwenEventType {
     STEP_END,
     TASK_COMPLETE,
     PLAN_START,
-    INTENT
+    INTENT,
+    FlowKnowledgeRetrieval
 }

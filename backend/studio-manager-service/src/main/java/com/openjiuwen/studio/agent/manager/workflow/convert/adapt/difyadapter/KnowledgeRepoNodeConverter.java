@@ -46,7 +46,6 @@ public class KnowledgeRepoNodeConverter extends AbstractSDSLNodeConverter {
         configs.put("show_source", false);
         configs.put(CommonConstant.DIFY.CONFIG_DEFAULT_NAME, false);
         configs.put(CommonConstant.REPOS, List.of());
-        configs.put(Constants.KnowledgeBase.EXTRA_PARAMS, List.of());
         configs.put(Constants.KnowledgeBase.NEED_EXTRAS_FAQ_SEARCH, false);
         configs.put(Constants.KnowledgeBase.FAQ_THRESHOLD, Constants.KnowledgeBase.DEFAULT_FAQ_THRESHOLD);
         configs.put(Constants.KnowledgeBase.RETRIEVE_IMAGE, false);

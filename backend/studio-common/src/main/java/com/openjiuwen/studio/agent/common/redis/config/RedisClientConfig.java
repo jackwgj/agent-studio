@@ -4,7 +4,7 @@
 
 package com.openjiuwen.studio.agent.common.redis.config;
 
-import com.openjiuwen.studio.agent.common.utils.CryptoUtils;
+import com.openjiuwen.studio.agent.common.crypt.Ciphers;
 
 import lombok.Data;
 
@@ -46,8 +46,10 @@ public class RedisClientConfig {
     @Value("${redis.cluster_node_list}")
     private String clusterNodeList;
 
+    private final Ciphers ciphers;
+
     @PostConstruct
     public void decryptSensitiveFields() {
-        redisPassword = CryptoUtils.decrypt(redisPassword);
+        redisPassword = ciphers.decrypt(redisPassword);
     }
 }

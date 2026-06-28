@@ -14,6 +14,7 @@ import lombok.Data;
 import lombok.experimental.Accessors;
 
 import java.io.Serializable;
+import java.util.Map;
 
 /**
  * 知识检索结果片段信息
@@ -36,6 +37,9 @@ public class RagResultReference implements Serializable {
     @JsonProperty("content")
     private String content = null;
 
+    @JsonProperty("text")
+    private String text = null;
+
     @JsonProperty("document_name")
     private String documentName = null;
 
@@ -53,6 +57,12 @@ public class RagResultReference implements Serializable {
 
     @JsonProperty("type")
     private TypeEnum type = null;
+
+    @JsonProperty("source")
+    private String source = null;
+
+    @JsonProperty("metadata")
+    private Map<String, Object> metadata = null;
 
     public enum TypeEnum {
         DOC("doc"),

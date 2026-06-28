@@ -73,3 +73,31 @@ class ModelConfigProvider(ABC):
             LLMCompConfig: LLM 组件配置
         """
         pass
+
+
+class KnowledgeBaseConfigProvider(ABC):
+    """知识库配置提供者接口
+
+    从 OBS 文件读取知识库连接配置（endpoint、auth 等），
+    与 ModelConfigProvider 的设计模式对齐：IR 提供引用 ID，Provider 负责解析具体连接信息。
+    """
+
+    @abstractmethod
+    async def get_kb_config(
+        self,
+        ir_node: dict,
+        global_config: Optional[dict] = None,
+    ) -> dict:
+        """从 IR 节点获取知识库检索配置
+
+        Args:
+            ir_node: IR 节点配置，包含 connectionId、knowledgeBaseIds 等
+            global_config: 全局配置
+
+        Returns:
+            dict: 知识库检索配置，包含:
+                - connection: KBConnectionConfig 连接信息
+                - knowledge_bases: list[KBReferenceConfig] 知识库列表
+                - retrieval_params: dict 检索参数
+        """
+        pass

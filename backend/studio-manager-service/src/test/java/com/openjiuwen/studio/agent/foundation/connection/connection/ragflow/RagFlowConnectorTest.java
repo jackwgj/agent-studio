@@ -23,8 +23,8 @@ import com.openjiuwen.studio.agent.foundation.connection.model.ExternalKnowledge
 import com.openjiuwen.studio.agent.foundation.connection.model.ExternalRetrieveResultInfo;
 import com.openjiuwen.studio.agent.foundation.connection.model.KnowledgeBaseTagInfo;
 import com.openjiuwen.studio.agent.foundation.connection.model.PageResult;
+import com.openjiuwen.studio.agent.foundation.connection.model.KnowledgeBaseRetrieval;
 import com.openjiuwen.studio.agent.foundation.connection.model.RetrieveKnowledgeBaseReq;
-import com.openjiuwen.studio.agent.foundation.connection.model.knowledgeBaseRetrieval;
 import com.openjiuwen.studio.agent.foundation.connection.ragflow.RagFlowConnector;
 import com.openjiuwen.studio.agent.foundation.connection.ragflow.entity.response.DatasetBasicInfo;
 import com.openjiuwen.studio.agent.common.dto.knowledge.ragflow.response.RagFlowCommonResponseBody;
@@ -112,8 +112,8 @@ class RagFlowConnectorTest {
         knowledgeBaseId.add("string");
         request.setQuery("string");
         request.setQueryMode(QueryModeEnum.DOC);
-        List<knowledgeBaseRetrieval> knowledgeBaseRetrievals = new ArrayList<>();
-        knowledgeBaseRetrieval knowledgeBaseRetrieval = new knowledgeBaseRetrieval();
+        List<KnowledgeBaseRetrieval> knowledgeBaseRetrievals = new ArrayList<>();
+        KnowledgeBaseRetrieval knowledgeBaseRetrieval = new KnowledgeBaseRetrieval();
         knowledgeBaseRetrieval.setKnowledgeBaseId("string");
         knowledgeBaseRetrieval.setTagName(new ArrayList<>());
         knowledgeBaseRetrievals.add(knowledgeBaseRetrieval);

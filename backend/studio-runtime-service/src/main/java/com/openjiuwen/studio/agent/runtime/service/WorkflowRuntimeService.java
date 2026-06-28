@@ -379,9 +379,9 @@ public class WorkflowRuntimeService implements IWorkflowRuntimeService {
             throw new AgentStudioException(StudioError.INSUFFICIENT_WORKFLOW_RUN_PRIVILEGES);
         }
         if (!HC_ENV.equals(envType) && executeParams.getReleasedVersion() == null && executeParams.getVersion() != null
-            && executeParams.getVersion() != agentMetadata.getUpdatedAt()) {
+                && executeParams.getVersion() != agentMetadata.getUpdatedAt()) {
             log.error("Workflow is not last workflow version.  execute version:{} updateAt:{}",
-                executeParams.getVersion(), agentMetadata.getUpdatedAt());
+                    executeParams.getVersion(), agentMetadata.getUpdatedAt());
             throw new AgentStudioException(StudioError.NOT_LATEST_WORKFLOW);
         }
 

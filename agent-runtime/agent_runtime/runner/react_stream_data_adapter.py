@@ -297,9 +297,14 @@ class ReactStreamDataAdapter:
                 self._create_agent_node_event(
                     invoke_id=invoke_id,
                     invoke_type="plugin",
-                    name="RestFulAPI",
+                    name=plugin_name,
                     start_time=datetime.now(),
                     inputs=tool_inputs,
+                    meta_data={
+                        "instance_attributes": {
+                            "plugin_name": plugin_name,
+                        }
+                    },
                 )
             )
 
@@ -339,12 +344,17 @@ class ReactStreamDataAdapter:
                 self._create_agent_node_event(
                     invoke_id=invoke_id,
                     invoke_type="plugin",
-                    name="RestFulAPI",
+                    name=plugin_name,
                     start_time=datetime.now(),
                     end_time=datetime.now(),
                     elapsed="0.00s",
                     inputs=tool_inputs,
                     outputs=output_data,
+                    meta_data={
+                        "instance_attributes": {
+                            "plugin_name": plugin_name,
+                        }
+                    },
                 )
             )
 

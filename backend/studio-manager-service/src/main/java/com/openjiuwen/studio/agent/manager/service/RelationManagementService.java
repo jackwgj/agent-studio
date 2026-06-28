@@ -1636,6 +1636,7 @@ public class RelationManagementService implements IRelationManagementService {
                 knowledgeRepoEntity.setStatus(item.getStatus().toString());
                 knowledgeRepoEntity.setDisplayName(item.getName());
                 knowledgeRepoEntity.setProjectId(projectId);
+                knowledgeRepoEntity.setConnectionId(item.getKnowledgeBaseConnectionId());
                 knowledgeRepoEntities.add(knowledgeRepoEntity);
             });
         }

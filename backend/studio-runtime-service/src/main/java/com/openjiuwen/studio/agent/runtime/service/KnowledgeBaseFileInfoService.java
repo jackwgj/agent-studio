@@ -14,6 +14,7 @@ import com.openjiuwen.studio.agent.runtime.dto.KnowledgeFileRef;
 import com.openjiuwen.studio.agent.common.dto.agent.NodeRunInfo;
 import com.openjiuwen.studio.agent.runtime.dto.PluginContent;
 import com.openjiuwen.studio.agent.runtime.dto.PluginResult;
+import com.openjiuwen.studio.agent.runtime.dto.RagResultReference;
 import com.openjiuwen.studio.agent.runtime.dto.WorkflowRunStreamRsp;
 import com.openjiuwen.studio.agent.runtime.enums.EventType;
 import com.openjiuwen.studio.agent.runtime.enums.WorkflowStreamEventEnum;
@@ -53,6 +54,9 @@ public class KnowledgeBaseFileInfoService {
         if (CollectionUtils.isEmpty(fileInfos)) {
             return;
         }
+
+        convertNodeOutputToStandardFormat(nodeRunInfo);
+
         if (executeParams.isStream()) {
             WorkflowRunStreamRsp workflowRunStreamRsp = new WorkflowRunStreamRsp();
             workflowRunStreamRsp.setEvent(
@@ -159,6 +163,7 @@ public class KnowledgeBaseFileInfoService {
         }
     }
 
+    @SuppressWarnings("unchecked")
     private Set<KnowledgeBaseFileInfo> parseRetrievalNode(NodeRunInfo nodeRunInfo) {
         Map<String, Object> outputs = nodeRunInfo.getOutputs();
         if (!Constant.KnowledgeRetrievalNode.PLUGIN.equals(nodeRunInfo.getNodeType()) || outputs == null
@@ -186,5 +191,57 @@ public class KnowledgeBaseFileInfoService {
                 .nodeName(nodeRunInfo.getNodeName())
                 .build())
             .collect(Collectors.toSet());
+    }
+
+    /**
+     * 将 FlowKnowledgeRetrieval 输出格式 {results: [...], context: "..."}
+     * 转换为标准 RetrievalKnowledgeBasesResponseBody 格式 {outputList: [...RagResultReference...]}
+     */
+    @SuppressWarnings("unchecked")
+    private void convertNodeOutputToStandardFormat(NodeRunInfo nodeRunInfo) {
+        Map<String, Object> outputs = nodeRunInfo.getOutputs();
+        if (outputs == null || outputs.isEmpty()) {
+            return;
+        }
+        Object resultsObj = outputs.get("results");
+        if (!(resultsObj instanceof List)) {
+            return;
+        }
+        List<Map<String, Object>> results = (List<Map<String, Object>>) resultsObj;
+        // 已经转换过了，避免重复
+        if (outputs.containsKey("outputList")) {
+            return;
+        }
+        List<RagResultReference> ragResultList = results.stream()
+            .map(item -> {
+                RagResultReference ref = new RagResultReference();
+                ref.setText(item.get("text") != null ? item.get("text").toString() : null);
+                ref.setContent(item.get("text") != null ? item.get("text").toString() : null);
+                if (item.get("score") instanceof Number) {
+                    ref.setScore(((Number) item.get("score")).floatValue());
+                }
+                ref.setSource(item.get("source") != null ? item.get("source").toString() : null);
+                ref.setKnowledgeBaseId(item.get("knowledgeBaseId") != null ? item.get("knowledgeBaseId").toString() : null);
+                ref.setKnowledgeBaseType(item.get("knowledgeBaseType") != null ? item.get("knowledgeBaseType").toString() : null);
+                ref.setFileId(item.get("fileId") != null ? item.get("fileId").toString() : null);
+                ref.setDocumentName(item.get("documentName") != null ? item.get("documentName").toString() : null);
+                ref.setSubtitle(item.get("subtitle") != null ? item.get("subtitle").toString() : null);
+                if (item.get("serialNumber") instanceof Number) {
+                    ref.setSerialNumber(((Number) item.get("serialNumber")).longValue());
+                }
+                ref.setRetrievalId(item.get("retrievalId") != null ? item.get("retrievalId").toString() : null);
+                if (item.get("type") != null) {
+                    ref.setType(RagResultReference.TypeEnum.fromValue(item.get("type").toString()));
+                }
+                if (item.get("metadata") instanceof Map) {
+                    ref.setMetadata((Map<String, Object>) item.get("metadata"));
+                }
+                return ref;
+            })
+            .collect(Collectors.toList());
+        outputs.remove("results");
+        outputs.remove("context");
+        outputs.put("outputList", ragResultList);
+        nodeRunInfo.setOutputs(outputs);
     }
 }

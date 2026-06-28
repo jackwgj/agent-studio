@@ -10,7 +10,6 @@ import com.fasterxml.jackson.annotation.JsonValue;
 
 import io.swagger.annotations.ApiModel;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Size;
 
 import org.hibernate.validator.constraints.Range;
 import org.springframework.validation.annotation.Validated;
@@ -51,10 +50,6 @@ public class KnowledgeRetrievePolicy implements Serializable {
     @JsonProperty("retrieve_image")
     private Boolean retrieveImage = false;
 
-    @JsonProperty("extra_params")
-    @Valid
-    @Size(max = 50)
-    private List<ExtraParamsInfo> extraParams = null;
 
     public SearchModeEnum getSearchMode() {
         return searchMode;
@@ -119,14 +114,6 @@ public class KnowledgeRetrievePolicy implements Serializable {
         return retrieveImage;
     }
 
-    public List<ExtraParamsInfo> getExtraParams() {
-        return extraParams;
-    }
-
-    public KnowledgeRetrievePolicy setExtraParams(List<ExtraParamsInfo> extraParams) {
-        this.extraParams = extraParams;
-        return this;
-    }
 
     @Override
     public String toString() {
@@ -140,7 +127,6 @@ public class KnowledgeRetrievePolicy implements Serializable {
         sb.append("    needExtrasFaqSearch: ").append(toIndentedString(needExtrasFaqSearch)).append("\n");
         sb.append("    showSource: ").append(toIndentedString(showSource)).append("\n");
         sb.append("    retrieveImage: ").append(toIndentedString(retrieveImage)).append("\n");
-        sb.append("    extraParams: ").append(toIndentedString(extraParams)).append("\n");
         sb.append("}");
         return sb.toString();
     }
@@ -160,14 +146,13 @@ public class KnowledgeRetrievePolicy implements Serializable {
             knowledgeRetrievePolicy.faqThreshold) && Objects.equals(this.needExtrasFaqSearch,
             knowledgeRetrievePolicy.needExtrasFaqSearch) && Objects.equals(this.showSource,
             knowledgeRetrievePolicy.showSource) && Objects.equals(this.retrieveImage,
-            knowledgeRetrievePolicy.retrieveImage) && Objects.equals(this.extraParams,
-            knowledgeRetrievePolicy.extraParams);
+            knowledgeRetrievePolicy.retrieveImage);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(searchMode, topK, recallThreshold, faqThreshold, needExtrasFaqSearch, showSource,
-            retrieveImage, extraParams);
+            retrieveImage);
     }
 
     /**

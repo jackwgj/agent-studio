@@ -274,12 +274,30 @@ class ReActAgentRunner:
         """注册 Plugin 工具"""
         from jiuwen.extension.wrapper.restful_api_loader import load_restful_api_from_ir
         from openjiuwen.core.foundation.tool import ToolCard
+        from openjiuwen.core.runner import Runner
+        from agent_runtime.extension.tool.knowledge_retrieval_tool import (
+            build_knowledge_retrieval_openjiuwen_tool,
+            is_knowledge_retrieval_ir,
+        )
 
         tool_ids = []
         plugins = ir_json.get("configs", {}).get("plugins", [])
 
         for plugin_conf in plugins:
             try:
+                input_params = self._convert_arguments_to_schema(plugin_conf.get("arguments", []))
+
+                if is_knowledge_retrieval_ir(plugin_conf):
+                    # 知识库检索只让模型提供 query，其余参数全部来自 IR，
+                    # 因此不传完整 schema，退回到 build 函数内的 query-only 默认 schema。
+                    kb_tool = build_knowledge_retrieval_openjiuwen_tool(plugin_conf)
+                    result = Runner.resource_mgr.add_tool(kb_tool, tag=agent_id)
+                    if not result.is_ok() and "resource already exist" not in str(result.error()):
+                        raise result.error()
+                    agent.ability_manager.add(kb_tool.card)
+                    tool_ids.append(kb_tool.card.id)
+                    continue
+
                 tool_id = load_restful_api_from_ir(plugin_conf, tag=agent_id)
                 input_params = self._convert_arguments_to_schema(plugin_conf.get("arguments", []))
 

@@ -39,7 +39,7 @@ import com.openjiuwen.studio.agent.manager.mapper.SkillVersionMapper;
 import com.openjiuwen.studio.agent.manager.obs.MgObsService;
 import com.openjiuwen.studio.agent.manager.utils.MultipartFileToZipUtils;
 import com.openjiuwen.studio.agent.manager.utils.ZipValidationUtils;
-import com.obs.services.model.TemporarySignatureResponse;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -151,12 +151,9 @@ public class SkillManagementServiceTest {
 
         when(skillMapper.searchBySkillId(skillId)).thenReturn(mockSkill);
 
-        TemporarySignatureResponse mockGetRsp = mock(TemporarySignatureResponse.class);
-        when(mockGetRsp.getSignedUrl()).thenReturn("https://obs-url.com");
-        lenient().doReturn(mockGetRsp)
-            .when(mgObsService)
-            .getTemporaryGetRsp(anyBoolean(), anyString(), anyLong());
-        mockSkill.setObsPath(mockGetRsp.getSignedUrl());
+        lenient().when(mgObsService.getTemporaryGetRsp(anyBoolean(), anyString(), anyLong()))
+            .thenReturn("https://obs-url.com");
+        mockSkill.setObsPath("https://obs-url.com");
 
         GetStudioSkillDetailsResponseBody result = skillManagementService.showStudioSkillDetail(skillId, "mock"
             + "-workspace-id", "mock-project-id");
@@ -229,11 +226,8 @@ public class SkillManagementServiceTest {
             when(skillVersionMapper.insert(any(SkillVersionEntity.class))).thenReturn(1);
             lenient().when(mgObsService.uploadObsFile(anyString(), any(InputStream.class), anyInt()))
                 .thenReturn("user-001/skills/a1bc4d53-9965-4ff7-bb8c-4ec9649fc808/a1bc4d53-9965-4ff7-bb8c-4ec9649fc808/agentBuilder-import-test-13846229055125705451.zip");
-            TemporarySignatureResponse mockGetRsp = mock(TemporarySignatureResponse.class);
-            when(mockGetRsp.getSignedUrl()).thenReturn("https://obs-url.com");
-            lenient().doReturn(mockGetRsp)
-                .when(mgObsService)
-                .getTemporaryGetRsp(anyBoolean(), anyString(), anyLong());
+            lenient().when(mgObsService.getTemporaryGetRsp(anyBoolean(), anyString(), anyLong()))
+                .thenReturn("https://obs-url.com");
             ImportStudioSkillResponseBody result = skillManagementService.importStudioSkill("mock-workspace-id",
                 "mock-project-id", mockMultipartFile);
 
@@ -345,11 +339,8 @@ public class SkillManagementServiceTest {
         when(skillVersionMapper.searchByVersionId(skillVersion)).thenReturn(mockVersion);
 
         // Mock 获取临时URL
-        TemporarySignatureResponse mockGetRsp = mock(TemporarySignatureResponse.class);
-        when(mockGetRsp.getSignedUrl()).thenReturn("https://obs-temp-url.com/skill.zip");
-        lenient().doReturn(mockGetRsp)
-            .when(mgObsService)
-            .getTemporaryGetRsp(anyBoolean(), anyString(), anyLong());
+        lenient().when(mgObsService.getTemporaryGetRsp(anyBoolean(), anyString(), anyLong()))
+                .thenReturn("https://obs-temp-url.com/skill.zip");
 
         // 执行测试
         ExportStudioSkillResponseBody result = skillManagementService.exportStudioSkill(skillId,"mock-workspace-id", "mock-project-id");

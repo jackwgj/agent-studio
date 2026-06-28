@@ -48,6 +48,11 @@ tracer-otel = [
     "opentelemetry-exporter-otlp-proto-grpc>=1.20.0",
     "opentelemetry-exporter-otlp-proto-http>=1.20.0",
 ]
+kerberos = [
+    # Kerberos/SPNEGO 认证支持（仅用于 LakeSearch Kerberos 认证部署）
+    # 系统依赖：libkrb5-dev (Debian/Ubuntu) 或 krb5-devel (RHEL/CentOS)
+    "gssapi>=1.8.0",
+]
 
 [build-system]
 requires = ["setuptools>=68.0", "wheel"]

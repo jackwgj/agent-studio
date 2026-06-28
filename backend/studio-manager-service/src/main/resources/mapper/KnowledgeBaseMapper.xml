@@ -478,4 +478,17 @@
         </where>
         ORDER BY update_time desc
     </select>
+
+    <select id="selectByConnectionId" resultType="com.openjiuwen.studio.agent.agentbase.entity.KnowledgeBaseEntity">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM t_knowledge_base
+        WHERE knowledge_base_connection_id = #{connectionId}
+    </select>
+
+    <select id="selectAll" resultType="com.openjiuwen.studio.agent.agentbase.entity.KnowledgeBaseEntity">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM t_knowledge_base
+    </select>
 </mapper>

@@ -71,6 +71,12 @@ class PluginIRConverter:
                     e, reason="Plugin parameter validation failed"
                 ),
             ) from e
+        if PluginIRConverter.is_knowledge_retrieval_ir(ir_data):
+            from agent_runtime.extension.tool.knowledge_retrieval_tool import (
+                build_knowledge_retrieval_tool,
+            )
+            from openjiuwen.core.common.logging import workflow_logger
+            return build_knowledge_retrieval_tool(ir_data, params)
         url = ir_data.get("url", "").strip().strip("`").strip()
         description_key = "description"
         name_key = "name"
@@ -112,6 +118,14 @@ class PluginIRConverter:
         auth取值扩展点
         """
         return auth
+
+    @staticmethod
+    def is_knowledge_retrieval_ir(ir_data):
+        from agent_runtime.extension.tool.knowledge_retrieval_tool import (
+            is_knowledge_retrieval_ir,
+        )
+
+        return is_knowledge_retrieval_ir(ir_data)
 
 
 class McpIRConverter:

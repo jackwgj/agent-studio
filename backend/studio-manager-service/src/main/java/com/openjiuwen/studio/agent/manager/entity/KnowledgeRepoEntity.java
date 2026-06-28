@@ -5,7 +5,6 @@
 package com.openjiuwen.studio.agent.manager.entity;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.openjiuwen.studio.agent.manager.dto.ExtraParamsInfo;
 
 import lombok.Data;
 
@@ -40,8 +39,6 @@ public class KnowledgeRepoEntity {
     
     private List<String> tag;
 
-    private List<ExtraParamsInfo> extraParams;
-
     private String icon;
 
     @JsonProperty("icon_name")
@@ -63,4 +60,10 @@ public class KnowledgeRepoEntity {
 
     @JsonProperty("updated_on")
     private Date updatedOn;
+
+    @JsonProperty("connection_id")
+    private String connectionId;
+
+    @JsonProperty("external_id")
+    private String externalId;
 }

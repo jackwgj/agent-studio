@@ -26,8 +26,8 @@ import com.openjiuwen.studio.agent.foundation.connection.model.ExternalKnowledge
 import com.openjiuwen.studio.agent.foundation.connection.model.ExternalRetrieveResultInfo;
 import com.openjiuwen.studio.agent.foundation.connection.model.KnowledgeBaseTagInfo;
 import com.openjiuwen.studio.agent.foundation.connection.model.PageResult;
+import com.openjiuwen.studio.agent.foundation.connection.model.KnowledgeBaseRetrieval;
 import com.openjiuwen.studio.agent.foundation.connection.model.RetrieveKnowledgeBaseReq;
-import com.openjiuwen.studio.agent.foundation.connection.model.knowledgeBaseRetrieval;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -115,8 +115,8 @@ class LakeSearchConnectorTest {
         knowledgeBaseId.add("string");
         request.setQuery("string");
         request.setQueryMode(QueryModeEnum.DOC);
-        List<knowledgeBaseRetrieval> knowledgeBaseRetrievals = new ArrayList<>();
-        knowledgeBaseRetrieval knowledgeBaseRetrieval = new knowledgeBaseRetrieval();
+        List<KnowledgeBaseRetrieval> knowledgeBaseRetrievals = new ArrayList<>();
+        KnowledgeBaseRetrieval knowledgeBaseRetrieval = new KnowledgeBaseRetrieval();
         knowledgeBaseRetrieval.setKnowledgeBaseId("string");
         knowledgeBaseRetrieval.setTagName(new ArrayList<>());
         knowledgeBaseRetrievals.add(knowledgeBaseRetrieval);

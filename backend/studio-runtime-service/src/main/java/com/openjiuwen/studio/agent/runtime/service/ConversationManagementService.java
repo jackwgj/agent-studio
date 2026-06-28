@@ -1547,6 +1547,7 @@ public class ConversationManagementService implements IConversationManagementSer
             agentInvokeInfo.setNodeName(nodeName);
         }
 
+
         // 如果节点类型为大模型，获取模型信息保存到insight记录中
         if (invokeType.equals(LLM_INVOKE_TYPE)) {
             agentInvokeInfo.setModelDeploymentId(executeParams.getModelDeploymentId());

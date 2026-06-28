@@ -4167,27 +4167,6 @@ definitions:
         type: boolean
         default: false
         description: 是否召回图片。
-      extra_params:
-        type: array
-        description: 参数列表。
-        minItems: 0
-        maxItems: 50
-        items:
-          $ref: '#/definitions/ExtraParamsInfo'
-  ExtraParamsInfo:
-    type: object
-    properties:
-      key:
-        type: string
-        description: 参数名。
-        example: user
-        minLength: 0
-        maxLength: 64
-      value:
-        type: string
-        description: 参数值。
-        minLength: 0
-        maxLength: 255
   TriggerConfig:
     type: object
     description: 触发器配置信息。

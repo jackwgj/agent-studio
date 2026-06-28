@@ -37,7 +37,7 @@ public enum NodeType {
     /**
      * 知识检索节点，workflow节点
      */
-    KNOWLEDGE_REPO("KnowledgeRepo", false, "jiuwen.plugin", "Api", "knowledge-retrieval"),
+    KNOWLEDGE_REPO("KnowledgeRepo", false, "jiuwen.knowledgeRetrieval", "FlowKnowledgeRetrieval", "knowledge-retrieval"),
 
     /**
      * 知识库节点，workflow节点（旧）

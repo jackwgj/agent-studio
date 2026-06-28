@@ -22,8 +22,8 @@ import com.openjiuwen.studio.agent.foundation.connection.koosearch.KooSearchConn
 import com.openjiuwen.studio.agent.foundation.connection.model.ExternalKnowledgeBaseInfo;
 import com.openjiuwen.studio.agent.foundation.connection.model.ExternalRetrieveResultInfo;
 import com.openjiuwen.studio.agent.foundation.connection.model.PageResult;
+import com.openjiuwen.studio.agent.foundation.connection.model.KnowledgeBaseRetrieval;
 import com.openjiuwen.studio.agent.foundation.connection.model.RetrieveKnowledgeBaseReq;
-import com.openjiuwen.studio.agent.foundation.connection.model.knowledgeBaseRetrieval;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -82,8 +82,8 @@ public class KooSearchConnectorTest {
         knowledgeBaseId.add("string");
         request.setQuery("string");
         request.setQueryMode(QueryModeEnum.DOC);
-        List<knowledgeBaseRetrieval> knowledgeBaseRetrievals = new ArrayList<>();
-        knowledgeBaseRetrieval knowledgeBaseRetrieval = new knowledgeBaseRetrieval();
+        List<KnowledgeBaseRetrieval> knowledgeBaseRetrievals = new ArrayList<>();
+        KnowledgeBaseRetrieval knowledgeBaseRetrieval = new KnowledgeBaseRetrieval();
         knowledgeBaseRetrieval.setKnowledgeBaseId("string");
         knowledgeBaseRetrieval.setTagName(new ArrayList<>());
         knowledgeBaseRetrievals.add(knowledgeBaseRetrieval);
@@ -123,8 +123,8 @@ public class KooSearchConnectorTest {
         RetrieveKnowledgeBaseReq request = new RetrieveKnowledgeBaseReq();
         request.setQuery("string");
         request.setQueryMode(QueryModeEnum.DOC);
-        List<knowledgeBaseRetrieval> knowledgeBaseRetrievals = new ArrayList<>();
-        knowledgeBaseRetrieval knowledgeBaseRetrieval = new knowledgeBaseRetrieval();
+        List<KnowledgeBaseRetrieval> knowledgeBaseRetrievals = new ArrayList<>();
+        KnowledgeBaseRetrieval knowledgeBaseRetrieval = new KnowledgeBaseRetrieval();
         knowledgeBaseRetrieval.setKnowledgeBaseId("mock_id");
         knowledgeBaseRetrieval.setTagName(new ArrayList<>());
         knowledgeBaseRetrievals.add(knowledgeBaseRetrieval);

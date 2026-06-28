@@ -22,8 +22,8 @@ import com.openjiuwen.studio.agent.foundation.connection.httpclient.ConnectorCli
 import com.openjiuwen.studio.agent.foundation.connection.model.ExternalKnowledgeBaseInfo;
 import com.openjiuwen.studio.agent.foundation.connection.model.ExternalRetrieveResultInfo;
 import com.openjiuwen.studio.agent.foundation.connection.model.PageResult;
+import com.openjiuwen.studio.agent.foundation.connection.model.KnowledgeBaseRetrieval;
 import com.openjiuwen.studio.agent.foundation.connection.model.RetrieveKnowledgeBaseReq;
-import com.openjiuwen.studio.agent.foundation.connection.model.knowledgeBaseRetrieval;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -142,8 +142,8 @@ public class GeneralConnectorTest {
         request.setQueryMode(QueryModeEnum.DOC);
         List<String> knowledgeBaseIds = new ArrayList<>();
         knowledgeBaseIds.add("test_id");
-        List<knowledgeBaseRetrieval> knowledgeBaseRetrievals = new ArrayList<>();
-        knowledgeBaseRetrieval knowledgeBaseRetrieval = new knowledgeBaseRetrieval();
+        List<KnowledgeBaseRetrieval> knowledgeBaseRetrievals = new ArrayList<>();
+        KnowledgeBaseRetrieval knowledgeBaseRetrieval = new KnowledgeBaseRetrieval();
         knowledgeBaseRetrieval.setKnowledgeBaseId("string");
         knowledgeBaseRetrieval.setTagName(new ArrayList<>());
         knowledgeBaseRetrievals.add(knowledgeBaseRetrieval);
@@ -186,8 +186,8 @@ public class GeneralConnectorTest {
         request.setQueryMode(QueryModeEnum.DOC);
         List<String> knowledgeBaseIds = new ArrayList<>();
         knowledgeBaseIds.add("mock_id");
-        List<knowledgeBaseRetrieval> knowledgeBaseRetrievals = new ArrayList<>();
-        knowledgeBaseRetrieval knowledgeBaseRetrieval = new knowledgeBaseRetrieval();
+        List<KnowledgeBaseRetrieval> knowledgeBaseRetrievals = new ArrayList<>();
+        KnowledgeBaseRetrieval knowledgeBaseRetrieval = new KnowledgeBaseRetrieval();
         knowledgeBaseRetrieval.setKnowledgeBaseId("string");
         knowledgeBaseRetrieval.setTagName(new ArrayList<>());
         knowledgeBaseRetrievals.add(knowledgeBaseRetrieval);
@@ -225,8 +225,8 @@ public class GeneralConnectorTest {
             request.setQueryMode(QueryModeEnum.DOC);
             List<String> knowledgeBaseIds = new ArrayList<>();
             knowledgeBaseIds.add("mock_id");
-            List<knowledgeBaseRetrieval> knowledgeBaseRetrievals = new ArrayList<>();
-            knowledgeBaseRetrieval knowledgeBaseRetrieval = new knowledgeBaseRetrieval();
+            List<KnowledgeBaseRetrieval> knowledgeBaseRetrievals = new ArrayList<>();
+            KnowledgeBaseRetrieval knowledgeBaseRetrieval = new KnowledgeBaseRetrieval();
             knowledgeBaseRetrieval.setKnowledgeBaseId("string");
             knowledgeBaseRetrieval.setTagName(new ArrayList<>());
             knowledgeBaseRetrievals.add(knowledgeBaseRetrieval);

@@ -79,6 +79,7 @@ import org.springframework.util.CollectionUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -107,6 +108,12 @@ public class ThirdPartyKnowledgeBaseConnectionService implements IThirdPartyKnow
     @Value("${knowledge.source}")
     private String knowledgeSource;
 
+    @Value("${knowledge.lakeSearch.project-id:}")
+    private String lakeSearchProjectId;
+
+    @Value("${knowledge.lakeSearch.application-id:}")
+    private String lakeSearchApplicationId;
+
     @Value("${knowledge.icon-max-size:200}")
     private long iconMaxSize;
 
@@ -125,6 +132,8 @@ public class ThirdPartyKnowledgeBaseConnectionService implements IThirdPartyKnow
 
     private final I18nTransService i18nTransService;
 
+    private final KbConnectionStorageService kbConnectionStorageService;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public ThirdPartyKnowledgeBaseConnectionService(KnowledgeBaseConnectionMapper connectionMapper,
@@ -133,7 +142,8 @@ public class ThirdPartyKnowledgeBaseConnectionService implements IThirdPartyKnow
         KnowledgeBaseConnectorContext knowledgeBaseConnectorContext,
         KnowledgeBaseConnectionMapper knowledgeBaseConnectionMapper,
         KnowledgeBaseConnectorAbilityMapper connectorAbilityMapper, ResourceValidateService resourceValidateService,
-        I18nTransService i18nTransService, AbilityProcessorFactory abilityProcessorFactory) {
+        I18nTransService i18nTransService, AbilityProcessorFactory abilityProcessorFactory,
+        KbConnectionStorageService kbConnectionStorageService) {
         this.connectionMapper = connectionMapper;
         this.connectorMapper = connectorMapper;
         this.knowledgeBaseConnectionValidateService = knowledgeBaseConnectionValidateService;
@@ -143,6 +153,7 @@ public class ThirdPartyKnowledgeBaseConnectionService implements IThirdPartyKnow
         this.knowledgeBaseConnectionMapper = knowledgeBaseConnectionMapper;
         this.i18nTransService = i18nTransService;
         this.abilityProcessorFactory = abilityProcessorFactory;
+        this.kbConnectionStorageService = kbConnectionStorageService;
     }
 
     @Override
@@ -176,11 +187,49 @@ public class ThirdPartyKnowledgeBaseConnectionService implements IThirdPartyKnow
         }
         try {
             connectionMapper.insert(entity);
+
+            // 第三方连接刚创建时还没有关联的KB，但仍需写入连接文件到OBS
+            // 以便后续关联的KB文件可以通过connectionId引用连接信息
+            try {
+                KnowledgeBaseConnectorEntity connector = connectorMapper.find(entity.getConnectorId());
+                kbConnectionStorageService.writeConnectionToObs(entity,
+                    connector != null ? connector.getType() : null,
+                    connector != null ? connector.getName() : null,
+                    buildLakeSearchExtraParams(entity.getConnectorId()));
+            } catch (Exception ex) {
+                log.error("Write connection to OBS after creation failed. connectionId: {}", entity.getId(), ex);
+                // OBS写入失败不影响主流程
+            }
         } catch (DuplicateKeyException e) {
             log.error("Create third-party knowledge base connection", e);
             throw new AgentBaseException(ErrorCode.RESOURCE_ID_DUPLICATE, e);
         }
         return new CreateThirdPartyKnowledgeBaseConnectionResponse().setId(entity.getId());
+    }
+
+    /**
+     * 为 Outside LakeSearch 连接构造写入 OBS 的额外参数（project_id / app_id）。
+     * <p>
+     * LakeSearch 第三方接入时 project_id 和 application_id 写死在 URI 路径中
+     * （见 LakeSearchConnector），用户创建连接时不会填写。Python 运行时需要
+     * 从 OBS 连接文件读取这两个值来拼接检索 URL，因此在此从 YAML 配置注入。
+     * </p>
+     *
+     * @param connectorId 连接器 ID
+     * @return LakeSearch 连接返回含 project_id/app_id 的 map，其它连接器返回 null
+     */
+    private Map<String, String> buildLakeSearchExtraParams(String connectorId) {
+        if (!ConnectorTypeEnum.LAKE_SEARCH.getValue().equals(connectorId)) {
+            return null;
+        }
+        Map<String, String> extraParams = new HashMap<>();
+        if (StringUtils.isNotEmpty(lakeSearchProjectId)) {
+            extraParams.put("project_id", lakeSearchProjectId);
+        }
+        if (StringUtils.isNotEmpty(lakeSearchApplicationId)) {
+            extraParams.put("app_id", lakeSearchApplicationId);
+        }
+        return extraParams.isEmpty() ? null : extraParams;
     }
 
     @Override
@@ -196,6 +245,16 @@ public class ThirdPartyKnowledgeBaseConnectionService implements IThirdPartyKnow
             throw new AgentBaseException(ErrorCode.KNOWLEDGE_BASE_CONNECTION_DELETE_FOR_OPEN);
         }
         connectionMapper.delete(knowledgeBaseConnectionId);
+
+        // 删除连接时，关联的KB应该已经被删除（OPEN状态的连接不允许删除）
+        // 同时删除OBS上的连接文件
+        try {
+            kbConnectionStorageService.deleteConnectionFromObs(knowledgeBaseConnectionId);
+        } catch (Exception ex) {
+            log.error("Delete connection from OBS failed. connectionId: {}", knowledgeBaseConnectionId, ex);
+            // OBS删除失败不影响主流程
+        }
+
         return new CommonDeleteRsp().setId(knowledgeBaseConnectionId);
     }
 
@@ -443,6 +502,21 @@ public class ThirdPartyKnowledgeBaseConnectionService implements IThirdPartyKnow
             throw new AgentBaseException(ErrorCode.KNOWLEDGE_CONNECTION_ALREADY_EXIST);
         }
         connectionMapper.update(connectionEntity);
+
+        // 连接信息独立存储，更新连接文件即可，无需刷新关联的知识库文件
+        try {
+            KnowledgeBaseConnectorEntity connector = connectorMapper.find(oldConnectionEntity.getConnectorId());
+            connectionEntity.setConnectorType(oldConnectionEntity.getConnectorType());
+            connectionEntity.setConnectorName(oldConnectionEntity.getConnectorName());
+            kbConnectionStorageService.writeConnectionToObs(connectionEntity,
+                connector != null ? connector.getType() : null,
+                connector != null ? connector.getName() : null,
+                buildLakeSearchExtraParams(oldConnectionEntity.getConnectorId()));
+        } catch (Exception e) {
+            log.error("Write connection to OBS after connection update failed. connectionId: {}", knowledgeBaseConnectionId, e);
+            // OBS更新失败不影响主流程
+        }
+
         return new UpdateThirdPartyKnowledgeBaseConnectionResponse().setId(knowledgeBaseConnectionId);
     }
 

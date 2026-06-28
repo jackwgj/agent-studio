@@ -9,10 +9,10 @@ import static com.openjiuwen.studio.agent.common.constant.Constants.KnowledgeBas
 import static com.openjiuwen.studio.agent.common.constant.Constants.KnowledgeBase.RECALL_THRESHOLD;
 import static com.openjiuwen.studio.agent.common.constant.Constants.KnowledgeBase.RETRIEVE_IMAGE;
 import static com.openjiuwen.studio.agent.common.constant.Constants.KnowledgeBase.SEARCH_MODE;
+import static com.openjiuwen.studio.agent.common.constant.Constants.KnowledgeBase.SHOW_SOURCE;
 import static com.openjiuwen.studio.agent.common.constant.Constants.KnowledgeBase.TOP_K;
 import static com.openjiuwen.studio.agent.common.constant.Constants.TOOL_USE;
 import static com.openjiuwen.studio.agent.common.constant.Constants.Workflow.ENABLED;
-import static com.openjiuwen.studio.agent.manager.constant.CommonConstant.EXTRA_PARAMS;
 import static com.openjiuwen.studio.agent.manager.constant.CommonConstant.MCP_AUTH_TYPE.IAM_TOKEN;
 import static com.openjiuwen.studio.agent.manager.constant.CommonConstant.MCP_AUTH_TYPE.USE_IAM_TOKEN;
 import static com.openjiuwen.studio.agent.manager.constant.CommonConstant.MEMORY;
@@ -57,7 +57,6 @@ import com.openjiuwen.studio.agent.manager.dto.AgentInfo;
 import com.openjiuwen.studio.agent.manager.dto.AgentMemoryConfig;
 import com.openjiuwen.studio.agent.manager.dto.AgentVariable;
 import com.openjiuwen.studio.agent.manager.dto.Extension;
-import com.openjiuwen.studio.agent.manager.dto.ExtraParamsInfo;
 import com.openjiuwen.studio.agent.manager.dto.Guideline;
 import com.openjiuwen.studio.agent.manager.dto.InputVariable;
 import com.openjiuwen.studio.agent.manager.dto.KnowledgeBaseListItem;
@@ -323,16 +322,6 @@ public class IrAdapterService {
     private static final String MCP_METHOD = "Headers";
 
     /**
-     * 知识库搜索url
-     */
-    private static final String REPO_SEARCH_URL = "%s/v2/%s/knowledge/rag-search";
-
-    /**
-     * 知识库搜索url
-     */
-    private static final String REPO_SEARCH_DEEPRESEARCH_URL = "%s/v1/%s/knowledge/rag-search";
-
-    /**
      * ir路径
      */
     private static final String IR_PATH = "ir_path";
@@ -493,9 +482,6 @@ public class IrAdapterService {
 
     @Value("${op.svc.project-id}")
     private String opProjectId;
-
-    @Value("${inner.agent-runtime.endpoint}")
-    private String agentRuntimeEndpoint;
 
     @Value("${knowledge.agent-response-ir}")
     private String knowledgeAgentResponseIr;
@@ -1512,16 +1498,10 @@ public class IrAdapterService {
             knowledgeRepoEntity.setType(item.getType().toString());
         }
         Object value = repoIdsMap.get(item.getKnowledgeBaseId());
-        if (!ObjectUtils.isEmpty(value)) {
-            JSONObject jsonObject = JSONObject.parseObject(value.toString());
-            JSONArray extraParams = jsonObject.getJSONArray("extra_params");
-            if (!ObjectUtils.isEmpty(extraParams)) {
-                knowledgeRepoEntity.setExtraParams(extraParams.toList(ExtraParamsInfo.class));
-            }
-        }
         knowledgeRepoEntity.setIcon(item.getIcon());
         knowledgeRepoEntity.setCreator(item.getCreatedUserName());
         knowledgeRepoEntity.setCreatorId(item.getCreatedUserId());
+        knowledgeRepoEntity.setConnectionId(item.getKnowledgeBaseConnectionId());
         if (item.getStatus() != null) {
             knowledgeRepoEntity.setStatus(item.getStatus().toString());
         }
@@ -2544,18 +2524,20 @@ public class IrAdapterService {
             hasKnowledgeRepos = true;
             knowledgeConfigs.put("search_engine_name", "openapi");
             knowledgeConfigs.put("search_api_key", "");
-            knowledgeConfigs.put("search_url",
-                String.format(REPO_SEARCH_DEEPRESEARCH_URL, agentRuntimeEndpoint, agent.getProjectId()));
             List<String> repoIds = agent.getKnowledgeRepos()
                 .stream()
                 .map(KnowledgeRepoReference::getKnowledgeRepoId)
                 .collect(Collectors.toList());
             knowledgeConfigs.put("recall_threshold", 0.5);
             knowledgeConfigs.put("search_datasets", repoIds);
+            // 知识库检索改由 Python 端 FlowKnowledgeRetrieval 直接消费 knowledgeConfig，不再回环 HTTP
+            List<KnowledgeRepoEntity> knowledgeRepoEntities = relationManagementService.getExistKnowledgeRepos(
+                agent.getProjectId(), agent.getWorkspaceId(), repoIds);
+            knowledgeConfigs.put("knowledgeConfig",
+                buildKnowledgeConfig(knowledgeRepoEntities, agent.getKnowledgeRetrievePolicy(), null));
         } else {
             knowledgeConfigs.put("search_engine_name", "openapi");
             knowledgeConfigs.put("search_api_key", "");
-            knowledgeConfigs.put("search_url", "");
         }
         configs.put("local_search_engine_config", knowledgeConfigs);
 
@@ -2905,11 +2887,11 @@ public class IrAdapterService {
         String name = String.join("|", knowledgeRepoEntities.stream().map(KnowledgeRepoEntity::getDisplayName).toList());
         repoPlugin.put(DESCRIPTION, "useful for when you want to answer queries about the " + name);
 
-        // 定义知识库插件的调用地址
-        repoPlugin.put(URL, getRetrievalUrl(knowledgeRepoEntities));
         repoPlugin.put(METHOD, CommonConstant.POST_METHOD);
         // 定义知识库插件的鉴权信息，调用Agent-Runtime
         repoPlugin.put(AUTH, getRetrievalAuth());
+        // 补充与工作流知识库节点一致的内部配置，供 Python 运行时直接消费。
+        repoPlugin.put("knowledgeConfig", buildKnowledgeConfig(knowledgeRepoEntities, policy, tags));
 
         // 定义知识库插件的输入参数和输出参数
         List<KnowledgeReqIrBody> knowledgeReqIrBodies = generateKnowledgeBody(knowledgeRepoEntities, policy);
@@ -2918,6 +2900,52 @@ public class IrAdapterService {
             getKnowledgePluginIrElements(isAgent ? knowledgeAgentResponseIr : knowledgeWorkflowResponseIr));
 
         return repoPlugin;
+    }
+
+    private Map<String, Object> buildKnowledgeConfig(List<KnowledgeRepoEntity> knowledgeRepoEntities,
+        KnowledgeRetrievePolicy policy, List<String> tags) {
+        Map<String, Object> knowledgeConfig = new HashMap<>();
+        if (CollectionUtils.isEmpty(knowledgeRepoEntities)) {
+            return knowledgeConfig;
+        }
+
+        knowledgeConfig.put("connectionId", knowledgeRepoEntities.get(0).getConnectionId());
+        knowledgeConfig.put("knowledgeBaseIds", knowledgeRepoEntities.stream()
+            .map(KnowledgeRepoEntity::getKnowledgeRepoId)
+            .toList());
+
+        Map<String, Object> retrievalConfig = new HashMap<>();
+        if (policy != null) {
+            if (policy.getTopK() != null) {
+                retrievalConfig.put("topK", policy.getTopK());
+            }
+            if (policy.getRecallThreshold() != null) {
+                retrievalConfig.put("scoreThreshold", policy.getRecallThreshold());
+                retrievalConfig.put("recallThreshold", policy.getRecallThreshold());
+            }
+            if (policy.getFaqThreshold() != null) {
+                retrievalConfig.put("faqThreshold", policy.getFaqThreshold());
+            }
+            if (policy.getSearchMode() != null) {
+                retrievalConfig.put("searchMode", policy.getSearchMode().toString());
+            }
+            retrievalConfig.put("needExtrasFaqSearch", policy.isNeedExtrasFaqSearch());
+            retrievalConfig.put("retrieveImage", policy.isRetrieveImage());
+            retrievalConfig.put("showSource", policy.isShowSource());
+        }
+
+        List<String> mergedTags = !CollectionUtils.isEmpty(tags)
+            ? new ArrayList<>(tags)
+            : knowledgeRepoEntities.stream()
+                .filter(item -> !CollectionUtils.isEmpty(item.getTag()))
+                .flatMap(item -> item.getTag().stream())
+                .collect(Collectors.toCollection(ArrayList::new));
+        if (!CollectionUtils.isEmpty(mergedTags)) {
+            retrievalConfig.put("tags", mergedTags);
+        }
+
+        knowledgeConfig.put("retrievalConfig", retrievalConfig);
+        return knowledgeConfig;
     }
 
     private KnowledgeReqIrBody generateSingleBodyField(List<KnowledgeReqIrBody> schema, String name, String description,
@@ -2989,15 +3017,10 @@ public class IrAdapterService {
                     generateSingleBodyField(null, RETRIEVE_IMAGE, "召回图片", policy.isRetrieveImage(),
                         JsonSchemaType.BOOLEAN.type));
             }
-            if (!CollectionUtils.isEmpty(policy.getExtraParams())) {
-                KnowledgeReqIrBody key = generateSingleSchema("key", JsonSchemaType.STRING.type);
-                KnowledgeReqIrBody value = generateSingleSchema("value", JsonSchemaType.STRING.type);
-                List<KnowledgeReqIrBody> extraParamsSchema = new ArrayList<>();
-                extraParamsSchema.add(key);
-                extraParamsSchema.add(value);
-                KnowledgeReqIrBody extraParams = generateSingleBodyField(extraParamsSchema, EXTRA_PARAMS, "拓展参数",
-                    policy.getExtraParams(), JsonSchemaType.ARRAY_OBJECT.type);
-                knowledgeReqIrBodies.add(extraParams);
+            if (!Objects.isNull(policy.isShowSource())) {
+                knowledgeReqIrBodies.add(
+                    generateSingleBodyField(null, SHOW_SOURCE, "展示来源", policy.isShowSource(),
+                        JsonSchemaType.BOOLEAN.type));
             }
         }
         return knowledgeReqIrBodies;
@@ -3075,15 +3098,12 @@ public class IrAdapterService {
         }
     }
 
-    private String getRetrievalUrl(List<KnowledgeRepoEntity> knowledgeRepoEntities) {
-        return String.format(REPO_SEARCH_URL, agentRuntimeEndpoint, knowledgeRepoEntities.get(0).getProjectId());
-    }
-
     private List<Map<String, Object>> getKnowledgeBases(List<KnowledgeRepoEntity> knowledgeRepoEntities) {
         return knowledgeRepoEntities.stream().map(item -> {
             Map<String, Object> map = new HashMap<>();
             map.put(ID, item.getKnowledgeRepoId());
             map.put("tags", item.getTag());
+            map.put("connection_id", item.getConnectionId());
             return map;
         }).collect(Collectors.toList());
     }

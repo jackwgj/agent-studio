@@ -373,8 +373,11 @@ public interface Constants {
          */
         String RETRIEVE_IMAGE = "retrieve_image";
 
+        /**
+         * 展示来源
+         */
+        String SHOW_SOURCE = "show_source";
 
-        String EXTRA_PARAMS = "extra_params";
 
     }
 

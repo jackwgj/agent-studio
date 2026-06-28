@@ -12,6 +12,7 @@ from collections import defaultdict
 from typing import Any, AsyncIterator, Dict, Iterable, List, Optional
 
 from agent_runtime.extension.workflow_node.flow_code import FlowCode
+from agent_runtime.extension.workflow_node.flow_knowledge_retrieval import FlowKnowledgeRetrieval
 from agent_runtime.extension.workflow_node.ParamOutput import ParamOutput
 from agent_runtime.extension.workflow_node.complex_intent_detection import ComplexIntentDetection
 from agent_runtime.extension.workflow_node.questioner import (
@@ -1573,6 +1574,9 @@ class IRConverter:
 
         if node_type == "jiuwen.code":
             return FlowCode(configs), node_type, configs
+
+        if node_type == "jiuwen.knowledgeRetrieval":
+            return FlowKnowledgeRetrieval(configs), node_type, configs
 
         if node_type == "jiuwen.intentDetection":
             return (

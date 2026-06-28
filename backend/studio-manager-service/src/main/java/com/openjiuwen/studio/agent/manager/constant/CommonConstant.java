@@ -982,13 +982,10 @@ public interface CommonConstant {
     /**
      * 知识库相关
      */
-    String EXTRA_PARAMS = "extra_params";
 
     String EXTRA_KEY = "key";
 
     String EXTRA_VALUE = "value";
-
-    int EXTRA_PARAMS_SIZE = 50;
 
     int EXTRA_KEY_LENGTH = 64;
 

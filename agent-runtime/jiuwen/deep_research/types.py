@@ -85,8 +85,11 @@ class DRLocalSearchConfigValidator(BaseModel):
         ..., description="本地知识库工具名字", max_length=1000
     )
     search_api_key: str = Field(..., description="本地知识库工具key")
-    search_url: str = Field(..., description="本地知识库工具URL", max_length=1000)
+    search_url: str = Field(default="", description="本地知识库工具URL", max_length=1000)
     search_datasets: list = Field(default_factory=list, description="本地知识库列表")
+    knowledgeConfig: dict = Field(
+        default_factory=dict, description="知识库检索配置，供 FlowKnowledgeRetrieval 消费"
+    )
     max_local_search_results: int = Field(
         default=5, description="本地知识库工具单次返回个数"
     )

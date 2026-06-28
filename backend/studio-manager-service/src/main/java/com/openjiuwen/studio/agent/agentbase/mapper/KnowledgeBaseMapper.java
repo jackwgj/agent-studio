@@ -102,4 +102,17 @@ public interface KnowledgeBaseMapper {
         @Param("status") String status, @Param("connectionId") String knowledgeBaseConnectionId,
         @Param("knowledgeBaseIds") List<String> knowledgeBaseIds, PageRowBounds pageRowBounds);
 
+    /**
+     * 根据连接ID查询所有关联的知识库
+     *
+     * @param connectionId 连接ID
+     * @return 该连接下所有知识库
+     */
+    List<KnowledgeBaseEntity> selectByConnectionId(@Param("connectionId") String connectionId);
+
+    /**
+     * 查询所有知识库（启动时补写 OBS 文件用）
+     */
+    List<KnowledgeBaseEntity> selectAll();
+
 }

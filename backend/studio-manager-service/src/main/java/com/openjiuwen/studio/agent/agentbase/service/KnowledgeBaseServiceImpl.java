@@ -23,6 +23,7 @@ import com.openjiuwen.studio.agent.agentbase.common.enums.KnowledgeBaseType;
 import com.openjiuwen.studio.agent.agentbase.common.enums.KnowledgeConnectionStatus;
 import com.openjiuwen.studio.agent.common.dto.knowledge.KnowledgeRepoStatus;
 import com.openjiuwen.studio.agent.agentbase.entity.KnowledgeBaseConnection;
+import com.openjiuwen.studio.agent.agentbase.entity.KnowledgeBaseConnectionEntity;
 import com.openjiuwen.studio.agent.agentbase.entity.KnowledgeBaseConnectorEntity;
 import com.openjiuwen.studio.agent.agentbase.entity.KnowledgeBaseEntity;
 import com.openjiuwen.studio.agent.agentbase.entity.KnowledgeBaseObsConfigEntity;
@@ -76,8 +77,8 @@ import com.openjiuwen.studio.agent.foundation.connection.model.ExternalKnowledge
 import com.openjiuwen.studio.agent.foundation.connection.model.ExternalRetrieveResultInfo;
 import com.openjiuwen.studio.agent.foundation.connection.model.KnowledgeBaseTagInfo;
 import com.openjiuwen.studio.agent.foundation.connection.model.PageResult;
+import com.openjiuwen.studio.agent.foundation.connection.model.KnowledgeBaseRetrieval;
 import com.openjiuwen.studio.agent.foundation.connection.model.RetrieveKnowledgeBaseReq;
-import com.openjiuwen.studio.agent.foundation.connection.model.knowledgeBaseRetrieval;
 import com.openjiuwen.studio.agent.foundation.connection.utils.AgentBaseListUtil;
 import com.openjiuwen.studio.agent.foundation.connection.utils.ConnectorParamUtil;
 import com.openjiuwen.studio.agent.manager.dto.ChatReferenceInfo;
@@ -198,6 +199,8 @@ public class KnowledgeBaseServiceImpl implements IKnowledgeRepoManagementService
 
     private final KnowledgeConnectionRouterService knowledgeConnectionRouterService;
 
+    private final KbConnectionStorageService kbConnectionStorageService;
+
     @Value("${knowledge.bound.limit}")
     private int agentKnowledgeBoundLimit;
 
@@ -237,6 +240,12 @@ public class KnowledgeBaseServiceImpl implements IKnowledgeRepoManagementService
     @Value("${knowledge.retrieval-image-validity-days:7}")
     private int retrievalValidityDays;
 
+    @Value("${knowledge.lakeSearch.project-id:}")
+    private String lakeSearchProjectId;
+
+    @Value("${knowledge.lakeSearch.application-id:}")
+    private String lakeSearchApplicationId;
+
     public KnowledgeBaseServiceImpl(KnowledgeTestMapper knowledgeTestMapper, KnowledgeRepoMapper knowledgeRepoMapper,
         KnowledgeRepoContext knowledgeRepoContext, KnowledgeBaseMapper knowledgeBaseMapper,
         KnowledgeBaseConnectorContext knowledgeBaseConnectorContext,
@@ -247,7 +256,8 @@ public class KnowledgeBaseServiceImpl implements IKnowledgeRepoManagementService
         KnowledgeShareScopeMapper knowledgeShareScopeMapper, ResourceValidateService resourceValidateService,
         KnowledgeBaseTransactionService knowledgeBaseTransactionService,
         RetrieveMergingStrategyContext retrieveMergingStrategyContext, ResourceUsageFactory resourceUsageFactory,
-        KnowledgeConnectionRouterService knowledgeConnectionRouterService, RedisClient redisClient) {
+        KnowledgeConnectionRouterService knowledgeConnectionRouterService, RedisClient redisClient,
+        KbConnectionStorageService kbConnectionStorageService) {
         this.knowledgeTestMapper = knowledgeTestMapper;
         this.knowledgeRepoMapper = knowledgeRepoMapper;
         this.knowledgeRepoContext = knowledgeRepoContext;
@@ -264,6 +274,7 @@ public class KnowledgeBaseServiceImpl implements IKnowledgeRepoManagementService
         this.resourceUsageFactory = resourceUsageFactory;
         this.knowledgeConnectionRouterService = knowledgeConnectionRouterService;
         this.redisClient = redisClient;
+        this.kbConnectionStorageService = kbConnectionStorageService;
     }
 
 
@@ -358,6 +369,11 @@ public class KnowledgeBaseServiceImpl implements IKnowledgeRepoManagementService
             knowledgeBaseMapper.batchInsertKnowledgeBase(externalKnowledgeBaseToCreate);
             knowledgeBaseConnectionMapper.updateKnowledgeBaseConnectionStatus(body.getKnowledgeBaseConnectionId(),
                 KnowledgeConnectionStatus.OPEN.toString());
+
+            // 将知识库信息（含连接信息）写入OBS
+            for (KnowledgeBaseEntity kbEntity : externalKnowledgeBaseToCreate) {
+                writeKbWithConnectionToObs(kbEntity);
+            }
         }
         return new CreateExternalKnowledgeBaseResponseBody().setKnowledgeBaseResults(response);
     }
@@ -441,6 +457,9 @@ public class KnowledgeBaseServiceImpl implements IKnowledgeRepoManagementService
         knowledgeBaseEntity.setKnowledgeBaseConnectionId(createKnowledgeRepoInfo.getKnowledgeBaseConnectionId());
         knowledgeBaseEntity.setRepoType(repoType);
         knowledgeBaseMapper.updateKnowledgeBase(projectId, knowledgeBaseEntity);
+
+        // 将连接信息和知识库写入OBS
+        writeKbWithConnectionToObs(knowledgeBaseEntity);
     }
 
     private KnowledgeRepoEntity toKnowledgeRepoEntity(String projectId, CreateKnowledgeRepoRequestBody body) {
@@ -515,6 +534,9 @@ public class KnowledgeBaseServiceImpl implements IKnowledgeRepoManagementService
         // 删除知识库
         knowledgeBaseMapper.batchDeleteKnowledgeBase(projectId, Lists.newArrayList(knowledgeBaseId));
 
+        // 删除OBS上的知识库文件
+        kbConnectionStorageService.deleteKnowledgeBaseFromObs(knowledgeBaseId);
+
         // 删除命中测试记录
         knowledgeTestMapper.deleteByRepoId(projectId, knowledgeBaseId);
         // 对于第三方的知识库，如果某个知识源下已经没有知识库了，需要把知识源状态设置为停用
@@ -527,6 +549,7 @@ public class KnowledgeBaseServiceImpl implements IKnowledgeRepoManagementService
                 knowledgeBaseConnectionMapper.updateKnowledgeBaseConnectionStatus(
                     knowledgeBaseEntity.getKnowledgeBaseConnectionId(), KnowledgeConnectionStatus.CLOSE.toString());
             }
+            // 连接信息独立存储，KB删除不影响连接文件
         }
         // 删除obs配置及执行记录
         KnowledgeBaseObsConfigEntity knowledgeBaseObsConfigEntity
@@ -879,7 +902,7 @@ public class KnowledgeBaseServiceImpl implements IKnowledgeRepoManagementService
             ConnectorDefinition connectorDefinition = getConnectionDefinition(
                 knowledgeBase.getKnowledgeBaseConnectionId(), null);
             RetrieveKnowledgeBaseReq retrieveKnowledge = new RetrieveKnowledgeBaseReq();
-            knowledgeBaseRetrieval knowledgeBaseRetrieval = new knowledgeBaseRetrieval();
+            KnowledgeBaseRetrieval knowledgeBaseRetrieval = new KnowledgeBaseRetrieval();
             knowledgeBaseRetrieval.setKnowledgeBaseId(knowledgeBase.getExternalId());
             retrieveKnowledge.setKnowledgeBaseRetrievals(Lists.newArrayList(knowledgeBaseRetrieval));
             retrieveKnowledge.setQuery(body.getQuery());
@@ -1094,6 +1117,49 @@ public class KnowledgeBaseServiceImpl implements IKnowledgeRepoManagementService
         return KnowledgeBaseType.INTERNAL.toString().equalsIgnoreCase(type);
     }
 
+    /**
+     * 将知识库信息和连接信息分别写入OBS
+     * <p>
+     * 在知识库创建成功并关联到connection后调用此方法。
+     * 知识库文件和连接文件独立存储，修改连接时只需更新连接文件。
+     * 对于默认 LakeSearch 连接，需要注入 YAML 配置中的 project_id 和 application_id。
+     * </p>
+     *
+     * @param knowledgeBaseEntity 知识库实体（必须已设置knowledgeBaseConnectionId）
+     */
+    private void writeKbWithConnectionToObs(KnowledgeBaseEntity knowledgeBaseEntity) {
+        try {
+            // 写入知识库文件（仅含知识库自身信息 + connectionId 引用）
+            kbConnectionStorageService.writeKnowledgeBaseToObs(knowledgeBaseEntity);
+
+            // 写入连接文件（独立存储，同一连接的所有知识库共享）
+            String connectionId = knowledgeBaseEntity.getKnowledgeBaseConnectionId();
+            if (StringUtils.isNotEmpty(connectionId)) {
+                KnowledgeBaseConnectionEntity connectionEntity = knowledgeBaseConnectionMapper.findById(connectionId);
+                if (connectionEntity != null) {
+                    String connectorType = connectionEntity.getConnectorType();
+                    String connectorName = connectionEntity.getConnectorName();
+
+                    // 判断是否为默认 LakeSearch 内部连接，需要注入 YAML 配置项
+                    boolean isLakeSearchInside = "inside".equals(connectorType)
+                        && "LakeSearchInside".equals(connectionEntity.getConnectorId());
+                    if (isLakeSearchInside) {
+                        kbConnectionStorageService.syncDefaultConnectionToObs(
+                            connectionEntity, connectorType, connectorName,
+                            lakeSearchProjectId, lakeSearchApplicationId);
+                    } else {
+                        kbConnectionStorageService.writeConnectionToObs(
+                            connectionEntity, connectorType, connectorName);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.error("Write knowledge base with connection to OBS failed. knowledgeBaseId: {}",
+                knowledgeBaseEntity.getId(), e);
+            // OBS写入失败不影响主流程，仅记录日志
+        }
+    }
+
     private void setKnowledgeRepoSizeAndFileNums(KnowledgeRepo knowledgeRepo, KnowledgeRepoEntity knowledgeRepoEntity) {
         long size = 0L;
         List<FileInfo> files = getAllFiles(knowledgeRepo);
@@ -1223,6 +1289,7 @@ public class KnowledgeBaseServiceImpl implements IKnowledgeRepoManagementService
                 .setRepoType(KnowledgeBaseListItem.RepoTypeEnum.fromValue(item.getRepoType()) == null
                     ? KnowledgeBaseListItem.RepoTypeEnum.EXCLUSIVE
                     : KnowledgeBaseListItem.RepoTypeEnum.fromValue(item.getRepoType()))
+                .setKnowledgeBaseConnectionId(item.getKnowledgeBaseConnectionId())
                 .setCreatedUserId(item.getCreatedUserId())
                 .setCreatedUserName(item.getCreatedUserName())
                 .setCreateTime(item.getCreateTime())
@@ -1310,6 +1377,7 @@ public class KnowledgeBaseServiceImpl implements IKnowledgeRepoManagementService
                 // 对于第三方知识库，需要额外补充知识源和前台页面跳转地址
                 .setSource(convertConnectionToSource(item, connectionMap.get(item.getKnowledgeBaseConnectionId())))
                 .setWorkspaceId(item.getWorkspaceId())
+                .setKnowledgeBaseConnectionId(item.getKnowledgeBaseConnectionId())
                 .setCreatedUserId(item.getCreatedUserId())
                 .setCreatedUserName(item.getCreatedUserName())
                 .setCreateTime(item.getCreateTime())
