@@ -64,6 +64,7 @@ services:
       workflow_async_enable: ${WORKFLOW_ASYNC_ENABLED:-true}
       # 运行时API地址前缀（IP:Port格式），用于前端拼接API调用地址
       front_page_runtime_host: ${FRONT_PAGE_RUNTIME_HOST:-}
+      system_crypt_name: ${SYSTEM_CRYPT_NAME:-}
     networks:
       - default
 
@@ -104,6 +105,7 @@ services:
       server_ssl_key_store_password: ${SERVER_SSL_KEY_STORE_PASSWORD:-}
       server_ssl_key_password: ${SERVER_SSL_KEY_PASSWORD:-}
       koosearch_endpoint: ${KOOSEARCH_ENDPOINT:-}
+      system_crypt_name: ${SYSTEM_CRYPT_NAME:-}
     networks:
       - default
 

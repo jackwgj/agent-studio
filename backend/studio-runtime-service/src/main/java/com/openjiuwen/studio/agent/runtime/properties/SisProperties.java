@@ -4,6 +4,9 @@
 
 package com.openjiuwen.studio.agent.runtime.properties;
 
+import com.openjiuwen.studio.agent.common.utils.CryptoUtils;
+
+import jakarta.annotation.PostConstruct;
 import lombok.Data;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -59,4 +62,10 @@ public class SisProperties {
      * 项目ID
      */
     private String projectId;
+
+    @PostConstruct
+    public void decryptSensitiveFields() {
+        this.pwd = CryptoUtils.decrypt(this.pwd);
+        this.sk = CryptoUtils.decrypt(this.sk);
+    }
 }

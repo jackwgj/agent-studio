@@ -54,13 +54,6 @@ public interface Cipher {
     String decrypt(final byte[] cipherText) throws AgentStudioException;
 
     /**
-     * 算法索引
-     *
-     * @return 索引值
-     */
-    byte index();
-
-    /**
      * 算法名称
      *
      * @return 名称

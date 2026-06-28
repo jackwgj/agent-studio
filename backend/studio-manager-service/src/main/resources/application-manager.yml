@@ -141,6 +141,9 @@ system:
     obs-role-permission-url: ${dynamic_permission_obs_url:role_permissions.json}  # OBS文件地址，可通过环境变量配置
     refresh-interval-ms: ${dynamic_permission_refresh_interval_ms:600000}  # 刷新间隔毫秒数，负数表示不开启
     enabled: ${dynamic_permission_enabled:false}  # 是否开启动态更新权限
+  crypt:
+    # 系统默认的加解密方式，NO_OP_CIPHER-表示不加密
+    name: ${system_crypt_name:NO_OP_CIPHER}
 
 # 语音交互
 audio:
@@ -798,3 +801,5 @@ springdoc:
     enabled: false
   swagger-ui:
     enabled: false
+
+

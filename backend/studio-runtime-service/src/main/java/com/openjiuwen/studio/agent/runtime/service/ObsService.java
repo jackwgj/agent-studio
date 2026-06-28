@@ -27,6 +27,8 @@ import com.openjiuwen.studio.agent.runtime.constant.Constant;
 import com.openjiuwen.studio.agent.runtime.utils.AlarmLogUtil;
 import com.openjiuwen.studio.agent.runtime.utils.OkHttpUtils;
 
+import com.openjiuwen.studio.agent.common.utils.CryptoUtils;
+
 import io.micrometer.common.util.StringUtils;
 import lombok.Getter;
 import lombok.Setter;
@@ -97,6 +99,7 @@ public class ObsService implements CommonObsService {
 
    @PostConstruct
     public void init() throws IOException {
+        secretKey = CryptoUtils.decrypt(secretKey);
         try {
             ObsConfiguration config = new ObsConfiguration();
             config.setEndPoint(url);

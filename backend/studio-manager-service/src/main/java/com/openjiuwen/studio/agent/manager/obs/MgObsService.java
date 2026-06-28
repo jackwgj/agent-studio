@@ -26,6 +26,7 @@ import com.obs.services.model.fs.ObsFSFolder;
 import com.openjiuwen.studio.agent.common.enums.StudioError;
 import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
 import com.openjiuwen.studio.agent.common.service.CommonObsService;
+import com.openjiuwen.studio.agent.common.utils.CryptoUtils;
 import com.openjiuwen.studio.agent.manager.constant.CommonConstant;
 
 import lombok.extern.slf4j.Slf4j;
@@ -86,6 +87,7 @@ public class MgObsService implements CommonObsService {
 
     @PostConstruct
     public void init() throws IOException {
+        secretKey = CryptoUtils.decrypt(secretKey);
         try {
             ObsConfiguration config = new ObsConfiguration();
             config.setEndPoint(url);

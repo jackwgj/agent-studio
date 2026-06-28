@@ -37,16 +37,6 @@ class CryptoUtilsTest {
     }
 
     @Test
-    void testToKmsEncrypt() {
-        assertEquals("cipher-text", CryptoUtils.toKmsEncrypt("cipher-text"));
-    }
-
-    @Test
-    void testToKmsEncrypt_EmptyString() {
-        assertEquals("", CryptoUtils.toKmsEncrypt(""));
-    }
-
-    @Test
     void testEncrypt_NullInput() {
         when(ciphers.encrypt(null)).thenReturn(null);
         assertEquals(null, CryptoUtils.encrypt(null));

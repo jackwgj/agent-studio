@@ -4,15 +4,16 @@
 
 package com.openjiuwen.studio.agent.common.crypt;
 
+import lombok.extern.slf4j.Slf4j;
+
 import com.google.common.collect.ImmutableMap;
 import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
-
-import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
@@ -21,29 +22,23 @@ import java.util.Map;
 public class Ciphers {
     private final Map<String, Cipher> cipherMap;
 
-    private final Map<Byte, String> cipherIdNameMap;
-
     private final String defaultCipherName;
 
     public Ciphers(List<Cipher> ciphers, String defaultCipherName) {
         ImmutableMap.Builder<String, Cipher> ciphersBuilder = new ImmutableMap.Builder<>();
-        ImmutableMap.Builder<Byte, String> cipherIdNameBuilder = new ImmutableMap.Builder<>();
 
         NoOpCipher noOpCipher = new NoOpCipher();
         ciphersBuilder.put(noOpCipher.name(), noOpCipher);
-        cipherIdNameBuilder.put(noOpCipher.index(), noOpCipher.name());
 
         this.defaultCipherName = StringUtils.isNotBlank(defaultCipherName) ? defaultCipherName : noOpCipher.name();
 
         if (CollectionUtils.isNotEmpty(ciphers)) {
             ciphers.forEach(cipher -> {
                 ciphersBuilder.put(cipher.name(), cipher);
-                cipherIdNameBuilder.put(cipher.index(), cipher.name());
             });
         }
 
         this.cipherMap = ciphersBuilder.build();
-        this.cipherIdNameMap = cipherIdNameBuilder.build();
     }
 
     public String encrypt(final String plainText, final byte[] vector) {
@@ -73,7 +68,7 @@ public class Ciphers {
         }
 
         final byte[] cipherText = cipher.encrypt(plainText, vector);
-        return Base64.getEncoder().encodeToString(cipherText);
+        return new String(cipherText, StandardCharsets.UTF_8);
     }
 
     public String decrypt(final String cipherText, final byte[] vector) {
@@ -85,13 +80,11 @@ public class Ciphers {
             return cipherText;
         }
 
-        final byte[] cipherByte = Base64.getDecoder().decode(cipherText);
+        final byte[] cipherByte = cipherText.getBytes(StandardCharsets.UTF_8);
 
-        final String cipherName = cipherIdNameMap.getOrDefault(cipherByte[0], defaultCipherName);
-
-        Cipher cipher = cipherMap.get(cipherName);
+        Cipher cipher = cipherMap.get(defaultCipherName);
         if (cipher == null) {
-            throw new AgentStudioException(cipherName + "not support!");
+            throw new AgentStudioException(defaultCipherName + "not support!");
         }
 
         return cipher.decrypt(cipherByte, vector);
@@ -136,20 +129,18 @@ public class Ciphers {
         }
 
         final byte[] cipherText = cipher.encrypt(plainText);
-        return Base64.getEncoder().encodeToString(cipherText);
+        return new String(cipherText, StandardCharsets.UTF_8);
     }
 
     public String decrypt(final String cipherText) {
         if (StringUtils.isBlank(cipherText)) {
             return StringUtils.EMPTY;
         }
-        final byte[] cipherByte = Base64.getDecoder().decode(cipherText);
+        final byte[] cipherByte = cipherText.getBytes(StandardCharsets.UTF_8);
 
-        final String cipherName = cipherIdNameMap.getOrDefault(cipherByte[0], defaultCipherName);
-
-        Cipher cipher = cipherMap.get(cipherName);
+        Cipher cipher = cipherMap.get(defaultCipherName);
         if (cipher == null) {
-            throw new AgentStudioException(cipherName + "not support!");
+            throw new AgentStudioException(defaultCipherName + "not support!");
         }
 
         return cipher.decrypt(cipherByte);

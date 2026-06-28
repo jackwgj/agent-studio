@@ -6,6 +6,7 @@ package com.openjiuwen.studio.prompt.engineering.utils;
 
 import com.openjiuwen.studio.agent.common.enums.StudioError;
 import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
+import com.openjiuwen.studio.agent.common.utils.CryptoUtils;
 import com.obs.services.ObsClient;
 import com.obs.services.ObsConfiguration;
 import com.obs.services.exception.ObsException;
@@ -71,6 +72,7 @@ public class ObsUtil {
 
     @PostConstruct
     public void init() {
+        secretKey = CryptoUtils.decrypt(secretKey);
         obsEndpoint = appObsEndpoint;
     }
 

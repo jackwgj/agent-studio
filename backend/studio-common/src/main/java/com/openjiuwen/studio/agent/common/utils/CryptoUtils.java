@@ -35,14 +35,4 @@ public class CryptoUtils {
     public static String decrypt(String cipher) {
         return ciphers.decrypt(cipher);
     }
-
-    /**
-     * 将scc密文转为kms密文
-     *
-     * @param cipher 原密文
-     * @return 加密后的文本
-     */
-    public static String toKmsEncrypt(String cipher) {
-        return cipher;
-    }
 }

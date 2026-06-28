@@ -25,6 +25,7 @@ import com.obs.services.model.TemporarySignatureResponse;
 import com.obs.services.model.VersioningStatusEnum;
 import com.openjiuwen.studio.agent.common.enums.StudioError;
 import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
+import com.openjiuwen.studio.agent.common.utils.CryptoUtils;
 import com.openjiuwen.studio.prompt.engineering.constant.CommonConstant;
 import com.openjiuwen.studio.prompt.engineering.dto.FileInfoVo;
 import com.openjiuwen.studio.prompt.engineering.dto.GetObsObjectReq;
@@ -88,6 +89,7 @@ public class PromptObsService {
 
     @PostConstruct
     public void init() throws IOException {
+        secretKey = CryptoUtils.decrypt(secretKey);
         try {
             ObsConfiguration config = new ObsConfiguration();
             config.setEndPoint(url);

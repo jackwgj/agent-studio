@@ -105,6 +105,9 @@ spec:
             # 寻址方式：path（路径风格，默认）或 virtual（虚拟托管风格）
             - name: DATASOURCE_OBS_PATH_STYLE
               value: 'path'
+            # 系统默认的加解密方式，NO_OP_CIPHER-表示不加密
+            - name: system_crypt_name
+              value: 'NO_OP_CIPHER'
           resources:
             limits:
               cpu: '2'

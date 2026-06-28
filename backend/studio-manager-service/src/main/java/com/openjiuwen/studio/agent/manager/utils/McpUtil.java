@@ -14,6 +14,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.openjiuwen.studio.agent.common.enums.StudioError;
 import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
+import com.openjiuwen.studio.agent.common.utils.CryptoUtils;
 import com.openjiuwen.studio.agent.common.utils.RequestContextUtils;
 import com.openjiuwen.studio.agent.manager.constant.CommonConstant;
 import com.openjiuwen.studio.agent.manager.dto.McpServerBaseInfoDto;
@@ -42,6 +43,7 @@ import com.openjiuwen.studio.agent.manager.service.mcp.model.dao.McpServiceDao;
 import com.openjiuwen.studio.common.service.service.EncryptionAdapter;
 import com.openjiuwen.studio.agent.manager.dto.McpFailReasonDetailDto;
 
+import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 
@@ -66,6 +68,11 @@ import java.util.Map;
 @Slf4j
 @Component
 public class McpUtil {
+
+    @PostConstruct
+    public void decryptSensitiveFields() {
+        mcpAuthSecret = CryptoUtils.decrypt(mcpAuthSecret);
+    }
 
     @Resource
     private McpServerDao serverDao;

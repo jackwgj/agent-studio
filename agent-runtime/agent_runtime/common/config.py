@@ -7,6 +7,13 @@ from typing import Literal, Optional
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from agent_runtime.utils.crypto_tool import decrypt
+
+
+def _decrypt(v):
+    """通用解密验证器：尝试解密，失败则返回原文（明文兼容）。"""
+    return decrypt(v)
+
 
 class ServerSettings(BaseSettings):
     host: str = Field(default="127.0.0.1", validation_alias="SERVER_HOST")
@@ -45,6 +52,11 @@ class ServerSettings(BaseSettings):
         if v is not None and v < 1:
             raise ValueError("GUNICORN_WORK_NUM must be >= 1")
         return v
+
+    @field_validator("tls_key_password", mode="after")
+    @classmethod
+    def _decrypt_tls_key_password(cls, v):
+        return _decrypt(v)
 
 
 class RedisMode(Enum):
@@ -93,6 +105,11 @@ class RedisSettings(BaseSettings):
         env_file=".env", env_file_encoding="utf-8", extra="ignore"
     )
 
+    @field_validator("password", mode="after")
+    @classmethod
+    def _decrypt_password(cls, v):
+        return _decrypt(v)
+
 
 class LLMSettings(BaseSettings):
     api_key: str = Field(default="sk-placeholder", validation_alias="IR_LLM_API_KEY")
@@ -114,6 +131,11 @@ class LLMSettings(BaseSettings):
         protected_namespaces=("settings_",),
     )
 
+    @field_validator("api_key", mode="after")
+    @classmethod
+    def _decrypt_api_key(cls, v):
+        return _decrypt(v)
+
 
 class ObjectStorageSettings(BaseSettings):
     server: str = Field(default="", validation_alias="DATASOURCE_OBS_SERVER")
@@ -129,6 +151,11 @@ class ObjectStorageSettings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore"
     )
+
+    @field_validator("access_key", "secret_key", mode="after")
+    @classmethod
+    def _decrypt_keys(cls, v):
+        return _decrypt(v)
 
 
 class HealthCheckSettings(BaseSettings):
@@ -273,6 +300,11 @@ class OpenSearchSettings(BaseSettings):
         env_file=".env", env_file_encoding="utf-8", extra="ignore"
     )
 
+    @field_validator("password", mode="after")
+    @classmethod
+    def _decrypt_password(cls, v):
+        return _decrypt(v)
+
 
 class MemorySettings(BaseSettings):
     """Memory library feature settings."""
@@ -303,6 +335,11 @@ class MemorySettings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore"
     )
+
+    @field_validator("embedding_api_key", "llm_api_key", mode="after")
+    @classmethod
+    def _decrypt_api_keys(cls, v):
+        return _decrypt(v)
 
 
 class CheckpointerSettings(BaseSettings):
@@ -350,6 +387,11 @@ class DataBaseSettings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore"
     )
+
+    @field_validator("password", mode="after")
+    @classmethod
+    def _decrypt_password(cls, v):
+        return _decrypt(v)
 
 
 class Settings:

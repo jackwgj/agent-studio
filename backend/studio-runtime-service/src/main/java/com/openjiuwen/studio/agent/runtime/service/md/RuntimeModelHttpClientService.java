@@ -5,6 +5,7 @@
 package com.openjiuwen.studio.agent.runtime.service.md;
 
 import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
+import com.openjiuwen.studio.agent.common.utils.CryptoUtils;
 
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Headers;
@@ -83,6 +84,7 @@ public class RuntimeModelHttpClientService implements InitializingBean {
 
     @Override
     public void afterPropertiesSet() throws Exception {
+        proxyPassword = CryptoUtils.decrypt(proxyPassword);
         try {
             // SSL 配置
             SSLContext sslContext = SSLContextBuilder.create()

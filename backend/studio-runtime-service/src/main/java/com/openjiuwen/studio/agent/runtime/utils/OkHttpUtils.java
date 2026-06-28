@@ -6,6 +6,7 @@ package com.openjiuwen.studio.agent.runtime.utils;
 
 import com.openjiuwen.studio.agent.common.enums.StudioError;
 import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
+import com.openjiuwen.studio.agent.common.utils.CryptoUtils;
 import com.openjiuwen.studio.agent.runtime.model.AsyncTaskParamHolder;
 import com.openjiuwen.studio.agent.runtime.model.RequestResult;
 
@@ -141,6 +142,7 @@ public class OkHttpUtils {
 
     @PostConstruct
     private void init() {
+        proxyPassword = CryptoUtils.decrypt(proxyPassword);
         Dispatcher dispatcher = new Dispatcher();
         dispatcher.setMaxRequestsPerHost(maxRequestsPerHost);
         dispatcher.setMaxRequests(maxRequests);

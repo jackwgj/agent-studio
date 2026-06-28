@@ -372,7 +372,7 @@ public class DatasourceManagementService implements IDatasourceManagementService
                     throw new AgentStudioException(StudioError.DATASOURCE_AUTH_FAILED);
                 }
                 // 原密文转换为kms密文
-                datasourceConfig.setPassword(CryptoUtils.toKmsEncrypt(srcConnectionInfo.getPassword()));
+                datasourceConfig.setPassword(CryptoUtils.encrypt(srcConnectionInfo.getPassword()));
             } else {
                 // 前端传入明文需kms加密
                 datasourceConfig.setPassword(CryptoUtils.encrypt(datasourceConfig.getPassword()));

@@ -6,6 +6,7 @@ package com.openjiuwen.studio.agent.manager.service.mcp;
 
 import com.openjiuwen.studio.agent.common.enums.StudioError;
 import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
+import com.openjiuwen.studio.agent.common.utils.CryptoUtils;
 import com.openjiuwen.studio.agent.manager.enums.EnumOrgType;
 
 import io.modelcontextprotocol.client.McpClient;
@@ -69,6 +70,11 @@ public class McpClientService {
 
     @Value("#{'${model.request.proxy.no-host:127.0.0.1}'.split(',')}")
     private Set<String> blackProxyHost;
+
+    @jakarta.annotation.PostConstruct
+    public void decryptSensitiveFields() {
+        proxyPassword = CryptoUtils.decrypt(proxyPassword);
+    }
 
     public List<McpSchema.Tool> getMcpServiceToolList(String mcpServiceName, String baseUrl, String orgType,
         Map<String, String> headers) {

@@ -37,14 +37,7 @@ public class NoOpCipher implements Cipher {
             return null;
         }
 
-        byte[] plainTextBytes = plainText.getBytes(StandardCharsets.UTF_8);
-
-        byte[] message = new byte[plainText.getBytes(StandardCharsets.UTF_8).length + 1];
-        byte[] index = ByteBuffer.allocate(1).put(index()).array();
-        System.arraycopy(index, 0, message, 0, 1);
-        System.arraycopy(plainTextBytes, 0, message, 1, plainTextBytes.length);
-
-        return message;
+        return plainText.getBytes(StandardCharsets.UTF_8);
     }
 
     @Override
@@ -57,15 +50,7 @@ public class NoOpCipher implements Cipher {
             throw new AgentStudioException("Invalid cipher text");
         }
 
-        final byte[] decryptData = new byte[cipherText.length - 1];
-        System.arraycopy(cipherText, 1, decryptData, 0, cipherText.length - 1);
-
-        return new String(decryptData, StandardCharsets.UTF_8);
-    }
-
-    @Override
-    public byte index() {
-        return (byte) 0x00;
+        return new String(cipherText, StandardCharsets.UTF_8);
     }
 
     @Override

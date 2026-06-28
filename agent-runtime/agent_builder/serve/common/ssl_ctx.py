@@ -7,7 +7,7 @@ from os.path import isfile
 from typing import Optional, TypedDict, Union
 
 from agent_builder.adapter.exception_bridge import JiuWenException
-from agent_builder.adapter.cryptor import Crypt
+from agent_runtime.utils.crypto_tool import decrypt
 
 
 class ContexConfigDict(TypedDict, total=False):
@@ -55,7 +55,7 @@ def set_ssl_cert(cert_path, cert_key, ca_file, encrypt_password, ssl_type="servi
         raise SslCreateException("Password must be a string for encrypted key.")
     cert_path = os.path.realpath(cert_path)
     cert_key = os.path.realpath(cert_key)
-    password = Crypt().decrypt(encrypt_password)
+    password = decrypt(encrypt_password)
     ctx.load_cert_chain(cert_path, cert_key, password)
     return ctx
 

@@ -4,10 +4,14 @@
 
 package com.openjiuwen.studio.agent.common.redis.config;
 
+import com.openjiuwen.studio.agent.common.utils.CryptoUtils;
+
 import lombok.Data;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
+
+import jakarta.annotation.PostConstruct;
 
 @Configuration
 @Data
@@ -41,4 +45,9 @@ public class RedisClientConfig {
 
     @Value("${redis.cluster_node_list}")
     private String clusterNodeList;
+
+    @PostConstruct
+    public void decryptSensitiveFields() {
+        redisPassword = CryptoUtils.decrypt(redisPassword);
+    }
 }

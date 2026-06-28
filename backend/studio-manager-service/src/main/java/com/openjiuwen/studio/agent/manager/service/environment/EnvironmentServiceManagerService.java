@@ -883,12 +883,7 @@ public class EnvironmentServiceManagerService implements IEnvironmentServiceMana
                 content = "";
             } else if (envVari.getValue().isSecret() && Strings.CS.equals(envVari.getValue().getContent(),
                 PASSWORD_PLACEHOLDER)) {
-                if (secretVariables.containsKey(envVari.getName())) {
-                    // 原密文转为kms密文
-                    content = CryptoUtils.toKmsEncrypt(secretVariables.get(envVari.getName()).getContent());
-                } else {
-                    content = CryptoUtils.encrypt(envVari.getValue().getContent());
-                }
+                content = CryptoUtils.encrypt(envVari.getValue().getContent());
             } else if (envVari.getValue().isSecret() && !Strings.CS.equals(envVari.getValue().getContent(),
                 PASSWORD_PLACEHOLDER)) {
                 content = CryptoUtils.encrypt(envVari.getValue().getContent());

@@ -462,3 +462,8 @@ host-validation:
   pattern-group: ${host-validation_pattern_group:1}
 
 rest.client.enabled: false
+
+system:
+  crypt:
+    # 系统默认的加解密方式，NO_OP_CIPHER-表示不加密
+    name: ${system_crypt_name:NO_OP_CIPHER}

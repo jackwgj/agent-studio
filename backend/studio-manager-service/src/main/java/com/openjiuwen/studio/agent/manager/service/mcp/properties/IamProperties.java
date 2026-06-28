@@ -4,6 +4,9 @@
 
 package com.openjiuwen.studio.agent.manager.service.mcp.properties;
 
+import com.openjiuwen.studio.agent.common.utils.CryptoUtils;
+
+import jakarta.annotation.PostConstruct;
 import lombok.Data;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -49,5 +52,10 @@ public class IamProperties {
      * 项目id
      */
     private String projectId;
+
+    @PostConstruct
+    public void decryptSensitiveFields() {
+        this.password = CryptoUtils.decrypt(this.password);
+    }
 }
 
