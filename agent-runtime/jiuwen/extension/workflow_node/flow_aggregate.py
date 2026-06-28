@@ -101,9 +101,13 @@ class Aggregate(WorkflowComponent):
     def _first_non_empty(lst: list) -> Any:
         if not lst:
             return None
-        if not isinstance(lst[0], str):
-            return next((x for x in lst if x is not None), None)
-        return next((x for x in lst if x), None)
+        for x in lst:
+            if isinstance(x, str):
+                if x:
+                    return x
+            elif x is not None:
+                return x
+        return None
 
     @staticmethod
     def _validate_param_type(lst: list) -> None:

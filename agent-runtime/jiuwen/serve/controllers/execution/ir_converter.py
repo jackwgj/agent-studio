@@ -34,8 +34,8 @@ from jiuwen.common.utils.utils import safe_json_loads_raise_exception, timed_cac
 from jiuwen.context.memory_engine.config.memory_ir_config import MemoryIrConfig
 from jiuwen.controller.agent.agent import Agent
 from jiuwen.controller.common.config import AgentConfig, AgentMetaData
-from jiuwen.extension.patches.loop_body_output_reset_patch import (
-    apply_loop_body_output_reset_patch,
+from jiuwen.extension.patches.loop_body_session_cleanup_patch import (
+    apply_loop_body_session_cleanup_patch,
 )
 from jiuwen.extension.patches.workflow_sub_stream_patch import (
     apply_workflow_sub_stream_patch,
@@ -97,7 +97,7 @@ from openjiuwen.core.workflow.workflow_config import ExceptionConfig
 from pydantic import ValidationError
 
 apply_workflow_sub_stream_patch()
-apply_loop_body_output_reset_patch()
+apply_loop_body_session_cleanup_patch()
 from jiuwen.extension.workflow_node.utils import WorkflowMetadata
 
 from jiuwen.serve.controllers.execution.ir_parallel_utils import (

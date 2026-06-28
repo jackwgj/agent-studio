@@ -1543,12 +1543,12 @@ class SubWorkflow(WorkflowComponent):
         return "sub_workflow"
 
 
-from jiuwen.extension.patches.loop_body_output_reset_patch import (
-    apply_loop_body_output_reset_patch,
+from jiuwen.extension.patches.loop_body_session_cleanup_patch import (
+    apply_loop_body_session_cleanup_patch,
 )
 from jiuwen.extension.patches.workflow_sub_stream_patch import (
     apply_workflow_sub_stream_patch,
 )
 
 apply_workflow_sub_stream_patch()
-apply_loop_body_output_reset_patch()
+apply_loop_body_session_cleanup_patch()

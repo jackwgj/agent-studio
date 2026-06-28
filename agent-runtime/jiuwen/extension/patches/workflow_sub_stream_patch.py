@@ -36,6 +36,7 @@ from openjiuwen.core.session.stream import OutputSchema, StreamEmitter
 from openjiuwen.core.workflow.components.base import ComponentAbility
 
 from jiuwen.extension.patches.aggregate_upstream_resolver import (
+    resolve_aggregate_node_ids_from_workflow,
     resolve_aggregate_upstream_node_ids_from_workflow,
 )
 
@@ -77,7 +78,8 @@ async def _patched_compiled_invoke(self, inputs, session, config=None):
     try:
         if is_main:
             await self._checkpointer.pre_workflow_execute(session, inputs)
-            _maybe_clear_aggregate_upstream_on_resume("invoke", session, inputs)
+        if isinstance(session, SubWorkflowSession):
+            _prepare_sub_workflow_aggregate_io("compiled_invoke", session, inputs)
         if not isinstance(inputs, InteractiveInput):
             session.state().commit_user_inputs(inputs)
         result = None
@@ -122,16 +124,16 @@ def _interrupt_output_schema(result: Any) -> Optional[OutputSchema]:
     return None
 
 
-def _clear_aggregate_upstream_io_state(
-    sub_workflow_session, scope_id: str, upstream_ids: tuple[str, ...]
+def _clear_scoped_node_io_state(
+    sub_workflow_session, scope_id: str, node_ids: tuple[str, ...]
 ) -> list[str]:
-    """Drop io_state outputs for aggregate upstream branch nodes under scope."""
+    """Drop io_state outputs for scoped nodes under a sub-workflow / loop-body scope."""
     io_state = getattr(sub_workflow_session.state(), "_io_state", None)
-    if io_state is None or not scope_id or not upstream_ids:
+    if io_state is None or not scope_id or not node_ids:
         return []
 
     cleared: list[str] = []
-    for node_id in upstream_ids:
+    for node_id in node_ids:
         nested_key = f"{scope_id}.{node_id}"
         io_state.update_by_id(nested_key, {nested_key: None})
         cleared.append(node_id)
@@ -140,13 +142,26 @@ def _clear_aggregate_upstream_io_state(
     return cleared
 
 
-def _maybe_clear_aggregate_upstream_on_resume(
+def _cache_aggregate_ids_on_session(sub_workflow_session, workflow_self) -> None:
+    sub_workflow_session._aggregate_node_ids = resolve_aggregate_node_ids_from_workflow(
+        workflow_self
+    )
+    sub_workflow_session._aggregate_upstream_node_ids = (
+        resolve_aggregate_upstream_node_ids_from_workflow(workflow_self)
+    )
+
+
+def _prepare_sub_workflow_aggregate_io(
     mode: str, sub_workflow_session, inputs: Input
 ) -> None:
-    """On InteractiveInput resume, clear stale aggregate upstream branch outputs."""
-    if not isinstance(inputs, InteractiveInput):
-        return
+    """Prepare aggregate io_state before a sub-workflow graph run.
 
+    - InteractiveInput resume: clear aggregate output + upstream branches not in
+      ``executed_nodes`` (checkpoint recovery keeps the taken branch).
+    - Fresh / loop re-entry (non-InteractiveInput): clear **all** aggregate upstream
+      io so first-non-null does not read a prior path/round (executed_nodes may still
+      list nodes from the previous inner run).
+    """
     if not isinstance(sub_workflow_session, SubWorkflowSession):
         return
 
@@ -154,8 +169,21 @@ def _maybe_clear_aggregate_upstream_on_resume(
     if not scope_id:
         return
 
+    aggregate_ids = getattr(sub_workflow_session, "_aggregate_node_ids", ()) or ()
     upstream_ids = getattr(sub_workflow_session, "_aggregate_upstream_node_ids", ()) or ()
-    _clear_aggregate_upstream_io_state(sub_workflow_session, scope_id, upstream_ids)
+
+    if isinstance(inputs, InteractiveInput):
+        _clear_scoped_node_io_state(sub_workflow_session, scope_id, aggregate_ids)
+        executed_nodes = set(
+            sub_workflow_session.state().get_workflow_state("executed_nodes") or []
+        )
+        stale_upstream = tuple(
+            node_id for node_id in upstream_ids if node_id not in executed_nodes
+        )
+        _clear_scoped_node_io_state(sub_workflow_session, scope_id, stale_upstream)
+        return
+
+    _clear_scoped_node_io_state(sub_workflow_session, scope_id, upstream_ids)
 
 
 def _reset_sub_workflow_runtime_state(self) -> None:
@@ -205,13 +233,12 @@ async def _patched_sub_stream(
     **kwargs,
 ) -> AsyncIterator[Output]:
     sub_workflow_session = self._create_workflow_session(session, is_sub=True)
-    sub_workflow_session._aggregate_upstream_node_ids = (
-        resolve_aggregate_upstream_node_ids_from_workflow(self)
-    )
+    _cache_aggregate_ids_on_session(sub_workflow_session, self)
     try:
         _reset_sub_workflow_runtime_state(self)
         if bool(kwargs.get("reset_sub_outputs")):
             _reset_sub_workflow_component_outputs(self, sub_workflow_session, inputs)
+        _prepare_sub_workflow_aggregate_io("sub_stream", sub_workflow_session, inputs)
         compiled_graph = self._internal.compile(sub_workflow_session, context=context)
         result = await compiled_graph.invoke(
             {INPUTS_KEY: inputs, CONFIG_KEY: kwargs.get(CONFIG_KEY)},
@@ -262,14 +289,13 @@ async def _patched_sub_invoke(
     **kwargs,
 ) -> Output:
     sub_workflow_session = self._create_workflow_session(session, is_sub=True)
-    sub_workflow_session._aggregate_upstream_node_ids = (
-        resolve_aggregate_upstream_node_ids_from_workflow(self)
-    )
+    _cache_aggregate_ids_on_session(sub_workflow_session, self)
 
     try:
         _reset_sub_workflow_runtime_state(self)
         if bool(kwargs.get("reset_sub_outputs")):
             _reset_sub_workflow_component_outputs(self, sub_workflow_session, inputs)
+        _prepare_sub_workflow_aggregate_io("sub_invoke", sub_workflow_session, inputs)
         compiled_graph = self._internal.compile(sub_workflow_session, context)
         result = await compiled_graph.invoke(
             {INPUTS_KEY: inputs, CONFIG_KEY: kwargs.get(CONFIG_KEY)},
