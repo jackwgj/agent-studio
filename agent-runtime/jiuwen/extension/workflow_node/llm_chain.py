@@ -26,10 +26,13 @@ import time
 from typing import Any, List, Optional, AsyncGenerator
 
 from openjiuwen.core.common.exception.codes import StatusCode
-from openjiuwen.core.common.exception.errors import build_error
+from openjiuwen.core.common.exception.errors import build_error, ExecutionError
+from jiuwen.common.exception.status_code import StatusCode as JiuWenStatusCode
+from jiuwen.common.exception.base import JiuWenBaseException
 from openjiuwen.core.common.logging import workflow_logger
 from openjiuwen.core.foundation.llm import Model
 from openjiuwen.core.foundation.prompt import PromptTemplate
+from jiuwen.prompt import Prompt, Template
 from openjiuwen.core.session.stream.base import CustomSchema
 from openjiuwen.core.workflow import WorkflowComponent
 from pydantic import BaseModel, StrictStr, Field, ValidationError
@@ -654,6 +657,10 @@ class LLMChain(WorkflowComponent):
         try:
             self._validate_prompt_template(prompt_template)
             user_prompt = self._render_prompt(prompt_template, inputs)
+        except JiuWenBaseException:
+            raise
+        except ExecutionError:
+            raise
         except Exception as e:
             raise build_error(
                 StatusCode.COMPONENT_LLM_CONFIG_INVALID,
@@ -666,8 +673,15 @@ class LLMChain(WorkflowComponent):
             try:
                 self._validate_prompt_template(system_template)
                 system_prompt = self._render_prompt(system_template, inputs)
-            except Exception:
-                system_prompt = system_template
+            except JiuWenBaseException:
+                raise
+            except ExecutionError:
+                raise
+            except Exception as e:
+                raise build_error(
+                    StatusCode.COMPONENT_LLM_CONFIG_INVALID,
+                    error_msg="Failed to assemble llm template",
+                ) from e
 
         if self._get_enable_history():
             messages = self._get_history(user_prompt, system_prompt)
@@ -920,12 +934,20 @@ class LLMChain(WorkflowComponent):
                     )
 
     def _render_prompt(self, template: str, inputs: dict) -> str:
-        """渲染提示模板"""
+        """渲染提示模板，校验未定义变量"""
         result = template
         for key, value in inputs.items():
             placeholder = f"{{{{{key}}}}}"
             if placeholder in result:
                 result = result.replace(placeholder, str(value))
+        # 校验：如果还有未替换的 {{...}}，说明引用了不存在的变量
+        remaining = re.findall(r'\{\{([^{}]*)\}\}', result)
+        if remaining:
+            raise ExecutionError(
+                StatusCode.WORKFLOW_COMPONENT_EXECUTION_ERROR,
+                msg=JiuWenStatusCode.PROMPT_ASSEMBLER_INPUT_KEY_ERROR.errmsg
+                    + f", root cause=Error parsing the placeholder `{remaining[0]}`.",
+            )
         return result
 
     def _get_template_content(self) -> str:

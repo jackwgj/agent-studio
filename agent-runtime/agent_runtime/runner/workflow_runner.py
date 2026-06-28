@@ -23,7 +23,8 @@ from agent_runtime.schemas.orchestration_mgr import (
 )
 from jiuwen.serve.controllers.execution.ir_converter import IRConverter
 from jiuwen.serve.controllers.execution.open_utils import async_ir_load
-from openjiuwen.core.common.exception.errors import ExecutionError, Termination
+from jiuwen.common.exception.base import JiuWenBaseException
+from openjiuwen.core.common.exception.errors import ExecutionError, Termination, BaseError
 from openjiuwen.core.common.logging import workflow_logger
 from openjiuwen.core.common.logging import performance_logger
 from openjiuwen.core.session.checkpointer.checkpointer import CheckpointerFactory
@@ -324,14 +325,62 @@ class WorkflowRunner:
                 "index": 0,
                 "createdTime": int(time.time()),
             }
+        except BaseError as e:
+            last_node = workflow_wrapper.get_last_node() if workflow_wrapper else {}
+            node_id = last_node.get("node_id", "")
+            node_type = last_node.get("node_type", "")
+            node_name = _resolve_node_name(node_defs, workflow_id, node_id)
+            error_code = e.code
+            error_msg = _format_error_message(error_code, e.message)
+            workflow_logger.error(f"Workflow execution failed: {e}, type={type(e).__name__}")
+            yield {
+                "event": "error",
+                "data": {
+                    "code": error_code,
+                    "message": error_msg,
+                    "node_id": node_id,
+                    "node_name": node_name,
+                    "node_type": node_type,
+                    "workflow_id": workflow_id,
+                    "workflow_name": ir_json.get("workflowName", ""),
+                },
+                "executionId": exec_id,
+                "index": 0,
+                "createdTime": int(time.time()),
+            }
+            yield {
+                "event": "done",
+                "data": {
+                    "node_id": node_id,
+                    "node_name": node_name,
+                    "node_type": node_type,
+                },
+                "executionId": exec_id,
+                "index": 0,
+                "createdTime": int(time.time()),
+            }
         except Exception as e:
             workflow_logger.error(f"Workflow execution failed: {e}, type={type(e).__name__}", exc_info=True)
             last_node = workflow_wrapper.get_last_node() if workflow_wrapper else {}
             node_id = last_node.get("node_id", "")
             node_type = last_node.get("node_type", "")
             node_name = _resolve_node_name(node_defs, workflow_id, node_id)
-            error_code = GENERAL_ERROR
-            error_msg = _format_error_message(error_code, "Workflow execution failed")
+            # 检查异常链：如果原始异常是 JiuWenBaseException（如变量校验错误），用原始错误码
+            raw_error_code = getattr(e, 'error_code', None)
+            cause = e.__cause__
+            while cause is not None and raw_error_code is None:
+                raw_error_code = getattr(cause, 'error_code', None)
+                if raw_error_code is not None:
+                    error_msg = str(cause)
+                    break
+                cause = getattr(cause, '__cause__', None)
+            if raw_error_code is not None:
+                error_code = str(raw_error_code)
+                if 'error_msg' not in dir():
+                    error_msg = str(e)
+            else:
+                error_code = GENERAL_ERROR
+                error_msg = _format_error_message(error_code, "Workflow execution failed")
             yield {
                 "event": "error",
                 "data": {
