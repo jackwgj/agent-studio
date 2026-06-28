@@ -269,7 +269,7 @@ public class WorkflowValidationService {
     @Value("${env.sandbox.enable}")
     private boolean sandboxEnable;
 
-    @Value("${agent-builder.publish-cross-workspace.enable:true}")
+    @Value("${agent-builder.publish-cross-workspace.enable:false}")
     private boolean publishCrossWorkspace;
 
     @Value("${allow-plugin-cross-permission-query:false}")
@@ -2018,6 +2018,10 @@ public class WorkflowValidationService {
 
     private boolean isToolAccessAllowed(boolean publishCrossWorkspace, boolean pluginChoice, String workspaceId,
             ToolEntity toolEntity, String shareWorkspaceId) {
+        // 内置预置工具为平台级全局工具，不受工作空间隔离限制
+        if (ToolType.INNER.type.equals(toolEntity.getType())) {
+            return true;
+        }
         if (publishCrossWorkspace || pluginChoice) {
             return true;
         }

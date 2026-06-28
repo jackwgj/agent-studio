@@ -23,6 +23,7 @@ import com.openjiuwen.studio.agent.manager.dto.WorkflowNodeVO;
 import com.openjiuwen.studio.agent.manager.entity.ShareResourceEntity;
 import com.openjiuwen.studio.agent.manager.entity.ShareScopeEntity;
 import com.openjiuwen.studio.agent.manager.entity.ToolEntity;
+import com.openjiuwen.studio.agent.manager.enums.ToolType;
 import com.openjiuwen.studio.agent.manager.entity.plugin.PluginEntity;
 import com.openjiuwen.studio.agent.manager.mapper.ShareResourceMapper;
 import com.openjiuwen.studio.agent.manager.mapper.ShareScopeMapper;
@@ -216,6 +217,34 @@ class WorkflowValidationServiceTest {
         when(shareResourceMapper.selectShareResourceEntityByResourceId(anyString())).thenReturn(new ShareResourceEntity());
 
         workflowValidationService.validateTools(nodes, "projectId", "workspaceId");
+    }
+
+    @Test
+    void test_validateTools_with_inner_tool_bypasses_workspace_isolation() throws Exception {
+        // publishCrossWorkspace=false 时，内置预置工具（workspaceId 固定为 default）仍应可被任意空间引用
+        ReflectionTestUtils.setField(workflowValidationService, "publishCrossWorkspace", false);
+        List<Map<String, Object>> nodes = new ArrayList<>();
+        Map<String, Object> nodeMap = new HashMap<>();
+        nodeMap.put("type", "Plugin");
+        Map<String, Object> configMap = new HashMap<>();
+        configMap.put("id", "preset_Read_File");
+        configMap.put("tool_id", "preset_Read_File");
+        nodeMap.put("configs", configMap);
+        nodes.add(nodeMap);
+
+        try (MockedStatic<JsonUtils> jsonUtilsMock = mockStatic(JsonUtils.class)) {
+            jsonUtilsMock.when(() -> JsonUtils.objectToClass(nodeMap.get("configs"))).thenReturn(configMap);
+
+            ToolEntity toolEntity = new ToolEntity();
+            toolEntity.setWorkspaceId("default");
+            toolEntity.setType(ToolType.INNER.type);
+            when(pluginDomain.buildToolByPlugin(anyString(), anyString(), anyString(), anyString()))
+                .thenReturn(toolEntity);
+
+            assertDoesNotThrow(() -> {
+                workflowValidationService.validateTools(nodes, "projectId", "userWorkspaceId");
+            });
+        }
     }
 
     @Test
