@@ -118,8 +118,12 @@ class HierarchicalAgentGroup(BaseAgentGroup):
                     )
                     break
                 elif result.type == MemberMessageType.ERROR:
+                    _inner = getattr(result.data, "data", None)
+                    _err_msg = _inner.get("message") if isinstance(_inner, dict) else None
+                    _err_code = _inner.get("code") if isinstance(_inner, dict) else None
                     logger.error(
-                        f"Received ERROR message: {result.data}",
+                        f"Received ERROR message from agent: code={_err_code}, "
+                        f"message={_err_msg}, raw={result.data}",
                         simple_log="Received ERROR message",
                     )
                     yield result.data

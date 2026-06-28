@@ -177,7 +177,11 @@ class HierarchicalControlAgent(BaseControlAgent):
             return ExecutionAction.INTERRUPT, True
 
         if message.type == MemberMessageType.ERROR:
-            logger.error(f"Agent {agent_id} returned error")
+            _inner = getattr(message.data, "data", None)
+            _err_msg = _inner.get("message") if isinstance(_inner, dict) else None
+            logger.error(
+                f"Agent {agent_id} returned error: message={_err_msg}, raw={message.data}"
+            )
             return ExecutionAction.ERROR, True
 
         if (
