@@ -29,6 +29,7 @@ import { NzToolTipModule } from 'ng-zorro-antd/tooltip';
 import { NzModalService } from 'ng-zorro-antd/modal';
 import { NzDrawerService } from 'ng-zorro-antd/drawer';
 import { NzMessageService } from 'ng-zorro-antd/message';
+import { MultiFieldSearchComponent, ISearchTag } from '@shared/components/multi-field-search/multi-field-search.component';
 
 enum mapKeys {
   authConfigs = 'auth_configs',
@@ -44,6 +45,7 @@ enum mapKeys {
     FormsModule,
     MODULES,
     NewCommonNoDataWithBtnComponent,
+    MultiFieldSearchComponent,
     NzSpinModule,
     NzIconModule,
     NzTagModule,
@@ -342,19 +344,23 @@ export class ModalManagementDetailComponent {
       label: this.i18n.transform('model_type'),
       field: 'model_type',
       options: [
-        { label: this.i18n.transform('LLM') },
-        { label: this.i18n.transform('Text-Embedding') },
-        { label: this.i18n.transform('RERANK') },
-        { label: this.i18n.transform('IMAGE-TO-TEXT') },
+        { label: this.i18n.transform('LLM'), id: ModelType.LLM },
+        { label: this.i18n.transform('Text-Embedding'), id: ModelType.Text_Embedding },
+        { label: this.i18n.transform('RERANK'), id: ModelType.RERANK },
+        { label: this.i18n.transform('IMAGE-TO-TEXT'), id: ModelType.IMAGE_TO_TEXT },
       ],
     },
     {
       label: this.i18n.transform('publish_status'),
       field: 'publish_status',
-      options: [{ label: this.i18n.transform('published') }, { label: this.i18n.transform('not_published') }],
+      options: [
+        { label: this.i18n.transform('published'), id: statusMeta.online },
+        { label: this.i18n.transform('not_published'), id: statusMeta.offline },
+      ],
     },
   ];
-  public searchName: any[] = [];
+  public searchName: ISearchTag[] = [];
+  public searchField: string = 'service_name';
   public searchString = '';
   public queryFilter = {};
   public provider_boolean = false;
@@ -532,18 +538,6 @@ export class ModalManagementDetailComponent {
     return regex.test(userInput);
   }
 
-  transform_model_type_map = {
-    [this.i18n.transform('LLM')]: ModelType.LLM,
-    [this.i18n.transform('Text-Embedding')]: ModelType.Text_Embedding,
-    [this.i18n.transform('RERANK')]: ModelType.RERANK,
-    [this.i18n.transform('IMAGE-TO-TEXT')]: ModelType.IMAGE_TO_TEXT,
-  };
-
-  transform_publish_status_map = {
-    [this.i18n.transform('published')]: statusMeta.online,
-    [this.i18n.transform('not_published')]: statusMeta.offline,
-  };
-
   getData = () => {
     const params = {};
     for (let item of this.searchName) {
@@ -554,10 +548,8 @@ export class ModalManagementDetailComponent {
           return false;
         }
         params[item.field] = item.value;
-      } else if (item.field === 'model_type') {
-        params[item.field] = this.transform_model_type_map[item.value] || item.value;
-      } else if (item.field === 'publish_status') {
-        params[item.field] = this.transform_publish_status_map[item.value] || item.value;
+      } else if (item.id !== undefined) {
+        params[item.field] = item.id;
       } else {
         params[item.field] = item.value;
       }
@@ -597,20 +589,9 @@ export class ModalManagementDetailComponent {
     this.getPublisherListFn();
   }
 
-  public onSearchStringChange(val: string) {
-    this.searchName = val ? [{ field: 'service_name', value: val, label: 'service_name' }] : [];
-    this.onSearchContentChange();
-  }
-
   public onSearchContentChange(): void {
     this.currentPage = 1;
     this.getPublisherListFn();
-  }
-
-  public onClearSearchContentChange(): void {
-    this.searchName = [];
-    this.searchString = '';
-    this.onSearchContentChange();
   }
 
   openPublisherHalfModel(provider?) {

@@ -112,18 +112,13 @@
         </div>
 
         <div class="mb-[16px] flex items-center gap-2">
-          <nz-input-group [nzSuffix]="suffixIconSearch" class="flex h-[32px] w-[calc(100%-32px)]">
-            <input
-              type="text"
-              nz-input
-              [placeholder]="'search_by_service_name' | i18nextEager"
-              [(ngModel)]="searchString"
-              (ngModelChange)="onSearchStringChange($event)"
-            />
-          </nz-input-group>
-          <ng-template #suffixIconSearch>
-            <span nz-icon nzType="search"></span>
-          </ng-template>
+          <multi-field-search
+            [searchItems]="searchItems"
+            [(searchTags)]="searchName"
+            [(searchField)]="searchField"
+            (searchChange)="onSearchContentChange()"
+            class="flex-1"
+          ></multi-field-search>
 
           <button class="h-8 w-8 flex items-center justify-center" nz-button nzType="default" (click)="freshData()">
             <nz-icon nzType="redo" nzTheme="outline" />
@@ -198,7 +193,7 @@
             [secondLineData]="(activeName === 'CUSTOM' ? 'no_data_1' : 'no_data') | i18nextEager"
             [noDataBtnStr]="(provider_boolean ? 'synchronize-model-service' : 'add_model_service') | i18nextEager"
             (create)="createModelService()"
-            (clear)="onClearSearchContentChange()"
+            (clear)="searchName = []; onSearchContentChange()"
           />
         </ng-template>
 

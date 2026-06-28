@@ -1,6 +1,7 @@
 import { Component, EventEmitter, OnInit, Output, inject, Inject } from '@angular/core';
 import { IGetTmplQuery, ITmpl, PromptService } from '@services/prompt.service';
 import { CommonNoDataComponent } from '@shared/components/common-no-data/common-no-data.component';
+import { MultiFieldSearchComponent, ISearchTag } from '@shared/components/multi-field-search/multi-field-search.component';
 import { MODULES } from '@shared/modules';
 import { I18NEXT_NAMESPACE, I18NextEagerPipe } from 'angular-i18next';
 import { I18nNamespace } from '@i18n';
@@ -33,9 +34,13 @@ enum mapKeys {
         </nz-tabset>
         <div class="mt-1 flex flex-col gap-[16px] h-[calc(100%-124px)]">
           <div class="flex w-full items-center gap-2">
-            <nz-input-search (nzSearch)="getPrompts()">
-              <input nz-input [(ngModel)]="searchValue" />
-            </nz-input-search>
+            <multi-field-search
+              [searchItems]="searchItems"
+              [(searchTags)]="searchName"
+              [(searchField)]="searchField"
+              (searchChange)="onSearchContentChange()"
+              class="flex-1"
+            ></multi-field-search>
             <button (click)="getPrompts()" class="h-8 w-8" nz-button>
               <nz-icon nzType="reload" nzTheme="outline" />
             </button>
@@ -238,7 +243,7 @@ enum mapKeys {
     `,
   ],
   standalone: true,
-  imports: [MODULES, CommonNoDataComponent],
+  imports: [MODULES, CommonNoDataComponent, MultiFieldSearchComponent],
   providers: [
     {
       provide: I18NEXT_NAMESPACE,
@@ -304,6 +309,8 @@ export class RefPromptComponent implements OnInit {
   public curActived = 'preset';
   public tmpls: ITmpl[] = [];
   public searchValue: string = '';
+  public searchName: ISearchTag[] = [];
+  public searchField: string = 'template_name';
 
   public lang = CommonUtils.getLanguage();
   appPromptTabs: AssertSquareTagType[] = [
@@ -359,6 +366,12 @@ export class RefPromptComponent implements OnInit {
     }
   }
 
+  public onSearchContentChange() {
+    this.offset = 0;
+    this.hasNextPage = true;
+    this.getPrompts();
+  }
+
   public async getPrompts(conf: { isScroll: boolean } = { isScroll: false }) {
     try {
       if (this.controller) {
@@ -369,10 +382,32 @@ export class RefPromptComponent implements OnInit {
       this.isLoading = true;
 
       const params: IGetTmplQuery = {
-        template_name: this.searchValue ?? '',
+        template_name: '',
         offset: conf?.isScroll ? this.offset : 0,
         limit: 10,
       };
+
+      const industryTag = this.searchName.find(t => t.field === 'industry_list');
+      const tagTag = this.searchName.find(t => t.field === 'tag_list');
+      const nameTag = this.searchName.find(t => t.field === 'template_name');
+      const idTag = this.searchName.find(t => t.field === 'template_id');
+      const contentTag = this.searchName.find(t => t.field === 'content');
+
+      if (industryTag?.id) {
+        params.industry_list = [industryTag.id];
+      }
+      if (tagTag?.id) {
+        params.tag_list = [tagTag.id];
+      }
+      if (nameTag?.value) {
+        params.template_name = nameTag.value;
+      }
+      if (idTag?.value) {
+        params.template_id = idTag.value;
+      }
+      if (contentTag?.value) {
+        params.content = contentTag.value;
+      }
 
       const query = {};
 
