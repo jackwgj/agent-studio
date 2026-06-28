@@ -8,7 +8,7 @@ LOGGING_LOG_PATH="${LOGGING_LOG_PATH:-/opt/cloud/logs}"
 WATCHDOG_LOG_DIR="${WATCHDOG_LOG_DIR:-/opt/cloud/logs/watchdog}"
 
 function check_fail_count() {
-  SERVER_PORT=$1
+  local SERVER_PORT=$1
   filename="${WATCHDOG_LOG_DIR}/fail_${SERVER_PORT}.count"
   max_fail_time=${HEALTH_CHECK_FAIL_COUNT:-3}
 
@@ -36,9 +36,9 @@ function check_fail_count() {
 }
 
 function server_health_check(){
-  CHECK_RSP=$1
-  HEALTH_CHECK_TIMEOUT=$2
-  SERVER_PORT=$3
+  local CHECK_RSP=$1
+  local HEALTH_CHECK_TIMEOUT=$2
+  local SERVER_PORT=$3
   if [[ "${HTTPS}" == "false" ]]; then
     health_check=$(curl -k --location --request GET "http://127.0.0.1:${SERVER_PORT}/v1/health" --max-time ${HEALTH_CHECK_TIMEOUT})
   else
@@ -87,8 +87,11 @@ function watchdog() {
   SERVER_PORT=${PORT:-8000}
 
   if [[ "${NGINX_LOAD_BALANCING}" == "true" ]]; then
-    # Multi-port mode: monitor all worker ports
-    WORKER_NUM=${GUNICORN_WORK_NUM:-4}
+    # Multi-port mode: monitor all worker ports.
+    # LB_WORKER_NUM is exported by start_nginx_lb.sh (the real nginx-upstream
+    # worker count). GUNICORN_WORK_NUM is overridden to 1 there to force
+    # single-process uvicorn, so it must NOT be used as the port count here.
+    WORKER_NUM=${LB_WORKER_NUM:-${GUNICORN_WORK_NUM:-4}}
     echo "Watchdog: monitoring ${WORKER_NUM} workers (ports $((SERVER_PORT+1)) to $((SERVER_PORT+WORKER_NUM)))"
     while [ 1 ]; do
       sleep ${PERIOD_SECONDS}
