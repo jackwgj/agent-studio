@@ -164,7 +164,7 @@ export class ParamExtractionModalComponent
   @ViewChild('exceptionConditionModal')
   exceptionConditionModal: ConditionModalComponent;
 
-  readonly showVarListSubject$ = new BehaviorSubject<boolean>(false);
+  readonly showVarListSubject$ = new Subject<boolean>();
 
   protected override destroy$ = new Subject<void>();
 

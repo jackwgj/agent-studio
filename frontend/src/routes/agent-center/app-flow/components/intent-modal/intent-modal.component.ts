@@ -281,7 +281,7 @@ export class IntentModalComponent extends ModalBaseComponent implements OnInit, 
   ) {
     super(nodeServ, appFlowServ);
   }
-  readonly showVarListSubject$ = new BehaviorSubject<boolean>(false);
+  readonly showVarListSubject$ = new Subject<boolean>();
   public get thresholdLimit() {
     const { knowledge_recall_threshold_min, knowledge_recall_threshold_max } = this.configServ.getConfigs();
     return {

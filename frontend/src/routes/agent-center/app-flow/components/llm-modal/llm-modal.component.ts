@@ -276,8 +276,14 @@ export class LLMModalComponent extends ModalBaseComponent implements OnInit, OnD
 
   showLlmSelectErrorClass = false;
 
-  readonly showSystemVarListSubject$ = new BehaviorSubject<boolean>(false);
-  readonly showUserVarListSubject$ = new BehaviorSubject<boolean>(false);
+  readonly showSystemVarListSubject$ = new Subject<boolean>();
+  readonly showUserVarListSubject$ = new Subject<boolean>();
+
+  onShowVarList(event: Event, subject: Subject<boolean>) {
+    event.preventDefault();
+    event.stopPropagation();
+    subject.next(true);
+  }
 
   needValid = false;
   updateTimeout: any = null;

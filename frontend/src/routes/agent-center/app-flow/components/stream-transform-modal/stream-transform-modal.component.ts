@@ -17,7 +17,7 @@ import {
 import { MODULES } from '@shared/modules';
 import { CommonValidation } from '@shared/validation/commonValidation';
 import { I18NEXT_NAMESPACE, I18NextEagerPipe } from 'angular-i18next';
-import { BehaviorSubject, debounceTime, Subscription } from 'rxjs';
+import { BehaviorSubject, Subject, debounceTime, Subscription } from 'rxjs';
 import { InputTreeSelect } from 'src/routes/agent-center/app-flow/components/input-tree-select/input-tree-select';
 import { CommonUtils } from 'src/utils/common.util';
 import { AppFlowService } from '../../app-flow.service';
@@ -85,7 +85,7 @@ export class StreamTransformModalComponent extends ModalBaseComponent implements
 
   public validationRules: any[] = [];
 
-  readonly showVarListSubject$ = new BehaviorSubject<boolean>(false);
+  readonly showVarListSubject$ = new Subject<boolean>();
 
   public modelFormGroup = this.fb.group({
     code: ['', Validators.required],

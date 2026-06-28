@@ -136,7 +136,7 @@ export class CmdTextareaComponent implements ControlValueAccessor {
   private editorObserver: MutationObserver;
 
   get range() {
-    return this.selection?.getRangeAt(0);
+    return this.selection?.rangeCount ? this.selection.getRangeAt(0) : null;
   }
 
   // processContent执行次数
@@ -420,6 +420,7 @@ export class CmdTextareaComponent implements ControlValueAccessor {
   checkAndRestoreCursorPosition() {
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0) {
+      this.moveCursorToEnd();
       return;
     }
 

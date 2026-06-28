@@ -28,7 +28,7 @@ import { NodeTypeTopic } from '@routes/agent-center/types/common.types';
 import { HelpCenterService } from '@services/help-center.service';
 import { CommonService } from '@services/common.service';
 import { AgentDataService } from '@services/agent-center/agent-data.service';
-import { BehaviorSubject, takeUntil } from 'rxjs';
+import { BehaviorSubject, Subject, takeUntil } from 'rxjs';
 @Component({
   selector: 'meta-message-modal',
   templateUrl: './message-modal.component.html',
@@ -87,7 +87,7 @@ export class MessageModalComponent extends ModalBaseComponent implements OnInit 
     type: 'change',
   };
 
-  readonly showVarListSubject$ = new BehaviorSubject<boolean>(false);
+  readonly showVarListSubject$ = new Subject<boolean>();
 
   needValid = false;
 
