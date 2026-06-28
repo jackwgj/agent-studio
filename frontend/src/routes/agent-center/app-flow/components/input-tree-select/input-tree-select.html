@@ -2,7 +2,7 @@
   <div
     cdkOverlayOrigin
     #overlayOrigin="cdkOverlayOrigin"
-    (click)="selectClick()"
+    (click)="selectClick($event)"
     [class]="borderClass"
     [class.is-invalid]="vInvalid"
     [class.is-valid]="control?.controls[name]?.valid"
