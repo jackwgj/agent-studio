@@ -485,9 +485,12 @@ class Start(WorkflowComponent):
         sys.get("conversationHistory", []).append(
             {"role": "user", "content": inputs_copy.get("query", "")}
         )
+        # 优先使用 inputs_copy（当前轮次的新输入），fallback 到 io_state（checkpoint 恢复的旧值）
+        # 修复：恢复场景下 io_state.get("query") 保留的是首轮旧值，会覆盖当前轮次的新 query
+        resolved_query = inputs_copy.get("query", "") or io_state.get("query", "")
         return {
             SYSTEM_FIELDS: {
-                "query": io_state.get("query", "") or inputs_copy.get("query", ""),
+                "query": resolved_query,
                 "dialogueHistory": io_state.get("dialogueHistory", []),
                 "sys": sys,
                 "conversationHistory": sys.get("conversationHistory", []),
