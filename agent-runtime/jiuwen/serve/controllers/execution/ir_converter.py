@@ -145,6 +145,8 @@ _SPECIAL_REF_ROOTS = frozenset(
         "conversationHistory",
         "dialogueHistory",
         "global",
+        "_env",
+        "_request",
     }
 )
 
@@ -1381,10 +1383,10 @@ class IRConverter:
                 inputs_schema, IRConverter._STREAM_SOURCE_IDS
             )
             # Determine incoming edge types for this End node.
-            # #end_ output placeholders are internal markers, not real upstream batch inputs.
-            batch_has_refs = bool(_extract_source_component_ids(batch_schema, component_by_id))
+            # batch_schema may contain special refs (_env, _request, query, etc.) and
+            # literal values in addition to component refs; all need the INVOKE path.
             has_stream = node_id in stream_connection_targets or stream_schema
-            has_batch = node_id in batch_connection_targets or batch_has_refs
+            has_batch = node_id in batch_connection_targets or bool(batch_schema)
 
             if hasattr(end, "set_expect_mix"):
                 end.set_expect_mix(has_batch and has_stream)
