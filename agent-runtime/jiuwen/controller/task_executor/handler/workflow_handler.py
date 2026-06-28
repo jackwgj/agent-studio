@@ -518,6 +518,7 @@ class WorkflowHandler(BaseHandler):
             time_dict=time_dict,
             emit_blocked=False,
             query="",
+            conversation_id=task.input_data.get("conversation_id", ""),
         ):
             yield output
 
@@ -726,13 +727,14 @@ class WorkflowHandler(BaseHandler):
         time_dict: Dict[str, Any],
         emit_blocked: bool,
         query: str,
+        conversation_id: str = "",
     ) -> AsyncGenerator[Any, None]:
         """复用 function_call 流式执行逻辑"""
         self._init_time_dict(time_dict)
         req_data = request_json.get()
         workflow_instance = await self.create_workflow_instance(
             self._attach_agent_id_to_workflow_context(workflow_context),
-            req_data.get("conversationId", ""),
+            conversation_id,
             req_data.get("userId", ""),
         )
         questioner_interrupted = False

@@ -244,7 +244,7 @@ class FlowQA(WorkflowComponent):
                         workflow="n/a",
                     )
                 param_value = inputs.get(param_name)
-                response += str(param_value)
+                response += "" if param_value is None else str(param_value)
             else:
                 response += res
         return response
