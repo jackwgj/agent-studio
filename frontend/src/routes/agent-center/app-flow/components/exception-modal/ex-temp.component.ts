@@ -1,4 +1,4 @@
-import { Component, EventEmitter, OnInit, Output } from '@angular/core';
+import { Component, EventEmitter, Inject, OnInit, Output } from '@angular/core';
 import { ITmpl } from '@services/prompt.service';
 import { CommonNoDataComponent } from '@shared/components/common-no-data/common-no-data.component';
 import { MODULES } from '@shared/modules';
@@ -12,6 +12,7 @@ import { NzInputModule } from 'ng-zorro-antd/input';
 import { NzButtonModule } from 'ng-zorro-antd/button';
 import { NzIconModule } from 'ng-zorro-antd/icon';
 import { NzSpinModule } from 'ng-zorro-antd/spin';
+import { NzModalRef } from 'ng-zorro-antd/modal';
 
 @Component({
   selector: 'meta-ex-temp',
@@ -93,6 +94,10 @@ import { NzSpinModule } from 'ng-zorro-antd/spin';
             </div>
           </ng-container>
         </div>
+        <div class="mt-[16px] flex justify-end gap-[8px]">
+          <button nz-button (click)="close()">{{ 'cancel' | i18nextEager }}</button>
+          <button nz-button nzType="primary" [disabled]="!curTmpl" (click)="onSelect()">{{ 'confirm' | i18nextEager }}</button>
+        </div>
       </div>
     </div>
   `,
@@ -163,6 +168,7 @@ export class ExTempComponent implements OnInit {
   constructor(
     private i18n: I18NextEagerPipe,
     private informationTemplateService: InformationTemplateService,
+    private modalRef: NzModalRef,
   ) {}
 
   async ngOnInit() {
@@ -230,10 +236,11 @@ export class ExTempComponent implements OnInit {
 
   dismiss(): void {}
 
-  close(): void {}
+  close(): void {
+    this.modalRef.destroy();
+  }
 
   public onSelect() {
     this.select.emit(this.curTmpl);
-    this.close();
   }
 }
