@@ -956,11 +956,12 @@ export class ApplicationManagementComponent implements OnInit, OnDestroy {
     if (action === "call") {
       const prefix =
         this.configServ.getConfigs()?.runtime_api_endpoint_prefix ?? "";
+      const protocol = id.match(/^https?:\/\//)?.[0] ?? 'https://';
       let tempId = id.substring(
         id.indexOf("/v1/"),
         id.indexOf(":conversation_id")
       );
-      const _id = `https://${prefix}${tempId}`;
+      const _id = `${protocol}${prefix}${tempId}`;
       const uuid = this.getUUID();
       this.pathTip = this.i18n.transform("homecomponent_1228", { uuid: uuid });
 
