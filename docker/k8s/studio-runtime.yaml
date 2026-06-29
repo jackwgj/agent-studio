@@ -187,6 +187,10 @@ spec:
             # 负载均衡策略：least_conn（默认，推荐SSE场景）/ round_robin / ip_hash
             - name: LB_STRATEGY
               value: 'least_conn'
+            - name: INSIGHT_EI_DEBUG_INFO_ENABLE
+              value: 'true'
+            - name: EXECUTION_STATE_STORAGE_MEDIUM
+              value: 'redis'
           resources:
             limits:
               cpu: '2'
