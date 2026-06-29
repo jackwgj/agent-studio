@@ -1,16 +1,7 @@
-import {
-  Component,
-  EventEmitter,
-  Input,
-  OnInit,
-  Output,
-  ViewChild,
-} from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output, ViewChild } from '@angular/core';
 import { NgForm } from '@angular/forms';
 import { I18nNamespace } from '@i18n';
-import {
-  NonEmptyValidatorDirective,
-} from '@shared/directives/variable-name-validator.directive';
+import { NonEmptyValidatorDirective } from '@shared/directives/variable-name-validator.directive';
 import { MODULES } from '@shared/modules';
 import { I18NEXT_NAMESPACE, I18NextEagerPipe } from 'angular-i18next';
 import { AppFlowService } from '../../app-flow.service';
@@ -22,9 +13,7 @@ import { ModalBaseComponent } from '../base/modal-base.component';
 import { MonacoEditorModule, MonacoEditorComponent } from '@materia-ui/ngx-monaco-editor';
 import { ExTempComponent } from '@routes/agent-center/app-flow/components/exception-modal/ex-temp.component';
 import { ObjTypeValidatorDirective } from '@shared/directives/obj-type-validator.directive';
-import {
-  CodeFullScreenEditorComponent
-} from '@routes/agent-center/app-flow/components/code-full-screen-editor/code-full-screen-editor.component';
+import { CodeFullScreenEditorComponent } from '@routes/agent-center/app-flow/components/code-full-screen-editor/code-full-screen-editor.component';
 import { EditNameComponent } from '@routes/agent-center/app-flow/components/edit-name/edit-name.component';
 import { NodeDescriptionComponent } from '../node-description/node-description.component';
 import { NodeTypeTopic } from '@routes/agent-center/types/common.types';
@@ -57,9 +46,7 @@ import { NzMessageService } from 'ng-zorro-antd/message';
     NzMessageService,
   ],
 })
-export class ExceptionModalComponent
-  extends ModalBaseComponent
-  implements OnInit {
+export class ExceptionModalComponent extends ModalBaseComponent implements OnInit {
   @Input('names') names: string[];
 
   @Input('nodeInfo') nodeInfo: IMessageNode;
@@ -108,7 +95,7 @@ export class ExceptionModalComponent
     protected override appFlowServ: AppFlowService,
     private nzModal: NzModalService,
     private helpCenterService: HelpCenterService,
-    protected commonService: CommonService,
+    protected commonService: CommonService
   ) {
     super(nodeServ, appFlowServ);
   }
@@ -120,7 +107,6 @@ export class ExceptionModalComponent
 
     this.responseTemplate = this.nodeInfo.configs.template ?? '';
   }
-
 
   ngAfterViewInit() {
     if (this.appFlowServ.testRunVerificationError) {
@@ -134,15 +120,21 @@ export class ExceptionModalComponent
     return index;
   }
 
-  dismiss(): void { }
+  dismiss(): void {}
 
-  close(): void { }
+  close(): void {}
 
   validateNode() {
     if (!this.tempForm?.valid) {
       this.validError = true;
     } else {
       this.validError = false;
+    }
+    try {
+      JSON.parse(this.responseTemplate);
+      this.validError = false;
+    } catch {
+      this.validError = true;
     }
   }
 
@@ -157,7 +149,7 @@ export class ExceptionModalComponent
         configs: {
           template: this.responseTemplate,
         },
-      }
+      },
     });
     if (this.updateTimeout) {
       clearTimeout(this.updateTimeout);
@@ -175,11 +167,12 @@ export class ExceptionModalComponent
     this.handelSave();
   }
 
-  editorOnSave(){
+  editorOnSave() {
     if (this.isWrite <= 0) {
       this.isWrite += 1;
       return;
     }
+    this.validateNode();
     if (this.codeTimeout) {
       clearTimeout(this.codeTimeout);
       this.codeTimeout = null;
@@ -189,10 +182,8 @@ export class ExceptionModalComponent
     }, NODE_SAVE_DEBOUNCE_TIME);
   }
 
-
   onSave() {
     this.changeUpdateTime();
-    this.validateNode();
     if (this.appFlowServ.testRunVerificationError) {
       this.handelSave();
     }

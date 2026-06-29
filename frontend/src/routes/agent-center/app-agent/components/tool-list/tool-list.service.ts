@@ -55,22 +55,22 @@ export class ToolListService {
 
       if (day.indexOf('*/') >= 0) {
         return i18next.t(`${I18nNamespace.AGENT_CENTER}:toollistcomponent_72`, {
-          day: day[2],
+          day: day.replace('*/',''),
         });
       }
       if (hour.indexOf('*/') >= 0) {
         return i18next.t(`${I18nNamespace.AGENT_CENTER}:toollistcomponent_73`, {
-          hour: hour[2],
+          hour: hour.replace('*/',''),
         });
       }
       if (min.indexOf('*/') >= 0) {
         return i18next.t(`${I18nNamespace.AGENT_CENTER}:toollistcomponent_74`, {
-          min: min[2],
+          min: min.replace('*/',''),
         });
       }
       if (seconds.indexOf('*/') >= 0) {
         return i18next.t(`${I18nNamespace.AGENT_CENTER}:toollistcomponent_75`, {
-          seconds: seconds[2],
+          seconds: seconds.replace('*/',''),
         });
       }
     }

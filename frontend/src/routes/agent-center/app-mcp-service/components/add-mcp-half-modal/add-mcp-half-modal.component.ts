@@ -200,6 +200,8 @@ export class AddMcpHalfModalComponent implements OnInit {
     scope: false,
   };
 
+  oauthURLErrors = '';
+
   validateOauthField(field: string) {
     this.oauthErrors[field] = !this.mcpAuthConfigData.authParams[field]?.trim();
   }
@@ -577,11 +579,16 @@ export class AddMcpHalfModalComponent implements OnInit {
       return;
     }
     if (this.mcpAuthConfigData.selectedAuthType === 'OAUTH') {
+      this.changeOauthUrlError();
       this.oauthErrors.url = !this.mcpAuthConfigData.authParams.url?.trim();
       this.oauthErrors.id = !this.mcpAuthConfigData.authParams.id?.trim();
       this.oauthErrors.secret = !this.mcpAuthConfigData.authParams.secret?.trim();
       this.oauthErrors.scope = !this.mcpAuthConfigData.authParams.scope?.trim();
       if (this.oauthErrors.url || this.oauthErrors.id || this.oauthErrors.secret || this.oauthErrors.scope) {
+        this.cdr.detectChanges();
+        return;
+      }
+      if (this.oauthURLErrors) {
         this.cdr.detectChanges();
         return;
       }
@@ -635,10 +642,7 @@ export class AddMcpHalfModalComponent implements OnInit {
           this.modalRef.destroy();
           this.close();
         })
-        .catch(() => {
-          this.mcpModalSelectedData.emit(null);
-          this.modalRef.destroy();
-        })
+        .catch(() => {})
         .finally(() => {
           this.isCreating = false;
           this.cdr.detectChanges();
@@ -661,10 +665,7 @@ export class AddMcpHalfModalComponent implements OnInit {
           this.modalRef.destroy();
           this.close();
         })
-        .catch(() => {
-          this.mcpModalSelectedData.emit(null);
-          this.modalRef.destroy();
-        })
+        .catch(() => {})
         .finally(() => {
           this.isCreating = false;
           this.cdr.detectChanges();
@@ -1138,6 +1139,18 @@ export class AddMcpHalfModalComponent implements OnInit {
       return;
     }
     this.isDisabledConfirmBtn = false;
+  }
+
+  changeOauthUrlError() {
+    if (this.mcpAuthConfigData.authParams.url) {
+      if (/^https?:\/\/.+/.test(this.mcpAuthConfigData.authParams.url)) {
+        this.oauthURLErrors = '';
+      } else {
+        this.oauthURLErrors = 'URL格式不正确';
+      }
+    } else {
+      this.oauthURLErrors = '请填写URL';
+    }
   }
 
   protected readonly changeUrl = cdnAssetUrl;

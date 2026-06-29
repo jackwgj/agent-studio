@@ -292,7 +292,10 @@
             </div>
           </form>
           <div nz-dropdown [nzDropdownMenu]="outputFormatMenu" nzTrigger="click">
+            <div style="cursor: pointer;">
             {{ outputFormat.title }}
+            <nz-icon nzType="down" />
+          </div>
           </div>
           <nz-dropdown-menu #outputFormatMenu="nzDropdownMenu">
             <ul nz-menu>

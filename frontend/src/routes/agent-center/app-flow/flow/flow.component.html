@@ -136,6 +136,15 @@
         </span>
 
         <div class="status-bar-divider"></div>
+        <img
+        class="h-[30px] w-[30px]"
+        *ngIf="!this.isMultiAgent"
+        nz-tooltip
+        [nzTooltipTitle]="'trigger_setting' | i18nextEager"
+        nzTooltipPlacement="bottom"
+        (click)="clickShowTrigger()"
+        [src]="changeUrl('assets/agent-center/icons/trigger.png')"
+      />
         <button
           nz-button
           [nzType]="'default'"
@@ -493,6 +502,7 @@
       [flowId]="workflowId"
       [configs]="workflowDetail?.workflow_details?.configs"
       (configsChange)="onGlobalConfigsChange($event)"
+      (upDateEnv)="resetEnvList($event)"
       (close)="showGlobalConfigDrawer = false"
     ></global-config-modal>
     }

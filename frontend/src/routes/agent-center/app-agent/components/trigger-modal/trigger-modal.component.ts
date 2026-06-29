@@ -292,7 +292,7 @@ export class TriggerHalfmodalComponent {
     this.initTimeTriggerForm();
     this.existingTriggers = this.nzModalData.historyTriggers;
     this.edit_data = this.nzModalData.edit_data;
-
+    this.showCallMethod = this.nzModalData.showCallMethod;
     if (this.edit_data.length > 0) {
       this.timeTriggerForm?.controls.name.setValue(this.edit_data[0].name);
       this.timeTriggerForm?.controls.prompt.setValue(this.edit_data[0].prompt);

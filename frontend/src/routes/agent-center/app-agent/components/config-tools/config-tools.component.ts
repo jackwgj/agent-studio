@@ -2547,9 +2547,11 @@ export class ConfigToolsComponent implements OnInit, AfterViewInit, OnDestroy {
 
     this.selectedPluginId = filterData[0].tool_id;
     for (let index = 0; index < filterData.length; index++) {
-      const params = JSON.parse(filterData[index].tool_parameter);
-      for (let i = 0; i < params.length; i++) {
-        result.push(params[i]);
+      if (filterData[index].tool_parameter) {
+        const params = JSON.parse(filterData[index].tool_parameter);
+        for (let i = 0; i < params.length; i++) {
+          result.push(params[i]);
+        }
       }
     }
     return result;

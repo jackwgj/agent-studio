@@ -122,6 +122,8 @@ export class GlobalConfigComponent
 
   @ViewChild(AuditConfigModalComponent) auditConfigModal: any;
 
+  @Output() upDateEnv = new EventEmitter<any>();
+
   public changeUrl = cdnAssetUrl;
 
   public prologue = "";
@@ -898,6 +900,10 @@ export class GlobalConfigComponent
       prompt: this.probeConfig.enabled || this.probeConfig.probeInputed !== this.followupPlaceholder ? this.probeConfig.probeInputed : ""
     };
     this.configsChange.emit(newConf);
+  }
+
+  resetEnvList(e) {
+    this.upDateEnv.emit(e);
   }
 
   updateModel(e) {

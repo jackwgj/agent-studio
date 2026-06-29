@@ -898,8 +898,7 @@ export class PreviewDebugComponent {
     if (!this.isUserScrolling) {
       this.isAutoScrolling = true;
       setTimeout(() => {
-        this.chatContainerRef.nativeElement.scrollTop =
-          this.chatContainerRef.nativeElement.scrollHeight;
+        this.chatContainerRef.nativeElement.scrollTop = this.chatContainerRef.nativeElement.scrollHeight + this.chatContainerRef.nativeElement.clientHeight;
         setTimeout(() => {
           this.isAutoScrolling = false;
         }, 50);

@@ -2062,13 +2062,13 @@ export class FlowComponent implements OnInit, OnDestroy, AfterViewInit {
     const showCallMethod = agentType === 'workflow';
     const modalRef = this.nzModal.create({
       nzContent: TriggerHalfmodalComponent,
-      nzWidth: '520px',
+      nzWidth: '600px',
       nzMaskClosable: false,
-    });
-    Object.assign(modalRef.componentInstance, {
-      historyTriggers: this.triggerAdded.list,
-      edit_data: his ? [his] : [],
-      showCallMethod: showCallMethod,
+      nzData:{
+        historyTriggers:this.triggerAdded.list,
+        edit_data:his ? [his] : [],
+        showCallMethod:showCallMethod
+      }
     });
   }
 
@@ -2081,7 +2081,7 @@ export class FlowComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 
-  public click(): void {
+  public clickShowTrigger(): void {
     this.coloseAllWindow();
     this.showTriggerModal = true;
     this.appFlowServ.setNodeClicked(EHalfmodalType.TRIGGER);
@@ -4061,6 +4061,14 @@ export class FlowComponent implements OnInit, OnDestroy, AfterViewInit {
     groupEdges.forEach((edge) => edge.toFront());
   }
 
+
+  resetEnvList(e) {
+    this.envList = [];
+    if (this.workflowDetail.workflow_details.configs?.environment && typeof this.workflowDetail.workflow_details.configs?.environment === 'string') {
+      this.envList = e?.variables;
+    }
+  }
+
   // 获取前序节点的引用（outputs）信息，生成引用options
   private getPredecessorsRef(id: string): IRefInfo[] {
     const cell = this.graph.getCellById(id);
@@ -5196,7 +5204,7 @@ export class FlowComponent implements OnInit, OnDestroy, AfterViewInit {
     }
     this.nodeServ.setCurrSelectedNode(nodeInfo.id);
     const width =
-      document.querySelector('body').offsetWidth >= 1920 ? '600px' : '480px';
+      document.querySelector('body').offsetWidth >= 1920 ? '600px' : '550px';
     let cmp = NodeMap[nodeInfo.type];
     if (nodeInfo.type === 'Workflow' && this.type === 'multi') {
       cmp = WorkflowModalComponent;

@@ -38,7 +38,7 @@
             <div class="relative inline-block" style="margin-top: 8px;">
               <button nz-button nzType="default" [disabled]="!selectEnv" (click)="showCard = !showCard;">{{ 'globalconfig_3'|i18nextEager }}</button>
               <div *ngIf="showCard"  class="card absolute z-10 top-0 left-full ml-2 w-[280px] p-4 bg-white border rounded shadow-lg">
-                <env-variable [envId]="selectEnv"></env-variable>
+                <env-variable [envId]="selectEnv" (upDateEnv)="resetEnvList($event)"></env-variable>
               </div>
             </div>
           </div>

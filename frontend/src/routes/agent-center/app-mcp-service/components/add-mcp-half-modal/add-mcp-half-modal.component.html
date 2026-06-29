@@ -265,7 +265,7 @@
         <p class="mb-[8px]" *ngIf="mcpModalSelected.org_type === 'SSE' || mcpModalSelected.org_type === 'STREAMABLE_HTTP'">
           <span style="font-weight: 400">URL:</span>
         </p>
-        <nz-input-password>
+        <nz-input-password class="mb-[8px]">
           <input nz-input [disabled]="this.notChangeMode()" [(ngModel)]="mcpModalData.param.value" (ngModelChange)="mcpModalData.param.isVisible = $event" />
         </nz-input-password>
         <div *ngIf="mcpModalSelected.org_type !== 'SSE' && mcpModalSelected.org_type !== 'STREAMABLE_HTTP'" style="margin-top: 16px">
@@ -311,11 +311,10 @@
               [(ngModel)]="mcpModalData.headers[i].value"
               [placeholder]="isZH() ? ('addmcpcomponent_658' | i18nextEager) : 'Value'"
               (ngModelChange)="mcpModalData.headers[i].isVisible = $event"
-              style="width: 45%; margin-right: 12px"
               [disabled]="this.notChangeMode()"
             />
           </nz-input-password>
-          <span style="color: rgb(20, 118, 255); cursor: pointer" *ngIf="!this.notChangeMode()" (click)="handleClickDeleteRequestData(i)">
+          <span style="color: rgb(20, 118, 255); cursor: pointer; margin-left: 12px;width: 50px;" *ngIf="!this.notChangeMode()" (click)="handleClickDeleteRequestData(i)">
             {{ 'delete' | i18nextEager }}
           </span>
         </p>
@@ -378,8 +377,8 @@
           <img [src]="changeUrl('assets/model/online-test-help.svg')" alt="" />
         </span>
       </span>
-      <input nz-input [(ngModel)]="mcpAuthConfigData.authParams.url" [placeholder]="'input_placeholder' | i18nextEager" [class.input-error]="oauthErrors.url" (ngModelChange)="oauthErrors.url = false" (blur)="validateOauthField('url')" />
-      <span *ngIf="oauthErrors.url" class="error-tip">{{ 'param_1' | i18nextEager }}</span>
+      <input nz-input [(ngModel)]="mcpAuthConfigData.authParams.url" [placeholder]="'input_placeholder' | i18nextEager" [class.input-error]="oauthURLErrors" (ngModelChange)="oauthErrors.url = false" (blur)="changeOauthUrlError()" />
+      <span *ngIf="oauthURLErrors" class="error-tip">{{ oauthURLErrors }}</span>
     </p>
     <p style="display: flex; flex-direction: column; gap: 10px; margin-top: 16px">
       <span style="display: inline-flex; gap: 8px; align-items: center">
