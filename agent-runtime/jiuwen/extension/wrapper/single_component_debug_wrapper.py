@@ -2,18 +2,37 @@
 # Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
 """单组件调测包装器，用于在新框架（openjiuwen）下实现旧框架的单组件调试能力。"""
 
+import asyncio
 import logging
 from dataclasses import dataclass
 from typing import Any, AsyncGenerator
 
+from openjiuwen.core.common.logging import workflow_logger
 from jiuwen.common.exception.base import JiuWenBaseException
 from jiuwen.common.exception.status_code import StatusCode
+from jiuwen.orchestration.flow.constant import (
+    DEFAULT_EXECUTION_NODE_TIMEOUT,
+    EXCEPTION_DEFAULT_OUTPUTS,
+    EXCEPTION_EXCEPTION_PROCESS,
+    EXCEPTION_HANDLE_DEFAULT_OUTPUTS,
+    EXCEPTION_HANDLE_ERROR_BRANCH,
+    EXCEPTION_HANDLE_INTERRUPT,
+    EXCEPTION_HANDLE_TYPE,
+    EXCEPTION_RETRY_TIMES,
+    EXCEPTION_TIMEOUT,
+)
 from jiuwen.orchestration.flow.enum import ExecutionStatus, StreamDataMsg
 from jiuwen.orchestration.flow.stream.base import StreamCode, StreamData
+from jiuwen.extension.workflow_node.exception_handler import (
+    _NO_ERROR_BRANCH_TYPES,
+    _handle_default_outputs,
+    _handle_error_branch,
+)
 from openjiuwen.core.common.constants.constant import INPUTS_KEY, CONFIG_KEY
 from openjiuwen.core.graph.pregel import GraphInterrupt
 from openjiuwen.core.session.checkpointer.checkpointer import CheckpointerFactory
 from openjiuwen.core.session.internal.workflow import WorkflowSession, NodeSession
+from openjiuwen.core.workflow.workflow_config import ExceptionConfig
 
 _USER_FIELDS = "userFields"
 _SYSTEM_FIELDS = "systemFields"
@@ -59,6 +78,9 @@ class SingleComponentDebugWrapper:
         }
     )
 
+    # 不支持重试的组件类型（对齐 ir_converter._NO_RETRY_TYPES）
+    _NO_RETRY_TYPES = frozenset({"jiuwen.subWorkflow", "jiuwen.workflowComposite"})
+
     def __init__(
         self,
         component_info: SingleComponentInfo,
@@ -73,6 +95,68 @@ class SingleComponentDebugWrapper:
         self._inputs_schema = component_info.inputs_schema
         self._execution_id = execution_id
         self._session_id = session_id or execution_id
+        # 解析异常处理配置（超时/重试/异常分支），对齐 vertex + exception_handler
+        self._exception_config, self._timeout, self._max_retries = (
+            self._parse_exception_config()
+        )
+
+    # ------------------------------------------------------------------
+    # 异常处理配置解析 — 对齐 base_workflow.ExceptionProcess 解析
+    # ------------------------------------------------------------------
+
+    def _parse_exception_config(
+        self,
+    ) -> tuple[ExceptionConfig | None, float, int]:
+        """从 configs.exceptionProcess 解析异常处理配置。
+
+        返回 (exception_config, timeout, max_retries)：
+        - 未配置 exceptionProcess → (None, -1.0, 0)，与 vertex 默认一致（不超时、不重试）
+        - timeout 非数字/负数 → DEFAULT_EXECUTION_NODE_TIMEOUT（7200）
+        - retry_times 非负 int → 校验后取值
+        - 不支持重试的组件类型（subWorkflow 等）→ retry 置 0
+        - handle_type 枚举校验，非法 → interrupt
+
+        校验逻辑参考 base_workflow.py:97-130；ExceptionConfig 字段对齐
+        ir_converter._parse_exception_config（pydantic extra=allow）。
+        """
+        exception_process = self._configs.get(EXCEPTION_EXCEPTION_PROCESS) or {}
+        if not exception_process:
+            return None, -1.0, 0
+
+        timeout = exception_process.get(EXCEPTION_TIMEOUT, DEFAULT_EXECUTION_NODE_TIMEOUT)
+        if not isinstance(timeout, (int, float)) or timeout < 0:
+            timeout = DEFAULT_EXECUTION_NODE_TIMEOUT
+
+        retry_times = exception_process.get(EXCEPTION_RETRY_TIMES, 0)
+        if not isinstance(retry_times, int) or retry_times < 0:
+            retry_times = 0
+        if self._node_type in self._NO_RETRY_TYPES and retry_times > 0:
+            workflow_logger.warning(
+                f"{self._node_type}_{self._node_id} not support retry, reset retry_times to 0"
+            )
+            retry_times = 0
+
+        handle_type = exception_process.get(EXCEPTION_HANDLE_TYPE, EXCEPTION_HANDLE_INTERRUPT)
+        if handle_type not in (
+            EXCEPTION_HANDLE_INTERRUPT,
+            EXCEPTION_HANDLE_DEFAULT_OUTPUTS,
+            EXCEPTION_HANDLE_ERROR_BRANCH,
+        ):
+            handle_type = EXCEPTION_HANDLE_INTERRUPT
+
+        default_outputs = exception_process.get(EXCEPTION_DEFAULT_OUTPUTS, {}) or {}
+        outputs_schema = self._inputs_schema if isinstance(self._inputs_schema, dict) else {}
+
+        config = ExceptionConfig(
+            handle_type=handle_type,
+            timeout=float(timeout),
+            retry_times=retry_times,
+            default_outputs=default_outputs,
+            outputs_schema=outputs_schema,
+            _node_type=self._node_type,
+            is_config=True,
+        )
+        return config, float(timeout), retry_times
 
     # ------------------------------------------------------------------
     # 公开接口
@@ -117,14 +201,27 @@ class SingleComponentDebugWrapper:
             executable = self._component.to_executable()
             adapted = self._adapt_inputs_format(executable, processed)
 
-            if self._should_stream():
-                async for sd in self._execute_streaming(
-                    executable, adapted, session, execution_id
+            is_stream = self._should_stream()
+            if is_stream:
+
+                def run_fn():
+                    return self._execute_streaming(
+                        executable, adapted, session, execution_id
+                    )
+
+                async for sd in self._execute_with_retry(
+                    run_fn, is_stream=True, execution_id=execution_id
                 ):
                     yield sd
             else:
-                async for sd in self._execute_invoke(
-                    executable, adapted, session, execution_id
+
+                def run_fn():
+                    return self._execute_invoke(
+                        executable, adapted, session, execution_id
+                    )
+
+                async for sd in self._execute_with_retry(
+                    run_fn, is_stream=False, execution_id=execution_id
                 ):
                     yield sd
         except GraphInterrupt as e:
@@ -253,21 +350,233 @@ class SingleComponentDebugWrapper:
             if state:
                 await checkpointer.save_session(self._session_id, state)
         except Exception as e:
-            logging.error(f"Failed to save state to checkpointer: {e}")
+            workflow_logger.error(f"Failed to save state to checkpointer: {e}")
 
     # ------------------------------------------------------------------
-    # 能力判定 — 复刻 bpmn_workflow._arun() line 613-614
+    # 能力判定 — 对齐 ir_converter 的 ability 注册逻辑
     # ------------------------------------------------------------------
 
     def _should_stream(self) -> bool:
-        """判断组件是否应该使用流式执行。"""
+        """判断组件是否应该使用流式执行。
+
+        流式/非流式由前端节点配置决定，节点测试尊重该配置（对齐试运行
+        ir_converter.py:2107-2150 的注册逻辑）：
+        - LLM 类型：configs.stream=True → on_stream；否则 on_invoke。
+          json responseFormat 走 on_invoke（对齐 ir_converter json 分支）。
+        - 流式 API（plugin/api/flowAgent）：configs.streaming=True → on_stream
+        - 其余：on_invoke
+        """
         if self._node_type in self._LLM_TYPES:
-            return True
+            # json 模式走 on_invoke（对齐 ir_converter 的 json 分支）
+            if self._configs.get("responseFormat", {}).get("type", "text") == "json":
+                return False
+            return bool(self._configs.get("stream", False))
         if self._node_type in self._STREAMING_API_TYPES and self._configs.get(
             "streaming", False
         ):
             return True
         return False
+
+    # ------------------------------------------------------------------
+    # 超时 + 重试 — 复刻 vertex._run_executable_with_retry（去掉 error_recovery）
+    # ------------------------------------------------------------------
+
+    async def _execute_with_retry(
+        self,
+        run_fn,
+        is_stream: bool,
+        execution_id: str,
+    ) -> AsyncGenerator[StreamData, None]:
+        """给组件执行包上超时与重试，对齐参考版本（lumina bpmn）的异常处理行为。
+
+        复刻 agent-core vertex.py:238-287 的 _run_executable_with_retry 的超时+重试，
+        耗尽重试后按 handle_type 恢复（对齐旧框架 bpmn_workflow._do_invoke_with_exception_handle
+        与 exception_handler）：
+        - errorbranch → 产出 result='1' 的 FINISH（异常路径标识），流程继续
+        - defaultOutputs → 产出默认输出的 FINISH，流程继续
+        - interrupt → 抛错，由 astream 的 except 转成 ERROR StreamData
+
+        Args:
+            run_fn: 返回组件执行 AsyncGenerator 的零参可调用（_execute_streaming
+                    或 _execute_invoke）。每次重试重新调用以获得全新生成器。
+            is_stream: 是否流式执行（仅用于日志标注）。
+            execution_id: 执行 ID，用于恢复输出的 StreamData。
+        """
+        max_retries = self._max_retries
+        timeout = self._timeout
+        ability_label = "stream" if is_stream else "invoke"
+
+        for attempt in range(max_retries + 1):
+            try:
+                if timeout < 0:
+                    async for sd in run_fn():
+                        yield sd
+                    return
+                async for sd in self._iter_with_deadline(run_fn(), timeout):
+                    yield sd
+                return
+            except GraphInterrupt:
+                raise
+            except asyncio.TimeoutError as e:
+                if attempt < max_retries:
+                    workflow_logger.warning(
+                        f"{self._node_type}_{self._node_id} {ability_label} "
+                        f"timed out on attempt {attempt + 1}/{max_retries + 1}, will retry"
+                    )
+                    continue
+                # 耗尽重试 → 走恢复（errorbranch/defaultOutputs）或抛错（interrupt）
+                async for sd in self._recover_or_raise(e, execution_id):
+                    yield sd
+                return
+            except Exception as e:
+                if attempt < max_retries:
+                    workflow_logger.warning(
+                        f"{self._node_type}_{self._node_id} {ability_label} "
+                        f"failed on attempt {attempt + 1}/{max_retries + 1}, will retry",
+                        exc_info=True,
+                    )
+                    continue
+                async for sd in self._recover_or_raise(e, execution_id):
+                    yield sd
+                return
+
+    async def _recover_or_raise(
+        self, error: Exception, execution_id: str
+    ) -> AsyncGenerator[StreamData, None]:
+        """耗尽重试后按 handle_type 恢复，对齐参考版本的异常处理输出。
+
+        - errorbranch → FINISH 携带 {result:'1', classificationId:-1, isSuccess:false, errorBody}
+        - defaultOutputs → FINISH 携带合并后的默认输出 + 异常信息
+        - interrupt 或未配置 → 抛错（由 astream 的 except 转 ERROR StreamData）
+
+        恢复输出格式复用 exception_handler._handle_error_branch / _handle_default_outputs，
+        与旧框架 bpmn_workflow._do_invoke_with_exception_handle 一致。
+        """
+        config = self._exception_config
+        if config is None:
+            raise error
+
+        # asyncio.TimeoutError 不是 JiuWenBaseException，_format_inner_exception 会记为
+        # errorCode=-1。这里转成带 101905 + 超时提示的 JiuWenBaseException，对齐参考版本。
+        if isinstance(error, asyncio.TimeoutError):
+            error = JiuWenBaseException(
+                error_code=StatusCode.WORKFLOW_COMPONENT_EXECUTE_TIMEOUT.code,
+                message=StatusCode.WORKFLOW_COMPONENT_EXECUTE_TIMEOUT.errmsg.format(
+                    task_label=f"{self._node_type}_{self._node_id}",
+                    timeout=self._timeout,
+                ),
+            )
+
+        handle_type = (config.handle_type or "").lower()
+        if handle_type == EXCEPTION_HANDLE_ERROR_BRANCH:
+            if self._node_type in _NO_ERROR_BRANCH_TYPES:
+                raise error
+            recovery = _handle_error_branch(error)
+        elif handle_type == EXCEPTION_HANDLE_DEFAULT_OUTPUTS:
+            recovery = _handle_default_outputs(error, config, session=None)
+        else:
+            # interrupt：直接抛错
+            raise error
+
+        workflow_logger.warning(
+            f"{self._node_type}_{self._node_id} recovered via {handle_type} after exception: {error!r}"
+        )
+        # 恢复成功：包成 FINISH StreamData。data 顶层带 innerError（isSuccess:false +
+        # errorBody），Java JiuwenEventProcessor.handleInnerError 据此将节点状态置为
+        # failed 并透传错误码；outputs 为扁平恢复结果（对齐参考版本）。
+        inner_error = {
+            "isSuccess": recovery.get("isSuccess", False),
+            "errorBody": recovery.get("errorBody", {}),
+        }
+        yield StreamData(
+            code=StreamCode.FINISH.value,
+            msg=StreamDataMsg.FINISH.value,
+            data=dict(
+                answer={_USER_FIELDS: recovery, _SYSTEM_FIELDS: {}},
+                outputs=recovery,
+                innerError=inner_error,
+                node_id=self._node_id,
+                node_name=self._component_name,
+                node_type=self._node_type,
+            ),
+            execution_id=execution_id,
+        )
+
+    async def _iter_with_deadline(
+        self,
+        gen: AsyncGenerator[StreamData, None],
+        timeout: float,
+    ) -> AsyncGenerator[StreamData, None]:
+        """带总时长超时地消费一个 StreamData 异步生成器，逐块转发。
+
+        asyncio.wait_for 无法直接包裹 async generator（会 cancel 整个迭代）。
+        此处启动一个生产者 task 把生成器输出写入 asyncio.Queue，主循环按剩余
+        deadline 等待下一块——既保留逐块 yield，又能对齐 vertex「整个执行总时长
+        超时即取消」的语义。生产者异常或正常结束都通过哨兵通知主循环。
+        """
+        import time
+
+        queue: asyncio.Queue = asyncio.Queue()
+        sentinel = object()
+
+        async def _producer():
+            try:
+                async for item in gen:
+                    await queue.put(item)
+            except asyncio.CancelledError as e:
+                # 取消信号透传给消费者
+                await queue.put(e)
+            except Exception as e:
+                # 组件异常透传给消费者（消费者会 raise）
+                workflow_logger.warning(
+                    f"{self._node_type}_{self._node_id} producer caught exception: {e!r}"
+                )
+                await queue.put(e)
+            finally:
+                await queue.put(sentinel)
+
+        producer = asyncio.create_task(_producer())
+        deadline = time.monotonic() + timeout
+        try:
+            while True:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise asyncio.TimeoutError()
+                item = await asyncio.wait_for(queue.get(), timeout=remaining)
+                if item is sentinel:
+                    return
+                if isinstance(item, BaseException):
+                    raise item
+                yield item
+        except asyncio.TimeoutError:
+            if not producer.done():
+                producer.cancel()
+                await self._drain_cancelled_producer(producer, "on timeout")
+            raise
+        finally:
+            if not producer.done():
+                producer.cancel()
+                await self._drain_cancelled_producer(producer, "on cancel")
+
+    async def _drain_cancelled_producer(
+        self, producer: asyncio.Task, context: str
+    ) -> None:
+        """await 被 cancel 的 producer，处理其残留异常。
+
+        主流程的超时/异常已通过队列透传或外层 raise，此处仅需确保 producer 收尾。
+        CancelledError 是主动取消的预期结果（DEBUG）；其他异常是组件在取消时的
+        残留（WARNING），不覆盖主流程异常，仅记录。
+        """
+        try:
+            await producer
+        except asyncio.CancelledError:
+            workflow_logger.debug(
+                f"{self._node_type}_{self._node_id} producer cancelled {context}"
+            )
+        except Exception as e:
+            workflow_logger.warning(
+                f"{self._node_type}_{self._node_id} producer raised {context}: {e!r}"
+            )
 
     # ------------------------------------------------------------------
     # INVOKE 执行 — 复刻 bpmn_workflow._arun() else 分支 line 629-633
@@ -532,6 +841,13 @@ class SingleComponentDebugWrapper:
         if isinstance(exception, JiuWenBaseException):
             error_code = exception.error_code
             message = exception.message
+        elif isinstance(exception, asyncio.TimeoutError):
+            # 超时单独报 WORKFLOW_COMPONENT_EXECUTE_TIMEOUT，便于前端识别
+            error_code = StatusCode.WORKFLOW_COMPONENT_EXECUTE_TIMEOUT.code
+            message = StatusCode.WORKFLOW_COMPONENT_EXECUTE_TIMEOUT.errmsg.format(
+                task_label=f"{self._node_type}_{self._node_id}",
+                timeout=self._timeout,
+            )
         else:
             error_code = StatusCode.WORKFLOW_COMPONENT_EXECUTE_ERROR.code
             message = str(exception)

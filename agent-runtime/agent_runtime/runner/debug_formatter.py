@@ -108,6 +108,11 @@ class DebugStreamFormatter:
         # FINISH → node_message(结束状态) + done
         if code == StreamCode.FINISH.value:
             data = stream_data.data if isinstance(stream_data.data, dict) else {}
+            # 异常恢复时 data 顶层带 innerError（isSuccess:false + errorBody），
+            # 提到 node_message 顶层供 Java JiuwenEventProcessor 识别为失败。
+            inner_error = data.get("innerError") if isinstance(data, dict) else None
+            # 异常恢复时 data.outputs 为扁平恢复结果（对齐参考版本）；正常时 outputs=data
+            outputs = data.get("outputs", data) if isinstance(data, dict) else data
             # 提问器增加历史
             invoke_data = []
             if self._is_questioner:
@@ -118,7 +123,10 @@ class DebugStreamFormatter:
             # node_message(结束状态) 带 outputs
             events.append(
                 self._build_node_message(
-                    self._finish_status(data), outputs=data, invoke_data=invoke_data
+                    self._finish_status(data),
+                    outputs=outputs,
+                    invoke_data=invoke_data,
+                    inner_error=inner_error,
                 )
             )
             # done 事件
@@ -250,6 +258,7 @@ class DebugStreamFormatter:
         outputs: dict | None = None,
         error: dict | None = None,
         invoke_data: list | None = None,
+        inner_error: dict | None = None,
     ) -> dict:
         if invoke_data is None:
             invoke_data = []
@@ -275,7 +284,7 @@ class DebugStreamFormatter:
             "traceId": self._execution_id,
             "loopNodeId": None,
             "loopIndex": None,
-            "innerError": None,
+            "innerError": inner_error,
             "status": status,
         }
         return {
