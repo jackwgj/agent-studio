@@ -24,6 +24,7 @@ from agent_runtime.schemas.orchestration_mgr import (
 from jiuwen.serve.controllers.execution.ir_converter import IRConverter
 from jiuwen.serve.controllers.execution.open_utils import async_ir_load
 from jiuwen.common.exception.base import JiuWenBaseException
+from jiuwen.extension.workflow_node.utils import WorkflowAbortException
 from openjiuwen.core.common.exception.errors import ExecutionError, Termination, BaseError
 from openjiuwen.core.common.logging import workflow_logger
 from openjiuwen.core.common.logging import performance_logger
@@ -297,23 +298,35 @@ class WorkflowRunner:
             node_id = last_node.get("node_id", "")
             node_type = last_node.get("node_type", "")
             node_name = _resolve_node_name(node_defs, workflow_id, node_id)
-            error_code = e.code
-            error_msg = _format_error_message(error_code, e.message)
-            yield {
-                "event": "error",
-                "data": {
-                    "code": error_code,
-                    "message": error_msg,
-                    "node_id": node_id,
-                    "node_name": node_name,
-                    "node_type": node_type,
-                    "workflow_id": workflow_id,
-                    "workflow_name": ir_json.get("workflowName", ""),
-                },
-                "executionId": exec_id,
-                "index": 0,
-                "createdTime": int(time.time()),
-            }
+            # WorkflowAbortException（异常结束节点）已通过流发出 exception 事件，
+            # 不再重复发送 error 事件，避免前端弹窗。
+            # 同时使用异常节点信息作为 done 事件的 node_id/node_name/node_type，
+            # 确保前端能正确识别异常终止的节点。
+            if isinstance(e, WorkflowAbortException):
+                if e.node_id:
+                    node_id = e.node_id
+                if e.node_name:
+                    node_name = e.node_name
+                if e.node_type:
+                    node_type = e.node_type
+            else:
+                error_code = e.code
+                error_msg = _format_error_message(error_code, e.message)
+                yield {
+                    "event": "error",
+                    "data": {
+                        "code": error_code,
+                        "message": error_msg,
+                        "node_id": node_id,
+                        "node_name": node_name,
+                        "node_type": node_type,
+                        "workflow_id": workflow_id,
+                        "workflow_name": ir_json.get("workflowName", ""),
+                    },
+                    "executionId": exec_id,
+                    "index": 0,
+                    "createdTime": int(time.time()),
+                }
             yield {
                 "event": "done",
                 "data": {
@@ -325,6 +338,10 @@ class WorkflowRunner:
                 "index": 0,
                 "createdTime": int(time.time()),
             }
+            # 异常结束节点终止后，清除 Redis 中保存的 execution_id，
+            # 确保下次运行不会被误判为中断恢复
+            if isinstance(e, WorkflowAbortException):
+                await ExecutionIdStore.delete(workflow_id, session_id)
         except BaseError as e:
             last_node = workflow_wrapper.get_last_node() if workflow_wrapper else {}
             node_id = last_node.get("node_id", "")

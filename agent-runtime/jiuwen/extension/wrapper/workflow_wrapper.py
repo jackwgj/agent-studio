@@ -374,23 +374,26 @@ class WorkflowWrapper:
                             yield buffered
                         yield trace_stream_data
         except Exception as e:
-            code = e.code if not isinstance(e, JiuWenBaseException) else e.error_code
-            msg = e.message
-            yield StreamData(
-                code=StreamCode.ERROR.value,
-                msg=StreamDataMsg.FAIL,
-                data=dict(
-                    code=code,
-                    message=msg,
-                    node_id=last_node.get("parent_node_id") or last_node["node_id"],
-                    node_name=last_node.get("node_name", ""),
-                    user_fields=last_node.get("user_fields", {}),
-                    node_type="jiuwen.workflowComposite"
-                    if last_node.get("parent_node_id")
-                    else last_node["node_type"],
-                ),
-                execution_id=session_id or "",
-            )
+            # WorkflowAbortException（异常结束节点）已通过 CustomSchema 发出 exception 事件，
+            # 不再重复发送 ERROR StreamData，避免前端弹窗。
+            if not isinstance(e, WorkflowAbortException):
+                code = e.code if not isinstance(e, JiuWenBaseException) else e.error_code
+                msg = e.message
+                yield StreamData(
+                    code=StreamCode.ERROR.value,
+                    msg=StreamDataMsg.FAIL,
+                    data=dict(
+                        code=code,
+                        message=msg,
+                        node_id=last_node.get("parent_node_id") or last_node["node_id"],
+                        node_name=last_node.get("node_name", ""),
+                        user_fields=last_node.get("user_fields", {}),
+                        node_type="jiuwen.workflowComposite"
+                        if last_node.get("parent_node_id")
+                        else last_node["node_type"],
+                    ),
+                    execution_id=session_id or "",
+                )
             has_finish = True
             if isinstance(e, WorkflowAbortException):
                 yield StreamData(

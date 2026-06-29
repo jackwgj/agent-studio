@@ -148,7 +148,7 @@ class TestPostWorkflowExecute:
     async def test_exception_path_keeps_sentinel(
         self, checkpointer, mock_delegate, mock_redis
     ):
-        """Exception path: delegate handles save, sentinel kept."""
+        """Non-WorkflowAbortException path: delegate handles save, sentinel kept."""
         mock_session = self._make_session()
         test_exception = RuntimeError("boom")
 
@@ -162,6 +162,38 @@ class TestPostWorkflowExecute:
         )
         # No Redis delete calls (sentinel and graph keys preserved)
         mock_redis.delete.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_workflow_abort_exception_clears_checkpoint(
+        self, checkpointer, mock_delegate, mock_redis
+    ):
+        """WorkflowAbortException (异常结束节点) clears checkpoint like normal completion."""
+        mock_redis.delete = AsyncMock(return_value=2)
+        mock_session = self._make_session()
+
+        from jiuwen.extension.workflow_node.utils import WorkflowAbortException
+        abort_exc = WorkflowAbortException(
+            data={"error_code": "10025"},
+            node_id="node_1782702227731",
+            node_name="异常",
+            node_type="jiuwen.exception",
+        )
+
+        await checkpointer.post_workflow_execute(mock_session, None, abort_exc)
+
+        # Delegate.post_workflow_execute should NOT be called (we handle it ourselves)
+        mock_delegate.post_workflow_execute.assert_not_called()
+
+        # Redis.delete called with precise GraphStore keys (same as normal completion)
+        expected_type_key = "sess-1:workflow-graph:wf-1:checkpoint_data_type"
+        expected_value_key = "sess-1:workflow-graph:wf-1:checkpoint_data_value"
+        mock_redis.delete.assert_any_call(expected_type_key, expected_value_key)
+
+        # Sentinel key also deleted
+        mock_redis.delete.assert_any_call("agentBuilder:session_exists:sess-1")
+
+        # workflow_storage.clear delegated
+        getattr(mock_delegate, "_workflow_storage").clear.assert_awaited_once_with("wf-1", "sess-1")
 
     @pytest.mark.asyncio
     async def test_exception_path_propagates_re_raise(

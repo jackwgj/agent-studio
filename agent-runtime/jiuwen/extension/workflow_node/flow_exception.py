@@ -77,6 +77,11 @@ class ExceptionInfo(WorkflowComponent):
                 user_fields, self.node_id, self.node_name, self.node_type
             )
         session.update_global_state({"__abort__": True})
+        # 将异常数据写入 tracer 的 onInvokeData，
+        # 确保调试信息中包含异常节点的 error_code 和 jiuwen_exception_node_id，
+        # 与旧版 _on_execution_error_debug_info 中 CallbackHandlerManager().trigger_event 行为一致。
+        trace_data = {**user_fields, "jiuwen_exception_node_id": self.node_id}
+        await session.trace(trace_data)
         await session.write_custom_stream(
             CustomSchema(
                 type=WORKFLOW_EXCEPTION,
@@ -84,9 +89,6 @@ class ExceptionInfo(WorkflowComponent):
                 data={
                     **user_fields,
                     "jiuwen_exception_node_id": self.node_id,
-                    "node_id": self.node_id,
-                    "node_name": self.node_name,
-                    "node_type": self.node_type,
                 },
             )
         )
@@ -108,6 +110,9 @@ class ExceptionInfo(WorkflowComponent):
             user_fields = {}
         else:
             user_fields = inputs.get(USER_FIELDS) or {}
+        # 将异常数据写入 tracer 的 onInvokeData（同 invoke 方法）
+        trace_data = {**user_fields, "jiuwen_exception_node_id": self.node_id}
+        await session.trace(trace_data)
         await session.write_custom_stream(
             CustomSchema(
                 type=WORKFLOW_EXCEPTION,
@@ -115,9 +120,6 @@ class ExceptionInfo(WorkflowComponent):
                 data={
                     **user_fields,
                     "jiuwen_exception_node_id": self.node_id,
-                    "node_id": self.node_id,
-                    "node_name": self.node_name,
-                    "node_type": self.node_type,
                 },
             )
         )
