@@ -383,6 +383,7 @@ class DataBaseSettings(BaseSettings):
     user: str = Field(default="", validation_alias="STORE_DB_USER")
     password: str = Field(default="", validation_alias="STORE_DB_PASSWORD")
     database: str = Field(default="", validation_alias="STORE_DB_DATABASE")
+    db_schema: str = Field(default="", validation_alias="STORE_DB_SCHEMA")
     sslmode: str = Field(default="disable", validation_alias="STORE_DB_SSLMODE")
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore"

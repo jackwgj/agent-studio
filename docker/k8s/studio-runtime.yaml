@@ -171,6 +171,9 @@ spec:
               value: ''
             - name: STORE_DB_DATABASE
               value: 'agent-builder'
+            # Schema 模式（仅GaussDB生效）：设置后连接以该 schema 作为默认 search_path；为空则用数据库默认
+            - name: STORE_DB_SCHEMA
+              value: ''
             # SSL模式（仅GaussDB生效）：disable（默认）/ require / verify-ca / verify-full
             - name: STORE_DB_SSLMODE
               value: 'disable'

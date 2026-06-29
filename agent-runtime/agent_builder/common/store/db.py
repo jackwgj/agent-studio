@@ -57,16 +57,22 @@ class DBUtil:
                     try:
                         if _is_gaussdb():
                             import py_opengauss
-                            from urllib.parse import quote_plus
 
                             hosts = [h.strip() for h in host.split(",") if h.strip()]
                             port_val = port or "5432"
-                            encoded_pw = quote_plus(password)
                             host_list = ",".join([f"{h}:{port_val}" for h in hosts])
-                            iri = f"opengauss://{user}:{encoded_pw}@{host_list}/{database}"
+                            # 密码不进 URI：py_opengauss.open() 内部用 iri.parse() 不做百分号解码，
+                            # 若用 quote_plus 编码后拼进 URI，含 # @ / ? 等特殊字符的密码会被破坏
+                            # 导致认证失败。改为通过 password 关键字参数直传，规避 URI 编解码问题。
+                            iri = f"opengauss://{user}@{host_list}/{database}"
                             if db.sslmode and db.sslmode != "disable":
                                 iri += f"?sslmode={db.sslmode}"
-                            cls._instance = py_opengauss.open(iri)
+                            # schema 模式（仅 GaussDB 生效）：通过 search_path 设置默认 schema，
+                            # 之后不带前缀的表名按此路径解析。schema 为空则不传，使用数据库默认。
+                            connect_kw = {"password": password}
+                            if db.db_schema:
+                                connect_kw["settings"] = {"search_path": db.db_schema}
+                            cls._instance = py_opengauss.open(iri, **connect_kw)
                             logger.info(f"GaussDB connected (auto-primary): {host_list}")
                         else:
                             import pymysql
