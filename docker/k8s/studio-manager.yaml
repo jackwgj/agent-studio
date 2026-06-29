@@ -108,6 +108,8 @@ spec:
             # 系统默认的加解密方式，NO_OP_CIPHER-表示不加密
             - name: system_crypt_name
               value: 'NO_OP_CIPHER'
+            - name: enable_tool_url_check
+              value: 'true'
           resources:
             limits:
               cpu: '2'
