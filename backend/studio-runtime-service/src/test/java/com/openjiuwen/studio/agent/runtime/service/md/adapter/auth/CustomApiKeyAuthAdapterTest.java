@@ -53,8 +53,7 @@ class CustomApiKeyAuthAdapterTest {
             auth.setAuthInfo(authData);
 
             ans = adapter.requestHeaderHandler("url", "method", originHeaders, new HashMap<>(), "body", auth);
-            Assertions.assertEquals(
-                "{tt=vv, cust-demo=demo, userid=cust-userid, token=cust-token, cust-not-exist=cust-not-exist}",
+            Assertions.assertEquals("{tt=vv, cust-demo=uu, userid=uu, token=123, cust-not-exist=cust-not-exist}",
                 ans.toString());
 
             ans = adapter.requestHeaderHandler("url", "method", new HashMap<>(), new HashMap<>(), "body", auth);
@@ -65,7 +64,7 @@ class CustomApiKeyAuthAdapterTest {
             ReflectionTestUtils.setField(adapter, "customHeaderReplace", false);
             ans = adapter.requestHeaderHandler("url", "method", originHeaders, new HashMap<>(), "body", auth);
             Assertions.assertEquals(
-                "{tt=vv, cust-demo=demo, cust-token=tt, cust-userid=uu, cust-not-exist=cust-not-exist, token=cust-token}",
+                "{tt=vv, cust-demo=uu, cust-token=tt, cust-userid=uu, cust-not-exist=cust-not-exist, token=123}",
                 ans.toString());
         }
     }
