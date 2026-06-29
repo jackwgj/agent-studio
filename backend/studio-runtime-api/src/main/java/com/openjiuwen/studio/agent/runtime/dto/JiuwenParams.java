@@ -76,6 +76,9 @@ public class JiuwenParams implements Serializable {
     @Size()
     private Map<String, Object> environmentVariables = null;
 
+    @JsonProperty("secretEnvKeys")
+    private List<String> secretEnvKeys = null;
+
     @JsonProperty("appId")
     private String appId = null;
 
@@ -236,6 +239,15 @@ public class JiuwenParams implements Serializable {
         return this;
     }
 
+    public List<String> getSecretEnvKeys() {
+        return secretEnvKeys;
+    }
+
+    public JiuwenParams setSecretEnvKeys(List<String> secretEnvKeys) {
+        this.secretEnvKeys = secretEnvKeys;
+        return this;
+    }
+
     public String getAppId() {
         return appId;
     }
@@ -296,6 +308,7 @@ public class JiuwenParams implements Serializable {
         sb.append("    files: ").append(toIndentedString(files)).append("\n");
         sb.append("    enableHistory: ").append(toIndentedString(enableHistory)).append("\n");
         sb.append("    environmentVariables: ").append(toIndentedString(environmentVariables)).append("\n");
+        sb.append("    secretEnvKeys: ").append(toIndentedString(secretEnvKeys)).append("\n");
         sb.append("    appId: ").append(toIndentedString(appId)).append("\n");
         sb.append("    enableMemoryRetrieve: ").append(toIndentedString(enableMemoryRetrieve)).append("\n");
         sb.append("    enableMemoryExtract: ").append(toIndentedString(enableMemoryExtract)).append("\n");
@@ -320,7 +333,8 @@ public class JiuwenParams implements Serializable {
             jiuwenParams.workflowSequence) && Objects.equals(this.activeWorkflows, jiuwenParams.activeWorkflows)
             && Objects.equals(this.intent, jiuwenParams.intent) && Objects.equals(this.files, jiuwenParams.files)
             && Objects.equals(this.enableHistory, jiuwenParams.enableHistory) && Objects.equals(
-            this.environmentVariables, jiuwenParams.environmentVariables) && Objects.equals(this.appId,
+            this.environmentVariables, jiuwenParams.environmentVariables) && Objects.equals(this.secretEnvKeys,
+            jiuwenParams.secretEnvKeys) && Objects.equals(this.appId,
             jiuwenParams.appId) && Objects.equals(this.enableMemoryRetrieve, jiuwenParams.enableMemoryRetrieve)
             && Objects.equals(this.enableMemoryExtract, jiuwenParams.enableMemoryExtract) && Objects.equals(
             this.sysOperationCard, jiuwenParams.sysOperationCard);
@@ -329,7 +343,7 @@ public class JiuwenParams implements Serializable {
     @Override
     public int hashCode() {
         return Objects.hash(conversationHistory, pluginConfigs, globalVariables, llmExtraConfigs, toolSwitchDict,
-            workflowSequence, activeWorkflows, intent, files, enableHistory, environmentVariables, appId,
+            workflowSequence, activeWorkflows, intent, files, enableHistory, environmentVariables, secretEnvKeys, appId,
             enableMemoryRetrieve, enableMemoryExtract, sysOperationCard);
     }
 

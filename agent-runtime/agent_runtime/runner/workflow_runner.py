@@ -33,6 +33,10 @@ from openjiuwen.core.session.interaction.interactive_input import InteractiveInp
 from openjiuwen.core.session.stream import BaseStreamMode
 from openjiuwen.core.workflow import create_workflow_session
 
+from agent_runtime.common.logging_context import apply_template_masking_patch
+
+apply_template_masking_patch()
+
 GENERAL_ERROR = 101040
 
 

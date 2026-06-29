@@ -63,6 +63,8 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
                 body_json = json.loads(body)
                 ctx.user_id = body_json.get("userId", "")
                 ctx.conversation_id = body_json.get("conversationId", "")
+                params = body_json.get("params") or {}
+                ctx.secret_env_keys = params.get("secretEnvKeys", [])
             except Exception as e:
                 workflow_logger.warning(
                     f"Failed to parse request body as JSON: {e}", exc_info=True

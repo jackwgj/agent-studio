@@ -600,6 +600,9 @@ class IRConverter:
             configs = comp.get("configs")
             if configs:
                 node_def["configs"] = configs
+            inputs = comp.get("inputs")
+            if inputs:
+                node_def["inputs"] = inputs
             current_wf_defs[comp_id] = node_def
             # 递归提取 SubWorkflow 子工作流内部节点
             ir_type = comp.get("type", "")

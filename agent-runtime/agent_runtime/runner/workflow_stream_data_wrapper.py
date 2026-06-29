@@ -11,6 +11,8 @@ import time
 from dataclasses import dataclass
 from typing import Any
 
+from agent_runtime.common.logging_context import mask_debug_data, find_secret_env_field_names
+from agent_runtime.context.request_context import _request_ctx
 from openjiuwen.core.common.constants.constant import INTERACTION
 from openjiuwen.core.common.logging import performance_logger
 from openjiuwen.core.session.stream.base import (
@@ -268,6 +270,26 @@ class WorkflowStreamDataWrapper:
         self._history = history or []
         self._query = query
         self._is_resuming = is_resuming
+        # Collect field names that reference encrypted env vars, per node.
+        # Flag-based: checks if the referenced env var key is in secretEnvKeys,
+        # not value matching. Per-node mapping avoids cross-node field name
+        # collisions (e.g. two nodes both having "value3" but only one
+        # references an encrypted env var).
+        self._node_secret_fields: dict[str, dict] = {}
+        self._end_node_secret_fields: dict = {}
+        try:
+            _ctx = _request_ctx.get()
+            _secret_keys = _ctx.secret_env_keys
+        except Exception:
+            _secret_keys = []
+        if _secret_keys and node_id_to_name:
+            for _wf_nodes in node_id_to_name.values():
+                for _node_id, _node_def in _wf_nodes.items():
+                    _fields = find_secret_env_field_names(_node_def, _secret_keys)
+                    if _fields:
+                        self._node_secret_fields[_node_id] = _fields
+                        if _node_def.get("node_type") == END_NODE_TYPE:
+                            self._end_node_secret_fields = _fields
         # Loop debug trace state: track invokeIds for building parentInvokeId chains
         self._loop_invoke_id: dict[str, str] = {}
         self._loop_last_invoke_id: dict[str, str] = {}
@@ -453,6 +475,9 @@ class WorkflowStreamDataWrapper:
         payload = chunk.payload
         if isinstance(payload, dict):
             data = dict(payload)
+            _sf = self._end_node_secret_fields
+            if "userFields" in data:
+                data["userFields"] = mask_debug_data(data["userFields"], _sf)
         else:
             data = {"answer": str(payload)}
 
@@ -495,6 +520,8 @@ class WorkflowStreamDataWrapper:
         if not isinstance(payload, dict):
             payload = {"answer": str(payload)}
 
+        _node_sf = self._node_secret_fields.get(payload.get("node_id", ""), {})
+
         data = {
             "answer": payload.get("answer", ""),
             "node_id": payload.get("node_id", ""),
@@ -504,7 +531,7 @@ class WorkflowStreamDataWrapper:
         }
         user_fields = payload.get("userFields")
         if user_fields:
-            data["outputs"] = {"user_fields": user_fields}
+            data["outputs"] = {"user_fields": mask_debug_data(user_fields, _node_sf)}
         for key in (
             "origin_answer",
             "enable_history",
@@ -671,14 +698,17 @@ class WorkflowStreamDataWrapper:
         if not isinstance(data, dict):
             data = {"answer": str(data)}
 
+        _node_sf = self._node_secret_fields.get(data.get("node_id", ""), {})
+
         result_data = {
             "answer": data.get("answer", ""),
             "node_id": data.get("node_id", ""),
             "node_name": data.get("node_name", ""),
             "node_type": data.get("node_type", ""),
             "should_interrupt": data.get("should_interrupt", False),
-            "outputs": {"user_fields": data.get("userFields", {})},
+            "outputs": {"user_fields": mask_debug_data(data.get("userFields", {}), _node_sf)},
         }
+
         for key in (
             "origin_answer",
             "enable_history",
@@ -703,14 +733,17 @@ class WorkflowStreamDataWrapper:
         if not isinstance(data, dict):
             data = {"answer": str(data)}
 
+        _node_sf = self._node_secret_fields.get(data.get("node_id", ""), {})
+
         result_data = {
             "answer": data.get("answer", ""),
             "node_id": data.get("node_id", ""),
             "node_name": data.get("node_name", ""),
             "node_type": data.get("node_type", ""),
             "should_interrupt": data.get("should_interrupt", False),
-            "outputs": {"user_fields": data.get("userFields", {})},
+            "outputs": {"user_fields": mask_debug_data(data.get("userFields", {}), _node_sf)},
         }
+
         for key in ("output_mode",):
             if key in data:
                 result_data[key] = data[key]
@@ -728,6 +761,10 @@ class WorkflowStreamDataWrapper:
         data = chunk.data if hasattr(chunk, "data") else chunk.model_dump()
         if not isinstance(data, dict):
             data = {"answer": str(data)}
+
+        _sf = self._end_node_secret_fields
+        if "userFields" in data:
+            data["userFields"] = mask_debug_data(data["userFields"], _sf)
 
         return {
             "event": "workflow_end",
@@ -945,6 +982,8 @@ class WorkflowStreamDataWrapper:
         parent_node_id = payload.get("parentNodeId", "")
         parent_node_id = parent_node_id.rsplit(".", 1)[-1]
 
+        _node_sf = self._node_secret_fields.get(payload.get("componentId", ""), {})
+
         data = {
             "executionId": self._execution_id,
             "conversationId": self._conversation_id,
@@ -961,8 +1000,8 @@ class WorkflowStreamDataWrapper:
                 payload.get("componentType", ""),
             ),
             "agentParentInvokeId": "",
-            "inputs": payload.get("inputs"),
-            "outputs": effective_outputs,
+            "inputs": mask_debug_data(payload.get("inputs"), _node_sf),
+            "outputs": mask_debug_data(effective_outputs, _node_sf),
             "error": payload.get("error"),
             "metaData": None,
             "invokeId": payload.get("invokeId"),

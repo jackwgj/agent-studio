@@ -1,4 +1,6 @@
+import copy
 import logging
+import re
 
 from agent_runtime.context.request_context import _request_ctx
 from openjiuwen.core.common.logging import get_session_id
@@ -22,6 +24,137 @@ def get_log_format(log_type: str) -> str:
     if log_type == "performance":
         return PERFORMANCE_LOG_FORMAT
     return COMMON_LOG_FORMAT
+
+
+def mask_secret_envs_in_obj(obj, secret_keys):
+    """Recursively mask secret env vars under plugin_url_params keys."""
+    if not secret_keys:
+        return obj
+    if isinstance(obj, dict):
+        if "plugin_url_params" in obj and isinstance(obj["plugin_url_params"], dict):
+            for sk in secret_keys:
+                if sk in obj["plugin_url_params"]:
+                    obj["plugin_url_params"][sk] = "***"
+        for v in obj.values():
+            mask_secret_envs_in_obj(v, secret_keys)
+    elif isinstance(obj, list):
+        for item in obj:
+            mask_secret_envs_in_obj(item, secret_keys)
+    return obj
+
+
+# Pattern to match ${_env.plugin_url_params.xxx} references in node configs
+_ENV_REF_PATTERN = re.compile(r'\$\{_env\.plugin_url_params\.([^}]+)\}')
+
+
+def find_secret_env_field_names(config, secret_keys):
+    """Find field names that reference encrypted env vars in node config.
+
+    Walks the node config recursively. When a string value matches
+    ${_env.plugin_url_params.xxx} and xxx is in secret_keys, the field name
+    is collected as a key in the returned dict, with the referenced env var
+    key as the value: {field_name: env_var_key}.
+
+    This is flag-based: it checks if the referenced env var key is in secretKeys,
+    not value matching. The returned mapping enables node-level filtering of
+    which secret values to mask (only secrets referenced by this node).
+    """
+    if not secret_keys or not config:
+        return {}
+
+    secret_keys_set = set(secret_keys)
+    secret_fields: dict[str, str] = {}
+
+    def walk(obj, current_field=None):
+        if isinstance(obj, dict):
+            # Find the field name from id/fieldName/name keys
+            field_name = current_field
+            for k in ("id", "fieldName", "name", "field_name"):
+                if k in obj and isinstance(obj[k], str):
+                    field_name = obj[k]
+                    break
+            # Walk all key-value pairs
+            for k, v in obj.items():
+                # If the value is a secret env ref, the key itself is a field name
+                # (e.g. inputs.userFields = {"value3": "${_env.plugin_url_params.passwd}"})
+                if isinstance(v, str):
+                    m = _ENV_REF_PATTERN.search(v)
+                    if m and m.group(1) in secret_keys_set:
+                        secret_fields[k] = m.group(1)
+                walk(v, field_name)
+        elif isinstance(obj, list):
+            for item in obj:
+                walk(item, current_field)
+        elif isinstance(obj, str):
+            m = _ENV_REF_PATTERN.search(obj)
+            if m and m.group(1) in secret_keys_set:
+                if current_field:
+                    secret_fields[current_field] = m.group(1)
+
+    walk(config)
+    return secret_fields
+
+
+def mask_fields_by_name(obj, field_names):
+    """Recursively mask values of specific field names.
+
+    Walks the object and replaces values of keys that are in field_names with "***".
+    Used to mask resolved values of encrypted env vars that appear under
+    user-defined field names (e.g. value3='huawei@123') in trace data.
+    """
+    if not field_names:
+        return obj
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            if k in field_names:
+                obj[k] = "***"
+            else:
+                mask_fields_by_name(v, field_names)
+    elif isinstance(obj, list):
+        for item in obj:
+            mask_fields_by_name(item, field_names)
+    return obj
+
+
+def mask_inputs_for_rendering(inputs, secret_field_names):
+    """创建 inputs 的掩码副本，仅用于模板渲染。
+
+    基于 flag（字段名）判断，不基于值匹配。将引用了加密环境变量的字段值
+    替换为 '***'，其他字段保持不变。生成器（同步/异步）跳过（不掩码），
+    交由 _consume_all_iterators 统一消费。原始 inputs 不被修改，不影响工作流后续使用。
+    """
+    if not secret_field_names or not isinstance(inputs, dict) or not inputs:
+        return inputs
+    import inspect
+    render_inputs = dict(inputs)
+    for field_name in secret_field_names:
+        if field_name in render_inputs:
+            val = render_inputs[field_name]
+            if inspect.isasyncgen(val) or hasattr(val, "__aiter__") or inspect.isgenerator(val):
+                continue
+            if isinstance(val, dict):
+                render_inputs[field_name] = {k: "***" for k in val}
+            else:
+                render_inputs[field_name] = "***"
+    return render_inputs
+
+
+def mask_debug_data(data, secret_field_names=None):
+    """Deep copy data and mask secret env vars. Safe for shared references."""
+    if data is None:
+        return None
+    try:
+        ctx = _request_ctx.get()
+        secret_keys = ctx.secret_env_keys
+    except Exception:
+        secret_keys = []
+    if not secret_keys and not secret_field_names:
+        return data
+    data = copy.deepcopy(data)
+    mask_secret_envs_in_obj(data, secret_keys)
+    if secret_field_names:
+        mask_fields_by_name(data, secret_field_names)
+    return data
 
 
 def install_log_formatter_patch() -> None:
@@ -62,3 +195,119 @@ def install_request_id_log_record_factory() -> None:
 
     logging.setLogRecordFactory(record_factory)
     _INSTALLED = True
+
+
+_TEMPLATE_MASKING_PATCHED = False
+
+
+def get_secret_field_names_from_session(session):
+    """通过 session 获取当前节点引用了加密环境变量的字段名映射。
+
+    Returns:
+        dict: {field_name: env_var_key}，如果无加密引用则返回 {}
+    """
+    try:
+        ctx = _request_ctx.get()
+        secret_keys = ctx.secret_env_keys
+    except Exception:
+        return {}
+    if not secret_keys:
+        return {}
+    try:
+        node_defs = session.get_global_state("__node_defs__")
+        if not isinstance(node_defs, dict):
+            return {}
+        workflow_id = session.get_workflow_id()
+        node_id = session.get_component_id()
+        wf_defs = node_defs.get(workflow_id, {})
+        node_def = wf_defs.get(node_id, {})
+        if not node_def:
+            return {}
+        return find_secret_env_field_names(node_def, secret_keys)
+    except Exception:
+        return {}
+
+
+def apply_template_masking_patch():
+    """Monkey patch 模板渲染方法，在渲染前对加密环境变量字段做掩码。
+
+    - Patch ComponentExecutable.on_stream/on_invoke/on_collect/on_transform：
+      在节点执行入口将 secret_field_names 存入 _request_ctx
+    - Patch TemplateProcessor.render_stream：从 _request_ctx 读取并掩码 inputs 副本
+    - Patch TemplateUtils.render_template：从 _request_ctx 读取并掩码 inputs 副本
+
+    这样不关注节点类型，任何节点调用模板渲染都会经过同一个掩码逻辑。
+    原始 inputs 不被修改，不影响工作流后续使用。
+    """
+    global _TEMPLATE_MASKING_PATCHED
+    if _TEMPLATE_MASKING_PATCHED:
+        return
+    _TEMPLATE_MASKING_PATCHED = True
+
+    from openjiuwen.core.workflow.components.component import ComponentExecutable
+    from openjiuwen.core.workflow.components.flow.end_comp import (
+        TemplateProcessor,
+        TemplateUtils,
+    )
+    from openjiuwen.core.session.internal.workflow import NodeSession
+    from openjiuwen.core.session.node import Session
+
+    def _set_secret_fields(base_session):
+        """从 NodeSession 提取 secret_field_names 并存入 _request_ctx"""
+        try:
+            if isinstance(base_session, NodeSession):
+                sess = Session(base_session, False)
+                sf = get_secret_field_names_from_session(sess)
+                _request_ctx.get().current_secret_field_names = sf
+        except Exception:
+            logging.debug("Failed to set secret field names for masking", exc_info=True)
+
+    # --- Patch ComponentExecutable.on_* ---
+    _orig_on_stream = ComponentExecutable.on_stream
+    _orig_on_invoke = ComponentExecutable.on_invoke
+    _orig_on_collect = ComponentExecutable.on_collect
+    _orig_on_transform = ComponentExecutable.on_transform
+
+    async def _patched_on_stream(self, inputs, session, **kwargs):
+        _set_secret_fields(session)
+        async for v in _orig_on_stream(self, inputs, session, **kwargs):
+            yield v
+
+    async def _patched_on_invoke(self, inputs, session, **kwargs):
+        _set_secret_fields(session)
+        return await _orig_on_invoke(self, inputs, session, **kwargs)
+
+    async def _patched_on_collect(self, inputs, session, **kwargs):
+        _set_secret_fields(session)
+        return await _orig_on_collect(self, inputs, session, **kwargs)
+
+    async def _patched_on_transform(self, inputs, session, **kwargs):
+        _set_secret_fields(session)
+        async for v in _orig_on_transform(self, inputs, session, **kwargs):
+            yield v
+
+    ComponentExecutable.on_stream = _patched_on_stream
+    ComponentExecutable.on_invoke = _patched_on_invoke
+    ComponentExecutable.on_collect = _patched_on_collect
+    ComponentExecutable.on_transform = _patched_on_transform
+
+    # --- Patch TemplateProcessor.render_stream ---
+    _orig_render_stream = TemplateProcessor.render_stream
+
+    async def _patched_render_stream(self, inputs, session, timeout=0.2):
+        sf = _request_ctx.get().current_secret_field_names if _request_ctx else {}
+        render_inputs = mask_inputs_for_rendering(inputs, sf)
+        async for frame in _orig_render_stream(self, render_inputs, session, timeout):
+            yield frame
+
+    TemplateProcessor.render_stream = _patched_render_stream
+
+    # --- Patch TemplateUtils.render_template ---
+    _orig_render_template = TemplateUtils.render_template
+
+    def _patched_render_template(template, inputs):
+        sf = _request_ctx.get().current_secret_field_names if _request_ctx else {}
+        render_inputs = mask_inputs_for_rendering(inputs, sf)
+        return _orig_render_template(template, render_inputs)
+
+    TemplateUtils.render_template = _patched_render_template

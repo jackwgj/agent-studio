@@ -2077,7 +2077,13 @@ public class AgentRuntimeService implements IAgentRuntimeService {
             return;
         }
         Map<String, Object> envVars = envVariablesUtils.getEnvironmentVariables(executeParams);
+        Object secretKeys = envVars.remove("_secretEnvKeys");
         jiuwenParams.setEnvironmentVariables(new HashMap<>(envVars));
+        if (secretKeys instanceof List) {
+            @SuppressWarnings("unchecked")
+            List<String> keys = (List<String>) secretKeys;
+            jiuwenParams.setSecretEnvKeys(keys);
+        }
     }
 
     private Map<String, Object> extractGlobalVariables(AgentExecuteParams executeParams) {

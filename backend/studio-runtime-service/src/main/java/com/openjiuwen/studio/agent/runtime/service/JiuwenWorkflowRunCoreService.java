@@ -865,6 +865,12 @@ public class JiuwenWorkflowRunCoreService implements IWorkflowRunCoreService {
      */
     private void setEnvironmentVariables(ExecuteParams executeParams, JiuwenParams jiuwenParams) {
         Map<String, Object> envVars = variablesUtils.getEnvironmentVariables(executeParams);
+        Object secretKeys = envVars.remove("_secretEnvKeys");
         jiuwenParams.setEnvironmentVariables(new HashMap<>(envVars));
+        if (secretKeys instanceof List) {
+            @SuppressWarnings("unchecked")
+            List<String> keys = (List<String>) secretKeys;
+            jiuwenParams.setSecretEnvKeys(keys);
+        }
     }
 }

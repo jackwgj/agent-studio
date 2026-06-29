@@ -25,6 +25,7 @@ import org.springframework.stereotype.Component;
 
 import java.text.NumberFormat;
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -97,6 +98,7 @@ public class EnvVariablesUtils {
             return wrappedMap(new HashMap<>());
         }
         Map<String, Object> varMap = new HashMap<>();
+        List<String> secretKeys = new ArrayList<>();
         for (EnvVariablesDto dto : variablesDtos) {
             if (StringUtils.isBlank(dto.getName()) || dto.getValue() == null || dto.getValue().getContent() == null) {
                 continue;
@@ -108,6 +110,7 @@ public class EnvVariablesUtils {
             }
             if (dto.getValue().isSecret()) {
                 content = CryptoUtils.decrypt(content);
+                secretKeys.add(dto.getName());
             }
             if (Strings.CS.equals(dto.getValue().getType(), "number")) {
                 try {
@@ -120,7 +123,9 @@ public class EnvVariablesUtils {
                 varMap.put(dto.getName(), content);
             }
         }
-        return wrappedMap(varMap);
+        Map<String, Object> result = wrappedMap(varMap);
+        result.put("_secretEnvKeys", secretKeys);
+        return result;
     }
 
     public Map<String, Object> getEnvironmentVariables(AgentExecuteParams executeParams) {
@@ -153,6 +158,7 @@ public class EnvVariablesUtils {
             return wrappedMap(new HashMap<>());
         }
         Map<String, Object> varMap = new HashMap<>();
+        List<String> secretKeys = new ArrayList<>();
         for (EnvVariablesDto dto : variablesDtos) {
             if (StringUtils.isBlank(dto.getName()) || dto.getValue() == null || dto.getValue().getContent() == null) {
                 continue;
@@ -164,6 +170,7 @@ public class EnvVariablesUtils {
             }
             if (dto.getValue().isSecret()) {
                 content = CryptoUtils.decrypt(content);
+                secretKeys.add(dto.getName());
             }
             if (Strings.CS.equals(dto.getValue().getType(), "number")) {
                 try {
@@ -176,7 +183,9 @@ public class EnvVariablesUtils {
                 varMap.put(dto.getName(), content);
             }
         }
-        return wrappedMap(varMap);
+        Map<String, Object> result = wrappedMap(varMap);
+        result.put("_secretEnvKeys", secretKeys);
+        return result;
     }
 
     private Map<String, Object> wrappedMap(Map<String, Object> map) {
