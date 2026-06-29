@@ -96,15 +96,36 @@ public class WorkspaceInterceptor implements HandlerInterceptor {
         }
 
         // 验证ID格式是否合法
-        if (isEmptyId(projectId) || isEmptyId(workspaceId)) {
+        // 验证workspace_id是否为空（project_id为空时路由匹配不到，不会走到这里）
+        if (isEmptyId(workspaceId)) {
             sendErrorResponse(response, HttpServletResponse.SC_BAD_REQUEST,
-                "project ID or workspace ID cannot be Empty");
+                "openjiuwen.02001009", "Workspace ID cannot be empty",
+                "Please provide a valid Workspace ID in the request parameters.");
             return false;
         }
-        if (!isValidId(projectId) || !isValidId(workspaceId)) {
-            log.error("invalid format, projectId: {}, workspaceId: {}", projectId, workspaceId);
-            // 如果ID格式不合法，发送错误响应并返回false
+        if (!isValidId(projectId)) {
+            log.error("invalid format, projectId: {}", projectId);
+            throw new AgentStudioException(StudioError.PROJECT_ID_INVALID);
+        }
+        if (!isValidId(workspaceId)) {
+            log.error("invalid format, workspaceId: {}", workspaceId);
             throw new AgentStudioException(StudioError.WORKSPACE_FORMAT_INVALID);
+        }
+
+        // 验证ID长度是否合法
+        if (projectId.length() > 64) {
+            log.error("projectId length exceeded: {}", projectId.length());
+            sendErrorResponse(response, HttpServletResponse.SC_BAD_REQUEST,
+                "openjiuwen.02001010", "Project ID length must be between 1 and 64",
+                "Please ensure the Project ID does not exceed 64 characters.");
+            return false;
+        }
+        if (workspaceId.length() > 64) {
+            log.error("workspaceId length exceeded: {}", workspaceId.length());
+            sendErrorResponse(response, HttpServletResponse.SC_BAD_REQUEST,
+                "openjiuwen.02001009", "Workspace ID length must be between 1 and 64",
+                "Please ensure the Workspace ID does not exceed 64 characters.");
+            return false;
         }
 
         ThreadLocalUtils.setWorkspaceId(workspaceId);
@@ -257,10 +278,10 @@ public class WorkspaceInterceptor implements HandlerInterceptor {
     /**
      * 发送错误响应
      */
-    private void sendErrorResponse(HttpServletResponse response, int status, String message) throws IOException {
+    private void sendErrorResponse(HttpServletResponse response, int status, String errorCode, String message, String suggestion) throws IOException {
         response.setStatus(status);
-        response.setContentType("application/json");
-        response.getWriter().write("{\"error\": \"" + message + "\"}");
+        response.setContentType("application/json;charset=UTF-8");
+        response.getWriter().write("{\"error_code\": \"" + errorCode + "\", \"error_msg\": \"" + message + "\", \"error_suggestion\": \"" + suggestion + "\"}");
     }
 
     @Override
