@@ -292,13 +292,14 @@ public class ControllerManagementService {
         }
         List<ModelServiceData> modelList =
             modelServiceManager.queryAvailableServices(projectId, workspaceId, ModelTypeV2.LLM.toString(), true);
-        if (!CollectionUtils.isEmpty(modelList)) {
-            ModelServiceData model = modelList.get(0);
-            if (controllerNodeConfigVo != null) {
-                controllerNodeConfigVo.setModel(new ModelConfigVO().setModelDeploymentId(model.getId())
-                    .setModelName(model.getModelName())
-                    .setModelType(model.getModelType()));
-            }
+        ModelServiceData model = modelList.stream()
+            .filter(m -> CommonConstant.ModelParam.MODEL_PUBLISH_STATUS_ONLINE.equals(m.getPublishStatus()))
+            .findFirst()
+            .orElse(null);
+        if (model != null && controllerNodeConfigVo != null) {
+            controllerNodeConfigVo.setModel(new ModelConfigVO().setModelDeploymentId(model.getId())
+                .setModelName(model.getModelName())
+                .setModelType(model.getModelType()));
             controllerNode.setConfigs(controllerNodeConfigVo);
         }
     }

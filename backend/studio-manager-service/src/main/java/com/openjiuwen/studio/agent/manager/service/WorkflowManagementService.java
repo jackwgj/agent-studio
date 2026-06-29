@@ -1104,8 +1104,11 @@ public class WorkflowManagementService implements IWorkflowManagementService {
             modelServiceManager.queryAvailableServices(projectId, workspaceId, ModelTypeV2.LLM.toString(), true);
 
         Map<String, String> modelParam = new HashMap<>();
-        if (!CollectionUtils.isEmpty(models)) {
-            ModelServiceData modelServiceData = models.get(0);
+        ModelServiceData modelServiceData = models.stream()
+            .filter(m -> CommonConstant.ModelParam.MODEL_PUBLISH_STATUS_ONLINE.equals(m.getPublishStatus()))
+            .findFirst()
+            .orElse(null);
+        if (modelServiceData != null) {
             modelParam.put(CommonConstant.ModelParam.MODEL_NAME, modelServiceData.getModelName());
             modelParam.put(CommonConstant.ModelParam.MODEL_TYPE, modelServiceData.getModelType());
             modelParam.put(CommonConstant.ModelParam.MODEL_API_TYPE, modelServiceData.getInterfaceProtocol());

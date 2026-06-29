@@ -1224,6 +1224,8 @@ public interface CommonConstant {
 
         String DEFAULT_MODEL = "default_model";
 
+        String MODEL_PUBLISH_STATUS_ONLINE = "online";
+
         String MODEL_NAME = "model_name";
 
         String MODEL_TYPE = "model_type";
