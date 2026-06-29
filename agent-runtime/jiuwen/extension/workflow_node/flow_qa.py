@@ -12,7 +12,7 @@ import re
 from copy import deepcopy
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 from openjiuwen.core.common.constants.constant import USER_FIELDS
 from openjiuwen.core.common.exception.codes import StatusCode
@@ -68,6 +68,15 @@ class QAConfig(BaseModel):
     )
     enable_history: bool = Field(default=True, description="Enable history write.")
     index_key: str = Field(default="index", description="Key for index strategy.")
+    struct_input_schemas: Dict[str, dict] = Field(
+        default_factory=dict,
+        description=(
+            "结构化输出模板中 dict/list 型变量的归一化 schema。"
+            "渲染前按 schema 补齐缺失字段（默认 \"\"）、按 schema 顺序输出，"
+            "用于和历史系统（如 Versatile Lite）的输出对齐。"
+            "形如 {\"confirmData\": {\"type\": \"object\", \"properties\": {\"amount\": {\"default\": \"\"}, ...}}}"
+        ),
+    )
 
 
 @dataclass
@@ -80,6 +89,120 @@ class FlowQAConfig:
     enable_struct_message: bool = False
     enable_history: bool = True
     index_key: str = "index"
+    # 结构化输出时，对 dict/list 型输入按 schema 归一化：
+    # 补齐缺失字段（默认 ""）、按 schema 顺序输出，并保留 schema 之外的字段。
+    struct_input_schemas: Dict[str, dict] = field(default_factory=dict)
+
+
+def _schema_field_name(schema: dict) -> Optional[str]:
+    return schema.get("name") or schema.get("id") or schema.get("fieldName")
+
+
+def _schema_type(schema: dict) -> str:
+    return str(schema.get("type") or "").lower()
+
+
+def _object_schema_fields(schema: dict) -> List[tuple[str, dict]]:
+    props = schema.get("properties")
+    if isinstance(props, dict):
+        return [
+            (str(name), prop_schema if isinstance(prop_schema, dict) else {})
+            for name, prop_schema in props.items()
+        ]
+
+    children = schema.get("schema")
+    if not isinstance(children, list):
+        return []
+
+    fields: List[tuple[str, dict]] = []
+    for child in children:
+        if not isinstance(child, dict):
+            continue
+        name = _schema_field_name(child)
+        if name:
+            fields.append((str(name), child))
+    return fields
+
+
+def _is_object_schema(schema: dict) -> bool:
+    return (
+        _schema_type(schema) == "object"
+        or isinstance(schema.get("properties"), dict)
+        or isinstance(schema.get("schema"), list)
+    )
+
+
+def _array_item_schema(schema: dict) -> Optional[dict]:
+    items = schema.get("items")
+    if isinstance(items, dict):
+        return items
+
+    dsl_schema = schema.get("schema")
+    if isinstance(dsl_schema, dict):
+        return dsl_schema
+    if isinstance(dsl_schema, list):
+        return {"type": "object", "schema": dsl_schema}
+    return None
+
+
+def _is_array_schema(schema: dict) -> bool:
+    return _schema_type(schema) == "array"
+
+
+def _schema_default(schema: dict) -> Any:
+    value = schema.get("value")
+    if isinstance(value, dict) and "default" in value:
+        return value["default"]
+    if "default" in schema:
+        return schema["default"]
+    if _is_array_schema(schema):
+        return []
+    if _is_object_schema(schema):
+        return {}
+    return ""
+
+
+def _has_struct_schema(schema: dict) -> bool:
+    if not isinstance(schema, dict):
+        return False
+    if _is_object_schema(schema):
+        return bool(_object_schema_fields(schema))
+    if _is_array_schema(schema):
+        return _array_item_schema(schema) is not None
+    return False
+
+
+def _iter_input_field_defs(fields: Any):
+    if isinstance(fields, list):
+        for field in fields:
+            if isinstance(field, dict):
+                yield field
+        return
+    if isinstance(fields, dict) and _schema_field_name(fields):
+        yield fields
+
+
+def build_struct_input_schemas(
+    node_inputs: Any = None,
+    config_inputs: Any = None,
+    explicit_schemas: Optional[Dict[str, dict]] = None,
+) -> Dict[str, dict]:
+    """Collect dict/list input schemas used to render QA templates.
+
+    QA configs do not always repeat all node inputs in ``userFields.inputs``.
+    For example, ``{{confirmData}}`` can appear only in the node-level inputs,
+    so the converter injects those schemas into FlowQA before runtime.
+    """
+    schemas: Dict[str, dict] = {}
+    for source in (config_inputs, node_inputs):
+        for field in _iter_input_field_defs(source):
+            name = _schema_field_name(field)
+            if name and _has_struct_schema(field):
+                schemas[str(name)] = field
+
+    if isinstance(explicit_schemas, dict):
+        schemas.update(explicit_schemas)
+    return schemas
 
 
 class FlowQA(WorkflowComponent):
@@ -113,6 +236,7 @@ class FlowQA(WorkflowComponent):
                     enable_struct_message=conf.get("isStructMessage", False),
                     enable_history=conf.get("enable_history", True),
                     index_key=conf.get("index_key", "index"),
+                    struct_input_schemas=conf.get("struct_input_schemas", {}),
                 )
             else:
                 self._conf = conf
@@ -290,6 +414,73 @@ class FlowQA(WorkflowComponent):
                 )
             return options[index]
 
+    @staticmethod
+    def _normalize_with_schema(value: Any, schema: Optional[dict]) -> Any:
+        """按 schema 对结构化数据归一化：补齐缺失字段为默认值、按 schema 顺序输出。
+
+        用于消除与历史系统（如 Versatile Lite）在「空字段是否输出」上的差异——
+        历史系统会按完整字段模板补齐空串字段，而本系统此前直接透传生成端字典，
+        导致 ``{{confirmData}}`` 这类占位符渲染出的字典缺少空值字段。
+
+        支持 JSON Schema 风格 ``properties/items``，也支持当前 DSL 中的
+        ``schema`` + ``name/id`` + ``value.default`` 风格。
+        """
+        if not isinstance(schema, dict):
+            return value
+
+        if value is None:
+            if _is_object_schema(schema) or _is_array_schema(schema):
+                return value
+            return _schema_default(schema)
+
+        if _is_object_schema(schema):
+            if not isinstance(value, dict):
+                return value
+            src = value
+            fields = _object_schema_fields(schema)
+            if not fields:
+                return value
+            normalized: Dict[str, Any] = {}
+            schema_field_names = set()
+            for name, prop_schema in fields:
+                schema_field_names.add(name)
+                if name in src:
+                    normalized[name] = FlowQA._normalize_with_schema(
+                        src[name], prop_schema
+                    )
+                else:
+                    normalized[name] = _schema_default(prop_schema)
+
+            for name, item in value.items():
+                if name not in schema_field_names:
+                    normalized[name] = item
+            return normalized
+
+        if _is_array_schema(schema) and isinstance(value, list):
+            item_schema = _array_item_schema(schema)
+            if item_schema is None:
+                return value
+            return [
+                FlowQA._normalize_with_schema(item, item_schema) for item in value
+            ]
+
+        return value
+
+    def _normalize_struct_inputs(self, user_fields: dict) -> dict:
+        if not isinstance(user_fields, dict):
+            return user_fields
+        schemas = self._conf.struct_input_schemas or {}
+        if not schemas:
+            return user_fields
+
+        normalized = dict(user_fields)
+        for key, schema in schemas.items():
+            if key in normalized:
+                normalized[key] = self._normalize_with_schema(
+                    normalized[key], schema
+                )
+        return normalized
+
     async def _write_interaction_stream(
         self,
         session: Session,
@@ -309,9 +500,15 @@ class FlowQA(WorkflowComponent):
         }
 
         if self._conf.enable_struct_message and self._conf.struct_output_template:
+            # 对声明了 schema 的 dict/list 型输入做归一化（补空值字段、规范顺序），
+            # 再渲染，使结构化输出与历史系统字段集合一致。
+            render_inputs: Dict[str, Any] = {
+                "_NODE_OUTPUT": answer,
+                **self._normalize_struct_inputs(self._node_state.inputs),
+            }
             struct_answer = TemplateUtils.render_template(
                 self._conf.struct_output_template,
-                {"_NODE_OUTPUT": answer, **self._node_state.inputs},
+                render_inputs,
             )
             stream_related_info["answer"] = struct_answer  # 结构化输出作为 answer
             stream_related_info["origin_answer"] = answer  # 原始文本输出
@@ -354,6 +551,7 @@ class FlowQA(WorkflowComponent):
             node_id = session.get_component_id()
             node_name = self._node_name or node_id
             user_fields = inputs.get(USER_FIELDS, inputs) if inputs else {}
+            render_fields = self._normalize_struct_inputs(user_fields)
 
             if self._conf.need_reply:
                 # 中断结束重新开始
@@ -361,9 +559,9 @@ class FlowQA(WorkflowComponent):
                     self._node_state = QAState()
 
                 if self._node_state.status == ExecutionStatus.START:
-                    query = self._get_qa_by_strategy(user_fields)
+                    query = self._get_qa_by_strategy(render_fields)
                     # 先设置 inputs，再调用 _write_interaction_stream（因为模板渲染依赖 inputs）
-                    self._node_state.inputs = user_fields
+                    self._node_state.inputs = render_fields
                     await self._write_interaction_stream(session, query, node_id, True)
 
                     self._node_state.question = query
@@ -392,9 +590,9 @@ class FlowQA(WorkflowComponent):
                     return {USER_FIELDS: {"response": user_response}}
             else:
                 self._node_state.status = ExecutionStatus.END
-                query = self._get_qa_by_strategy(user_fields)
+                query = self._get_qa_by_strategy(render_fields)
                 # 先设置 inputs，再调用 _write_interaction_stream（因为模板渲染依赖 inputs）
-                self._node_state.inputs = user_fields
+                self._node_state.inputs = render_fields
                 await self._write_interaction_stream(session, query, node_id, False)
 
                 self._store_state_to_session(self._node_state, session)
@@ -439,4 +637,11 @@ class FlowQA(WorkflowComponent):
         return self._conf
 
 
-__all__ = ["FlowQA", "FlowQAConfig", "QAState", "ExecutionStatus", "QAStrategy"]
+__all__ = [
+    "FlowQA",
+    "FlowQAConfig",
+    "QAState",
+    "ExecutionStatus",
+    "QAStrategy",
+    "build_struct_input_schemas",
+]

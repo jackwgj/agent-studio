@@ -53,7 +53,7 @@ from jiuwen.extension.workflow_node.flow_extractor import Extractor
 from jiuwen.extension.workflow_node.flow_input import FlowInput
 from jiuwen.extension.workflow_node.flow_mcp import FlowMcp
 from jiuwen.extension.workflow_node.flow_message import Message
-from jiuwen.extension.workflow_node.flow_qa import FlowQA
+from jiuwen.extension.workflow_node.flow_qa import FlowQA, build_struct_input_schemas
 from jiuwen.extension.workflow_node.flow_stream_transform import FlowStreamTransform
 from jiuwen.extension.workflow_node.intent_detection import IntentDetection
 from jiuwen.extension.workflow_node.llm_chain import LLMChain
@@ -1570,6 +1570,15 @@ class IRConverter:
             return Questioner(_build_questioner_config(configs)), node_type, configs
 
         if node_type == "EI.qa":
+            user_fields_config = configs.get("userFields")
+            user_field_inputs = []
+            if isinstance(user_fields_config, dict):
+                user_field_inputs = user_fields_config.get("inputs") or []
+            configs["struct_input_schemas"] = build_struct_input_schemas(
+                node.get("inputs") or [],
+                user_field_inputs,
+                configs.get("struct_input_schemas") or {},
+            )
             return FlowQA(configs), node_type, configs
 
         if node_type == "EI.ParamOutput":
