@@ -52,6 +52,7 @@ from agent_runtime.storage import S3StorageProvider
 from agent_runtime.common import settings
 from agent_runtime.common.checkpointer_config import build_redis_checkpointer_config
 from agent_runtime.common.exception.errors import AgentBuilderError
+from agent_runtime.common.llm_call_logging import register_llm_call_logging_callbacks
 from agent_runtime.common.logging_context import COMMON_LOG_FORMAT
 from agent_runtime.common.redis_manager import RedisClientManager
 from agent_runtime.context.middleware import RequestContextMiddleware
@@ -136,6 +137,9 @@ async def lifespan(app: FastAPI):  # noqa: redefined-outer-name
 
     # 初始化 OpenTelemetry tracer（当 OTEL_ENABLED=true 时生效）
     setup_otel_tracer()
+
+    # 注册 LLM 调用日志回调 — 打印模型请求体和响应内容
+    register_llm_call_logging_callbacks()
 
     # 初始化 Redis 客户端
     redis_mgr = RedisClientManager.get_instance()
