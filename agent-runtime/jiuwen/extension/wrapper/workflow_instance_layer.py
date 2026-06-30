@@ -129,11 +129,14 @@ class OpenJiuWenWorkflowInstanceLayer(WorkflowWrapper):
         params = params or self.params or {}
         if not isinstance(params, dict):
             params = {}
+
+        if "__node_defs__" in self.params:
+            params['__node_defs__'] = self.params["__node_defs__"]
+
         # 将构造时注入的关键参数合并到 params：调用者传入的值优先
         if isinstance(self.params, dict):
             params.setdefault("is_debug", self.params.get("is_debug"))
-            if "__node_defs__" in self.params:
-                params.setdefault("__node_defs__", self.params["__node_defs__"])
+
         return query, params, workflow_id, agent_id, session_id, context
 
     def _build_context(self, params: dict, context=None):
