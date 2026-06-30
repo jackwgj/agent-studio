@@ -403,6 +403,9 @@ public class WorkflowManagementService implements IWorkflowManagementService {
     @Value("${front-page.runtime-host:}")
     private String runtimeHost;
 
+    @Value("${server.ssl.enabled:}")
+    private String serverSslEnabled;
+
     @Value("${workflow.default-icon}")
     private String defaultIcon;
 
@@ -1313,7 +1316,8 @@ public class WorkflowManagementService implements IWorkflowManagementService {
                 workflowEntity.getWorkflowType() == null ? CommonConstant.CHAT : workflowEntity.getWorkflowType());
             String workflowUrl = String.format(endpointTemplate, projectId, workflowEntity.getId());
             if (StringUtils.isNotEmpty(runtimeHost)) {
-                workflowUrl = "https://" + runtimeHost.replaceFirst("^https?://", "") + workflowUrl;
+                String protocol = Constants.TRUE.equalsIgnoreCase(serverSslEnabled) ? "https://" : "http://";
+                workflowUrl = protocol + runtimeHost.replaceFirst("^https?://", "") + workflowUrl;
             }
             workflowListItem.setUrl(workflowUrl);
             workflowListItem

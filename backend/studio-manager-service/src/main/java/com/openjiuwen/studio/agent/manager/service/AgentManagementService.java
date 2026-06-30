@@ -352,6 +352,9 @@ public class AgentManagementService implements IAgentManagementService {
     @Value("${front-page.runtime-host:}")
     private String runtimeHost;
 
+    @Value("${server.ssl.enabled:}")
+    private String serverSslEnabled;
+
     private String controllerEndPointTemplate;
 
     @Value("${agent.max-release-version-size}")
@@ -1098,7 +1101,8 @@ public class AgentManagementService implements IAgentManagementService {
             String agentTemplate = type == AgentType.CONTROLLER ? controllerEndPointTemplate : endpointTemplate;
             String agentUrl = String.format(agentTemplate, projectId, item.getAgentId());
             if (StringUtils.isNotEmpty(runtimeHost)) {
-                agentUrl = "https://" + runtimeHost.replaceFirst("^https?://", "") + agentUrl;
+                String protocol = Constants.TRUE.equalsIgnoreCase(serverSslEnabled) ? "https://" : "http://";
+                agentUrl = protocol + runtimeHost.replaceFirst("^https?://", "") + agentUrl;
             }
             item.setUrl(agentUrl);
         });
