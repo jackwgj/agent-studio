@@ -194,8 +194,14 @@ def _reset_sub_workflow_runtime_state(self) -> None:
         return
     for vertex in get_nodes().values():
         executable = getattr(vertex, "_executable", None)
-        if hasattr(executable, "_executed"):
-            setattr(executable, "_executed", False)
+        if hasattr(executable, "_invoke_executed"):
+            setattr(executable, "_invoke_executed", False)
+        if hasattr(executable, "_stream_executed"):
+            setattr(executable, "_stream_executed", False)
+        if hasattr(executable, "_collect_executed"):
+            setattr(executable, "_collect_executed", False)
+        if hasattr(executable, "_transform_executed"):
+            setattr(executable, "_transform_executed", False)
         reset_stream_output = getattr(executable, "_reset_stream_output", None)
         if callable(reset_stream_output):
             reset_stream_output()
