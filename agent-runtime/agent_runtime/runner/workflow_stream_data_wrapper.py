@@ -1192,15 +1192,10 @@ def _register_jiuwen_callbacks() -> None:
             if not isinstance(session, NodeSession):
                 return (args, kwargs)
 
-            # 单次读取 node_defs，同时提取 input/output 类型定义。
-            # output 定义提前存入 ContextVar（output 回调拿不到 session）。
-            node_defs = session.state().get_global(NODE_DEFS_KEY)
-            node_def = None
-            wf_defs = {}
-            if isinstance(node_defs, dict):
-                wf_defs = node_defs.get(session.workflow_id(), {})
-                node_def = wf_defs.get(session.node_id(), {})
-
+            node_def = session.state().get_global(
+                    f"{NODE_DEFS_KEY}.{session.workflow_id()}.{session.node_id()}") or {}
+            if not isinstance(node_def, dict):
+                node_def = {}
             if node_def:
                 configs = node_def.get("configs", {})
                 _current_output_convert_ctx.set({
@@ -1230,7 +1225,13 @@ def _register_jiuwen_callbacks() -> None:
                 input_schema = None
                 if node_config and node_config.io_configs:
                     input_schema = node_config.io_configs.inputs_schema
-                end_ctx = EndRefInputFilterContext(session=session, wf_defs=wf_defs)
+                # wf_defs 只在 End 节点过滤 ref 时需要（取本 workflow 的 node_id 集合），
+                # 此处按需读取，避免普通节点也做 workflow 级 deepcopy。
+                end_ctx = EndRefInputFilterContext(
+                    session=session,
+                    wf_defs=session.state().get_global(
+                        f"{NODE_DEFS_KEY}.{session.workflow_id()}") or {},
+                )
                 if isinstance(input_schema, dict):
                     inputs = _fill_unexecuted_end_branch_inputs(
                         inputs=inputs,
@@ -1320,21 +1321,16 @@ def _register_jiuwen_callbacks() -> None:
             if session is None and len(args) >= 2:
                 session = args[1]
             if session is not None and isinstance(session, NodeSession):
-                node_id = session.node_id()
-                node_type = ""
-                node_name = ""
-                # 从 __node_defs__ 读取节点类型和显示名称
-                node_defs = session.state().get_global(NODE_DEFS_KEY)
-                if isinstance(node_defs, dict):
-                    wf_defs = node_defs.get(session.workflow_id(), {})
-                    node_def = wf_defs.get(node_id, {})
-                    if isinstance(node_def, dict):
-                        node_type = node_def.get("node_type", "")
-                        node_name = node_def.get("node_name", "")
+                # 点号 key 收窄到当前 node：get_global 内部的 deepcopy 只拷贝单个
+                # node_def 而非全量 node_defs。
+                node_def = session.state().get_global(
+                    f"{NODE_DEFS_KEY}.{session.workflow_id()}.{session.node_id()}") or {}
+                if not isinstance(node_def, dict):
+                    node_def = {}
                 _node_start_time_ctx.set({
                     "start": time.perf_counter(),
-                    "node_type": node_type,
-                    "node_name": node_name,
+                    "node_type": node_def.get("node_type", ""),
+                    "node_name": node_def.get("node_name", ""),
                 })
             return (args, kwargs)
 

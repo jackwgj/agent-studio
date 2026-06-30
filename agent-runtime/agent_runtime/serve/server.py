@@ -113,6 +113,9 @@ async def lifespan(app: FastAPI):  # noqa: redefined-outer-name
     """define startup and shutdown logic here"""
     # 初始化 workflow_logger 日志级别（从环境变量 WORKFLOW_LOG_LEVEL 读取）
     workflow_log_level = settings.workflow_log.level.upper()
+    graph_log_level = settings.workflow_log.graph_level.upper()
+    llm_log_level = settings.workflow_log.llm_level.upper()
+    
     configure_log_config(
         {
             "backend": "default",
@@ -120,6 +123,8 @@ async def lifespan(app: FastAPI):  # noqa: redefined-outer-name
             "format": COMMON_LOG_FORMAT,
             "loggers": {
                 "workflow": {"level": workflow_log_level},
+                "graph": {"level": graph_log_level},
+                "llm": {"level": llm_log_level},
                 "performance": {"level": "INFO"},
                 "sys_operation": {
                     "level": "WARNING"
@@ -127,7 +132,7 @@ async def lifespan(app: FastAPI):  # noqa: redefined-outer-name
             },
         }
     )
-    logger.info(f"Workflow logger level set to: {workflow_log_level}")
+    logger.info(f"Logger level set - workflow: {workflow_log_level}, graph: {graph_log_level}, llm: {llm_log_level}")
 
     # 初始化 OpenTelemetry tracer（当 OTEL_ENABLED=true 时生效）
     setup_otel_tracer()

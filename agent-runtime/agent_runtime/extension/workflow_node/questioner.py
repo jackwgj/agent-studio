@@ -1790,7 +1790,7 @@ class Questioner(WorkflowComponent):
             try:
                 restored_state = deserialize_object(restored_raw)
             except Exception:
-                logger.warning(
+                workflow_logger.warning(
                     "Failed to deserialize questioner state for session %s",
                     session_id,
                     exc_info=True,
@@ -1865,7 +1865,6 @@ class Questioner(WorkflowComponent):
 
         # 保存到 state_manager
         if hasattr(session, "dump_state"):
-            full_state = deepcopy(session.dump_state())
             session_id = session.get_session_id()
             if session_id:
                 # 延迟导入避免循环依赖
@@ -1876,19 +1875,22 @@ class Questioner(WorkflowComponent):
                 )
 
                 state_manager = AsyncStateManager()
-                # 先获取旧数据并反序列化
+                # 先 await 取旧状态、再 dump_state：dump 与 serialize 之间无 await，
+                # 即使 dump 返回的 *_updates/trace_state 是活引用也不会被并发协程改穿，
+                # 故无需 deepcopy 整棵状态（dump 已对四个 *_state 块做过 deepcopy）。
                 old_raw = await state_manager.get_state(session_id)
                 old_state = None
                 if old_raw and isinstance(old_raw, bytes):
                     try:
                         old_state = deserialize_object(old_raw)
                     except Exception:
-                        logger.warning(
+                        workflow_logger.warning(
                             "Failed to deserialize old state for session %s",
                             session_id,
                             exc_info=True,
                         )
                         old_state = None
+                full_state = session.dump_state()
                 # 合并状态
                 if old_state and isinstance(old_state, dict):
                     for key in full_state:
