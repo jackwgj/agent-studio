@@ -2097,7 +2097,7 @@ class IRConverter:
             if "arrLoopVar" in node_inputs:
                 loop_inputs["loop_array"] = node_inputs["arrLoopVar"]
             if "intermediateLoopVar" in node_inputs:
-                loop_inputs["intermediate_var"] = node_inputs["intermediateLoopVar"]
+                loop_inputs["intermediate_var"] = {"intermediateLoopVar": node_inputs["intermediateLoopVar"]}
             _loop_inputs_snapshot = loop_inputs
 
             def _loop_inputs_transformer(state):
