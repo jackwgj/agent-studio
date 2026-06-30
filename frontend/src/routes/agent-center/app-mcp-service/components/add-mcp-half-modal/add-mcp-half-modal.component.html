@@ -397,7 +397,7 @@
           <img [src]="changeUrl('assets/model/online-test-help.svg')" alt="" />
         </span>
       </span>
-      <nz-input-password>
+      <nz-input-password [class.input-error]="oauthErrors.secret">
         <input nz-input [(ngModel)]="mcpAuthConfigData.authParams.secret" [placeholder]="'input_placeholder' | i18nextEager" [class.input-error]="oauthErrors.secret" (ngModelChange)="oauthErrors.secret = false" (blur)="validateOauthField('secret')" />
       </nz-input-password>
       <span *ngIf="oauthErrors.secret" class="error-tip">{{ 'param_1' | i18nextEager }}</span>
@@ -426,23 +426,21 @@
         (ngModelChange)="handleChangeAPIKeyRadio()"
       />
       <p style="color: #f13132; font-size: 12px; position: absolute; left: 2px; top: 30px" *ngIf="data[i].name === ''">
-        <nz-icon nzType="close-circle" nzTheme="outline" style="color: #f13132; font-size: 14px" />
         <span>{{ 'param_1' | i18nextEager }}</span>
       </p>
     </div>
     <div style="display: flex; flex-direction: column; width: 100%; position: relative">
-      <nz-input-password>
+      <nz-input-password [style]="{ border: data[i].value === '' ? '1px solid #FF8A5B' : '', backgroundColor: data[i].value === '' ? '#FCE3E1' : '' }">
         <input
           nz-input
           [(ngModel)]="data[i].value"
           [placeholder]="'input_placeholder' | i18nextEager"
           style="margin-right: 4px"
-          [style]="{ border: data[i].value === '' ? '1px solid #FF8A5B' : '', backgroundColor: data[i].value === '' ? '#FCE3E1' : '' }"
+          [style]="{ backgroundColor: data[i].value === '' ? '#FCE3E1' : '' }"
           (ngModelChange)="handleChangeAPIKeyRadio()"
         />
       </nz-input-password>
       <p style="color: #f13132; font-size: 12px; position: absolute; left: 2px; top: 30px" *ngIf="data[i].value === ''">
-        <nz-icon nzType="close-circle" nzTheme="outline" style="color: #f13132; font-size: 14px" />
         <span>{{ 'param_1' | i18nextEager }}</span>
       </p>
     </div>

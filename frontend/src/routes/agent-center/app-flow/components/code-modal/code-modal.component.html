@@ -181,10 +181,10 @@
                 {{ 'param_name' | i18nextEager }}
               </div>
 
-              <div class="text-label w-[30%]">
+              <div class="text-label w-[90px]">
                 {{ 'param_type' | i18nextEager }}
               </div>
-              <div class="text-label w-[30%]" #descriptionDom>
+              <div class="text-label w-[30%]" [ngStyle]="{'max-width':'130px'}" #descriptionDom>
                 {{ 'description' | i18nextEager }}
               </div>
               <div class="text-label w-[4%]" #actionDom></div>
@@ -219,7 +219,7 @@
 
                     <div
                       [ngStyle]="{
-                        width: getParamWidth,
+                        width: '90px',
                       }"
                     >
                       <nz-select

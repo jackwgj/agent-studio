@@ -220,7 +220,6 @@ export class EnvManagementListComponent implements OnInit, OnDestroy {
 
   async ngOnInit() {
     this.getEnvironmentListData();
-    this.queryAgentRunStatus();
   }
 
   findItemByText(data, textValue) {
@@ -572,13 +571,6 @@ export class EnvManagementListComponent implements OnInit, OnDestroy {
 
   createEnvWithEntrust() {
     this.showModal('create');
-  }
-
-  agentRunStatus = false;
-  queryAgentRunStatus() {
-    this.environmentManagementService.getAgentRunStatus().then((res) => {
-      this.agentRunStatus = res.open_status;
-    });
   }
 
   get searchNameIsEmpty() {

@@ -36,8 +36,8 @@ export abstract class ModalBaseComponent
 
   protected normalParamLableWidth = {
     name: '145px',
-    type: '150px',
-    desc: '142px',
+    type: '90px',
+    desc: '120px',
   };
 
   protected slimParamLableWidth = {
