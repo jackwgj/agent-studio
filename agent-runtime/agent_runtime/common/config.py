@@ -194,7 +194,7 @@ class SecuritySandboxSettings(BaseSettings):
 class WorkflowLogSettings(BaseSettings):
     """Workflow logger configuration."""
 
-    level: str = Field(default="INFO", validation_alias="WORKFLOW_LOG_LEVEL")
+    level: str = Field(default="WARNING", validation_alias="WORKFLOW_LOG_LEVEL")
     graph_level: str = Field(default="WARNING", validation_alias="GRAPH_LOG_LEVEL")
     llm_level: str = Field(default="WARNING", validation_alias="LLM_LOG_LEVEL")
 
