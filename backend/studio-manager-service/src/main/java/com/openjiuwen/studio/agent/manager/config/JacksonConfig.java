@@ -22,7 +22,7 @@ import java.util.TimeZone;
  */
 @Configuration
 public class JacksonConfig {
-    @Value("${jackson.max-token-limit:500000}")
+    @Value("${jackson.max-token-limit:10000000}")
     private long maxTokenLimit;
 
     @Value("${jackson.time-zone}")

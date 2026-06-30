@@ -456,7 +456,7 @@ delegate:
     agency-token-url: ${agency_token_url:}
 
 jackson:
-  max-token-limit: ${jackson_max_token_limit:500000}
+  max-token-limit: ${jackson_max_token_limit:10000000}
   time-zone: GMT+8
   date-format: 'yyyy-MM-dd HH:mm:ss' # 启用时间戳后此配置失效，可保留/删除
   serialization:
