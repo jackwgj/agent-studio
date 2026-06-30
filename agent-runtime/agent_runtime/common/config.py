@@ -152,7 +152,7 @@ class ObjectStorageSettings(BaseSettings):
         env_file=".env", env_file_encoding="utf-8", extra="ignore"
     )
 
-    @field_validator("access_key", "secret_key", mode="after")
+    @field_validator("secret_key", mode="after")
     @classmethod
     def _decrypt_keys(cls, v):
         return _decrypt(v)
