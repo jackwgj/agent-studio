@@ -387,11 +387,13 @@ public abstract class AbstractIRNodeAdapter implements Adapter {
             switch (value.getType()) {
                 case REF -> {
                     jiuwenField.put(SOURCE_TYPE, "ref");
-                    if (isOutput) {
-                        Map<String, String> refMap = JsonUtils.objectToClass(value.getContent());
-                        if (refMap == null) {
+                    Map<String, String> refMap = JsonUtils.objectToClass(value.getContent());
+                    if (refMap == null) {
+                        // output 必须有合法引用；input 允许为空（运行时再解析）
+                        if (isOutput) {
                             throw new AgentStudioException(StudioError.WORKFLOW_IR_FAILED_OUTPUT_TYPE_INVALID, workflowField.getName());
                         }
+                    } else {
                         jiuwenField.put(VALUE, adaptValue(refMap.get(CommonConstant.Workflow.REF_NODE_ID),
                             refMap.get(CommonConstant.Workflow.REF_VAR_NAME), refMap.get("source")));
                     }
@@ -726,6 +728,17 @@ public abstract class AbstractIRNodeAdapter implements Adapter {
                 if (workflowField.getSchema() != null) {
                     subResult.put(SCHEMA,
                         adaptSchema(workflowField.getType(), workflowField.getSchema(), depth, shouldConvertSub));
+                }
+                // 保留 REF 类型子字段的初始引用（如循环节点 intermediateLoopVar 子字段引用其他节点变量），
+                // 否则 IR 生成会丢弃 value/sourceType，导致下游节点与循环输出取不到中间变量初始值
+                WorkflowFieldVOValue subFieldValue = workflowField.getValue();
+                if (subFieldValue != null && WorkflowFieldVOValue.TypeEnum.REF.equals(subFieldValue.getType())) {
+                    Map<String, String> refMap = JsonUtils.objectToClass(subFieldValue.getContent());
+                    if (refMap != null) {
+                        subResult.put(SOURCE_TYPE, "ref");
+                        subResult.put(VALUE, adaptValue(refMap.get(CommonConstant.Workflow.REF_NODE_ID),
+                            refMap.get(CommonConstant.Workflow.REF_VAR_NAME), refMap.get("source")));
+                    }
                 }
                 if (memory.getAgingLevel() != null) {
                     subResult.put(AGING_LEVEL, memory.getAgingLevel());
