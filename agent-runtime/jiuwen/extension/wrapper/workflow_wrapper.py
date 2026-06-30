@@ -490,8 +490,12 @@ class WorkflowWrapper:
                     result["_env"] = params[key]
                 result[key] = params[key]
 
-        # 注入 __node_defs__ 供 callback 读取节点类型和名称
-        if self._node_name_type_map:
+        # 注入 __node_defs__ 供 callback 读取节点类型、名称和 configs
+        # 优先使用 params 中的完整定义（含 configs，由 workflow_handler 从 IR 提取）
+        # fallback 到 _node_name_type_map（仅含 node_type/node_name，旧框架路径）
+        if "__node_defs__" in params and params["__node_defs__"]:
+            result["__node_defs__"] = params["__node_defs__"]
+        elif self._node_name_type_map:
             wf_node_defs = {}
             for comp_id, meta in self._node_name_type_map.items():
                 if isinstance(meta, dict):
