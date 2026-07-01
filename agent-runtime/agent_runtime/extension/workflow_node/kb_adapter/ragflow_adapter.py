@@ -28,20 +28,14 @@ class RagFlowAdapter(KBServiceAdapter):
         score_threshold = retrieval_params.get("scoreThreshold", 0.0)
 
         endpoint = connection_config.get("endpoint", "")
-        authorization = connection_config.get("authorization", "")
 
         if not endpoint:
-            workflow_logger.warning("RAGFlow endpoint is empty, skip search")
-            return []
+            raise RuntimeError("RAGFlow endpoint is empty")
 
-        # RAGFlow 连接将 API Key 存储在 param code "APIKey" 下（而非 "authorization"），
-        # 当 authorization 为空时，从 extra_params 中获取 APIKey 作为兜底
+        extra_params = connection_config.get("extra_params", {})
+        authorization = extra_params.get("APIKey", "") or connection_config.get("authorization", "")
         if not authorization:
-            extra_params = connection_config.get("extra_params", {})
-            authorization = extra_params.get("APIKey", "")
-        if not authorization:
-            workflow_logger.warning("RAGFlow authorization is empty, skip search")
-            return []
+            raise RuntimeError("RAGFlow authorization is empty")
 
         # 构建 HTTP 请求头
         headers = {
@@ -62,10 +56,10 @@ class RagFlowAdapter(KBServiceAdapter):
             dataset_ids.append(external_id)
 
         if not dataset_ids:
-            workflow_logger.warning(
-                "No valid dataset_ids found in knowledge_bases, skip search"
+            raise RuntimeError(
+                "No valid dataset_ids found in knowledge_bases for RAGFlow",
+
             )
-            return []
 
         try:
             results = await self._search_datasets(
@@ -78,10 +72,12 @@ class RagFlowAdapter(KBServiceAdapter):
                 )
             )
             all_results.extend(results)
+        except RuntimeError:
+            raise
         except Exception as e:
-            workflow_logger.error(
-                f"RAGFlow search failed: {e}", exc_info=True
-            )
+            raise RuntimeError(
+                f"RAGFlow search failed: {e}"
+            ) from e
 
         # 按 score 降序排列，截取 top_k
         all_results.sort(key=lambda r: r.score, reverse=True)
@@ -142,20 +138,17 @@ class RagFlowAdapter(KBServiceAdapter):
                 ) as resp:
                     if not resp.ok:
                         text = await resp.text()
-                        workflow_logger.error(
-                            f"RAGFlow API error: status={resp.status}, "
-                            f"body={text[:500]}"
-                        )
-                        return []
+                        raise RuntimeError(f"RAGFlow API error: status={resp.status}, body={text[:500]}")
 
                     resp_data = await resp.json()
                     return self.parse_response(resp_data)
 
+        except RuntimeError:
+            raise
         except Exception as e:
-            workflow_logger.error(
-                f"RAGFlow HTTP request failed: {e}", exc_info=True
-            )
-            return []
+            raise RuntimeError(
+                f"RAGFlow HTTP request failed: {e}"
+            ) from e
 
     @staticmethod
     def parse_response(resp_data: dict) -> List[KBSearchResult]:
@@ -164,11 +157,11 @@ class RagFlowAdapter(KBServiceAdapter):
         # 检查响应状态码
         code = resp_data.get("code")
         if code != 0:
-            workflow_logger.warning(
+            raise RuntimeError(
                 f"RAGFlow API returned non-zero code: {code}, "
-                f"message: {resp_data.get('message', '')}"
+                f"message: {resp_data.get('message', '')}",
+
             )
-            return []
 
         data = resp_data.get("data", {})
         chunks = data.get("chunks", [])
@@ -192,6 +185,14 @@ class RagFlowAdapter(KBServiceAdapter):
                 if k not in ("content", "similarity")
             }
 
+            doc_name = (
+                chunk.get("document_keyword", "")
+                or chunk.get("docnm_kwd", "")
+                or chunk.get("title", "")
+                or chunk.get("document_name", "")
+                or chunk.get("documentName", "")
+            )
+
             results.append(
                 KBSearchResult(
                     text=text,
@@ -202,13 +203,13 @@ class RagFlowAdapter(KBServiceAdapter):
                     knowledge_base_id=chunk.get("dataset_id",
                                         chunk.get("datasetId",
                                             chunk.get("kb_id", ""))),
-                    file_id=chunk.get("chunk_id",
+                    file_id=chunk.get("document_id",
                                chunk.get("documentId",
-                                   chunk.get("document_id", ""))),
-                    document_name=chunk.get("title",
-                                     chunk.get("documentName",
-                                         chunk.get("document_name", ""))),
-                    subtitle=chunk.get("subtitle", ""),
+                                   chunk.get("doc_id",
+                                       chunk.get("chunk_id", "")))),
+                    document_name=doc_name,
+                    # Java 端同样用 documentKeyword 填充 subtitle
+                    subtitle=doc_name,
                     knowledge_base_type=chunk.get("knowledge_base_type",
                                           chunk.get("knowledgeBaseType", "")),
                     type="faq" if score > 0.9 else "doc",

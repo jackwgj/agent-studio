@@ -1,3 +1,5 @@
+import pytest
+
 from agent_runtime.extension.workflow_node.kb_adapter.koosearch_adapter import (
     KooSearchAdapter,
 )
@@ -53,8 +55,9 @@ def test_koosearch_parse_response_empty_doc_list():
 # --------------------------------------------------------------------------
 
 
-def test_ragflow_parse_response_nonzero_code_returns_empty():
-    assert RagFlowAdapter.parse_response({"code": 1, "message": "err"}) == []
+def test_ragflow_parse_response_nonzero_code_raises_error():
+    with pytest.raises(RuntimeError, match="non-zero code"):
+        RagFlowAdapter.parse_response({"code": 1, "message": "err"})
 
 
 def test_ragflow_parse_response_maps_chunks_and_faq_by_score():
@@ -73,6 +76,73 @@ def test_ragflow_parse_response_maps_chunks_and_faq_by_score():
     assert results[0].score == 0.95 and results[0].type == "faq"
     assert results[1].type == "doc"
     assert results[0].knowledge_base_id == "d-1"
+
+
+def test_ragflow_parse_response_maps_document_keyword():
+    """RAGFlow v1 retrieval API 返回 document_keyword 作为文档名称。"""
+    resp = {
+        "code": 0,
+        "data": {
+            "chunks": [
+                {
+                    "content": "some text",
+                    "similarity": 0.8,
+                    "dataset_id": "d-1",
+                    "document_keyword": "report.pdf",
+                    "document_id": "doc-1",
+                },
+            ]
+        },
+    }
+    results = RagFlowAdapter.parse_response(resp)
+    assert len(results) == 1
+    r = results[0]
+    assert r.document_name == "report.pdf"
+    assert r.subtitle == "report.pdf"
+    assert r.file_id == "doc-1"
+
+
+def test_ragflow_parse_response_maps_docnm_kwd_legacy():
+    """RAGFlow 旧版 API 返回 docnm_kwd 作为文档名称。"""
+    resp = {
+        "code": 0,
+        "data": {
+            "chunks": [
+                {
+                    "content": "legacy text",
+                    "similarity": 0.7,
+                    "dataset_id": "d-1",
+                    "docnm_kwd": "legacy.pdf",
+                    "doc_id": "doc-2",
+                },
+            ]
+        },
+    }
+    results = RagFlowAdapter.parse_response(resp)
+    assert len(results) == 1
+    assert results[0].document_name == "legacy.pdf"
+    assert results[0].file_id == "doc-2"
+
+
+def test_ragflow_parse_response_document_keyword_priority():
+    """document_keyword 优先于 docnm_kwd 和 title。"""
+    resp = {
+        "code": 0,
+        "data": {
+            "chunks": [
+                {
+                    "content": "priority text",
+                    "similarity": 0.8,
+                    "dataset_id": "d-1",
+                    "document_keyword": "from_keyword.pdf",
+                    "docnm_kwd": "from_docnm.pdf",
+                    "title": "from_title",
+                },
+            ]
+        },
+    }
+    results = RagFlowAdapter.parse_response(resp)
+    assert results[0].document_name == "from_keyword.pdf"
 
 
 def test_ragflow_parse_response_empty_chunks():

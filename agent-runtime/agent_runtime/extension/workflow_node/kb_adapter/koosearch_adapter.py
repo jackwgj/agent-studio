@@ -38,14 +38,12 @@ class KooSearchAdapter(KBServiceAdapter):
 
         endpoint = connection_config.get("endpoint", "")
         extra_params = connection_config.get("extra_params", {})
-        app_code = connection_config.get("authorization", "") or extra_params.get("AppCode", "")
+        app_code = extra_params.get("AppCode", "") or connection_config.get("authorization", "")
 
         if not endpoint:
-            workflow_logger.warning("KooSearch endpoint is empty, skip search")
-            return []
+            raise RuntimeError("KooSearch endpoint is empty")
         if not app_code:
-            workflow_logger.warning("KooSearch AppCode is empty, skip search")
-            return []
+            raise RuntimeError("KooSearch AppCode is empty")
 
         # 构建 HTTP 请求头
         headers = {
@@ -66,10 +64,10 @@ class KooSearchAdapter(KBServiceAdapter):
             dataset_ids.append(external_id)
 
         if not dataset_ids:
-            workflow_logger.warning(
-                "No valid dataset_ids found in knowledge_bases, skip search"
+            raise RuntimeError(
+                "No valid dataset_ids found in knowledge_bases for KooSearch",
+
             )
-            return []
 
         try:
             results = await self._search_datasets(
@@ -83,10 +81,12 @@ class KooSearchAdapter(KBServiceAdapter):
                 )
             )
             all_results.extend(results)
+        except RuntimeError:
+            raise
         except Exception as e:
-            workflow_logger.error(
-                f"KooSearch search failed: {e}", exc_info=True
-            )
+            raise RuntimeError(
+                f"KooSearch search failed: {e}"
+            ) from e
 
         # 按 score 降序排列，截取 top_k
         all_results.sort(key=lambda r: r.score, reverse=True)
@@ -130,7 +130,7 @@ class KooSearchAdapter(KBServiceAdapter):
         body: Dict[str, Any] = {
             "repo_id": dataset_ids[0] if dataset_ids else "",
             "content": query,
-            "extra_repo_ids": dataset_ids,
+            "extra_repo_ids": dataset_ids[1:] if len(dataset_ids) > 1 else dataset_ids,
             "page_num": 1,
             "page_size": top_k,
         }
@@ -156,20 +156,17 @@ class KooSearchAdapter(KBServiceAdapter):
                 ) as resp:
                     if not resp.ok:
                         text = await resp.text()
-                        workflow_logger.error(
-                            f"KooSearch API error: status={resp.status}, "
-                            f"body={text[:500]}"
-                        )
-                        return []
+                        raise RuntimeError(f"KooSearch API error: status={resp.status}, body={text[:500]}")
 
                     resp_data = await resp.json()
                     return self.parse_response(resp_data)
 
+        except RuntimeError:
+            raise
         except Exception as e:
-            workflow_logger.error(
-                f"KooSearch HTTP request failed: {e}", exc_info=True
-            )
-            return []
+            raise RuntimeError(
+                f"KooSearch HTTP request failed: {e}"
+            ) from e
 
     @staticmethod
     def parse_response(resp_data: dict) -> List[KBSearchResult]:

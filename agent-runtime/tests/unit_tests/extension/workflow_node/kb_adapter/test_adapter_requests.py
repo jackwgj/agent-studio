@@ -117,6 +117,52 @@ async def test_lakesearch_page_size_capped_at_50(monkeypatch):
     assert _FakeSession.last["headers"]["Authorization"] == "Bearer tok"
 
 
+async def test_lakesearch_multi_kb_single_request_with_extra_repo_ids(monkeypatch):
+    """多知识库检索：对齐 Java 端，单次 HTTP 请求，用 extra_repo_ids 传递所有知识库 ID。"""
+    _patch_session(monkeypatch, lakesearch_adapter, {"doc_list": []})
+    adapter = LakeSearchAdapter()
+    await adapter.search(
+        query="multi-kb query",
+        connection_config={
+            "endpoint": "http://host",
+            "auth_mode": "BASIC",
+            "authorization": "cred",
+            "extra_params": {"project_id": "p1", "app_id": "a1"},
+        },
+        knowledge_bases=[
+            {"knowledge_base_id": "kb-1", "external_id": "ext-1"},
+            {"knowledge_base_id": "kb-2", "external_id": "ext-2"},
+            {"knowledge_base_id": "kb-3", "external_id": "ext-3"},
+        ],
+        retrieval_params={"topK": 5},
+    )
+    sent = _FakeSession.last
+    assert sent["json"]["repo_id"] == "ext-1"  # 第一个 KB 作为主 repo_id
+    # 对齐 Java LakeSearchService：extra_repo_ids 排除主 repo（主 repo 已在 repo_id 中）
+    assert sent["json"]["extra_repo_ids"] == ["ext-2", "ext-3"]
+    assert sent["json"]["content"] == "multi-kb query"
+
+
+async def test_lakesearch_single_kb_no_extra_repo_ids(monkeypatch):
+    """单知识库检索：不设置 extra_repo_ids。"""
+    _patch_session(monkeypatch, lakesearch_adapter, {"doc_list": []})
+    adapter = LakeSearchAdapter()
+    await adapter.search(
+        query="q",
+        connection_config={
+            "endpoint": "http://host",
+            "auth_mode": "BASIC",
+            "authorization": "cred",
+            "extra_params": {"project_id": "p1", "app_id": "a1"},
+        },
+        knowledge_bases=[{"knowledge_base_id": "kb-1", "external_id": "ext-1"}],
+        retrieval_params={"topK": 5},
+    )
+    sent = _FakeSession.last
+    assert sent["json"]["repo_id"] == "ext-1"
+    assert "extra_repo_ids" not in sent["json"]  # 单 KB 不需要 extra_repo_ids
+
+
 # --------------------------------------------------------------------------
 # KooSearch
 # --------------------------------------------------------------------------
@@ -140,21 +186,69 @@ async def test_koosearch_builds_request_with_extra_repo_ids(monkeypatch):
     )
     sent = _FakeSession.last
     assert sent["json"]["repo_id"] == "ext-1"
-    assert sent["json"]["extra_repo_ids"] == ["ext-1", "ext-2"]
+    # 对齐 Java CssUniSearchService：extra_repo_ids 排除主 repo（主 repo 已在 repo_id 中）
+    assert sent["json"]["extra_repo_ids"] == ["ext-2"]
     assert sent["json"]["scope"] == "mix"
     assert sent["headers"]["X-Apig-AppCode"] == "appcode-1"
 
 
-async def test_koosearch_skips_when_no_appcode(monkeypatch):
+async def test_koosearch_appcode_takes_priority_over_authorization(monkeypatch):
+    """AppCode 优先于 authorization — _merge_auth_headers 可能填入用户 token。"""
     _patch_session(monkeypatch, koosearch_adapter, {"doc_list": []})
     adapter = KooSearchAdapter()
-    results = await adapter.search(
+    await adapter.search(
         query="q",
-        connection_config={"endpoint": "http://koo", "extra_params": {}},
+        connection_config={
+            "endpoint": "http://koo",
+            "authorization": "user-login-token",
+            "extra_params": {"AppCode": "real-app-code", "project_id": "p1", "application_id": "app1"},
+        },
         knowledge_bases=[{"knowledge_base_id": "kb-1", "external_id": "ext-1"}],
         retrieval_params={},
     )
-    assert results == []
+    assert _FakeSession.last["headers"]["X-Apig-AppCode"] == "real-app-code"
+
+
+async def test_koosearch_fallback_to_authorization(monkeypatch):
+    """当 extra_params 中没有 AppCode 时，回退使用 authorization。"""
+    _patch_session(monkeypatch, koosearch_adapter, {"doc_list": []})
+    adapter = KooSearchAdapter()
+    await adapter.search(
+        query="q",
+        connection_config={
+            "endpoint": "http://koo",
+            "authorization": "appcode-from-auth",
+            "extra_params": {"project_id": "p1", "application_id": "app1"},
+        },
+        knowledge_bases=[{"knowledge_base_id": "kb-1", "external_id": "ext-1"}],
+        retrieval_params={},
+    )
+    assert _FakeSession.last["headers"]["X-Apig-AppCode"] == "appcode-from-auth"
+
+
+async def test_koosearch_raises_when_no_appcode(monkeypatch):
+    """AppCode 和 authorization 都为空时，抛出 RuntimeError。"""
+    _patch_session(monkeypatch, koosearch_adapter, {"doc_list": []})
+    adapter = KooSearchAdapter()
+    with pytest.raises(RuntimeError, match="AppCode"):
+        await adapter.search(
+            query="q",
+            connection_config={"endpoint": "http://koo", "extra_params": {}},
+            knowledge_bases=[{"knowledge_base_id": "kb-1", "external_id": "ext-1"}],
+            retrieval_params={},
+        )
+
+
+async def test_koosearch_raises_when_no_endpoint():
+    """endpoint 为空时，抛出 RuntimeError。"""
+    adapter = KooSearchAdapter()
+    with pytest.raises(RuntimeError, match="endpoint"):
+        await adapter.search(
+            query="q",
+            connection_config={"endpoint": "", "extra_params": {"AppCode": "code"}},
+            knowledge_bases=[{"knowledge_base_id": "kb-1", "external_id": "ext-1"}],
+            retrieval_params={},
+        )
 
 
 # --------------------------------------------------------------------------
@@ -183,20 +277,67 @@ async def test_ragflow_builds_request(monkeypatch):
     assert sent["headers"]["Authorization"] == "Bearer key-1"
 
 
-async def test_ragflow_apikey_fallback_from_extra_params(monkeypatch):
+async def test_ragflow_apikey_takes_priority_over_authorization(monkeypatch):
+    """APIKey 优先于 authorization — _merge_auth_headers 可能填入用户 token，不可用作 RAGFlow 鉴权。"""
     _patch_session(monkeypatch, ragflow_adapter, {"code": 0, "data": {"chunks": []}})
     adapter = RagFlowAdapter()
     await adapter.search(
         query="q",
         connection_config={
             "endpoint": "http://rag",
-            "authorization": "",
-            "extra_params": {"APIKey": "fallback-key"},
+            "authorization": "user-login-token",  # 被 _merge_auth_headers 填入的用户 token
+            "extra_params": {"APIKey": "ragflow-api-key"},  # RAGFlow 真正的 API Key
         },
         knowledge_bases=[{"knowledge_base_id": "kb-1", "external_id": "ds-1"}],
         retrieval_params={},
     )
-    assert _FakeSession.last["headers"]["Authorization"] == "Bearer fallback-key"
+    assert _FakeSession.last["headers"]["Authorization"] == "Bearer ragflow-api-key"
+
+
+async def test_ragflow_apikey_fallback_to_authorization(monkeypatch):
+    """当 extra_params 中没有 APIKey 时，回退使用 authorization。"""
+    _patch_session(monkeypatch, ragflow_adapter, {"code": 0, "data": {"chunks": []}})
+    adapter = RagFlowAdapter()
+    await adapter.search(
+        query="q",
+        connection_config={
+            "endpoint": "http://rag",
+            "authorization": "key-from-auth",
+            "extra_params": {},  # 没有 APIKey
+        },
+        knowledge_bases=[{"knowledge_base_id": "kb-1", "external_id": "ds-1"}],
+        retrieval_params={},
+    )
+    assert _FakeSession.last["headers"]["Authorization"] == "Bearer key-from-auth"
+
+
+async def test_ragflow_empty_authorization_raises_error(monkeypatch):
+    """APIKey 和 authorization 都为空时，抛出 RuntimeError。"""
+    _patch_session(monkeypatch, ragflow_adapter, {"code": 0, "data": {"chunks": []}})
+    adapter = RagFlowAdapter()
+    with pytest.raises(RuntimeError, match="authorization"):
+        await adapter.search(
+            query="q",
+            connection_config={
+                "endpoint": "http://rag",
+                "authorization": "",
+                "extra_params": {"APIKey": ""},
+            },
+            knowledge_bases=[{"knowledge_base_id": "kb-1", "external_id": "ds-1"}],
+            retrieval_params={},
+        )
+
+
+async def test_ragflow_empty_endpoint_raises_error():
+    """endpoint 为空时，抛出 RuntimeError。"""
+    adapter = RagFlowAdapter()
+    with pytest.raises(RuntimeError, match="endpoint"):
+        await adapter.search(
+            query="q",
+            connection_config={"endpoint": "", "authorization": "key"},
+            knowledge_bases=[{"knowledge_base_id": "kb-1", "external_id": "ds-1"}],
+            retrieval_params={},
+        )
 
 
 # --------------------------------------------------------------------------
@@ -225,3 +366,66 @@ async def test_general_builds_request(monkeypatch):
     assert sent["json"]["top_k"] == 7
     assert sent["json"]["search_threshold"] == 0.5
     assert sent["headers"]["Authorization"] == "Bearer api-1"
+
+
+async def test_general_apikey_takes_priority_over_authorization(monkeypatch):
+    """apiKey 优先于 authorization — _merge_auth_headers 可能填入用户 token。"""
+    _patch_session(monkeypatch, general_kb_adapter, {"search_result_list": []})
+    adapter = GeneralKBAdapter()
+    await adapter.search(
+        query="q",
+        connection_config={
+            "endpoint": "http://gen",
+            "authorization": "user-login-token",
+            "extra_params": {"apiKey": "real-api-key"},
+        },
+        knowledge_bases=[{"knowledge_base_id": "kb-1", "external_id": "ext-1"}],
+        retrieval_params={},
+    )
+    assert _FakeSession.last["headers"]["Authorization"] == "Bearer real-api-key"
+
+
+async def test_general_fallback_to_authorization(monkeypatch):
+    """当 extra_params 中没有 apiKey 时，回退使用 authorization。"""
+    _patch_session(monkeypatch, general_kb_adapter, {"search_result_list": []})
+    adapter = GeneralKBAdapter()
+    await adapter.search(
+        query="q",
+        connection_config={
+            "endpoint": "http://gen",
+            "authorization": "key-from-auth",
+            "extra_params": {},
+        },
+        knowledge_bases=[{"knowledge_base_id": "kb-1", "external_id": "ext-1"}],
+        retrieval_params={},
+    )
+    assert _FakeSession.last["headers"]["Authorization"] == "Bearer key-from-auth"
+
+
+async def test_general_raises_when_no_apikey(monkeypatch):
+    """apiKey 和 authorization 都为空时，抛出 RuntimeError。"""
+    _patch_session(monkeypatch, general_kb_adapter, {"search_result_list": []})
+    adapter = GeneralKBAdapter()
+    with pytest.raises(RuntimeError, match="apiKey"):
+        await adapter.search(
+            query="q",
+            connection_config={
+                "endpoint": "http://gen",
+                "authorization": "",
+                "extra_params": {"apiKey": ""},
+            },
+            knowledge_bases=[{"knowledge_base_id": "kb-1", "external_id": "ext-1"}],
+            retrieval_params={},
+        )
+
+
+async def test_general_raises_when_no_endpoint():
+    """endpoint 为空时，抛出 RuntimeError。"""
+    adapter = GeneralKBAdapter()
+    with pytest.raises(RuntimeError, match="endpoint"):
+        await adapter.search(
+            query="q",
+            connection_config={"endpoint": "", "authorization": "key", "extra_params": {}},
+            knowledge_bases=[{"knowledge_base_id": "kb-1", "external_id": "ext-1"}],
+            retrieval_params={},
+        )

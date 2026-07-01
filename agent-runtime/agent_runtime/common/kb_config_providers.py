@@ -319,12 +319,20 @@ class OBSKnowledgeBaseConfigProvider(KnowledgeBaseConfigProvider):
         )
 
     def _merge_auth_headers(self, connection: KBConnectionConfig) -> None:
-
         ctx = _request_ctx.get()
         if not ctx or not ctx.headers:
             return
 
         if connection.authorization:
+            return
+
+        # 仅 LakeSearch 系列和 Custom（底层也是 LakeSearchAdapter）允许用用户 token 兜底。
+        # LakeSearchInside / Custom 在 KBAdapterFactory 中都映射到 LakeSearchAdapter。
+        # RAGFlow / KooSearch / General 等外部服务使用独立凭证，
+        # 用户 token 不可作为鉴权信息，不应填充。
+        connector_type = (connection.connector_type or "").lower()
+        if not (connector_type.startswith("lakesearch")
+                or connector_type in ("custom", "")):
             return
 
         auth_token = (

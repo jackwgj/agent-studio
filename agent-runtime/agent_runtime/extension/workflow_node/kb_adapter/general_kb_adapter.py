@@ -39,14 +39,12 @@ class GeneralKBAdapter(KBServiceAdapter):
 
         endpoint = connection_config.get("endpoint", "")
         extra_params = connection_config.get("extra_params", {})
-        api_key = connection_config.get("authorization", "") or extra_params.get("apiKey", "")
+        api_key = extra_params.get("apiKey", "") or connection_config.get("authorization", "")
 
         if not endpoint:
-            workflow_logger.warning("General KB endpoint is empty, skip search")
-            return []
+            raise RuntimeError("General KB endpoint is empty")
         if not api_key:
-            workflow_logger.warning("General KB apiKey is empty, skip search")
-            return []
+            raise RuntimeError("General KB apiKey is empty")
 
         # 构建 HTTP 请求头
         headers = {
@@ -67,10 +65,10 @@ class GeneralKBAdapter(KBServiceAdapter):
             dataset_ids.append(external_id)
 
         if not dataset_ids:
-            workflow_logger.warning(
-                "No valid knowledge_base_ids found in knowledge_bases, skip search"
+            raise RuntimeError(
+                "No valid knowledge_base_ids found in knowledge_bases for General KB",
+
             )
-            return []
 
         try:
             results = await self._search_datasets(
@@ -83,10 +81,12 @@ class GeneralKBAdapter(KBServiceAdapter):
                 )
             )
             all_results.extend(results)
+        except RuntimeError:
+            raise
         except Exception as e:
-            workflow_logger.error(
-                f"General KB search failed: {e}", exc_info=True
-            )
+            raise RuntimeError(
+                f"General KB search failed: {e}"
+            ) from e
 
         # 按 score 降序排列，截取 top_k
         all_results.sort(key=lambda r: r.score, reverse=True)
@@ -141,20 +141,17 @@ class GeneralKBAdapter(KBServiceAdapter):
                 ) as resp:
                     if not resp.ok:
                         text = await resp.text()
-                        workflow_logger.error(
-                            f"General KB API error: status={resp.status}, "
-                            f"body={text[:500]}"
-                        )
-                        return []
+                        raise RuntimeError(f"General KB API error: status={resp.status}, body={text[:500]}")
 
                     resp_data = await resp.json()
                     return self.parse_response(resp_data)
 
+        except RuntimeError:
+            raise
         except Exception as e:
-            workflow_logger.error(
-                f"General KB HTTP request failed: {e}", exc_info=True
-            )
-            return []
+            raise RuntimeError(
+                f"General KB HTTP request failed: {e}"
+            ) from e
 
     @staticmethod
     def parse_response(resp_data: dict) -> List[KBSearchResult]:

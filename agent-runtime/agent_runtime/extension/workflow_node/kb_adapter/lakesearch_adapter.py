@@ -5,13 +5,35 @@
 
 import asyncio
 import json
+from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 import aiohttp
 
 from openjiuwen.core.common.logging import workflow_logger
 
-from .base import KBSearchResult, KBServiceAdapter, SingleKBSearchRequest
+from .base import KBSearchResult, KBServiceAdapter
+
+_EXCLUDED_METADATA_KEYS = frozenset({
+    "content", "text", "score",
+    "file_id", "fileId", "chunk_id", "chunkId",
+    "title", "subtitle", "doc_type", "docType",
+    "repo_id", "repoId",
+})
+
+
+@dataclass
+class LakeSearchRequest:
+
+    endpoint: str
+    project_id: str
+    app_id: str
+    repo_ids: List[str]
+    query: str
+    top_k: int
+    headers: Dict[str, Any]
+    search_mode: str = "doc"
+    tags: List[str] = field(default_factory=list)
 
 
 class LakeSearchAdapter(KBServiceAdapter):
@@ -25,8 +47,6 @@ class LakeSearchAdapter(KBServiceAdapter):
         retrieval_params: dict,
     ) -> List[KBSearchResult]:
 
-        all_results: List[KBSearchResult] = []
-
         top_k = retrieval_params.get("topK", 10)
         score_threshold = retrieval_params.get("scoreThreshold", 0.0)
         search_mode = retrieval_params.get("searchMode", "doc")
@@ -38,21 +58,18 @@ class LakeSearchAdapter(KBServiceAdapter):
         extra_params = connection_config.get("extra_params", {})
 
         if not endpoint:
-            workflow_logger.warning("LakeSearch endpoint is empty, skip search")
-            return []
+            raise RuntimeError("LakeSearch endpoint is empty")
 
         # 构建 HTTP 请求头（支持 BASIC / TOKEN / KERBEROS 三种认证模式）
         headers = {"Content-Type": "application/json"}
 
         if auth_mode.upper() == "KERBEROS":
-            # Kerberos SPNEGO：从 extra_params 读配置，_search_single_kb 据 endpoint host 生成 Negotiate token
             kerberos_config = self._extract_kerberos_config(extra_params)
             if not kerberos_config:
                 raise ValueError(
                     "KERBEROS auth mode requires: host_names, cluster_ips, "
                     "user_keytab_file, krb5_file in connection params"
                 )
-            # 临时存入 headers，_search_single_kb 取出并生成 token
             headers["_kerberos_config"] = kerberos_config
         elif authorization:
             if auth_mode.upper() == "BASIC":
@@ -71,37 +88,35 @@ class LakeSearchAdapter(KBServiceAdapter):
                 "(from OBS), but they are missing"
             )
 
-        # 遍历每个知识库执行检索
+        # 收集有效的知识库 external_id
+        repo_ids = []
         for kb in knowledge_bases:
             external_id = kb.get("external_id", "")
             kb_id = kb.get("knowledge_base_id", "")
-
             if not external_id:
                 workflow_logger.warning(
                     f"KB {kb_id} has no external_id, skip"
                 )
                 continue
+            repo_ids.append(external_id)
 
-            try:
-                results = await self._search_single_kb(
-                    SingleKBSearchRequest(
-                        endpoint=endpoint,
-                        project_id=project_id,
-                        app_id=app_id,
-                        repo_id=external_id,
-                        query=query,
-                        top_k=top_k,
-                        headers=headers,
-                        search_mode=search_mode,
-                        tags=tags,
-                    )
-                )
-                all_results.extend(results)
-            except Exception as e:
-                workflow_logger.error(
-                    f"LakeSearch search failed for kb={kb_id}: {e}",
-                    exc_info=True,
-                )
+        if not repo_ids:
+            return []
+
+        # 对齐 Java 端逻辑：用 repo_id + extra_repo_ids 在单次 HTTP 请求中检索多个知识库
+        # Java: SearchTextReq.builder().repoId(first).extraRepoIds(rest).build()
+        request = LakeSearchRequest(
+            endpoint=endpoint,
+            project_id=project_id,
+            app_id=app_id,
+            repo_ids=repo_ids,
+            query=query,
+            top_k=top_k,
+            headers=headers,
+            search_mode=search_mode,
+            tags=tags,
+        )
+        all_results = await self._search_multi_kb(request)
 
         # 按 score 降序排列，截取 top_k
         all_results.sort(key=lambda r: r.score, reverse=True)
@@ -115,15 +130,16 @@ class LakeSearchAdapter(KBServiceAdapter):
 
         return all_results
 
-    async def _search_single_kb(
+    async def _search_multi_kb(
         self,
-        request: SingleKBSearchRequest,
+        request: LakeSearchRequest,
     ) -> List[KBSearchResult]:
+        """对齐 Java 端：单次 HTTP 请求，repo_id + extra_repo_ids 检索多个知识库。"""
 
         endpoint = request.endpoint
         project_id = request.project_id
         app_id = request.app_id
-        repo_id = request.repo_id
+        repo_ids = request.repo_ids
         query = request.query
         top_k = request.top_k
         headers = request.headers
@@ -145,13 +161,18 @@ class LakeSearchAdapter(KBServiceAdapter):
         elif search_mode.lower() == "mix":
             scope = "mix"
 
+        # 对齐 Java SearchTextRequestBody：repoId + extraRepoIds
         body = {
-            "repo_id": repo_id,
+            "repo_id": repo_ids[0],
             "content": query,
             "page_num": 1,
             "page_size": min(top_k, 50),
             "scope": scope,
         }
+        # 多知识库时设置 extra_repo_ids（对齐 Java LakeSearchService：排除主 repo，主 repo 已在 repo_id 中）
+        # Java: .extraRepoIds(knowledgeRepos.stream().filter(item -> !item.equals(knowledgeRepoId)).toList())
+        if len(repo_ids) > 1:
+            body["extra_repo_ids"] = repo_ids[1:]
 
         # 标签过滤
         if tags:
@@ -163,34 +184,31 @@ class LakeSearchAdapter(KBServiceAdapter):
         # Kerberos 认证处理：从 headers 提取 Kerberos 配置，生成 Negotiate token
         kerberos_config = headers.pop("_kerberos_config", None)
         if kerberos_config:
-            # 从 URL 解析主机名（用于 service principal）
-            # Java 端：URL 用 IP，service principal 用 hostname
             from urllib.parse import urlparse
 
             parsed = urlparse(url)
-            # 优先从 kerberos_config 取 host_names
             host_names = kerberos_config.get("host_names", [])
             hostname = host_names[0] if host_names else parsed.hostname
 
             if not hostname:
-                workflow_logger.error("Cannot extract hostname for Kerberos service principal")
-                return []
+                raise RuntimeError(
+                    "Cannot extract hostname for Kerberos service principal"
+                )
 
             try:
-                # 生成 Negotiate Authorization header
                 auth_header = await self._build_kerberos_auth_header(hostname, kerberos_config)
                 headers["Authorization"] = auth_header
                 workflow_logger.debug(
                     "Built Kerberos Negotiate token for service principal HTTP@%s", hostname
                 )
             except ImportError as e:
-                workflow_logger.error(
-                    "Kerberos authentication failed: gssapi library not installed. %s", e
-                )
-                return []
+                raise RuntimeError(
+                    f"Kerberos authentication failed: gssapi library not installed. {e}"
+                ) from e
             except Exception as e:
-                workflow_logger.error("Kerberos authentication failed: %s", e, exc_info=True)
-                return []
+                raise RuntimeError(
+                    f"Kerberos authentication failed: {e}"
+                ) from e
 
         try:
             async with aiohttp.ClientSession() as session:
@@ -202,14 +220,9 @@ class LakeSearchAdapter(KBServiceAdapter):
                 ) as resp:
                     if not resp.ok:
                         text = await resp.text()
-                        workflow_logger.error(
-                            f"LakeSearch API error: status={resp.status}, "
-                            f"body={text[:500]}"
-                        )
-                        return []
+                        raise RuntimeError(f"LakeSearch API error: status={resp.status}, body={text[:500]}")
 
                     resp_text = await resp.text()
-                    # LakeSearch 可能返回 JSON 字符串需要二次解析
                     try:
                         resp_data = json.loads(resp_text)
                     except (json.JSONDecodeError, TypeError):
@@ -218,18 +231,26 @@ class LakeSearchAdapter(KBServiceAdapter):
                     if isinstance(resp_data, str):
                         resp_data = json.loads(resp_data)
 
-                    return self._parse_response(resp_data, repo_id)
+                    return self.parse_response(resp_data, repo_ids[0])
 
+        except RuntimeError:
+            raise
         except Exception as e:
-            workflow_logger.error(
-                f"LakeSearch HTTP request failed: {e}", exc_info=True
-            )
-            return []
+            raise RuntimeError(
+                f"LakeSearch HTTP request failed: {e}"
+            ) from e
 
     @staticmethod
-    def _parse_response(
+    def parse_response(
         resp_data: dict, source: str
     ) -> List[KBSearchResult]:
+        """解析 LakeSearch 响应，字段映射对齐 Java LakeSearchChatReferenceInfo。
+
+        Java @JsonNaming(SnakeCaseStrategy) → JSON 字段为 snake_case:
+          fileId → file_id, chunkId → chunk_id, docType → doc_type,
+          filePath → file_path, repoId → repo_id
+        同时兼容 camelCase 响应。
+        """
         results = []
         doc_list = resp_data.get("doc_list", [])
         if not doc_list:
@@ -245,24 +266,23 @@ class LakeSearchAdapter(KBServiceAdapter):
             if not text:
                 continue
 
+            # repo_id 优先从文档自身取（多知识库检索时每个结果属于不同 repo）
+            doc_repo_id = doc.get("repo_id", doc.get("repoId", "")) or source
+
             metadata = {
                 k: v
                 for k, v in doc.items()
-                if k not in ("content", "text", "score")
+                if k not in _EXCLUDED_METADATA_KEYS
             }
             results.append(
                 KBSearchResult(
                     text=text,
                     score=float(score),
-                    source=source,
-                    knowledge_base_id=source,
+                    source=doc_repo_id,
+                    knowledge_base_id=doc_repo_id,
                     file_id=doc.get("file_id",
-                              doc.get("fileId",
-                                  doc.get("documentId",
-                                      doc.get("document_id", "")))),
-                    document_name=doc.get("title",
-                                   doc.get("documentName",
-                                       doc.get("document_name", ""))),
+                              doc.get("fileId", "")),
+                    document_name=doc.get("title", ""),
                     subtitle=doc.get("subtitle", ""),
                     type=doc.get("doc_type",
                           doc.get("docType",
@@ -315,4 +335,3 @@ class LakeSearchAdapter(KBServiceAdapter):
         )
 
         return f"Negotiate {token}"
-
