@@ -78,7 +78,6 @@ export class AddModelComponent implements OnInit {
   apiProtocolOptions = [];
   apiProtocolModel = 'openai';
 
-  loading = false;
   btnLoading = false;
 
   myForm: FormGroup;
@@ -261,26 +260,26 @@ export class AddModelComponent implements OnInit {
       this.modelManagementService
         .updateModel(this.model_id, modelInfo)
         .then(() => {
-          this.btnLoading = false;
           this.message.success(this.i18n.transform('modified_service_successfully'));
           this.close();
         })
-        .catch(() => {
+        .finally(() => {
           setTimeout(() => {
             this.btnLoading = false;
+            this.cdr.markForCheck();
           }, 3000);
         });
     } else {
       this.modelManagementService
         .createModel(modelInfo)
         .then(() => {
-          this.btnLoading = false;
           this.message.success(this.i18n.transform('added_service_successfully'));
           this.close();
         })
-        .catch(() => {
+        .finally(() => {
           setTimeout(() => {
             this.btnLoading = false;
+            this.cdr.markForCheck();
           }, 3000);
         });
     }
@@ -321,17 +320,18 @@ export class AddModelComponent implements OnInit {
       return;
     }
 
-    this.modelManagementService.checkModelName({ model_name: modelInfo.model_name }).then(res => {
-      if (res.exist_model_name) {
-        this.message.error(this.i18n.transform('exist_model_name'));
+    this.modelManagementService
+      .checkModelName({ model_name: modelInfo.model_name })
+      .then(res => {
+        if (res.exist_model_name) {
+          this.message.success(this.i18n.transform('exist_model_name'));
+        }
+        this.createModel(modelInfo);
+      })
+      .catch(() => {
         this.btnLoading = false;
-        return;
-      }
-
-      this.createModel(modelInfo);
-    }).catch(() => {
-      this.btnLoading = false;
-    });
+        this.cdr.markForCheck();
+      });
   }
 
   changeModelType(type) {
