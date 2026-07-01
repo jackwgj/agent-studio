@@ -137,3 +137,58 @@ class TestLLMChainThinkingStreamHappyPath:
             chunks.append(chunk_data)
         assert len(chunks) > 0
         assert "raw_output" in chunks[0]
+
+
+class TestNormalizeTemplatePlaceholders:
+    """验证模板占位符空白归一化"""
+
+    def test_no_whitespace(self):
+        assert LLMChain._normalize_template_placeholders("{{query}}") == "{{query}}"
+
+    def test_leading_trailing_whitespace(self):
+        assert LLMChain._normalize_template_placeholders("{{ query }}") == "{{query}}"
+
+    def test_excessive_whitespace(self):
+        assert (
+            LLMChain._normalize_template_placeholders("{{ query            }}")
+            == "{{query}}"
+        )
+
+    def test_multiple_placeholders(self):
+        assert (
+            LLMChain._normalize_template_placeholders("{{ query }} and {{ context }}")
+            == "{{query}} and {{context}}"
+        )
+
+    def test_mixed_whitespace_and_clean(self):
+        assert (
+            LLMChain._normalize_template_placeholders("{{query}} {{ name }}")
+            == "{{query}} {{name}}"
+        )
+
+    def test_no_placeholders(self):
+        assert LLMChain._normalize_template_placeholders("hello world") == "hello world"
+
+    def test_dot_notation_preserved(self):
+        assert (
+            LLMChain._normalize_template_placeholders("{{ query.name }}")
+            == "{{query.name}}"
+        )
+
+
+class TestRenderPromptWithWhitespace:
+    """验证 _render_prompt 在模板含空白占位符时能正确替换"""
+
+    def test_render_with_whitespace_placeholder(self):
+        chain = LLMChain(conf=_make_llm_chain_conf(
+            template_content=[{"content": "{{ query            }}", "role": "user"}],
+        ))
+        result = chain._render_prompt("{{ query            }}", {"query": "你好"})
+        assert result == "你好"
+
+    def test_render_rejects_undefined_variable(self):
+        from openjiuwen.core.common.exception.errors import ExecutionError
+
+        chain = LLMChain(conf=_make_llm_chain_conf())
+        with pytest.raises(ExecutionError, match="Error parsing the placeholder"):
+            chain._render_prompt("{{query.aa}}", {"query": "你好"})

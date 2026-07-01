@@ -933,9 +933,22 @@ class LLMChain(WorkflowComponent):
                         f"Invalid or dangerous placeholder: '{placeholder}'"
                     )
 
+    @staticmethod
+    def _normalize_template_placeholders(template: str) -> str:
+        """归一化模板中的占位符，去除 {{ }} 内部的前后空白
+
+        与旧版 TextableVariable 的处理对齐：将 {{ query   }} 归一化为 {{query}}，
+        确保后续精确字符串替换和残留校验能正确工作。
+        """
+        return re.sub(
+            r"\{\{([^{}]*)\}\}",
+            lambda m: "{{" + m.group(1).strip() + "}}",
+            template,
+        )
+
     def _render_prompt(self, template: str, inputs: dict) -> str:
         """渲染提示模板，校验未定义变量"""
-        result = template
+        result = self._normalize_template_placeholders(template)
         for key, value in inputs.items():
             placeholder = f"{{{{{key}}}}}"
             if placeholder in result:
