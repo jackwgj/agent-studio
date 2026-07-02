@@ -82,7 +82,6 @@ class WorkflowWrapper:
         # IR 组件映射 {component_id: {name, type}}，用于覆盖 TraceSchema 中的 componentName/componentType
         self._node_name_type_map: dict[str, dict] = node_name_type_map or {}
         self._current_workflow_query: str = ""
-        self._register_global_variable_trigger()
 
     async def astream(
         self,
@@ -1526,91 +1525,3 @@ class WorkflowWrapper:
             if query.user_inputs:
                 return str(list(query.user_inputs.values())[-1])
         return str(query) if query else ""
-
-    def _register_global_variable_trigger(self):
-        """Register trigger handler to resolve ${global.xxx} references in input_schema."""
-        try:
-            from openjiuwen.core.runner.callback.events import WorkflowEvents
-            from openjiuwen.core.runner.callback.utils import get_callback_framework
-            from openjiuwen.core.session.utils import is_ref_path, extract_origin_key
-            from openjiuwen.core.session.internal.workflow import NodeSession
-
-            _fw = get_callback_framework()
-            if _fw is None:
-                return
-
-            global_ref_prefix = "global."
-
-            def _resolve_global_refs(schema, inputs, session_state, global_updates):
-                """Recursively resolve ${global.xxx} references in nested input_schema."""
-                if not isinstance(schema, dict) or not isinstance(inputs, dict):
-                    return
-                for key, schema_value in schema.items():
-                    if isinstance(schema_value, str) and is_ref_path(schema_value):
-                        origin_key = extract_origin_key(schema_value)
-                        if origin_key.startswith(global_ref_prefix):
-                            var_name = origin_key[len(global_ref_prefix) :]
-                            var_value = session_state.get_global(var_name)
-                            if var_value is None:
-                                global_updates[var_name] = None
-                            inputs[key] = var_value
-                    elif isinstance(schema_value, dict):
-                        if key not in inputs or not isinstance(inputs[key], dict):
-                            inputs[key] = {}
-                        _resolve_global_refs(
-                            schema_value, inputs[key], session_state, global_updates
-                        )
-
-            @_fw.on(WorkflowEvents.COMPONENT_BATCH_INPUT)
-            async def resolve_global_variables(inputs, session, **kwargs):
-                """Resolve ${global.xxx} references from input_schema and inject values."""
-                if not isinstance(session, NodeSession):
-                    return inputs
-
-                node_config = session.node_config()
-                if not node_config or not node_config.io_configs:
-                    return inputs
-
-                input_schema = node_config.io_configs.inputs_schema
-                if not isinstance(input_schema, dict):
-                    return inputs
-
-                if not isinstance(inputs, dict):
-                    return inputs
-
-                global_updates = {}
-                _resolve_global_refs(
-                    input_schema, inputs, session.state(), global_updates
-                )
-
-                if global_updates:
-                    session.state().update_global(global_updates)
-
-                # 更新缓冲的 start trace 的 inputs，并通过 CustomSchema 通知 wrapper 发送
-                component_id = session.node_id()
-                buffered_sd = self._trace_buffer.get(component_id)
-                if buffered_sd:
-                    buffered_sd.data["inputs"] = inputs
-                    # SubWorkflow 不通过 trigger 通知发送，而是等 running trace 携带 memory 后合并发送
-                    component_type = session.node_type()
-                    if component_type != "SubWorkflow":
-                        try:
-                            custom_writer = (
-                                session.stream_writer_manager().get_custom_writer()
-                            )
-                            if custom_writer:
-                                await custom_writer.write(
-                                    {
-                                        "type": self._START_TRACE_RESOLVED_TYPE,
-                                        "componentId": component_id,
-                                    }
-                                )
-                        except Exception:
-                            workflow_logger.debug(
-                                "Failed to write start trace resolved event",
-                                exc_info=True,
-                            )
-
-                return inputs
-        except Exception:
-            workflow_logger.debug("Failed to resolve trigger inputs", exc_info=True)

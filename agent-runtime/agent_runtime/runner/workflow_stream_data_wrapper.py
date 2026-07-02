@@ -1142,7 +1142,7 @@ def _register_jiuwen_callbacks() -> None:
             if session is None or not isinstance(session, NodeSession):
                 return (args, kwargs)
 
-            inputs = args[0] if len(args) >= 1 else kwargs.get("inputs")
+            inputs = args[1] if len(args) >= 2 else kwargs.get("inputs")
             if not isinstance(inputs, dict):
                 return (args, kwargs)
 
@@ -1211,7 +1211,9 @@ def _register_jiuwen_callbacks() -> None:
                 uf_inputs_defs = []
                 sf_inputs_defs = []
 
-            inputs = args[0] if len(args) >= 1 else kwargs.get("inputs")
+            # args[0] = self (ComponentExecutable 实例，因 on_invoke 是类级包装)
+            # args[1] = inputs (输入数据 dict)
+            inputs = args[1] if len(args) >= 2 else kwargs.get("inputs")
             if not isinstance(inputs, dict):
                 return (args, kwargs)
 
@@ -1246,7 +1248,7 @@ def _register_jiuwen_callbacks() -> None:
                     context=end_ctx,
                 )
                 if not uf_inputs_defs and not sf_inputs_defs:
-                    new_args = (inputs,) + args[1:] if len(args) >= 1 else (inputs,)
+                    new_args = (args[0], inputs) + args[2:] if len(args) >= 2 else (inputs,)
                     return (new_args, kwargs)
 
             node_name = node_def.get("node_name", "")
@@ -1266,7 +1268,8 @@ def _register_jiuwen_callbacks() -> None:
                 structure_pos=STRUCTURE_POSITION_INPUTS,
             )
 
-            new_args = (converted,) + args[1:] if len(args) >= 1 else (converted,)
+            # 保留 args[0] (self)，替换 args[1] (inputs)
+            new_args = (args[0], converted) + args[2:] if len(args) >= 2 else (converted,)
             return (new_args, kwargs)
 
         @_fw.on(WorkflowEvents.COMPONENT_BATCH_OUTPUT, callback_type="transform")

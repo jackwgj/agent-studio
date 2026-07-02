@@ -229,28 +229,35 @@ def get_secret_field_names_from_session(session):
 
 
 def apply_template_masking_patch():
-    """Monkey patch 模板渲染方法，在渲染前对加密环境变量字段做掩码。
+    """注册观察者回调 + patch 模板渲染方法，对加密环境变量字段做掩码。
 
-    - Patch ComponentExecutable.on_stream/on_invoke/on_collect/on_transform：
-      在节点执行入口将 secret_field_names 存入 _request_ctx
+    - 注册 COMPONENT_BATCH_INPUT / COMPONENT_STREAM_INPUT 观察者回调：
+      在节点执行入口将 secret_field_names 存入 _request_ctx（仅写 ContextVar，
+      不修改 on_* 入参；观察者路径，回调返回值被忽略）
     - Patch TemplateProcessor.render_stream：从 _request_ctx 读取并掩码 inputs 副本
     - Patch TemplateUtils.render_template：从 _request_ctx 读取并掩码 inputs 副本
 
     这样不关注节点类型，任何节点调用模板渲染都会经过同一个掩码逻辑。
     原始 inputs 不被修改，不影响工作流后续使用。
+
+    注意：之前用 monkey-patch 覆盖 on_* 会把 session 从 keyword 改成 positional，
+    触发回调框架 transform_io 路径的 _inject_session_if_needed 注入 session=None
+    并丢弃真实位置参数，导致 100053 错误。改用 _fw.on() 观察者回调从根本上消除
+    该副作用——emit_before 路径原 args/kwargs 透传给真正的 on_*，不注入不丢弃。
     """
     global _TEMPLATE_MASKING_PATCHED
     if _TEMPLATE_MASKING_PATCHED:
         return
     _TEMPLATE_MASKING_PATCHED = True
 
-    from openjiuwen.core.workflow.components.component import ComponentExecutable
     from openjiuwen.core.workflow.components.flow.end_comp import (
         TemplateProcessor,
         TemplateUtils,
     )
     from openjiuwen.core.session.internal.workflow import NodeSession
     from openjiuwen.core.session.node import Session
+    from openjiuwen.core.runner.callback.utils import get_callback_framework
+    from openjiuwen.core.runner.callback.events import WorkflowEvents
 
     def _set_secret_fields(base_session):
         """从 NodeSession 提取 secret_field_names 并存入 _request_ctx"""
@@ -262,34 +269,29 @@ def apply_template_masking_patch():
         except Exception:
             logging.debug("Failed to set secret field names for masking", exc_info=True)
 
-    # --- Patch ComponentExecutable.on_* ---
-    _orig_on_stream = ComponentExecutable.on_stream
-    _orig_on_invoke = ComponentExecutable.on_invoke
-    _orig_on_collect = ComponentExecutable.on_collect
-    _orig_on_transform = ComponentExecutable.on_transform
+    # --- 注册观察者回调（替代原 monkey-patch on_*）---
+    # emit_before 路径把 on_*(self, inputs, session=..., context=...) 的 args/kwargs
+    # 原样传给回调：kwargs.get("session") 拿 NodeSession；位置参数形式 fallback args[2]
+    # （on_*(self, inputs, session, ...) 签名）。回调仅写 ContextVar，返回 None，
+    # 不影响 on_* 入参。不指定 callback_type="transform"，默认为观察者，走
+    # framework.trigger 路径，回调返回值被忽略。
+    _fw = get_callback_framework()
 
-    async def _patched_on_stream(self, inputs, session, **kwargs):
+    # on_invoke / on_stream 入口（emit_before 在 transform_io 之前触发）
+    @_fw.on(WorkflowEvents.COMPONENT_BATCH_INPUT)
+    async def _secret_fields_before_batch_input(*args, **kwargs):
+        session = kwargs.get("session")
+        if session is None and len(args) >= 3:
+            session = args[2]
         _set_secret_fields(session)
-        async for v in _orig_on_stream(self, inputs, session, **kwargs):
-            yield v
 
-    async def _patched_on_invoke(self, inputs, session, **kwargs):
+    # on_collect / on_transform 入口
+    @_fw.on(WorkflowEvents.COMPONENT_STREAM_INPUT)
+    async def _secret_fields_before_stream_input(*args, **kwargs):
+        session = kwargs.get("session")
+        if session is None and len(args) >= 3:
+            session = args[2]
         _set_secret_fields(session)
-        return await _orig_on_invoke(self, inputs, session, **kwargs)
-
-    async def _patched_on_collect(self, inputs, session, **kwargs):
-        _set_secret_fields(session)
-        return await _orig_on_collect(self, inputs, session, **kwargs)
-
-    async def _patched_on_transform(self, inputs, session, **kwargs):
-        _set_secret_fields(session)
-        async for v in _orig_on_transform(self, inputs, session, **kwargs):
-            yield v
-
-    ComponentExecutable.on_stream = _patched_on_stream
-    ComponentExecutable.on_invoke = _patched_on_invoke
-    ComponentExecutable.on_collect = _patched_on_collect
-    ComponentExecutable.on_transform = _patched_on_transform
 
     # --- Patch TemplateProcessor.render_stream ---
     _orig_render_stream = TemplateProcessor.render_stream
