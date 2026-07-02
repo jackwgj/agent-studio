@@ -3,6 +3,8 @@
  */
 package com.openjiuwen.studio.agent.manager.service;
 
+import com.openjiuwen.studio.agent.common.annotation.OperationLog;
+import com.openjiuwen.studio.agent.common.enums.OperationType;
 import com.openjiuwen.studio.agent.common.enums.StudioError;
 import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
 import com.openjiuwen.studio.agent.common.utils.RequestContextUtils;
@@ -41,6 +43,13 @@ public class CustomObjectManagementService implements ICustomObjectManagementSer
      * @return ObjectBriefRsp 返回object_id
      */
     @Override
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "CustomObject",
+        description = "创建自定义对象",
+        resourceId = "-1",
+        resourceName = "body.name"
+    )
     public ObjectBriefRsp createCustomObject(String projectId, String workspaceId, ObjectInfoReq body) {
         CustomObjectEntity customObjectEntity = new CustomObjectEntity();
         customObjectEntity.setId(Optional.ofNullable(body.getId()).orElse(UUID.randomUUID().toString()));
@@ -86,6 +95,13 @@ public class CustomObjectManagementService implements ICustomObjectManagementSer
      */
     @Override
     @Transactional
+    @OperationLog(
+        operationType = OperationType.DELETE,
+        resourceType = "CustomObject",
+        description = "删除自定义对象",
+        resourceId = "objectId",
+        resourceName = ""
+    )
     public ObjectBriefRsp deleteCustomObject(String projectId, String objectId, String workspaceId) {
         log.info("Delete custom object, projectId: {}, objectId: {}, workspaceId: {}", projectId, objectId, workspaceId);
         customObjectMapper.deleteByIdAndProjectIdAndWorkspaceId(objectId, projectId,workspaceId);
@@ -141,6 +157,13 @@ public class CustomObjectManagementService implements ICustomObjectManagementSer
      * @return ObjectBriefRsp
      */
     @Override
+    @OperationLog(
+        operationType = OperationType.UPDATE,
+        resourceType = "CustomObject",
+        description = "修改自定义对象",
+        resourceId = "objectId",
+        resourceName = "body.name"
+    )
     public ObjectBriefRsp modifyCustomObject(String projectId, String objectId, String workspaceId,
         ObjectInfoReq body) {
         CustomObjectEntity customObjectEntity = customObjectMapper.findByIdAndProjectIdAndWorkspaceId(objectId, projectId, workspaceId);

@@ -8,6 +8,7 @@ import com.alibaba.fastjson2.JSONObject;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import com.openjiuwen.studio.agent.common.annotation.OperationLog;
+import com.openjiuwen.studio.agent.common.enums.OperationType;
 import com.openjiuwen.studio.agent.common.enums.StudioError;
 import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
 import com.openjiuwen.studio.agent.common.utils.LanguageUtils;
@@ -143,7 +144,13 @@ public class ComplexIntentManagementService implements IComplexIntentManagementS
      * @return 意图id
      */
     @Override
-    @OperationLog
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "ComplexIntent",
+        description = "创建意图包",
+        resourceId = "-1",
+        resourceName = "body.name"
+    )
     @Transactional
     public ComplexIntentBriefRsp createComplexIntent(String projectId, String workspaceId, ComplexIntentInfoReq body) {
         ComplexIntentEntity complexIntent = new ComplexIntentEntity();
@@ -180,7 +187,13 @@ public class ComplexIntentManagementService implements IComplexIntentManagementS
      * @return 分支id
      */
     @Override
-    @OperationLog
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "ComplexIntent",
+        description = "创建意图分支",
+        resourceId = "intentId",
+        resourceName = "body.name"
+    )
     @Transactional
     public ComplexIntentBranchBriefRsp createComplexIntentBranch(String projectId, String intentId, String workspaceId,
         ComplexIntentBranchInfoReq body) {
@@ -252,7 +265,13 @@ public class ComplexIntentManagementService implements IComplexIntentManagementS
      */
     @Override
     @Transactional
-    @OperationLog
+    @OperationLog(
+        operationType = OperationType.DELETE,
+        resourceType = "ComplexIntent",
+        description = "删除意图包",
+        resourceId = "intentId",
+        resourceName = ""
+    )
     public ComplexIntentBriefRsp deleteComplexIntent(String projectId, String intentId, String workspaceId) {
         checkPermission(projectId, workspaceId, intentId);
 
@@ -283,7 +302,13 @@ public class ComplexIntentManagementService implements IComplexIntentManagementS
      * @return 响应体
      */
     @Override
-    @OperationLog
+    @OperationLog(
+        operationType = OperationType.DELETE,
+        resourceType = "ComplexIntent",
+        description = "删除意图分支",
+        resourceId = "branchId",
+        resourceName = ""
+    )
     public ComplexIntentBranchBriefRsp deleteComplexIntentBranch(String projectId, String intentId, String branchId,
         String workspaceId) {
         checkBranchPermission(projectId, workspaceId, intentId, branchId);
@@ -381,7 +406,13 @@ public class ComplexIntentManagementService implements IComplexIntentManagementS
      * @return 意图包分支
      */
     @Override
-    @OperationLog
+    @OperationLog(
+        operationType = OperationType.UPDATE,
+        resourceType = "ComplexIntent",
+        description = "修改意图包",
+        resourceId = "intentId",
+        resourceName = "body.name"
+    )
     @Transactional
     public ComplexIntentBriefRsp modifyComplexIntent(String projectId, String intentId, String workspaceId,
         ComplexIntentInfoReq body) {
@@ -461,7 +492,13 @@ public class ComplexIntentManagementService implements IComplexIntentManagementS
      * @return 分支id
      */
     @Override
-    @OperationLog
+    @OperationLog(
+        operationType = OperationType.UPDATE,
+        resourceType = "ComplexIntent",
+        description = "修改意图分支",
+        resourceId = "branchId",
+        resourceName = "body.name"
+    )
     @Transactional
     public ComplexIntentBranchBriefRsp modifyComplexIntentBranch(String projectId, String intentId, String branchId,
         String workspaceId, ComplexIntentBranchInfoReq body) {
@@ -516,7 +553,13 @@ public class ComplexIntentManagementService implements IComplexIntentManagementS
      * @return 意图包信息
      */
     @Override
-    @OperationLog
+    @OperationLog(
+        operationType = OperationType.READ,
+        resourceType = "ComplexIntent",
+        description = "查询意图包",
+        resourceId = "intentId",
+        resourceName = ""
+    )
     public ComplexIntentRsp retrieveComplexIntent(String projectId, String intentId, String workspaceId) {
         ComplexIntentEntity entity = complexIntentMapper.getByKeyAndWorkspaceId(intentId, projectId, workspaceId);
 
@@ -640,11 +683,25 @@ public class ComplexIntentManagementService implements IComplexIntentManagementS
     }
 
     @Override
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "ComplexIntent",
+        description = "导入意图包",
+        resourceId = "-1",
+        resourceName = ""
+    )
     public ComplexIntentImportRsp importIntent(String workspaceId, String projectId, MultipartFile file, String intentName) {
         return importIntentBranch(workspaceId, projectId, null, file, intentName);
     }
 
     @Override
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "ComplexIntent",
+        description = "导入意图分支",
+        resourceId = "-1",
+        resourceName = ""
+    )
     public ComplexIntentImportRsp importIntentBranch(String workspaceId, String projectId, String intentId,
         MultipartFile file) {
         return importIntentBranch(workspaceId, projectId, intentId, file, null);

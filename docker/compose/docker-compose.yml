@@ -66,6 +66,8 @@ services:
       front_page_runtime_host: ${FRONT_PAGE_RUNTIME_HOST:-}
       system_crypt_name: ${SYSTEM_CRYPT_NAME:-}
       enable_tool_url_check: ${ENABLE_TOOL_URL_CHECK:-true}
+      # 是否启用资源管理的操作日志
+      studio_operationLog_switch: ${STUDIO_OPERATION_LOG_SWITCH:-false}
     networks:
       - default
 

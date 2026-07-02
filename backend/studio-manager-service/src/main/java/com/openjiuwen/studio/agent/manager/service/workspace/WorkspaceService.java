@@ -6,6 +6,7 @@ package com.openjiuwen.studio.agent.manager.service.workspace;
 
 import com.openjiuwen.studio.agent.common.annotation.DistributedLock;
 import com.openjiuwen.studio.agent.common.annotation.OperationLog;
+import com.openjiuwen.studio.agent.common.enums.OperationType;
 import com.openjiuwen.studio.agent.common.entity.ResourceMultipartFile;
 import com.openjiuwen.studio.agent.common.enums.StudioError;
 import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
@@ -120,6 +121,13 @@ public class WorkspaceService implements IWorkspaceService {
     @Override
     @Transactional
     @DistributedLock(prefix = "workspace:create:")
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "Workspace",
+        description = "创建空间",
+        resourceId = "-1",
+        resourceName = "createWorkspaceReq.name"
+    )
     public String createWorkspace(String projectId, CreateWorkspaceReq createWorkspaceReq) {
         log.info("start to create workspace, projectId: {}, body: {}", projectId, createWorkspaceReq);
         validateIcon(createWorkspaceReq.getIcon());
@@ -165,7 +173,13 @@ public class WorkspaceService implements IWorkspaceService {
     }
 
     @Override
-    @OperationLog
+    @OperationLog(
+        operationType = OperationType.UPDATE,
+        resourceType = "Workspace",
+        description = "修改空间",
+        resourceId = "updateWorkspaceReq.id",
+        resourceName = "updateWorkspaceReq.name"
+    )
     public WorkspaceInfo updateWorkspace(String projectId, UpdateWorkspaceReq updateWorkspaceReq) {
         WorkspaceInfo workspaceInfo = new WorkspaceInfo();
         validateIcon(updateWorkspaceReq.getIcon());
@@ -213,7 +227,13 @@ public class WorkspaceService implements IWorkspaceService {
 
     @Override
     @Transactional
-    @OperationLog
+    @OperationLog(
+        operationType = OperationType.DELETE,
+        resourceType = "Workspace",
+        description = "删除空间",
+        resourceId = "deleteWorkspaceReq.id",
+        resourceName = ""
+    )
     public String deleteWorkspace(String projectId, DeleteWorkspaceReq deleteWorkspaceReq) {
         WorkspaceMemberInfo workspaceMemberInfo = workspaceMemberService.queryWorkspaceMemberDetail(projectId,
             RequestContextUtils.getRequestUserId(), deleteWorkspaceReq.getId());

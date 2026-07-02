@@ -4,8 +4,10 @@
 
 package com.openjiuwen.studio.agent.manager.service.md;
 
+import com.openjiuwen.studio.agent.common.annotation.OperationLog;
 import com.openjiuwen.studio.agent.common.dto.md.NotAuthInfo;
 import com.openjiuwen.studio.agent.common.dto.md.ProviderAuth;
+import com.openjiuwen.studio.agent.common.enums.OperationType;
 import com.openjiuwen.studio.agent.common.enums.StudioError;
 import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
 import com.openjiuwen.studio.agent.common.redis.RedisClient;
@@ -130,17 +132,38 @@ public class ProviderAuthService {
         log.info("Success sync {} data to obs.", datas.size());
     }
 
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "ProviderAuth",
+        description = "创建认证信息",
+        resourceId = "authData.id",
+        resourceName = ""
+    )
     public void createAuthInfo(ProviderAuthData authData) {
         authMapper.insert(authData);
         saveAuthInfoToObs(authData);
     }
 
+    @OperationLog(
+        operationType = OperationType.UPDATE,
+        resourceType = "ProviderAuth",
+        description = "更新认证信息",
+        resourceId = "authData.id",
+        resourceName = ""
+    )
     public void updateAuthInfo(ProviderAuthData authData) {
         authMapper.updateAuthData(authData.getId(), authData.getAuthType(), authData.getAuthInfo(),
             System.currentTimeMillis());
         saveAuthInfoToObs(authData);
     }
 
+    @OperationLog(
+        operationType = OperationType.DELETE,
+        resourceType = "ProviderAuth",
+        description = "按提供商删除认证信息",
+        resourceId = "providerId",
+        resourceName = ""
+    )
     public void deleteByProvider(String projectId, String workspaceId, String providerId) {
         List<ProviderAuthData> datas = authMapper.selectByProviderId(projectId, workspaceId, providerId);
         for (ProviderAuthData data : datas) {
@@ -159,6 +182,13 @@ public class ProviderAuthService {
         }
     }
 
+    @OperationLog(
+        operationType = OperationType.DELETE,
+        resourceType = "ProviderAuth",
+        description = "按ID删除认证信息",
+        resourceId = "id",
+        resourceName = ""
+    )
     public void deleteById(String projectId, String providerId, String id) {
         authMapper.clearById(id);
         String path = String.format(AUTH_INFO_PATH, projectId, providerId, id);

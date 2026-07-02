@@ -143,8 +143,9 @@
         <Async name="ASYNC_ROLLING_FILE_INF">
             <AppenderRef ref="ROLLING_FILE_INF"/>
         </Async>
-        <Async name="ASYNC_ROLLING_FILE_TRACE">
+        <Async name="ASYNC_ROLLING_FILE_TRACE" bufferSize="8192">
             <AppenderRef ref="ROLLING_FILE_TRACE"/>
+            <OverflowAction>DISCARD</OverflowAction>
         </Async>
     </Appenders>
 
@@ -153,5 +154,10 @@
             <AppenderRef ref="ASYNC_STDOUT" />
             <AppenderRef ref="ASYNC_ROLLING_FILE" />
         </Root>
+
+        <!-- 审计日志 Logger，引用 ASYNC_ROLLING_FILE_TRACE -->
+        <Logger name="AUDIT_LOGGER" level="info" additivity="false">
+            <AppenderRef ref="ASYNC_ROLLING_FILE_TRACE"/>
+        </Logger>
     </Loggers>
 </Configuration>

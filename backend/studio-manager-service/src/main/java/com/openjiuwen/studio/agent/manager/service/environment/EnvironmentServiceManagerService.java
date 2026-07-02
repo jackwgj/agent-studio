@@ -16,6 +16,7 @@ import com.huaweicloud.sdk.vpc.v3.model.ListVpcsResponse;
 import com.huaweicloud.sdk.vpc.v3.model.ShowVpcResponse;
 import com.huaweicloud.sdk.vpc.v3.model.Vpc;
 import com.openjiuwen.studio.agent.common.annotation.OperationLog;
+import com.openjiuwen.studio.agent.common.enums.OperationType;
 import com.openjiuwen.studio.agent.common.enums.StudioError;
 import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
 import com.openjiuwen.studio.agent.common.utils.CryptoUtils;
@@ -239,7 +240,13 @@ public class EnvironmentServiceManagerService implements IEnvironmentServiceMana
     }
 
     @Override
-    @OperationLog
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "Environment",
+        description = "创建环境",
+        resourceId = "-1",
+        resourceName = "body.name"
+    )
     public String createEnvironmentInfo(String projectId, EnvironmentInfoRequest body) {
         if (body == null) {
             throw new AgentStudioException(ENVIRONMENT_CREATE_PARAMETER_VERIFICATION_FAIL);
@@ -289,7 +296,13 @@ public class EnvironmentServiceManagerService implements IEnvironmentServiceMana
 
     @Override
     @Transactional
-    @OperationLog
+    @OperationLog(
+        operationType = OperationType.DELETE,
+        resourceType = "Environment",
+        description = "删除环境",
+        resourceId = "environmentId",
+        resourceName = ""
+    )
     public Boolean deleteEnvironment(String projectId, String environmentId) {
         EnvironmentManagerEntity envInfo = environmentManagerMapper.findByIdAndProjectId(environmentId, projectId);
         if (envInfo == null) {
@@ -324,7 +337,13 @@ public class EnvironmentServiceManagerService implements IEnvironmentServiceMana
 
     @Override
     @Transactional
-    @OperationLog
+    @OperationLog(
+        operationType = OperationType.UPDATE,
+        resourceType = "Environment",
+        description = "设置默认环境",
+        resourceId = "environmentId",
+        resourceName = ""
+    )
     public Boolean isDefaultEnvironments(String projectId, String environmentId) {
         EnvironmentManagerEntity envInfo = environmentManagerMapper.findByIdAndProjectId(environmentId,
             projectId);
@@ -350,7 +369,13 @@ public class EnvironmentServiceManagerService implements IEnvironmentServiceMana
     }
 
     @Override
-    @OperationLog
+    @OperationLog(
+        operationType = OperationType.UPDATE,
+        resourceType = "Environment",
+        description = "修改环境",
+        resourceId = "environmentId",
+        resourceName = "body.description"
+    )
     public Boolean modifyEnvironmentInfo(String projectId, String environmentId,
         EnvironmentInfoRequest body) {
         log.info("projectId={},userId={}",RequestContextUtils.getRequestProjectId(),RequestContextUtils.getRequestUserId());
@@ -580,7 +605,13 @@ public class EnvironmentServiceManagerService implements IEnvironmentServiceMana
 
     @Override
     @Transactional
-    @OperationLog
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "Environment",
+        description = "创建环境变量",
+        resourceId = "environmentId",
+        resourceName = ""
+    )
     public String createEnvironmentVariables(String projectId, String environmentId, String workspaceId,
         EnvironmentVariables body) {
         if (body == null) {
@@ -645,7 +676,13 @@ public class EnvironmentServiceManagerService implements IEnvironmentServiceMana
 
     @Override
     @Transactional
-    @OperationLog
+    @OperationLog(
+        operationType = OperationType.DELETE,
+        resourceType = "Environment",
+        description = "删除环境变量",
+        resourceId = "environmentId",
+        resourceName = ""
+    )
     public String deleteEnvironmentVariables(String projectId, String environmentId,
         String envVariableId, String workspaceId) {
         EnvironmentManagerEntity envInfo = this.queryEnvironmentDetail(projectId, environmentId);

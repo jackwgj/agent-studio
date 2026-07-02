@@ -3,6 +3,8 @@
  */
 package com.openjiuwen.studio.agent.manager.service.mcp;
 
+import com.openjiuwen.studio.agent.common.annotation.OperationLog;
+import com.openjiuwen.studio.agent.common.enums.OperationType;
 import com.openjiuwen.studio.agent.common.enums.StudioError;
 import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
 import com.openjiuwen.studio.agent.common.utils.RequestContextUtils;
@@ -121,6 +123,13 @@ public class McpInnerService implements IMcpInnerService {
     }
 
     @Override
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "McpServer",
+        description = "创建或更新MCP服务",
+        resourceId = "server.serverId",
+        resourceName = "server.name"
+    )
     public boolean createOrUpdate(McpServerInfo server, String targetWorkspaceId) {
         McpServiceEntity mcpServiceEntity = new McpServiceEntity();
         mcpServiceEntity.setId(server.getServerId());

@@ -7,6 +7,7 @@ package com.openjiuwen.studio.agent.manager.service;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONWriter;
 import com.openjiuwen.studio.agent.common.annotation.OperationLog;
+import com.openjiuwen.studio.agent.common.enums.OperationType;
 import com.openjiuwen.studio.agent.common.constant.Constants;
 import com.openjiuwen.studio.agent.common.dto.auth.AuthKeyInfo;
 import com.openjiuwen.studio.agent.common.enums.StudioError;
@@ -229,7 +230,13 @@ public class ToolManagementService implements IToolManagementService {
 
     @Override
     @Transactional
-    @OperationLog
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "Tool",
+        description = "创建工具",
+        resourceId = "-1",
+        resourceName = "body.toolDisplayName"
+    )
     public CreateToolRsp createToolV1(String projectId, String workspaceId, CreateToolReq body) {
         ToolEntity toolEntity = buildToolEntity(projectId, workspaceId, body, false);
         int existDisplayName = toolMapper.selectByDisplayNameAndWorkspaceId(toolEntity.getToolDisplayName(), toolEntity.getWorkspaceId());
@@ -248,7 +255,13 @@ public class ToolManagementService implements IToolManagementService {
     }
 
     @Override
-    @OperationLog
+    @OperationLog(
+        operationType = OperationType.READ,
+        resourceType = "Tool",
+        description = "查询工具是否被使用",
+        resourceId = "toolId",
+        resourceName = ""
+    )
     public Boolean checkToolIsUsed(String projectId, String workspaceId, String toolId) {
         int agentCount = this.agentMapper.selectByAgentIdAndResourceId(projectId, workspaceId, toolId, "tool");
         if (agentCount > 0) {
@@ -259,7 +272,13 @@ public class ToolManagementService implements IToolManagementService {
     }
 
     @Override
-    @OperationLog
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "Tool",
+        description = "创建工具OpenAPI",
+        resourceId = "-1",
+        resourceName = "body.toolDisplayName"
+    )
     public CreateToolOpenAPIResponseBody createToolOpenAPI(String projectId, String workspaceId, CreateToolReq body) {
         ToolEntity toolEntity = buildToolEntity(projectId, workspaceId, body, true);
 
@@ -269,7 +288,13 @@ public class ToolManagementService implements IToolManagementService {
     }
 
     @Override
-    @OperationLog
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "Tool",
+        description = "创建工具OpenAPI",
+        resourceId = "toolId",
+        resourceName = ""
+    )
     public CreateToolOpenAPIResponseBody createToolOpenAPIByIdV1(String projectId, String toolId, String workspaceId) {
         // 插件详情页插件调测功能，插件信息从数据库表里取
         ToolEntity toolEntity = pluginBase.buildToolByPlugin(projectId, workspaceId, toolId, "0");
@@ -285,7 +310,13 @@ public class ToolManagementService implements IToolManagementService {
 
     @Override
     @Transactional
-    @OperationLog
+    @OperationLog(
+        operationType = OperationType.DELETE,
+        resourceType = "Tool",
+        description = "删除工具",
+        resourceId = "toolId",
+        resourceName = ""
+    )
     public CommonDeleteRsp deleteToolV1(String projectId, String toolId, String workspaceId) {
         ToolEntity toolEntity = toolMapper.selectByPrimaryKeyAndWorkspace(toolId, projectId, workspaceId);
         if (Objects.isNull(toolEntity)) {
@@ -314,7 +345,13 @@ public class ToolManagementService implements IToolManagementService {
 
     @Override
     @Transactional
-    @OperationLog
+    @OperationLog(
+        operationType = OperationType.DELETE,
+        resourceType = "Tool",
+        description = "删除工具版本",
+        resourceId = "toolId",
+        resourceName = ""
+    )
     public CommonDeleteRsp deleteToolVersion(String projectId, String versionId, String toolId, String workspaceId) {
         ToolEntity toolEntity = toolMapper.selectByPrimaryKeyAndWorkspace(toolId, projectId, workspaceId);
         if (Objects.isNull(toolEntity)) {
@@ -354,7 +391,6 @@ public class ToolManagementService implements IToolManagementService {
     }
 
     @Override
-    @OperationLog
     public ToolListRsp listToolsV1(String projectId, ListToolsV1Qo listToolsQo) {
         List<ToolEntity> toolEntityList =
                 getToolEntityList(projectId, listToolsQo.getWorkspaceId(), convertSearchCriteriaFromListToolsQo(listToolsQo));
@@ -388,6 +424,13 @@ public class ToolManagementService implements IToolManagementService {
     }
 
     @Override
+    @OperationLog(
+        operationType = OperationType.UPDATE,
+        resourceType = "Tool",
+        description = "修改工具",
+        resourceId = "toolId",
+        resourceName = "body.toolDisplayName"
+    )
     public ModifyToolRsp modifyToolV1(String projectId, String workspaceId, String toolId, ModifyToolReq body) {
         List<ToolEntity> toolEntities = toolMapper.selectByWorkspaceIdAndProjectId(projectId, workspaceId, toolId);
         toolEntities.forEach(toolEntity -> {
@@ -454,6 +497,13 @@ public class ToolManagementService implements IToolManagementService {
     }
 
     @Override
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "Tool",
+        description = "发布工具版本",
+        resourceId = "toolId",
+        resourceName = ""
+    )
     public VersionInfo releaseToolVersion(String projectId, String toolId, String workspaceId, CreateVersionReq body) {
         // 检查是否测试成功
         ToolEntity toolEntity = toolMapper.selectByPrimaryKeyAndWorkspace(toolId, projectId, workspaceId);
@@ -549,6 +599,13 @@ public class ToolManagementService implements IToolManagementService {
      */
     @Transactional
     @Override
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "Tool",
+        description = "增加工具凭证",
+        resourceId = "toolId",
+        resourceName = ""
+    )
     public ToolCredential addToolCredential(String projectId, String toolId, String workspaceId, Boolean needValidate,ToolCredential body ) {
         log.info("operation log {}: start to add plugin credential", projectId);
         if (needValidate == null) {
@@ -738,6 +795,13 @@ public class ToolManagementService implements IToolManagementService {
      */
     @Override
     @Transactional
+    @OperationLog(
+        operationType = OperationType.DELETE,
+        resourceType = "Tool",
+        description = "删除工具凭证",
+        resourceId = "toolId",
+        resourceName = ""
+    )
     public CommonDeleteRsp deleteToolCredential(String projectId, String toolId, String workspaceId) {
         log.info("operation log {}: start to delete plugin credential", projectId);
         checkInnerToolPermission(toolId);

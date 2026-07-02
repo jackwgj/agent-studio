@@ -8,6 +8,8 @@ import static com.openjiuwen.studio.agent.manager.constant.CommonConstant.NAME;
 import static com.openjiuwen.studio.agent.manager.constant.CommonConstant.Skill.SKILL_VERSION_FILE_PATH_TEMPLATE;
 import static com.openjiuwen.studio.agent.manager.constant.PresetPluginConstants.SKILL_DEFAULT_ICON;
 
+import com.openjiuwen.studio.agent.common.annotation.OperationLog;
+import com.openjiuwen.studio.agent.common.enums.OperationType;
 import com.openjiuwen.studio.agent.common.enums.StudioError;
 import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
 import com.openjiuwen.studio.agent.common.utils.RequestContextUtils;
@@ -73,6 +75,13 @@ public class SkillManagementService implements ISkillManagementService {
      */
     @Transactional
     @Override
+    @OperationLog(
+        operationType = OperationType.DELETE,
+        resourceType = "Skill",
+        description = "删除 Skill",
+        resourceId = "skillId",
+        resourceName = ""
+    )
     public Void deleteStudioSkill(String skillId, String workspaceId, String projectId) {
         // 越权校验
         SkillDetails skill = skillMapper.searchBySkillIdAndDomainId(skillId, RequestContextUtils.getRequestUserDomainId());
@@ -138,6 +147,13 @@ public class SkillManagementService implements ISkillManagementService {
      */
     @Transactional
     @Override
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "Skill",
+        description = "导入 Skill 制品包",
+        resourceId = "-1",
+        resourceName = ""
+    )
     public ImportStudioSkillResponseBody importStudioSkill(String workspaceId, String projectId, MultipartFile multipartFile) {
         log.info("Import skill, workspaceId: {}, projectId: {}", workspaceId, projectId);
         // 文件格式转换

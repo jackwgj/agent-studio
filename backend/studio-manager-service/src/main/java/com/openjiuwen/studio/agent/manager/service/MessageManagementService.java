@@ -7,6 +7,8 @@ package com.openjiuwen.studio.agent.manager.service;
 import com.alibaba.fastjson2.JSON;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
+import com.openjiuwen.studio.agent.common.annotation.OperationLog;
+import com.openjiuwen.studio.agent.common.enums.OperationType;
 import com.openjiuwen.studio.agent.common.enums.StudioError;
 import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
 import com.openjiuwen.studio.agent.common.utils.I18nUtil;
@@ -60,6 +62,13 @@ public class MessageManagementService implements IMessageManagementService {
     }
 
     @Override
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "StructuredMessage",
+        description = "创建结构化消息模板",
+        resourceId = "-1",
+        resourceName = "body.name"
+    )
     public StructMessage createStructuredMessages(String projectId, String workspaceId, StructuredInfoRequest body) {
         validateStructuredMessagesName(body.getName());
         if (!CommonConstant.EXCEPTION_CATEGORY.equals(body.getCategory())) {
@@ -106,6 +115,13 @@ public class MessageManagementService implements IMessageManagementService {
 
     @Transactional
     @Override
+    @OperationLog(
+        operationType = OperationType.DELETE,
+        resourceType = "StructuredMessage",
+        description = "删除结构化消息模板",
+        resourceId = "body[0].id",
+        resourceName = ""
+    )
     public DatasourceBatchDeleteRsp deleteStructuredMessages(String projectId, String workspaceId,
         List<StructuredInfoRequestDelete> body) {
         List<String> items = new ArrayList<>();
@@ -192,6 +208,13 @@ public class MessageManagementService implements IMessageManagementService {
 
     @Transactional
     @Override
+    @OperationLog(
+        operationType = OperationType.UPDATE,
+        resourceType = "StructuredMessage",
+        description = "更新结构化消息模板",
+        resourceId = "workspaceId",
+        resourceName = "body.name"
+    )
     public StructMessage updateStructuredMessages(String projectId, String workspaceId, StructuredInfoRequest body) {
         // 在更新前校验消息模板是否存在且权限正确
         List<StructuredMessageEntity> existingMessage =
@@ -239,6 +262,13 @@ public class MessageManagementService implements IMessageManagementService {
     }
 
     @Override
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "StructuredMessage",
+        description = "导入结构化消息模板",
+        resourceId = "-1",
+        resourceName = ""
+    )
     public StructuredMessagesUploadResult uploadStructuredMessages(String workspaceId, String projectId,
         MultipartFile file) {
         // 创建结果对象

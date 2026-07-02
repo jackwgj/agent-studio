@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.pagehelper.PageHelper;
 import com.openjiuwen.studio.agent.common.annotation.DistributedLock;
 import com.openjiuwen.studio.agent.common.annotation.OperationLog;
+import com.openjiuwen.studio.agent.common.enums.OperationType;
 import com.openjiuwen.studio.agent.common.enums.StudioError;
 import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
 import com.openjiuwen.studio.agent.common.utils.I18nUtil;
@@ -82,7 +83,13 @@ public class WorkspaceMemberService implements IWorkSpaceMemberService {
 
     @Override
     @Transactional
-    @OperationLog
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "WorkspaceMember",
+        description = "添加空间成员",
+        resourceId = "workspaceId",
+        resourceName = ""
+    )
     @DistributedLock(prefix = "workspace-member:add:")
     public Integer batchAddWorkspaceMember(String projectId, String workspaceId, WorkspaceMemberBody body) {
         if (CollectionUtils.isEmpty(body.getMembers())) {
@@ -136,7 +143,13 @@ public class WorkspaceMemberService implements IWorkSpaceMemberService {
     }
 
     @Override
-    @OperationLog
+    @OperationLog(
+        operationType = OperationType.DELETE,
+        resourceType = "WorkspaceMember",
+        description = "删除空间成员",
+        resourceId = "workspaceId",
+        resourceName = ""
+    )
     public Integer batchDeleteWorkspaceMember(String projectId, String workspaceId, DeleteWorkspaceMemberReq body) {
         String requestUserId = RequestContextUtils.getRequestUserId();
         WorkSpaceMemberEntity currentMember = checkMemberOwnerOrAdminPermission(projectId, workspaceId, requestUserId);
@@ -180,7 +193,13 @@ public class WorkspaceMemberService implements IWorkSpaceMemberService {
     }
 
     @Override
-    @OperationLog
+    @OperationLog(
+        operationType = OperationType.UPDATE,
+        resourceType = "WorkspaceMember",
+        description = "修改空间成员角色",
+        resourceId = "workspaceId",
+        resourceName = ""
+    )
     public Integer batchUpdateWorkspaceMemberRole(String workspaceId, String projectId, WorkspaceMemberBody1 body) {
         if (CollectionUtils.isEmpty(body.getMembers())) {
             return 0;

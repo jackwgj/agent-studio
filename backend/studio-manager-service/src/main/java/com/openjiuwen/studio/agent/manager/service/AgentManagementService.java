@@ -17,6 +17,7 @@ import com.github.pagehelper.PageInfo;
 import com.openjiuwen.studio.agent.agentbase.service.KnowledgeBaseServiceImpl;
 import com.openjiuwen.studio.agent.common.annotation.DistributedLock;
 import com.openjiuwen.studio.agent.common.annotation.OperationLog;
+import com.openjiuwen.studio.agent.common.enums.OperationType;
 import com.openjiuwen.studio.agent.common.bo.AgentMetadata;
 import com.openjiuwen.studio.agent.common.constant.Constants;
 import com.openjiuwen.studio.agent.common.dto.TriggerConfig;
@@ -498,7 +499,13 @@ public class AgentManagementService implements IAgentManagementService {
 
     @Override
     @DistributedLock(prefix = "agent:create:")
-    @OperationLog
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "Agent",
+        description = "创建智能体",
+        resourceId = "-1",
+        resourceName = "body.name"
+    )
     public AgentInfo createAgent(String projectId, String workspaceId, CreateAgentReq body) {
         AgentType agentType = AgentType.naValueOf(body.getType() == null ? null : body.getType().toString());
         if (StringUtils.isEmpty(body.getName())) {
@@ -577,7 +584,13 @@ public class AgentManagementService implements IAgentManagementService {
 
     @Override
     @Transactional
-    @OperationLog
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "Agent",
+        description = "复制智能体",
+        resourceId = "agentId",
+        resourceName = ""
+    )
     public AgentInfo copyAgent(String projectId, String agentId, String workspaceId, String targetWorkspaceId) {
         Agent oldAgent = getAgent(projectId, workspaceId, agentId);
 
@@ -707,6 +720,13 @@ public class AgentManagementService implements IAgentManagementService {
     }
 
     @Override
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "Agent",
+        description = "添加智能体触发器",
+        resourceId = "agentId",
+        resourceName = ""
+    )
     public TriggerConfig addTrigger(String projectId, String agentId, String workspaceId, TriggerConfig body) {
         if (!TriggerType.TIMER.name().equals(body.getType()) && !TriggerType.EVENT.name().equals(body.getType())) {
             log.error("Trigger type is wrong. The wrong type is {}. projectId = {}, agentId = {}", body.getType(),
@@ -911,6 +931,13 @@ public class AgentManagementService implements IAgentManagementService {
 
     @Transactional
     @Override
+    @OperationLog(
+        operationType = OperationType.DELETE,
+        resourceType = "Agent",
+        description = "删除智能体",
+        resourceId = "agentId",
+        resourceName = ""
+    )
     public CommonDeleteRsp deleteAgent(String projectId, String agentId, String workspaceId) {
         // 校验Agent是否能够删除
         checkAgentShouldBeDeletedOrNot(projectId, workspaceId, agentId);
@@ -1002,6 +1029,13 @@ public class AgentManagementService implements IAgentManagementService {
     }
 
     @Override
+    @OperationLog(
+        operationType = OperationType.DELETE,
+        resourceType = "Agent",
+        description = "删除触发器",
+        resourceId = "triggerId",
+        resourceName = ""
+    )
     public Void deleteTrigger(String projectId, String agentId, String triggerId, String workspaceId) {
         Agent agent = getAgent(projectId, workspaceId, agentId);
         List<TriggerConfig> triggerList = agent.getTriggerList();
@@ -1041,6 +1075,13 @@ public class AgentManagementService implements IAgentManagementService {
     }
 
     @Override
+    @OperationLog(
+        operationType = OperationType.UPDATE,
+        resourceType = "Agent",
+        description = "编辑触发器",
+        resourceId = "agentId",
+        resourceName = ""
+    )
     public TriggerConfig editTrigger(String projectId, String agentId, String workspaceId, TriggerConfig body) {
         // delete 原任务
         deleteTrigger(projectId, agentId, body.getTriggerId(), workspaceId);
@@ -1158,6 +1199,13 @@ public class AgentManagementService implements IAgentManagementService {
 
     @Transactional
     @Override
+    @OperationLog(
+        operationType = OperationType.UPDATE,
+        resourceType = "Agent",
+        description = "修改智能体",
+        resourceId = "agentId",
+        resourceName = "body.name"
+    )
     public AgentInfo modifyAgent(String projectId, String agentId, String workspaceId, ModifyAgentReq body) {
         updateLatestValid(agentId, body);
         if (!KnowledgeSourceEnum.CUSTOM.toString().equalsIgnoreCase(knowledgeSource)) {
@@ -2011,6 +2059,13 @@ public class AgentManagementService implements IAgentManagementService {
     }
 
     @Transactional
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "Agent",
+        description = "发布智能体",
+        resourceId = "agentId",
+        resourceName = ""
+    )
     public AgentInfo publishAgent(String projectId, String agentId, String workspaceId, List<String> tags) {
         Agent agent = getAgent(projectId, workspaceId, agentId);
 
@@ -2068,6 +2123,13 @@ public class AgentManagementService implements IAgentManagementService {
      * @return 文件上传响应
      */
     @Override
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "Agent",
+        description = "上传写作模板",
+        resourceId = "agentId",
+        resourceName = ""
+    )
     public FileUploadRsp uploadDeepResearchTemplate(String projectId, String agentId, String workspaceId,
         MultipartFile file) {
 
@@ -2165,6 +2227,13 @@ public class AgentManagementService implements IAgentManagementService {
 
     @Transactional
     @Override
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "Agent",
+        description = "创建智能体版本",
+        resourceId = "agentId",
+        resourceName = ""
+    )
     public Void createAgentVersion(String projectId, String agentId, String workspaceId,
         CreateVersionReq createVersionReq) {
         // 校验发布版本数量
@@ -2421,6 +2490,13 @@ public class AgentManagementService implements IAgentManagementService {
 
     @Transactional
     @Override
+    @OperationLog(
+        operationType = OperationType.DELETE,
+        resourceType = "Agent",
+        description = "删除智能体版本",
+        resourceId = "versionId",
+        resourceName = ""
+    )
     public CommonDeleteRsp deleteAgentVersion(String projectId, String agentId, String versionId, String workspaceId) {
         Agent agent = getAgent(projectId, workspaceId, agentId);
         ReleaseVersion releaseVersion = releaseVersionMapper.selectByAppIdAndVersionId(agent.getAgentId(), versionId);
@@ -2514,6 +2590,13 @@ public class AgentManagementService implements IAgentManagementService {
 
     @Transactional
     @Override
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "Agent",
+        description = "创建发布渠道",
+        resourceId = "agentId",
+        resourceName = ""
+    )
     public VersionChannelInfo createAgentChannel(String projectId, String agentId, String workspaceId,
         CreateChannelReq createChannelReq) {
         log.debug("Entering createAgentChannel with projectId={}, agentId={}, workspaceId={}, body={}", projectId,
@@ -2649,6 +2732,13 @@ public class AgentManagementService implements IAgentManagementService {
 
     @Transactional
     @Override
+    @OperationLog(
+        operationType = OperationType.DELETE,
+        resourceType = "Agent",
+        description = "删除发布渠道",
+        resourceId = "channelId",
+        resourceName = ""
+    )
     public Void deleteAgentChannel(String projectId, String agentId, String channelId, String workspaceId) {
         // 发布到agent-builder空间，agentId和channelId相同
         if (publishAgentBuilderEnable && agentId.equals(channelId)) {
@@ -2746,6 +2836,13 @@ public class AgentManagementService implements IAgentManagementService {
 
     @Transactional
     @Override
+    @OperationLog(
+        operationType = OperationType.UPDATE,
+        resourceType = "Agent",
+        description = "修改发布渠道",
+        resourceId = "channelId",
+        resourceName = ""
+    )
     public VersionChannelInfo modifyAgentChannel(String projectId, String agentId, String channelId, String workspaceId,
         ModifyChannelReq body) {
         ReleaseChannel oldChannel = releaseChannelMapper.selectByIdAppIdWorkspaceId(channelId, agentId, projectId,
@@ -3252,6 +3349,13 @@ public class AgentManagementService implements IAgentManagementService {
      * @return ImportRsp 导入请求的响应，包括id、name、description、status
      */
     @Override
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "Agent",
+        description = "导入工具",
+        resourceId = "-1",
+        resourceName = ""
+    )
     public ImportRsp importTools(String workspaceId, String projectId, MultipartFile file, String importIds) {
         checkImportFile(file);
         skuManageService.validateAttrEnable(CommonConstant.SKU_ATTR_CODE.EXPORT_AND_IMPORT);
@@ -3287,6 +3391,13 @@ public class AgentManagementService implements IAgentManagementService {
      * @return ImportRsp 导入请求的响应，包括id、name、description、status和dependencies（Agent的依赖）
      */
     @Override
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "Agent",
+        description = "导入智能体",
+        resourceId = "-1",
+        resourceName = ""
+    )
     public ImportRsp importAgents(String workspaceId, String projectId, MultipartFile file, String importAgents,
         String importTools, String importWorkflows) {
         checkImportFile(file);

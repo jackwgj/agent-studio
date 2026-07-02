@@ -10,6 +10,7 @@ import com.alibaba.fastjson2.JSONWriter;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import com.openjiuwen.studio.agent.common.annotation.OperationLog;
+import com.openjiuwen.studio.agent.common.enums.OperationType;
 import com.openjiuwen.studio.agent.common.enums.StudioError;
 import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
 import com.openjiuwen.studio.agent.common.utils.RequestContextUtils;
@@ -163,7 +164,13 @@ public class DatasourceManagementService implements IDatasourceManagementService
     private static final String COLUMN_TEMPLATE = "{\"bigint\":\"Number\",\"char\":\"String\",\"date\":\"Time\",\"datetime\":\"Time\",\"decimal\":\"Number\",\"double\":\"Number\",\"float\":\"Number\",\"int\":\"Integer\",\"integer\":\"Integer\",\"json\":\"String\",\"longtext\":\"String\",\"numeric\":\"Number\",\"text\":\"String\",\"time\":\"Time\",\"timestamp\":\"Time\",\"tinytext\":\"String\",\"varchar\":\"String\"}";
 
     @Override
-    @OperationLog
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "Datasource",
+        description = "创建数据源",
+        resourceId = "-1",
+        resourceName = "body.name"
+    )
     public DatasourceBriefRsp createDatasource(String projectId, String workspaceId, DatasourceInfoReq body) {
         DatasourceEntity datasource = DatasourceEntity.builder()
             .id(UUID.randomUUID().toString())
@@ -202,7 +209,13 @@ public class DatasourceManagementService implements IDatasourceManagementService
     }
 
     @Override
-    @OperationLog
+    @OperationLog(
+        operationType = OperationType.DELETE,
+        resourceType = "Datasource",
+        description = "删除数据源",
+        resourceId = "datasourceId",
+        resourceName = ""
+    )
     public DatasourceDeleteRsp deleteDatasource(String projectId, String datasourceId, String workspaceId) {
         DatasourceBatchDeleteRsp batchDeleteRsp = batchDeleteDatasource(projectId, workspaceId,
             new DatasourceBatchDeleteReq().setIds(Collections.singletonList(datasourceId)));
@@ -234,7 +247,13 @@ public class DatasourceManagementService implements IDatasourceManagementService
     }
 
     @Override
-    @OperationLog
+    @OperationLog(
+        operationType = OperationType.DELETE,
+        resourceType = "Datasource",
+        description = "批量删除数据源",
+        resourceId = "body.ids[0]",
+        resourceName = ""
+    )
     public DatasourceBatchDeleteRsp batchDeleteDatasource(String projectId, String workspaceId,
         DatasourceBatchDeleteReq body) {
         checkOperatorPermission(body.getIds(), projectId, workspaceId);
@@ -256,6 +275,13 @@ public class DatasourceManagementService implements IDatasourceManagementService
     }
 
     @Override
+    @OperationLog(
+        operationType = OperationType.UPDATE,
+        resourceType = "Datasource",
+        description = "修改数据源",
+        resourceId = "datasourceId",
+        resourceName = "body.name"
+    )
     public DatasourceBriefRsp modifyDatasource(String projectId, String datasourceId, String workspaceId,
         DatasourceInfoReq body) {
         // 创建者有权限修改删除

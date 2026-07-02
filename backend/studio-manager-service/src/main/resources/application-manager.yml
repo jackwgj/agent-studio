@@ -102,6 +102,12 @@ spring:
             url: ${agent_runtime_endpoint:http://127.0.0.1:31113}
             connectTimeout: ${feign.agentRuntime.connectTimeout:10000}
             readTimeout: ${feign.agentRuntime.readTimeout:120000}
+
+# 审计日志配置
+studio:
+  operationLog:
+    switch: ${studio_operationLog_switch:false}
+
 server:
   port: 31111
   address: 0.0.0.0

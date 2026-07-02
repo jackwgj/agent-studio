@@ -11,6 +11,7 @@ import com.alibaba.fastjson2.JSONWriter;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import com.openjiuwen.studio.agent.common.annotation.OperationLog;
+import com.openjiuwen.studio.agent.common.enums.OperationType;
 import com.openjiuwen.studio.agent.common.dto.auth.AuthKeyInfo;
 import com.openjiuwen.studio.agent.common.enums.NodeType;
 import com.openjiuwen.studio.agent.common.enums.StudioError;
@@ -227,7 +228,13 @@ public class McpServerManagerService implements IMcpServerManagerService {
      * @param body body
      */
     @Override
-    @OperationLog
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "McpServer",
+        description = "添加MCP服务",
+        resourceId = "-1",
+        resourceName = "body.name"
+    )
     public McpServerInfo addMcpServer(String projectId, McpServerReq body) {
         log.info("Start to add mcp server for project: {}, server name: {}", projectId, body.getName());
 
@@ -300,7 +307,13 @@ public class McpServerManagerService implements IMcpServerManagerService {
      * @return 工具调用结果
      */
     @Override
-    @OperationLog
+    @OperationLog(
+        operationType = OperationType.EXECUTE,
+        resourceType = "McpServer",
+        description = "调用MCP工具",
+        resourceId = "serverId",
+        resourceName = ""
+    )
     public McpCallToolResp callTool(String projectId, String serverId, McpCallToolReq body) {
         log.info("Start to call tool for project: {}, server ID: {}", projectId, serverId);
 
@@ -343,7 +356,13 @@ public class McpServerManagerService implements IMcpServerManagerService {
      * @param body body
      */
     @Override
-    @OperationLog
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "McpServer",
+        description = "配置MCP服务",
+        resourceId = "serverId",
+        resourceName = ""
+    )
     public McpServerConfig configMcpServer(String projectId, String serverId, McpServerConfig body) {
         log.info("Start to configure MCP server. Project ID: {}, Server ID: {}", projectId, serverId);
 
@@ -381,7 +400,13 @@ public class McpServerManagerService implements IMcpServerManagerService {
      * @param body body
      */
     @Override
-    @OperationLog
+    @OperationLog(
+        operationType = OperationType.UPDATE,
+        resourceType = "McpServer",
+        description = "更新MCP服务配置",
+        resourceId = "serverId",
+        resourceName = ""
+    )
     public McpServerConfig updateMcpServerConfig(String projectId, String serverId, McpServerConfig body) {
         log.info("Start to update MCP server config. Project ID: {}, Server ID: {}", projectId, serverId);
 
@@ -425,7 +450,13 @@ public class McpServerManagerService implements IMcpServerManagerService {
      */
     @Override
     @Transactional
-    @OperationLog
+    @OperationLog(
+        operationType = OperationType.DELETE,
+        resourceType = "McpServer",
+        description = "删除MCP服务",
+        resourceId = "serverId",
+        resourceName = ""
+    )
     public CommonDeleteRsp deleteMcpServer(String projectId, String serverId) {
         log.info("Start to delete MCP server. Project ID: {}, Server ID: {}", projectId, serverId);
 
@@ -458,7 +489,13 @@ public class McpServerManagerService implements IMcpServerManagerService {
      * @return 删除MCP服务配置响应体
      */
     @Override
-    @OperationLog
+    @OperationLog(
+        operationType = OperationType.DELETE,
+        resourceType = "McpServer",
+        description = "删除MCP服务配置",
+        resourceId = "serverId",
+        resourceName = ""
+    )
     public CommonDeleteRsp deleteMcpServerConfig(String projectId, String serverId) {
         log.info("Start to delete MCP server config. Project ID: {}, Server ID: {}", projectId, serverId);
 
@@ -606,6 +643,13 @@ public class McpServerManagerService implements IMcpServerManagerService {
      */
     @Override
     @Transactional
+    @OperationLog(
+        operationType = OperationType.UPDATE,
+        resourceType = "McpServer",
+        description = "更新MCP服务",
+        resourceId = "serverId",
+        resourceName = "body.name"
+    )
     public McpServerInfo updateMcpServer(String projectId, String serverId, McpServerReq body) {
         log.info("Start to update MCP server. Project ID: {}, Server ID: {}", projectId, serverId);
 

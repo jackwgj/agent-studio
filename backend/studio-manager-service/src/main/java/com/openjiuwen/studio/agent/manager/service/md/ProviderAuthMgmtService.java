@@ -4,7 +4,9 @@
 
 package com.openjiuwen.studio.agent.manager.service.md;
 
+import com.openjiuwen.studio.agent.common.annotation.OperationLog;
 import com.openjiuwen.studio.agent.common.dto.md.ProviderAuth;
+import com.openjiuwen.studio.agent.common.enums.OperationType;
 import com.openjiuwen.studio.agent.common.enums.StudioError;
 import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
 import com.openjiuwen.studio.agent.common.utils.JsonUtils;
@@ -70,6 +72,13 @@ public class ProviderAuthMgmtService implements IProviderAuthMgmtService {
     }
 
     @Override
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "ProviderAuth",
+        description = "创建认证配置",
+        resourceId = "body.metadataId",
+        resourceName = ""
+    )
     public Void createAuthConfig(String projectId, String workspaceId, Boolean availableCheck,
         CreateAuthConfigReq body) {
         ProviderAuthMetadata metadata = metadataMapper.selectById(body.getMetadataId());
@@ -129,6 +138,13 @@ public class ProviderAuthMgmtService implements IProviderAuthMgmtService {
     }
 
     @Override
+    @OperationLog(
+        operationType = OperationType.DELETE,
+        resourceType = "ProviderAuth",
+        description = "删除认证配置",
+        resourceId = "id",
+        resourceName = ""
+    )
     public Void removeAuthConfig(String projectId, String workspaceId, String id) {
         ProviderAuthData auth = authDataMapper.selectById(id);
         if (auth == null) {

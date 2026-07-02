@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import com.openjiuwen.studio.agent.common.annotation.OperationLog;
+import com.openjiuwen.studio.agent.common.enums.OperationType;
 import com.openjiuwen.studio.agent.common.enums.StudioError;
 import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
 import com.openjiuwen.studio.agent.common.utils.LanguageUtils;
@@ -194,7 +195,13 @@ public class AppManagementService implements IAppManagementService {
     }
 
     @Override
-    @OperationLog
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "App",
+        description = "复制应用",
+        resourceId = "appId",
+        resourceName = ""
+    )
     public AppInfo copyApp(String projectId, String appId, String workspaceId, String targetWorkspaceId,
         SearchCriteria body) {
         String sourceType = body.getSource();

@@ -25,6 +25,7 @@ import com.github.pagehelper.PageInfo;
 import com.openjiuwen.studio.agent.agentbase.service.KnowledgeBaseServiceImpl;
 import com.openjiuwen.studio.agent.common.annotation.DistributedLock;
 import com.openjiuwen.studio.agent.common.annotation.OperationLog;
+import com.openjiuwen.studio.agent.common.enums.OperationType;
 import com.openjiuwen.studio.agent.common.bo.AgentMetadata;
 import com.openjiuwen.studio.agent.common.constant.Constants;
 import com.openjiuwen.studio.agent.common.dto.auth.AuthKeyInfo;
@@ -799,7 +800,6 @@ public class WorkflowManagementService implements IWorkflowManagementService {
     }
 
     @Override
-    @OperationLog
     public WorkflowValidationVO validateWorkflow(String projectId, String workflowId,
         ValidateWorkflowQo validateWorkflowQo) {
         WorkflowEntity workflowEntity =
@@ -883,7 +883,13 @@ public class WorkflowManagementService implements IWorkflowManagementService {
     }
 
     @Override
-    @OperationLog
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "Workflow",
+        description = "复制工作流",
+        resourceId = "workflowId",
+        resourceName = ""
+    )
     public WorkflowInfo copyWorkflow(String projectId, String workflowId, CopyWorkflowQo copyWorkflowQo) {
         String targetWorkspaceId = copyWorkflowQo.getTargetWorkspaceId();
         if (copyWorkflowQo.getWorkspaceId().equals(targetWorkspaceId)) {
@@ -1005,7 +1011,13 @@ public class WorkflowManagementService implements IWorkflowManagementService {
     }
 
     @Override
-    @OperationLog
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "Workflow",
+        description = "创建工作流",
+        resourceId = "-1",
+        resourceName = "body.name"
+    )
     @DistributedLock(prefix = "workflow:create:")
     public WorkflowInfo createWorkflow(String projectId, String workspaceId, WorkflowInfo body) {
         // 检验合法性
@@ -1130,6 +1142,13 @@ public class WorkflowManagementService implements IWorkflowManagementService {
 
     @Override
     @Transactional
+    @OperationLog(
+        operationType = OperationType.DELETE,
+        resourceType = "Workflow",
+        description = "删除工作流",
+        resourceId = "workflowId",
+        resourceName = ""
+    )
     public CommonDeleteRsp deleteWorkflow(String projectId, String workflowId, String workspaceId) {
         WorkflowEntity workflowEntity =
             workflowMapper.getWorkflowEntityByWorkspaceId(projectId, workspaceId, workflowId);
@@ -1335,6 +1354,13 @@ public class WorkflowManagementService implements IWorkflowManagementService {
         return workflowListRsp;
     }
 
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "Workflow",
+        description = "发布工作流",
+        resourceId = "workflowId",
+        resourceName = ""
+    )
     public Void publishWorkflow(String projectId, String workflowId, List<String> tags) {
         // 兼容老发布接口
         publishWorkflow(projectId, workflowId, tags, null);
@@ -1420,6 +1446,13 @@ public class WorkflowManagementService implements IWorkflowManagementService {
      */
     @Override
     @Transactional
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "Workflow",
+        description = "发布工作流版本",
+        resourceId = "workflowId",
+        resourceName = ""
+    )
     public String releaseWorkflowVersion(String projectId, String workflowId, String workspaceId,
         CreateVersionReq createVersionReq) {
         return releaseWorkflowVersionId(projectId, workspaceId, workflowId, null, createVersionReq);
@@ -1434,6 +1467,13 @@ public class WorkflowManagementService implements IWorkflowManagementService {
      */
     @Override
     @Transactional
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "Workflow",
+        description = "发布工作流版本",
+        resourceId = "workflowId",
+        resourceName = ""
+    )
     public String releaseWorkflowVersionV1(String projectId, String workflowId, String workspaceId,
         CreateVersionReq body) {
         return releaseWorkflowVersionId(projectId, workspaceId, workflowId, null, body);
@@ -1559,6 +1599,13 @@ public class WorkflowManagementService implements IWorkflowManagementService {
     }
 
     @Override
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "Workflow",
+        description = "添加工作流触发器",
+        resourceId = "workflowId",
+        resourceName = ""
+    )
     public TriggerConfig addTrigger(String projectId, String workflowId, String workspaceId, TriggerConfig body) {
         if (!TriggerType.TIMER.name().equals(body.getType()) && !TriggerType.EVENT.name().equals(body.getType())) {
             log.error("Trigger type is wrong. The wrong type is {}. projectId = {}, workflowId = {}", body.getType(),
@@ -1616,6 +1663,13 @@ public class WorkflowManagementService implements IWorkflowManagementService {
     }
 
     @Override
+    @OperationLog(
+        operationType = OperationType.DELETE,
+        resourceType = "Workflow",
+        description = "删除工作流触发器",
+        resourceId = "triggerId",
+        resourceName = ""
+    )
     public Void deleteTrigger(String projectId, String workflowId, String triggerId, String workspaceId) {
         WorkflowEntity workflowEntity =
             workflowMapper.getWorkflowEntityByWorkspaceId(projectId, ThreadLocalUtils.getWorkspaceId(), workflowId);
@@ -1650,6 +1704,13 @@ public class WorkflowManagementService implements IWorkflowManagementService {
     }
 
     @Override
+    @OperationLog(
+        operationType = OperationType.UPDATE,
+        resourceType = "Workflow",
+        description = "编辑触发器",
+        resourceId = "body.triggerId",
+        resourceName = ""
+    )
     public TriggerConfig editTrigger(String projectId, String workflowId, String workspaceId, TriggerConfig body) {
         // delete原任务
         deleteTrigger(projectId, workflowId, body.getTriggerId(), workspaceId);
@@ -1658,6 +1719,13 @@ public class WorkflowManagementService implements IWorkflowManagementService {
     }
 
     @Override
+    @OperationLog(
+        operationType = OperationType.UPDATE,
+        resourceType = "Workflow",
+        description = "设置试运行状态",
+        resourceId = "workflowId",
+        resourceName = ""
+    )
     public WorkflowInfo setWorkflowTestStatus(String projectId, String workflowId, String workspaceId, Boolean status) {
         WorkflowEntity workflowEntity = workflowCommonService.getWorkflowByWorkspaceAndOpProject(projectId,
             ThreadLocalUtils.getWorkspaceId(), workflowId);
@@ -1681,6 +1749,13 @@ public class WorkflowManagementService implements IWorkflowManagementService {
      * @return Void
      */
     @Override
+    @OperationLog(
+        operationType = OperationType.DELETE,
+        resourceType = "Workflow",
+        description = "删除工作流版本",
+        resourceId = "workflowId",
+        resourceName = ""
+    )
     public CommonDeleteRsp deleteWorkflowVersion(String projectId, String workflowId, String versionId,
         String workspaceId) {
         // 获取工作流并校验权限
@@ -2020,6 +2095,13 @@ public class WorkflowManagementService implements IWorkflowManagementService {
      */
     @Override
     @Transactional
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "Workflow",
+        description = "创建发布通道",
+        resourceId = "workflowId",
+        resourceName = ""
+    )
     public VersionChannelInfo createWorkflowChannel(String projectId, String workflowId, String workspaceId,
         CreateChannelReq body) {
         // 检查工作流是否存在
@@ -2160,6 +2242,13 @@ public class WorkflowManagementService implements IWorkflowManagementService {
     }
 
     @Override
+    @OperationLog(
+        operationType = OperationType.DELETE,
+        resourceType = "Workflow",
+        description = "删除发布通道",
+        resourceId = "channelId",
+        resourceName = ""
+    )
     public CommonDeleteRsp deleteWorkflowChannel(String projectId, String workflowId, String channelId,
         String workspaceId) {
         // 发布到agent-builder空间，agentId和channelId相同
@@ -2212,6 +2301,12 @@ public class WorkflowManagementService implements IWorkflowManagementService {
     }
 
     @Override
+    @OperationLog(
+        operationType = OperationType.UPDATE,
+        resourceType = "Workflow",
+        description = "修改发布通道",
+        resourceId = "workflowId"
+    )
     public VersionChannelInfo modifyWorkflowChannel(String projectId, String workflowId, String channelId,
         String workspaceId, ModifyChannelReq body) {
         // 校验流是否存在
@@ -2320,6 +2415,12 @@ public class WorkflowManagementService implements IWorkflowManagementService {
 
     @Override
     @Transactional
+    @OperationLog(
+        operationType = OperationType.UPDATE,
+        resourceType = "Workflow",
+        description = "修改工作流",
+        resourceId = "workflowId"
+    )
     public WorkflowInfo updateWorkflow(String projectId, String workflowId, String workspaceId, WorkflowInfo body) {
         // 设置事务锁，防止并行更新工作流数据
         log.debug("Entering updateWorkflow with projectId={}, workflowId={}, workspaceId={}", projectId, workflowId,
@@ -3499,6 +3600,12 @@ public class WorkflowManagementService implements IWorkflowManagementService {
      * @return ImportRsp 导入请求的响应，包括id、name、description、status和dependencies（工作流的依赖）
      */
     @Override
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "Workflow",
+        description = "导入工作流",
+        resourceId = "-1"
+    )
     public ImportRsp importWorkflows(String workspaceId, String projectId, MultipartFile file, String importWorkflows,
         String importTools) {
         agentManagementService.checkImportFile(file);

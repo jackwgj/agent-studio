@@ -15,6 +15,8 @@ import com.alibaba.fastjson2.JSONObject;
 import com.alibaba.fastjson2.TypeReference;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
+import com.openjiuwen.studio.agent.common.annotation.OperationLog;
+import com.openjiuwen.studio.agent.common.enums.OperationType;
 import com.openjiuwen.studio.agent.common.enums.StudioError;
 import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
 import com.openjiuwen.studio.agent.common.utils.RequestContextUtils;
@@ -140,6 +142,13 @@ public class ShareResourceManagerService implements IShareResourceManagerService
 
     @Override
     @Transactional
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "ShareResource",
+        description = "创建或更新共享资源",
+        resourceId = "workspaceId",
+        resourceName = "body.resourceName"
+    )
     public Boolean createOrUpdateShareResource(String projectId, String workspaceId, ShareResourceRequestInfo body) {
         // 资源版本信息
         List<ResourceVersionInfo> versionInfos = new ArrayList<>();
@@ -337,6 +346,13 @@ public class ShareResourceManagerService implements IShareResourceManagerService
 
     @Override
     @Transactional
+    @OperationLog(
+        operationType = OperationType.DELETE,
+        resourceType = "ShareResource",
+        description = "取消共享资源",
+        resourceId = "resourceId",
+        resourceName = ""
+    )
     public Boolean cancelShareResource(String projectId, String resourceId, String workspaceId, String resourceType) {
         ShareResourceEntity shareResource = shareResourceMapper.selectShareResourceEntityById(projectId, workspaceId,
             resourceId);
@@ -368,6 +384,13 @@ public class ShareResourceManagerService implements IShareResourceManagerService
         return shareResourceMapper.selectShareResourceEntityById(projectId, workspaceId, resourceId);
     }
 
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "ShareResource",
+        description = "导入共享信息",
+        resourceId = "shareInfo.workspaceId",
+        resourceName = ""
+    )
     public void importShareInfo(String projectId, ShareInfo shareInfo, WfImportDataWrapper wfImportDataWrapper) {
         if (shareInfo == null) {
             return;
@@ -411,6 +434,13 @@ public class ShareResourceManagerService implements IShareResourceManagerService
      * @param resourceId 资源ID，从UuidMap中获取，如果有主键冲突，已经被替换。
      * @param shareInfo 共享信息
      */
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "ShareResource",
+        description = "导入共享资源信息",
+        resourceId = "resourceId",
+        resourceName = ""
+    )
     public void importShareResourceInfo(String projectId, String resourceId, ShareInfo shareInfo) {
         ShareResourceEntity existedShareResourceEntity = queryShareResourceEntityByResourceIdAndWorkspaceId(projectId,
             RequestContextUtils.getRequestWorkspaceId(), resourceId);
@@ -443,6 +473,13 @@ public class ShareResourceManagerService implements IShareResourceManagerService
      * @param resourceId 资源ID，从UuidMap中获取，如果有主键冲突，已经被替换。
      * @param shareScopeEntityList 资源的共享范围
      */
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "ShareResource",
+        description = "导入共享资源授权范围",
+        resourceId = "resourceId",
+        resourceName = ""
+    )
     public void importShareResourceScope(String projectId, String resourceId,
         List<ShareScopeEntity> shareScopeEntityList) {
         if (CollectionUtils.isEmpty(shareScopeEntityList)) {

@@ -110,6 +110,9 @@ spec:
               value: 'NO_OP_CIPHER'
             - name: enable_tool_url_check
               value: 'true'
+            # 是否启用资源管理的操作日志
+            - name: studio_operationLog_switch
+              value: 'false'
           resources:
             limits:
               cpu: '2'

@@ -7,7 +7,7 @@ package com.openjiuwen.studio.agent.manager.service;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 import com.openjiuwen.studio.agent.common.annotation.OperationLog;
-import com.openjiuwen.studio.agent.common.constant.Constants;
+import com.openjiuwen.studio.agent.common.enums.OperationType;
 import com.openjiuwen.studio.agent.common.enums.KnowledgeSourceEnum;
 import com.openjiuwen.studio.agent.common.enums.StudioError;
 import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
@@ -428,7 +428,13 @@ public class CommonManagementService implements ICommonManagementService {
     }
 
     @Override
-    @OperationLog
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "Avatar",
+        description = "上传头像",
+        resourceId = "-1",
+        resourceName = ""
+    )
     public FileUploadRsp uploadAvatar(String projectId, MultipartFile file) {
         // 1、校验头像
         String safeFileName = checkUploadFile(file, CommonConstant.ICON);
