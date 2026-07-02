@@ -2174,13 +2174,30 @@ class IRConverter:
             if "numLoopVar" in node_inputs:
                 loop_inputs["loop_number"] = node_inputs["numLoopVar"]
             if "arrLoopVar" in node_inputs:
-                loop_inputs["loop_array"] = node_inputs["arrLoopVar"]
+                loop_inputs["loop_array"] = {"arrLoopVar": node_inputs["arrLoopVar"]}
             if "intermediateLoopVar" in node_inputs:
                 loop_inputs["intermediate_var"] = {"intermediateLoopVar": node_inputs["intermediateLoopVar"]}
             _loop_inputs_snapshot = loop_inputs
 
             def _loop_inputs_transformer(state):
-                return _loop_inputs_snapshot
+                from openjiuwen.core.session.utils import get_by_schema
+                data = state
+                while not isinstance(data, dict):
+                    getter = getattr(data, 'get_state', None)
+                    if callable(getter):
+                        data = getter()
+                    else:
+                        break
+
+                def _resolve(obj):
+                    if isinstance(obj, str) and obj.startswith("$"):
+                        val = get_by_schema(obj, data, is_root=True)
+                        return val if val is not None else obj
+                    if isinstance(obj, dict):
+                        return {k: _resolve(v) for k, v in obj.items()}
+                    return obj
+
+                return _resolve(_loop_inputs_snapshot)
 
             _add_workflow_comp_with_exception(
                 workflow,
