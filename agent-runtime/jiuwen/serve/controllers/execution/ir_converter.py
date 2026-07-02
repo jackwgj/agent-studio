@@ -60,6 +60,7 @@ from jiuwen.extension.workflow_node.llm_chain import LLMChain
 from jiuwen.extension.workflow_node.loop_set_variable import LoopSetVariable
 from jiuwen.extension.workflow_node.start import Start
 from jiuwen.extension.workflow_node.sub_workflow import SubWorkflow
+from jiuwen.extension.workflow.lazy_workflow import LazyWorkflow
 from jiuwen.extension.wrapper.single_component_debug_wrapper import SingleComponentInfo
 from jiuwen.multi_agent.agent_group.config import AgentGroupConfig, GroupSettings
 from jiuwen.multi_agent.agent_group.hierarchical_group.agent_group import (
@@ -1095,39 +1096,53 @@ class IRConverter:
     @staticmethod
     async def ir_to_workflow(ir_data: dict, **kwargs) -> Workflow:
         """
-        Convert IR data to an openjiuwen Workflow instance.
+        Convert IR data to a LazyWorkflow shell wrapping an openjiuwen Workflow.
+
+        Returns a ``LazyWorkflow`` — a lightweight ``Workflow`` subclass whose
+        ``invoke``/``stream`` defer the actual ``build_openjiuwen_workflow_from_ir``
+        call to first execution. This avoids eagerly building the entire graph
+        (and all child workflows) at registration time when only a subset of
+        branches will actually be executed per request.
+
         :param ir_data: Dictionary parsed from JSON IR file.
-        :param kwargs: Reserved for compatibility.
-        :return: openjiuwen Workflow instance.
+        :param kwargs: Forwarded to ``build_openjiuwen_workflow_from_ir`` at
+            instantiation time (preserved on the LazyWorkflow shell).
+        :return: LazyWorkflow (subclass of Workflow).
         """
         # Convert old global variable references to new format
         converted_ir_data = _convert_global_variable_refs_in_ir(ir_data)
         logger.debug(f"param extra: parent converted_ir_data: {converted_ir_data}")
-        return await IRConverter._build_openjiuwen_workflow_from_ir(converted_ir_data, **kwargs)
+        return LazyWorkflow(ir_data=converted_ir_data, build_kwargs=kwargs)
 
     @staticmethod
     async def async_ir_to_workflow(ir_data: dict, **kwargs) -> Workflow:
-        """
-        Convert IR data to an openjiuwen Workflow instance.
+        """Async alias of :meth:`ir_to_workflow`.
 
-        Synchronous equivalent of ir_to_workflow — openjiuwen Workflow construction
-        is pure in-memory and involves no IO. Kept as async for backward compatibility
-        with callers that use await.
+        Returns a ``LazyWorkflow`` so that the actual Workflow build is deferred
+        to the first ``invoke``/``stream`` call. Kept as async for backward
+        compatibility with callers that use ``await``.
 
         Args:
             ir_data (dict): Dictionary parsed from JSON IR file.
-            **kwargs: Reserved for compatibility.
+            **kwargs: Forwarded to ``build_openjiuwen_workflow_from_ir`` at
+                instantiation time.
 
         Returns:
-            Workflow: openjiuwen Workflow instance.
+            LazyWorkflow (subclass of Workflow).
         """
         # Convert old global variable references to new format
         converted_ir_data = _convert_global_variable_refs_in_ir(ir_data)
-        return await IRConverter._build_openjiuwen_workflow_from_ir(converted_ir_data, **kwargs)
+        return LazyWorkflow(ir_data=converted_ir_data, build_kwargs=kwargs)
 
     @staticmethod
-    async def _build_openjiuwen_workflow_from_ir(ir_data: dict, **kwargs) -> Workflow:
-        """Core IR -> openjiuwen Workflow conversion."""
+    async def build_openjiuwen_workflow_from_ir(ir_data: dict, **kwargs) -> Workflow:
+        """Core IR -> openjiuwen Workflow conversion.
+
+        Public entry point for materializing an IR dict into an executable
+        Workflow. Called directly by callers that need a fully-built graph
+        (e.g. white-box tests inspecting ``_internal._workflow_spec``), and
+        called by ``LazyWorkflow.instantiate`` on first ``invoke``/``stream``.
+        """
         import time as _time
 
         t_total = _time.perf_counter()
@@ -1162,8 +1177,10 @@ class IRConverter:
         component_by_id: dict[str, Any] = {}
 
         # Pre-compute stream source IDs directly from IR data.
-        # This avoids depending on _STREAM_SOURCE_IDS (populated later during
-        # component creation) and allows schema splitting to happen upfront.
+        # This local set is the single source of truth for stream-source
+        # membership throughout this build; it avoids any cross-request
+        # state leakage (the previous class-level _STREAM_SOURCE_IDS was
+        # shared across concurrent builds and never reset).
         ir_stream_source_ids: set[str] = set()
         _llm_types = {
             "jiuwen.llm",
@@ -1321,7 +1338,9 @@ class IRConverter:
                 continue
             if branch_id:
                 continue
-            is_stream = IRConverter._is_stream_connection(components, source, target)
+            is_stream = IRConverter._is_stream_connection(
+                components, source, target, ir_stream_source_ids
+            )
             rewritten_target = None
             rewritten_target = parallel_join_plan.rewrite_target(source, target)
             if rewritten_target:
@@ -1398,7 +1417,7 @@ class IRConverter:
             inputs_schema = pending["inputs_schema"]
             is_stream_out = pending["is_stream_out"]
             batch_schema, stream_schema = _split_inputs_schema_by_source(
-                inputs_schema, IRConverter._STREAM_SOURCE_IDS
+                inputs_schema, ir_stream_source_ids
             )
             # Parallel join stream producer is _parallel_done, not the original source;
             # rewrite refs so StreamProcessor can resolve values by producer_id.
@@ -1486,7 +1505,7 @@ class IRConverter:
             schema_source_ids = _extract_source_component_ids(schema, component_by_id)
             # Target participates in mix mode if its schema references any stream source
             has_stream_ref = any(
-                sid in IRConverter._STREAM_SOURCE_IDS for sid in schema_source_ids
+                sid in ir_stream_source_ids for sid in schema_source_ids
             )
             target_type = target_node.get("type", "")
             for source_id in schema_source_ids:
@@ -1494,7 +1513,7 @@ class IRConverter:
                     continue
                 if (source_id, target_id) in existing_connections:
                     continue
-                is_stream = source_id in IRConverter._STREAM_SOURCE_IDS
+                is_stream = source_id in ir_stream_source_ids
                 if (
                     is_stream
                     and target_type in IRConverter._STREAM_INPUT_CAPABLE_TARGET_TYPES
@@ -1536,7 +1555,10 @@ class IRConverter:
             converted_child_ir = _convert_subworkflow_global_var_refs(
                 converted_child_ir, parent_global_var_mappings
             )
-        return await IRConverter._build_openjiuwen_workflow_from_ir(converted_child_ir)
+        # Return a LazyWorkflow shell — child workflow graph is built lazily
+        # on first invoke/stream, i.e. only when the parent actually reaches
+        # this SubWorkflow node at runtime.
+        return LazyWorkflow(ir_data=converted_child_ir, ir_path=child_path)
 
     @staticmethod
     async def _create_component(
@@ -1589,8 +1611,6 @@ class IRConverter:
             "jiuwen.llmChain",
             "jiuwen.LLMComponent",
         }:
-            if node_id in IRConverter._STREAM_SOURCE_IDS:
-                IRConverter._STREAM_SOURCE_IDS.remove(node_id)
             if global_model and "model" not in configs:
                 configs["model"] = global_model
             elif "model" not in configs and "modelName" in configs:
@@ -2176,7 +2196,6 @@ class IRConverter:
                     **_comp_reg,
                 )
             elif bool(configs.get("stream", False)):
-                IRConverter._STREAM_SOURCE_IDS.add(node_id)
                 _add_workflow_comp_with_exception(
                     workflow,
                     node_id,
@@ -2195,9 +2214,8 @@ class IRConverter:
                 )
             return component
 
-        if resolved_type in {"jiuwen.plugin", "jiuwen.api", "jiuwen.flowApi"}:
+        if resolved_type in IRConverter._STREAMING_API_TYPES:
             if bool(configs.get("streaming", False)):
-                IRConverter._STREAM_SOURCE_IDS.add(node_id)
                 _add_workflow_comp_with_exception(
                     workflow,
                     node_id,
@@ -2349,8 +2367,6 @@ class IRConverter:
                 exception_config=pending["exception_config"],
             )
 
-    _STREAM_SOURCE_IDS = set()
-
     _AGGREGATE_TYPES = frozenset(
         {
             "jiuwen.aggregate",
@@ -2409,7 +2425,12 @@ class IRConverter:
         return True
 
     @staticmethod
-    def _is_stream_connection(components: list[dict], source: str, target: str) -> bool:
+    def _is_stream_connection(
+        components: list[dict],
+        source: str,
+        target: str,
+        stream_source_ids: set[str],
+    ) -> bool:
         source_node = next(
             (item for item in components if item.get("id") == source), {}
         )
@@ -2430,11 +2451,11 @@ class IRConverter:
         if (
             target_type == "jiuwen.end"
             and target_configs.get("isStreamOut")
-            and source_id in IRConverter._STREAM_SOURCE_IDS
+            and source_id in stream_source_ids
         ):
             return True
         if (
-            source_id in IRConverter._STREAM_SOURCE_IDS
+            source_id in stream_source_ids
             and target_type in IRConverter._STREAM_INPUT_CAPABLE_TARGET_TYPES
         ):
             return True
@@ -2551,7 +2572,7 @@ class IRConverter:
 
         # SubWorkflow 需要加载子工作流
         if node_type in {"jiuwen.subWorkflow", "jiuwen.workflowComposite"}:
-            child_workflow = IRConverter._try_load_sub_workflow(configs)
+            child_workflow = await IRConverter._try_load_sub_workflow(configs)
             component = SubWorkflow(
                 {**configs, "node_id": component_id}, sub_workflow=child_workflow
             )

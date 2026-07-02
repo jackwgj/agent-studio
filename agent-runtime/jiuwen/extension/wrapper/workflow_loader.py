@@ -23,11 +23,15 @@ async def ensure_openjiuwen_workflow_registered(
 ):
     """Ensure an openjiuwen workflow resource exists for the current workflow/tag.
 
-    IMPORTANT: Always builds a fresh Workflow instance from the IR. Reusing a
-    Workflow object across runs is unsafe because agent-core mutates internal
-    state (abilities, vertex sessions, compiled Pregel graph) during execution,
-    and the reset between runs is only partial — leading to NoneType errors on
-    the second invocation.
+    Returns a ``LazyWorkflow`` shell — the actual IR -> Workflow graph build is
+    deferred to the first ``stream``/``invoke`` call (see ``LazyWorkflow``).
+    Registration therefore has zero build cost; the per-request fresh build
+    happens lazily on first execution. Reusing a Workflow object across runs
+    is unsafe because agent-core mutates internal state (abilities, vertex
+    sessions, compiled Pregel graph) during execution, and the reset between
+    runs is only partial — leading to NoneType errors on the second
+    invocation, so we still remove-and-reregister the LazyWorkflow shell per
+    request to get a fresh deferred-build wrapper.
     """
     workflow_id = workflow_id or workflow_ir.get("workflowId")
     tag = agent_id or None

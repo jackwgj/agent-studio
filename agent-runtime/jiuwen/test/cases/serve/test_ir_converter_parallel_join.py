@@ -103,8 +103,7 @@ def test_llm_to_aggregate_uses_batch_edge_not_stream():
         pytest.skip("ExceptionConfig unavailable in installed openjiuwen")
     from jiuwen.serve.controllers.execution.ir_converter import IRConverter
 
-    IRConverter._STREAM_SOURCE_IDS.clear()
-    IRConverter._STREAM_SOURCE_IDS.add("node_1780556908427")
+    stream_source_ids = {"node_1780556908427"}
     components = [
         {
             "id": "node_1780556908427",
@@ -123,7 +122,10 @@ def test_llm_to_aggregate_uses_batch_edge_not_stream():
     ]
     assert (
         IRConverter._is_stream_connection(
-            components, "node_1780556908427", "node_1780556289681"
+            components,
+            "node_1780556908427",
+            "node_1780556289681",
+            stream_source_ids,
         )
         is False
     )
