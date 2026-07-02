@@ -248,6 +248,9 @@ class End(BaseEnd):
         self.output_mode = OutputMode.from_str(raw_mode)
         self.node_type = "jiuwen.end"
         self.node_name = conf_dict.get("name", "")
+        # 并行汇聚点标记：为 True 时注册到图会强制 wait_for_all=True，
+        # 避免 End 被某条支路（如绕过异常节点的直连边）单独触发而提前输出。
+        self._wait_for_all_join = False
         self.end_interrupt = False
         self.event = conf_dict.get("event", {})
         if self.event and self.event.get("type", "") == "task_completion":
@@ -285,6 +288,26 @@ class End(BaseEnd):
         self._stream_executed = False
         self._collect_executed = False
         self._transform_executed = False
+
+    def set_wait_for_all_join(self, value: bool = True) -> None:
+        """标记当前 End 为并行汇聚点。
+
+        由 IR converter 在判定该 End 汇聚多条并行支路时调用。
+        注册到图时会强制 wait_for_all=True，使 End 等待所有入边（含异常支路）
+        再执行，避免被某条支路单独触发而提前输出 message_end/workflow_end。
+        """
+        self._wait_for_all_join = bool(value)
+
+    def add_component(self, graph, node_id: str, wait_for_all: bool = False) -> None:
+        """覆写注册逻辑：并行汇聚点的 End 强制 wait_for_all=True。
+
+        openjiuwen 的 set_end_comp 会按 ability 内部推导 wait_for_all
+        （仅 COLLECT/TRANSFORM 为 True），对 STREAM/INVOKE 能力的 End 得到 False，
+        且不接受外部覆盖。这里在组件注册到图时按标记强制改写。
+        """
+        if self._wait_for_all_join:
+            wait_for_all = True
+        super().add_component(graph, node_id, wait_for_all=wait_for_all)
 
     @staticmethod
     def _is_workflow_interrupted(session: Session) -> bool:

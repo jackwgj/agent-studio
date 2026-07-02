@@ -1450,6 +1450,16 @@ class IRConverter:
             if is_stream_out:
                 set_end_kwargs["response_mode"] = "streaming"
 
+            # 并行汇聚点的 End 必须等待所有入边（含异常支路）完成后再执行，避免被某条支路
+            # （如绕过异常节点的直连边）单独触发而提前输出 message_end/workflow_end。
+            # set_end_comp 会按 ability 内部推导 wait_for_all（STREAM/INVOKE 能力为 False），
+            # 且不接受外部覆盖；因此通过 End 组件自身在注册到图时强制 wait_for_all=True。
+            if (
+                parallel_join_nodes
+                and node_id in parallel_join_nodes
+                and hasattr(end, "set_wait_for_all_join")
+            ):
+                end.set_wait_for_all_join(True)
             workflow.set_end_comp(node_id, end, **set_end_kwargs)
 
         for source, target, is_stream in deferred_connections:
