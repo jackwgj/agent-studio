@@ -10,6 +10,22 @@ import pytest
 from agent_runtime.runner.fast_redis_checkpointer import FastRedisCheckpointer
 
 
+class AsyncIteratorMock:
+    """Helper to mock async iteration over a list of items."""
+
+    def __init__(self, items):
+        self._items = iter(items)
+
+    def __aiter__(self):
+        return self
+
+    async def __anext__(self):
+        try:
+            return next(self._items)
+        except StopIteration:
+            raise StopAsyncIteration
+
+
 def _make_mock_delegate():
     """Create a mock RedisCheckpointer with all abstract methods."""
     delegate = MagicMock()
@@ -53,30 +69,29 @@ def checkpointer(mock_delegate, mock_redis):
 class TestSessionExists:
     @pytest.mark.asyncio
     async def test_session_exists_no_sentinel(self, checkpointer, mock_redis):
-        """New session: sentinel absent → returns False."""
-        mock_redis.exists = AsyncMock(return_value=0)
+        """New session: no sentinel keys → returns False."""
+        mock_redis.scan_iter = MagicMock(return_value=AsyncIteratorMock([]))
         result = await checkpointer.session_exists("test-session-123")
         assert result is False
-        mock_redis.exists.assert_awaited_once_with(
-            "agentBuilder:session_exists:test-session-123"
+        mock_redis.scan_iter.assert_called_once_with(
+            match="agentBuilder:session_exists:test-session-123:*", count=100
         )
 
     @pytest.mark.asyncio
     async def test_session_exists_with_sentinel(self, checkpointer, mock_redis):
-        """Existing session: sentinel present → returns True."""
-        mock_redis.exists = AsyncMock(return_value=1)
+        """Existing session: sentinel key present → returns True."""
+        mock_redis.scan_iter = MagicMock(
+            return_value=AsyncIteratorMock(["agentBuilder:session_exists:test-session-123:wf-1"])
+        )
         result = await checkpointer.session_exists("test-session-123")
         assert result is True
-        mock_redis.exists.assert_awaited_once_with(
-            "agentBuilder:session_exists:test-session-123"
-        )
 
     @pytest.mark.asyncio
     async def test_session_exists_redis_error_returns_false(
         self, checkpointer, mock_redis
     ):
-        """Redis error on EXISTS → return False (safe default)."""
-        mock_redis.exists = AsyncMock(side_effect=Exception("Redis down"))
+        """Redis error on SCAN → return False (safe default)."""
+        mock_redis.scan_iter = MagicMock(side_effect=Exception("Redis down"))
         result = await checkpointer.session_exists("test-session-123")
         assert result is False
 
@@ -84,18 +99,19 @@ class TestSessionExists:
 class TestPreWorkflowExecute:
     @pytest.mark.asyncio
     async def test_pre_workflow_writes_sentinel(self, checkpointer, mock_delegate, mock_redis):
-        """pre_workflow_execute delegates + writes sentinel key."""
+        """pre_workflow_execute delegates + writes per-workflow sentinel key."""
         mock_redis.set = AsyncMock(return_value=True)
         mock_session = MagicMock()
         mock_session.session_id = MagicMock(return_value="sess-1")
+        mock_session.workflow_id = MagicMock(return_value="wf-1")
 
         await checkpointer.pre_workflow_execute(mock_session, MagicMock())
 
         # Delegate was called
         mock_delegate.pre_workflow_execute.assert_awaited_once()
-        # Sentinel key was written
+        # Per-workflow sentinel key was written
         mock_redis.set.assert_awaited_once_with(
-            "agentBuilder:session_exists:sess-1", "1", ex=86400
+            "agentBuilder:session_exists:sess-1:wf-1", "1", ex=86400
         )
 
     @pytest.mark.asyncio
@@ -106,6 +122,7 @@ class TestPreWorkflowExecute:
         mock_redis.set = AsyncMock(side_effect=Exception("Redis write error"))
         mock_session = MagicMock()
         mock_session.session_id = MagicMock(return_value="sess-1")
+        mock_session.workflow_id = MagicMock(return_value="wf-1")
 
         # Should NOT raise
         await checkpointer.pre_workflow_execute(mock_session, MagicMock())
@@ -138,8 +155,8 @@ class TestPostWorkflowExecute:
         expected_value_key = "sess-1:workflow-graph:wf-1:checkpoint_data_value"
         mock_redis.delete.assert_any_call(expected_type_key, expected_value_key)
 
-        # Sentinel key deleted
-        mock_redis.delete.assert_any_call("agentBuilder:session_exists:sess-1")
+        # Per-workflow sentinel key deleted
+        mock_redis.delete.assert_any_call("agentBuilder:session_exists:sess-1:wf-1")
 
         # workflow_storage.clear delegated
         getattr(mock_delegate, "_workflow_storage").clear.assert_awaited_once_with("wf-1", "sess-1")
@@ -189,8 +206,8 @@ class TestPostWorkflowExecute:
         expected_value_key = "sess-1:workflow-graph:wf-1:checkpoint_data_value"
         mock_redis.delete.assert_any_call(expected_type_key, expected_value_key)
 
-        # Sentinel key also deleted
-        mock_redis.delete.assert_any_call("agentBuilder:session_exists:sess-1")
+        # Per-workflow sentinel key also deleted
+        mock_redis.delete.assert_any_call("agentBuilder:session_exists:sess-1:wf-1")
 
         # workflow_storage.clear delegated
         getattr(mock_delegate, "_workflow_storage").clear.assert_awaited_once_with("wf-1", "sess-1")
@@ -382,8 +399,10 @@ class TestFeatureToggle:
             ttl_seconds=86400,
         )
         assert isinstance(fast, FastRedisCheckpointer)
-        # session_exists uses sentinel key, not delegate
-        mock_redis.exists = AsyncMock(return_value=1)
+        # session_exists uses scan_iter on sentinel keys, not delegate
+        mock_redis.scan_iter = MagicMock(
+            return_value=AsyncIteratorMock(["agentBuilder:session_exists:sess-1:wf-1"])
+        )
         result = await fast.session_exists("sess-1")
         assert result is True
         mock_delegate.session_exists.assert_not_called()
