@@ -1374,9 +1374,23 @@ class IRConverter:
             )
             workflow.add_connection(_src_id, _branch_node_id)
 
+        _parallel_join_has_stream_lane: dict[str, bool] = {}
+        _parallel_stream_source_to_done: dict[str, str] = {}
         for join_spec in parallel_join_plan.joins.values():
+            has_stream_lane = any(
+                lane.done_node in parallel_stream_done_inputs
+                for lane in join_spec.lanes
+            )
+            _parallel_join_has_stream_lane[join_spec.join_target] = has_stream_lane
             if join_spec.join_target in end_node_ids:
                 batch_connection_targets.add(join_spec.join_target)
+                if has_stream_lane:
+                    stream_connection_targets.add(join_spec.join_target)
+            if has_stream_lane:
+                for lane in join_spec.lanes:
+                    if lane.done_node in parallel_stream_done_inputs:
+                        for terminal_source, _ in lane.terminals:
+                            _parallel_stream_source_to_done[terminal_source] = lane.done_node
 
         for pending in pending_end_nodes:
             node_id = pending["node_id"]
@@ -1386,6 +1400,12 @@ class IRConverter:
             batch_schema, stream_schema = _split_inputs_schema_by_source(
                 inputs_schema, IRConverter._STREAM_SOURCE_IDS
             )
+            # Parallel join stream producer is _parallel_done, not the original source;
+            # rewrite refs so StreamProcessor can resolve values by producer_id.
+            if stream_schema and _parallel_stream_source_to_done:
+                stream_schema = _rewrite_stream_schema_refs(
+                    stream_schema, _parallel_stream_source_to_done
+                )
             # Determine incoming edge types for this End node.
             # batch_schema may contain special refs (_env, _request, query, etc.) and
             # literal values in addition to component refs; all need the INVOKE path.
@@ -1422,7 +1442,24 @@ class IRConverter:
         for join_spec in parallel_join_plan.joins.values():
             lane_done_nodes = [lane.done_node for lane in join_spec.lanes]
             if len(lane_done_nodes) >= 2:
-                workflow.add_connection(lane_done_nodes, join_spec.join_target)
+                has_stream_lane = _parallel_join_has_stream_lane.get(
+                    join_spec.join_target, False
+                )
+                if has_stream_lane and join_spec.join_target in end_node_ids:
+                    stream_done_nodes = [
+                        n for n in lane_done_nodes
+                        if n in parallel_stream_done_inputs
+                    ]
+                    invoke_done_nodes = [
+                        n for n in lane_done_nodes
+                        if n not in parallel_stream_done_inputs
+                    ]
+                    for n in stream_done_nodes:
+                        workflow.add_stream_connection(n, join_spec.join_target)
+                    if invoke_done_nodes:
+                        workflow.add_connection(invoke_done_nodes, join_spec.join_target)
+                else:
+                    workflow.add_connection(lane_done_nodes, join_spec.join_target)
 
         # Add missing connections based on schema references.
         # Strategy:
@@ -3364,6 +3401,31 @@ def _split_inputs_schema_by_source(
         if stream_fields:
             stream_schema[category] = stream_fields
     return (batch_schema or None), (stream_schema or None)
+
+
+def _rewrite_stream_schema_refs(
+    schema: dict, source_to_done: dict[str, str]
+) -> dict:
+    """Rewrite ${source_id.field} refs to use _parallel_done node IDs.
+
+    In parallel joins the stream producer is the _parallel_done node, not the
+    original source.  StreamProcessor routes chunks by producer_id, so schema
+    refs must point to the _parallel_done node for value resolution.
+    """
+    if not isinstance(schema, dict) or not source_to_done:
+        return schema
+    result: dict = {}
+    for key, value in schema.items():
+        if isinstance(value, dict):
+            result[key] = _rewrite_stream_schema_refs(value, source_to_done)
+        else:
+            source_id = _extract_ref_source_id(value) if isinstance(value, str) else None
+            if source_id and source_id in source_to_done:
+                inner = value[2:-1]
+                result[key] = "${" + source_to_done[source_id] + inner[len(source_id):] + "}"
+            else:
+                result[key] = value
+    return result
 
 
 def _convert_schema(value: Any) -> Any:
