@@ -146,7 +146,13 @@ export class Image2textOutputComponent {
   private getChatParam(msg: any) {
     const messages = [];
     messages.push(msg);
-    return {
+    let thinking = {type: ''}
+    if (this.settingInfo.thinking) {
+      thinking.type = 'enabled'
+    }else{
+      thinking.type = 'disabled'
+    }
+    const params:any = {
       model: this.serviceInfo.id,
       stream: this.settingInfo.stream_val,
       messages,
@@ -155,7 +161,11 @@ export class Image2textOutputComponent {
         is_response_verify: this.settingInfo.securityVerify,
         is_request_verify: this.settingInfo.securityVerify,
       },
-    };
+    }
+    if(this.serviceInfo.is_reasoning){
+      params.thinking = thinking
+    }
+    return params;
   }
 
   private postChat(messages) {
