@@ -1,0 +1,78 @@
+# Dev 版 Dockerfile：从 git 仓库拉取 agent-core 源码安装，替代 PyPI openjiuwen 包
+# 与正式版 Dockerfile 的唯一区别：openjiuwen 不从 PyPI 安装，改为从本地源码安装
+ARG BASE_IMAGE
+FROM $BASE_IMAGE
+
+# 注：此处修改需同步修改studio-runtime.yaml中的runAsUser、runAsGroup、fsGroup
+RUN groupadd -g 1000 service && useradd -u 1000 -g service -s /bin/bash -m service
+
+ENV SERVICE_HOME=/opt/cloud/agent-runtime
+ENV PACKAGES_HOME=/usr/local/lib/python3.11/site-packages
+ENV LD_LIBRARY_PATH=/usr/local/lib:/usr/lib64
+
+WORKDIR $SERVICE_HOME
+
+# 安装运行时依赖（不含编译工具链）
+RUN mirror=mirrors.aliyun.com; \
+    new_src=/etc/apt/sources.list.d/debian.sources; \
+    old_src=/etc/apt/sources.list; \
+    if [ -f "$new_src" ]; then \
+      sed -i "s|deb.debian.org|${mirror}|g" "$new_src"; \
+    elif [ -f "$old_src" ]; then \
+      sed -i "s|deb.debian.org|${mirror}|g" "$old_src"; \
+    fi \
+    && apt-get update \
+    && apt-get install -y bash coreutils findutils sed gawk hostname procps vim curl wget tar unzip net-tools iptables cron libpq-dev \
+    && apt-get clean && rm -rf /var/lib/apt/lists/* \
+    && echo 'alias ll="ls -alF"' >> /etc/bash.bashrc
+
+# 先复制 requirements.txt（已移除 openjiuwen 行），单独安装依赖以利用 Docker 层缓存
+COPY requirements.txt $SERVICE_HOME/app/
+RUN pip3 config set global.index-url https://mirrors.aliyun.com/pypi/simple/ \
+    && pip3 config set global.trusted-host mirrors.aliyun.com \
+    && pip3 install -r $SERVICE_HOME/app/requirements.txt \
+    && rm -rf ${PACKAGES_HOME}/future/backports/test
+
+# 从本地源码安装 openjiuwen（替代 PyPI 包，对应 agent-core git 仓库）
+COPY agent-core/ /tmp/agent-core/
+RUN cd /tmp/agent-core \
+    && pip3 install . \
+    && rm -rf /tmp/agent-core
+
+# 再复制应用代码（变更频率高，放在依赖安装之后）
+COPY agent_builder/ $SERVICE_HOME/app/agent_builder/
+COPY agent_runtime/ $SERVICE_HOME/app/agent_runtime/
+COPY jiuwen/ $SERVICE_HOME/app/jiuwen/
+COPY tests/ $SERVICE_HOME/app/tests/
+COPY bin/ $SERVICE_HOME/bin/
+
+# 设置目录与权限
+RUN mkdir -p $SERVICE_HOME/bin \
+    && chmod +x $SERVICE_HOME/bin/*.sh \
+    && mkdir -p $SERVICE_HOME/tls \
+    && mkdir -p /opt/cloud/logs \
+    && mkdir -p /opt/cloud/tool \
+    && mkdir -p /opt/tmp/agent \
+    && mkdir -p /opt/cloud/logs/agent-runtime/run \
+    && touch /opt/cloud/logs/agent-runtime/run/agent-runtime.pid \
+    && touch /opt/cloud/logs/agent-runtime/run/agent-runtime_access.log \
+    && touch /opt/cloud/logs/agent-runtime/run/agent-runtime_debug.log \
+    && chmod 750 -R /opt/cloud/logs $SERVICE_HOME/tls/ \
+    && chmod u+w ${PACKAGES_HOME} \
+    && chown -R service:service ${PACKAGES_HOME} \
+    && chmod 700 $SERVICE_HOME/.. \
+    && chown -R service:service /home \
+    && chown -R service:service /opt/cloud \
+    && chown -R service:service /opt/tmp/agent \
+    && chmod 755 /home
+
+# 定义定时任务需要的权限
+USER root
+RUN chmod 700 /opt/cloud/logs \
+    && echo service >> /etc/cron.allow \
+    && chmod u+s /usr/sbin/cron \
+    && touch /var/run/crond.pid && chmod 760 /var/run/crond.pid
+
+USER service
+
+CMD ["/bin/bash", "-c", "cron;cd ${SERVICE_HOME};./bin/init.sh;./bin/start.sh"]

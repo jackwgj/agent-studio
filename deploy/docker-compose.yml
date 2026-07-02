@@ -1,0 +1,327 @@
+# openJiuwen AgentStudio Docker Compose 部署编排
+# 在线/离线统一编排：8 个服务（4 基础设施 + 4 应用）
+# 在线部署：IMAGE_SOURCE=ghcr/dockerhub，脚本自动 pull 镜像
+# 离线部署：IMAGE_SOURCE=offline，脚本自动 docker load 镜像
+
+services:
+  # ── 基础设施 ──
+
+  mysql:
+    image: ${MYSQL_IMAGE:-mysql:8.0}
+    pull_policy: if_not_present
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-123456}
+      MYSQL_DATABASE: "agent-builder"
+      MYSQL_CHARACTER_SET_SERVER: utf8mb4
+      MYSQL_COLLATION_SERVER: utf8mb4_general_ci
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - agent-net
+
+  redis:
+    image: ${REDIS_IMAGE:-redis:7}
+    pull_policy: if_not_present
+    restart: always
+    ports:
+      - "${REDIS_EXTERNAL_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - agent-net
+
+  minio:
+    image: ${MINIO_IMAGE:-minio/minio:latest}
+    pull_policy: if_not_present
+    restart: always
+    ports:
+      - "${MINIO_API_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    environment:
+      MINIO_ROOT_USER: ${OBS_AK:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${OBS_SK:-minioadmin}
+      MINIO_DOMAIN: minio
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      # minio/minio 镜像不含 curl/bash（/dev/tcp 是 bash 专有），用镜像内置的 mc 探活。
+      # `local` 是 mc 内置默认别名，指向 http://localhost:9000。
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      agent-net:
+        aliases:
+          # OBS SDK 默认使用 virtual-hosted-style，请求 host 为 <bucket>.<endpoint>
+          # 此 alias 使 DNS 能解析 <bucket>.minio → minio 容器，兼容 virtual-hosted-style
+          - ${OBS_BUCKET:-agent-builder}.minio
+
+  minio-init:
+    image: ${MINIO_MC_IMAGE:-minio/mc:latest}
+    pull_policy: if_not_present
+    depends_on:
+      minio:
+        condition: service_healthy
+    restart: "no"
+    environment:
+      OBS_AK: ${OBS_AK:-minioadmin}
+      OBS_SK: ${OBS_SK:-minioadmin}
+      OBS_BUCKET: ${OBS_BUCKET:-agent-builder}
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 $${OBS_AK} $${OBS_SK};
+      mc mb --ignore-existing local/$${OBS_BUCKET};
+      echo 'MinIO bucket created';
+      "
+    networks:
+      - agent-net
+
+  # ── 应用服务 ──
+
+  studio-console:
+    image: ${STUDIO_CONSOLE_IMAGE}
+    pull_policy: ${APP_PULL_POLICY:-always}
+    restart: always
+    cpus: 0.5
+    mem_limit: 512m
+    volumes:
+      - ./config/nginx.conf:/home/conf/nginx.conf
+      # HTTPS启动：取消以下注释，并将证书文件放到 ./config/ 目录
+      # - ./config/keypassfifo:/home/service/nginx/keypassfifo
+      # - ./config/cert.pem:/home/secret/cert.pem
+      # - ./config/pri_key.pem:/home/secret/pri_key.pem
+    ports:
+      # HTTPS启动：改为 443:443
+      - '${CONSOLE_PORT:-80}:80'
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/80'"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
+    depends_on:
+      studio-manager:
+        condition: service_healthy
+      studio-service:
+        condition: service_healthy
+      studio-runtime:
+        condition: service_healthy
+    networks:
+      - agent-net
+
+  studio-manager:
+    image: ${STUDIO_MANAGER_IMAGE}
+    pull_policy: ${APP_PULL_POLICY:-always}
+    restart: always
+    privileged: true
+    cpus: 2
+    mem_limit: 4g
+    ports:
+      - "${MANAGER_PORT:-31111}:31111"
+    environment:
+      spring_datasource_url: ${SPRING_DATASOURCE_URL:-}
+      spring_datasource_username: ${SPRING_DATASOURCE_USERNAME:-}
+      spring_datasource_password: ${SPRING_DATASOURCE_PASSWORD:-}
+      spring_datasource_driver_class_name: ${SPRING_DATASOURCE_DRIVER_CLASS_NAME:-}
+      redis_host: ${REDIS_HOST:-}
+      redis_password: ${REDIS_PASSWORD:-}
+      redis_port: ${REDIS_PORT:-6379}
+      cluster_node_list: ${REDIS_CLUSTER_NODES:-}
+      redis_master_name: ${REDIS_SENTINEL_MASTER:-}
+      redis_sentinel_ports: ${REDIS_SENTINEL_PORTS:-}
+      obs_url: ${OBS_URL:-}
+      obs_bucket: ${OBS_BUCKET:-}
+      obs_staging_bucket: ${OBS_BUCKET:-}
+      obs_ak: ${OBS_AK:-}
+      obs_sk: ${OBS_SK:-}
+      server_ssl_enabled: ${SERVER_SSL_ENABLED:-false}
+      CB_CF_SERVER_KEYSTORE: ${CB_CF_SERVER_KEYSTORE:-}
+      CB_CF_TRUST_KEYSTORE: ${CB_CF_TRUST_KEYSTORE:-}
+      server_ssl_trust_store_password: ${SERVER_SSL_TRUST_STORE_PASSWORD:-}
+      server_ssl_key_store_password: ${SERVER_SSL_KEY_STORE_PASSWORD:-}
+      server_ssl_key_password: ${SERVER_SSL_KEY_PASSWORD:-}
+      agent_runtime_endpoint: ${AGENT_RUNTIME_ENDPOINT:-http://studio-service:31113}
+      user_auth_endpoint: ${USER_AUTH_ENDPOINT:-http://studio-manager:31111}
+      jiu_wen_service_endpoint: ${JIUWEN_BASE_URL:-http://studio-runtime:31014}
+      jiuwen_base_url: ${JIUWEN_BASE_URL:-http://studio-runtime:31014}
+      front_page_block_nodes: ${FRONT_PAGE_BLOCK_NODES:-Sql,DataQuery,Agent}
+      share_knowledge_enabled: ${SHARE_KNOWLEDGE_ENABLED:-true}
+      workflow_async_enable: ${WORKFLOW_ASYNC_ENABLED:-true}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/31111'"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+    networks:
+      - agent-net
+
+  studio-service:
+    image: ${STUDIO_SERVICE_IMAGE}
+    pull_policy: ${APP_PULL_POLICY:-always}
+    restart: always
+    privileged: true
+    cpus: 2
+    mem_limit: 4g
+    ports:
+      - "${SERVICE_PORT:-31113}:31113"
+    environment:
+      spring_datasource_url: ${SPRING_DATASOURCE_URL:-}
+      spring_datasource_username: ${SPRING_DATASOURCE_USERNAME:-}
+      spring_datasource_password: ${SPRING_DATASOURCE_PASSWORD:-}
+      spring_datasource_driver_class_name: ${SPRING_DATASOURCE_DRIVER_CLASS_NAME:-}
+      redis_host: ${REDIS_HOST:-}
+      redis_password: ${REDIS_PASSWORD:-}
+      redis_port: ${REDIS_PORT:-6379}
+      cluster_node_list: ${REDIS_CLUSTER_NODES:-}
+      redis_master_name: ${REDIS_SENTINEL_MASTER:-}
+      redis_sentinel_ports: ${REDIS_SENTINEL_PORTS:-}
+      obs_url: ${OBS_URL:-}
+      obs_bucket: ${OBS_BUCKET:-}
+      obs_staging_bucket: ${OBS_BUCKET:-}
+      obs_ak: ${OBS_AK:-}
+      obs_sk: ${OBS_SK:-}
+      server_ssl_enabled: ${SERVER_SSL_ENABLED:-false}
+      CB_CF_SERVER_KEYSTORE: ${CB_CF_SERVER_KEYSTORE:-}
+      CB_CF_TRUST_KEYSTORE: ${CB_CF_TRUST_KEYSTORE:-}
+      server_ssl_trust_store_password: ${SERVER_SSL_TRUST_STORE_PASSWORD:-}
+      server_ssl_key_store_password: ${SERVER_SSL_KEY_STORE_PASSWORD:-}
+      server_ssl_key_password: ${SERVER_SSL_KEY_PASSWORD:-}
+      user_auth_endpoint: ${USER_AUTH_ENDPOINT:-http://studio-manager:31111}
+      agent_manager_endpoint: ${AGENT_MANAGER_ENDPOINT:-http://studio-manager:31111}
+      jiuwen_base_url: ${JIUWEN_BASE_URL:-http://studio-runtime:31014}
+      koosearch_endpoint: ${KOOSEARCH_ENDPOINT:-}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      studio-manager:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/31113'"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+    networks:
+      - agent-net
+
+  studio-runtime:
+    image: ${STUDIO_RUNTIME_IMAGE}
+    pull_policy: ${APP_PULL_POLICY:-always}
+    restart: always
+    privileged: true
+    cpus: 2
+    mem_limit: 4g
+    ports:
+      - "${RUNTIME_PORT:-31014}:31014"
+    environment:
+      REDIS_HOST: ${REDIS_HOST:-}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_CLUSTER_NODES: ${REDIS_CLUSTER_NODES:-}
+      REDIS_SENTINEL_MASTER: ${REDIS_SENTINEL_MASTER:-}
+      REDIS_SENTINEL_NODES: ${REDIS_SENTINEL_NODES:-}
+      REDIS_MODE: ${REDIS_MODE:-single}
+      REDIS_DATABASE: ${REDIS_DATABASE:-0}
+      DATASOURCE_OBS_SERVER: ${OBS_URL:-}
+      DATASOURCE_OBS_BUCKET: ${OBS_BUCKET:-}
+      DATASOURCE_OBS_AK: ${OBS_AK:-}
+      DATASOURCE_OBS_SK: ${OBS_SK:-}
+      DATASOURCE_OBS_ENABLE_SSL: ${DATASOURCE_OBS_ENABLE_SSL:-false}
+      MODEL_ROUTER_API: ${MODEL_ROUTER_API:-http://studio-service:31113/v1/agent-builder}
+      HTTPS: ${SERVER_SSL_ENABLED:-false}
+      HTTPS_CERT_FILE: ${HTTPS_CERT_FILE:-}
+      HTTPS_KEY_FILE: ${HTTPS_KEY_FILE:-}
+      TLS_CERT_KEY_PASSWD: ${TLS_CERT_KEY_PASSWD:-}
+      TLS_CERT_KEY_PATH: /opt/cloud/agent-runtime/tls/key.pem
+      TLS_CERT_PATH: /opt/cloud/agent-runtime/tls/cert.pem
+      SECURITY_SANDBOX_SERVER: ${SECURITY_SANDBOX_SERVER:-}
+      SECURITY_SANDBOX_SSL_VERIFY: ${SECURITY_SANDBOX_SSL_VERIFY:-false}
+      SECURITY_SANDBOX_IDLE_TTL: ${SECURITY_SANDBOX_IDLE_TTL:-600}
+      SECURITY_SANDBOX_TIMEOUT: ${SECURITY_SANDBOX_TIMEOUT:-300}
+      SECURITY_SANDBOX_SCOPE: ${SECURITY_SANDBOX_SCOPE:-system}
+      OPENSEARCH_HOSTS: ${OPENSEARCH_HOSTS:-}
+      OPENSEARCH_USERNAME: ${OPENSEARCH_USERNAME:-admin}
+      OPENSEARCH_PASSWORD: ${OPENSEARCH_PASSWORD:-admin}
+      OPENSEARCH_USE_SSL: ${OPENSEARCH_USE_SSL:-false}
+      OPENSEARCH_SSL_VERIFY: ${OPENSEARCH_SSL_VERIFY:-false}
+      MEMORY_ENABLED: ${MEMORY_ENABLED:-false}
+      LONG_TERM_MEMORY_ENABLE: ${LONG_TERM_MEMORY_ENABLE:-false}
+      MEMORY_USER_PROFILE_ENABLE: ${MEMORY_USER_PROFILE_ENABLE:-false}
+      MEMORY_EMBEDDING_MODEL: ${MEMORY_EMBEDDING_MODEL:-bge-m3}
+      MEMORY_EMBEDDING_BASE_URL: ${MEMORY_EMBEDDING_BASE_URL:-}
+      MEMORY_EMBEDDING_API_KEY: ${MEMORY_EMBEDDING_API_KEY:-}
+      MEMORY_LLM_MODEL: ${MEMORY_LLM_MODEL:-}
+      MEMORY_LLM_BASE_URL: ${MEMORY_LLM_BASE_URL:-}
+      MEMORY_LLM_API_KEY: ${MEMORY_LLM_API_KEY:-}
+      MEMORY_DB_HOST: ${MEMORY_DB_HOST:-}
+      MEMORY_DB_PORT: ${MEMORY_DB_PORT:-3306}
+      MEMORY_DB_USER: ${MEMORY_DB_USER:-}
+      MEMORY_DB_PASSWORD: ${MEMORY_DB_PASSWORD:-}
+      MEMORY_DB_NAME: ${MEMORY_DB_NAME:-agent-memory}
+      JIUWEN_LOG_FILE: /opt/cloud/logs/tgf_python.log
+      JIUWEN_LOG_PATH: /opt/cloud/logs/jiuwen.log
+      JIUWEN_LOGGING_LOG_FILE: /opt/cloud/logs/jiuwen_python.log
+      LOGGING_LOG_PATH: /opt/cloud/logs/
+      TGF_LOG_DIR: /opt/cloud/logs/
+      PORT: ${SERVER_PORT:-31014}
+      PLUGIN_SSL_API_CERT: ${PLUGIN_SSL_API_CERT:-false}
+      WORKFLOW_EXECUTE_TIMEOUT: ${WORKFLOW_EXECUTE_TIMEOUT:-900}
+      IR_LLM_API_KEY: ${IR_LLM_API_KEY:-sk-placeholder}
+      DATASOURCE_OBS_PATH_STYLE: ${DATASOURCE_OBS_PATH_STYLE:-path}
+      GUNICORN_WORK_NUM: ${GUNICORN_WORK_NUM:-}
+      SECURITY_SANDBOX_TYPE: ${SECURITY_SANDBOX_TYPE:-jiuwenbox}
+      OTEL_ENABLED: ${OTEL_ENABLED:-false}
+      # agent_builder 启动时会强制初始化关系库存储；代码读取的是 STORE_DB_*（非 STORE_MYSQL_*）
+      STORE_DB_TYPE: ${STORE_DB_TYPE:-mysql}
+      STORE_DB_HOST: ${STORE_DB_HOST:-mysql}
+      STORE_DB_PORT: ${STORE_DB_PORT:-3306}
+      STORE_DB_USER: ${SPRING_DATASOURCE_USERNAME:-root}
+      STORE_DB_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-123456}
+      STORE_DB_DATABASE: ${STORE_DB_DATABASE:-agent-builder}
+      STORE_DB_SSLMODE: ${STORE_DB_SSLMODE:-disable}
+    depends_on:
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      studio-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/31014'"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+    networks:
+      - agent-net
+
+volumes:
+  mysql_data:
+  minio_data:
+
+networks:
+  agent-net:
+    driver: bridge
