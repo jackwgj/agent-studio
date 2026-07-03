@@ -56,6 +56,16 @@ _TYPE_DEFAULT_VALUE = {
 }
 
 
+def _has_response_payload(output: Any) -> bool:
+    """判断 output 是否为携带 response 字段的 OutputSchema 类型输出（G.CTL.03：抽取多条件判断）。"""
+    return (
+        hasattr(output, "type")
+        and hasattr(output, "payload")
+        and isinstance(output.payload, dict)
+        and "response" in output.payload
+    )
+
+
 async def process_generator_values_of_output(
     inputs: dict, out_to_in: dict, workflow_streaming_data
 ):
@@ -134,6 +144,33 @@ async def _skip_last_generator(gen: AsyncGenerator, meta_count: int) -> AsyncGen
         buf = buf[:-1]
     for item in buf:
         yield item
+
+
+async def _interruptible_generator(
+    gen: AsyncGenerator,
+    session: Session,
+    is_interrupted_fn,
+    on_complete=None,
+) -> AsyncGenerator:
+    """包装输入生成器，在每次迭代产出后检查中断状态，若中断则提前终止。
+
+    Args:
+        gen: 原始 AsyncGenerator
+        session: 会话对象，用于中断检测
+        is_interrupted_fn: 中断检测回调函数
+        on_complete: 可选回调，生成器结束（含中断）时调用，参数为收集帧的拼接结果
+    """
+    frames: list = []
+    try:
+        async for item in gen:
+            frames.append(item)
+            yield item
+            if is_interrupted_fn(session):
+                break
+    finally:
+        if on_complete is not None:
+            result = "".join(str(f) for f in frames)
+            on_complete(result)
 
 
 def _remove_output_data(inputs: dict):
@@ -1052,9 +1089,9 @@ class End(BaseEnd):
         self, inputs: Input, session: Session, context: ModelContext
     ) -> AsyncGenerator[Output, None]:
         """
-        流式输入输出转换（与 stream 模式一致）。
-        流式输入通过 super().transform() 逐帧处理，
-        输出先缓冲，消费完所有流式数据后检查中断状态，中断时丢弃所有输出。
+        流式输入输出转换（真流式实现）。
+        流式输入通过 super().transform() 逐帧处理，普通内容帧即时 yield；
+        每帧后检查中断状态，若中断则立即停止，不发送 message_end/workflow_end 等结束帧。
         """
         # 幂等保护：End 节点在 wait_for_all=False 时可能被 Pregel 引擎多次触发
         if self._transform_executed:
@@ -1071,7 +1108,7 @@ class End(BaseEnd):
         if inputs and isinstance(inputs, dict):
             if inputs.get(USER_FIELDS):
                 inputs = inputs[USER_FIELDS]
-        _raw_meta = inputs.pop("__stream_metadata__", None)
+        _raw_meta = inputs.pop("__stream_metadata__", None) if isinstance(inputs, dict) else None
         if isinstance(_raw_meta, AsyncGenerator):
             _last_meta = None
             async for _meta_item in _raw_meta:
@@ -1080,6 +1117,7 @@ class End(BaseEnd):
             stream_metadata = _last_meta
         else:
             stream_metadata = _raw_meta
+
         # finish 模式：上游最后一帧是聚合结果，消费生成器并按帧数决定是否丢弃最后一帧
         # 只有帧数 == metadata 帧数的生成器才包含聚合帧（引擎对部分嵌套字段路由不到聚合帧）
         _is_finish = (
@@ -1091,18 +1129,65 @@ class End(BaseEnd):
                 if isinstance(v, AsyncGenerator):
                     inputs[k] = _skip_last_generator(v, _meta_count)
 
-        # 处理输入中的生成器值（与 stream 一致）
+        # 处理输入中的生成器值：包装为可中断的流式生成器（真流式，不预消费）
         outputs = {}
+        _resolved_generators = {}
+        # 声明为输出（#end_ 前缀）且由生成器喂入的字段名（去除前缀），
+        # 消费后需用解析值回填 outputs。引擎可能把 X 与 #end_X 路由成同一生成器，
+        # 也可能路由成两个独立生成器，故回填时两处都要查。
+        _declared_output_names = []
+        _reasoning_content = ""
+        _reasoning_ref = {"value": _reasoning_content}
         if inputs and isinstance(inputs, dict):
-            gen_out_to_in = build_output_to_input(inputs)
-            inputs = await process_generator_values_of_output(
-                inputs=inputs, out_to_in=gen_out_to_in, workflow_streaming_data=None
-            )
+            self._apply_type_conversion(inputs)
+
+            # 按生成器 id 分组：同一 AsyncGenerator 可能被多个键引用（answer/#end_answer）
+            gen_to_keys = {}
+            for k, v in inputs.items():
+                if k == "reasoning_content" and isinstance(v, str):
+                    _reasoning_content = v
+                    _reasoning_ref["value"] = v
+                if isinstance(v, AsyncGenerator):
+                    gen_to_keys.setdefault(id(v), []).append(k)
+
+            # 将所有 AsyncGenerator 包装为可中断生成器，多键引用共享同一包装实例
+            for gen_id, keys in gen_to_keys.items():
+                primary_key = next((x for x in keys if not x.startswith(OUTPUT_PREFIX)), keys[0])
+                end_keys = [x for x in keys if x.startswith(OUTPUT_PREFIX)]
+                gen = inputs[primary_key]
+
+                def make_callback(primary_key, end_keys, is_reasoning):
+                    def _cb(result):
+                        _resolved_generators[primary_key] = result
+                        for ek in end_keys:
+                            _resolved_generators[ek] = result
+                        if is_reasoning:
+                            _reasoning_ref["value"] = result
+                    return _cb
+
+                is_reasoning = primary_key == "reasoning_content" or any("reasoning_content" in ek for ek in end_keys)
+                _on_complete = make_callback(primary_key, end_keys, is_reasoning)
+                wrapped = _interruptible_generator(
+                    gen, session, self._is_workflow_interrupted,
+                    on_complete=_on_complete,
+                )
+                inputs[primary_key] = wrapped
+                for ek in end_keys:
+                    inputs[ek] = wrapped
+
+            # 提取 outputs 中的非生成器值（输出字段以 #end_ 前缀标识）
             outputs = {
                 k[len(OUTPUT_PREFIX) :]: v
                 for k, v in inputs.items()
-                if k.startswith(OUTPUT_PREFIX) and v is not None
+                if k.startswith(OUTPUT_PREFIX) and v is not None and not isinstance(v, AsyncGenerator)
             }
+            _gen_output_keys = [
+                x for x in inputs.keys()
+                if x.startswith(OUTPUT_PREFIX) and isinstance(inputs[x], AsyncGenerator)
+            ]
+            for k in _gen_output_keys:
+                outputs[k[len(OUTPUT_PREFIX):]] = ""
+            _declared_output_names = [k[len(OUTPUT_PREFIX):] for k in _gen_output_keys]
             _remove_output_data(inputs)
 
         # mix 模式协调
@@ -1118,16 +1203,18 @@ class End(BaseEnd):
             and stream_metadata.get("node_id") == "node_plugin"
         )
 
-        # 仅当上游为 FlowApi/Plugin的 node_id 为node_plugin时，包裹模板变量值使流式 answer 携带变量名
-        if _should_wrap:
+        # 仅当上游 node_id 为 node_plugin 时，包裹模板变量值使流式 answer 携带变量名
+        if _should_wrap and isinstance(inputs, dict):
             self._wrap_template_variable_values(inputs, max(_meta_count - 1, 0))
 
-        # 在 _wrap 之前保存干净的输入值（排除 AsyncGenerator，用于构建 user_fields）
-        clean_input_values = {
-            k: v for k, v in inputs.items()
-            if not inspect.isasyncgen(v) and not hasattr(v, "__aiter__")
-        }
-        # 调用父类的 transform 方法处理流式输入，缓冲输出
+        # 在 _wrap 之后保存干净的输入值（排除 AsyncGenerator，用于构建 user_fields）
+        if isinstance(inputs, dict):
+            clean_input_values = {
+                k: v for k, v in inputs.items()
+                if not inspect.isasyncgen(v) and not hasattr(v, "__aiter__")
+            }
+        else:
+            clean_input_values = {}
         response_parts = []
         inner_session = getattr(session, "_inner", None)
         node_id = (
@@ -1136,17 +1223,20 @@ class End(BaseEnd):
         query = session.get_global_state("query") or ""
         user_fields = {**clean_input_values, **outputs, **{"query": query}}
 
-        last_end_node_stream = None
-        buffered_outputs = []
         first_end_node_stream = True
+        last_output_index = 0
+        interrupted = False
+        last_stream_output = None
+
+        # 逐帧消费父类输出，即时 yield（真流式），每帧后检查中断状态
         async for output in super().transform(inputs, session, context):
-            last_end_node_stream = output
-            # 处理 OutputSchema 类型输出（有 type 和 index 属性）
-            if (
-                hasattr(output, "type")
-                and hasattr(output, "payload")
-                and "response" in output.payload
-            ):
+            # 每帧检查中断状态，若中断立即停止
+            if self._is_workflow_interrupted(session):
+                interrupted = True
+                break
+
+            # 处理 OutputSchema 类型输出（有 type 和 payload 属性，包含 response 字段）
+            if _has_response_payload(output):
                 response_parts.append(output.payload["response"])
                 result = get_output_data_with_metadata(
                     answer=output.payload["response"],
@@ -1158,98 +1248,123 @@ class End(BaseEnd):
                     output_mode=self.output_mode.value if self.output_mode else None,
                     struct_answer="",
                 )
-                buffered_outputs.append(
-                    OutputSchema(type=output.type, index=output.index, payload=result)
+                if first_end_node_stream:
+                    first_end_node_stream = False
+                    # 当模板以 {{...}} 开头时，旧框架 split 首元素为空字符串，
+                    # 会作为 PARTIAL_CONTENT(answer="") 发送，充当流式起始标记
+                    if self._should_emit_start_marker():
+                        empty_result = get_output_data_with_metadata(
+                            answer="",
+                            node_id=node_id,
+                            node_name=self.node_name,
+                            node_type=self.node_type,
+                            should_interrupt=self.end_interrupt,
+                            outputs=user_fields,
+                            output_mode=self.output_mode.value
+                            if self.output_mode
+                            else None,
+                            struct_answer="",
+                        )
+                        yield OutputSchema(
+                            type="end node stream", index=0, payload=empty_result
+                        )
+                out_schema = OutputSchema(
+                    type=output.type, index=output.index + 1, payload=result
                 )
+                last_output_index = output.index + 1
+                last_stream_output = out_schema
+                yield out_schema
             # 处理 dict 类型输出（父类无模板时返回的格式）
             elif isinstance(output, dict):
                 # 提取 output 中的值作为响应内容
                 if "output" in output:
                     output_data = output["output"]
                     if isinstance(output_data, dict):
-                        for key, value in output_data.items():
+                        for value in output_data.values():
                             response_parts.append(str(value))
                     else:
                         response_parts.append(str(output_data))
-                # 创建默认的 OutputSchema
-                output_index = output.get("index", 0) if isinstance(output, dict) else 0
-                buffered_outputs.append(
-                    OutputSchema(
-                        type="end node stream", index=output_index, payload=output
-                    )
+                output_index = output.get("index", 0)
+                dict_schema = OutputSchema(
+                    type="end node stream", index=output_index + 1, payload=output
                 )
+                last_output_index = output_index + 1
+                last_stream_output = dict_schema
+                yield dict_schema
+            # 其他类型输出（兜底处理）
             else:
-                buffered_outputs.append(
-                    OutputSchema(
-                        type=output.get("type", "end node stream"),
-                        index=output.get("index", 0),
-                        payload=output,
-                    )
+                other_type = getattr(output, "type", "end node stream")
+                other_index = getattr(output, "index", 0)
+                other_schema = OutputSchema(
+                    type=other_type, index=other_index + 1, payload=output
                 )
+                last_output_index = other_index + 1
+                last_stream_output = other_schema
+                yield other_schema
 
         # 流式数据消费完毕后，检查中断状态，碰到中断时不执行 end 的流程
-        if self._is_workflow_interrupted(session):
+        if interrupted or self._is_workflow_interrupted(session):
             workflow_logger.info(
-                "End transform skipped due to workflow interrupt",
+                "End transform skipped due to workflow interrupt (true streaming)",
                 event_type=LogEventType.WORKFLOW_COMPONENT_END,
                 component_id=session.get_component_id(),
                 component_type_str="End",
                 session_id=session.get_session_id(),
             )
+            # mix 模式：通知另一方渲染已完成（即使中断也要通知，避免另一方死锁）
+            if _mix_i_am_renderer and self._mix_condition is not None:
+                async with self._mix_condition:
+                    self._mix_render_complete = True
+                    self._mix_condition.notify_all()
             return
 
-        # 未中断，释放缓冲的输出
-        for buffered in buffered_outputs:
-            if first_end_node_stream:
-                first_end_node_stream = False
-                # 当模板以 {{...}} 开头时，旧框架 split 首元素为空字符串，
-                # 会作为 PARTIAL_CONTENT(answer="") 发送，充当流式起始标记
-                if self._should_emit_start_marker():
-                    empty_result = get_output_data_with_metadata(
-                        answer="",
-                        node_id=node_id,
-                        node_name=self.node_name,
-                        node_type=self.node_type,
-                        should_interrupt=self.end_interrupt,
-                        outputs=user_fields,
-                        output_mode=self.output_mode.value
-                        if self.output_mode
-                        else None,
-                        struct_answer="",
-                    )
-                    yield OutputSchema(
-                        type="end node stream", index=0, payload=empty_result
-                    )
-            buffered.index += 1
-            yield buffered
+        # 生成器消费完成后获取 reasoning_content 最终值
+        _reasoning_content = _reasoning_ref["value"]
 
-        if last_end_node_stream:
-            # 当模板以 {{...}} 结尾时，旧框架 split 末元素为空字符串，
-            # 会作为 PARTIAL_CONTENT(answer="") 发送，充当流式结束标记
-            if self._should_emit_end_marker():
-                empty_result = get_output_data_with_metadata(
-                    answer="",
-                    node_id=node_id,
-                    node_name=self.node_name,
-                    node_type=self.node_type,
-                    should_interrupt=self.end_interrupt,
-                    outputs=user_fields,
-                    output_mode=self.output_mode.value if self.output_mode else None,
-                    struct_answer="",
-                )
-                yield OutputSchema(
-                    type="end node stream",
-                    index=last_end_node_stream.index + 2,
-                    payload=empty_result,
-                )
+        # 将回调收集的生成器解析值合并回 outputs。
+        # 回调故意只写入稳定的 _resolved_generators（不直接写 outputs）：outputs 之后会被
+        # 重绑定（非生成器值字典推导）或在 mix 模式被 _mix_coordinate 替换为合并 dict，
+        # 直接让回调写 outputs 会丢失这些值。这里在消费完成后显式合并到当前 outputs。
+        # 引擎可能把输出变量 X 与 #end_X 路由为同一生成器（回调写入 #end_X），
+        # 也可能路由为两个独立生成器（#end_X 的那个会被 _remove_output_data 移除而不消费，
+        # 解析值落在主键 X 上），因此对每个声明输出两处都查。
+        for _out_name in _declared_output_names:
+            _resolved = _resolved_generators.get(OUTPUT_PREFIX + _out_name)
+            if _resolved is None:
+                _resolved = _resolved_generators.get(_out_name)
+            if _resolved is not None:
+                outputs[_out_name] = _resolved
 
+        # 当模板以 {{...}} 结尾时，旧框架 split 末元素为空字符串，
+        # 会作为 PARTIAL_CONTENT(answer="") 发送，充当流式结束标记
+        if last_stream_output is not None and self._should_emit_end_marker():
+            empty_result = get_output_data_with_metadata(
+                answer="",
+                node_id=node_id,
+                node_name=self.node_name,
+                node_type=self.node_type,
+                should_interrupt=self.end_interrupt,
+                outputs=user_fields,
+                output_mode=self.output_mode.value if self.output_mode else None,
+                struct_answer="",
+            )
+            yield OutputSchema(
+                type="end node stream",
+                index=last_output_index + 1,
+                payload=empty_result,
+            )
+
+        # 将 reasoning_content 放回 inputs 供后续 think 字段构建使用
+        if _reasoning_content and isinstance(inputs, dict):
+            inputs["_reasoning_content"] = _reasoning_content
+
+        # 拼接最终响应内容
         if len(response_parts) == 1 and not isinstance(response_parts[0], str):
             response_value = response_parts[0]
         else:
             response_value = "".join(str(p) for p in response_parts)
 
-        # 处理结构化输出：构建 inputs_for_struct
-        # 从模板中提取变量名，然后用可用的数据填充
+        # 处理结构化输出：从模板中提取变量名，然后用可用的数据填充
         template_vars = set()
         if self.struct_output_template:
             for match in _TEMPLATE_SPLIT_PATTERN.finditer(self.struct_output_template):
@@ -1257,20 +1372,19 @@ class End(BaseEnd):
                 if var_name:
                     template_vars.add(var_name)
 
+        # 构建 inputs_for_struct：先添加非生成器的 inputs 值，再添加 user_fields，
+        # 最后用 response_value 填充模板中引用但 inputs 和 user_fields 中不存在的变量
         inputs_for_struct = {}
-        # 先添加非生成器的 inputs 值
-        for k, v in (inputs.items() if isinstance(inputs, dict) else []):
-            if not isinstance(v, AsyncGenerator):
-                inputs_for_struct[k] = v
-        # 添加 user_fields
-        inputs_for_struct.update(user_fields)
-        # 用 response_value 填充模板中引用但 inputs 和 user_fields 中不存在的变量
+        if isinstance(inputs, dict):
+            for k, v in inputs.items():
+                if not isinstance(v, AsyncGenerator):
+                    inputs_for_struct[k] = v
+        inputs_for_struct.update({**clean_input_values, **outputs})
         for var_name in template_vars:
             if var_name not in inputs_for_struct or inputs_for_struct.get(var_name) is None:
                 inputs_for_struct[var_name] = response_value
 
         # 处理结构化输出
-        struct_answer = None
         struct_answer_str = ""
         if self.enable_struct_message and self.struct_output_template:
             struct_answer = {
@@ -1278,7 +1392,7 @@ class End(BaseEnd):
                 "variables": inputs_for_struct,
             }
             yield OutputSchema(type="struct_output", index=0, payload=struct_answer)
-            # 处理结构化输出：渲染模板得到 JSON 字符串
+            # 渲染结构化模板得到 JSON 字符串
             struct_answer_str = self._format_struct_answer(
                 response_value,
                 self.struct_output_template,
@@ -1290,8 +1404,10 @@ class End(BaseEnd):
             "struct_answer": struct_answer_str if struct_answer_str else None,
         }
 
-        # 从 inputs 中提取 reasoning_content（think）
-        think_content = inputs.get("_reasoning_content", "")
+        # 从 inputs/outputs 中提取 reasoning_content（think 字段）
+        think_content = ""
+        if isinstance(inputs, dict):
+            think_content = inputs.get("_reasoning_content", "")
         if not think_content:
             # 检查 outputs 中是否有 reasoning_content
             for k, v in outputs.items():
@@ -1336,6 +1452,14 @@ class End(BaseEnd):
             output_mode=self.output_mode.value if self.output_mode else None,
             struct_answer=workflow_output["response"],
         )
+
+        # 防御性检查：发送最终结束帧前再次确认未中断
+        if self._is_workflow_interrupted(session):
+            if _mix_i_am_renderer and self._mix_condition is not None:
+                async with self._mix_condition:
+                    self._mix_render_complete = True
+                    self._mix_condition.notify_all()
+            return
 
         yield OutputSchema(type="message_end", index=0, payload=result_with_think)
         yield OutputSchema(type="workflow_end", index=1, payload=result_without_think)

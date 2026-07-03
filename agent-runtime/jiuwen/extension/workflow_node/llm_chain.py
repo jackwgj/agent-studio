@@ -188,7 +188,13 @@ class LLMChain(WorkflowComponent):
         return self._stream_final_output
 
     async def stream(self, inputs: dict[str, Any], session, context):
-        """LLM 组件流式调用接口 - 支持思考模式"""
+        """LLM 组件流式调用接口 - 支持思考模式
+
+        思考开关三态：
+          enabled  → _is_thinking_enabled()=True → reasoning 真流式 + content 假流式（预消费）
+          None     → _is_thinking_enabled()=False 且 type 未设置 → content 真流式 + reasoning 真流式
+          disabled → _is_thinking_enabled()=False 且 type=disabled → content 真流式，丢弃 reasoning
+        """
         await self._initialize_if_needed()
         self._session = session
         node_id = session.get_component_id()
@@ -198,7 +204,18 @@ class LLMChain(WorkflowComponent):
         inputs_data = inputs.get(USER_FIELDS, {})
         self._process_inputs(inputs_data)
 
+        # 三态判断：enabled / None / disabled
+        thinking_config = (
+            self._conf.get("model", {}).get("hyperParameters", {}).get("thinking", {})
+        )
+        thinking_type = thinking_config.get("type")
+        is_enabled = self._is_thinking_enabled()
+        # type 未设置（None/空值）时为 None 状态，其余非 enabled 都是 disabled
+        is_none = not thinking_type
+        output_reasoning = is_enabled or is_none
+
         if self._get_response_format().get("type") == "json":
+            # JSON 模式：非流式调用后一次性输出
             result = await self.invoke(inputs, session, context)
             custom_data = {
                 "node_id": node_id,
@@ -210,7 +227,7 @@ class LLMChain(WorkflowComponent):
                 "model_stats": result.get("metadata", {}),
                 "status": "finish",
             }
-            if self._is_thinking_enabled():
+            if output_reasoning:
                 custom_data["think"] = result.get(USER_FIELDS, {}).get("reasoning_content")
             await session.write_custom_stream(
                 CustomSchema(type=PARTIAL_CONTENT, index=0, data=custom_data))
@@ -229,126 +246,26 @@ class LLMChain(WorkflowComponent):
             await self._inject_retrieved_memory(language_model_inputs, inputs_data)
 
             try:
-                # 获取用户配置的输出字段名，默认使用 "raw_output"
                 outputs_list = self._get_outputs_list_from_conf()
                 output_id = "raw_output"
                 if outputs_list and len(outputs_list) > 0:
                     output_id = outputs_list[0].get("id", "raw_output")
-                if self._is_thinking_enabled():
-                    (
-                        raw_output_gen,
-                        reasoning_content,
-                        thinking_state,
-                    ) = await self._process_thinking_stream(
-                        self._llm.stream(messages=language_model_inputs),
-                        language_model_inputs,
-                    )
-                    async for chunk_data in raw_output_gen:
-                        raw_output = chunk_data.get(output_id) or chunk_data.get(
-                            "final_output", ""
-                        )
-                        if chunk_data.get("final_output"):
-                            usage_metadata = thinking_state.get("usage_metadata")
-                            model_stats = (
-                                getattr(usage_metadata, 'model_stats', {}) or {}
-                                if usage_metadata else {}
-                            )
-                            custom_data = {
-                                "rawOutput": raw_output.get("rawOutput") if
-                                    isinstance(raw_output, dict) else raw_output,
-                                "node_id": node_id,
-                                "node_name": self._conf.get("name") or node_id,
-                                "node_type": JIUWEN_LLM_TYPE,
-                                "componentType": "LLM",
-                                "userFields": raw_output,
-                                "model_stats": model_stats,
-                            }
-                            if isinstance(raw_output, dict) and raw_output.get("reasoning_content"):
-                                custom_data["think"] = raw_output.get("reasoning_content")
-                            # llm_info trace
-                            await session.trace(data={"llm_info": {
-                                "llm_inputs": language_model_inputs,
-                                "llm_outputs": chunk_data.get("llm_outputs") or chunk_data.get("final_output"),
-                                "reasoning_content": reasoning_content
-                            }})
-                            # 性能 trace（批量）
-                            await session.trace(data={"performance_metric": {
-                                "first_token<llm>": thinking_state.get("first_token_ms"),
-                                "total_token<llm>": thinking_state.get("total_token_ms"),
-                            }})
-                            self._stream_final_output = custom_data
-                            # 调试信息走 yield（最后一帧，含 reasoning_content + usage）
-                            usage_dict = usage_metadata.model_dump() if usage_metadata else {}
-                            yield {
-                                    USER_FIELDS: {"reasoning_content": reasoning_content},
-                                    **usage_dict,
-                            }
-                        else:
-                            yield {USER_FIELDS: {output_id: raw_output}}
-                else:
-                    accumulated_content = ""
-                    model_stats = {}
-                    stream_state = {
-                        "start_time": time.perf_counter(),
-                        "is_first_token": True,
-                        "usage_metadata": None,
-                    }
-                    async for chunk in self._llm.stream(
-                        messages=language_model_inputs, tools=inputs.get("tools", [])):
-                        if hasattr(chunk, 'usage_metadata') and chunk.usage_metadata:
-                            stream_state["usage_metadata"] = chunk.usage_metadata
-                            model_stats = getattr(chunk.usage_metadata, 'model_stats', {}) or {}
-                        if hasattr(chunk, 'metadata') and chunk.metadata:
-                            model_stats.update(chunk.metadata)
-                        if stream_state["is_first_token"]:
-                            first_token_ms = round(
-                                (time.perf_counter() - stream_state["start_time"]) * 1000)
-                            workflow_logger.info(f"first_token<llm>|{first_token_ms}")
-                            stream_state["is_first_token"] = False
-                        if chunk.content and chunk.content != "":
-                            if getattr(chunk, "finish_reason", "null") == "null":
-                                accumulated_content += chunk.content
-                            yield {USER_FIELDS: {output_id: chunk.content}}
 
-                    total_token_ms = round(
-                        (time.perf_counter() - stream_state["start_time"]) * 1000)
-                    workflow_logger.info(f"total_token<llm>|{total_token_ms}")
-                    formatted_res = self._format_response(
-                        accumulated_content,
-                        self._get_response_format().get("type"),
-                    )
-                    custom_data = {
-                        "rawOutput": accumulated_content,
-                        "node_id": node_id,
-                        "node_name": self._conf.get("name") or node_id,
-                        "node_type": JIUWEN_LLM_TYPE,
-                        "componentType": "LLM",
-                        "should_interrupt": False,
-                        "userFields": formatted_res,
-                        "model_stats": model_stats,
-                        "status": "finish"
-                    }
-                    # llm_info trace（对齐 OLD process_on_invoke_info，补 reasoning_content=null）
-                    await session.trace(data={"llm_info": {
-                        "llm_inputs": language_model_inputs,
-                        "llm_outputs": accumulated_content,
-                        "reasoning_content": None,
-                    }})
-                    # 性能 trace（批量）
-                    await session.trace(data={"performance_metric": {
-                        "first_token<llm>": first_token_ms if not stream_state["is_first_token"] else None,
-                        "total_token<llm>": total_token_ms,
-                    }})
-                    self._stream_final_output = custom_data
-                    # 调试信息走 yield（最后一帧）
-                    usage_dict = (
-                        stream_state["usage_metadata"].model_dump()
-                        if stream_state["usage_metadata"] else {}
-                    )
-                    yield {
-                            USER_FIELDS: {"final_output": formatted_res},
-                            **usage_dict,
-                    }
+                if is_enabled:
+                    # ── enabled: reasoning 真流式, content 假流式 ──
+                    async for item in self._stream_thinking_enabled(
+                        language_model_inputs, output_id, node_id, session
+                    ):
+                        yield item
+                else:
+                    # ── disabled / None: content 真流式 ──
+                    # disabled → output_reasoning=False → 丢弃 reasoning
+                    # None     → output_reasoning=True  → 输出 reasoning
+                    async for item in self._stream_real_time(
+                        language_model_inputs, output_id, node_id, session,
+                        output_reasoning=output_reasoning,
+                    ):
+                        yield item
 
             except Exception as e:
                 raise build_error(
@@ -486,6 +403,174 @@ class LLMChain(WorkflowComponent):
                 content_chunks.append(item.content)
 
         return reasoning_content
+
+    async def _stream_thinking_enabled(
+        self, language_model_inputs, output_id, node_id, session
+    ):
+        """思考开关 enabled: reasoning 真流式 + content 假流式（预消费）"""
+        (
+            raw_output_gen,
+            reasoning_content,
+            thinking_state,
+        ) = await self._process_thinking_stream(
+            self._llm.stream(messages=language_model_inputs),
+            language_model_inputs,
+        )
+        async for chunk_data in raw_output_gen:
+            raw_output = chunk_data.get(output_id) or chunk_data.get(
+                "final_output", ""
+            )
+            if chunk_data.get("final_output"):
+                usage_metadata = thinking_state.get("usage_metadata")
+                model_stats = (
+                    getattr(usage_metadata, 'model_stats', {}) or {}
+                    if usage_metadata else {}
+                )
+                custom_data = {
+                    "rawOutput": raw_output.get("rawOutput") if
+                        isinstance(raw_output, dict) else raw_output,
+                    "node_id": node_id,
+                    "node_name": self._conf.get("name") or node_id,
+                    "node_type": JIUWEN_LLM_TYPE,
+                    "componentType": "LLM",
+                    "userFields": raw_output,
+                    "model_stats": model_stats,
+                }
+                if isinstance(raw_output, dict) and raw_output.get("reasoning_content"):
+                    custom_data["think"] = raw_output.get("reasoning_content")
+                # llm_info trace
+                await session.trace(data={"llm_info": {
+                    "llm_inputs": language_model_inputs,
+                    "llm_outputs": chunk_data.get("llm_outputs") or chunk_data.get("final_output"),
+                    "reasoning_content": reasoning_content
+                }})
+                # 性能 trace（批量）
+                await session.trace(data={"performance_metric": {
+                    "first_token<llm>": thinking_state.get("first_token_ms"),
+                    "total_token<llm>": thinking_state.get("total_token_ms"),
+                }})
+                self._stream_final_output = custom_data
+                # 调试信息走 yield（最后一帧，含 reasoning_content + usage）
+                usage_dict = usage_metadata.model_dump() if usage_metadata else {}
+                yield {
+                    USER_FIELDS: {"reasoning_content": reasoning_content},
+                    **usage_dict,
+                }
+            else:
+                yield {USER_FIELDS: {output_id: raw_output}}
+
+    async def _stream_real_time(
+        self, language_model_inputs, output_id, node_id, session,
+        output_reasoning=True,
+    ):
+        """真流式路径 — thinking 非 enabled 时走此路径
+
+        Args:
+            output_reasoning: 是否输出 reasoning_content
+                True  → None 状态，思考模型返回的 reasoning 透传输出
+                False → disabled 状态，即使模型返回了 reasoning 也丢弃不输出
+
+        对齐商用 jiuwen _process_streaming_data_generator：
+        - content 真流式输出（逐 chunk yield）
+        - reasoning_content 根据 output_reasoning 决定是否输出
+        """
+        node_name = self._conf.get("name") or node_id
+        accumulated_content = ""
+        reasoning_content = ""
+        model_stats = {}
+        stream_state = {
+            "start_time": time.perf_counter(),
+            "is_first_token": True,
+            "first_token_ms": None,
+            "usage_metadata": None,
+        }
+        think_index = 0
+
+        async for chunk in self._llm.stream(
+            messages=language_model_inputs, tools=[]):
+            # 收集 usage / metadata
+            if hasattr(chunk, 'usage_metadata') and chunk.usage_metadata:
+                stream_state["usage_metadata"] = chunk.usage_metadata
+                model_stats = getattr(chunk.usage_metadata, 'model_stats', {}) or {}
+            if hasattr(chunk, 'metadata') and chunk.metadata:
+                model_stats.update(chunk.metadata)
+
+            # first_token 性能统计
+            if stream_state["is_first_token"]:
+                stream_state["first_token_ms"] = round(
+                    (time.perf_counter() - stream_state["start_time"]) * 1000)
+                workflow_logger.info(f"first_token<llm>|{stream_state['first_token_ms']}")
+                stream_state["is_first_token"] = False
+
+            # reasoning_content: disabled 时丢弃，None 时真流式输出
+            if output_reasoning and hasattr(chunk, "reasoning_content") and chunk.reasoning_content:
+                reasoning_content += chunk.reasoning_content
+                await session.write_custom_stream(
+                    CustomSchema(
+                        type=PARTIAL_CONTENT,
+                        index=think_index,
+                        data={
+                            "answer": "",
+                            "think": chunk.reasoning_content,
+                            "node_id": node_id,
+                            "node_name": node_name,
+                            "node_type": JIUWEN_LLM_TYPE,
+                            "componentType": "LLM",
+                            "should_interrupt": False,
+                        },
+                    )
+                )
+                think_index += 1
+
+            # content 真流式输出
+            if chunk.content and chunk.content != "":
+                if getattr(chunk, "finish_reason", "null") == "null":
+                    accumulated_content += chunk.content
+                yield {USER_FIELDS: {output_id: chunk.content}}
+
+        # 流结束：性能统计 + trace + 最终帧
+        total_token_ms = round(
+            (time.perf_counter() - stream_state["start_time"]) * 1000)
+        workflow_logger.info(f"total_token<llm>|{total_token_ms}")
+
+        reasoning_for_format = reasoning_content if output_reasoning else None
+        formatted_res = self._format_response(
+            accumulated_content,
+            self._get_response_format().get("type"),
+            reasoning_for_format,
+        )
+        custom_data = {
+            "rawOutput": accumulated_content,
+            "node_id": node_id,
+            "node_name": node_name,
+            "node_type": JIUWEN_LLM_TYPE,
+            "componentType": "LLM",
+            "should_interrupt": False,
+            "userFields": formatted_res,
+            "model_stats": model_stats,
+            "status": "finish",
+        }
+        # llm_info trace
+        await session.trace(data={"llm_info": {
+            "llm_inputs": language_model_inputs,
+            "llm_outputs": accumulated_content,
+            "reasoning_content": reasoning_for_format,
+        }})
+        # 性能 trace（批量）
+        await session.trace(data={"performance_metric": {
+            "first_token<llm>": stream_state["first_token_ms"],
+            "total_token<llm>": total_token_ms,
+        }})
+        self._stream_final_output = custom_data
+        # 最后一帧
+        usage_dict = (
+            stream_state["usage_metadata"].model_dump()
+            if stream_state["usage_metadata"] else {}
+        )
+        final_frame = {USER_FIELDS: {"final_output": formatted_res}, **usage_dict}
+        if output_reasoning and reasoning_content:
+            final_frame[USER_FIELDS]["reasoning_content"] = reasoning_content
+        yield final_frame
 
     def _format_response(
         self, content: str, response_type: str, reasoning_content: str = None
@@ -1014,6 +1099,7 @@ class LLMChain(WorkflowComponent):
             self._validate_thinking_mode()
 
             response_config = self._get_response_format()
+            # 非 enabled 时 reasoning 不可用，markdown/text 只允许一个输出
             if not self._is_thinking_enabled() and response_config.get(_TYPE) in [
                 "markdown",
                 "text",
@@ -1024,6 +1110,7 @@ class LLMChain(WorkflowComponent):
                         error_msg="When type in responseFormat is markdown or text, there is only one user-defined output",
                     )
             else:
+                # enabled / None 时 reasoning_content 可作为输出字段，至少需要1个输出
                 if len(self._get_outputs_list_from_conf()) < 1:
                     raise build_error(
                         StatusCode.COMPONENT_LLM_CONFIG_INVALID,
@@ -1055,8 +1142,6 @@ class LLMChain(WorkflowComponent):
         thinking_config = (
             self._conf.get("model", {}).get("hyperParameters", {}).get("thinking", {})
         )
-        if not thinking_config.get("type"):
-            thinking_config["type"] = "enabled"
         return thinking_config.get("type") == "enabled"
 
     def _get_enable_history(self) -> bool:
