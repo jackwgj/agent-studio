@@ -30,6 +30,10 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, AsyncIterator, Optional
 
+from agent_runtime.common.session_state_access import (
+    dump_state_info,
+    get_state_info,
+)
 from jiuwen.extension.patches.workflow_sub_stream_patch import _interrupt_output_schema
 from jiuwen.extension.workflow_node.utils import (
     JiuWenBaseException,
@@ -439,10 +443,10 @@ class SubWorkflow(WorkflowComponent):
         if inner_session is not None and hasattr(inner_session, "state"):
             accessors.append(inner_session.state())
         try:
-            dump = session.dump_state() if hasattr(session, "dump_state") else {}
-            if isinstance(dump, dict) and dump.get("workflow_state") is not None:
+            workflow_state = get_state_info(session, "workflow_state")
+            if isinstance(workflow_state, dict):
                 # dump 兜底：部分 Session 包装层不暴露 get_workflow_state
-                wf = dump.get("workflow_state", {}).get("workflow", {})
+                wf = workflow_state.get("workflow", {})
                 if isinstance(wf, dict):
                     normalized = self._normalize_interactive_input_value(
                         wf.get(INTERACTIVE_INPUT)
@@ -491,11 +495,7 @@ class SubWorkflow(WorkflowComponent):
         # 多层嵌套兜底：父级把回复路由给目标 node_id，pregel 写入
         # comp_state[顶层作用域][目标node_id][__interactive_input__] 嵌套路径，
         # 点分查找无法穿透，递归扫描 comp_state 树取值。
-        try:
-            _dump = session.dump_state() if hasattr(session, "dump_state") else {}
-        except Exception:
-            _dump = {}
-        _comp_state = _dump.get("comp_state") if isinstance(_dump, dict) else None
+        _comp_state = get_state_info(session, "comp_state")
         if _comp_state and self._interrupt_child_node_id:
             found = self._find_interactive_input_in_state_tree(
                 _comp_state, self._interrupt_child_node_id
@@ -603,11 +603,7 @@ class SubWorkflow(WorkflowComponent):
             )
 
         self._interrupt_child_node_id = None
-        try:
-            dump = session.dump_state() if hasattr(session, "dump_state") else {}
-        except Exception:
-            dump = {}
-        comp_state = dump.get("comp_state") if isinstance(dump, dict) else None
+        comp_state = get_state_info(session, "comp_state")
         if comp_state:
             found = self._find_interrupt_in_state_tree(comp_state)
             if found:
@@ -637,8 +633,9 @@ class SubWorkflow(WorkflowComponent):
         if inner_session is None:
             return False
         try:
-            state = inner_session.state().get_state()
-            workflow_state = state.get("workflow_state", {})
+            workflow_state = get_state_info(inner_session, "workflow_state")
+            if not isinstance(workflow_state, dict):
+                return False
             return workflow_state.get("workflow", {}).get("__interrupted") is True
         except Exception:
             return False

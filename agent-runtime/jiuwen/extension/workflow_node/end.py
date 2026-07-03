@@ -4,6 +4,7 @@ import re
 from enum import Enum
 from typing import Any, Optional, Union, AsyncGenerator
 
+from agent_runtime.common.session_state_access import get_state_info
 from jiuwen.extension.workflow_node.utils import get_workflow_param
 from openjiuwen.core.common.logging import workflow_logger, LogEventType
 from openjiuwen.core.context_engine import ModelContext
@@ -327,8 +328,9 @@ class End(BaseEnd):
     def _is_workflow_interrupted(session: Session) -> bool:
         """检查工作流是否处于中断状态，通过 workflow_state 中的 __interrupted 标志判断。"""
         try:
-            state = session._inner.state().get_state()
-            workflow_state = state.get("workflow_state", {})
+            workflow_state = get_state_info(session, "workflow_state")
+            if not isinstance(workflow_state, dict):
+                return False
             return workflow_state.get("workflow", {}).get("__interrupted") is True
         except Exception:
             return False

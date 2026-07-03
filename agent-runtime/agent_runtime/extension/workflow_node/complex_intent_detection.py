@@ -28,6 +28,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
+from agent_runtime.common.session_state_access import get_state_info
 from openjiuwen.core.common.logging import workflow_logger, LogEventType
 from openjiuwen.core.context_engine import ModelContext
 from openjiuwen.core.graph.base import Graph
@@ -531,7 +532,11 @@ class ComplexIntentDetection(WorkflowComponent):
                     workflow = workflow_state.get("workflow", {})
                     if isinstance(workflow, dict):
                         inner_workflow = workflow.get("workflow", {})
-                        interactive_input = inner_workflow.get(INTERACTIVE_INPUT) if isinstance(inner_workflow, dict) else None
+                        interactive_input = (
+                            inner_workflow.get(INTERACTIVE_INPUT)
+                            if isinstance(inner_workflow, dict)
+                            else None
+                        )
                         if interactive_input:
                             return True
         except (KeyError, TypeError, AttributeError) as e:
@@ -545,12 +550,26 @@ class ComplexIntentDetection(WorkflowComponent):
 
         try:
             if self._session:
-                session_dump = self._session.dump_state() if hasattr(self._session, "dump_state") else {}
-                if isinstance(session_dump, dict):
-                    workflow_state = session_dump.get("workflow_state", {})
-                    if isinstance(workflow_state, dict):
-                        # 优先从 __interactive_input__ (双下划线) 读取恢复输入
-                        interactive_input = workflow_state.get("__interactive_input__")
+                workflow_state = get_state_info(self._session, "workflow_state")
+                if isinstance(workflow_state, dict):
+                    # 优先从 __interactive_input__ (双下划线) 读取恢复输入
+                    interactive_input = workflow_state.get("__interactive_input__")
+                    if interactive_input:
+                        if isinstance(interactive_input, list) and interactive_input:
+                            last = interactive_input[-1]
+                            if hasattr(last, "content"):
+                                return last.content
+                            return str(last)
+                        return str(interactive_input) if interactive_input else None
+                    # 兜底：从 workflow.workflow 中读取
+                    workflow = workflow_state.get("workflow", {})
+                    if isinstance(workflow, dict):
+                        inner_workflow = workflow.get("workflow", {})
+                        interactive_input = (
+                            inner_workflow.get(INTERACTIVE_INPUT)
+                            if isinstance(inner_workflow, dict)
+                            else None
+                        )
                         if interactive_input:
                             if isinstance(interactive_input, list) and interactive_input:
                                 last = interactive_input[-1]
@@ -558,18 +577,6 @@ class ComplexIntentDetection(WorkflowComponent):
                                     return last.content
                                 return str(last)
                             return str(interactive_input) if interactive_input else None
-                        # 兜底：从 workflow.workflow 中读取
-                        workflow = workflow_state.get("workflow", {})
-                        if isinstance(workflow, dict):
-                            inner_workflow = workflow.get("workflow", {})
-                            interactive_input = inner_workflow.get(INTERACTIVE_INPUT) if isinstance(inner_workflow, dict) else None
-                            if interactive_input:
-                                if isinstance(interactive_input, list) and interactive_input:
-                                    last = interactive_input[-1]
-                                    if hasattr(last, "content"):
-                                        return last.content
-                                    return str(last)
-                                return str(interactive_input) if interactive_input else None
         except Exception as e:
             workflow_logger.warn(f"get session checkpoint failed: {e}\n{traceback.format_exc()}")
         return None

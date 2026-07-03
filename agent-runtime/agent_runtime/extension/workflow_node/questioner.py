@@ -36,6 +36,10 @@ from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from agent_runtime.common.redis_manager import QuestionerTraceStore
+from agent_runtime.common.session_state_access import (
+    dump_state_info,
+    get_state_info,
+)
 from openjiuwen.core.common.exception.codes import StatusCode
 from openjiuwen.core.common.exception.errors import build_error
 from openjiuwen.core.common.logging import workflow_logger, LogEventType
@@ -1824,9 +1828,8 @@ class Questioner(WorkflowComponent):
                     return QuestionerState.deserialize(state_dict)
 
         # 如果 state_manager 没有，尝试从当前 session 的 dump_state 获取（第一轮内）
-        if hasattr(session, "dump_state"):
-            full_state = session.dump_state()
-            comp_state_updates = full_state.get("comp_state_updates", {})
+        comp_state_updates = get_state_info(session, "comp_state_updates")
+        if isinstance(comp_state_updates, dict):
             node_id = (
                 session.get_component_id()
                 if hasattr(session, "get_component_id")
@@ -1843,11 +1846,11 @@ class Questioner(WorkflowComponent):
                         state_dict = node_state[node_id][QUESTIONER_STATE_KEY]
                         result = QuestionerState.deserialize(state_dict)
                         return result
-            comp_state = full_state.get("comp_state")
-            if comp_state:
-                state_dict = Questioner._find_questioner_state_in_tree(comp_state)
-                if state_dict:
-                    return QuestionerState.deserialize(state_dict)
+        comp_state = get_state_info(session, "comp_state")
+        if comp_state:
+            state_dict = Questioner._find_questioner_state_in_tree(comp_state)
+            if state_dict:
+                return QuestionerState.deserialize(state_dict)
 
         # 兜底：尝试 get_state
         questioner_state = session.get_state()
@@ -1864,7 +1867,7 @@ class Questioner(WorkflowComponent):
         session.update_state({QUESTIONER_STATE_KEY: state_dict})
 
         # 保存到 state_manager
-        if hasattr(session, "dump_state"):
+        if hasattr(session, "get_session_id"):
             session_id = session.get_session_id()
             if session_id:
                 # 延迟导入避免循环依赖
@@ -1875,9 +1878,10 @@ class Questioner(WorkflowComponent):
                 )
 
                 state_manager = AsyncStateManager()
-                # 先 await 取旧状态、再 dump_state：dump 与 serialize 之间无 await，
-                # 即使 dump 返回的 *_updates/trace_state 是活引用也不会被并发协程改穿，
-                # 故无需 deepcopy 整棵状态（dump 已对四个 *_state 块做过 deepcopy）。
+                # 先 await 取旧状态、再 dump：dump 与 serialize 之间无 await，
+                # 即使 dump 返回的 *_updates/trace_state 是活引用也不会被并发协程改穿。
+                # dump_state_info 返回新建的外层 dict（仅各 value 是底层引用），
+                # 下方合并逻辑只替换 value（不修改引用对象内部），故无需 deepcopy。
                 old_raw = await state_manager.get_state(session_id)
                 old_state = None
                 if old_raw and isinstance(old_raw, bytes):
@@ -1890,7 +1894,7 @@ class Questioner(WorkflowComponent):
                             exc_info=True,
                         )
                         old_state = None
-                full_state = session.dump_state()
+                full_state = dump_state_info(session)
                 # 合并状态
                 if old_state and isinstance(old_state, dict):
                     for key in full_state:

@@ -7,6 +7,7 @@ import logging
 from dataclasses import dataclass
 from typing import Any, AsyncGenerator
 
+from agent_runtime.common.session_state_access import dump_state_info
 from openjiuwen.core.common.logging import workflow_logger
 from jiuwen.common.exception.base import JiuWenBaseException
 from jiuwen.common.exception.status_code import StatusCode
@@ -342,11 +343,9 @@ class SingleComponentDebugWrapper:
             checkpointer = CheckpointerFactory.get_checkpointer()
             if checkpointer is None:
                 return
-            # 使用 dump_state 获取完整状态（包括 comp_state_updates）
-            if hasattr(session, "dump_state"):
-                state = session.dump_state()
-            else:
-                state = session.get_state() if hasattr(session, "get_state") else None
+            # 导出完整状态（包括 comp_state_updates）。dump_state_info 返回新建外层 dict，
+            # 仅各 value 是底层引用；save_session 不修改成员，直接传入即可。
+            state = dump_state_info(session) or None
             if state:
                 await checkpointer.save_session(self._session_id, state)
         except Exception as e:

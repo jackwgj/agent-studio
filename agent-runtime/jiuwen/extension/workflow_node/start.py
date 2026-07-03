@@ -31,6 +31,7 @@ from enum import Enum
 from typing import Any
 
 from agent_runtime.common.redis_manager import get_redis_client
+from agent_runtime.common.session_state_access import get_state_info
 from jiuwen.extension.workflow_node.utils import get_workflow_param
 from jiuwen.orchestration.flow.constant import REQUEST_VARIABLES
 from openjiuwen.core.common.logging import workflow_logger
@@ -470,9 +471,7 @@ class Start(WorkflowComponent):
     @staticmethod
     def _assemble_output(inputs: dict, session: Session) -> dict:
         """组装输出，分离系统字段和用户字段"""
-        inner_session = getattr(session, "_inner", None)
-        state = inner_session.state().get_state() if inner_session else {}
-        io_state = state.get("io_state", {})
+        io_state = get_state_info(session, "io_state") or {}
         envs = get_workflow_param(session, REQUEST_VARIABLES) or {}
         inputs_copy = deepcopy(inputs)
         inputs_copy.pop("sys", None)
@@ -481,7 +480,10 @@ class Start(WorkflowComponent):
             if key not in inputs_copy or not isinstance(inputs_copy[key], bool):
                 inputs_copy[key] = value
         # 当前用户输入加入历史
-        sys = io_state.get("global_variables", {}).get("sys", {})
+        # deepcopy sys 以避免直接 mutate session 内部状态：get_state_info 返回的是
+        # 底层 dict 的直接引用，否则 conversationHistory 的 append 会污染同轮/跨轮的
+        # session 内部历史（回归 bug）
+        sys = deepcopy(io_state.get("global_variables", {}).get("sys", {}))
         sys.get("conversationHistory", []).append(
             {"role": "user", "content": inputs_copy.get("query", "")}
         )
