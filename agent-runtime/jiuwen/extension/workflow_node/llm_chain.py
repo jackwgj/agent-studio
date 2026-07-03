@@ -1150,6 +1150,10 @@ class LLMChain(WorkflowComponent):
 
     def _process_inputs(self, inputs: dict):
         """处理输入数据 - 预埋 CHAT_HISTORY 变量"""
+        if not self._get_enable_history():
+            inputs.update({"CHAT_HISTORY": ""})
+            return
+
         chat_history = self._get_chat_history()
         # 排除最后一条（当前用户消息），只保留历史对话
         history_only = chat_history[:-1] if chat_history else []
