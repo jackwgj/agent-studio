@@ -2,10 +2,10 @@
 # Copyright (c) Huawei Technologies Co., Ltd. 2026. All rights reserved.
 """
 FastRedisCheckpointer — decorator that replaces O(N) scan_iter operations
-in RedisCheckpointer with O(1)/O(K) alternatives.
+in RedisCheckpointer with O(1) alternatives.
 
 Eliminates two full-keyspace Redis scans per workflow request:
-1. session_exists() → sentinel key EXISTS (O(1) instead of scan_iter)
+1. session_exists() → sentinel SET SCARD (O(1))
 2. post_workflow_execute() → precise key deletion (O(K) instead of scan_iter)
 """
 
@@ -25,29 +25,27 @@ from redis.asyncio import Redis
 _GRAPH_DATA_TYPE = "checkpoint_data_type"
 _GRAPH_DATA_VALUE = "checkpoint_data_value"
 
-# Sentinel key prefix — isolated namespace, no collision with agent-core keys
-# Format: agentBuilder:session_exists:{session_id}:{workflow_id}
-# Per-workflow sentinel ensures sub-workflow completion does not delete
-# the main workflow's sentinel (fixes nested workflow interrupt detection).
+# Sentinel SET key — one per session, members are workflow_ids with active checkpoints.
+# Format: agentBuilder:session_exists:{session_id}
+# Members: {workflow_id} for each workflow that has a sentinel
+#
+# Using a SET instead of individual string keys per workflow keeps
+# session_exists() at O(1) (SCARD) and allows per-workflow add/remove
+# (SADD/SREM) without scan_iter.
 _SENTINEL_PREFIX = "agentBuilder:session_exists:"
 
 
-def _sentinel_key(session_id: str, workflow_id: str) -> str:
-    return f"{_SENTINEL_PREFIX}{session_id}:{workflow_id}"
-
-
-def _sentinel_pattern(session_id: str) -> str:
-    """Glob pattern matching all sentinel keys for a given session."""
-    return f"{_SENTINEL_PREFIX}{session_id}:*"
+def _sentinel_key(session_id: str) -> str:
+    return f"{_SENTINEL_PREFIX}{session_id}"
 
 
 class FastRedisCheckpointer(Checkpointer):
-    """Decorator around RedisCheckpointer that replaces scan_iter with O(1)/O(K) operations.
+    """Decorator around RedisCheckpointer that replaces scan_iter with O(1) operations.
 
     Overrides:
-      - session_exists: O(1) sentinel key check
-      - pre_workflow_execute: delegate + write sentinel key
-      - post_workflow_execute: precise GraphStore key delete + sentinel delete
+      - session_exists: O(1) sentinel SET check (SCARD)
+      - pre_workflow_execute: delegate + SADD workflow_id to sentinel SET
+      - post_workflow_execute: precise GraphStore key delete + SREM from sentinel SET
 
     All other methods delegate to the original RedisCheckpointer unchanged.
     """
@@ -65,26 +63,22 @@ class FastRedisCheckpointer(Checkpointer):
     # ── Overridden methods ──────────────────────────────────────
 
     async def session_exists(self, session_id: str) -> bool:
-        """Check if any workflow in the session has a sentinel key.
+        """O(1) sentinel SET check — SCARD returns member count.
 
-        Uses SCAN (not KEYS) to match per-workflow sentinel keys for the session.
-        O(K) where K is the number of workflows in the session (typically 1-2).
         Returns False if Redis is unreachable (safe default: treat as new session).
         """
         try:
-            pattern = _sentinel_pattern(session_id)
-            async for _ in self._redis.scan_iter(match=pattern, count=100):
-                return True
-            return False
+            count = await self._redis.scard(_sentinel_key(session_id))
+            return count > 0
         except Exception as e:
             workflow_logger.warning(
-                f"FastRedisCheckpointer: sentinel SCAN failed for session "
+                f"FastRedisCheckpointer: sentinel SCARD failed for session "
                 f"{session_id}, returning False: {e}"
             )
             return False
 
     async def pre_workflow_execute(self, session, inputs):
-        """Delegate + write per-workflow sentinel key (idempotent SET).
+        """Delegate + SADD workflow_id to sentinel SET (idempotent).
 
         Sentinel is written AFTER delegate succeeds. If delegate raises (e.g.,
         CHECKPOINTER_PRE_WORKFLOW_EXECUTION_ERROR), the sentinel is NOT written,
@@ -95,12 +89,12 @@ class FastRedisCheckpointer(Checkpointer):
         session_id = session.session_id()
         workflow_id = session.workflow_id()
         try:
-            await self._redis.set(
-                _sentinel_key(session_id, workflow_id), "1", ex=self._ttl_seconds
-            )
+            key = _sentinel_key(session_id)
+            await self._redis.sadd(key, workflow_id)
+            await self._redis.expire(key, self._ttl_seconds)
         except Exception as e:
             workflow_logger.warning(
-                f"FastRedisCheckpointer: sentinel SET failed for session "
+                f"FastRedisCheckpointer: sentinel SADD failed for session "
                 f"{session_id}, workflow {workflow_id}: {e}"
             )
 
@@ -109,7 +103,7 @@ class FastRedisCheckpointer(Checkpointer):
 
         On normal completion:
           1. Construct exact GraphStore keys and batch_delete them (O(2))
-          2. Delete sentinel key
+          2. SREM workflow_id from sentinel SET
           3. Delegate workflow_storage.clear()
         On WorkflowAbortException (异常结束节点):
           The workflow terminated via an exception node — this is a normal
@@ -153,14 +147,14 @@ class FastRedisCheckpointer(Checkpointer):
     async def _clear_checkpoint_and_sentinel(
         self, session_id: str, workflow_id: str, session
     ):
-        """Clear GraphStore keys, per-workflow sentinel key, and workflow storage.
+        """Clear GraphStore keys, remove workflow_id from sentinel SET, and workflow storage.
 
         Used for both normal completion and WorkflowAbortException (异常结束节点),
         which should both result in a clean slate for the next run.
 
-        Only deletes the sentinel for the given workflow_id — other workflows
+        Only removes the given workflow_id from the sentinel SET — other workflows
         in the same session (e.g., the main workflow when a sub-workflow completes)
-        retain their sentinels so session_exists() remains correct.
+        remain as SET members so session_exists() stays correct.
         """
         # Precise GraphStore key deletion instead of scan_iter
         try:
@@ -184,12 +178,15 @@ class FastRedisCheckpointer(Checkpointer):
             await self._delegate.post_workflow_execute(session, {}, None)
             return
 
-        # Delete per-workflow sentinel key (not session-wide)
+        # Remove this workflow_id from the sentinel SET (not the whole SET)
+        # Redis auto-deletes the key when the last member is removed, so no
+        # A standalone SREM is enough and avoids redundant SCARD/DELETE operations.
         try:
-            await self._redis.delete(_sentinel_key(session_id, workflow_id))
+            key = _sentinel_key(session_id)
+            await self._redis.srem(key, workflow_id)
         except Exception as e:
             workflow_logger.warning(
-                f"FastRedisCheckpointer: sentinel DELETE failed for session "
+                f"FastRedisCheckpointer: sentinel SREM failed for session "
                 f"{session_id}, workflow {workflow_id}: {e}"
             )
 
@@ -235,7 +232,7 @@ class FastRedisCheckpointer(Checkpointer):
         await self._delegate.post_agent_team_execute(session)
 
     async def release(self, session_id: str, agent_id: Optional[str] = None):
-        """Delegate release. Sentinel key is NOT deleted — it will expire via TTL.
+        """Delegate release. Sentinel SET is NOT deleted — it will expire via TTL.
 
         Intentionally keeping the sentinel key after release avoids accidental
         deletion that could cause loss of interrupt state if release is called

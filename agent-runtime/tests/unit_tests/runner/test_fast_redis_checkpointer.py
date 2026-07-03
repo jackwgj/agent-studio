@@ -10,22 +10,6 @@ import pytest
 from agent_runtime.runner.fast_redis_checkpointer import FastRedisCheckpointer
 
 
-class AsyncIteratorMock:
-    """Helper to mock async iteration over a list of items."""
-
-    def __init__(self, items):
-        self._items = iter(items)
-
-    def __aiter__(self):
-        return self
-
-    async def __anext__(self):
-        try:
-            return next(self._items)
-        except StopIteration:
-            raise StopAsyncIteration
-
-
 def _make_mock_delegate():
     """Create a mock RedisCheckpointer with all abstract methods."""
     delegate = MagicMock()
@@ -69,20 +53,28 @@ def checkpointer(mock_delegate, mock_redis):
 class TestSessionExists:
     @pytest.mark.asyncio
     async def test_session_exists_no_sentinel(self, checkpointer, mock_redis):
-        """New session: no sentinel keys → returns False."""
-        mock_redis.scan_iter = MagicMock(return_value=AsyncIteratorMock([]))
+        """New session: sentinel SET empty → returns False."""
+        mock_redis.scard = AsyncMock(return_value=0)
         result = await checkpointer.session_exists("test-session-123")
         assert result is False
-        mock_redis.scan_iter.assert_called_once_with(
-            match="agentBuilder:session_exists:test-session-123:*", count=100
+        mock_redis.scard.assert_awaited_once_with(
+            "agentBuilder:session_exists:test-session-123"
         )
 
     @pytest.mark.asyncio
     async def test_session_exists_with_sentinel(self, checkpointer, mock_redis):
-        """Existing session: sentinel key present → returns True."""
-        mock_redis.scan_iter = MagicMock(
-            return_value=AsyncIteratorMock(["agentBuilder:session_exists:test-session-123:wf-1"])
+        """Existing session: sentinel SET has members → returns True."""
+        mock_redis.scard = AsyncMock(return_value=1)
+        result = await checkpointer.session_exists("test-session-123")
+        assert result is True
+        mock_redis.scard.assert_awaited_once_with(
+            "agentBuilder:session_exists:test-session-123"
         )
+
+    @pytest.mark.asyncio
+    async def test_session_exists_multiple_workflows(self, checkpointer, mock_redis):
+        """Session with multiple workflow sentinels (nested workflow) → returns True."""
+        mock_redis.scard = AsyncMock(return_value=2)
         result = await checkpointer.session_exists("test-session-123")
         assert result is True
 
@@ -90,8 +82,8 @@ class TestSessionExists:
     async def test_session_exists_redis_error_returns_false(
         self, checkpointer, mock_redis
     ):
-        """Redis error on SCAN → return False (safe default)."""
-        mock_redis.scan_iter = MagicMock(side_effect=Exception("Redis down"))
+        """Redis error on SCARD → return False (safe default)."""
+        mock_redis.scard = AsyncMock(side_effect=Exception("Redis down"))
         result = await checkpointer.session_exists("test-session-123")
         assert result is False
 
@@ -99,8 +91,9 @@ class TestSessionExists:
 class TestPreWorkflowExecute:
     @pytest.mark.asyncio
     async def test_pre_workflow_writes_sentinel(self, checkpointer, mock_delegate, mock_redis):
-        """pre_workflow_execute delegates + writes per-workflow sentinel key."""
-        mock_redis.set = AsyncMock(return_value=True)
+        """pre_workflow_execute delegates + SADD workflow_id to sentinel SET."""
+        mock_redis.sadd = AsyncMock(return_value=1)
+        mock_redis.expire = AsyncMock(return_value=True)
         mock_session = MagicMock()
         mock_session.session_id = MagicMock(return_value="sess-1")
         mock_session.workflow_id = MagicMock(return_value="wf-1")
@@ -109,9 +102,13 @@ class TestPreWorkflowExecute:
 
         # Delegate was called
         mock_delegate.pre_workflow_execute.assert_awaited_once()
-        # Per-workflow sentinel key was written
-        mock_redis.set.assert_awaited_once_with(
-            "agentBuilder:session_exists:sess-1:wf-1", "1", ex=86400
+        # SADD workflow_id to sentinel SET
+        mock_redis.sadd.assert_awaited_once_with(
+            "agentBuilder:session_exists:sess-1", "wf-1"
+        )
+        # TTL set on the SET key
+        mock_redis.expire.assert_awaited_once_with(
+            "agentBuilder:session_exists:sess-1", 86400
         )
 
     @pytest.mark.asyncio
@@ -119,7 +116,7 @@ class TestPreWorkflowExecute:
         self, checkpointer, mock_delegate, mock_redis
     ):
         """Sentinel write failure does NOT raise — logs warning."""
-        mock_redis.set = AsyncMock(side_effect=Exception("Redis write error"))
+        mock_redis.sadd = AsyncMock(side_effect=Exception("Redis write error"))
         mock_session = MagicMock()
         mock_session.session_id = MagicMock(return_value="sess-1")
         mock_session.workflow_id = MagicMock(return_value="wf-1")
@@ -143,8 +140,9 @@ class TestPostWorkflowExecute:
     async def test_normal_completion_deletes_sentinel_and_graph_keys(
         self, checkpointer, mock_delegate, mock_redis
     ):
-        """Normal completion: precise GraphStore delete + sentinel delete + workflow_storage.clear."""
+        """Normal completion: precise GraphStore delete + SREM from sentinel SET + workflow_storage.clear."""
         mock_redis.delete = AsyncMock(return_value=2)
+        mock_redis.srem = AsyncMock(return_value=1)
         mock_session = self._make_session()
 
         result = {}  # No TASK_STATUS_INTERRUPT → normal completion
@@ -155,11 +153,37 @@ class TestPostWorkflowExecute:
         expected_value_key = "sess-1:workflow-graph:wf-1:checkpoint_data_value"
         mock_redis.delete.assert_any_call(expected_type_key, expected_value_key)
 
-        # Per-workflow sentinel key deleted
-        mock_redis.delete.assert_any_call("agentBuilder:session_exists:sess-1:wf-1")
+        # SREM workflow_id from sentinel SET (Redis auto-deletes empty SET)
+        mock_redis.srem.assert_awaited_once_with(
+            "agentBuilder:session_exists:sess-1", "wf-1"
+        )
+
+        # No manual DELETE of the sentinel key — Redis handles empty-set cleanup
+        delete_calls = [c[0][0] for c in mock_redis.delete.call_args_list]
+        assert "agentBuilder:session_exists:sess-1" not in delete_calls
 
         # workflow_storage.clear delegated
         getattr(mock_delegate, "_workflow_storage").clear.assert_awaited_once_with("wf-1", "sess-1")
+
+    @pytest.mark.asyncio
+    async def test_normal_completion_set_not_empty_keeps_key(
+        self, checkpointer, mock_delegate, mock_redis
+    ):
+        """Normal completion: SREM only removes own workflow_id, never DELETEs the SET."""
+        mock_redis.delete = AsyncMock(return_value=2)
+        mock_redis.srem = AsyncMock(return_value=1)
+        mock_session = self._make_session()
+
+        result = {}
+        await checkpointer.post_workflow_execute(mock_session, result, None)
+
+        # SREM called for own workflow_id only
+        mock_redis.srem.assert_awaited_once_with(
+            "agentBuilder:session_exists:sess-1", "wf-1"
+        )
+        # No manual DELETE of the sentinel key — Redis auto-handles empty-set cleanup
+        delete_calls = [c[0][0] for c in mock_redis.delete.call_args_list]
+        assert "agentBuilder:session_exists:sess-1" not in delete_calls
 
     @pytest.mark.asyncio
     async def test_exception_path_keeps_sentinel(
@@ -177,8 +201,9 @@ class TestPostWorkflowExecute:
         mock_delegate.post_workflow_execute.assert_awaited_once_with(
             mock_session, None, test_exception
         )
-        # No Redis delete calls (sentinel and graph keys preserved)
+        # No Redis delete or SREM calls (sentinel preserved)
         mock_redis.delete.assert_not_called()
+        mock_redis.srem.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_workflow_abort_exception_clears_checkpoint(
@@ -186,6 +211,7 @@ class TestPostWorkflowExecute:
     ):
         """WorkflowAbortException (异常结束节点) clears checkpoint like normal completion."""
         mock_redis.delete = AsyncMock(return_value=2)
+        mock_redis.srem = AsyncMock(return_value=1)
         mock_session = self._make_session()
 
         from jiuwen.extension.workflow_node.utils import WorkflowAbortException
@@ -206,8 +232,10 @@ class TestPostWorkflowExecute:
         expected_value_key = "sess-1:workflow-graph:wf-1:checkpoint_data_value"
         mock_redis.delete.assert_any_call(expected_type_key, expected_value_key)
 
-        # Per-workflow sentinel key also deleted
-        mock_redis.delete.assert_any_call("agentBuilder:session_exists:sess-1:wf-1")
+        # SREM workflow_id from sentinel SET
+        mock_redis.srem.assert_awaited_once_with(
+            "agentBuilder:session_exists:sess-1", "wf-1"
+        )
 
         # workflow_storage.clear delegated
         getattr(mock_delegate, "_workflow_storage").clear.assert_awaited_once_with("wf-1", "sess-1")
@@ -237,6 +265,7 @@ class TestPostWorkflowExecute:
 
         # Sentinel was NOT deleted (preserved for recovery)
         mock_redis.delete.assert_not_called()
+        mock_redis.srem.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_interrupt_path_keeps_sentinel(
@@ -252,8 +281,9 @@ class TestPostWorkflowExecute:
 
         # Delegate was called (saves checkpoint)
         mock_delegate.post_workflow_execute.assert_awaited_once()
-        # No Redis delete calls
+        # No Redis delete or SREM calls
         mock_redis.delete.assert_not_called()
+        mock_redis.srem.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_precise_delete_failure_falls_back_to_delegate(
@@ -275,6 +305,7 @@ class TestPostWorkflowExecute:
     ):
         """workflow_storage.clear() failure → fallback to delegate."""
         mock_redis.delete = AsyncMock(return_value=2)
+        mock_redis.srem = AsyncMock(return_value=1)
         getattr(mock_delegate, "_workflow_storage").clear = AsyncMock(
             side_effect=Exception("Redis error in clear")
         )
@@ -292,6 +323,7 @@ class TestPostWorkflowExecute:
     ):
         """If delegate has no _workflow_storage attribute → fallback to delegate."""
         mock_redis.delete = AsyncMock(return_value=2)
+        mock_redis.srem = AsyncMock(return_value=1)
         # Remove _workflow_storage from delegate to simulate missing attribute
         delattr(mock_delegate, "_workflow_storage")
         mock_session = self._make_session()
@@ -301,6 +333,38 @@ class TestPostWorkflowExecute:
 
         # Fallback to delegate's post_workflow_execute
         mock_delegate.post_workflow_execute.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_sub_workflow_completion_preserves_main_sentinel(
+        self, checkpointer, mock_delegate, mock_redis
+    ):
+        """Sub-workflow normal completion only SREMs its own workflow_id, not the main workflow's.
+
+        This is the core regression test for the nested workflow interrupt detection bug:
+        when a sub-workflow completes normally, its _clear_checkpoint_and_sentinel call
+        must only SREM the sub-workflow's ID from the sentinel SET, keeping the main
+        workflow's ID intact.
+        """
+        mock_redis.delete = AsyncMock(return_value=2)
+        mock_redis.srem = AsyncMock(return_value=1)
+        # Sub-workflow completes normally
+        sub_session = self._make_session(session_id="sess-1", workflow_id="sub-wf")
+        result = {}  # Normal completion
+
+        await checkpointer.post_workflow_execute(sub_session, result, None)
+
+        # SREM only removed sub-wf, not main-wf
+        mock_redis.srem.assert_awaited_once_with(
+            "agentBuilder:session_exists:sess-1", "sub-wf"
+        )
+        # No manual DELETE of the sentinel key — Redis auto-handles cleanup
+        delete_calls = [c[0][0] for c in mock_redis.delete.call_args_list]
+        assert "agentBuilder:session_exists:sess-1" not in delete_calls
+
+        # GraphStore keys for sub-wf were deleted
+        expected_type_key = "sess-1:workflow-graph:sub-wf:checkpoint_data_type"
+        expected_value_key = "sess-1:workflow-graph:sub-wf:checkpoint_data_value"
+        mock_redis.delete.assert_any_call(expected_type_key, expected_value_key)
 
 
 class TestDelegatePassthrough:
@@ -338,15 +402,16 @@ class TestDelegatePassthrough:
     async def test_release_delegates_without_deleting_sentinel(
         self, checkpointer, mock_delegate, mock_redis
     ):
-        """release() delegates but does NOT delete sentinel key.
+        """release() delegates but does NOT delete sentinel SET.
 
         Sentinel is intentionally preserved to avoid accidental loss of
         interrupt state. It expires via TTL instead.
         """
         await checkpointer.release("sess-1")
         mock_delegate.release.assert_awaited_once_with("sess-1", None)
-        # Sentinel key NOT deleted — relies on TTL for cleanup
+        # Sentinel SET NOT deleted — relies on TTL for cleanup
         mock_redis.delete.assert_not_called()
+        mock_redis.srem.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_release_with_agent_id(
@@ -399,10 +464,8 @@ class TestFeatureToggle:
             ttl_seconds=86400,
         )
         assert isinstance(fast, FastRedisCheckpointer)
-        # session_exists uses scan_iter on sentinel keys, not delegate
-        mock_redis.scan_iter = MagicMock(
-            return_value=AsyncIteratorMock(["agentBuilder:session_exists:sess-1:wf-1"])
-        )
+        # session_exists uses sentinel SET (SCARD), not delegate
+        mock_redis.scard = AsyncMock(return_value=1)
         result = await fast.session_exists("sess-1")
         assert result is True
         mock_delegate.session_exists.assert_not_called()
