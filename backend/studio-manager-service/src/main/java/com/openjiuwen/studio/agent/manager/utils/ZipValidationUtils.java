@@ -14,6 +14,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -28,6 +29,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
+import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
 
 /**
@@ -37,6 +39,14 @@ import java.util.zip.ZipFile;
  */
 @Slf4j
 public class ZipValidationUtils {
+
+    private static ZipFile openZipFile(File zipFile) throws IOException {
+        try {
+            return new ZipFile(zipFile);
+        } catch (ZipException e) {
+            return new ZipFile(zipFile, Charset.forName("GBK"));
+        }
+    }
 
     private static final long MAX_ZIP_SIZE = 10L * 1024 * 1024; // 10MB
 
@@ -141,7 +151,7 @@ public class ZipValidationUtils {
      * 验证ZIP安全性
      */
     private static void validateZipSecurity(File zipFile) {
-        try (ZipFile zip = new ZipFile(zipFile)) {
+        try (ZipFile zip = openZipFile(zipFile)) {
             Enumeration<? extends ZipEntry> entries = zip.entries();
 
             int entryCount = 0;
@@ -294,7 +304,7 @@ public class ZipValidationUtils {
      * 解压ZIP文件
      */
     private static void unzip(File zipFile, Path destDir) throws IOException {
-        try (ZipFile zip = new ZipFile(zipFile)) {
+        try (ZipFile zip = openZipFile(zipFile)) {
             Enumeration<? extends ZipEntry> entries = zip.entries();
 
             while (entries.hasMoreElements()) {
@@ -409,8 +419,12 @@ public class ZipValidationUtils {
 
                 // 解析key: value格式
                 String[] lines = frontmatterText.split("\n");
-                for (String line : lines) {
-                    line = line.trim();
+                for (String rawLine : lines) {
+                    if (!rawLine.isEmpty() && (rawLine.charAt(0) == ' ' || rawLine.charAt(0) == '\t')) {
+                        continue;
+                    }
+
+                    String line = rawLine.trim();
                     if (line.isEmpty() || line.startsWith("#")) {
                         continue;
                     }
