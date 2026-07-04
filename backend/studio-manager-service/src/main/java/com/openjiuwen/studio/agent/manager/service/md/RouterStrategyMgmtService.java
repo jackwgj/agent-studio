@@ -3,6 +3,8 @@
  */
 package com.openjiuwen.studio.agent.manager.service.md;
 
+import com.openjiuwen.studio.agent.common.annotation.OperationLog;
+import com.openjiuwen.studio.agent.common.enums.OperationType;
 import com.openjiuwen.studio.agent.common.enums.StudioError;
 import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
 import com.openjiuwen.studio.agent.common.utils.RequestContextUtils;
@@ -165,6 +167,13 @@ public class RouterStrategyMgmtService implements IRouterStrategyMgmtService {
     }
 
     @Override
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "RouterStrategy",
+        description = "创建路由策略",
+        resourceId = "-1",
+        resourceName = "body.strategyName"
+    )
     public RouterStrategyBaseInfo createRouterStrategy(String projectId, String workspaceId,
         RouterStrategyRequest body) {
         // 重名校验
@@ -192,6 +201,13 @@ public class RouterStrategyMgmtService implements IRouterStrategyMgmtService {
     }
 
     @Override
+    @OperationLog(
+        operationType = OperationType.DELETE,
+        resourceType = "RouterStrategy",
+        description = "删除路由策略",
+        resourceId = "strategyId",
+        resourceName = ""
+    )
     public Void deleteRouterStrategy(String projectId, String workspaceId, String strategyId) {
         RouterStrategyEntity routerStrategy = routerStrategyMapper.selectInfoById(strategyId); // 从数据查询
         checkAuth(projectId, workspaceId, routerStrategy); // 权限校验
@@ -246,6 +262,13 @@ public class RouterStrategyMgmtService implements IRouterStrategyMgmtService {
     }
 
     @Override
+    @OperationLog(
+        operationType = OperationType.UPDATE,
+        resourceType = "RouterStrategy",
+        description = "修改路由策略",
+        resourceId = "strategyId",
+        resourceName = "body.strategyName"
+    )
     public Void updateRouterStrategy(String projectId, String workspaceId, String strategyId,
         RouterStrategyRequest body) {
         RouterStrategyEntity routerStrategyEntity = routerStrategyMapper.selectInfoById(strategyId);

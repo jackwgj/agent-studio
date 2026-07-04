@@ -5,6 +5,8 @@ package com.openjiuwen.studio.agent.manager.service.memory;
 
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
+import com.openjiuwen.studio.agent.common.annotation.OperationLog;
+import com.openjiuwen.studio.agent.common.enums.OperationType;
 import com.openjiuwen.studio.agent.common.enums.StudioError;
 import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
 import com.openjiuwen.studio.agent.common.utils.RequestContextUtils;
@@ -70,6 +72,13 @@ public class MemoryRepoManagementService implements IMemoryRepoManagementService
 
     @Override
     @Transactional
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "MemoryRepo",
+        description = "创建记忆库",
+        resourceId = "-1",
+        resourceName = "body.name"
+    )
     public CreateMemoryRepoResponseBody createMemoryRepo(String projectId, String workspaceId, CreateMemoryRepoRequestBody body) {
         // 转换请求体为实体
         MemoryRepoEntity entity = buildMemoryRepoEntity(projectId, workspaceId, body);
@@ -125,6 +134,13 @@ public class MemoryRepoManagementService implements IMemoryRepoManagementService
 
     @Override
     @Transactional
+    @OperationLog(
+        operationType = OperationType.DELETE,
+        resourceType = "MemoryRepo",
+        description = "删除记忆库",
+        resourceId = "memoryRepoId",
+        resourceName = ""
+    )
     public DeleteMemoryRepoResponseBody deleteMemoryRepo(String projectId, String memoryRepoId, String workspaceId) {
 
         // 解绑关联的智能体：清除绑定了该记忆库的 Agent 的 memoryConfig
@@ -243,6 +259,13 @@ public class MemoryRepoManagementService implements IMemoryRepoManagementService
 
     @Override
     @Transactional
+    @OperationLog(
+        operationType = OperationType.UPDATE,
+        resourceType = "MemoryRepo",
+        description = "修改记忆库",
+        resourceId = "memoryRepoId",
+        resourceName = "body.name"
+    )
     public ModifyMemoryRepoResponseBody modifyMemoryRepo(String projectId, String memoryRepoId, String workspaceId, ModifyMemoryRepoRequestBody body) {
         // 查询原记录
         if (body.getLongTermMemoryStrategies() != null && !body.getLongTermMemoryStrategies().isEmpty()) {

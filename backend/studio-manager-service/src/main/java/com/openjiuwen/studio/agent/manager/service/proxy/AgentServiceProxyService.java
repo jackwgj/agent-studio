@@ -5,6 +5,7 @@ package com.openjiuwen.studio.agent.manager.service.proxy;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.openjiuwen.studio.agent.common.annotation.OperationLog;
 import com.openjiuwen.studio.agent.common.dto.agent.ConversionQueries;
 import com.openjiuwen.studio.agent.common.dto.agent.ExecutionInfo;
 import com.openjiuwen.studio.agent.common.dto.agent.Feedback;
@@ -36,6 +37,7 @@ import com.openjiuwen.studio.agent.common.dto.run.TaskListRsp;
 import com.openjiuwen.studio.agent.common.dto.run.TaskRsp;
 import com.openjiuwen.studio.agent.common.dto.tool.RunToolResponseBody;
 import com.openjiuwen.studio.agent.common.entity.Text2AudioReq;
+import com.openjiuwen.studio.agent.common.enums.OperationType;
 import com.openjiuwen.studio.agent.common.enums.StudioError;
 import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
 import com.openjiuwen.studio.agent.common.redis.RedisClient;
@@ -185,6 +187,13 @@ public class AgentServiceProxyService {
             versionId, body);
     }
 
+    @OperationLog(
+        operationType = OperationType.DELETE,
+        resourceType = "ConversationFeedback",
+        description = "删除用户反馈",
+        resourceId = "messageId",
+        resourceName = ""
+    )
     public ResponseEntity<ConversationDeleteResp> deleteFeedback(String projectId, String appId, String conversationId,
         String messageId, String versionId) {
 

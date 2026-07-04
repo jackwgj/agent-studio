@@ -6,7 +6,9 @@ package com.openjiuwen.studio.agent.manager.service.md;
 
 import static com.openjiuwen.studio.prompt.engineering.constant.CommonConstant.EN_LANGUAGE;
 
+import com.openjiuwen.studio.agent.common.annotation.OperationLog;
 import com.openjiuwen.studio.agent.common.dto.md.ProviderAuth;
+import com.openjiuwen.studio.agent.common.enums.OperationType;
 import com.openjiuwen.studio.agent.common.enums.StudioError;
 import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
 import com.openjiuwen.studio.agent.common.utils.RequestContextUtils;
@@ -93,6 +95,13 @@ public class ProviderMgmtService implements IProviderMgmtService {
     private boolean modelSoftDelete;
 
     @Override
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "ModelServiceProvider",
+        description = "创建模型服务供应商",
+        resourceId = "-1",
+        resourceName = "body.providerName"
+    )
     public String createModelServiceProviders(String projectId, String workspaceId, ModelServiceProviderReq body) {
         licenseCtrlService.canAccessIntegrationModel();
 
@@ -206,6 +215,13 @@ public class ProviderMgmtService implements IProviderMgmtService {
     }
 
     @Override
+    @OperationLog(
+        operationType = OperationType.DELETE,
+        resourceType = "ModelServiceProvider",
+        description = "删除模型服务供应商",
+        resourceId = "id",
+        resourceName = ""
+    )
     public Void deleteModelServiceProvider(String projectId, String workspaceId, String id) {
         queryAndAuthCheck(projectId, workspaceId, id, false);
         int count = modelServiceMapper.countByProviderId(id);
@@ -459,6 +475,13 @@ public class ProviderMgmtService implements IProviderMgmtService {
     }
 
     @Override
+    @OperationLog(
+        operationType = OperationType.UPDATE,
+        resourceType = "ModelServiceProvider",
+        description = "更新模型服务供应商",
+        resourceId = "id",
+        resourceName = "body.providerName"
+    )
     public Void updateModelServiceProvider(String projectId, String workspaceId, String id, Boolean availableCheck,
         ModelServiceProviderReq body) {
         ModelServiceProvider provider = queryAndAuthCheck(projectId, workspaceId, id, false);
@@ -540,6 +563,13 @@ public class ProviderMgmtService implements IProviderMgmtService {
     }
 
     @Override
+    @OperationLog(
+        operationType = OperationType.UPDATE,
+        resourceType = "ModelServiceProvider",
+        description = "更新模型服务供应商鉴权信息",
+        resourceId = "id",
+        resourceName = ""
+    )
     public Void updateModelServiceProviderAuthInfo(String projectId, String workspaceId, String id,
         Boolean availableCheck, ProviderAuthInfoReq body) {
         ProviderAuthData providerAuthData = queryAuthInfoAndCheck(projectId, workspaceId, id);

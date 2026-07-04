@@ -11,6 +11,8 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.openjiuwen.studio.agent.common.dto.md.ModelServiceCheckRsp;
+import com.openjiuwen.studio.agent.common.annotation.OperationLog;
+import com.openjiuwen.studio.agent.common.enums.OperationType;
 import com.openjiuwen.studio.agent.common.enums.StudioError;
 import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
 import com.openjiuwen.studio.agent.common.redis.RedisClient;
@@ -263,6 +265,13 @@ public class ModelServiceMgmtService implements IModelServiceMgmtService {
     }
 
     @Override
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "ModelService",
+        description = "创建模型服务",
+        resourceId = "-1",
+        resourceName = "body.serviceName"
+    )
     public String createModelService(String projectId, String workspaceId, Boolean availableCheck,
         ModelServiceReq body) {
         licenseCtrlService.canAccessIntegrationModel();
@@ -353,6 +362,13 @@ public class ModelServiceMgmtService implements IModelServiceMgmtService {
     }
 
     @Override
+    @OperationLog(
+        operationType = OperationType.DELETE,
+        resourceType = "ModelService",
+        description = "删除模型服务",
+        resourceId = "id",
+        resourceName = ""
+    )
     public Void deleteModelService(String projectId, String workspaceId, String id) {
         ModelServiceBase base = queryMSAndPermissionCheck(projectId, workspaceId, id, false);
         if ("online".equals(base.getPublishStatus())) {
@@ -530,6 +546,13 @@ public class ModelServiceMgmtService implements IModelServiceMgmtService {
     }
 
     @Override
+    @OperationLog(
+        operationType = OperationType.UPDATE,
+        resourceType = "ModelService",
+        description = "下线模型服务",
+        resourceId = "id",
+        resourceName = ""
+    )
     public Void offlineModelService(String projectId, String workspaceId, String id) {
         ModelServiceBase base = queryMSAndPermissionCheck(projectId, workspaceId, id, false);
         if ("offline".equals(base.getPublishStatus())) {
@@ -542,6 +565,13 @@ public class ModelServiceMgmtService implements IModelServiceMgmtService {
     }
 
     @Override
+    @OperationLog(
+        operationType = OperationType.UPDATE,
+        resourceType = "ModelService",
+        description = "发布模型服务",
+        resourceId = "id",
+        resourceName = ""
+    )
     public Void onlineModelService(String projectId, String workspaceId, Boolean availableCheck, String id) {
         ModelServiceBase serviceBase = queryMSAndPermissionCheck(projectId, workspaceId, id, false);
         if ("online".equals(serviceBase.getPublishStatus())) {
@@ -812,6 +842,13 @@ public class ModelServiceMgmtService implements IModelServiceMgmtService {
     }
 
     @Override
+    @OperationLog(
+        operationType = OperationType.UPDATE,
+        resourceType = "ModelService",
+        description = "更新模型服务",
+        resourceId = "id",
+        resourceName = "serviceReq.serviceName"
+    )
     public Void updateModelService(String projectId, String workspaceId, Boolean availableCheck, String id,
         ModelServiceReq serviceReq) {
         ModelServiceBase base = queryMSAndPermissionCheck(projectId, workspaceId, id, false);
@@ -887,6 +924,13 @@ public class ModelServiceMgmtService implements IModelServiceMgmtService {
     }
 
     @Override
+    @OperationLog(
+        operationType = OperationType.UPDATE,
+        resourceType = "ModelService",
+        description = "更新模型调测状态",
+        resourceId = "body.modelId",
+        resourceName = ""
+    )
     public Void updateModelStatus(String projectId, String workspaceId, ModelStatusReq body) {
         modelServiceMapper.updateModelStatus(body.getModelId(), body.getStatus(), projectId, workspaceId);
         return null;

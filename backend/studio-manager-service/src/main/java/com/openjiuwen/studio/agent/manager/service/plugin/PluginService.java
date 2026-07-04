@@ -113,6 +113,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.openjiuwen.studio.agent.common.annotation.OperationLog;
+import com.openjiuwen.studio.agent.common.enums.OperationType;
+
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.InputStreamReader;
@@ -288,6 +291,13 @@ public class PluginService implements IPluginService {
 
     @Override
     @Transactional
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "Plugin",
+        description = "创建插件",
+        resourceId = "-1",
+        resourceName = "body.pluginDisplayName"
+    )
     public CreatePluginToolRsp createPlugin(String projectId, String workspaceId, CreatePluginToolReq body) {
         log.info("operation log {}: start to create plugin", projectId);
         PluginDTO pluginDTO = buildPluginEntity(projectId, workspaceId, body);
@@ -317,6 +327,13 @@ public class PluginService implements IPluginService {
 
     @Override
     @Transactional
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "Tool",
+        description = "创建工具",
+        resourceId = "-1",
+        resourceName = "body.toolDisplayName"
+    )
     public CreatePluginToolRsp createTool(String projectId, String workspaceId, CreatePluginToolReq body) {
         log.info("operation log {}: start to create tool", projectId);
         PluginEntity pluginEntity = pluginMapper.selectByPrimaryKeyAndWorkspace(body.getPluginId(), projectId,
@@ -333,6 +350,13 @@ public class PluginService implements IPluginService {
     }
 
     @Override
+    @OperationLog(
+        operationType = OperationType.UPDATE,
+        resourceType = "Tool",
+        description = "在工具中创建API",
+        resourceId = "toolId",
+        resourceName = ""
+    )
     public BaseResp createToolOpenAPIById(String projectId, String workspaceId, String pluginId, String toolId) {
         // 根据ID插件调测
         log.info("operation log {}: start to create plugin openapi", projectId);
@@ -344,6 +368,13 @@ public class PluginService implements IPluginService {
 
     @Override
     @Transactional
+    @OperationLog(
+        operationType = OperationType.DELETE,
+        resourceType = "Plugin",
+        description = "删除插件",
+        resourceId = "pluginId",
+        resourceName = ""
+    )
     public CommonDeleteRsp deletePlugin(String projectId, String pluginId, String workspaceId) {
         log.info("operation log {}: start to delete plugin", projectId);
         PluginEntity pluginEntity = pluginMapper.selectByPrimaryKeyAndWorkspace(pluginId, projectId, workspaceId);
@@ -376,6 +407,13 @@ public class PluginService implements IPluginService {
 
     @Override
     @Transactional
+    @OperationLog(
+        operationType = OperationType.DELETE,
+        resourceType = "Plugin",
+        description = "删除插件版本",
+        resourceId = "pluginId",
+        resourceName = ""
+    )
     public CommonDeleteRsp deletePluginVersion(String projectId, String versionId, String pluginId,
         String workspaceId) {
         log.info("operation log {}: start to delete plugin version", projectId);
@@ -415,6 +453,13 @@ public class PluginService implements IPluginService {
 
     @Override
     @Transactional
+    @OperationLog(
+        operationType = OperationType.DELETE,
+        resourceType = "Tool",
+        description = "删除工具",
+        resourceId = "toolId",
+        resourceName = ""
+    )
     public BaseResp deleteTool(String projectId, String pluginId, String toolId, String workspaceId) {
         log.info("operation log {}: start to delete tool", projectId);
         PluginEntity pluginEntity = pluginMapper.selectByPrimaryKeyAndWorkspace(pluginId, projectId, workspaceId);
@@ -1134,6 +1179,13 @@ public class PluginService implements IPluginService {
     }
 
     @Override
+    @OperationLog(
+        operationType = OperationType.UPDATE,
+        resourceType = "Plugin",
+        description = "修改插件",
+        resourceId = "pluginId",
+        resourceName = "body.toolDisplayName"
+    )
     public ModifyPluginRsp modifyPlugin(String projectId, String workspaceId, String pluginId, ModifyPluginReq body) {
         log.info("operation log {}: start to modify plugin", projectId);
         List<PluginEntity> pluginEntities = pluginMapper.selectByWorkspaceIdAndProjectId(projectId, workspaceId,
@@ -1229,6 +1281,13 @@ public class PluginService implements IPluginService {
     }
 
     @Override
+    @OperationLog(
+        operationType = OperationType.UPDATE,
+        resourceType = "Tool",
+        description = "修改工具",
+        resourceId = "toolId",
+        resourceName = "body.toolDisplayName"
+    )
     public BaseResp modifyTool(String projectId, String workspaceId, String toolId, CreatePluginToolReq body) {
         log.info("operation log {}: start to modify tool", projectId);
         PluginEntity pluginEntity = pluginMapper.selectByPrimaryKeyAndWorkspace(body.getPluginId(), projectId,
@@ -1246,6 +1305,13 @@ public class PluginService implements IPluginService {
     }
 
     @Override
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "Plugin",
+        description = "发布插件版本",
+        resourceId = "pluginId",
+        resourceName = "body.versionName"
+    )
     public VersionInfo releasePluginVersion(String projectId, String pluginId, String workspaceId,
         CreateVersionReq body) {
         log.info("operation log {}: start to release plugin version", projectId);
@@ -2054,6 +2120,13 @@ public class PluginService implements IPluginService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @OperationLog(
+        operationType = OperationType.UPDATE,
+        resourceType = "Plugin",
+        description = "更新插件认证信息",
+        resourceId = "pluginId",
+        resourceName = ""
+    )
     public PluginAuthUpdateRsp updatePluginAuthInfo(String projectId, String workspaceId, String pluginId,
         PluginAuthUpdateReq body) {
         log.info("operation log {}: start to update plugin auth info, pluginId: {}", projectId, pluginId);
