@@ -349,7 +349,11 @@ public class ModelServiceManager {
                 .setAuthType(authType);
 
         if (authInfo instanceof String) {
-            Map<String, String> authMap = JsonUtils.decode((String) authInfo,
+            String authStr = authInfo.toString();
+            if (StringUtils.isBlank(authStr)) {
+                authStr = "{}";
+            }
+            Map<String, String> authMap = JsonUtils.decode(authStr,
                     new TypeReference<Map<String, String>>() {
                     });
             if (!encrypted) {
