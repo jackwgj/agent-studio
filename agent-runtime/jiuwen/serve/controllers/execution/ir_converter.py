@@ -181,9 +181,6 @@ def _convert_global_variable_refs_in_ir(ir_data: dict) -> dict:
     if not ir_data or not isinstance(ir_data, dict):
         return ir_data
 
-    # Create deep copy to avoid modifying cached IR data
-    ir_data = copy.deepcopy(ir_data)
-
     # Only process workflow IR data (has 'components' field)
     components = ir_data.get("components", [])
     if not components:
