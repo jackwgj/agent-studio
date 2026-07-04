@@ -2,6 +2,7 @@
 # coding: utf-8
 # Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
 import json
+import logging
 from typing import Tuple, Any
 
 from jiuwen.common.log.base import logger
@@ -26,7 +27,8 @@ class KVStoreWrapper:
             None
         """
         logger.debug(
-            f"Start to set main_key: {main_key}, sub_key:{sub_key}, value: {value}"
+            "Start to set main_key: %s, sub_key: %s, value: %s",
+            main_key, sub_key, value
         )
         try:
             main_key_str, new_value = self._build_main_key_value(
@@ -41,7 +43,8 @@ class KVStoreWrapper:
             return
 
         exist_value = await self._kv_store.get(main_key_str)
-        logger.debug(f"Before set, get value: {exist_value}")
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("Before set, get value: %s", exist_value)
         if not exist_value:
             await self._kv_store.set(
                 main_key_str, json.dumps(new_value, ensure_ascii=False)
@@ -49,7 +52,8 @@ class KVStoreWrapper:
             return
 
         merge_value = self._merge_value(new_value=new_value, exist_value=exist_value)
-        logger.debug(f"Set main_key: {main_key}, merge_value: {merge_value}")
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("Set main_key: %s, merge_value: %s", main_key, merge_value)
         await self._kv_store.set(main_key_str, merge_value)
 
     async def get(self, main_key: list[str], sub_key: list[str]) -> str | None:
@@ -61,11 +65,12 @@ class KVStoreWrapper:
         Returns:
             str | None: The stored value if found, otherwise None.
         """
-        logger.debug(f"Start to get main_key: {main_key}, sub_key:{sub_key}")
+        logger.debug("Start to get main_key: %s, sub_key: %s", main_key, sub_key)
 
         main_key = self.separator.join(main_key)
         exist_value = await self._kv_store.get(main_key)
-        logger.debug(f"Get value: {exist_value}")
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("Get value: %s", exist_value)
         if not exist_value:
             return None
         if not sub_key:
@@ -99,7 +104,7 @@ class KVStoreWrapper:
         Returns:
             bool: True if the key exists, False otherwise.
         """
-        logger.debug(f"Start to check main_key: {main_key}, sub_key:{sub_key}")
+        logger.debug("Start to check main_key: %s, sub_key: %s", main_key, sub_key)
         try:
             res = await self.get(main_key, sub_key)
         except KeyError:
@@ -116,7 +121,7 @@ class KVStoreWrapper:
         Returns:
             None
         """
-        logger.debug(f"Start to delete main_key: {main_key}, sub_key:{sub_key}")
+        logger.debug("Start to delete main_key: %s, sub_key: %s", main_key, sub_key)
         main_key = self.separator.join(main_key)
         exist_value = await self._kv_store.get(main_key)
         await self._inner_delete(main_key, exist_value, sub_key)
@@ -131,9 +136,11 @@ class KVStoreWrapper:
         """
         main_key = self.separator.join(main_key)
         exist_value = await self._kv_store.get(main_key)
-        logger.debug(
-            f"Start to get all_value, exist_value: {exist_value}, main_key: {main_key}"
-        )
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug(
+                "Start to get all_value, exist_value: %s, main_key: %s",
+                exist_value, main_key
+            )
         if not exist_value:
             return {}
         try:
@@ -166,7 +173,8 @@ class KVStoreWrapper:
                     result_value[key] = dict_value
             except json.decoder.JSONDecodeError as e:
                 logger.debug(
-                    f"Failed to decode json during getting value by prefix, skip it, error: {str(e)}"
+                    "Failed to decode json during getting value by prefix, skip it, error: %s",
+                    e
                 )
                 continue
         return result_value
@@ -274,13 +282,16 @@ class KVStoreWrapper:
             logger.error(f"Failed to decode json, error: {str(e)}")
             return json.dumps(new_value, ensure_ascii=False)
         merge_result = self._merge_dicts(old=exist_json, new=new_value)
-        logger.debug(
-            f"merge_result: {merge_result}, exist_json: {exist_value}, new_value: {new_value}"
-        )
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug(
+                "merge_result: %s, exist_json: %s, new_value: %s",
+                merge_result, exist_value, new_value
+            )
         return json.dumps(merge_result, ensure_ascii=False)
 
     async def _inner_delete(self, main_key: str, exist_value: str, sub_key: list[str]):
-        logger.debug(f"Get value: {exist_value}")
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("Get value: %s", exist_value)
         if not exist_value:
             return
         try:
@@ -298,9 +309,10 @@ class KVStoreWrapper:
             if isinstance(exist_value_dict, dict):
                 exist_value_dict = exist_value_dict.get(k)
 
-        logger.debug(f"After delete, update: {exist_value_dict}")
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("After delete, update: %s", exist_value_dict)
         if len(exist_value_dict_copy) == 0:
-            logger.debug(f"After delete, remove empty main_key: {main_key}")
+            logger.debug("After delete, remove empty main_key: %s", main_key)
             await self._kv_store.delete(main_key)
             return
         await self._kv_store.set(

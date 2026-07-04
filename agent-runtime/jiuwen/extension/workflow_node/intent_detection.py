@@ -28,6 +28,7 @@ IntentDetection - 意图识别组件
 import ast
 import copy
 import json
+import logging
 import os
 import re
 import time
@@ -652,7 +653,10 @@ class IntentDetection(WorkflowComponent):
             return data
         try:
             res = await self.api.ainvoke(inputs, runtime_auth={"headers": cur_headers})
-            workflow_logger.debug(f"{self.conversation_id}|search_result|{str(res)}")
+            # workflow_logger 是 LazyLogger→DefaultLogger，会先做格式化再判级别，
+            # 故需显式守卫，避免 DEBUG 关闭时仍对 res 做 str() 拼接（KB 检索结果可能很大）。
+            if workflow_logger.logger().isEnabledFor(logging.DEBUG):
+                workflow_logger.debug(f"{self.conversation_id}|search_result|{str(res)}")
             if isinstance(res, dict) and res.get("errCode") == 0:
                 data = res.get("data", {})
             elif hasattr(res, "err_code") and res.err_code == 0:

@@ -4,6 +4,7 @@
 """This module contains an IRConverter."""
 
 import json
+import logging
 import os
 import re
 import secrets
@@ -1110,7 +1111,8 @@ class IRConverter:
         """
         # Convert old global variable references to new format
         converted_ir_data = _convert_global_variable_refs_in_ir(ir_data)
-        logger.debug(f"param extra: parent converted_ir_data: {converted_ir_data}")
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("param extra: parent converted_ir_data: %s", converted_ir_data)
         return LazyWorkflow(ir_data=converted_ir_data, build_kwargs=kwargs)
 
     @staticmethod
@@ -1548,7 +1550,8 @@ class IRConverter:
             raise IRBuildException(f"从缓存或存储读取 IR 文件失败: {child_path}, {e}") from e
         # First convert old refs to new format
         converted_child_ir = _convert_global_variable_refs_in_ir(child_ir)
-        logger.debug(f"param extra: child converted ir: {converted_child_ir}")
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("param extra: child converted ir: %s", converted_child_ir)
         # Then apply parent's global variable mappings
         if parent_global_var_mappings:
             converted_child_ir = _convert_subworkflow_global_var_refs(

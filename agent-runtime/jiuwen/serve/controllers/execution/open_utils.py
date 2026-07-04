@@ -7,6 +7,7 @@ import builtins
 import importlib
 import io
 import json
+import logging
 import os
 import pickle
 import time
@@ -266,11 +267,14 @@ cache_intent_rule_queue = CacheUtils(
 
 
 def _log_ir_content(source: str, path: str, ir_data: dict):
-    """以 DEBUG 级别输出 IR 内容的 JSON 日志。"""
     try:
+        if not workflow_logger.logger().isEnabledFor(logging.DEBUG):
+            return
+
         _ir_json = json.dumps(ir_data, ensure_ascii=False, default=str)
         workflow_logger.debug(
-            f"IR content from {source}: path={path}, size={len(_ir_json)} bytes, content={_ir_json}"
+            "IR content from %s: path=%s, size=%d bytes, content=%s",
+            source, path, len(_ir_json), _ir_json,
         )
     except Exception as e:
         logger.warning("Failed to log IR content: source=%s, path=%s, error=%s", source, path, e)
