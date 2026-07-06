@@ -55,7 +55,7 @@
         <jose4j.version>0.9.6</jose4j.version>
         <redisson.version>3.39.0</redisson.version>
         <mcp.sdk.version>0.16.0</mcp.sdk.version>
-        <tomcat-embed-core.version>10.1.55</tomcat-embed-core.version>
+        <tomcat-embed-core.version>10.1.56</tomcat-embed-core.version>
         <hadoop.version>3.4.2</hadoop.version>
         <http.version>4.5.14</http.version>
         <org.jetbrains.version>26.0.1</org.jetbrains.version>
