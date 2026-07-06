@@ -121,8 +121,9 @@ UNSUPPORTED_COMPONENT_DEBUG_LIST = [
     "jiuwen.taskFlow",
 ]
 
-_REFERENCE_PATTERN = re.compile(r"^\{([^{}]+)}$")
-_REFERENCE_TOKEN_PATTERN = re.compile(r"(?<!\$)\{([^{}]+)}")
+_VALID_REF_PATH_CONTENT = r'[a-zA-Z_][a-zA-Z0-9_.]*'
+_REFERENCE_PATTERN = re.compile(r"^\{(" + _VALID_REF_PATH_CONTENT + r")}$")
+_REFERENCE_TOKEN_PATTERN = re.compile(r"(?<!\$)\{(" + _VALID_REF_PATH_CONTENT + r")}")
 _OPEN_REFERENCE_PATTERN = re.compile(r"^\$\{([^{}]+)}$")
 _OPEN_REFERENCE_TOKEN_PATTERN = re.compile(r"\$\{([^{}]+)}")
 _NEGATION_PATTERN = re.compile(r"(?<![=!<>])!(?!=)")
