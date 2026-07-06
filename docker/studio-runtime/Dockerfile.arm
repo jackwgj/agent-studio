@@ -1,0 +1,66 @@
+# ARM64 专用 Dockerfile — 使用预构建的 runtime-base-arm64 基础镜像
+# 基础镜像包含 python:3.11-slim + apt系统依赖 + pip Python依赖
+# 由 build_arm.sh 的 docker_build_runtime_base() 构建并缓存
+FROM runtime-base-arm64:latest
+
+# 注：此处修改需同步修改studio-runtime.yaml中的runAsUser、runAsGroup、fsGroup
+RUN groupadd -g 1000 service && useradd -u 1000 -g service -s /bin/bash -m service
+
+ENV SERVICE_HOME=/opt/cloud/agent-runtime
+ENV PACKAGES_HOME=/usr/local/lib/python3.11/site-packages
+ENV LD_LIBRARY_PATH=/usr/local/lib:/usr/lib64
+
+WORKDIR $SERVICE_HOME
+
+# 基础镜像已包含 apt 系统依赖和 pip Python 依赖，此处只需复制应用代码
+
+# 从本地源码安装 openjiuwen（每次构建都安装最新代码，不缓存在基础镜像中）
+COPY agent-core/ $SERVICE_HOME/app/agent-core/
+RUN pip3 install $SERVICE_HOME/app/agent-core/ \
+    && rm -rf $SERVICE_HOME/app/agent-core/
+
+COPY agent_builder/ $SERVICE_HOME/app/agent_builder/
+COPY agent_runtime/ $SERVICE_HOME/app/agent_runtime/
+COPY jiuwen/ $SERVICE_HOME/app/jiuwen/
+COPY tests/ $SERVICE_HOME/app/tests/
+COPY bin/ $SERVICE_HOME/bin/
+# Nginx load balancing configuration and scripts
+COPY nginx/ $SERVICE_HOME/nginx/
+
+# 设置目录与权限
+RUN mkdir -p $SERVICE_HOME/bin \
+    && chmod +x $SERVICE_HOME/bin/*.sh \
+    && chmod +x $SERVICE_HOME/nginx/nginx_launcher.py \
+    && mkdir -p $SERVICE_HOME/tls \
+    && mkdir -p /opt/cloud/logs \
+    && mkdir -p /opt/cloud/tool \
+    && mkdir -p /opt/tmp/agent \
+    && mkdir -p /opt/cloud/logs/agent-runtime/run \
+    && touch /opt/cloud/logs/agent-runtime/run/agent-runtime.pid \
+    && touch /opt/cloud/logs/agent-runtime/run/agent-runtime_access.log \
+    && touch /opt/cloud/logs/agent-runtime/run/agent-runtime_debug.log \
+    && chmod 750 -R /opt/cloud/logs $SERVICE_HOME/tls/ \
+    && chmod u+w ${PACKAGES_HOME} \
+    && chown -R service:service ${PACKAGES_HOME} \
+    && chmod 700 $SERVICE_HOME/.. \
+    && chown -R service:service /home \
+    && chown -R service:service /opt/cloud \
+    && chown -R service:service /opt/tmp/agent \
+    && chmod 755 /home
+
+# 定义定时任务需要的权限 + Nginx 运行时目录权限
+USER root
+RUN chmod 700 /opt/cloud/logs \
+    && echo service >> /etc/cron.allow \
+    && chmod u+s /usr/sbin/cron \
+    && touch /var/run/crond.pid && chmod 760 /var/run/crond.pid \
+    && mkdir -p /var/lib/nginx/body /var/lib/nginx/proxy /var/lib/nginx/fastcgi /var/lib/nginx/uwsgi /var/lib/nginx/scgi \
+    && chown -R service:service /var/lib/nginx \
+    && mkdir -p /var/log/nginx \
+    && chown -R service:service /var/log/nginx \
+    && touch /run/nginx.pid \
+    && chown service:service /run/nginx.pid
+
+USER service
+
+CMD ["/bin/bash", "-c", "cron;cd ${SERVICE_HOME};./bin/init.sh; if [ \"${NGINX_LOAD_BALANCING}\" = \"true\" ]; then ./bin/start_nginx_lb.sh; else ./bin/start.sh; fi"]

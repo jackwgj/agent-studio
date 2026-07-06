@@ -1,0 +1,30 @@
+# 基础镜像：python:3.11-slim + apt系统依赖 + pip Python依赖
+# 构建一次后可反复使用，仅当 requirements.txt 变更时需重新构建
+ARG BASE_IMAGE=python:3.11-slim
+FROM $BASE_IMAGE
+
+ENV SERVICE_HOME=/opt/cloud/agent-runtime
+ENV PACKAGES_HOME=/usr/local/lib/python3.11/site-packages
+ENV LD_LIBRARY_PATH=/usr/local/lib:/usr/lib64
+
+WORKDIR $SERVICE_HOME
+
+# 安装运行时系统依赖（不含编译工具链）
+RUN if [ -f /etc/apt/sources.list.d/debian.sources ]; then \
+      sed -i 's|deb.debian.org|mirrors.aliyun.com|g' /etc/apt/sources.list.d/debian.sources; \
+    elif [ -f /etc/apt/sources.list ]; then \
+      sed -i 's|deb.debian.org|mirrors.aliyun.com|g' /etc/apt/sources.list; \
+    fi \
+    && DEBIAN_FRONTEND=noninteractive apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+       curl tar unzip net-tools wget iptables cron libpq-dev vim procps gawk hostname sed coreutils findutils bash nginx \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# 安装 pip Python 依赖
+COPY requirements.txt $SERVICE_HOME/app/
+RUN pip3 config set global.index-url https://mirrors.aliyun.com/pypi/simple/ \
+    && pip3 config set global.trusted-host mirrors.aliyun.com \
+    && pip3 config set global.timeout 300 \
+    && pip3 config set global.retries 5 \
+    && pip3 install -r $SERVICE_HOME/app/requirements.txt \
+    && rm -rf ${PACKAGES_HOME}/future/backports/test
