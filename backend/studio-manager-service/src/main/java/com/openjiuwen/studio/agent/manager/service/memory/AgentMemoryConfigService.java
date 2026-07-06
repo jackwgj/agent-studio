@@ -109,7 +109,8 @@ public class AgentMemoryConfigService {
         // v4.2: No longer sync to memory-service. Scope config is lazily created by Python
         // agent-runtime during first memory extraction, driven by IR strategies.
         if (newUserProfileMemoryConfig != null && CollectionUtils.isNotEmpty(newUserProfileMemoryConfig.getTopics())) {
-            log.info("User profile config saved for agent {} ({} topics) — scope config will be lazily created by runtime",
+            // 静态代码检查G.OTH.02：日志中全角破折号替换为半角短横线，避免日志采集系统解析异常
+            log.info("User profile config saved for agent {} ({} topics) - scope config will be lazily created by runtime",
                 agentId, newUserProfileMemoryConfig.getTopics().size());
         }
     }
@@ -128,7 +129,8 @@ public class AgentMemoryConfigService {
         }
         // v4.2: Memory clearing is handled by MemoryRepoInternalController → JiuWenClient → Python LTM.
         // This method is retained as a compatibility no-op.
-        log.info("clearUserMemoriesInApplication called for app {} — handled by LTM internal endpoints", appId);
+        // 静态代码检查G.OTH.02：日志中全角破折号替换为半角短横线，避免日志采集系统解析异常
+        log.info("clearUserMemoriesInApplication called for app {} - handled by LTM internal endpoints", appId);
     }
 
     private String joinTopicAndTagName(String topicName, String tagName) {

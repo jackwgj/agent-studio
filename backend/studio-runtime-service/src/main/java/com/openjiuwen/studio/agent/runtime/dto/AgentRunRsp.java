@@ -25,6 +25,10 @@ import java.util.Map;
 @Data
 @Builder
 public class AgentRunRsp implements Serializable {
+
+    // 静态代码检查G.SER.02：实现Serializable的类应显式声明serialVersionUID，避免类变更后反序列化兼容性问题
+    private static final long serialVersionUID = 1L;
+
     @JsonProperty("conversation_id")
     private String conversationId;
 

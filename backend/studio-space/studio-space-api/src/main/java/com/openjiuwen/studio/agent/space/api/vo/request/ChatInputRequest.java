@@ -19,6 +19,10 @@ import java.io.Serializable;
 @Data
 @Accessors(chain = true)
 public class ChatInputRequest implements Serializable {
+
+    // 静态代码检查G.SER.02：实现Serializable的类应显式声明serialVersionUID，避免类变更后反序列化兼容性问题
+    private static final long serialVersionUID = 1L;
+
     @Size(max = 20000)
     @ValidChatString
     private String message;

@@ -41,6 +41,8 @@ public class SAMLResponseValidatorImpl implements SAMLResponseValidator {
         this.provider = ServiceProviderImpl.getInstance();
     }
 
+    // 静态代码检查G.OTH.01：实现接口方法应加@Override注解，确保编译期校验方法签名一致性
+    @Override
     public void validate() throws SAMLException {
         if (!validServiceProvider()) {
             throw new SAMLException("UnknownServiceProvider");

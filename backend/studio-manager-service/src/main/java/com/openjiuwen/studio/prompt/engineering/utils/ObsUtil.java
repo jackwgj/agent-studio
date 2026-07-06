@@ -82,7 +82,8 @@ public class ObsUtil {
     public void init(String xAuthToken) {
         ObsConfiguration config = new ObsConfiguration();
         config.setEndPoint(url);
-        config.setPathStyle(pathStyle.equals("path"));
+        // 静态代码检查G.EXP.04：equals常量前置，避免pathStyle为null时抛出NullPointerException
+        config.setPathStyle("path".equals(pathStyle));
         ObsUtil.obsClient = new ObsClient(accessKey, secretKey, config);
     }
 
@@ -96,7 +97,8 @@ public class ObsUtil {
     public void setObsClient(String ak, String sk, String secToken, ObsConfiguration obsConfiguration) {
         ObsConfiguration config = new ObsConfiguration();
         config.setEndPoint(url);
-        config.setPathStyle(pathStyle.equals("path"));
+        // 静态代码检查G.EXP.04：equals常量前置，避免pathStyle为null时抛出NullPointerException
+        config.setPathStyle("path".equals(pathStyle));
         ObsUtil.obsClient = new ObsClient(accessKey, secretKey, config);
     }
 

@@ -17,6 +17,10 @@ import java.io.Serializable;
 @Data
 @Accessors(chain = true)
 public class ChatTemplateRequest implements Serializable {
+
+    // 静态代码检查G.SER.02：实现Serializable的类应显式声明serialVersionUID，避免类变更后反序列化兼容性问题
+    private static final long serialVersionUID = 1L;
+
     @JsonProperty("file_name")
     private String fileName;
 

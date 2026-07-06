@@ -24,6 +24,7 @@ import org.springframework.stereotype.Service;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -43,8 +44,9 @@ public class MemoryItemManagementService implements IMemoryItemManagementService
         }
 
         try {
+            // 静态代码检查G.OTH.04：toLowerCase指定Locale.ROOT，避免在土耳其语等环境下产生大小写转换异常
             ResponseEntity<Object> response = agentRuntimeClient.listMemories(
-                memoryRepoId, userId.toLowerCase(), pageSize, pageNum);
+                memoryRepoId, userId.toLowerCase(Locale.ROOT), pageSize, pageNum);
 
             if (response.getBody() == null) {
                 return emptyListResponse(pageNum, pageSize);
@@ -111,8 +113,9 @@ public class MemoryItemManagementService implements IMemoryItemManagementService
             Map<String, List<String>> requestBody = new HashMap<>();
             requestBody.put("memory_ids", memoryIds);
 
+            // 静态代码检查G.OTH.04：toLowerCase指定Locale.ROOT，避免在土耳其语等环境下产生大小写转换异常
             ResponseEntity<Object> response = agentRuntimeClient.batchDeleteMemories(
-                memoryRepoId, userId.toLowerCase(), requestBody);
+                memoryRepoId, userId.toLowerCase(Locale.ROOT), requestBody);
 
             if (response.getBody() != null) {
                 JSONObject result = JSONObject.from(response.getBody());
@@ -144,8 +147,9 @@ public class MemoryItemManagementService implements IMemoryItemManagementService
             searchBody.put("top_k", body.getTopK() != null ? body.getTopK() : 10);
             searchBody.put("threshold", body.getThreshold() != null ? body.getThreshold().doubleValue() : 0.3);
 
+            // 静态代码检查G.OTH.04：toLowerCase指定Locale.ROOT，避免在土耳其语等环境下产生大小写转换异常
             ResponseEntity<Object> response = agentRuntimeClient.searchMemories(
-                memoryRepoId, userId.toLowerCase(), searchBody);
+                memoryRepoId, userId.toLowerCase(Locale.ROOT), searchBody);
 
             if (response.getBody() == null) {
                 ListMemoryItemResponseBody result = new ListMemoryItemResponseBody();

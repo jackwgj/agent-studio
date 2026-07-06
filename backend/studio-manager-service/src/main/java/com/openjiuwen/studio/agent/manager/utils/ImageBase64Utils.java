@@ -21,6 +21,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Locale;
 import java.util.regex.Matcher;
@@ -108,7 +109,9 @@ public class ImageBase64Utils {
         String base64Data = dataUri.split(",")[1];
         int maxSizeBytes = maxSizeKB * 1024;
         base64Data = base64Data.replaceAll("[^A-Za-z0-9+/=]", "");
-        try (InputStream decodedStream = Base64.getDecoder().wrap(new ByteArrayInputStream(base64Data.getBytes()))) {
+        // 静态代码检查G.OTH.04：getBytes指定UTF-8字符集，避免在非UTF-8默认环境的系统上产生乱码
+        try (InputStream decodedStream = Base64.getDecoder().wrap(
+        new ByteArrayInputStream(base64Data.getBytes(StandardCharsets.UTF_8)))) {
             byte[] buffer = new byte[4096];
             long totalBytes = 0;
             while (true) {

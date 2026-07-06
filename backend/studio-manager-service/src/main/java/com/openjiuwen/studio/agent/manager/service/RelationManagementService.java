@@ -656,7 +656,8 @@ public class RelationManagementService implements IRelationManagementService {
     @Transactional
     public void createAgentWorkflow(String projectId, String workspaceId, String agentId, String versionId,
         List<MappingEntity> workflowReferences) {
-        log.info("input param：projectId={}, workspaceId={}, agentId={}, versionId={}, workflowReferences.size={}",
+        // 静态代码检查G.OTH.02：日志中全角冒号替换为半角冒号，避免日志采集系统解析异常
+        log.info("input param: projectId={}, workspaceId={}, agentId={}, versionId={}, workflowReferences.size={}",
             projectId, workspaceId, agentId, versionId, workflowReferences == null ? 0 : workflowReferences.size());
 
         if (CollectionUtils.isEmpty(workflowReferences)) {

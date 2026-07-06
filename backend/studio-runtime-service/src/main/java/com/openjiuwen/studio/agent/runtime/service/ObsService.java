@@ -103,7 +103,8 @@ public class ObsService implements CommonObsService {
         try {
             ObsConfiguration config = new ObsConfiguration();
             config.setEndPoint(url);
-            config.setPathStyle(pathStyle.equals("path"));
+            // 静态代码检查G.EXP.04：equals常量前置，避免pathStyle为null时抛出NullPointerException
+            config.setPathStyle("path".equals(pathStyle));
             obsClient = new ObsClient(accessKey, secretKey, config);
         } catch (ObsException e) {
             log.error("init obs client failed!", e);

@@ -458,7 +458,8 @@ public abstract class AbstractIRNodeAdapter implements Adapter {
 
     private Object generatePlaceholders(String type, Object schema, int depth, NodeType nodeType,
         boolean shouldConvertSub) {
-        log.debug("Start generating placeholders，type={}, schema={}, depth={}, nodeType={}, shouldConvertSub={}", type,
+        // 静态代码检查G.OTH.02：日志中全角逗号替换为半角逗号，避免日志采集系统解析异常
+        log.debug("Start generating placeholders, type={}, schema={}, depth={}, nodeType={}, shouldConvertSub={}", type,
             schema, depth, nodeType, shouldConvertSub);
 
         // 占位符生成, json嵌套最大3层
