@@ -105,32 +105,43 @@ class FastRedisCheckpointer(Checkpointer):
           1. Construct exact GraphStore keys and batch_delete them (O(2))
           2. SREM workflow_id from sentinel SET
           3. Delegate workflow_storage.clear()
-        On WorkflowAbortException (异常结束节点):
-          The workflow terminated via an exception node — this is a normal
-          completion path, not an interrupt. Clear checkpoint so the next
-          run starts fresh instead of erroneously resuming.
-        On other exception/interrupt: delegate unchanged (saves checkpoint).
+        On any execution exception (WorkflowAbortException / plugin config error /
+        runtime error):
+          Treated as a terminal state, not an interrupt. Clear checkpoint + SREM
+          sentinel so the next run with the same conversation_id starts fresh
+          instead of erroneously resuming from the failed node. Exception
+          propagation is NOT done here — it is handled by CompiledGraph._invoke
+          (patched version), which re-raises after this method returns.
+        On true interrupt (TASK_STATUS_INTERRUPT in result, exception is None):
+          delegate saves checkpoint for resume.
         """
         session_id = session.session_id()
         workflow_id = session.workflow_id()
 
         if exception is not None:
+            # 任何执行异常都视为终态，清除 checkpoint + 哨兵 SET 中的 workflow_id，
+            # 避免下次同 conversationId 运行被误判为中断恢复而重跑失败节点。真正的中断
+            # 由 TASK_STATUS_INTERRUPT 在 exception=None 分支处理，不受影响。
+            #
+            # 异常的向上传播由 CompiledGraph._invoke（patched 版本，见
+            # workflow_sub_stream_patch.py）在调用本方法后自行 re-raise 负责，因此这里
+            # 只需清理、无需 re-raise，也不调用 delegate.post_workflow_execute（它会在
+            # 异常时保存 checkpoint 并 re-raise，正是被修复的旧行为）。
             from jiuwen.extension.workflow_node.utils import WorkflowAbortException
             if isinstance(exception, WorkflowAbortException):
-                # 异常结束节点终止 → 视为正常完成，清除 checkpoint
                 workflow_logger.info(
                     f"FastRedisCheckpointer: WorkflowAbortException detected, "
                     f"clearing checkpoint for session {session_id}, "
                     f"workflow {workflow_id}"
                 )
-                # 不调用 delegate.post_workflow_execute（它会保存 checkpoint 并 re-raise），
-                # 而是直接执行清除逻辑（与正常完成路径一致）
-                await self._clear_checkpoint_and_sentinel(session_id, workflow_id, session)
-                return
-
-            # Delegate saves checkpoint and re-raises the exception.
-            # The re-raise propagates through our await to the caller automatically.
-            await self._delegate.post_workflow_execute(session, result, exception)
+            else:
+                workflow_logger.info(
+                    f"FastRedisCheckpointer: execution exception "
+                    f"{type(exception).__name__} treated as terminal, clearing "
+                    f"checkpoint for session {session_id}, workflow {workflow_id} "
+                    f"(true interrupts go through the exception=None branch)"
+                )
+            await self._clear_checkpoint_and_sentinel(session_id, workflow_id, session)
             return
 
         from openjiuwen.core.graph.pregel import TASK_STATUS_INTERRUPT

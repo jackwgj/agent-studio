@@ -186,24 +186,39 @@ class TestPostWorkflowExecute:
         assert "agentBuilder:session_exists:sess-1" not in delete_calls
 
     @pytest.mark.asyncio
-    async def test_exception_path_keeps_sentinel(
+    async def test_exception_path_clears_checkpoint(
         self, checkpointer, mock_delegate, mock_redis
     ):
-        """Non-WorkflowAbortException path: delegate handles save, sentinel kept."""
+        """Non-WorkflowAbortException path: clear checkpoint + SREM (terminal state).
+
+        Any execution exception (plugin config error, runtime error, etc.) is treated
+        as a terminal state, not an interrupt. The checkpoint is cleared and the
+        workflow_id is SREM'd from the sentinel SET so the next run with the same
+        conversation_id starts fresh instead of erroneously resuming from the failed
+        node. True interrupts go through the exception=None branch and are unaffected.
+        """
+        mock_redis.delete = AsyncMock(return_value=2)
+        mock_redis.srem = AsyncMock(return_value=1)
         mock_session = self._make_session()
         test_exception = RuntimeError("boom")
 
-        await checkpointer.post_workflow_execute(
-            mock_session, None, test_exception
+        await checkpointer.post_workflow_execute(mock_session, None, test_exception)
+
+        # Delegate.post_workflow_execute should NOT be called (we clear ourselves)
+        mock_delegate.post_workflow_execute.assert_not_called()
+
+        # Redis.delete called with precise GraphStore keys (same as normal completion)
+        expected_type_key = "sess-1:workflow-graph:wf-1:checkpoint_data_type"
+        expected_value_key = "sess-1:workflow-graph:wf-1:checkpoint_data_value"
+        mock_redis.delete.assert_any_call(expected_type_key, expected_value_key)
+
+        # SREM workflow_id from sentinel SET
+        mock_redis.srem.assert_awaited_once_with(
+            "agentBuilder:session_exists:sess-1", "wf-1"
         )
 
-        # Delegate was called with exception
-        mock_delegate.post_workflow_execute.assert_awaited_once_with(
-            mock_session, None, test_exception
-        )
-        # No Redis delete or SREM calls (sentinel preserved)
-        mock_redis.delete.assert_not_called()
-        mock_redis.srem.assert_not_called()
+        # workflow_storage.clear delegated
+        getattr(mock_delegate, "_workflow_storage").clear.assert_awaited_once_with("wf-1", "sess-1")
 
     @pytest.mark.asyncio
     async def test_workflow_abort_exception_clears_checkpoint(
@@ -241,31 +256,33 @@ class TestPostWorkflowExecute:
         getattr(mock_delegate, "_workflow_storage").clear.assert_awaited_once_with("wf-1", "sess-1")
 
     @pytest.mark.asyncio
-    async def test_exception_path_propagates_re_raise(
+    async def test_exception_path_clears_without_raising(
         self, checkpointer, mock_delegate, mock_redis
     ):
-        """Exception path: if delegate re-raises, it propagates through our method.
+        """Exception path: decorator clears checkpoint and returns normally.
 
-        The real RedisCheckpointer.post_workflow_execute re-raises the exception
-        after saving the checkpoint. Our decorator must not swallow it.
+        Exception propagation is NOT the decorator's responsibility — it is handled
+        by CompiledGraph._invoke (patched version, see workflow_sub_stream_patch.py),
+        which re-raises the exception after post_workflow_execute returns. Therefore
+        the decorator must NOT call delegate.post_workflow_execute (which would save
+        the checkpoint) and must NOT raise itself; it just clears and returns.
         """
+        mock_redis.delete = AsyncMock(return_value=2)
+        mock_redis.srem = AsyncMock(return_value=1)
         mock_session = self._make_session()
         test_exception = RuntimeError("workflow failed")
 
-        # Make delegate re-raise the exception (mimics real RedisCheckpointer behavior)
-        async def re_raise_on_exception(session, result, exc):
-            if exc is not None:
-                raise exc
+        # Decorator returns normally (does not raise); _invoke re-raises separately
+        await checkpointer.post_workflow_execute(mock_session, None, test_exception)
 
-        mock_delegate.post_workflow_execute = re_raise_on_exception
+        # Delegate.post_workflow_execute NOT called (no checkpoint save)
+        mock_delegate.post_workflow_execute.assert_not_called()
 
-        # The re-raise should propagate through our decorator
-        with pytest.raises(RuntimeError, match="workflow failed"):
-            await checkpointer.post_workflow_execute(mock_session, None, test_exception)
-
-        # Sentinel was NOT deleted (preserved for recovery)
-        mock_redis.delete.assert_not_called()
-        mock_redis.srem.assert_not_called()
+        # Checkpoint cleared: GraphStore keys deleted + workflow_id SREM'd from sentinel SET
+        mock_redis.delete.assert_called()
+        mock_redis.srem.assert_awaited_once_with(
+            "agentBuilder:session_exists:sess-1", "wf-1"
+        )
 
     @pytest.mark.asyncio
     async def test_interrupt_path_keeps_sentinel(
