@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional, Union
 
-from openjiuwen.core.common.constants.constant import USER_FIELDS
+from openjiuwen.core.common.constants.constant import USER_FIELDS, INTERACTIVE_INPUT
 from openjiuwen.core.common.exception.codes import StatusCode
 from openjiuwen.core.common.exception.errors import build_error
 from openjiuwen.core.common.logging import LogEventType, workflow_logger
@@ -575,6 +575,15 @@ class FlowQA(WorkflowComponent):
                         "node_type": JIUWEN_QA_TYPE,
                         "should_interrupt": True,
                     }
+
+                    session._interaction = None
+                    session.update_state({INTERACTIVE_INPUT: None})
+                    # 清除 workflow_state 中残留的 INTERACTIVE_INPUT，防止父工作流的
+                    # raw_inputs 泄漏导致 WorkflowInteraction 误读而跳过中断
+                    session._inner.state().update_and_commit_workflow_state(
+                        {INTERACTIVE_INPUT: None}
+                    )
+                    session._inner.state().commit()
 
                     await session.interact(query)
 

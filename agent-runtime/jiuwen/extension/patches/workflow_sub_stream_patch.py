@@ -25,6 +25,7 @@ from openjiuwen.core.graph.pregel import TASK_STATUS_INTERRUPT
 from openjiuwen.core.graph.pregel.base import Interrupt
 from openjiuwen.core.graph.pregel.config import PregelConfig
 from openjiuwen.core.graph.pregel.constants import MAX_RECURSIVE_LIMIT
+from openjiuwen.core.common.constants.constant import INTERACTIVE_INPUT
 from openjiuwen.core.session import InteractiveInput
 from openjiuwen.core.session import (
     WORKFLOW_EXECUTE_TIMEOUT,
@@ -80,6 +81,13 @@ async def _patched_compiled_invoke(self, inputs, session, config=None):
             await self._checkpointer.pre_workflow_execute(session, inputs)
         if isinstance(session, SubWorkflowSession):
             _prepare_sub_workflow_aggregate_io("compiled_invoke", session, inputs)
+            # 子工作流恢复场景：确保 raw_inputs 写入 workflow_state，使 QA 能读到用户回复。
+            # 仅在 InteractiveInput 且 raw_inputs 非空时写入（补足 is_main=False 时
+            # pre_workflow_execute 不被调用的缺口）；非恢复场景的泄漏清除由 QA 节点负责。
+            if isinstance(inputs, InteractiveInput) and inputs.raw_inputs is not None:
+                session.state().update_and_commit_workflow_state(
+                    {INTERACTIVE_INPUT: inputs.raw_inputs}
+                )
         if not isinstance(inputs, InteractiveInput):
             session.state().commit_user_inputs(inputs)
         result = None

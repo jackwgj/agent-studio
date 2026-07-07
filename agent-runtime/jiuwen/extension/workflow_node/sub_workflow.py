@@ -904,8 +904,23 @@ class SubWorkflow(WorkflowComponent):
         当 SubWorkflow 因子工作流中断而恢复执行时，需要将用户的响应
         包装为 InteractiveInput 传给子工作流，使其 checkpointer 能正确恢复。
 
-        如果记录了子工作流中断节点的 ID，使用 user_inputs 精确路由；
-        否则使用 raw_inputs 作为通用输入。
+        始终使用 raw_inputs 路由，原因如下：
+
+        user_inputs 路由在 SubWorkflow 场景下不可用：
+        _process_interactive_inputs 通过 NodeSession(session, node_id) 将
+        user_inputs 写入 comp_state，而 NodeSession 构造时
+        create_parent_id(session) 在 session 为 SubWorkflowSession 时
+        返回 session.executable_id()，导致 state key 被加上 SubWorkflow
+        前缀。但子工作流内部节点（如循环中的 QA）的 executable_id 不含
+        该前缀，因此 comp_state 的 key 永远无法匹配，user_inputs 路由
+        在 SubWorkflow 场景下本质上是不可用的。
+
+        raw_inputs 路由的安全性：
+        raw_inputs 写入 workflow_state（全局共享），QA 节点通过
+        WorkflowInteraction.__init__ → get_workflow_state(INTERACTIVE_INPUT)
+        读取，不依赖 executable_id 匹配。子工作流一次只有一个节点
+        处于 USER_INTERACT（pregel 引擎保证），因此 raw_inputs 广播
+        不会导致误投递。
 
         Args:
             user_response: 用户响应内容
@@ -913,12 +928,7 @@ class SubWorkflow(WorkflowComponent):
         Returns:
             InteractiveInput: 子工作流恢复所需的交互输入
         """
-        child_input = InteractiveInput()
-        if self._interrupt_child_node_id:
-            child_input.update(self._interrupt_child_node_id, user_response)
-        else:
-            child_input = InteractiveInput(raw_inputs=user_response)
-        return child_input
+        return InteractiveInput(raw_inputs=user_response)
 
     async def invoke(
         self, inputs: Input, session: Session, context: ModelContext
@@ -1347,9 +1357,13 @@ class SubWorkflow(WorkflowComponent):
                     self._pending_interact_prompt = (
                         payload.get("answer") or payload.get("result") or ""
                     )
-                    node_id = payload.get("node_id")
-                    if node_id:
-                        self._interrupt_child_node_id = node_id
+                    # 仅在 INTERACTION chunk 未设置时更新 _interrupt_child_node_id，
+                    # 避免不含 loop 前缀的 componentId 覆盖 INTERACTION 设置的
+                    # 含 loop 前缀的 executableId
+                    if not self._interrupt_child_node_id:
+                        node_id = payload.get("node_id")
+                        if node_id:
+                            self._interrupt_child_node_id = node_id
                 return {"is_message_end": True}
 
             if chunk_type in ["end node stream", "partial_content"]:
@@ -1358,9 +1372,10 @@ class SubWorkflow(WorkflowComponent):
                     self._pending_interact_prompt = (
                         payload.get("answer") or payload.get("result") or ""
                     )
-                    node_id = payload.get("node_id")
-                    if node_id:
-                        self._interrupt_child_node_id = node_id
+                    if not self._interrupt_child_node_id:
+                        node_id = payload.get("node_id")
+                        if node_id:
+                            self._interrupt_child_node_id = node_id
                 await session.write_stream(chunk)
                 return {"content": content}
 
