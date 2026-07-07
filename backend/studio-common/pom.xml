@@ -165,7 +165,7 @@
         <dependency>
             <artifactId>tomcat-embed-core</artifactId>
             <groupId>org.apache.tomcat.embed</groupId>
-            <version>10.1.55</version>
+            <version>${tomcat-embed-core.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
