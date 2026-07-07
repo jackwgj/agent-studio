@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { MODULES } from '@shared/modules';
 import { type IWorkflowField } from '../../node.type';
 import { NodeUtils } from '../utils';
@@ -20,7 +20,7 @@ import { NzTreeNodeOptions } from 'ng-zorro-antd/tree';
   standalone: true,
   imports: [MODULES, NzTreeModule],
 })
-export class ReadonlyParamsTreeComponent {
+export class ReadonlyParamsTreeComponent implements OnChanges {
   @Input() params: IWorkflowField[];
 
   public outputParams: any[];
@@ -29,7 +29,17 @@ export class ReadonlyParamsTreeComponent {
 
   public getType = NodeUtils.getFieldTypeView;
 
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['params']) {
+      this.updateTree();
+    }
+  }
+
   ngOnInit(): void {
+    this.updateTree();
+  }
+
+  private updateTree(): void {
     this.outputParams = NodeUtils.fields2Views(this.params);
     this.nzTreeNodes = this.convertToNzTree(this.outputParams);
   }
