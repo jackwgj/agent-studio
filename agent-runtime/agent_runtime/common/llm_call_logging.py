@@ -98,6 +98,14 @@ def register_llm_call_logging_callbacks() -> None:
         if tools:
             request_data["tools"] = tools
 
+        # 从 kwargs 中提取 SDK trigger 传递的额外参数（如 frequency_penalty、presence_penalty、stop 等）
+        # agent-core 升级前这些参数不会出现在 kwargs 中，升级后会通过 trigger 传递
+        _EXTRA_PARAM_KEYS = ("frequency_penalty", "presence_penalty", "stop")
+        for key in _EXTRA_PARAM_KEYS:
+            val = kwargs.get(key)
+            if val is not None:
+                request_data[key] = val
+
         try:
             request_json = json.dumps(request_data, ensure_ascii=False)
         except (TypeError, ValueError):

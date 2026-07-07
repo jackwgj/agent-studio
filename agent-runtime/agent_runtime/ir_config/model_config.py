@@ -45,6 +45,8 @@ class EnvVarModelConfigProvider(ModelConfigProvider):
         # 优先级：IR configs > 环境变量 > 默认值
         temperature = float(hyper_params.get("temperature", temperature))
         top_p = float(hyper_params.get("top_p", top_p))
+        max_tokens = hyper_params.get("max_tokens", None)
+        frequency_penalty = hyper_params.get("frequency_penalty", None)
 
         model_client_config = ModelClientConfig(
             client_provider=provider,
@@ -58,7 +60,11 @@ class EnvVarModelConfigProvider(ModelConfigProvider):
             model=model_name,
             temperature=temperature,
             top_p=top_p,
+            max_tokens=max_tokens,
         )
+        # frequency_penalty 通过 extra="allow" 机制传入 ModelRequestConfig
+        if frequency_penalty is not None:
+            model_request_config.frequency_penalty = frequency_penalty
 
         cache_stream = True
 
@@ -111,6 +117,8 @@ class IRModelConfigProvider(ModelConfigProvider):
         # IR hyper_params 优先级最高
         temperature = float(hyper_params.get("temperature", temperature))
         top_p = float(hyper_params.get("top_p", top_p))
+        max_tokens = hyper_params.get("max_tokens", None)
+        frequency_penalty = hyper_params.get("frequency_penalty", None)
 
         # custom_headers 自定义请求头
         # x-auth-id 从 IR 文件读取，x-auth-token 从 HTTP 请求头透传
@@ -135,8 +143,12 @@ class IRModelConfigProvider(ModelConfigProvider):
             model=model_name,
             temperature=temperature,
             top_p=top_p,
+            max_tokens=max_tokens,
             extra_body=extra_body,
         )
+        # frequency_penalty 通过 extra="allow" 机制传入 ModelRequestConfig
+        if frequency_penalty is not None:
+            model_request_config.frequency_penalty = frequency_penalty
 
         return LLMCompConfig(
             model_client_config=model_client_config,

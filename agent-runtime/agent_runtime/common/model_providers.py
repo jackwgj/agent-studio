@@ -94,6 +94,8 @@ class EnvVarModelConfigProvider(ModelConfigProvider):
 
         temperature = hyper_params.get("temperature", base.temperature)
         top_p = hyper_params.get("top_p", base.top_p)
+        max_tokens = hyper_params.get("max_tokens", None)
+        frequency_penalty = hyper_params.get("frequency_penalty", None)
 
         model_client_config = ModelClientConfig(
             client_provider="openai",
@@ -107,7 +109,11 @@ class EnvVarModelConfigProvider(ModelConfigProvider):
             model=base.model_name,
             temperature=temperature,
             top_p=top_p,
+            max_tokens=max_tokens,
         )
+        # frequency_penalty 通过 extra="allow" 机制传入 ModelRequestConfig
+        if frequency_penalty is not None:
+            model_request_config.frequency_penalty = frequency_penalty
 
         return LLMCompConfig(
             model_client_config=model_client_config,
@@ -341,6 +347,11 @@ class IRModelConfigProvider(ModelConfigProvider):
         temperature = hyper_params.get("temperature", base.temperature)
         top_p = hyper_params.get("top_p", base.top_p)
 
+        # max_tokens: IR hyperParameters 优先，否则使用 settings 默认值
+        max_tokens = hyper_params.get("max_tokens", None)
+        # frequency_penalty: 仅从 IR hyperParameters 获取（settings 无此字段）
+        frequency_penalty = hyper_params.get("frequency_penalty", None)
+
         # Build auth headers
         ctx = _request_ctx.get()
         auth_token = ctx.headers.get("X-Auth-Token", "") if ctx else ""
@@ -361,12 +372,19 @@ class IRModelConfigProvider(ModelConfigProvider):
         if thinking and isinstance(thinking, dict) and "type" in thinking:
             extra_body = {"thinking": thinking}
 
+        # 构建 ModelRequestConfig，传递所有已知的超参数
+        # ModelRequestConfig 定义了 model_name(aliased as "model"), temperature, top_p, max_tokens, stop
+        # 并设置了 extra="allow"，因此 frequency_penalty 等额外字段会被保留
         model_request_config = ModelRequestConfig(
             model=model_name,
             temperature=temperature,
             top_p=top_p,
+            max_tokens=max_tokens,
             extra_body=extra_body,
         )
+        # frequency_penalty 通过 extra="allow" 机制传入 ModelRequestConfig
+        if frequency_penalty is not None:
+            model_request_config.frequency_penalty = frequency_penalty
 
         return LLMCompConfig(
             model_client_config=model_client_config,
