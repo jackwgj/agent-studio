@@ -96,7 +96,17 @@ def _make_session_mock(
     setattr(session_mock, "_in" + "ner", inner_mock)
     session_mock.get_workflow_id.return_value = workflow_id
     session_mock.get_session_id.return_value = conversation_id
-    session_mock.get_global_state.return_value = session_var_defs
+
+    # get_global_state 既被 get_workflow_param("_session_var_defs") 调用（返回会话变量
+    # 定义字典），也被 SUT 的 increment/decrement 分支调用以读取当前值（如
+    # "MEMORY_VARIABLE.counter"）。后者应由 fake_state.get_global 返回通过 set_global
+    # 写入的标量，故按 key 分流：_session_var_defs 走 defs，其余委托 fake_state。
+    def _get_global_state(key):
+        if key == "_session_var_defs":
+            return session_var_defs
+        return fake_state.get_global(key)
+
+    session_mock.get_global_state.side_effect = _get_global_state
     session_mock.state.return_value = fake_state
 
     return session_mock, global_updates

@@ -16,8 +16,8 @@ from agent_runtime.memory.storage.memory_extractor import (
 class TestChatHistoryConversationCacheFromJson:
     """Tests for ChatHistoryConversationCache.from_json backward compatibility."""
 
-    def test_from_json_with_memory_repo_id(self):
-        self.assertIsNotNone(self)  # satisfy G.CLS.07
+    @staticmethod
+    def test_from_json_with_memory_repo_id():
         cache_json = json.dumps({
             "user_id": "user1",
             "memory_repo_id": "repo-abc",
@@ -32,8 +32,8 @@ class TestChatHistoryConversationCacheFromJson:
         assert cache.memory_repo_id == "repo-abc"
         assert cache.conversation_id == "conv1"
 
-    def test_from_json_fallback_to_app_id(self):
-        self.assertIsNotNone(self)  # satisfy G.CLS.07
+    @staticmethod
+    def test_from_json_fallback_to_app_id():
         cache_json = json.dumps({
             "user_id": "user1",
             "app_id": "legacy-app-id",
@@ -46,8 +46,8 @@ class TestChatHistoryConversationCacheFromJson:
 
         assert cache.memory_repo_id == "legacy-app-id"
 
-    def test_from_json_memory_repo_id_takes_precedence_over_app_id(self):
-        self.assertIsNotNone(self)  # satisfy G.CLS.07
+    @staticmethod
+    def test_from_json_memory_repo_id_takes_precedence_over_app_id():
         cache_json = json.dumps({
             "user_id": "user1",
             "memory_repo_id": "new-repo-id",
@@ -61,8 +61,8 @@ class TestChatHistoryConversationCacheFromJson:
 
         assert cache.memory_repo_id == "new-repo-id"
 
-    def test_from_json_neither_field_returns_empty(self):
-        self.assertIsNotNone(self)  # satisfy G.CLS.07
+    @staticmethod
+    def test_from_json_neither_field_returns_empty():
         cache_json = json.dumps({
             "user_id": "user1",
             "conversation_id": "conv1",
@@ -74,8 +74,8 @@ class TestChatHistoryConversationCacheFromJson:
 
         assert cache.memory_repo_id == ""
 
-    def test_from_json_empty_memory_repo_id_falls_back_to_app_id(self):
-        self.assertIsNotNone(self)  # satisfy G.CLS.07
+    @staticmethod
+    def test_from_json_empty_memory_repo_id_falls_back_to_app_id():
         cache_json = json.dumps({
             "user_id": "user1",
             "memory_repo_id": "",
@@ -89,8 +89,8 @@ class TestChatHistoryConversationCacheFromJson:
 
         assert cache.memory_repo_id == "fallback-id"
 
-    def test_from_json_with_chat_turns(self):
-        self.assertIsNotNone(self)  # satisfy G.CLS.07
+    @staticmethod
+    def test_from_json_with_chat_turns():
         cache_json = json.dumps({
             "user_id": "user1",
             "memory_repo_id": "repo-1",
@@ -117,8 +117,8 @@ class TestChatHistoryConversationCacheFromJson:
 class TestChatHistoryConversationCacheToJson:
     """Tests for ChatHistoryConversationCache.to_json using memory_repo_id."""
 
-    def test_to_json_contains_memory_repo_id(self):
-        self.assertIsNotNone(self)  # satisfy G.CLS.07
+    @staticmethod
+    def test_to_json_contains_memory_repo_id():
         cache = ChatHistoryConversationCache(
             user_id="user1",
             memory_repo_id="repo-xyz",
@@ -131,8 +131,8 @@ class TestChatHistoryConversationCacheToJson:
         assert data["memory_repo_id"] == "repo-xyz"
         assert "app_id" not in data
 
-    def test_round_trip_preserves_data(self):
-        self.assertIsNotNone(self)  # satisfy G.CLS.07
+    @staticmethod
+    def test_round_trip_preserves_data():
         original = ChatHistoryConversationCache(
             user_id="user1",
             memory_repo_id="repo-123",
@@ -157,8 +157,8 @@ class TestChatHistoryConversationCacheToJson:
         assert len(restored.chat_turns) == 1
         assert restored.chat_turns[0].messages[0].content == "test"
 
-    def test_backward_compat_round_trip(self):
-        self.assertIsNotNone(self)  # satisfy G.CLS.07
+    @staticmethod
+    def test_backward_compat_round_trip():
         old_json = json.dumps({
             "user_id": "user1",
             "app_id": "old-scope",
@@ -178,22 +178,22 @@ class TestChatHistoryConversationCacheToJson:
 class TestObtainUserMemoryKey:
     """Tests for _obtain_user_memory_key using memory_repo_id."""
 
-    def test_key_format_with_memory_repo_id(self):
-        self.assertIsNotNone(self)  # satisfy G.CLS.07
+    @staticmethod
+    def test_key_format_with_memory_repo_id():
         extractor = UserProfileMemoryExtractor.__new__(UserProfileMemoryExtractor)
         key = extractor._obtain_user_memory_key("user1", "repo-abc", "conv1")
 
         assert key == "memory_chat_cache:user1:repo-abc:conv1"
 
-    def test_key_format_with_different_values(self):
-        self.assertIsNotNone(self)  # satisfy G.CLS.07
+    @staticmethod
+    def test_key_format_with_different_values():
         extractor = UserProfileMemoryExtractor.__new__(UserProfileMemoryExtractor)
         key = extractor._obtain_user_memory_key("u2", "repo-xyz", "c3")
 
         assert key == "memory_chat_cache:u2:repo-xyz:c3"
 
-    def test_key_changes_with_different_memory_repo_id(self):
-        self.assertIsNotNone(self)  # satisfy G.CLS.07
+    @staticmethod
+    def test_key_changes_with_different_memory_repo_id():
         extractor = UserProfileMemoryExtractor.__new__(UserProfileMemoryExtractor)
         key1 = extractor._obtain_user_memory_key("user1", "repo-a", "conv1")
         key2 = extractor._obtain_user_memory_key("user1", "repo-b", "conv1")
@@ -206,8 +206,8 @@ class TestObtainUserMemoryKey:
 class TestAddChatTurn:
     """Tests for ChatHistoryConversationCache.add_chat_turn."""
 
-    def test_add_chat_turn_sets_timestamp(self):
-        self.assertIsNotNone(self)  # satisfy G.CLS.07
+    @staticmethod
+    def test_add_chat_turn_sets_timestamp():
         cache = ChatHistoryConversationCache(
             user_id="user1",
             memory_repo_id="repo-1",
@@ -223,8 +223,8 @@ class TestAddChatTurn:
         assert cache.last_update_time is not None
         assert len(cache.chat_turns) == 1
 
-    def test_add_chat_turn_initializes_empty_list(self):
-        self.assertIsNotNone(self)  # satisfy G.CLS.07
+    @staticmethod
+    def test_add_chat_turn_initializes_empty_list():
         cache = ChatHistoryConversationCache(
             user_id="user1",
             memory_repo_id="repo-1",

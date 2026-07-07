@@ -8,22 +8,22 @@ so adapter modules can be imported in isolation.
 import sys
 from unittest.mock import AsyncMock, MagicMock
 
-# Pre-mock heavy modules that agent_runtime.memory.__init__ imports
+# Pre-mock heavy modules that agent_runtime.memory.__init__ imports.
+#
+# IMPORTANT: only stub LEAF modules here. Never stub a parent package
+# (e.g. ``jiuwen.orchestration``, ``jiuwen.serve``) as a bare MagicMock — a
+# MagicMock has no ``__path__``, so it leaks session-wide and breaks any later
+# real ``from jiuwen.orchestration.utils import ...`` in the same session with
+# ``'jiuwen.orchestration' is not a package``. Parent packages must stay real
+# (their ``__init__`` is empty/light anyway) so other tests can still descend
+# into their submodules; only the specific heavy leaves the memory SUT needs
+# are stubbed below.
 _mock_modules = [
-    "jiuwen.orchestration",
-    "jiuwen.orchestration.callbacks",
+    # agent_runtime.memory.__init__ imports CallbackHandlerManager from here.
     "jiuwen.orchestration.callbacks.manager",
-    "jiuwen.orchestration.base",
-    "jiuwen.common.log",
-    "jiuwen.common.log.base",
-    "jiuwen.serve",
-    "jiuwen.serve.common",
+    # SUT binds ``request as current_request`` from here.
     "jiuwen.serve.common.context",
     "jiuwen.serve.common.message",
-    "jiuwen.serve.controllers",
-    "jiuwen.serve.controllers.execution",
-    "jiuwen.serve.controllers.execution.ir_converter",
-    "jiuwen.serve.controllers.execution.enum",
     "agent_runtime.memory.global_vals_callback_handler",
     "utils",
     "utils.constants",

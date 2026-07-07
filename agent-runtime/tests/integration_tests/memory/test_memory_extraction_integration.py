@@ -62,8 +62,8 @@ def _make_scope_config_with_prompts():
     return cfg
 
 
-@pytest_asyncio.fixture(scope="session")
-async def ltm_extraction():
+@pytest_asyncio.fixture(scope="session", name="ltm_extraction")
+async def _ltm_extraction():
     """Module-scoped LTM instance for extraction integration tests."""
     redis_client = aioredis.Redis(
         host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PASSWORD, decode_responses=False
@@ -111,16 +111,15 @@ class TestMemoryExtractionIntegration:
     """Integration tests for the _extract_memory pipeline with scope config."""
 
     @pytest.mark.asyncio
-    async def test_scope_config_prompts_guide_extraction(self, request, unique_prefix):
-        _ltm = request.getfixturevalue("ltm_extraction")
+    async def test_scope_config_prompts_guide_extraction(self, ltm_extraction, unique_prefix):
         """Custom definition prompts in scope config guide what LLM extracts."""
         scope_id = f"{unique_prefix}_extract_prompts"
         user_id = "extract_user_001"
 
         scope_cfg = _make_scope_config_with_prompts()
-        await _ltm.set_scope_config(scope_id, scope_cfg)
+        await ltm_extraction.set_scope_config(scope_id, scope_cfg)
 
-        stored_cfg = await _ltm.get_scope_config(scope_id)
+        stored_cfg = await ltm_extraction.get_scope_config(scope_id)
         assert stored_cfg is not None
         assert stored_cfg.user_profile_definition is not None
 
@@ -134,13 +133,13 @@ class TestMemoryExtractionIntegration:
             enable_semantic_memory=True,
             enable_episodic_memory=False,
         )
-        await _ltm.add_messages(
+        await ltm_extraction.add_messages(
             messages, agent_cfg, user_id=user_id, scope_id=scope_id, gen_mem=True
         )
 
         await asyncio.sleep(25)
 
-        results = await _ltm.search_user_mem(
+        results = await ltm_extraction.search_user_mem(
             "王五的职业是什么", 5, user_id=user_id, scope_id=scope_id, threshold=0.1
         )
         assert len(results) > 0, "Expected at least one memory result after extraction"
@@ -148,18 +147,17 @@ class TestMemoryExtractionIntegration:
         assert "产品经理" in mem_content or "王五" in mem_content, \
             f"Expected memory about occupation/name, got: {mem_content}"
 
-        await _ltm.delete_mem_by_scope(scope_id)
-        await _ltm.delete_scope_config(scope_id)
+        await ltm_extraction.delete_mem_by_scope(scope_id)
+        await ltm_extraction.delete_scope_config(scope_id)
 
     @pytest.mark.asyncio
-    async def test_strategy_specific_enable_flags(self, request, unique_prefix):
-        _ltm = request.getfixturevalue("ltm_extraction")
+    async def test_strategy_specific_enable_flags(self, ltm_extraction, unique_prefix):
         """Verify AgentMemoryConfig enable flags are accepted without error."""
         scope_id = f"{unique_prefix}_extract_flags"
         user_id = "extract_user_002"
 
         scope_cfg = _make_scope_config_with_prompts()
-        await _ltm.set_scope_config(scope_id, scope_cfg)
+        await ltm_extraction.set_scope_config(scope_id, scope_cfg)
 
         messages = [
             BaseMessage(role="user", content="我最近去了趟云南旅游，去了大理和丽江，风景太美了"),
@@ -171,34 +169,33 @@ class TestMemoryExtractionIntegration:
             enable_semantic_memory=True,
             enable_episodic_memory=False,
         )
-        await _ltm.add_messages(
+        await ltm_extraction.add_messages(
             messages, agent_cfg, user_id=user_id, scope_id=scope_id, gen_mem=True
         )
 
         await asyncio.sleep(25)
 
-        results = await _ltm.search_user_mem(
+        results = await ltm_extraction.search_user_mem(
             "云南旅游", 5, user_id=user_id, scope_id=scope_id, threshold=0.1
         )
         assert isinstance(results, list), "search_user_mem should return a list"
 
-        await _ltm.delete_mem_by_scope(scope_id)
-        await _ltm.delete_scope_config(scope_id)
+        await ltm_extraction.delete_mem_by_scope(scope_id)
+        await ltm_extraction.delete_scope_config(scope_id)
 
     @pytest.mark.asyncio
-    async def test_scope_config_created_before_extraction(self, request, unique_prefix):
-        _ltm = request.getfixturevalue("ltm_extraction")
+    async def test_scope_config_created_before_extraction(self, ltm_extraction, unique_prefix):
         """Scope config must exist before add_messages for custom prompts to take effect."""
         scope_id = f"{unique_prefix}_extract_config_first"
         user_id = "extract_user_003"
 
-        no_config = await _ltm.get_scope_config(scope_id)
+        no_config = await ltm_extraction.get_scope_config(scope_id)
         assert no_config is None, "Precondition: scope should not have config yet"
 
         scope_cfg = _make_scope_config_with_prompts()
-        await _ltm.set_scope_config(scope_id, scope_cfg)
+        await ltm_extraction.set_scope_config(scope_id, scope_cfg)
 
-        stored_cfg = await _ltm.get_scope_config(scope_id)
+        stored_cfg = await ltm_extraction.get_scope_config(scope_id)
         assert stored_cfg is not None, "Config should exist after set_scope_config"
 
         messages = [
@@ -211,16 +208,16 @@ class TestMemoryExtractionIntegration:
             enable_semantic_memory=True,
             enable_episodic_memory=False,
         )
-        await _ltm.add_messages(
+        await ltm_extraction.add_messages(
             messages, agent_cfg, user_id=user_id, scope_id=scope_id, gen_mem=True
         )
 
         await asyncio.sleep(25)
 
-        results = await _ltm.search_user_mem(
+        results = await ltm_extraction.search_user_mem(
             "猫", 5, user_id=user_id, scope_id=scope_id, threshold=0.1
         )
         assert len(results) > 0, "Expected memory results after scope config setup"
 
-        await _ltm.delete_mem_by_scope(scope_id)
-        await _ltm.delete_scope_config(scope_id)
+        await ltm_extraction.delete_mem_by_scope(scope_id)
+        await ltm_extraction.delete_scope_config(scope_id)

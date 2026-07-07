@@ -62,18 +62,18 @@ class RequestContextLoggingTest(unittest.IsolatedAsyncioTestCase):
     def test_log_formats_align_with_jiuwen_field_order(self):
         self.assertEqual(
             COMMON_LOG_FORMAT,
-            "%(asctime)s|%(log_type)s|%(filename)s:%(lineno)d|%(funcName)s|"
+            "%(asctime)s,%(msecs)03d|%(log_type)s|%(filename)s:%(lineno)d|%(funcName)s|"
             "%(trace_id)s|%(execution_id)s|%(request_id)s|%(levelname)s|"
             "%(message)s",
         )
         self.assertEqual(
             PERFORMANCE_LOG_FORMAT,
-            "%(asctime)s|%(log_type)s|%(trace_id)s|%(execution_id)s|"
+            "%(asctime)s,%(msecs)03d|%(log_type)s|%(trace_id)s|%(execution_id)s|"
             "%(request_id)s|%(levelname)s|%(message)s",
         )
         self.assertEqual(
             DEFAULT_LOG_FORMAT,
-            "%(asctime)s|%(log_type)s|%(trace_id)s|%(levelname)s|%(message)s",
+            "%(asctime)s,%(msecs)03d|%(log_type)s|%(trace_id)s|%(levelname)s|%(message)s",
         )
 
     def test_log_format_is_selected_by_log_type(self):

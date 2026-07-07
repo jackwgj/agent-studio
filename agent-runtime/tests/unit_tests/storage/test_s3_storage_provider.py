@@ -62,6 +62,10 @@ def _make_mock_settings(
     mock_os.access_key = access_key
     mock_os.secret_key = secret_key
     mock_os.enable_ssl = enable_ssl
+    # SUT passes this to botocore BotoConfig(s3={"addressing_style": ...}),
+    # which validates the value against Literal["path", "virtual"]; a bare
+    # MagicMock here raises InvalidS3AddressingStyleError during initialize().
+    mock_os.path_style = "path"
     mock_settings = MagicMock()
     mock_settings.object_storage = mock_os
     return mock_settings
@@ -75,6 +79,7 @@ def _make_mock_settings(
 class TestS3StorageProviderInitialize:
     """Tests for S3StorageProvider.initialize()"""
 
+    @pytest.mark.asyncio
     @patch("agent_runtime.storage.object_storage.settings")
     @patch("agent_runtime.storage.object_storage.aioboto3")
     async def test_initialize_success(self, mock_aioboto3, mock_settings):
@@ -94,6 +99,7 @@ class TestS3StorageProviderInitialize:
         mock_context.__aenter__.assert_awaited_once()
         mock_session.client.assert_called_once()
 
+    @pytest.mark.asyncio
     @patch("agent_runtime.storage.object_storage.settings")
     async def test_initialize_missing_config_raises(self, mock_settings):
         # server, ak, sk all empty
@@ -105,6 +111,7 @@ class TestS3StorageProviderInitialize:
         with pytest.raises(StorageConfigError, match="DATASOURCE_OBS_SERVER/AK/SK"):
             await provider.initialize()
 
+    @pytest.mark.asyncio
     @patch("agent_runtime.storage.object_storage.settings")
     async def test_initialize_missing_bucket_raises(self, mock_settings):
         # server/ak/sk present but bucket empty
@@ -128,6 +135,7 @@ class TestS3StorageProviderInitialize:
 class TestS3StorageProviderClose:
     """Tests for S3StorageProvider.close()"""
 
+    @pytest.mark.asyncio
     @patch("agent_runtime.storage.object_storage.settings")
     @patch("agent_runtime.storage.object_storage.aioboto3")
     async def test_close_calls_aexit(self, mock_aioboto3, mock_settings):
@@ -149,6 +157,7 @@ class TestS3StorageProviderClose:
         assert getattr(provider, "_client") is None
         assert getattr(provider, "_context") is None
 
+    @pytest.mark.asyncio
     async def test_close_when_not_initialized_is_noop(self):
         provider = S3StorageProvider()
         # Should not raise
@@ -165,6 +174,7 @@ class TestS3StorageProviderClose:
 class TestS3StorageProviderRead:
     """Tests for S3StorageProvider.get_object_bytes() and get_content()"""
 
+    @pytest.mark.asyncio
     @patch("agent_runtime.storage.object_storage.settings")
     @patch("agent_runtime.storage.object_storage.aioboto3")
     async def test_get_object_bytes_success(self, mock_aioboto3, mock_settings):
@@ -187,6 +197,7 @@ class TestS3StorageProviderRead:
             Bucket="test-bucket", Key="workflow/ir/test.json"
         )
 
+    @pytest.mark.asyncio
     @patch("agent_runtime.storage.object_storage.settings")
     @patch("agent_runtime.storage.object_storage.aioboto3")
     async def test_get_content_returns_utf8_string(self, mock_aioboto3, mock_settings):
@@ -207,16 +218,19 @@ class TestS3StorageProviderRead:
         assert isinstance(result, str)
         assert result == '{"key": "value"}'
 
+    @pytest.mark.asyncio
     async def test_read_without_initialize_raises(self):
         provider = S3StorageProvider()
         with pytest.raises(StorageConfigError, match="not initialized"):
             await provider.get_object_bytes("some/key.json")
 
+    @pytest.mark.asyncio
     async def test_read_without_initialize_raises_get_content(self):
         provider = S3StorageProvider()
         with pytest.raises(StorageConfigError, match="not initialized"):
             await provider.get_content("some/key.json")
 
+    @pytest.mark.asyncio
     @patch("agent_runtime.storage.object_storage.settings")
     @patch("agent_runtime.storage.object_storage.aioboto3")
     async def test_read_s3_error_wraps_as_storage_read_error(

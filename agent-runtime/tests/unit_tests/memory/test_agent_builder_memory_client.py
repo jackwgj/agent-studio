@@ -23,68 +23,81 @@ except ImportError:
 if not hasattr(builtins, "BaseChatModel"):
     builtins.BaseChatModel = type("BaseChatModel", (), {})
 
-# Pre-mock heavy jiuwen modules that have deep import chains
-_jiuwen_mocks = [
+# Stub the heavy jiuwen.context.memory_engine leaves the SUT instantiates in
+# __init__ (LocalMemoryClient, MemoryEngine, KVStoreRedisImpl) and the leaves
+# it only needs as names (config.config, store). Real MemoryClient is an ABC
+# (abstract get_topic_profile_by_topics); the SUT doesn't implement it, so a
+# non-abstract _MemoryClientStub base is required for AgentBuilderMemoryClient
+# to be concrete/instantiable. common.base is intentionally LEFT REAL: it
+# provides both ProfileTopicResult and ProcessedMemResult, and
+# jiuwen.context.memory_engine.client.memory_proxy (reached transitively by
+# jiuwen.serve.controllers.execution.ir_converter, which the runner/serve
+# tests import) does `from .common.base import ProfileTopicResult, ...`.
+#
+# CRUCIALLY, parent packages are *package-like* stubs (types.ModuleType with
+# __path__ pointing at the real vendored dir), NOT bare MagicMocks. A bare
+# MagicMock parent has no __path__, leaks session-wide, and breaks other
+# tests' real imports of non-stubbed submodules such as
+# jiuwen.context.memory_engine.config.memory_ir_config with
+# "'jiuwen.context.memory_engine.config' is not a package". A package-like
+# stub skips the real __init__ (these __init__ files are empty/trivial) but
+# still lets non-stubbed submodules load real via __path__.
+_jiuwen_root = Path(importlib.import_module("jiuwen").__path__[0])
+
+
+def _pkg_stub(name):
+    """Package-like stub: skip the real __init__ but expose the real __path__
+    so non-stubbed submodules can still be imported for real by other tests."""
+    m = types.ModuleType(name)
+    cand = _jiuwen_root.joinpath(*name.split(".")[1:])
+    m.__path__ = [str(cand)] if cand.is_dir() else []
+    m.__package__ = name
+    return m
+
+
+# Parents: package-like stubs (real __path__). Guarded so we don't clobber a
+# real package already imported earlier in the session.
+for _mod in (
     "jiuwen.context",
     "jiuwen.context.memory_engine",
     "jiuwen.context.memory_engine.client",
-    "jiuwen.context.memory_engine.client.local_memory_client",
     "jiuwen.context.memory_engine.common",
-    "jiuwen.context.memory_engine.common.base",
     "jiuwen.context.memory_engine.config",
-    "jiuwen.context.memory_engine.config.config",
     "jiuwen.context.memory_engine.engine",
+):
+    if _mod not in sys.modules:
+        sys.modules[_mod] = _pkg_stub(_mod)
+
+# Leaves the SUT instantiates/uses; mocked to avoid real side effects.
+for _mod in (
+    "jiuwen.context.memory_engine.client.local_memory_client",
+    "jiuwen.context.memory_engine.config.config",
     "jiuwen.context.memory_engine.engine.memory_engine",
     "jiuwen.context.memory_engine.store",
-    "jiuwen.common.llm_service",
-    "jiuwen.common.llm_service.messages",
-    "jiuwen.common.llm_service.language_model",
-    "jiuwen.common.llm_service.language_model.base",
-    "jiuwen.common.llm_service.model_util",
-    "jiuwen.plugin",
-    "jiuwen.plugin.models",
-    "jiuwen.plugin.models.function",
-    "jiuwen.plugin.decorator",
-    "jiuwen.plugin.decorator.plugin",
-    "jiuwen.orchestration",
-    "jiuwen.orchestration.utils",
-    "jiuwen.orchestration.callbacks",
-    "jiuwen.orchestration.callbacks.base",
-    "jiuwen.orchestration.flow",
-    "jiuwen.orchestration.flow.bpmn_workflow",
-    "jiwen.context",
-    "jiwen.context.memory_engine",
-    "jiwen.context.memory_engine.client",
-    "jiwen.context.memory_engine.client.local_memory_client",
-    "jiwen.context.memory_engine.common",
-    "jiwen.context.memory_engine.common.base",
-    "jiwen.context.memory_engine.config",
-    "jiwen.context.memory_engine.config.config",
-    "jiwen.context.memory_engine.engine",
-    "jiwen.context.memory_engine.engine.memory_engine",
-    "jiwen.context.memory_engine.store",
     "memory",
     "memory.kv_store_redis_impl",
-]
-for _mod in _jiuwen_mocks:
+):
     if _mod not in sys.modules:
         sys.modules[_mod] = MagicMock()
 
-# Create a real base class for MemoryClient so inheritance works
+# Non-abstract MemoryClient base so AgentBuilderMemoryClient is concrete.
+# MemoryProxy only uses MemoryClient as a type hint, so a stub base is fine.
+# NOTE: this stub is only installed when the real memory_client module has not
+# already been imported earlier in the session (guard below). When a prior test
+# has loaded the real MemoryClient ABC, the SUT inherits the real abstract
+# `get_topic_profile_by_topics` (which it does not implement). The fixture
+# below therefore uses a concrete fake subclass that supplies a stub for that
+# method, so instantiation succeeds regardless of which base is in effect.
 _mc_mod = types.ModuleType("jiuwen.context.memory_engine.client.memory_client")
 
 
 class _MemoryClientStub:
     pass
-_mc_mod.MemoryClient = _MemoryClientStub
-sys.modules["jiuwen.context.memory_engine.client.memory_client"] = _mc_mod
 
-# Also create stub for ProcessedMemResult (return type)
-_base_mod = sys.modules.get("jiuwen.context.memory_engine.common.base")
-if _base_mod is None or isinstance(_base_mod, MagicMock):
-    _base_mod = types.ModuleType("jiuwen.context.memory_engine.common.base")
-    _base_mod.ProcessedMemResult = type("ProcessedMemResult", (), {})
-    sys.modules["jiuwen.context.memory_engine.common.base"] = _base_mod
+
+_mc_mod.MemoryClient = _MemoryClientStub
+if "jiuwen.context.memory_engine.client.memory_client" not in sys.modules:
+    sys.modules["jiuwen.context.memory_engine.client.memory_client"] = _mc_mod
 
 # Patch ProcessMemoryMode if not available in agent-core
 from openjiuwen.core.memory.config import config as _os_config
@@ -101,11 +114,11 @@ for _key in list(sys.modules.keys()):
         del sys.modules[_key]
 
 # Create a stub package for agent_runtime.memory so submodules can be imported
-_stub_pkg = types.ModuleType(_pkg_name)
+_stub_pkg = types.ModuleType(_PKG_NAME)
 _stub_pkg.__path__ = [str(Path(importlib.import_module("agent_runtime").__path__[0]) / "memory")]
-_stub_pkg.__package__ = _pkg_name
+_stub_pkg.__package__ = _PKG_NAME
 _stub_pkg.__file__ = str(Path(importlib.import_module("agent_runtime").__path__[0]) / "memory" / "__init__.py")
-sys.modules[_pkg_name] = _stub_pkg
+sys.modules[_PKG_NAME] = _stub_pkg
 
 _client_mod = importlib.import_module(_submod_name)
 
@@ -132,9 +145,22 @@ def _make_mem_result(mem_id="m1", content="test memory", score=0.95):
     return result
 
 
+class _ConcreteAgentBuilderMemoryClient(AgentBuilderMemoryClient):
+    """Concrete subclass supplying the one abstract method the SUT leaves
+    unimplemented (`get_topic_profile_by_topics`). The SUT does not exercise
+    this path; the stub merely satisfies the ABC contract so the instance can
+    be constructed even when the real MemoryClient ABC (not the stub above) is
+    the resolved base class."""
+
+    async def get_topic_profile_by_topics(
+        self, user_id: str, scope_id: str, topics: list[str]
+    ):
+        return []
+
+
 @pytest.fixture
 def client():
-    return AgentBuilderMemoryClient()
+    return _ConcreteAgentBuilderMemoryClient()
 
 
 class TestSearchUserMem:

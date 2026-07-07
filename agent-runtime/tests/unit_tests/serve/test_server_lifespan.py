@@ -8,8 +8,18 @@ from unittest.mock import MagicMock, patch, AsyncMock
 # agent_builder.app triggers SSL context creation at import time (reads YAML
 # config and tries to create an SSLContext with None certs). Pre-populate
 # sys.modules so the real module is never imported during these tests.
+#
+# The real agent_builder.app exposes a Flask app, which server.instance_app()
+# mounts via WSGIMiddleware (not app.include_router). The stub must preserve
+# that contract: if `app` is left as a MagicMock, instance_app() falls into the
+# app.include_router() branch and FastAPI's `assert not router._contains_router`
+# guard trips because `mock._contains_router(...)` returns a truthy MagicMock
+# ("Cannot include an APIRouter instance that already includes this router").
 if "agent_builder.app" not in sys.modules:
-    sys.modules["agent_builder.app"] = MagicMock()
+    from flask import Flask as _Flask
+    _stub_mod = MagicMock()
+    _stub_mod.app = _Flask(__name__)
+    sys.modules["agent_builder.app"] = _stub_mod
 
 import pytest
 from openjiuwen.core.sys_operation import OperationMode
@@ -179,6 +189,7 @@ class TestServerLifespanSandboxSysOp:
 
         mock_settings = MagicMock()
         mock_settings.security_sandbox.server = "http://172.23.10.84:9090"
+        mock_settings.security_sandbox.sandbox_type = "aio"
         mock_settings.security_sandbox.scope = "system"
         mock_settings.security_sandbox.idle_ttl_seconds = 600
         mock_settings.security_sandbox.timeout_seconds = 300
@@ -230,6 +241,7 @@ class TestServerLifespanSandboxSysOp:
 
         mock_settings = MagicMock()
         mock_settings.security_sandbox.server = "http://172.23.10.84:9090"
+        mock_settings.security_sandbox.sandbox_type = "aio"
         mock_settings.security_sandbox.scope = "session"
         mock_settings.security_sandbox.idle_ttl_seconds = 600
         mock_settings.security_sandbox.timeout_seconds = 300
@@ -286,6 +298,7 @@ class TestServerLifespanSandboxSysOp:
 
         mock_settings = MagicMock()
         mock_settings.security_sandbox.server = "http://172.23.10.84:9090"
+        mock_settings.security_sandbox.sandbox_type = "aio"
         mock_settings.security_sandbox.scope = "system"
         mock_settings.security_sandbox.idle_ttl_seconds = 600
         mock_settings.security_sandbox.timeout_seconds = 300

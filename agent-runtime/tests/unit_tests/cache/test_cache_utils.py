@@ -14,8 +14,18 @@ import pytest
 
 @pytest.fixture(autouse=True)
 def _patch_redis_modules():
-    """Patch Redis constructors at the open_utils module level so that
-    importing open_utils does not attempt a real Redis connection."""
+    """Patch the Redis client factory at the open_utils import site so that
+    importing open_utils (and any lazy ``get_redis_client()`` call) does not
+    attempt a real Redis connection.
+
+    The vendored ``open_utils`` now obtains both sync and async Redis clients
+    through the single ``get_redis_client`` helper (imported from
+    ``agent_runtime.common.redis_manager``); the old separate
+    ``get_redis_instance`` / ``get_async_redis_instance`` symbols no longer
+    exist. Individual tests still override ``CacheUtils._redis_cache`` /
+    ``_async_redis_cache`` directly via the ``cache_utils`` fixture, so the
+    return value here only needs to be a benign mock.
+    """
     mock_redis = MagicMock()
     mock_redis.get.return_value = None
     mock_redis.set.return_value = True
@@ -27,10 +37,7 @@ def _patch_redis_modules():
     mock_async_redis.delete.return_value = 1
 
     with patch(
-        "jiuwen.serve.controllers.execution.open_utils.get_redis_instance",
-        return_value=mock_redis,
-    ), patch(
-        "jiuwen.serve.controllers.execution.open_utils.get_async_redis_instance",
+        "jiuwen.serve.controllers.execution.open_utils.get_redis_client",
         return_value=mock_async_redis,
     ):
         yield mock_redis, mock_async_redis
@@ -189,9 +196,9 @@ class TestCacheUtilsKeyFormat:
 
     @staticmethod
     def test_redis_key_format(cache_utils, mock_redis):
-        """Keys are prefixed with ei:engine:{cache_name}:."""
+        """Keys are prefixed with agent_runtime:{cache_name}:."""
         cache_utils.put("mykey", "val")
         call_args = mock_redis.set.call_args
         actual_key = call_args[0][0]
-        assert actual_key == "ei:engine:test:mykey"
+        assert actual_key == "agent_runtime:test:mykey"
 

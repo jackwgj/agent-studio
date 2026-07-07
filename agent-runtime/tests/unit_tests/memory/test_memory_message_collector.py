@@ -27,8 +27,8 @@ def extract_memory_repo_id(ir_data: dict, app_id: str) -> str:
 class TestMemoryRepoIdExtraction:
     """Tests for memory_repo_id extraction from IR data."""
 
-    def test_extracts_memory_repo_id_from_ir(self):
-        self.assertIsNotNone(self)  # satisfy G.CLS.07
+    @staticmethod
+    def test_extracts_memory_repo_id_from_ir():
         ir_data = {
             "configs": {
                 "memory": {
@@ -40,8 +40,8 @@ class TestMemoryRepoIdExtraction:
         result = extract_memory_repo_id(ir_data, app_id="app-fallback")
         assert result == "repo-from-ir"
 
-    def test_falls_back_to_app_id_when_no_memory_repo_id(self):
-        self.assertIsNotNone(self)  # satisfy G.CLS.07
+    @staticmethod
+    def test_falls_back_to_app_id_when_no_memory_repo_id():
         ir_data = {
             "configs": {
                 "memory": {}
@@ -51,36 +51,36 @@ class TestMemoryRepoIdExtraction:
         result = extract_memory_repo_id(ir_data, app_id="fallback-app")
         assert result == "fallback-app"
 
-    def test_falls_back_to_app_id_when_no_memory_config(self):
-        self.assertIsNotNone(self)  # satisfy G.CLS.07
+    @staticmethod
+    def test_falls_back_to_app_id_when_no_memory_config():
         ir_data = {"configs": {}}
 
         result = extract_memory_repo_id(ir_data, app_id="fallback-app")
         assert result == "fallback-app"
 
-    def test_falls_back_to_app_id_when_no_configs(self):
-        self.assertIsNotNone(self)  # satisfy G.CLS.07
+    @staticmethod
+    def test_falls_back_to_app_id_when_no_configs():
         ir_data = {}
 
         result = extract_memory_repo_id(ir_data, app_id="fallback-app")
         assert result == "fallback-app"
 
-    def test_falls_back_to_app_id_when_configs_is_none(self):
-        self.assertIsNotNone(self)  # satisfy G.CLS.07
+    @staticmethod
+    def test_falls_back_to_app_id_when_configs_is_none():
         ir_data = {"configs": None}
 
         result = extract_memory_repo_id(ir_data, app_id="fallback-app")
         assert result == "fallback-app"
 
-    def test_falls_back_to_app_id_when_memory_is_none(self):
-        self.assertIsNotNone(self)  # satisfy G.CLS.07
+    @staticmethod
+    def test_falls_back_to_app_id_when_memory_is_none():
         ir_data = {"configs": {"memory": None}}
 
         result = extract_memory_repo_id(ir_data, app_id="fallback-app")
         assert result == "fallback-app"
 
-    def test_empty_string_memory_repo_id_falls_back(self):
-        self.assertIsNotNone(self)  # satisfy G.CLS.07
+    @staticmethod
+    def test_empty_string_memory_repo_id_falls_back():
         ir_data = {
             "configs": {
                 "memory": {
@@ -92,9 +92,9 @@ class TestMemoryRepoIdExtraction:
         result = extract_memory_repo_id(ir_data, app_id="fallback-app")
         assert result == "fallback-app"
 
-    def test_real_ir_data_structure(self):
+    @staticmethod
+    def test_real_ir_data_structure():
         """Test with a realistic IR data structure matching production format."""
-        self.assertIsNotNone(self)  # satisfy G.CLS.07
         ir_data = {
             "configs": {
                 "memory": {
@@ -111,8 +111,8 @@ class TestMemoryRepoIdExtraction:
         result = extract_memory_repo_id(ir_data, app_id="app-xyz")
         assert result == "uuid-1234-5678"
 
-    def test_app_id_preserved_when_no_ir_memory(self):
-        self.assertIsNotNone(self)  # satisfy G.CLS.07
+    @staticmethod
+    def test_app_id_preserved_when_no_ir_memory():
         ir_data = {
             "configs": {
                 "llm": {"model_name": "test"},
@@ -126,9 +126,9 @@ class TestMemoryRepoIdExtraction:
 class TestCollectorMatchesExtractionLogic:
     """Verify that the extraction function matches the actual source code logic."""
 
-    def test_matches_source_code(self):
+    @staticmethod
+    def test_matches_source_code():
         """The extraction logic in the test function matches the source exactly."""
-        self.assertIsNotNone(self)  # satisfy G.CLS.07
         import inspect
 
         source = inspect.getsource(extract_memory_repo_id)

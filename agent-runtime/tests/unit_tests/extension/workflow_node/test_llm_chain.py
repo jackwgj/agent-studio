@@ -1,4 +1,5 @@
 # tests/unit_tests/extension/workflow_node/test_llm_chain.py
+# pylint: disable=protected-access  # 单测需直接调用内部方法 _process_thinking_stream 等
 
 from unittest.mock import MagicMock
 
@@ -93,10 +94,11 @@ class TestLLMChainThinkingStreamErrorPropagation:
         chain._session = None
         chain._context = None
         chain._stream_final_output = None
+        session = MagicMock()
 
         with pytest.raises(BaseError, match="LLM stream failed"):
             async for _ in chain.stream(
-                inputs={"userFields": {"query": "你好"}}, session=None, context=None
+                inputs={"userFields": {"query": "你好"}}, session=session, context=None
             ):
                 pass
 
@@ -123,7 +125,7 @@ class TestLLMChainThinkingStreamHappyPath:
         chain._session = None
         chain._context = None
 
-        gen, reasoning_content = await chain._process_thinking_stream(
+        gen, reasoning_content, _ = await chain._process_thinking_stream(
             chain._llm.stream(messages=[]),
             {},
         )

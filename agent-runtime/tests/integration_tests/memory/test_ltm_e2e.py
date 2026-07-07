@@ -52,8 +52,8 @@ def _make_scope_config():
     )
 
 
-@pytest_asyncio.fixture(scope="session")
-async def ltm_e2e():
+@pytest_asyncio.fixture(scope="session", name="ltm_e2e")
+async def _ltm_e2e():
     """Module-scoped LTM instance for e2e tests."""
     redis_client = aioredis.Redis(
         host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PASSWORD, decode_responses=False
@@ -101,27 +101,26 @@ class TestLTME2E:
     """End-to-end tests with gen_mem=True exercising the full pipeline."""
 
     @pytest.mark.asyncio
-    async def test_full_pipeline_with_gen_mem(self, request, unique_prefix):
-        _ltm = request.getfixturevalue("ltm_e2e")
+    async def test_full_pipeline_with_gen_mem(self, ltm_e2e, unique_prefix):
         """Add messages with gen_mem=True, LLM extracts memory, semantic search finds it."""
         scope_id = f"{unique_prefix}_e2e_full"
         user_id = "e2e_user_001"
 
         scope_cfg = _make_scope_config()
-        await _ltm.set_scope_config(scope_id, scope_cfg)
+        await ltm_e2e.set_scope_config(scope_id, scope_cfg)
 
         messages = [
             BaseMessage(role="user", content="张三最喜欢编程和打篮球，周末经常去公园打球"),
             BaseMessage(role="assistant", content="你好张三！编程和打篮球都是很棒的爱好，周末去公园打球听起来很健康。"),
         ]
         agent_cfg = AgentMemoryConfig()
-        await _ltm.add_messages(
+        await ltm_e2e.add_messages(
             messages, agent_cfg, user_id=user_id, scope_id=scope_id, gen_mem=True
         )
 
         await asyncio.sleep(20)
 
-        results = await _ltm.search_user_mem(
+        results = await ltm_e2e.search_user_mem(
             "张三喜欢什么运动", 5, user_id=user_id, scope_id=scope_id, threshold=0.1
         )
         assert len(results) > 0, "Expected at least one memory result after gen_mem=True"
@@ -130,14 +129,13 @@ class TestLTME2E:
             f"Expected memory about 篮球/编程, got: {mem_content}"
 
     @pytest.mark.asyncio
-    async def test_search_after_multiple_conversations(self, request, unique_prefix):
-        _ltm = request.getfixturevalue("ltm_e2e")
+    async def test_search_after_multiple_conversations(self, ltm_e2e, unique_prefix):
         """Add multiple conversation topics, verify each is independently searchable."""
         scope_id = f"{unique_prefix}_e2e_multi"
         user_id = "e2e_user_002"
 
         scope_cfg = _make_scope_config()
-        await _ltm.set_scope_config(scope_id, scope_cfg)
+        await ltm_e2e.set_scope_config(scope_id, scope_cfg)
 
         topics = [
             ("conv_food", "我特别喜欢吃四川火锅，又麻又辣", "火锅是四川的特色美食，非常受欢迎"),
@@ -151,14 +149,14 @@ class TestLTME2E:
                 BaseMessage(role="user", content=user_msg),
                 BaseMessage(role="assistant", content=assistant_msg),
             ]
-            await _ltm.add_messages(
+            await ltm_e2e.add_messages(
                 messages, agent_cfg,
                 user_id=user_id, scope_id=scope_id,
                 session_id=conv_id, gen_mem=True,
             )
             await asyncio.sleep(15)
 
-        results = await _ltm.search_user_mem(
+        results = await ltm_e2e.search_user_mem(
             "这个人在学什么乐器", 5, user_id=user_id, scope_id=scope_id, threshold=0.1
         )
         assert len(results) > 0, "Expected at least one result for music topic"
@@ -166,8 +164,7 @@ class TestLTME2E:
         assert "吉他" in mem_content, f"Expected memory about 吉他, got: {mem_content}"
 
     @pytest.mark.asyncio
-    async def test_cross_scope_isolation(self, request, unique_prefix):
-        _ltm = request.getfixturevalue("ltm_e2e")
+    async def test_cross_scope_isolation(self, ltm_e2e, unique_prefix):
         """Memories in scope A are not visible when searching scope B."""
         scope_a = f"{unique_prefix}_scope_a"
         scope_b = f"{unique_prefix}_scope_b"
@@ -175,8 +172,8 @@ class TestLTME2E:
         user_b = "e2e_user_isolation_b"
 
         scope_cfg = _make_scope_config()
-        await _ltm.set_scope_config(scope_a, scope_cfg)
-        await _ltm.set_scope_config(scope_b, scope_cfg)
+        await ltm_e2e.set_scope_config(scope_a, scope_cfg)
+        await ltm_e2e.set_scope_config(scope_b, scope_cfg)
 
         messages_a = [
             BaseMessage(role="user", content="我家养了一只橘猫，叫小橘子"),
@@ -188,15 +185,15 @@ class TestLTME2E:
         ]
         agent_cfg = AgentMemoryConfig()
 
-        await _ltm.add_messages(
+        await ltm_e2e.add_messages(
             messages_a, agent_cfg, user_id=user_a, scope_id=scope_a, gen_mem=True
         )
-        await _ltm.add_messages(
+        await ltm_e2e.add_messages(
             messages_b, agent_cfg, user_id=user_b, scope_id=scope_b, gen_mem=True
         )
         await asyncio.sleep(20)
 
-        results_a = await _ltm.search_user_mem(
+        results_a = await ltm_e2e.search_user_mem(
             "宠物", 5, user_id=user_a, scope_id=scope_a, threshold=0.1
         )
         if len(results_a) > 0:
@@ -205,50 +202,48 @@ class TestLTME2E:
             assert "金毛" not in mem_content_a, f"Scope A should NOT contain 金毛, got: {mem_content_a}"
 
     @pytest.mark.asyncio
-    async def test_delete_clears_search_results(self, request, unique_prefix):
-        _ltm = request.getfixturevalue("ltm_e2e")
+    async def test_delete_clears_search_results(self, ltm_e2e, unique_prefix):
         """After deleting memory by scope, search returns empty results."""
         scope_id = f"{unique_prefix}_e2e_delete"
         user_id = "e2e_user_003"
 
         scope_cfg = _make_scope_config()
-        await _ltm.set_scope_config(scope_id, scope_cfg)
+        await ltm_e2e.set_scope_config(scope_id, scope_cfg)
 
         messages = [
             BaseMessage(role="user", content="我住在杭州西湖区，公司在文三路"),
             BaseMessage(role="assistant", content="杭州是个美丽的城市，西湖区环境很好"),
         ]
         agent_cfg = AgentMemoryConfig()
-        await _ltm.add_messages(
+        await ltm_e2e.add_messages(
             messages, agent_cfg, user_id=user_id, scope_id=scope_id, gen_mem=True
         )
         await asyncio.sleep(20)
 
-        results_before = await _ltm.search_user_mem(
+        results_before = await ltm_e2e.search_user_mem(
             "住在哪里", 5, user_id=user_id, scope_id=scope_id, threshold=0.1
         )
         assert len(results_before) > 0, "Precondition: should find memory before deletion"
 
-        await _ltm.delete_mem_by_scope(scope_id)
+        await ltm_e2e.delete_mem_by_scope(scope_id)
 
-        results_after = await _ltm.search_user_mem(
+        results_after = await ltm_e2e.search_user_mem(
             "住在哪里", 5, user_id=user_id, scope_id=scope_id, threshold=0.1
         )
         assert len(results_after) == 0, "Expected empty results after deletion"
 
     @pytest.mark.asyncio
-    async def test_scope_config_lifecycle(self, request, unique_prefix):
-        _ltm = request.getfixturevalue("ltm_e2e")
+    async def test_scope_config_lifecycle(self, ltm_e2e, unique_prefix):
         """Scope config can be created, retrieved, and deleted."""
         scope_id = f"{unique_prefix}_e2e_config"
 
         scope_cfg = _make_scope_config()
-        await _ltm.set_scope_config(scope_id, scope_cfg)
+        await ltm_e2e.set_scope_config(scope_id, scope_cfg)
 
-        config = await _ltm.get_scope_config(scope_id)
+        config = await ltm_e2e.get_scope_config(scope_id)
         assert config is not None, "Expected scope config to exist after set"
 
-        await _ltm.delete_scope_config(scope_id)
+        await ltm_e2e.delete_scope_config(scope_id)
 
-        config_after = await _ltm.get_scope_config(scope_id)
+        config_after = await ltm_e2e.get_scope_config(scope_id)
         assert config_after is None, "Expected scope config to be None after deletion"

@@ -262,6 +262,9 @@ async def update_memory(memory_repo_id: str, memory_id: str, body: dict):
     err = _validate_uuid(memory_repo_id, "memory_repo_id")
     if err:
         return JSONResponse(status_code=400, content={"status": "error", "reason": err})
+    err = _validate_uuid(memory_id, "memory_id")
+    if err:
+        return JSONResponse(status_code=400, content={"status": "error", "reason": err})
     if not memory_id or not memory_id.strip():
         return JSONResponse(status_code=400, content={"status": "error", "reason": "memory_id is required"})
 

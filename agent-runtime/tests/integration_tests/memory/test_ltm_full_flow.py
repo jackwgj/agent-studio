@@ -52,8 +52,8 @@ def _make_scope_config():
     )
 
 
-@pytest_asyncio.fixture(scope="session")
-async def ltm_module():
+@pytest_asyncio.fixture(scope="session", name="ltm_module")
+async def _ltm_module():
     """Module-scoped LTM instance shared across all tests in this module."""
     redis_client = aioredis.Redis(
         host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PASSWORD, decode_responses=False
@@ -99,82 +99,77 @@ async def ltm_module():
 
 class TestLTMFullFlow:
     @pytest.mark.asyncio
-    async def test_set_scope_config(self, request, unique_prefix):
-        _ltm = request.getfixturevalue("ltm_module")
+    async def test_set_scope_config(self, ltm_module, unique_prefix):
         """LTM can accept a scope config for a unique scope."""
         scope_id = f"{unique_prefix}_scope1"
         scope_cfg = _make_scope_config()
-        await _ltm.set_scope_config(scope_id, scope_cfg)
+        await ltm_module.set_scope_config(scope_id, scope_cfg)
 
     @pytest.mark.asyncio
-    async def test_add_messages_and_search(self, request, unique_prefix):
-        _ltm = request.getfixturevalue("ltm_module")
+    async def test_add_messages_and_search(self, ltm_module, unique_prefix):
         """Add conversation messages and search user memory."""
         scope_id = f"{unique_prefix}_scope2"
         user_id = "test_user_001"
 
         scope_cfg = _make_scope_config()
-        await _ltm.set_scope_config(scope_id, scope_cfg)
+        await ltm_module.set_scope_config(scope_id, scope_cfg)
 
         messages = [
             BaseMessage(role="user", content="我叫张三，我喜欢编程和打篮球"),
             BaseMessage(role="assistant", content="你好张三！编程和打篮球都是很棒的爱好。"),
         ]
         agent_cfg = AgentMemoryConfig()
-        await _ltm.add_messages(
+        await ltm_module.add_messages(
             messages, agent_cfg, user_id=user_id, scope_id=scope_id, gen_mem=False
         )
 
         await asyncio.sleep(2)
 
-        results = await _ltm.search_user_mem(
+        results = await ltm_module.search_user_mem(
             "张三喜欢什么", 3, user_id=user_id, scope_id=scope_id
         )
         assert isinstance(results, list)
 
     @pytest.mark.asyncio
-    async def test_search_empty_scope(self, request, unique_prefix):
-        _ltm = request.getfixturevalue("ltm_module")
+    async def test_search_empty_scope(self, ltm_module, unique_prefix):
         """Search on a scope with no messages returns empty results."""
         scope_id = f"{unique_prefix}_scope3"
         user_id = "test_user_002"
 
         scope_cfg = _make_scope_config()
-        await _ltm.set_scope_config(scope_id, scope_cfg)
+        await ltm_module.set_scope_config(scope_id, scope_cfg)
 
-        results = await _ltm.search_user_mem(
+        results = await ltm_module.search_user_mem(
             "test query", 3, user_id=user_id, scope_id=scope_id
         )
         assert isinstance(results, list)
         assert len(results) == 0
 
     @pytest.mark.asyncio
-    async def test_delete_mem_by_scope(self, request, unique_prefix):
-        _ltm = request.getfixturevalue("ltm_module")
+    async def test_delete_mem_by_scope(self, ltm_module, unique_prefix):
         """Delete memory by scope ID works without error."""
         scope_id = f"{unique_prefix}_scope4"
         user_id = "test_user_003"
 
         scope_cfg = _make_scope_config()
-        await _ltm.set_scope_config(scope_id, scope_cfg)
+        await ltm_module.set_scope_config(scope_id, scope_cfg)
 
         messages = [
             BaseMessage(role="user", content="我喜欢吃火锅"),
             BaseMessage(role="assistant", content="火锅确实很好吃！"),
         ]
         agent_cfg = AgentMemoryConfig()
-        await _ltm.add_messages(
+        await ltm_module.add_messages(
             messages, agent_cfg, user_id=user_id, scope_id=scope_id, gen_mem=False
         )
         await asyncio.sleep(2)
 
-        await _ltm.delete_mem_by_scope(scope_id)
+        await ltm_module.delete_mem_by_scope(scope_id)
 
     @pytest.mark.asyncio
-    async def test_delete_scope_config(self, request, unique_prefix):
-        _ltm = request.getfixturevalue("ltm_module")
+    async def test_delete_scope_config(self, ltm_module, unique_prefix):
         """Delete scope config works without error."""
         scope_id = f"{unique_prefix}_scope5"
         scope_cfg = _make_scope_config()
-        await _ltm.set_scope_config(scope_id, scope_cfg)
-        await _ltm.delete_scope_config(scope_id)
+        await ltm_module.set_scope_config(scope_id, scope_cfg)
+        await ltm_module.delete_scope_config(scope_id)

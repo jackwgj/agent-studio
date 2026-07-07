@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
+# pylint: disable=protected-access  # 单测需直接调用内部方法 _prepare_child_inputs
 
 from unittest.mock import MagicMock
 
+import pytest
 from jiuwen.extension.workflow_node.sub_workflow import SubWorkflow
 from jiuwen.serve.controllers.execution.ir_converter import (
     _convert_global_variable_refs_in_ir,
@@ -130,7 +132,8 @@ def test_child_branch_memory_refs_are_mapped_to_parent_memory_variable():
     )
 
 
-def test_subworkflow_passes_memory_mapping_values_to_child_global_variables():
+@pytest.mark.asyncio
+async def test_subworkflow_passes_memory_mapping_values_to_child_global_variables():
     component = SubWorkflow(
         {
             "node_id": "sub_node",
@@ -149,7 +152,7 @@ def test_subworkflow_passes_memory_mapping_values_to_child_global_variables():
         "userId": "user-1",
     }
 
-    child_inputs = component._prepare_child_inputs(
+    child_inputs = await component._prepare_child_inputs(
         {
             "systemFields": {"query": "hello"},
             "userFields": {},
@@ -164,7 +167,8 @@ def test_subworkflow_passes_memory_mapping_values_to_child_global_variables():
     assert child_inputs["global_variables"]["userId"] == "user-1"
 
 
-def test_subworkflow_user_fields_override_same_named_memory_fields():
+@pytest.mark.asyncio
+async def test_subworkflow_user_fields_override_same_named_memory_fields():
     component = SubWorkflow(
         {
             "node_id": "sub_node",
@@ -183,7 +187,7 @@ def test_subworkflow_user_fields_override_same_named_memory_fields():
         "userId": "user-1",
     }
 
-    child_inputs = component._prepare_child_inputs(
+    child_inputs = await component._prepare_child_inputs(
         {
             "systemFields": {"query": "hello"},
             "userFields": {"amount": "100", "currency": "CNY"},

@@ -16,8 +16,8 @@ def _make_extractor():
 class TestConvertMemoryExtractConfigNewIR:
     """Tests for new IR structure: configs.memory.extract_config + strategies."""
 
-    def test_reads_extract_config_max_chat_turn(self):
-        self.assertIsNotNone(self)  # satisfy G.CLS.07
+    @staticmethod
+    def test_reads_extract_config_max_chat_turn():
         ext = _make_extractor()
         ext._extract_max_turns = 5
         ext._extract_time_windows = 10
@@ -38,8 +38,8 @@ class TestConvertMemoryExtractConfigNewIR:
         assert result.extract_max_turns == 8
         assert result.extract_time_windows == 30
 
-    def test_strategies_enable_memory(self):
-        self.assertIsNotNone(self)  # satisfy G.CLS.07
+    @staticmethod
+    def test_strategies_enable_memory():
         ext = _make_extractor()
         ir_data = {
             "configs": {
@@ -52,8 +52,8 @@ class TestConvertMemoryExtractConfigNewIR:
         result = ext._convert_memory_extract_config(ir_data)
         assert result.user_profile_enable is True
 
-    def test_extract_config_partial_only_max_chat_turn(self):
-        self.assertIsNotNone(self)  # satisfy G.CLS.07
+    @staticmethod
+    def test_extract_config_partial_only_max_chat_turn():
         ext = _make_extractor()
         ext._extract_max_turns = 5
         ext._extract_time_windows = 10
@@ -71,8 +71,8 @@ class TestConvertMemoryExtractConfigNewIR:
         assert result.extract_max_turns == 12
         assert result.extract_time_windows == 10
 
-    def test_extract_config_partial_only_time_window(self):
-        self.assertIsNotNone(self)  # satisfy G.CLS.07
+    @staticmethod
+    def test_extract_config_partial_only_time_window():
         ext = _make_extractor()
         ext._extract_max_turns = 5
         ext._extract_time_windows = 10
@@ -90,8 +90,8 @@ class TestConvertMemoryExtractConfigNewIR:
         assert result.extract_max_turns == 5
         assert result.extract_time_windows == 60
 
-    def test_empty_strategies_list_disables(self):
-        self.assertIsNotNone(self)  # satisfy G.CLS.07
+    @staticmethod
+    def test_empty_strategies_list_disables():
         ext = _make_extractor()
         ir_data = {
             "configs": {
@@ -109,8 +109,8 @@ class TestConvertMemoryExtractConfigNewIR:
 class TestConvertMemoryExtractConfigOldIR:
     """Tests for old IR structure fallback: configs.memory.userProfile."""
 
-    def test_reads_old_user_profile_enable(self):
-        self.assertIsNotNone(self)  # satisfy G.CLS.07
+    @staticmethod
+    def test_reads_old_user_profile_enable():
         ext = _make_extractor()
         ext._extract_max_turns = 5
         ext._extract_time_windows = 10
@@ -134,8 +134,8 @@ class TestConvertMemoryExtractConfigOldIR:
         assert result.extract_max_turns == 7
         assert result.extract_time_windows == 20
 
-    def test_old_user_profile_disable(self):
-        self.assertIsNotNone(self)  # satisfy G.CLS.07
+    @staticmethod
+    def test_old_user_profile_disable():
         ext = _make_extractor()
         ir_data = {
             "configs": {
@@ -148,8 +148,8 @@ class TestConvertMemoryExtractConfigOldIR:
         result = ext._convert_memory_extract_config(ir_data)
         assert result.user_profile_enable is False
 
-    def test_no_memory_config_returns_defaults(self):
-        self.assertIsNotNone(self)  # satisfy G.CLS.07
+    @staticmethod
+    def test_no_memory_config_returns_defaults():
         ext = _make_extractor()
         ext._extract_max_turns = 5
         ext._extract_time_windows = 10
@@ -165,8 +165,8 @@ class TestConvertMemoryExtractConfigOldIR:
 class TestConvertMemoryExtractConfigPriority:
     """Tests that new IR structure takes priority over old."""
 
-    def test_new_ir_takes_priority_over_old(self):
-        self.assertIsNotNone(self)  # satisfy G.CLS.07
+    @staticmethod
+    def test_new_ir_takes_priority_over_old():
         ext = _make_extractor()
         ext._extract_max_turns = 5
         ext._extract_time_windows = 10
