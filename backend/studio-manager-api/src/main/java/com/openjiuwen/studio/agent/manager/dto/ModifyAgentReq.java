@@ -891,7 +891,9 @@ public class ModifyAgentReq implements Serializable {
 
         CONTROLLER("controller"),
 
-        PLANEXECUTE("planexecute");
+        PLANEXECUTE("planexecute"),
+
+        DEEPRESEARCH("deepresearch");
 
         private String value;
 
