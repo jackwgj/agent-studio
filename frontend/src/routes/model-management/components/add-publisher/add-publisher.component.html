@@ -1,235 +1,300 @@
-<div class="flex flex-col" style="min-height: calc(100vh - 48px);">
+<div class="com-drawer-title">
+  {{ title }}
+</div>
 
-  <div class="flex-1 pb-4">
-    <div class="text-lg font-medium mb-4 text-gray-800">
-      {{ title }}
-    </div>
-
-    <form nz-form nzLayout="vertical" [formGroup]="myForm">
-
-      <nz-form-item>
-        <nz-form-label>{{ 'publisher_logo' | i18nextEager }}</nz-form-label>
-        <nz-form-control>
-          <div *ngIf="myForm.value.logo" class="event-log-container relative w-16 h-16 group">
-            <img alt="" [(src)]="myForm.value.logo" class="w-full h-full object-cover rounded shadow-sm" />
-            <div class="delete-box absolute inset-0 bg-black/50 hidden group-hover:flex items-center justify-center cursor-pointer rounded" (click)="deleteLogo()">
-              <nz-icon nzType="edit" class="text-white text-xl"></nz-icon>
-            </div>
+<div class="com-drawer-content">
+  <form nz-form nzLayout="vertical" [formGroup]="myForm">
+    <nz-form-item>
+      <nz-form-label>{{ 'publisher_logo' | i18nextEager }}</nz-form-label>
+      <nz-form-control>
+        <div *ngIf="myForm.value.logo" class="event-log-container relative w-16 h-16 group">
+          <img alt="" [(src)]="myForm.value.logo" class="w-full h-full object-cover rounded shadow-sm" />
+          <div
+            class="delete-box absolute inset-0 bg-black/50 hidden group-hover:flex items-center justify-center cursor-pointer rounded"
+            (click)="deleteLogo()"
+          >
+            <nz-icon nzType="edit" class="text-white text-xl"></nz-icon>
           </div>
+        </div>
 
-          <nz-upload *ngIf="!myForm.value.logo"
-                     class="page-upload w-16 h-16 block"
-                     [class.border-red-500]="logoIsError"
-                     nzType="drag"
-                     nzAccept=".jpg,.jpeg,.png"
-                     [nzShowUploadList]="false"
-                     [nzBeforeUpload]="beforeUploadLogo">
-            <p class="ant-upload-drag-icon m-0 mt-2">
-              <nz-icon nzType="plus" class="text-2xl text-gray-400"></nz-icon>
-            </p>
-          </nz-upload>
-          <div class="text-gray-500 mt-2 text-xs">{{ 'image_size_100k_max_format_jpg_png' | i18nextEager }}</div>
-        </nz-form-control>
-      </nz-form-item>
+        <nz-upload
+          *ngIf="!myForm.value.logo"
+          class="page-upload w-16 h-16 block"
+          [class.border-red-500]="logoIsError"
+          nzType="drag"
+          nzAccept=".jpg,.jpeg,.png"
+          [nzShowUploadList]="false"
+          [nzBeforeUpload]="beforeUploadLogo"
+        >
+          <p class="ant-upload-drag-icon m-0 mt-2">
+            <nz-icon nzType="plus" class="text-2xl text-gray-400"></nz-icon>
+          </p>
+        </nz-upload>
+        <div class="text-gray-500 mt-2 text-xs">{{ 'image_size_100k_max_format_jpg_png' | i18nextEager }}</div>
+      </nz-form-control>
+    </nz-form-item>
 
+    <nz-form-item>
+      <nz-form-label nzRequired>{{ 'publisher_name' | i18nextEager }}</nz-form-label>
+      <nz-form-control [nzErrorTip]="nameErrorTpl">
+        <input nz-input formControlName="provider_name" class="w-full" />
+        <p class="name-rule text-xs text-gray-500 mt-1">{{ 'validation-name-tip1' | i18nextEager }}</p>
+        <ng-template #nameErrorTpl let-control>
+          <ng-container
+            *ngIf="control.hasError('required') || control.hasError('modeNameVerify') || control.hasError('minlength') || control.hasError('maxlength')"
+          >
+            {{ 'validation-name-tip1' | i18nextEager }}
+          </ng-container>
+        </ng-template>
+      </nz-form-control>
+    </nz-form-item>
+
+    <nz-form-item>
+      <nz-form-label nzRequired>{{ 'publisher_name_en' | i18nextEager }}</nz-form-label>
+      <nz-form-control [nzErrorTip]="enNameErrorTpl">
+        <input nz-input formControlName="provider_name_en" class="w-full" />
+        <p class="name-rule text-xs text-gray-500 mt-1">{{ 'validation-name-tip' | i18nextEager }}</p>
+        <ng-template #enNameErrorTpl let-control>
+          <ng-container
+            *ngIf="control.hasError('required') || control.hasError('modeEnNameVerify') || control.hasError('minlength') || control.hasError('maxlength')"
+          >
+            {{ 'validation-name-tip' | i18nextEager }}
+          </ng-container>
+        </ng-template>
+      </nz-form-control>
+    </nz-form-item>
+
+    <nz-form-item>
+      <nz-form-label>{{ 'description' | i18nextEager }}</nz-form-label>
+      <nz-form-control>
+        <textarea nz-input formControlName="description" [placeholder]="'pls_enter' | i18nextEager" [maxLength]="1000" rows="3"></textarea>
+      </nz-form-control>
+    </nz-form-item>
+
+    <nz-form-item>
+      <nz-form-label nzRequired>
+        <div class="flex items-center gap-2">
+          <span>{{ 'api_auth_info' | i18nextEager }}</span>
+        </div>
+      </nz-form-label>
+      <nz-form-control>
+        <nz-radio-group formControlName="auth_type" (ngModelChange)="changeAuthType($event)">
+          <label nz-radio *ngFor="let item of authList" [nzValue]="item.id" class="mr-4 mb-2">
+            {{ item.label }}
+            <nz-icon *ngIf="item.tip" nzType="question-circle" nzTheme="outline" [nz-tooltip]="item.tip" class="ml-1 text-gray-400"></nz-icon>
+          </label>
+        </nz-radio-group>
+      </nz-form-control>
+    </nz-form-item>
+
+    <nz-form-item *ngIf="myForm.value.auth_type === API_KEY">
+      <nz-form-label nzRequired>{{ 'api_key_input' | i18nextEager }}</nz-form-label>
+      <nz-form-control [nzErrorTip]="'Required'">
+        <input nz-input type="password" formControlName="apikey" class="w-full" />
+        <div [innerHTML]="'api_auth_tip' | i18nextEager" class="mt-1 text-xs text-gray-500"></div>
+      </nz-form-control>
+    </nz-form-item>
+
+    <ng-container *ngIf="myForm.value.auth_type === AK_SK || myForm.value.auth_type === HMAC">
       <nz-form-item>
-        <nz-form-label nzRequired>{{ 'publisher_name' | i18nextEager }}</nz-form-label>
-        <nz-form-control [nzErrorTip]="nameErrorTpl">
-          <input nz-input formControlName="provider_name" class="w-full" />
-          <p class="name-rule text-xs text-gray-500 mt-1">{{ 'validation-name-tip1' | i18nextEager }}</p>
-          <ng-template #nameErrorTpl let-control>
-            <ng-container *ngIf="control.hasError('required') || control.hasError('modeNameVerify') || control.hasError('minlength') || control.hasError('maxlength')">
-              {{ 'validation-name-tip1' | i18nextEager }}
-            </ng-container>
-          </ng-template>
-        </nz-form-control>
-      </nz-form-item>
-
-      <nz-form-item>
-        <nz-form-label nzRequired>{{ 'publisher_name_en' | i18nextEager }}</nz-form-label>
-        <nz-form-control [nzErrorTip]="enNameErrorTpl">
-          <input nz-input formControlName="provider_name_en" class="w-full" />
-          <p class="name-rule text-xs text-gray-500 mt-1">{{ 'validation-name-tip' | i18nextEager }}</p>
-          <ng-template #enNameErrorTpl let-control>
-            <ng-container *ngIf="control.hasError('required') || control.hasError('modeEnNameVerify') || control.hasError('minlength') || control.hasError('maxlength')">
-              {{ 'validation-name-tip' | i18nextEager }}
-            </ng-container>
-          </ng-template>
-        </nz-form-control>
-      </nz-form-item>
-
-      <nz-form-item>
-        <nz-form-label>{{ 'description' | i18nextEager }}</nz-form-label>
-        <nz-form-control>
-          <textarea nz-input formControlName="description" [placeholder]="'pls_enter' | i18nextEager" [maxLength]="1000" rows="3"></textarea>
-        </nz-form-control>
-      </nz-form-item>
-
-      <nz-form-item>
-        <nz-form-label nzRequired>
-          <div class="flex items-center gap-2">
-            <span>{{ 'api_auth_info' | i18nextEager }}</span>
-          </div>
-        </nz-form-label>
-        <nz-form-control>
-          <nz-radio-group formControlName="auth_type" (ngModelChange)="changeAuthType($event)">
-            <label nz-radio *ngFor="let item of authList" [nzValue]="item.id" class="mr-4 mb-2">
-              {{ item.label }}
-              <nz-icon *ngIf="item.tip" nzType="question-circle" nzTheme="outline" [nz-tooltip]="item.tip" class="ml-1 text-gray-400"></nz-icon>
-            </label>
-          </nz-radio-group>
-        </nz-form-control>
-      </nz-form-item>
-
-      <nz-form-item *ngIf="myForm.value.auth_type === API_KEY">
-        <nz-form-label nzRequired>{{ 'api_key_input' | i18nextEager }}</nz-form-label>
+        <nz-form-label nzRequired>{{ 'enter_ak' | i18nextEager }}</nz-form-label>
         <nz-form-control [nzErrorTip]="'Required'">
-          <input nz-input type="password" formControlName="apikey" class="w-full" />
-          <div [innerHTML]="'api_auth_tip' | i18nextEager" class="mt-1 text-xs text-gray-500"></div>
+          <input nz-input type="password" formControlName="ak" class="w-full" />
         </nz-form-control>
       </nz-form-item>
+      <nz-form-item>
+        <nz-form-label nzRequired>{{ 'enter_sk' | i18nextEager }}</nz-form-label>
+        <nz-form-control [nzErrorTip]="'Required'">
+          <input nz-input type="password" formControlName="sk" class="w-full" />
+          <div [innerHTML]="'api_auth_tip_1' | i18nextEager" class="mt-1 text-xs text-gray-500"></div>
+        </nz-form-control>
+      </nz-form-item>
+    </ng-container>
 
-      <ng-container *ngIf="myForm.value.auth_type === AK_SK || myForm.value.auth_type === HMAC">
+    <nz-form-item *ngIf="myForm.value.auth_type === APP_CODE">
+      <nz-form-label nzRequired>{{ 'enter_AppCode' | i18nextEager }}</nz-form-label>
+      <nz-form-control [nzErrorTip]="'Required'">
+        <input nz-input type="password" formControlName="appCode" class="w-full" />
+        <div [innerHTML]="'api_auth_tip' | i18nextEager" class="mt-1 text-xs text-gray-500"></div>
+      </nz-form-control>
+    </nz-form-item>
+
+    <ng-container *ngIf="myForm.value.auth_type === 'CUSTOM_APIKEY'">
+      <div class="flex justify-between items-center mb-2">
+        <button nz-button nzType="link" (click)="changeApi()" class="px-0">
+          {{ 'header_configuration' | i18nextEager }}
+          <nz-icon [nzType]="apiCollapsed ? 'down' : 'up'" />
+        </button>
+        <button nz-button nzType="text" nz-tooltip [nzTooltipTitle]="'add_params' | i18nextEager" (click)="addArgs()">
+          <nz-icon nzType="plus-circle" nzTheme="outline" class="text-blue-600 text-lg" />
+        </button>
+      </div>
+      <div [hidden]="apiCollapsed">
+        <div class="flex items-center gap-2 mb-2 w-[calc(100%-30px)]">
+          <div class="w-1/2 text-sm text-gray-600 font-medium"><span class="text-red-500 mr-1">*</span>{{ 'param_name' | i18nextEager }}</div>
+          <div class="w-1/2 text-sm text-gray-600 font-medium"><span class="text-red-500 mr-1">*</span>{{ 'param_value' | i18nextEager }}</div>
+        </div>
+        <form #authkeyForm="ngForm">
+          <div class="flex gap-2 items-center mb-3" *ngFor="let param of apiKeyAuthArgs; index as i">
+            <div class="w-1/2">
+              <input
+                nz-input
+                type="text"
+                [name]="'authkeyFormName' + i"
+                maxlength="100"
+                required
+                [(ngModel)]="param.target_name"
+                [placeholder]="'input_placeholder' | i18nextEager"
+              />
+            </div>
+            <div class="w-1/2">
+              <input
+                nz-input
+                type="password"
+                [name]="'authkeyFormVal' + i"
+                maxlength="20000"
+                required
+                [(ngModel)]="param.auth_key"
+                [placeholder]="'input_placeholder' | i18nextEager"
+              />
+            </div>
+            <nz-icon *ngIf="i > 0" nzType="delete" nzTheme="outline" class="cursor-pointer text-gray-400 hover:text-red-500" (click)="deleteArgs(i)"></nz-icon>
+            <div *ngIf="i === 0" class="w-3.5"></div>
+          </div>
+        </form>
+      </div>
+    </ng-container>
+
+    <ng-container *ngIf="myForm.value.auth_type === 'CUSTOM_IAM'">
+      <div class="mb-4">
+        <button nz-button nzType="link" (click)="change()" class="px-0">
+          {{ 'auth_configuration' | i18nextEager }}
+          <nz-icon [nzType]="collapsed ? 'down' : 'up'" />
+        </button>
+      </div>
+      <div [hidden]="collapsed">
         <nz-form-item>
-          <nz-form-label nzRequired>{{ 'enter_ak' | i18nextEager }}</nz-form-label>
-          <nz-form-control [nzErrorTip]="'Required'">
-            <input nz-input type="password" formControlName="ak" class="w-full" />
-          </nz-form-control>
+          <nz-form-label nzRequired [nzTooltipTitle]="iamTip.iamUrl">{{ 'server_address' | i18nextEager }}</nz-form-label>
+          <nz-form-control [nzErrorTip]="'Required / Invalid URL'"
+            ><input nz-input formControlName="iamUrl" [placeholder]="'pls_enter' | i18nextEager"
+          /></nz-form-control>
         </nz-form-item>
         <nz-form-item>
-          <nz-form-label nzRequired>{{ 'enter_sk' | i18nextEager }}</nz-form-label>
-          <nz-form-control [nzErrorTip]="'Required'">
-            <input nz-input type="password" formControlName="sk" class="w-full" />
-            <div [innerHTML]="'api_auth_tip_1' | i18nextEager" class="mt-1 text-xs text-gray-500"></div>
+          <nz-form-label nzRequired [nzTooltipTitle]="iamTip.iamDomain">{{ 'account_name' | i18nextEager }}</nz-form-label>
+          <nz-form-control [nzErrorTip]="'Required'"><input nz-input formControlName="iamDomain" [placeholder]="'pls_enter' | i18nextEager" /></nz-form-control>
+        </nz-form-item>
+        <nz-form-item>
+          <nz-form-label nzRequired [nzTooltipTitle]="iamTip.iamProject">{{ 'project' | i18nextEager }}</nz-form-label>
+          <nz-form-control [nzErrorTip]="'Required'"
+            ><input nz-input formControlName="iamProject" [placeholder]="'pls_enter' | i18nextEager"
+          /></nz-form-control>
+        </nz-form-item>
+
+        <nz-form-item>
+          <nz-form-label>{{ 'verification_mode' | i18nextEager }}</nz-form-label>
+          <nz-form-control>
+            <nz-radio-group formControlName="verify" (ngModelChange)="changeVerifyMethod($event)">
+              <label nz-radio *ngFor="let m of verifyMethods" [nzValue]="m.id">{{ m.label }}</label>
+            </nz-radio-group>
           </nz-form-control>
         </nz-form-item>
-      </ng-container>
 
-      <nz-form-item *ngIf="myForm.value.auth_type === APP_CODE">
-        <nz-form-label nzRequired>{{ 'enter_AppCode' | i18nextEager }}</nz-form-label>
-        <nz-form-control [nzErrorTip]="'Required'">
-          <input nz-input type="password" formControlName="appCode" class="w-full" />
-          <div [innerHTML]="'api_auth_tip' | i18nextEager" class="mt-1 text-xs text-gray-500"></div>
-        </nz-form-control>
-      </nz-form-item>
-
-      <ng-container *ngIf="myForm.value.auth_type === 'CUSTOM_APIKEY'">
-        <div class="flex justify-between items-center mb-2">
-          <button nz-button nzType="link" (click)="changeApi()" class="px-0">
-            {{ 'header_configuration' | i18nextEager }}
-            <nz-icon [nzType]="apiCollapsed ? 'down' : 'up'" />
-          </button>
-          <button nz-button nzType="text" nz-tooltip [nzTooltipTitle]="'add_params' | i18nextEager" (click)="addArgs()">
-            <nz-icon nzType="plus-circle" nzTheme="outline" class="text-blue-600 text-lg" />
-          </button>
-        </div>
-        <div [hidden]="apiCollapsed">
-          <div class="flex items-center gap-2 mb-2 w-[calc(100%-30px)]">
-            <div class="w-1/2 text-sm text-gray-600 font-medium">
-              <span class="text-red-500 mr-1">*</span>{{ 'param_name' | i18nextEager }}
-            </div>
-            <div class="w-1/2 text-sm text-gray-600 font-medium">
-              <span class="text-red-500 mr-1">*</span>{{ 'param_value' | i18nextEager }}
-            </div>
-          </div>
-          <form #authkeyForm="ngForm">
-            <div class="flex gap-2 items-center mb-3" *ngFor="let param of apiKeyAuthArgs; index as i">
-              <div class="w-1/2">
-                <input nz-input type="text" [name]="'authkeyFormName' + i" maxlength="100" required
-                       [(ngModel)]="param.target_name" [placeholder]="'input_placeholder' | i18nextEager" />
-              </div>
-              <div class="w-1/2">
-                <input nz-input type="password" [name]="'authkeyFormVal' + i" maxlength="20000" required
-                       [(ngModel)]="param.auth_key" [placeholder]="'input_placeholder' | i18nextEager" />
-              </div>
-              <nz-icon *ngIf="i > 0" nzType="delete" nzTheme="outline" class="cursor-pointer text-gray-400 hover:text-red-500" (click)="deleteArgs(i)"></nz-icon>
-              <div *ngIf="i === 0" class="w-3.5"></div>
-            </div>
-          </form>
-        </div>
-      </ng-container>
-
-      <ng-container *ngIf="myForm.value.auth_type === 'CUSTOM_IAM'">
-        <div class="mb-4">
-          <button nz-button nzType="link" (click)="change()" class="px-0">
-            {{ 'auth_configuration' | i18nextEager }}
-            <nz-icon [nzType]="collapsed ? 'down' : 'up'" />
-          </button>
-        </div>
-        <div [hidden]="collapsed">
+        <ng-container *ngIf="myForm.value.verify === 'iam'">
           <nz-form-item>
-            <nz-form-label nzRequired [nzTooltipTitle]="iamTip.iamUrl">{{ 'server_address' | i18nextEager }}</nz-form-label>
-            <nz-form-control [nzErrorTip]="'Required / Invalid URL'"><input nz-input formControlName="iamUrl" [placeholder]="'pls_enter' | i18nextEager" /></nz-form-control>
+            <nz-form-label nzRequired [nzTooltipTitle]="iamTip.iamUser">{{ 'iam_username' | i18nextEager }}</nz-form-label>
+            <nz-form-control [nzErrorTip]="'Required'"><input nz-input formControlName="iamUser" [placeholder]="'pls_enter' | i18nextEager" /></nz-form-control>
           </nz-form-item>
           <nz-form-item>
-            <nz-form-label nzRequired [nzTooltipTitle]="iamTip.iamDomain">{{ 'account_name' | i18nextEager }}</nz-form-label>
-            <nz-form-control [nzErrorTip]="'Required'"><input nz-input formControlName="iamDomain" [placeholder]="'pls_enter' | i18nextEager" /></nz-form-control>
+            <nz-form-label nzRequired [nzTooltipTitle]="iamTip.iamPassword">{{ 'iam_user_password' | i18nextEager }}</nz-form-label>
+            <nz-form-control [nzErrorTip]="'Required'"
+              ><input nz-input type="password" formControlName="iamPassword" [placeholder]="'pls_enter' | i18nextEager"
+            /></nz-form-control>
+          </nz-form-item>
+        </ng-container>
+
+        <ng-container *ngIf="myForm.value.verify === 'aksk'">
+          <nz-form-item>
+            <nz-form-label nzRequired [nzTooltipTitle]="iamTip.iamAK">Access Key ID</nz-form-label>
+            <nz-form-control [nzErrorTip]="'Required'"
+              ><input nz-input type="password" formControlName="iamAK" [placeholder]="'pls_enter' | i18nextEager"
+            /></nz-form-control>
           </nz-form-item>
           <nz-form-item>
-            <nz-form-label nzRequired [nzTooltipTitle]="iamTip.iamProject">{{ 'project' | i18nextEager }}</nz-form-label>
-            <nz-form-control [nzErrorTip]="'Required'"><input nz-input formControlName="iamProject" [placeholder]="'pls_enter' | i18nextEager" /></nz-form-control>
+            <nz-form-label nzRequired [nzTooltipTitle]="iamTip.iamSK">Secret Access Key</nz-form-label>
+            <nz-form-control [nzErrorTip]="'Required'"
+              ><input nz-input type="password" formControlName="iamSK" [placeholder]="'pls_enter' | i18nextEager"
+            /></nz-form-control>
           </nz-form-item>
+        </ng-container>
+      </div>
+    </ng-container>
 
-          <nz-form-item>
-            <nz-form-label>{{ 'verification_mode' | i18nextEager }}</nz-form-label>
-            <nz-form-control>
-              <nz-radio-group formControlName="verify" (ngModelChange)="changeVerifyMethod($event)">
-                <label nz-radio *ngFor="let m of verifyMethods" [nzValue]="m.id">{{ m.label }}</label>
-              </nz-radio-group>
-            </nz-form-control>
-          </nz-form-item>
+    <ng-container *ngIf="myForm.value.auth_type === 'HIS_IAM'">
+      <div [hidden]="collapsed">
+        <nz-form-item
+          ><nz-form-label nzRequired nzTooltipTitle="URL">URL</nz-form-label
+          ><nz-form-control [nzErrorTip]="'Required / Invalid URL'"
+            ><input nz-input formControlName="iamUrl" [placeholder]="'pls_enter' | i18nextEager" /></nz-form-control
+        ></nz-form-item>
+        <nz-form-item
+          ><nz-form-label nzRequired [nzTooltipTitle]="'account' | i18nextEager">{{ 'account' | i18nextEager }}</nz-form-label
+          ><nz-form-control [nzErrorTip]="'Required'"
+            ><input nz-input formControlName="iamAccount" [placeholder]="'pls_enter' | i18nextEager" /></nz-form-control
+        ></nz-form-item>
+        <nz-form-item
+          ><nz-form-label nzRequired [nzTooltipTitle]="'password' | i18nextEager">{{ 'password' | i18nextEager }}</nz-form-label
+          ><nz-form-control [nzErrorTip]="'Required'"
+            ><input nz-input type="password" formControlName="iamSecret" [placeholder]="'pls_enter' | i18nextEager" /></nz-form-control
+        ></nz-form-item>
+        <nz-form-item
+          ><nz-form-label nzRequired [nzTooltipTitle]="'project' | i18nextEager">{{ 'project' | i18nextEager }}</nz-form-label
+          ><nz-form-control [nzErrorTip]="'Required'"
+            ><input nz-input formControlName="iamProject" [placeholder]="'pls_enter' | i18nextEager" /></nz-form-control
+        ></nz-form-item>
+        <nz-form-item
+          ><nz-form-label nzRequired [nzTooltipTitle]="'enterprise' | i18nextEager">{{ 'enterprise' | i18nextEager }}</nz-form-label
+          ><nz-form-control [nzErrorTip]="'Required'"
+            ><input nz-input type="password" formControlName="iamEnterprise" [placeholder]="'pls_enter' | i18nextEager" /></nz-form-control
+        ></nz-form-item>
+        <nz-form-item
+          ><nz-form-label nzRequired nzTooltipTitle="scenarioUuid">scenarioUuid</nz-form-label
+          ><nz-form-control [nzErrorTip]="'Required'"
+            ><input nz-input formControlName="scenarioUuid" [placeholder]="'pls_enter' | i18nextEager" /></nz-form-control
+        ></nz-form-item>
+        <nz-form-item
+          ><nz-form-label nzRequired nzTooltipTitle="userId">userId</nz-form-label
+          ><nz-form-control [nzErrorTip]="'Required'"><input nz-input formControlName="userId" [placeholder]="'pls_enter' | i18nextEager" /></nz-form-control
+        ></nz-form-item>
+      </div>
+    </ng-container>
 
-          <ng-container *ngIf="myForm.value.verify === 'iam'">
-            <nz-form-item>
-              <nz-form-label nzRequired [nzTooltipTitle]="iamTip.iamUser">{{ 'iam_username' | i18nextEager }}</nz-form-label>
-              <nz-form-control [nzErrorTip]="'Required'"><input nz-input formControlName="iamUser" [placeholder]="'pls_enter' | i18nextEager" /></nz-form-control>
-            </nz-form-item>
-            <nz-form-item>
-              <nz-form-label nzRequired [nzTooltipTitle]="iamTip.iamPassword">{{ 'iam_user_password' | i18nextEager }}</nz-form-label>
-              <nz-form-control [nzErrorTip]="'Required'"><input nz-input type="password" formControlName="iamPassword" [placeholder]="'pls_enter' | i18nextEager" /></nz-form-control>
-            </nz-form-item>
-          </ng-container>
+    <ng-container *ngIf="myForm.value.auth_type === 'SGOV'">
+      <div [hidden]="collapsed">
+        <nz-form-item
+          ><nz-form-label nzRequired nzTooltipTitle="URL">URL</nz-form-label
+          ><nz-form-control [nzErrorTip]="'Required / Invalid URL'"
+            ><input nz-input formControlName="sgovUrl" [placeholder]="'pls_enter' | i18nextEager" /></nz-form-control
+        ></nz-form-item>
+        <nz-form-item
+          ><nz-form-label nzRequired nzTooltipTitle="APP ID">APP ID</nz-form-label
+          ><nz-form-control [nzErrorTip]="'Required'"><input nz-input formControlName="appId" [placeholder]="'pls_enter' | i18nextEager" /></nz-form-control
+        ></nz-form-item>
+        <nz-form-item
+          ><nz-form-label nzRequired [nzTooltipTitle]="'credential' | i18nextEager">{{ 'credential' | i18nextEager }}</nz-form-label
+          ><nz-form-control [nzErrorTip]="'Required'"
+            ><input nz-input type="password" formControlName="credential" [placeholder]="'pls_enter' | i18nextEager" /></nz-form-control
+        ></nz-form-item>
+        <nz-form-item
+          ><nz-form-label nzRequired nzTooltipTitle="scenarioUuid">scenarioUuid</nz-form-label
+          ><nz-form-control [nzErrorTip]="'Required'"
+            ><input nz-input formControlName="scenarioUuid" [placeholder]="'pls_enter' | i18nextEager" /></nz-form-control
+        ></nz-form-item>
+      </div>
+    </ng-container>
+  </form>
+</div>
 
-          <ng-container *ngIf="myForm.value.verify === 'aksk'">
-            <nz-form-item>
-              <nz-form-label nzRequired [nzTooltipTitle]="iamTip.iamAK">Access Key ID</nz-form-label>
-              <nz-form-control [nzErrorTip]="'Required'"><input nz-input type="password" formControlName="iamAK" [placeholder]="'pls_enter' | i18nextEager" /></nz-form-control>
-            </nz-form-item>
-            <nz-form-item>
-              <nz-form-label nzRequired [nzTooltipTitle]="iamTip.iamSK">Secret Access Key</nz-form-label>
-              <nz-form-control [nzErrorTip]="'Required'"><input nz-input type="password" formControlName="iamSK" [placeholder]="'pls_enter' | i18nextEager" /></nz-form-control>
-            </nz-form-item>
-          </ng-container>
-        </div>
-      </ng-container>
-
-      <ng-container *ngIf="myForm.value.auth_type === 'HIS_IAM'">
-        <div [hidden]="collapsed">
-          <nz-form-item><nz-form-label nzRequired nzTooltipTitle="URL">URL</nz-form-label><nz-form-control [nzErrorTip]="'Required / Invalid URL'"><input nz-input formControlName="iamUrl" [placeholder]="'pls_enter' | i18nextEager" /></nz-form-control></nz-form-item>
-          <nz-form-item><nz-form-label nzRequired [nzTooltipTitle]="'account'|i18nextEager">{{ 'account' | i18nextEager }}</nz-form-label><nz-form-control [nzErrorTip]="'Required'"><input nz-input formControlName="iamAccount" [placeholder]="'pls_enter' | i18nextEager" /></nz-form-control></nz-form-item>
-          <nz-form-item><nz-form-label nzRequired [nzTooltipTitle]="'password'|i18nextEager">{{ 'password' | i18nextEager }}</nz-form-label><nz-form-control [nzErrorTip]="'Required'"><input nz-input type="password" formControlName="iamSecret" [placeholder]="'pls_enter' | i18nextEager" /></nz-form-control></nz-form-item>
-          <nz-form-item><nz-form-label nzRequired [nzTooltipTitle]="'project'|i18nextEager">{{ 'project' | i18nextEager }}</nz-form-label><nz-form-control [nzErrorTip]="'Required'"><input nz-input formControlName="iamProject" [placeholder]="'pls_enter' | i18nextEager" /></nz-form-control></nz-form-item>
-          <nz-form-item><nz-form-label nzRequired [nzTooltipTitle]="'enterprise'|i18nextEager">{{ 'enterprise' | i18nextEager }}</nz-form-label><nz-form-control [nzErrorTip]="'Required'"><input nz-input type="password" formControlName="iamEnterprise" [placeholder]="'pls_enter' | i18nextEager" /></nz-form-control></nz-form-item>
-          <nz-form-item><nz-form-label nzRequired nzTooltipTitle="scenarioUuid">scenarioUuid</nz-form-label><nz-form-control [nzErrorTip]="'Required'"><input nz-input formControlName="scenarioUuid" [placeholder]="'pls_enter' | i18nextEager" /></nz-form-control></nz-form-item>
-          <nz-form-item><nz-form-label nzRequired nzTooltipTitle="userId">userId</nz-form-label><nz-form-control [nzErrorTip]="'Required'"><input nz-input formControlName="userId" [placeholder]="'pls_enter' | i18nextEager" /></nz-form-control></nz-form-item>
-        </div>
-      </ng-container>
-
-      <ng-container *ngIf="myForm.value.auth_type === 'SGOV'">
-        <div [hidden]="collapsed">
-          <nz-form-item><nz-form-label nzRequired nzTooltipTitle="URL">URL</nz-form-label><nz-form-control [nzErrorTip]="'Required / Invalid URL'"><input nz-input formControlName="sgovUrl" [placeholder]="'pls_enter' | i18nextEager" /></nz-form-control></nz-form-item>
-          <nz-form-item><nz-form-label nzRequired nzTooltipTitle="APP ID">APP ID</nz-form-label><nz-form-control [nzErrorTip]="'Required'"><input nz-input formControlName="appId" [placeholder]="'pls_enter' | i18nextEager" /></nz-form-control></nz-form-item>
-          <nz-form-item><nz-form-label nzRequired [nzTooltipTitle]="'credential'|i18nextEager">{{ 'credential' | i18nextEager }}</nz-form-label><nz-form-control [nzErrorTip]="'Required'"><input nz-input type="password" formControlName="credential" [placeholder]="'pls_enter' | i18nextEager" /></nz-form-control></nz-form-item>
-          <nz-form-item><nz-form-label nzRequired nzTooltipTitle="scenarioUuid">scenarioUuid</nz-form-label><nz-form-control [nzErrorTip]="'Required'"><input nz-input formControlName="scenarioUuid" [placeholder]="'pls_enter' | i18nextEager" /></nz-form-control></nz-form-item>
-        </div>
-      </ng-container>
-    </form>
-  </div>
-
-  <div style="position: sticky; bottom: -24px; margin: 0 -24px -24px -24px; padding: 12px 24px; background: #fff; border-top: 1px solid #f0f0f0; z-index: 50;">
-    <div class="flex justify-end gap-2">
-      <button nz-button nzType="default" (click)="dismiss()">{{ 'cancel' | i18nextEager }}</button>
-      <button nz-button nzType="primary" [nzLoading]="btnLoading" (click)="submit()">{{ 'ok' | i18nextEager }}</button>
-    </div>
-  </div>
+<div class="com-drawer-footer">
+  <button nz-button nzType="default" (click)="dismiss()">{{ 'cancel' | i18nextEager }}</button>
+  <button nz-button nzType="primary" [nzLoading]="btnLoading" (click)="submit()">{{ 'ok' | i18nextEager }}</button>
 </div>

@@ -1,18 +1,21 @@
-<div class="nz-modal-custom-header">
+<div class="com-drawer-title" style="top: 3px">
   {{ title }}
   <div style="font-size: 12px; font-weight: 400; color: #808080">
     {{ 'save_prompt_desc' | i18nextEager }}
   </div>
 </div>
-<div style="height: calc(100vh - 180px);">
-  <div class="flex flex-col gap-4" style="height: calc(100vh - 210px); overflow: auto;">
-    <form nz-form nzLayout="vertical" [formGroup]="savePromptForm">
+<div class="com-drawer-content">
+  <form nz-form nzLayout="vertical" [formGroup]="savePromptForm">
     <nz-form-item>
       <nz-form-label [nzRequired]="true">{{ savePromptFormLabel.name }}</nz-form-label>
       <nz-form-control [nzErrorTip]="nameTpl">
         <input [placeholder]="'input_placeholder' | i18nextEager" class="w-full" formControlName="name" nz-input />
         <ng-template #nameTpl let-control>
-          @if (control.hasError('required')) { 必须输入 }@else{ {{ control.errors.invalidName.tiErrorMessage}} }
+          @if (control.hasError('required')) {
+            必须输入
+          } @else {
+            {{ control.errors.invalidName.tiErrorMessage }}
+          }
         </ng-template>
       </nz-form-control>
     </nz-form-item>
@@ -29,18 +32,13 @@
     <nz-form-item>
       <nz-form-label [nzRequired]="true">{{ savePromptFormLabel.type }}</nz-form-label>
       <nz-form-control>
-        <nz-select
-          (ngModelChange)="handleTypeSelect($event)"
-          formControlName="type"
-          [nzPlaceHolder]="'select_type' | i18nextEager"
-          style="width: 100%"
-        >
+        <nz-select (ngModelChange)="handleTypeSelect($event)" formControlName="type" [nzPlaceHolder]="'select_type' | i18nextEager" style="width: 100%">
           @for (item of promptTypeOptions; track item) {
             <nz-option [nzLabel]="item.label" [nzValue]="item.value" />
           }
         </nz-select>
       </nz-form-control>
-    </nz-form-item> 
+    </nz-form-item>
     <nz-form-item>
       <nz-form-label>{{ savePromptFormLabel.tags }}</nz-form-label>
       <nz-form-control>
@@ -89,10 +87,9 @@
       </nz-form-control>
     </nz-form-item>
   </form>
-  </div>
 </div>
 <!-- 页脚结构 -->
-<div class="nz-modal-custom-footer">
+<div class="com-drawer-footer">
   <div class="flex gap-2 flex-right">
     <button (click)="dismiss()" nz-button nzType="default">{{ 'cancel' | i18nextEager }}</button>
     <ng-container *ngIf="isOptimize && promptSaveInitInfo.promptId; else common_save">

@@ -1,100 +1,87 @@
-<div class="flex flex-col h-full">
-  <div class="text-lg font-medium px-6 py-4 border-b border-gray-200">
-    <span>{{ 'config_env_variables' | i18nextEager }}</span>
-  </div>
+<div class="com-drawer-title">
+  <span>{{ 'config_env_variables' | i18nextEager }}</span>
+</div>
 
-  <div id="config-env-variable" class="flex-1 overflow-y-auto px-6 py-4">
-    <div class="operate-button">
-      <button nz-button nzType="default" (click)="openImportModal()" class="button-right">
-        {{ 'import_and_parse' | i18nextEager }}
-      </button>
-      <button nz-button nzType="default" (click)="clearVariables()">
-        {{ 'clear_variables' | i18nextEager }}
-      </button>
-    </div>
-
-    <div *ngIf="envFormGroups.length > 0" class="list-content">
-      <div class="flex button-right mb-2 text-sm text-gray-700">
-        <div style="flex: 1">{{ 'variable_name' | i18nextEager }}</div>
-        <div style="flex: 1; padding-left: 6px">{{ 'base_var_value' | i18nextEager }}</div>
-        <div style="width: 41px; text-align: center;">{{ 'encrypt' | i18nextEager }}</div>
-        <div style="width: 20px"></div>
-      </div>
-
-      <form nz-form class="form-top">
-        <div *ngFor="let formGroup of envFormGroups; let i = index" class="item-style mb-4">
-          <div style="flex: 1; margin-right: 8px">
-            <input
-              nz-input
-              [formControl]="getFormControl(formGroup, 'name')"
-              (blur)="getFormControl(formGroup, 'name').markAsTouched()"
-              [placeholder]="'variable_name'|i18nextEager"
-              maxlength="64"
-              style="width: 100%;"
-            />
-            <div *ngIf="(getFormControl(formGroup, 'name').touched || formSubmitted) && getFormControl(formGroup, 'name').invalid" class="tip-content">
-              {{ getErrorMessage(formGroup, 'name') }}
-            </div>
-          </div>
-
-          <div style="flex: 1; margin-right: 8px">
-            <ng-container *ngIf="getFormControl(formGroup, 'secret').value; else plainTextInput">
-              <input
-                nz-input
-                type="password"
-                [formControl]="getFormControl(formGroup, 'value')"
-                (blur)="getFormControl(formGroup, 'value').markAsTouched()"
-                [placeholder]="'base_var_value' | i18nextEager"
-                maxlength="2000"
-                style="width: 100%;"
-              />
-            </ng-container>
-
-            <ng-template #plainTextInput>
-              <input
-                nz-input
-                type="text"
-                [formControl]="getFormControl(formGroup, 'value')"
-                (blur)="getFormControl(formGroup, 'value').markAsTouched()"
-                [placeholder]="'base_var_value' | i18nextEager"
-                style="width: 100%;"
-              />
-            </ng-template>
-
-            <div *ngIf="(getFormControl(formGroup, 'value').touched || formSubmitted) && getFormControl(formGroup, 'value').invalid" class="tip-content">
-              {{ getErrorMessage(formGroup, 'value') }}
-            </div>
-          </div>
-
-          <div style="display: flex; justify-content: center; align-items: center; width: 41px; height: 32px;">
-            <label
-              nz-checkbox
-              [formControl]="getFormControl(formGroup, 'secret')"
-              (ngModelChange)="onSecretChange(i, $event)"
-            ></label>
-          </div>
-
-          <div style="width: 20px; display: flex; justify-content: center; align-items: center; height: 32px;">
-            <span
-              nz-icon
-              nzType="delete"
-              class="cursor-pointer text-gray-400 hover:text-red-500 text-[16px]"
-              (click)="removeVariable(i)"
-            ></span>
-          </div>
-        </div>
-      </form>
-    </div>
-
-    <button nz-button nzType="link" (click)="addVariable()" class="!px-0 text-[#1476ff]">
-      + {{'add_variables' | i18nextEager}}
+<div id="config-env-variable" class="com-drawer-content">
+  <div class="operate-button">
+    <button nz-button nzType="default" (click)="openImportModal()" class="button-right">
+      {{ 'import_and_parse' | i18nextEager }}
+    </button>
+    <button nz-button nzType="default" (click)="clearVariables()">
+      {{ 'clear_variables' | i18nextEager }}
     </button>
   </div>
 
-  <div class="px-6 py-4 border-t border-gray-200 flex justify-end gap-2 bg-white">
-    <button nz-button nzType="default" (click)="dismiss()">{{ 'cancel' | i18nextEager }}</button>
-    <button nz-button nzType="primary" (click)="closeConfirm()">{{ 'ok' | i18nextEager }}</button>
+  <div *ngIf="envFormGroups.length > 0" class="list-content">
+    <div class="flex button-right mb-2 text-sm text-gray-700">
+      <div style="flex: 1">{{ 'variable_name' | i18nextEager }}</div>
+      <div style="flex: 1; padding-left: 6px">{{ 'base_var_value' | i18nextEager }}</div>
+      <div style="width: 41px; text-align: center">{{ 'encrypt' | i18nextEager }}</div>
+      <div style="width: 20px"></div>
+    </div>
+
+    <form nz-form class="form-top">
+      <div *ngFor="let formGroup of envFormGroups; let i = index" class="item-style mb-4">
+        <div style="flex: 1; margin-right: 8px">
+          <input
+            nz-input
+            [formControl]="getFormControl(formGroup, 'name')"
+            (blur)="getFormControl(formGroup, 'name').markAsTouched()"
+            [placeholder]="'variable_name' | i18nextEager"
+            maxlength="64"
+            style="width: 100%"
+          />
+          <div *ngIf="(getFormControl(formGroup, 'name').touched || formSubmitted) && getFormControl(formGroup, 'name').invalid" class="tip-content">
+            {{ getErrorMessage(formGroup, 'name') }}
+          </div>
+        </div>
+
+        <div style="flex: 1; margin-right: 8px">
+          <ng-container *ngIf="getFormControl(formGroup, 'secret').value; else plainTextInput">
+            <input
+              nz-input
+              type="password"
+              [formControl]="getFormControl(formGroup, 'value')"
+              (blur)="getFormControl(formGroup, 'value').markAsTouched()"
+              [placeholder]="'base_var_value' | i18nextEager"
+              maxlength="2000"
+              style="width: 100%"
+            />
+          </ng-container>
+
+          <ng-template #plainTextInput>
+            <input
+              nz-input
+              type="text"
+              [formControl]="getFormControl(formGroup, 'value')"
+              (blur)="getFormControl(formGroup, 'value').markAsTouched()"
+              [placeholder]="'base_var_value' | i18nextEager"
+              style="width: 100%"
+            />
+          </ng-template>
+
+          <div *ngIf="(getFormControl(formGroup, 'value').touched || formSubmitted) && getFormControl(formGroup, 'value').invalid" class="tip-content">
+            {{ getErrorMessage(formGroup, 'value') }}
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: center; align-items: center; width: 41px; height: 32px">
+          <label nz-checkbox [formControl]="getFormControl(formGroup, 'secret')" (ngModelChange)="onSecretChange(i, $event)"></label>
+        </div>
+
+        <div style="width: 20px; display: flex; justify-content: center; align-items: center; height: 32px">
+          <span nz-icon nzType="delete" class="cursor-pointer text-gray-400 hover:text-red-500 text-[16px]" (click)="removeVariable(i)"></span>
+        </div>
+      </div>
+    </form>
   </div>
+
+  <button nz-button nzType="link" (click)="addVariable()" class="!px-0 text-[#1476ff]">+ {{ 'add_variables' | i18nextEager }}</button>
+</div>
+
+<div class="com-drawer-footer">
+  <button nz-button nzType="default" (click)="dismiss()">{{ 'cancel' | i18nextEager }}</button>
+  <button nz-button nzType="primary" (click)="closeConfirm()">{{ 'ok' | i18nextEager }}</button>
 </div>
 
 <ng-template #importModal let-modal>

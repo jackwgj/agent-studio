@@ -44,7 +44,6 @@
     <div class="card-scroll-container" *ngIf="!isFirstLoading">
       <div
         class="model-card-main"
-        [style]="{ maxHeight: isShowNoDataGuide ? 'calc(100vh - 200px)' : isShowGuide ? 'calc(100vh - 520px)' : 'calc(100vh - 300px)' }"
       >
         <div
           *ngFor="let dataItem of customData.data"

@@ -1,8 +1,8 @@
-<div class="memory-lib-reference-modal-header">
+<div class="com-drawer-title">
   {{ 'memory.management.modal.deleteReferencedList' | i18nextEager }}
 </div>
 
-<div class="memory-lib-reference-container">
+<div class="com-drawer-content">
   <!-- 标签页 -->
   <nz-tabset [(nzSelectedIndex)]="activeTabIndex" (nzSelectedIndexChange)="onTabChange($event)">
     @for (tab of tabs; track tab.id) {
@@ -23,11 +23,11 @@
     [nzScroll]="{ y: '400px' }"
   >
     <thead>
-    <tr>
-      @for (column of columns; track column.title) {
-        <th>{{ column.title }}</th>
-      }
-    </tr>
+      <tr>
+        @for (column of columns; track column.title) {
+          <th>{{ column.title }}</th>
+        }
+      </tr>
     </thead>
     <tbody>
       @for (row of basicTable.data; track row.app_id) {
@@ -44,9 +44,4 @@
       }
     </tbody>
   </nz-table>
-
-  <!-- 无数据展示 -->
-  @if (!isLoading && !srcData.data.length) {
-    <app-common-no-data class="memory-lib-reference-no-data"></app-common-no-data>
-  }
 </div>

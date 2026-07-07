@@ -106,7 +106,7 @@
       <div class="loading-icon" *ngIf="isLoading">
         <nz-spin></nz-spin>
       </div>
-      <div class="mb-[16px] overflow-y-auto max-h-[calc(100%-60px)]" *ngIf="!isLoadingCard && cards.length && !isLoading">
+      <div class="mb-[16px] overflow-y-auto" *ngIf="!isLoadingCard && cards.length && !isLoading">
         <div class="cards-wrapper com-cards-wrapper">
           <component-card
             style="border: 1px solid rgba(230, 230, 230, 1); border-radius: 16px"

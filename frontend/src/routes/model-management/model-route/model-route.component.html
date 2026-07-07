@@ -5,11 +5,7 @@
       <div *ngIf="srcData.data?.length > 0">（{{ totalNumber }}）</div>
     </div>
     <div class="flex gap-[16px]">
-      <div
-        *ngIf="!isShowNoDataGuide && !isFirstLoading"
-        class="guide-collapse-btn flex items-center cursor-pointer"
-        (click)="isShowGuide = !isShowGuide"
-      >
+      <div *ngIf="!isShowNoDataGuide && !isFirstLoading" class="guide-collapse-btn flex items-center cursor-pointer" (click)="isShowGuide = !isShowGuide">
         <span nz-icon [nzType]="isShowGuide ? 'down' : 'up'" class="mr-[4px]"></span>
         <span>{{ 'create_guide' | i18nextEager }}</span>
       </div>
@@ -19,22 +15,17 @@
     </div>
   </div>
 
-  <div class="overflow-hidden guide-collapse-content shrink-0 " *ngIf="!isShowNoDataGuide && !isFirstLoading"
-       [ngClass]="{'h-[188px]': isShowGuide, 'h-[0px]': !isShowGuide, 'mb-[24px]': isShowGuide}"
+  <div
+    class="overflow-hidden guide-collapse-content shrink-0"
+    *ngIf="!isShowNoDataGuide && !isFirstLoading"
+    [ngClass]="{ 'h-[188px]': isShowGuide, 'h-[0px]': !isShowGuide, 'mb-[24px]': isShowGuide }"
   >
-    <app-no-data-guide
-      [isSmall]="true"
-      [type]="'routePolicy'"
-    ></app-no-data-guide>
+    <app-no-data-guide [isSmall]="true" [type]="'routePolicy'"></app-no-data-guide>
   </div>
 
   <div class="query-content" *ngIf="!isShowNoDataGuide && !isFirstLoading">
     <nz-input-group nzSearch [nzSuffix]="suffixIconSearch" class="search-box">
-      <input nz-input
-             [(ngModel)]="searchName"
-             [placeholder]="'search_and_filter'|i18nextEager"
-             [maxLength]="64"
-             (keyup.enter)="onSearchContentChange()" />
+      <input nz-input [(ngModel)]="searchName" [placeholder]="'search_and_filter' | i18nextEager" [maxLength]="64" (keyup.enter)="onSearchContentChange()" />
     </nz-input-group>
     <ng-template #suffixIconSearch>
       <span nz-icon nzType="search" (click)="onSearchContentChange()" class="cursor-pointer"></span>
@@ -55,55 +46,52 @@
       [nzFrontPagination]="false"
       class="table-style"
       [nzNoResult]="noDataTemplate"
-      [ngStyle]="{'border': isShowNoDataGuide ? '' : '1px solid rgba(240, 240, 240, 1)' ,'overflow':'auto', maxHeight: isShowNoDataGuide ? 'calc(100vh - 200px)' : isShowGuide ? 'calc(100vh - 520px)' : 'calc(100vh - 300px)'}"
     >
       <thead *ngIf="!isShowNoDataGuide">
-      <tr>
-        <th *ngFor="let column of columns" [nzWidth]="column.width || null">{{ column.title }}</th>
-      </tr>
+        <tr>
+          <th *ngFor="let column of columns" [nzWidth]="column.width || null">{{ column.title }}</th>
+        </tr>
       </thead>
       <tbody>
-      <tr *ngFor="let row of basicTable.data; index as i" style="height:64px;">
-        <td>
-          <span style="color: rgba(20, 118, 255, 1); cursor: pointer" (click)="goStrategyDetail(row)">{{ row.strategy_name }}</span>
-        </td>
-        <td>{{ row.strategy_description }}</td>
-        <td>{{ row.strategy_key }}</td>
-        <td>{{ row.strategy_key }}</td>
-        <td>{{ row.created_date }}</td>
-        <td>{{ row.last_updated_date }}</td>
-        <td>
-          <a nz-dropdown [nzDropdownMenu]="menu">
-            <span nz-icon nzType="ellipsis" style="font-size: 20px; color: #191919;"></span>
-          </a>
-          <nz-dropdown-menu #menu="nzDropdownMenu">
-            <ul nz-menu>
-              <li nz-menu-item *ngFor="let item of dataToItems" [nzDisabled]="item.disabled" (click)="onSelect(item, row)">
-                <div class="flex items-center gap-[6px]">
-                  <img alt="" [src]="item.icon" class="w-4 h-4" />
-                  <span>{{ item.label }}</span>
-                </div>
-              </li>
-            </ul>
-          </nz-dropdown-menu>
-        </td>
-      </tr>
+        <tr *ngFor="let row of basicTable.data; index as i" style="height: 64px">
+          <td style="word-break:break-all">
+            <span style="word-break:break-all;color: rgba(20, 118, 255, 1); cursor: pointer" (click)="goStrategyDetail(row)">{{ row.strategy_name }}</span>
+          </td>
+          <td>{{ row.strategy_description }}</td>
+          <td style="word-break:break-all">{{ row.strategy_key }}</td>
+          <td style="word-break:break-all">{{ row.strategy_key }}</td>
+          <td>{{ row.created_date }}</td>
+          <td>{{ row.last_updated_date }}</td>
+          <td>
+            <a nz-dropdown [nzDropdownMenu]="menu">
+              <span nz-icon nzType="ellipsis" style="font-size: 20px; color: #191919"></span>
+            </a>
+            <nz-dropdown-menu #menu="nzDropdownMenu">
+              <ul nz-menu>
+                <li nz-menu-item *ngFor="let item of dataToItems" [nzDisabled]="item.disabled" (click)="onSelect(item, row)">
+                  <div class="flex items-center gap-[6px]">
+                    <img alt="" [src]="item.icon" class="w-4 h-4" />
+                    <span>{{ item.label }}</span>
+                  </div>
+                </li>
+              </ul>
+            </nz-dropdown-menu>
+          </td>
+        </tr>
       </tbody>
     </nz-table>
 
     <ng-template #noDataTemplate>
-      <div style="text-align: center;" class="py-6">
+      <div style="text-align: center" class="py-6">
         <app-new-common-no-data-with-btn
           *ngIf="searchName"
           [type]="'filterNoData'"
           [tutorialType]="'routPolicy'"
-          [noDataBtnStr]="(subscribeBtnStatus?'create_route_policy':'')| i18nextEager"
+          [noDataBtnStr]="(subscribeBtnStatus ? 'create_route_policy' : '') | i18nextEager"
           (create)="addRoutePolicy()"
-          (clear)="onClearSearchContentChange()"/>
-        <app-no-data-guide
-          *ngIf="!searchName"
-          [type]="'routePolicy'"
-        ></app-no-data-guide>
+          (clear)="onClearSearchContentChange()"
+        />
+        <app-no-data-guide *ngIf="!searchName" [type]="'routePolicy'"></app-no-data-guide>
       </div>
     </ng-template>
 
@@ -115,7 +103,8 @@
         [nzPageSizeOptions]="pageSize.options"
         nzShowSizeChanger
         (nzPageIndexChange)="getModelRouterStrategiesListFn()"
-        (nzPageSizeChange)="onSearchContentChange()">
+        (nzPageSizeChange)="onSearchContentChange()"
+      >
       </nz-pagination>
     </div>
   </div>

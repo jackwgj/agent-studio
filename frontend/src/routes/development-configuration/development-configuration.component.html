@@ -1,5 +1,5 @@
-<div class="h-full overflow-y-scroll">
-  <div id="development-configuration" style="height: 100%">
+<div class="flex flex-col h-full overflow-y-scroll" id="development-configuration">
+  <div>
     <nz-tabset [(nzSelectedIndex)]="selectedIndex" (nzSelectedIndexChange)="handleTabChange($event)">
       @for (tab of activeTabs; track tab.id) {
         <nz-tab [nzTitle]="tab.i18nKey | i18nextEager">

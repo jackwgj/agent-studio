@@ -1,9 +1,8 @@
-<div class="run-modal-wrapper run-modal-show h-full w-[600px]">
-  <div class="header">
-    <div class="flex items-center gap-[8px]">
-      <div class="title">{{ 'debugging' | i18nextEager }}</div>
-    </div>
-  </div>
+<div class="com-drawer-title">
+  {{ 'debugging' | i18nextEager }}
+</div>
+
+<div class="run-modal-wrapper run-modal-show com-drawer-content w-[600px]">
   <div class="content">
     <div class="exec-list">
       <nz-dropdown-menu #menu="nzDropdownMenu">

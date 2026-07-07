@@ -541,26 +541,22 @@
     </ng-container>
   </nz-drawer>
 
-  <nz-drawer
-    #modal1
-    id="tp"
-    [nzVisible]="showTriggerModal"
-    [nzPlacement]="'right'"
-    [nzClosable]="true"
-    [nzWidth]="500"
-    (nzOnClose)="showTriggerModal = false"
-  >
+  <nz-drawer #modal1 id="tp" [nzVisible]="showTriggerModal" [nzPlacement]="'right'" [nzClosable]="true" [nzWidth]="500" (nzOnClose)="showTriggerModal = false">
     <ng-container *nzDrawerContent>
-      <span class="title-text">{{ 'trigger_setting'|i18nextEager }}</span>
-      <tool-list
-        [toolAdded]="triggerAdded"
-        [noDataText]="triggerEmptyText"
-        [isFlowReadonly]="isFlowReadonly"
-        [agentType]="'workflow'"
-        (collapseRegionFlag)="changeCollapsedState($event)"
-        (addBtnClickedFlag)="openTriggerHalfmodal($event, 'workflow')"
-        (deleteTrigger)="deleteTrigger($event)"
-      ></tool-list>
+      <div class="com-drawer-title">
+        <span class="title-text">{{ 'trigger_setting' | i18nextEager }}</span>
+      </div>
+      <div class="com-drawer-content">
+        <tool-list
+          [toolAdded]="triggerAdded"
+          [noDataText]="triggerEmptyText"
+          [isFlowReadonly]="isFlowReadonly"
+          [agentType]="'workflow'"
+          (collapseRegionFlag)="changeCollapsedState($event)"
+          (addBtnClickedFlag)="openTriggerHalfmodal($event, 'workflow')"
+          (deleteTrigger)="deleteTrigger($event)"
+        ></tool-list>
+      </div>
     </ng-container>
   </nz-drawer>
 

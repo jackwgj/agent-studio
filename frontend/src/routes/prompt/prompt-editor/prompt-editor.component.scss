@@ -19,7 +19,7 @@
   overflow-wrap: break-word; /* 允许长文本/单词在中间换行，避免溢出 */
 }
 .placeholder{
-  transform: translate(8px,0px);
+  padding-left: 8px;
   height: 0;
   color: rgba(128, 128, 128, 1);
   font-family: PingFang SC;

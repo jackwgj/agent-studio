@@ -1,6 +1,6 @@
-<layout-page [showTpLayout]="false">
-  <div mainContent id="library-home-page">
-    <div class="flex flex-1 flex-col page-container" style="overflow: hidden;">
+<div class="flex flex-col h-full overflow-y-scroll bg-[#ffffff]">
+  <div id="library-home-page">
+    <div class="flex flex-1 flex-col page-container">
       <nz-tabs [(nzSelectedIndex)]="tabSelectIndex" (nzSelectedIndexChange)="handleTabChange($event)">
         <nz-tab
           *ngFor="let tab of tabs; index as i"
@@ -19,4 +19,4 @@
       </div>
     </div>
   </div>
-</layout-page>
+</div>

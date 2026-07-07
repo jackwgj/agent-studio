@@ -740,3 +740,23 @@ ti-grid {
 .h-100p {
   height: 100% !important;
 }
+
+.com-drawer-title {
+  font-size: 16px;
+  font-weight: 600;
+  position: absolute;
+  top: 11px;
+  left: 55px;
+}
+
+.com-drawer-content {
+  height: calc(100vh - 153px);
+  overflow: auto;
+}
+
+.com-drawer-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 24px;
+}
