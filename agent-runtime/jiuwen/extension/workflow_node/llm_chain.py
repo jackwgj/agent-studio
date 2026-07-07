@@ -42,7 +42,7 @@ PARTIAL_CONTENT = "partial_content"
 JIUWEN_LLM_TYPE = "jiuwen.LLMComponent"
 MEMORY_MESSAGE = "memory_message"
 
-CHAT_HISTORY_MAX_TURN = 3
+CHAT_HISTORY_MAX_TURN_DEFAULT = 3
 _ROLE = "role"
 _CONTENT = "content"
 ROLE_MAP = {"user": "用户", "assistant": "助手", "system": "系统"}
@@ -714,8 +714,7 @@ class LLMChain(WorkflowComponent):
         if system_prompt:
             messages.append({"role": "system", "content": system_prompt})
         if chat_history:
-            # 历史消息不含最后一条（当前用户消息由模板渲染提供）
-            for history in chat_history[:-1][-CHAT_HISTORY_MAX_TURN:]:
+            for history in self._truncate_history_by_turn(chat_history, self._get_history_size()):
                 role = history.get("role", "user")
                 content = history.get("content", "")
                 if role in ("user", "assistant", "system") and content:
@@ -1148,6 +1147,42 @@ class LLMChain(WorkflowComponent):
         """获取是否启用历史记录"""
         return self._conf.get("enableHistory", False)
 
+    def _get_history_size(self) -> int:
+        """获取对话历史截断轮数，优先读取 IR 配置中的 historySize，否则使用默认值"""
+        return self._conf.get("historySize", CHAT_HISTORY_MAX_TURN_DEFAULT)
+
+    @staticmethod
+    def _truncate_history_by_turn(chat_history: list[dict], num_turns: int) -> list[dict]:
+        """按轮数截取对话历史。
+
+        1 轮 = 1 条 user 消息 + 其对应的所有回复 (assistant/function/tool 等)。
+        从后往前按 user 消息计数，确保截断起点一定是 user 消息，
+        避免残留孤立的 assistant/tool 消息导致模型上下文不完整。
+
+        Args:
+            chat_history: 对话历史列表，每项为 {role, content} 字典
+            num_turns: 对话轮数
+
+        Returns:
+            最近 num_turns 轮的消息
+        """
+        if not chat_history or num_turns <= 0:
+            return []
+
+        start_index = 0
+        user_count = 0
+        for i in range(len(chat_history) - 1, -1, -1):
+            if chat_history[i].get("role") == "user":
+                user_count += 1
+                if user_count == num_turns:
+                    start_index = i
+                    break
+
+        if user_count < num_turns:
+            return chat_history
+
+        return chat_history[start_index:]
+
     def _process_inputs(self, inputs: dict):
         """处理输入数据 - 预埋 CHAT_HISTORY 变量"""
         if not self._get_enable_history():
@@ -1155,10 +1190,8 @@ class LLMChain(WorkflowComponent):
             return
 
         chat_history = self._get_chat_history()
-        # 排除最后一条（当前用户消息），只保留历史对话
-        history_only = chat_history[:-1] if chat_history else []
         full_input = ""
-        for history in history_only[-CHAT_HISTORY_MAX_TURN:]:
+        for history in self._truncate_history_by_turn(chat_history, self._get_history_size()):
             full_input += "{}：{}\n".format(
                 ROLE_MAP.get(history.get("role", "user"), "用户"),
                 history.get("content"),

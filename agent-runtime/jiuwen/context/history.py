@@ -210,6 +210,37 @@ class ConversationHistory:
             return self._msgs_safe_truncat(filtered_history[-num:])
         return filtered_history
 
+    def get_messages_by_turn(self, num_turns: int) -> List[ConversationMessage]:
+        """
+        获取最近 num_turns 轮对话的消息。
+
+        1 轮 = 1 条 user 消息 + 其对应的所有回复 (assistant/function/tool 等)。
+        从后往前按 user 消息计数，确保截断起点一定是 user 消息，
+        避免残留孤立的 function/tool 消息导致模型上下文不完整。
+
+        Args:
+            num_turns: 对话轮数，最多返回最近 num_turns 轮的所有消息
+
+        Returns:
+            最近 num_turns 轮的所有消息（包含中间的工具调用消息）
+        """
+        if not self._msgs or num_turns <= 0:
+            return []
+
+        start_index = 0
+        user_count = 0
+        for i in range(len(self._msgs) - 1, -1, -1):
+            if self._msgs[i].role == "user":
+                user_count += 1
+                if user_count == num_turns:
+                    start_index = i
+                    break
+
+        if user_count < num_turns:
+            return self._msgs.copy()
+
+        return self._msgs_safe_truncat(self._msgs[start_index:])
+
     def get_conversation_history(self, filter_history: bool = False) -> List[Dict]:
         """
         过滤工具调用命令消息和工具执行结果消息， 只保留用户输入和Agent回复
