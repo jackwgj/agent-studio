@@ -64,9 +64,9 @@ class ContextEngine:
             else self.history.get_all_messages()
         )
 
-    def get_latest_k_chat_history_dict(self, num: int) -> List[Dict[str, Any]]:
-        """Get recent 'num' turns of conversation history, in dictionary format."""
-        messages = self.get_messages(filters={"num": num})
+    def get_latest_k_chat_history_dict(self, k: int) -> List[Dict[str, Any]]:
+        """Get recent 'k' turns of conversation history, in dictionary format."""
+        messages = self.history.get_messages_by_turn(k)
         return self.history.convert_messages_to_chat_history_dict(messages)
 
     def add_message(self, message: ConversationMessage):
