@@ -492,6 +492,220 @@ POST /v1/{project_id}/agent-runtime/upload-file
 
 ---
 
+#### 4.1.4 发布智能体版本
+
+**功能介绍**
+
+该接口用于发布指定智能体应用的新版本，创建 DSL 和 IR 文件的版本快照，并记录版本信息。
+
+**适用场景**
+
+- 将智能体应用的当前配置发布为一个新的版本
+- 为智能体应用创建版本快照，便于后续回滚或管理
+
+**URI**
+
+```
+POST /v1/{project_id}/agent-manager/agents/{agent_id}/versions?workspace_id={workspace_id}
+```
+
+**路径参数**
+
+| 参数 | 必选 | 类型 | 描述 |
+|------|------|------|------|
+| project_id | 是 | String | 项目 ID |
+| agent_id | 是 | String | 智能体 ID，长度不超过 64 字符，仅支持字母、数字、下划线和连字符 |
+
+**Query 参数**
+
+| 参数 | 必选 | 类型 | 描述 |
+|------|------|------|------|
+| workspace_id | 是 | String | 项目空间 ID，长度 1 至 64 字符 |
+
+**请求 Header 参数**
+
+| 参数 | 必选 | 类型 | 描述 |
+|------|------|------|------|
+| Content-Type | 是 | String | 默认 `application/json` |
+| Authorization | 否 | String | 平台 API Key |
+| X-Auth-Token | 否 | String | 用户 Token |
+
+**请求 Body 参数**
+
+| 参数 | 必选 | 类型 | 描述 |
+|------|------|------|------|
+| version_name | 是 | String | 版本名称，长度不超过 64 字符 |
+| version_note | 否 | String | 版本备注，长度不超过 1024 字符 |
+
+**响应 Body 参数**
+
+状态码：200
+
+该接口成功响应无返回体。
+
+状态码：400 / 403 / 404 / 500
+
+| 参数 | 类型 | 描述 |
+|------|------|------|
+| error_code | String | 错误码 |
+| error_msg | String | 错误信息 |
+| error_reason | String | 错误原因 |
+| error_suggestion | String | 错误处理建议 |
+| details | Array of ErrorDetail | 调用接口返回的错误详细信息 |
+
+**状态码**
+
+| 状态码 | 描述 |
+|--------|------|
+| 200 | 创建智能体版本成功 |
+| 400 | 请求错误，如参数无效或版本名称已存在 |
+| 403 | 没有操作权限 |
+| 404 | 找不到资源，如智能体不存在 |
+| 500 | 服务内部错误 |
+
+**请求示例**
+
+```json
+{
+  "method": "POST",
+  "url": "https://api.example.com/v1/{project_id}/agent-manager/agents/{agent_id}/versions?workspace_id={workspace_id}",
+  "headers": {
+    "Content-Type": "application/json",
+    "Authorization": "Bearer {API_KEY}"
+  },
+  "body": {
+    "version_name": "v1.0.0",
+    "version_note": "初始发布版本"
+  }
+}
+```
+
+**响应示例**
+
+成功响应（状态码：200）：
+
+无返回体。
+
+错误响应（状态码：400）：
+
+```json
+{
+  "error_msg": "The version name already existed."
+}
+```
+
+---
+
+#### 4.1.5 发布工作流版本
+
+**功能介绍**
+
+该接口用于发布指定工作流应用的新版本，创建工作流 DSL 和 IR 文件的版本快照，校验工作流配置，并返回发布的版本 ID。
+
+**适用场景**
+
+- 将工作流应用的当前配置发布为一个新的版本
+- 在发布前自动校验工作流配置的有效性
+- 为工作流应用创建版本快照，便于后续回滚或管理
+
+**URI**
+
+```
+POST /v1/{project_id}/agent-manager/workflows/{workflow_id}/versions?workspace_id={workspace_id}
+```
+
+**路径参数**
+
+| 参数 | 必选 | 类型 | 描述 |
+|------|------|------|------|
+| project_id | 是 | String | 租户项目 ID，长度不超过 64 字符，仅支持字母、数字、下划线和连字符 |
+| workflow_id | 是 | String | 工作流 ID，长度不超过 64 字符，仅支持字母、数字、下划线和连字符 |
+
+**Query 参数**
+
+| 参数 | 必选 | 类型 | 描述 |
+|------|------|------|------|
+| workspace_id | 是 | String | 项目空间 ID，长度 1 至 64 字符 |
+
+**请求 Header 参数**
+
+| 参数 | 必选 | 类型 | 描述 |
+|------|------|------|------|
+| Content-Type | 是 | String | 默认 `application/json` |
+| Authorization | 否 | String | 平台 API Key |
+| X-Auth-Token | 否 | String | 用户 Token |
+
+**请求 Body 参数**
+
+| 参数 | 必选 | 类型 | 描述 |
+|------|------|------|------|
+| version_name | 是 | String | 版本名称，长度不超过 64 字符 |
+| version_note | 否 | String | 版本备注，长度不超过 1024 字符 |
+
+**响应参数**
+
+状态码：200
+
+| 参数 | 类型 | 描述 |
+|------|------|------|
+| version_id | String | 发布的版本 ID |
+
+状态码：400 / 401 / 403 / 404 / 500
+
+| 参数 | 类型 | 描述 |
+|------|------|------|
+| error_code | String | 错误码 |
+| error_msg | String | 错误信息 |
+| error_reason | String | 错误原因 |
+| error_suggestion | String | 错误处理建议 |
+| details | Array of ErrorDetail | 调用接口返回的错误详细信息 |
+
+**状态码**
+
+| 状态码 | 描述 |
+|--------|------|
+| 200 | 发布版本号 |
+| 400 | 请求错误，如参数无效、版本名称已存在或工作流校验失败 |
+| 401 | 鉴权失败 |
+| 403 | 没有操作权限 |
+| 404 | 找不到资源 |
+| 500 | 服务内部错误，如工作流不存在 |
+
+**请求示例**
+
+```json
+{
+  "method": "POST",
+  "url": "https://api.example.com/v1/{project_id}/agent-manager/workflows/{workflow_id}/versions?workspace_id={workspace_id}",
+  "headers": {
+    "Content-Type": "application/json",
+    "Authorization": "Bearer {API_KEY}"
+  },
+  "body": {
+    "version_name": "v1.0.0",
+    "version_note": "初始发布版本"
+  }
+}
+```
+
+**响应示例**
+
+成功响应（状态码：200）：
+
+```json
+"1783341175105"
+```
+
+错误响应（状态码：400）：
+
+```json
+{
+  "error_msg": "The version name already existed."
+}
+```
+
+---
+
 ### 4.2 知识库
 
 #### 4.2.1 知识库检索
@@ -889,6 +1103,10 @@ stream: true
 | 403 | OpenJiuwen.02201020 | Insufficient workflow execution permissions | 当前执行请求的 projectId 与工作流所属的 projectId 不一致 | 确保当前空间中的 projectId 与工作流所属的 projectId 一致 |
 | 404 | OpenJiuwen.02101007 | Agent does not exist | 请求的智能体应用未找到或已被删除 | 确认该应用是否存在 |
 | 500 | OpenJiuwen.02201004 | Workflow or workflow version does not exist | 请求中的工作流 ID 在当前项目和工作区中不存在 | 确认工作流 ID 是否正确 |
+| 400 | OpenJiuwen.02201001 | Version name already existed | 版本名称已存在 | 请使用不同的版本名称 |
+| 400 | OpenJiuwen.02201002 | Release version size exceed limit | 发布版本数量超过上限 | 请删除不需要的旧版本后重试 |
+| 400 | OpenJiuwen.02201003 | Workflow information validation failed | 工作流信息校验失败 | 请检查工作流配置是否完整有效 |
+| 500 | OpenJiuwen.02201005 | Workflow does not exist | 请求的工作流未找到或已被删除 | 确认该工作流是否存在 |
 
 ---
 
