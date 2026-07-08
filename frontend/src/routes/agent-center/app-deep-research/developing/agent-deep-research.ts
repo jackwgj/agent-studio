@@ -17,6 +17,7 @@ import { I18NEXT_NAMESPACE, I18NextEagerPipe } from "angular-i18next";
 import { Subscription } from "rxjs";
 import { MessageComponent } from '@shared/services/cfdata.service';
 import { KnowledgeRepoStatus } from "@enums/knowledge-repo.enum";
+import { NzTooltipDirective } from "ng-zorro-antd/tooltip";
 import { I18nNamespace } from "@i18n";
 import { AgentConfigService } from "@routes/agent-center/agent-config.service";
 import { agentCommonLogic, getCardBgColor } from "@routes/agent-center/app-agent/common-logic-agent";
@@ -95,11 +96,21 @@ export class AgentDeepResearch implements OnInit, OnDestroy {
   @Output() updateSearchEngine = new EventEmitter<number>(); // 搜索引擎的数量
   @ViewChild("kbCreation") kbCreation: KnowledgeBaseCreationComponent;
   @ViewChild("configToos") configToolComponent: ConfigToolsComponent;
+  @ViewChild("kbConfRef") kbConfRef: NzTooltipDirective;
 
   @HostListener("document:click", ["$event"])
-  public onClick(): void {
+  public onClick(event?: MouseEvent): void {
+    const target = event?.target as HTMLElement;
+    if (target?.closest(".kb-conf") || target?.closest(".ant-tooltip")) {
+      return;
+    }
     this.showModelConfigTip = false;
-    this.showKbConfRef = false;
+    if (this.showKbConfRef) {
+      setTimeout(() => {
+        this.showKbConfRef = false;
+        this.kbConfRef?.hide();
+      });
+    }
     this.onClickEvent.emit(true);
   }
 
@@ -307,7 +318,9 @@ export class AgentDeepResearch implements OnInit, OnDestroy {
     this.tempTemplateData.type = this.isTemplate ? "direct" : "extract";
     this.tempTemplateData.url = this.writeTemplate;
     this.capabilityConfig[3].data.length = 0;
-    this.capabilityConfig[3].data.push(this.tempTemplateData.data);
+    if (this.tempTemplateData.data && typeof this.tempTemplateData.data === 'object') {
+      this.capabilityConfig[3].data.push(this.tempTemplateData.data);
+    }
   }
 
   private initKnowledge(data: any) {
@@ -482,6 +495,7 @@ export class AgentDeepResearch implements OnInit, OnDestroy {
 
   private handleClickAddSearchModal(data: any) {
     this.searchEngine = JSON.parse(JSON.stringify(this.copySearchEngine));
+    const originalSearchEngine = JSON.stringify(this.copySearchEngine);
     const drawerRef = this.nzDrawerService.create({
       nzTitle: undefined,
       nzContent: AddSearchHalfModalComponent,
@@ -495,7 +509,25 @@ export class AgentDeepResearch implements OnInit, OnDestroy {
         searchEngine: this.searchEngine
       }
     });
+    drawerRef.afterOpen.subscribe(() => {
+      const comp = drawerRef.getContentComponent();
+      if (comp) {
+        comp.agentId = this.agentId;
+        comp.searchEngine = this.searchEngine;
+        if (this.searchEngine?.length > 0) {
+          const ids = this.searchEngine.map((item) => item.plugin_id);
+          for (const item of comp.searchList) {
+            if (ids.includes(item.plugin_id)) {
+              item.isAdded = true;
+            }
+          }
+        }
+      }
+    });
     drawerRef.afterClose.subscribe(() => {
+      if (JSON.stringify(this.searchEngine) === originalSearchEngine) {
+        return;
+      }
       this.isDeepLoading.emit(true);
       this.doTriggerSave({
         data: {
@@ -540,6 +572,7 @@ export class AgentDeepResearch implements OnInit, OnDestroy {
     if (filterTemplateData.length > 0) {
       selectedTemplateData = filterTemplateData[0].data.length > 0 ? filterTemplateData[0].data[0].name : "";
     }
+    const originalTemplateData = JSON.stringify(this.tempTemplateData);
     const drawerRef = this.nzDrawerService.create({
       nzTitle: undefined,
       nzContent: AppFileHalfModalComponent,
@@ -550,10 +583,29 @@ export class AgentDeepResearch implements OnInit, OnDestroy {
       nzCloseOnNavigation: true,
       nzContentParams: {
         agentId: this.agentId,
+        isTemplate: this.isTemplate,
         selectedTemplate: selectedTemplateData
       }
     });
-    drawerRef.afterClose.subscribe(() => {
+    drawerRef.afterOpen.subscribe(() => {
+      const comp = drawerRef.getContentComponent();
+      if (comp) {
+        comp.agentId = this.agentId;
+        comp.isTemplate = this.isTemplate;
+        comp.selectedTemplate = selectedTemplateData;
+        comp.uploadFileEnv.subscribe((result: any) => {
+          if (result) {
+            this.tempTemplateData.url = result.fileUrl || result.fileName;
+            this.tempTemplateData.type = result.templateType || "extract";
+            this.tempTemplateData.data = this.getTemplateType(result.fileName);
+          }
+        });
+      }
+    });
+    drawerRef.afterClose.subscribe((confirmed: boolean) => {
+      if (!confirmed) {
+        return;
+      }
       this.isDeepLoading.emit(true);
       this.doTriggerSave({
         data: {
@@ -564,7 +616,9 @@ export class AgentDeepResearch implements OnInit, OnDestroy {
         successCb: () => {
           this.capabilityConfig[3].data.length = 0;
           this.isTemplate = this.tempTemplateData.type === "direct";
-          this.capabilityConfig[3].data.push(this.tempTemplateData.data);
+          if (this.tempTemplateData.data && typeof this.tempTemplateData.data === 'object') {
+            this.capabilityConfig[3].data.push(this.tempTemplateData.data);
+          }
           MessageComponent.showSuccess(
             this.i18n.transform("update_success")
           );
@@ -617,7 +671,12 @@ export class AgentDeepResearch implements OnInit, OnDestroy {
         id: this.capabilityConfig[3].data.length
       };
     }
-    return "";
+    return {
+      type: "file",
+      icon: "assets/agent-center/images/pdf.svg",
+      name: templateName,
+      id: this.capabilityConfig[3].data.length
+    };
   }
 
   private handleClickAddKnowledgeModal(config: any) {
@@ -629,19 +688,29 @@ export class AgentDeepResearch implements OnInit, OnDestroy {
       nzMask: true,
       nzMaskClosable: true,
       nzCloseOnNavigation: true,
-      nzContentParams: {
+      nzData: {
         existedKbs: config.data.map((kb: any) =>
           this.kbAbilitiesService.getKbId(kb)
-        ),
-        limit: this.kbLimit
+        )
+      }
+    });
+    let confirmed = false;
+    drawerRef.afterOpen.subscribe(() => {
+      const comp = drawerRef.getContentComponent();
+      if (comp) {
+        comp.addKB?.subscribe(() => {
+          confirmed = true;
+        });
       }
     });
     drawerRef.afterClose.subscribe(() => {
+      if (!confirmed) {
+        return;
+      }
       this.isDeepLoading.emit(true);
-      const selectedKbIds =
-        this.kbHalfModal.content.instance.selectedIds ?? [];
-      const selectedKbs =
-        this.kbHalfModal.content.instance.selectedKbs ?? [];
+      const comp = drawerRef.getContentComponent();
+      const selectedKbIds = comp?.selectedIds ?? [];
+      const selectedKbs = comp?.selectedKbs ?? [];
       const data = {
         knowledge_repos: selectedKbIds,
         type: this.agentInfo.agentSubType
@@ -733,6 +802,7 @@ export class AgentDeepResearch implements OnInit, OnDestroy {
       updatedParam: ($event: IKbParam) => {
         this.kbParams = { ...$event };
         this.showKbConfRef = false;
+        this.kbConfRef?.hide();
         this.doTriggerSave({
           data: {
             knowledge_retrieve_policy: {
@@ -747,6 +817,24 @@ export class AgentDeepResearch implements OnInit, OnDestroy {
 
   onClickKbConf(event) {
     event.stopPropagation();
+
+    if (this.isFlowReadonly || this.kbAbilitiesService?.isResourceDisabled || !this.capabilityConfig[2]?.data?.length) {
+      return;
+    }
+
+    setTimeout(() => {
+      this.showKbConfRef = !this.showKbConfRef;
+      if (this.showKbConfRef) {
+        this.kbTipCtx.param = this.kbParams;
+        this.kbTipCtx.kbId = this.kbAbilitiesService.getKbId(
+          this.capabilityConfig[2].data?.[0]
+        );
+        this.kbTipCtx.selectedNum = this.capabilityConfig[2].data?.length || 0;
+        this.kbConfRef?.show();
+      } else {
+        this.kbConfRef?.hide();
+      }
+    });
   }
 
   public onShowKbConfTip(event: boolean | MouseEvent) {

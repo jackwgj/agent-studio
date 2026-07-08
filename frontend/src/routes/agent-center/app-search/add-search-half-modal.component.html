@@ -3,18 +3,18 @@
   <div class="search-description">{{ 'add_search_engine_tip' | i18nextEager }}</div>
 </div>
 
-<div class="search-body">
+<div class="search-body mt-4">
   @for (item of searchList; track item.plugin_id; let i = $index) {
     <div class="search-card" (click)="handleClickAddSearchCard(item)">
       <div class="content gap-[10px]">
         <div class="overflow-hidden flex-left gap-[10px]">
           <img [src]="item.icon" alt="" class="w-[40px] h-[40px] rounded-[6px]">
           <div class="overflow-hidden flex flex-col gap-[10px]">
-            <p class="title-text">{{ isZH() ? item.plugin_chinese_name : item.plugin_display_name }}</p>
-            <p class="desc">{{ item.plugin_desc }}</p>
+            <p class="title-text !mb-0">{{ isZH() ? item.plugin_chinese_name : item.plugin_display_name }}</p>
+            <p class="desc !mb-0">{{ item.plugin_desc }}</p>
           </div>
         </div>
-        <div class="open" nz-wave>
+        <div class="open" nz-wave *ngIf="item.isNeedAuth">
           <span>{{ 'open' | i18nextEager }}</span>
           <nz-icon [nzType]="'right'" [nzTheme]="'outline'" *ngIf="!item.openPayment"></nz-icon>
           <nz-icon [nzType]="'down'" [nzTheme]="'outline'" *ngIf="item.openPayment"></nz-icon>

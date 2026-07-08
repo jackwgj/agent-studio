@@ -630,11 +630,12 @@ export class RunModalComponent extends WorkflowChatBaseComponent {
     );
 
     if (existingChildInvoke) {
-      existingChildInvoke.endTime = new Date(end_time).toISOString();
+      if(end_time){
+        existingChildInvoke.endTime = new Date(end_time).toISOString();
+      }
     } else {
       const startTime = this.formatTimestamp(start_time);
       const endTime = this.formatTimestamp(end_time);
-
 
       this.childInvokes.push({
         startTime,
