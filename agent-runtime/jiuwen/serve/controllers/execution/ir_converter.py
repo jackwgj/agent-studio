@@ -630,6 +630,25 @@ class IRConverter:
         return result
 
     @staticmethod
+    def node_defs_to_component_name_type_map(
+        node_defs: dict[str, dict[str, dict]],
+    ) -> dict[str, dict]:
+        """从 extract_node_defs 的递归结果派生扁平的 {component_id: {name, type}} 映射。
+
+        遍历所有 workflow_id 下的节点定义（含子工作流内部节点），
+        展平为 component_id → {name, type}，用于在 TraceSchema → StreamData
+        转换时覆盖 componentName/componentType。
+        """
+        result: dict[str, dict] = {}
+        for wf_nodes in node_defs.values():
+            for comp_id, node_def in wf_nodes.items():
+                result[comp_id] = {
+                    "name": node_def.get("node_name", ""),
+                    "type": node_def.get("node_type", ""),
+                }
+        return result
+
+    @staticmethod
     def validate_ir_version(ir_data: dict, ir_type: IRType):
         """
         Validate whether the IR data if of the supported version.

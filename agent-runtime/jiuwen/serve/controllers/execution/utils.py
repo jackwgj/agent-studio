@@ -410,14 +410,21 @@ async def _execute_workflow(req: ExecutionRequest, execution_data: ExecutionData
 
     # 从 IR 中提取 {component_id: {name, type}} 映射，用于覆盖 TraceSchema 中的 componentName/componentType
     component_name_type_map: dict[str, dict] = {}
+    node_defs: dict[str, dict[str, dict]] = {}
     if req.ir_path:
         try:
             ir_data = await async_ir_load(req.ir_path)
             from jiuwen.serve.controllers.execution.ir_converter import IRConverter
 
-            component_name_type_map = IRConverter.extract_component_name_type_map(
-                ir_data
-            )
+            node_defs = await IRConverter.extract_node_defs(ir_data)
+            if node_defs:
+                component_name_type_map = (
+                    IRConverter.node_defs_to_component_name_type_map(node_defs)
+                )
+            if not component_name_type_map:
+                component_name_type_map = IRConverter.extract_component_name_type_map(
+                    ir_data
+                )
         except Exception:
             logger.debug(
                 "Failed to extract component name/type map from IR for workflow execution"
@@ -428,6 +435,8 @@ async def _execute_workflow(req: ExecutionRequest, execution_data: ExecutionData
         card = wf.card
         params = req.params.model_dump()
         params["is_debug"] = req.headers.get("X-Invoke-Mode", "").lower() == "debug"
+        if node_defs:
+            params["__node_defs__"] = node_defs
 
         wf_wrapper = OpenJiuWenWorkflowInstanceLayer(
             workflow_id=card.id,
