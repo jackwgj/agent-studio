@@ -238,19 +238,18 @@ export class AgentBotPageComponent implements OnInit, OnDestroy {
       icon: "assets/agent/planning_mode.svg",
       value: AGENT_MODE_CODE.PLANNING_MODE,
       showFn: () => true
-    },
-    {
-      name: this.i18n.transform("agent_mode_deep"),
-      description: this.i18n.transform("agent_mode_deep_description"),
-      icon: "assets/agent/deepResearch.svg",
-      value: AGENT_MODE_CODE.DEEP_MODE,
-      showFn: () => this.isShowDREnter()
     }
   ];
   agentMode = {
     [AGENT_MODE_CODE.GENERAL_MODE]: this.agentModeList[0],
     [AGENT_MODE_CODE.PLANNING_MODE]: this.agentModeList[1],
-    [AGENT_MODE_CODE.DEEP_MODE]: this.agentModeList[2]
+    [AGENT_MODE_CODE.DEEP_MODE]: {
+      name: this.i18n.transform("agent_mode_deep"),
+      description: this.i18n.transform("agent_mode_deep_description"),
+      icon: "assets/agent/deepResearch.svg",
+      value: AGENT_MODE_CODE.DEEP_MODE,
+      showFn: () => false
+    }
   };
   curAgentModeCode: AGENT_MODE_CODE;
   isShowAgentModeSelector: boolean = false;
