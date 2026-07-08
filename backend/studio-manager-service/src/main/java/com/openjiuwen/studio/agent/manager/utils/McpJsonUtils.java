@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2022-2023 Lypxc (545685602@qq.com)
  * Copyright (c) Huawei Technologies Co., Ltd. 2022-2023. All rights reserved.
  */
 
@@ -35,13 +36,13 @@ import java.util.Map;
 @Slf4j
 public class McpJsonUtils {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
-        // 忽略未知属性
-        .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-        // 允许空字符串转为null
-        .configure(DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT, true);
+            // 忽略未知属性
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+            // 允许空字符串转为null
+            .configure(DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT, true);
 
     private static final String TOOL_OUTPUT_PARAM
-        = "{\"type\":\"object\",\"properties\":{\"isError\":{\"type\":\"boolean\"},\"content\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"text\":{\"type\":\"string\"}},\"required\":[\"type\",\"text\"],\"additionalProperties\":false}}},\"required\":[\"content\"],\"additionalProperties\":false}";
+            = "{\"type\":\"object\",\"properties\":{\"isError\":{\"type\":\"boolean\"},\"content\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"text\":{\"type\":\"string\"}},\"required\":[\"type\",\"text\"],\"additionalProperties\":false}}},\"required\":[\"content\"],\"additionalProperties\":false}";
 
     static {
         // 初始化配置
@@ -93,7 +94,7 @@ public class McpJsonUtils {
     public static <T> List<T> toList(String json, Class<T> clazz) {
         try {
             return OBJECT_MAPPER.readValue(json,
-                OBJECT_MAPPER.getTypeFactory().constructCollectionType(List.class, clazz));
+                    OBJECT_MAPPER.getTypeFactory().constructCollectionType(List.class, clazz));
         } catch (IOException e) {
             throw new AgentStudioException(StudioError.MCP_JSON_CONVERSION_ERROR);
         }
@@ -105,7 +106,7 @@ public class McpJsonUtils {
     public static <K, V> Map<K, V> toMap(String json, Class<K> keyClass, Class<V> valueClass) {
         try {
             return OBJECT_MAPPER.readValue(json,
-                OBJECT_MAPPER.getTypeFactory().constructMapType(Map.class, keyClass, valueClass));
+                    OBJECT_MAPPER.getTypeFactory().constructMapType(Map.class, keyClass, valueClass));
         } catch (IOException e) {
             log.error("JSON to Map conversion failed", e);
             throw new AgentStudioException(StudioError.MCP_JSON_CONVERSION_ERROR);
@@ -186,11 +187,19 @@ public class McpJsonUtils {
 
     private static String getOutputSchema(String outputSchema) {
         if (StringUtils.isNotEmpty(outputSchema)) {
-            return outputSchema;
+            try {
+                JsonNode node = OBJECT_MAPPER.readTree(outputSchema);
+                //适配其他非properties，比如交投的additionalProperties
+                if (node != null && node.has("properties")) {
+                    return outputSchema;
+                }
+            } catch (Exception e) {
+                log.warn("Failed to parse outputSchema: {}, fallback to default.", outputSchema, e);
+            }
         }
         return StringUtils.isEmpty(SpringBeanUtils.getBean(McpConfig.class).getOutputSchema())
-            ? TOOL_OUTPUT_PARAM
-            : SpringBeanUtils.getBean(McpConfig.class).getOutputSchema();
+                ? TOOL_OUTPUT_PARAM
+                : SpringBeanUtils.getBean(McpConfig.class).getOutputSchema();
     }
 }
 

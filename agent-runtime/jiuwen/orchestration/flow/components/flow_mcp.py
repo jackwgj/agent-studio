@@ -4,7 +4,7 @@
 This module contains the FlowApi class, which is a subclass of Invokable.
 FlowApi is responsible for invoking a specific API based on the configuration provided.
 """
-
+import json
 from typing import Any
 
 from jiuwen.common.exception.base import JiuWenBaseException
@@ -140,6 +140,13 @@ class FlowMcp(Invokable):
         elif isinstance(output_data, list):
             response_data = [item.model_dump() for item in output_data]
         elif isinstance(output_data, dict):
+            try:
+                output_ids = {item.get("id") for item in self._conf.get("userFields", {}).get("outputs", [])}
+            except Exception:
+                output_ids = set()
+            if "content" in output_ids and "content" not in output_data:
+                return {"content": [{"type": "text", "text": json.dumps(output_data, ensure_ascii=False)}],
+                        "isError": False}
             return output_data
         else:
             error_msg = (
