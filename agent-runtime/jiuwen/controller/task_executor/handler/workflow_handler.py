@@ -820,14 +820,15 @@ class WorkflowHandler(BaseHandler):
         function_call_or_interactive_input = copy.deepcopy(function_call)
 
         if workflow_context.status == WorkflowStatus.INTERRUPTED:
-            interactive_input = InteractiveInput()
-            current_node_id = workflow_context.current_node_info.node_id
             user_feedback_query = function_call.get("arguments", "")
             try:
                 user_feedback_dict = json.loads(user_feedback_query)
                 if user_feedback_dict:
                     user_feedback = list(user_feedback_dict.values())[0]
-                    interactive_input.update(current_node_id, user_feedback)
+                    # 始终使用 raw_inputs 路由，原因同 _stream_execute_workflow：
+                    # Loop 内 QA 节点的 executable_id 含前缀，user_inputs 路由的
+                    # comp_state key 不匹配，导致恢复时读不到用户回复。
+                    interactive_input = InteractiveInput(raw_inputs=user_feedback)
                     function_call_or_interactive_input.update(
                         {"arguments": {"query": interactive_input}}
                     )
@@ -904,16 +905,16 @@ class WorkflowHandler(BaseHandler):
         # 注入中断恢复信息：构建 InteractiveInput 替代原始 query
         if workflow_context.status == WorkflowStatus.INTERRUPTED:
             user_query = workflow_input.get("inputs", query)
-            node_id = (
-                workflow_context.current_node_info.node_id
-                if workflow_context.current_node_info
-                else None
-            )
-            if node_id:
-                interactive_input = InteractiveInput()
-                interactive_input.update(node_id, user_query)
-            else:
-                interactive_input = InteractiveInput(raw_inputs=user_query)
+            # 始终使用 raw_inputs 路由，原因与 SubWorkflow 场景一致：
+            # user_inputs 路由依赖 node_id 匹配 executable_id，但当 QA 节点位于
+            # Loop 内部时，executable_id 含 Loop 前缀（如 "Loop_xxx.node_id"），
+            # 而 current_node_info.node_id 仅为基础 node_id（不含前缀），导致
+            # comp_state key 不匹配，QA 节点恢复时读不到用户回复。
+            # raw_inputs 写入 workflow_state（全局共享），QA 节点的
+            # WorkflowInteraction 通过 get_workflow_state 读取，不依赖
+            # executable_id 匹配。工作流一次只有一个节点处于 USER_INTERACT
+            # （pregel 引擎保证），因此 raw_inputs 广播不会导致误投递。
+            interactive_input = InteractiveInput(raw_inputs=user_query)
             workflow_input["inputs"] = interactive_input
         current_node = NodeExecutionInfo(
             node_id="",
