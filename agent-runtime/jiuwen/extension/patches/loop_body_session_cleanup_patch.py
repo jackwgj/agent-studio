@@ -4,15 +4,27 @@
 """
 Loop body session cleanup (jiuwen-side patch, no openjiuwen core edits).
 
-Problem (PR !1163): loop-body components share io_state across rounds. Nodes skipped on
-the current branch/path can still leave outputs in session; downstream aggregate reads
-stale values via get_inputs().
+包含两个独立的 patch：
 
-Approach: at each LoopGroup body run, clear session data for registered body components
-(not the whole scope root, so virtual keys like state_store survive), and reset body
-node ids in executed_nodes / finished_stream_nodes.
+1. LoopGroup body round cleanup (PR !1163):
+   loop-body components share io_state across rounds. Nodes skipped on the
+   current branch/path can still leave outputs in session; downstream aggregate reads
+   stale values via get_inputs().
+   在每次 LoopGroup body run 之前，清掉注册的 body components 的 session 数据
+   (不是整个 scope root，所以 state_store 这类虚拟键能保留)，并重置 body
+   node ids 在 executed_nodes / finished_stream_nodes 中的标记。
 
-Sub-workflow interrupt/resume cleanup stays in workflow_sub_stream_patch.py.
+   Sub-workflow interrupt/resume cleanup stays in workflow_sub_stream_patch.py.
+
+2. AdvancedLoopComponent per-round io_state cleanup:
+   AdvancedLoopComponent.on_invoke 进入新一轮时需清掉本节点上一轮残留
+   io_state，否则循环上一轮的输出会污染下一轮 get_inputs / aggregate。
+   core 侧 on_invoke 已含此逻辑，但 runtime 侧需要按 parent_id scope 取值
+   并复用 get_value_by_nested_path 做路径解析，由本 patch 接管 on_invoke
+   整体实现。
+
+两个 patch 作用对象不同 (LoopGroup 在外层, AdvancedLoopComponent 在内层),
+各自独立的 _PATCH_APPLIED_* flag, 可按需 apply。
 
 Applied once at import from ir_converter / sub_workflow.
 """
@@ -21,9 +33,12 @@ from __future__ import annotations
 
 from typing import Iterable
 
+from openjiuwen.core.common.constants.constant import LOOP_ID
 from openjiuwen.core.graph.executable import Input, Output
-from openjiuwen.core.session import BaseSession
+from openjiuwen.core.session import BaseSession, NodeSession
+from openjiuwen.core.session.utils import get_value_by_nested_path
 
+# --- LoopGroup body round cleanup ---
 _PATCH_APPLIED = False
 _orig_loop_group_on_invoke = None
 
@@ -118,4 +133,55 @@ def apply_loop_body_session_cleanup_patch() -> bool:
     LoopGroup.on_invoke = _patched_loop_group_on_invoke
 
     _PATCH_APPLIED = True
+    return True
+
+
+# --- AdvancedLoopComponent per-round io_state cleanup ---
+_PATCH_STATE_APPLIED = False
+_orig_advanced_loop_on_invoke = None
+
+
+async def _patched_advanced_loop_on_invoke(
+    self, inputs: Input, session: BaseSession, **kwargs
+) -> Output:
+    loop_session = session
+    self._node_id = loop_session.node_id()
+    self._node_session = NodeSession(loop_session, self._node_id)
+    loop_session.state().set_outputs({LOOP_ID: self._node_id})
+
+    raw_io = loop_session.state()._io_state._state._state
+    parent_id = session.parent_id()
+    if parent_id:
+        scoped = get_value_by_nested_path(parent_id, raw_io)
+        state = dict(scoped) if isinstance(scoped, dict) else {}
+    else:
+        state = dict(raw_io)
+    if state and self._node_id in state:
+        del state[self._node_id]
+    loop_session.state().set_outputs(state)
+    loop_session.state().commit()
+
+    if loop_session.tracer() is not None:
+        loop_session.tracer().register_workflow_span_manager(loop_session.executable_id())
+    compiled = self._graph.compile(loop_session, **kwargs)
+    await compiled.invoke(inputs, loop_session)
+    result = self._node_session.state().get_outputs(self._node_id)
+    loop_session.state()._io_state.update_by_id(self._node_id, {self._node_id: None})
+    return result
+
+
+def apply_loop_state_cleanup_patch() -> bool:
+    """Patch AdvancedLoopComponent.on_invoke to reset per-round io_state."""
+    global _PATCH_STATE_APPLIED, _orig_advanced_loop_on_invoke
+    if _PATCH_STATE_APPLIED:
+        return False
+
+    from openjiuwen.core.workflow.components.flow.loop.loop_comp import (
+        AdvancedLoopComponent,
+    )
+
+    _orig_advanced_loop_on_invoke = AdvancedLoopComponent.on_invoke
+    AdvancedLoopComponent.on_invoke = _patched_advanced_loop_on_invoke
+
+    _PATCH_STATE_APPLIED = True
     return True
