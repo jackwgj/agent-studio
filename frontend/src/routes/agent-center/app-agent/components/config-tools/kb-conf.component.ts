@@ -24,9 +24,9 @@ export interface IKbParam {
 @Component({
   selector: 'kb-conf',
   template: `
-    <div (clickOutside)="close()" style='max-height:500px;color:black;width:500px' class="flex w-[400px] flex-col gap-[16px]">
+    <div (clickOutside)="close()" style='max-height:575px;color:black;width:490px' class="flex w-[400px] flex-col gap-[8px] p-[16px]">
       <div>
-        <div *ngIf="searchModeOptions?.length > 0">
+        <div *ngIf="searchModeOptions?.length > 0" class="mb-[8px]">
           <span nz-tooltip [nzTooltipTitle]="retrieveModeTip" nzTooltipPlacement="top" class="cursor-help">
             {{ 'kb_conf.helptip_label' | i18nextEager }}
             <nz-icon nzType="question-circle" nzTheme="outline"></nz-icon>
@@ -75,7 +75,7 @@ export interface IKbParam {
           <nz-switch [nzDisabled]="isFaqDisabled" nz-tooltip [nzTooltipTitle]="faqDisabledTip" id="switch-basic" [(ngModel)]="kbParams.need_extras_faq_search"></nz-switch>
         </div>
       </div>
-      <div *ngIf="kbParams.need_extras_faq_search && lakesearch_faq_enable" class="flex w-full flex-col gap-[8px]">
+      <div *ngIf="kbParams.need_extras_faq_search && lakesearch_faq_enable" class="flex w-full flex-col">
         <div class="flex items-center gap-[8px]">
           <div>{{ 'straight_out_threshold' | i18nextEager }}</div>
           <nz-icon
@@ -106,7 +106,7 @@ export interface IKbParam {
           ></nz-input-number>
         </div>
       </div>
-      <div class="flex w-full flex-col gap-[8px]">
+      <div class="flex w-full flex-col">
         <div class="flex items-center gap-[8px]">
           <div>
             {{ 'relevance_threshold' | i18nextEager }}
@@ -139,7 +139,7 @@ export interface IKbParam {
           ></nz-input-number>
         </div>
       </div>
-      <div class="flex w-full flex-col gap-[8px]">
+      <div class="flex w-full flex-col">
         <div class="flex items-center gap-[8px]">
           <div>{{ 'topk_recall_quantity' | i18nextEager }}</div>
           <nz-icon

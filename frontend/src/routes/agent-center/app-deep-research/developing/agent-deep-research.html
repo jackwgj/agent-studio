@@ -26,49 +26,27 @@
               </div>
               <div style="display: flex; align-items: center; gap: 8px">
                 @if (config.id === 'knowledge') {
-                  <div class="icon-border"
-                       (click)="handleClickConfigData($event, config)"
-                  >
-                    <div class="kb-conf">
-                      <div
-                        *ngIf="false"
-                        class="model-config-tip"
-                        [hidden]="!showModelConfigTip"
-                        (click)="$event.stopPropagation()"
-                      >
-                        <model-config-tip
-                          [availableModels]="availableModels"
-                          [modelConfig]="modelConfig"
-                          [isVisible]="showModelConfigTip"
-                          [isShowLLMSelect]="false"
-                          [arrowStyle]="{left: '-6px', top: '200px'}"
-                        ></model-config-tip>
-                      </div>
-                      <div
-                        style="left: 24px"
-                        class="kb-conf"
-                        [title]="'advanced' | i18nextEager"
-                        (click)="onClickKbConf($event)"
-                        #kbConfRef="nzTooltip"
-                        nz-tooltip
-                        [nzTooltipTitle]="kbConfRefCmp"
-                        nzTooltipTrigger="click"
-                        nzTooltipColor="#fff"
-                        [nzTooltipTitleContext]="kbTipCtx"
-                        (nzTooltipVisibleChange)="onShowKbConfTip($event)"
-                        [nzTooltipOverlayStyle]="{ maxWidth: '90vw', width: '520px' }"
-                      ></div>
-                      <ng-template #kbConfRefCmp>
-                        <kb-conf
-                          style="width: 500px"
-                          [param]="kbParams"
-                          [kbId]="kbTipCtx.kbId"
-                          [selectedNum]="kbTipCtx.selectedNum"
-                          (updatedParam)="kbTipCtx.outputs.updatedParam($event)"
-                        ></kb-conf>
-                      </ng-template>
-                    </div>
+                  <div class="icon-border">
+                    <div class="kb-conf" [title]="'advanced' | i18nextEager"
+                         #kbConfRef="nzTooltip"
+                         (click)="onClickKbConf($event)"
+                         nz-tooltip
+                         [nzTooltipTitle]="kbConfRefCmp"
+                         [nzTooltipTrigger]="null"
+                         nzTooltipColor="#fff"
+                         [nzTooltipOverlayStyle]="{ maxWidth: '90vw', width: '520px' }"
+                         nzTooltipPlacement="bottomRight"
+                    ></div>
                   </div>
+                  <ng-template #kbConfRefCmp>
+                    <kb-conf
+                      style="width: 500px"
+                      [param]="kbParams"
+                      [kbId]="kbTipCtx.kbId"
+                      [selectedNum]="kbTipCtx.selectedNum"
+                      (updatedParam)="kbTipCtx.outputs.updatedParam($event)"
+                    ></kb-conf>
+                  </ng-template>
                 }
                 @if (config.id !== 'model') {
                   <div class="icon-border" (click)="handleClickAddData($event, config)">
@@ -135,11 +113,11 @@
                 }
               }
               @if (!isShowCapabilityConfigDesc(config, i) && config.id !== 'model' && config.id !== 'knowledge') {
-                @for (item of config.data; track item.id) {
+                @for (item of config.data; track item.id ?? $index) {
                   <div class="list-data"
-                       [style]="{'background': item.hover ? '#f0f7ff' : 'rgb(250, 250, 250)'}"
-                       (mouseenter)="item.hover = true"
-                       (mouseleave)="item.hover = false"
+                       [style]="{'background': item?.hover ? '#f0f7ff' : 'rgb(250, 250, 250)'}"
+                       (mouseenter)="item && (item.hover = true)"
+                       (mouseleave)="item && (item.hover = false)"
                   >
                     <p style="width: 30px; height: 30px">
                       <img [src]="config.id === 'template' ? changeUrl(item.icon) : item.icon" alt="" class="w-[30px] h-[30px] rounded-[6px]" />

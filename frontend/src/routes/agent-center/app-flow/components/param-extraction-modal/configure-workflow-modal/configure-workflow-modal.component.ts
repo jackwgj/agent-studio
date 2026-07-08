@@ -1,26 +1,12 @@
-import {
-  Component,
-  EventEmitter,
-  inject,
-  OnInit,
-  Output,
-  SimpleChanges,
-  ViewChild,
-} from '@angular/core';
+import { Component, EventEmitter, inject, OnInit, Output, SimpleChanges, ViewChild, } from '@angular/core';
 import { NZ_MODAL_DATA, NzModalRef } from 'ng-zorro-antd/modal';
 import { I18NEXT_NAMESPACE, I18NextEagerPipe } from 'angular-i18next';
 import { I18nNamespace } from '@i18n';
 import { MODULES } from '@shared/modules';
 import { filter, takeUntil } from 'rxjs';
-import {
-  type IParamRef,
-  type IWFView,
-  IWorkflowField,
-} from '../../../node.type';
+import { type IParamRef, type IWFView, IWorkflowField, } from '../../../node.type';
 import { AccBlockComponent } from '@routes/agent-center/app-flow/components/acc-block/acc-block.component';
-import {
-  RefSelectedRequireDirective,
-} from '@shared/directives/common-validator.directive';
+import { RefSelectedRequireDirective, } from '@shared/directives/common-validator.directive';
 import { NonEmptyValidatorDirective } from '@shared/directives/variable-name-validator.directive';
 import { ParamTreeComponent } from '@routes/agent-center/app-flow/components/param-tree/param-tree.component';
 import { TypedJsonInputComponent } from '@shared/components/typed-json-input/typed-json-input.component';
@@ -321,24 +307,7 @@ export class ConfigureWorkflowModalComponent
     refOptions: nodeType.IParamRef[],
     type: 'input' | 'context',
   ) {
-    const refs = cloneDeep(refOptions);
-    refs.forEach((ref) => {
-      if (ref.ref_node_id === this.nodeInfo.id) {
-        //当前节点
-        ref.children = ref.children.filter((c) => {
-          if (this.domainObjectName) {
-            //领域对象内子工作流
-            if (c.ref_var_name.startsWith('domain_objects.')) {
-              return c.name === this.domainObjectName;
-            }
-            return true;
-          } else {
-            return true
-          }
-        });
-      }
-    });
-    return refs;
+    return cloneDeep(refOptions);
   }
 
   getMemoryParam() {

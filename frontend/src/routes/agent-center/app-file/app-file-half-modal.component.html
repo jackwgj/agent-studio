@@ -38,7 +38,8 @@
     *ngIf="selectedType === 'extract'"
     [nzMultiple]="false"
     [nzShowUploadList]="true"
-    (nzChange)="onAddFileSuccess($event.file)"
+    [nzBeforeUpload]="beforeUpload"
+    [(nzFileList)]="fileList"
     [nzAccept]="'.md,.html,.doc,.docx,.pdf'"
   >
     <button nz-button>
@@ -50,7 +51,8 @@
     *ngIf="selectedType === 'direct'"
     [nzMultiple]="false"
     [nzShowUploadList]="true"
-    (nzChange)="onAddFileSuccess($event.file)"
+    [nzBeforeUpload]="beforeUpload"
+    [(nzFileList)]="fileList"
     [nzAccept]="'.md'"
   >
     <button nz-button>

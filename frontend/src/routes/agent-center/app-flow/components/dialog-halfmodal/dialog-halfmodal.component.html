@@ -23,12 +23,12 @@
             class="close-icon"
             (click)="isFirstClickTest?onClose():onParamsValid()"
           >
-            <nz-icon nzType="close" nzTheme="outline"/>
+            <nz-icon nzType="close" nzTheme="outline" />
           </span>
         </div>
         <div class="content">
           <div class="start-node-params-area w-full">
-            <div class="flex flex-col min-h-0 shrink overflow-hidden" *ngIf="startNodeParams.length" [style]="{minHeight: (startNodeParams.length*68+60)+'px'}">
+            <ng-container *ngIf="startNodeParams.length">
               <div class="flex-between">
                 <span class="font-bold">{{ 'start_node' | i18nextEager }}</span>
                 <button
@@ -51,8 +51,8 @@
                 [inputList]="startNodeParams"
                 uriType="startNode"
               ></dynamic-node-params>
-            </div>
-            <div class="flex flex-col min-h-0 shrink overflow-hidden" *ngIf="globalConfigParams?.length">
+            </ng-container>
+            <ng-container *ngIf="globalConfigParams?.length">
               <div class="h-[1px] w-full bg-[#f0f0f0]"></div>
               <div class="flex-between">
                 <span class="font-bold">{{ 'memory_variable' | i18nextEager }}</span>
@@ -76,7 +76,7 @@
                 [inputList]="globalConfigParams"
                 uriType="globalConfig"
               ></dynamic-node-params>
-            </div>
+            </ng-container>
             <nz-spin
               *ngIf="isPluginAuthLoading; else pluginArea"
               class="loading-icon"
@@ -98,8 +98,8 @@
                     >
                   <span class="title" (click)="changeCollapsedState(block)">
                     <span class="font-semibold">{{ block.name }}</span>
-                    <nz-icon nzType="up" nzTheme="outline" *ngIf="!block.collapsed"/>
-                    <nz-icon nzType="down" nzTheme="outline" *ngIf="block.collapsed"/>
+                    <nz-icon nzType="up" nzTheme="outline" *ngIf="!block.collapsed" />
+                    <nz-icon nzType="down" nzTheme="outline" *ngIf="block.collapsed" />
                   </span>
                       <nz-collapse *ngIf="!block.collapsed" class="formfield-style">
                         <nz-form-item
@@ -163,11 +163,11 @@
                  (click)="showRunErrorTest()"
             >
               <img alt="" class="test-run-error-icon" [src]="getStatusSrc(testStatusObj.status)"/>
-              {{ testStatusObj.text }}
+              {{testStatusObj.text}}
             </div>
-            <div class="chat-header-icon" nz-tooltip [nzTooltipTitle]="'agent_clear' | i18nextEager">
+            <div class="chat-header-icon" nz-tooltip [nzTooltipTitle]="'agent_clear' | i18nextEager" >
               <span (click)="clearChat()">
-                <nz-icon nzType="clear" nzTheme="outline"/>
+                <nz-icon nzType="clear" nzTheme="outline" />
               </span>
             </div>
             <asset-config-icon
@@ -216,8 +216,7 @@
                     nz-tooltip
                     [nzTooltipTitle]="prologue"
                     nzTooltipPlacement="top"
-                  >{{ prologue }}
-                  </div>
+                  >{{prologue}}</div>
                   <div class="question-container" *ngIf="questions.length">
                     <div *ngFor="let question of questions" class="question-item">
                   <span
@@ -260,11 +259,11 @@
                   <div class="collapse-btn" *ngIf="item.plans?.length">
                     <div class="flex" style="align-items: center;" *ngIf="item.thinkLoading;else success">
                       <img alt="" [src]="cdnUrl('assets/agent-center/images/running.webp')"/>
-                      <span>{{ 'plan_model.thinking' | i18nextEager }}</span>
+                      <span>{{'plan_model.thinking' | i18nextEager}}</span>
                     </div>
                     <ng-template #success>
                       <img alt="" [src]="cdnUrl('assets/agent-center/images/deep-success.svg')"/>
-                      <span>{{ 'plan_model.thinked' | i18nextEager }}</span>
+                      <span>{{'plan_model.thinked' | i18nextEager}}</span>
                     </ng-template>
 
                     <div class="cursor-pointer ml-[5px]" (click)="handleCollapsedStep(item)">
@@ -764,7 +763,7 @@
             <nz-icon nzType="loading" nzTheme="outline"></nz-icon>
           </ng-template>
           <div class="flex" style="align-items: center" (click)="handleCollapsedStep(answer)">
-            <div class="answer-title-text">{{ answer.title }}</div>
+            <div class="answer-title-text">{{answer.title}}</div>
             <ng-container *ngIf="index > 0">
               <nz-icon *ngIf="!answer.collapsed" nzType="up" nzTheme="outline"/>
               <nz-icon *ngIf="answer.collapsed" nzType="down" nzTheme="outline"/>
@@ -772,17 +771,17 @@
           </div>
         </div>
         <ng-container *ngIf="answer.steps">
-          <div class="step-container" [ngClass]="{'mt-[8px]':!answer.collapsed}" [style]="{'height':!answer.collapsed?'auto':'0'}">
+          <div class="step-container" [ngClass]="{'mt-[8px]':!answer.collapsed}"  [style]="{'height':!answer.collapsed?'auto':'0'}">
             <div
               *ngFor="let item of answer.steps"
               class="plan-item">
-              <span nz-ellipsis><span class="dot-black">•</span>{{ item.step_name }} {{ item.description }}</span>
+              <span nz-ellipsis><span class="dot-black">•</span>{{ item.step_name }} {{item.description}}</span>
             </div>
           </div>
         </ng-container>
 
         <ng-container *ngIf="answer.actionSteps">
-          <div class="step-container" [ngClass]="{'mt-[8px]':!answer.collapsed}" [style]="{'height':!answer.collapsed?'auto':'0'}">
+          <div class="step-container" [ngClass]="{'mt-[8px]':!answer.collapsed}"  [style]="{'height':!answer.collapsed?'auto':'0'}">
             <div
               *ngFor="let item of answer.actionSteps"
               class="action-item">
@@ -800,7 +799,7 @@
                   ></app-markdown-answer>
                 </div>
               </div>
-              <div class="summary">{{ item.result_summary }}</div>
+              <div class="summary">{{item.result_summary}}</div>
             </div>
           </div>
         </ng-container>

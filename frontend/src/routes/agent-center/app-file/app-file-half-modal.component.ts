@@ -1,15 +1,16 @@
-import { Component, EventEmitter, Input, OnInit, Output } from "@angular/core";
+import { Component, ChangeDetectorRef, EventEmitter, Input, OnInit, Output } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
+import { NzUploadFile, NzUploadXHRArgs } from "ng-zorro-antd/upload";
 import { MODULES } from "@shared/modules";
 import { I18NEXT_NAMESPACE, I18NextEagerPipe } from "angular-i18next";
 import { I18nNamespace } from "@i18n";
 import { agentCommonLogic } from "@routes/agent-center/app-agent/common-logic-agent";
-import { NzUploadFile } from "ng-zorro-antd/upload";
 import { NzAlertModule } from "ng-zorro-antd/alert";
 import { NzButtonModule } from "ng-zorro-antd/button";
 import { NzIconModule } from "ng-zorro-antd/icon";
 import { NzUploadModule } from "ng-zorro-antd/upload";
+import { NzDrawerRef } from "ng-zorro-antd/drawer";
 import { MessageComponent } from '@shared/services/cfdata.service';
 import { AppAgentRepoService } from "@services/agent-center/app-agent-repo.service";
 import { DeepResearchService } from "@services/agent-center/deep-research.service";
@@ -110,11 +111,14 @@ export class AppFileHalfModalComponent implements OnInit {
 
   informationTemplateFile: any;
   isHoveUploadBtn: boolean = false;
+  fileList: NzUploadFile[] = [];
 
   constructor(
     private i18n: I18NextEagerPipe,
     private appAgentRepo: AppAgentRepoService,
-    private deepResearchServ: DeepResearchService
+    private deepResearchServ: DeepResearchService,
+    private drawerRef: NzDrawerRef,
+    private cdr: ChangeDetectorRef
   ) {
   }
 
@@ -132,6 +136,7 @@ export class AppFileHalfModalComponent implements OnInit {
 
   handleClickChangeTemplateType(type: string): void {
     this.selectedType = type;
+    this.fileList = [];
     if (this.selectedType === "direct") {
       this.uploadNameDir = !this.fileNameDir ? this.i18n.transform("upload-file-1") : this.i18n.transform("upload-file-2");
     } else {
@@ -143,13 +148,16 @@ export class AppFileHalfModalComponent implements OnInit {
     MessageComponent.showError(this.tips2);
   }
 
-  onAddFileSuccess(fileData: any): void {
-    if (!fileData) {
-      return;
-    }
-    this.informationTemplateFile = fileData._file;
+  beforeUpload = (file: NzUploadFile): boolean => {
+    this.fileList = [file];
+    this.handleFileUpload(file as unknown as File);
+    return false;
+  };
+
+  handleFileUpload(file: File) {
+    this.informationTemplateFile = file;
     const formData = new FormData();
-    formData.append("file", this.informationTemplateFile);
+    formData.append("file", file);
     this.selectedType === "extract" ? this.isShowOldFile = false : this.isShowOldFileDir = false;
     if (this.agentId) {
       this.appAgentRepo.uploadFileDeepResearch(this.agentId, formData)
@@ -167,20 +175,30 @@ export class AppFileHalfModalComponent implements OnInit {
   }
 
   private setUploadData(data: any) {
+    this.fileList = this.fileList.map(f => {
+      f.status = 'done';
+      return f;
+    });
     if (this.selectedType === "extract") {
       this.fileUrl = data.url;
       this.fileName = data.file_name;
       this.uploadName = !this.fileName ? this.i18n.transform("upload-file-1") : this.i18n.transform("upload-file-2");
       this.uploadFileEnv.emit({ fileName: this.fileName, fileUrl: this.fileUrl, templateType: this.selectedType });
+      this.cdr.detectChanges();
       return;
     }
     this.fileUrlDir = data.url;
     this.fileNameDir = data.file_name;
     this.uploadNameDir = !this.fileNameDir ? this.i18n.transform("upload-file-1") : this.i18n.transform("upload-file-2");
     this.uploadFileEnv.emit({ fileName: this.fileNameDir, fileUrl: this.fileUrlDir, templateType: this.selectedType });
+    this.cdr.detectChanges();
   }
 
   private setUploadDataWithError() {
+    this.fileList = this.fileList.map(f => {
+      f.status = 'error';
+      return f;
+    });
     if (this.selectedType === "extract") {
       this.fileUrl = "";
       this.fileName = "";
@@ -191,15 +209,28 @@ export class AppFileHalfModalComponent implements OnInit {
   }
 
   runtimeUploadFile(formData: any) {
-    formData.append("is_template", this.selectedType === "direct");
+    formData.append("is_template", String(this.selectedType === "direct"));
     this.deepResearchServ.uploadFileTemplate(formData)
       .then((res) => {
+        this.fileList = this.fileList.map(f => { f.status = 'done'; return f; });
         MessageComponent.showSuccess(this.i18n.transform("upload_success"));
-        this.fileName = this.informationTemplateFile.name;
-        this.uploadFileEnv.emit({ fileName: this.fileName, id: res.data });
+        if (this.selectedType === "direct") {
+          this.fileNameDir = this.informationTemplateFile.name;
+          this.fileUrlDir = res.url || "";
+        } else {
+          this.fileName = this.informationTemplateFile.name;
+          this.fileUrl = res.url || "";
+        }
+        this.uploadFileEnv.emit({ fileName: this.selectedType === "direct" ? this.fileNameDir : this.fileName, id: res.data });
+        this.cdr.detectChanges();
       })
       .catch(() => {
-        this.fileName = "";
+        this.fileList = this.fileList.map(f => { f.status = 'error'; return f; });
+        if (this.selectedType === "direct") {
+          this.fileNameDir = "";
+        } else {
+          this.fileName = "";
+        }
         MessageComponent.showError(this.i18n.transform("upload_fail"));
       });
   }
@@ -219,9 +250,11 @@ export class AppFileHalfModalComponent implements OnInit {
   }
 
   close() {
+    this.drawerRef.close(true);
   }
 
   dismiss() {
+    this.drawerRef.close(false);
   }
 
   get confirmBtnDisabledStatus() {
