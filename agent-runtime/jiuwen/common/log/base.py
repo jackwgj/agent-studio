@@ -348,7 +348,13 @@ class SingletonLogger:
             log_format = DEFAULT_LOG_FORMAT
 
         # 敏感日志掩码
-        sensitive_words = get_list_from_env("LOG_MASKED_SENS_WORDS")
+        masking_enabled = os.getenv("LOG_MASKED_ENABLED", "false").lower() == "true"
+        if masking_enabled:
+            sensitive_words = get_list_from_env("LOG_MASKED_SENS_WORDS")
+            sensitive_patterns = get_list_from_env("LOG_MASKED_PATTERNS")
+        else:
+            sensitive_words = None
+            sensitive_patterns = None
         common_logger = logging.getLogger(log_type)
 
         # 动态包装标准日志方法（必须在 return 之前，jiwen 代码会传 simple_log 参数）
@@ -386,6 +392,7 @@ class SingletonLogger:
                 MaskingFormatter(
                     fmt=log_format,
                     sensitive_words=sensitive_words,
+                    sensitive_patterns=sensitive_patterns,
                     truncate_for_console=True,
                 )
             )
@@ -409,6 +416,7 @@ class SingletonLogger:
                 MaskingFormatter(
                     fmt=log_format,
                     sensitive_words=sensitive_words,
+                    sensitive_patterns=sensitive_patterns,
                     truncate_for_console=False,
                 )
             )
@@ -458,29 +466,50 @@ class MaskingFormatter(logging.Formatter):
     参数:
         fmt (str): 日志格式字符串。
         sensitive_words (list, optional): 敏感词列表，用于在日志中将该词及其后面部分掩码处理。默认为None，不做任何掩码处理。
+        sensitive_patterns (list, optional): 敏感正则表达式列表，用于精细脱敏，只替换匹配到的内容。默认为None。
         datefmt (str, optional): 日期格式字符串。默认为None。
         style (str, optional): 格式风格，可以是'%'、'{'或'$'。默认为'%'。
 
     属性:
         regex (re.Pattern): 用于匹配敏感词的正则表达式对象。如果没有敏感词，则为None。
+        pattern_regex (re.Pattern): 用于精细脱敏的复合正则表达式对象。如果没有敏感正则，则为None。
     """
 
     def __init__(
         self,
         fmt: str,
         sensitive_words: list = None,
+        sensitive_patterns: list = None,
         datefmt=None,
         style="%",
         truncate_for_console=True,
     ):
         super().__init__(fmt, datefmt, style)
-        sensitive_words = [word for word in sensitive_words if word]
+        sensitive_words = [word for word in (sensitive_words or []) if word]
         if sensitive_words:
-            # 生成正则表达式，允许敏感词中包含空格
             sensi_str = "|".join(re.escape(word) for word in sensitive_words)
             self.regex = re.compile(rf"({sensi_str}).*", re.IGNORECASE)
         else:
             self.regex = None
+        _boundary_pre = "(?<![0-9a-zA-Z_])"
+        _boundary_suf = "(?![0-9a-zA-Z_])"
+        sensitive_patterns = [p for p in (sensitive_patterns or []) if p]
+        if sensitive_patterns:
+            wrapped = []
+            for p in sensitive_patterns:
+                if not p.startswith(_boundary_pre):
+                    p = _boundary_pre + p
+                if not p.endswith(_boundary_suf):
+                    p = p + _boundary_suf
+                wrapped.append(p)
+            try:
+                self.pattern_regex = re.compile("|".join(f"({p})" for p in wrapped))
+            except re.error as e:
+                import warnings
+                warnings.warn(f"Invalid LOG_MASKED_PATTERNS regex, masking disabled: {e}")
+                self.pattern_regex = None
+        else:
+            self.pattern_regex = None
         self.truncate_for_console = truncate_for_console
         if truncate_for_console:
             self.max_msg_length = get_msg_max_length()
@@ -491,13 +520,15 @@ class MaskingFormatter(logging.Formatter):
         original = super().format(record)
         normalized = replace_crlf(original)
 
+        if self.pattern_regex:
+            normalized = self.pattern_regex.sub(lambda m: "*" * len(m.group()), normalized)
+
         if self.regex:
             masked = self.regex.sub(lambda x: "*****", normalized)
             result = masked
         else:
             result = normalized
 
-        # 长度检查和处理（仅对控制台日志）
         if self.truncate_for_console and self.max_msg_length:
             return self._truncate_message(result)
         return result

@@ -157,17 +157,44 @@ def mask_debug_data(data, secret_field_names=None):
     return data
 
 
+def _is_masking_enabled():
+    import os
+    return os.getenv("LOG_MASKED_ENABLED", "false").lower() == "true"
+
+
+def _get_sensitive_patterns():
+    from jiuwen.common.log.base import get_list_from_env
+    return get_list_from_env("LOG_MASKED_PATTERNS")
+
+
+def _get_sensitive_words():
+    from jiuwen.common.log.base import get_list_from_env
+    return get_list_from_env("LOG_MASKED_SENS_WORDS")
+
+
 def install_log_formatter_patch() -> None:
     """Make openjiuwen default backend choose formats by logger type."""
     global _FORMATTER_PATCH_INSTALLED, _OPENJIUWEN_LOGGING_MANAGED
     if _FORMATTER_PATCH_INSTALLED:
         return
 
+    from jiuwen.common.log.base import MaskingFormatter
     from openjiuwen.core.common.logging.default.default_impl import DefaultLogger
 
+    if _is_masking_enabled():
+        sensitive_words = _get_sensitive_words()
+        sensitive_patterns = _get_sensitive_patterns()
+    else:
+        sensitive_words = None
+        sensitive_patterns = None
+
     def get_formatter(self):
-        return logging.Formatter(
-            get_log_format(self.log_type), datefmt="%Y-%m-%d %H:%M:%S"
+        return MaskingFormatter(
+            fmt=get_log_format(self.log_type),
+            datefmt="%Y-%m-%d %H:%M:%S",
+            sensitive_words=sensitive_words,
+            sensitive_patterns=sensitive_patterns,
+            truncate_for_console=True,
         )
 
     DefaultLogger._get_formatter = get_formatter
