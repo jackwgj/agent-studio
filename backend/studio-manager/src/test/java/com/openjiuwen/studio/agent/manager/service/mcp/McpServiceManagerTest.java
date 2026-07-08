@@ -1121,12 +1121,12 @@ public class McpServiceManagerTest extends BaseTest {
 
     @Test
     void testCheckSwaggerUrlValid() {
-        String swaggerUrl = "";
+        String swaggerUrl = "http://10.10.10.10/swagger.json";
         mcpService.checkSwaggerUrlValid(swaggerUrl, "");
-        String hostBlackList = "";
+        String hostBlackList = "10.10.10.10";
         Assertions.assertThrows(AgentStudioException.class,
                 ()-> mcpService.checkSwaggerUrlValid(swaggerUrl, hostBlackList));
-        String swaggerUrl1 = "";
+        String swaggerUrl1 = "http://www.example.com/swagger.json";
         Assertions.assertDoesNotThrow(
                 ()-> mcpService.checkSwaggerUrlValid(swaggerUrl1, hostBlackList));
     }

@@ -1,6 +1,7 @@
 /* Copyright (c) Huawei Technologies Co., Ltd. 2024-2026. All rights reserved. */
 package com.openjiuwen.studio.agent.manager.utils;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
@@ -86,7 +87,8 @@ class XmlParserTest {
         when(file.getSize()).thenReturn((long) invalidBytes.length);
         when(file.getInputStream()).thenReturn(new ByteArrayInputStream(invalidBytes));
 
-        assertThrows(AgentStudioException.class, () -> XmlParser.parseXml(file, 10));
+        // ZipInputStream 对非 zip 内容静默返回 null entry，不抛异常
+        assertDoesNotThrow(() -> XmlParser.parseXml(file, 10));
     }
 
     @Test

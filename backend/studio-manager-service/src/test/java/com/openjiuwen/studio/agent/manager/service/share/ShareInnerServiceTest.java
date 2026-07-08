@@ -93,7 +93,7 @@ class ShareInnerServiceTest {
     @Test
     void testCancelPluginVersionShared_VersionNotInShareList() {
         ShareResourceEntity entity = new ShareResourceEntity();
-        entity.setVersionList("[{\"versionId\":\"v2\"}]");
+        entity.setVersionList("[{\"version_id\":\"v2\"}]");
         when(shareResourceMapper.selectShareResourceEntityById("proj1", "ws1", "plugin1")).thenReturn(entity);
 
         boolean result = shareInnerService.cancelPluginVersionShared("proj1", "ws1", "plugin1", "v1");
@@ -103,7 +103,7 @@ class ShareInnerServiceTest {
     @Test
     void testCancelPluginVersionShared_VersionInShareList() {
         ShareResourceEntity entity = new ShareResourceEntity();
-        entity.setVersionList("[{\"versionId\":\"v1\"}]");
+        entity.setVersionList("[{\"version_id\":\"v1\"}]");
         when(shareResourceMapper.selectShareResourceEntityById("proj1", "ws1", "plugin1")).thenReturn(entity);
 
         assertThrows(AgentStudioException.class, () ->

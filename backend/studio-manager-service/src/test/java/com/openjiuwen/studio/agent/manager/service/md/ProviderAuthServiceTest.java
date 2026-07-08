@@ -99,7 +99,7 @@ class ProviderAuthServiceTest {
 
         providerAuthService.deleteByProvider("p1", "w1", "prov-1");
 
-        verify(authMapper).clearByProviderId("p1", "w1", "prov-1");
+        verify(authMapper).deleteByProviderId("p1", "w1", "prov-1");
         verify(obsService, times(2)).deleteObject(anyString());
         verify(redisClient).delete("MODEL_AUTH_auth-1");
         verify(redisClient).delete("MODEL_AUTH_auth-2");
@@ -111,7 +111,7 @@ class ProviderAuthServiceTest {
 
         providerAuthService.deleteByProvider("p1", "w1", "prov-1");
 
-        verify(authMapper).clearByProviderId("p1", "w1", "prov-1");
+        verify(authMapper).deleteByProviderId("p1", "w1", "prov-1");
         verify(obsService, never()).deleteObject(anyString());
     }
 

@@ -262,7 +262,7 @@ class McpServerManagerServiceTest {
 
             McpServerInfo info = new McpServerInfo();
             info.setServerId("server-1");
-            info.setCreator("系统预置");
+            info.setCreator("官方预置");
             info.setType("custom");
             when(serverMapper.selectByPrimaryKey("proj-1", "server-1", "user-1")).thenReturn(info);
             when(messageSource.getMessage("mcpserver.creator.official", null, Locale.CHINESE)).thenReturn("官方");

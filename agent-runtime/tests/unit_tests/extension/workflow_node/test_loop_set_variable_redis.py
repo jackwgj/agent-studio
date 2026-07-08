@@ -218,8 +218,15 @@ async def test_memory_variable_increment_operator():
     session_mock, global_updates = _make_session_mock(
         session_var_defs={"counter": ""}
     )
-    # 模拟当前值为 5
-    session_mock.state().set_global("MEMORY_VARIABLE.counter", 5)
+    # 模拟当前值为 5 — get_global_state 对 MEMORY_VARIABLE.counter 返回 int
+
+    def _get_global_state_increment(key=None):
+        """Return 5 for the counter key, else the session var defs dict."""
+        if key == "MEMORY_VARIABLE.counter":
+            return 5
+        return {"counter": ""}
+
+    session_mock.get_global_state.side_effect = _get_global_state_increment
     context_mock = MagicMock()
 
     with patch.object(set_var, "_save_to_redis", new_callable=AsyncMock) as mock_save:
@@ -246,7 +253,15 @@ async def test_memory_variable_decrement_operator():
     session_mock, global_updates = _make_session_mock(
         session_var_defs={"counter": ""}
     )
-    session_mock.state().set_global("MEMORY_VARIABLE.counter", 10)
+    # 模拟当前值为 10 — get_global_state 对 MEMORY_VARIABLE.counter 返回 int
+
+    def _get_global_state_decrement(key=None):
+        """Return 10 for the counter key, else the session var defs dict."""
+        if key == "MEMORY_VARIABLE.counter":
+            return 10
+        return {"counter": ""}
+
+    session_mock.get_global_state.side_effect = _get_global_state_decrement
     context_mock = MagicMock()
 
     with patch.object(set_var, "_save_to_redis", new_callable=AsyncMock) as mock_save:

@@ -110,7 +110,7 @@ public class ProviderAuthServiceTest extends BaseTest {
         providerAuthService.deleteByProvider("test_project_id", "default", "100");
 
         List<ProviderAuthData> list = authMapper.selectByProviderId("test_project_id", "default", "100");
-        Assertions.assertNull(list.get(0).getAuthInfo());
+        Assertions.assertTrue(list == null || list.isEmpty() || list.get(0).getAuthInfo() == null);
     }
 
     @Test

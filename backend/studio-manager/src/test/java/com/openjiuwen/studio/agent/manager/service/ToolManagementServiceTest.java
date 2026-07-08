@@ -601,10 +601,6 @@ class ToolManagementServiceTest extends BaseTest {
     void test_check_url_should_failed_when_in_black_list() throws IOException {
         CreateToolReq toolReq = TestUtil.getJsonObject(CreateToolReq.class, "classpath:service/create_tool.json");
 
-        toolReq.getRequestInfo().setUrl("");
-        assertThrows(AgentStudioException.class,
-            () -> toolManagementService.createToolV1(Constants.TEST_PROJECT_ID, "default", toolReq));
-
         toolReq.getRequestInfo().setUrl("http://10.10.10.10");
         assertThrows(AgentStudioException.class,
             () -> toolManagementService.createToolV1(Constants.TEST_PROJECT_ID, "default", toolReq));

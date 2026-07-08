@@ -40,6 +40,8 @@ import com.openjiuwen.studio.agent.manager.obs.MgObsService;
 import com.openjiuwen.studio.agent.manager.utils.MultipartFileToZipUtils;
 import com.openjiuwen.studio.agent.manager.utils.ZipValidationUtils;
 
+import com.obs.services.model.TemporarySignatureResponse;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -151,8 +153,10 @@ public class SkillManagementServiceTest {
 
         when(skillMapper.searchBySkillId(skillId)).thenReturn(mockSkill);
 
+        TemporarySignatureResponse mockRsp = mock(TemporarySignatureResponse.class);
+        lenient().when(mockRsp.getSignedUrl()).thenReturn("https://obs-url.com");
         lenient().when(mgObsService.getTemporaryGetRsp(anyBoolean(), anyString(), anyLong()))
-            .thenReturn("https://obs-url.com");
+            .thenReturn(mockRsp);
         mockSkill.setObsPath("https://obs-url.com");
 
         GetStudioSkillDetailsResponseBody result = skillManagementService.showStudioSkillDetail(skillId, "mock"
@@ -226,8 +230,10 @@ public class SkillManagementServiceTest {
             when(skillVersionMapper.insert(any(SkillVersionEntity.class))).thenReturn(1);
             lenient().when(mgObsService.uploadObsFile(anyString(), any(InputStream.class), anyInt()))
                 .thenReturn("user-001/skills/a1bc4d53-9965-4ff7-bb8c-4ec9649fc808/a1bc4d53-9965-4ff7-bb8c-4ec9649fc808/agentBuilder-import-test-13846229055125705451.zip");
+            TemporarySignatureResponse mockRsp2 = mock(TemporarySignatureResponse.class);
+            lenient().when(mockRsp2.getSignedUrl()).thenReturn("https://obs-url.com");
             lenient().when(mgObsService.getTemporaryGetRsp(anyBoolean(), anyString(), anyLong()))
-                .thenReturn("https://obs-url.com");
+                .thenReturn(mockRsp2);
             ImportStudioSkillResponseBody result = skillManagementService.importStudioSkill("mock-workspace-id",
                 "mock-project-id", mockMultipartFile);
 
@@ -339,8 +345,10 @@ public class SkillManagementServiceTest {
         when(skillVersionMapper.searchByVersionId(skillVersion)).thenReturn(mockVersion);
 
         // Mock 获取临时URL
+        TemporarySignatureResponse mockExportRsp = mock(TemporarySignatureResponse.class);
+        lenient().when(mockExportRsp.getSignedUrl()).thenReturn("https://obs-temp-url.com/skill.zip");
         lenient().when(mgObsService.getTemporaryGetRsp(anyBoolean(), anyString(), anyLong()))
-                .thenReturn("https://obs-temp-url.com/skill.zip");
+                .thenReturn(mockExportRsp);
 
         // 执行测试
         ExportStudioSkillResponseBody result = skillManagementService.exportStudioSkill(skillId,"mock-workspace-id", "mock-project-id");

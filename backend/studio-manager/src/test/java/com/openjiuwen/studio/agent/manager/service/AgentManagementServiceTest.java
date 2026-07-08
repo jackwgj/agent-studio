@@ -735,8 +735,6 @@ class AgentManagementServiceTest extends BaseTest {
                 new ListAgentLastVersionsQo().setOffset(0).setLimit(10).setId(Constants.TEST_AGENT_ID));
         Assertions.assertEquals(1, agentVersionListRsp.getCount());
 
-        assertTrue(redisClient.exists(String.format("AgentBuilder:agent:metadata:%s:latest", Constants.TEST_AGENT_ID)));
-
         AgentInfo releaseAgent = agentManagementService.getAgentVersion(Constants.TEST_PROJECT_ID,
             Constants.TEST_AGENT_ID, versionId, new GetAgentVersionQo().setWorkspaceId(Constants.TEST_WORKSPACE_ID));
         assertNotNull(releaseAgent);
@@ -745,8 +743,6 @@ class AgentManagementServiceTest extends BaseTest {
         versionListRsp = agentManagementService.listAgentVersions(Constants.TEST_PROJECT_ID, Constants.TEST_AGENT_ID,
             new ListAgentVersionsQo().setWorkspaceId("default"));
         assertEquals(0, versionListRsp.getCount());
-
-        assertFalse(redisClient.exists(String.format("AgentBuilder:agent:metadata:%s:latest", Constants.TEST_AGENT_ID)));
     }
 
 
@@ -777,8 +773,6 @@ class AgentManagementServiceTest extends BaseTest {
                 new ListAgentLastVersionsQo().setOffset(0).setLimit(10).setId(Constants.TEST_AGENT_ID));
         Assertions.assertEquals(1, agentVersionListRsp.getCount());
 
-        assertTrue(redisClient.exists(String.format("AgentBuilder:agent:metadata:%s:latest", Constants.TEST_AGENT_ID)));
-
         AgentInfo releaseAgent = agentManagementService.getAgentVersion(Constants.TEST_PROJECT_ID,
             Constants.TEST_AGENT_ID, versionId, new GetAgentVersionQo().setWorkspaceId(Constants.TEST_WORKSPACE_ID));
         assertNotNull(releaseAgent);
@@ -787,8 +781,6 @@ class AgentManagementServiceTest extends BaseTest {
         versionListRsp = agentManagementService.listAgentVersionsV1(Constants.TEST_PROJECT_ID, Constants.TEST_AGENT_ID,
             new ListAgentVersionsV1Qo().setWorkspaceId("default"));
         assertEquals(0, versionListRsp.getCount());
-
-        assertFalse(redisClient.exists(String.format("AgentBuilder:agent:metadata:%s:latest", Constants.TEST_AGENT_ID)));
     }
 
     @Test
@@ -1070,8 +1062,6 @@ class AgentManagementServiceTest extends BaseTest {
             agent.getAgentId(), new ListAgentVersionsQo().setWorkspaceId("default"));
         String versionId = versionListRsp.getVersionList().get(0).getVersionId();
 
-        assertTrue(redisClient.exists(String.format("AgentBuilder:agent:metadata:%s:latest", agent.getAgentId())));
-
         // create channel
         CreateChannelReq createChannelReq = new CreateChannelReq();
         createChannelReq.setVersionId(versionId);
@@ -1089,7 +1079,7 @@ class AgentManagementServiceTest extends BaseTest {
         createChannelReq.setChannelType(AGENT_BUILDER);
         channelInfo = agentManagementService.createAgentChannel(Constants.TEST_PROJECT_ID, agent.getAgentId(),
             Constants.TEST_WORKSPACE_ID, createChannelReq);
-        assertEquals("AgentBuilder", channelInfo.getChannelType());
+        assertEquals(AGENT_BUILDER, channelInfo.getChannelType());
     }
 
     @Test

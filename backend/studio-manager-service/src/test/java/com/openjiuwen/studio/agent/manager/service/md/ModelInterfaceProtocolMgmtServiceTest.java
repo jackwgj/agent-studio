@@ -71,7 +71,7 @@ class ModelInterfaceProtocolMgmtServiceTest {
         p.setId("p1");
         protocolList.add(p);
 
-        when(service.queryProtocols(null, null)).thenReturn(protocolList);
+        when(service.queryProtocols(null, "true")).thenReturn(protocolList);
 
         ModelInterfaceProtocolListRsp result = modelInterfaceProtocolMgmtService.queryMdInterfaceProtocol("proj1", qo);
 

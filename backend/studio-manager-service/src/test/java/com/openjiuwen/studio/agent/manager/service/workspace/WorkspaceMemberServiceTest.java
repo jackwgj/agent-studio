@@ -81,7 +81,7 @@ class WorkspaceMemberServiceTest {
     @Test
     void testQueryRoleList_ValidRoleStr() throws Exception {
         ReflectionTestUtils.setField(workspaceMemberService, "roleListStr",
-            "[{\"roleName\":\"admin\",\"roleValue\":\"admin\"}]");
+            "[{\"roleId\":\"admin\",\"roleNameCn\":\"admin\"}]");
         ReflectionTestUtils.setField(workspaceMemberService, "objectMapper", new ObjectMapper());
 
         GetWorkspaceMemberRoleRsp result = workspaceMemberService.queryRoleList("proj1");
@@ -182,7 +182,7 @@ class WorkspaceMemberServiceTest {
     @Test
     void testCheckMemberOwnerOrAdminPermission_NotOwnerOrAdmin() {
         WorkspaceEntity ws = new WorkspaceEntity();
-        ws.setType("team");
+        ws.setType("TEAM");
         when(workspaceMapper.getWorkspaceByWorkspaceId("proj1", "ws1")).thenReturn(ws);
 
         WorkSpaceMemberEntity member = new WorkSpaceMemberEntity();
@@ -196,7 +196,7 @@ class WorkspaceMemberServiceTest {
     @Test
     void testCheckMemberOwnerOrAdminPermission_Owner() {
         WorkspaceEntity ws = new WorkspaceEntity();
-        ws.setType("team");
+        ws.setType("TEAM");
         when(workspaceMapper.getWorkspaceByWorkspaceId("proj1", "ws1")).thenReturn(ws);
 
         WorkSpaceMemberEntity member = new WorkSpaceMemberEntity();
@@ -286,7 +286,7 @@ class WorkspaceMemberServiceTest {
             mockedStatic.when(RequestContextUtils::getRequestUserId).thenReturn("user1");
 
             WorkspaceInfo wsInfo = new WorkspaceInfo();
-            wsInfo.setType("team");
+            wsInfo.setType("TEAM");
             when(workspaceMapper.selectById("proj1", "ws1")).thenReturn(wsInfo);
 
             WorkSpaceMemberEntity member = new WorkSpaceMemberEntity();
@@ -305,7 +305,7 @@ class WorkspaceMemberServiceTest {
             mockedStatic.when(RequestContextUtils::getRequestUserName).thenReturn("User 1");
 
             WorkspaceInfo wsInfo = new WorkspaceInfo();
-            wsInfo.setType("team");
+            wsInfo.setType("TEAM");
             when(workspaceMapper.selectById("proj1", "ws1")).thenReturn(wsInfo);
 
             WorkSpaceMemberEntity member = new WorkSpaceMemberEntity();
@@ -334,7 +334,7 @@ class WorkspaceMemberServiceTest {
             mockedStatic.when(RequestContextUtils::getRequestUserId).thenReturn("user1");
 
             WorkspaceEntity ws = new WorkspaceEntity();
-            ws.setType("team");
+            ws.setType("TEAM");
             when(workspaceMapper.getWorkspaceByWorkspaceId("proj1", "ws1")).thenReturn(ws);
 
             WorkSpaceMemberEntity currentMember = new WorkSpaceMemberEntity();
@@ -353,14 +353,6 @@ class WorkspaceMemberServiceTest {
     void testBatchUpdateWorkspaceMemberRole_EmptyMembers() {
         try (MockedStatic<RequestContextUtils> mockedStatic = mockStatic(RequestContextUtils.class)) {
             mockedStatic.when(RequestContextUtils::getRequestUserId).thenReturn("user1");
-
-            WorkspaceEntity ws = new WorkspaceEntity();
-            ws.setType("team");
-            when(workspaceMapper.getWorkspaceByWorkspaceId("proj1", "ws1")).thenReturn(ws);
-
-            WorkSpaceMemberEntity currentMember = new WorkSpaceMemberEntity();
-            currentMember.setRole(MemberRole.OWNER.getValue());
-            when(workspaceMemberMapper.selectByMemberIdAndWorkspaceId("user1", "ws1")).thenReturn(currentMember);
 
             WorkspaceMemberBody1 body = new WorkspaceMemberBody1();
             body.setMembers(new ArrayList<>());

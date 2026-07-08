@@ -8,6 +8,7 @@ import com.openjiuwen.studio.agent.common.utils.RequestContextUtils;
 import com.openjiuwen.studio.agent.manager.dto.*;
 import com.openjiuwen.studio.agent.manager.entity.EnvironmentManagerEntity;
 import com.openjiuwen.studio.agent.manager.entity.EnvironmentVariableEntity;
+import com.openjiuwen.studio.agent.manager.service.environment.GlobalSyncAgentOpsStatus;
 import com.openjiuwen.studio.agent.manager.mapper.EnvironmentManagerMapper;
 import com.openjiuwen.studio.agent.manager.mapper.EnvironmentVariableMapper;
 import com.openjiuwen.studio.agent.manager.mapper.workspace.WorkspaceMapper;
@@ -90,6 +91,8 @@ public class EnvironmentServiceManagerServiceTest {
         ReflectionTestUtils.setField(environmentServiceManagerService, "environmentQuota", 5);
         ReflectionTestUtils.setField(environmentServiceManagerService, "environmentVariablesQuota", 1000);
         ReflectionTestUtils.setField(environmentServiceManagerService, "opsCallSwitch", false);
+        ReflectionTestUtils.setField(environmentServiceManagerService, "syncCaeStatusQueue",
+            Mockito.mock(GlobalSyncAgentOpsStatus.class));
     }
 
     @AfterEach
@@ -552,7 +555,7 @@ public class EnvironmentServiceManagerServiceTest {
             .thenReturn(1);
         when(environmentVariableMapper.findByProjectIdAndEnvId(TEST_PROJECT_ID, "test_env_id"))
             .thenReturn(new ArrayList<>());
-        when(environmentManagerMapper.findByProjectIdAndIsDefaultFalseAndStatus(TEST_PROJECT_ID, "ready"))
+        when(environmentManagerMapper.findByProjectIdAndIsDefaultFalseAndStatus(TEST_PROJECT_ID, "READY"))
             .thenReturn(new ArrayList<>());
 
         Boolean result = environmentServiceManagerService.deleteEnvironment(TEST_PROJECT_ID, "test_env_id");
@@ -567,7 +570,7 @@ public class EnvironmentServiceManagerServiceTest {
         EnvironmentManagerEntity fallbackEntity = new EnvironmentManagerEntity();
         fallbackEntity.setId("fallback_env_id");
         fallbackEntity.setIsDefault(false);
-        fallbackEntity.setStatus("ready");
+        fallbackEntity.setStatus("READY");
 
         when(environmentManagerMapper.findByIdAndProjectId("test_env_id", TEST_PROJECT_ID))
             .thenReturn(testEnvironmentEntity);
@@ -577,7 +580,7 @@ public class EnvironmentServiceManagerServiceTest {
             .thenReturn(1);
         when(environmentVariableMapper.findByProjectIdAndEnvId(TEST_PROJECT_ID, "test_env_id"))
             .thenReturn(new ArrayList<>());
-        when(environmentManagerMapper.findByProjectIdAndIsDefaultFalseAndStatus(TEST_PROJECT_ID, "ready"))
+        when(environmentManagerMapper.findByProjectIdAndIsDefaultFalseAndStatus(TEST_PROJECT_ID, "READY"))
             .thenReturn(List.of(fallbackEntity));
         when(environmentManagerMapper.updateIsDefaultById("fallback_env_id", true, TEST_CREATOR_ID))
             .thenReturn(1);

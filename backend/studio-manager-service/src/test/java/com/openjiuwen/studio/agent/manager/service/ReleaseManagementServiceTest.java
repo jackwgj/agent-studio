@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
@@ -55,7 +56,8 @@ class ReleaseManagementServiceTest {
         qo.setFindBy("channel_id");
         qo.setChannelType("web");
 
-        when(releaseChannelMapper.selectByChannelIdOrShortCode(anyString(), anyString(), anyString(), anyString()))
+        when(releaseChannelMapper.selectByChannelIdOrShortCode(nullable(String.class), nullable(String.class),
+            nullable(String.class), nullable(String.class)))
             .thenReturn(null);
 
         assertThrows(AgentStudioException.class,
@@ -71,7 +73,8 @@ class ReleaseManagementServiceTest {
         ReleaseChannel channel = new ReleaseChannel();
         channel.setAppId("app-1");
         channel.setVersionId("v-1");
-        when(releaseChannelMapper.selectByChannelIdOrShortCode(anyString(), anyString(), anyString(), anyString()))
+        when(releaseChannelMapper.selectByChannelIdOrShortCode(nullable(String.class), nullable(String.class),
+            nullable(String.class), nullable(String.class)))
             .thenReturn(channel);
         when(releaseVersionMapper.selectByAppIdAndVersionId("app-1", "v-1")).thenReturn(null);
 
@@ -88,7 +91,8 @@ class ReleaseManagementServiceTest {
         ReleaseChannel channel = new ReleaseChannel();
         channel.setAppId("app-1");
         channel.setVersionId("v-1");
-        when(releaseChannelMapper.selectByChannelIdOrShortCode(anyString(), anyString(), anyString(), anyString()))
+        when(releaseChannelMapper.selectByChannelIdOrShortCode(nullable(String.class), nullable(String.class),
+            nullable(String.class), nullable(String.class)))
             .thenReturn(channel);
 
         ReleaseVersion version = new ReleaseVersion();
@@ -116,7 +120,8 @@ class ReleaseManagementServiceTest {
         ReleaseChannel channel = new ReleaseChannel();
         channel.setAppId("app-1");
         channel.setVersionId("v-1");
-        when(releaseChannelMapper.selectByChannelIdOrShortCode(anyString(), anyString(), anyString(), anyString()))
+        when(releaseChannelMapper.selectByChannelIdOrShortCode(nullable(String.class), nullable(String.class),
+            nullable(String.class), nullable(String.class)))
             .thenReturn(channel);
 
         ReleaseVersion version = new ReleaseVersion();

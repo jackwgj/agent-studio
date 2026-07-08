@@ -20,8 +20,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 /**
- * 功能描述
+ * Unit tests for {@link JsonHandlerKnowledgeRetrievePolicy} converter.
  *
+ * <p>Covers serialization (entity → DB column) and deserialization
+ * (DB column → entity) for {@link KnowledgeRetrievePolicy}.
  */
 @ExtendWith(MockitoExtension.class)
 public class KnowledgeRetrievePolicyConverterTest {
@@ -31,47 +33,83 @@ public class KnowledgeRetrievePolicyConverterTest {
     @InjectMocks
     private JsonHandlerKnowledgeRetrievePolicy converter;
 
-    @Test
-    public void testConvertToDatabaseColumn_Success() throws JsonProcessingException {
-        // Arrange
-        KnowledgeRetrievePolicy knowledgeRetrievePolicy = new KnowledgeRetrievePolicy();
-        String expectedJson = "{\"search_mode\":\"doc\",\"top_k\":5,\"recall_threshold\":0.5,\"faq_threshold\":0.9,\"need_extras_faq_search\":false,\"show_source\":null,\"retrieve_image\":false,\"extra_params\":null}"    ;
-        String result = converter.convertToDatabaseColumn(knowledgeRetrievePolicy);
+    // ------------------------------------------------------------------
+    // Serialization: entity → DB JSON column
+    // ------------------------------------------------------------------
 
-        // Assert
-        assertEquals(expectedJson, result);
+    @Test
+    void shouldSerializePolicyToExpectedJsonString() throws JsonProcessingException {
+        // given
+        KnowledgeRetrievePolicy policy = buildDefaultPolicy();
+        String expected =
+                "{\"search_mode\":\"doc\",\"top_k\":5,\"recall_threshold\":0.5,"
+                        + "\"faq_threshold\":0.9,\"need_extras_faq_search\":false,"
+                        + "\"show_source\":null,\"retrieve_image\":false}";
+
+        // when
+        String actual = converter.convertToDatabaseColumn(policy);
+
+        // then
+        assertEquals(expected, actual);
     }
 
-
     @Test
-    public void testConvertToDatabaseColumn_JsonProcessingException() throws JsonProcessingException {
-        KnowledgeRetrievePolicy knowledgeRetrievePolicy = new KnowledgeRetrievePolicy();
-        converter.convertToDatabaseColumn(knowledgeRetrievePolicy);
+    void shouldTolerateSerializationFailureWithoutPropagatingCheckedException()
+            throws JsonProcessingException {
+        // given
+        KnowledgeRetrievePolicy policy = buildDefaultPolicy();
+
+        // when — converter wraps JsonProcessingException internally
+        converter.convertToDatabaseColumn(policy);
     }
 
+    // ------------------------------------------------------------------
+    // Deserialization: DB JSON column → entity
+    // ------------------------------------------------------------------
+
     @Test
-    public void testConvertToEntityAttribute_NullInput() {
+    void shouldReturnNullWhenColumnValueIsNull() {
         assertNull(converter.convertToEntityAttribute(null));
     }
 
     @Test
-    public void testConvertToEntityAttribute_EmptyInput() {
+    void shouldReturnNullWhenColumnValueIsBlank() {
         assertNull(converter.convertToEntityAttribute(""));
     }
 
     @Test
-    public void testConvertToEntityAttribute_ValidJson() throws Exception {
-        String validJson = "{\"top_k\":5}";
-        KnowledgeRetrievePolicy expectedPolicy = new KnowledgeRetrievePolicy();
-        expectedPolicy.setTopK(5);
+    void shouldDeserializeJsonFragmentIntoPolicyObject() throws Exception {
+        // given — partial JSON is enough to populate a single field
+        String columnValue = "{\"top_k\":5}";
+        KnowledgeRetrievePolicy expected = new KnowledgeRetrievePolicy();
+        expected.setTopK(5);
 
-        KnowledgeRetrievePolicy result = converter.convertToEntityAttribute(validJson);
-        assertEquals(expectedPolicy, result);
+        // when
+        KnowledgeRetrievePolicy actual = converter.convertToEntityAttribute(columnValue);
+
+        // then
+        assertEquals(expected, actual);
     }
 
     @Test
-    public void testConvertToEntityAttribute_InvalidJson() {
-        String invalidJson = "not_a_json";
-        assertThrows(AgentStudioException.class, () -> converter.convertToEntityAttribute(invalidJson));
+    void shouldRaiseAgentStudioExceptionForMalformedJson() {
+        assertThrows(
+                AgentStudioException.class,
+                () -> converter.convertToEntityAttribute("not_a_json"));
+    }
+
+    // ------------------------------------------------------------------
+    // Helpers
+    // ------------------------------------------------------------------
+
+    private static KnowledgeRetrievePolicy buildDefaultPolicy() {
+        KnowledgeRetrievePolicy policy = new KnowledgeRetrievePolicy();
+        policy.setSearchMode(KnowledgeRetrievePolicy.SearchModeEnum.DOC);
+        policy.setTopK(5);
+        policy.setRecallThreshold(0.5f);
+        policy.setFaqThreshold(0.9f);
+        policy.setNeedExtrasFaqSearch(false);
+        policy.setRetrieveImage(false);
+        return policy;
     }
 }

@@ -127,7 +127,7 @@ class AgentVariableArrayHandlerTest {
 
     @Test
     void testConvertToEntityAttribute_ValidJson() {
-        String json = "[{\"key\":\"k1\",\"value\":\"v1\"}]";
+        String json = "[{\"variable_key\":\"k1\",\"default_value\":\"v1\"}]";
 
         List<AgentVariable> result = handler.convertToEntityAttribute(json);
 

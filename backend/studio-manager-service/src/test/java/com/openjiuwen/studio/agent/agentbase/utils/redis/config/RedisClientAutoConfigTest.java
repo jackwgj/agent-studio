@@ -10,6 +10,7 @@ import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 
+import com.openjiuwen.studio.agent.common.crypt.Ciphers;
 import com.openjiuwen.studio.agent.common.redis.RedisClient;
 import com.openjiuwen.studio.agent.common.redis.config.RedisClientAutoConfig;
 import com.openjiuwen.studio.agent.common.redis.config.RedisClientConfig;
@@ -55,7 +56,8 @@ class RedisClientAutoConfigTest {
             RedissonClient redissonClient = mock(RedissonClient.class, Answers.RETURNS_DEEP_STUBS);
             mockedStaticRedisson.when(() -> Redisson.create(any(Config.class))).thenReturn(redissonClient);
 
-            RedisClientConfig redisClientConfig = new RedisClientConfig();
+            RedisClientConfig redisClientConfig = new RedisClientConfig(
+                new Ciphers(java.util.Collections.emptyList(), "NO_OP_CIPHER"));
 
             // When
             RedisClient result = redisClientAutoConfig.redissionClient(redisClientConfig);

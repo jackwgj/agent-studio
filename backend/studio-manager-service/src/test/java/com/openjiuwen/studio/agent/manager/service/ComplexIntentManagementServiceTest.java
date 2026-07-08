@@ -105,6 +105,8 @@ class ComplexIntentManagementServiceTest {
             body.setBranches(List.of(branchReq));
 
             when(complexIntentMapper.getEntitiesAccurate(any())).thenReturn(new ArrayList<>());
+            when(complexIntentMapper.getByKeyAndWorkspaceId(anyString(), anyString(), anyString()))
+                .thenReturn(new ComplexIntentEntity());
             when(complexIntentBranchMapper.getEntities(any())).thenReturn(new ArrayList<>());
             when(complexIntentBranchMapper.maxBranchIndex(anyString(), anyString(), anyString())).thenReturn(null);
             when(complexIntentBranchMapper.countBranch(anyString(), anyString(), anyString())).thenReturn(1);

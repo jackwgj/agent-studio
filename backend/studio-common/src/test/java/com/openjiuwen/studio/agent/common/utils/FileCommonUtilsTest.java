@@ -40,7 +40,9 @@ class FileCommonUtilsTest {
         assertFalse(multipart.isEmpty());
         assertTrue(multipart.getSize() > 0);
         assertNotNull(multipart.getBytes());
-        assertNotNull(multipart.getInputStream());
+        try (var is = multipart.getInputStream()) {
+            assertNotNull(is);
+        }
     }
 
     @Test

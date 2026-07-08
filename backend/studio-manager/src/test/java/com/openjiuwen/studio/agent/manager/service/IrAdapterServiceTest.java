@@ -133,7 +133,6 @@ class IrAdapterServiceTest extends BaseTest {
         ReflectionTestUtils.setField(irAdapterService, "encryptionAdapter", encryptionAdapter);
 
         ReflectionTestUtils.setField(irAdapterService, "agentIrVersion", "1.0.0");
-        ReflectionTestUtils.setField(irAdapterService, "agentRuntimeEndpoint", "http://test-endpoint");
         ReflectionTestUtils.setField(irAdapterService, "opProjectId", "test-op-project");
 
         // 设置默认的Mock行为

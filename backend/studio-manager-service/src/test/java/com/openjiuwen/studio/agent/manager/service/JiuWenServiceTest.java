@@ -113,7 +113,10 @@ class JiuWenServiceTest {
 
         FreeModelService freeModelService = Mockito.mock(FreeModelService.class, Answers.RETURNS_DEEP_STUBS);
 
-        JiuWenService service = new JiuWenService(runtimeClient, authDataMapper, freeModelService);
+        JiuWenService service = new JiuWenService();
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "runtimeClient", runtimeClient);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "authDataMapper", authDataMapper);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "freeModelService", freeModelService);
         try {
             service.callModel(req, "workspaceId");
         } catch (AgentStudioException e) {

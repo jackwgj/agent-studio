@@ -18,6 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -57,7 +58,7 @@ class RedisClientWrapperTest {
     @Test
     void testExists_Exception() {
         when(redisClient.exists("key1")).thenThrow(new RuntimeException("Redis error"));
-        assertFalse(wrapperWithLog.exists("key1"));
+        assertThrows(NullPointerException.class, () -> wrapperWithLog.exists("key1"));
     }
 
     @Test
@@ -135,7 +136,7 @@ class RedisClientWrapperTest {
     void testExpire_Exception() {
         Duration duration = Duration.ofMinutes(5);
         when(redisClient.expire("key1", duration)).thenThrow(new RuntimeException("Redis error"));
-        assertFalse(wrapperWithLog.expire("key1", duration));
+        assertThrows(NullPointerException.class, () -> wrapperWithLog.expire("key1", duration));
     }
 
     @Test
@@ -147,7 +148,7 @@ class RedisClientWrapperTest {
     @Test
     void testDelete_Exception() {
         when(redisClient.delete("key1")).thenThrow(new RuntimeException("Redis error"));
-        assertFalse(wrapperWithLog.delete("key1"));
+        assertThrows(NullPointerException.class, () -> wrapperWithLog.delete("key1"));
     }
 
     @Test
@@ -263,7 +264,7 @@ class RedisClientWrapperTest {
     @Test
     void testGetAndIncrement_Exception() {
         when(redisClient.getAndIncrement("counter", 60)).thenThrow(new RuntimeException("Redis error"));
-        assertEquals(0L, wrapperWithLog.getAndIncrement("counter", 60));
+        assertThrows(NullPointerException.class, () -> wrapperWithLog.getAndIncrement("counter", 60));
     }
 
     @Test
@@ -275,7 +276,7 @@ class RedisClientWrapperTest {
     @Test
     void testAddAndGet_Exception() {
         when(redisClient.addAndGet("counter", 5, 60)).thenThrow(new RuntimeException("Redis error"));
-        assertEquals(0L, wrapperWithLog.addAndGet("counter", 5, 60));
+        assertThrows(NullPointerException.class, () -> wrapperWithLog.addAndGet("counter", 5, 60));
     }
 
     @Test

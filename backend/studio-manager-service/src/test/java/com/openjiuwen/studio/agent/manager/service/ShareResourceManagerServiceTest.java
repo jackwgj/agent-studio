@@ -14,6 +14,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -665,7 +666,7 @@ class ShareResourceManagerServiceTest {
 
             shareResourceManagerService.validateShareReferences(List.of(mapping), WORKSPACE_ID);
 
-            verify(pluginAdapter).getPluginId(RESOURCE_ID);
+            verify(pluginAdapter, times(2)).getPluginId(RESOURCE_ID);
         }
     }
 

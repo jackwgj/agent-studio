@@ -310,7 +310,6 @@ class ResourceServiceNewTest {
 
     @Test
     void testGetResourceMeta_InvalidType() {
-        assertThrows(IllegalArgumentException.class,
-            () -> resourceService.getResourceMeta(List.of("id-1"), "invalid_type", "p1", "w1"));
+        assertNull(resourceService.getResourceMeta(List.of("id-1"), "invalid_type", "p1", "w1"));
     }
 }

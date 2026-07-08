@@ -7,7 +7,9 @@ import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import com.openjiuwen.studio.agent.common.utils.OkHttpClientUtils;
+import com.openjiuwen.studio.agent.common.utils.SpringBeanUtils;
 import com.openjiuwen.studio.agent.manager.constant.CommonConstant;
+import com.openjiuwen.studio.agent.manager.service.MgAsyncService;
 
 import okhttp3.OkHttpClient;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,6 +22,8 @@ import org.quartz.JobDataMap;
 import org.quartz.JobDetail;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobKey;
+import org.springframework.context.ApplicationContext;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 class AgentTriggerServiceTest {
@@ -52,6 +56,12 @@ class AgentTriggerServiceTest {
         lenient().when(jobDetail.getKey()).thenReturn(jobKey);
         lenient().when(jobKey.getName()).thenReturn("test-job");
         lenient().when(okHttpClientUtils.getHttpClient()).thenReturn(okHttpClient);
+
+        // 设置 SpringBeanUtils.applicationContext，使 getBean(MgAsyncService.class) 返回 mock
+        MgAsyncService mgAsyncService = org.mockito.Mockito.mock(MgAsyncService.class);
+        ApplicationContext mockCtx = org.mockito.Mockito.mock(ApplicationContext.class);
+        lenient().when(mockCtx.getBean(MgAsyncService.class)).thenReturn(mgAsyncService);
+        ReflectionTestUtils.setField(SpringBeanUtils.class, "applicationContext", mockCtx);
     }
 
     @Test

@@ -62,6 +62,7 @@ class EncryptionAdapterTest {
     @Test
     @DisplayName("解密：输入为空字符串 -> 原样返回")
     void testDecrypt_EmptyString() {
+        when(legacyCryptoHandler.decrypt("")).thenReturn("");
         assertEquals("", encryptionAdapter.decrypt(""));
     }
 

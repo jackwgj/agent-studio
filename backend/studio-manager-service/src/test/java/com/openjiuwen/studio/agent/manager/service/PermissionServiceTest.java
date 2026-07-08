@@ -14,6 +14,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -71,7 +73,7 @@ class PermissionServiceTest {
     @Test
     void testUpdateDynamicPermissions_NullPermissionInList() {
         Map<String, List<String>> permissions = new HashMap<>();
-        permissions.put("admin", List.of("read", null));
+        permissions.put("admin", new ArrayList<>(Arrays.asList("read", null)));
         boolean result = permissionService.updateDynamicPermissions(permissions);
         assertFalse(result);
     }

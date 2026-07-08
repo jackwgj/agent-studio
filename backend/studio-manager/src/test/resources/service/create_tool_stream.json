@@ -6,7 +6,7 @@
   "visibility": "project",
   "tool_chinese_name": "gt_stream_test",
   "request_info": {
-    "url": "http://127.0.0.1:38035/v1/chat/completions",
+    "url": "https://fake.com/v1/chat/completions",
     "method": "POST",
     "headers": {
       "Content-Type": "application/json"

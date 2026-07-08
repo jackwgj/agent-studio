@@ -209,7 +209,8 @@ public class ControllerManagementServiceTest extends BaseTest {
         UUID uuid = UUID.fromString(uuidStr);
         ModelServiceData model = (ModelServiceData) new ModelServiceData().setModelName("testDeployName")
             .setId("testDeploymentId")
-            .setModelType("openai");
+            .setModelType("openai")
+            .setPublishStatus("online");
         List<ModelServiceData> modelList = new ArrayList<>();
         modelList.add(model);
         when(modelServiceManager.queryAvailableServices(anyString(), anyString(), anyString(),

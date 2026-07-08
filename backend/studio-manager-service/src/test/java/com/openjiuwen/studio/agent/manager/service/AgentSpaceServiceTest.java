@@ -83,7 +83,7 @@ class AgentSpaceServiceTest {
         try (MockedStatic<RequestContextUtils> reqCtx = mockStatic(RequestContextUtils.class)) {
             reqCtx.when(RequestContextUtils::getRequestAuthToken).thenReturn("token");
 
-            ResponseEntity<JSONObject> response = new ResponseEntity<>(null, HttpStatus.OK);
+            ResponseEntity<JSONObject> response = new ResponseEntity<>(new JSONObject(), HttpStatus.OK);
             when(agentSpaceClient.publish(anyString(), anyString(), anyString())).thenReturn(response);
 
             assertThrows(AgentStudioException.class,

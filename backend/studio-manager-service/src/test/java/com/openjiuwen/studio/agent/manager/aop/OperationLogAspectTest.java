@@ -21,6 +21,7 @@ import java.lang.reflect.Method;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
@@ -57,8 +58,8 @@ class OperationLogAspectTest {
     void testAround_SwitchEnabled_Success() throws Throwable {
         ReflectionTestUtils.setField(aspect, "operationLogSwitch", true);
         when(joinPoint.proceed()).thenReturn("result");
-        when(joinPoint.getSignature()).thenReturn(methodSignature);
-        when(methodSignature.getMethod()).thenReturn(getTestMethod());
+        lenient().when(joinPoint.getSignature()).thenReturn(methodSignature);
+        lenient().when(methodSignature.getMethod()).thenReturn(getTestMethod());
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setRequestURI("/test/api");
@@ -67,8 +68,6 @@ class OperationLogAspectTest {
 
         try (MockedStatic<RequestContextUtils> mockedStatic = mockStatic(RequestContextUtils.class)) {
             mockedStatic.when(RequestContextUtils::getRequestUserId).thenReturn("user-1");
-            mockedStatic.when(RequestContextUtils::getRequestWorkspaceId).thenReturn("ws-1");
-            mockedStatic.when(RequestContextUtils::getRequestProjectId).thenReturn("proj-1");
 
             Object result = aspect.around(joinPoint, operationLog);
 
@@ -83,8 +82,8 @@ class OperationLogAspectTest {
         ReflectionTestUtils.setField(aspect, "operationLogSwitch", true);
         RuntimeException ex = new RuntimeException("test error");
         when(joinPoint.proceed()).thenThrow(ex);
-        when(joinPoint.getSignature()).thenReturn(methodSignature);
-        when(methodSignature.getMethod()).thenReturn(getTestMethod());
+        lenient().when(joinPoint.getSignature()).thenReturn(methodSignature);
+        lenient().when(methodSignature.getMethod()).thenReturn(getTestMethod());
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setRequestURI("/test/api");
@@ -93,8 +92,6 @@ class OperationLogAspectTest {
 
         try (MockedStatic<RequestContextUtils> mockedStatic = mockStatic(RequestContextUtils.class)) {
             mockedStatic.when(RequestContextUtils::getRequestUserId).thenReturn("user-1");
-            mockedStatic.when(RequestContextUtils::getRequestWorkspaceId).thenReturn("ws-1");
-            mockedStatic.when(RequestContextUtils::getRequestProjectId).thenReturn("proj-1");
 
             assertThrows(RuntimeException.class, () -> aspect.around(joinPoint, operationLog));
         } finally {
@@ -106,15 +103,13 @@ class OperationLogAspectTest {
     void testAround_SwitchEnabled_NullAttributes() throws Throwable {
         ReflectionTestUtils.setField(aspect, "operationLogSwitch", true);
         when(joinPoint.proceed()).thenReturn("ok");
-        when(joinPoint.getSignature()).thenReturn(methodSignature);
-        when(methodSignature.getMethod()).thenReturn(getTestMethod());
+        lenient().when(joinPoint.getSignature()).thenReturn(methodSignature);
+        lenient().when(methodSignature.getMethod()).thenReturn(getTestMethod());
 
         RequestContextHolder.resetRequestAttributes();
 
         try (MockedStatic<RequestContextUtils> mockedStatic = mockStatic(RequestContextUtils.class)) {
             mockedStatic.when(RequestContextUtils::getRequestUserId).thenReturn("user-1");
-            mockedStatic.when(RequestContextUtils::getRequestWorkspaceId).thenReturn("ws-1");
-            mockedStatic.when(RequestContextUtils::getRequestProjectId).thenReturn("proj-1");
 
             Object result = aspect.around(joinPoint, operationLog);
 

@@ -23,11 +23,6 @@ public class NoOpCipherTest {
     }
 
     @Test
-    public void testIndex() {
-        assertEquals((byte) 0x00, noOpCipher.index());
-    }
-
-    @Test
     public void testGenIV() {
         byte[] iv = noOpCipher.genIV();
         assertNotNull(iv);
@@ -40,7 +35,7 @@ public class NoOpCipherTest {
         byte[] iv = new byte[] {1, 2, 3, 4};
         byte[] result = noOpCipher.encrypt(plainText, iv);
         assertNotNull(result);
-        assertEquals(plainText.getBytes().length + 1, result.length);
+        assertEquals(plainText.getBytes().length, result.length);
     }
 
     @Test
@@ -54,8 +49,7 @@ public class NoOpCipherTest {
         String plainText = "test message";
         byte[] result = noOpCipher.encrypt(plainText);
         assertNotNull(result);
-        assertEquals(plainText.getBytes().length + 1, result.length);
-        assertEquals(noOpCipher.index(), result[0]);
+        assertEquals(plainText.getBytes().length, result.length);
     }
 
     @Test

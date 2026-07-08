@@ -21,4 +21,4 @@ INSERT  INTO t_provider_auth_metadata (ID, PROVIDER_ID, AUTH_TYPE, AUTH_INFO, AU
 
 
 DELETE FROM t_user_model_service_provider WHERE ID = 'ab';
-INSERT  INTO t_user_model_service_provider (ID, PROVIDER_NAME, PROVIDER_NAME_EN, DESCRIPTION, TAGS, PROVIDER_URL, CREATED_DATE, LAST_UPDATED_DATE, LOGO, STATUS, DOMAIN_ID, PROJECT_ID, WORKSPACE_ID, CREATED_BY_USER, LAST_UPDATED_BY_USER, IDENTITY_ID) VALUES ('ab', 'ab', 'ab', '', NULL, '', 1754668644437, 1754668644437, 'data:image=', 'created', '0', 'test_project_id', 'default', '2', '2', 'dc1a26b2-a2c4-4086-81fa-b0de8160fbac');
+INSERT  INTO t_user_model_service_provider (ID, PROVIDER_NAME, PROVIDER_NAME_EN, DESCRIPTION, TAGS, PROVIDER_URL, CREATED_DATE, LAST_UPDATED_DATE, LOGO, STATUS, DOMAIN_ID, PROJECT_ID, WORKSPACE_ID, CREATED_BY_USER, LAST_UPDATED_BY_USER, IDENTITY_ID) VALUES ('ab', 'ab', 'ab', '', NULL, 'http://www.demo.com/v1/ab', 1754668644437, 1754668644437, 'data:image=', 'created', '0', 'test_project_id', 'default', '2', '2', 'dc1a26b2-a2c4-4086-81fa-b0de8160fbac');

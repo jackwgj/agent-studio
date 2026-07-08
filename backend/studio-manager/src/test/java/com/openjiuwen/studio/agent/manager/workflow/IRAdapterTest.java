@@ -550,6 +550,7 @@ class IRAdapterTest extends BaseTest {
 
     @SneakyThrows
     @Test
+    @Sql(scripts = {"classpath:sql/memory_repo_setup_db.sql"}, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
     public void testMemoryConfigAdapter() {
         String llmJson = TestUtil.getStringFromFile("classpath:flow_dsl/test_memory_config_flow_dsl.json");
         Map<String, Object> metadata = new HashMap<>();
