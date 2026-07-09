@@ -2187,7 +2187,7 @@ public class PluginService implements IPluginService {
      */
     public void adaptPluginUrlWhenCreateOrModify(BasicInfo basicInfo, UrlInfo urlInfo) {
         String basePath = urlInfo.getBasePath();
-        if (basePath.endsWith("/") && basePath.length() > 1) {
+        if (basePath.endsWith("/")) {
             basePath = basePath.substring(0, basePath.length() - 1);
             basicInfo.setPath(basePath);
         }
