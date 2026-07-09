@@ -7,7 +7,6 @@ package com.openjiuwen.studio.agent.manager.workflow.jiuwen.adapt;
 import com.openjiuwen.studio.agent.common.enums.NodeType;
 import com.openjiuwen.studio.agent.common.enums.StudioError;
 import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
-import com.openjiuwen.studio.agent.manager.config.IRAdapterConfig;
 import com.openjiuwen.studio.agent.manager.constant.CommonConstant;
 import com.openjiuwen.studio.agent.manager.dto.WorkflowBranchVO;
 import com.openjiuwen.studio.agent.manager.dto.WorkflowEdgeVO;
@@ -39,8 +38,6 @@ public class IRAdapter {
 
     private static final IREdgeAdapter IR_EDGE_ADAPTER = new IREdgeAdapter();
 
-    public static IRAdapterConfig irAdapterConfig;
-
     static {
         IR_NODE_ADAPTER_MAP.put(NodeType.START.getType(), new StartNodeAdapter());
         IR_NODE_ADAPTER_MAP.put(NodeType.LLM.getType(), new LLMNodeAdapter());
@@ -63,8 +60,6 @@ public class IRAdapter {
         IR_NODE_ADAPTER_MAP.put(NodeType.MCP.getType(), new McpNodeAdapter());
         IR_NODE_ADAPTER_MAP.put(NodeType.LTM.getType(), new LTMNodeAdapter());
         IR_NODE_ADAPTER_MAP.put(NodeType.QA.getType(), new QaNodeAdapter());
-        IR_NODE_ADAPTER_MAP.put(NodeType.SQL.getType(), new SqlNodeAdapter());
-        IR_NODE_ADAPTER_MAP.put(NodeType.DATA_QUERY.getType(), new SqlNodeAdapter());
         IR_NODE_ADAPTER_MAP.put(NodeType.DATA_ACQUISITION.getType(), new McpNodeAdapter());
         IR_NODE_ADAPTER_MAP.put(NodeType.DATA_PROCESS.getType(), new McpNodeAdapter());
         IR_NODE_ADAPTER_MAP.put(NodeType.DATA_SYNTHESIS.getType(), new McpNodeAdapter());
@@ -73,10 +68,6 @@ public class IRAdapter {
         IR_NODE_ADAPTER_MAP.put(NodeType.PARAM_EXTRACTION.getType(), new ParamExtractionAdapter());
         IR_NODE_ADAPTER_MAP.put(NodeType.PARAM_OUT.getType(), new ParamOutputAdapter());
         IR_NODE_ADAPTER_MAP.put(NodeType.STREAM_TRANSFORM.getType(), new StreamTransformNodeAdapter());
-    }
-
-    public IRAdapter(IRAdapterConfig irAdapterConfigParam) {
-        irAdapterConfig = irAdapterConfigParam;
     }
 
     // 对于引用意图容器节点的参数，映射为意图节点

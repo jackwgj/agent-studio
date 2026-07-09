@@ -50,7 +50,6 @@ import com.openjiuwen.studio.agent.manager.bo.SkillDetails;
 import com.openjiuwen.studio.agent.manager.bo.SkillIrInfo;
 import com.openjiuwen.studio.agent.manager.bo.WorkflowNodeInfo;
 import com.openjiuwen.studio.agent.manager.bo.WorkflowParallelEndNode;
-import com.openjiuwen.studio.agent.manager.config.IRAdapterConfig;
 import com.openjiuwen.studio.agent.manager.constant.CommonConstant;
 import com.openjiuwen.studio.agent.manager.constant.PromptPath;
 import com.openjiuwen.studio.agent.manager.dto.AgentInfo;
@@ -565,9 +564,6 @@ public class IrAdapterService {
     private McpServiceManager mcpServiceManager;
 
     @Autowired
-    private IRAdapterConfig irAdapterConfig;
-
-    @Autowired
     private SkillMapper skillMapper;
 
     @Autowired
@@ -607,7 +603,7 @@ public class IrAdapterService {
         }
         WorkflowVO adaptedWorkflow = paramExtractionNodeService.adaptParamExtractionNode(workflowVo);
 
-        IRAdapter irAdapter = new IRAdapter(irAdapterConfig);
+        IRAdapter irAdapter = new IRAdapter();
         Map<String, String> complexNodePair = parseComplexNodePair(workflowVo);
         Map<String, Object> result = new HashMap<>();
         result.put("workflowId", adaptedWorkflow.getId());

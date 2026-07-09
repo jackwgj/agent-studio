@@ -1281,11 +1281,6 @@ public enum StudioError {
     WORKFLOW_FLOW_RESOURCE_IMPORT_FAILED(BAD_REQUEST, WORKFLOW, "1067"),
 
     /**
-     * 无权限使用数据库，数据库id为：{}
-     */
-    DATASOURCE_NO_PERMISSION(BAD_REQUEST, WORKFLOW, "1068"),
-
-    /**
      * 异步运行需要账号开启IAM委托
      */
     ASYNC_TASK_ACCOUNT_FAILED(BAD_REQUEST, WORKFLOW, "1069"),
@@ -1315,15 +1310,6 @@ public enum StudioError {
      */
     WORKFLOW_CHANNEL_NOT_SUPPORT_DELETE(BAD_REQUEST, WORKFLOW, "1074"),
 
-    /**
-     * 数据源执行SQL失败
-     */
-    DATASOURCE_CALL_FAILED(BAD_REQUEST, WORKFLOW, "1075"),
-
-    /**
-     * SQL查询节点查询字段不能为空
-     */
-    DATASOURCE_SELECT_COLUMN_NOT_NULL(BAD_REQUEST, WORKFLOW, "1076"),
 
     /**
      * 工作流异常配置重试次数设置不合法
@@ -1636,15 +1622,6 @@ public enum StudioError {
      */
     INTENT_EXPORT_FILE_ERROR(INTERNAL_SERVER_ERROR, CONFIG, "1004"),
 
-    /**
-     * 数据源密码配置失败
-     */
-    DATASOURCE_AUTH_FAILED(BAD_REQUEST, CONFIG, "1005"),
-
-    /**
-     * 数据源名称重复
-     */
-    DATASOURCE_NAME_REPEATED(BAD_REQUEST, CONFIG, "1006"),
 
     /**
      * 访问的静态资源不存在
@@ -1685,16 +1662,6 @@ public enum StudioError {
      * {0} is not supported for iam password and iam secret key
      */
     RESOURCE_IAM_KEY_UNSUPPORTED(BAD_REQUEST, CONFIG, "1015"),
-
-    /**
-     * 数据源连接超时
-     */
-    DATASOURCE_CHECK_TIMEOUT(BAD_REQUEST, CONFIG, "1016"),
-
-    /**
-     * 数据源连接异常
-     */
-    DATASOURCE_CHECK_CONNECTION_FAILED(BAD_REQUEST, CONFIG, "1017"),
 
     /**
      * 添加定时任务失败

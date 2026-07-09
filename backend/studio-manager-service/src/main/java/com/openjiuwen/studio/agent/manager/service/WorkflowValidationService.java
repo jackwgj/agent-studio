@@ -33,7 +33,6 @@ import com.openjiuwen.studio.agent.manager.dto.WorkflowNodeVO;
 import com.openjiuwen.studio.agent.manager.dto.WorkflowVO;
 import com.openjiuwen.studio.agent.manager.dto.WorkflowValidationVO;
 import com.openjiuwen.studio.agent.manager.dto.WorkflowValidationVOErrors;
-import com.openjiuwen.studio.agent.manager.entity.DatasourceEntity;
 import com.openjiuwen.studio.agent.manager.entity.KnowledgeRepoEntity;
 import com.openjiuwen.studio.agent.manager.entity.ReleaseVersion;
 import com.openjiuwen.studio.agent.manager.entity.ShareResourceEntity;
@@ -41,7 +40,6 @@ import com.openjiuwen.studio.agent.manager.entity.ShareScopeEntity;
 import com.openjiuwen.studio.agent.manager.entity.ToolEntity;
 import com.openjiuwen.studio.agent.manager.entity.WorkflowEntity;
 import com.openjiuwen.studio.agent.manager.enums.ToolType;
-import com.openjiuwen.studio.agent.manager.mapper.DatasourceMapper;
 import com.openjiuwen.studio.agent.manager.mapper.ReleaseVersionMapper;
 import com.openjiuwen.studio.agent.manager.mapper.ShareResourceMapper;
 import com.openjiuwen.studio.agent.manager.mapper.ShareScopeMapper;
@@ -220,9 +218,6 @@ public class WorkflowValidationService {
 
     @Autowired
     private ModelServiceManager modelServiceManager;
-
-    @Autowired
-    private DatasourceMapper datasourceMapper;
 
     @Autowired
     private IPluginBase pluginDomain;
@@ -1829,24 +1824,6 @@ public class WorkflowValidationService {
                 String name = (String) workflow.get("name");
                 if (StringUtils.length(name) > MAX_NAME_SIZE) {
                     throw new AgentStudioException(StudioError.WORKFLOW_NAME_EXCEEDS_LIMIT);
-                }
-            }
-        });
-
-        // 校验数据库节点数据源
-        List<Map<String, Object>> datasourceList = nodes.stream().filter(node -> NodeType.SQL.getType().equals(node.get("type"))).toList();
-        datasourceList.forEach(datasource -> {
-            Map<String, Object> config = JsonUtils.objectToClass(datasource.get("configs"));
-            if (config != null && config.get("id") != null) {
-                String datasourceId = (String) config.get("id");
-                if (StringUtils.isBlank(datasourceId)) {
-                    return;
-                }
-                DatasourceEntity datasourceEntity = datasourceMapper.getByPrimaryKeyAndWorkspaceId(
-                    datasourceId, projectId, workspaceId);
-                // 数据源不存在
-                if (Objects.isNull(datasourceEntity)) {
-                    throw new AgentStudioException(StudioError.DATASOURCE_NO_PERMISSION, datasourceId);
                 }
             }
         });

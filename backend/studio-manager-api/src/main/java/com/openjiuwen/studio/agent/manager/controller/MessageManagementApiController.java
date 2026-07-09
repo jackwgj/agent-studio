@@ -3,7 +3,7 @@
  */
 package com.openjiuwen.studio.agent.manager.controller;
 
-import com.openjiuwen.studio.agent.manager.dto.DatasourceBatchDeleteRsp;
+import com.openjiuwen.studio.agent.manager.dto.BatchDeleteRsp;
 import com.openjiuwen.studio.agent.manager.dto.ExportMessagesParams;
 import com.openjiuwen.studio.agent.manager.dto.ListStructuredMessagesQo;
 import com.openjiuwen.studio.agent.manager.dto.StructMessage;
@@ -42,7 +42,7 @@ public class MessageManagementApiController implements MessageManagementApi {
     }
 
     @Override
-    public ResponseEntity<DatasourceBatchDeleteRsp> deleteStructuredMessages(String projectId, String workspaceId,
+    public ResponseEntity<BatchDeleteRsp> deleteStructuredMessages(String projectId, String workspaceId,
         List<StructuredInfoRequestDelete> body) {
         return ResponseModel.success(messageManagementService.deleteStructuredMessages(projectId, workspaceId, body));
     }

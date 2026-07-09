@@ -186,16 +186,6 @@ public enum NodeType {
     QA("QA", false, "EI.qa", "EI.qa"),
 
     /**
-     * sql节点
-     */
-    SQL("Sql", false, "EI.sql", "EI.sql"),
-
-    /**
-     * SQL数据查询节点
-     */
-    DATA_QUERY("DataQuery", false, "EI.sql", "EI.sql"),
-
-    /**
      * 未知节点
      */
     UN_KNOWN("Unknown", false, "unknown", "unknown"),

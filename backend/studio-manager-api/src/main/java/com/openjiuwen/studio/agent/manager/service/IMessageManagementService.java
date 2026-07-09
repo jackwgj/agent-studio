@@ -3,7 +3,7 @@
  */
 package com.openjiuwen.studio.agent.manager.service;
 
-import com.openjiuwen.studio.agent.manager.dto.DatasourceBatchDeleteRsp;
+import com.openjiuwen.studio.agent.manager.dto.BatchDeleteRsp;
 import com.openjiuwen.studio.agent.manager.dto.ExportMessagesParams;
 import com.openjiuwen.studio.agent.manager.dto.ListStructuredMessagesQo;
 import com.openjiuwen.studio.agent.manager.dto.StructMessage;
@@ -39,7 +39,7 @@ public interface IMessageManagementService {
      * @param workspaceId workspaceId
      * @param body body
      */
-    DatasourceBatchDeleteRsp deleteStructuredMessages(String projectId, String workspaceId,
+    BatchDeleteRsp deleteStructuredMessages(String projectId, String workspaceId,
         List<StructuredInfoRequestDelete> body);
 
     /**

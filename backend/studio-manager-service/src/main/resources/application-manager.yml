@@ -287,14 +287,6 @@ model:
   # ========== 适配模型url ==========
   protocol:
     mapping: api.baichuan-ai.com#baichuan,open.bigmodel.cn#zhipu,dashscope.aliyuncs.com#qwen
-datasource:
-  ir-path: ${datasource_ir_path:datasource/ir}
-  column-template: ${datasource_column_template:}
-  check:
-    pool-size: ${datasource_check_pool_size:10}
-    timeout: ${datasource_check_timeout:25}
-  query:
-    max-length: ${datasource_query_max_length:5000}
 asset:
   app:
     free:

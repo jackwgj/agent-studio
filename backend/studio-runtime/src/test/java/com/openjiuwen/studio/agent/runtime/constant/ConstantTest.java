@@ -39,10 +39,6 @@ public interface ConstantTest {
 
     String TEST_MODEL_DEPLOYMENT_ID = "test_model_deployment_id";
 
-    String TEST_DATASOURCE_ID = "test_datasource_id";
-
-    String TEST_REDIS_DATASOURCE_CACHE_KEY = "ei:datasource:id:test_datasource_id";
-
     Long TEST_MESSAGE_ID = 1750171051023L;
 
     interface Workflow {
