@@ -37,7 +37,6 @@ from openjiuwen.core.session.stream import OutputSchema, StreamEmitter
 from openjiuwen.core.workflow.components.base import ComponentAbility
 
 from jiuwen.extension.patches.aggregate_upstream_resolver import (
-    resolve_aggregate_node_ids_from_workflow,
     resolve_aggregate_upstream_node_ids_from_workflow,
 )
 
@@ -151,9 +150,6 @@ def _clear_scoped_node_io_state(
 
 
 def _cache_aggregate_ids_on_session(sub_workflow_session, workflow_self) -> None:
-    sub_workflow_session._aggregate_node_ids = resolve_aggregate_node_ids_from_workflow(
-        workflow_self
-    )
     sub_workflow_session._aggregate_upstream_node_ids = (
         resolve_aggregate_upstream_node_ids_from_workflow(workflow_self)
     )
@@ -164,8 +160,10 @@ def _prepare_sub_workflow_aggregate_io(
 ) -> None:
     """Prepare aggregate io_state before a sub-workflow graph run.
 
-    - InteractiveInput resume: clear aggregate output + upstream branches not in
-      ``executed_nodes`` (checkpoint recovery keeps the taken branch).
+    - InteractiveInput resume: clear only upstream branches not in
+      ``executed_nodes``. Aggregate outputs are preserved because pregel
+      skips nodes already in ``executed_nodes``; clearing them would leave
+      downstream references (``${aggregate.xxx}``) reading None on resume.
     - Fresh / loop re-entry (non-InteractiveInput): clear **all** aggregate upstream
       io so first-non-null does not read a prior path/round (executed_nodes may still
       list nodes from the previous inner run).
@@ -177,11 +175,9 @@ def _prepare_sub_workflow_aggregate_io(
     if not scope_id:
         return
 
-    aggregate_ids = getattr(sub_workflow_session, "_aggregate_node_ids", ()) or ()
     upstream_ids = getattr(sub_workflow_session, "_aggregate_upstream_node_ids", ()) or ()
 
     if isinstance(inputs, InteractiveInput):
-        _clear_scoped_node_io_state(sub_workflow_session, scope_id, aggregate_ids)
         executed_nodes = set(
             sub_workflow_session.state().get_workflow_state("executed_nodes") or []
         )
