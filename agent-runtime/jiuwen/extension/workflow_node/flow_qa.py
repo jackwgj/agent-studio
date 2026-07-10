@@ -499,6 +499,9 @@ class FlowQA(WorkflowComponent):
             "need_reply": need_reply,
         }
 
+        # message_end 事件的数据，默认与 message 事件相同
+        end_stream_info = stream_related_info
+
         if self._conf.enable_struct_message and self._conf.struct_output_template:
             # 对声明了 schema 的 dict/list 型输入做归一化（补空值字段、规范顺序），
             # 再渲染，使结构化输出与历史系统字段集合一致。
@@ -510,9 +513,11 @@ class FlowQA(WorkflowComponent):
                 self._conf.struct_output_template,
                 render_inputs,
             )
-            stream_related_info["answer"] = struct_answer  # 结构化输出作为 answer
-            stream_related_info["origin_answer"] = answer  # 原始文本输出
-            stream_related_info["is_struct_message"] = True
+            # message 事件保持原始输出；message_end 事件用结构化输出作为 answer
+            end_stream_info = dict(stream_related_info)
+            end_stream_info["answer"] = struct_answer
+            end_stream_info["origin_answer"] = answer
+            end_stream_info["is_struct_message"] = True
 
         await session.write_custom_stream(
             CustomSchema(
@@ -525,7 +530,7 @@ class FlowQA(WorkflowComponent):
             CustomSchema(
                 type=MESSAGE_NODE_END,
                 index=1,
-                data=stream_related_info,
+                data=end_stream_info,
             ).model_dump(by_alias=True, exclude_none=False, exclude_unset=False)
         )
 
