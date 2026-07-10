@@ -194,6 +194,42 @@ class MultipartFileToZipUtilsTest {
     }
 
     @Test
+    void testConvertToZipFile_withPathTraversalDotDot_throwAgentStudioException() {
+        MockMultipartFile multipartFile = new MockMultipartFile("file", "../../../tmp/evil.zip",
+                "application/zip", "content".getBytes(StandardCharsets.UTF_8));
+
+        AgentStudioException exception = assertThrows(AgentStudioException.class, () -> {
+            MultipartFileToZipUtils.convertToZipFile(multipartFile, targetDir.toString());
+        });
+        assertEquals(StudioError.ILLEGAL_FILE_NAME, exception.getErrorCode(),
+                "Exception should be ILLEGAL_FILE_NAME for path traversal with ..");
+    }
+
+    @Test
+    void testConvertToZipFile_withBackslashInFilename_throwAgentStudioException() {
+        MockMultipartFile multipartFile = new MockMultipartFile("file", "path\\evil.zip",
+                "application/zip", "content".getBytes(StandardCharsets.UTF_8));
+
+        AgentStudioException exception = assertThrows(AgentStudioException.class, () -> {
+            MultipartFileToZipUtils.convertToZipFile(multipartFile, targetDir.toString());
+        });
+        assertEquals(StudioError.ILLEGAL_FILE_NAME, exception.getErrorCode(),
+                "Exception should be ILLEGAL_FILE_NAME for backslash in filename");
+    }
+
+    @Test
+    void testConvertToZipFile_withSlashInFilename_throwAgentStudioException() {
+        MockMultipartFile multipartFile = new MockMultipartFile("file", "path/evil.zip",
+                "application/zip", "content".getBytes(StandardCharsets.UTF_8));
+
+        AgentStudioException exception = assertThrows(AgentStudioException.class, () -> {
+            MultipartFileToZipUtils.convertToZipFile(multipartFile, targetDir.toString());
+        });
+        assertEquals(StudioError.ILLEGAL_FILE_NAME, exception.getErrorCode(),
+                "Exception should be ILLEGAL_FILE_NAME for slash in filename");
+    }
+
+    @Test
     void testConvertToZipFile_withInterruptedIO_throwAgentStudioException() throws Exception {
         // Arrange
         String originalFilename = "test.zip";
