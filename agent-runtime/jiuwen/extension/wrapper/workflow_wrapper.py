@@ -59,6 +59,16 @@ _DEBUG_EVENT_RETURN_TO_SERVICE: dict[str, str] = {
     "FlowMcp": "jiuwen.mcp",
 }
 
+# 控制流节点componentId关键字，命中则跳过调试事件
+_SKIP_COMPONENT_KEY: list[str] = [
+    "_break_branch_",
+    "_break_",
+    "_loop_end_",
+    "_input",
+    "_output",
+    "_parallel_done",
+]
+
 
 class WorkflowWrapper:
     """适配旧 WorkflowHandler 调用模式到新 openJiuwen Workflow。
@@ -206,6 +216,8 @@ class WorkflowWrapper:
                         execution_id=session_id or "",
                     )
                     workflow_started = True
+                if self._is_skip_component(chunk):
+                    continue
                 if isinstance(chunk, OutputSchema) and chunk.type == INTERACTION:
                     # Questioner 中断：不 yield Message，Handler 从 StreamData 的 should_interrupt 检测并自行生成中断消息
                     # 用 continue 而非 return，确保 async generator 自然完成，session checkpoint 正常保存
@@ -508,6 +520,24 @@ class WorkflowWrapper:
         if WorkflowWrapper._is_debug_mode(params):
             modes.append(BaseStreamMode.TRACE)
         return modes
+
+    @staticmethod
+    def _is_skip_component(chunk: Any) -> bool:
+        """检查 chunk 是否来自内部控制流节点（_parallel_done 等），命中则跳过。"""
+        comp_id = ""
+        if isinstance(chunk, TraceSchema):
+            payload = chunk.payload if isinstance(chunk.payload, dict) else {}
+            comp_id = payload.get("componentId", "")
+        elif isinstance(chunk, CustomSchema):
+            comp_id = getattr(chunk, "componentId", "") or ""
+            if not comp_id and isinstance(getattr(chunk, "data", None), dict):
+                comp_id = chunk.data.get("componentId", "")
+        elif isinstance(chunk, OutputSchema):
+            payload = chunk.payload if isinstance(chunk.payload, dict) else {}
+            comp_id = payload.get("componentId", "")
+        if not comp_id:
+            return False
+        return any(key in comp_id for key in _SKIP_COMPONENT_KEY)
 
     # ---------- start trace 缓冲逻辑 ----------
 
