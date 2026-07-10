@@ -46,7 +46,7 @@ data:
     worker_rlimit_nofile 65535;
     events {
       # 提升每个worker进程能处理的并发连接数
-      worker_connections 16000;
+      worker_connections 2048;
       # 使用高性能的epoll事件模型（仅适用于Linux）
       use epoll;
       # 允许worker进程同时接受多个新连接
@@ -71,7 +71,7 @@ data:
         keepalive_requests 1000;     # 单个连接最大请求数[1](@ref)
     
         # 文件描述符缓存 (极大提升IO性能)[2](@ref)
-        open_file_cache max=100000 inactive=20s; # 缓存文件句柄和元数据
+        open_file_cache max=1000 inactive=20s; # 缓存文件句柄和元数据
         open_file_cache_valid 30s;   # 缓存有效性检查间隔
         open_file_cache_min_uses 2;  # 文件被访问至少2次后才缓存
         open_file_cache_errors on;   # 缓存错误信息
@@ -921,11 +921,11 @@ spec:
           image: studio-console:1.0.0.20260526091150.x86_64
           resources:
             limits:
-              cpu: 250m
-              memory: 512Mi
+              cpu: '2'
+              memory: 4Gi
             requests:
-              cpu: 250m
-              memory: 512Mi
+              cpu: '2'
+              memory: 4Gi
           volumeMounts:
             - name: vol-175869654720512159
               readOnly: true

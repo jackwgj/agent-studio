@@ -3,8 +3,8 @@ services:
     image: ${STUDIO_CONSOLE_IMAGE}
     privileged: true
     restart: always
-    cpus: 0.5
-    mem_limit: 512m
+    cpus: 2
+    mem_limit: 4g
     volumes:
       - ./config/nginx.conf:/home/conf/nginx.conf
       # HTTPS启动：取消以下注释，并将证书文件放到 ./config/ 目录
