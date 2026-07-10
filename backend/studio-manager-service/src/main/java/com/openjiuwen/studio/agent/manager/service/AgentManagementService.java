@@ -3350,7 +3350,7 @@ public class AgentManagementService implements IAgentManagementService {
      */
     @Override
     @OperationLog(
-        operationType = OperationType.CREATE,
+        operationType = OperationType.IMPORT,
         resourceType = "Agent",
         description = "导入工具",
         resourceId = "-1",
@@ -3392,7 +3392,7 @@ public class AgentManagementService implements IAgentManagementService {
      */
     @Override
     @OperationLog(
-        operationType = OperationType.CREATE,
+        operationType = OperationType.IMPORT,
         resourceType = "Agent",
         description = "导入智能体",
         resourceId = "-1",

@@ -20,12 +20,14 @@ import com.openjiuwen.studio.agent.agentbase.model.UploadFilesResp;
 import com.openjiuwen.studio.agent.agentbase.service.knowledgerepo.KnowledgeRepoContext;
 import com.openjiuwen.studio.agent.agentbase.service.validate.KnowledgeDatasetValidateService;
 import com.openjiuwen.studio.agent.agentbase.service.validate.ResourceValidateService;
+import com.openjiuwen.studio.agent.common.annotation.OperationLog;
 import com.openjiuwen.studio.agent.common.dto.knowledge.ChunkUtils;
 import com.openjiuwen.studio.agent.agentbase.utils.ShareScopeValidUtil;
 import com.openjiuwen.studio.agent.common.redis.RedisClient;
 import com.openjiuwen.studio.agent.common.utils.RequestContextUtils;
 import com.openjiuwen.studio.agent.foundation.base.exception.AgentBaseException;
 import com.openjiuwen.studio.agent.foundation.base.exception.ErrorCode;
+import com.openjiuwen.studio.agent.common.enums.OperationType;
 import com.openjiuwen.studio.agent.manager.dto.BatchDeleteKnowledgeFilesRequestBody;
 import com.openjiuwen.studio.agent.manager.dto.BatchDeleteKnowledgeFilesResponseBody;
 import com.openjiuwen.studio.agent.manager.dto.CommonDeleteRsp;
@@ -107,6 +109,13 @@ public class KnowledgeBaseDatasetServiceImpl implements IKnowledgeFileManagement
     }
 
     @Override
+    @OperationLog(
+        operationType = OperationType.DELETE,
+        resourceType = "KnowledgeBaseFile",
+        description = "批量删除知识库文件",
+        resourceId = "knowledgeBaseId",
+        resourceName = ""
+    )
     public BatchDeleteKnowledgeFilesResponseBody batchDeleteKnowledgeFiles(String projectId, String knowledgeBaseId,
         String workspaceId, BatchDeleteKnowledgeFilesRequestBody body) {
         log.info("operation log projectId: {}, userId:{}, batchDeleteFile", projectId,
@@ -144,6 +153,13 @@ public class KnowledgeBaseDatasetServiceImpl implements IKnowledgeFileManagement
     }
 
     @Override
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "KnowledgeBaseFile",
+        description = "创建知识库文件切片",
+        resourceId = "knowledgeBaseId",
+        resourceName = ""
+    )
     public CreateFileChunkRsp createFileChunk(String projectId, String knowledgeBaseId, String fileId,
         String workspaceId, FileChunkReq body) {
         log.info("operation log projectId: {}, userId:{}, createFileChunk", projectId,
@@ -170,6 +186,13 @@ public class KnowledgeBaseDatasetServiceImpl implements IKnowledgeFileManagement
     }
 
     @Override
+    @OperationLog(
+        operationType = OperationType.DELETE,
+        resourceType = "KnowledgeBaseFile",
+        description = "删除知识库文件",
+        resourceId = "knowledgeBaseId",
+        resourceName = ""
+    )
     public CommonDeleteRsp deleteFile(String projectId, String fileId, String knowledgeBaseId, String workspaceId) {
         final KnowledgeBaseEntity knowledgeBaseEntity = getKnowledgeBase(projectId, knowledgeBaseId);
         log.info("operation log projectId: {}, userId:{}, deleteFile", projectId,
@@ -200,6 +223,13 @@ public class KnowledgeBaseDatasetServiceImpl implements IKnowledgeFileManagement
     }
 
     @Override
+    @OperationLog(
+        operationType = OperationType.DELETE,
+        resourceType = "KnowledgeBaseFile",
+        description = "删除知识库文件切片",
+        resourceId = "knowledgeBaseId",
+        resourceName = ""
+    )
     public CommonDeleteRsp deleteFileChunk(String projectId, String knowledgeBaseId, String fileId, String chunkId,
         String workspaceId) {
         log.info("operation log projectId: {}, userId:{}, deleteFileChunk", projectId,
@@ -368,6 +398,13 @@ public class KnowledgeBaseDatasetServiceImpl implements IKnowledgeFileManagement
     }
 
     @Override
+    @OperationLog(
+        operationType = OperationType.UPDATE,
+        resourceType = "KnowledgeBaseFile",
+        description = "修改知识库文件切片",
+        resourceId = "knowledgeBaseId",
+        resourceName = ""
+    )
     public UpdateFileChunkRsp updateFileChunk(String projectId, String knowledgeBaseId, String fileId, String chunkId,
         String workspaceId, FileChunkReq body) {
         log.info("operation log projectId: {}, userId:{}, updateFileChunk", projectId,
@@ -393,6 +430,13 @@ public class KnowledgeBaseDatasetServiceImpl implements IKnowledgeFileManagement
     }
 
     @Override
+    @OperationLog(
+        operationType = OperationType.UPDATE,
+        resourceType = "KnowledgeBaseFile",
+        description = "修改知识库文件元信息",
+        resourceId = "knowledgeBaseId",
+        resourceName = ""
+    )
     public UpdateFileMetaInfoRsp updateFileMetaInfo(String projectId, String knowledgeBaseId, String fileId,
         String workspaceId, UpdateFileMetaInfoReq body) {
         log.info("operation log projectId: {}, userId:{}, updateFileMetaInfo", projectId,
@@ -415,6 +459,13 @@ public class KnowledgeBaseDatasetServiceImpl implements IKnowledgeFileManagement
     }
 
     @Override
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "KnowledgeBaseFile",
+        description = "上传知识库文件",
+        resourceId = "knowledgeBaseId",
+        resourceName = ""
+    )
     public UploadKnowledgeFileResponseBody uploadKnowledgeFile(String workspaceId, String projectId,
         String knowledgeBaseId, MultipartFile file, List<String> tags) {
         log.info("operation log projectId: {}, userId:{}, uploadFile", projectId,

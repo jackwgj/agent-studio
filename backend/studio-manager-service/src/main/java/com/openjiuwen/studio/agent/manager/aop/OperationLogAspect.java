@@ -5,10 +5,13 @@
 package com.openjiuwen.studio.agent.manager.aop;
 
 import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONWriter;
 import com.openjiuwen.studio.agent.common.annotation.OperationLog;
 import com.openjiuwen.studio.agent.common.dto.AuditLogEntry;
 import com.openjiuwen.studio.agent.common.utils.RequestContextUtils;
 
+import jakarta.annotation.PostConstruct;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
@@ -19,10 +22,13 @@ import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 /**
  * 操作审计日志切面。
@@ -41,12 +47,27 @@ public class OperationLogAspect {
 
     private static final String AUDIT_LOGGER_NAME = "AUDIT_LOGGER";
 
-    private static final Logger AUDIT_LOGGER = LogManager.getLogger(AUDIT_LOGGER_NAME);
+    private static final Logger AUDIT_LOGGER = LogManager.getLogger(AUDIT_LOGGER_NAME);//获取审计日志专用Logger
 
-    private static final Logger LOGGER = LogManager.getLogger(OperationLogAspect.class);
+    private static final Logger LOGGER = LogManager.getLogger(OperationLogAspect.class);//用于记录切面自身错误的Logger
+
+    private static final String MASK_REPLACEMENT = "******";
+
+    // 命中敏感字段名后，最多将后续 value 内容的这段长度替换成 ******。
+    private static final int SENSITIVE_VALUE_MASK_LENGTH = 12;
 
     @Value("${studio.operationLog.switch:false}")
     private boolean operationLogSwitch;
+
+    @Value("${studio.operationLog.sensitiveFieldPattern:}")
+    private String sensitiveFieldPattern;
+
+    private Pattern compiledSensitiveFieldPattern;
+
+    @PostConstruct
+    private void initSensitiveFieldPattern() {
+        compiledSensitiveFieldPattern = compileSensitiveFieldPattern(sensitiveFieldPattern);
+    }
 
     @Around("@annotation(operationLog)")
     public Object around(ProceedingJoinPoint joinPoint, OperationLog operationLog) throws Throwable {
@@ -71,10 +92,10 @@ public class OperationLogAspect {
     private void writeAuditLog(ProceedingJoinPoint joinPoint, OperationLog operationLog, Throwable throwable) {
         try {
             AuditLogEntry.AuditLogEntryBuilder builder = AuditLogEntry.builder()
-                .timestamp(Instant.now().toString())
-                .operationType(operationLog.operationType().getValue())
-                .success(throwable == null)
-                .errorMessage(throwable != null ? throwable.getMessage() : null);
+                    .timestamp(Instant.now().toString())
+                    .operationType(operationLog.operationType().getValue())
+                    .success(throwable == null)
+                    .errorMessage(throwable != null ? throwable.getMessage() : null);
             builder.userId(RequestContextUtils.getRequestUserId());
             builder.userName(RequestContextUtils.getRequestUserName());
 
@@ -114,6 +135,10 @@ public class OperationLogAspect {
             String resourceName = extractResourceId(joinPoint, operationLog.resourceName());
             builder.resourceName(resourceName != null ? resourceName : "");
 
+            // 参数整体序列化为字符串后脱敏，避免递归解析用户对象结构。
+            Map<String, Object> paramsMap = getMethodParamsMap(joinPoint);
+            builder.params(paramsMap);
+
             AuditLogEntry entry = builder.build();
             String json = JSON.toJSONString(entry);
             AUDIT_LOGGER.info(json);
@@ -123,25 +148,30 @@ public class OperationLogAspect {
         }
     }
 
-    private Map<String, Object> buildParamsMap(ProceedingJoinPoint joinPoint) {
-        Map<String, Object> params = new HashMap<>();
+    private Map<String, Object> getMethodParamsMap(ProceedingJoinPoint joinPoint) {
         try {
             MethodSignature signature = (MethodSignature) joinPoint.getSignature();
             String[] paramNames = signature.getParameterNames();
             Object[] args = joinPoint.getArgs();
 
-            if (paramNames != null && args != null) {
-                for (int i = 0; i < paramNames.length; i++) {
-                    Object arg = args[i];
-                    if (arg != null) {
-                        params.put(paramNames[i], sanitizeValue(arg));
-                    }
-                }
+            if (paramNames == null || args == null || paramNames.length != args.length) {
+                LOGGER.warn("Failed to build audit log params because parameter names and args do not match");
+                return new HashMap<>();
             }
-        } catch (Exception ignored) {
-            // ignore
+
+            Map<String, Object> rawParams = new HashMap<>();
+            for (int i = 0; i < paramNames.length; i++) {
+                rawParams.put(paramNames[i], args[i]);
+            }
+
+            String paramsJson = JSON.toJSONString(rawParams, JSONWriter.Feature.ReferenceDetection,
+                    JSONWriter.Feature.IgnoreErrorGetter);
+            Map<String, Object> params = JSON.parseObject(maskSensitiveText(paramsJson));
+            return params != null ? params : new HashMap<>();
+        } catch (Exception e) {
+            LOGGER.warn("Failed to build audit log params, falling back to empty params", e);
+            return new HashMap<>();
         }
-        return params;
     }
 
     /**
@@ -241,9 +271,9 @@ public class OperationLogAspect {
                         element = list.get(arrayIndex);
                     }
                 } else if (array.getClass().isArray()) {
-                    Object[] arr = (Object[]) array;
-                    if (arrayIndex >= 0 && arrayIndex < arr.length) {
-                        element = arr[arrayIndex];
+                    int arrayLength = Array.getLength(array);
+                    if (arrayIndex >= 0 && arrayIndex < arrayLength) {
+                        element = Array.get(array, arrayIndex);
                     }
                 }
 
@@ -285,7 +315,7 @@ public class OperationLogAspect {
                     return field.get(obj);
                 } catch (NoSuchFieldException ex) {
                     LOGGER.warn(
-                        "Failed to write audit log when getPropertyValue with reflect, falling back to main log", e);
+                            "Failed to write audit log when getPropertyValue with reflect, falling back to main log", e);
                     return null;
                 }
             }
@@ -295,24 +325,234 @@ public class OperationLogAspect {
         }
     }
 
-    private Object sanitizeValue(Object value) {
-        if (value == null) {
-            return null;
-        }
-        String className = value.getClass().getName();
-        if (className.startsWith("com.openjiuwen.studio.agent")) {
-            return value.toString();
-        }
-        return value;
-    }
-
     private String inferResourceType(String className) {
         if (className == null || className.isEmpty()) {
             return "Unknown";
         }
         String resource = className.replace("ManagementService", "")
-            .replace("Service", "")
-            .replace("ManagerService", "");
+                .replace("Service", "")
+                .replace("ManagerService", "");
         return resource.isEmpty() ? className : resource;
+    }
+
+    private boolean isSensitiveField(String propertyName) {
+        Pattern pattern = compiledSensitiveFieldPattern;
+        return pattern != null && StringUtils.isNotBlank(propertyName) && pattern.matcher(propertyName).matches();
+    }
+
+    private Pattern compileSensitiveFieldPattern(String patternRule) {
+        String rule = StringUtils.trimToEmpty(patternRule);
+        if (StringUtils.isBlank(rule)) {
+            return null;
+        }
+
+        try {
+            return Pattern.compile(rule);
+        } catch (PatternSyntaxException e) {
+            LOGGER.warn("Invalid operation log sensitive field pattern: {}", rule, e);
+            return null;
+        }
+    }
+
+    private String maskSensitiveText(String text) {
+        if (StringUtils.isEmpty(text) || compiledSensitiveFieldPattern == null) {
+            return text;
+        }
+
+        StringBuilder builder = new StringBuilder(text);
+        int index = 0;
+        while (index < builder.length()) {
+            //跳过非引号字符
+            if (builder.charAt(index) != '"') {
+                index++;
+                continue;
+            }
+
+            //找到key的结束引号
+            int keyEnd = findStringEnd(builder, index);
+            if (keyEnd < 0) {
+                break;
+            }
+
+            //跳过空白，寻找冒号
+            int colonIndex = skipWhitespace(builder, keyEnd + 1);
+            if (colonIndex >= builder.length() || builder.charAt(colonIndex) != ':') {
+                index = keyEnd + 1;
+                continue;
+            }
+
+            //提取并判断key是否为敏感字段
+            String key = unescapeJsonString(builder.substring(index + 1, keyEnd));
+            if (!isSensitiveField(key)) {
+                index = keyEnd + 1;
+                continue;
+            }
+
+            //寻找value的位置
+            int valueStart = skipWhitespace(builder, colonIndex + 1);
+            if (valueStart >= builder.length()) {
+                index = keyEnd + 1;
+                continue;
+            }
+
+            //代码可以走到这一步，就证明需要进行敏感字段处理
+            int replacementEnd = maskSensitiveValueAfterKeyword(builder, valueStart);
+            index = replacementEnd;
+        }
+        return builder.toString();
+    }
+
+    private int maskSensitiveValueAfterKeyword(StringBuilder builder, int valueStart) {
+        switch (builder.charAt(valueStart)) {
+            case '{':
+                // 对象内部可能有多层嵌套，继续向对象内部扫描，避免预先扫描完整对象边界。
+                return valueStart + 1;
+            case '[':
+                return maskSensitiveArrayValue(builder, valueStart);
+            default:
+                int valueEnd = findJsonValueEnd(builder, valueStart);
+                return maskSensitiveScalarValue(builder, valueStart, valueEnd);
+        }
+    }
+
+    private int maskSensitiveArrayValue(StringBuilder builder, int valueStart) {
+        int valueEnd = findJsonValueEnd(builder, valueStart);
+        maskSensitiveArrayScalarValues(builder, valueStart, valueEnd);
+        return valueStart + 1;
+    }
+
+    private int maskSensitiveScalarValue(StringBuilder builder, int valueStart, int valueEnd) {
+        if (builder.charAt(valueStart) == '"') {
+            int maskEnd = valueEnd - 1;
+            int maskStart = Math.max(valueStart + 1, maskEnd - SENSITIVE_VALUE_MASK_LENGTH);//长度小于SENSITIVE_VALUE_MASK_LENGTH将被全部掩码
+            int maskedLength = maskEnd - maskStart;
+            builder.replace(maskStart, maskEnd, MASK_REPLACEMENT);
+            return valueEnd - maskedLength + MASK_REPLACEMENT.length();
+        }
+        String replacement = JSON.toJSONString(MASK_REPLACEMENT);
+        builder.replace(valueStart, valueEnd, replacement);
+        return valueStart + replacement.length();
+    }
+
+    private void maskSensitiveArrayScalarValues(StringBuilder builder, int arrayStart, int arrayEnd) {
+        int cursor = arrayStart + 1;
+        int end = arrayEnd - 1;
+        while (cursor < end) {
+            cursor = skipWhitespace(builder, cursor);
+            if (cursor >= end) {
+                return;
+            }
+            char current = builder.charAt(cursor);
+            if (current == ',') {
+                cursor++;
+                continue;
+            }
+
+            int elementStart = cursor;
+            int elementEnd = findJsonValueEnd(builder, elementStart);
+            if (elementEnd <= elementStart) {
+                cursor++;
+                continue;
+            }
+
+            switch (builder.charAt(elementStart)) {
+                case '{':
+                case '[':
+                    cursor = elementEnd;
+                    continue;
+                default:
+                    int replacementEnd = maskSensitiveScalarValue(builder, elementStart, elementEnd);
+                    end += replacementEnd - elementEnd;
+                    cursor = replacementEnd;
+            }
+        }
+    }
+
+    private int findJsonValueEnd(CharSequence text, int valueStart) {
+        int index = skipWhitespace(text, valueStart);
+        if (index >= text.length()) {
+            return index;
+        }
+
+        char first = text.charAt(index);
+        if (first == '"') {
+            int stringEnd = findStringEnd(text, index);
+            return stringEnd < 0 ? text.length() : stringEnd + 1;
+        }
+
+        if (first != '{' && first != '[') {
+            int cursor = index;
+            while (cursor < text.length()) {
+                char current = text.charAt(cursor);
+                if (current == ',' || current == '}' || current == ']') {
+                    break;
+                }
+                cursor++;
+            }
+            return cursor;
+        }
+
+        int depth = 0;
+        boolean inString = false;
+        boolean escaped = false;
+        for (int cursor = index; cursor < text.length(); cursor++) {
+            char current = text.charAt(cursor);
+            if (inString) {
+                if (escaped) {
+                    escaped = false;
+                } else if (current == '\\') {
+                    escaped = true;
+                } else if (current == '"') {
+                    inString = false;
+                }
+                continue;
+            }
+
+            if (current == '"') {
+                inString = true;
+            } else if (current == '{' || current == '[') {
+                depth++;
+            } else if (current == '}' || current == ']') {
+                depth--;
+                if (depth == 0) {
+                    return cursor + 1;
+                }
+            }
+        }
+        return text.length();
+    }
+
+    private int findStringEnd(CharSequence text, int quoteIndex) {
+        boolean escaped = false;
+        for (int cursor = quoteIndex + 1; cursor < text.length(); cursor++) {
+            char current = text.charAt(cursor);
+            if (escaped) {
+                escaped = false;
+            } else if (current == '\\') {
+                escaped = true;
+            } else if (current == '"') {
+                return cursor;
+            }
+        }
+        return -1;
+    }
+
+    private int skipWhitespace(CharSequence text, int index) {
+        int cursor = index;
+        while (cursor < text.length() && Character.isWhitespace(text.charAt(cursor))) {
+            cursor++;
+        }
+        return cursor;
+    }
+
+    private String unescapeJsonString(String value) {
+        if (value.indexOf('\\') < 0) {
+            return value;
+        }
+        try {
+            return JSON.parseObject('"' + value + '"', String.class);
+        } catch (Exception e) {
+            return value;
+        }
     }
 }

@@ -177,6 +177,13 @@ public class ProviderAuthMgmtService implements IProviderAuthMgmtService {
     }
 
     @Override
+    @OperationLog(
+        operationType = OperationType.DELETE,
+        resourceType = "ProviderAuth",
+        description = "删除提供商认证配置",
+        resourceId = "authId",
+        resourceName = ""
+    )
     public Void removeProviderAuthCfg(String projectId, String workspaceId, String providerId, String authId) {
         if (StringUtils.isAllEmpty(providerId, authId)) {
             log.error("ProviderId and authId cannot be all empty.");

@@ -6,12 +6,14 @@ package com.openjiuwen.studio.agent.agentbase.utils.redis.config;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import com.openjiuwen.studio.agent.common.crypt.Ciphers;
 import com.openjiuwen.studio.agent.common.redis.config.RedisClientConfig;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
@@ -19,6 +21,9 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 @MockitoSettings(strictness = Strictness.LENIENT)
 class RedisClientConfigTest {
+    @Mock
+    private Ciphers ciphers;
+
     @InjectMocks
     private RedisClientConfig redisClientConfig;
 

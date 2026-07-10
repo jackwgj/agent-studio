@@ -684,7 +684,7 @@ public class ComplexIntentManagementService implements IComplexIntentManagementS
 
     @Override
     @OperationLog(
-        operationType = OperationType.CREATE,
+        operationType = OperationType.IMPORT,
         resourceType = "ComplexIntent",
         description = "导入意图包",
         resourceId = "-1",
@@ -696,7 +696,7 @@ public class ComplexIntentManagementService implements IComplexIntentManagementS
 
     @Override
     @OperationLog(
-        operationType = OperationType.CREATE,
+        operationType = OperationType.IMPORT,
         resourceType = "ComplexIntent",
         description = "导入意图分支",
         resourceId = "-1",

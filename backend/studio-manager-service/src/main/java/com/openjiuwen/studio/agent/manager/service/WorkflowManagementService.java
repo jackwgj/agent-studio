@@ -3601,7 +3601,7 @@ public class WorkflowManagementService implements IWorkflowManagementService {
      */
     @Override
     @OperationLog(
-        operationType = OperationType.CREATE,
+        operationType = OperationType.IMPORT,
         resourceType = "Workflow",
         description = "导入工作流",
         resourceId = "-1"

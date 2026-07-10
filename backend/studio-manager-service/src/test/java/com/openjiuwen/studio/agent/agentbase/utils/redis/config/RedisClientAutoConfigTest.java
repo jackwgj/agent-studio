@@ -56,8 +56,7 @@ class RedisClientAutoConfigTest {
             RedissonClient redissonClient = mock(RedissonClient.class, Answers.RETURNS_DEEP_STUBS);
             mockedStaticRedisson.when(() -> Redisson.create(any(Config.class))).thenReturn(redissonClient);
 
-            RedisClientConfig redisClientConfig = new RedisClientConfig(
-                new Ciphers(java.util.Collections.emptyList(), "NO_OP_CIPHER"));
+            RedisClientConfig redisClientConfig = new RedisClientConfig(new Ciphers(null, null));
 
             // When
             RedisClient result = redisClientAutoConfig.redissionClient(redisClientConfig);

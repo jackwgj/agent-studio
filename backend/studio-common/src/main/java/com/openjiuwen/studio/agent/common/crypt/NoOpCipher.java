@@ -46,7 +46,7 @@ public class NoOpCipher implements Cipher {
             return null;
         }
 
-        if (cipherText.length <= 1) {
+        if (cipherText.length == 0) {
             throw new AgentStudioException("Invalid cipher text");
         }
 

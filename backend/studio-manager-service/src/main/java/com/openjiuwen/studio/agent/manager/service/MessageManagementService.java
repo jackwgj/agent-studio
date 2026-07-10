@@ -263,7 +263,7 @@ public class MessageManagementService implements IMessageManagementService {
 
     @Override
     @OperationLog(
-        operationType = OperationType.CREATE,
+        operationType = OperationType.IMPORT,
         resourceType = "StructuredMessage",
         description = "导入结构化消息模板",
         resourceId = "-1",

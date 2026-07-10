@@ -14,6 +14,8 @@ import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
 
 import org.junit.jupiter.api.Test;
 
+import java.nio.charset.StandardCharsets;
+
 public class NoOpCipherTest {
     private final NoOpCipher noOpCipher = new NoOpCipher();
 
@@ -35,7 +37,7 @@ public class NoOpCipherTest {
         byte[] iv = new byte[] {1, 2, 3, 4};
         byte[] result = noOpCipher.encrypt(plainText, iv);
         assertNotNull(result);
-        assertEquals(plainText.getBytes().length, result.length);
+        assertEquals(plainText.getBytes(StandardCharsets.UTF_8).length, result.length);
     }
 
     @Test
@@ -49,7 +51,7 @@ public class NoOpCipherTest {
         String plainText = "test message";
         byte[] result = noOpCipher.encrypt(plainText);
         assertNotNull(result);
-        assertEquals(plainText.getBytes().length, result.length);
+        assertEquals(plainText.getBytes(StandardCharsets.UTF_8).length, result.length);
     }
 
     @Test
@@ -92,8 +94,8 @@ public class NoOpCipherTest {
     }
 
     @Test
-    public void testDecrypt_SingleByteCipherText_ThrowsException() {
-        assertThrows(AgentStudioException.class, () -> noOpCipher.decrypt(new byte[] {0x00}));
+    public void testDecrypt_SingleByteCipherText_ReturnsSingleCharacter() {
+        assertEquals("a", noOpCipher.decrypt(new byte[] {'a'}));
     }
 
     @Test
@@ -107,6 +109,14 @@ public class NoOpCipherTest {
     @Test
     public void testEncryptDecrypt_WithSpecialCharacters() {
         String original = "中文测试!@#$%^&*()";
+        byte[] encrypted = noOpCipher.encrypt(original);
+        String decrypted = noOpCipher.decrypt(encrypted);
+        assertEquals(original, decrypted);
+    }
+
+    @Test
+    public void testEncryptDecrypt_WithSingleCharacter() {
+        String original = "a";
         byte[] encrypted = noOpCipher.encrypt(original);
         String decrypted = noOpCipher.decrypt(encrypted);
         assertEquals(original, decrypted);

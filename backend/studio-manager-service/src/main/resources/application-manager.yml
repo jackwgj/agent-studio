@@ -107,6 +107,8 @@ spring:
 studio:
   operationLog:
     switch: ${studio_operationLog_switch:false}
+    # 审计日志参数敏感字段名正则，命中后对字段值做掩码处理
+    sensitiveFieldPattern: '${studio_operationLog_sensitiveFieldPattern:(?i)(?:.*(?:password|pwd|token|authorization|api[-_]?key|secret|credential|auth[-_]?(?:info|key|id|value|type|keys)|access[-_]?key|client[-_]?secret|iam[-_]?credentials|oauth[-_]?scope|app[-_]?code|iam[-_]?(?:ak|sk)).*|(?:ak|sk))}'
 
 server:
   port: 31111
@@ -807,5 +809,3 @@ springdoc:
     enabled: false
   swagger-ui:
     enabled: false
-
-

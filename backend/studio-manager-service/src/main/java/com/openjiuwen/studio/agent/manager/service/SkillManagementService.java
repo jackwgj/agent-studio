@@ -148,7 +148,7 @@ public class SkillManagementService implements ISkillManagementService {
     @Transactional
     @Override
     @OperationLog(
-        operationType = OperationType.CREATE,
+        operationType = OperationType.IMPORT,
         resourceType = "Skill",
         description = "导入 Skill 制品包",
         resourceId = "-1",

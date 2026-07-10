@@ -33,7 +33,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Answers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
@@ -53,6 +52,15 @@ class JiuWenServiceTest {
 
     @Mock(answer = RETURNS_DEEP_STUBS)
     private WebClient webClient;
+
+    @Mock(answer = RETURNS_DEEP_STUBS)
+    private AgentRuntimeClient runtimeClient;
+
+    @Mock(answer = RETURNS_DEEP_STUBS)
+    private ProviderAuthDataMapper authDataMapper;
+
+    @Mock(answer = RETURNS_DEEP_STUBS)
+    private FreeModelService freeModelService;
 
     @InjectMocks
     private JiuWenService jiuWenService;
@@ -107,18 +115,8 @@ class JiuWenServiceTest {
     public void callModelTest() {
         AskModelReq req = AskModelReq.builder().build();
 
-        AgentRuntimeClient runtimeClient = Mockito.mock(AgentRuntimeClient.class, Answers.RETURNS_DEEP_STUBS);
-
-        ProviderAuthDataMapper authDataMapper = Mockito.mock(ProviderAuthDataMapper.class, Answers.RETURNS_DEEP_STUBS);
-
-        FreeModelService freeModelService = Mockito.mock(FreeModelService.class, Answers.RETURNS_DEEP_STUBS);
-
-        JiuWenService service = new JiuWenService();
-        org.springframework.test.util.ReflectionTestUtils.setField(service, "runtimeClient", runtimeClient);
-        org.springframework.test.util.ReflectionTestUtils.setField(service, "authDataMapper", authDataMapper);
-        org.springframework.test.util.ReflectionTestUtils.setField(service, "freeModelService", freeModelService);
         try {
-            service.callModel(req, "workspaceId");
+            jiuWenService.callModel(req, "workspaceId");
         } catch (AgentStudioException e) {
             Assertions.assertEquals(StudioError.MODEL_CONFIG_MISS, e.getErrorCode());
         }
@@ -131,7 +129,7 @@ class JiuWenServiceTest {
         RequestContextUtils.setRequestAuthTokenAndProjectId("token", "test");
 
         try {
-            service.callModel(req, "workspaceId");
+            jiuWenService.callModel(req, "workspaceId");
         } catch (Exception e) {
             Assertions.assertTrue(true);
         }

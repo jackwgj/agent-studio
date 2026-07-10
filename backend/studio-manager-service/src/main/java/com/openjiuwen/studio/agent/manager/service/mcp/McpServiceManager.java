@@ -12,6 +12,8 @@ import static com.openjiuwen.studio.agent.manager.utils.WorkflowUtils.removeQuer
 import com.alibaba.fastjson2.JSONObject;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.openjiuwen.studio.agent.common.annotation.OperationLog;
+import com.openjiuwen.studio.agent.common.enums.OperationType;
 import com.openjiuwen.studio.agent.common.enums.StudioError;
 import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
 import com.openjiuwen.studio.agent.common.service.CommonService;
@@ -649,6 +651,13 @@ public class McpServiceManager implements IMcpServiceManagerService {
     }
 
     @Override
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "McpService",
+        description = "批量部署MCP服务",
+        resourceId = "-1",
+        resourceName = "body.servers[0].name"
+    )
     public McpServiceBatchDeployResp batchDeployServices(String projectId, String workspaceId, String resource,
         McpServiceBatchDeployReq body) {
         log.info("Operation log {}: Start to batch deploy MCP services. Project ID: {}", projectId, projectId);
@@ -751,6 +760,13 @@ public class McpServiceManager implements IMcpServiceManagerService {
      * 内置mcp服务资产
      *
      */
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "McpService",
+        description = "创建MCP服务",
+        resourceId = "-1",
+        resourceName = "serverDetail.name"
+    )
     public String createServer(String projectId, String workspaceId, McpServerDetailReq serverDetail) {
         log.info("operation log {}:start to create mcp server", projectId);
         CommonUtil.validateTenantIdIsNotEmpty();
@@ -770,7 +786,13 @@ public class McpServiceManager implements IMcpServiceManagerService {
      * @param serviceDeployReq 部署的服务实例详情
      * @return 返回实例id
      */
-
+    @OperationLog(
+        operationType = OperationType.CREATE,
+        resourceType = "McpService",
+        description = "部署MCP服务",
+        resourceId = "serverId",
+        resourceName = ""
+    )
     public String deploy(String projectId, String workspaceId, String serverId, McpServiceDeployReq serviceDeployReq) {
         log.info("operation log {}:start to deploy mcp service", projectId);
         if (StringUtils.isBlank(serviceDeployReq.getOrgType()) ) {
@@ -1238,6 +1260,13 @@ public class McpServiceManager implements IMcpServiceManagerService {
      * 删除应用
      *
      */
+    @OperationLog(
+        operationType = OperationType.DELETE,
+        resourceType = "McpService",
+        description = "删除MCP服务",
+        resourceId = "id",
+        resourceName = ""
+    )
     public String deleteService(String projectId, String workspaceId, String id) {
         log.info("operation log {}:start to delete mcp service", projectId);
         String tenantId = RequestContextUtils.getRequestUserDomainId();
@@ -2534,6 +2563,13 @@ public class McpServiceManager implements IMcpServiceManagerService {
      * 修改mcp服务信息 只有sse方式执行修改配置，如果配置变更后， 需要清空工具信息及异步同步工具
      * 增加故障自愈逻辑。如果配置变更 OR 当前状态为失败，都触发异步工具获取。
      */
+    @OperationLog(
+        operationType = OperationType.UPDATE,
+        resourceType = "McpService",
+        description = "修改MCP服务信息",
+        resourceId = "serviceReq.id",
+        resourceName = ""
+    )
     public Boolean modifyService(String projectId, String workspaceId, McpServiceModifyReq serviceReq) {
         log.info("Operation log: Start to modify MCP service. Project ID: {}", projectId);
 
@@ -2676,6 +2712,13 @@ public class McpServiceManager implements IMcpServiceManagerService {
         return count > 0;
     }
 
+    @OperationLog(
+        operationType = OperationType.UPDATE,
+        resourceType = "McpService",
+        description = "修改MCP服务鉴权信息",
+        resourceId = "id",
+        resourceName = ""
+    )
     public Boolean updateMcpAuthInfo(String projectId, String id, String workspaceId, AuthInfo authInfo){
         String tenantId = RequestContextUtils.getRequestUserDomainId();
         String authToken = RequestContextUtils.getRequestAuthToken();

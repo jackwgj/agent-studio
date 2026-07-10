@@ -266,6 +266,12 @@ public class PluginService implements IPluginService {
 
     @Override
     @Transactional
+    @OperationLog(
+            operationType = OperationType.CREATE,
+            resourceType = "Tool",
+            description = "批量创建工具",
+            resourceId = "-1"  // 批量操作无法确定单一资源ID
+    )
     public BatchCreatePluginToolRsp batchCreateTool(String projectId, String workspaceId,
         BatchCreatePluginToolReq body) {
         log.info("operation log {}: start to batch create tool", projectId);
@@ -672,6 +678,13 @@ public class PluginService implements IPluginService {
     }
 
     @Override
+    @OperationLog(
+        operationType = OperationType.IMPORT,
+        resourceType = "Plugin",
+        description = "导入插件",
+        resourceId = "-1",
+        resourceName = ""
+    )
     public ImportRsp importplugins(String workspaceId, String projectId, MultipartFile file, String importIds) {
         log.info("operation log {}: start to import plugin", projectId);
         List<String> importIdList = Arrays.asList(importIds.split(","));

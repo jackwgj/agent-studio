@@ -10,13 +10,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class RedisClientConfigTest {
 
-    private Ciphers buildCiphers() {
-        return new Ciphers(java.util.Collections.emptyList(), "NO_OP_CIPHER");
-    }
+    private final Ciphers ciphers = new Ciphers(null, null);
 
     @Test
     void testGettersAndSetters() {
-        RedisClientConfig config = new RedisClientConfig(buildCiphers());
+        RedisClientConfig config = newConfig();
         config.setRedisHost("localhost");
         config.setRedisPort(6379);
         config.setRedisPassword("password");
@@ -42,7 +40,7 @@ class RedisClientConfigTest {
 
     @Test
     void testDefaultValues() {
-        RedisClientConfig config = new RedisClientConfig(buildCiphers());
+        RedisClientConfig config = newConfig();
         assertEquals(0, config.getRedisPort());
         assertEquals(0, config.getConnectionMinimumIdleSize());
         assertEquals(0, config.getConnectionPoolSize());
@@ -50,12 +48,11 @@ class RedisClientConfigTest {
 
     @Test
     void testEqualsAndHashCode() {
-        Ciphers sharedCiphers = buildCiphers();
-        RedisClientConfig config1 = new RedisClientConfig(sharedCiphers);
+        RedisClientConfig config1 = newConfig();
         config1.setRedisHost("localhost");
         config1.setRedisPort(6379);
 
-        RedisClientConfig config2 = new RedisClientConfig(sharedCiphers);
+        RedisClientConfig config2 = newConfig();
         config2.setRedisHost("localhost");
         config2.setRedisPort(6379);
 
@@ -65,9 +62,13 @@ class RedisClientConfigTest {
 
     @Test
     void testToString() {
-        RedisClientConfig config = new RedisClientConfig(buildCiphers());
+        RedisClientConfig config = newConfig();
         config.setRedisHost("localhost");
         String str = config.toString();
         assertEquals(true, str.contains("localhost"));
+    }
+
+    private RedisClientConfig newConfig() {
+        return new RedisClientConfig(ciphers);
     }
 }

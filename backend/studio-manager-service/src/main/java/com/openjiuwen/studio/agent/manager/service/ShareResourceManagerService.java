@@ -385,7 +385,7 @@ public class ShareResourceManagerService implements IShareResourceManagerService
     }
 
     @OperationLog(
-        operationType = OperationType.CREATE,
+        operationType = OperationType.IMPORT,
         resourceType = "ShareResource",
         description = "导入共享信息",
         resourceId = "shareInfo.workspaceId",
@@ -435,7 +435,7 @@ public class ShareResourceManagerService implements IShareResourceManagerService
      * @param shareInfo 共享信息
      */
     @OperationLog(
-        operationType = OperationType.CREATE,
+        operationType = OperationType.IMPORT,
         resourceType = "ShareResource",
         description = "导入共享资源信息",
         resourceId = "resourceId",
@@ -474,7 +474,7 @@ public class ShareResourceManagerService implements IShareResourceManagerService
      * @param shareScopeEntityList 资源的共享范围
      */
     @OperationLog(
-        operationType = OperationType.CREATE,
+        operationType = OperationType.IMPORT,
         resourceType = "ShareResource",
         description = "导入共享资源授权范围",
         resourceId = "resourceId",

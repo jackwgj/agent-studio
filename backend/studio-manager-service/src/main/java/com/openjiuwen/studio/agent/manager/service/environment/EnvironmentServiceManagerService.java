@@ -1002,6 +1002,13 @@ public class EnvironmentServiceManagerService implements IEnvironmentServiceMana
     }
 
     @Override
+    @OperationLog(
+        operationType = OperationType.IMPORT,
+        resourceType = "Environment",
+        description = "导入环境变量",
+        resourceId = "environmentId",
+        resourceName = ""
+    )
     public Boolean importEnvironmentVariable(String workspaceId, String projectId, String environmentId, List<String> coverVariables, MultipartFile file) {
         FileCommonUtils.validatedFile(file, fileMaxSize * 1024, IMPORT_ENV_FILE_TYPE);
         boolean response = false;
