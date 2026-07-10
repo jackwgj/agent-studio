@@ -761,7 +761,7 @@ export class ApplicationManagementComponent implements OnInit, OnDestroy {
     };
     this.service.newExportAgents({
       resource_type: type,
-      resource_ids: rows.map((row) => row[idMap[type]])
+      resource_versions: rows.map((row) => ({ resource_id: row[idMap[type]] }))
     }).then(res => {
       modalRef.destroy();
       this.nzModal.create({

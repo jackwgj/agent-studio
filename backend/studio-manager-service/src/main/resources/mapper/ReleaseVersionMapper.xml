@@ -141,7 +141,7 @@
         select
         <include refid="Base_Column_List"/>
         from t_release_version
-        where
+        where deleted = 0 and
             <foreach collection="releaseVersions" separator=" or " open="(" close=")" index="key" item="item">
                 (app_id = #{item.appId,jdbcType=VARCHAR} and version_id = #{item.versionId,jdbcType=VARCHAR})
             </foreach>

@@ -29,7 +29,6 @@ public class ExportResourceVersion implements Serializable {
     private String resourceId = null;
 
     @JsonProperty("resource_version")
-    @NotBlank
     private String resourceVersion = null;
 
     public String getResourceId() {

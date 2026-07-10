@@ -536,7 +536,10 @@
             <if test="memoryConfig != null">
                 memory_config = #{memoryConfig,jdbcType=VARCHAR},
             </if>
-            model = #{model,jdbcType=VARCHAR}, status = #{status,jdbcType=VARCHAR}
+            <if test="status != null">
+                status = #{status,jdbcType=VARCHAR},
+            </if>
+            model = #{model,jdbcType=VARCHAR}
         </set>
         where agent_id = #{agentId,jdbcType=VARCHAR}
         and project_id = #{projectId,jdbcType=VARCHAR}

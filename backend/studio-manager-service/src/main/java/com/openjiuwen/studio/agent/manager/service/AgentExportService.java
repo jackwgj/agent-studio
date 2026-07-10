@@ -12,17 +12,20 @@ import com.openjiuwen.studio.agent.common.utils.I18nUtil;
 import com.openjiuwen.studio.agent.common.utils.RequestContextUtils;
 import com.openjiuwen.studio.agent.manager.constant.CommonConstant;
 import com.openjiuwen.studio.agent.manager.dto.ExportResourceParams;
+import com.openjiuwen.studio.agent.manager.dto.ExportResourceVersion;
 import com.openjiuwen.studio.agent.manager.dto.ExportResourceRsp;
 import com.openjiuwen.studio.agent.manager.entity.Agent;
 import com.openjiuwen.studio.agent.manager.entity.MappingEntity;
 import com.openjiuwen.studio.agent.manager.entity.ModelExportEntity;
 import com.openjiuwen.studio.agent.manager.entity.ModelStrategyExportEntity;
+import com.openjiuwen.studio.agent.manager.entity.ReleaseVersion;
 import com.openjiuwen.studio.agent.manager.entity.WorkflowEntity;
 import com.openjiuwen.studio.agent.manager.entity.md.ModelServiceData;
 import com.openjiuwen.studio.agent.manager.enums.ResourceTypeEnum;
 import com.openjiuwen.studio.agent.manager.enums.relation.ReferenceTypeEnum;
 import com.openjiuwen.studio.agent.manager.mapper.AgentMapper;
 import com.openjiuwen.studio.agent.manager.mapper.MappingMapper;
+import com.openjiuwen.studio.agent.manager.mapper.ReleaseVersionMapper;
 import com.openjiuwen.studio.agent.manager.mapper.WorkflowMapper;
 import com.openjiuwen.studio.agent.manager.obs.MgObsService;
 import com.openjiuwen.studio.agent.manager.service.md.ModelServiceMgmtService;
@@ -87,6 +90,9 @@ public class AgentExportService {
     private AgentMapper agentMapper;
 
     @Autowired
+    private ReleaseVersionMapper releaseVersionMapper;
+
+    @Autowired
     private ObjectMapper jacksonObjectMapper;
 
     @Autowired
@@ -103,6 +109,19 @@ public class AgentExportService {
 
     public ExportResourceRsp exportResource(String projectId, String workspaceId, ExportResourceParams body) {
         ExportResourceRsp exportRsp;
+        // 兼容前端两种传参：resource_versions（含版本）或 resource_ids（不含版本）。
+        // 优先用 resource_versions；为空时由 resource_ids 兜底构建（version 留空，后续转 latest）。
+        if (CollectionUtils.isEmpty(body.getResourceVersions())) {
+            List<ExportResourceVersion> versions = body.getResourceIds().stream()
+                .map(id -> new ExportResourceVersion().setResourceId(id))
+                .collect(Collectors.toList());
+            body.setResourceVersions(versions);
+        } else if (CollectionUtils.isEmpty(body.getResourceIds())) {
+            // 前端只传 resource_versions 时，回填 resource_ids 供后续校验/命名使用
+            body.setResourceIds(body.getResourceVersions().stream()
+                .map(ExportResourceVersion::getResourceId)
+                .collect(Collectors.toList()));
+        }
         // 判断是否超出最大导出数量限制
         if (body.getResourceIds().size() > importMaxLen) {
             log.error("Exceeded the maximum export limit. The maximum number of exports is {}.", importMaxLen);
@@ -133,12 +152,21 @@ public class AgentExportService {
         // 工作流导出逻辑
         try {
             List<ExportResp> exportResps = new ArrayList<>();
-            for (String workflowId : workflowIds) {
-                log.debug("Processing workflow ID: {}", workflowId);
+            for (ExportResourceVersion exportResourceVersion : body.getResourceVersions()) {
+                String workflowId = exportResourceVersion.getResourceId();
+                // 空 version 转 latest（对齐旧版 lumina AgentExportService.exportWorkflow 行 152-154）
+                String versionId = StringUtils.isEmpty(exportResourceVersion.getResourceVersion())
+                    ? Constants.LATEST_PUBLISH_VERSION : exportResourceVersion.getResourceVersion();
+                log.debug("Processing workflow ID: {} version:{}", workflowId, versionId);
                 WorkflowEntity currentWorkflow = workflowMapper.getWorkflowById(workflowId);
-                // 获取工作流下所有资源
+                // 指定版本时校验版本存在性：不存在则记录失败项并跳过该资源（对齐旧版 lumina validResource）
+                if (validReleaseVersion(workflowId, versionId, currentWorkflow.getName(), body.getResourceType(),
+                    exportResps)) {
+                    continue;
+                }
+                // 获取该版本下所有资源（versionId=latest 查草稿 mapping，具体 versionId 查版本 mapping）
                 List<MappingEntity> mappingEntities = mappingMapper.selectByAppIdAndAppVersion(workflowId,
-                    Constants.LATEST_PUBLISH_VERSION, null, null);
+                    versionId, null, null);
                 List<MappingEntity> subExportResources = new ArrayList<>();
                 buildSubExportResources(subExportResources, mappingEntities);
                 // 过滤共享资源
@@ -147,9 +175,9 @@ public class AgentExportService {
                 // 模型供应商查询
                 List<ModelExportEntity> modelProviders = getModelProviders(projectId, workspaceId,
                     subExportResources);
-                // 添加当前节点
+                // 添加当前节点（透传 versionId，使 ExportResourceUnit.resourceVersion 携带具体版本）
                 exportResourceUnits.add(
-                    addCurrentResource(workflowId, currentWorkflow.getName(), body.getResourceType(),
+                    addCurrentResource(workflowId, currentWorkflow.getName(), body.getResourceType(), versionId,
                         subExportResources, modelProviders));
                 for (ResourceTypeEnum resourceTypeEnum : EXPORT_RESOURCE_TYPE_LIST) {
                     ExportResp exportResp = buildSubResource(exportResourceUnits, workflowId, resourceTypeEnum);
@@ -168,6 +196,30 @@ public class AgentExportService {
             log.error("Failed to export the workflow.", e);
             throw new AgentStudioException(StudioError.WORKFLOW_EXPORT_FILE);
         }
+    }
+
+    /**
+     * 校验发布版本存在性。versionId=latest 时跳过；否则查 t_release_version，不存在则把该资源作为失败项加入 exportResps 并返回 true（调用方 continue 跳过该资源）。
+     * 对齐旧版 lumina AgentExportService.validResource：不中断整个导出，容错记录失败项。
+     *
+     * @return true 表示版本不存在（调用方应 continue）；false 表示版本存在或为 latest，继续导出。
+     */
+    private boolean validReleaseVersion(String appId, String versionId, String resourceName, String resourceType,
+        List<ExportResp> exportResps) {
+        if (Strings.CS.equals(Constants.LATEST_PUBLISH_VERSION, versionId)) {
+            return false;
+        }
+        ReleaseVersion releaseVersion = releaseVersionMapper.selectByAppIdAndVersionId(appId, versionId);
+        if (Objects.isNull(releaseVersion)) {
+            log.info("Failed to export. Release version does not exist. appId:{} version:{}", appId, versionId);
+            ExportResourceUnit resourceUnit = new ExportResourceUnit();
+            resourceUnit.setResourceId(appId);
+            resourceUnit.setResourceType(resourceType);
+            resourceUnit.setResourceName(resourceName);
+            exportResps.add(buildCommonError(List.of(resourceUnit)));
+            return true;
+        }
+        return false;
     }
 
     private List<ModelExportEntity> getModelProviders(String projectId, String workspaceId, List<MappingEntity> subExportResources) {
@@ -206,13 +258,13 @@ public class AgentExportService {
         return subExportResources;
     }
 
-    private ExportResourceUnit addCurrentResource(String resourceId, String resourceName, String resourceType, List<MappingEntity> subExportResources,
-        List<ModelExportEntity> modelProviders) {
+    private ExportResourceUnit addCurrentResource(String resourceId, String resourceName, String resourceType, String versionId,
+        List<MappingEntity> subExportResources, List<ModelExportEntity> modelProviders) {
         ExportResourceUnit currentResource = new ExportResourceUnit();
         currentResource.setResourceId(resourceId);
         currentResource.setResourceType(resourceType);
         currentResource.setResourceName(resourceName);
-        currentResource.setResourceVersion(Constants.LATEST_PUBLISH_VERSION);
+        currentResource.setResourceVersion(versionId);
         Set<String> l2ResourceIds = subExportResources.stream()
             .map(MappingEntity::getResourceId)
             .collect(Collectors.toSet());
@@ -425,12 +477,21 @@ public class AgentExportService {
         validAgent(projectId, workspaceId, agentIds);
         List<ExportResp> exportResps = new ArrayList<>();
         try {
-            for (String agentId : agentIds) {
-                log.info("parse Processing:{}", agentId);
+            for (ExportResourceVersion exportResourceVersion : body.getResourceVersions()) {
+                String agentId = exportResourceVersion.getResourceId();
+                // 空 version 转 latest（对齐旧版 lumina AgentExportService.exportAgents）
+                String versionId = StringUtils.isEmpty(exportResourceVersion.getResourceVersion())
+                    ? Constants.LATEST_PUBLISH_VERSION : exportResourceVersion.getResourceVersion();
+                log.info("parse Processing:{} version:{}", agentId, versionId);
                 Agent currentAgent = agentMapper.selectById(agentId);
-                // 获取工作流下所有资源
+                // 指定版本时校验版本存在性：不存在则记录失败项并跳过该资源（对齐旧版 lumina validResource）
+                if (validReleaseVersion(agentId, versionId, currentAgent.getName(), body.getResourceType(),
+                    exportResps)) {
+                    continue;
+                }
+                // 获取该版本下所有资源（versionId=latest 查草稿 mapping，具体 versionId 查版本 mapping）
                 List<MappingEntity> mappingEntities = mappingMapper.selectByAppIdAndAppVersion(agentId,
-                    Constants.LATEST_PUBLISH_VERSION, null, null);
+                    versionId, null, null);
                 List<MappingEntity> subExportResources = new ArrayList<>();
                 buildSubExportResources(subExportResources, mappingEntities);
 
@@ -438,8 +499,8 @@ public class AgentExportService {
                 List<ExportResourceUnit> exportResourceUnits = convertMapping2ExportParam(subExportResources);
                 // 模型供应商查询
                 List<ModelExportEntity> modelProviders = getModelProviders(projectId, workspaceId, subExportResources);
-                exportResourceUnits.add(addCurrentResource(agentId, currentAgent.getName(), body.getResourceType(), subExportResources,
-                    modelProviders));
+                exportResourceUnits.add(addCurrentResource(agentId, currentAgent.getName(), body.getResourceType(), versionId,
+                    subExportResources, modelProviders));
                 for (ResourceTypeEnum resourceTypeEnum : EXPORT_RESOURCE_TYPE_LIST) {
                     ExportResp exportResp = buildSubResource(exportResourceUnits, agentId, resourceTypeEnum);
                     if (Objects.nonNull(exportResp)) {

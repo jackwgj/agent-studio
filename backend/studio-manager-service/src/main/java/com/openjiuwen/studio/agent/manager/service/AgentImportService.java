@@ -1219,7 +1219,6 @@ public class AgentImportService {
             record.setProjectId(agentInfo.getProjectId());
             record.setModelDeploymentId(agentInfo.getModelDeploymentId());
             record.setModel(agentInfo.getModel());
-            record.setStatus(agentInfo.getStatus());
             agentMapper.updateByPrimaryKeySelective(record);
         }
     }

@@ -462,7 +462,7 @@ export class AppCardComponent implements OnInit {
     }
     this.service.newExportAgents({
       resource_type: type,
-      resource_ids: [this.data[idMap[type]]]
+      resource_versions: [{ resource_id: this.data[idMap[type]] }]
     }).then(res => {
       this.nzModal.create<ExportResultModalComponent, any>({
         nzTitle: null,

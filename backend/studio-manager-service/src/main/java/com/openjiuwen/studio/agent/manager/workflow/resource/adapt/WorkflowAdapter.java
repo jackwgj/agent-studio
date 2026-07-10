@@ -116,7 +116,13 @@ public class WorkflowAdapter extends ResourceAdapter {
                 exportInfo.setMetadata(workflowIdMap.get(releaseVersion.getAppId()));
                 exportInfo.setReleaseVersion(releaseVersion);
                 exportInfo.setShareInfo(shareResourceManagerService.exportShareInfo(releaseVersion.getAppId()));
-                exportInfo.setParents(parentIdMap.get(releaseVersion.getAppId()));
+                // 根资源的 parentResourceId 为 null，parentIdMap 会得到 [null]；过滤后为空则设 null，
+                // 与草稿分支一致，避免导入时 CollectionUtils.isEmpty([null])=false 导致根资源不被识别为 parent。
+                List<String> parents = parentIdMap.get(releaseVersion.getAppId());
+                if (parents != null) {
+                    parents = parents.stream().filter(StringUtils::isNotEmpty).collect(Collectors.toList());
+                }
+                exportInfo.setParents(CollectionUtils.isEmpty(parents) ? null : parents);
                 exportInfos.add(exportInfo);
             }
         }
@@ -345,7 +351,7 @@ public class WorkflowAdapter extends ResourceAdapter {
             return;
         }
         ReleaseVersion existVersion = releaseVersionMapper.selectByAppIdAndVersionId(metadata.getId(),
-            metadata.getLastVersionId());
+            releaseVersion.getVersionId());
         // 版本已存在，跳过
         if (existVersion != null) {
             return;

@@ -34,6 +34,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.Strings;
+import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -105,7 +106,13 @@ public class AgentAdapter extends ResourceAdapter {
                 exportInfo.setDsl(agentDslInfo);
                 exportInfo.setReleaseVersion(releaseVersion);
                 exportInfo.setMetadata(agentIdMap.get(releaseVersion.getAppId()));
-                exportInfo.setParents(parentIdMap.get(releaseVersion.getAppId()));
+                // 根资源的 parentResourceId 为 null，parentIdMap 会得到 [null]；过滤后为空则设 null，
+                // 与草稿分支一致，避免导入时 CollectionUtils.isEmpty([null])=false 导致根资源不被识别为 parent。
+                List<String> parents = parentIdMap.get(releaseVersion.getAppId());
+                if (parents != null) {
+                    parents = parents.stream().filter(StringUtils::isNotEmpty).collect(Collectors.toList());
+                }
+                exportInfo.setParents(CollectionUtils.isEmpty(parents) ? null : parents);
                 exportInfos.add(exportInfo);
             }
         }
