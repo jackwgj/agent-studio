@@ -5,7 +5,9 @@
 无子进程开销，适用于 exec_env=local 且 LOCAL_CODE_EXEC_MODE=inprocess 的场景。
 """
 
+import asyncio
 import copy
+import threading
 import traceback
 from unittest import mock
 
@@ -21,8 +23,30 @@ class InprocessCodeRunner(CodeRunner):
     无子进程开销，适用于 exec_env=local 且 LOCAL_CODE_EXEC_MODE=inprocess 的场景。
     """
 
+    # stdout 重定向前缀：exec 体内先建 StringIO 并接管 sys.stdout
+    _PROLOGUE = (
+        "import sys\n"
+        "import io\n"
+        "buffer = io.StringIO()\n"
+        "original_stdout = sys.stdout\n"
+        "sys.stdout = buffer\n"
+    )
+    # stdout 恢复 + console_log 提取后缀：在 try/finally 中还原并收集 print 输出
+    _EPILOGUE = (
+        "\ntry:\n"
+        "    res = main(args)\n"
+        "finally:\n"
+        "    sys.stdout = original_stdout\n"
+        "    console_log = buffer.getvalue()\n"
+    )
+
     def __init__(self):
         self.function_log: str = ""
+        # 复用 os.system patcher：实例级单例，避免每次 run() 重建 _patch 对象。
+        # os.system 为进程级全局属性，patch 期间影响全进程；用 _exec_lock 串行
+        # start/stop，使并发调用下全局补丁不竞争，并保持与旧版同步 exec 等价的串行语义。
+        self._os_system_patcher = mock.patch('os.system', return_value=-1)
+        self._exec_lock = threading.Lock()
 
     async def run(self, user_code: str, inputs: dict, timeout: int = 300) -> dict:
         """在进程内执行用户代码
@@ -38,43 +62,43 @@ class InprocessCodeRunner(CodeRunner):
         Raises:
             Exception: 执行失败时抛出原始异常
             BuildError: 返回值非 dict 时抛出
+
+        Note:
+            exec() 与 deepcopy 均为同步 CPU 活，丢入线程池让出 event loop，
+            避免 LLM 节点 / IR / 日志等协程被抢占。
+            但线程内 exec 无法被硬中断，timeout 仍不生效 —— 需硬超时请走
+            subprocess 模式（LocalCodeRunner）。
         """
+        return await asyncio.to_thread(self._exec_sync, user_code, inputs)
+
+    def _exec_sync(self, user_code: str, inputs: dict) -> dict:
+        """同步执行用户代码（在线程池中调用）"""
         # 1. 深拷贝 inputs 防止污染
         inputs = copy.deepcopy(inputs)
 
         # 2. 构建执行代码：stdout 重定向 + 用户代码 + try/finally 恢复
-        exec_code = (
-            "import sys\n"
-            "import io\n"
-            "buffer = io.StringIO()\n"
-            "original_stdout = sys.stdout\n"
-            "sys.stdout = buffer\n"
-            + user_code
-            + "\ntry:\n"
-            "    res = main(args)\n"
-            "finally:\n"
-            "    sys.stdout = original_stdout\n"
-            "    console_log = buffer.getvalue()\n"
-        )
+        exec_code = self._PROLOGUE + user_code + self._EPILOGUE
 
-        # 3. 执行代码（mock os.system）
-        with mock.patch('os.system') as mock_system:
-            mock_system.return_value = -1
-            env = {
-                "args": inputs,
-                "__builtins__": __builtins__,
-                "__name__": "__main__",
-            }
-            global_namespace = env
-            local_namespace = env
-            exec_exception = None
-            error_log = None
+        # 3. 执行代码（复用 os.system patcher）
+        env = {
+            "args": inputs,
+            "__builtins__": __builtins__,
+            "__name__": "__main__",
+        }
+        global_namespace = env
+        local_namespace = env
+        exec_exception = None
+        error_log = None
 
+        with self._exec_lock:
+            self._os_system_patcher.start()
             try:
                 exec(exec_code, global_namespace, local_namespace)
             except Exception as e:
                 error_log = traceback.format_exc()
                 exec_exception = e
+            finally:
+                self._os_system_patcher.stop()
 
         # 4. 提取结果
         res = local_namespace.get("res", {})
