@@ -133,6 +133,8 @@
                       [name]="'arrFormValue'"
                       refSelectedRequire
                       [placeholder]="'select_placeholder' | i18nextEager"
+                      (ngModelChange)="changeUpdateTime()"
+                      (blur)="inputOnSave()"
                     ></input-tree-select>
 
                     <div *ngIf="arrForm?.controls['arrFormValue']?.invalid && (arrForm?.controls['arrFormValue']?.dirty || arrForm?.controls['arrFormValue']?.touched)"
