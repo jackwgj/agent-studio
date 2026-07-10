@@ -274,8 +274,8 @@ public class LakeSearchService implements KnowledgeRepoService {
         ListKnowledgeRepoResp knowledgeRepoInfos;
         try {
             knowledgeRepoInfos = cssUniSearchClient.listKnowledgeRepos(getUri(metadata), getHeaders(metadata),
-                lakeSearchProjectId, lakeSearchApplicationId, req.getPageNum(), req.getPageSize(), req.getName(), null,
-                null, null, null);
+                lakeSearchProjectId, lakeSearchApplicationId, req.getPageNum(), req.getPageSize(), req.getName(),
+                req.getKnowledgeBaseType(), null, null, null, null);
             log.info("Success to list KnowledgeRepos: {}", knowledgeRepoInfos.getTotal());
             return knowledgeRepoInfos;
         } catch (Exception exception) {
@@ -1075,7 +1075,7 @@ public class LakeSearchService implements KnowledgeRepoService {
             ListKnowledgeRepoResp knowledgeRepoInfos = cssUniSearchClient.listKnowledgeRepos(
                 getUriByConnectionInfo(lakeSearchConnection), getHeadersByConnectionInfo(lakeSearchConnection),
                 lakeSearchProjectId, lakeSearchApplicationId, req.getPageNum(), req.getPageSize(), req.getName(), null,
-                null, null, null);
+                null, null, null, null);
             log.info("Success to list KnowledgeRepos: {}", knowledgeRepoInfos.getTotal());
             return true;
         } catch (Exception exception) {

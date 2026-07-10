@@ -31,7 +31,7 @@ export interface IAgentConfigs {
   lakesearch_faq_enable?: boolean; // lakesearch特性开关
   block_nodes?: string[]; // 被屏蔽的节点类型，大小写不敏感
   agent_tool_priority_enable?: boolean; // 工具优先调度模式是否可见
-  knowledge_source?: 'KooSearch' | 'LakeSearch' | 'AgentBaseRag';
+  knowledge_source?: 'KooSearch' | 'LakeSearch' | 'AgentBaseRag' | 'CUSTOM';
   web_page_enable?: boolean; // 单智能体和工作流的发布网页渠道是否可见
   outer_app_enable?: boolean; // 百宝箱外部应用Tab是否可见
   audio_support_interaction?: boolean; // 语音服务是否可用

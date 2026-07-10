@@ -14,7 +14,7 @@ import {
   KbTagType,
   KBType
 } from "@routes/knowledge-center/knowledge-base.interface";
-import { KBRepoType, KBScope } from "@routes/knowledge-center/knowledge.types";
+import { KBRepoType, KBScope, KnowledgeBaseType } from "@routes/knowledge-center/knowledge.types";
 import { KnowledgeRepoService } from "@services/agent-center/knowledge.service";
 import { KbAbilitiesService } from "@services/knowledge-center/kb-abilities.service";
 import { MODULES } from "@shared/modules";
@@ -85,12 +85,26 @@ export class KnowledgeBaseSelectorComponent implements OnInit {
     }
   ];
 
+  // CUSTOM 模式下的知识库类型下拉选项
+  public kbTypeOptionsForCustom: Array<any> = [
+    {
+      label: '个人知识库',
+      value: KnowledgeBaseType.PERSONAL
+    },
+    {
+      label: '企业知识库',
+      value: KnowledgeBaseType.ENTERPRISE
+    }
+  ];
+
   public searchState: {
     kbType: "";
     searchName: string;
+    knowledgeBaseType: number | null;
   } = {
     kbType: null,
-    searchName: ""
+    searchName: "",
+    knowledgeBaseType: null
   };
 
   public kbs: KbItem[] = [];
@@ -182,6 +196,10 @@ export class KnowledgeBaseSelectorComponent implements OnInit {
     return this.currentTab.id;
   }
 
+  public get isCustomSource() {
+    return this.configServ.knowledgeSource() === 'CUSTOM';
+  }
+
   public get currentTabValue() {
     return this.currentTab.value;
   }
@@ -199,6 +217,12 @@ export class KnowledgeBaseSelectorComponent implements OnInit {
     } else {
       this.kbQuantityLimit = this.configServ.getConfigs()?.agent_knowledge_bound_limit ?? this.kbQuantityLimit;
     }
+
+    // CUSTOM 模式下，默认选中"个人知识库"
+    if (this.isCustomSource) {
+      this.searchState.knowledgeBaseType = KnowledgeBaseType.PERSONAL;
+    }
+
     this.getKBList();
     this.existedKbs = this.modalData?.existedKbs || [];
     if (this.existedKbs.length) {
@@ -214,7 +238,9 @@ export class KnowledgeBaseSelectorComponent implements OnInit {
   public getKBList() {
     const params: any = {
       name: this.searchState.searchName,
-      type: this.searchState.kbType
+      type: this.searchState.kbType,
+      ...(this.isCustomSource && this.searchState.knowledgeBaseType != null
+        && { knowledge_base_type: this.searchState.knowledgeBaseType }),
     };
     this.isLoading = true;
     this.kbRepo.getKnowledgeBaseList({

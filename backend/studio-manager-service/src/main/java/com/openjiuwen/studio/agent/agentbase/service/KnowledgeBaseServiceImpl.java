@@ -1252,6 +1252,7 @@ public class KnowledgeBaseServiceImpl implements IKnowledgeRepoManagementService
                 .name(listKnowledgeBaseQo.getName())
                 .offset(listKnowledgeBaseQo.getOffset())
                 .limit(listKnowledgeBaseQo.getLimit())
+                .knowledgeBaseType(listKnowledgeBaseQo.getKnowledgeBaseType())
                 .build();
             return listKnowledgeBaseForCustom(paramsForCustom);
         }
@@ -1322,6 +1323,7 @@ public class KnowledgeBaseServiceImpl implements IKnowledgeRepoManagementService
                 .name(listKnowledgeBaseQo.getName())
                 .offset(listKnowledgeBaseQo.getOffset())
                 .limit(listKnowledgeBaseQo.getLimit())
+                .knowledgeBaseType(listKnowledgeBaseQo.getKnowledgeBaseType())
                 .build();
             return listKnowledgeBaseForCustom(paramsForCustom);
         }
@@ -1428,7 +1430,8 @@ public class KnowledgeBaseServiceImpl implements IKnowledgeRepoManagementService
         ListKnowledgeRepoResp knowledgeRepoResp = knowledgeRepoContext.getService(knowledgeSource)
             .listKnowledgeRepos(new ListKnowledgeRepoReq().setName(body.getName())
                 .setPageNum(body.getOffset() / body.getLimit() + 1)
-                .setPageSize(body.getLimit()));
+                .setPageSize(body.getLimit())
+                .setKnowledgeBaseType(body.getKnowledgeBaseType()));
         log.info("list knowledge for CUSTOM response is :{}", JacksonUtils.toJson(knowledgeRepoResp));
         if (Objects.isNull(knowledgeRepoResp.getDataList())) {
             return new ListKnowledgeBasesResponseBody().setTotal(0L).setItems(Collections.emptyList());
@@ -1472,7 +1475,8 @@ public class KnowledgeBaseServiceImpl implements IKnowledgeRepoManagementService
         while (true) {
             ListKnowledgeRepoResp knowledgeRepoResp = knowledgeRepoContext.getService(knowledgeSource)
                 .listKnowledgeRepos(
-                    new ListKnowledgeRepoReq().setName(body.getName()).setPageNum(pageNum).setPageSize(batchQuerySize));
+                    new ListKnowledgeRepoReq().setName(body.getName()).setPageNum(pageNum).setPageSize(batchQuerySize)
+                        .setKnowledgeBaseType(body.getKnowledgeBaseType()));
             total = knowledgeRepoResp.getTotal();
             Map<String, KnowledgeRepoInfo> knowledgeMap = ObjectUtils.firstNonNull(knowledgeRepoResp.getDataList(),
                     Collections.<KnowledgeRepoInfo>emptyList())

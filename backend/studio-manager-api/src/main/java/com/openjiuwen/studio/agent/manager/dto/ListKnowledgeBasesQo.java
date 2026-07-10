@@ -70,6 +70,9 @@ public class ListKnowledgeBasesQo implements Serializable {
     @JsonProperty("share_type")
     private String shareType = null;
 
+    @JsonProperty("knowledge_base_type")
+    private Integer knowledgeBaseType = null;
+
     public String getWorkspaceId() {
         return workspaceId;
     }
@@ -160,6 +163,15 @@ public class ListKnowledgeBasesQo implements Serializable {
         return this;
     }
 
+    public Integer getKnowledgeBaseType() {
+        return knowledgeBaseType;
+    }
+
+    public ListKnowledgeBasesQo setKnowledgeBaseType(Integer knowledgeBaseType) {
+        this.knowledgeBaseType = knowledgeBaseType;
+        return this;
+    }
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
@@ -175,6 +187,7 @@ public class ListKnowledgeBasesQo implements Serializable {
         sb.append("    status: ").append(toIndentedString(status)).append("\n");
         sb.append("    knowledgeBaseIds: ").append(toIndentedString(knowledgeBaseIds)).append("\n");
         sb.append("    shareType: ").append(toIndentedString(shareType)).append("\n");
+        sb.append("    knowledgeBaseType: ").append(toIndentedString(knowledgeBaseType)).append("\n");
         sb.append("}");
         return sb.toString();
     }
@@ -194,13 +207,14 @@ public class ListKnowledgeBasesQo implements Serializable {
             listKnowledgeBasesQo.name) && Objects.equals(this.type, listKnowledgeBasesQo.type) && Objects.equals(
             this.knowledgeBaseConnectionId, listKnowledgeBasesQo.knowledgeBaseConnectionId) && Objects.equals(
             this.status, listKnowledgeBasesQo.status) && Objects.equals(this.knowledgeBaseIds,
-            listKnowledgeBasesQo.knowledgeBaseIds) && Objects.equals(this.shareType, listKnowledgeBasesQo.shareType);
+            listKnowledgeBasesQo.knowledgeBaseIds) && Objects.equals(this.shareType, listKnowledgeBasesQo.shareType)
+            && Objects.equals(this.knowledgeBaseType, listKnowledgeBasesQo.knowledgeBaseType);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(workspaceId, offset, shareScope, limit, name, type, knowledgeBaseConnectionId, status,
-            knowledgeBaseIds, shareType);
+            knowledgeBaseIds, shareType, knowledgeBaseType);
     }
 
     /**

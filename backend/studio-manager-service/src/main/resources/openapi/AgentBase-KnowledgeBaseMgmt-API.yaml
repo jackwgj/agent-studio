@@ -502,6 +502,12 @@ paths:
           enum:
             - my_shared
             - other_shared
+        - name: knowledge_base_type
+          in: query
+          required: false
+          description: CUSTOM场景适用，知识库类型，1-个人知识库，2-企业知识库
+          type: integer
+          default: 1
       responses:
         '200':
           description: 知识库列表

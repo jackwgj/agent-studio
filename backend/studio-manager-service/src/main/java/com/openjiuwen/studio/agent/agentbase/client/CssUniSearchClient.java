@@ -147,6 +147,7 @@ public interface CssUniSearchClient {
         @PathVariable(value = "project_id") String projectId,
         @PathVariable(value = "application_id") String applicationId, @RequestParam(value = "page_num") Integer pageNum,
         @RequestParam(value = "page_size") Integer pageSize, @RequestParam(value = "name") String name,
+        @RequestParam(value = "type", required = false) Integer knowledgeBaseType,
         @RequestParam(value = "order_by") String orderBy, @RequestParam(value = "repo_type") String repoType,
         @RequestParam(value = "embedding_model") String embeddingModel,
         @RequestParam(value = "rerank_model") String rerankModel);

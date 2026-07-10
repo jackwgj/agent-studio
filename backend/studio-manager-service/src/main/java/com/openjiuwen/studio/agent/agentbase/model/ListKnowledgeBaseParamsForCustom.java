@@ -30,4 +30,6 @@ public class ListKnowledgeBaseParamsForCustom {
 
     private Integer limit;
 
+    private Integer knowledgeBaseType;
+
 }

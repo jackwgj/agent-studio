@@ -14,7 +14,7 @@
       </ng-template>
     </nz-alert>
 
-    <div class="kb-range-selector" *ngIf="configServ.isSupportSharedKb()">
+    <div class="kb-range-selector" *ngIf="configServ.isSupportSharedKb() && !isCustomSource">
       <nz-tabs>
         <nz-tab
           [nzTitle]="tabs[0].title"
@@ -33,7 +33,14 @@
 
     <div class="kb-selector-filter-container">
       <nz-select
-        *ngIf="kbAbilitiesService.isPermitThirdPartyKb"
+        *ngIf="isCustomSource"
+        [nzOptions]="kbTypeOptionsForCustom"
+        [(ngModel)]="searchState.knowledgeBaseType"
+        (ngModelChange)="getKBInSearch()"
+        style="width: 200px;"
+      ></nz-select>
+      <nz-select
+        *ngIf="kbAbilitiesService.isPermitThirdPartyKb && !isCustomSource"
         nzAllowClear
         [nzOptions]="kbTypeOptions"
         [(ngModel)]="searchState.kbType"

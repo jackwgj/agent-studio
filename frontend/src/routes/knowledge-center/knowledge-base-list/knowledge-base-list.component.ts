@@ -26,6 +26,7 @@ import { KbCardDisplayComponent } from '@routes/knowledge-center/components/kb-c
 import { KnowledgeBaseAccessCardComponent } from '@routes/knowledge-center/components/knowledge-base-access-card/knowledge-base-access-card.component';
 import { KbSourceConnectionComponent } from '@routes/knowledge-center/kb-source-connection/kb-source-connection.component';
 import { KbCardDisplayConfig, KbItem, KbTagType } from '@routes/knowledge-center/knowledge-base.interface';
+import { KnowledgeBaseType } from '@routes/knowledge-center/knowledge.types';
 import { ReferenceModalComponent } from '@routes/knowledge-center/knowledge/reference-modal/reference-modal.component';
 import { KnowledgeRepoService } from '@services/agent-center/knowledge.service';
 import { KbAbilitiesService } from '@services/knowledge-center/kb-abilities.service';
@@ -158,7 +159,21 @@ export class KnowledgeBaseListComponent implements OnInit, AfterViewInit, OnDest
     { label: this.i18n.transform('default'), value: 'internal' },
     { label: this.i18n.transform('third_party'), value: 'external' },
   ];
+
+  // CUSTOM 模式下的知识库类型下拉选项（全部/个人/企业）
+  kbTypeOptionsForCustom: Array<any> = [
+    { label: this.i18n.transform('all_types'), value: null },
+    { label: '个人知识库', value: KnowledgeBaseType.PERSONAL },
+    { label: '企业知识库', value: KnowledgeBaseType.ENTERPRISE },
+  ];
+
   typeValue: any = this.allTypeOptions[0];
+  // CUSTOM 模式下选中的知识库类型（默认"全部"）
+  knowledgeBaseTypeValue: any = this.kbTypeOptionsForCustom[0];
+
+  public get isCustomSource() {
+    return this.configServ.knowledgeSource() === 'CUSTOM';
+  }
   public emptyPlaceholder: string = this.i18n.transform('cardlistcomponent_55');
 
   public searchName: string = '';
@@ -321,6 +336,7 @@ export class KnowledgeBaseListComponent implements OnInit, AfterViewInit, OnDest
     this.searchName = '';
     this.searchSource = '';
     this.typeValue = this.allTypeOptions[0];
+    this.knowledgeBaseTypeValue = this.kbTypeOptionsForCustom[0];
 
     this.accessSearchName = '';
     this.accessSearchType = '';
@@ -479,11 +495,16 @@ export class KnowledgeBaseListComponent implements OnInit, AfterViewInit, OnDest
       if (this.searchName) searchParams.name = this.searchName;
       if (this.searchSource) searchParams[this.searchItems[1].field] = this.searchSource;
 
+      // CUSTOM 模式按 knowledge_base_type（个人/企业）筛选；否则按 type（默认/第三方）
+      const customParams = this.isCustomSource
+        ? { knowledge_base_type: this.knowledgeBaseTypeValue?.value ?? null }
+        : { type: this.typeValue?.value || '' };
+
       const result = await this.kbRepo.getKnowledgeBaseList({
         ...searchParams,
         limit: pageSize,
         offset: (currentPage - 1) * pageSize,
-        type: this.typeValue?.value || '',
+        ...customParams,
       });
       const kbs = this.kbAbilitiesService.normalizeKBList(result.items ?? []);
       this.srcData.data = kbs;

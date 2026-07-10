@@ -30,6 +30,9 @@ public class ListKnowledgeRepoReq implements Serializable {
     @JsonProperty("page_size")
     private Integer pageSize = null;
 
+    @JsonProperty("knowledge_base_type")
+    private Integer knowledgeBaseType = null;
+
     @JsonProperty("type")
     @Length(max = 64)
     private String type = null;
@@ -61,6 +64,15 @@ public class ListKnowledgeRepoReq implements Serializable {
         return this;
     }
 
+    public Integer getKnowledgeBaseType() {
+        return knowledgeBaseType;
+    }
+
+    public ListKnowledgeRepoReq setKnowledgeBaseType(Integer knowledgeBaseType) {
+        this.knowledgeBaseType = knowledgeBaseType;
+        return this;
+    }
+
     public String getType() {
         return type;
     }
@@ -78,6 +90,7 @@ public class ListKnowledgeRepoReq implements Serializable {
         sb.append("    name: ").append(toIndentedString(name)).append("\n");
         sb.append("    pageNum: ").append(toIndentedString(pageNum)).append("\n");
         sb.append("    pageSize: ").append(toIndentedString(pageSize)).append("\n");
+        sb.append("    knowledgeBaseType: ").append(toIndentedString(knowledgeBaseType)).append("\n");
         sb.append("    type: ").append(toIndentedString(type)).append("\n");
         sb.append("}");
         return sb.toString();
@@ -94,12 +107,13 @@ public class ListKnowledgeRepoReq implements Serializable {
         ListKnowledgeRepoReq listKnowledgeRepoReq = (ListKnowledgeRepoReq) o;
         return Objects.equals(this.name, listKnowledgeRepoReq.name) && Objects.equals(this.pageNum,
             listKnowledgeRepoReq.pageNum) && Objects.equals(this.pageSize, listKnowledgeRepoReq.pageSize)
+            && Objects.equals(this.knowledgeBaseType, listKnowledgeRepoReq.knowledgeBaseType)
             && Objects.equals(this.type, listKnowledgeRepoReq.type);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, pageNum, pageSize, type);
+        return Objects.hash(name, pageNum, pageSize, knowledgeBaseType, type);
     }
 
     /**

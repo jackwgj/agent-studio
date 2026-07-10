@@ -186,3 +186,8 @@ export enum KbTagColor {
   purple = 'purple',
   grey = 'grey'
 }
+
+export enum KnowledgeBaseType {
+  PERSONAL = 1,
+  ENTERPRISE = 2,
+}

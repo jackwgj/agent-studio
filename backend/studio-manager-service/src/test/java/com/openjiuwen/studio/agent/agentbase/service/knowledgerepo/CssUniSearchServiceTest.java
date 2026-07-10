@@ -248,7 +248,7 @@ class CssUniSearchServiceTest {
         listKnowledgeRepoResp.setTotal(0L);
         when(
             cssUniSearchClient.listKnowledgeRepos(any(), any(), anyString(), anyString(), anyInt(), anyInt(), anyString(),
-                anyString(), anyString(), any(), any())).thenReturn(listKnowledgeRepoResp);
+                any(), anyString(), anyString(), any(), any())).thenReturn(listKnowledgeRepoResp);
         Assertions.assertEquals(listKnowledgeRepoResp.getTotal(), 0L);
     }
 

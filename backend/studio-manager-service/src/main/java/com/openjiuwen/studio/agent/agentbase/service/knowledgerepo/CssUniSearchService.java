@@ -323,7 +323,7 @@ public class CssUniSearchService implements KnowledgeRepoService {
             String connectionId = knowledgeConnectionRouterService.findConnectionIdByContext();
             knowledgeRepoInfos = cssUniSearchClient.listKnowledgeRepos(getUri(connectionId), getHeaders(connectionId),
                 getProjectId(connectionId), getApplicationId(connectionId), req.getPageNum(), req.getPageSize(),
-                req.getName(), null, null, null, null);
+                req.getName(), null, null, null, null, null);
             log.info("Success to list KnowledgeRepos: {}", knowledgeRepoInfos.getTotal());
             return knowledgeRepoInfos;
         } catch (Exception exception) {
@@ -339,7 +339,7 @@ public class CssUniSearchService implements KnowledgeRepoService {
         try {
             knowledgeRepoInfos = cssUniSearchClient.listKnowledgeRepos(getUri(connectionId), getHeaders(connectionId),
                 getProjectId(connectionId), getApplicationId(connectionId), req.getPageNum(), req.getPageSize(),
-                req.getName(), orderBy, repoType, embeddingModel, rerankModel);
+                req.getName(), null, orderBy, repoType, embeddingModel, rerankModel);
             log.info("Success to list KnowledgeRepos: {}", knowledgeRepoInfos.getTotal());
             return knowledgeRepoInfos;
         } catch (Exception exception) {

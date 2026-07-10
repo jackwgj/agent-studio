@@ -33,8 +33,11 @@
 
         <div class="create-top-operate" *ngIf="!isFirstLoading">
           <ng-container *ngIf="!isNoDataGuideShow">
-            <nz-select style="width: 150px; margin-right: 8px;" [(ngModel)]="typeValue" (ngModelChange)="getKBInSearch()" [nzPlaceHolder]="'select_type'|i18nextEager">
+            <nz-select *ngIf="!isCustomSource" style="width: 150px; margin-right: 8px;" [(ngModel)]="typeValue" (ngModelChange)="getKBInSearch()" [nzPlaceHolder]="'select_type'|i18nextEager">
               <nz-option *ngFor="let opt of allTypeOptions" [nzValue]="opt" [nzLabel]="opt.label"></nz-option>
+            </nz-select>
+            <nz-select *ngIf="isCustomSource" style="width: 150px; margin-right: 8px;" [(ngModel)]="knowledgeBaseTypeValue" (ngModelChange)="getKBInSearch()" [nzPlaceHolder]="'select_type'|i18nextEager">
+              <nz-option *ngFor="let opt of kbTypeOptionsForCustom" [nzValue]="opt" [nzLabel]="opt.label"></nz-option>
             </nz-select>
 
             <div class="create-search" style="flex: 1; display: flex; gap: 8px; margin-right: 8px;">

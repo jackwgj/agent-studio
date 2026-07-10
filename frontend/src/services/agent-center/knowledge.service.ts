@@ -515,6 +515,7 @@ export class KnowledgeRepoService {
         ...(params?.knowledge_base_ids && { knowledge_base_ids: params.knowledge_base_ids }),
         ...(params?.share_scope && { share_scope: params.share_scope }),
         ...(params?.share_type && { share_type: params.share_type }),
+        ...(params?.knowledge_base_type != null && { knowledge_base_type: params.knowledge_base_type }),
       },
     });
   }
