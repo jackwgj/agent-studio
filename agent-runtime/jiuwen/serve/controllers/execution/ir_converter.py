@@ -167,61 +167,124 @@ def _convert_global_variable_refs_in_ir(ir_data: dict) -> dict:
     """Convert old global variable references to new format in IR data.
 
     Old format: ${node_start.memory.xxx}
-    New format: ${global.xxx}
+    New format: ${MEMORY_VARIABLE.xxx}
 
     For start nodes, the memory dict in inputs contains actual values (not references),
     so it should be kept as-is.
 
-    **IMPORTANT**: This function creates a deep copy of ir_data to avoid modifying
-    cached IR data in-place, which would cause cache pollution across test cases.
+    **COW (copy-on-write)**: avoids the previous ``copy.deepcopy(ir_data)``
+    which dominated CPU on cache-hit paths. The top-level dict and the
+    ``components`` list are shallow-copied as a safety net, while each
+    component dict / configs sub-tree is only duplicated when a descendant
+    string actually gets rewritten. Sub-trees without memory references
+    keep their original references, so un-hit components cost zero copy.
 
     Args:
         ir_data: IR data dictionary containing workflow configuration.
+            Treated as read-only; never mutated in place.
 
     Returns:
-        dict: IR data with converted global variable references (deep copy).
+        dict: IR data with converted global variable references. May share
+        un-modified sub-trees with the input.
     """
     if not ir_data or not isinstance(ir_data, dict):
         return ir_data
-
-    # Create deep copy to avoid modifying cached IR data
-    ir_data = copy.deepcopy(ir_data)
 
     # Only process workflow IR data (has 'components' field)
     components = ir_data.get("components", [])
     if not components:
         return ir_data
 
-    for component in components:
+    # Top-level shallow copy as a safety net (≈ 1 dict + 1 list).
+    new_ir = dict(ir_data)
+    new_components = list(components)
+    new_ir["components"] = new_components
+
+    for i, component in enumerate(components):
         component_type = component.get("type", "")
         # Skip start nodes - their memory inputs contain actual values, not references
         if component_type == NodeType.START.value:
             continue
 
+        # Mutable state holder for this iteration; passed into _cow_configs_field
+        # to avoid closure-captured loop variables (G.FNM.02).
+        state = {"comp": component, "configs": None}
+
+        def _cow_configs_field(field_path: tuple, converter, comp, st) -> None:
+            """COW-convert a sub-field under ``configs``.
+
+            On hit, shallow-copies ``configs`` (and any intermediate dict
+            along ``field_path``) and writes the converted value back. The
+            component dict itself is shallow-copied the first time any
+            field hits, so the original cached component is untouched.
+
+            ``field_path`` is a tuple of dict keys, e.g.
+            ``("branches",)`` or ``("io_configs", "inputs_schema")``.
+
+            ``comp``/``st`` are required positional args (no defaults) to
+            satisfy G.FNM.01 (no mutable default args) and G.FNM.02 (no
+            closure-captured loop variables). Callers in the loop body
+            pass the current iteration's ``component``/``state`` explicitly.
+            """
+            cur = comp.get("configs", {})
+            for p in field_path:
+                if not isinstance(cur, dict):
+                    return
+                cur = cur.get(p)
+                if cur is None:
+                    return
+            if not cur:
+                return
+
+            converted = converter(cur)
+            if converted is cur:
+                return
+
+            # Hit: shallow-copy the path configs → ... → field
+            if st["configs"] is None:
+                st["configs"] = dict(comp.get("configs", {}) or {})
+            target = st["configs"]
+            for p in field_path[:-1]:
+                target[p] = dict(target[p])
+                target = target[p]
+            target[field_path[-1]] = converted
+
+            if st["comp"] is comp:
+                st["comp"] = dict(comp)
+                st["comp"]["configs"] = st["configs"]
+            else:
+                st["comp"]["configs"] = st["configs"]
+
         if component_type == NodeType.SET_VARIABLE.value:
-            config_settings = component.get("configs", {}).get("settings", {})
+            config_settings = (component.get("configs") or {}).get("settings", [])
             if isinstance(config_settings, list):
-                for setting in config_settings:
-                    if isinstance(setting, dict):
-                        _convert_refs_in_schema(setting)
+                converted_settings = _convert_refs_in_schema(config_settings)
+                if converted_settings is not config_settings:
+                    if state["configs"] is None:
+                        state["configs"] = dict(component.get("configs", {}) or {})
+                    state["configs"]["settings"] = converted_settings
+                    if state["comp"] is component:
+                        state["comp"] = dict(component)
+                        state["comp"]["configs"] = state["configs"]
+                    else:
+                        state["comp"]["configs"] = state["configs"]
 
-        branch_configs = component.get("configs", {}).get("branches", {})
-        if branch_configs:
-            _convert_refs_in_schema(branch_configs)
+        _cow_configs_field(("branches",), _convert_refs_in_schema, component, state)
+        _cow_configs_field(("io_configs", "inputs_schema"), _convert_refs_in_schema, component, state)
 
-        # Convert references in io_configs.inputs_schema
-        io_configs = component.get("configs", {}).get("io_configs", {})
-        if io_configs:
-            inputs_schema = io_configs.get("inputs_schema", {})
-            if inputs_schema:
-                _convert_refs_in_schema(inputs_schema)
+        # Legacy inputs live directly under component (not under configs)
+        inputs_orig = component.get("inputs", {})
+        if inputs_orig:
+            converted_inputs = _convert_refs_in_schema(inputs_orig)
+            if converted_inputs is not inputs_orig:
+                if state["comp"] is component:
+                    state["comp"] = dict(component)
+                state["comp"]["inputs"] = converted_inputs
 
-        # Also convert references in component.inputs (legacy format)
-        inputs = component.get("inputs", {})
-        if inputs:
-            _convert_refs_in_schema(inputs)
+        if state["comp"] is not component:
+            new_components[i] = state["comp"]
 
-    return ir_data
+    return new_ir
 
 
 def _extract_start_memory_var(ref_str: str) -> str | None:
@@ -233,28 +296,68 @@ def _extract_start_memory_var(ref_str: str) -> str | None:
 
 
 def _convert_start_memory_refs_in_string(value: str) -> str:
+    """Convert ${node_start.memory.xxx} → ${MEMORY_VARIABLE.xxx} in a string.
+
+    Adds a C-level substring guard so that strings without the literal
+    ``node_start.memory`` substring are returned as-is without invoking
+    the regex engine — this is the dominant fast path on real IRs.
+    """
+    if not isinstance(value, str) or "node_start.memory" not in value:
+        return value
     return _START_MEMORY_REF_TOKEN.sub(
         lambda match: f"${{MEMORY_VARIABLE.{match.group(1)}}}",
         value,
     )
 
 
-def _convert_refs_in_schema(schema: dict | list) -> None:
-    """Recursively convert ${node_start.memory.xxx} to ${global.xxx} in schema.
+def _convert_refs_in_schema(schema: dict | list) -> dict | list:
+    """COW: convert ${node_start.memory.xxx} → ${MEMORY_VARIABLE.xxx} in schema.
+
+    Returns a new dict/list when (and only when) some descendant string is
+    actually rewritten. Sub-trees that contain no memory references keep
+    their original reference, so the caller's cache is not mutated and
+    untouched sub-trees are shared at zero copy cost.
 
     Args:
-        schema: Input schema dict or list, modified in-place.
+        schema: Input schema dict or list (treated read-only).
+
+    Returns:
+        The original ``schema`` reference if no replacement occurred, or a
+        new dict/list sharing un-rewritten sub-trees with the original.
     """
     if isinstance(schema, dict):
+        new = None
         for key, value in schema.items():
             if isinstance(value, str):
-                schema[key] = _convert_start_memory_refs_in_string(value)
+                converted = _convert_start_memory_refs_in_string(value)
+                if converted is not value:
+                    if new is None:
+                        new = dict(schema)
+                    new[key] = converted
             elif isinstance(value, (dict, list)):
-                _convert_refs_in_schema(value)
-    elif isinstance(schema, list):
-        for item in schema:
-            if isinstance(item, (dict, list)):
-                _convert_refs_in_schema(item)
+                converted = _convert_refs_in_schema(value)
+                if converted is not value:
+                    if new is None:
+                        new = dict(schema)
+                    new[key] = converted
+        return new if new is not None else schema
+    if isinstance(schema, list):
+        new = None
+        for i, item in enumerate(schema):
+            if isinstance(item, str):
+                converted = _convert_start_memory_refs_in_string(item)
+                if converted is not item:
+                    if new is None:
+                        new = list(schema)
+                    new[i] = converted
+            elif isinstance(item, (dict, list)):
+                converted = _convert_refs_in_schema(item)
+                if converted is not item:
+                    if new is None:
+                        new = list(schema)
+                    new[i] = converted
+        return new if new is not None else schema
+    return schema
 
 
 def _extract_memory_var_mappings(memory_section: dict) -> dict:
@@ -327,64 +430,143 @@ def _convert_subworkflow_global_var_refs(
     This function converts all ${global.child_key} references to ${global.parent_var}
     in the sub-workflow IR.
 
-    **IMPORTANT**: This function creates a deep copy of ir_data to avoid modifying
-    cached IR data in-place, which would cause cache pollution across test cases.
+    **COW (copy-on-write)**: avoids the previous ``copy.deepcopy(ir_data)``.
+    Only components whose sub-trees actually contain a rewritten reference are
+    duplicated; un-hit components keep their original references.
 
     Args:
-        ir_data: Sub-workflow IR data.
+        ir_data: Sub-workflow IR data. Treated as read-only; never mutated.
         global_var_mappings: Mapping from child key to parent global var name.
 
     Returns:
-        dict: Converted sub-workflow IR data (deep copy).
+        dict: Converted sub-workflow IR data. May share un-modified sub-trees
+        with the input.
     """
     if not ir_data or not isinstance(ir_data, dict) or not global_var_mappings:
         return ir_data
-
-    # Create deep copy to avoid modifying cached IR data
-    ir_data = copy.deepcopy(ir_data)
 
     components = ir_data.get("components", [])
     if not components:
         return ir_data
 
-    for component in components:
+    # Top-level shallow copy as a safety net.
+    new_ir = dict(ir_data)
+    new_components = list(components)
+    new_ir["components"] = new_components
+
+    for i, component in enumerate(components):
         component_type = component.get("type", "")
 
         # Skip start nodes - they receive values, not references
         if component_type == NodeType.START.value:
             continue
 
-        # Convert in SET_VARIABLE settings (left.value field)
-        # IR structure: settings = [{"left": {"value": "${global.xxx}"}, "right": {"value": "yyy"}}]
+        # Mutable state holder for this iteration; passed into _cow_configs_field
+        # to avoid closure-captured loop variables (G.FNM.02).
+        state = {"comp": component, "configs": None}
+
+        def _cow_configs_field(field_path: tuple, converter, comp, st) -> None:
+            """COW-convert a sub-field under ``configs`` for this component.
+
+            ``comp``/``st`` are required positional args (no defaults) to
+            satisfy G.FNM.01 (no mutable default args) and G.FNM.02 (no
+            closure-captured loop variables). Callers in the loop body
+            pass the current iteration's ``component``/``state`` explicitly.
+            """
+            cur = comp.get("configs", {})
+            for p in field_path:
+                if not isinstance(cur, dict):
+                    return
+                cur = cur.get(p)
+                if cur is None:
+                    return
+            if not cur:
+                return
+
+            converted = converter(cur)
+            if converted is cur:
+                return
+
+            if st["configs"] is None:
+                st["configs"] = dict(comp.get("configs", {}) or {})
+            target = st["configs"]
+            for p in field_path[:-1]:
+                target[p] = dict(target[p])
+                target = target[p]
+            target[field_path[-1]] = converted
+
+            if st["comp"] is comp:
+                st["comp"] = dict(comp)
+                st["comp"]["configs"] = st["configs"]
+            else:
+                st["comp"]["configs"] = st["configs"]
+
+        # SET_VARIABLE: only left.value (or left when it's a plain string) is
+        # a writable reference target; right.value is a literal/source ref and
+        # must NOT be mapped. COW along setting → left → value.
         if component_type == NodeType.SET_VARIABLE.value:
-            config_settings = component.get("configs", {}).get("settings", {})
+            config_settings = (component.get("configs") or {}).get("settings", [])
             if isinstance(config_settings, list):
-                for setting in config_settings:
-                    if isinstance(setting, dict):
-                        # Handle nested left.value structure
-                        left_obj = setting.get("left", {})
-                        if isinstance(left_obj, dict) and "value" in left_obj:
-                            left_obj["value"] = _apply_global_var_mapping(left_obj["value"], global_var_mappings)
-                        elif isinstance(left_obj, str):
-                            setting["left"] = _apply_global_var_mapping(left_obj, global_var_mappings)
+                new_settings = None
+                for idx, setting in enumerate(config_settings):
+                    if not isinstance(setting, dict):
+                        continue
+                    left_obj = setting.get("left")
+                    if isinstance(left_obj, dict) and "value" in left_obj:
+                        original_value = left_obj["value"]
+                        converted_value = _apply_global_var_mapping(original_value, global_var_mappings)
+                        if converted_value is not original_value:
+                            if new_settings is None:
+                                new_settings = list(config_settings)
+                            new_left = dict(left_obj)
+                            new_left["value"] = converted_value
+                            new_setting = dict(setting)
+                            new_setting["left"] = new_left
+                            new_settings[idx] = new_setting
+                    elif isinstance(left_obj, str):
+                        converted_left = _apply_global_var_mapping(left_obj, global_var_mappings)
+                        if converted_left is not left_obj:
+                            if new_settings is None:
+                                new_settings = list(config_settings)
+                            new_setting = dict(setting)
+                            new_setting["left"] = converted_left
+                            new_settings[idx] = new_setting
+                if new_settings is not None:
+                    if state["configs"] is None:
+                        state["configs"] = dict(component.get("configs", {}) or {})
+                    state["configs"]["settings"] = new_settings
+                    if state["comp"] is component:
+                        state["comp"] = dict(component)
+                        state["comp"]["configs"] = state["configs"]
+                    else:
+                        state["comp"]["configs"] = state["configs"]
 
-        branch_configs = component.get("configs", {}).get("branches", {})
-        if branch_configs:
-            _apply_global_var_mapping_to_schema(branch_configs, global_var_mappings)
+        _cow_configs_field(
+            ("branches",),
+            lambda s: _apply_global_var_mapping_to_schema(s, global_var_mappings),
+            component,
+            state,
+        )
+        _cow_configs_field(
+            ("io_configs", "inputs_schema"),
+            lambda s: _apply_global_var_mapping_to_schema(s, global_var_mappings),
+            component,
+            state,
+        )
 
-        # Convert in io_configs.inputs_schema
-        io_configs = component.get("configs", {}).get("io_configs", {})
-        if io_configs:
-            inputs_schema = io_configs.get("inputs_schema", {})
-            if inputs_schema:
-                _apply_global_var_mapping_to_schema(inputs_schema, global_var_mappings)
+        # Legacy inputs live directly under component (not under configs)
+        inputs_orig = component.get("inputs", {})
+        if inputs_orig:
+            converted_inputs = _apply_global_var_mapping_to_schema(inputs_orig, global_var_mappings)
+            if converted_inputs is not inputs_orig:
+                if state["comp"] is component:
+                    state["comp"] = dict(component)
+                state["comp"]["inputs"] = converted_inputs
 
-        # Convert in component.inputs (legacy format)
-        inputs = component.get("inputs", {})
-        if inputs:
-            _apply_global_var_mapping_to_schema(inputs, global_var_mappings)
+        if state["comp"] is not component:
+            new_components[i] = state["comp"]
 
-    return ir_data
+    return new_ir
 
 
 def _apply_global_var_mapping(ref_str: str, mappings: dict) -> str:
@@ -392,6 +574,10 @@ def _apply_global_var_mapping(ref_str: str, mappings: dict) -> str:
 
     If ref_str is ${global.child_key} and mappings[child_key] = parent_var,
     return ${global.parent_var}.
+
+    Adds a substring guard so that strings without either ``MEMORY_VARIABLE``
+    or the legacy ``node_start.memory`` prefix bypass the regex engine —
+    this is the dominant fast path on real IRs.
 
     Args:
         ref_str: Reference string (e.g., "${global.child_var}").
@@ -401,6 +587,12 @@ def _apply_global_var_mapping(ref_str: str, mappings: dict) -> str:
         str: Converted reference string or original if no mapping exists.
     """
     if not isinstance(ref_str, str):
+        return ref_str
+
+    # Fast path: if the string has neither marker, no rewrite is possible.
+    # 'in' on str is a C-level substring scan, ~ns; the regex sub below
+    # would otherwise dominate CPU on schema-heavy IRs.
+    if "MEMORY_VARIABLE" not in ref_str and _GLOBAL_REF_PATTERN_OLD not in ref_str:
         return ref_str
 
     def replace_memory_var(match: re.Match) -> str:
@@ -423,25 +615,55 @@ def _apply_global_var_mapping(ref_str: str, mappings: dict) -> str:
     return ref_str
 
 
-def _apply_global_var_mapping_to_schema(schema: dict | list, mappings: dict) -> None:
-    """Recursively apply global var mapping to schema.
+def _apply_global_var_mapping_to_schema(schema: dict | list, mappings: dict) -> dict | list:
+    """COW: recursively apply global var mapping to schema.
+
+    Returns a new dict/list when (and only when) some descendant string is
+    actually rewritten. Sub-trees with no mappable references keep their
+    original reference, so the caller's cache is not mutated and un-hit
+    sub-trees are shared at zero copy cost.
 
     Args:
-        schema: Input schema dict or list, modified in-place.
+        schema: Input schema dict or list (treated read-only).
         mappings: Mapping from child key to parent var name.
+
+    Returns:
+        The original ``schema`` reference if no replacement occurred, or a
+        new dict/list sharing un-rewritten sub-trees with the original.
     """
     if isinstance(schema, dict):
+        new = None
         for key, value in schema.items():
             if isinstance(value, str):
-                schema[key] = _apply_global_var_mapping(value, mappings)
+                converted = _apply_global_var_mapping(value, mappings)
+                if converted is not value:
+                    if new is None:
+                        new = dict(schema)
+                    new[key] = converted
             elif isinstance(value, (dict, list)):
-                _apply_global_var_mapping_to_schema(value, mappings)
-    elif isinstance(schema, list):
+                converted = _apply_global_var_mapping_to_schema(value, mappings)
+                if converted is not value:
+                    if new is None:
+                        new = dict(schema)
+                    new[key] = converted
+        return new if new is not None else schema
+    if isinstance(schema, list):
+        new = None
         for i, item in enumerate(schema):
             if isinstance(item, str):
-                schema[i] = _apply_global_var_mapping(item, mappings)
+                converted = _apply_global_var_mapping(item, mappings)
+                if converted is not item:
+                    if new is None:
+                        new = list(schema)
+                    new[i] = converted
             elif isinstance(item, (dict, list)):
-                _apply_global_var_mapping_to_schema(item, mappings)
+                converted = _apply_global_var_mapping_to_schema(item, mappings)
+                if converted is not item:
+                    if new is None:
+                        new = list(schema)
+                    new[i] = converted
+        return new if new is not None else schema
+    return schema
 
 
 def _extract_source_component_ids(
@@ -569,13 +791,15 @@ class IRConverter:
 
     @staticmethod
     async def extract_node_defs(ir_data: dict) -> dict[str, dict[str, dict]]:
-        """从 workflow IR 数据中递归提取节点定义：{workflow_id: {node_id: {node_name, configs}}}。
+        """从 workflow IR 数据中递归提取节点定义：{workflow_id: {node_id: {node_name, node_type, configs}}}。
 
-        合并节点显示名称和类型定义（configs），存入 session global_state 后
-        供回调通过 session.state().get_global("__node_defs__") 读取。
+        存入 session global_state 后供回调通过
+        session.state().get_global("__node_defs__") 读取。
 
-        configs 结构直接透传 IR 中的组件 configs（含 userFields.inputs/outputs、
-        systemFields.inputs/outputs），不再拆分为独立注册表。
+        为减少 checkpoint 序列化体积，configs 仅保留 type_convert 回调必需的
+        userFields/systemFields 的 inputs/outputs 子字段，移除 model、
+        templateContent、reference 等大字段。SubWorkflow 递归读取 reference
+        在裁剪前从原始 configs 完成，不受裁剪影响。
 
         返回两层 dict，按 workflow_id 隔离，避免父子/嵌套工作流中
         相同 node_id 的映射互相覆盖。
@@ -587,7 +811,7 @@ class IRConverter:
             ir_data: Workflow IR 数据字典，包含 components 数组。
 
         Returns:
-            dict: {workflow_id: {node_id: {node_name: str, configs: dict}}} 两层映射字典。
+            dict: {workflow_id: {node_id: {node_name, node_type, configs}}} 两层映射字典。
         """
         workflow_id = ir_data.get("workflowId", "")
         result: dict[str, dict[str, dict]] = {}
@@ -597,23 +821,30 @@ class IRConverter:
             comp_id = comp.get("id")
             if not comp_id:
                 continue
-            # 合并 node_name, node_type 和 configs
+            # 原始 configs，用于递归读取 reference（裁剪前）
+            raw_configs = comp.get("configs") or {}
+            # 仅保留 type_convert 回调必需的 userFields/systemFields 子字段
+            uf = raw_configs.get("userFields") or {}
+            sf = raw_configs.get("systemFields") or {}
             node_def: dict = {
                 "node_name": comp.get("name", ""),
                 "node_type": comp.get("type", ""),
+                "configs": {
+                    "userFields": {
+                        "inputs": uf.get("inputs", []),
+                        "outputs": uf.get("outputs", []),
+                    },
+                    "systemFields": {
+                        "inputs": sf.get("inputs", []),
+                        "outputs": sf.get("outputs", []),
+                    },
+                },
             }
-            configs = comp.get("configs")
-            if configs:
-                node_def["configs"] = configs
-            inputs = comp.get("inputs")
-            if inputs:
-                node_def["inputs"] = inputs
             current_wf_defs[comp_id] = node_def
             # 递归提取 SubWorkflow 子工作流内部节点
             ir_type = comp.get("type", "")
             if ir_type in {"jiuwen.subWorkflow", "jiuwen.workflowComposite"}:
-                comp_configs = configs or {}
-                reference = comp_configs.get("reference") or {}
+                reference = raw_configs.get("reference") or {}
                 child_path = reference.get("path", "")
                 if child_path:
                     try:
@@ -1555,6 +1786,18 @@ class IRConverter:
         performance_logger.info(
             f"ir_build_total|{round((_time.perf_counter() - t_total) * 1000)}"
         )
+        # 统一为每个组件实例赋值同 workflow 的 node_id 集合，供 End 节点 ref 过滤使用
+        # 用 dict（keys 为 node_id）兼容 EndRefInputFilterContext 的 isinstance(dict) 检查
+        wf_node_ids = {nid: {} for nid in component_by_id.keys()}
+        for comp in component_by_id.values():
+            try:
+                setattr(comp, "_workflow_node_ids", wf_node_ids)
+            except Exception:
+                logger.debug(
+                    "Failed to attach _workflow_node_ids to component %r",
+                    type(comp).__name__,
+                    exc_info=True,
+                )
         return workflow
 
     @staticmethod
@@ -2011,6 +2254,7 @@ class IRConverter:
                 inputs_schema=inputs_schema,
                 **_comp_reg,
             )
+            _attach_node_def(component, node, configs)
             return component
 
         # ComplexIntentDetection 组件
@@ -2028,6 +2272,7 @@ class IRConverter:
                 inputs_schema=inputs_schema,
                 **_comp_reg,
             )
+            _attach_node_def(component, node, configs)
             return component
 
         component, resolved_type, configs = await IRConverter._create_component(
@@ -2036,6 +2281,7 @@ class IRConverter:
             node_by_id=node_by_id,
             ir_connections=ir_connections,
         )
+        _attach_node_def(component, node, configs)
 
         if resolved_type == "jiuwen.start":
             workflow.set_start_comp(
@@ -2199,7 +2445,14 @@ class IRConverter:
                 while not isinstance(data, dict):
                     getter = getattr(data, 'get_state', None)
                     if callable(getter):
-                        data = getter()
+                        # 优先走 copied=False 直接拿原始 dict 引用，跳过 deepcopy。
+                        # transformer 内部仅调用 get_by_schema（纯只读，无写入），
+                        # 返回值是新建的 dict/list，不会回写 io_state，因此无需复制。
+                        try:
+                            data = getter(copied=False)
+                        except TypeError:
+                            # 兜底：实现签名不支持 copied 关键字时回退到默认行为
+                            data = getter()
                     else:
                         break
 
@@ -3288,6 +3541,41 @@ def _build_start_inputs_schema(node: dict) -> dict:
             continue
         inputs_schema[str(field_id)] = "${" + str(field_id) + "}"
     return inputs_schema
+
+
+def _attach_node_def(component, node: dict, configs: dict) -> None:
+    """Attach trimmed node_def to component instance for callback use.
+
+    仅保留 type_convert_inputs / node_perf_start 回调必需的字段，避免
+    checkpoint 序列化冗余（component 实例不进 checkpoint，但保持轻量）。
+    """
+    if component is None:
+        return
+    uf = configs.get("userFields") or {}
+    sf = configs.get("systemFields") or {}
+    try:
+        node_def = {
+            "node_name": node.get("name", ""),
+            "node_type": node.get("type", ""),
+            "configs": {
+                "userFields": {
+                    "inputs": uf.get("inputs", []),
+                    "outputs": uf.get("outputs", []),
+                },
+                "systemFields": {
+                    "inputs": sf.get("inputs", []),
+                    "outputs": sf.get("outputs", []),
+                },
+            },
+        }
+        setattr(component, "_node_def", node_def)
+    except Exception:
+        # 某些组件实例可能用 __slots__ 或限制属性设置，忽略以不阻塞主流程
+        logger.debug(
+            "Failed to attach _node_def to component %r",
+            type(component).__name__,
+            exc_info=True,
+        )
 
 
 def _add_workflow_comp_with_exception(

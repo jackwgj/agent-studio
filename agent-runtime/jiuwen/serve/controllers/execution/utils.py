@@ -435,8 +435,6 @@ async def _execute_workflow(req: ExecutionRequest, execution_data: ExecutionData
         card = wf.card
         params = req.params.model_dump()
         params["is_debug"] = req.headers.get("X-Invoke-Mode", "").lower() == "debug"
-        if node_defs:
-            params["__node_defs__"] = node_defs
 
         wf_wrapper = OpenJiuWenWorkflowInstanceLayer(
             workflow_id=card.id,

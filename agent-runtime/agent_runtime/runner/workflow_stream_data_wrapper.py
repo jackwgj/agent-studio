@@ -1194,12 +1194,15 @@ def _register_jiuwen_callbacks() -> None:
             if not isinstance(session, NodeSession):
                 return (args, kwargs)
 
-            # 走 get_state_info 引用路径读取 node_def，避开 get_global 的 deepcopy
-            # 开销（__node_defs__ 在构建期注入后只读，回调内不修改）。
-            node_def = get_state_info(
-                session,
-                f"global_state.{NODE_DEFS_KEY}.{session.workflow_id()}.{session.node_id()}",
-            ) or {}
+            # 优先从 component 实例的 _node_def 取（IRConverter 创建时赋值），
+            # 避免 session global_state 的 deepcopy 开销；
+            # 回退到 session 读取（旧路径兼容，find_secret_env 等仍依赖）。
+            node_def = getattr(args[0], "_node_def", None) if args else None
+            if not isinstance(node_def, dict):
+                node_def = get_state_info(
+                    session,
+                    f"global_state.{NODE_DEFS_KEY}.{session.workflow_id()}.{session.node_id()}",
+                ) or {}
             if not isinstance(node_def, dict):
                 node_def = {}
             if node_def:
@@ -1231,16 +1234,18 @@ def _register_jiuwen_callbacks() -> None:
                 input_schema = None
                 if node_config and node_config.io_configs:
                     input_schema = node_config.io_configs.inputs_schema
-                # wf_defs 只在 End 节点过滤 ref 时需要（取本 workflow 的 node_id 集合），
-                # 此处按需读取，避免普通节点也做 workflow 级 deepcopy。
-                # 走 get_state_info 引用路径，避开 get_global 的 deepcopy；End 分支
-                # 仅做 `source_id in wf_defs` 只读判断，不修改引用对象。
-                end_ctx = EndRefInputFilterContext(
-                    session=session,
-                    wf_defs=get_state_info(
+                # End 节点 ref 过滤只需本 workflow 的 node_id 集合，
+                # 优先从 component 实例的 _workflow_node_ids 取（避免 session deepcopy）；
+                # 回退到 session 读取（旧路径兼容）。
+                wf_defs = getattr(args[0], "_workflow_node_ids", None) if args else None
+                if wf_defs is None:
+                    wf_defs = get_state_info(
                         session,
                         f"global_state.{NODE_DEFS_KEY}.{session.workflow_id()}",
-                    ) or {},
+                    ) or {}
+                end_ctx = EndRefInputFilterContext(
+                    session=session,
+                    wf_defs=wf_defs,
                 )
                 if isinstance(input_schema, dict):
                     inputs = _fill_unexecuted_end_branch_inputs(
@@ -1331,12 +1336,14 @@ def _register_jiuwen_callbacks() -> None:
             if session is None and len(args) >= 2:
                 session = args[1]
             if session is not None and isinstance(session, NodeSession):
-                # 走 get_state_info 引用路径读取 node_def（避开 get_global 的 deepcopy），
-                # 此回调仅读 node_type/node_name 两个字段，不修改引用对象。
-                node_def = get_state_info(
-                    session,
-                    f"global_state.{NODE_DEFS_KEY}.{session.workflow_id()}.{session.node_id()}",
-                ) or {}
+                # 优先从 component 实例的 _node_def 取（避免 session deepcopy）；
+                # 回退到 session 读取（旧路径兼容）。
+                node_def = getattr(args[0], "_node_def", None) if args else None
+                if not isinstance(node_def, dict):
+                    node_def = get_state_info(
+                        session,
+                        f"global_state.{NODE_DEFS_KEY}.{session.workflow_id()}.{session.node_id()}",
+                    ) or {}
                 if not isinstance(node_def, dict):
                     node_def = {}
                 _node_start_time_ctx.set({

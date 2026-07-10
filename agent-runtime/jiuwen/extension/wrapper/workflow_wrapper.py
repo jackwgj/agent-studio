@@ -179,7 +179,7 @@ class WorkflowWrapper:
             # 首次执行：将 params 合入 inputs，commit_user_inputs() 会将其写入 global_state
             # 中断恢复：inputs 为 InteractiveInput，commit_user_inputs() 被跳过，
             #          checkpoint 恢复的 global_state 保留中断前的最新值
-            inputs = {"query": query, **self._build_global_state_params(params, workflow_id)}
+            inputs = {"query": query, **WorkflowWrapper._build_global_state_params(params, workflow_id)}
 
         workflow_started = False
         # 跟踪最后执行的节点信息，用于生成工作流级 FINISH StreamData
@@ -452,7 +452,8 @@ class WorkflowWrapper:
 
     # ==================== 私有方法 ====================
 
-    def _build_global_state_params(self, params: dict, workflow_id: str = "") -> dict:
+    @staticmethod
+    def _build_global_state_params(params: dict, workflow_id: str = "") -> dict:
         """构建需要通过 inputs → commit_user_inputs() 写入 global_state 的参数。
 
         这些参数同时存在于 envs（由 _build_envs 生成），但 envs 不被 checkpoint 保存。
@@ -488,22 +489,6 @@ class WorkflowWrapper:
                 if key == "environment_variables":
                     result["_env"] = params[key]
                 result[key] = params[key]
-
-        # 注入 __node_defs__ 供 callback 读取节点类型、名称和 configs
-        # 优先使用 params 中的完整定义（含 configs，由 workflow_handler 从 IR 提取）
-        # fallback 到 _node_name_type_map（仅含 node_type/node_name，旧框架路径）
-        if "__node_defs__" in params and params["__node_defs__"]:
-            result["__node_defs__"] = params["__node_defs__"]
-        elif self._node_name_type_map:
-            wf_node_defs = {}
-            for comp_id, meta in self._node_name_type_map.items():
-                if isinstance(meta, dict):
-                    wf_node_defs[comp_id] = {
-                        "node_type": meta.get("type", ""),
-                        "node_name": meta.get("name", ""),
-                    }
-            if wf_node_defs:
-                result["__node_defs__"] = {workflow_id: wf_node_defs}
 
         return result
 

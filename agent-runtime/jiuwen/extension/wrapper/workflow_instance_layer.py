@@ -130,9 +130,6 @@ class OpenJiuWenWorkflowInstanceLayer(WorkflowWrapper):
         if not isinstance(params, dict):
             params = {}
 
-        if "__node_defs__" in self.params:
-            params['__node_defs__'] = self.params["__node_defs__"]
-
         # 将构造时注入的关键参数合并到 params：调用者传入的值优先
         if isinstance(self.params, dict):
             params.setdefault("is_debug", self.params.get("is_debug"))

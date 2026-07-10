@@ -568,9 +568,6 @@ class WorkflowRunner:
         if "environment_variables" in params:
             result["_env"] = params["environment_variables"]
 
-        if node_defs:
-            result["__node_defs__"] = node_defs
-
         return result
 
 

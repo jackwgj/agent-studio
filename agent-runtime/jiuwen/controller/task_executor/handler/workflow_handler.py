@@ -139,14 +139,12 @@ class WorkflowHandler(BaseHandler):
                 from jiuwen.serve.controllers.execution.ir_converter import IRConverter
 
                 component_name_type_map: dict[str, dict] = {}
-                node_defs: dict[str, dict[str, dict]] = {}
                 if workflow_context.workflow_ir:
                     # 提取完整节点定义（含 configs），注入到 params → global_state，供 callback 读取
                     node_defs = await IRConverter.extract_node_defs(
                         workflow_context.workflow_ir
                     )
                     if node_defs:
-                        params["__node_defs__"] = node_defs
                         component_name_type_map = (
                             IRConverter.node_defs_to_component_name_type_map(
                                 node_defs
