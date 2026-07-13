@@ -54,6 +54,13 @@ public class MultipartFileToZipUtils {
             throw new AgentStudioException(StudioError.ILLEGAL_FILE);
         }
 
+        // 校验文件名不含路径穿越字符
+        if (originalFilename.contains("..") || originalFilename.contains("\\")
+                || originalFilename.contains("/")) {
+            log.error("The file name contains path traversal characters: {}", originalFilename);
+            throw new AgentStudioException(StudioError.ILLEGAL_FILE_NAME);
+        }
+
         // 构建目标 ZIP 文件路径
         File zipFile = new File(dir, originalFilename);
 

@@ -4,7 +4,7 @@
 
 package com.openjiuwen.studio.agent.manager.controller;
 
-import com.openjiuwen.studio.agent.manager.dto.DatasourceBatchDeleteRsp;
+import com.openjiuwen.studio.agent.manager.dto.BatchDeleteRsp;
 import com.openjiuwen.studio.agent.common.dto.ErrorRsp;
 import com.openjiuwen.studio.agent.manager.dto.ExportMessagesParams;
 import com.openjiuwen.studio.agent.manager.dto.ListStructuredMessagesQo;
@@ -67,10 +67,10 @@ import java.util.List;
         StructuredInfoRequest body);
 
     @ApiOperation(value = "批量删除结构化信息", nickname = "deleteStructuredMessages",
-        notes = "根据提供的信息ID列表批量删除结构化信息", response = DatasourceBatchDeleteRsp.class,
+        notes = "根据提供的信息ID列表批量删除结构化信息", response = BatchDeleteRsp.class,
         tags = {"MessageManagement"})
     @ApiResponses(value = {
-        @ApiResponse(code = 200, message = "批量删除操作结果", response = DatasourceBatchDeleteRsp.class),
+        @ApiResponse(code = 200, message = "批量删除操作结果", response = BatchDeleteRsp.class),
         @ApiResponse(code = 400, message = "Bad Request 请求参数错误", response = ErrorRsp.class),
         @ApiResponse(code = 401, message = "Unauthorized 鉴权失败", response = String.class),
         @ApiResponse(code = 403, message = "Forbidden 没有操作权限", response = ErrorRsp.class),
@@ -79,7 +79,7 @@ import java.util.List;
     })
     @RequestMapping(value = "/v1/{project_id}/agent-manager/structured-messages", produces = {"application/json"},
         consumes = {"application/json"}, method = RequestMethod.DELETE)
-    ResponseEntity<DatasourceBatchDeleteRsp> deleteStructuredMessages(
+    ResponseEntity<BatchDeleteRsp> deleteStructuredMessages(
         @Pattern(regexp = "^[a-zA-Z0-9_-]+$") @Size(max = 64)
         @Parameter(in = ParameterIn.PATH, description = "租户项目ID", required = true, schema = @Schema())
         @PathVariable("project_id") String projectId,

@@ -9,7 +9,6 @@
   {"resource": "Api_Keys", "table_name": "t_api_keys", "id_column": "api_key_id","domain_column": "domain_id"},
   {"resource": "Agent", "table_name": "t_agent", "id_column": "agent_id","domain_column": "domain_id"},
   {"resource": "StructuredMessage", "table_name": "t_structured_message", "id_column": "id","domain_column": "domain_id"},
-  {"resource": "Datasource", "table_name": "t_agent_datasource", "id_column": "id","domain_column": "domain_id"},
   {"resource": "ComplexIntent", "table_name": "t_complex_intent", "id_column": "intent_id","domain_column": "domain_id"},
   {"resource": "Task", "table_name": "t_task", "id_column": "id","domain_column": "domain_id"},
   {"resource": "Function", "table_name": "t_function", "id_column": "id","domain_column": "domain_id"},

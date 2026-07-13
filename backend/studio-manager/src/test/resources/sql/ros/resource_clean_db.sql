@@ -56,11 +56,6 @@ VALUES ('123456789', 'test数据', '异常', '{\"additionalProp1\":{\"a\":1,\"b\
         'PAGE', 'workspace', 'default', 'test_domain_id', '123456', '123456', '2025-09-25 19:22:19', '123456',
         '2025-09-25 19:22:19', '123456');
 
--- datasource
-INSERT
- INTO t_agent_datasource(id, project_id, workspace_id, domain_id, `name`, `type`, `desc`, internet_access, instance_id, instance_name, connection_info, `status`, last_error_message, created_by, creator_id, created_on, updated_by, updater_id, updated_on)
-VALUES ('test_workflow_id', 'test_project_id', 'default', 'test_domain_id', '数据源源13', 'MYSQL', '数据源源描述13', 'public', NULL, NULL, '{\"host\":\"127.0.0.1\",\"port\":\"3306\",\"ssl_enabled\":false,\"database_name\":\"lms_agent_manager\",\"user\":\"root\",\"password\":\"asdas\",\"sql_version\":\"5.0.1\"}', 'failed', 'connection to datasource failed!', 'test_user_id', 'test_user_id', '2025-06-23 14:53:11', 'test_user_id', 'test_user_id', '2025-06-23 14:53:11');
-
 -- t_complex_intent
 INSERT INTO t_complex_intent(intent_id, name, project_id, workspace_id, domain_id, description, branches, creator_id, branches_cnt, created_on, updated_on)
 VALUES ('test_intent_id', '测试意图包', 'test_project_id', 'default', 'test_domain_id', NULL, NULL, 'test_creator_id', 0, '2025-03-22 11:07:34', '2025-03-22 11:07:34');

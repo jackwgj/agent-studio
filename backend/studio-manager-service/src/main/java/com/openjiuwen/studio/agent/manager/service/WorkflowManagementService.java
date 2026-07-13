@@ -11,7 +11,6 @@ import static com.openjiuwen.studio.agent.manager.constant.CommonConstant.Workfl
 import static com.openjiuwen.studio.agent.manager.constant.CommonConstant.Workflow.REF_VAR_NAME;
 import static com.openjiuwen.studio.agent.manager.enums.ResourceTypeEnum.MCP;
 import static com.openjiuwen.studio.agent.manager.enums.ResourceTypeEnum.MEMORY;
-import static com.openjiuwen.studio.agent.manager.enums.ResourceTypeEnum.SQL;
 import static com.openjiuwen.studio.agent.manager.enums.ResourceTypeEnum.TOOL;
 import static com.openjiuwen.studio.agent.manager.enums.ResourceTypeEnum.WORKFLOW;
 
@@ -618,7 +617,6 @@ public class WorkflowManagementService implements IWorkflowManagementService {
                 case PLUGIN -> addPluginRef(workflowVo, appVersionId, node, relateComponents);
                 case KNOWLEDGE_REPO -> addKnowLedgeRepoRef(workflowVo, appVersionId, nodeConfigs, relateComponents);
                 case AGENT -> addAgentRef(workflowVo, appVersionId, nodeConfigs, relateComponents);
-                case SQL -> relateComponents.add(buildReference(SQL, workflowVo, appVersionId, nodeConfigs));
                 case LLM, QUESTIONER, INTENT_DETECTION, INTENT_COMPLEX_INTENT ->
                     addModelRef(workflowVo, appVersionId, nodeConfigs, relateComponents);
                 case PARAM_EXTRACTION -> addParamExtractionRef(workflowVo, appVersionId, nodeConfigs, relateComponents);

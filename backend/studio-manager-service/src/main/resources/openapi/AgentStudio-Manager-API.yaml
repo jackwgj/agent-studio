@@ -1408,51 +1408,6 @@ definitions:
             right:
               description: 右值。
               $ref: '#/definitions/WorkflowFieldVO'
-  WorkflowDataQueryConfigVO:
-    type: object
-    description: 数据查询节点config对象。
-    required:
-      - logic
-    properties:
-      logic:
-        type: string
-        description: 逻辑操作符。
-        enum:
-          - AND
-          - OR
-      conditions:
-        type: array
-        items:
-          type: object
-          properties:
-            operator:
-              type: string
-              description: 操作符。
-            left:
-              description: 左值。
-              $ref: '#/definitions/WorkflowFieldVO'
-            right:
-              description: 右值。
-              $ref: '#/definitions/WorkflowFieldVO'
-      limit:
-        type: integer
-        description: 查询条目数。
-      offset:
-        type: integer
-        description: 查询偏移量。
-      orders:
-        type: array
-        description: 排序字段列表。
-        items:
-          type: object
-          properties:
-            field:
-              type: string
-              description: 字段名称。
-            asc:
-              type: boolean
-              description: 是否升序。
-              default: ture
   WorkflowConfigVO:
     type: object
     description: 工作流节点扩展字段。

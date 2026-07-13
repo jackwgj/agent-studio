@@ -50,7 +50,7 @@ public class WorkspaceInterceptor implements HandlerInterceptor {
     private static final Set<String> WHITE_LIST = new HashSet<>(
         Arrays.asList("/v1/agent-builder/**", "/v1/*/agents/*/conversations/**", "/v1/*/agents/*/prompt/build",
             "/v1/*/workflows/*/conversations/**", "/v1/*/agent-manager/workspace",  "/v1/*/agent-manager/workspace/init","/v1/*/agent-manager/applications",
-            "/v1/inner-tools/**", "/v1/datasource/**", "/v1/*/releases", "/v1/*/releases/*", "/v1/agents/chat/**",
+            "/v1/inner-tools/**", "/v1/*/releases", "/v1/*/releases/*", "/v1/agents/chat/**",
             "/v1/workflows/chat/*/conversations/*", "/v1/token/resolve", "/v1/common/**", "/v1/common-console/**", "/v1/common-intern/**",
             "/v1/open/developer/**", "/v1/*/agent-builder/prompt/engineering-tasks/*/variables/export",
             "/v1/*/agent-manager/system/settings", "/v1/*/model-service/status/check", "/v1/health",

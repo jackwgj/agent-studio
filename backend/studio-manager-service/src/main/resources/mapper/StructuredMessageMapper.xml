@@ -180,7 +180,7 @@
         #{structuredMessageEntity.projectId, jdbcType=VARCHAR}
     </update>
 
-    <select id="getByIds" parameterType="com.openjiuwen.studio.agent.manager.entity.DatasourceEntity"
+    <select id="getByIds"
         resultMap="BaseResultMap">
         select
         <include refid="Base_Column_List" />
