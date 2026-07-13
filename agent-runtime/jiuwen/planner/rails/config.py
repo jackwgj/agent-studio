@@ -7,6 +7,7 @@ from collections import defaultdict
 from typing import List, Optional, Dict, Any, Union
 
 import yaml
+from jiuwen.common.security.util.fileutil import validate_path_traversal
 from jiuwen.planner.rails.common.constants import TriggerType, BuiltinTrigger
 from pydantic import Field, BaseModel
 
@@ -171,6 +172,7 @@ class RailsConfig(BaseModel):
 
     @classmethod
     def _parse_yaml_config(cls, config_path):
+        validate_path_traversal(config_path)
         config_file_path = os.path.join(config_path, "config.yml")
         if os.path.exists(config_file_path) and (
             config_file_path.endswith(".yaml") or config_file_path.endswith(".yml")

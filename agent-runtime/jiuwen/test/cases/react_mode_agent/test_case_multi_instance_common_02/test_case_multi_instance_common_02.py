@@ -73,6 +73,18 @@ WORKFLOW_ID = "117c6695dcd9139726dce28c83abe0e671ea76b4be270599"
 STATE_DIR = Path(tempfile.gettempdir()) / "jiuwen_test_state"
 
 
+class _RestrictedUnpickler(pickle.Unpickler):
+    """受限的反序列化器，拒绝已知危险模块以防止RCE"""
+    _DANGEROUS_MODULES = {"os", "subprocess", "socket", "ctypes", "posix", "nt"}
+
+    def find_class(self, module, name):
+        if module in self._DANGEROUS_MODULES:
+            raise pickle.UnpicklingError(f"Forbidden module during unpickling: {module}")
+        if module == "builtins" and name in ("eval", "exec", "__import__", "open"):
+            raise pickle.UnpicklingError(f"Forbidden builtin during unpickling: {name}")
+        return super().find_class(module, name)
+
+
 async def _file_based_save_state(self, key, value):
     STATE_DIR.mkdir(parents=True, exist_ok=True)
     with open(STATE_DIR / f"{key}.pkl", "wb") as f:
@@ -84,7 +96,7 @@ async def _file_based_get_state(self, key):
     if not p.exists():
         return None
     with open(p, "rb") as f:
-        return pickle.load(f)
+        return _RestrictedUnpickler(f).load()
 
 
 async def _file_based_delete_state(self, key):

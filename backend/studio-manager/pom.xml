@@ -226,6 +226,13 @@
                         </manifest>
                     </archive>
                 </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.codehaus.plexus</groupId>
+                        <artifactId>plexus-archiver</artifactId>
+                        <version>${plexus-archiver.version}</version>
+                    </dependency>
+                </dependencies>
             </plugin>
             <!-- 拷贝依赖的jar包到lib目录 -->
             <plugin>

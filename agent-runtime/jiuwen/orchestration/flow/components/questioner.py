@@ -24,6 +24,7 @@ from jiuwen.common.llm_service.base import ModelFactory
 from jiuwen.common.llm_service.language_model.base import LanguageModelInput
 from jiuwen.common.llm_service.model_util import ModelUtil
 from jiuwen.common.log.base import logger
+from jiuwen.common.security.util.fileutil import validate_path_traversal
 from jiuwen.common.types import Type
 from jiuwen.controller.task_planner.planning_modules.prompt_module import ChatContent
 from jiuwen.orchestration import Invokable
@@ -721,6 +722,7 @@ class Questioner(Invokable, MessageComponentBase, InteractiveComponent):
                 logger.error(QuestionerKeyword.FAIL_RAILS_PATH_INITIALIZATION_ERROR)
                 self.questioner_config.rails_config = {}
             else:
+                validate_path_traversal(custom_rails_config_dir_str)
                 custom_rails_config_dir_str = os.path.join(
                     "../../../", custom_rails_config_dir_str
                 )
