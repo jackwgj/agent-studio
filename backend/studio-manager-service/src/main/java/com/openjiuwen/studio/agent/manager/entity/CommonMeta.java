@@ -99,26 +99,6 @@ public class CommonMeta {
         }
         return map;
     }
-
-    public static Map<String, CommonMeta> fromDatasources(List<DatasourceEntity> entities) {
-        Map<String, CommonMeta> map = new HashMap<String, CommonMeta>();
-        if (!CollectionUtils.isEmpty(entities)) {
-            for (DatasourceEntity entity : entities) {
-                if (entity == null) {
-                    continue;
-                }
-                CommonMeta commonMeta = new CommonMeta();
-                commonMeta.setId(entity.getId());
-                commonMeta.setName(entity.getName());
-                commonMeta.setDomainId(entity.getDomainId());
-                commonMeta.setProjectId(entity.getProjectId());
-                commonMeta.setWorkspaceId(entity.getWorkspaceId());
-                map.put(entity.getId(), commonMeta);
-            }
-        }
-        return map;
-    }
-
     public static Map<String, CommonMeta> fromMcps(List<McpServiceEntity> entities) {
         Map<String, CommonMeta> map = new HashMap<String, CommonMeta>();
         if (!CollectionUtils.isEmpty(entities)) {

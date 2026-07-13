@@ -84,21 +84,6 @@ public class ResourceServiceTest extends BaseTest {
 
     @Test
     @Transactional
-    public void validSqlResourceExist() {
-        resourceService.validResourceExist(Arrays.asList("test_resource_datasource_id"),
-                ResourceTypeEnum.SQL.toString(), "test_resource_project_id", "default");
-        assertThrows(AgentStudioException.class, () -> {
-            resourceService.validResourceExist(Arrays.asList("test_resource_datasource_id"),
-                    ResourceTypeEnum.SQL.toString(), "test_resource_project_id", "default1");
-        });
-        assertThrows(AgentStudioException.class, () -> {
-            resourceService.validResourceExist(Arrays.asList("test_resource_datasource_id"),
-                    ResourceTypeEnum.SQL.toString(), "test_resource_project_id1", "default");
-        });
-    }
-
-    @Test
-    @Transactional
     public void validMcpResourceExist() {
         resourceService.validResourceExist(Arrays.asList("test_resource_mcp_id"), ResourceTypeEnum.MCP.toString(),
                 "test_resource_project_id", "default");

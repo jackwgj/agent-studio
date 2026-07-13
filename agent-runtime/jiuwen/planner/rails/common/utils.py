@@ -98,6 +98,9 @@ def __dynamic_call_wrapped_action(module):
 def import_all_modules_user_directory(module_dir: str):
     """import all modules user directory"""
     for filename in os.listdir(module_dir):
+        if ".." in filename:
+            logger.warning(f"Skip suspicious file name: {filename}")
+            continue
         if (
             filename.endswith(".py") or filename.endswith(".pyc")
         ) and filename != "__init__.py":

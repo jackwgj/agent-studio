@@ -371,16 +371,6 @@ task:
     clear-lock-key: ${task_async_clear_lock_key:async_clear_lock}
 # ==================================== 公共配置 end =========================================
 
-# ==================================== 数据源配置 begin =========================================
-datasource:
-  ir-path: ${datasource_id_path:datasource/ir}
-  cache:
-    hours: ${datasource_cache_hours:24}
-    pool-size: ${datasource_cache_pool_size:150}
-  execute:
-    timeout: ${datasource_execute_timeout:25}
-    max-response: ${datasource_execute_max_response:1000}
-# ==================================== 数据源配置 end =========================================
 
 # ==================================== 流式接口心跳事件配置 start ===============================
 heartbeat:

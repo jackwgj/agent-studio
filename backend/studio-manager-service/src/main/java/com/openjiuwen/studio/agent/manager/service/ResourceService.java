@@ -14,7 +14,6 @@ import com.openjiuwen.studio.agent.manager.dto.ListKnowledgeBasesResponseBody;
 import com.openjiuwen.studio.agent.manager.entity.CommonMeta;
 import com.openjiuwen.studio.agent.manager.enums.ResourceTypeEnum;
 import com.openjiuwen.studio.agent.manager.mapper.AgentMapper;
-import com.openjiuwen.studio.agent.manager.mapper.DatasourceMapper;
 import com.openjiuwen.studio.agent.manager.mapper.McpServiceMapper;
 import com.openjiuwen.studio.agent.manager.mapper.MemoryRepoMapper;
 import com.openjiuwen.studio.agent.manager.mapper.SkillMapper;
@@ -41,9 +40,6 @@ public class ResourceService {
 
     @Autowired
     private ModelServiceMapper modelServiceMapper;
-
-    @Autowired
-    private DatasourceMapper datasourceMapper;
 
     @Autowired
     private McpServiceMapper mcpServiceMapper;
@@ -111,9 +107,6 @@ public class ResourceService {
             }
             case TOOL -> {
                 return CommonMeta.fromTools(toolMapper.selectByToolIdsAndWorkspaceId(ids, projectId, workspaceId), workspaceId);
-            }
-            case SQL -> {
-                return CommonMeta.fromDatasources(datasourceMapper.getByIdsAndWorkspace(ids, projectId, workspaceId));
             }
             case MCP -> {
                 return CommonMeta.fromMcps(mcpServiceMapper.selectByIdsAndWorkspace(ids, projectId, workspaceId));

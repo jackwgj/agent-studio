@@ -16,31 +16,42 @@ import org.hibernate.validator.constraints.Length;
 import org.springframework.validation.annotation.Validated;
 
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 /**
- * 删除数据源响应体
+ * 批量删除响应体
  */
-@ApiModel(description = "删除数据源响应体")
+@ApiModel(description = "批量删除响应体")
 
 @Validated
 
-public class DatasourceBatchDeleteReq implements Serializable {
+public class BatchDeleteRsp implements Serializable {
     private static final long serialVersionUID = 1L;
+
+    @JsonProperty("count")
+    @NotNull
+    private Long count = null;
 
     @JsonProperty("ids")
     @Valid
-    @NotNull
     @Size(min = 1, max = 100)
-    private List<@Pattern(regexp = "^[a-zA-Z0-9_-]+$") @Length(min = 1, max = 64) String> ids = new ArrayList<String>();
+    private List<@Pattern(regexp = "^[a-zA-Z0-9_-]+$") @Length(min = 1, max = 64) String> ids = null;
+
+    public Long getCount() {
+        return count;
+    }
+
+    public BatchDeleteRsp setCount(Long count) {
+        this.count = count;
+        return this;
+    }
 
     public List<String> getIds() {
         return ids;
     }
 
-    public DatasourceBatchDeleteReq setIds(List<String> ids) {
+    public BatchDeleteRsp setIds(List<String> ids) {
         this.ids = ids;
         return this;
     }
@@ -48,8 +59,9 @@ public class DatasourceBatchDeleteReq implements Serializable {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("class DatasourceBatchDeleteReq {\n");
+        sb.append("class BatchDeleteRsp {\n");
 
+        sb.append("    count: ").append(toIndentedString(count)).append("\n");
         sb.append("    ids: ").append(toIndentedString(ids)).append("\n");
         sb.append("}");
         return sb.toString();
@@ -63,13 +75,14 @@ public class DatasourceBatchDeleteReq implements Serializable {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        DatasourceBatchDeleteReq datasourceBatchDeleteReq = (DatasourceBatchDeleteReq) o;
-        return Objects.equals(this.ids, datasourceBatchDeleteReq.ids);
+        BatchDeleteRsp batchDeleteRsp = (BatchDeleteRsp) o;
+        return Objects.equals(this.count, batchDeleteRsp.count) && Objects.equals(this.ids,
+            batchDeleteRsp.ids);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(ids);
+        return Objects.hash(count, ids);
     }
 
     /**

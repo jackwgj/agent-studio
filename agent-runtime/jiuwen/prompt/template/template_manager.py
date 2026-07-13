@@ -11,6 +11,7 @@ import yaml
 from jiuwen.common.configs.env_constants import PROMPT_DEFAULT_TEMPLATES_PATH_KEY
 from jiuwen.common.language import Language
 from jiuwen.common.log.base import logger
+from jiuwen.common.security.util.fileutil import validate_path_traversal
 from jiuwen.common.utils.singleton import Singleton
 from jiuwen.prompt.assemble.message_handler import (
     template_to_messages,
@@ -84,6 +85,9 @@ class TemplateManager(metaclass=Singleton):
                 f"Files under directory exceed limits: {FILES_LENGTH_LIMIT}"
             )
         for f in files:
+            if ".." in f:
+                logger.warning(f"Skip suspicious file name: {f}")
+                continue
             if os.path.getsize(os.path.join(dir_path, f)) > MAX_FILE_SIZE_LIMIT:
                 raise ValueError(
                     f"File size under directory exceed limits: {MAX_FILE_SIZE_LIMIT}"
@@ -141,6 +145,9 @@ class TemplateManager(metaclass=Singleton):
         tag_dirs = os.listdir(dir_path)
         all_templates = []
         for tag_name in tag_dirs:
+            if ".." in tag_name:
+                logger.warning(f"Skip suspicious tag name: {tag_name}")
+                continue
             template_path = os.path.join(dir_path, tag_name)
 
             # 规范化 template_path
@@ -298,6 +305,7 @@ class TemplateManager(metaclass=Singleton):
         if not customer_env:
             logger.warning("Customer template path is None")
             return
+        validate_path_traversal(customer_env)
         self.__load_from_templates_dir(root_dir=customer_env)
 
     def __init_default_templates(self):
@@ -310,6 +318,9 @@ class TemplateManager(metaclass=Singleton):
         templates_path = os.path.join(root_dir, "templates")
         files = os.listdir(templates_path)
         for file_name in files:
+            if ".." in file_name:
+                logger.warning(f"Skip suspicious file name: {file_name}")
+                continue
             template_path = os.path.join(templates_path, file_name)
             if not os.path.isdir(template_path):
                 continue

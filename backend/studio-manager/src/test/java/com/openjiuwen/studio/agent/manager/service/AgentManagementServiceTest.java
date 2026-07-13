@@ -49,7 +49,7 @@ import com.openjiuwen.studio.agent.manager.dto.AutoAddStudioResourceRequestBody;
 import com.openjiuwen.studio.agent.manager.dto.CreateAgentReq;
 import com.openjiuwen.studio.agent.manager.dto.CreateChannelReq;
 import com.openjiuwen.studio.agent.manager.dto.CreateVersionReq;
-import com.openjiuwen.studio.agent.manager.dto.DatasourceBatchDeleteRsp;
+import com.openjiuwen.studio.agent.manager.dto.BatchDeleteRsp;
 import com.openjiuwen.studio.agent.manager.dto.ExportMessagesParams;
 import com.openjiuwen.studio.agent.manager.dto.ExportParams;
 import com.openjiuwen.studio.agent.manager.dto.GetAgentVersionQo;
@@ -1869,7 +1869,7 @@ class AgentManagementServiceTest extends BaseTest {
 
             );
         // 执行删除操作 - 只会删除存在的ID "123456789"
-        DatasourceBatchDeleteRsp response =
+        BatchDeleteRsp response =
             messageManagementService.deleteStructuredMessages(projectId, workspaceId, requests);
         // 验证响应结果 - 只有1个有效ID会被处理
         assertEquals(1, response.getCount(), "应返回1个有效ID的计数");
@@ -1878,7 +1878,7 @@ class AgentManagementServiceTest extends BaseTest {
 
         // 场景2: 空请求列表
         List<StructuredInfoRequestDelete> emptyRequests = Collections.emptyList();
-        DatasourceBatchDeleteRsp emptyResponse =
+        BatchDeleteRsp emptyResponse =
             messageManagementService.deleteStructuredMessages(projectId, workspaceId, emptyRequests);
 
         assertEquals(0, emptyResponse.getCount(), "空请求应返回0计数");
@@ -1889,7 +1889,7 @@ class AgentManagementServiceTest extends BaseTest {
                 new StructuredInfoRequestDelete().setId("").setCategory("typeY"),
                 new StructuredInfoRequestDelete().setId("  ").setCategory("typeZ"));
 
-        DatasourceBatchDeleteRsp invalidResponse =
+        BatchDeleteRsp invalidResponse =
             messageManagementService.deleteStructuredMessages(projectId, workspaceId, invalidRequests);
         assertEquals(0, invalidResponse.getCount(), "全无效请求应返回0计数");
         assertTrue(invalidResponse.getIds().isEmpty(), "全无效请求应返回空ID列表");

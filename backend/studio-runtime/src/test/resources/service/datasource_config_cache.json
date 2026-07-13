@@ -1,1 +1,0 @@
-{"updated_on":1750661523441,"internet_access":"public","project_id":"test_project_id","connection_info":{"database_name":"test_database","host":"127.0.0.1","metadata":null,"password":"fake","port":"3306","sql_version":"5.0.1","ssl_enabled":false,"user":"root"},"name":"数据源源444","id":"test_datasource_id","type":"MYSQL"}

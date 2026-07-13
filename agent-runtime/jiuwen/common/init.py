@@ -25,6 +25,7 @@ from jiuwen.common.exception.base import JiuWenBaseException
 from jiuwen.common.exception.status_code import StatusCode
 from jiuwen.common.llm_service.base import ModelFactory
 from jiuwen.common.log.base import logger
+from jiuwen.common.security.util.fileutil import validate_path_traversal
 from jiuwen.common.store.gauss import DBUtil
 from jiuwen.orchestration.flow.agent_strategy_registry import AgentStrategyRegistry
 from jiuwen.orchestration.flow.component_class_pool import component_class_pool
@@ -149,6 +150,7 @@ def init_rails():
         RAILS_CUSTOM_RAILS_PATH_KEY, config.get("rails", {}).get("custom_rails_path")
     )
     if custom_rails_config_dir_str:
+        validate_path_traversal(custom_rails_config_dir_str)
         import_all_modules_user_directory(custom_rails_config_dir_str)
     import_all_modules_from_default_directory()
 
@@ -476,9 +478,13 @@ def load_components(extension_path: str = ""):
         extension_path = os.environ.get(JIUWEN_EXTENSION_PATH_KEY)
     if not extension_path:
         return
+    validate_path_traversal(extension_path)
     custom_components_path = os.path.join(extension_path, "extensions", "components")
     if custom_components_path:
         for folder_name in os.listdir(custom_components_path):
+            if ".." in folder_name:
+                logger.warning(f"Skip suspicious folder name: {folder_name}")
+                continue
             folder_path = os.path.join(custom_components_path, folder_name)
             # 确保是文件夹
             if os.path.isdir(folder_path):
@@ -486,6 +492,9 @@ def load_components(extension_path: str = ""):
 
                 # 在文件夹中查找 json 文件
                 for file_name in os.listdir(folder_path):
+                    if ".." in file_name:
+                        logger.warning(f"Skip suspicious file name: {file_name}")
+                        continue
                     if file_name.endswith(".json"):
                         json_file = os.path.join(folder_path, file_name)
                 # 确保找到了 json 文件
@@ -497,9 +506,15 @@ def load_components(extension_path: str = ""):
                     # 获取 type 和 className
                     type_key = json_data.get("type")
                     class_name = json_data.get("classInfo", {}).get("className")
-                    py_file = os.path.join(
-                        extension_path, json_data.get("classInfo", {}).get("filePath")
-                    )
+                    file_path_str = json_data.get("classInfo", {}).get("filePath")
+                    if file_path_str and ".." in file_path_str:
+                        raise JiuWenBaseException(
+                            error_code=StatusCode.COMPONENT_POOL_INIT_ERROR.code,
+                            message=StatusCode.COMPONENT_POOL_INIT_ERROR.errmsg.format(
+                                reason=f"Path traversal detected in filePath: {file_path_str}"
+                            ),
+                        )
+                    py_file = os.path.join(extension_path, file_path_str)
 
                     if type_key and class_name and py_file:
                         # 动态加载 py 文件中的类

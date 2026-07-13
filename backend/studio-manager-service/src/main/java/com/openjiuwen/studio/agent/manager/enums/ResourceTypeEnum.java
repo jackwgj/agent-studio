@@ -42,11 +42,6 @@ public enum ResourceTypeEnum {
     TOOL("tool", 6),
 
     /**
-     * sql
-     */
-    SQL("sql", 7),
-
-    /**
      * repo
      */
     REPO("repo", 9),

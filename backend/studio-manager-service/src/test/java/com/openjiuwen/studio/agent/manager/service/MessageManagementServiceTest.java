@@ -15,7 +15,7 @@ import static org.mockito.Mockito.when;
 import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
 import com.openjiuwen.studio.agent.common.utils.I18nUtil;
 import com.openjiuwen.studio.agent.common.utils.RequestContextUtils;
-import com.openjiuwen.studio.agent.manager.dto.DatasourceBatchDeleteRsp;
+import com.openjiuwen.studio.agent.manager.dto.BatchDeleteRsp;
 import com.openjiuwen.studio.agent.manager.dto.StructuredInfoRequest;
 import com.openjiuwen.studio.agent.manager.dto.StructuredInfoRequestDelete;
 import com.openjiuwen.studio.agent.manager.entity.StructuredMessageEntity;
@@ -94,7 +94,7 @@ class MessageManagementServiceTest {
         try (MockedStatic<RequestContextUtils> reqCtx = mockStatic(RequestContextUtils.class)) {
             List<StructuredInfoRequestDelete> body = new ArrayList<>();
 
-            DatasourceBatchDeleteRsp result = messageManagementService.deleteStructuredMessages("proj-1", "ws-1", body);
+            BatchDeleteRsp result = messageManagementService.deleteStructuredMessages("proj-1", "ws-1", body);
             assertNotNull(result);
             assertEquals(0L, result.getCount());
         }
@@ -116,7 +116,7 @@ class MessageManagementServiceTest {
             when(structuredMessageMapper.getByIds(any(), anyString(), anyString(), anyString()))
                 .thenReturn(List.of(entity));
 
-            DatasourceBatchDeleteRsp result = messageManagementService.deleteStructuredMessages("proj-1", "ws-1", body);
+            BatchDeleteRsp result = messageManagementService.deleteStructuredMessages("proj-1", "ws-1", body);
             assertNotNull(result);
             assertEquals(1L, result.getCount());
         }

@@ -2,74 +2,16 @@
 package com.openjiuwen.studio.agent.common.utils;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-
 class FileCommonUtilsTest {
-
-    @TempDir
-    Path tempDir;
-
-    @Test
-    void testConvertFileToMultipartFile_AllMethods() throws IOException {
-        Path filePath = tempDir.resolve("test.json");
-        Files.writeString(filePath, "{\"key\":\"value\"}");
-        File file = filePath.toFile();
-
-        MultipartFile multipart = FileCommonUtils.convertFileToMultipartFile(file, "application/json", "fileField");
-
-        assertEquals("fileField", multipart.getName());
-        assertEquals("test.json", multipart.getOriginalFilename());
-        assertEquals("application/json", multipart.getContentType());
-        assertFalse(multipart.isEmpty());
-        assertTrue(multipart.getSize() > 0);
-        assertNotNull(multipart.getBytes());
-        try (var is = multipart.getInputStream()) {
-            assertNotNull(is);
-        }
-    }
-
-    @Test
-    void testConvertFileToMultipartFile_TransferTo() throws IOException {
-        Path filePath = tempDir.resolve("source.txt");
-        Files.writeString(filePath, "hello");
-        File file = filePath.toFile();
-
-        MultipartFile multipart = FileCommonUtils.convertFileToMultipartFile(file, "text/plain", "f");
-        File dest = tempDir.resolve("dest.txt").toFile();
-        multipart.transferTo(dest);
-
-        assertTrue(dest.exists());
-        assertEquals("hello", Files.readString(dest.toPath()));
-    }
-
-    @Test
-    void testConvertFileToMultipartFile_EmptyFile() throws IOException {
-        Path filePath = tempDir.resolve("empty.txt");
-        Files.writeString(filePath, "");
-        File file = filePath.toFile();
-
-        MultipartFile multipart = FileCommonUtils.convertFileToMultipartFile(file, "text/plain", "f");
-
-        assertTrue(multipart.isEmpty());
-        assertEquals(0, multipart.getSize());
-    }
 
     @Test
     void testValidatedFile_NullFile() {

@@ -544,16 +544,6 @@ class WorkspaceServiceTest {
             try (MockedStatic<FileCommonUtils> mockedStaticFileCommonUtils = mockStatic(FileCommonUtils.class,
                 RETURNS_DEEP_STUBS)) {
                 // Given
-                MockMultipartFile file = new MockMultipartFile("file",  // 参数名
-                    "test.jsonl",  // 原始文件名
-                    "text/plain",  // MIME类型
-                    Constants.TEST_AGENT_EXPORT.getBytes()  // 文件内容
-                );
-
-                mockedStaticFileCommonUtils.when(
-                    () -> FileCommonUtils.convertFileToMultipartFile(any(File.class), eq("application/json"),
-                        eq("file"))).thenReturn(file);
-
                 ImportRsp importRsp = new ImportRsp();
                 when(
                     agentManagementService.importAgents(anyString(), anyString(), any(MultipartFile.class), anyString(),

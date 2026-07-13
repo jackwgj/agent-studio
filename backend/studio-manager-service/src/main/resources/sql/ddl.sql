@@ -634,31 +634,6 @@ CREATE TABLE IF NOT EXISTS `t_complex_intent_branch` (
     KEY `idx_t_complex_intent_branch_intent` (`intent_id`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci ROW_FORMAT=DYNAMIC COMMENT='复杂意图分支表';
 
-CREATE TABLE IF NOT EXISTS `t_agent_datasource` (
-    `id`                VARCHAR(64)     NOT NULL COMMENT '数据源资源id、主键',
-    `project_id`        VARCHAR(64)     CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT 'project ID',
-    `domain_id`         VARCHAR(64)     NOT NULL DEFAULT '0' COMMENT '租户 ID',
-    `name`              VARCHAR(64)     NOT NULL COMMENT '数据源名称',
-    `type`              VARCHAR(16)     NOT NULL COMMENT '数据源类型',
-    `desc`              VARCHAR(2048)   NULL COMMENT '数据源描述信息',
-    `internet_access`   VARCHAR(16)     NOT NULL COMMENT '接入网络类型',
-    `instance_id`       VARCHAR(64)     NULL COMMENT '实例id（rds模式有效）',
-    `instance_name`     VARCHAR(256)    NULL COMMENT '实例名称（rds模式有效）',
-    `connection_info`   TEXT            NULL COMMENT '数据库连接信息（加密存储密码）',
-    `status`            VARCHAR(32)     NULL COMMENT '连通性检测状态',
-    `last_error_message` VARCHAR(2048)  NULL COMMENT '最后一次错误信息',
-    `created_by`        VARCHAR(64)     NULL COMMENT '创建人',
-    `creator_id`        VARCHAR(64)     CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NULL COMMENT '创建人ID',
-    `created_on`        TIMESTAMP       NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `updated_by`        VARCHAR(64)     NULL COMMENT '修改人',
-    `updater_id`        VARCHAR(64)     NULL COMMENT '修改人ID',
-    `updated_on`        TIMESTAMP       NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `workspace_id`      VARCHAR(64)     NULL COMMENT '工作空间ID',
-    `trace_id`          VARCHAR(64)     NULL COMMENT '溯源ID',
-    PRIMARY KEY (`id`),
-    KEY `idx_t_agent_datasource_domain` (`domain_id`)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci ROW_FORMAT=DYNAMIC COMMENT='数据源配置表';
-
 CREATE TABLE IF NOT EXISTS `t_credential`(
     `id`            VARCHAR(64)     NOT NULL        COMMENT 'Credential唯一标识ID，主键',
     `resource_id`   VARCHAR(64)     NOT NULL        COMMENT '资源id',

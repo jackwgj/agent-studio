@@ -24,8 +24,6 @@ tags:
     description: Mcp 服务运行态
   - name: IamTokenResolver
     description: 用于解析IAM token，主要用于认证
-  - name: DatasourceRuntime
-    description: 数据源运行态
   - name: TaskManagement
     description: 工作流异步任务
   - name: AgentMemoryManagement
@@ -2383,35 +2381,6 @@ paths:
           schema:
             $ref: '#/definitions/ErrorRsp'
       x-order: 1
-  /v1/datasource/{datasource_id}/execute:
-    post:
-      tags:
-        - DatasourceRuntime
-      summary: 数据源运行接口
-      operationId: ExecuteDatasource
-      produces:
-        - application/json
-      parameters:
-        - name: datasource_id
-          in: path
-          required: true
-          type: string
-        - name: datasource_execute_req
-          in: body
-          required: true
-          schema:
-            $ref: '#/definitions/DatasourceExecuteReq'
-          description: 数据源运行请求结构体
-      responses:
-        '200':
-          description: ''
-          schema:
-            $ref: '#/definitions/DatasourceExecuteResp'
-        '400':
-          description: ''
-          schema:
-            $ref: '#/definitions/ErrorRsp'
-      x-order: 0
   /v1/{project_id}/workflows/{workflow_id}/tasks:
     post:
       tags:
@@ -6338,120 +6307,6 @@ definitions:
       emotion:
         type: string
         description: 角色情绪
-  DatasourceConnectionInfo:
-    type: object
-    description: 数据源连接信息
-    required:
-      - host
-      - ssl_enabled
-      - database_name
-      - user
-      - password
-    properties:
-      host:
-        type: string
-        description: host地址
-        maxLength: 64
-      port:
-        type: string
-        description: 主机端口号
-        maxLength: 16
-      ssl_enabled:
-        type: boolean
-        description: ssl开关
-      database_name:
-        type: string
-        description: 数据库名
-        maxLength: 64
-      user:
-        type: string
-        description: 用户名
-        maxLength: 64
-      password:
-        type: string
-        description: 密码，需加密存储
-      metadata:
-        type: object
-        additionalProperties:
-          type: object
-        description: 拓展参数
-      sql_version:
-        type: string
-        description: sql版本
-        maxLength: 32
-  DatasourceConfig:
-    type: object
-    description: 数据源配置信息
-    required:
-      - id
-      - project_id
-      - type
-      - internet_access
-      - connection_info
-    properties:
-      id:
-        type: string
-        description: 数据源信息id，uuid
-        pattern: ^[a-zA-Z0-9_-]+$
-        maxLength: 64
-      project_id:
-        type: string
-        description: 数据源project_id
-        pattern: ^[a-zA-Z0-9_-]+$
-        maxLength: 64
-      name:
-        type: string
-        description: 数据源名称
-        maxLength: 64
-      type:
-        type: string
-        description: 数据源类型
-        maxLength: 16
-      internet_access:
-        type: string
-        description: 数据源网络接入方式
-        maxLength: 16
-      connection_info:
-        description: 连接配置
-        $ref: '#/definitions/DatasourceConnectionInfo'
-      updated_on:
-        type: integer
-        format: int64
-        description: 更新时间
-  DatasourceExecuteReq:
-    type: object
-    description: 数据源执行请求
-    required:
-      - query
-      - config
-    properties:
-      query:
-        type: string
-        description: sql语句
-      should_by_cache:
-        type: boolean
-        description: 是否从缓存读写配置
-        default: true
-      conditions:
-        type: array
-        description: 查询条件
-        items:
-          type: string
-  DatasourceExecuteResp:
-    type: object
-    description: 数据源执行响应
-    required:
-      - output_list
-      - row_num
-    properties:
-      output_list:
-        type: array
-        description: 执行结果
-        items:
-          type: object
-      row_num:
-        type: integer
-        description: 影响行数
   ResolvePageInfo:
     type: object
     properties:

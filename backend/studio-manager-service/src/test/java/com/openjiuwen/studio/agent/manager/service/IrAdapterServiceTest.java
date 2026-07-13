@@ -3,7 +3,6 @@ package com.openjiuwen.studio.agent.manager.service;
 
 import com.openjiuwen.studio.agent.agentbase.service.KnowledgeBaseServiceImpl;
 import com.openjiuwen.studio.agent.common.redis.RedisClient;
-import com.openjiuwen.studio.agent.manager.config.IRAdapterConfig;
 import com.openjiuwen.studio.agent.manager.mapper.MappingMapper;
 import com.openjiuwen.studio.agent.manager.mapper.SkillMapper;
 import com.openjiuwen.studio.agent.manager.mapper.ToolCredentialMapper;
@@ -37,7 +36,6 @@ class IrAdapterServiceTest {
     private SkillMapper skillMapper;
     private ParamExtractionNodeService paramExtractionNodeService;
     private WorkspaceMappingService workspaceMappingService;
-    private IRAdapterConfig irAdapterConfig;
     private EncryptionAdapter encryptionAdapter;
     private RedisClient redisClient;
 
@@ -56,7 +54,6 @@ class IrAdapterServiceTest {
         skillMapper = mock(SkillMapper.class);
         paramExtractionNodeService = mock(ParamExtractionNodeService.class);
         workspaceMappingService = mock(WorkspaceMappingService.class);
-        irAdapterConfig = mock(IRAdapterConfig.class);
         encryptionAdapter = mock(EncryptionAdapter.class);
         redisClient = mock(RedisClient.class);
 
@@ -73,7 +70,6 @@ class IrAdapterServiceTest {
         ReflectionTestUtils.setField(irAdapterService, "skillMapper", skillMapper);
         ReflectionTestUtils.setField(irAdapterService, "paramExtractionNodeService", paramExtractionNodeService);
         ReflectionTestUtils.setField(irAdapterService, "workspaceMappingService", workspaceMappingService);
-        ReflectionTestUtils.setField(irAdapterService, "irAdapterConfig", irAdapterConfig);
         ReflectionTestUtils.setField(irAdapterService, "encryptionAdapter", encryptionAdapter);
         ReflectionTestUtils.setField(irAdapterService, "redisClient", redisClient);
     }

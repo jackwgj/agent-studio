@@ -13,6 +13,8 @@ from jiuwen.common.configs.env_constants import DEFAULT_MODELS_KEY, MODEL_DIR_KE
 from jiuwen.common.exception.base import JiuWenBaseException
 from jiuwen.common.exception.status_code import StatusCode
 from jiuwen.common.llm_service.language_model.base import BaseChatModel
+from jiuwen.common.log.base import logger
+from jiuwen.common.security.util.fileutil import validate_path_traversal
 from jiuwen.common.utils.singleton import Singleton
 
 
@@ -42,6 +44,7 @@ class ModelFactory(metaclass=Singleton):
         self._load_model_dir(default_model_dir)
         custom_model_dir = os.getenv(MODEL_DIR_KEY, None)  # "/path/to/custom/models"
         if custom_model_dir:
+            validate_path_traversal(custom_model_dir)
             self._load_model_dir(custom_model_dir)
         self.default_model_resolver = default_model_resolver
         self.model_resolver = None
@@ -56,6 +59,7 @@ class ModelFactory(metaclass=Singleton):
                 if (f.endswith(".py") or f.endswith(".pyc"))
                 and f != "base.py"
                 and f != "base.pyc"
+                and ".." not in f
             ]
             modules_name = [
                 os.path.splitext(os.path.basename(item))[0] for item in py_files

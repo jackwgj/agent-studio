@@ -15,7 +15,7 @@ import com.openjiuwen.studio.agent.common.utils.I18nUtil;
 import com.openjiuwen.studio.agent.common.utils.RequestContextUtils;
 import com.openjiuwen.studio.agent.common.utils.StrUtils;
 import com.openjiuwen.studio.agent.manager.constant.CommonConstant;
-import com.openjiuwen.studio.agent.manager.dto.DatasourceBatchDeleteRsp;
+import com.openjiuwen.studio.agent.manager.dto.BatchDeleteRsp;
 import com.openjiuwen.studio.agent.manager.dto.ExportMessagesParams;
 import com.openjiuwen.studio.agent.manager.dto.FailedStructuredMessage;
 import com.openjiuwen.studio.agent.manager.dto.ListStructuredMessagesQo;
@@ -122,7 +122,7 @@ public class MessageManagementService implements IMessageManagementService {
         resourceId = "body[0].id",
         resourceName = ""
     )
-    public DatasourceBatchDeleteRsp deleteStructuredMessages(String projectId, String workspaceId,
+    public BatchDeleteRsp deleteStructuredMessages(String projectId, String workspaceId,
         List<StructuredInfoRequestDelete> body) {
         List<String> items = new ArrayList<>();
         for (StructuredInfoRequestDelete request : body) {
@@ -133,7 +133,7 @@ public class MessageManagementService implements IMessageManagementService {
         }
         // 如果 items 为空，直接返回成功响应，count 为 0
         if (items.isEmpty()) {
-            DatasourceBatchDeleteRsp structuredMessagesBatchDeleteRsp = new DatasourceBatchDeleteRsp();
+            BatchDeleteRsp structuredMessagesBatchDeleteRsp = new BatchDeleteRsp();
             structuredMessagesBatchDeleteRsp.setIds(new ArrayList<>());
             structuredMessagesBatchDeleteRsp.setCount(0L);
             return structuredMessagesBatchDeleteRsp;
@@ -148,7 +148,7 @@ public class MessageManagementService implements IMessageManagementService {
         }
         // 批量删除
         this.structuredMessageMapper.deleteByIds(items, projectId);
-        DatasourceBatchDeleteRsp structuredMessagesBatchDeleteRsp = new DatasourceBatchDeleteRsp();
+        BatchDeleteRsp structuredMessagesBatchDeleteRsp = new BatchDeleteRsp();
         structuredMessagesBatchDeleteRsp.setIds(items);
         structuredMessagesBatchDeleteRsp.setCount((long) items.size());
         return structuredMessagesBatchDeleteRsp;

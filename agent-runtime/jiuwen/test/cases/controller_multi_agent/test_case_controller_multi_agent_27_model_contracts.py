@@ -51,6 +51,8 @@ def _rewrite_child_global_intent_to_workflow(ir_path: Path) -> None:
     """Make the copied child IR use a workflow handler for its global intent."""
     root_ir = json.loads(ir_path.read_text(encoding="utf-8"))
     child_ref = root_ir["configs"]["agents"][0]["ir_path"]
+    if ".." in child_ref:
+        raise ValueError(f"Potential path traversal in child_ref: {child_ref}")
     child_ir_path = Path(child_ref)
     child_ir = json.loads(child_ir_path.read_text(encoding="utf-8"))
     global_intent = child_ir["configs"]["global_intents"][0]
