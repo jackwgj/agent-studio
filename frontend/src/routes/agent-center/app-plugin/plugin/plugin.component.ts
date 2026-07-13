@@ -38,17 +38,7 @@ enum mapKeys {
   selector: 'meta-plugin',
   templateUrl: './plugin.component.html',
   styleUrls: ['./plugin.component.scss'],
-  imports: [
-    MODULES,
-    PluginHeaderComponent,
-    NzTableModule,
-    NzButtonModule,
-    NzIconModule,
-    NzDropDownModule,
-    NzTabsModule,
-    NzToolTipModule,
-    NzSpaceModule,
-  ],
+  imports: [MODULES, PluginHeaderComponent, NzTableModule, NzButtonModule, NzIconModule, NzDropDownModule, NzTabsModule, NzToolTipModule, NzSpaceModule],
   standalone: true,
   providers: [
     {
@@ -301,6 +291,8 @@ export class PluginComponent implements OnInit {
     this.listDataLoading = false;
   }
   async getPluginDetails() {
+    this.previewVersionId = '';
+    this.previewVersionName = '';
     try {
       this.isLoading = true;
       let value = await this.appPluginRepoServ.getPluginById(this.toolId);
