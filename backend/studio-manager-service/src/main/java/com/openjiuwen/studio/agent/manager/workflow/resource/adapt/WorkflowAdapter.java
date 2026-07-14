@@ -171,6 +171,7 @@ public class WorkflowAdapter extends ResourceAdapter {
                 result.setStatus(ImportExportStatusEnum.FAILED);
             }
             result.setLevel2Resources(exportResourceUnit.getLevel2Resources());
+            result.setResourceLevel(exportResourceUnit.getResourceLevel());
             exportResults.add(result);
         }
         return exportResults;

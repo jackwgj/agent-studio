@@ -129,6 +129,8 @@ public class AgentExportService {
         }
         skuManageService.validateAttrEnable(CommonConstant.SKU_ATTR_CODE.EXPORT_AND_IMPORT);
         ResourceTypeEnum resourceTypeEnum = ResourceTypeEnum.fromValue(body.getResourceType());
+        // 规范化 resourceType 为枚举标准值（小写），避免用户传 "Agent" 等大写导致 buildSubResource 大小写敏感匹配失败
+        body.setResourceType(resourceTypeEnum.toString());
         switch (resourceTypeEnum) {
             case AGENT, CONTROLLER:
                 exportRsp = exportAgents(projectId, workspaceId, body);
@@ -284,6 +286,7 @@ public class AgentExportService {
             }
         }
         currentResource.setLevel2Resources(new ArrayList<>(l2ResourceIds));
+        currentResource.setResourceLevel(1);
         return currentResource;
     }
 
@@ -300,9 +303,9 @@ public class AgentExportService {
             .values()
             .stream()
             .toList();
-        // 分组：主资源有 level2Resources（草稿和版本导出的主资源都设了 level2Resources）
+        // 分组：主资源 resourceLevel=1（对齐旧版 lumina，不依赖 level2Resources）
         List<ExportResult> level1Results = exportResults.stream()
-            .filter(p -> CollectionUtils.isNotEmpty(p.getLevel2Resources()))
+            .filter(p -> p.getResourceLevel() != null && p.getResourceLevel() == 1)
             .toList();
         for (ExportResult rootResult : level1Results) {
             if (CollectionUtils.isEmpty(rootResult.getLevel2Resources())) {
