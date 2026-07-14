@@ -300,9 +300,9 @@ public class AgentExportService {
             .values()
             .stream()
             .toList();
-        // 分组
+        // 分组：主资源有 level2Resources（草稿和版本导出的主资源都设了 level2Resources）
         List<ExportResult> level1Results = exportResults.stream()
-            .filter(p -> Strings.CS.equals(p.getResourceVersion(), Constants.LATEST_PUBLISH_VERSION))
+            .filter(p -> CollectionUtils.isNotEmpty(p.getLevel2Resources()))
             .toList();
         for (ExportResult rootResult : level1Results) {
             if (CollectionUtils.isEmpty(rootResult.getLevel2Resources())) {

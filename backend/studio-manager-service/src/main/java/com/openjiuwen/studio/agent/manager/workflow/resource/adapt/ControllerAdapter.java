@@ -170,9 +170,7 @@ public class ControllerAdapter extends ResourceAdapter {
                     ResourceTypeEnum.CONTROLLER.toString()));
                 result.setStatus(ImportExportStatusEnum.FAILED);
             }
-            if (Strings.CS.equals(exportResourceUnit.getResourceVersion(), Constants.LATEST_PUBLISH_VERSION)) {
-                result.setLevel2Resources(exportResourceUnit.getLevel2Resources());
-            }
+            result.setLevel2Resources(exportResourceUnit.getLevel2Resources());
             exportResults.add(result);
         }
         return exportResults;
