@@ -329,8 +329,23 @@ public class AgentExportService {
             .filter(CollectionUtils::isNotEmpty)
             .flatMap(List::stream)
             .collect(Collectors.toList());
-        exportInfos = new ArrayList<>(
-            exportInfos.stream().collect(Collectors.toMap(ExportInfo::getResourceId, p -> p, (p1, p2) -> p1)).values());
+        exportInfos = new ArrayList<>(exportInfos.stream()
+            .collect(Collectors.toMap(
+                p -> p.getResourceId() + "|" + p.getResourceLevel() + "|"
+                    + (p.getReleaseVersion() != null ? p.getReleaseVersion().getVersionId() : ""),
+                p -> p,
+                (p1, p2) -> {
+                    List<String> mergedParents = new ArrayList<>();
+                    if (CollectionUtils.isNotEmpty(p1.getParents())) {
+                        mergedParents.addAll(p1.getParents());
+                    }
+                    if (CollectionUtils.isNotEmpty(p2.getParents())) {
+                        mergedParents.addAll(p2.getParents());
+                    }
+                    p1.setParents(mergedParents.stream().distinct().toList());
+                    return p1;
+                }))
+            .values());
         for (ExportInfo exportInfo : exportInfos) {
             tempJson.append(jacksonObjectMapper.writeValueAsString(exportInfo)).append("\n");
         }
