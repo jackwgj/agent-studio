@@ -118,7 +118,10 @@ public class ServletUtils {
     private static void setCookieSecurity(Cookie cookie) {
         String sec = SpringBeanUtils.getProperty(COOKIE_SECURITY_ENABLE, Constants.TRUE);
         String ssl = SpringBeanUtils.getProperty(SERVER_SSL_ENABLED, Constants.TRUE);
-        if (sec.equalsIgnoreCase(Constants.TRUE) && ssl.equalsIgnoreCase(Constants.TRUE)) {
+        if (sec.equalsIgnoreCase(Constants.TRUE)) {
+            cookie.setHttpOnly(true);
+        }
+        if (ssl.equalsIgnoreCase(Constants.TRUE)) {
             cookie.setSecure(true);
         }
     }
