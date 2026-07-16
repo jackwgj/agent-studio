@@ -93,7 +93,7 @@ function runtime_copy() {
   echo "[PACKAGE] 复制 agent-runtime 源码到 ${RUNTIME_TARGET_PATH}..."
 
   rm -rf ${RUNTIME_TARGET_PATH}/agent_builder
-  cp -rf ${WORKSPACE}/agent-runtime/agent_builder ${RUNTIME_TARGET_PATH}/agent_builder
+  cp -rf ${WORKSPACE}/agent_builder ${RUNTIME_TARGET_PATH}/agent_builder
 
   rm -rf ${RUNTIME_TARGET_PATH}/agent_runtime
   cp -rf ${WORKSPACE}/agent-runtime/agent_runtime ${RUNTIME_TARGET_PATH}/agent_runtime
