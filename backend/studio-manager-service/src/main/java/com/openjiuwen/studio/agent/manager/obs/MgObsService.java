@@ -11,12 +11,18 @@ import com.openjiuwen.studio.agent.common.storage.FileMeta;
 import com.openjiuwen.studio.agent.common.storage.FileStore;
 import com.openjiuwen.studio.agent.manager.constant.CommonConstant;
 
+import com.openjiuwen.studio.agent.manager.utils.OkHttpUtils;
 import lombok.extern.slf4j.Slf4j;
 
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -33,6 +39,8 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 @Service
 public class MgObsService implements CommonObsService {
+    @Autowired
+    private OkHttpUtils okHttpUtils;
 
     private final FileStore fileStore;
 
@@ -247,5 +255,33 @@ public class MgObsService implements CommonObsService {
             }
             fileStore.delete(path(objectKey));
         }
+    }
+
+    /**
+     * 根据临时url从obs获取文件流
+     *
+     * @param url 临时url
+     * @return InputStream
+     */
+    public InputStream getByUrl(String url) {
+        long startTime = System.currentTimeMillis();
+        InputStream inputStream;
+        try {
+            Request.Builder builder = new Request.Builder();
+            Request httpRequest = builder.url(url).get().build();
+            OkHttpClient httpClient = okHttpUtils.getHttpClient();
+            Response rsp = httpClient.newCall(httpRequest).execute();
+            if (rsp.body() == null) {
+                log.error("File is empty.");
+                throw new AgentStudioException(StudioError.FILE_NOT_EXIST);
+            }
+            inputStream = rsp.body().byteStream();
+        } catch (IOException e) {
+            log.error("Get inputStream from obs by url failed.", e);
+            throw new AgentStudioException(StudioError.GET_BY_URL_FAILED);
+        } finally {
+            log.info("getByUrl cost: {} ms", System.currentTimeMillis() - startTime);
+        }
+        return inputStream;
     }
 }
