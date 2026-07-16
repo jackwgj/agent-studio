@@ -135,7 +135,7 @@ class WorkflowEventsProcessor(BaseEventsProcessor):
         )
         if trace.metadata is None:
             trace.metadata = {}
-        trace.metadata["enable_history"] = data.get("enable_history")
+        trace.metadata["enable_history"] = data.get("enable_history", True)
         # End node: capture final output
         if node_type == node_type_mapping.get(NodeType.END.value):
             final_msg = data.get("answer") if data.get("origin_answer") is None else data.get("origin_answer")

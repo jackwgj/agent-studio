@@ -14,7 +14,7 @@ from typing import Dict, Type, AsyncGenerator, Any, Optional
 
 from pydantic import BaseModel
 from fastapi import Request
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, JSONResponse
 from jiuwen.serve.controllers.execution.enum import PlanModeType, IRType, ConversationEvent
 from openjiuwen.core.common.logging import workflow_logger
 
@@ -202,7 +202,8 @@ class EventHandler:
         for key, value in trace_attr.items():
             if value is not None:
                 non_stream_output[key] = value
-        return NonStreamingResponse.model_construct(**non_stream_output)
+        response = NonStreamingResponse.model_construct(**non_stream_output)
+        return JSONResponse(content=response.model_dump(exclude_none=True, by_alias=True))
 
     @classmethod
     async def encapsulate_stream_response(
