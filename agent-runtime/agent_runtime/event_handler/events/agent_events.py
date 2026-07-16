@@ -38,6 +38,7 @@ class AgentEventsProcessor(BaseEventsProcessor):
             ConversationEvent.START.value: cls._process_start_event,
             ConversationEvent.MESSAGE.value: cls._process_message_event,
             ConversationEvent.SUMMARY_RESPONSE.value: cls._process_summary_response_event,
+            ConversationEvent.AGENT_NODE_MSG.value: cls._process_agent_node_message,
         }
         cls._initialized = True
 
@@ -96,4 +97,42 @@ class AgentEventsProcessor(BaseEventsProcessor):
             if trace.messages is None:
                 trace.messages = []
             trace.messages.append({"role": role, "content": content})
+        # summary_response 是 done 之前最后一个有效事件，在此设置非流式所需字段
+        trace.end_time = full_data.get("createdTime")
+        if trace.outputs is None:
+            trace.outputs = {}
+        if trace.events is None:
+            trace.events = []
+        trace.status = None
         return summary_response_field
+
+    @classmethod
+    def _process_agent_node_message(cls, full_data: Dict[str, Any], trace: Trace) -> Any:
+        """Capture LLM call events into trace.events for non-streaming DEBUG response."""
+        if not trace.is_debug:
+            return None
+
+        data = full_data.get("data", {})
+        invoke_type = data.get("invokeType")
+        if invoke_type != "llm":
+            return None
+
+        if trace.events is None:
+            trace.events = []
+
+        meta_data = data.get("metaData", {})
+        instance_attrs = meta_data.get("instance_attributes", {})
+
+        event_info = {
+            "node_id": data.get("invokeId"),
+            "node_type": invoke_type,
+            "node_status": "succeeded",
+            "model_deployment_id": instance_attrs.get("model"),
+            "inputs": data.get("inputs", []),
+            "outputs": data.get("outputs", {}),
+            "start_time": data.get("startTime"),
+            "end_time": data.get("endTime"),
+            "meta_data": meta_data,
+        }
+        trace.events.append(event_info)
+        return None

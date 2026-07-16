@@ -240,7 +240,7 @@ class BaseEventsProcessor(ABC):
         if trace and trace.is_debug:
             if trace.node_info is None:
                 trace.node_info = []
-            trace.node_info.append(node_data)
+            trace.node_info.append(node_data.model_dump(exclude_none=True, by_alias=True))
         return [
             EventField(
                 event=node_status,
