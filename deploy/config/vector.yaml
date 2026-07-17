@@ -70,6 +70,19 @@ sources:
     read_from: beginning
     fingerprint: {strategy: checksum, lines: 1}
 
+  builder:
+    type: file
+    include:
+      - /logs/studio-builder/agent-builder/*.log
+      - /logs/studio-builder/agent-builder/**/*.log
+    read_from: beginning
+    fingerprint: {strategy: checksum, lines: 1}
+    multiline:
+      start_pattern: '^\d{4}-\d{2}-\d{2} '
+      mode: halt_before
+      condition_pattern: '^\d{4}-\d{2}-\d{2} '
+      timeout_ms: 1000
+
   console:
     type: file
     include:
@@ -86,6 +99,7 @@ sources:
       - ${APP_PROJECT_NAME}-studio-manager
       - ${APP_PROJECT_NAME}-studio-service
       - ${APP_PROJECT_NAME}-studio-runtime
+      - ${APP_PROJECT_NAME}-studio-builder
       - ${APP_PROJECT_NAME}-studio-console
 
   vector_internal:
@@ -209,6 +223,21 @@ transforms:
         }
       }
 
+  builder_fields:
+    type: remap
+    inputs: [builder]
+    source: |
+      .service = "builder"
+      .host = get_env_var!("NODE_NAME")
+      .collector = "vector"
+      .filename = .file
+      .parse_status = "unparsed"
+      parsed, err = parse_regex(.message, r'(?i)(?:level\s*[:=]\s*"?|\[)(?P<level>trace|debug|info|warn|warning|error|fatal|critical)(?:"|\]|\s|,|$)')
+      if err == null {
+        .level = upcase!(parsed.level)
+        .parse_status = "parsed"
+      }
+
   docker_fields:
     type: remap
     inputs: [docker]
@@ -244,7 +273,7 @@ transforms:
 
   redact_sensitive:
     type: remap
-    inputs: [manager_fields, service_fields, java_aux_fields, runtime_fields, console_fields, docker_fields, vector_internal_fields]
+    inputs: [manager_fields, service_fields, java_aux_fields, runtime_fields, builder_fields, console_fields, docker_fields, vector_internal_fields]
     source: |
       .message = redact(string!(.message), filters: [
         r'(?i)authorization\s*[:=]\s*(?:bearer|basic)\s+[^\s,;"\]]+',

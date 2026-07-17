@@ -1,5 +1,5 @@
 # openJiuwen AgentStudio Docker Compose 部署编排
-# 在线/离线统一编排：8 个服务（4 基础设施 + 4 应用）
+# 在线/离线统一编排：9 个服务（4 基础设施 + 5 应用）
 # 在线部署：IMAGE_SOURCE=ghcr/dockerhub，脚本自动 pull 镜像
 # 离线部署：IMAGE_SOURCE=offline，脚本自动 docker load 镜像
 
@@ -133,6 +133,8 @@ services:
         condition: service_healthy
       studio-runtime:
         condition: service_healthy
+      studio-builder:
+        condition: service_healthy
     networks:
       - agent-net
 
@@ -173,7 +175,8 @@ services:
       server_ssl_key_password: ${SERVER_SSL_KEY_PASSWORD:-}
       agent_runtime_endpoint: ${AGENT_RUNTIME_ENDPOINT:-http://studio-service:31113}
       user_auth_endpoint: ${USER_AUTH_ENDPOINT:-http://studio-manager:31111}
-      jiu_wen_service_endpoint: ${JIUWEN_BASE_URL:-http://studio-builder:31015}
+      jiu_wen_service_endpoint: ${JIUWEN_BUILDER_URL:-http://studio-builder:31015}
+      agent_builder_endpoint: ${AGENT_BUILDER_ENDPOINT:-http://studio-builder:31015}
       jiuwen_base_url: ${JIUWEN_BASE_URL:-http://studio-runtime:31014}
       front_page_block_nodes: ${FRONT_PAGE_BLOCK_NODES:-Sql,DataQuery,Agent}
       share_knowledge_enabled: ${SHARE_KNOWLEDGE_ENABLED:-true}
@@ -352,9 +355,69 @@ services:
     networks:
       - agent-net
 
+  studio-builder:
+    logging: *default-logging
+    image: ${STUDIO_BUILDER_IMAGE}
+    pull_policy: ${APP_PULL_POLICY:-always}
+    restart: always
+    privileged: true
+    cpus: 2
+    mem_limit: 4g
+    ports:
+      - "${BUILDER_PORT:-31015}:31015"
+    volumes:
+      - builder_logs:/opt/cloud/logs
+    environment:
+      SERVER_HOST: 0.0.0.0
+      SERVER_PORT: 31015
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_CLUSTER_NODES: ${REDIS_CLUSTER_NODES:-}
+      REDIS_SENTINEL_MASTER: ${REDIS_SENTINEL_MASTER:-}
+      REDIS_SENTINEL_NODES: ${REDIS_SENTINEL_NODES:-}
+      REDIS_MODE: ${REDIS_MODE:-single}
+      REDIS_DATABASE: ${REDIS_DATABASE:-0}
+      STORE_DB_TYPE: ${STORE_DB_TYPE:-mysql}
+      STORE_DB_HOST: ${STORE_DB_HOST:-mysql}
+      STORE_DB_PORT: ${STORE_DB_PORT:-3306}
+      STORE_DB_USER: ${SPRING_DATASOURCE_USERNAME:-root}
+      STORE_DB_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-123456}
+      STORE_DB_DATABASE: ${STORE_DB_DATABASE:-agent-builder}
+      STORE_DB_SCHEMA: ${STORE_DB_SCHEMA:-}
+      STORE_DB_SSLMODE: ${STORE_DB_SSLMODE:-disable}
+      DATASOURCE_OBS_SERVER: ${OBS_URL:-}
+      DATASOURCE_OBS_BUCKET: ${OBS_BUCKET:-}
+      DATASOURCE_OBS_AK: ${OBS_AK:-}
+      DATASOURCE_OBS_SK: ${OBS_SK:-}
+      DATASOURCE_OBS_ENABLE_SSL: ${DATASOURCE_OBS_ENABLE_SSL:-false}
+      DATASOURCE_OBS_PATH_STYLE: ${DATASOURCE_OBS_PATH_STYLE:-path}
+      MODEL_ROUTER_API: ${MODEL_ROUTER_API:-http://studio-service:31113/v1/agent-builder}
+      IR_LLM_API_KEY: ${IR_LLM_API_KEY:-sk-placeholder}
+      LOGGING_LOG_PATH: /opt/cloud/logs/agent-builder
+      LOG_VERBOSE: ${LOG_VERBOSE:-true}
+      OTEL_ENABLED: ${OTEL_ENABLED:-false}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      studio-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:31015/v1/health >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+    networks:
+      - agent-net
+
   # ── 日志聚合栈（可选；profiles: logging，默认不启动；用 ./deploy.sh logging 启停）──
   # 数据流：app 日志命名卷 → Vector tail/缓冲 → VictoriaLogs 存储 → Grafana 查询
-  # 四个 app 服务通过命名卷共享日志给 Vector。
+  # 五个 app 服务通过命名卷共享日志给 Vector。
 
   victoria-logs:
     logging: *default-logging
@@ -391,6 +454,7 @@ services:
       - manager_logs:/logs/studio-manager:ro
       - service_logs:/logs/studio-service:ro
       - runtime_logs:/logs/studio-runtime:ro
+      - builder_logs:/logs/studio-builder:ro
       - console_logs:/logs/studio-console:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - vector_data:/var/lib/vector
@@ -446,6 +510,7 @@ volumes:
   manager_logs:
   service_logs:
   runtime_logs:
+  builder_logs:
   console_logs:
   victoria_logs_data:
   grafana_data:

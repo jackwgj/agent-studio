@@ -13,7 +13,7 @@ ENV_FILE="$SCRIPT_DIR/.env"
 PROJECT_NAME="${COMPOSE_PROJECT_NAME:-$(basename "$SCRIPT_DIR")}"
 
 INFRA_SERVICES=(mysql redis minio minio-init)
-APP_SERVICES=(studio-manager studio-service studio-runtime studio-console)
+APP_SERVICES=(studio-manager studio-service studio-runtime studio-builder studio-console)
 ALL_SERVICES=("${INFRA_SERVICES[@]}" "${APP_SERVICES[@]}")
 
 RED='\033[0;31m'
@@ -81,6 +81,7 @@ prepare_compose_env() {
             export STUDIO_MANAGER_IMAGE="${ghcr_repo}/studio-manager:${image_tag}"
             export STUDIO_SERVICE_IMAGE="${ghcr_repo}/studio-service:${image_tag}"
             export STUDIO_RUNTIME_IMAGE="${ghcr_repo}/studio-runtime:${image_tag}"
+            export STUDIO_BUILDER_IMAGE="${ghcr_repo}/studio-builder:${image_tag}"
             export APP_PULL_POLICY="always"
             ;;
         dockerhub|docker)
@@ -91,6 +92,7 @@ prepare_compose_env() {
             export STUDIO_MANAGER_IMAGE="${dockerhub_repo}:studio-manager-${image_tag}"
             export STUDIO_SERVICE_IMAGE="${dockerhub_repo}:studio-service-${image_tag}"
             export STUDIO_RUNTIME_IMAGE="${dockerhub_repo}:studio-runtime-${image_tag}"
+            export STUDIO_BUILDER_IMAGE="${dockerhub_repo}:studio-builder-${image_tag}"
             export APP_PULL_POLICY="always"
             ;;
         offline)
@@ -99,10 +101,12 @@ prepare_compose_env() {
             require_env_value STUDIO_MANAGER_IMAGE
             require_env_value STUDIO_SERVICE_IMAGE
             require_env_value STUDIO_RUNTIME_IMAGE
+            require_env_value STUDIO_BUILDER_IMAGE
             export STUDIO_CONSOLE_IMAGE="$(get_env_value STUDIO_CONSOLE_IMAGE)"
             export STUDIO_MANAGER_IMAGE="$(get_env_value STUDIO_MANAGER_IMAGE)"
             export STUDIO_SERVICE_IMAGE="$(get_env_value STUDIO_SERVICE_IMAGE)"
             export STUDIO_RUNTIME_IMAGE="$(get_env_value STUDIO_RUNTIME_IMAGE)"
+            export STUDIO_BUILDER_IMAGE="$(get_env_value STUDIO_BUILDER_IMAGE)"
             export APP_PULL_POLICY="never"
             ;;
         custom)
@@ -110,10 +114,12 @@ prepare_compose_env() {
             require_env_value STUDIO_MANAGER_IMAGE
             require_env_value STUDIO_SERVICE_IMAGE
             require_env_value STUDIO_RUNTIME_IMAGE
+            require_env_value STUDIO_BUILDER_IMAGE
             export STUDIO_CONSOLE_IMAGE="$(get_env_value STUDIO_CONSOLE_IMAGE)"
             export STUDIO_MANAGER_IMAGE="$(get_env_value STUDIO_MANAGER_IMAGE)"
             export STUDIO_SERVICE_IMAGE="$(get_env_value STUDIO_SERVICE_IMAGE)"
             export STUDIO_RUNTIME_IMAGE="$(get_env_value STUDIO_RUNTIME_IMAGE)"
+            export STUDIO_BUILDER_IMAGE="$(get_env_value STUDIO_BUILDER_IMAGE)"
             export APP_PULL_POLICY="$(get_env_value APP_PULL_POLICY 'if_not_present')"
             ;;
         *)
@@ -410,11 +416,12 @@ verify_deployment() {
         return 0
     fi
 
-    local console_port manager_port service_port runtime_port
+    local console_port manager_port service_port runtime_port builder_port
     console_port=$(get_env_value CONSOLE_PORT 80)
     manager_port=$(get_env_value MANAGER_PORT 31111)
     service_port=$(get_env_value SERVICE_PORT 31113)
     runtime_port=$(get_env_value RUNTIME_PORT 31014)
+    builder_port=$(get_env_value BUILDER_PORT 31015)
 
     log_info "Verifying HTTP endpoints..."
 
@@ -449,6 +456,14 @@ verify_deployment() {
         log_info "studio-runtime /v1/health ✓"
     else
         log_warn "studio-runtime /v1/health not ready (HTTP ${code})"
+    fi
+
+    # studio-builder
+    code=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 10 "http://localhost:${builder_port}/v1/health" 2>/dev/null || echo "000")
+    if [ "$code" = "200" ]; then
+        log_info "studio-builder /v1/health ✓"
+    else
+        log_warn "studio-builder /v1/health not ready (HTTP ${code})"
     fi
 }
 
@@ -614,6 +629,71 @@ recreate_services() {
 }
 
 # ========================================
+# 使用 docker/build.sh 最近一次构建的本地镜像
+# ========================================
+deploy_local_build() {
+    local build_info="$SCRIPT_DIR/../docker/.last-build.env"
+    if [ ! -f "$build_info" ]; then
+        log_error "Local build metadata not found: $build_info"
+        log_error "Run: bash docker/build.sh"
+        exit 1
+    fi
+
+    local services=()
+    local explicit_services=false
+    if [ $# -gt 0 ]; then
+        services=("$@")
+        explicit_services=true
+    else
+        services=("${APP_SERVICES[@]}")
+    fi
+
+    # 先提供完整 Compose 镜像变量，再用本次本地构建覆盖对应服务。
+    prepare_compose_env
+    # 文件由 docker/build.sh 生成，只包含受控的 KEY=VALUE 镜像信息。
+    # shellcheck disable=SC1090
+    source "$build_info"
+    export STUDIO_CONSOLE_IMAGE STUDIO_MANAGER_IMAGE STUDIO_SERVICE_IMAGE STUDIO_RUNTIME_IMAGE STUDIO_BUILDER_IMAGE
+    export GRAFANA_IMAGE="${GRAFANA_IMAGE:-grafana-victorialogs:11.3.0-0.29.0}"
+    export APP_PULL_POLICY=never
+
+    local service image key
+    for service in "${services[@]}"; do
+        case "$service" in
+            studio-console) key=STUDIO_CONSOLE_IMAGE; image="$STUDIO_CONSOLE_IMAGE" ;;
+            studio-manager) key=STUDIO_MANAGER_IMAGE; image="$STUDIO_MANAGER_IMAGE" ;;
+            studio-service) key=STUDIO_SERVICE_IMAGE; image="$STUDIO_SERVICE_IMAGE" ;;
+            studio-runtime) key=STUDIO_RUNTIME_IMAGE; image="$STUDIO_RUNTIME_IMAGE" ;;
+            studio-builder) key=STUDIO_BUILDER_IMAGE; image="$STUDIO_BUILDER_IMAGE" ;;
+            *) log_error "Unsupported local application service: $service"; exit 1 ;;
+        esac
+        if ! grep -q "^${key}=" "$build_info"; then
+            log_error "$service was not part of the latest local build"
+            log_error "Build it first: bash docker/build.sh"
+            exit 1
+        fi
+        if ! docker image inspect "$image" >/dev/null 2>&1; then
+            log_error "Local image not found: $image"
+            log_error "Run a complete build first: bash docker/build.sh"
+            exit 1
+        fi
+    done
+
+    log_info "Deploying local build (${BUILD_PLATFORM:-unknown}): ${services[*]}"
+    cd "$SCRIPT_DIR"
+    local up_args=(up -d --force-recreate)
+    if [ "$explicit_services" = true ]; then
+        # 单服务/指定服务更新只替换目标容器，保持其依赖和其他业务容器原状。
+        up_args+=(--no-deps)
+    fi
+    "${COMPOSE_CMD[@]}" --project-name "$PROJECT_NAME" --env-file "$ENV_FILE" -f "$COMPOSE_FILE" \
+        "${up_args[@]}" "${services[@]}"
+    wait_for_services "${services[@]}"
+    verify_deployment
+    log_info "Local build deployed successfully"
+}
+
+# ========================================
 # 更新服务
 # ========================================
 update_services() {
@@ -755,7 +835,7 @@ status_logging() {
 # 使用说明
 # ========================================
 print_usage() {
-    echo "Usage: $0 {infra|init-db|start|stop|stop-infra|stop-all|restart|update|recreate [service...]|clean [data|images|all]|logs [service]|status|verify|all}"
+    echo "Usage: $0 {infra|init-db|start|stop|stop-infra|stop-all|restart|update|recreate [service...]|local [service...]|clean [data|images|all]|logs [service]|status|verify|all}"
     echo ""
     echo "  infra     - Start MySQL/Redis/MinIO and initialize database + MinIO bucket"
     echo "  init-db   - Initialize database and MinIO bucket (infra must be running)"
@@ -766,7 +846,8 @@ print_usage() {
     echo "  restart   - Restart application services"
     echo "  update    - Pull/load images and recreate services"
     echo "  recreate  - Recreate services from LOCAL images (no pull)."
-    echo "              Use after docker build + retag. Optional: recreate studio-manager studio-service"
+    echo "              Use after docker build + retag. Optional: recreate studio-manager studio-service studio-builder"
+    echo "  local     - Deploy images from the latest docker/build.sh run (no retag or .env edits)."
     echo "  clean     - Remove containers, networks and VOLUMES (data lost). Optional: clean images|all"
     echo "  logs      - Tail service logs (optional: service name)"
     echo "  status    - Show service status"
@@ -834,9 +915,13 @@ case "${1:-}" in
         ;;
     recreate)
         # 用本地镜像重建容器（不 pull）。docker build + docker tag 后用此切换新镜像。
-        # 可带参数指定服务：recreate studio-manager studio-service studio-runtime
+        # 可带参数指定服务：recreate studio-manager studio-service studio-runtime studio-builder
         check_runtime_prerequisites
         recreate_services "${@:2}"
+        ;;
+    local)
+        check_runtime_prerequisites
+        deploy_local_build "${@:2}"
         ;;
     logs)
         check_docker_prerequisites

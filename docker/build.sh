@@ -37,8 +37,20 @@ function log() {
 }
 
 function main() {
+  parse_targets "$@"
+  rm -f "${DOCKER_DIR}/.last-build.env"
   log "开始构建 Docker 镜像，DOCKER_DIR=${DOCKER_DIR}"
   log "VERSION=${VERSION}, BUILD_PLATFORM=${BUILD_PLATFORM}, BUILD_TIME=${BUILD_TIME}"
+
+  if [ "${TARGET_SERVICES[0]}" != "all" ]; then
+    log "仅构建以下镜像: ${TARGET_SERVICES[*]}"
+    for TARGET_SERVICE in "${TARGET_SERVICES[@]}"; do
+      build_single_service
+    done
+    write_build_info
+    log "指定镜像构建完成；选择性构建不生成 AgentBuilder.tar.gz"
+    return
+  fi
 
   log "[1/7] 构建 studio-manager 镜像"
   docker_build_manager
@@ -57,9 +69,7 @@ function main() {
   log "[4/7] studio-runtime 镜像构建完成"
 
   log "[5/7] 构建 studio-builder 镜像"
-  copy_builder_sources
-  docker_build_builder
-  cleanup_builder_sources
+  build_builder_image
   log "[5/7] studio-builder 镜像构建完成"
 
   log "[6/7] 构建内置 VictoriaLogs 数据源的 Grafana 镜像"
@@ -70,7 +80,78 @@ function main() {
   docker_save_package
   log "[7/7] 打包完成"
 
+  write_build_info
+
   log "Docker 镜像构建全部完成"
+}
+
+function usage() {
+  echo "用法: bash docker/build.sh [all|manager|service|console|runtime|builder|grafana ...]"
+}
+
+function parse_targets() {
+  TARGET_SERVICES=()
+  [ "$#" -gt 0 ] || set -- all
+  local target normalized existing duplicate
+  for target in "$@"; do
+    case "${target}" in
+      all) normalized=all ;;
+      manager|studio-manager) normalized=studio-manager ;;
+      service|studio-service) normalized=studio-service ;;
+      console|studio-console) normalized=studio-console ;;
+      runtime|studio-runtime) normalized=studio-runtime ;;
+      builder|studio-builder) normalized=studio-builder ;;
+      grafana|grafana-victorialogs) normalized=grafana-victorialogs ;;
+      *) echo "[BUILD] 不支持的服务: ${target}" >&2; usage; exit 1 ;;
+    esac
+    if [ "${normalized}" = all ] && [ "$#" -gt 1 ]; then
+      echo "[BUILD] all 不能与其他服务同时使用" >&2
+      exit 1
+    fi
+    duplicate=false
+    for existing in "${TARGET_SERVICES[@]}"; do
+      [ "${existing}" = "${normalized}" ] && duplicate=true
+    done
+    [ "${duplicate}" = true ] || TARGET_SERVICES+=("${normalized}")
+  done
+}
+
+function build_single_service() {
+  case "${TARGET_SERVICE}" in
+    studio-manager) docker_build_manager ;;
+    studio-service) docker_build_service ;;
+    studio-console) docker_build_console ;;
+    studio-runtime) docker_build_runtime ;;
+    studio-builder) build_builder_image ;;
+    grafana-victorialogs) docker_build_grafana ;;
+  esac
+}
+
+function write_build_info() {
+  if [ "${TARGET_SERVICES[0]}" = "all" ]; then
+    cat > "${DOCKER_DIR}/.last-build.env" <<EOF
+STUDIO_MANAGER_IMAGE=studio-manager:${VERSION}.${BUILD_TIME}.${BUILD_PLATFORM}
+STUDIO_SERVICE_IMAGE=studio-service:${VERSION}.${BUILD_TIME}.${BUILD_PLATFORM}
+STUDIO_RUNTIME_IMAGE=studio-runtime:${VERSION}.${BUILD_TIME}.${BUILD_PLATFORM}
+STUDIO_BUILDER_IMAGE=studio-builder:${VERSION}.${BUILD_TIME}.${BUILD_PLATFORM}
+STUDIO_CONSOLE_IMAGE=studio-console:${VERSION}.${BUILD_TIME}.${BUILD_PLATFORM}
+GRAFANA_IMAGE=openjiuwen/grafana-victorialogs:11.3.0-0.29.0
+BUILD_PLATFORM=${BUILD_PLATFORM}
+EOF
+    return
+  fi
+
+  echo "BUILD_PLATFORM=${BUILD_PLATFORM}" > "${DOCKER_DIR}/.last-build.env"
+  for TARGET_SERVICE in "${TARGET_SERVICES[@]}"; do
+    case "${TARGET_SERVICE}" in
+      studio-manager) echo "STUDIO_MANAGER_IMAGE=studio-manager:${VERSION}.${BUILD_TIME}.${BUILD_PLATFORM}" ;;
+      studio-service) echo "STUDIO_SERVICE_IMAGE=studio-service:${VERSION}.${BUILD_TIME}.${BUILD_PLATFORM}" ;;
+      studio-console) echo "STUDIO_CONSOLE_IMAGE=studio-console:${VERSION}.${BUILD_TIME}.${BUILD_PLATFORM}" ;;
+      studio-runtime) echo "STUDIO_RUNTIME_IMAGE=studio-runtime:${VERSION}.${BUILD_TIME}.${BUILD_PLATFORM}" ;;
+      studio-builder) echo "STUDIO_BUILDER_IMAGE=studio-builder:${VERSION}.${BUILD_TIME}.${BUILD_PLATFORM}" ;;
+      grafana-victorialogs) echo "GRAFANA_IMAGE=openjiuwen/grafana-victorialogs:11.3.0-0.29.0" ;;
+    esac
+  done >> "${DOCKER_DIR}/.last-build.env"
 }
 
 # 打studio-manager的docker镜像
@@ -149,6 +230,15 @@ function docker_build_builder() {
     -t ${IMAGE_NAME}:${VERSION}.${BUILD_TIME}.${BUILD_PLATFORM} .
 }
 
+function build_builder_image() {
+  copy_builder_sources
+  if ! docker_build_builder; then
+    cleanup_builder_sources
+    return 1
+  fi
+  cleanup_builder_sources
+}
+
 # studio-builder 不再单独保存为 StudioBuilder.tar.gz —— 已并入 docker_save()，
 # 与 manager/service/runtime/console 一起进 docker/image/ + AgentBuilder.tar.gz。
 
@@ -163,11 +253,16 @@ function docker_build_console() {
 }
 
 function docker_build_grafana() {
+  GRAFANA_IMAGE=openjiuwen/grafana-victorialogs:11.3.0-0.29.0
+  if docker image inspect "${GRAFANA_IMAGE}" > /dev/null 2>&1; then
+    echo "[BUILD] ${GRAFANA_IMAGE} 已存在，跳过构建"
+    return
+  fi
   cd ${DOCKER_DIR}/grafana/
   docker build \
     --build-arg GRAFANA_VERSION=11.3.0 \
     --build-arg VICTORIA_LOGS_DATASOURCE_VERSION=0.29.0 \
-    -t openjiuwen/grafana-victorialogs:11.3.0-0.29.0 .
+    -t "${GRAFANA_IMAGE}" .
 }
 
 function docker_save_package() {
@@ -199,4 +294,4 @@ function package() {
   tar -czvf AgentBuilder.tar.gz ./image ./compose ./k8s
 }
 
-main
+main "$@"

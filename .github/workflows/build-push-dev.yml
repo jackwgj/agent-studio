@@ -99,6 +99,9 @@ jobs:
           rm -rf docker/studio-runtime/model_service
           test -d packages/model_service/model_service
           cp -rf packages/model_service/model_service docker/studio-runtime/model_service
+          rm -rf docker/studio-runtime/storage
+          test -d packages/storage/storage
+          cp -rf packages/storage/storage docker/studio-runtime/storage
           rm -rf docker/studio-runtime/tests
           cp -rf agent-runtime/tests docker/studio-runtime/tests
           rm -rf docker/studio-runtime/bin
@@ -117,6 +120,13 @@ jobs:
                  docker/studio-runtime/agent-core/__pycache__ \
                  docker/studio-runtime/agent-core/.pytest_cache \
                  docker/studio-runtime/agent-core/report
+
+      - name: Prepare studio-builder artifacts
+        run: |
+          rm -rf docker/studio-builder/agent_builder docker/studio-builder/model_service docker/studio-builder/storage
+          cp -rf agent_builder docker/studio-builder/agent_builder
+          cp -rf packages/model_service/model_service docker/studio-builder/model_service
+          cp -rf packages/storage/storage docker/studio-builder/storage
 
       - name: Use official package repositories in CI
         shell: bash
@@ -139,6 +149,7 @@ jobs:
             docker/studio-service
             docker/studio-console
             docker/studio-runtime
+            docker/studio-builder
           retention-days: 1
           if-no-files-found: error
 
@@ -151,7 +162,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        service: [studio-manager, studio-service, studio-console, studio-runtime]
+        service: [studio-manager, studio-service, studio-console, studio-runtime, studio-builder]
         arch: [amd64, arm64]
 
     steps:
@@ -198,6 +209,7 @@ jobs:
             studio-service) BASE_IMAGE=eclipse-temurin:17-jre; DOCKERFILE=Dockerfile ;;
             studio-console) BASE_IMAGE=nginx:1.27; DOCKERFILE=Dockerfile ;;
             studio-runtime) BASE_IMAGE=python:3.11-slim; DOCKERFILE=Dockerfile.dev ;;
+            studio-builder) BASE_IMAGE=python:3.11-slim; DOCKERFILE=Dockerfile ;;
           esac
           if [ "${ARCH}" = amd64 ]; then SUFFIX=x86_64; else SUFFIX=arm64; fi
           TAG="dev-${BUILD_TS}.${SUFFIX}"
@@ -212,8 +224,74 @@ jobs:
             --push \
             "docker/${SERVICE}"
 
+  build-grafana:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout agent-studio
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Resolve image repository config
+        id: image_config
+        shell: bash
+        env:
+          GHCR_IMAGE_REPOSITORY_OVERRIDE: ${{ vars.GHCR_IMAGE_REPOSITORY }}
+        run: |
+          set -euo pipefail
+          REPOSITORY_LOWER=$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')
+          GHCR_IMAGE_REPOSITORY="${GHCR_IMAGE_REPOSITORY_OVERRIDE:-ghcr.io/${REPOSITORY_LOWER}}"
+          echo "ghcr_registry=${GHCR_IMAGE_REPOSITORY%%/*}" >> "${GITHUB_OUTPUT}"
+          echo "ghcr_repository=${GHCR_IMAGE_REPOSITORY}" >> "${GITHUB_OUTPUT}"
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ steps.image_config.outputs.ghcr_registry }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check existing Grafana multi-architecture image
+        id: grafana_image
+        shell: bash
+        env:
+          IMAGE: ${{ steps.image_config.outputs.ghcr_repository }}/grafana-victorialogs:11.3.0-0.29.0
+        run: |
+          set -euo pipefail
+          EXISTS=false
+          if MANIFEST=$(docker buildx imagetools inspect --raw "${IMAGE}" 2>/dev/null); then
+            AMD64=$(jq -r '[.manifests[]? | select(.platform.os == "linux" and .platform.architecture == "amd64")] | length' <<<"${MANIFEST}")
+            ARM64=$(jq -r '[.manifests[]? | select(.platform.os == "linux" and .platform.architecture == "arm64")] | length' <<<"${MANIFEST}")
+            if [ "${AMD64}" -gt 0 ] && [ "${ARM64}" -gt 0 ]; then
+              EXISTS=true
+              echo "Grafana image already contains linux/amd64 and linux/arm64; skipping build."
+            fi
+          fi
+          echo "exists=${EXISTS}" >> "${GITHUB_OUTPUT}"
+
+      - name: Build and push Grafana multi-architecture image
+        if: steps.grafana_image.outputs.exists != 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: docker/grafana
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.image_config.outputs.ghcr_repository }}/grafana-victorialogs:11.3.0-0.29.0
+          build-args: |
+            GRAFANA_VERSION=11.3.0
+            VICTORIA_LOGS_DATASOURCE_VERSION=0.29.0
+          cache-from: type=gha,scope=grafana-victorialogs
+          cache-to: type=gha,scope=grafana-victorialogs,mode=max
+
   summary:
-    needs: [prepare, build-and-push]
+    needs: [prepare, build-and-push, build-grafana]
     runs-on: ubuntu-latest
     steps:
       - name: Print image summary
