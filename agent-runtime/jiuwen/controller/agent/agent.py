@@ -975,7 +975,7 @@ class Agent(BaseAgent):
             logger.error(f"[SkillDownload] Failed to create directory {skill_local_path_prefix}: {e}")
             return False
 
-        from agent_runtime.storage.object_storage import get_storage_provider
+        from storage import get_storage_provider
 
         all_success = True
         for skill in self.skill_info:

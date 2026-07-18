@@ -11,7 +11,7 @@ from jiuwen.common.exception import JiuWenBaseException
 from jiuwen.common.exception.status_code import StatusCode
 from jiuwen.common.log.base import logger
 from jiuwen.common.net import Connector
-from agent_runtime.storage.object_storage import get_storage_provider
+from storage import get_storage_provider
 from jiuwen.deep_research.env_constants import (
     MAX_TEMPLATE_CACHE_NUM_KEY,
     TEMPLATE_CACHE_ENABLE_KEY,

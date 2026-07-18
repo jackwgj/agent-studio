@@ -17,7 +17,7 @@ from typing import Any, Optional
 from cachetools import LRUCache
 from agent_runtime.common.redis_manager import get_redis_client
 
-from agent_runtime.storage.object_storage import get_storage_provider
+from storage import get_storage_provider
 from agent_runtime.common.config import settings
 from jiuwen.common.exception.base import JiuWenBaseException
 from jiuwen.common.exception.status_code import StatusCode

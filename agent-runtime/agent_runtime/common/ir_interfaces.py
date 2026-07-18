@@ -10,114 +10,22 @@ IR 相关接口定义 — 供 agentBuilder-engine workflow runner 使用的抽�
 - ModelConfigProvider   → agent_runtime.common.model_providers
 """
 
-import os
 from abc import ABC, abstractmethod
 from typing import Optional
 
 from agent_runtime.common.exception.errors import AgentBuilderError, ExtensionStatusCode
 from openjiuwen.core.workflow.components.llm.llm_comp import LLMCompConfig
 
-
-class StorageConfigError(AgentBuilderError):
-    """存储配置异常 — 环境变量缺失或无效"""
-
-    def __init__(self, msg: str = "", **kwargs):
-        super().__init__(ExtensionStatusCode.STORAGE_CONFIG_ERROR, msg=msg, **kwargs)
-
-
-class StorageReadError(AgentBuilderError):
-    """存储读取异常 — 下载对象失败"""
-
-    def __init__(self, msg: str = "", **kwargs):
-        super().__init__(ExtensionStatusCode.STORAGE_READ_ERROR, msg=msg, **kwargs)
-
-
-class StorageWriteError(AgentBuilderError):
-    """存储写入异常 — 上传对象失败"""
-
-    def __init__(self, msg: str = "", **kwargs):
-        super().__init__(ExtensionStatusCode.STORAGE_WRITE_ERROR, msg=msg, **kwargs)
-
-
-class StorageNotFoundError(StorageReadError):
-    """存储对象不存在（S3 404/NoSuchKey 或本地文件缺失）— 区别于传输层读失败。
-
-    继承 ``StorageReadError`` 以兼容既有 ``except StorageReadError`` 的调用方（404 仍被捕获）；
-    上层（如 model_service.resolver）可按子类区分"未配置"（→None）与"OBS 不可达"（→读错误）。
-    """
-
-    def __init__(self, msg: str = "", **kwargs):
-        super().__init__(msg=msg, **kwargs)
-
-
-class ObjectStorageProvider(ABC):
-    """对象存储提供者抽象类
-
-    扩展时继承此类并实现 get_content()，然后通过
-    WorkflowRunner 注入。
-    """
-
-    @abstractmethod
-    async def get_content(self, object_key: str) -> str:
-        """读取对象内容，返回 UTF-8 字符串
-
-        Args:
-            object_key: 对象 key（如 workflow/ir/xxx/xxx.json）
-
-        Returns:
-            str: 对象内容的 UTF-8 字符串
-
-        Raises:
-            StorageReadError: 读取失败
-        """
-
-    async def list_keys(self, prefix: str) -> list[str]:
-        """列出指定前缀下的所有对象 key
-
-        Args:
-            prefix: 对象 key 前缀（如 "model-auth/auth/0/provider-id/"）
-
-        Returns:
-            list[str]: 匹配的对象 key 列表
-
-        Note:
-            默认实现返回空列表；子类可按需覆写。
-        """
-        return []
-
-    async def get_object_bytes(self, object_key: str) -> bytes:
-        """读取对象原始字节
-
-        默认实现基于 get_content() 转换，子类可覆写为更高效的字节读取。
-
-        Args:
-            object_key: 对象 key
-
-        Returns:
-            bytes: 对象原始字节内容
-
-        Raises:
-            StorageReadError: 读取失败
-        """
-        content = await self.get_content(object_key)
-        return content.encode("utf-8")
-
-    async def download_to_file(self, object_key: str, local_path: str) -> None:
-        """下载对象到本地文件
-
-        默认实现基于 get_object_bytes()，子类可覆写为流式下载。
-
-        Args:
-            object_key: 对象 key
-            local_path: 本地保存路径
-
-        Raises:
-            StorageReadError: 读取或写入失败
-        """
-        data = await self.get_object_bytes(object_key)
-        os.makedirs(os.path.dirname(local_path), exist_ok=True)
-        with open(local_path, "wb") as f:
-            f.write(data)
+# Storage 异常与 ObjectStorageProvider 已迁移至共享包 ``storage``（agent_runtime /
+# agent_builder 共用）。这里保留为别名，使 ``from agent_runtime.common.ir_interfaces
+# import StorageNotFoundError`` 等既有引用继续可用（同一类对象）。
+from storage.exceptions import (  # noqa: F401
+    StorageConfigError,
+    StorageNotFoundError,
+    StorageReadError,
+    StorageWriteError,
+)
+from storage.object_storage import ObjectStorageProvider  # noqa: F401
 
 
 class ModelConfigProvider(ABC):

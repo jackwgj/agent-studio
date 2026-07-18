@@ -16,7 +16,7 @@ from pydantic import BaseModel, Field
 
 from agent_runtime.common.config import settings
 from agent_runtime.utils.file_parser import FileParser
-from agent_runtime.storage.object_storage import S3StorageProvider
+from storage import S3StorageProvider
 from jiuwen.common.utils.utils import illegal_url
 
 inner_tools_router = APIRouter(tags=["inner_tools"])

@@ -27,10 +27,11 @@ RUN pip3 config set global.index-url https://mirrors.aliyun.com/pypi/simple/ \
     && rm -rf ${PACKAGES_HOME}/future/backports/test
 
 # 再复制应用代码（变更频率高，放在依赖安装之后）
-COPY agent_builder/ $SERVICE_HOME/app/agent_builder/
+# 注：agent_builder 已从 studio-runtime 镜像剥离，独立构建为 studio-builder 镜像
 COPY agent_runtime/ $SERVICE_HOME/app/agent_runtime/
 COPY jiuwen/ $SERVICE_HOME/app/jiuwen/
 COPY model_service/ $SERVICE_HOME/app/model_service/
+COPY storage/ $SERVICE_HOME/app/storage/
 COPY tests/ $SERVICE_HOME/app/tests/
 COPY bin/ $SERVICE_HOME/bin/
 # Nginx load balancing configuration and scripts

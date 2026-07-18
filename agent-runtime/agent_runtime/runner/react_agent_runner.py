@@ -462,7 +462,7 @@ class ReActAgentRunner:
             local_zip_path = os.path.join(skill_local_path_prefix, f"{skill_name}.zip")
 
             try:
-                from agent_runtime.storage.object_storage import get_storage_provider
+                from storage import get_storage_provider
                 provider = get_storage_provider()
                 await provider.download_to_file(object_key=skill_path, local_path=local_zip_path)
 

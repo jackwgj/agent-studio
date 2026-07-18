@@ -25,20 +25,53 @@ import asyncio
 import inspect
 import os
 import threading
+from abc import ABC, abstractmethod
 from typing import Optional
 
 import aioboto3
-from agent_runtime.common.config import settings
-from agent_runtime.common.ir_interfaces import (
-    ObjectStorageProvider,
+from botocore.config import Config as BotoConfig
+from botocore.exceptions import ClientError
+from openjiuwen.core.common.logging import workflow_logger
+
+# 解耦：不 import agent_runtime.common.config / ir_interfaces。settings 经宿主注入（ports），
+# 异常用本包 exceptions，ObjectStorageProvider ABC 由本包定义（含 CUSTOM 实现的 importlib 加载）。
+from .ports import get_settings
+from .exceptions import (
     StorageConfigError,
     StorageNotFoundError,
     StorageReadError,
     StorageWriteError,
 )
-from botocore.config import Config as BotoConfig
-from botocore.exceptions import ClientError
-from openjiuwen.core.common.logging import workflow_logger
+
+
+class _SettingsShim:
+    """解耦垫片：远程代码用 ``settings.object_storage.X``，重定向到宿主注入的 get_settings()。
+
+    这样远程 object_storage 的 526 行 body 无需逐处改 ``settings.object_storage`` → ``get_settings()``，
+    ``settings.object_storage.server`` 等照常工作（shim.object_storage → get_settings() → 宿主 OS settings）。
+    """
+
+    @property
+    def object_storage(self):
+        return get_settings()
+
+
+settings = _SettingsShim()
+
+
+class ObjectStorageProvider(ABC):
+    """对象存储提供者抽象类（迁移自 agent_runtime.common.ir_interfaces，由本共享包定义）。
+
+    扩展时继承此类并实现 get_content()；CUSTOM 类型经 importlib 加载的实现也须继承本类。
+    """
+
+    @abstractmethod
+    async def get_content(self, object_key: str) -> str:
+        """读取对象内容，返回 UTF-8 字符串。"""
+
+    async def list_keys(self, prefix: str) -> list[str]:
+        """列出指定前缀下的对象 key；默认返回空列表，子类可覆写。"""
+        return []
 
 
 def _is_s3_not_found(client_error: ClientError) -> bool:

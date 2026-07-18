@@ -37,7 +37,7 @@ from agent_runtime.moderation.stream_moderation import (
     block_event_generator,
     init_moderation_from_ir,
 )
-from agent_runtime.storage import get_storage_provider
+from storage import get_storage_provider
 from fastapi import APIRouter, Body, Query, Request
 from fastapi.responses import JSONResponse, StreamingResponse, PlainTextResponse
 from jiuwen.common.exception import JiuWenBaseException
@@ -46,7 +46,8 @@ from jiuwen.serve.controllers.execution.manager import AsyncStateManager
 from jiuwen.serve.controllers.execution.open_utils import async_ir_load, cache_workflow_queue
 from openjiuwen.core.common.logging import workflow_logger
 from pydantic import ValidationError
-from agent_builder.nl_to_agent.nl2 import N2LRequestBody, _n2l_json_wapper, _chat
+# 注：N2L chat 端点已随 agent_builder 抽离到 studio-builder 镜像（agent_builder/serve/apis/n2l_api.py），
+# runtime 不再 import agent_builder.nl_to_agent.nl2（避免 runtime→agent_builder 耦合）。
 
 
 execution_app = APIRouter(tags=["execution_app"])
@@ -367,25 +368,9 @@ async def delete_ir_execution_instance(req_json: dict):
     }
 
 
-@execution_app.post("/v1/{project_id}/{agent_type}/generator/conversations/{cid}/chat")
-async def chat_n2l(project_id: str, agent_type: str, cid: str, body: N2LRequestBody,
-                   request: Request) -> StreamingResponse:
-    workflow_logger.debug(
-        "NL2 Chat Request - URL: %s %s", request.method, request.url
-    )
-    workflow_logger.debug(
-        "NL2 Chat Request - Headers: %s",
-        json.dumps(dict(request.headers), ensure_ascii=False),
-    )
-    workflow_logger.debug(
-        "NL2 Chat Request - Body: %s",
-        json.dumps(body.model_dump(exclude_unset=True), ensure_ascii=False),
-    )
-    # 包装req_json，使得和jiuwen的chat_build接口保持json格式一致
-    payload = _n2l_json_wapper(project_id, agent_type, cid, body.model_dump(exclude_unset=True), request)
-    # run chat
-    chat_response = await _chat(payload)
-    return chat_response
+# 注：N2L chat 端点（/v1/{project_id}/{agent_type}/generator/conversations/{cid}/chat）
+# 已随 agent_builder 抽离到 studio-builder 镜像（agent_builder/serve/apis/n2l_api.py）。
+
 
 # ── Additional Questions (追问) ──────────────────────────────────────
 _additional_questions_service: AdditionalQuestionsService | None = None
