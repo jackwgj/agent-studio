@@ -30,6 +30,11 @@ function main() {
   log "[3/3] studio-runtime 源码复制"
   runtime_copy
   log "[3/3] studio-runtime 源码复制完成"
+
+  # 仅记录本次制品对应的源码，用于离线构建前判断制品是否过期。
+  if [ -f "${WORKSPACE}/docker/source_hash.sh" ]; then
+    bash "${WORKSPACE}/docker/source_hash.sh" > "${WORKSPACE}/docker/.source-build-hash"
+  fi
 #  默认编译和构建在同一环境执行，跳过清理步骤。若编译与构建跨环境（如构建环境不具备安装docker的环境），需放开以下步骤，将编译产物打成压缩包并清理中间文件
 #  package_clean
 #  log "构建打包全部完成"
@@ -153,7 +158,7 @@ function package() {
   if [ -f "package.tar.gz" ]; then
       rm -f "package.tar.gz"
   fi
-  tar -czvf package.tar.gz ./compose ./k8s ./studio-manager ./studio-service ./studio-runtime ./studio-console ./build.sh
+  tar -czvf package.tar.gz ./compose ./k8s ./studio-manager ./studio-service ./studio-runtime ./studio-builder ./studio-console ./build.sh
 }
 
 function clean() {

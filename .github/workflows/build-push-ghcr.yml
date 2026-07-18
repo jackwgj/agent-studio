@@ -77,17 +77,24 @@ jobs:
           cp -rf agent-runtime/agent_runtime docker/studio-runtime/agent_runtime
           rm -rf docker/studio-runtime/jiuwen
           cp -rf agent-runtime/jiuwen docker/studio-runtime/jiuwen
-          rm -rf docker/studio-runtime/agent_builder
-          test -d agent_builder
-          cp -rf agent_builder docker/studio-runtime/agent_builder
           rm -rf docker/studio-runtime/model_service
           test -d packages/model_service/model_service
           cp -rf packages/model_service/model_service docker/studio-runtime/model_service
+          rm -rf docker/studio-runtime/storage
+          test -d packages/storage/storage
+          cp -rf packages/storage/storage docker/studio-runtime/storage
           rm -rf docker/studio-runtime/tests
           cp -rf agent-runtime/tests docker/studio-runtime/tests
           cp -f agent-runtime/requirements.txt docker/studio-runtime/requirements.txt
           rm -rf docker/studio-runtime/bin
           cp -rf docker/studio-runtime/script docker/studio-runtime/bin
+
+      - name: Prepare studio-builder artifacts
+        run: |
+          rm -rf docker/studio-builder/agent_builder docker/studio-builder/model_service docker/studio-builder/storage
+          cp -rf agent_builder docker/studio-builder/agent_builder
+          cp -rf packages/model_service/model_service docker/studio-builder/model_service
+          cp -rf packages/storage/storage docker/studio-builder/storage
 
       - name: Use official package repositories in CI
         shell: bash
@@ -110,6 +117,7 @@ jobs:
             docker/studio-service
             docker/studio-console
             docker/studio-runtime
+            docker/studio-builder
             docker/grafana
           retention-days: 1
           if-no-files-found: error
@@ -140,6 +148,10 @@ jobs:
             context_dir: studio-runtime
             base_image: python:3.11-slim
             cache_scope: studio-runtime
+          - service: studio-builder
+            context_dir: studio-builder
+            base_image: python:3.11-slim
+            cache_scope: studio-builder
           - service: grafana-victorialogs
             context_dir: grafana
             cache_scope: grafana-victorialogs
@@ -188,6 +200,25 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Check existing Grafana multi-architecture image
+        if: matrix.service == 'grafana-victorialogs'
+        id: grafana_image
+        shell: bash
+        env:
+          IMAGE: ${{ steps.image_config.outputs.ghcr_repository }}/grafana-victorialogs:11.3.0-0.29.0
+        run: |
+          set -euo pipefail
+          EXISTS=false
+          if MANIFEST=$(docker buildx imagetools inspect --raw "${IMAGE}" 2>/dev/null); then
+            AMD64=$(jq -r '[.manifests[]? | select(.platform.os == "linux" and .platform.architecture == "amd64")] | length' <<<"${MANIFEST}")
+            ARM64=$(jq -r '[.manifests[]? | select(.platform.os == "linux" and .platform.architecture == "arm64")] | length' <<<"${MANIFEST}")
+            if [ "${AMD64}" -gt 0 ] && [ "${ARM64}" -gt 0 ]; then
+              EXISTS=true
+              echo "Grafana image already contains linux/amd64 and linux/arm64; skipping build."
+            fi
+          fi
+          echo "exists=${EXISTS}" >> "${GITHUB_OUTPUT}"
+
       - name: Login to Docker Hub
         if: matrix.service != 'grafana-victorialogs' && steps.image_config.outputs.dockerhub_enabled == 'true'
         uses: docker/login-action@v3
@@ -196,6 +227,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build and push ${{ matrix.service }}
+        if: matrix.service != 'grafana-victorialogs' || steps.grafana_image.outputs.exists != 'true'
         uses: docker/build-push-action@v6
         with:
           context: docker/${{ matrix.context_dir }}

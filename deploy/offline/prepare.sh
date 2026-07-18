@@ -79,7 +79,7 @@ build_and_save_images() {
     docker pull "${BASE_IMAGE_NGINX}" || log_warn "基础镜像 ${BASE_IMAGE_NGINX} 拉取失败，尝试使用本地缓存"
     docker pull "${BASE_IMAGE_PYTHON}" || log_warn "基础镜像 ${BASE_IMAGE_PYTHON} 拉取失败，尝试使用本地缓存"
 
-    # ---- 检查是否已有编译产物 ----
+    # ---- 检查编译产物是否完整且与当前源码一致 ----
     local need_build=false
     # 产物路径需与 package.sh 实际输出一致：
     #   console 产出 agent-console.tar（不是 dist/ 目录）
@@ -89,6 +89,18 @@ build_and_save_images() {
        [ ! -f "${DOCKER_DIR}/studio-console/agent-console.tar" ] || \
        [ ! -f "${DOCKER_DIR}/studio-runtime/agent_runtime/EIStart.py" ]; then
         need_build=true
+    fi
+
+    local hash_script="${DOCKER_DIR}/source_hash.sh"
+    local hash_file="${DOCKER_DIR}/.source-build-hash"
+    if [ "${need_build}" = false ] && [ -f "${hash_script}" ]; then
+        local current_hash recorded_hash
+        current_hash=$(bash "${hash_script}" 2>/dev/null || true)
+        recorded_hash=$(cat "${hash_file}" 2>/dev/null || true)
+        if [ -z "${current_hash}" ] || [ "${current_hash}" != "${recorded_hash}" ]; then
+            log_warn "现有编译产物与当前源码指纹不一致"
+            need_build=true
+        fi
     fi
 
     if [ "${need_build}" = true ]; then
@@ -109,32 +121,52 @@ build_and_save_images() {
     fi
 
     # ---- 构建应用镜像和内置日志数据源的 Grafana 镜像 ----
-    log_info "[1/5] 构建 studio-manager 镜像..."
+    log_info "[1/6] 构建 studio-manager 镜像..."
     cd "${DOCKER_DIR}/studio-manager"
     docker build --build-arg BASE_IMAGE="${BASE_IMAGE_JAVA}" \
         -t "studio-manager:${IMAGE_TAG}" .
 
-    log_info "[2/5] 构建 studio-service 镜像..."
+    log_info "[2/6] 构建 studio-service 镜像..."
     cd "${DOCKER_DIR}/studio-service"
     docker build --build-arg BASE_IMAGE="${BASE_IMAGE_JAVA}" \
         -t "studio-service:${IMAGE_TAG}" .
 
-    log_info "[3/5] 构建 studio-console 镜像..."
+    log_info "[3/6] 构建 studio-console 镜像..."
     cd "${DOCKER_DIR}/studio-console"
     docker build --build-arg BASE_IMAGE="${BASE_IMAGE_NGINX}" \
         -t "studio-console:${IMAGE_TAG}" .
 
-    log_info "[4/5] 构建 studio-runtime 镜像..."
+    log_info "[4/6] 构建 studio-runtime 镜像..."
     cd "${DOCKER_DIR}/studio-runtime"
     docker build --build-arg BASE_IMAGE="${BASE_IMAGE_PYTHON}" \
         -t "studio-runtime:${IMAGE_TAG}" .
 
-    log_info "[5/5] 构建内置 VictoriaLogs 数据源的 Grafana 镜像..."
-    cd "${DOCKER_DIR}/grafana"
-    docker build \
-        --build-arg GRAFANA_VERSION=11.3.0 \
-        --build-arg VICTORIA_LOGS_DATASOURCE_VERSION=0.29.0 \
-        -t "openjiuwen/grafana-victorialogs:11.3.0-0.29.0" .
+    log_info "[5/6] 构建 studio-builder 镜像..."
+    rm -rf "${DOCKER_DIR}/studio-builder/agent_builder" \
+           "${DOCKER_DIR}/studio-builder/model_service" \
+           "${DOCKER_DIR}/studio-builder/storage"
+    cp -rf "${PROJECT_DIR}/agent_builder" "${DOCKER_DIR}/studio-builder/agent_builder"
+    cp -rf "${PROJECT_DIR}/packages/model_service/model_service" "${DOCKER_DIR}/studio-builder/model_service"
+    cp -rf "${PROJECT_DIR}/packages/storage/storage" "${DOCKER_DIR}/studio-builder/storage"
+    cd "${DOCKER_DIR}/studio-builder"
+    if ! docker build --build-arg BASE_IMAGE="${BASE_IMAGE_PYTHON}" \
+        -t "studio-builder:${IMAGE_TAG}" .; then
+        rm -rf agent_builder model_service storage
+        return 1
+    fi
+    rm -rf agent_builder model_service storage
+
+    log_info "[6/6] 构建内置 VictoriaLogs 数据源的 Grafana 镜像..."
+    local grafana_image="openjiuwen/grafana-victorialogs:11.3.0-0.29.0"
+    if docker image inspect "${grafana_image}" > /dev/null 2>&1; then
+        log_info "${grafana_image} 已存在，跳过构建"
+    else
+        cd "${DOCKER_DIR}/grafana"
+        docker build \
+            --build-arg GRAFANA_VERSION=11.3.0 \
+            --build-arg VICTORIA_LOGS_DATASOURCE_VERSION=0.29.0 \
+            -t "${grafana_image}" .
+    fi
 
     log_info "所有镜像构建完成"
 }
@@ -145,7 +177,7 @@ build_and_save_images() {
 save_images() {
     log_step "导出应用 Docker 镜像到 tar 文件..."
 
-    local images=("studio-manager" "studio-service" "studio-console" "studio-runtime")
+    local images=("studio-manager" "studio-service" "studio-console" "studio-runtime" "studio-builder")
 
     for image in "${images[@]}"; do
         local tar_name="${image}_${BUILD_TIME}.${BUILD_PLATFORM}.tar"
@@ -271,6 +303,7 @@ STUDIO_CONSOLE_IMAGE=studio-console:${IMAGE_TAG}
 STUDIO_MANAGER_IMAGE=studio-manager:${IMAGE_TAG}
 STUDIO_SERVICE_IMAGE=studio-service:${IMAGE_TAG}
 STUDIO_RUNTIME_IMAGE=studio-runtime:${IMAGE_TAG}
+STUDIO_BUILDER_IMAGE=studio-builder:${IMAGE_TAG}
 EOF
 
     log_info "镜像信息文件已生成"
@@ -322,7 +355,7 @@ main() {
     echo "  离线部署包: ${SCRIPT_DIR}/AgentBuilder-offline-${VERSION}.tar.gz"
     echo ""
     echo "  离线包内容："
-    echo "    images/              - 4个应用镜像 tar + image_info.txt"
+    echo "    images/              - 5个应用镜像 tar + image_info.txt"
     echo "    dep-images/          - MySQL/Redis/MinIO/MC 镜像 tar"
     echo "    scripts/             - 辅助脚本（install-docker-offline）"
     echo "    config/nginx.conf    - Nginx 配置（HTTP 模式）"
