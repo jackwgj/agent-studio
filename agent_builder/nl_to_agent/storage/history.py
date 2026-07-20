@@ -259,15 +259,16 @@ class SessionStorage(metaclass=Singleton):
     ) -> bool:
         """保存会话状态。"""
         redis_client = SessionStorage._get_sync_redis_client()
-        redis_client.set(f"agent:{task_id}", state)
+        ttl = int(os.getenv(DATASOURCE_REDIS_TTL_KEY, EXPIRATION_TIME))
+        redis_client.set(f"agent:{task_id}", state, ex=ttl)
         redis_client.set(
-            f"resource:{task_id}", json.dumps(resource_config)
+            f"resource:{task_id}", json.dumps(resource_config), ex=ttl
         )
         redis_client.set(
-            f"plugin_dict:{task_id}", json.dumps(plugin_dict)
+            f"plugin_dict:{task_id}", json.dumps(plugin_dict), ex=ttl
         )
         redis_client.set(
-            f"workflow_dict:{task_id}", json.dumps(workflow_dict)
+            f"workflow_dict:{task_id}", json.dumps(workflow_dict), ex=ttl
         )
         return True
 
@@ -345,15 +346,16 @@ class AsyncSessionStorage(metaclass=Singleton):
     ) -> bool:
         """保存会话状态。"""
         redis_client = await AsyncSessionStorage._get_async_redis_client()
-        await redis_client.set(f"agent:{task_id}", state)
+        ttl = int(os.getenv(DATASOURCE_REDIS_TTL_KEY, EXPIRATION_TIME))
+        await redis_client.set(f"agent:{task_id}", state, ex=ttl)
         await redis_client.set(
-            f"resource:{task_id}", json.dumps(resource_config)
+            f"resource:{task_id}", json.dumps(resource_config), ex=ttl
         )
         await redis_client.set(
-            f"plugin_dict:{task_id}", json.dumps(plugin_dict)
+            f"plugin_dict:{task_id}", json.dumps(plugin_dict), ex=ttl
         )
         await redis_client.set(
-            f"workflow_dict:{task_id}", json.dumps(workflow_dict)
+            f"workflow_dict:{task_id}", json.dumps(workflow_dict), ex=ttl
         )
         return True
 
