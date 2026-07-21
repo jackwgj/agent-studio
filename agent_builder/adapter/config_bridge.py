@@ -95,6 +95,11 @@ class RedisSettings(BaseSettings):
     ssl_ca_cert: str = Field(default="", validation_alias="REDIS_SSL_CA_CERT")
     ssl_cert_file: str = Field(default="", validation_alias="REDIS_SSL_CERT_FILE")
     ssl_key_file: str = Field(default="", validation_alias="REDIS_SSL_KEY_FILE")
+    # Redis 写入 TTL（秒）：用于会话状态、对话历史等业务的过期兜底，防止 key 永久驻留。
+    # 与 agent_runtime 侧 jiuwen RedisUtils.set 的 REDIS_TTL 跨进程约定保持同名。
+    datasource_ttl_seconds: int = Field(
+        default=3 * 24 * 60 * 60, validation_alias="REDIS_TTL"
+    )
 
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore"
