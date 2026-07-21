@@ -400,7 +400,8 @@ class ReActAgentRunner:
                 # 注册 Tool 到 resource_mgr
                 try:
                     wt_instance = ReactWorkflowAdapter(
-                        workflow_instance=wf_instance,
+                        ir_data=sub_ir,
+                        card_id=wf_instance.card.id,
                         workflow_name=wf_name,
                         workflow_desc=wf_desc,
                         input_params=input_params,
