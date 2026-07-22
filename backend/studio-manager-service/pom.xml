@@ -536,6 +536,12 @@
                 </exclusion>
             </exclusions>
         </dependency>
+
+        <!-- 平台 SSO：校验本平台 IdP 签发的 HS256 JWT（版本由父 pom dependencyManagement 管理） -->
+        <dependency>
+            <groupId>com.nimbusds</groupId>
+            <artifactId>nimbus-jose-jwt</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.apache.avro</groupId>
             <artifactId>avro</artifactId>

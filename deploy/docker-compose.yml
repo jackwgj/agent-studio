@@ -156,9 +156,17 @@ services:
       server_ssl_key_store_password: ${SERVER_SSL_KEY_STORE_PASSWORD:-}
       server_ssl_key_password: ${SERVER_SSL_KEY_PASSWORD:-}
       agent_runtime_endpoint: ${AGENT_RUNTIME_ENDPOINT:-http://studio-service:31113}
+      # 修复 model-test 流式报 03000000：新版 manager 流式代理实际读取此属性，未注入则为空→no scheme
+      inner.agent-runtime.endpoint: ${INNER_AGENT_RUNTIME_ENDPOINT:-http://studio-service:31113}
+      # 第二轮修复：从 jar class AgentServiceProxyService 确认实际属性名为 agent_builder_endpoint
+      agent_builder_endpoint: ${AGENT_BUILDER_ENDPOINT:-http://studio-service:31113}
       user_auth_endpoint: ${USER_AUTH_ENDPOINT:-http://studio-manager:31111}
       jiu_wen_service_endpoint: ${JIUWEN_BASE_URL:-http://studio-runtime:31014}
       jiuwen_base_url: ${JIUWEN_BASE_URL:-http://studio-runtime:31014}
+      # 平台 IdP 融合：auth.provider=jwt 时启用自建 JWT 认证（替换华为 IAM）
+      auth_provider: ${AUTH_PROVIDER:-iam}
+      auth_jwt_secret: ${AUTH_JWT_SECRET:-}
+      auth_jwt_issuer: ${AUTH_JWT_ISSUER:-enterprise-digital-human}
       front_page_block_nodes: ${FRONT_PAGE_BLOCK_NODES:-Sql,DataQuery,Agent}
       share_knowledge_enabled: ${SHARE_KNOWLEDGE_ENABLED:-true}
       workflow_async_enable: ${WORKFLOW_ASYNC_ENABLED:-true}

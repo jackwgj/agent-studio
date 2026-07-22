@@ -27,6 +27,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.method.HandlerMethod;
@@ -49,6 +50,9 @@ public class IamTokenAuthItem implements AuthItem {
 
     @Autowired
     private IamConsoleFeignClient iamConsoleFeignClient;
+
+    @Value("${auth.provider:iam}")
+    private String authProvider;
 
     @Override
     public boolean isMatch(HttpServletRequest request, String urlPath) {
@@ -73,6 +77,10 @@ public class IamTokenAuthItem implements AuthItem {
     @Override
     public boolean auth(HttpServletRequest request, HttpServletResponse response) {
         log.info("IamAuthItem Enter afterReceiveRequest.");
+        // 灰度开关：auth.provider=jwt 时跳过华为 IAM，交由 JwtTokenAuthItem 校验平台 JWT
+        if ("jwt".equalsIgnoreCase(authProvider)) {
+            return true;
+        }
         try {
             String iamToken = request.getHeader(HeaderConstant.HEADER_X_AUTH_TOKEN);
             if (StringUtil.isEmptyString(iamToken)) {

@@ -6,6 +6,7 @@ package com.openjiuwen.studio.agent.space.app.filter.authitem;
 
 import com.openjiuwen.studio.agent.space.app.filter.authitem.impl.ApiGWAuthItem;
 import com.openjiuwen.studio.agent.space.app.filter.authitem.impl.IamTokenAuthItem;
+import com.openjiuwen.studio.agent.space.app.filter.authitem.impl.JwtTokenAuthItem;
 import com.openjiuwen.studio.agent.space.app.filter.authitem.impl.OpenApiAccessKeyAuthItem;
 
 import jakarta.annotation.PostConstruct;
@@ -48,9 +49,12 @@ public class OpenapiAuthItemManager {
     @Autowired
     private IamTokenAuthItem iamtokenAuthItem;
 
+    @Autowired
+    private JwtTokenAuthItem jwtTokenAuthItem;
+
     @PostConstruct
     public void init() {
-        authItemList = Arrays.asList(apiGWAuthItem, openApiAccessKeyAuthItem, iamtokenAuthItem);
+        authItemList = Arrays.asList(apiGWAuthItem, openApiAccessKeyAuthItem, iamtokenAuthItem, jwtTokenAuthItem);
     }
 
     public boolean auth(HttpServletRequest request, HttpServletResponse response, String urlPath) {

@@ -764,6 +764,13 @@ saml:
   projectId: ${saml_projectId:0}
   redirectUrl: ${saml_redirectUrl:https://127.0.0.1:30001/modelarts/agent-builder/#/home/overview}
 
+# 平台 SSO：auth.provider=jwt 时启用本平台 JWT 校验（替换华为 IAM/SAML）
+auth:
+  provider: ${auth_provider:iam}
+  jwt-secret: ${auth_jwt_secret:}
+  jwt-issuer: ${auth_jwt_issuer:}
+  jwt-enforce: ${auth_jwt_enforce:false}
+
 apikey:
   enable: ${apikey_enable:false}
   sync:
