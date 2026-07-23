@@ -418,6 +418,16 @@ poc:
     default-domain-id: 0
 # =============== 轻量化版本 =========================
 
+# =============== 平台 SSO（JWT）鉴权 =========================
+# auth.provider=jwt 时启用 JwtAuthFilter（消费网关注入的 Authorization: Bearer），
+# 写入 RequestContextUtils(SimpleUser) 上下文，供模型调用链读取；默认 iam 时行为不变。
+auth:
+  provider: ${auth_provider:iam}
+  jwt-secret: ${auth_jwt_secret:}
+  jwt-issuer: ${auth_jwt_issuer:}
+  jwt-enforce: ${auth_jwt_enforce:false}
+# ===========================================================
+
 tenant:
   freeze:
     filter:

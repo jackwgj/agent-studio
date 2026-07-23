@@ -226,6 +226,11 @@ services:
       agent_manager_endpoint: ${AGENT_MANAGER_ENDPOINT:-http://studio-manager:31111}
       jiuwen_base_url: ${JIUWEN_BASE_URL:-http://studio-runtime:31014}
       koosearch_endpoint: ${KOOSEARCH_ENDPOINT:-}
+      # 平台 IdP 融合：auth.provider=jwt 时启用自建 JWT 认证（替换华为 IAM），供 runtime JwtAuthFilter 读取
+      auth_provider: ${AUTH_PROVIDER:-iam}
+      auth_jwt_secret: ${AUTH_JWT_SECRET:-}
+      auth_jwt_issuer: ${AUTH_JWT_ISSUER:-enterprise-digital-human}
+      auth_jwt_enforce: ${AUTH_JWT_ENFORCE:-false}
     depends_on:
       mysql:
         condition: service_healthy

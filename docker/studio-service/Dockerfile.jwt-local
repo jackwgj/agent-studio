@@ -1,0 +1,55 @@
+# =============================================================================
+# Dockerfile.jwt-local — 本机快速构建 studio-service:jwt-local
+# 用途：在不做整套 Maven 重编译的前提下，将 studio-runtime-service 的
+#       JWT 鉴权类（JwtAuthFilter/JwtAuthConfig）与 auth 配置块注入到既有
+#       studio-service 镜像的 thin-jar 中，产出可用于本机联调的镜像。
+#
+# 说明：
+#   - studio-service 镜像为 thin-jar 布局：/opt/cloud/studio-service/app/ 下
+#     平铺 studio-service.jar(启动器) + 各依赖 jar；业务类位于
+#     studio-runtime-service-0.0.1.jar。nimbus-jose-jwt-10.3.jar 已在 app/。
+#   - Spring 主类(studio-runtime Application)的 @ComponentScan 覆盖
+#     com.openjiuwen.studio.agent.runtime，故本包类会被扫描注册。
+#   - 正式/CI 构建仍走标准 Maven（源码改动已提交），本文件仅为本机加速路径。
+#
+# 构建（Apple Silicon 原生 arm64）：
+#   docker build --platform linux/arm64 \
+#     -f docker/studio-service/Dockerfile.jwt-local \
+#     --build-arg SRC_IMAGE=ghcr.io/wowmarcomei/openjiuwen_agent_studio/studio-service:dev-20260718074725.arm64 \
+#     -t studio-service:jwt-local \
+#     backend/studio-runtime-service/src/main/java/com/openjiuwen/studio/agent/runtime/jwt
+# =============================================================================
+
+ARG SRC_IMAGE
+
+# ---- Stage 1: 取源镜像 app/ 作为编译 classpath ----
+FROM ${SRC_IMAGE} AS srcbase
+
+# ---- Stage 2: 编译 JWT 类并注入 runtime jar ----
+FROM eclipse-temurin:17-jdk AS builder
+WORKDIR /build
+COPY --from=srcbase /opt/cloud/studio-service/app /build/app
+# 构建上下文 = jwt 包目录，仅含两个 .java 源文件
+COPY JwtAuthFilter.java JwtAuthConfig.java /build/src/
+RUN set -eux; \
+    mkdir -p /build/classes; \
+    javac -encoding UTF-8 -cp "/build/app/*" -d /build/classes \
+        /build/src/JwtAuthFilter.java /build/src/JwtAuthConfig.java; \
+    cd /build/classes; \
+    jar uf /build/app/studio-runtime-service-0.0.1.jar \
+        com/openjiuwen/studio/agent/runtime/jwt/JwtAuthFilter.class \
+        com/openjiuwen/studio/agent/runtime/jwt/JwtAuthConfig.class; \
+    mkdir -p /build/ymlwork; cd /build/ymlwork; \
+    jar xf /build/app/studio-runtime-service-0.0.1.jar application-runtime.yml; \
+    if ! grep -qE '^  provider:' application-runtime.yml; then \
+        printf '\n# 平台 SSO（JWT）鉴权：auth.provider=jwt 时启用 JwtAuthFilter（追加到已存在的 auth: 块末尾，auth: 为 yml 最后顶层键）\n  provider: ${auth_provider:iam}\n  jwt-secret: ${auth_jwt_secret:}\n  jwt-issuer: ${auth_jwt_issuer:}\n  jwt-enforce: ${auth_jwt_enforce:false}\n' >> application-runtime.yml; \
+        jar uf /build/app/studio-runtime-service-0.0.1.jar application-runtime.yml; \
+    fi
+
+# ---- Stage 3: 产出最终镜像（覆盖注入后的 runtime jar）----
+FROM ${SRC_IMAGE}
+USER root
+COPY --from=builder /build/app/studio-runtime-service-0.0.1.jar /opt/cloud/studio-service/app/studio-runtime-service-0.0.1.jar
+RUN chmod 550 /opt/cloud/studio-service/app/studio-runtime-service-0.0.1.jar \
+    && chown service:service /opt/cloud/studio-service/app/studio-runtime-service-0.0.1.jar
+USER service
