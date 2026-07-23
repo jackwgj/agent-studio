@@ -255,6 +255,19 @@ export const HOME_ROUTES: Routes = [
   },
   ...agentCoreRoutes,
   {
+    path: 'new-task',
+    loadChildren: () =>
+      import('@routes/new-task/new-task-routing.module').then(
+        (module) => module.NewTaskRoutingModule,
+      ),
+    data: {
+      i18nextNamespaces: [I18nNamespace.AGENT_CENTER, I18nNamespace.PROMPT_PLATFORM],
+    },
+    resolve: {
+      i18next: I18NEXT_NAMESPACE_RESOLVER,
+    },
+  },
+  {
     path: 'memory-lib',
     loadChildren: () => import('@routes/memory-lib/memory-lib-routing.module').then(module => module.MemoryLibRoutingModule),
     data: {

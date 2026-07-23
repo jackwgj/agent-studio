@@ -1,0 +1,249 @@
+.new-task-page {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px 32px 96px;
+
+  .new-task-header {
+    margin-bottom: 24px;
+
+    .title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #1f1f1f;
+    }
+
+    .subtitle {
+      margin-top: 4px;
+      font-size: 14px;
+      color: #595959;
+    }
+  }
+
+  .new-task-steps {
+    background: #fff;
+    border-radius: 8px;
+    padding: 16px 24px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  }
+
+  .step-body {
+    background: #fff;
+    border-radius: 8px;
+    padding: 24px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    min-height: 320px;
+  }
+
+  .section-title {
+    font-size: 16px;
+    font-weight: 500;
+    color: #1f1f1f;
+    margin-bottom: 16px;
+  }
+
+  .agent-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
+  }
+
+  .agent-card {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px;
+    border: 1px solid #e5e6eb;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      border-color: #4096ff;
+      box-shadow: 0 2px 8px rgba(22, 119, 255, 0.12);
+    }
+
+    &.selected {
+      border-color: #1677ff;
+      background: #f0f7ff;
+    }
+
+    .agent-avatar {
+      width: 40px;
+      height: 40px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      background: #f0f2f5;
+      font-size: 20px;
+      color: #1677ff;
+      overflow: hidden;
+
+      img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+    }
+
+    .agent-info {
+      flex: 1;
+      min-width: 0;
+
+      .agent-name {
+        font-size: 14px;
+        font-weight: 500;
+        color: #1f1f1f;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .agent-desc {
+        margin-top: 4px;
+        font-size: 12px;
+        color: #8c8c8c;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+    }
+
+    .agent-check {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      color: #1677ff;
+      font-size: 16px;
+    }
+  }
+
+  .agent-fallback {
+    .manual-input {
+      margin-top: 16px;
+      max-width: 480px;
+    }
+  }
+
+  .form-item {
+    margin-bottom: 20px;
+    max-width: 640px;
+
+    .form-label {
+      font-size: 14px;
+      color: #1f1f1f;
+      margin-bottom: 8px;
+
+      &.required::before {
+        content: '*';
+        color: #ff4d4f;
+        margin-right: 4px;
+      }
+    }
+
+    .unit {
+      margin-left: 8px;
+      color: #8c8c8c;
+    }
+  }
+
+  .submit-error {
+    margin-top: 16px;
+  }
+
+  .progress-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    .section-title {
+      margin-bottom: 0;
+    }
+  }
+
+  .task-meta {
+    margin: 12px 0;
+    font-size: 13px;
+
+    .meta-label {
+      color: #8c8c8c;
+      margin-right: 8px;
+    }
+
+    .meta-value {
+      color: #1f1f1f;
+      font-family: monospace;
+    }
+  }
+
+  .output-box {
+    margin-top: 16px;
+    border: 1px solid #e5e6eb;
+    border-radius: 8px;
+    padding: 12px 16px;
+    background: #fafafa;
+
+    .output-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: #595959;
+      margin-bottom: 8px;
+    }
+
+    pre {
+      margin: 0;
+      font-size: 13px;
+      color: #1f1f1f;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 240px;
+      overflow: auto;
+    }
+  }
+
+  .event-timeline {
+    margin-top: 24px;
+    max-height: 320px;
+    overflow: auto;
+
+    .ev-time {
+      color: #8c8c8c;
+      font-size: 12px;
+      margin-right: 8px;
+    }
+
+    .ev-type {
+      color: #1677ff;
+      font-size: 12px;
+      margin-right: 8px;
+    }
+
+    .ev-text {
+      font-size: 13px;
+      color: #1f1f1f;
+      word-break: break-word;
+    }
+  }
+
+  .footer-bar {
+    position: sticky;
+    bottom: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #fff;
+    border-radius: 8px;
+    padding: 12px 24px;
+    margin-top: 16px;
+    box-shadow: 0 -1px 4px rgba(0, 0, 0, 0.06);
+
+    .right {
+      display: flex;
+      gap: 8px;
+    }
+  }
+}

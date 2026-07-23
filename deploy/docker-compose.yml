@@ -99,6 +99,9 @@ services:
     restart: always
     cpus: 0.5
     mem_limit: 512m
+    extra_hosts:
+      # 平台后端运行在宿主机 :8004，nginx /platform/v1 转发需要解析 host.docker.internal
+      - 'host.docker.internal:host-gateway'
     volumes:
       - ./config/nginx.conf:/home/conf/nginx.conf
       # HTTPS启动：取消以下注释，并将证书文件放到 ./config/ 目录

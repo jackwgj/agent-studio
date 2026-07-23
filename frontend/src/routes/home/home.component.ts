@@ -235,6 +235,17 @@ export class HomeComponent implements OnInit, OnDestroy {
                 isSelected: false,
                 router: ['/app-library'],
               },
+              /** 新建任务 */
+              {
+                id: 'new_task',
+                name: this.i18NextEagerPipe.transform('new_task'),
+                label: this.i18NextEagerPipe.transform('new_task'),
+                isGroup: false,
+                icon: cdnAssetUrl('assets/images/menu/my_flow.svg'),
+                iconSelected: cdnAssetUrl('assets/images/menu/my_flow_selected.svg'),
+                isSelected: false,
+                router: ['new-task'],
+              },
             ],
           },
           /** 开发中心 */
