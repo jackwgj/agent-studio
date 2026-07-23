@@ -61,3 +61,5 @@ env/
 .venv/
 venv/
 __pycache__/
+# Local custom docker build artifacts (populated by manual studio-manager build, never committed)
+docker/studio-manager/lib/

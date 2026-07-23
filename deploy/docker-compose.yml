@@ -167,6 +167,7 @@ services:
       auth_provider: ${AUTH_PROVIDER:-iam}
       auth_jwt_secret: ${AUTH_JWT_SECRET:-}
       auth_jwt_issuer: ${AUTH_JWT_ISSUER:-enterprise-digital-human}
+      auth_jwt_enforce: ${AUTH_JWT_ENFORCE:-false}
       front_page_block_nodes: ${FRONT_PAGE_BLOCK_NODES:-Sql,DataQuery,Agent}
       share_knowledge_enabled: ${SHARE_KNOWLEDGE_ENABLED:-true}
       workflow_async_enable: ${WORKFLOW_ASYNC_ENABLED:-true}
