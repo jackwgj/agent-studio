@@ -311,6 +311,7 @@ spec:
       protocol: TCP
       port: 31014
       targetPort: 31014
+      nodePort: 31014
   selector:
     app: studio-runtime
-  type: ClusterIP
+  type: NodePort
