@@ -230,7 +230,8 @@ services:
       auth_provider: ${AUTH_PROVIDER:-iam}
       auth_jwt_secret: ${AUTH_JWT_SECRET:-}
       auth_jwt_issuer: ${AUTH_JWT_ISSUER:-enterprise-digital-human}
-      auth_jwt_enforce: ${AUTH_JWT_ENFORCE:-false}
+      # studio-service 专用：内部模型路由调用不带 JWT，单独放宽 enforce 以避免 401 阻断智能体编排
+      auth_jwt_enforce: ${STUDIO_SERVICE_AUTH_JWT_ENFORCE:-false}
     depends_on:
       mysql:
         condition: service_healthy
