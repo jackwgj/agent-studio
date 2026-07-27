@@ -104,6 +104,9 @@ services:
       - 'host.docker.internal:host-gateway'
     volumes:
       - ./config/nginx.conf:/home/conf/nginx.conf
+      # 本地联调挂载（临时，不进正式镜像）：用宿主机最新构建的 dist 覆盖镜像内静态资源，
+      # 免去每次重打镜像。正式交付请注释/删除下一行，改用 studio-console:new-task-local 镜像。
+      - ../frontend/dist/hws:/opt/cloud/wiseagent-nginx/nginx/dist/hws
       # HTTPS启动：取消以下注释，并将证书文件放到 ./config/ 目录
       # - ./config/keypassfifo:/home/service/nginx/keypassfifo
       # - ./config/cert.pem:/home/secret/cert.pem
@@ -171,6 +174,21 @@ services:
       auth_jwt_secret: ${AUTH_JWT_SECRET:-}
       auth_jwt_issuer: ${AUTH_JWT_ISSUER:-enterprise-digital-human}
       auth_jwt_enforce: ${AUTH_JWT_ENFORCE:-false}
+      # 开发环境初始化：operating-service 项目身份，供 checkModelPermission 安全校验比对。
+      # 默认空会导致所有模型调用被拦截（openjiuwen.02501007），需设为新建任务所用的 project。
+      op_svc_project_id: ${OP_SVC_PROJECT_ID:-}
+      op_svc_user_id: ${OP_SVC_USER_ID:-}
+      op_svc_tenant_id: ${OP_SVC_TENANT_ID:-}
+      # 用 JVM 系统属性直接注入 op.svc.*（最高优先级，绕过 yml 嵌套绑定），确保 checkModelPermission 能读到
+      JAVA_OPTS: ${MANAGER_JAVA_OPTS:-}
+    # 镜像入口直接 java -jar，不读取 JAVA_OPTS；此处显式复刻原命令并注入 -Dop.svc.* 系统属性
+    command: >-
+      java -Xms4762m -Xmx4762m -XX:MaxDirectMemorySize=1024m -Dfile.encoding=UTF-8
+      -Dop.svc.project-id=0 -Dop.svc.user-id=945e2f4ac1a3465191663ef5ab0b8c36 -Dop.svc.tenant-id=86e1ce697c3648b9a7a11665add817c7
+      -jar /opt/cloud/studio-manager/app/studio-manager.jar
+      --spring.config.additional-location=/opt/cloud/studio-manager/config/
+      --spring.profiles.active=manager
+      --logging.config=/opt/cloud/studio-manager/config/log4j2.xml
       front_page_block_nodes: ${FRONT_PAGE_BLOCK_NODES:-Sql,DataQuery,Agent}
       share_knowledge_enabled: ${SHARE_KNOWLEDGE_ENABLED:-true}
       workflow_async_enable: ${WORKFLOW_ASYNC_ENABLED:-true}

@@ -20,10 +20,21 @@ export class NewTaskService {
     agent_id: string;
     name: string;
     params: Record<string, any>;
+    project_id?: string;
+    workspace_id?: string;
   }): Promise<any> {
     return this.http.postAsync({
       url: this.prefix,
       params,
+      overrideUrl: true,
+    });
+  }
+
+  /** 多轮追加重跑：在已有任务上追加一条对话并重新执行（new-task-chat） */
+  public appendTurn(taskId: string, content: string, assets: any[] = []): Promise<any> {
+    return this.http.postAsync({
+      url: `${this.prefix}/${taskId}/turn`,
+      params: { content, assets },
       overrideUrl: true,
     });
   }

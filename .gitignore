@@ -63,3 +63,6 @@ venv/
 __pycache__/
 # Local custom docker build artifacts (populated by manual studio-manager build, never committed)
 docker/studio-manager/lib/
+
+# Built console frontend bundle (generated locally by frontend build, never committed; >100MB breaks GitHub push)
+docker/studio-console/agent-console.tar

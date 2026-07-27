@@ -1,0 +1,40 @@
+<div class="asset-picker">
+  <nz-tabset [(nzSelectedIndex)]="activeIndex" nzType="line">
+    <nz-tab nzTitle="智能体">
+      <div class="asset-list">
+        <div class="asset-loading" *ngIf="agentsLoading">加载中…</div>
+        <label class="asset-item" *ngFor="let it of agents">
+          <input
+            type="radio"
+            name="asset-picker-agent"
+            [checked]="isAgentChecked(it.id)"
+            (click)="toggleAgent(it)"
+          />
+          <span class="asset-name">{{ it.name }}</span>
+        </label>
+        <div class="asset-empty" *ngIf="!agentsLoading && !agents.length">暂无可选智能体</div>
+      </div>
+    </nz-tab>
+
+    <nz-tab nzTitle="附件">
+      <div class="asset-upload">
+        <label class="upload-btn" [class.disabled]="uploading">
+          <input type="file" (change)="onFileSelected($event)" hidden [disabled]="uploading" />
+          <span>{{ uploading ? '上传中…' : '＋ 选择文件上传' }}</span>
+        </label>
+        <div class="asset-list">
+          <div class="asset-item attachment" *ngFor="let a of attachments">
+            <span class="asset-name" [title]="a.name">{{ a.name }}</span>
+            <button class="asset-remove" type="button" (click)="removeAttachment(a.id)">移除</button>
+          </div>
+          <div class="asset-empty" *ngIf="!attachments.length">尚未上传附件</div>
+          <div class="asset-error" *ngIf="uploadError">{{ uploadError }}</div>
+        </div>
+      </div>
+    </nz-tab>
+  </nz-tabset>
+
+  <div class="asset-footer">
+    <span class="asset-count">已选 {{ selected.length }} 项</span>
+  </div>
+</div>

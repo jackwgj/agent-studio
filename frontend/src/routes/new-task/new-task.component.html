@@ -1,178 +1,89 @@
-<div class="new-task-page">
-  <div class="new-task-header">
-    <div class="title">{{ 'new_task' | i18nextEager }}</div>
-    <div class="subtitle">{{ 'new_task_subtitle' | i18nextEager }}</div>
-  </div>
-
-  <div class="new-task-steps">
-    <nz-steps [nzCurrent]="step" nzSize="small">
-      <nz-step [nzTitle]="'new_task_step_agent' | i18nextEager"></nz-step>
-      <nz-step [nzTitle]="'new_task_step_config' | i18nextEager"></nz-step>
-      <nz-step [nzTitle]="'new_task_step_progress' | i18nextEager"></nz-step>
-    </nz-steps>
-  </div>
-
-  <!-- 步骤一：选择智能体 -->
-  <div class="step-body" *ngIf="step === 0">
-    <div class="section-title">{{ 'new_task_step_agent' | i18nextEager }}</div>
-    <nz-spin [nzSpinning]="agentsLoading">
-      <div class="agent-grid" *ngIf="agents.length">
-        <div
-          class="agent-card"
-          *ngFor="let agent of agents"
-          [class.selected]="agent.agent_id === selectedAgentId"
-          (click)="selectAgent(agent.agent_id)"
-        >
-          <div class="agent-avatar">
-            <img *ngIf="agent.icon" [src]="agent.icon" alt="" />
-            <span *ngIf="!agent.icon" nz-icon nzType="robot" nzTheme="outline"></span>
+<div class="nt-layout">
+  <!-- 左栏：任务列表 -->
+  <aside class="nt-left">
+    <div class="nt-left-header">
+      <span class="nt-title">{{ 'new_task' | i18nextEager }}</span>
+      <button nz-button nzType="primary" nzSize="small" (click)="onNewTask()">
+        <span nz-icon nzType="plus"></span>{{ 'new_task_again' | i18nextEager }}
+      </button>
+    </div>
+    <nz-list class="nt-list" [nzDataSource]="taskList" [nzSplit]="true">
+      <ng-container *nzListItem="let item">
+        <nz-list-item (click)="onSelectTask(item)" [class.active]="item.id === store.taskId">
+          <div class="nt-task-item">
+            <div class="nt-task-name">{{ item.name || ('new_task_no_desc' | i18nextEager) }}</div>
+            <nz-tag [nzColor]="statusColor(item.status)">{{ item.status }}</nz-tag>
           </div>
-          <div class="agent-info">
-            <div class="agent-name">{{ agent.agent_name }}</div>
-            <div class="agent-desc">{{ agent.description || ('new_task_no_desc' | i18nextEager) }}</div>
-          </div>
-          <span
-            class="agent-check"
-            *ngIf="agent.agent_id === selectedAgentId"
-            nz-icon
-            nzType="check-circle"
-            nzTheme="fill"
-          ></span>
-        </div>
-      </div>
-
-      <div class="agent-fallback" *ngIf="!agentsLoading && !agents.length">
-        <nz-alert
-          nzType="warning"
-          [nzMessage]="'new_task_agent_load_failed' | i18nextEager"
-          nzShowIcon
-        ></nz-alert>
-        <div class="manual-input">
-          <input
-            nz-input
-            [(ngModel)]="manualAgentId"
-            [placeholder]="'new_task_agent_id_placeholder' | i18nextEager"
-          />
-        </div>
-      </div>
-    </nz-spin>
-  </div>
-
-  <!-- 步骤二：配置参数 -->
-  <div class="step-body" *ngIf="step === 1">
-    <div class="section-title">{{ 'new_task_step_config' | i18nextEager }}</div>
-    <div class="form-item">
-      <div class="form-label required">{{ 'new_task_name' | i18nextEager }}</div>
-      <input
-        nz-input
-        [(ngModel)]="taskName"
-        maxlength="64"
-        [placeholder]="'new_task_name_placeholder' | i18nextEager"
-      />
-    </div>
-    <div class="form-item">
-      <div class="form-label required">{{ 'new_task_input' | i18nextEager }}</div>
-      <textarea
-        nz-input
-        rows="5"
-        [(ngModel)]="taskInput"
-        [placeholder]="'new_task_input_placeholder' | i18nextEager"
-      ></textarea>
-    </div>
-    <div class="form-item">
-      <div class="form-label">{{ 'new_task_timeout' | i18nextEager }}</div>
-      <nz-input-number
-        [(ngModel)]="timeoutSeconds"
-        [nzMin]="10"
-        [nzMax]="3600"
-        [nzStep]="10"
-      ></nz-input-number>
-      <span class="unit">s</span>
-    </div>
-    <nz-alert
-      *ngIf="submitError"
-      nzType="error"
-      [nzMessage]="submitError"
-      nzShowIcon
-      class="submit-error"
-    ></nz-alert>
-  </div>
-
-  <!-- 步骤三：执行进度 -->
-  <div class="step-body" *ngIf="step === 2">
-    <div class="progress-head">
-      <div class="section-title">{{ 'new_task_step_progress' | i18nextEager }}</div>
-      <nz-tag [nzColor]="statusColor">{{ taskStatus }}</nz-tag>
-    </div>
-    <nz-progress
-      [nzPercent]="progressPercent"
-      [nzStatus]="taskStatus === 'failed' ? 'exception' : (isFinal ? 'success' : 'active')"
-    ></nz-progress>
-
-    <div class="task-meta">
-      <span class="meta-label">Task ID:</span>
-      <span class="meta-value">{{ taskId }}</span>
-    </div>
-
-    <nz-alert
-      *ngIf="taskError"
-      nzType="error"
-      [nzMessage]="taskError"
-      nzShowIcon
-      class="submit-error"
-    ></nz-alert>
-
-    <div class="output-box" *ngIf="outputText">
-      <div class="output-title">{{ 'new_task_output' | i18nextEager }}</div>
-      <pre>{{ outputText }}</pre>
-    </div>
-
-    <div class="event-timeline" *ngIf="progressEvents.length">
-      <nz-timeline>
-        <nz-timeline-item
-          *ngFor="let ev of progressEvents"
-          [nzColor]="ev.type === 'error' ? 'red' : ev.type === 'done' ? 'green' : 'blue'"
-        >
-          <span class="ev-time">{{ ev.time }}</span>
-          <span class="ev-type">[{{ ev.type }}]</span>
-          <span class="ev-text">{{ ev.text }}</span>
-        </nz-timeline-item>
-      </nz-timeline>
-    </div>
-  </div>
-
-  <!-- 底部操作栏 -->
-  <div class="footer-bar">
-    <div class="left">
-      <button nz-button *ngIf="step === 1" (click)="prev()">
-        {{ 'new_task_prev' | i18nextEager }}
-      </button>
-    </div>
-    <div class="right">
-      <button nz-button *ngIf="step === 0" nzType="primary" [disabled]="!canNext" (click)="next()">
-        {{ 'new_task_next' | i18nextEager }}
-      </button>
-      <button
-        nz-button
-        *ngIf="step === 1"
-        nzType="primary"
-        [nzLoading]="submitting"
-        [disabled]="!canNext"
-        (click)="submit()"
-      >
-        {{ 'new_task_submit' | i18nextEager }}
-      </button>
-      <ng-container *ngIf="step === 2">
-        <button nz-button nzDanger *ngIf="!isFinal" (click)="cancel()">
-          {{ 'new_task_cancel' | i18nextEager }}
-        </button>
-        <button nz-button *ngIf="isFinal" (click)="restart()">
-          {{ 'new_task_again' | i18nextEager }}
-        </button>
-        <button nz-button nzType="primary" (click)="close()">
-          {{ 'new_task_finish' | i18nextEager }}
-        </button>
+        </nz-list-item>
       </ng-container>
+    </nz-list>
+  </aside>
+
+  <!-- 中栏：多轮对话 -->
+  <section class="nt-center">
+    <div class="nt-center-header">
+      <span class="nt-title">{{ store.taskName || ('new_task' | i18nextEager) }}</span>
+      <nz-tag *ngIf="store.status" [nzColor]="statusColor(store.status)">{{ store.status }}</nz-tag>
     </div>
-  </div>
+
+    <div class="nt-conversation">
+      <div
+        *ngFor="let t of store.turns"
+        class="nt-bubble"
+        [class.user]="t.role === 'user'"
+        [class.assistant]="t.role === 'assistant'"
+      >
+        <div class="nt-bubble-content">
+          <markdown *ngIf="t.role === 'assistant' && t.content" [data]="t.content"></markdown>
+          <span *ngIf="t.role === 'user'">{{ t.content }}</span>
+          <div *ngIf="t.assets && t.assets.length" class="nt-asset-chips">
+            <nz-tag *ngFor="let a of t.assets">{{ a.name || a.id }}</nz-tag>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nt-input-area">
+      <div class="nt-draft-assets" *ngIf="draftAssets.length">
+        <nz-tag
+          *ngFor="let a of draftAssets; let i = index"
+          nzMode="closeable"
+          (nzOnClose)="removeDraftAsset(i)"
+          >{{ a.name || a.id }}</nz-tag
+        >
+      </div>
+      <div class="nt-input-row">
+        <button
+          nz-button
+          nzType="text"
+          nz-popover
+          [nzPopoverContent]="assetTpl"
+          nzPopoverTitle="{{ 'new_task_asset' | i18nextEager }}"
+          [(nzPopoverVisible)]="assetPopoverVisible"
+        >
+          <span nz-icon nzType="plus"></span>
+        </button>
+        <textarea
+          nz-input
+          class="nt-textarea"
+          [(ngModel)]="draftInput"
+          [placeholder]="'new_task_chat_placeholder' | i18nextEager"
+          (keydown.enter)="$event.preventDefault(); onSend()"
+        ></textarea>
+        <button nz-button nzType="primary" [nzLoading]="store.streaming" (click)="onSend()">
+          {{ 'new_task_send' | i18nextEager }}
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 右栏：实时预览 -->
+  <aside class="nt-right">
+    <div class="nt-right-header">{{ 'new_task_preview' | i18nextEager }}</div>
+    <app-preview-panel [data]="store.preview" [loading]="store.streaming"></app-preview-panel>
+  </aside>
 </div>
+
+<ng-template #assetTpl>
+  <app-asset-picker [(selected)]="draftAssets"></app-asset-picker>
+</ng-template>

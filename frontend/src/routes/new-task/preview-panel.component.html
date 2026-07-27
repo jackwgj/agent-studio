@@ -1,0 +1,10 @@
+<div class="preview-panel">
+  <nz-spin [nzSpinning]="loading">
+    <div class="markdown-body" *ngIf="data; else empty">
+      <markdown [data]="data"></markdown>
+    </div>
+    <ng-template #empty>
+      <div class="preview-empty">{{ 'new_task_preview_empty' | i18nextEager }}</div>
+    </ng-template>
+  </nz-spin>
+</div>

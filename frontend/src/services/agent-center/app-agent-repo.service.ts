@@ -105,6 +105,10 @@ export class AppAgentRepoService {
         ...(status !== undefined && { status }),
         ...(creator !== undefined && { creator }),
         ...(description !== undefined && { description }),
+        // studio agent-manager/agents 强制要求 workspace_id，否则返回 "Workspace ID cannot be empty"
+        ...(this.ctxServ.currentWorkspaceId && {
+          workspace_id: this.ctxServ.currentWorkspaceId,
+        }),
       },
     });
   }

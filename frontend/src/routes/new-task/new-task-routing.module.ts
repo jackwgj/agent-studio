@@ -5,12 +5,7 @@ import { NewTaskComponent } from './new-task.component';
 const routes: Routes = [
   {
     path: '',
-    children: [
-      {
-        path: '',
-        component: NewTaskComponent,
-      },
-    ],
+    component: NewTaskComponent,
   },
 ];
 

@@ -95,8 +95,10 @@ export class ContextService {
   }
 
   public get currentWorkspaceId(): Readonly<string> {
-
-    return this.http.getWorkspaceId()
+    // refreshUserData() 把默认 workspace 写入 this.workspaceId（行138），
+    // http.getWorkspaceId() 取的是 HttpService 实例内部状态，二者未同步；
+    // 直接返回本实例已解析的 workspaceId，供 getAgentList 等 API 作为 workspace_id 参数。
+    return this.workspaceId
   }
 
   public addUserIdToLocal(data: any) {
