@@ -10,6 +10,9 @@ import os
 import secrets
 from datetime import timedelta
 
+from common_utils.redis_manager import RedisClientManager
+from flask import Flask, request
+
 from agent_builder.adapter.exception_bridge import JiuWenException
 from agent_builder.adapter.init_server import load_yaml_config, env_to_config
 from agent_builder.adapter.redis_bridge import RedisClientManager
@@ -19,7 +22,6 @@ from agent_builder.serve.apis.mmapo import mmapo_app
 from agent_builder.serve.apis.prompt import prompt_manage_app
 from agent_builder.serve.common.ssl_ctx import create_context
 from agent_builder.serve.config import load_config
-from flask import Flask, request
 
 apps_map = {
     "prompt.manager": prompt_manage_app,

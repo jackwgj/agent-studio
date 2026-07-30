@@ -159,6 +159,7 @@ class WorkflowHandler(BaseHandler):
 
                 return OpenJiuWenWorkflowInstanceLayer(
                     workflow_id=workflow_context.workflow_id,
+                    workflow_name=workflow_context.workflow_name,
                     description=workflow_context.description,
                     params=params,
                     agent_id=agent_id,
@@ -545,6 +546,17 @@ class WorkflowHandler(BaseHandler):
         workflow_req_params = self.prepare_workflow_params(
             workflow_req_params, workflow_context, use_all_history=True
         )
+
+        # 把完整的工具参数注入 global_variables
+        arguments = task.input_data.get("arguments", {})
+        if arguments and isinstance(arguments, dict):
+            global_variables = workflow_req_params.get("global_variables", {})
+            if not isinstance(global_variables, dict):
+                global_variables = {}
+            for key, value in arguments.items():
+                if key != "query":
+                    global_variables[key] = value
+            workflow_req_params["global_variables"] = global_variables
 
         final_answer = None
         async for exe_res in self._stream_execute_workflow(
@@ -1185,9 +1197,10 @@ class WorkflowHandler(BaseHandler):
                         workflow_status,
                         from_pe=from_pe,
                     )
-                # 流式输出添加workflow_id字段
+                # 流式输出添加workflow_id和workflow_name字段
                 if output.data:
                     output.data["workflow_id"] = workflow_context.workflow_id
+                    output.data["workflow_name"] = workflow_context.workflow_name
                 # 转发所有输出
                 yield output
 
@@ -1243,7 +1256,7 @@ class WorkflowHandler(BaseHandler):
             )
             yield MessageConverter.create_workflow_completion_message(
                 workflow_context=workflow_context,
-                exec_res={"answer": "".join(workflow_status.get("final_answer", []))},
+                exec_res={"answer": "".join(str(x) for x in workflow_status.get("final_answer", []))},
             )
 
         if workflow_status["questioner_interrupted"]:
