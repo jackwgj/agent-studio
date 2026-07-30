@@ -28,9 +28,7 @@ import com.openjiuwen.studio.agent.common.dto.run.AdditionalQuestionsWorkflowReq
 import com.openjiuwen.studio.agent.common.dto.run.AgentExecutionQueries;
 import com.openjiuwen.studio.agent.common.dto.run.AsrReq;
 import com.openjiuwen.studio.agent.common.dto.run.AsrRsp;
-import com.openjiuwen.studio.agent.common.dto.run.CancelTaskRsp;
 import com.openjiuwen.studio.agent.common.dto.run.ConversationDeleteResp;
-import com.openjiuwen.studio.agent.common.dto.run.CreateTaskReq;
 import com.openjiuwen.studio.agent.common.dto.run.GetAgentExecutionInfoQo;
 import com.openjiuwen.studio.agent.common.dto.run.GetControllerExecutionDetailQo;
 import com.openjiuwen.studio.agent.common.dto.run.GetExecutionInsightQo;
@@ -39,16 +37,10 @@ import com.openjiuwen.studio.agent.common.dto.run.ListAgentExecutionQueriesQo;
 import com.openjiuwen.studio.agent.common.dto.run.ListControllerExecutionsQo;
 import com.openjiuwen.studio.agent.common.dto.run.ListConversationQueriesQo;
 import com.openjiuwen.studio.agent.common.dto.run.ListExecutionQueriesQo;
-import com.openjiuwen.studio.agent.common.dto.run.ListTaskQo;
-import com.openjiuwen.studio.agent.common.dto.run.ModifyTaskReq;
 import com.openjiuwen.studio.agent.common.dto.run.ResetUserVariableMemoryResponseBody;
-import com.openjiuwen.studio.agent.common.dto.run.ResumeTaskReq;
 import com.openjiuwen.studio.agent.common.dto.run.RetrieveConversationMemoryQo;
 import com.openjiuwen.studio.agent.common.dto.run.RetrieveConversationQo;
-import com.openjiuwen.studio.agent.common.dto.run.RetrieveTaskQo;
 import com.openjiuwen.studio.agent.common.dto.run.RunToolRequestBody;
-import com.openjiuwen.studio.agent.common.dto.run.TaskListRsp;
-import com.openjiuwen.studio.agent.common.dto.run.TaskRsp;
 import com.openjiuwen.studio.agent.common.dto.tool.RunToolResponseBody;
 import com.openjiuwen.studio.agent.common.entity.Text2AudioReq;
 import com.openjiuwen.studio.agent.common.enums.StudioError;
@@ -56,11 +48,11 @@ import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
 import com.openjiuwen.studio.agent.common.redis.RedisClient;
 import com.openjiuwen.studio.agent.common.utils.JsonUtils;
 import com.openjiuwen.studio.agent.common.utils.RequestContextUtils;
+import com.openjiuwen.studio.agent.manager.constant.Constant;
 import com.openjiuwen.studio.agent.manager.constant.CommonConstant;
 import com.openjiuwen.studio.agent.manager.dto.AgentRunReq;
 import com.openjiuwen.studio.agent.manager.dto.AutoAddResultJsonObject;
 import com.openjiuwen.studio.agent.manager.dto.BatchDeleteUserVariableMemoryRequestBody;
-import com.openjiuwen.studio.agent.manager.dto.CommonDeleteRsp;
 import com.openjiuwen.studio.agent.manager.dto.MemoryVariable;
 import com.openjiuwen.studio.agent.manager.dto.ServiceRunAgentReq;
 import com.openjiuwen.studio.agent.manager.dto.ServiceWorkflowRunReq;
@@ -75,12 +67,19 @@ import com.openjiuwen.studio.agent.manager.dto.runtime.interfaces.SecurityCheck;
 import com.openjiuwen.studio.agent.manager.entity.Agent;
 import com.openjiuwen.studio.agent.manager.entity.ReleaseVersion;
 import com.openjiuwen.studio.agent.manager.entity.WorkflowEntity;
+import com.openjiuwen.studio.agent.manager.model.ExecuteParams;
+import com.openjiuwen.studio.agent.manager.model.AgentExecuteParams;
+import com.openjiuwen.studio.agent.manager.entity.insight.WorkflowInstanceEntity;
+import com.openjiuwen.studio.agent.manager.entity.insight.WorkflowRunResult;
+import com.openjiuwen.studio.agent.manager.enums.WorkflowRunStatus;
 import com.openjiuwen.studio.agent.manager.mapper.AgentMapper;
 import com.openjiuwen.studio.agent.manager.mapper.AppMapper;
 import com.openjiuwen.studio.agent.manager.mapper.ReleaseVersionMapper;
 import com.openjiuwen.studio.agent.manager.mapper.WorkflowMapper;
 import com.openjiuwen.studio.agent.manager.rce.client.AgentRuntimeClient;
 import com.openjiuwen.studio.agent.manager.service.ShareResourceManagerService;
+import com.openjiuwen.studio.agent.manager.service.AgentRuntimeService;
+import com.openjiuwen.studio.agent.manager.service.WorkflowRuntimeService;
 import com.openjiuwen.studio.agent.manager.service.asset.AssetFreeTrialMgmtService;
 import com.openjiuwen.studio.agent.manager.service.proxy.AgentServiceProxyService;
 
@@ -116,6 +115,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -147,6 +147,10 @@ public class AgentServiceProxyController {
 
     private AssetFreeTrialMgmtService assetFreeTrialMgmtService;
 
+    private WorkflowRuntimeService workflowRuntimeService;
+
+    private AgentRuntimeService agentRuntimeService;
+
     @Value("${agent_runtime_endpoint:}")
     private String runtimeEndpoint;
 
@@ -156,6 +160,9 @@ public class AgentServiceProxyController {
     @Value("${conversations.abort.enable:false}")
     private boolean abortEnable;
 
+    @Value("${file.access.expiration-days:7}")
+    private int expireDays;
+
     private AppMapper appMapper;
 
     private ReleaseVersionMapper releaseVersionMapper;
@@ -163,7 +170,8 @@ public class AgentServiceProxyController {
     public AgentServiceProxyController(AgentRuntimeClient runtimeClient, RedisClient redisClient,
         AgentMapper agentMapper, WorkflowMapper workflowMapper, AgentServiceProxyService agentServiceProxyService,
         ShareResourceManagerService shareResourceManagerService, AppMapper appMapper,
-        AssetFreeTrialMgmtService assetFreeTrialMgmtService, ReleaseVersionMapper releaseVersionMapper) {
+        AssetFreeTrialMgmtService assetFreeTrialMgmtService, ReleaseVersionMapper releaseVersionMapper,
+        WorkflowRuntimeService workflowRuntimeService, AgentRuntimeService agentRuntimeService) {
         this.runtimeClient = runtimeClient;
         this.redisClient = redisClient;
         this.agentMapper = agentMapper;
@@ -173,6 +181,21 @@ public class AgentServiceProxyController {
         this.appMapper = appMapper;
         this.assetFreeTrialMgmtService = assetFreeTrialMgmtService;
         this.releaseVersionMapper = releaseVersionMapper;
+        this.workflowRuntimeService = workflowRuntimeService;
+        this.agentRuntimeService = agentRuntimeService;
+    }
+
+    /**
+     * 从请求体中提取query，优先取顶层query，为空则从inputs.query中提取
+     */
+    private String extractQuery(ServiceRunAgentReq body) {
+        if (body.getQuery() != null) {
+            return body.getQuery();
+        }
+        if (body.getInputs() != null && body.getInputs().get("query") != null) {
+            return body.getInputs().get("query").toString();
+        }
+        return null;
     }
 
     private Object runningAgent(String projectId, String workspaceId, String agentType, String agentId,
@@ -203,6 +226,33 @@ public class AgentServiceProxyController {
             if (CommonConstant.DEEPRESEARCH_TYPE.equals(agentType)) {
                 return agentServiceProxyService.stream(url, httpHeaders, JsonUtils.encode(body), 7200000L);
             }
+
+            // 判断是否为debug模式
+            List<String> invokeModeList = httpHeaders.get(Constant.Agent.INVOKE_HEADER_KEY);
+            String invokeMode = invokeModeList != null && !invokeModeList.isEmpty() ? invokeModeList.get(0) : "";
+            boolean isDebug = Constant.Common.INVOKE_MOD_DEBUG.equalsIgnoreCase(invokeMode);
+
+            if (isDebug) {
+                String executeType = agentType != null ? agentType : (type != null ? type : Constant.AppType.AGENT);
+                AgentExecuteParams executeParams = AgentExecuteParams.builder()
+                    .projectId(projectId)
+                    .agentId(agentId)
+                    .conversationId(conversationId)
+                    .workspaceId(workspaceId)
+                    .query(extractQuery(body))
+                    .inputs(body.getInputs())
+                    .debug(true)
+                    .executeType(executeType)
+                    .userId(RequestContextUtils.getRequestUserId())
+                    .versionId(version)
+                    .modelDeploymentId(body.getModelDeploymentId())
+                    .toolSwitchDict(body.getToolSwitchDict())
+                    .type(type)
+                    .token(RequestContextUtils.getRequestAuthToken())
+                    .build();
+                return agentServiceProxyService.agentStream(url, httpHeaders, JsonUtils.encode(body), executeParams);
+            }
+
             return agentServiceProxyService.stream(url, httpHeaders, JsonUtils.encode(body));
         } else {
             return runtimeClient.runAgentWithConversation(RequestContextUtils.getRequestAuthToken(), getApiCode(projectId, workspaceId), projectId,
@@ -340,6 +390,31 @@ public class AgentServiceProxyController {
             if (CommonConstant.DEEPRESEARCH_TYPE.equals(agentType)) {
                 return agentServiceProxyService.stream(url, httpHeaders, JsonUtils.encode(body), 7200000L);
             }
+
+            // 判断是否为debug模式
+            List<String> invokeModeList = httpHeaders.get(Constant.Agent.INVOKE_HEADER_KEY);
+            String invokeMode = invokeModeList != null && !invokeModeList.isEmpty() ? invokeModeList.get(0) : "";
+            boolean isDebug = Constant.Common.INVOKE_MOD_DEBUG.equalsIgnoreCase(invokeMode);
+
+            if (isDebug) {
+                String executeType = agentType != null ? agentType : Constant.AppType.AGENT;
+                AgentExecuteParams executeParams = AgentExecuteParams.builder()
+                    .projectId(projectId)
+                    .agentId(agentId)
+                    .workspaceId(workspaceId)
+                    .query(extractQuery(body))
+                    .inputs(body.getInputs())
+                    .debug(true)
+                    .executeType(executeType)
+                    .userId(RequestContextUtils.getRequestUserId())
+                    .versionId(version)
+                    .modelDeploymentId(body.getModelDeploymentId())
+                    .toolSwitchDict(body.getToolSwitchDict())
+                    .token(RequestContextUtils.getRequestAuthToken())
+                    .build();
+                return agentServiceProxyService.agentStream(url, httpHeaders, JsonUtils.encode(body), executeParams);
+            }
+
             return agentServiceProxyService.stream(url, httpHeaders, JsonUtils.encode(body));
         } else {
             return runtimeClient.runAgent(RequestContextUtils.getRequestAuthToken(), projectId, agentId,
@@ -365,7 +440,39 @@ public class AgentServiceProxyController {
                 url += "&version=" + version;
             }
 
-            return agentServiceProxyService.stream(url, httpHeaders, JsonUtils.encode(body));
+            // 判断是否为debug模式
+            List<String> invokeModeList = httpHeaders.get("X-Invoke-Mode");
+            String invokeMode = invokeModeList != null && !invokeModeList.isEmpty() ? invokeModeList.get(0) : "";
+            boolean isDebug = "debug".equalsIgnoreCase(invokeMode);
+
+            ExecuteParams executeParams = ExecuteParams.builder()
+                .projectId(projectId)
+                .workflowId(workflowId)
+                .userId(RequestContextUtils.getRequestUserId())
+                .debug(isDebug)
+                .traceMode(invokeMode)
+                .stream(true)
+                .startTime(System.currentTimeMillis())
+                .conversationId(conversationId)
+                .releasedVersion(version)
+                .environmentId(environmentId)
+                .inputs(body.getInputs())
+                .build();
+
+            WorkflowRunResult result = new WorkflowRunResult();
+            WorkflowInstanceEntity instance = new WorkflowInstanceEntity();
+            instance.setConversationId(conversationId);
+            instance.setWorkflowId(workflowId);
+            instance.setInputs(body.getInputs());
+            instance.setStatus(WorkflowRunStatus.RUNNING.getStatus().getDesc());
+            instance.setStartTime(executeParams.getStartTime());
+            instance.setEventList(new ArrayList<>());
+            instance.setUserId(executeParams.getUserId());
+            instance.setProjectId(projectId);
+            result.setInstance(instance);
+
+            return agentServiceProxyService.workflowStream(url, httpHeaders, JsonUtils.encode(body), result,
+                executeParams);
         } else {
             return runtimeClient.runWorkflowWithConversation(RequestContextUtils.getRequestAuthToken(), projectId,
                 workflowId, conversationId, workspaceId, environmentId, version, body).getBody();
@@ -473,9 +580,8 @@ public class AgentServiceProxyController {
         @ApiParam(value = "是否是图片上传", defaultValue = "false")
         @RequestParam(value = "is_image", required = false, defaultValue = "false") Boolean isImage,
         @RequestHeader HttpHeaders httpHeaders) {
-        return runtimeClient.uploadAgentFile(
-                RequestContextUtils.getRequestAuthToken(), projectId, workspaceId,
-                expires, isImage, file).getBody();
+        int finalExpires = (expires == null) ? expireDays : expires;
+        return agentServiceProxyService.uploadAgentFile(file,finalExpires,isImage);
 
     }
 
@@ -710,8 +816,7 @@ public class AgentServiceProxyController {
         ListConversationQueriesQo listConversationQueriesQo,
         @RequestParam(value = "workspace_id", required = false) String workspaceId) {
 
-        return agentServiceProxyService.listConversationQueries(projectId, workflowId, listConversationQueriesQo,
-            workspaceId).getBody();
+        return workflowRuntimeService.listConversationQueries(projectId, workflowId, listConversationQueriesQo);
     }
 
     @ApiOperation(value = "查询当前对话中用户输入内容的列表", nickname = "listExecutionQueries", notes = "",
@@ -733,8 +838,8 @@ public class AgentServiceProxyController {
         ListExecutionQueriesQo listExecutionQueriesQo,
         @RequestParam(value = "workspace_id", required = false) String workspaceId) {
 
-        return agentServiceProxyService.listExecutionQueries(projectId, workflowId, conversationId,
-            listExecutionQueriesQo, workspaceId).getBody();
+        return workflowRuntimeService.listExecutionQueries(projectId, workflowId, conversationId,
+            listExecutionQueriesQo);
     }
 
     @ApiOperation(value = "", nickname = "getExecutionInsight", notes = "", response = ExecutionInfo.class,
@@ -756,211 +861,14 @@ public class AgentServiceProxyController {
         GetExecutionInsightQo getExecutionInsightQo,
         @RequestParam(value = "workspace_id", required = false) String workspaceId) {
 
-        return agentServiceProxyService.getExecutionInsight(projectId, workflowId, executionId, getExecutionInsightQo,
-            workspaceId).getBody();
+        return workflowRuntimeService.getExecutionInsight(projectId, workflowId, executionId, getExecutionInsightQo);
     }
 
-    @ApiOperation(value = "根据conversation_id删除会话", nickname = "deleteConversation",
-        notes = "根据conversation_id删除会话", response = ConversationDeleteResp.class,
-        tags = {"ConversationManagement"})
-    @ApiResponses(value = {
-        @ApiResponse(code = 200, message = "", response = ConversationDeleteResp.class),
-        @ApiResponse(code = 400, message = "Bad Request 请求错误", response = ErrorRsp.class),
-        @ApiResponse(code = 401, message = "Unauthorized 鉴权失败", response = String.class),
-        @ApiResponse(code = 403, message = "Forbidden 没有操作权限", response = ErrorRsp.class),
-        @ApiResponse(code = 404, message = "Not Found 找不到资源", response = ErrorRsp.class),
-        @ApiResponse(code = 500, message = "Internal Server Error 服务内部错误", response = ErrorRsp.class)
-    })
-    @RequestMapping(value = "/v1/{project_id}/agent-manager/agents/{agent_id}/conversations/{conversation_id}/history",
-        produces = {"application/json"}, method = RequestMethod.DELETE)
-    public ConversationDeleteResp deleteConversation(@Pattern(regexp = "^[a-zA-Z0-9_-]+$") @Size(max = 64)
-        @Parameter(in = ParameterIn.PATH, description = "租户项目id", required = true, schema = @Schema())
-        @PathVariable("project_id") String projectId, @Pattern(regexp = "^[a-zA-Z0-9_-]+$") @Size(max = 64)
-        @Parameter(in = ParameterIn.PATH, description = "workflow/agent id", required = true, schema = @Schema())
-        @PathVariable("agent_id") String agentId, @Pattern(regexp = "^[a-zA-Z0-9_-]+$") @Size(max = 64)
-        @Parameter(in = ParameterIn.PATH, description = "conversation_id", required = true, schema = @Schema())
-        @PathVariable("conversation_id") String conversationId,
-        @Size(max = 32) @ApiParam(value = "版本号") @RequestParam(value = "version_id", required = false)
-        String versionId, @RequestParam(value = "workspace_id", required = false) String workspaceId) {
 
-        return agentServiceProxyService.deleteConversation(projectId, agentId, conversationId, versionId, workspaceId)
-            .getBody();
-    }
 
-    @ApiOperation(value = "提交异步工作流任务", nickname = "createTask", notes = "", response = TaskRsp.class,
-        tags = {"TaskManagement"})
-    @ApiResponses(value = {
-        @ApiResponse(code = 200, message = "", response = TaskRsp.class),
-        @ApiResponse(code = 400, message = "", response = ErrorRsp.class)
-    })
-    @RequestMapping(value = "/v1/{project_id}/agent-manager/workflows/{workflow_id}/tasks",
-        produces = {"application/json"}, consumes = {"application/json"}, method = RequestMethod.POST)
-    public TaskRsp createTask(@Pattern(regexp = "^[a-zA-Z0-9_-]+$") @Size(min = 1, max = 64)
-        @Parameter(in = ParameterIn.PATH, description = "租户项目id", required = true, schema = @Schema())
-        @PathVariable("project_id") String projectId, @Pattern(regexp = "^[a-zA-Z0-9_-]+$") @Size(min = 1, max = 64)
-        @Parameter(in = ParameterIn.PATH, description = "工作流id", required = true, schema = @Schema())
-        @PathVariable("workflow_id") String workflowId,
-        @Size(max = 64) @ApiParam(value = "版本号") @RequestParam(value = "version", required = false) String version,
-        @Pattern(regexp = "^[a-zA-Z0-9_()\\-]+$") @Size(min = 1, max = 64) @ApiParam(value = "项目空间id")
-        @RequestParam(value = "workspace_id", required = false) String workspaceId,
-        @NotNull @ApiParam(value = "创建文件请求体", required = true) @Valid @RequestBody CreateTaskReq body) {
 
-        return agentServiceProxyService.createTask(projectId, workflowId, version, workspaceId, body).getBody();
-    }
 
-    @ApiOperation(value = "根据conversation_id查询会话", nickname = "retrieveConversation",
-        notes = "根据conversation_id查询会话", response = Message.class, responseContainer = "List",
-        tags = {"ConversationManagement"})
-    @ApiResponses(value = {
-        @ApiResponse(code = 200, message = "conversation消息", response = Message.class, responseContainer = "List"),
-        @ApiResponse(code = 400, message = "Bad Request 请求错误", response = ErrorRsp.class),
-        @ApiResponse(code = 401, message = "Unauthorized 鉴权失败", response = String.class),
-        @ApiResponse(code = 403, message = "Forbidden 没有操作权限", response = ErrorRsp.class),
-        @ApiResponse(code = 404, message = "Not Found 找不到资源", response = ErrorRsp.class),
-        @ApiResponse(code = 500, message = "Internal Server Error 服务内部错误", response = ErrorRsp.class)
-    })
-    @RequestMapping(value = "/v1/{project_id}/agent-manager/agents/{agent_id}/conversations/{conversation_id}/history",
-        produces = {"application/json"}, method = RequestMethod.GET)
-    public List<Message> retrieveConversation(@Pattern(regexp = "^[a-zA-Z0-9_-]+$") @Size(max = 64)
-        @Parameter(in = ParameterIn.PATH, description = "租户项目id", required = true, schema = @Schema())
-        @PathVariable("project_id") String projectId, @Pattern(regexp = "^[a-zA-Z0-9_-]+$") @Size(max = 64)
-        @Parameter(in = ParameterIn.PATH, description = "workflow/agent id", required = true, schema = @Schema())
-        @PathVariable("agent_id") String agentId, @Pattern(regexp = "^[a-zA-Z0-9_-]+$") @Size(max = 64)
-        @Parameter(in = ParameterIn.PATH, description = "conversation_id", required = true, schema = @Schema())
-        @PathVariable("conversation_id") String conversationId,
-        @ApiParam(value = "RetrieveConversationQo: converted from multi query params") @Valid
-        RetrieveConversationQo retrieveConversationQo,
-        @RequestParam(value = "workspace_id", required = false) String workspaceId) {
 
-        return agentServiceProxyService.retrieveConversation(projectId, agentId, conversationId, retrieveConversationQo,
-            workspaceId).getBody();
-    }
-
-    @ApiOperation(value = "查看任务列表", nickname = "listTask", notes = "", response = TaskListRsp.class,
-        tags = {"TaskManagement"})
-    @ApiResponses(value = {
-        @ApiResponse(code = 200, message = "", response = TaskListRsp.class),
-        @ApiResponse(code = 400, message = "", response = ErrorRsp.class)
-    })
-    @RequestMapping(value = "/v1/{project_id}/agent-manager/workflows/{workflow_id}/tasks",
-        produces = {"application/json"}, method = RequestMethod.GET)
-    public TaskListRsp listTask(@Pattern(regexp = "^[a-zA-Z0-9_-]+$") @Size(min = 1, max = 64)
-        @Parameter(in = ParameterIn.PATH, description = "租户项目id", required = true, schema = @Schema())
-        @PathVariable("project_id") String projectId, @Pattern(regexp = "^[a-zA-Z0-9_-]+$") @Size(min = 1, max = 64)
-        @Parameter(in = ParameterIn.PATH, description = "工作流id", required = true, schema = @Schema())
-        @PathVariable("workflow_id") String workflowId,
-        @ApiParam(value = "ListTaskQo: converted from multi query params") @Valid  ListTaskQo listTaskQo,
-        @RequestParam(value = "workspace_id", required = false) String workspaceId) {
-
-        return agentServiceProxyService.listTask(projectId, workflowId, listTaskQo, workspaceId).getBody();
-    }
-
-    @ApiOperation(value = "获取异步任务详情", nickname = "retrieveTask", notes = "", response = TaskRsp.class,
-        tags = {"TaskManagement"})
-    @ApiResponses(value = {
-        @ApiResponse(code = 200, message = "", response = TaskRsp.class),
-        @ApiResponse(code = 400, message = "", response = ErrorRsp.class)
-    })
-    @RequestMapping(value = "/v1/{project_id}/agent-manager/workflows/{workflow_id}/tasks/{task_id}",
-        produces = {"application/json"}, method = RequestMethod.GET)
-    public TaskRsp retrieveTask(@Pattern(regexp = "^[a-zA-Z0-9_-]+$") @Size(min = 1, max = 64)
-        @Parameter(in = ParameterIn.PATH, description = "租户项目id", required = true, schema = @Schema())
-        @PathVariable("project_id") String projectId, @Pattern(regexp = "^[a-zA-Z0-9_-]+$") @Size(min = 1, max = 64)
-        @Parameter(in = ParameterIn.PATH, description = "工作流id", required = true, schema = @Schema())
-        @PathVariable("workflow_id") String workflowId, @Pattern(regexp = "^[a-zA-Z0-9_-]+$") @Size(min = 1, max = 64)
-        @Parameter(in = ParameterIn.PATH, description = "异步任务id", required = true, schema = @Schema())
-        @PathVariable("task_id") String taskId,
-        @Pattern(regexp = "^[a-zA-Z0-9_()\\-]+$") @Size(min = 1, max = 64) @ApiParam(value = "项目空间id")
-        @RequestParam(value = "workspace_id", required = false) String workspaceId) {
-
-        return agentServiceProxyService.retrieveTask(projectId, workflowId, taskId, workspaceId).getBody();
-    }
-
-    @ApiOperation(value = "继续执行任务", nickname = "resumeTask", notes = "", response = TaskRsp.class,
-        tags = {"TaskManagement"})
-    @ApiResponses(value = {
-        @ApiResponse(code = 200, message = "", response = TaskRsp.class),
-        @ApiResponse(code = 400, message = "", response = ErrorRsp.class)
-    })
-    @RequestMapping(value = "/v1/{project_id}/agent-manager/workflows/{workflow_id}/tasks/{task_id}",
-        produces = {"application/json"}, consumes = {"application/json"}, method = RequestMethod.POST)
-    public TaskRsp resumeTask(@Pattern(regexp = "^[a-zA-Z0-9_-]+$") @Size(min = 1, max = 64)
-        @Parameter(in = ParameterIn.PATH, description = "租户项目id", required = true, schema = @Schema())
-        @PathVariable("project_id") String projectId, @Pattern(regexp = "^[a-zA-Z0-9_-]+$") @Size(min = 1, max = 64)
-        @Parameter(in = ParameterIn.PATH, description = "工作流id", required = true, schema = @Schema())
-        @PathVariable("workflow_id") String workflowId, @Pattern(regexp = "^[a-zA-Z0-9_-]+$") @Size(min = 1, max = 64)
-        @Parameter(in = ParameterIn.PATH, description = "异步任务id", required = true, schema = @Schema())
-        @PathVariable("task_id") String taskId,
-        @Pattern(regexp = "^[a-zA-Z0-9_()\\-]+$") @Size(min = 1, max = 64) @ApiParam(value = "项目空间id")
-        @RequestParam(value = "workspace_id", required = false) String workspaceId,
-        @NotNull @ApiParam(value = "创建文件请求体", required = true) @Valid @RequestBody ResumeTaskReq body) {
-
-        return agentServiceProxyService.resumeTask(projectId, workflowId, taskId, workspaceId, body).getBody();
-    }
-
-    @ApiOperation(value = "修改任务信息", nickname = "modifyTask", notes = "", response = TaskRsp.class,
-        tags = {"TaskManagement"})
-    @ApiResponses(value = {
-        @ApiResponse(code = 200, message = "", response = TaskRsp.class),
-        @ApiResponse(code = 400, message = "", response = ErrorRsp.class)
-    })
-    @RequestMapping(value = "/v1/{project_id}/agent-manager/workflows/{workflow_id}/tasks/{task_id}",
-        produces = {"application/json"}, consumes = {"application/json"}, method = RequestMethod.PUT)
-    public TaskRsp modifyTask(@Pattern(regexp = "^[a-zA-Z0-9_-]+$") @Size(min = 1, max = 64)
-        @Parameter(in = ParameterIn.PATH, description = "租户项目id", required = true, schema = @Schema())
-        @PathVariable("project_id") String projectId, @Pattern(regexp = "^[a-zA-Z0-9_-]+$") @Size(min = 1, max = 64)
-        @Parameter(in = ParameterIn.PATH, description = "工作流id", required = true, schema = @Schema())
-        @PathVariable("workflow_id") String workflowId, @Pattern(regexp = "^[a-zA-Z0-9_-]+$") @Size(min = 1, max = 64)
-        @Parameter(in = ParameterIn.PATH, description = "异步任务id", required = true, schema = @Schema())
-        @PathVariable("task_id") String taskId,
-        @Pattern(regexp = "^[a-zA-Z0-9_()\\-]+$") @Size(min = 1, max = 64) @ApiParam(value = "项目空间id")
-        @RequestParam(value = "workspace_id", required = false) String workspaceId,
-        @NotNull @ApiParam(value = "创建文件请求体", required = true) @Valid @RequestBody ModifyTaskReq body) {
-
-        return agentServiceProxyService.modifyTask(projectId, workflowId, taskId, workspaceId, body).getBody();
-    }
-
-    @ApiOperation(value = "取消异步任务详情", nickname = "deleteTask", notes = "", response = CommonDeleteRsp.class,
-        tags = {"TaskManagement"})
-    @ApiResponses(value = {
-        @ApiResponse(code = 200, message = "", response = CommonDeleteRsp.class),
-        @ApiResponse(code = 400, message = "", response = ErrorRsp.class)
-    })
-    @RequestMapping(value = "/v1/{project_id}/agent-manager/workflows/{workflow_id}/tasks/{task_id}",
-        produces = {"application/json"}, method = RequestMethod.DELETE)
-    public CommonDeleteRsp deleteTask(@Pattern(regexp = "^[a-zA-Z0-9_-]+$") @Size(min = 1, max = 64)
-        @Parameter(in = ParameterIn.PATH, description = "租户项目id", required = true, schema = @Schema())
-        @PathVariable("project_id") String projectId, @Pattern(regexp = "^[a-zA-Z0-9_-]+$") @Size(min = 1, max = 64)
-        @Parameter(in = ParameterIn.PATH, description = "工作流id", required = true, schema = @Schema())
-        @PathVariable("workflow_id") String workflowId, @Pattern(regexp = "^[a-zA-Z0-9_-]+$") @Size(min = 1, max = 64)
-        @Parameter(in = ParameterIn.PATH, description = "异步任务id", required = true, schema = @Schema())
-        @PathVariable("task_id") String taskId,
-        @Pattern(regexp = "^[a-zA-Z0-9_()\\-]+$") @Size(min = 1, max = 64) @ApiParam(value = "项目空间id")
-        @RequestParam(value = "workspace_id", required = false) String workspaceId) {
-
-        return agentServiceProxyService.deleteTask(projectId, workflowId, taskId, workspaceId).getBody();
-    }
-
-    @ApiOperation(value = "取消异步任务详情", nickname = "cancelTask", notes = "", response = CancelTaskRsp.class,
-        tags = {"TaskManagement"})
-    @ApiResponses(value = {
-        @ApiResponse(code = 200, message = "", response = CancelTaskRsp.class),
-        @ApiResponse(code = 400, message = "", response = ErrorRsp.class)
-    })
-    @RequestMapping(value = "/v1/{project_id}/agent-manager/workflows/{workflow_id}/tasks/{task_id}/cancel",
-        produces = {"application/json"}, method = RequestMethod.DELETE)
-    public CancelTaskRsp cancelTask(@Pattern(regexp = "^[a-zA-Z0-9_-]+$") @Size(min = 1, max = 64)
-        @Parameter(in = ParameterIn.PATH, description = "租户项目id", required = true, schema = @Schema())
-        @PathVariable("project_id") String projectId, @Pattern(regexp = "^[a-zA-Z0-9_-]+$") @Size(min = 1, max = 64)
-        @Parameter(in = ParameterIn.PATH, description = "工作流id", required = true, schema = @Schema())
-        @PathVariable("workflow_id") String workflowId, @Pattern(regexp = "^[a-zA-Z0-9_-]+$") @Size(min = 1, max = 64)
-        @Parameter(in = ParameterIn.PATH, description = "异步任务id", required = true, schema = @Schema())
-        @PathVariable("task_id") String taskId,
-        @Pattern(regexp = "^[a-zA-Z0-9_()\\-]+$") @Size(min = 1, max = 64) @ApiParam(value = "项目空间id")
-        @RequestParam(value = "workspace_id", required = false) String workspaceId) {
-
-        return agentServiceProxyService.cancelTask(projectId, workflowId, taskId, workspaceId).getBody();
-    }
 
     // 此接口已弃用
     @ApiOperation(value = "测试 mcp 服务", nickname = "testServer", notes = "测试 mcp 服务",
@@ -1165,8 +1073,8 @@ public class AgentServiceProxyController {
         @ApiParam(value = "ListAgentExecutionQueriesQo: converted from multi query params") @Valid
         ListAgentExecutionQueriesQo listAgentExecutionQueriesQo,
         @RequestParam(value = "workspace_id", required = false) String workspaceId) {
-        return agentServiceProxyService.listAgentExecutionQueries(projectId, agentId, conversationId,
-            listAgentExecutionQueriesQo, workspaceId).getBody();
+        return agentRuntimeService.listAgentExecutionQueries(projectId, agentId, conversationId,
+            listAgentExecutionQueriesQo);
     }
 
     @ApiOperation(value = "", nickname = "getAgentExecutionInfo", notes = "查询 agent 会话信息",
@@ -1187,8 +1095,7 @@ public class AgentServiceProxyController {
         GetAgentExecutionInfoQo getAgentExecutionInfoQo,
         @RequestParam(value = "workspace_id", required = false) String workspaceId) {
 
-        return agentServiceProxyService.getAgentExecutionInfo(projectId, executionId, agentId, getAgentExecutionInfoQo,
-            workspaceId).getBody();
+        return agentRuntimeService.getAgentExecutionInfo(projectId, executionId, agentId, getAgentExecutionInfoQo);
     }
 
     @ApiOperation(value = "", nickname = "voiceRecognition", notes = "一句话语音识别", response = AsrRsp.class,
@@ -1223,8 +1130,7 @@ public class AgentServiceProxyController {
         ListAgentConversationsQo listAgentConversationsQo,
         @RequestParam(value = "workspace_id", required = false) String workspaceId,
         @RequestParam(value = "type", required = false) String type) {
-        return agentServiceProxyService.listAgentConversations(projectId, agentId, listAgentConversationsQo,
-            workspaceId, type).getBody();
+        return agentRuntimeService.listAgentConversations(projectId, agentId, listAgentConversationsQo);
     }
 
     @ApiOperation(value = "停止对话生成并清空会话", nickname = "abortConversation", notes = "", response = Status.class,

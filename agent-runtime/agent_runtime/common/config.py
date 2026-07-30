@@ -7,7 +7,7 @@ from typing import Literal, Optional
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from agent_runtime.utils.crypto_tool import decrypt
+from common_utils.crypto_tool import decrypt
 
 
 def _decrypt(v):
@@ -25,7 +25,7 @@ class ServerSettings(BaseSettings):
     tls_key_path: str = Field(default="", validation_alias="TLS_CERT_KEY_PATH")
     tls_key_password: str = Field(default="", validation_alias="TLS_CERT_KEY_PASSWD")
     tls_ciphers: str = Field(default="TLSv1.2 TLSv1.3", validation_alias="TLS_CIPHERS")
-    # Uvicorn worker 数量。未设置时由 _get_workers() 回退到 CPU 核心数 + 1
+    # Uvicorn worker 数量。未设置时由 _get_workers() 回退到 cgroup 感知的容器 CPU 核数 + 1
     workers: Optional[int] = Field(default=None, validation_alias="GUNICORN_WORK_NUM")
     # Nginx 负载均衡模式。启用时 uvicorn 以单 worker 运行，由 Nginx 做负载均衡
     nginx_load_balancing: bool = Field(default=False, validation_alias="NGINX_LOAD_BALANCING")
@@ -59,60 +59,11 @@ class ServerSettings(BaseSettings):
         return _decrypt(v)
 
 
-class RedisMode(Enum):
-    """Redis 连接模式。"""
-
-    SINGLE = "single"
-    CLUSTER = "cluster"
-    SENTINEL = "sentinel"
-
-
-class RedisSettings(BaseSettings):
-    """Redis 配置。环境变量前缀统一为 REDIS_。"""
-
-    # 模式配置
-    mode: RedisMode = Field(default=RedisMode.SINGLE, validation_alias="REDIS_MODE")
-
-    # 单机/哨兵模式配置
-    host: str = Field(default="127.0.0.1", validation_alias="REDIS_HOST")
-    port: int = Field(default=6379, validation_alias="REDIS_PORT")
-    db: int = Field(default=0, validation_alias="REDIS_DATABASE")
-    password: Optional[str] = Field(default=None, validation_alias="REDIS_PASSWORD")
-    # 是否启用redis事务
-    redis_transaction_enabled: bool = Field(
-        default=True, validation_alias="REDIS_TRANSACTION_ENABLED"
-    )
-
-    # 集群模式配置
-    cluster_nodes: str = Field(default="", validation_alias="REDIS_CLUSTER_NODES")
-
-    # 哨兵模式配置
-    sentinel_master: str = Field(
-        default="mymaster", validation_alias="REDIS_SENTINEL_MASTER"
-    )
-    sentinel_nodes: str = Field(default="", validation_alias="REDIS_SENTINEL_NODES")
-
-    # 连接池配置
-    max_connections: int = Field(default=50, validation_alias="REDIS_MAX_CONNECTIONS")
-    socket_timeout: int = Field(default=5, validation_alias="REDIS_SOCKET_TIMEOUT")
-    socket_connect_timeout: int = Field(
-        default=5, validation_alias="REDIS_SOCKET_CONNECT_TIMEOUT"
-    )
-
-    # SSL 配置（建议直接使用默认值就可以）
-    ssl_enabled: bool = Field(default=False, validation_alias="REDIS_SSL_ENABLED")
-    ssl_ca_cert: str = Field(default="", validation_alias="REDIS_SSL_CA_CERT")
-    ssl_cert_file: str = Field(default="", validation_alias="REDIS_SSL_CERT_FILE")
-    ssl_key_file: str = Field(default="", validation_alias="REDIS_SSL_KEY_FILE")
-
-    model_config = SettingsConfigDict(
-        env_file=".env", env_file_encoding="utf-8", extra="ignore"
-    )
-
-    @field_validator("password", mode="after")
-    @classmethod
-    def _decrypt_password(cls, v):
-        return _decrypt(v)
+class ModelConfigStrategyType(str, Enum):
+    """模型配置来源策略"""
+    ENV = "env"
+    IR = "ir"
+    OBS = "obs"
 
 
 class LLMSettings(BaseSettings):
@@ -128,6 +79,11 @@ class LLMSettings(BaseSettings):
     top_p: float = Field(default=0.5, validation_alias="IR_LLM_TOP_P")
     max_tokens: int = Field(default=4096, validation_alias="IR_LLM_MAX_TOKENS")
 
+    # 模型配置来源策略: env / ir / obs（默认 obs：OBS 直连，绕过模型路由）
+    model_config_strategy: ModelConfigStrategyType = Field(
+        default=ModelConfigStrategyType.OBS, validation_alias="MODEL_CONFIG_STRATEGY"
+    )
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
@@ -142,6 +98,9 @@ class LLMSettings(BaseSettings):
 
 
 class ObjectStorageSettings(BaseSettings):
+    type: str = Field(default="OBS", validation_alias="STORAGE_TYPE")
+    custom_module: str = Field(default="", validation_alias="STORAGE_CUSTOM_MODULE")
+    custom_class: str = Field(default="", validation_alias="STORAGE_CUSTOM_CLASS")
     server: str = Field(default="", validation_alias="DATASOURCE_OBS_SERVER")
     bucket: str = Field(default="", validation_alias="DATASOURCE_OBS_BUCKET")
     access_key: str = Field(default="", validation_alias="DATASOURCE_OBS_AK")
@@ -151,6 +110,19 @@ class ObjectStorageSettings(BaseSettings):
     )
     path_style: Literal["path", "virtual"] = Field(
         default="path", validation_alias="DATASOURCE_OBS_PATH_STYLE"
+    )
+    local_base_path: str = Field(
+        default="", validation_alias="STORAGE_LOCAL_BASE_PATH"
+    )
+    local_bucket: str = Field(
+        default="", validation_alias="STORAGE_LOCAL_BUCKET"
+    )
+    staging_bucket: str = Field(
+        default="agent-builder-files-staging", validation_alias="OBS_STAGING_BUCKET"
+    )
+    expire_time: int = Field(default=7, validation_alias="OBS_EXPIRE_TIME")
+    max_resolve_size: int = Field(
+        default=5000, validation_alias="AGENT_MAX_RESOLVE_SIZE"
     )
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore"
@@ -271,6 +243,18 @@ class CacheSettings(BaseSettings):
         default=2 * 1024 * 1024, validation_alias="MAX_CACHE_DATA_SIZE"
     )
     ir_cache_enable: bool = Field(default=True, validation_alias="IR_CACHE_ENABLE")
+    max_model_service_cache_num: int = Field(
+        default=500, validation_alias="MAX_MODEL_SERVICE_CACHE_NUM"
+    )
+    max_model_auth_cache_num: int = Field(
+        default=500, validation_alias="MAX_MODEL_AUTH_CACHE_NUM"
+    )
+    model_cache_mem_ttl: int = Field(
+        default=60, validation_alias="MODEL_CACHE_MEM_TTL"
+    )
+    model_cache_redis_ttl: int = Field(
+        default=300, validation_alias="MODEL_CACHE_REDIS_TTL"
+    )
 
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore"
@@ -401,9 +385,20 @@ class DataBaseSettings(BaseSettings):
         return _decrypt(v)
 
 
+class ConversationVariableSettings(BaseSettings):
+    """会话变量存储配置。"""
+
+    ttl_seconds: int = Field(
+        default=259200, validation_alias="CONVERSATION_VARIABLE_STORE_TIME"
+    )
+
+    model_config = SettingsConfigDict(
+        env_file=".env", env_file_encoding="utf-8", extra="ignore"
+    )
+
+
 class Settings:
     server = ServerSettings()
-    redis = RedisSettings()
     llm = LLMSettings()
     object_storage = ObjectStorageSettings()
     health_check = HealthCheckSettings()
@@ -417,5 +412,6 @@ class Settings:
     otel = OtelSettings()
     code_execution = CodeExecutionSettings()
     db_config = DataBaseSettings()
+    conversation_variable = ConversationVariableSettings()
 
 settings = Settings()

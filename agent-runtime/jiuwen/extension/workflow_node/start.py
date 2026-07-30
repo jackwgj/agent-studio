@@ -30,7 +30,8 @@ from copy import deepcopy
 from enum import Enum
 from typing import Any
 
-from agent_runtime.common.redis_manager import get_redis_client
+from agent_runtime.common.config import settings
+from common_utils.redis_manager import get_redis_client
 from agent_runtime.common.session_state_access import get_state_info
 from jiuwen.extension.workflow_node.utils import get_workflow_param
 from jiuwen.orchestration.flow.constant import REQUEST_VARIABLES
@@ -51,6 +52,8 @@ ASSIGNMENT_PERMANENT = "permanent"
 
 # Redis存储相关常量
 REDIS_GLOBAL_VALS_NAME = "global.vals"  # Redis全局值存储键名前缀
+# 会话变量过期时间（秒），默认3天，通过 CONVERSATION_VARIABLE_STORE_TIME 环境变量配置
+_DEFAULT_CONVERSATION_VARIABLE_TTL = settings.conversation_variable.ttl_seconds
 
 
 class DataType(Enum):
@@ -372,7 +375,8 @@ class Start(WorkflowComponent):
                 # 合并数据
                 new_memory_vars = {**old_values, **new_memory_vars}
             await redis_client.set(
-                store_key, json.dumps(new_memory_vars, ensure_ascii=False)
+                store_key, json.dumps(new_memory_vars, ensure_ascii=False),
+                ex=_DEFAULT_CONVERSATION_VARIABLE_TTL,
             )
         except Exception as e:
             workflow_logger.error(
@@ -479,9 +483,12 @@ class Start(WorkflowComponent):
         envs = get_workflow_param(session, REQUEST_VARIABLES) or {}
         inputs_copy = deepcopy(inputs)
         inputs_copy.pop("sys", None)
-        # 只合并非布尔类型的字段，避免布尔值被字符串覆盖
+        # _REQUEST 补充 inputs 中缺失或值为 null 的字段（openjiuwen schema 解析会给未赋值的
+        # 用户字段填充 null，需要用 _REQUEST 中的实际值覆盖）；
+        # 不覆盖已有非空值（避免并行相同子工作流共享 global_state[_REQUEST] 时数据污染）；
+        # 布尔类型字段特殊处理：False 是有效值不应被覆盖
         for key, value in envs.items():
-            if key not in inputs_copy or not isinstance(inputs_copy[key], bool):
+            if key not in inputs_copy or inputs_copy[key] is None:
                 inputs_copy[key] = value
         # 当前用户输入加入历史
         # deepcopy sys 以避免直接 mutate session 内部状态：get_state_info 返回的是

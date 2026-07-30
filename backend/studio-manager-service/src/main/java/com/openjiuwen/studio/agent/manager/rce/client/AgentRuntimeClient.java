@@ -4,14 +4,8 @@
 
 package com.openjiuwen.studio.agent.manager.rce.client;
 
-import com.alibaba.fastjson2.JSONObject;
-import com.openjiuwen.studio.agent.common.dto.AgentExecutionInfo;
 import com.openjiuwen.studio.agent.common.dto.BatchDeleteUserVariableMemoryResponseBody;
-import com.openjiuwen.studio.agent.common.dto.ExecutionQueries;
-import com.openjiuwen.studio.agent.common.dto.agent.ConversionQueries;
-import com.openjiuwen.studio.agent.common.dto.agent.ExecutionInfo;
 import com.openjiuwen.studio.agent.common.dto.agent.Feedback;
-import com.openjiuwen.studio.agent.common.dto.agent.Message;
 import com.openjiuwen.studio.agent.common.dto.agent.Status;
 import com.openjiuwen.studio.agent.common.dto.analytics.AnalyticsEventReq;
 import com.openjiuwen.studio.agent.common.dto.analytics.AnalyticsEventResp;
@@ -19,74 +13,25 @@ import com.openjiuwen.studio.agent.common.dto.knowledge.ListUserVariableMemoryRe
 import com.openjiuwen.studio.agent.common.dto.mcp.McpCallToolResp;
 import com.openjiuwen.studio.agent.common.dto.mcp.McpValidationReq;
 import com.openjiuwen.studio.agent.common.dto.mcp.McpValidationResp;
-import com.openjiuwen.studio.agent.common.dto.md.ChatCompletionRequest;
-import com.openjiuwen.studio.agent.common.dto.md.ModelServiceCheckReq;
-import com.openjiuwen.studio.agent.common.dto.md.ModelServiceCheckRsp;
-import com.openjiuwen.studio.agent.common.dto.run.AdditionalQuestionsReq;
-import com.openjiuwen.studio.agent.common.dto.run.AdditionalQuestionsWorkflowReq;
-import com.openjiuwen.studio.agent.common.dto.run.AgentExecutionQueries;
-import com.openjiuwen.studio.agent.common.dto.run.AsrReq;
-import com.openjiuwen.studio.agent.common.dto.run.AsrRsp;
-import com.openjiuwen.studio.agent.common.dto.run.CancelTaskRsp;
-import com.openjiuwen.studio.agent.common.dto.run.ConversationDeleteResp;
-import com.openjiuwen.studio.agent.common.dto.run.CreateTaskReq;
-import com.openjiuwen.studio.agent.common.dto.run.GetAgentExecutionInfoQo;
-import com.openjiuwen.studio.agent.common.dto.run.GetControllerExecutionDetailQo;
-import com.openjiuwen.studio.agent.common.dto.run.GetExecutionInsightQo;
-import com.openjiuwen.studio.agent.common.dto.run.ListAgentConversationsQo;
-import com.openjiuwen.studio.agent.common.dto.run.ListAgentExecutionQueriesQo;
-import com.openjiuwen.studio.agent.common.dto.run.ListControllerExecutionsQo;
-import com.openjiuwen.studio.agent.common.dto.run.ListConversationQueriesQo;
-import com.openjiuwen.studio.agent.common.dto.run.ListExecutionQueriesQo;
-import com.openjiuwen.studio.agent.common.dto.run.ListTaskQo;
-import com.openjiuwen.studio.agent.common.dto.run.ModifyTaskReq;
-import com.openjiuwen.studio.agent.common.dto.run.ResetUserVariableMemoryResponseBody;
-import com.openjiuwen.studio.agent.common.dto.run.ResumeTaskReq;
-import com.openjiuwen.studio.agent.common.dto.run.RetrieveConversationMemoryQo;
-import com.openjiuwen.studio.agent.common.dto.run.RetrieveConversationQo;
-import com.openjiuwen.studio.agent.common.dto.run.RetrieveTaskQo;
-import com.openjiuwen.studio.agent.common.dto.run.RunToolRequestBody;
-import com.openjiuwen.studio.agent.common.dto.run.TaskListRsp;
-import com.openjiuwen.studio.agent.common.dto.run.TaskRsp;
+import com.openjiuwen.studio.agent.common.dto.run.*;
 import com.openjiuwen.studio.agent.common.dto.tool.RunToolResponseBody;
 import com.openjiuwen.studio.agent.common.entity.Text2AudioReq;
 import com.openjiuwen.studio.agent.manager.constant.CommonConstant;
-import com.openjiuwen.studio.agent.manager.dto.AgentRunReq;
-import com.openjiuwen.studio.agent.manager.dto.AutoAddResultJsonObject;
-import com.openjiuwen.studio.agent.manager.dto.BatchDeleteUserVariableMemoryRequestBody;
-import com.openjiuwen.studio.agent.manager.dto.CommonDeleteRsp;
-import com.openjiuwen.studio.agent.manager.dto.McpServerReq;
-import com.openjiuwen.studio.agent.manager.dto.McpServerTools;
-import com.openjiuwen.studio.agent.manager.dto.MemoryVariable;
-import com.openjiuwen.studio.agent.manager.dto.ReleaseInfo;
-import com.openjiuwen.studio.agent.manager.dto.WorkflowRunReq;
+import com.openjiuwen.studio.agent.manager.dto.*;
 import com.openjiuwen.studio.agent.manager.dto.runtime.Audio2TextReq;
-import com.openjiuwen.studio.agent.manager.dto.runtime.EmbeddingRequest;
-import com.openjiuwen.studio.agent.manager.dto.runtime.RankDocumentsRequest;
 import com.openjiuwen.studio.agent.manager.dto.runtime.StsTextResp;
-import com.openjiuwen.studio.agent.manager.rce.models.AskModelReq;
 import com.openjiuwen.studio.agent.manager.rce.models.McpCallToolRequest;
 import com.openjiuwen.studio.prompt.engineering.dto.IndustryVo;
-
 import io.swagger.annotations.ApiParam;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
-import reactor.core.publisher.Flux;
-
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.cloud.openfeign.SpringQueryMap;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import reactor.core.publisher.Flux;
 
 import java.util.List;
 
@@ -133,18 +78,6 @@ public interface AgentRuntimeClient {
         @PathVariable(value = "project_id") String projectId, @RequestBody McpServerReq body);
 
     /**
-     * 运行模型调用接口
-     *
-     * @param authToken   String
-     * @param askModelReq AskModelReq
-     * @return 响应体
-     */
-    @PostMapping(path = "/v1/agent-builder/chat/completions", consumes = MediaType.APPLICATION_JSON_VALUE,
-        produces = MediaType.APPLICATION_JSON_VALUE)
-    ResponseEntity<JSONObject> askModel(@RequestHeader("X-Auth-Token") String authToken,
-        @RequestHeader(value = "X-Auth-Id", required = false) String authId, @RequestBody AskModelReq askModelReq);
-
-    /**
      * 运行 mcp 服务指定工具
      *
      * @param authToken 认证 token
@@ -155,11 +88,6 @@ public interface AgentRuntimeClient {
     @PostMapping("/v1/{project_id}/mcp-servers/tools/run")
     ResponseEntity<McpCallToolResp> callMcpServerTool(@RequestHeader(CommonConstant.X_AUTH_TOKEN) String authToken,
         @PathVariable(value = "project_id") String projectId, @RequestBody McpCallToolRequest body);
-
-    @PostMapping("/v1/{project_id}/model-service/status/check")
-    ResponseEntity<ModelServiceCheckRsp> modelServiceAvailableCheck(
-        @RequestHeader(CommonConstant.X_AUTH_TOKEN) String authToken,
-        @PathVariable(value = "project_id") String projectId, @RequestBody ModelServiceCheckReq request);
 
     /**
      * 运行 agent，带会话 id
@@ -326,44 +254,6 @@ public interface AgentRuntimeClient {
         @PathVariable("project_id") String projectId, @PathVariable("agent_id") String agentId,
         @RequestParam("workspace_id") String workspaceId);
 
-    @GetMapping(value = "/v1/{project_id}/workflows/{workflow_id}/conversations")
-    ResponseEntity<ConversionQueries> listConversationQueries(
-        @RequestHeader(CommonConstant.X_AUTH_TOKEN) String authToken,
-        @PathVariable("project_id") String projectId, @PathVariable("workflow_id") String workflowId,
-        @SpringQueryMap ListConversationQueriesQo listConversationQueriesQo,
-        @RequestParam("workspace_id") String workspaceId);
-
-    @GetMapping(value = "/v1/{project_id}/workflows/{workflow_id}/conversations/{conversation_id}/executions")
-    ResponseEntity<ExecutionQueries> listExecutionQueries(
-        @RequestHeader(CommonConstant.X_AUTH_TOKEN) String authToken,
-        @PathVariable("project_id") String projectId, @PathVariable("workflow_id") String workflowId,
-        @PathVariable("conversation_id") String conversationId,
-        @SpringQueryMap ListExecutionQueriesQo listExecutionQueriesQo,
-        @RequestParam("workspace_id") String workspaceId);
-
-    @GetMapping(value = "/v1/{project_id}/workflows/{workflow_id}/executions/{execution_id}")
-    ResponseEntity<ExecutionInfo> getExecutionInsight(
-        @RequestHeader(CommonConstant.X_AUTH_TOKEN) String authToken,
-        @PathVariable("project_id") String projectId, @PathVariable("workflow_id") String workflowId,
-        @PathVariable("execution_id") String executionId,
-        @SpringQueryMap GetExecutionInsightQo getExecutionInsightQo,
-        @RequestParam("workspace_id") String workspaceId);
-
-    @GetMapping(value = "/v1/{project_id}/agents/{agent_id}/conversations/{conversation_id}/history")
-    ResponseEntity<List<Message>> retrieveConversation(
-        @RequestHeader(CommonConstant.X_AUTH_TOKEN) String authToken,
-        @PathVariable("project_id") String projectId, @PathVariable("agent_id") String agentId,
-        @PathVariable("conversation_id") String conversationId,
-        @SpringQueryMap RetrieveConversationQo retrieveConversationQo,
-        @RequestParam("workspace_id") String workspaceId);
-
-    @DeleteMapping(value = "/v1/{project_id}/agents/{agent_id}/conversations/{conversation_id}/history")
-    ResponseEntity<ConversationDeleteResp> deleteConversation(
-        @RequestHeader(CommonConstant.X_AUTH_TOKEN) String authToken,
-        @PathVariable("project_id") String projectId, @PathVariable("agent_id") String agentId,
-        @PathVariable("conversation_id") String conversationId, @RequestParam("version_id") String versionId,
-        @RequestParam("workspace_id") String workspaceId);
-
     @PostMapping(value = "/v1/{project_id}/workflows/{workflow_id}/tasks")
     ResponseEntity<TaskRsp> createTask(
         @RequestHeader(CommonConstant.X_AUTH_TOKEN) String authToken,
@@ -371,85 +261,11 @@ public interface AgentRuntimeClient {
         @PathVariable("workflow_id") String workflowId, @RequestParam(value = "version", required = false) String version,
         @RequestParam(value = "workspace_id", required = false) String workspaceId, @RequestBody @NotNull @Valid CreateTaskReq body);
 
-    @GetMapping("/v1/{project_id}/workflows/{workflow_id}/tasks")
-    ResponseEntity<TaskListRsp> listTask(
-        @RequestHeader(CommonConstant.X_AUTH_TOKEN) String authToken,
-        @PathVariable("project_id") String projectId,
-        @PathVariable("workflow_id") String workflowId,
-        @RequestParam(value = "status", required = false) String status,
-        @RequestParam(value = "type", required = false) String type,
-        @RequestParam(value = "sort", required = false) String sort,
-        @RequestParam(value = "order", required = false) String order,
-        @RequestParam(value = "workspace_id", required = false) String workspaceId);
-
-    @GetMapping("/v1/{project_id}/workflows/{workflow_id}/tasks/{task_id}")
-    ResponseEntity<TaskRsp> retrieveTask(
-        @RequestHeader(CommonConstant.X_AUTH_TOKEN) String authToken,
-        @PathVariable("project_id") String projectId,
-        @PathVariable("workflow_id") String workflowId, @PathVariable("task_id") String taskId,
-        @RequestParam(value = "workspace_id", required = false) String workspaceId);
-
-    @PostMapping("/v1/{project_id}/workflows/{workflow_id}/tasks/{task_id}")
-    ResponseEntity<TaskRsp> resumeTask(
-        @RequestHeader(CommonConstant.X_AUTH_TOKEN) String authToken,
-        @PathVariable("project_id") String projectId,
-        @PathVariable("workflow_id") String workflowId, @PathVariable("task_id") String taskId,
-        @RequestParam(value = "workspace_id", required = false) String workspaceId, @RequestBody @Valid @NotNull ResumeTaskReq bpdy);
-
-    @PutMapping("/v1/{project_id}/workflows/{workflow_id}/tasks/{task_id}")
-    ResponseEntity<TaskRsp> modifyTask(
-        @RequestHeader(CommonConstant.X_AUTH_TOKEN) String authToken,
-        @PathVariable("project_id") String projectId,
-        @PathVariable("workflow_id") String workflowId, @PathVariable("task_id") String taskId,
-        @RequestParam(value = "workspace_id", required = false) String workspaceId, @RequestBody @NotNull @Valid ModifyTaskReq body);
-
-    @DeleteMapping("/v1/{project_id}/workflows/{workflow_id}/tasks/{task_id}")
-    ResponseEntity<CommonDeleteRsp> deleteTask(
-        @RequestHeader(CommonConstant.X_AUTH_TOKEN) String authToken,
-        @PathVariable("project_id") String projectId,
-        @PathVariable("workflow_id") String workflowId, @PathVariable("task_id") String taskId,
-        @RequestParam(value = "workspace_id", required = false) String workspaceId);
-
-    @DeleteMapping("/v1/{project_id}/workflows/{workflow_id}/tasks/{task_id}/cancel")
-    ResponseEntity<CancelTaskRsp> cancelTask(
-        @RequestHeader(CommonConstant.X_AUTH_TOKEN) String authToken,
-        @PathVariable("project_id") String projectId,
-        @PathVariable("workflow_id") String workflowId, @PathVariable("task_id") String taskId,
-        @RequestParam(value = "workspace_id", required = false) String workspaceId);
-
     @PostMapping("/v1/{project_id}/mcp-servers/test")
     ResponseEntity<McpValidationResp> testServer(
         @RequestHeader(CommonConstant.X_AUTH_TOKEN) String authToken,
         @PathVariable("project_id") String projectId,
         @RequestBody @NotNull @Valid McpValidationReq body, @RequestParam("workspqce_id") String workspaceId);
-
-    @PostMapping("/v1/agent-builder/rerank")
-    Object rerank(
-        @RequestHeader(CommonConstant.X_AUTH_TOKEN) String authToken,
-        @RequestParam("project_id") String projectId,
-        @RequestParam("workspace_id") String workspaceId, @RequestBody @Valid RankDocumentsRequest request,
-        @RequestParam("refresh") Boolean refresh);
-
-    @PostMapping("/v1/agent-builder/embeddings")
-    Object textEmbeddings(
-        @RequestHeader(CommonConstant.X_AUTH_TOKEN) String authToken,
-        @RequestParam("project_id") String projectId,
-        @RequestParam("workspace_id") String workspaceId, @RequestBody @Valid EmbeddingRequest request,
-        @RequestParam("refresh") Boolean refresh);
-
-    @PostMapping("/v1/agent-builder/chat/completions")
-    Object chatCompletions(
-        @RequestHeader(CommonConstant.X_AUTH_TOKEN) String authToken,
-        @RequestParam("project_id") String projectId,
-        @RequestParam("workspace_id") String workspaceId, @RequestBody ChatCompletionRequest request,
-        @RequestParam("refresh") boolean refresh);
-
-    @PostMapping("/v1/agent-builder/chat/completions")
-    Flux<Object> chatCompletionsStream(
-        @RequestHeader(CommonConstant.X_AUTH_TOKEN) String authToken,
-        @RequestParam("project_id") String projectId,
-        @RequestParam("workspace_id") String workspaceId, @RequestBody ChatCompletionRequest request,
-        @RequestParam("refresh") boolean refresh);
 
     @PostMapping("/v1/{project_id}/agents/{agent_id}/conversations/{conversation_id}/additional-questions")
     ResponseEntity<AutoAddResultJsonObject> additionalQuestions(
@@ -488,34 +304,11 @@ public interface AgentRuntimeClient {
         @PathVariable("project_id") String projectId, @PathVariable("agent_id") String agentId,
         @RequestBody AnalyticsEventReq body, @RequestHeader("workspace_id") String workspaceId);
 
-    @GetMapping("/v1/{project_id}/agents/{agent_id}/conversations/{conversation_id}/execution-queries")
-    ResponseEntity<AgentExecutionQueries> listAgentExecutionQueries(
-        @RequestHeader(CommonConstant.X_AUTH_TOKEN) String authToken,
-        @PathVariable("project_id") String projectId, @PathVariable("agent_id") String agentId,
-        @PathVariable("conversation_id") String conversationId,
-        @SpringQueryMap ListAgentExecutionQueriesQo listAgentExecutionQueriesQo,
-        @RequestParam("workspace_id") String workspaceId);
-
-    @GetMapping("/v1/{project_id}/agents/{agent_id}/executions/{execution_id}")
-    ResponseEntity<AgentExecutionInfo> getAgentExecutionInfo(
-        @RequestHeader(CommonConstant.X_AUTH_TOKEN) String authToken,
-        @PathVariable("project_id") String projectId, @PathVariable("execution_id") String executionId,
-        @PathVariable("agent_id") String agentId,
-        @SpringQueryMap GetAgentExecutionInfoQo getAgentExecutionInfoQo,
-        @RequestParam("workspace_id") String workspaceId);
-
     @PostMapping("/v1/{project_id}/asr/short-audio")
     ResponseEntity<AsrRsp> voiceRecognition(
         @RequestHeader(CommonConstant.X_AUTH_TOKEN) String authToken,
         @PathVariable("project_id") String projectId,
         @RequestBody AsrReq body, @RequestParam("workspace_id") String workspaceId);
-
-    @GetMapping("/v1/{project_id}/agents/{agent_id}/conversations")
-    ResponseEntity<ConversionQueries> listAgentConversations(
-        @RequestHeader(CommonConstant.X_AUTH_TOKEN) String authToken,
-        @PathVariable("project_id") String projectId, @PathVariable("agent_id") String agentId,
-        @SpringQueryMap ListAgentConversationsQo listAgentConversationsQo,
-        @RequestParam("workspace_id") String workspaceId);
 
     @PostMapping("/v1/{project_id}/workflows/{workflow_id}/conversations/{conversation_id}/abort")
     ResponseEntity<Status> abortConversation(
@@ -523,22 +316,6 @@ public interface AgentRuntimeClient {
         @PathVariable("project_id") String projectId,
         @PathVariable("workflow_id") String workflowId, @PathVariable("conversation_id") String conversationId,
         @RequestParam("workspace_id") String workspaceId);
-
-    @GetMapping("/v1/{project_id}/controller/{agent_id}/conversations/{conversation_id}/executions")
-    ResponseEntity<Object> listControllerExecutions(
-        @RequestHeader(CommonConstant.X_AUTH_TOKEN) String authToken,
-        @PathVariable("project_id") String projectId, @PathVariable("agent_id") String agentId,
-        @PathVariable("conversation_id") String conversationId,
-        @RequestParam("workspace_id") String workspaceId,
-        @SpringQueryMap ListControllerExecutionsQo body);
-
-    @GetMapping("/v1/{project_id}/controller/{agent_id}/executions/{execution_id}")
-    ResponseEntity<Object> getControllerExecutionDetail(
-        @RequestHeader(CommonConstant.X_AUTH_TOKEN) String authToken,
-        @PathVariable("project_id") String projectId, @PathVariable("agent_id") String agentId,
-        @PathVariable("execution_id") String executionId,
-        @RequestParam("workspace_id") String workspaceId,
-        @SpringQueryMap GetControllerExecutionDetailQo body);
 
     @PostMapping("/v1/workflows/chat/{short_code}/conversations/{conversation_id}")
     ResponseEntity<Object> runWebWorkflow(

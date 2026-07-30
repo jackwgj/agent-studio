@@ -13,7 +13,7 @@ from agent_runtime.common.model_providers import (
     EnvVarModelConfigProvider,
     IRModelConfigProvider,
 )
-from agent_runtime.common.redis_manager import ExecutionIdStore
+from common_utils.redis_manager import get_redis_client
 from agent_runtime.runner.context import create_conversation_context
 from agent_runtime.runner.memory_extraction_context import MemoryExtractionContext
 from agent_runtime.runner.workflow_stream_data_wrapper import WorkflowStreamDataWrapper
@@ -40,11 +40,97 @@ apply_template_masking_patch()
 GENERAL_ERROR = 101040
 
 
+class ExecutionIdStore:
+    """execution_id 的 Redis 存储管理，用于工作流中断恢复时保持 execution_id 一致"""
+
+    KEY_PREFIX = "agentBuilder:execution_id"
+    DEFAULT_TTL = 86400  # 24小时
+
+    @classmethod
+    def _build_key(cls, workflow_id: str, session_id: str) -> str:
+        """构建 Redis key: workflow_id + session_id"""
+        return f"{cls.KEY_PREFIX}:{workflow_id}:{session_id}"
+
+    @classmethod
+    async def save(
+        cls, workflow_id: str, session_id: str, exec_id: str, ttl: int = None
+    ) -> bool:
+        """保存 execution_id 到 Redis
+
+        Args:
+            workflow_id: 工作流 ID
+            session_id: 会话 ID
+            exec_id: execution_id
+            ttl: 过期时间（秒），默认 24 小时
+
+        Returns:
+            bool: 是否保存成功
+        """
+        try:
+            redis_client = get_redis_client()
+            key = cls._build_key(workflow_id, session_id)
+            expire = ttl if ttl is not None else cls.DEFAULT_TTL
+            await redis_client.set(key, exec_id, ex=expire)
+            workflow_logger.debug("Saved execution_id: key={}, exec_id={}", key, exec_id)
+            return True
+        except Exception as e:
+            workflow_logger.warning("Failed to save execution_id to Redis: {}", e)
+            return False
+
+    @classmethod
+    async def get(cls, workflow_id: str, session_id: str) -> str | None:
+        """从 Redis 获取之前保存的 execution_id
+
+        Args:
+            workflow_id: 工作流 ID
+            session_id: 会话 ID
+
+        Returns:
+            str | None: 保存的 execution_id，不存在或失败时返回 None
+        """
+        try:
+            redis_client = get_redis_client()
+            key = cls._build_key(workflow_id, session_id)
+            result = await redis_client.get(key)
+            if result is not None:
+                exec_id = (
+                    result.decode("utf-8") if isinstance(result, bytes) else str(result)
+                )
+                workflow_logger.debug("Retrieved execution_id: key={}, exec_id={}", key, exec_id)
+                return exec_id
+            return None
+        except Exception as e:
+            workflow_logger.warning("Failed to get execution_id from Redis: {}", e)
+            return None
+
+    @classmethod
+    async def delete(cls, workflow_id: str, session_id: str) -> bool:
+        """删除 Redis 中保存的 execution_id
+
+        Args:
+            workflow_id: 工作流 ID
+            session_id: 会话 ID
+
+        Returns:
+            bool: 是否删除成功
+        """
+        try:
+            redis_client = get_redis_client()
+            key = cls._build_key(workflow_id, session_id)
+            await redis_client.delete(key)
+            workflow_logger.debug("Deleted execution_id: key={}", key)
+            return True
+        except Exception as e:
+            workflow_logger.warning("Failed to delete execution_id from Redis: {}", e)
+            return False
+
+
 class ModelConfigStrategy(Enum):
     """模型配置来源策略"""
 
     ENV = "env"
     IR = "ir"
+    OBS = "obs"
 
 
 class WorkflowRunner:
@@ -65,7 +151,13 @@ class WorkflowRunner:
             "API_BASE", "https://api.deepseek.com"
         )
         self._model_strategy = model_strategy
+        workflow_logger.info("WorkflowRunner: model_config_strategy=%s", model_strategy.value)
         self._ir_converter = IRConverter()
+
+        # 将策略感知的 ModelConfigProvider 工厂注入 IRConverter，
+        # 使 IRConverter 内部的 _register_agent_core_llm_model 使用正确的 Provider
+        from jiuwen.serve.controllers.execution.ir_converter import set_model_config_provider_factory
+        set_model_config_provider_factory(self._create_model_provider)
 
     def _create_model_provider(self) -> ModelConfigProvider:
         match self._model_strategy:
@@ -73,6 +165,9 @@ class WorkflowRunner:
                 return EnvVarModelConfigProvider()
             case ModelConfigStrategy.IR:
                 return IRModelConfigProvider()
+            case ModelConfigStrategy.OBS:
+                from agent_runtime.common.model_providers import OBSModelConfigProvider
+                return OBSModelConfigProvider()
 
     async def _is_session_interrupted(self, session_id: str) -> bool:
         """检查指定 session 是否存在已保存的 checkpoint（即处于中断状态）"""
@@ -96,7 +191,7 @@ class WorkflowRunner:
         session_id = req.conversation_id
         exec_id = execution_id or session_id
 
-        # 2. 使用缓存的 IR（如果存在）或从存储读取
+        # 2. 从存储读取 IR
         ir_path = req.ir_path
         try:
             ir_json = await async_ir_load(ir_path)
@@ -109,7 +204,7 @@ class WorkflowRunner:
                 "data": {"response": "Failed to load workflow configuration"},
                 "executionId": exec_id,
                 "index": 0,
-                "createdTime": int(time.time()),
+                "createdTime": int(time.time() * 1000),
             }
             return
 
@@ -133,7 +228,7 @@ class WorkflowRunner:
                 "data": {"response": "Failed to build workflow"},
                 "executionId": exec_id,
                 "index": 0,
-                "createdTime": int(time.time()),
+                "createdTime": int(time.time() * 1000),
             }
             return
 
@@ -226,7 +321,7 @@ class WorkflowRunner:
             "data": {},
             "index": 0,
             "executionId": exec_id,
-            "createdTime": int(time.time()),
+            "createdTime": int(time.time() * 1000),
         }
 
         if not is_resuming:
@@ -235,7 +330,7 @@ class WorkflowRunner:
                 "data": {},
                 "index": 0,
                 "executionId": exec_id,
-                "createdTime": int(time.time()),
+                "createdTime": int(time.time() * 1000),
             }
 
         # 7. 执行工作流
@@ -329,7 +424,7 @@ class WorkflowRunner:
                     },
                     "executionId": exec_id,
                     "index": 0,
-                    "createdTime": int(time.time()),
+                    "createdTime": int(time.time() * 1000),
                 }
             yield {
                 "event": "done",
@@ -340,7 +435,7 @@ class WorkflowRunner:
                 },
                 "executionId": exec_id,
                 "index": 0,
-                "createdTime": int(time.time()),
+                "createdTime": int(time.time() * 1000),
             }
             # 异常结束节点终止后，清除 Redis 中保存的 execution_id，
             # 确保下次运行不会被误判为中断恢复
@@ -367,7 +462,7 @@ class WorkflowRunner:
                 },
                 "executionId": exec_id,
                 "index": 0,
-                "createdTime": int(time.time()),
+                "createdTime": int(time.time() * 1000),
             }
             yield {
                 "event": "done",
@@ -378,7 +473,7 @@ class WorkflowRunner:
                 },
                 "executionId": exec_id,
                 "index": 0,
-                "createdTime": int(time.time()),
+                "createdTime": int(time.time() * 1000),
             }
         except Exception as e:
             workflow_logger.error(f"Workflow execution failed: {e}, type={type(e).__name__}", exc_info=True)
@@ -415,7 +510,7 @@ class WorkflowRunner:
                 },
                 "executionId": exec_id,
                 "index": 0,
-                "createdTime": int(time.time()),
+                "createdTime": int(time.time() * 1000),
             }
 
     async def run_blocking(self, req: ExecutionRequest) -> str:
