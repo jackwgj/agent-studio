@@ -235,6 +235,16 @@ export class HomeComponent implements OnInit, OnDestroy {
                 isSelected: false,
                 router: ['/app-library'],
               },
+              /** 对话助手 */
+              {
+                id: 'conversation-workspace',
+                name: '对话助手',
+                label: '对话助手',
+                icon: cdnAssetUrl('assets/images/menu/app-center.svg'),
+                iconSelected: cdnAssetUrl('assets/images/menu/app-center-selected.svg'),
+                isSelected: false,
+                router: ['conversation'],
+              },
             ],
           },
           /** 开发中心 */

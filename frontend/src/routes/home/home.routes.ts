@@ -265,6 +265,13 @@ export const HOME_ROUTES: Routes = [
     },
   },
   {
+    path: 'conversation',
+    loadChildren: () =>
+      import('@routes/conversation-workspace/conversation-workspace-routing.module').then(
+        (module) => module.ConversationWorkspaceRoutingModule,
+      ),
+  },
+  {
     path: '**',
     redirectTo: 'overview',
   },

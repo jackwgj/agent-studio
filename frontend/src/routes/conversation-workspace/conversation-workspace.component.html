@@ -1,0 +1,87 @@
+<div class="conversation-workspace">
+  <!-- 左侧会话历史栏 -->
+  <div class="session-sidebar">
+    <div class="sidebar-header">
+      <span class="sidebar-title">会话</span>
+      <button nz-button nzType="primary" nzSize="small" (click)="newSession()">新建会话</button>
+    </div>
+    <div class="session-list">
+      <div
+        *ngFor="let session of sessions"
+        class="session-item"
+        [class.active]="currentSession?.conversation_id === session.conversation_id"
+        (click)="selectSession(session)"
+      >
+        <div class="session-info">
+          <div class="session-title">{{ session.title }}</div>
+          <div class="session-time">{{ session.updated_at || '' }}</div>
+        </div>
+        <span
+          class="session-delete"
+          title="删除"
+          (click)="deleteSession(session, $event)"
+        >×</span>
+      </div>
+      <div *ngIf="!sessions.length" class="session-empty">暂无会话，点击"新建会话"开始</div>
+    </div>
+  </div>
+
+  <!-- 右侧聊天区 -->
+  <div class="chat-area">
+    <div class="chat-header">
+      <span>{{ currentSession?.title || '对话式工作台' }}</span>
+      <nz-select
+        *ngIf="modelOptions.length"
+        class="model-select"
+        nzPlaceHolder="选择模型"
+        [(ngModel)]="selectedModel"
+        nzSize="small"
+      >
+        <nz-option
+          *ngFor="let model of modelOptions"
+          [nzValue]="model.deployment_id"
+          [nzLabel]="model.label"
+        ></nz-option>
+      </nz-select>
+    </div>
+
+    <div class="message-list" #messageList>
+      <div *ngIf="!messages.length" class="chat-empty">
+        选择左侧会话或新建会话，选择模型后开始对话
+      </div>
+      <div
+        *ngFor="let message of messages; let i = index"
+        class="message-row"
+        [class.user]="message.role === 'user'"
+      >
+        <div class="message-bubble">
+          <div class="message-role">{{ message.role === 'user' ? '我' : '助手' }}</div>
+          <div class="message-content">
+            <span>{{ message.content }}</span>
+            <span *ngIf="message.loading" class="loading-dots">…</span>
+          </div>
+          <div *ngIf="message.error" class="message-error">请求失败，请重试</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chat-input-area">
+      <textarea
+        nz-input
+        class="chat-input"
+        placeholder="输入消息，Enter 发送，Shift+Enter 换行"
+        [(ngModel)]="inputText"
+        (keydown)="onKeydown($event)"
+      ></textarea>
+      <button
+        nz-button
+        nzType="primary"
+        [nzLoading]="streaming"
+        [disabled]="!inputText.trim() || streaming"
+        (click)="send()"
+      >
+        发送
+      </button>
+    </div>
+  </div>
+</div>
