@@ -61,3 +61,21 @@ env/
 .venv/
 venv/
 __pycache__/
+
+### 环境变量（含密钥，禁止提交）###
+.env
+**/.env
+!.env.example
+
+### 日志 ###
+logs/
+*.log
+
+### 本地构建产物 / 大文件 ###
+out/
+docker/image/
+docker/*/lib/
+deploy/offline/
+*.tar.gz
+docker/AgentBuilder.tar.gz
+docker/studio-console/agent-console.tar
