@@ -10,6 +10,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.openjiuwen.studio.agent.common.enums.NodeType;
 import com.openjiuwen.studio.agent.common.enums.StudioError;
 import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
+import com.openjiuwen.studio.agent.manager.entity.md.ModelServiceBase;
 import com.openjiuwen.studio.agent.common.utils.LanguageUtils;
 import com.openjiuwen.studio.agent.common.utils.RequestContextUtils;
 import com.openjiuwen.studio.agent.common.utils.StrUtils;
@@ -64,6 +65,7 @@ import com.openjiuwen.studio.agent.manager.mapper.MappingMapper;
 import com.openjiuwen.studio.agent.manager.mapper.ReleaseVersionMapper;
 import com.openjiuwen.studio.agent.manager.mapper.ShareResourceMapper;
 import com.openjiuwen.studio.agent.manager.mapper.WorkflowMapper;
+import com.openjiuwen.studio.agent.manager.mapper.md.ModelServiceMapper;
 import com.openjiuwen.studio.agent.manager.obs.MgObsService;
 import com.openjiuwen.studio.agent.manager.service.md.ModelServiceManager;
 import com.openjiuwen.studio.agent.manager.service.memory.AgentMemoryConfigService;
@@ -174,6 +176,9 @@ public class ControllerManagementService {
 
     @Autowired
     private ModelServiceManager modelServiceManager;
+
+    @Autowired
+    private ModelServiceMapper modelServiceMapper;
 
     @Autowired
     private ShareResourceMapper shareResourceMapper;
@@ -1543,5 +1548,126 @@ public class ControllerManagementService {
             .toList();
         inputs.addAll(filteredInputs);
         controllerVo.setInputs(inputs);
+    }
+
+    /**
+     * 为对话式智能助手直接组装 ControllerIR（不走 DSL/前端可视化流程）。
+     *
+     * @param teamAgentIds 子 Agent 团队的 agentId 列表
+     * @param modelDeploymentId 平台模型部署 ID（UUID），从模型管理中获取
+     * @param systemPrompt 主 Agent 的 system prompt 模板
+     * @return 组装好的 ControllerIR（agentId 为生成的 UUID）
+     */
+    public ControllerIR generateConversationIr(List<String> teamAgentIds, String modelDeploymentId, String systemPrompt) {
+        String conversationAgentId = UUID.randomUUID().toString();
+
+        // 1. 构建 ControllerIR
+        ControllerIR ir = new ControllerIR();
+        // 为什么用uuid？agent的配置是固定的，要固定一个agentid，避免重复创建
+        ir.setAgentId(conversationAgentId);
+        ir.setAgentName("对话助手");
+        ir.setAgentVersion("0.6.0");
+        ir.setSchemaVersion("0.6.0");
+        ir.setDescription("系统内置对话式智能助手，根据用户意图调度专业 Agent 团队");
+
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("updatedAt", String.valueOf(System.currentTimeMillis()));
+        ir.setMetadata(metadata);
+
+        // 2. 查询模型配置（仅运行时传入 modelDeploymentId 时执行；启动时跳过）
+        ModelServiceBase modelBase = null;
+        Map<String, Object> extension = new HashMap<>();
+        String resolvedModelType = "";
+        if (StringUtils.isNotBlank(modelDeploymentId)) {
+            modelBase = modelServiceMapper.queryById(modelDeploymentId);
+            if (modelBase == null) {
+                throw new AgentStudioException(StudioError.METHOD_ARGUMENT_NOT_VALID,
+                    List.of("model deployment not found: " + modelDeploymentId));
+            }
+            resolvedModelType = modelBase.getModelType();
+            extension = modelServiceManager.parseModelExtension(
+                modelDeploymentId, modelBase.getProjectId(), modelBase.getWorkspaceId(), false);
+        }
+
+        // 3. 构建 ControllerConfigIR
+        ControllerConfigIR configs = new ControllerConfigIR();
+        configs.setMode("Controller");
+        configs.setSysPromptTemplate(systemPrompt);
+        configs.setPlugins(new ArrayList<>());
+        configs.setChatHistoryMaxTurn(chatHistoryMaxTurnConf);
+        configs.setMaxIteration(maxIterationConf);
+        configs.setSpecifyWorkflowOrder(false);
+        configs.setGlobalIntents(new ArrayList<>());
+        configs.setGlobalVariables(new ArrayList<>());
+        configs.setWorkflows(new ArrayList<>());
+
+        // 4. 设置模型配置（与 buildIrModelConfig 逻辑一致）
+        ControllerConfigIRModelConfig modelConfig = new ControllerConfigIRModelConfig();
+        modelConfig.setModelName(StringUtils.isNotBlank(modelDeploymentId) ? modelDeploymentId : "");
+        modelConfig.setModelType(resolvedModelType);
+        if (StringUtils.isNotBlank(modelDeploymentId)) {
+            modelConfig.setDeploymentId(modelDeploymentId);
+        }
+        ControllerConfigIRModelConfigHyperParameters hyperParams =
+            new ControllerConfigIRModelConfigHyperParameters();
+        hyperParams.setTemperature(0.1F);
+        hyperParams.setTopP(0.2F);
+        modelConfig.setHyperParameters(hyperParams);
+        modelConfig.setExtension(extension);
+        configs.setModelConfig(modelConfig);
+
+        // 4. 构建子 Agent 列表
+        List<ControllerAgentIR> agents = new ArrayList<>();
+        for (String agentId : teamAgentIds) {
+            ControllerAgentIR agentIr = new ControllerAgentIR();
+            agentIr.setId(agentId);
+            agentIr.setName(agentId);
+            agentIr.setDescription("专业 Agent");
+            agentIr.setMode("Controller");
+            agentIr.setIrPath(agentCommonService.getAgentObsPath(agentId, CommonConstant.Workflow.IR));
+
+            WorkflowNodeConfigVOIntent intent = new WorkflowNodeConfigVOIntent();
+            intent.setName(agentId);
+            intent.setDescription("用户请求涉及此 Agent 专业领域时调用");
+            agentIr.setIntent(intent);
+
+            // 默认输入参数
+            List<WorkflowFieldIR> arguments = new ArrayList<>();
+            WorkflowFieldIR queryArg = new WorkflowFieldIR();
+            queryArg.setName("query");
+            queryArg.setType("string");
+            queryArg.setDescription("用户输入");
+            queryArg.setRequired(true);
+            queryArg.setVisible(true);
+            queryArg.setMethod("Body");
+            arguments.add(queryArg);
+            agentIr.setArguments(arguments);
+
+            List<WorkflowFieldIR> response = new ArrayList<>();
+            WorkflowFieldIR respField = new WorkflowFieldIR();
+            respField.setName("response_content");
+            respField.setType("string");
+            respField.setDescription("最终输出");
+            response.add(respField);
+            agentIr.setResponse(response);
+
+            agents.add(agentIr);
+        }
+        configs.setAgents(agents);
+
+        ir.setConfigs(configs);
+
+        // 5. 上传 OBS
+        mgObsService.uploadObsFile(
+            conversationAgentId,
+            conversationAgentId,
+            CommonConstant.AGENT,
+            JSON.toJSONString(ir),
+            CommonConstant.Workflow.IR
+        );
+
+        log.info("Conversation agent IR generated and uploaded: agentId={}, teamSize={}",
+            conversationAgentId, teamAgentIds.size());
+        return ir;
     }
 }
