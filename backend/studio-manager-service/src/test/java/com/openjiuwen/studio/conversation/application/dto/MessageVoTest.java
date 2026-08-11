@@ -23,7 +23,7 @@ class MessageVoTest {
                 .executionId("exec-1")
                 .subExecutionId("sub-1")
                 .agentId("agent-1")
-                .event("plugin_end")
+                .event("run_done")
                 .createdAt(new Date(0))
                 .build();
 

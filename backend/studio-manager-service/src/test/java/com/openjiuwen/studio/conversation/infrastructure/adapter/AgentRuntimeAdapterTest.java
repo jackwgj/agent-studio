@@ -1,33 +1,36 @@
 package com.openjiuwen.studio.conversation.infrastructure.adapter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.openjiuwen.studio.agent.common.dto.agent.Message;
 import com.openjiuwen.studio.agent.common.utils.OkHttpClientUtils;
 import com.openjiuwen.studio.agent.common.utils.RequestContextUtils;
-import com.openjiuwen.studio.agent.manager.dto.ControllerIR;
 import com.openjiuwen.studio.agent.manager.obs.MgObsService;
 import com.openjiuwen.studio.agent.manager.service.ControllerManagementService;
 import com.openjiuwen.studio.conversation.application.dto.SendMessageCmd;
 import com.openjiuwen.studio.conversation.domain.model.Conversation;
 import com.openjiuwen.studio.conversation.domain.repository.ConversationRepository;
+
 import okhttp3.Request;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 /**
- * 定位 AgentRuntimeAdapter 的配置依赖问题。
+ * 团队对话直传路径（Phase 5）单元测试。
  *
- * <p>run() 中 URL 构建（Request.Builder.url）发生在 latch.await 之前，因此空 endpoint 会在这里
- * 立即抛异常，不会进入阻塞/真实网络，测试快速且确定性。</p>
+ * <p>run() 不再预烘焙 IR：URL 直接构建为 /v1/inner/{project}/conversations/{conversation}/team，
+ * 请求体直传 subAgentIds + modelDeploymentId + conversationHistory（无 systemPrompt、无 enable_history）。
+ * 空 endpoint 时 URL 构建（Request.Builder.url）立即抛异常，不会进入真实网络，测试快速且确定性。</p>
  */
 class AgentRuntimeAdapterTest {
 
@@ -46,10 +49,8 @@ class AgentRuntimeAdapterTest {
         adapter = new AgentRuntimeAdapter(controllerManagementService, mgObsService,
                 conversationRepository, okHttpClientUtils, new ObjectMapper());
         // @Value 字段在裸 new 下为 null，必须手工注入（Spring 只在 bean 创建时解析）。
-        // 忠实模拟生产：${agent_runtime_endpoint:} → 空字符串、system-prompt → 非空默认值
+        // 忠实模拟生产：${agent_runtime_endpoint:} → 空字符串，URL 无协议头 → OkHttp 抛 IllegalArgumentException
         ReflectionTestUtils.setField(adapter, "runtimeEndpoint", "");
-        ReflectionTestUtils.setField(adapter, "teamAgentIdsStr", "agent-team-1");
-        ReflectionTestUtils.setField(adapter, "systemPrompt", "你是一个智能对话助手");
     }
 
     @AfterEach
@@ -58,48 +59,72 @@ class AgentRuntimeAdapterTest {
     }
 
     /**
-     * 复现生产 bug：agent_runtime_endpoint 未配置（@Value 默认空字符串）→
-     * url = "/v1/inner/..."（无协议头）→ OkHttp 抛 IllegalArgumentException。
+     * 团队端点 URL 形态（runtime /v1/inner 命名空间）：/v1/inner/{project}/conversations/{conversation}/team，
+     * 不再是旧链 /v1/inner/.../agents/{agentId}/conversations/...。
      */
     @Test
-    void testRun_EmptyRuntimeEndpoint_ThrowsIllegalArgumentException() {
-        ControllerIR ir = new ControllerIR().setAgentId("agent-1").setMetadata(new HashMap<>());
-        when(controllerManagementService.generateConversationIr(anyList(), anyString(), anyString()))
-                .thenReturn(ir);
+    void testBuildTeamUrl_TeamEndpointShape() {
+        Conversation conv = Conversation.builder()
+                .conversationId("c1").projectId("p1").workspaceId("w1").build();
+        assertEquals("/v1/inner/p1/conversations/c1/team?workspace_id=w1", adapter.buildTeamUrl(conv));
+    }
+
+    /**
+     * 空 endpoint（无协议头）→ URL 构建抛 IllegalArgumentException（构建先于网络，测试确定性）。
+     * 注意：okhttp 异常消息会截断 URL（如 "/v1/in..."），故 URL 形态由 testBuildTeamUrl 独立断言。
+     */
+    @Test
+    void testRun_EmptyEndpoint_ThrowsIllegalArgumentException() {
         Conversation conv = Conversation.builder()
                 .conversationId("c1").projectId("p1").workspaceId("w1").build();
         SendMessageCmd cmd = new SendMessageCmd();
         cmd.setQuery("hi");
         cmd.setModelDeploymentId("m1");
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+        assertThrows(IllegalArgumentException.class,
                 () -> adapter.run(conv, cmd, List.of(), "exec-1", new HttpHeaders()));
-
-        // 异常信息与生产日志一致：URL 没有 scheme，指向 /v1/inner/...
-        assertTrue(ex.getMessage().contains("Expected URL scheme"));
-        assertTrue(ex.getMessage().contains("/v1/in"));
     }
 
     /**
-     * 相关配置依赖：conversation-workspace.team-agent-ids 未配置 →
-     * ensureConversationIr 在 URL 构建之前抛 IllegalStateException。
+     * 不再预烘焙 IR（Phase 5）：run() 直传团队参数，ensureConversationIr/generateConversationIr/OBS 上传均不触发。
      */
     @Test
-    void testRun_EmptyTeamAgentIds_ThrowsIllegalStateException() {
-        ReflectionTestUtils.setField(adapter, "teamAgentIdsStr", "");
+    void testRun_DoesNotGenerateIr() {
         Conversation conv = Conversation.builder()
                 .conversationId("c1").projectId("p1").workspaceId("w1").build();
         SendMessageCmd cmd = new SendMessageCmd();
         cmd.setQuery("hi");
         cmd.setModelDeploymentId("m1");
 
-        assertThrows(IllegalStateException.class,
+        assertThrows(IllegalArgumentException.class,
                 () -> adapter.run(conv, cmd, List.of(), "exec-1", new HttpHeaders()));
+
+        verify(controllerManagementService, never()).generateConversationIr(anyList(), anyString(), anyString());
+        verify(mgObsService, never()).uploadObsFile(any(), any(), any(), any(), any());
     }
 
     /**
-     * 回归：header 来自传入的 HttpHeaders（manager 统一模式），不再读 manager 里没人填充的
-     * RequestContextUtils.getHeaders()；X-Auth-Token 以 IAM 上下文为准补齐，供 runtime POC 认证。
+     * 历史转换：平台 Message → 引擎契约 [{role, content}]（仅 role/content，避免跨服务反序列化类型坑）；
+     * 空/null 返回 null（第一轮不注入）。
+     */
+    @Test
+    void testToHistoryMaps_ConvertsMessagesToRoleContent() {
+        List<Message> histories = List.of(
+                new Message().setRole("user").setContent("上海的天气怎么样？"),
+                new Message().setRole("assistant").setContent("上海多云 18-26℃"));
+        List<Map<String, String>> maps = ReflectionTestUtils.invokeMethod(adapter, "toHistoryMaps", histories);
+        assertNotNull(maps);
+        assertEquals(2, maps.size());
+        assertEquals("user", maps.get(0).get("role"));
+        assertEquals("上海的天气怎么样？", maps.get(0).get("content"));
+        assertEquals("assistant", maps.get(1).get("role"));
+
+        assertNull(ReflectionTestUtils.invokeMethod(adapter, "toHistoryMaps", new Object[] { List.of() }));
+        assertNull(ReflectionTestUtils.invokeMethod(adapter, "toHistoryMaps", new Object[] { null }));
+    }
+
+    /**
+     * 回归：header 来自传入的 HttpHeaders（manager 统一模式）；X-Auth-Token 以 IAM 上下文为准补齐。
      */
     @Test
     void testCopyRequestHeaders_AddsRequestHeadersAndAuthTokenFromIamContext() {

@@ -25,7 +25,7 @@ class ConversationSubRunEntityTest {
         e.setToolId("tool-1");
         e.setToolArgs("{}");
         e.setFileIds("[]");
-        e.setEvent("plugin_end");
+        e.setEvent("sub_done");
         e.setTotalTokens("10");
         e.setPromptTokens("5");
         e.setCompletionTokens("5");
