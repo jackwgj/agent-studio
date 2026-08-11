@@ -11,20 +11,16 @@ tool_result/sub_start/sub_done/run_done/usage/error），暴露执行边界给�
 """
 
 import logging
+import uuid
 
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
-from agent_runtime.supervisor.events import (
-    TeamEventField,
-    build_error,
-    build_run_start,
-    build_user_message,
-    gen_execution_id,
-    sse_line,
-)
-from agent_runtime.supervisor.supervisor_builder import build_supervisor, run_supervisor
+from agent_runtime.supervisor.builder import build_supervisor
+from agent_runtime.supervisor.common.constants import TeamEventField
+from agent_runtime.supervisor.event.adapt import build_error, build_run_start, build_user_message, sse_line
+from agent_runtime.supervisor.runner import run_supervisor
 
 team_router = APIRouter(tags=["conversation-team"])
 
@@ -44,7 +40,7 @@ class ConversationTeamReq(BaseModel):
 
 async def team_sse_stream(req: ConversationTeamReq):
     """SSE 事件生成器：先发 user_message/run_start，再跑监督者事件流。index 统一在此递增。"""
-    execution_id = gen_execution_id()  # 监督者一轮唯一标识（全量 uuid4，不用 conversation_id）
+    execution_id = str(uuid.uuid4())  # 监督者一轮唯一标识（全量 uuid4，不用 conversation_id）
     index = 0
     yield sse_line(build_user_message(execution_id, req.conversation_id, req.query, index=index))
     index += 1
