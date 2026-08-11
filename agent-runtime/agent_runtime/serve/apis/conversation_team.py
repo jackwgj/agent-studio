@@ -1,17 +1,29 @@
 # -*- coding: UTF-8 -*-
-"""团队对话 API —— `/v1/conversation/team`
+"""团队对话 API —— `/v1/conversation/team`（SSE 事件流）
 
 独立 API（不耦合 /v1/orchestration/ir/execute）：
 接收子 Agent IDs + 系统提示词 + 模型部署 ID，引擎侧内置组装「监督者 + handoff 工具」并执行。
 子 Agent 通过其已有 IR 加载（OBS agent/ir/{agentId}/{agentId}.json）。
+
+SSE 事件化（Phase 3）：产出结构化事件流（user_message/run_start/message/reasoning/tool_call/
+tool_result/sub_start/sub_done/run_done/usage/error），暴露执行边界给前端与 Java 三表落库。
+无 done 事件（SSE 流关闭即正常结束），error 用于异常。
 """
 
 import logging
 
 from fastapi import APIRouter
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
+from agent_runtime.supervisor.events import (
+    TeamEventField,
+    build_error,
+    build_run_start,
+    build_user_message,
+    gen_execution_id,
+    sse_line,
+)
 from agent_runtime.supervisor.supervisor_builder import build_supervisor, run_supervisor
 
 team_router = APIRouter(tags=["conversation-team"])
@@ -30,35 +42,41 @@ class ConversationTeamReq(BaseModel):
     model_deployment_id: str = Field(alias="modelDeploymentId")
 
 
-@team_router.post("/v1/conversation/team")
-async def conversation_team(req: ConversationTeamReq):
-    """组装监督者 + N 个 handoff 工具，跑一轮团队对话，返回监督者最终回答。"""
-    if not req.query:
-        return JSONResponse(status_code=400, content={"error": "query is required"})
-    if not req.sub_agent_ids:
-        return JSONResponse(status_code=400, content={"error": "subAgentIds is required"})
+async def team_sse_stream(req: ConversationTeamReq):
+    """SSE 事件生成器：先发 user_message/run_start，再跑监督者事件流。index 统一在此递增。"""
+    execution_id = gen_execution_id()  # 监督者一轮唯一标识（全量 uuid4，不用 conversation_id）
+    index = 0
+    yield sse_line(build_user_message(execution_id, req.conversation_id, req.query, index=index))
+    index += 1
+    yield sse_line(build_run_start(execution_id, index=index))
+    index += 1
 
     try:
-        # 请求字段 modelDeploymentId 携带部署 id（非模型名，D0-8）：路由(31113)解析成真实模型名后调 LLM
         agent = await build_supervisor(
             sub_agent_ids=req.sub_agent_ids,
             system_prompt=req.system_prompt,
             model_deployment_id=req.model_deployment_id,
         )
-        result = await run_supervisor(
-            agent, query=req.query, conversation_id=req.conversation_id
-        )
-        output = result.get("output", result)
-        if isinstance(output, dict):
-            output = output.get("result", "")
-        return {
-            "event": "done",
-            "executionId": req.conversation_id,
-            "data": {"text": str(output)},
-        }
     except Exception as e:
-        logger.error(f"conversation/team failed: {e}", exc_info=True)
-        return JSONResponse(
-            status_code=500,
-            content={"error": f"conversation/team failed: {e}"},
-        )
+        logger.error(f"conversation/team build_supervisor failed: {e}", exc_info=True)
+        yield sse_line(build_error(execution_id, code="build_failed", message=str(e), index=index))
+        return
+
+    async for event in run_supervisor(agent, req.query, req.conversation_id, execution_id):
+        event[TeamEventField.INDEX] = index  # 统一占序，覆盖增量事件自带 index
+        index += 1
+        yield sse_line(event)
+
+
+@team_router.post("/v1/conversation/team")
+async def conversation_team(req: ConversationTeamReq):
+    """组装监督者 + N 个 handoff 工具，跑一轮团队对话，返回 SSE 事件流。"""
+    if not req.query:
+        return JSONResponse(status_code=400, content={"error": "query is required"})
+    if not req.sub_agent_ids:
+        return JSONResponse(status_code=400, content={"error": "subAgentIds is required"})
+
+    return StreamingResponse(
+        content=team_sse_stream(req),
+        media_type="text/event-stream",
+    )

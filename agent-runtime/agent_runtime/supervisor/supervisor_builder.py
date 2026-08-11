@@ -8,14 +8,32 @@
 resource_mgr 是否已有同 id 实例，不存在才注册。工具无状态、跨会话共享安全，数量有界。
 """
 
+import asyncio
+
 from openjiuwen.core.runner import Runner
 from openjiuwen.core.session.agent import create_agent_session
 from openjiuwen.core.single_agent.agents.react_agent import ReActAgent
 from openjiuwen.core.single_agent.schema.agent_card import AgentCard
 
 from agent_runtime.supervisor.config import build_react_config
+from agent_runtime.supervisor.events import (
+    OutputSchemaType,
+    TeamEventField,
+    build_error,
+    build_message,
+    build_reasoning,
+    build_run_done,
+    build_usage,
+    reset_event_queue,
+    reset_execution_id,
+    set_event_queue,
+    set_execution_id,
+)
 from agent_runtime.supervisor.handoff_tool import HandoffTool
 from jiuwen.serve.controllers.execution.open_utils import async_ir_load
+
+# 监督者 stream 消费任务结束哨兵
+_STOP = object()
 
 
 def _ir_path(agent_id: str) -> str:
@@ -53,6 +71,7 @@ async def build_supervisor(
     tools = []
     for agent_id in sub_agent_ids:
         description = await _load_sub_agent_description(agent_id)
+        # 工具名 = transfer_to_{agentId[:8]}（HandoffTool 内生成，ASCII 短唯一；路由靠 description）
         tool = HandoffTool(
             agent_id=agent_id,
             description=description,
@@ -79,7 +98,105 @@ async def build_supervisor(
     return agent
 
 
-async def run_supervisor(agent: ReActAgent, query: str, conversation_id: str):
-    """建 session 并跑监督者，返回最终结果。conversation_id 为业务必填，不做兜底。"""
-    session = create_agent_session(session_id=conversation_id)
-    return await agent.invoke({"query": query}, session)
+def _adapt_supervisor_chunk(chunk, execution_id: str, supervisor_text: dict):
+    """把监督者 stream 的 OutputSchema 提前转成事件 dict 列表（增量事件）。
+
+    Args:
+        chunk: OutputSchema 原始对象
+        execution_id: 本轮唯一标识
+        supervisor_text: {"text": str} 可变容器，answer 时记录权威完整文本
+
+    Returns:
+        events —— 增量事件 dict（message/reasoning/usage/error），index 由主生成器统一补
+    """
+    events = []
+    chunk_type = getattr(chunk, "type", "")
+    payload = getattr(chunk, "payload", {}) or {}
+
+    if chunk_type == OutputSchemaType.LLM_OUTPUT.value:
+        content = payload.get("content", "") or ""
+        if content:
+            events.append(build_message(execution_id, content))
+    elif chunk_type == OutputSchemaType.LLM_REASONING.value:
+        content = payload.get("content", "") or ""
+        if content:
+            events.append(build_reasoning(execution_id, content))
+    elif chunk_type == OutputSchemaType.LLM_USAGE.value:
+        usage = payload.get("usage_metadata", {}) or {}
+        events.append(build_usage(
+            execution_id,
+            input_tokens=usage.get("input_tokens", 0),
+            output_tokens=usage.get("output_tokens", 0),
+            total_tokens=usage.get("total_tokens", 0),
+            latency_ms=payload.get("total_latency_ms"),
+        ))
+    elif chunk_type == OutputSchemaType.ANSWER.value:
+        if payload.get("result_type", "") == "error":
+            events.append(build_error(execution_id, code=103004, message=str(payload.get("output", ""))))
+        else:
+            output_text = payload.get("output", "") or ""
+            if output_text:
+                supervisor_text["text"] = output_text
+    return events
+
+
+async def run_supervisor(agent: ReActAgent, query: str, conversation_id: str, execution_id: str):
+    """事件生成器：跑监督者一轮，产出 SSE 事件 dict（message/reasoning/usage/run_done/error）。
+
+    双任务模式：
+    - 任务 A（supervisor_stream_task）：消费监督者 stream 的 OutputSchema → put 事件通道；
+      工具（handoff）在该任务内被 await，子 Agent 增量经同一通道冒泡。
+    - 主生成器（本协程）：从通道取事件 → yield（工具执行期间仍实时输出）。
+
+    Args:
+        agent: 监督者 ReActAgent
+        query: 用户问题
+        conversation_id: 业务会话 ID（作监督者执行 session_id，非事件 ID）
+        execution_id: 本轮唯一标识（全量 uuid4）
+
+    Yields:
+        事件 dict（无 done，流结束即正常终止；异常发 error）
+    """
+    event_queue: asyncio.Queue = asyncio.Queue()
+    token_queue = set_event_queue(event_queue)
+    token_exec = set_execution_id(execution_id)
+    # 必须传 card：agent.stream 内部 pre_run → checkpointer 读 session._card.id，缺 card 则 None.id 崩溃
+    session = create_agent_session(session_id=conversation_id, card=agent.card)
+    index = 0
+    supervisor_text: dict = {"text": ""}
+    error_sent = False
+    try:
+        async def supervisor_stream_task():
+            # 监督者与子 Agent 同路径：stream 消费 → 提前转事件 dict → put queue（主生成器纯透传）
+            try:
+                async for chunk in agent.stream({"query": query}, session):
+                    for ev in _adapt_supervisor_chunk(chunk, execution_id, supervisor_text):
+                        await event_queue.put(ev)
+            except asyncio.CancelledError:
+                raise
+            except Exception as e:
+                await event_queue.put(e)
+            finally:
+                await event_queue.put(_STOP)
+
+        task = asyncio.create_task(supervisor_stream_task())
+        while True:
+            item = await event_queue.get()
+            if item is _STOP:
+                break
+            if isinstance(item, Exception):
+                yield build_error(execution_id, code="supervisor_error", message=str(item), index=index)
+                index += 1
+                error_sent = True
+                break
+            # queue 中 item 必然是事件 dict（监督者 supervisor_stream_task 提前转 + 子 Agent emit 冒泡），直接透传
+            item[TeamEventField.INDEX] = index
+            index += 1
+            yield item
+
+        # 边界收尾：run_done 用 answer 的权威完整文本；异常已发 error 则不补 run_done
+        if not error_sent:
+            yield build_run_done(execution_id, supervisor_text["text"], index=index)
+    finally:
+        reset_event_queue(token_queue)
+        reset_execution_id(token_exec)

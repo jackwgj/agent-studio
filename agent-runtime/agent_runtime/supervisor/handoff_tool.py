@@ -15,8 +15,27 @@ from openjiuwen.core.session.agent import create_agent_session
 from openjiuwen.core.single_agent.agents.react_agent import ReActAgent
 from openjiuwen.core.single_agent.schema.agent_card import AgentCard
 
+from agent_runtime.runner.react_agent_runner import ReActAgentRunner
 from agent_runtime.supervisor.config import build_react_config
+from agent_runtime.supervisor.events import (
+    OutputSchemaType,
+    build_message,
+    build_reasoning,
+    build_sub_done,
+    build_sub_start,
+    build_tool_call,
+    build_tool_result,
+    build_usage,
+    emit,
+    gen_sub_execution_id,
+    gen_tool_call_id,
+    get_execution_id,
+)
 from jiuwen.serve.controllers.execution.open_utils import async_ir_load
+
+# 轻量工具装载器实例：复用平台 flow agent 同款 IR→工具 注册逻辑（构造只读 env、无副作用，
+# 参照 orchestration.py 惰性单例先例）。子 Agent 工具装载只依赖 (ir_json, agent, agent_id)，与 runner 实例状态无关。
+_runner = ReActAgentRunner()
 
 
 class HandoffTool(Tool):
@@ -28,10 +47,13 @@ class HandoffTool(Tool):
         description: str,
     ):
         self.agent_id = agent_id
+        # name 用 agentId 前 8 位（ASCII、短、唯一）：模型校验 function name 只接受 ^[a-zA-Z0-9_-]+$（中文被拒，实证 2026-08-11）；
+        # id 保持 handoff_{agentId}（唯一标识，执行按 id 不受影响，D0-4）；路由判断靠 description（中文）
+        tool_name = f"transfer_to_{agent_id[:8]}"
         super().__init__(
             card=ToolCard(
                 id=f"handoff_{agent_id}",
-                name=f"transfer_to_{agent_id}",
+                name=tool_name,
                 description=description or f"将任务移交给子 Agent {agent_id} 处理",
                 input_params={
                     "type": "object",
@@ -93,7 +115,12 @@ class HandoffTool(Tool):
         """加载子 Agent IR → 构建子 ReActAgent → 跑 query → 返回最终回答。
 
         子 Agent 会话为一次性 uuid4()，无 conversation 前缀（子 Agent 与会话无关，D0-2）。
+        SSE 事件化（D0-5）：开始发 sub_start，迭代 sub_agent.stream() 实时冒泡 message/reasoning/
+        usage/tool_call/tool_result，结束发 sub_done（完整文本）。事件经 ContextVar 通道 emit
+        冒泡到 run_supervisor 主生成器（并发 handoff 时靠 sub_execution_id 分组）。
+        execution_id 从 ContextVar 读取（工具无状态，D0-4）。
         """
+        execution_id = get_execution_id()
         try:
             ir_data = await async_ir_load(self._ir_path())
         except Exception as e:
@@ -102,13 +129,81 @@ class HandoffTool(Tool):
             ) from e
 
         sub_agent = self._build_sub_agent(ir_data)
-        session = create_agent_session(session_id=str(uuid.uuid4()))
+        # 装载子 Agent IR 工具（Plugin/MCP/Workflow/Skill），复用平台 flow agent 同一套注册语义（D0-3）
+        await _runner.register_agent_tools(ir_data, sub_agent, self.agent_id)
+        # 监督者 handoff 是统一工具调用（tool_call 包着 sub_start/sub_done，不分主子；agentId 缺省=监督者）
+        tool_call_id = gen_tool_call_id()
+        tool_name = f"transfer_to_{self.agent_id[:8]}"
+        await emit(build_tool_call(execution_id, tool_call_id, tool_name, arguments={"query": query}))
+        sub_execution_id = gen_sub_execution_id()
+        await emit(build_sub_start(execution_id, sub_execution_id, self.agent_id))
+        # 必须传 card：agent.stream 内部 pre_run → checkpointer 读 session._card.id，缺 card 则 None.id 崩溃
+        session = create_agent_session(session_id=str(uuid.uuid4()), card=sub_agent.card)
+        sub_text = ""
+        answer_text = ""
         try:
-            result = await sub_agent.invoke({"query": query}, session)
+            async for chunk in sub_agent.stream({"query": query}, session):
+                chunk_type = getattr(chunk, "type", "")
+                payload = getattr(chunk, "payload", {}) or {}
+                if chunk_type == OutputSchemaType.LLM_OUTPUT.value:
+                    delta = payload.get("content", "") or ""
+                    if delta:
+                        sub_text += delta
+                        await emit(build_message(execution_id, delta, self.agent_id, sub_execution_id))
+                elif chunk_type == OutputSchemaType.LLM_REASONING.value:
+                    content = payload.get("content", "") or ""
+                    if content:
+                        await emit(build_reasoning(execution_id, content, self.agent_id, sub_execution_id))
+                elif chunk_type == OutputSchemaType.LLM_USAGE.value:
+                    usage = payload.get("usage_metadata", {}) or {}
+                    await emit(build_usage(
+                        execution_id,
+                        input_tokens=usage.get("input_tokens", 0),
+                        output_tokens=usage.get("output_tokens", 0),
+                        total_tokens=usage.get("total_tokens", 0),
+                        latency_ms=payload.get("total_latency_ms"),
+                        agent_id=self.agent_id,
+                    ))
+                elif chunk_type == OutputSchemaType.ANSWER.value:
+                    output_text = payload.get("output", "") or ""
+                    if output_text:
+                        answer_text = output_text
+                elif chunk_type == OutputSchemaType.TRACER_AGENT.value:
+                    await self._emit_tool_event(execution_id, payload)
         except Exception as e:
             raise RuntimeError(f"子 Agent {self.agent_id} 执行失败: {e}") from e
 
-        output = result.get("output", result)
-        if isinstance(output, dict):
-            output = output.get("result", str(output))
-        return {"result": f"[子Agent {self.agent_id}] {output}"}
+        # sub_done 完整文本：answer 权威，兜底累计 llm_output（保证与 message 增量一致）
+        final_text = answer_text or sub_text
+        await emit(build_sub_done(execution_id, sub_execution_id, self.agent_id, final_text))
+        await emit(build_tool_result(execution_id, tool_call_id, tool_name, result=f"[子Agent {self.agent_id}] {final_text}"))
+        return {"result": f"[子Agent {self.agent_id}] {final_text}"}
+
+    async def _emit_tool_event(self, execution_id: str, payload: dict) -> None:
+        """把子 Agent 的工具调用（tracer_agent payload）转成统一 tool_call/tool_result 事件冒泡。
+
+        工具事件不分主子 agent（用户决策 2026-08-11）：带 agentId 标明调用方，未来主 Agent 有工具直接复用。
+        """
+        invoke_type = payload.get("invokeType", "")
+        if invoke_type != "plugin":
+            return
+        name = payload.get("name", "")
+        status = payload.get("status", "")
+        tool_call_id = payload.get("invokeId") or gen_tool_call_id()
+        if status == "start":
+            inputs = payload.get("inputs", {}) or {}
+            await emit(build_tool_call(
+                execution_id, tool_call_id, name,
+                arguments=inputs.get("inputs") if isinstance(inputs, dict) else inputs,
+                agent_id=self.agent_id,
+            ))
+        elif status == "finish":
+            outputs = payload.get("outputs", {}) or {}
+            result = outputs.get("outputs") if isinstance(outputs, dict) else outputs
+            if isinstance(result, dict):
+                result = result.get("data", str(result))
+            await emit(build_tool_result(
+                execution_id, tool_call_id, name,
+                result=str(result) if result else None,
+                agent_id=self.agent_id,
+            ))
