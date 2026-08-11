@@ -17,6 +17,31 @@ from openjiuwen.core.single_agent.agents.react_agent import ReActAgentConfig
 from agent_runtime.common.config import settings
 
 
+def format_conversation_history(history: list | None) -> str:
+    """把对话历史格式化成 LLM 可读的文本段（复用平台 `ReActAgentRunner._format_conversation_history` 同款格式）。
+
+    表的行是结构化的（role/content 独立列），LLM 的 system prompt 是单个字符串——
+    必须序列化成本文段：段标题 `## 对话历史` 让 LLM 区分历史与当前任务，每行 `- **role**:`
+    标明说话人，跳空 content 去噪音。仅注入监督者（方案 B），子 Agent 不感知。
+
+    Args:
+        history: list[{role, content}]，容忍 dict / pydantic Message / None
+
+    Returns:
+        "\\n\\n## 对话历史\\n- **user**: ...\\n- **assistant**: ..." 文本段；空/None 返回 ""
+    """
+    if not history:
+        return ""
+    lines = ["\n\n## 对话历史"]
+    for msg in history:
+        msg_dict = msg.model_dump() if hasattr(msg, "model_dump") else msg
+        role = msg_dict.get("role", "")
+        content = msg_dict.get("content", "")
+        if content:
+            lines.append(f"- **{role}**: {content}")
+    return "\n".join(lines)
+
+
 def build_react_config(
     system_prompt: str, model_deployment_id: str
 ) -> ReActAgentConfig:
