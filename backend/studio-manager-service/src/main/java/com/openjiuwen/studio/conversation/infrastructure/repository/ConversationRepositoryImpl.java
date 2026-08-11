@@ -19,6 +19,7 @@ import com.alibaba.fastjson2.JSON;
 
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -90,6 +91,7 @@ public class ConversationRepositoryImpl implements ConversationRepository {
     }
 
     @Override
+    @Transactional
     public void appendMessages(String conversationId, List<ConversationMessage> messages) {
         if (messages == null || messages.isEmpty()) {
             return;

@@ -42,11 +42,14 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 /**
- * 运行时防腐层（ACL）：封装对 runtime 运行链路的调用（inner 会话端点）、引擎 SSE 事件 → 领域消息转换与落库。
+ * 运行时防腐层（ACL）：封装对 runtime 运行链路的调用（团队对话端点）、引擎 SSE 事件 → 领域消息转换与落库。
  *
- * <p>模型切换：按 (projectId, modelDeploymentId) 生成/获取预烘焙模型的多 Agent IR（复用平台
- * {@link ControllerManagementService#generateConversationIr}），IR 元数据注入 projectId/workspaceId 后重传 OBS，
- * 经 inner 端点按 agentId 直接调用 runtime——无需写 release，无需运行时请求期 patch。</p>
+ * <p>团队对话（Phase 5）：直传团队参数（conversationId + subAgentIds + modelDeploymentId + conversationHistory）
+ * 到 runtime 新端点 → 引擎 /v1/conversation/team。引擎按 subAgentIds 加载各子 Agent 已有 IR 动态组装监督者，
+ * 不再预烘焙 IR（方案 B，F4：监督者提示词固定引擎侧，Java 不传 systemPrompt）。</p>
+ *
+ * <p>⚠️ 旧链遗留（待 Phase 7 清理，勿复用）：{@code ensureConversationIr} 预烘焙 ControllerIR 上传 OBS 的
+ * 旧 inner 链代码保留未删（新链路实证通过后删除）。</p>
  *
  * <p>execution_id：每轮由调用方生成（X-Execution-Id 请求头），引擎事件原样携带，run/sub_run 分组精确。</p>
  */
@@ -103,17 +106,16 @@ public class AgentRuntimeAdapter {
      */
     public SseEmitter run(Conversation conversation, SendMessageCmd cmd, List<Message> histories,
                           String executionId, HttpHeaders requestHeaders) {
-        String agentId = ensureConversationIr(conversation.getProjectId(), conversation.getWorkspaceId(),
-            cmd.getModelDeploymentId());
-
-        String url = runtimeEndpoint + "/v1/inner/" + conversation.getProjectId() + "/agents/" + agentId
-            + "/conversations/" + conversation.getConversationId() + "?workspace_id=" + conversation.getWorkspaceId();
+        // 直传团队参数（方案 B）：引擎按 subAgentIds 加载各子 Agent 已有 IR 动态组装监督者，不再预烘焙 IR
+        //（旧 ensureConversationIr/Controller IR 生成/OBS 上传保留待 Phase 7 清理）
+        String url = buildTeamUrl(conversation);
 
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("query", cmd.getQuery());
-        body.put("model_deployment_id", cmd.getModelDeploymentId());
-        body.put("enable_history", true);
-        body.put("histories", histories);
+        body.put("subAgentIds", parseTeamAgentIds(TEAM_AGENT_IDS));
+        body.put("modelDeploymentId", cmd.getModelDeploymentId());
+        // conversationHistory 显式转 [{role, content}]（引擎契约，容忍 dict；仅监督者注入，子 Agent 不感知）
+        body.put("conversationHistory", toHistoryMaps(histories));
 
         Request.Builder builder = new Request.Builder()
             .url(url)
@@ -185,6 +187,16 @@ public class AgentRuntimeAdapter {
         return ir.getAgentId();
     }
 
+    /**
+     * 团队对话转发 URL（runtime /v1/inner 命名空间）：{endpoint}/v1/inner/{project}/conversations/{conversation}/team。
+     * 独立方法便于单测断言 URL 形态（okhttp 异常消息会截断 URL，不能靠异常消息验证）。
+     */
+    String buildTeamUrl(Conversation conversation) {
+        return runtimeEndpoint + "/v1/inner/" + conversation.getProjectId()
+            + "/conversations/" + conversation.getConversationId() + "/team?workspace_id="
+            + conversation.getWorkspaceId();
+    }
+
     private List<String> parseTeamAgentIds(String idsStr) {
         if (StringUtils.isBlank(idsStr)) {
             return Collections.emptyList();
@@ -193,6 +205,28 @@ public class AgentRuntimeAdapter {
             .map(String::trim)
             .filter(StringUtils::isNotBlank)
             .toList();
+    }
+
+    /**
+     * 把平台 Message 历史转成引擎契约的 [{role, content}]（显式转换，避免跨服务反序列化类型坑）；
+     * 空/全空返回 null（引擎 conversationHistory 缺省 None，第一轮不注入）。
+     */
+    private List<Map<String, String>> toHistoryMaps(List<Message> histories) {
+        if (histories == null || histories.isEmpty()) {
+            return null;
+        }
+        List<Map<String, String>> result = histories.stream()
+            .filter(m -> m.getRole() != null || m.getContent() != null)
+            .map(m -> {
+                Map<String, String> map = new LinkedHashMap<>();
+                map.put("role", m.getRole());
+                if (m.getContent() != null) {
+                    map.put("content", m.getContent());
+                }
+                return map;
+            })
+            .toList();
+        return result.isEmpty() ? null : result;
     }
 
     private String toJson(Object body) {

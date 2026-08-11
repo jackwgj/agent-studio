@@ -14,7 +14,7 @@ tool_result/sub_start/sub_done/run_done/usage/error），暴露执行边界给�
 import logging
 import uuid
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
@@ -40,9 +40,14 @@ class ConversationTeamReq(BaseModel):
     conversation_history: list | None = Field(None, alias="conversationHistory")
 
 
-async def team_sse_stream(req: ConversationTeamReq):
-    """SSE 事件生成器：先发 user_message/run_start，再跑监督者事件流。index 统一在此递增。"""
-    execution_id = str(uuid.uuid4())  # 监督者一轮唯一标识（全量 uuid4，不用 conversation_id）
+async def team_sse_stream(req: ConversationTeamReq, execution_id: str | None = None):
+    """SSE 事件生成器：先发 user_message/run_start，再跑监督者事件流。index 统一在此递增。
+
+    execution_id 优先级：X-Execution-Id 头（Java 侧生成并提前落了 user 行，需回显保证
+    user 行与 run/sub_run 行 execution_id 一致）> 引擎 uuid4 兜底（全量 uuid4，不用 conversation_id）。
+    """
+    if not execution_id:
+        execution_id = str(uuid.uuid4())
     index = 0
     yield sse_line(build_user_message(execution_id, req.conversation_id, req.query, index=index))
     index += 1
@@ -67,14 +72,16 @@ async def team_sse_stream(req: ConversationTeamReq):
 
 
 @team_router.post("/v1/conversation/team")
-async def conversation_team(req: ConversationTeamReq):
+async def conversation_team(req: ConversationTeamReq, request: Request):
     """组装监督者 + N 个 handoff 工具，跑一轮团队对话，返回 SSE 事件流。"""
     if not req.query:
         return JSONResponse(status_code=400, content={"error": "query is required"})
     if not req.sub_agent_ids:
         return JSONResponse(status_code=400, content={"error": "subAgentIds is required"})
 
+    # Java 侧生成 execution_id 并经 X-Execution-Id 头下发（保证三表 execution_id 一致），缺省时引擎 uuid4 兜底
+    execution_id = request.headers.get("x-execution-id")
     return StreamingResponse(
-        content=team_sse_stream(req),
+        content=team_sse_stream(req, execution_id),
         media_type="text/event-stream",
     )
