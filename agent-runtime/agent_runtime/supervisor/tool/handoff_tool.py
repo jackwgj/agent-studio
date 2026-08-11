@@ -124,6 +124,10 @@ class HandoffTool(Tool):
         sub_agent = self._build_sub_agent(ir_data)
         # 装载子 Agent IR 工具（Plugin/MCP/Workflow/Skill），复用平台 flow agent 同一套注册语义（D0-3）
         await _runner.register_agent_tools(ir_data, sub_agent, self.agent_id)
+        # ⚠️ [F3 场景3 实证记录 2026-08-11] 子 Agent 内部工具事件隔离验证：
+        # 如需不依赖真实插件 API 验证子 Agent 的 tool_call/tool_result 事件，可在此临时注册 mock 工具
+        # （id=mock_weather_tool, name=query_weather_mock，返回固定数据），已实证可用；验证后须删除。
+        # 真实插件问题见 _emit_tool_event 注释（天气 8dafdc64 的 Create_Document URL 非法）。
         # 监督者 handoff 是统一工具调用（tool_call 包着 sub_start/sub_done，不分主子；agentId 缺省=监督者）
         tool_call_id = str(uuid.uuid4())
         tool_name = f"transfer_to_{self.agent_id[:8]}"
@@ -156,6 +160,12 @@ class HandoffTool(Tool):
         """把子 Agent 的工具调用（tracer_agent payload）转成统一 tool_call/tool_result 事件冒泡。
 
         工具事件不分主子 agent（用户决策 2026-08-11）：带 agentId 标明调用方，未来主 Agent 有工具直接复用。
+
+        ⚠️ [F3 场景3 实证记录 2026-08-11] 已知插件问题（待修复，勿当事件代码 bug）：
+        天气子 Agent（8dafdc64）的 Create_Document 插件调用失败，tool_result 透传
+        "Plugin params check failed, root cause = plugin's url is illegal"（插件 params 校验阶段拦截）。
+        事件机制本身正常（mock 工具成功返回时同样正确冒泡），问题在插件 restful API 的 URL 配置，
+        后续需修复插件配置（Java/平台侧）。
         """
         invoke_type = payload.get("invokeType", "")
         if invoke_type != "plugin":

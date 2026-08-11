@@ -2,7 +2,8 @@
 """团队对话 API —— `/v1/conversation/team`（SSE 事件流）
 
 独立 API（不耦合 /v1/orchestration/ir/execute）：
-接收子 Agent IDs + 系统提示词 + 模型部署 ID，引擎侧内置组装「监督者 + handoff 工具」并执行。
+接收子 Agent IDs + 模型部署 ID（+ 多轮历史），引擎侧内置组装「监督者 + handoff 工具」并执行。
+监督者系统提示词固定引擎侧（F4/用户决策 2026-08-11）：Java 不再传 systemPrompt。
 子 Agent 通过其已有 IR 加载（OBS agent/ir/{agentId}/{agentId}.json）。
 
 SSE 事件化（Phase 3）：产出结构化事件流（user_message/run_start/message/reasoning/tool_call/
@@ -34,8 +35,9 @@ class ConversationTeamReq(BaseModel):
     user_id: str = Field(default="anonymous", alias="userId")
     query: str
     sub_agent_ids: list[str] = Field(alias="subAgentIds")
-    system_prompt: str = Field(default="", alias="systemPrompt")
     model_deployment_id: str = Field(alias="modelDeploymentId")
+    # 多轮历史（list[{role, content}]）：仅注入监督者上下文（方案 B），子 Agent 不感知（D0-3/用户决策 2026-08-11）
+    conversation_history: list | None = Field(None, alias="conversationHistory")
 
 
 async def team_sse_stream(req: ConversationTeamReq):
@@ -50,8 +52,8 @@ async def team_sse_stream(req: ConversationTeamReq):
     try:
         agent = await build_supervisor(
             sub_agent_ids=req.sub_agent_ids,
-            system_prompt=req.system_prompt,
             model_deployment_id=req.model_deployment_id,
+            conversation_history=req.conversation_history,
         )
     except Exception as e:
         logger.error(f"conversation/team build_supervisor failed: {e}", exc_info=True)
