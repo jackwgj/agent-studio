@@ -16,21 +16,11 @@ from openjiuwen.core.single_agent.agents.react_agent import ReActAgent
 from openjiuwen.core.single_agent.schema.agent_card import AgentCard
 
 from agent_runtime.runner.react_agent_runner import ReActAgentRunner
+from agent_runtime.supervisor.common.constants import OutputSchemaType
 from agent_runtime.supervisor.config import build_react_config
-from agent_runtime.supervisor.events import (
-    OutputSchemaType,
-    build_message,
-    build_reasoning,
-    build_sub_done,
-    build_sub_start,
-    build_tool_call,
-    build_tool_result,
-    build_usage,
-    emit,
-    gen_sub_execution_id,
-    gen_tool_call_id,
-    get_execution_id,
-)
+from agent_runtime.supervisor.event.adapt import StreamCtx, adapt_stream_chunk, build_sub_done, build_sub_start
+from agent_runtime.supervisor.event.adapt import build_tool_call, build_tool_result
+from agent_runtime.supervisor.event.channel import EventChannel, get_channel
 from jiuwen.serve.controllers.execution.open_utils import async_ir_load
 
 # 轻量工具装载器实例：复用平台 flow agent 同款 IR→工具 注册逻辑（构造只读 env、无副作用，
@@ -115,12 +105,15 @@ class HandoffTool(Tool):
         """加载子 Agent IR → 构建子 ReActAgent → 跑 query → 返回最终回答。
 
         子 Agent 会话为一次性 uuid4()，无 conversation 前缀（子 Agent 与会话无关，D0-2）。
-        SSE 事件化（D0-5）：开始发 sub_start，迭代 sub_agent.stream() 实时冒泡 message/reasoning/
-        usage/tool_call/tool_result，结束发 sub_done（完整文本）。事件经 ContextVar 通道 emit
-        冒泡到 run_supervisor 主生成器（并发 handoff 时靠 sub_execution_id 分组）。
-        execution_id 从 ContextVar 读取（工具无状态，D0-4）。
+        SSE 事件化（D0-5）：开始发 tool_call/sub_start，迭代 sub_agent.stream() 经
+        adapt_stream_chunk 实时冒泡 message/reasoning/usage，结束发 sub_done/tool_result。
+        事件经请求级 EventChannel（ContextVar 注入，D0-4 工具无状态保持）写入，
+        并发 handoff 时靠 sub_execution_id 分组。
         """
-        execution_id = get_execution_id()
+        channel = get_channel()
+        if channel is None:
+            raise RuntimeError("事件通道未注入（子 Agent 只能在 run_supervisor 调用链内执行）")
+        execution_id = channel.execution_id
         try:
             ir_data = await async_ir_load(self._ir_path())
         except Exception as e:
@@ -132,54 +125,34 @@ class HandoffTool(Tool):
         # 装载子 Agent IR 工具（Plugin/MCP/Workflow/Skill），复用平台 flow agent 同一套注册语义（D0-3）
         await _runner.register_agent_tools(ir_data, sub_agent, self.agent_id)
         # 监督者 handoff 是统一工具调用（tool_call 包着 sub_start/sub_done，不分主子；agentId 缺省=监督者）
-        tool_call_id = gen_tool_call_id()
+        tool_call_id = str(uuid.uuid4())
         tool_name = f"transfer_to_{self.agent_id[:8]}"
-        await emit(build_tool_call(execution_id, tool_call_id, tool_name, arguments={"query": query}))
-        sub_execution_id = gen_sub_execution_id()
-        await emit(build_sub_start(execution_id, sub_execution_id, self.agent_id))
+        await channel.emit(build_tool_call(execution_id, tool_call_id, tool_name, arguments={"query": query}))
+        sub_execution_id = str(uuid.uuid4())
+        await channel.emit(build_sub_start(execution_id, sub_execution_id, self.agent_id))
         # 必须传 card：agent.stream 内部 pre_run → checkpointer 读 session._card.id，缺 card 则 None.id 崩溃
         session = create_agent_session(session_id=str(uuid.uuid4()), card=sub_agent.card)
-        sub_text = ""
-        answer_text = ""
+        ctx = StreamCtx(execution_id=execution_id, agent_id=self.agent_id, sub_execution_id=sub_execution_id)
         try:
             async for chunk in sub_agent.stream({"query": query}, session):
-                chunk_type = getattr(chunk, "type", "")
-                payload = getattr(chunk, "payload", {}) or {}
-                if chunk_type == OutputSchemaType.LLM_OUTPUT.value:
-                    delta = payload.get("content", "") or ""
-                    if delta:
-                        sub_text += delta
-                        await emit(build_message(execution_id, delta, self.agent_id, sub_execution_id))
-                elif chunk_type == OutputSchemaType.LLM_REASONING.value:
-                    content = payload.get("content", "") or ""
-                    if content:
-                        await emit(build_reasoning(execution_id, content, self.agent_id, sub_execution_id))
-                elif chunk_type == OutputSchemaType.LLM_USAGE.value:
-                    usage = payload.get("usage_metadata", {}) or {}
-                    await emit(build_usage(
-                        execution_id,
-                        input_tokens=usage.get("input_tokens", 0),
-                        output_tokens=usage.get("output_tokens", 0),
-                        total_tokens=usage.get("total_tokens", 0),
-                        latency_ms=payload.get("total_latency_ms"),
-                        agent_id=self.agent_id,
-                    ))
-                elif chunk_type == OutputSchemaType.ANSWER.value:
-                    output_text = payload.get("output", "") or ""
-                    if output_text:
-                        answer_text = output_text
-                elif chunk_type == OutputSchemaType.TRACER_AGENT.value:
-                    await self._emit_tool_event(execution_id, payload)
+                # tracer_agent 是子 Agent 内部工具调用（需解析 payload），其余 chunk 走统一转换
+                if getattr(chunk, "type", "") == OutputSchemaType.TRACER_AGENT.value:
+                    await self._emit_tool_event(channel, getattr(chunk, "payload", {}) or {})
+                    continue
+                for ev in adapt_stream_chunk(chunk, ctx):
+                    await channel.emit(ev)
         except Exception as e:
             raise RuntimeError(f"子 Agent {self.agent_id} 执行失败: {e}") from e
 
-        # sub_done 完整文本：answer 权威，兜底累计 llm_output（保证与 message 增量一致）
-        final_text = answer_text or sub_text
-        await emit(build_sub_done(execution_id, sub_execution_id, self.agent_id, final_text))
-        await emit(build_tool_result(execution_id, tool_call_id, tool_name, result=f"[子Agent {self.agent_id}] {final_text}"))
-        return {"result": f"[子Agent {self.agent_id}] {final_text}"}
+        # sub_done 完整文本：answer 权威，兜底累计 llm_output（ctx.final_text，保证与 message 增量一致）
+        await channel.emit(build_sub_done(execution_id, sub_execution_id, self.agent_id, ctx.final_text))
+        await channel.emit(build_tool_result(
+            execution_id, tool_call_id, tool_name,
+            result=f"[子Agent {self.agent_id}] {ctx.final_text}",
+        ))
+        return {"result": f"[子Agent {self.agent_id}] {ctx.final_text}"}
 
-    async def _emit_tool_event(self, execution_id: str, payload: dict) -> None:
+    async def _emit_tool_event(self, channel: EventChannel, payload: dict) -> None:
         """把子 Agent 的工具调用（tracer_agent payload）转成统一 tool_call/tool_result 事件冒泡。
 
         工具事件不分主子 agent（用户决策 2026-08-11）：带 agentId 标明调用方，未来主 Agent 有工具直接复用。
@@ -189,10 +162,11 @@ class HandoffTool(Tool):
             return
         name = payload.get("name", "")
         status = payload.get("status", "")
-        tool_call_id = payload.get("invokeId") or gen_tool_call_id()
+        tool_call_id = payload.get("invokeId") or str(uuid.uuid4())
+        execution_id = channel.execution_id
         if status == "start":
             inputs = payload.get("inputs", {}) or {}
-            await emit(build_tool_call(
+            await channel.emit(build_tool_call(
                 execution_id, tool_call_id, name,
                 arguments=inputs.get("inputs") if isinstance(inputs, dict) else inputs,
                 agent_id=self.agent_id,
@@ -202,7 +176,7 @@ class HandoffTool(Tool):
             result = outputs.get("outputs") if isinstance(outputs, dict) else outputs
             if isinstance(result, dict):
                 result = result.get("data", str(result))
-            await emit(build_tool_result(
+            await channel.emit(build_tool_result(
                 execution_id, tool_call_id, name,
                 result=str(result) if result else None,
                 agent_id=self.agent_id,
