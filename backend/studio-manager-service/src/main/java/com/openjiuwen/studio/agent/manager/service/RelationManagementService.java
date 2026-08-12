@@ -21,16 +21,22 @@ import com.openjiuwen.studio.agent.manager.bo.SkillDetails;
 import com.openjiuwen.studio.agent.manager.constant.CommonConstant;
 import com.openjiuwen.studio.agent.manager.dto.KnowledgeBaseListItem;
 import com.openjiuwen.studio.agent.manager.dto.ListAppRelationsQo;
+import com.openjiuwen.studio.agent.manager.dto.ListDependencyQo;
 import com.openjiuwen.studio.agent.manager.dto.ListKnowledgeBasesQo;
 import com.openjiuwen.studio.agent.manager.dto.ListResourceRelationsQo;
 import com.openjiuwen.studio.agent.manager.dto.ListResourcesRelationsQo;
+import com.openjiuwen.studio.agent.manager.dto.ListVersionsQo;
 import com.openjiuwen.studio.agent.manager.dto.McpServerReference;
 import com.openjiuwen.studio.agent.manager.dto.McpServiceToolEntity;
 import com.openjiuwen.studio.agent.manager.dto.Relation;
 import com.openjiuwen.studio.agent.manager.dto.RelationList;
 import com.openjiuwen.studio.agent.manager.dto.ResourceMapping;
 import com.openjiuwen.studio.agent.manager.dto.ResourceMappingList;
+import com.openjiuwen.studio.agent.manager.dto.ResourceDependency;
+import com.openjiuwen.studio.agent.manager.dto.ResourceDependencyResponseBody;
+import com.openjiuwen.studio.agent.manager.dto.ResourceVersionResponseBody;
 import com.openjiuwen.studio.agent.manager.dto.ResourceVersionInfo;
+import com.openjiuwen.studio.agent.manager.dto.VersionInfo;
 import com.openjiuwen.studio.agent.manager.dto.SkillReference;
 import com.openjiuwen.studio.agent.manager.dto.ToolReference;
 import com.openjiuwen.studio.agent.manager.dto.WorkflowFieldVO;
@@ -46,6 +52,7 @@ import com.openjiuwen.studio.agent.manager.entity.McpServiceEntity;
 import com.openjiuwen.studio.agent.manager.entity.MemoryRepoEntity;
 import com.openjiuwen.studio.agent.manager.entity.ReleaseVersion;
 import com.openjiuwen.studio.agent.manager.entity.ShareResourceEntity;
+import com.openjiuwen.studio.agent.manager.entity.ShareScopeEntity;
 import com.openjiuwen.studio.agent.manager.entity.ToolEntity;
 import com.openjiuwen.studio.agent.manager.entity.WorkflowEntity;
 import com.openjiuwen.studio.agent.manager.entity.WorkspaceEntity;
@@ -59,6 +66,8 @@ import com.openjiuwen.studio.agent.manager.mapper.HistoryWorkflowMapper;
 import com.openjiuwen.studio.agent.manager.mapper.MappingMapper;
 import com.openjiuwen.studio.agent.manager.mapper.MemoryRepoMapper;
 import com.openjiuwen.studio.agent.manager.mapper.ReleaseVersionMapper;
+import com.openjiuwen.studio.agent.manager.mapper.ShareResourceMapper;
+import com.openjiuwen.studio.agent.manager.mapper.ShareScopeMapper;
 import com.openjiuwen.studio.agent.manager.mapper.SkillMapper;
 import com.openjiuwen.studio.agent.manager.mapper.ToolMapper;
 import com.openjiuwen.studio.agent.manager.mapper.WorkflowMapper;
@@ -179,6 +188,12 @@ public class RelationManagementService implements IRelationManagementService {
     private ShareResourceManagerService shareResourceManagerService;
 
     @Autowired
+    private ShareResourceMapper shareResourceMapper;
+
+    @Autowired
+    private ShareScopeMapper shareScopeMapper;
+
+    @Autowired
     private MgObsService mgObsService;
 
     @Autowired
@@ -198,6 +213,19 @@ public class RelationManagementService implements IRelationManagementService {
 
     @Autowired
     private KnowledgeBaseServiceImpl knowledgeBaseService;
+
+    /**
+     * 生成去重的key，用于根据 appId、appVersion、resourceId、resourceVersion 进行去重
+     * appVersion 和 resourceVersion 可能为空，需要使用空字符串处理
+     *
+     * @param entity MappingEntity 实体
+     * @return 去重key
+     */
+    private String getDeduplicationKey(MappingEntity entity) {
+        return entity.getAppId() + "|" + (entity.getAppVersion() == null ? "" : entity.getAppVersion())
+                + "|" + entity.getResourceId() + "|"
+                + (entity.getResourceVersion() == null ? "" : entity.getResourceVersion());
+    }
 
     private @NotNull List<Relation> buildRelationsFromMapping(List<MappingEntity> mappingEntities,
         Map<String, String> workspaceInfoMap) {
@@ -1735,6 +1763,67 @@ public class RelationManagementService implements IRelationManagementService {
     }
 
     @Override
+    public ResourceDependencyResponseBody listDependency(String projectId, String resourceId,
+        ListDependencyQo listDependencyQo) {
+        if (StringUtils.isEmpty(listDependencyQo.getVersionId())) {
+            listDependencyQo.setVersionId(Constants.LATEST_PUBLISH_VERSION);
+        }
+        List<MappingEntity> mappingEntities = mappingMapper.selectByAppIdAndAppVersion(
+            resourceId, listDependencyQo.getVersionId(), null, null);
+        if (CollectionUtils.isEmpty(mappingEntities)) {
+            log.info("mapping is null, resourceId:{}, version:{}", resourceId, listDependencyQo.getVersionId());
+            return new ResourceDependencyResponseBody().setDependencies(new ArrayList<>());
+        }
+        List<ResourceDependency> dependencies = mappingEntities.stream()
+            .filter(MappingEntity::isValid)
+            .map(entity -> new ResourceDependency()
+                .setResourceId(entity.getResourceId())
+                .setResourceName(entity.getResourceName())
+                .setResourceVersion(entity.getResourceVersion())
+                .setResourceType(entity.getResourceType())
+                .setParentId(entity.getAppId()))
+            .collect(Collectors.toList());
+        return new ResourceDependencyResponseBody().setDependencies(dependencies);
+    }
+
+    @Override
+    public ResourceVersionResponseBody listVersions(String projectId, String resourceId,
+        ListVersionsQo listVersionsQo) {
+        List<VersionInfo> versionInfoList = new ArrayList<>();
+        boolean isSameSpace = false;
+        if (ResourceTypeEnum.WORKFLOW.toString().equals(listVersionsQo.getResourceType())) {
+            WorkflowEntity workflowEntity = workflowMapper.getWorkflowById(resourceId);
+            isSameSpace = workflowEntity != null
+                && Strings.CS.equals(workflowEntity.getWorkspaceId(), listVersionsQo.getWorkspaceId());
+        } else {
+            Agent agent = agentMapper.selectById(resourceId);
+            isSameSpace = agent != null
+                && Strings.CS.equals(agent.getWorkspaceId(), listVersionsQo.getWorkspaceId());
+        }
+        if (isSameSpace) {
+            List<ReleaseVersion> releaseVersions = releaseVersionMapper.selectByAppId(resourceId);
+            versionInfoList = releaseVersions.stream().map(ReleaseVersion::convertToInfo).collect(Collectors.toList());
+            return new ResourceVersionResponseBody().setVersions(versionInfoList);
+        }
+        ShareResourceEntity shareResourceEntity = shareResourceMapper.selectShareResourceEntityByResourceId(resourceId);
+        if (Objects.isNull(shareResourceEntity)) {
+            log.info("share info is null, resourceId:{}, type:{}", resourceId, listVersionsQo.getResourceType());
+            return new ResourceVersionResponseBody().setVersions(versionInfoList);
+        }
+        List<ShareScopeEntity> shareScopeEntities = shareScopeMapper.selectShareScopesByResourceId(resourceId);
+        boolean isShareScope = shareScopeEntities.stream()
+            .anyMatch(p -> Strings.CS.equals(p.getWorkspaceId(), listVersionsQo.getWorkspaceId())
+                || Strings.CS.equals(p.getWorkspaceId(), CommonConstant.ALL));
+        if (!isShareScope) {
+            log.info("workspace not shared, resourceId:{}, type:{}", resourceId, listVersionsQo.getResourceType());
+            return new ResourceVersionResponseBody().setVersions(versionInfoList);
+        }
+        List<VersionInfo> shareResourceVersions = JSONObject.parseObject(shareResourceEntity.getVersionList(),
+            new TypeReference<>() {});
+        return new ResourceVersionResponseBody().setVersions(shareResourceVersions);
+    }
+
+    @Override
     public RelationList listAppRelations(String projectId, String appId, ListAppRelationsQo listAppRelationsQo) {
         this.validateAppId(projectId, appId, listAppRelationsQo.getWorkspaceId());
         if (StringUtils.isBlank(listAppRelationsQo.getResourceType())) {
@@ -1955,6 +2044,20 @@ public class RelationManagementService implements IRelationManagementService {
                     listResourceRelationsQo.getAppType(), listResourceRelationsQo.getReferenceType());
 
             log.info("Selected {} mapping entities from database.", mappingEntities.size());
+
+            // 根据 app_id、app_version、resource_id、resource_version 进行去重
+            // app_version 和 resource_version 可能为空，需要使用空字符串处理
+            log.info("Deduplicating mapping entities by appId, appVersion, resourceId, resourceVersion.");
+            mappingEntities = mappingEntities.stream()
+                    .collect(Collectors.toMap(
+                            this::getDeduplicationKey,
+                            entity -> entity,
+                            (v1, v2) -> v1
+                    ))
+                    .values()
+                    .stream()
+                    .toList();
+            log.info("Mapping entities after deduplication: {}.", mappingEntities.size());
 
             // 提取 workspaceId 列表
             List<String> workspaceIdList = mappingEntities.stream()

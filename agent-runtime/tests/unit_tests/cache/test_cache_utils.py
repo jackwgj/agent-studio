@@ -20,7 +20,7 @@ def _patch_redis_modules():
 
     The vendored ``open_utils`` now obtains both sync and async Redis clients
     through the single ``get_redis_client`` helper (imported from
-    ``agent_runtime.common.redis_manager``); the old separate
+    ``common_utils.redis_manager``); the old separate
     ``get_redis_instance`` / ``get_async_redis_instance`` symbols no longer
     exist. Individual tests still override ``CacheUtils._redis_cache`` /
     ``_async_redis_cache`` directly via the ``cache_utils`` fixture, so the
@@ -201,4 +201,60 @@ class TestCacheUtilsKeyFormat:
         call_args = mock_redis.set.call_args
         actual_key = call_args[0][0]
         assert actual_key == "agent_runtime:test:mykey"
+
+
+class TestCacheUtilsTTLOverride:
+    """CacheUtils aput/put ttl parameter override tests."""
+
+    @pytest.mark.asyncio
+    async def test_aput_ttl_override(self, cache_utils, mock_async_redis):
+        """aput(ttl=600) passes ex=600 to Redis instead of default redis_ttl."""
+        await cache_utils.aput("key1", {"data": "v1"}, ttl=600)
+        call_args = mock_async_redis.set.call_args
+        # The key arg: check that ex kwarg or 3rd positional arg is 600
+        ex_val = call_args[1].get("ex") if call_args[1] else None
+        if ex_val is None and len(call_args[0]) > 2:
+            ex_val = call_args[0][2]
+        assert ex_val == 600
+
+    @pytest.mark.asyncio
+    async def test_aput_ttl_minus_one_no_expiry(self, cache_utils, mock_async_redis):
+        """aput(ttl=-1) means no expiry: Redis SET is called with ex=None."""
+        await cache_utils.aput("key1", {"data": "v1"}, ttl=-1)
+        call_args = mock_async_redis.set.call_args
+        ex_val = call_args[1].get("ex") if call_args[1] else "NOT_FOUND"
+        if ex_val == "NOT_FOUND" and len(call_args[0]) > 2:
+            ex_val = call_args[0][2]
+        assert ex_val is None
+
+    @pytest.mark.asyncio
+    async def test_aput_ttl_none_uses_default(self, cache_utils, mock_async_redis):
+        """aput(ttl=None) or aput() uses self.redis_ttl as ex."""
+        await cache_utils.aput("key1", {"data": "v1"})
+        call_args = mock_async_redis.set.call_args
+        ex_val = call_args[1].get("ex") if call_args[1] else None
+        if ex_val is None and len(call_args[0]) > 2:
+            ex_val = call_args[0][2]
+        # redis_ttl=60 for this fixture (see cache_utils fixture: memory_ttl=2, redis_ttl=60)
+        assert ex_val == 60
+
+    @staticmethod
+    def test_put_ttl_override(mock_redis, cache_utils):
+        """put(ttl=600) passes ex=600 to Redis."""
+        cache_utils.put("key1", {"data": "v1"}, ttl=600)
+        call_args = mock_redis.set.call_args
+        ex_val = call_args[1].get("ex") if call_args[1] else None
+        if ex_val is None and len(call_args[0]) > 2:
+            ex_val = call_args[0][2]
+        assert ex_val == 600
+
+    @staticmethod
+    def test_put_ttl_minus_one_no_expiry(mock_redis, cache_utils):
+        """put(ttl=-1) means no expiry: Redis SET is called with ex=None."""
+        cache_utils.put("key1", {"data": "v1"}, ttl=-1)
+        call_args = mock_redis.set.call_args
+        ex_val = call_args[1].get("ex") if call_args[1] else "NOT_FOUND"
+        if ex_val == "NOT_FOUND" and len(call_args[0]) > 2:
+            ex_val = call_args[0][2]
+        assert ex_val is None
 

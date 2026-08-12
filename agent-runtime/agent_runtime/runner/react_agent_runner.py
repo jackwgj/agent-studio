@@ -43,6 +43,91 @@ def _adapt_react_agent_config(ir_json: dict) -> dict:
     }
 
 
+def build_skills_prompt(ir_json: dict, skill_work_dir: str = "") -> str:
+    """构建 skill 提示词
+
+    skill_work_dir 已包含 skill_dir 前缀时直接拼接 skill name，
+    避免路径重复。路径分隔符统一为 /，避免 Windows \\ 与 / 混搭。
+    """
+    import posixpath
+
+    skills_conf = ir_json.get("configs", {}).get("skills", {})
+    if not skills_conf:
+        return ""
+
+    skill_dir = skills_conf.get("skill_dir", "")
+    skill_info_list = skills_conf.get("skill_info", [])
+    if not skill_info_list:
+        return ""
+
+    skills_info = []
+    for index, skill in enumerate(skill_info_list):
+        name = skill.get("name", "")
+        description = skill.get("description", "")
+        if skill_work_dir:
+            # skill_work_dir 已包含 skill_dir 前缀，直接拼接 skill name
+            skill_path = os.path.join(skill_work_dir, name)
+            # 统一使用 / 分隔，避免 Windows \ 与 / 混搭
+            skill_path = skill_path.replace("\\", "/")
+        else:
+            skill_path = posixpath.join(skill_dir, name) if skill_dir else name
+        skills_info.append(
+            f"{index + 1}. Skill name: {name}; "
+            f"Skill description: {description}; "
+            f"Skill directory file path: {skill_path}")
+
+    return (
+            "\n\nYou are an agent equipped with various skills to solve problems.\n"
+            "Before attempting any task, read the relevant skill document (SKILL.md) "
+            "using read_file and follow its workflow.\n\n"
+            "To help you better complete tasks, the following skill knowledge is equipped:\n"
+            + "\n".join(skills_info)
+            + "\nYou can use the read_file tool to read the corresponding SKILL.md file.\n"
+    )
+
+
+def register_skill_tools(agent: ReActAgent, agent_id: str, skill_work_dir: str) -> None:
+    """注册 skill 所需的工具（基于 SysOperation local 模式）
+
+    与 Controller 模式对齐：创建 local SysOperationCard，
+    框架自动将 read_file/execute_code/execute_cmd 注册为 LocalFunction 工具，
+    再将工具的 ToolCard 添加到 ability_manager 供 LLM function calling 使用。
+    """
+    from openjiuwen.core.runner import Runner
+    from openjiuwen.core.sys_operation import SysOperationCard, OperationMode
+    from openjiuwen.core.sys_operation.cwd import init_cwd
+
+    try:
+        # 设置 read_file 的工作目录
+        if skill_work_dir:
+            init_cwd(skill_work_dir)
+
+        sys_op_id = f"react_skill_{agent_id}"
+        card = SysOperationCard(id=sys_op_id, mode=OperationMode.LOCAL)
+        add_result = Runner.resource_mgr.add_sys_operation(card, tag=agent_id)
+        if not add_result.is_ok() and "resource already exist" not in str(add_result.error()):
+            workflow_logger.warning(f"Failed to add sys_operation: {add_result.error()}")
+            return
+
+        # 框架自动注册了 read_file 等工具，将 skill 所需工具添加到 ability_manager
+        # 对齐 Controller 模式：注册 read_file、execute_code、execute_cmd
+        skill_tool_names = [
+            ("fs", "read_file"),
+            ("code", "execute_code"),
+            ("shell", "execute_cmd"),
+        ]
+        for op_type, method_name in skill_tool_names:
+            tool_id = SysOperationCard.generate_tool_id(sys_op_id, op_type, method_name)
+            tool = Runner.resource_mgr.get_tool(tool_id, tag=agent_id)
+            if tool is not None:
+                agent.ability_manager.add(tool.card)
+                workflow_logger.info(f"Registered skill tool: {tool_id}")
+            else:
+                workflow_logger.warning(f"Skill tool not found after sys_operation registration: {tool_id}")
+    except Exception as e:
+        workflow_logger.error(f"Failed to register skill tools: {e}", exc_info=True)
+
+
 class ReActAgentRunner:
     """使用 ReActAgent 运行用户请求的 Runner
 
@@ -122,45 +207,16 @@ class ReActAgentRunner:
     def _build_file_links_prompt(self) -> str:
         """构建文件链接提示词"""
         return (
-            "\n\n## 文件读取指令（重要）\n"
-            "用户提供了文件链接（如 .docx, .txt, .pdf 等格式）。\n"
-            "可以使用预置的 read_file_from_url 工具来读取文件内容，"
-            "当工具返回文件内容后，基于内容回复用户。\n"
+            "\n\n## 文件读取指令\n"
+            "用户提供了文件链接（如 .docx, .txt, .pdf 等格式），"
+            "用户有获取文件内容相关需求，可以使用预置的 read_file_from_url 工具来读取文件内容。\n"
+            "请注意：如果其他工具具备解析文件内容的能力，应优先使用其他工具，"
+            "read_file_from_url 为兜底工具，当其他工具无法处理文件内容或者处理失败时才能使用。\n"
         )
 
     def _build_skills_prompt(self, ir_json: dict, skill_work_dir: str = "") -> str:
         """构建 skill 提示词"""
-        import posixpath
-
-        skills_conf = ir_json.get("configs", {}).get("skills", {})
-        if not skills_conf:
-            return ""
-
-        skill_dir = skills_conf.get("skill_dir", "")
-        skill_info_list = skills_conf.get("skill_info", [])
-        if not skill_info_list:
-            return ""
-
-        skills_info = []
-        for index, skill in enumerate(skill_info_list):
-            name = skill.get("name", "")
-            description = skill.get("description", "")
-            if skill_work_dir:
-                skill_path = os.path.join(skill_work_dir, skill_dir, name) if skill_dir else os.path.join(
-                    skill_work_dir, name)
-            else:
-                skill_path = posixpath.join(skill_dir, name) if skill_dir else name
-            skills_info.append(
-                f"{index + 1}. Skill name: {name}; Skill description: {description}; Skill directory file path: {skill_path}")
-
-        return (
-                "You are an agent equipped with various skills to solve problems.\n"
-                "Before attempting any task, read the relevant skill document (SKILL.md) "
-                "using read_file and follow its workflow.\n\n"
-                "To help you better complete tasks, the following skill knowledge is equipped:\n"
-                + "\n".join(skills_info)
-                + "\nYou can use the read_file tool to read the corresponding SKILL.md file.\n"
-        )
+        return build_skills_prompt(ir_json, skill_work_dir=skill_work_dir)
 
     def _format_conversation_history(self, history: list) -> str:
         """格式化对话历史"""
@@ -181,13 +237,13 @@ class ReActAgentRunner:
         """解析最大迭代次数"""
         return ir_json.get("configs", {}).get("maxIteration", 5)
 
-    def _create_llm(self, ir_json: dict) -> Model:
+    async def _create_llm(self, ir_json: dict) -> Model:
         """根据 IR 配置创建 LLM 模型实例"""
-        from agent_runtime.common.model_providers import IRModelConfigProvider
+        from jiuwen.serve.controllers.execution.ir_converter import _get_model_config_provider
 
         adapted_conf = _adapt_react_agent_config(ir_json)
-        provider = IRModelConfigProvider()
-        llm_comp_config = provider.get_llm_config(adapted_conf)
+        provider = _get_model_config_provider()
+        llm_comp_config = await provider.get_llm_config(adapted_conf)
 
         return Model(
             model_client_config=llm_comp_config.model_client_config,
@@ -400,7 +456,8 @@ class ReActAgentRunner:
                 # 注册 Tool 到 resource_mgr
                 try:
                     wt_instance = ReactWorkflowAdapter(
-                        workflow_instance=wf_instance,
+                        ir_data=sub_ir,
+                        card_id=wf_instance.card.id,
                         workflow_name=wf_name,
                         workflow_desc=wf_desc,
                         input_params=input_params,
@@ -462,23 +519,9 @@ class ReActAgentRunner:
             local_zip_path = os.path.join(skill_local_path_prefix, f"{skill_name}.zip")
 
             try:
-                downloaded = False
-                try:
-                    from agent_runtime.storage.object_storage import S3StorageProvider
-                    content = await S3StorageProvider().get_object_bytes(skill_path)
-                    os.makedirs(os.path.dirname(local_zip_path), exist_ok=True)
-                    with open(local_zip_path, "wb") as f:
-                        f.write(content)
-                    downloaded = True
-                except Exception as s3_err:
-                    try:
-                        from jiuwen.common.store.async_obs import AsyncOBSUtil
-                        await AsyncOBSUtil.download_to_file(object_key=skill_path, local_path=local_zip_path)
-                        downloaded = True
-                    except Exception as obs_err:
-                        workflow_logger.error(
-                            f"[SkillDownload] Both failed for {skill_name}: S3={s3_err}, OBS={obs_err}")
-                        continue
+                from storage import get_storage_provider
+                provider = get_storage_provider()
+                await provider.download_to_file(object_key=skill_path, local_path=local_zip_path)
 
                 with zipfile.ZipFile(local_zip_path, "r") as zip_ref:
                     for member in zip_ref.infolist():
@@ -530,6 +573,11 @@ class ReActAgentRunner:
 
         except Exception as e:
             workflow_logger.error(f"Failed to register: {e}", exc_info=True)
+
+    @staticmethod
+    def _register_skill_tools(agent: ReActAgent, agent_id: str, skill_work_dir: str) -> None:
+        """注册 skill 所需的 read_file 工具（基于 SysOperation local 模式）"""
+        register_skill_tools(agent, agent_id, skill_work_dir)
 
     async def _register_skills(self, ir_json: dict, agent: ReActAgent, agent_id: str, skill_work_dir: str = "") -> None:
         """注册 Skill 工具和配置"""
@@ -618,7 +666,7 @@ class ReActAgentRunner:
 
         # 创建 LLM 模型
         try:
-            llm = self._create_llm(ir_json)
+            llm = await self._create_llm(ir_json)
         except Exception as e:
             workflow_logger.error(f"Failed to create LLM: {e}")
             yield adapter.adapt_error(f"Failed to create LLM: {e}")
@@ -627,6 +675,7 @@ class ReActAgentRunner:
         # 1. 先下载 skill 文件（需要知道实际工作目录才能正确注入 prompt）
         skills_conf = ir_json.get("configs", {}).get("skills", {})
         skill_work_dir = ""
+        skill_info_list = []
         if skills_conf:
             skill_dir = skills_conf.get("skill_dir", "")
             skill_info_list = skills_conf.get("skill_info", [])
@@ -664,6 +713,9 @@ class ReActAgentRunner:
             await self._register_mcp_servers(ir_json, agent, agent_id)
             await self._register_workflows(ir_json, agent, agent_id)
             await self._register_skills(ir_json, agent, agent_id, skill_work_dir)
+            # 有 skill 配置时注册 read_file 工具（基于 SysOperation local 模式）
+            if skills_conf and skill_work_dir and skill_info_list:
+                self._register_skill_tools(agent, agent_id, skill_work_dir)
             # 有文件链接时注册读文件工具
             if has_file_links:
                 self._register_file_reader_tool(agent, agent_id)
@@ -778,15 +830,13 @@ class ReActAgentRunner:
             if chunk is None:
                 continue
             try:
-                chunk_str = chunk.decode() if isinstance(chunk, bytes) else chunk
-                if chunk_str.startswith("data: "):
-                    data = json.loads(chunk_str[6:])
-                    if data.get("event") == "message":
-                        answer = data.get("data", {}).get("answer", "")
-                        if answer:
-                            result_parts.append(answer)
+                event = chunk.get("event", "")
+                data = chunk.get("data", {})
+                if event == "message":
+                    answer = data.get("answer", "")
+                    if answer:
+                        result_parts.append(str(answer))
             except Exception as e:
                 workflow_logger.error(f"Error processing agent run blocking chunk: {e}")
-                pass
 
         return "".join(result_parts)

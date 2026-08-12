@@ -10,7 +10,7 @@ import re
 import secrets
 import copy
 from collections import defaultdict
-from typing import Any, AsyncIterator, Dict, Iterable, List, Optional
+from typing import Any, AsyncIterator, Dict, Iterable, List, NamedTuple, Optional
 
 from agent_runtime.extension.workflow_node.flow_code import FlowCode
 from agent_runtime.extension.workflow_node.flow_knowledge_retrieval import FlowKnowledgeRetrieval
@@ -45,6 +45,9 @@ from jiuwen.extension.patches.workflow_sub_stream_patch import (
 from jiuwen.extension.workflow_node.end import End
 from jiuwen.extension.workflow_node.exception_handler import (
     register_error_recovery_handler,
+)
+from jiuwen.extension.patches.parallel_branch_grouping_patch import (
+    apply_parallel_branch_grouping_patch,
 )
 from jiuwen.extension.workflow_node.flow_agent import FlowAgent, FlowAgentConfig
 from jiuwen.extension.workflow_node.flow_aggregate import Aggregate
@@ -105,6 +108,8 @@ apply_loop_state_cleanup_patch()
 from jiuwen.extension.workflow_node.utils import WorkflowMetadata
 
 from jiuwen.serve.controllers.execution.ir_parallel_utils import (
+    ParallelJoinPlan,
+    _sanitize_node_id,
     build_parallel_join_plan,
     collect_parallel_join_nodes,
 )
@@ -113,8 +118,42 @@ from agent_runtime.common.ir_exceptions import IRBuildException
 _AGENT_VERSION = "agentVersion"
 _WORKFLOW_VERSION = "workflowVersion"
 _USE_AGENT_CORE_MODEL_ENV = "USE_AGENT_CORE_MODEL"
+
+
+class _LLMModelIdentifiers(NamedTuple):
+    """创建 LLM 模型所需的标识集合（task/agent/conversation 三件套）。"""
+
+    task_id: str
+    agent_id: str
+    conversation_id: str
+
 _BASE_AGENT_SWITCH = "BASE_AGENT_SWITCH"
 _AGENT_CORE_REGISTERED_MODEL_IDS = set()
+
+# 可插拔的 ModelConfigProvider 工厂函数，默认使用 IRModelConfigProvider。
+# WorkflowRunner 在初始化时根据 MODEL_CONFIG_STRATEGY 环境变量覆盖此函数，
+# 使 IRConverter 内部的模型注册逻辑自动切换到对应的 Provider 实现。
+_model_config_provider_factory = None
+
+
+def set_model_config_provider_factory(factory):
+    """设置全局 ModelConfigProvider 工厂函数。
+
+    Args:
+        factory: 无参可调用对象，返回 ModelConfigProvider 实例。
+                 例如: lambda: OBSModelConfigProvider()
+    """
+    global _model_config_provider_factory
+    _model_config_provider_factory = factory
+
+
+def _get_model_config_provider():
+    """获取当前 ModelConfigProvider 实例。"""
+    from agent_runtime.common.model_providers import IRModelConfigProvider
+
+    if _model_config_provider_factory is not None:
+        return _model_config_provider_factory()
+    return IRModelConfigProvider()
 UNSUPPORTED_COMPONENT_DEBUG_LIST = [
     "jiuwen.start",
     "jiuwen.end",
@@ -271,8 +310,9 @@ def _convert_global_variable_refs_in_ir(ir_data: dict) -> dict:
 
         _cow_configs_field(("branches",), _convert_refs_in_schema, component, state)
         _cow_configs_field(("io_configs", "inputs_schema"), _convert_refs_in_schema, component, state)
+        _cow_configs_field(("io_configs", "outputs_schema"), _convert_refs_in_schema, component, state)
 
-        # Legacy inputs live directly under component (not under configs)
+        # Legacy inputs/outputs live directly under component (not under configs)
         inputs_orig = component.get("inputs", {})
         if inputs_orig:
             converted_inputs = _convert_refs_in_schema(inputs_orig)
@@ -280,6 +320,19 @@ def _convert_global_variable_refs_in_ir(ir_data: dict) -> dict:
                 if state["comp"] is component:
                     state["comp"] = dict(component)
                 state["comp"]["inputs"] = converted_inputs
+
+        # End 节点的 outputs.userFields 会被 IR converter 以 ``#end_`` 前缀并入
+        # inputs_schema；若此处的 ``${node_start.memory.xxx}`` 不转换，运行期 End
+        # 的输出字段会从 io_state (node_start 的陈旧输出) 解析，而非从被
+        # SetVariable 更新过的 global_state 解析，导致同一记忆变量输入有值、
+        # 输出无值。
+        outputs_orig = component.get("outputs", {})
+        if outputs_orig:
+            converted_outputs = _convert_refs_in_schema(outputs_orig)
+            if converted_outputs is not outputs_orig:
+                if state["comp"] is component:
+                    state["comp"] = dict(component)
+                state["comp"]["outputs"] = converted_outputs
 
         if state["comp"] is not component:
             new_components[i] = state["comp"]
@@ -729,6 +782,68 @@ async def _iter_parallel_stream_inputs(inputs: Any) -> AsyncIterator[Any]:
         yield inputs
 
 
+class _LaneSentinelComponent(WorkflowComponent):
+    """Stream-producer sentinel for a mixed parallel lane's non-stream terminal.
+
+    A "mixed" parallel lane has both a streaming terminal (LLM) and a
+    non-streaming terminal (e.g. Code) behind a conditional branch. The
+    lane-done is wired as TRANSFORM and expects stream data from the streaming
+    sibling; if the non-stream branch executes at runtime, the streaming
+    sibling never produces and the lane-done raises 112052 ("no stream data in").
+
+    This sentinel sits between the non-stream terminal and the lane-done. When
+    the non-stream branch fires, the sentinel is scheduled and emits a single
+    stream frame, which satisfies the lane-done's CNF OR-group ``{LLM, sentinel}``
+    so its ``stream_call`` runs (no 112052) and the not-executed LLM sibling's
+    queue is closed via the group machinery (no hang). The sentinel's frame is
+    keyed by its own id, so the lane-done's schema (which references the LLM)
+    does not route it -- the LLM field resolves to empty, matching the fact
+    that the LLM branch did not execute.
+    """
+
+    async def stream(self, inputs: Any, session: Any, context: Any) -> AsyncIterator[Any]:
+        # One empty data frame: its first_frame=True arrival starts the
+        # lane-done's stream_call task; the END frame emitted right after
+        # satisfies the OR-group. Value is irrelevant (not routed by schema).
+        yield ""
+
+
+def _detect_mixed_lane_sentinels(
+    plan: ParallelJoinPlan,
+    parallel_stream_done_inputs: dict[str, dict],
+    ir_stream_source_ids: set[str],
+) -> dict[str, str]:
+    """Detect non-stream terminals on mixed parallel lanes and map each to a
+    sentinel node id.
+
+    A lane is "mixed" when its ``done_node`` is in ``parallel_stream_done_inputs``
+    (i.e. it has a streaming terminal, so it is wired as a TRANSFORM lane-done
+    that expects stream data) but it ALSO has at least one non-stream terminal
+    (a terminal source not in ``ir_stream_source_ids``). When the non-stream
+    branch executes, the streaming sibling never produces -> 112052.
+
+    Returns ``{non_stream_terminal_id: sentinel_id}`` for each non-stream
+    terminal of a mixed lane. Pure-stream lanes (all terminals stream) and
+    pure-batch lanes (done_node not in ``parallel_stream_done_inputs``) get no
+    sentinel.
+    """
+    sentinels: dict[str, str] = {}
+    for join_spec in plan.joins.values():
+        for lane in join_spec.lanes:
+            if lane.done_node not in parallel_stream_done_inputs:
+                # Pure batch lane -> InvokeLaneDone, no stream gate, no sentinel.
+                continue
+            done_key = _sanitize_node_id(lane.done_node)
+            for terminal_source, _ in lane.terminals:
+                if terminal_source in ir_stream_source_ids:
+                    continue  # streaming terminal -> the real producer, no sentinel
+                if terminal_source in sentinels:
+                    continue  # already assigned (e.g. same terminal via two branch ids)
+                term_key = _sanitize_node_id(terminal_source)
+                sentinels[terminal_source] = f"_lane_sentinel__{done_key}__{term_key}"
+    return sentinels
+
+
 class _RoutedIntentDetection(IntentDetection):
     def __init__(self, configs: dict):
         super().__init__(configs)
@@ -755,6 +870,24 @@ class _RoutedIntentDetection(IntentDetection):
             all_targets = self._router.all_targets
             if len(all_targets) > 1:
                 graph.register_branch_targets(node_id, all_targets)
+
+
+def _resolve_intent_fields(
+    current_ir_data: Dict[str, Any],
+    parent_intent: Optional[Dict[str, Any]],
+) -> tuple[str, str]:
+    """R-04: 父级 per-reference intent 覆盖,应用到 per-config metadata(不写缓存 IR 对象)。
+
+    非空才覆盖(``or`` 短路),语义等价于旧实现的
+    ``if child_intent.get("name"): ...`` / ``if child_intent.get("description"): ...``。
+    parent_intent 非 dict 或字段为空时,回退子 IR 原值。
+    """
+    override = parent_intent if isinstance(parent_intent, dict) else {}
+    intent_name = override.get("name") or current_ir_data.get("intent_name", "")
+    intent_description = override.get("description") or current_ir_data.get(
+        "intent_description", ""
+    )
+    return intent_name, intent_description
 
 
 class IRConverter:
@@ -1005,6 +1138,7 @@ class IRConverter:
             current_ir_data: Dict[str, Any],
             parent_metadata: Optional[AgentMetaData],
             parent_description: Optional[str] = None,
+            parent_intent: Optional[Dict[str, Any]] = None,
         ) -> AgentConfig:
             """for each agent, return its child AgentConfig"""
             try:
@@ -1016,13 +1150,17 @@ class IRConverter:
                         error_msg=f"Agent_ir validate failed, root_case={format_pydantic_validation_error_message(e)}"
                     ),
                 ) from e
+            # R-04: intent 覆盖写到 per-config metadata,不写缓存 IR 对象(避免污染 cache_ir_queue)
+            _intent_name, _intent_description = _resolve_intent_fields(
+                current_ir_data, parent_intent
+            )
             current_metadata = AgentMetaData(
                 id=current_ir_data.get("agentId"),
                 name=current_ir_data.get("agentName"),
                 description=parent_description
                 or current_ir_data.get("description", ""),
-                intent_name=current_ir_data.get("intent_name", ""),
-                intent_description=current_ir_data.get("intent_description", ""),
+                intent_name=_intent_name,
+                intent_description=_intent_description,
                 ir_path=current_ir_data.get("ir_path"),
                 mode=current_ir_data.get("configs", {}).get("mode", "Controller"),
             )
@@ -1037,19 +1175,13 @@ class IRConverter:
                     # 支持从父Agent修改子Agent描述
                     parent_description = child.get("description", "")
                     child_ir_data = await async_ir_load(child.get("ir_path"))
-                    # 如果子agent配置中有intent字段，使用它，否则保持原有的intent
-                    if "intent" in child:
-                        child_intent = child.get("intent")
-                        if isinstance(child_intent, dict):
-                            if child_intent.get("name"):
-                                child_ir_data["intent_name"] = child_intent.get("name")
-                            if child_intent.get("description"):
-                                child_ir_data["intent_description"] = child_intent.get(
-                                    "description"
-                                )
-
+                    # R-04: intent 覆盖通过参数下传到子的 current_metadata,不再原地写 child_ir_data
+                    child_intent = child.get("intent") if isinstance(child.get("intent"), dict) else None
                     child_config = await _recursive_create(
-                        child_ir_data, current_metadata, parent_description
+                        child_ir_data,
+                        current_metadata,
+                        parent_description,
+                        parent_intent=child_intent,
                     )
                     child_config.metadata.ir_path = child.get("ir_path")
                     child_config.metadata.mode = child.get(
@@ -1067,13 +1199,15 @@ class IRConverter:
             )
             # 创建LLM模型（合并变量）
             if model_configs:
-                llm = IRConverter._create_llm_model(
+                llm = await IRConverter._create_llm_model(
                     model_configs,
                     cust_headers={},
                     project_id="",
-                    task_id=task_id,
-                    conversation_id=conversation_id,
-                    agent_id=current_metadata.id or "",
+                    identifiers=_LLMModelIdentifiers(
+                        task_id=task_id,
+                        conversation_id=conversation_id,
+                        agent_id=current_metadata.id or "",
+                    ),
                 )
             else:
                 llm = None
@@ -1136,7 +1270,10 @@ class IRConverter:
         agents_all, agent_info_map = await IRConverter.create_all_agents_config_list(
             root_ir_data, conversation_id
         )
-        max_agent_calls = root_ir_data.get("max_agent_calls", 10)
+        configs = root_ir_data.get("configs", {})
+        max_agent_calls = configs.get("maxIteration")
+        if max_agent_calls is None:
+            max_agent_calls = root_ir_data.get("max_agent_calls", 10)
         if (
             not isinstance(max_agent_calls, int)
             or isinstance(max_agent_calls, bool)
@@ -1265,13 +1402,15 @@ class IRConverter:
         task_model, model_configs = AgentIrUtils().get_task_model(ir_data, task_id)
         cust_headers = kwargs.get("cust_headers", {})
         if model_configs:
-            llm = IRConverter._create_llm_model(
+            llm = await IRConverter._create_llm_model(
                 model_configs,
                 cust_headers,
                 kwargs.get("project_id", ""),
-                task_id=task_id,
-                conversation_id=conversation_id,
-                agent_id=ir_data.get("agentId", ""),
+                identifiers=_LLMModelIdentifiers(
+                    task_id=task_id,
+                    conversation_id=conversation_id,
+                    agent_id=ir_data.get("agentId", ""),
+                ),
             )
         else:
             llm = None
@@ -1405,6 +1544,7 @@ class IRConverter:
             raise ValueError("ir_data must be a dict")
 
         register_error_recovery_handler()
+        apply_parallel_branch_grouping_patch()
 
         card = WorkflowCard(
             id=ir_data.get("workflowId") or ir_data.get("agentId") or "",
@@ -1495,6 +1635,16 @@ class IRConverter:
                     "userFields": {"stream": "${" + source + "}"}
                 }
 
+        # Mixed-lane sentinels: a lane with BOTH a streaming terminal (LLM)
+        # and a non-stream terminal (e.g. Code) behind a conditional branch is
+        # wired as TRANSFORM (expects stream data from the LLM). When the
+        # non-stream branch executes, the LLM never produces -> 112052. Insert
+        # a sentinel on each non-stream terminal so the lane-done's CNF OR-group
+        # {LLM, sentinel} is satisfied by whichever branch fires.
+        lane_sentinels: dict[str, str] = _detect_mixed_lane_sentinels(
+            parallel_join_plan, parallel_stream_done_inputs, ir_stream_source_ids
+        )
+
         # Pre-collect all loop body component IDs so that root-level connection
         # processing can skip inter-body connections (they belong to LoopGroup, not main workflow).
         _loop_body_ids: set[str] = set()
@@ -1543,12 +1693,36 @@ class IRConverter:
                 lane_done = _ParallelInvokeLaneDoneComponent()
                 workflow.add_workflow_comp(done_node_id, lane_done, inputs_schema={})
             component_by_id[done_node_id] = lane_done
+
+        # Register mixed-lane sentinel components. Each sentinel sits between a
+        # non-stream terminal and its lane-done: terminal -> sentinel (batch),
+        # sentinel -> lane-done (stream). The sentinel is a STREAM producer so
+        # the lane-done's stream_source_groups picks it up and the CNF resolver
+        # merges it with the LLM sibling into an OR-group.
+        sentinel_done_targets: dict[str, str] = {}
+        for terminal_source, sentinel_id in lane_sentinels.items():
+            sentinel = _LaneSentinelComponent()
+            workflow.add_workflow_comp(sentinel_id, sentinel, comp_ability=[ComponentAbility.STREAM])
+            component_by_id[sentinel_id] = sentinel
+            # Resolve this terminal's lane-done (the done_node the terminal
+            # originally flows into) so phase-2 can wire sentinel -> done_node.
+            for _join in parallel_join_plan.joins.values():
+                for _lane in _join.lanes:
+                    if any(t == terminal_source for t, _ in _lane.terminals):
+                        sentinel_done_targets[sentinel_id] = _lane.done_node
+                        break
         end_node_ids = {p["node_id"] for p in pending_end_nodes}
         stream_connection_targets: set[str] = set()
         batch_connection_targets: set[str] = set()
         deferred_connections: list[tuple[str, str, bool]] = []
         branch_connections: list[tuple[str, str, str]] = []
         existing_connections: set[tuple[str, str]] = set()
+        # Track _parallel_done nodes that receive incoming edges from
+        # rewrite_target in both Phase 1 and Phase 2, so that orphaned
+        # done nodes (caused by terminal_to_done key overwrites across
+        # parallel groups sharing the same join target) can be filtered
+        # out during parallel join wiring.
+        active_done_nodes: set[str] = set()
 
         # Phase 1: wire branch routes before BranchComponent/IntentDetection join the
         # graph so add_workflow_comp → register_branch_targets sees populated routers.
@@ -1564,9 +1738,10 @@ class IRConverter:
                 continue
             if not branch_id or "@@" in branch_id:
                 continue
-            target = (
-                parallel_join_plan.rewrite_target(source, target, branch_id) or target
-            )
+            rewritten = parallel_join_plan.rewrite_target(source, target, branch_id)
+            if rewritten:
+                active_done_nodes.add(rewritten)
+                target = rewritten
             # Branch connections (default/non-default) are batch paths
             if target in end_node_ids:
                 batch_connection_targets.add(target)
@@ -1599,6 +1774,22 @@ class IRConverter:
             rewritten_target = parallel_join_plan.rewrite_target(source, target)
             if rewritten_target:
                 existing_connections.add((source, target))
+                active_done_nodes.add(rewritten_target)
+                # Mixed-lane sentinel: reroute non-stream terminal -> sentinel
+                # -> lane-done. The terminal->sentinel edge is batch (the
+                # terminal is non-stream); the sentinel->lane-done edge is
+                # stream so the lane-done's stream_source_groups picks up the
+                # sentinel and the CNF resolver merges {LLM, sentinel} into an
+                # OR-group satisfied by whichever branch fires.
+                if source in lane_sentinels:
+                    sentinel_id = lane_sentinels[source]
+                    if (source, sentinel_id) not in existing_connections:
+                        workflow.add_connection(source, sentinel_id)
+                        existing_connections.add((source, sentinel_id))
+                    if (sentinel_id, rewritten_target) not in existing_connections:
+                        workflow.add_stream_connection(sentinel_id, rewritten_target)
+                        existing_connections.add((sentinel_id, rewritten_target))
+                    continue
                 target = rewritten_target
             existing_connections.add((source, target))
             if is_stream:
@@ -1704,6 +1895,13 @@ class IRConverter:
             if is_stream_out:
                 set_end_kwargs["response_mode"] = "streaming"
 
+            # Parallel-join End nodes must wait for all branches regardless of
+            # comp_ability.  set_end_comp derives wait_for_all from COLLECT/TRANSFORM
+            # ability, which is absent for batch-only End nodes.  Supplying an empty
+            # stream_inputs_schema triggers COLLECT ability so wait_for_all=True.
+            if parallel_join_nodes and node_id in parallel_join_nodes:
+                if "stream_inputs_schema" not in set_end_kwargs:
+                    set_end_kwargs["stream_inputs_schema"] = {}
             workflow.set_end_comp(node_id, end, **set_end_kwargs)
 
         for source, target, is_stream in deferred_connections:
@@ -1712,8 +1910,15 @@ class IRConverter:
                 workflow.add_stream_connection(source, target)
             else:
                 workflow.add_connection(source, target)
+        # When two parallel groups share the same join target and terminals,
+        # terminal_to_done entries from the second group overwrite the first,
+        # leaving some _parallel_done nodes with no incoming edges (orphaned).
+        # With wait_for_all=True, orphaned done nodes in BarrierChannel cause
+        # deadlock.  Filter them out using active_done_nodes tracked during
+        # Phase 1 and Phase 2 rewrite_target calls.
         for join_spec in parallel_join_plan.joins.values():
-            lane_done_nodes = [lane.done_node for lane in join_spec.lanes]
+            lane_done_nodes = [lane.done_node for lane in join_spec.lanes
+                               if lane.done_node in active_done_nodes]
             if len(lane_done_nodes) >= 2:
                 has_stream_lane = _parallel_join_has_stream_lane.get(
                     join_spec.join_target, False
@@ -1733,6 +1938,8 @@ class IRConverter:
                         workflow.add_connection(invoke_done_nodes, join_spec.join_target)
                 else:
                     workflow.add_connection(lane_done_nodes, join_spec.join_target)
+            elif len(lane_done_nodes) == 1:
+                workflow.add_connection(lane_done_nodes[0], join_spec.join_target)
 
         # Add missing connections based on schema references.
         # Strategy:
@@ -2437,40 +2644,17 @@ class IRConverter:
                 loop_inputs["loop_array"] = {"arrLoopVar.item": node_inputs["arrLoopVar"]}
             if "intermediateLoopVar" in node_inputs:
                 loop_inputs["intermediate_var"] = {"intermediateLoopVar": node_inputs["intermediateLoopVar"]}
-            _loop_inputs_snapshot = loop_inputs
-
-            def _loop_inputs_transformer(state):
-                from openjiuwen.core.session.utils import get_by_schema
-                data = state
-                while not isinstance(data, dict):
-                    getter = getattr(data, 'get_state', None)
-                    if callable(getter):
-                        # 优先走 copied=False 直接拿原始 dict 引用，跳过 deepcopy。
-                        # transformer 内部仅调用 get_by_schema（纯只读，无写入），
-                        # 返回值是新建的 dict/list，不会回写 io_state，因此无需复制。
-                        try:
-                            data = getter(copied=False)
-                        except TypeError:
-                            # 兜底：实现签名不支持 copied 关键字时回退到默认行为
-                            data = getter()
-                    else:
-                        break
-
-                def _resolve(obj):
-                    if isinstance(obj, str) and obj.startswith("$"):
-                        val = get_by_schema(obj, data, is_root=True)
-                        return val if val is not None else obj
-                    if isinstance(obj, dict):
-                        return {k: _resolve(v) for k, v in obj.items()}
-                    return obj
-
-                return _resolve(_loop_inputs_snapshot)
-
+            # 直接以 dict 作为 inputs_schema，交由 core 的标准 get_inputs 解析。
+            # 标准路径走 io_state.get_by_prefix(schema, parent_id)，会按 parent_id
+            # 深入到当前（子）工作流作用域后再解析 ${...} 引用。原先用自定义
+            # callable transformer + get_by_schema(..., is_root=True) 从绝对根解析，
+            # 在子工作流上下文中会绕过 parent_id 作用域，导致循环无法解析到同级
+            # 子节点输出（如代码节点产出的数组），arrLoopVar 落地为字面量字符串而报错。
             _add_workflow_comp_with_exception(
                 workflow,
                 node_id,
                 component,
-                inputs_schema=_loop_inputs_transformer,
+                inputs_schema=loop_inputs,
                 **_comp_reg,
             )
             return component
@@ -3015,21 +3199,19 @@ class IRConverter:
             ) from e
 
     @staticmethod
-    def _create_llm_model(
+    async def _create_llm_model(
         model_configs: dict,
         cust_headers: dict,
         project_id: str,
-        task_id: str = "",
-        agent_id: str = "",
-        conversation_id: str = "",
+        identifiers: "_LLMModelIdentifiers",
     ):
         """创建 LLM 模型"""
         if IRConverter._use_agent_core_model(model_configs):
-            return IRConverter._create_agent_core_llm_model(
+            return await IRConverter._create_agent_core_llm_model(
                 model_configs,
-                task_id,
-                agent_id,
-                conversation_id=conversation_id,
+                identifiers.task_id,
+                identifiers.agent_id,
+                conversation_id=identifiers.conversation_id,
             )
 
         runtime_context = {
@@ -3077,7 +3259,7 @@ class IRConverter:
         }
 
     @staticmethod
-    def _create_agent_core_llm_model(
+    async def _create_agent_core_llm_model(
         model_configs: dict, task_id: str, agent_id: str, conversation_id: str = ""
     ):
         """Create jiuwen model contract layer backed by openjiuwen's ModelWrapper."""
@@ -3109,7 +3291,7 @@ class IRConverter:
             or agent_id
             or ""
         )
-        IRConverter._register_agent_core_llm_model(model_id, model_configs)
+        await IRConverter._register_agent_core_llm_model(model_id, model_configs)
         return AgentCoreModelLayer(
             runtime=ModelWrapper(),
             default_model_id=model_id,
@@ -3118,11 +3300,11 @@ class IRConverter:
         )
 
     @staticmethod
-    def _register_agent_core_llm_model(model_id: str, model_configs: dict) -> None:
+    async def _register_agent_core_llm_model(model_id: str, model_configs: dict) -> None:
         """Register an openjiuwen model resource from jiuwen IR model config.
 
-        Uses IRModelConfigProvider for consistent model configuration across
-        all components, including per-request auth headers.
+        Uses the configured ModelConfigProvider (via _get_model_config_provider())
+        for consistent model configuration across all components.
         """
 
         if not model_id:
@@ -3135,14 +3317,13 @@ class IRConverter:
             return
 
         from agent_runtime.common.model_adapters import adapt_ir_converter_model_config
-        from agent_runtime.common.model_providers import IRModelConfigProvider
         from openjiuwen.core.foundation.llm import Model
         from openjiuwen.core.runner import Runner
 
         adapted_conf = adapt_ir_converter_model_config(model_configs, model_id)
 
-        provider = IRModelConfigProvider()
-        llm_comp_config = provider.get_llm_config(adapted_conf)
+        provider = _get_model_config_provider()
+        llm_comp_config = await provider.get_llm_config(adapted_conf)
 
         # Extract model name for logging
         model_name = model_configs.get("modelName") or model_id

@@ -3,7 +3,7 @@
 """
 Config bridge: full replica of agent_runtime.common.config.
 
-Provides identical classes: ServerSettings, RedisMode, RedisSettings, LLMSettings,
+Provides identical classes: ServerSettings, LLMSettings,
 ObjectStorageSettings, HealthCheckSettings, SecuritySandboxSettings, WorkflowLogSettings,
 OtelSettings, CacheSettings, SkillStorageSettings, OpenSearchSettings, MemorySettings,
 CheckpointerSettings, CodeExecutionSettings, DataBaseSettings, Settings, settings.
@@ -18,7 +18,7 @@ from typing import Literal, Optional
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from agent_builder.adapter.crypto_bridge import decrypt
+from common_utils.crypto_tool import decrypt
 
 
 def _decrypt(v):
@@ -65,45 +65,12 @@ class ServerSettings(BaseSettings):
         return _decrypt(v)
 
 
-class RedisMode(Enum):
-    """Redis 连接模式。"""
+class ModelConfigStrategyType(str, Enum):
+    """模型配置来源策略（与 agent_runtime.common.config.ModelConfigStrategyType 对齐）。"""
 
-    SINGLE = "single"
-    CLUSTER = "cluster"
-    SENTINEL = "sentinel"
-
-
-class RedisSettings(BaseSettings):
-    """Redis 配置。环境变量前缀统一为 REDIS_。"""
-
-    mode: RedisMode = Field(default=RedisMode.SINGLE, validation_alias="REDIS_MODE")
-    host: str = Field(default="127.0.0.1", validation_alias="REDIS_HOST")
-    port: int = Field(default=6379, validation_alias="REDIS_PORT")
-    db: int = Field(default=0, validation_alias="REDIS_DATABASE")
-    password: Optional[str] = Field(default=None, validation_alias="REDIS_PASSWORD")
-    cluster_nodes: str = Field(default="", validation_alias="REDIS_CLUSTER_NODES")
-    sentinel_master: str = Field(
-        default="mymaster", validation_alias="REDIS_SENTINEL_MASTER"
-    )
-    sentinel_nodes: str = Field(default="", validation_alias="REDIS_SENTINEL_NODES")
-    max_connections: int = Field(default=50, validation_alias="REDIS_MAX_CONNECTIONS")
-    socket_timeout: int = Field(default=5, validation_alias="REDIS_SOCKET_TIMEOUT")
-    socket_connect_timeout: int = Field(
-        default=5, validation_alias="REDIS_SOCKET_CONNECT_TIMEOUT"
-    )
-    ssl_enabled: bool = Field(default=False, validation_alias="REDIS_SSL_ENABLED")
-    ssl_ca_cert: str = Field(default="", validation_alias="REDIS_SSL_CA_CERT")
-    ssl_cert_file: str = Field(default="", validation_alias="REDIS_SSL_CERT_FILE")
-    ssl_key_file: str = Field(default="", validation_alias="REDIS_SSL_KEY_FILE")
-
-    model_config = SettingsConfigDict(
-        env_file=".env", env_file_encoding="utf-8", extra="ignore"
-    )
-
-    @field_validator("password", mode="after")
-    @classmethod
-    def _decrypt_password(cls, v):
-        return _decrypt(v)
+    ENV = "env"
+    IR = "ir"
+    OBS = "obs"
 
 
 class LLMSettings(BaseSettings):
@@ -115,6 +82,13 @@ class LLMSettings(BaseSettings):
     temperature: float = Field(default=0.5, validation_alias="IR_LLM_TEMPERATURE")
     top_p: float = Field(default=0.5, validation_alias="IR_LLM_TOP_P")
     max_tokens: int = Field(default=4096, validation_alias="IR_LLM_MAX_TOKENS")
+    # 模型配置来源策略: env / ir / obs（默认 obs：OBS 直连，绕过模型路由网关）。
+    # obs → client_provider="studio" 进程内直连真实模型；
+    # ir  → client_provider="openai" 走 MODEL_ROUTER_API 网关；
+    # env → client_provider="openai" 走 IR_LLM_* 环境变量。
+    model_config_strategy: ModelConfigStrategyType = Field(
+        default=ModelConfigStrategyType.OBS, validation_alias="MODEL_CONFIG_STRATEGY"
+    )
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -130,6 +104,12 @@ class LLMSettings(BaseSettings):
 
 
 class ObjectStorageSettings(BaseSettings):
+    # CUSTOM 存储类型 + Local 重构（对齐远程 OBS 存储扩展 f00cd2ba，与 agent_runtime 一致）
+    type: str = Field(default="OBS", validation_alias="STORAGE_TYPE")
+    custom_module: str = Field(default="", validation_alias="STORAGE_CUSTOM_MODULE")
+    custom_class: str = Field(default="", validation_alias="STORAGE_CUSTOM_CLASS")
+    local_base_path: str = Field(default="", validation_alias="STORAGE_LOCAL_BASE_PATH")
+    local_bucket: str = Field(default="default-bucket", validation_alias="STORAGE_LOCAL_BUCKET")
     server: str = Field(default="", validation_alias="DATASOURCE_OBS_SERVER")
     bucket: str = Field(default="", validation_alias="DATASOURCE_OBS_BUCKET")
     access_key: str = Field(default="", validation_alias="DATASOURCE_OBS_AK")
@@ -375,7 +355,6 @@ class DataBaseSettings(BaseSettings):
 
 class Settings:
     server = ServerSettings()
-    redis = RedisSettings()
     llm = LLMSettings()
     object_storage = ObjectStorageSettings()
     health_check = HealthCheckSettings()

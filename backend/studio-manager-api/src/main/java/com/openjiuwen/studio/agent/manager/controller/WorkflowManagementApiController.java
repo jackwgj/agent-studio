@@ -155,9 +155,10 @@ public class WorkflowManagementApiController implements WorkflowManagementApi {
 
     @Override
     public ResponseEntity<ImportRsp> importWorkflows(String workspaceId, String projectId, MultipartFile file,
-        String importWorkflows, String importTools) {
+        String importWorkflows, String importTools, String mode) {
         return ResponseModel.success(
-            workflowManagementService.importWorkflows(workspaceId, projectId, file, importWorkflows, importTools));
+            workflowManagementService.importWorkflows(workspaceId, projectId, file, importWorkflows, importTools,
+                mode));
     }
 
     @Override
