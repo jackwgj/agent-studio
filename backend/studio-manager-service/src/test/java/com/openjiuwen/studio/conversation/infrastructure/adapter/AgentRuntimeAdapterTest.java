@@ -25,8 +25,8 @@ import static org.mockito.Mockito.*;
 /**
  * 团队对话直传路径（Phase 5）单元测试。
  *
- * <p>run() 不再预烘焙 IR：URL 直接构建为 /v1/inner/{project}/conversations/{conversation}/team，
- * 请求体直传 subAgentIds + modelDeploymentId + conversationHistory（无 systemPrompt、无 enable_history）。
+ * <p>run() 不再预烘焙 IR：URL 直接构建为 /v1/conversation/team（2026-08-12 直连引擎，dev 移除 Java runtime 层），
+ * 请求体直传 conversationId + subAgentIds + modelDeploymentId + conversationHistory（无 systemPrompt、无 enable_history）。
  * 空 endpoint 时 URL 构建（Request.Builder.url）立即抛异常，不会进入真实网络，测试快速且确定性。</p>
  */
 class AgentRuntimeAdapterTest {
@@ -51,14 +51,14 @@ class AgentRuntimeAdapterTest {
     }
 
     /**
-     * 团队端点 URL 形态（runtime /v1/inner 命名空间）：/v1/inner/{project}/conversations/{conversation}/team，
-     * 不再是旧链 /v1/inner/.../agents/{agentId}/conversations/...。
+     * 团队端点 URL 形态（2026-08-12 直连引擎，dev 移除 Java runtime 层）：{endpoint}/v1/conversation/team，
+     * conversationId 随请求体下发，不再走 /v1/inner/{project}/conversations/{conv}/team。
      */
     @Test
     void testBuildTeamUrl_TeamEndpointShape() {
         Conversation conv = Conversation.builder()
                 .conversationId("c1").projectId("p1").workspaceId("w1").build();
-        assertEquals("/v1/inner/p1/conversations/c1/team?workspace_id=w1", adapter.buildTeamUrl(conv));
+        assertEquals("/v1/conversation/team", adapter.buildTeamUrl(conv));
     }
 
     /**
@@ -95,6 +95,37 @@ class AgentRuntimeAdapterTest {
 
         assertNull(ReflectionTestUtils.invokeMethod(adapter, "toHistoryMaps", new Object[] { List.of() }));
         assertNull(ReflectionTestUtils.invokeMethod(adapter, "toHistoryMaps", new Object[] { null }));
+    }
+
+    /**
+     * 直连引擎请求体（2026-08-12）：含 conversationId + query + subAgentIds + modelDeploymentId + conversationHistory；
+     * 无 systemPrompt（监督者提示词固定引擎侧）。
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    void testBuildRequestBody_IncludesConversationIdAndTeamParams() {
+        Conversation conv = Conversation.builder()
+                .conversationId("c1").projectId("p1").workspaceId("w1").build();
+        SendMessageCmd cmd = new SendMessageCmd();
+        cmd.setQuery("上海的天气怎么样？");
+        cmd.setModelDeploymentId("m1");
+        List<Message> histories = List.of(
+                new Message().setRole("user").setContent("之前的天气？"),
+                new Message().setRole("assistant").setContent("昨天多云"));
+
+        Map<String, Object> body = ReflectionTestUtils.invokeMethod(adapter, "buildRequestBody", conv, cmd, histories);
+        assertNotNull(body);
+        assertEquals("c1", body.get("conversationId"));
+        assertEquals("上海的天气怎么样？", body.get("query"));
+        assertEquals(List.of("d321fa88-a768-4b63-8d68-13cd743c6903", "8dafdc64-2c52-40b5-9b24-49894314b763"),
+                body.get("subAgentIds"));
+        assertEquals("m1", body.get("modelDeploymentId"));
+        assertNull(body.get("systemPrompt"));
+
+        List<Map<String, String>> historyMaps = (List<Map<String, String>>) body.get("conversationHistory");
+        assertNotNull(historyMaps);
+        assertEquals(2, historyMaps.size());
+        assertEquals("user", historyMaps.get(0).get("role"));
     }
 
     /**

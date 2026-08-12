@@ -11,9 +11,9 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class ConversationHistoryServiceTest {
+class ConversationHistoryAssemblerTest {
 
-    private final ConversationHistoryService service = new ConversationHistoryService();
+    private final ConversationHistoryAssembler service = new ConversationHistoryAssembler();
 
     private Conversation conversationOf(ConversationMessage... messages) {
         return Conversation.builder().messages(List.of(messages)).build();

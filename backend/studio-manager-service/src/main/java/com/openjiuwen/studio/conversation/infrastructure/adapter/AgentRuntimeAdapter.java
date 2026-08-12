@@ -51,7 +51,7 @@ public class AgentRuntimeAdapter {
     private static final long SSE_TIMEOUT = 900_000L;
     private static final long CONNECT_TIMEOUT_SECONDS = 30L;
 
-    @Value("${agent_runtime_endpoint:http://127.0.0.1:31113}")
+    @Value("${agent_runtime_endpoint:http://127.0.0.1:31014}")
     private String runtimeEndpoint;
 
     /** 团队子 Agent ID 列表（内置常量，POC：团队变更时改此处，不再走 yml 配置） */
@@ -85,12 +85,7 @@ public class AgentRuntimeAdapter {
         // 直传团队参数（方案 B）：引擎按 subAgentIds 加载各子 Agent 已有 IR 动态组装监督者，不再预烘焙 IR
         String url = buildTeamUrl(conversation);
 
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("query", cmd.getQuery());
-        body.put("subAgentIds", parseTeamAgentIds(TEAM_AGENT_IDS));
-        body.put("modelDeploymentId", cmd.getModelDeploymentId());
-        // conversationHistory 显式转 [{role, content}]（引擎契约，容忍 dict；仅监督者注入，子 Agent 不感知）
-        body.put("conversationHistory", toHistoryMaps(histories));
+        Map<String, Object> body = buildRequestBody(conversation, cmd, histories);
 
         Request.Builder builder = new Request.Builder()
             .url(url)
@@ -133,13 +128,27 @@ public class AgentRuntimeAdapter {
     }
 
     /**
-     * 团队对话转发 URL（runtime /v1/inner 命名空间）：{endpoint}/v1/inner/{project}/conversations/{conversation}/team。
+     * 引擎团队对话端点 URL（2026-08-12 直连，dev 架构已移除 Java runtime 层）：
+     * {endpoint}/v1/conversation/team。conversationId 随请求体下发（引擎契约）。
      * 独立方法便于单测断言 URL 形态（okhttp 异常消息会截断 URL，不能靠异常消息验证）。
      */
     String buildTeamUrl(Conversation conversation) {
-        return runtimeEndpoint + "/v1/inner/" + conversation.getProjectId()
-            + "/conversations/" + conversation.getConversationId() + "/team?workspace_id="
-            + conversation.getWorkspaceId();
+        return runtimeEndpoint + "/v1/conversation/team";
+    }
+
+    /**
+     * 引擎团队请求体（2026-08-12 直连后 conversationId 必须随 body 下发——引擎契约，原先由 runtime
+     * 转发层从 URL path 补）。方案 B 直传团队参数，无 systemPrompt（监督者提示词固定引擎侧）。
+     */
+    Map<String, Object> buildRequestBody(Conversation conversation, SendMessageCmd cmd, List<Message> histories) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("conversationId", conversation.getConversationId());
+        body.put("query", cmd.getQuery());
+        body.put("subAgentIds", parseTeamAgentIds(TEAM_AGENT_IDS));
+        body.put("modelDeploymentId", cmd.getModelDeploymentId());
+        // conversationHistory 显式转 [{role, content}]（引擎契约，容忍 dict；仅监督者注入，子 Agent 不感知）
+        body.put("conversationHistory", toHistoryMaps(histories));
+        return body;
     }
 
     private List<String> parseTeamAgentIds(String idsStr) {

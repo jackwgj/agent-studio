@@ -13,7 +13,7 @@ import com.openjiuwen.studio.conversation.application.dto.SendMessageCmd;
 import com.openjiuwen.studio.conversation.domain.model.Conversation;
 import com.openjiuwen.studio.conversation.domain.model.ConversationMessage;
 import com.openjiuwen.studio.conversation.domain.repository.ConversationRepository;
-import com.openjiuwen.studio.conversation.domain.service.ConversationHistoryService;
+import com.openjiuwen.studio.conversation.domain.service.ConversationHistoryAssembler;
 import com.openjiuwen.studio.conversation.infrastructure.adapter.AgentRuntimeAdapter;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,16 +32,16 @@ import static org.mockito.Mockito.*;
 class ConversationWorkspaceAppServiceTest {
 
     private ConversationRepository repository;
-    private ConversationHistoryService historyService;
+    private ConversationHistoryAssembler historyAssembler;
     private AgentRuntimeAdapter runtimeAdapter;
     private ConversationWorkspaceAppService appService;
 
     @BeforeEach
     void setUp() {
         repository = mock(ConversationRepository.class);
-        historyService = mock(ConversationHistoryService.class);
+        historyAssembler = mock(ConversationHistoryAssembler.class);
         runtimeAdapter = mock(AgentRuntimeAdapter.class);
-        appService = new ConversationWorkspaceAppService(repository, historyService, runtimeAdapter);
+        appService = new ConversationWorkspaceAppService(repository, historyAssembler, runtimeAdapter);
 
         SimpleUser user = new SimpleUser();
         user.setUserId("u1");
@@ -222,7 +222,7 @@ class ConversationWorkspaceAppServiceTest {
         assertEquals(1, appended.size());
         assertEquals("user", appended.get(0).getRole());
         assertEquals("你好", appended.get(0).getContent());
-        verify(historyService).assemble(any());
+        verify(historyAssembler).assemble(any());
         verify(runtimeAdapter).run(eq(conv), eq(cmd), anyList(), anyString(), any());
     }
 

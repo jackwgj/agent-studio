@@ -19,7 +19,7 @@ import com.openjiuwen.studio.conversation.domain.model.Conversation;
 import com.openjiuwen.studio.conversation.domain.model.ConversationMessage;
 import com.openjiuwen.studio.conversation.domain.model.valueobject.ExecutionRef;
 import com.openjiuwen.studio.conversation.domain.repository.ConversationRepository;
-import com.openjiuwen.studio.conversation.domain.service.ConversationHistoryService;
+import com.openjiuwen.studio.conversation.domain.service.ConversationHistoryAssembler;
 import com.openjiuwen.studio.conversation.infrastructure.adapter.AgentRuntimeAdapter;
 
 import lombok.extern.slf4j.Slf4j;
@@ -44,14 +44,14 @@ public class ConversationWorkspaceAppService {
     public static final String DEFAULT_TITLE = "新会话";
 
     private final ConversationRepository conversationRepository;
-    private final ConversationHistoryService conversationHistoryService;
+    private final ConversationHistoryAssembler conversationHistoryAssembler;
     private final AgentRuntimeAdapter agentRuntimeAdapter;
 
     public ConversationWorkspaceAppService(ConversationRepository conversationRepository,
-                                           ConversationHistoryService conversationHistoryService,
+                                           ConversationHistoryAssembler conversationHistoryAssembler,
                                            AgentRuntimeAdapter agentRuntimeAdapter) {
         this.conversationRepository = conversationRepository;
-        this.conversationHistoryService = conversationHistoryService;
+        this.conversationHistoryAssembler = conversationHistoryAssembler;
         this.agentRuntimeAdapter = agentRuntimeAdapter;
     }
 
@@ -182,7 +182,7 @@ public class ConversationWorkspaceAppService {
         conversationRepository.appendMessages(conversationId, List.of(userMessage));
 
         // 全量历史组装（含工具消息合成）后注入运行链路
-        List<Message> histories = conversationHistoryService.assemble(conversation);
+        List<Message> histories = conversationHistoryAssembler.assemble(conversation);
         return agentRuntimeAdapter.run(conversation, cmd, histories, executionId, requestHeaders);
     }
 
