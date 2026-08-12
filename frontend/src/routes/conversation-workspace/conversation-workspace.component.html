@@ -54,8 +54,8 @@
         class="message-row"
         [class.user]="message.role === 'user'"
       >
-        <div class="message-bubble">
-          <div class="message-role">{{ message.role === 'user' ? '我' : '助手' }}</div>
+        <div class="message-bubble" [class.sub-agent]="message.isSubAgent">
+          <div class="message-role">{{ roleLabel(message) }}</div>
           <div class="message-content">
             <span>{{ message.content }}</span>
             <span *ngIf="message.loading" class="loading-dots">…</span>

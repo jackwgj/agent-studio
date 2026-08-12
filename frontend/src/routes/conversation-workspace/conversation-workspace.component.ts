@@ -14,6 +14,12 @@ interface ChatMessage {
   content: string;
   loading?: boolean;
   error?: boolean;
+  /** 子 Agent 气泡归属（sub_execution_id，每次 handoff 唯一） */
+  subExecutionId?: string;
+  /** 子 Agent id（气泡标签用） */
+  agentId?: string;
+  /** 是否子 Agent 气泡（独立渲染，方案 B：子 Agent 只收监督者 query） */
+  isSubAgent?: boolean;
 }
 
 interface SessionItem {
@@ -122,6 +128,10 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
         this.messages = (detail?.messages ?? []).map((msg: any) => ({
           role: msg.role === 'user' ? 'user' : 'assistant',
           content: msg.content ?? '',
+          // 子 Agent 消息（t_conversation_sub_run 行）恢复为独立气泡；detail API 字段是下划线（MessageVo）
+          ...(msg.sub_execution_id
+            ? { subExecutionId: msg.sub_execution_id, agentId: msg.agent_id, isSubAgent: true }
+            : {}),
         }));
         this.cdr.markForCheck();
       });
@@ -204,31 +214,94 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
     );
   }
 
-  /** 流式消息处理（与平台 webPageChatSSE 消费端一致的事件解析） */
+  /**
+   * 流式消息处理（团队新协议）：
+   * message 增量取 data.delta（按 subExecutionId 路由主/子气泡）；sub_start 新建子 Agent 气泡、
+   * sub_done/run_done 权威完整文本收尾；tool_call 折叠展示；reasoning/user_message/usage 忽略（MVP）。
+   */
   private handleMessage(token: any, assistantMsg: ChatMessage): void {
     try {
-      const { event, content, data } = JSON.parse(token.data);
-      if (event === 'message') {
-        assistantMsg.content += content ?? data?.text ?? '';
-        assistantMsg.loading = false;
-      } else if (event === 'summary_response') {
-        if (!assistantMsg.content) {
-          assistantMsg.content += content ?? data?.answer ?? '';
+      const { event, data } = JSON.parse(token.data);
+      const d = data ?? {};
+      switch (event) {
+        case 'message': {
+          const delta = d.delta ?? '';
+          const target = d.subExecutionId
+            ? (this.findSubBubble(d.subExecutionId) ?? assistantMsg)
+            : assistantMsg;
+          if (target && delta) {
+            target.content += delta;
+            target.loading = false;
+          }
+          break;
         }
-      } else if (event === 'plugin_end') {
-        // 工具调用结果：折叠展示（内容并入正文避免丢失）
-        const toolContent = content ?? data?.content;
-        if (toolContent && typeof toolContent === 'string' && toolContent.trim()) {
-          assistantMsg.content += `\n[工具调用结果] ${toolContent}`;
+        case 'sub_start': {
+          // 新子 Agent 气泡（按 sub_execution_id 独立）
+          const sub: ChatMessage = {
+            role: 'assistant',
+            content: '',
+            loading: true,
+            subExecutionId: d.subExecutionId,
+            agentId: d.agentId,
+            isSubAgent: true,
+          };
+          this.messages.push(sub);
+          break;
         }
-      } else if (event === 'error') {
-        assistantMsg.content = assistantMsg.content || '运行出错，请稍后重试';
-        assistantMsg.error = true;
-        assistantMsg.loading = false;
+        case 'sub_done': {
+          const sub = this.findSubBubble(d.subExecutionId);
+          if (sub && d.text) {
+            sub.content = d.text; // 权威完整文本（整句）
+            sub.loading = false;
+          }
+          break;
+        }
+        case 'tool_call': {
+          // 工具调用折叠展示（附到当前上下文气泡）
+          const target = d.subExecutionId
+            ? (this.findSubBubble(d.subExecutionId) ?? assistantMsg)
+            : assistantMsg;
+          if (target && d.toolName) {
+            target.content += `\n[工具调用] ${d.toolName}`;
+          }
+          break;
+        }
+        case 'run_done': {
+          if (d.text) {
+            assistantMsg.content = d.text; // 权威完整文本（整句）
+          }
+          assistantMsg.loading = false;
+          break;
+        }
+        case 'error': {
+          assistantMsg.content = assistantMsg.content || '运行出错，请稍后重试';
+          assistantMsg.error = true;
+          assistantMsg.loading = false;
+          break;
+        }
+        default:
+          // user_message/run_start/reasoning/usage/tool_result 忽略（reasoning 可选展示，MVP 不展示）
+          break;
       }
     } catch (e) {
       // 非 JSON 数据（如 [DONE]），忽略
     }
     this.cdr.markForCheck();
+  }
+
+  /** 按 sub_execution_id 查找子 Agent 气泡 */
+  private findSubBubble(subExecutionId: string): ChatMessage | undefined {
+    return this.messages.find((m) => m.subExecutionId === subExecutionId);
+  }
+
+  /** 气泡角色标签：我 / 助手 / 子Agent·{agentId前8位} */
+  public roleLabel(message: ChatMessage): string {
+    if (message.role === 'user') {
+      return '我';
+    }
+    if (message.isSubAgent) {
+      return `子Agent${message.agentId ? '·' + message.agentId.slice(0, 8) : ''}`;
+    }
+    return '助手';
   }
 }

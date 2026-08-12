@@ -140,6 +140,17 @@
         border-radius: 8px;
         background: #f5f5f5;
 
+        &.sub-agent {
+          // 子 Agent 气泡：独立缩进 + 浅蓝底，与主助手区分
+          margin-left: 24px;
+          background: #f0f7ff;
+          border: 1px solid #d6e8ff;
+
+          .message-role {
+            color: #1677ff;
+          }
+        }
+
         .message-role {
           font-size: 11px;
           color: #999;
