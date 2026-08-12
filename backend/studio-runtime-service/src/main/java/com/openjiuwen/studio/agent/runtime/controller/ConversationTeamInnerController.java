@@ -45,7 +45,13 @@ import java.util.concurrent.TimeUnit;
  * <p>纯转发（无 IR 生成、无事件解析）：引擎按 subAgentIds 加载各子 Agent 已有 IR 动态组装监督者 + handoff 工具。
  * 子 Agent 纯无状态（方案 B）；Java 不传 systemPrompt（监督者提示词固定引擎侧）。
  * 事件原样透传 manager，由 manager 监听器按新协议分流落三表（Phase 3）。
+ *
+ * <p>⚠️ DEPRECATED（2026-08-12）：官方 dev 架构已移除独立 Java runtime 层
+ * （studio-runtime-service 不在 backend reactor，本模块已成孤儿）。manager 将改为直连引擎
+ * 31014 的 {@code /v1/conversation/team}，本转发控制器不再需要。待 manager→引擎直连链路接通
+ * 验证后删除（连同 DTO {@code ConversationTeamReq}）。</p>
  */
+@Deprecated
 @Validated
 @RestController
 @Slf4j

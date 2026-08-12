@@ -25,7 +25,7 @@ import java.util.UUID;
  * tool_call_id 关联），不做 role/content 直映。</p>
  */
 @Service
-public class ConversationHistoryService {
+public class ConversationHistoryAssembler {
 
     /**
      * 组装全量历史

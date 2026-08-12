@@ -51,22 +51,27 @@ def build_react_config(
         system_prompt: 系统提示词
         model_deployment_id: 模型部署 id（非模型名，D0-8）。由路由解析成真实模型名后调 LLM。
     """
+    # 2026-08-12 切到新模型层（dev 移除 Java runtime 模型路由 31113 → model_service 进程内解析）：
+    # client_provider="studio"（model_service 注册的 StudioModelClient），model_service_id = 部署 id
+    # （= t_model_service.ID，OBS 元数据 key）。api_base/api_key 为占位，真实连接由 resolver 在
+    # invoke 时解析；project_id/workspace_id/auth_id 由 StudioModelClient 从请求头取。
     model_client_config = ModelClientConfig(
-        client_provider="openai",
-        api_key=settings.llm.api_key,
-        api_base=settings.llm.api_base,  # MODEL_ROUTER_API -> http://127.0.0.1:31113/v1/agent-builder
+        client_provider="studio",
+        api_key="sk-placeholder",
+        api_base="https://studio-placeholder",
         timeout=settings.llm.timeout,
+        model_service_id=model_deployment_id,
     )
     model_request_config = ModelRequestConfig(
-        model_name=model_deployment_id,
+        model=model_deployment_id,
         temperature=0.7,
         top_p=1.0,
     )
     return ReActAgentConfig(
         model_name=model_deployment_id,
-        model_provider="openai",
-        api_key=settings.llm.api_key,
-        api_base=settings.llm.api_base,
+        model_provider="studio",
+        api_key="sk-placeholder",
+        api_base="https://studio-placeholder",
         max_iterations=5,
         prompt_template=[{"role": "system", "content": system_prompt}]
         if system_prompt
