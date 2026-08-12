@@ -8,14 +8,9 @@ import com.openjiuwen.studio.agent.common.dto.agent.Message;
 import com.openjiuwen.studio.agent.common.utils.OkHttpClientUtils;
 import com.openjiuwen.studio.agent.common.utils.RequestContextUtils;
 import com.openjiuwen.studio.agent.manager.constant.CommonConstant;
-import com.openjiuwen.studio.agent.manager.dto.ControllerIR;
-import com.openjiuwen.studio.agent.manager.obs.MgObsService;
-import com.openjiuwen.studio.agent.manager.service.ControllerManagementService;
 import com.openjiuwen.studio.conversation.application.dto.SendMessageCmd;
 import com.openjiuwen.studio.conversation.domain.model.Conversation;
 import com.openjiuwen.studio.conversation.domain.repository.ConversationRepository;
-
-import com.alibaba.fastjson2.JSON;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -37,7 +32,6 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -47,9 +41,6 @@ import java.util.concurrent.TimeUnit;
  * <p>团队对话（Phase 5）：直传团队参数（conversationId + subAgentIds + modelDeploymentId + conversationHistory）
  * 到 runtime 新端点 → 引擎 /v1/conversation/team。引擎按 subAgentIds 加载各子 Agent 已有 IR 动态组装监督者，
  * 不再预烘焙 IR（方案 B，F4：监督者提示词固定引擎侧，Java 不传 systemPrompt）。</p>
- *
- * <p>⚠️ 旧链遗留（待 Phase 7 清理，勿复用）：{@code ensureConversationIr} 预烘焙 ControllerIR 上传 OBS 的
- * 旧 inner 链代码保留未删（新链路实证通过后删除）。</p>
  *
  * <p>execution_id：每轮由调用方生成（X-Execution-Id 请求头），引擎事件原样携带，run/sub_run 分组精确。</p>
  */
@@ -67,28 +58,13 @@ public class AgentRuntimeAdapter {
     private static final String TEAM_AGENT_IDS =
         "d321fa88-a768-4b63-8d68-13cd743c6903,8dafdc64-2c52-40b5-9b24-49894314b763";
 
-    /** 监督者系统提示词（内置常量，POC） */
-    private static final String SYSTEM_PROMPT =
-        "你是一个智能对话助手，根据用户意图从团队中选择最合适的专业 Agent 处理任务。若无法匹配任何 Agent，直接告知用户并提供建议。";
-
-    private final ControllerManagementService controllerManagementService;
-    private final MgObsService mgObsService;
     private final ConversationRepository conversationRepository;
     private final OkHttpClientUtils okHttpClientUtils;
     private final ObjectMapper objectMapper;
 
-    /**
-     * 预烘焙 IR 缓存：key = projectId_modelDeploymentId，value = IR agentId（OBS 路径约定 agent/ir/{agentId}/{agentId}.json）
-     */
-    private final Map<String, String> conversationIrCache = new ConcurrentHashMap<>();
-
-    public AgentRuntimeAdapter(ControllerManagementService controllerManagementService,
-                               MgObsService mgObsService,
-                               ConversationRepository conversationRepository,
+    public AgentRuntimeAdapter(ConversationRepository conversationRepository,
                                OkHttpClientUtils okHttpClientUtils,
                                ObjectMapper objectMapper) {
-        this.controllerManagementService = controllerManagementService;
-        this.mgObsService = mgObsService;
         this.conversationRepository = conversationRepository;
         this.okHttpClientUtils = okHttpClientUtils;
         this.objectMapper = objectMapper;
@@ -107,7 +83,6 @@ public class AgentRuntimeAdapter {
     public SseEmitter run(Conversation conversation, SendMessageCmd cmd, List<Message> histories,
                           String executionId, HttpHeaders requestHeaders) {
         // 直传团队参数（方案 B）：引擎按 subAgentIds 加载各子 Agent 已有 IR 动态组装监督者，不再预烘焙 IR
-        //（旧 ensureConversationIr/Controller IR 生成/OBS 上传保留待 Phase 7 清理）
         String url = buildTeamUrl(conversation);
 
         Map<String, Object> body = new LinkedHashMap<>();
@@ -155,36 +130,6 @@ public class AgentRuntimeAdapter {
             builder.addHeader(key, String.join(",", value));
         });
         builder.addHeader(CommonConstant.X_AUTH_TOKEN, RequestContextUtils.getRequestAuthToken());
-    }
-
-    /**
-     * 生成/获取预烘焙模型的多 Agent IR（per (project, model) 缓存）
-     */
-    private String ensureConversationIr(String projectId, String workspaceId, String modelDeploymentId) {
-        String cacheKey = projectId + "_" + modelDeploymentId;
-        String cachedAgentId = conversationIrCache.get(cacheKey);
-        if (cachedAgentId != null) {
-            return cachedAgentId;
-        }
-
-        List<String> teamAgentIds = parseTeamAgentIds(TEAM_AGENT_IDS);
-        if (teamAgentIds.isEmpty()) {
-            throw new IllegalStateException("TEAM_AGENT_IDS is empty");
-        }
-
-        ControllerIR ir = controllerManagementService.generateConversationIr(teamAgentIds, modelDeploymentId,
-            SYSTEM_PROMPT);
-        // IR 元数据注入租户/空间，满足 inner 端点的归属校验（getAgentMetadata 读 metadata.projectId）
-        ir.getMetadata().put("projectId", projectId);
-        ir.getMetadata().put("workspaceId", workspaceId);
-        // runtime 发布态 IR 读取约定：version=null → 缓存 key = {agentId}_published → OBS 文件名 {agentId}_published.json
-        mgObsService.uploadObsFile(ir.getAgentId(), ir.getAgentId() + "_" + CommonConstant.AGENT_PUBLISHED,
-            CommonConstant.AGENT, JSON.toJSONString(ir), CommonConstant.Workflow.IR);
-
-        conversationIrCache.put(cacheKey, ir.getAgentId());
-        log.info("Conversation IR generated and uploaded: projectId={}, modelDeploymentId={}, agentId={}",
-            projectId, modelDeploymentId, ir.getAgentId());
-        return ir.getAgentId();
     }
 
     /**
