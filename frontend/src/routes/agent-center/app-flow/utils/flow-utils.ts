@@ -186,6 +186,16 @@ export const HoverPorkMarkup = [
   },
 ];
 
+const findNodeInputs = (inputs, name) => {
+  if (inputs.schema) {
+    for (let i = 0; i < inputs.schema.length; i++) {
+      if (`intermediate_loop_var.${inputs.schema[i].name}` === name) {
+        return true;
+      }
+    }
+  }
+  return false;
+};
 
 export const TargetMarker = {
   tagName: 'path',
@@ -2002,7 +2012,7 @@ export const FlowUtils = {
 
   // 判断引用参数是否存在
   handelNodeRefChange(data: any, inputs = []) {
-    const { outputsMap, memory, environment, request} = data;
+    const { outputsMap, memory, environment, request, nodesList} = data;
     if (!outputsMap) {
       return;
     } else {
@@ -2014,9 +2024,8 @@ export const FlowUtils = {
           if (ref_var_name.includes('memory.')) {
             // 对比记忆变量
             if (memory.length) {
-              let memos =
-              cloneDeep(memory);
-              let memosNames = memos.map((m) => {
+              let memos = cloneDeep(memory);
+              let memosNames = memos.map(m => {
                 return `memory.${m.name}`;
               });
               v.refWithout = !memosNames.includes(ref_var_name);
@@ -2028,7 +2037,7 @@ export const FlowUtils = {
             v.refWithout = false;
           } else if (ref_source === 'environment') {
             // 环境变量
-            v.refWithout = !environment.find(env=>{
+            v.refWithout = !environment.find(env => {
               return env.name === ref_var_name;
             });
           } else if (ref_source === 'request') {
@@ -2037,7 +2046,7 @@ export const FlowUtils = {
               const haveRef = this.checkPath(request, ref_var_name.split('.'));
               v.refWithout = !haveRef;
             } else {
-              v.refWithout = !request.find(env=>{
+              v.refWithout = !request.find(env => {
                 return env.name === ref_var_name;
               });
             }
@@ -2055,6 +2064,18 @@ export const FlowUtils = {
               }
             } else {
               v.refWithout = true;
+            }
+
+            // 引用循环节点index,中间参数
+            const nodeFind = nodesList.find(findNode => findNode.id === v.value?.content?.ref_node_id);
+            if (nodeFind && nodeFind.type === 'Loop') {
+              if (ref_var_name === 'index' && v.value?.content?.source === 'pre_defined') {
+                v.refWithout = false;
+              }
+              if (ref_var_name.startsWith('intermediate_loop_var.')) {
+                const nodeIntermediateLoop = nodeFind.inputs.find(nodeInputs => nodeInputs.name === 'intermediate_loop_var');
+                v.refWithout = !findNodeInputs(nodeIntermediateLoop, ref_var_name);
+              }
             }
           }
         } else {

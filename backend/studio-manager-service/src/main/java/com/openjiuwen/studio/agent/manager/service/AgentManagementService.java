@@ -2314,6 +2314,9 @@ public class AgentManagementService implements IAgentManagementService {
         releaseVersion.setSubType(agent.getSubType());
         releaseVersion.setCreator(RequestContextUtils.getRequestUserName());
         releaseVersion.setCreatorId(RequestContextUtils.getRequestUserId());
+        Date now = new Date(System.currentTimeMillis());
+        releaseVersion.setReleasedOn(now);
+        releaseVersion.setUpdatedOn(now);
         releaseVersionMapper.insert(releaseVersion);
 
         boolean isReviewEnabled = false;
@@ -2467,7 +2470,11 @@ public class AgentManagementService implements IAgentManagementService {
         }
         if (Objects.requireNonNull(agentType) == AgentType.CONTROLLER) {
             String controllerJson = mgObsService.downloadObsFile(releaseVersion.getDslPath());
-            return agent.convertToDto(JSONObject.parseObject(controllerJson, ControllerVO.class));
+            ControllerVO releasedController = JSONObject.parseObject(controllerJson, ControllerVO.class);
+            AgentInfo agentInfo = agent.convertToDto(releasedController);
+            agentInfo.setName(releasedController.getName());
+            agentInfo.setDescription(releasedController.getDescription());
+            return agentInfo;
         }
         String agentDslJson = mgObsService.downloadObsFile(releaseVersion.getDslPath());
         return JSON.parseObject(agentDslJson, AgentInfo.class)
@@ -3385,8 +3392,9 @@ public class AgentManagementService implements IAgentManagementService {
     }
 
     @Override
-    public ExportResourceRsp exportResource(String projectId, String workspaceId, ExportResourceParams body) {
-        return agentExportService.exportResource(projectId, workspaceId, body);
+    public ExportResourceRsp exportResource(String projectId, String workspaceId, String accept,
+        ExportResourceParams body) {
+        return agentExportService.exportResource(projectId, workspaceId, accept, body);
     }
 
     /**
@@ -3408,11 +3416,11 @@ public class AgentManagementService implements IAgentManagementService {
         resourceName = ""
     )
     public ImportRsp importAgents(String workspaceId, String projectId, MultipartFile file, String importAgents,
-        String importTools, String importWorkflows) {
+        String importTools, String importWorkflows, String mode) {
         checkImportFile(file);
         skuManageService.validateAttrEnable(CommonConstant.SKU_ATTR_CODE.EXPORT_AND_IMPORT);
         if (agentCommonService.isExportFileV2(file)) {
-            return agentImportService.importFile(projectId, RequestContextUtils.getRequestWorkspaceId(), file);
+            return agentImportService.importFile(projectId, RequestContextUtils.getRequestWorkspaceId(), file, mode);
         }
         return agentImportExportService.importAgents(projectId, file, importAgents, importTools, importWorkflows);
     }

@@ -137,9 +137,9 @@ public class AgentManagementApiController implements AgentManagementApi {
     }
 
     @Override
-    public ResponseEntity<ExportResourceRsp> exportResource(String projectId, String workspaceId,
+    public ResponseEntity<ExportResourceRsp> exportResource(String projectId, String workspaceId, String accept,
         ExportResourceParams body) {
-        return ResponseModel.success(agentManagementService.exportResource(projectId, workspaceId, body));
+        return ResponseModel.success(agentManagementService.exportResource(projectId, workspaceId, accept, body));
     }
 
     @Override
@@ -190,10 +190,10 @@ public class AgentManagementApiController implements AgentManagementApi {
 
     @Override
     public ResponseEntity<ImportRsp> importAgents(String workspaceId, String projectId, MultipartFile file,
-        String importAgents, String importTools, String importWorkflows) {
+        String importAgents, String importTools, String importWorkflows, String mode) {
         return ResponseModel.success(
             agentManagementService.importAgents(workspaceId, projectId, file, importAgents, importTools,
-                importWorkflows));
+                importWorkflows, mode));
     }
 
     @Override

@@ -2136,7 +2136,7 @@ export class AppFlowService {
     };
   }
 
-  /** 问答节点，工行定制节点 */
+  /** 问答节点，定制节点 */
   public getInitQANodeData(): IQANode {
     const id = `node_${Date.now()}`;
 
@@ -2844,6 +2844,9 @@ export class AppFlowService {
           targetCell,
           sourcePort,
         }) {
+          if (!sourceView) {
+            return false;
+          }
           const graph = sourceView.graph as Graph;
           // 禁止节点连接到自己
           if (sourceCell && targetCell && sourceCell.id === targetCell.id) {

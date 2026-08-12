@@ -16,7 +16,7 @@ RUN if [ -f /etc/apt/sources.list.d/debian.sources ]; then \
     elif [ -f /etc/apt/sources.list ]; then \
       sed -i 's|deb.debian.org|mirrors.aliyun.com|g' /etc/apt/sources.list; \
     fi \
-    && apt-get update && apt-get install -y curl tar unzip net-tools wget iptables cron libpq-dev vim procps gawk hostname sed coreutils findutils bash nginx \
+    && apt-get update && apt-get install -y curl tar unzip net-tools wget iptables cron libpq-dev vim procps gawk hostname sed coreutils findutils bash nginx antiword \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # 先复制 requirements.txt，单独安装依赖以利用 Docker 层缓存
@@ -27,9 +27,12 @@ RUN pip3 config set global.index-url https://mirrors.aliyun.com/pypi/simple/ \
     && rm -rf ${PACKAGES_HOME}/future/backports/test
 
 # 再复制应用代码（变更频率高，放在依赖安装之后）
-COPY agent_builder/ $SERVICE_HOME/app/agent_builder/
+# 注：agent_builder 已从 studio-runtime 镜像剥离，独立构建为 studio-builder 镜像
 COPY agent_runtime/ $SERVICE_HOME/app/agent_runtime/
 COPY jiuwen/ $SERVICE_HOME/app/jiuwen/
+COPY model_service/ $SERVICE_HOME/app/model_service/
+COPY storage/ $SERVICE_HOME/app/storage/
+COPY common_utils/ $SERVICE_HOME/app/common_utils/
 COPY tests/ $SERVICE_HOME/app/tests/
 COPY bin/ $SERVICE_HOME/bin/
 # Nginx load balancing configuration and scripts
