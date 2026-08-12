@@ -77,7 +77,7 @@ public class ConversationRunEntity {
     private String fileIds;
 
     /**
-     * 终止事件：message/plugin_end/error/summary_response/done
+     * 终止事件：sub_done/run_done
      */
     @JsonProperty("event")
     private String event;

@@ -2153,3 +2153,80 @@ CREATE TABLE IF NOT EXISTS `t_mapping_tool_function`
     PRIMARY KEY (`id`),
     KEY  `idx_t_mapping_tool_function_updated_on` (`updated_on`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci ROW_FORMAT=DYNAMIC COMMENT='tool和function多对多关系映射表';
+
+-- ========== conversation workspace tables ==========
+CREATE TABLE IF NOT EXISTS `t_conversation`  (
+    `conversation_id`       VARCHAR(64)   NOT NULL COMMENT '会话唯一标识（uuid，=引擎conversationId）',
+    `title`                 VARCHAR(256)  NULL     COMMENT '会话标题（历史栏展示）',
+    `project_id`            VARCHAR(64)   NOT NULL COMMENT '租户',
+    `workspace_id`          VARCHAR(64)   NULL     COMMENT '工作空间',
+    `domain_id`             VARCHAR(64)   NULL     COMMENT '租户ID',
+    `owner_domain_id`       VARCHAR(64)   NULL     COMMENT '拥有者用户域',
+    `owner_user_id`         VARCHAR(64)   NULL     COMMENT '拥有者用户',
+    `source`                VARCHAR(32)   NULL     COMMENT '来源',
+    `status`                VARCHAR(32)   NULL     COMMENT '会话状态：ACTIVE/CLOSED',
+    `creator`               VARCHAR(64)   NULL     COMMENT '创建者名',
+    `creator_id`            VARCHAR(64)   NULL     COMMENT '创建者user id',
+    `updater`               VARCHAR(64)   NULL     COMMENT '更新者名',
+    `updater_id`            VARCHAR(64)   NULL     COMMENT '更新者user id',
+    `created_on`            TIMESTAMP     NULL     DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_on`            TIMESTAMP     NULL     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `deleted`               TINYINT(1)    NOT NULL DEFAULT 0 COMMENT '逻辑删除：0-未删除，1-已删除',
+    PRIMARY KEY (`conversation_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='对话式工作台会话表';
+
+CREATE TABLE IF NOT EXISTS `t_conversation_run`  (
+    `id`                  BIGINT        NOT NULL AUTO_INCREMENT COMMENT '代理主键',
+    `execution_id`        VARCHAR(64)   NOT NULL COMMENT '业务主键（一次输入输出轮次，=引擎execution_id）',
+    `conversation_id`     VARCHAR(64)   NOT NULL COMMENT '会话ID',
+    `role`                VARCHAR(16)   NOT NULL COMMENT '消息角色：user/assistant/tool（引擎透传）',
+    `content`             TEXT          NULL     COMMENT '消息正文（user问题/assistant回答/tool结果）',
+    `tool_id`             VARCHAR(84)   NULL     COMMENT '工具标识（仅role=tool），=t_tool.tool_id',
+    `tool_args`           TEXT          NULL     COMMENT '工具调用请求参数json（仅role=tool）',
+    `file_ids`            TEXT          NULL     COMMENT '文件引用json数组',
+    `event`               VARCHAR(32)   NULL     COMMENT '终止事件：sub_done/run_done',
+    `agent_id`            VARCHAR(64)   NULL     COMMENT '主agent（溯源）',
+    `model_deployment_id` VARCHAR(80)   NULL     COMMENT '模型部署id，=t_model_service.ID',
+    `total_tokens`        VARCHAR(64)   NULL     COMMENT '对齐ModelApiLog',
+    `prompt_tokens`       VARCHAR(64)   NULL,
+    `completion_tokens`   VARCHAR(64)   NULL,
+    `project_id`          VARCHAR(64)   NOT NULL COMMENT '租户',
+    `workspace_id`        VARCHAR(64)   NULL,
+    `domain_id`           VARCHAR(64)   NULL,
+    `creator`             VARCHAR(64)   NULL,
+    `creator_id`          VARCHAR(64)   NULL,
+    `updater`             VARCHAR(64)   NULL,
+    `updater_id`          VARCHAR(64)   NULL,
+    `created_on`          TIMESTAMP     NULL     DEFAULT CURRENT_TIMESTAMP,
+    `updated_on`          TIMESTAMP     NULL     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `deleted`             TINYINT(1)    NOT NULL DEFAULT 0,
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='对话式工作台主agent消息表';
+
+CREATE TABLE IF NOT EXISTS `t_conversation_sub_run`  (
+    `id`                  BIGINT        NOT NULL AUTO_INCREMENT COMMENT '代理主键',
+    `sub_execution_id`    VARCHAR(64)   NOT NULL COMMENT '业务分组键（一次任务指派）',
+    `execution_id`        VARCHAR(64)   NOT NULL COMMENT '所属主轮次execution_id',
+    `conversation_id`     VARCHAR(64)   NOT NULL COMMENT '会话ID',
+    `agent_id`            VARCHAR(64)   NULL     COMMENT '被调用的子agent',
+    `role`                VARCHAR(16)   NOT NULL COMMENT 'assistant/tool',
+    `content`             TEXT          NULL,
+    `tool_id`             VARCHAR(84)   NULL     COMMENT '仅role=tool',
+    `tool_args`           TEXT          NULL     COMMENT '仅role=tool',
+    `file_ids`            TEXT          NULL,
+    `event`               VARCHAR(32)   NULL,
+    `total_tokens`        VARCHAR(64)   NULL,
+    `prompt_tokens`       VARCHAR(64)   NULL,
+    `completion_tokens`   VARCHAR(64)   NULL,
+    `project_id`          VARCHAR(64)   NOT NULL,
+    `workspace_id`        VARCHAR(64)   NULL,
+    `domain_id`           VARCHAR(64)   NULL,
+    `creator`             VARCHAR(64)   NULL,
+    `creator_id`          VARCHAR(64)   NULL,
+    `updater`             VARCHAR(64)   NULL,
+    `updater_id`          VARCHAR(64)   NULL,
+    `created_on`          TIMESTAMP     NULL     DEFAULT CURRENT_TIMESTAMP,
+    `updated_on`          TIMESTAMP     NULL     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `deleted`             TINYINT(1)    NOT NULL DEFAULT 0,
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='对话式工作台子agent消息表';

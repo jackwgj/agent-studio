@@ -56,7 +56,7 @@ public class ConversationMessage {
     private TokenUsage tokenUsage;
 
     /**
-     * 终止事件：message/plugin_end/error/summary_response/done
+     * 终止事件：sub_done/run_done
      */
     private String event;
 

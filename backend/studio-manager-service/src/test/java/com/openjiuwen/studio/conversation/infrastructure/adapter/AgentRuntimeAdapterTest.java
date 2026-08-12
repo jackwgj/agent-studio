@@ -4,8 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.openjiuwen.studio.agent.common.dto.agent.Message;
 import com.openjiuwen.studio.agent.common.utils.OkHttpClientUtils;
 import com.openjiuwen.studio.agent.common.utils.RequestContextUtils;
-import com.openjiuwen.studio.agent.manager.obs.MgObsService;
-import com.openjiuwen.studio.agent.manager.service.ControllerManagementService;
 import com.openjiuwen.studio.conversation.application.dto.SendMessageCmd;
 import com.openjiuwen.studio.conversation.domain.model.Conversation;
 import com.openjiuwen.studio.conversation.domain.repository.ConversationRepository;
@@ -22,7 +20,6 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 /**
@@ -34,20 +31,15 @@ import static org.mockito.Mockito.*;
  */
 class AgentRuntimeAdapterTest {
 
-    private ControllerManagementService controllerManagementService;
-    private MgObsService mgObsService;
     private ConversationRepository conversationRepository;
     private OkHttpClientUtils okHttpClientUtils;
     private AgentRuntimeAdapter adapter;
 
     @BeforeEach
     void setUp() {
-        controllerManagementService = mock(ControllerManagementService.class);
-        mgObsService = mock(MgObsService.class);
         conversationRepository = mock(ConversationRepository.class);
         okHttpClientUtils = mock(OkHttpClientUtils.class);
-        adapter = new AgentRuntimeAdapter(controllerManagementService, mgObsService,
-                conversationRepository, okHttpClientUtils, new ObjectMapper());
+        adapter = new AgentRuntimeAdapter(conversationRepository, okHttpClientUtils, new ObjectMapper());
         // @Value 字段在裸 new 下为 null，必须手工注入（Spring 只在 bean 创建时解析）。
         // 忠实模拟生产：${agent_runtime_endpoint:} → 空字符串，URL 无协议头 → OkHttp 抛 IllegalArgumentException
         ReflectionTestUtils.setField(adapter, "runtimeEndpoint", "");
@@ -83,24 +75,6 @@ class AgentRuntimeAdapterTest {
 
         assertThrows(IllegalArgumentException.class,
                 () -> adapter.run(conv, cmd, List.of(), "exec-1", new HttpHeaders()));
-    }
-
-    /**
-     * 不再预烘焙 IR（Phase 5）：run() 直传团队参数，ensureConversationIr/generateConversationIr/OBS 上传均不触发。
-     */
-    @Test
-    void testRun_DoesNotGenerateIr() {
-        Conversation conv = Conversation.builder()
-                .conversationId("c1").projectId("p1").workspaceId("w1").build();
-        SendMessageCmd cmd = new SendMessageCmd();
-        cmd.setQuery("hi");
-        cmd.setModelDeploymentId("m1");
-
-        assertThrows(IllegalArgumentException.class,
-                () -> adapter.run(conv, cmd, List.of(), "exec-1", new HttpHeaders()));
-
-        verify(controllerManagementService, never()).generateConversationIr(anyList(), anyString(), anyString());
-        verify(mgObsService, never()).uploadObsFile(any(), any(), any(), any(), any());
     }
 
     /**
