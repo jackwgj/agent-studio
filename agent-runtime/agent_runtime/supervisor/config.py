@@ -3,12 +3,12 @@
 
 ⚠️ 语义标注（避免后续误解）：
 - 本模块的入参叫 `model_deployment_id`（部署 id），不是模型名。这是 D0-8 实证结论：
-  路由(MODEL_ROUTER_API=31113) 接受"部署 id"并解析成真实模型名后调 LLM；传模型名（如
+  模型层接受"部署 id"并解析成真实模型名后调 LLM；传模型名（如
   `deepseek-v4-flash`）反而报"模型策略信息为空"。
 - openjiuwen 原生 `ReActAgentConfig.model_name` / `ModelRequestConfig.model_name` 是 SDK 对
-  "发给 LLM 接口的 model 字符串"的通用命名（直接连 LLM 时它确实是模型名）。在我们的路由
-  架构里，这个字段装的是**部署 id**，由路由解析。因此我们自己的入参语义用
-  `model_deployment_id`，与 SDK 的 `model_name` 字段名不同属正常。
+  "发给 LLM 接口的 model 字符串"的通用命名（直接连 LLM 时它确实是模型名）。在我们的架构里，
+  这个字段装的是**部署 id**，由模型层（client_provider="studio"，model_service 进程内解析）
+  解析。因此我们自己的入参语义用 `model_deployment_id`，与 SDK 的 `model_name` 字段名不同属正常。
 """
 
 from openjiuwen.core.foundation.llm import ModelClientConfig, ModelRequestConfig
@@ -45,7 +45,7 @@ def format_conversation_history(history: list | None) -> str:
 def build_react_config(
     system_prompt: str, model_deployment_id: str
 ) -> ReActAgentConfig:
-    """构建 ReActAgentConfig（复用新路模型配置：MODEL_ROUTER_API）。
+    """构建 ReActAgentConfig（client_provider="studio" + model_service_id，进程内解析部署 id）。
 
     Args:
         system_prompt: 系统提示词
