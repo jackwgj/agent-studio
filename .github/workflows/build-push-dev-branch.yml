@@ -237,9 +237,12 @@ jobs:
         if: matrix.service != 'grafana-victorialogs'
         run: |
           set -euo pipefail
-          docker buildx imagetools create \
-            -t crpi-9xxwrjouu0rzxh5c.cn-hangzhou.personal.cr.aliyuncs.com/agent_studio/${{ matrix.service }}:latest \
-            ${{ steps.image_config.outputs.ghcr_repository }}/${{ matrix.service }}:latest
+          SRC="${{ steps.image_config.outputs.ghcr_repository }}/${{ matrix.service }}:latest"
+          DST="crpi-9xxwrjouu0rzxh5c.cn-hangzhou.personal.cr.aliyuncs.com/agent_studio/${{ matrix.service }}:latest"
+          # 个人版 ACR 不支持多架构 manifest（imagetools create 会 403），改为拉 amd64 单架构再推
+          docker pull --platform linux/amd64 "${SRC}"
+          docker tag "${SRC}" "${DST}"
+          docker push "${DST}"
 
       - name: Create architecture tags on GHCR
         if: matrix.service != 'grafana-victorialogs'
