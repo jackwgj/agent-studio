@@ -194,6 +194,185 @@ describe('ConversationWorkspaceComponent', () => {
     expect((component as any).activatedSkills).toEqual([]);
     expect(service.listSkills.calls.count()).toBeGreaterThan(1);
   });
+
+  it('草稿创建请求占用发送权，双 send 只创建一个会话并禁用选择器', () => {
+    const creation = deferred<SessionItem>();
+    service.createSession.and.returnValue(creation.promise);
+    component.currentSession = { conversation_id: '', title: '草稿', status: 'ACTIVE' };
+    component.inputText = '整理会议';
+
+    component.send();
+    component.send();
+    fixture.detectChanges();
+
+    expect(service.createSession).toHaveBeenCalledTimes(1);
+    expect(fixture.nativeElement.querySelector('.skill-input').disabled).toBeTrue();
+    expect(fixture.nativeElement.querySelector('.send-btn').disabled).toBeTrue();
+  });
+
+  it('草稿创建期间的后续编辑不会被该 attempt 的 open 清除', async () => {
+    const creation = deferred<SessionItem>();
+    service.createSession.and.returnValue(creation.promise);
+    component.currentSession = { conversation_id: '', title: '草稿', status: 'ACTIVE' };
+    component.inputText = '第一轮';
+
+    component.send();
+    component.inputText = '下一轮草稿';
+    (component as any).recommendedSkills = [skill('s2')];
+    creation.resolve(session('created-1'));
+    await Promise.resolve();
+    const callbacks = service.chatSSE.calls.mostRecent().args[2];
+    callbacks.onOpen();
+
+    expect(component.inputText).toBe('下一轮草稿');
+    expect((component as any).recommendedSkills.map((item: ConversationSkillItem) => item.skillId)).toEqual(['s2']);
+  });
+
+  it('草稿创建失败释放发送权并保留原输入与推荐', async () => {
+    const creation = deferred<SessionItem>();
+    service.createSession.and.returnValue(creation.promise);
+    component.currentSession = { conversation_id: '', title: '草稿', status: 'ACTIVE' };
+    component.inputText = '整理会议';
+    (component as any).recommendedSkills = [skill('s1')];
+
+    component.send();
+    creation.reject(new Error('create failed'));
+    await Promise.resolve();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(component.streaming).toBeFalse();
+    expect(fixture.nativeElement.querySelector('.skill-input').disabled).toBeFalse();
+    expect(component.inputText).toBe('整理会议');
+    expect((component as any).recommendedSkills.map((item: ConversationSkillItem) => item.skillId)).toEqual(['s1']);
+    expect(service.chatSSE).not.toHaveBeenCalled();
+  });
+
+  it('草稿创建完成前切换会话会使过期结果不能启动流或改当前会话', async () => {
+    const creation = deferred<SessionItem>();
+    service.createSession.and.returnValue(creation.promise);
+    component.currentSession = { conversation_id: '', title: '草稿', status: 'ACTIVE' };
+    component.inputText = '整理会议';
+
+    component.send();
+    service.activeSession$.next(session('c2'));
+    creation.resolve(session('created-1'));
+    await Promise.resolve();
+
+    expect(component.currentSession?.conversation_id).toBe('c2');
+    expect(service.chatSSE).not.toHaveBeenCalled();
+    expect(service.setActiveSession).not.toHaveBeenCalledWith(session('created-1'));
+  });
+
+  it('timeout 后重试时关闭旧 source，旧回调不会改写新 attempt', () => {
+    const firstSource = { close: jasmine.createSpy('firstClose') };
+    const secondSource = { close: jasmine.createSpy('secondClose') };
+    service.chatSSE.and.returnValues(firstSource, secondSource);
+    component.currentSession = session('c1');
+    component.inputText = '第一轮';
+
+    component.send();
+    const firstCallbacks = service.chatSSE.calls.mostRecent().args[2];
+    firstCallbacks.onTimeout();
+    component.inputText = '第二轮';
+    component.send();
+    const secondCallbacks = service.chatSSE.calls.mostRecent().args[2];
+    firstCallbacks.onOpen();
+    firstCallbacks.onMessage({ data: JSON.stringify({ event: 'skill_activated', data: { skillId: 'old', name: '旧技能', versionId: 'v1' } }) });
+    firstCallbacks.onDone();
+
+    expect(firstSource.close).toHaveBeenCalledTimes(1);
+    expect(component.streaming).toBeTrue();
+    expect(component.inputText).toBe('第二轮');
+    expect((component as any).activatedSkills).toEqual([]);
+    secondCallbacks.onOpen();
+  });
+
+  it('同一 source 的 error 与 done 只收口一次', () => {
+    const source = { close: jasmine.createSpy('close') };
+    service.chatSSE.and.returnValue(source);
+    component.currentSession = session('c1');
+    component.inputText = '整理会议';
+
+    component.send();
+    const callbacks = service.chatSSE.calls.mostRecent().args[2];
+    callbacks.onError();
+    callbacks.onDone();
+
+    expect(source.close).toHaveBeenCalledTimes(1);
+    expect(service.refreshSessions).not.toHaveBeenCalled();
+  });
+
+  it('abort 终态关闭当前 source 并释放发送权', () => {
+    const source = { close: jasmine.createSpy('close') };
+    service.chatSSE.and.returnValue(source);
+    component.currentSession = session('c1');
+    component.inputText = '整理会议';
+
+    component.send();
+    service.chatSSE.calls.mostRecent().args[2].onAbort();
+
+    expect(source.close).toHaveBeenCalledTimes(1);
+    expect(component.isSending).toBeFalse();
+  });
+
+  it('流中会话切换先取消旧 attempt，再清空 Skill 状态且忽略旧事件', () => {
+    const source = { close: jasmine.createSpy('close') };
+    service.chatSSE.and.returnValue(source);
+    component.currentSession = session('c1');
+    component.inputText = '整理会议';
+    (component as any).recommendedSkills = [skill('s1')];
+    component.send();
+    const callbacks = service.chatSSE.calls.mostRecent().args[2];
+
+    service.activeSession$.next({ conversation_id: '', title: '新草稿', status: 'ACTIVE' });
+    callbacks.onMessage({ data: JSON.stringify({ event: 'skill_activated', data: { skillId: 'old', name: '旧技能', versionId: 'v1' } }) });
+
+    expect(source.close).toHaveBeenCalledTimes(1);
+    expect(component.streaming).toBeFalse();
+    expect((component as any).recommendedSkills).toEqual([]);
+    expect((component as any).activatedSkills).toEqual([]);
+  });
+
+  it('目录仅接受当前工作空间最新请求，且 refresh 失败不清空已恢复推荐', async () => {
+    await Promise.resolve();
+    const catalogA = deferred<ConversationSkillItem[]>();
+    const catalogB = deferred<ConversationSkillItem[]>();
+    service.listSkills.and.returnValues(catalogA.promise, catalogB.promise);
+    (component as any).loadSkillCatalog();
+    http.workspaceId = 'workspace-2';
+    window.dispatchEvent(new Event('WorkspaceChange'));
+    catalogB.resolve([skill('b')]);
+    await Promise.resolve();
+    catalogA.resolve([skill('a')]);
+    await Promise.resolve();
+
+    expect(component.skillCatalog.map((item) => item.skillId)).toEqual(['b']);
+    (component as any).recommendedSkills = [skill('b')];
+    const refresh = deferred<ConversationSkillItem[]>();
+    service.listSkills.and.returnValue(refresh.promise);
+    component.currentSession = session('c2');
+    component.inputText = '整理会议';
+    component.send();
+    service.chatSSE.calls.mostRecent().args[2].onError();
+    refresh.reject(new Error('refresh failed'));
+    await Promise.resolve();
+
+    expect((component as any).recommendedSkills.map((item: ConversationSkillItem) => item.skillId)).toEqual(['b']);
+    expect(component.skillCatalog.map((item) => item.skillId)).toEqual(['b']);
+  });
+
+  it('同 workspace 的外部 WorkspaceChange 噪声不清理本轮状态', () => {
+    (component as any).recommendedSkills = [skill('s1')];
+    (component as any).activatedSkills = [{ skillId: 's1', name: '会议纪要', versionId: 'v1' }];
+    const callsBefore = service.listSkills.calls.count();
+
+    window.dispatchEvent(new Event('WorkspaceChange'));
+
+    expect((component as any).recommendedSkills.map((item: ConversationSkillItem) => item.skillId)).toEqual(['s1']);
+    expect((component as any).activatedSkills).toEqual([{ skillId: 's1', name: '会议纪要', versionId: 'v1' }]);
+    expect(service.listSkills.calls.count()).toBe(callsBefore);
+  });
 });
 
 describe('ConversationWorkspaceService', () => {
@@ -266,4 +445,10 @@ function createWorkspaceService(http: any): ConversationWorkspaceService {
     { baseUrl: '/v1/project', projectId: 'project' } as any,
     { getConfigs: () => ({}) } as any,
   );
+}
+
+function deferred<T>(): { promise: Promise<T>; resolve: (value: T) => void; reject: (reason: unknown) => void } {
+  let resolve!: (value: T) => void;
+  let reject!: (reason: unknown) => void;
+  return { promise: new Promise<T>((resolvePromise, rejectPromise) => { resolve = resolvePromise; reject = rejectPromise; }), resolve, reject };
 }

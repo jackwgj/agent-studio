@@ -34,6 +34,21 @@ interface ActivatedSkill {
   versionId: string;
 }
 
+interface ConversationAttempt {
+  id: number;
+  workspaceId: string;
+  initialSessionId: string;
+  conversationId?: string;
+  query: string;
+  inputSnapshot: string;
+  recommendationSnapshot: ConversationSkillItem[];
+  phase: 'creating' | 'running';
+  opened: boolean;
+  settled: boolean;
+  source?: { close?: () => void };
+  assistantMsg?: ChatMessage;
+}
+
 @Component({
   selector: 'app-conversation-workspace',
   templateUrl: './conversation-workspace.component.html',
@@ -54,10 +69,12 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
   recommendedSkills: ConversationSkillItem[] = [];
   activatedSkills: ActivatedSkill[] = [];
   @ViewChild(SkillSelectorComponent) private skillSelector?: SkillSelectorComponent;
-  private sseInstance: any = null;
   private modelAbortController: AbortController | null = null;
   private subscriptions = new Subscription();
   private workspaceId = '';
+  private catalogRequestId = 0;
+  private nextAttemptId = 0;
+  private activeAttempt: ConversationAttempt | null = null;
   private readonly workspaceChangeHandler = () => this.handleWorkspaceChange();
 
   constructor(
@@ -78,23 +95,33 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
   }
 
   /** Skill 目录失败不影响普通对话。 */
-  private loadSkillCatalog(): void {
+  private loadSkillCatalog(preserveCatalogOnFailure = false): void {
+    const requestWorkspaceId = this.workspaceId;
+    const requestId = ++this.catalogRequestId;
     this.conversationWorkspaceService
       .listSkills()
       .then((skills) => {
+        if (!this.isCurrentCatalogRequest(requestWorkspaceId, requestId)) {
+          return;
+        }
         this.skillCatalog = skills;
         this.skillCatalogUnavailable = false;
         this.cdr.markForCheck();
       })
       .catch(() => {
-        this.skillCatalog = [];
+        if (!this.isCurrentCatalogRequest(requestWorkspaceId, requestId)) {
+          return;
+        }
+        if (!preserveCatalogOnFailure) {
+          this.skillCatalog = [];
+        }
         this.skillCatalogUnavailable = true;
         this.cdr.markForCheck();
       });
   }
 
   ngOnDestroy(): void {
-    this.sseInstance?.close?.();
+    this.cancelActiveAttempt();
     this.modelAbortController?.abort();
     this.subscriptions.unsubscribe();
     window.removeEventListener('WorkspaceChange', this.workspaceChangeHandler);
@@ -150,8 +177,9 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
   private subscribeToActiveSession(): void {
     this.subscriptions.add(
       this.conversationWorkspaceService.activeSession$.subscribe((session) => {
-        this.syncWorkspaceFromActiveSession();
-        if (!this.streaming) {
+        this.transitionWorkspace(this.http.getWorkspaceId());
+        if (!this.isDraftPromotion(session)) {
+          this.cancelActiveAttempt();
           this.clearSkillRoundState();
         }
         this.currentSession = session;
@@ -182,9 +210,6 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
 
   /** 打开会话（列表命中直接用；深链则先占位、详情加载后补标题） */
   private openConversation(id: string): void {
-    if (this.streaming) {
-      return;
-    }
     const existing = this.conversationWorkspaceService.sessions$.value.find(
       (s) => s.conversation_id === id,
     );
@@ -198,21 +223,32 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
     const inputSnapshot = this.inputText;
     const query = inputSnapshot.trim();
     const recommendationSnapshot = [...this.recommendedSkills];
-    if (!query || this.streaming || !this.selectedModel) {
+    if (!query || this.isSending || !this.selectedModel) {
       return;
     }
+    const attempt = this.createAttempt(query, inputSnapshot, recommendationSnapshot);
     if (!this.currentSession?.conversation_id) {
       this.conversationWorkspaceService
         .createSession({ title: this.currentSession?.title ?? '' })
         .then((session) => {
+          if (!this.isCurrentAttempt(attempt) || attempt.phase !== 'creating') {
+            return;
+          }
+          attempt.conversationId = session.conversation_id;
           this.currentSession = session;
-          this.doRun(query, inputSnapshot, recommendationSnapshot);
           this.conversationWorkspaceService.setActiveSession(session);
           this.conversationWorkspaceService.refreshSessions();
+          this.startRun(attempt, session.conversation_id);
+        })
+        .catch(() => {
+          if (this.isCurrentAttempt(attempt) && attempt.phase === 'creating') {
+            this.releaseAttempt(attempt);
+          }
         });
       return;
     }
-    this.doRun(query, inputSnapshot, recommendationSnapshot);
+    attempt.conversationId = this.currentSession.conversation_id;
+    this.startRun(attempt, attempt.conversationId);
   }
 
   /** Enter 发送（Shift+Enter 换行） */
@@ -224,64 +260,107 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
     this.send();
   }
 
-  private doRun(
+  public get isSending(): boolean {
+    return Boolean(this.activeAttempt && !this.activeAttempt.settled);
+  }
+
+  private createAttempt(
     query: string,
     inputSnapshot: string,
     recommendationSnapshot: ConversationSkillItem[],
-  ): void {
+  ): ConversationAttempt {
+    const attempt: ConversationAttempt = {
+      id: ++this.nextAttemptId,
+      workspaceId: this.workspaceId,
+      initialSessionId: this.currentSession?.conversation_id ?? '',
+      query,
+      inputSnapshot,
+      recommendationSnapshot,
+      phase: this.currentSession?.conversation_id ? 'running' : 'creating',
+      opened: false,
+      settled: false,
+    };
+    this.activeAttempt = attempt;
+    this.cdr.markForCheck();
+    return attempt;
+  }
+
+  private startRun(attempt: ConversationAttempt, conversationId: string): void {
+    if (!this.isCurrentAttempt(attempt)) {
+      return;
+    }
+    attempt.phase = 'running';
+    attempt.conversationId = conversationId;
     this.activatedSkills = [];
-    this.messages.push({ role: 'user', content: query });
+    this.messages.push({ role: 'user', content: attempt.query });
     const assistantMsg: ChatMessage = { role: 'assistant', content: '', loading: true };
+    attempt.assistantMsg = assistantMsg;
     this.messages.push(assistantMsg);
     this.streaming = true;
-    let streamOpened = false;
     this.cdr.markForCheck();
 
-    this.sseInstance = this.conversationWorkspaceService.chatSSE(
-      this.currentSession!.conversation_id,
+    const source = this.conversationWorkspaceService.chatSSE(
+      conversationId,
       {
-        query,
+        query: attempt.query,
         model_deployment_id: this.selectedModel,
-        recommended_skill_ids: recommendationSnapshot.map((item) => item.skillId),
+        recommended_skill_ids: attempt.recommendationSnapshot.map((item) => item.skillId),
       } as ConversationSendRequest,
       {
         onOpen: () => {
-          streamOpened = true;
-          this.inputText = '';
-          this.recommendedSkills = [];
-          this.skillSelector?.clearRecommendations();
+          if (!this.isCurrentAttempt(attempt)) {
+            return;
+          }
+          attempt.opened = true;
+          if (this.inputText === attempt.inputSnapshot && this.sameSkills(this.recommendedSkills, attempt.recommendationSnapshot)) {
+            this.inputText = '';
+            this.recommendedSkills = [];
+            this.skillSelector?.clearRecommendations();
+          }
           this.cdr.markForCheck();
         },
-        onMessage: (token: any) => this.handleMessage(token, assistantMsg),
+        onMessage: (token: any) => {
+          if (this.isCurrentAttempt(attempt)) {
+            this.handleMessage(token, assistantMsg);
+          }
+        },
         onDone: () => {
-          assistantMsg.loading = false;
-          this.streaming = false;
-          this.conversationWorkspaceService.refreshSessions();
-          this.cdr.markForCheck();
+          this.settleRun(attempt, 'done');
         },
         onError: () => {
-          this.handleRunFailure(assistantMsg, streamOpened, inputSnapshot, recommendationSnapshot);
+          this.settleRun(attempt, 'failed');
         },
         onTimeout: () => {
-          this.handleRunFailure(assistantMsg, streamOpened, inputSnapshot, recommendationSnapshot);
+          this.settleRun(attempt, 'failed');
+        },
+        onAbort: () => {
+          this.settleRun(attempt, 'failed');
         },
       },
     );
+    if (!this.isCurrentAttempt(attempt)) {
+      source?.close?.();
+      return;
+    }
+    attempt.source = source;
   }
 
-  private handleRunFailure(
-    assistantMsg: ChatMessage,
-    streamOpened: boolean,
-    inputSnapshot: string,
-    recommendationSnapshot: ConversationSkillItem[],
-  ): void {
-    assistantMsg.loading = false;
-    assistantMsg.error = true;
+  private settleRun(attempt: ConversationAttempt, outcome: 'done' | 'failed'): void {
+    if (!this.isCurrentAttempt(attempt)) {
+      return;
+    }
+    attempt.settled = true;
+    attempt.source?.close?.();
+    if (attempt.assistantMsg) {
+      attempt.assistantMsg.loading = false;
+      attempt.assistantMsg.error = outcome === 'failed';
+    }
+    this.activeAttempt = null;
     this.streaming = false;
-    if (!streamOpened) {
-      this.inputText = inputSnapshot;
-      this.recommendedSkills = recommendationSnapshot;
-      this.loadSkillCatalog();
+    if (outcome === 'done') {
+      this.conversationWorkspaceService.refreshSessions();
+    } else if (!attempt.opened) {
+      this.loadSkillCatalog(true);
     }
     this.cdr.markForCheck();
   }
@@ -379,20 +458,70 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
   }
 
   private handleWorkspaceChange(): void {
-    this.workspaceId = this.http.getWorkspaceId();
+    this.transitionWorkspace(this.http.getWorkspaceId());
+  }
+
+  private transitionWorkspace(nextWorkspaceId: string): void {
+    if (nextWorkspaceId === this.workspaceId) {
+      return;
+    }
+    this.cancelActiveAttempt();
+    this.workspaceId = nextWorkspaceId;
+    this.skillCatalog = [];
     this.clearSkillRoundState();
     this.loadSkillCatalog();
     this.cdr.markForCheck();
   }
 
-  private syncWorkspaceFromActiveSession(): void {
-    const workspaceId = this.http.getWorkspaceId();
-    if (workspaceId === this.workspaceId) {
+  private isCurrentCatalogRequest(workspaceId: string, requestId: number): boolean {
+    return workspaceId === this.workspaceId && requestId === this.catalogRequestId;
+  }
+
+  private isDraftPromotion(session: SessionItem | null): boolean {
+    const attempt = this.activeAttempt;
+    return Boolean(
+      attempt &&
+      !attempt.settled &&
+      attempt.phase === 'creating' &&
+      attempt.conversationId &&
+      session?.conversation_id === attempt.conversationId &&
+      attempt.workspaceId === this.workspaceId,
+    );
+  }
+
+  private isCurrentAttempt(attempt: ConversationAttempt): boolean {
+    if (this.activeAttempt !== attempt || attempt.settled || attempt.workspaceId !== this.workspaceId) {
+      return false;
+    }
+    const expectedSessionId = attempt.conversationId ?? attempt.initialSessionId;
+    return (this.currentSession?.conversation_id ?? '') === expectedSessionId;
+  }
+
+  private cancelActiveAttempt(): void {
+    const attempt = this.activeAttempt;
+    if (!attempt || attempt.settled) {
       return;
     }
-    this.workspaceId = workspaceId;
-    this.clearSkillRoundState();
-    this.loadSkillCatalog();
+    attempt.settled = true;
+    attempt.source?.close?.();
+    if (attempt.assistantMsg) {
+      attempt.assistantMsg.loading = false;
+    }
+    this.activeAttempt = null;
+    this.streaming = false;
+  }
+
+  private releaseAttempt(attempt: ConversationAttempt): void {
+    attempt.settled = true;
+    if (this.activeAttempt === attempt) {
+      this.activeAttempt = null;
+      this.streaming = false;
+    }
+    this.cdr.markForCheck();
+  }
+
+  private sameSkills(left: ConversationSkillItem[], right: ConversationSkillItem[]): boolean {
+    return left.length === right.length && left.every((item, index) => item.skillId === right[index].skillId);
   }
 
   /** 气泡角色标签：我 / 助手 / 子Agent·{agentId前8位} */
