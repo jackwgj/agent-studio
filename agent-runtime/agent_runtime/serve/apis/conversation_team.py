@@ -22,10 +22,21 @@ from agent_runtime.supervisor.builder import build_supervisor
 from agent_runtime.supervisor.common.constants import TeamEventField
 from agent_runtime.supervisor.event.adapt import build_error, build_run_start, build_user_message, sse_line
 from agent_runtime.supervisor.runner import run_supervisor
+from agent_runtime.supervisor.skill_model import SkillDescriptor
 
 team_router = APIRouter(tags=["conversation-team"])
 
 logger = logging.getLogger(__name__)
+
+
+class SkillCatalogItemReq(BaseModel):
+    """Manager 在对话请求中下发的受信任 Skill 描述。"""
+
+    skill_id: str = Field(alias="skillId")
+    version_id: str = Field(alias="versionId")
+    name: str
+    description: str
+    object_key: str = Field(alias="objectKey")
 
 
 class ConversationTeamReq(BaseModel):
@@ -38,6 +49,8 @@ class ConversationTeamReq(BaseModel):
     model_deployment_id: str = Field(alias="modelDeploymentId")
     # 多轮历史（list[{role, content}]）：仅注入监督者上下文（方案 B），子 Agent 不感知（D0-3/用户决策 2026-08-11）
     conversation_history: list | None = Field(None, alias="conversationHistory")
+    skill_catalog: list[SkillCatalogItemReq] = Field(default_factory=list, alias="skillCatalog")
+    recommended_skill_ids: list[str] = Field(default_factory=list, alias="recommendedSkillIds")
 
 
 async def team_sse_stream(req: ConversationTeamReq, execution_id: str | None = None):
@@ -55,10 +68,31 @@ async def team_sse_stream(req: ConversationTeamReq, execution_id: str | None = N
     index += 1
 
     try:
+        skill_catalog = [
+            SkillDescriptor(
+                skill_id=item.skill_id,
+                version_id=item.version_id,
+                name=item.name,
+                description=item.description,
+                object_key=item.object_key,
+            )
+            for item in req.skill_catalog
+        ]
+        catalog_ids = {skill.skill_id for skill in skill_catalog}
+        unknown_recommended_ids = [
+            skill_id for skill_id in req.recommended_skill_ids if skill_id not in catalog_ids
+        ]
+        if unknown_recommended_ids:
+            raise ValueError(
+                "recommended skill IDs are not present in the catalog: "
+                + ", ".join(unknown_recommended_ids)
+            )
         agent = await build_supervisor(
             sub_agent_ids=req.sub_agent_ids,
             model_deployment_id=req.model_deployment_id,
             conversation_history=req.conversation_history,
+            skill_catalog=skill_catalog,
+            recommended_skill_ids=req.recommended_skill_ids,
         )
     except Exception as e:
         logger.error(f"conversation/team build_supervisor failed: {e}", exc_info=True)

@@ -15,6 +15,8 @@ from openjiuwen.core.single_agent.agents.react_agent import ReActAgent
 from openjiuwen.core.single_agent.schema.agent_card import AgentCard
 
 from agent_runtime.supervisor.config import build_react_config, format_conversation_history
+from agent_runtime.supervisor.skill_context import attach as attach_skill_context
+from agent_runtime.supervisor.skill_model import SkillDescriptor
 from agent_runtime.supervisor.tool.handoff_tool import HandoffTool
 from jiuwen.serve.controllers.execution.open_utils import async_ir_load
 
@@ -50,6 +52,8 @@ async def build_supervisor(
     sub_agent_ids: list,
     model_deployment_id: str,
     conversation_history: list | None = None,
+    skill_catalog: list[SkillDescriptor] | None = None,
+    recommended_skill_ids: list[str] | None = None,
 ) -> ReActAgent:
     """按 sub_agent_ids 动态构建 N 个 handoff 工具，组装监督者 ReActAgent。
 
@@ -57,10 +61,24 @@ async def build_supervisor(
         sub_agent_ids: 子 Agent IDs（已注册 Agent）
         model_deployment_id: 监督者模型部署 id（非模型名；路由解析成真实模型名，D0-8）
         conversation_history: 多轮历史 list[{role, content}]，仅注入监督者上下文（方案 B），子 Agent 不感知
+        skill_catalog: Manager 下发的本轮工作空间 Skill 目录
+        recommended_skill_ids: 目录内的推荐 Skill ID
 
     Returns:
         已配置并注册工具的监督者 ReActAgent
     """
+    skill_catalog = skill_catalog or []
+    recommended_skill_ids = recommended_skill_ids or []
+    catalog_ids = {skill.skill_id for skill in skill_catalog}
+    unknown_recommended_ids = [
+        skill_id for skill_id in recommended_skill_ids if skill_id not in catalog_ids
+    ]
+    if unknown_recommended_ids:
+        raise ValueError(
+            "recommended skill IDs are not present in the catalog: "
+            + ", ".join(unknown_recommended_ids)
+        )
+
     tools = []
     for agent_id in sub_agent_ids:
         description = await _load_sub_agent_description(agent_id)
@@ -82,6 +100,7 @@ async def build_supervisor(
         )
     )
     agent.configure(build_react_config(system_prompt, model_deployment_id))
+    await attach_skill_context(agent, skill_catalog, recommended_skill_ids)
 
     # 注册工具：公开 API + 幂等（swarm 模板），不再直插私有 _tools 字段
     for tool in tools:
