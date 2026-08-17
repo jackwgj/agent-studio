@@ -31,7 +31,7 @@
       </div>
       <app-skill-selector
         [skills]="skillCatalog"
-        [disabled]="streaming"
+        [disabled]="isSending"
         [value]="inputText"
         (valueChange)="inputText = $event"
         (selectedSkillsChange)="recommendedSkills = $event"
@@ -95,7 +95,7 @@
             nzShape="circle"
             class="send-btn"
             [nzLoading]="streaming"
-            [disabled]="!inputText.trim() || streaming || !selectedModel"
+            [disabled]="!inputText.trim() || isSending || !selectedModel"
             (click)="send()"
           >
             <nz-icon nzType="send" nzTheme="outline"></nz-icon>
