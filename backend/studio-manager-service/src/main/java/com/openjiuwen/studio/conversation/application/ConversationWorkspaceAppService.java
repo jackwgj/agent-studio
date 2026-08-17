@@ -48,15 +48,18 @@ public class ConversationWorkspaceAppService {
     private final ConversationHistoryAssembler conversationHistoryAssembler;
     private final AgentRuntimeAdapter agentRuntimeAdapter;
     private final ConversationSkillResolver conversationSkillResolver;
+    private final ConversationWorkspaceAccessGuard conversationWorkspaceAccessGuard;
 
     public ConversationWorkspaceAppService(ConversationRepository conversationRepository,
                                            ConversationHistoryAssembler conversationHistoryAssembler,
                                            AgentRuntimeAdapter agentRuntimeAdapter,
-                                           ConversationSkillResolver conversationSkillResolver) {
+                                           ConversationSkillResolver conversationSkillResolver,
+                                           ConversationWorkspaceAccessGuard conversationWorkspaceAccessGuard) {
         this.conversationRepository = conversationRepository;
         this.conversationHistoryAssembler = conversationHistoryAssembler;
         this.agentRuntimeAdapter = agentRuntimeAdapter;
         this.conversationSkillResolver = conversationSkillResolver;
+        this.conversationWorkspaceAccessGuard = conversationWorkspaceAccessGuard;
     }
 
     /**
@@ -67,6 +70,7 @@ public class ConversationWorkspaceAppService {
      * @return 浏览器可见的技能目录
      */
     public List<ConversationSkillVo> listSkills(String projectId, String workspaceId) {
+        conversationWorkspaceAccessGuard.requireAccess(projectId, workspaceId);
         return conversationSkillResolver.listAvailable(projectId, workspaceId,
             RequestContextUtils.getRequestUserDomainId());
     }
