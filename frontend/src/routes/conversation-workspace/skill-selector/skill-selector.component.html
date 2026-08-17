@@ -13,6 +13,7 @@
   </div>
 
   <textarea
+    #textarea
     nz-input
     class="skill-input"
     [value]="value"
@@ -24,6 +25,8 @@
     [attr.aria-controls]="menuOpen ? menuId : null"
     [attr.aria-activedescendant]="menuOpen && activeSkillIndex >= 0 ? optionId(activeSkillIndex) : null"
     (input)="onTextareaInput($event)"
+    (compositionstart)="onCompositionStart()"
+    (compositionend)="onCompositionEnd($event)"
     (keydown)="onKeydown($event)"
   ></textarea>
 

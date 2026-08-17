@@ -1,9 +1,11 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  ElementRef,
   EventEmitter,
   Input,
   Output,
+  ViewChild,
 } from '@angular/core';
 import { COMMON_MODULES, LIB_MODULES } from '@shared/modules';
 import { ConversationSkillItem } from '../conversation-skill.model';
@@ -23,9 +25,15 @@ interface SlashTrigger {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SkillSelectorComponent {
-  readonly menuId = 'conversation-skill-selector-menu';
+  private static nextInstanceId = 0;
+  readonly menuId = `conversation-skill-selector-menu-${++SkillSelectorComponent.nextInstanceId}`;
   private catalogSkills: ConversationSkillItem[] = [];
   private activeTrigger: SlashTrigger | null = null;
+  private inputValue = '';
+  private inputDisabled = false;
+  private composing = false;
+
+  @ViewChild('textarea') private textarea?: ElementRef<HTMLTextAreaElement>;
 
   @Input()
   set skills(items: ConversationSkillItem[]) {
@@ -36,8 +44,31 @@ export class SkillSelectorComponent {
     return this.catalogSkills;
   }
 
-  @Input() disabled = false;
-  @Input() value = '';
+  @Input()
+  set disabled(value: boolean) {
+    this.inputDisabled = value;
+    if (value) {
+      this.closeMenu();
+    }
+  }
+
+  get disabled(): boolean {
+    return this.inputDisabled;
+  }
+
+  @Input()
+  set value(value: string) {
+    const nextValue = value ?? '';
+    if (nextValue === this.inputValue) {
+      return;
+    }
+    this.inputValue = nextValue;
+    this.closeMenu();
+  }
+
+  get value(): string {
+    return this.inputValue;
+  }
 
   @Output() readonly valueChange = new EventEmitter<string>();
   @Output() readonly selectedSkillsChange = new EventEmitter<ConversationSkillItem[]>();
@@ -67,12 +98,35 @@ export class SkillSelectorComponent {
       seenIds.add(item.skillId);
       return true;
     });
+    const canonicalById = new Map(this.catalogSkills.map((item) => [item.skillId, item]));
+    const canonicalSelected = this.selectedSkills
+      .map((item) => canonicalById.get(item.skillId))
+      .filter((item): item is ConversationSkillItem => Boolean(item));
+    if (!this.sameSkillReferences(this.selectedSkills, canonicalSelected)) {
+      this.selectedSkills = canonicalSelected;
+      this.selectedSkillsChange.emit(this.selectedSkills);
+    }
     this.refreshMenu();
   }
 
   public onTextareaInput(event: Event): void {
     const textarea = event.target as HTMLTextAreaElement;
+    if (this.composing) {
+      this.updateValue(textarea.value);
+      this.closeMenu();
+      return;
+    }
     this.onValueInput(textarea.value, textarea.selectionStart ?? textarea.value.length);
+  }
+
+  public onCompositionStart(): void {
+    this.composing = true;
+    this.closeMenu();
+  }
+
+  public onCompositionEnd(event: CompositionEvent): void {
+    this.composing = false;
+    this.onTextareaInput(event);
   }
 
   /**
@@ -83,14 +137,13 @@ export class SkillSelectorComponent {
       return;
     }
 
-    this.value = value;
-    this.valueChange.emit(value);
+    this.updateValue(value);
     this.activeTrigger = this.findSlashTrigger(value, cursorPosition);
     this.refreshMenu();
   }
 
   public onKeydown(event: KeyboardEvent): void {
-    if (this.disabled || (event.shiftKey && event.key === 'Enter')) {
+    if (this.disabled || this.composing || event.isComposing || event.keyCode === 229 || (event.shiftKey && event.key === 'Enter')) {
       return;
     }
 
@@ -128,16 +181,22 @@ export class SkillSelectorComponent {
       return;
     }
 
-    if (!this.selectedSkills.some((selected) => selected.skillId === item.skillId)) {
-      this.selectedSkills = [...this.selectedSkills, item];
+    const selectedItem = this.catalogSkills.find((candidate) => candidate.skillId === item.skillId);
+    const trigger = this.currentTrigger();
+    if (!selectedItem || !trigger) {
+      this.closeMenu();
+      return;
+    }
+
+    if (!this.selectedSkills.some((selected) => selected.skillId === selectedItem.skillId)) {
+      this.selectedSkills = [...this.selectedSkills, selectedItem];
       this.selectedSkillsChange.emit(this.selectedSkills);
     }
 
-    if (this.activeTrigger) {
-      this.value = this.value.slice(0, this.activeTrigger.start) + this.value.slice(this.activeTrigger.end);
-      this.valueChange.emit(this.value);
-    }
+    const nextValue = this.value.slice(0, trigger.start) + this.value.slice(trigger.end);
+    this.updateValue(nextValue);
     this.closeMenu();
+    this.restoreTextareaFocus(trigger.start);
   }
 
   public removeSkill(skillId: string): void {
@@ -188,5 +247,36 @@ export class SkillSelectorComponent {
     }
     const start = match.index + match[1].length;
     return { start, end: safeCursorPosition, keyword: match[2] };
+  }
+
+  private currentTrigger(): SlashTrigger | null {
+    if (!this.activeTrigger) {
+      return null;
+    }
+    const current = this.findSlashTrigger(this.value, this.activeTrigger.end);
+    if (!current || current.start !== this.activeTrigger.start || current.end !== this.activeTrigger.end || current.keyword !== this.activeTrigger.keyword) {
+      return null;
+    }
+    return current;
+  }
+
+  private updateValue(value: string): void {
+    this.inputValue = value;
+    this.valueChange.emit(value);
+  }
+
+  private restoreTextareaFocus(position: number): void {
+    queueMicrotask(() => {
+      const textarea = this.textarea?.nativeElement;
+      if (!textarea || this.disabled) {
+        return;
+      }
+      textarea.focus();
+      textarea.setSelectionRange(position, position);
+    });
+  }
+
+  private sameSkillReferences(left: ConversationSkillItem[], right: ConversationSkillItem[]): boolean {
+    return left.length === right.length && left.every((item, index) => item === right[index]);
   }
 }
