@@ -3,20 +3,53 @@ import { HttpService } from '@services/http.service';
 import { ContextService } from '@services/context.service';
 import { AgentConfigService } from '@routes/agent-center/agent-config.service';
 import { SSE } from '@shared/services/sse';
+import { BehaviorSubject } from 'rxjs';
+import dayjs from 'dayjs';
+
+export interface SessionItem {
+  conversation_id: string;
+  title: string;
+  status: string;
+  updated_at?: string;
+  created_at?: string;
+}
 
 /**
- * 对话工作台服务：会话 CRUD API + 发送消息 SSE 薄封装
+ * 对话工作台服务：会话 CRUD API + 发送消息 SSE 薄封装 + 会话列表/当前会话状态
  * （SSE 事件注册模式与平台 webPageChatSSE 一致，URL 指向对话工作台新端点，不改共享 service）
  */
 @Injectable({
   providedIn: 'root',
 })
 export class ConversationWorkspaceService {
+  /** 会话列表（左菜单 + 工作台共享） */
+  public sessions$ = new BehaviorSubject<SessionItem[]>([]);
+  /** 当前打开的会话（可为无 id 的本地草稿） */
+  public activeSession$ = new BehaviorSubject<SessionItem | null>(null);
+
   constructor(
     private http: HttpService,
     private ctxServ: ContextService,
     private configServ: AgentConfigService,
   ) {}
+
+  /** 刷新会话列表并广播 */
+  public refreshSessions(): Promise<void> {
+    return this.listSessions(0, 100).then((res) => {
+      this.sessions$.next(res?.items ?? []);
+    });
+  }
+
+  /** 新建本地草稿会话（标题=当前时间到分钟，未落库） */
+  public newDraftSession(): void {
+    const title = dayjs().format('YYYY-MM-DD HH:mm');
+    this.activeSession$.next({ conversation_id: '', title, status: 'ACTIVE' });
+  }
+
+  /** 设置当前打开的会话 */
+  public setActiveSession(session: SessionItem | null): void {
+    this.activeSession$.next(session);
+  }
 
   private get sessionsUrl(): string {
     // 相对路径：HttpService.mergeConfig 会自动前置 prefixPath，传绝对路径会双重前缀导致 URL 非法
