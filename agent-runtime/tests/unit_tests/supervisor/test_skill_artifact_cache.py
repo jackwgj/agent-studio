@@ -6,6 +6,7 @@ from concurrent.futures import ThreadPoolExecutor as DefaultThreadPoolExecutor
 import io
 from multiprocessing import get_context
 import os
+from pathlib import Path
 import stat
 import threading
 import time
@@ -254,6 +255,36 @@ async def test_double_cancelling_waiter_does_not_unlock_owner(tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_cancelled_acquire_releases_a_late_success_without_second_await():
+    """A second cancellation cannot prevent cleanup of an executor attempt."""
+    executor_entered = threading.Event()
+    unblock_executor = threading.Event()
+    released = threading.Event()
+
+    class LateLock:
+        def try_acquire(self):
+            return True
+
+        def release(self):
+            released.set()
+
+    def block_executor():
+        executor_entered.set()
+        unblock_executor.wait(timeout=2)
+
+    skill_artifact_cache_module._LOCK_EXECUTOR.submit(block_executor)
+    await asyncio.to_thread(executor_entered.wait, 1)
+    task = asyncio.create_task(skill_artifact_cache_module._acquire_lock(LateLock()))
+    await asyncio.sleep(0)
+    task.cancel()
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+    unblock_executor.set()
+    assert await asyncio.to_thread(released.wait, 1)
+
+
+@pytest.mark.asyncio
 async def test_cancelling_outer_task_keeps_lock_until_background_stage_finishes(tmp_path, monkeypatch):
     entered_stage = threading.Event()
     release_stage = threading.Event()
@@ -279,6 +310,94 @@ async def test_cancelling_outer_task_keeps_lock_until_background_stage_finishes(
     second_downloader.assert_not_awaited()
     release_stage.set()
     assert (await asyncio.wait_for(second_task, timeout=2)).endswith("first")
+
+
+@pytest.mark.asyncio
+async def test_cancelling_inner_stage_task_keeps_lock_until_sync_stage_finishes(tmp_path, monkeypatch):
+    """A loop cancelling its wrapper must not release a running stage worker."""
+    entered_stage = threading.Event()
+    release_stage = threading.Event()
+    created_tasks = []
+    skill = descriptor("s1", "v1", "x", "u/skills/s1/v1/a.zip")
+    first = SkillArtifactCache(tmp_path, downloader=AsyncMock(return_value=skill_zip("x", "first")))
+    original_stage = first._stage_and_publish
+    original_create_task = asyncio.create_task
+
+    def paused_stage(*args, **kwargs):
+        entered_stage.set()
+        release_stage.wait(timeout=2)
+        return original_stage(*args, **kwargs)
+
+    def track_task(coro, *args, **kwargs):
+        task = original_create_task(coro, *args, **kwargs)
+        created_tasks.append(task)
+        return task
+
+    monkeypatch.setattr(first, "_stage_and_publish", paused_stage)
+    monkeypatch.setattr(asyncio, "create_task", track_task)
+    first_task = original_create_task(first.load_instructions(skill))
+    await asyncio.to_thread(entered_stage.wait, 1)
+    assert created_tasks
+    created_tasks[0].cancel()
+    first_task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await first_task
+
+    second_downloader = AsyncMock(return_value=skill_zip("x", "second"))
+    second_task = original_create_task(
+        SkillArtifactCache(tmp_path, downloader=second_downloader).load_instructions(skill)
+    )
+    await asyncio.sleep(0.03)
+    second_downloader.assert_not_awaited()
+    release_stage.set()
+    assert (await asyncio.wait_for(second_task, timeout=2)).endswith("first")
+
+
+def test_lock_permission_failure_releases_local_stripe_for_recovery(tmp_path, monkeypatch):
+    """Every failure after local acquisition must make the stripe reusable."""
+    cache_key = "0" * 64
+    lock_dir = tmp_path / ".locks"
+    original_mkdir = Path.mkdir
+    failed = False
+
+    def reject_once(path, *args, **kwargs):
+        nonlocal failed
+        if path == lock_dir and not failed:
+            failed = True
+            raise PermissionError("blocked")
+        return original_mkdir(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "mkdir", reject_once)
+    with pytest.raises(SkillArtifactError, match="cache lock failed"):
+        skill_artifact_cache_module._CacheFileLock(tmp_path, cache_key).try_acquire()
+
+    recovered = skill_artifact_cache_module._CacheFileLock(tmp_path, cache_key)
+    assert recovered.try_acquire()
+    recovered.release()
+
+
+@pytest.mark.asyncio
+async def test_lock_backoff_uses_injectable_bounded_jitter(monkeypatch):
+    class EventuallyAvailableLock:
+        attempts = 0
+
+        def try_acquire(self):
+            self.attempts += 1
+            return self.attempts == 2
+
+        def release(self):
+            pass
+
+    delays = []
+
+    async def record_sleep(delay):
+        delays.append(delay)
+
+    monkeypatch.setattr(skill_artifact_cache_module, "_BACKOFF_RANDOM", lambda: 1.0)
+    monkeypatch.setattr(asyncio, "sleep", record_sleep)
+    await skill_artifact_cache_module._acquire_lock(EventuallyAvailableLock())
+
+    assert delays == [pytest.approx(0.00625)]
 
 
 @pytest.mark.asyncio
