@@ -402,6 +402,63 @@ async def test_cancelling_close_task_escalates_to_child_and_propagates_without_m
 
 
 @pytest.mark.asyncio
+async def test_same_turn_child_completion_does_not_hide_new_close_task_cancellation(monkeypatch):
+    class SameTurnAgent:
+        card = object()
+
+        async def stream(self, _inputs, _session):
+            yield object()
+            try:
+                await asyncio.Event().wait()
+            except asyncio.CancelledError:
+                cleanup_cancelled.set()
+                await release_child.wait()
+                child_finished.set()
+                raise
+
+    cleanup_cancelled = asyncio.Event()
+    release_child = asyncio.Event()
+    child_finished = asyncio.Event()
+    reset_order = []
+    agent = SameTurnAgent()
+    attach_agent_context(agent, [descriptor("s1", "v1")], [], SimpleNamespace())
+    monkeypatch.setattr(runner_module, "create_agent_session", lambda **_kwargs: object())
+    monkeypatch.setattr(runner_module, "adapt_stream_chunk", lambda *_args: [{"event": "message", "data": {}}])
+    original_reset_channel = runner_module.reset_channel
+    original_reset_skill = runner_module.reset_skill_context
+
+    def reset_channel(token):
+        assert child_finished.is_set()
+        reset_order.append("channel")
+        original_reset_channel(token)
+
+    def reset_skill(token):
+        assert child_finished.is_set()
+        reset_order.append("skill")
+        original_reset_skill(token)
+
+    monkeypatch.setattr(runner_module, "reset_channel", reset_channel)
+    monkeypatch.setattr(runner_module, "reset_skill_context", reset_skill)
+
+    async def consume_and_close():
+        stream = runner_module.run_supervisor(agent, "q", "c1", "e1")
+        await stream.__anext__()
+        await stream.aclose()
+
+    close_task = asyncio.create_task(consume_and_close())
+    await cleanup_cancelled.wait()
+    loop = asyncio.get_running_loop()
+    loop.call_soon(release_child.set)
+    loop.call_soon(close_task.cancel)
+
+    with pytest.raises(asyncio.CancelledError):
+        await close_task
+
+    assert child_finished.is_set()
+    assert reset_order == ["channel", "skill"]
+
+
+@pytest.mark.asyncio
 async def test_generator_close_propagates_child_base_exception_from_cancellation_cleanup(monkeypatch):
     class CleanupFailure(BaseException):
         pass
