@@ -94,12 +94,14 @@ def test_request_normalizes_duplicate_recommendations_and_explicitly_supports_al
     assert snake_case.recommended_skill_ids == ["s1"]
 
 
-def test_request_rejects_null_extra_and_unknown_recommendation_with_alias_precedence():
+def test_request_rejects_null_and_unknown_recommendation_and_ignores_legacy_top_level_extra():
     for field_name in ("skillCatalog", "recommendedSkillIds"):
         with pytest.raises(ValidationError):
             ConversationTeamReq.model_validate(request_payload(**{field_name: None}))
-    with pytest.raises(ValidationError):
-        ConversationTeamReq.model_validate(request_payload(untrustedBrowserMetadata={"x": 1}))
+    legacy = ConversationTeamReq.model_validate(request_payload(
+        systemPrompt="旧客户端字段", untrustedBrowserMetadata={"x": 1}
+    ))
+    assert legacy.query == "整理会议"
     with pytest.raises(ValidationError):
         ConversationTeamReq.model_validate(request_payload(recommendedSkillIds=["other"]))
     with pytest.raises(ValidationError):
@@ -114,6 +116,23 @@ def test_request_rejects_null_extra_and_unknown_recommendation_with_alias_preced
                 "object_key": "u/skills/s2/v2/a.zip",
             }]
         ))
+
+
+def test_request_rejects_conflicting_alias_and_field_name_but_keeps_descriptor_extra_forbidden():
+    with pytest.raises(ValidationError, match="conflicting request field aliases"):
+        ConversationTeamReq.model_validate(request_payload(
+            skill_catalog=[{
+                "skill_id": "s2",
+                "version_id": "v2",
+                "name": "field-name",
+                "description": "conflicts with the alias",
+                "object_key": "u/skills/s2/v2/a.zip",
+            }]
+        ))
+    with pytest.raises(ValidationError):
+        ConversationTeamReq.model_validate(request_payload(skillCatalog=[{
+            **manager_skill_catalog()[0], "unexpected": "still forbidden inside descriptors"
+        }]))
 
 
 @pytest.mark.asyncio
@@ -186,5 +205,93 @@ async def test_outer_sse_close_waits_for_runner_cleanup_in_the_consuming_context
 
     assert json.loads(event.removeprefix("data: "))["event"] == "message"
     assert child_finished.is_set()
+    assert get_channel() is None
+    assert get_skill_context() is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("disconnect", ["cancel", "error"])
+async def test_streaming_response_disconnect_closes_body_in_its_consuming_context(monkeypatch, disconnect):
+    class BlockingAgent:
+        card = object()
+
+        async def stream(self, _inputs, _session):
+            child_started.set()
+            yield object()
+            try:
+                await release.wait()
+            finally:
+                child_finished.set()
+
+    child_started = asyncio.Event()
+    child_finished = asyncio.Event()
+    release = asyncio.Event()
+    agent = BlockingAgent()
+    attach_agent_context(agent, [SkillDescriptor(
+        skill_id="s1", version_id="v1", name="会议纪要", description="整理会议",
+        object_key="u/skills/s1/v1/a.zip",
+    )], [], SimpleNamespace())
+    monkeypatch.setattr(conversation_team_module, "build_supervisor", AsyncMock(return_value=agent))
+    monkeypatch.setattr(runner_module, "create_agent_session", lambda **_kwargs: object())
+    monkeypatch.setattr(
+        runner_module,
+        "adapt_stream_chunk",
+        lambda _chunk, _ctx: [{"event": "message", "data": {"delta": "x"}}],
+    )
+    reset_order = []
+    reset_errors = []
+    original_reset_channel = runner_module.reset_channel
+    original_reset_skill = runner_module.reset_skill_context
+
+    def reset_channel(token):
+        try:
+            original_reset_channel(token)
+        except ValueError as error:
+            reset_errors.append(error)
+            raise
+        reset_order.append("channel")
+
+    def reset_skill(token):
+        try:
+            original_reset_skill(token)
+        except ValueError as error:
+            reset_errors.append(error)
+            raise
+        reset_order.append("skill")
+
+    monkeypatch.setattr(runner_module, "reset_channel", reset_channel)
+    monkeypatch.setattr(runner_module, "reset_skill_context", reset_skill)
+    response = await conversation_team_module.conversation_team(
+        ConversationTeamReq.model_validate(request_payload()), SimpleNamespace(headers={})
+    )
+    runner_entered_send = asyncio.Event()
+    never = asyncio.Event()
+    body_count = 0
+
+    async def send(message):
+        nonlocal body_count
+        if message["type"] != "http.response.body" or not message.get("more_body"):
+            return
+        body_count += 1
+        if body_count == 3:
+            runner_entered_send.set()
+            if disconnect == "error":
+                raise OSError("client disconnected")
+            await never.wait()
+
+    if disconnect == "cancel":
+        response_task = asyncio.create_task(response.stream_response(send))
+        await runner_entered_send.wait()
+        response_task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await response_task
+    else:
+        with pytest.raises(OSError, match="client disconnected"):
+            await response.stream_response(send)
+
+    assert child_started.is_set()
+    assert child_finished.is_set()
+    assert reset_order == ["channel", "skill"]
+    assert reset_errors == []
     assert get_channel() is None
     assert get_skill_context() is None

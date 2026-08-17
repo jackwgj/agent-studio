@@ -48,10 +48,22 @@ class SkillCatalogItemReq(BaseModel):
         return value
 
 
+class ConversationTeamStreamingResponse(StreamingResponse):
+    """Close this endpoint's async body in the Task that consumes SSE chunks."""
+
+    async def stream_response(self, send) -> None:
+        try:
+            await super().stream_response(send)
+        finally:
+            close = getattr(self.body_iterator, "aclose", None)
+            if close is not None:
+                await close()
+
+
 class ConversationTeamReq(BaseModel):
     """/v1/conversation/team 请求体"""
 
-    model_config = ConfigDict(populate_by_name=True, extra="forbid")
+    model_config = ConfigDict(populate_by_name=True, extra="ignore")
 
     conversation_id: str = Field(alias="conversationId")
     user_id: str = Field(default="anonymous", alias="userId")
@@ -62,6 +74,27 @@ class ConversationTeamReq(BaseModel):
     conversation_history: list | None = Field(None, alias="conversationHistory")
     skill_catalog: list[SkillCatalogItemReq] = Field(default_factory=list, alias="skillCatalog")
     recommended_skill_ids: list[str] = Field(default_factory=list, alias="recommendedSkillIds")
+
+    @model_validator(mode="before")
+    @classmethod
+    def reject_conflicting_aliases(cls, values):
+        if not isinstance(values, dict):
+            return values
+        aliases = (
+            ("conversationId", "conversation_id"),
+            ("userId", "user_id"),
+            ("subAgentIds", "sub_agent_ids"),
+            ("modelDeploymentId", "model_deployment_id"),
+            ("conversationHistory", "conversation_history"),
+            ("skillCatalog", "skill_catalog"),
+            ("recommendedSkillIds", "recommended_skill_ids"),
+        )
+        if any(
+            alias in values and field_name in values and values[alias] != values[field_name]
+            for alias, field_name in aliases
+        ):
+            raise ValueError("conflicting request field aliases")
+        return values
 
     @model_validator(mode="after")
     def validate_skill_catalog(self):
@@ -139,7 +172,7 @@ async def conversation_team(req: ConversationTeamReq, request: Request):
 
     # Java 侧生成 execution_id 并经 X-Execution-Id 头下发（保证三表 execution_id 一致），缺省时引擎 uuid4 兜底
     execution_id = request.headers.get("x-execution-id")
-    return StreamingResponse(
+    return ConversationTeamStreamingResponse(
         content=team_sse_stream(req, execution_id),
         media_type="text/event-stream",
     )

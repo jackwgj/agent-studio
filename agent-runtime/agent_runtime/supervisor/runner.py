@@ -24,27 +24,30 @@ _STOP = object()
 
 async def _finish_supervisor_task(
     task: asyncio.Task | None,
-) -> tuple[BaseException | None, asyncio.CancelledError | None]:
+) -> tuple[BaseException | None, asyncio.CancelledError | None, bool]:
     """Cancel and await a copied-Context task, even when our caller is cancelled again."""
     if task is None:
-        return None, None
+        return None, None, False
+    cleanup_requested_cancel = False
     if not task.done():
-        task.cancel()
+        cleanup_requested_cancel = task.cancel()
 
-    cleanup_cancellation: asyncio.CancelledError | None = None
+    caller_cancellation: asyncio.CancelledError | None = None
     while not task.done():
         try:
             await asyncio.shield(task)
         except asyncio.CancelledError as error:
-            cleanup_cancellation = error
+            if not task.done():
+                caller_cancellation = error
+                task.cancel()
         except BaseException:
             break
 
     try:
         task.result()
     except BaseException as error:
-        return error, cleanup_cancellation
-    return None, cleanup_cancellation
+        return error, caller_cancellation, cleanup_requested_cancel
+    return None, caller_cancellation, cleanup_requested_cancel
 
 
 async def run_supervisor(agent: ReActAgent, query: str, conversation_id: str, execution_id: str):
@@ -112,7 +115,7 @@ async def run_supervisor(agent: ReActAgent, query: str, conversation_id: str, ex
             yield build_run_done(execution_id, ctx.final_text, index=index)
     finally:
         primary_error = sys.exception()
-        task_error, cleanup_cancellation = await _finish_supervisor_task(task)
+        task_error, caller_cancellation, cleanup_requested_cancel = await _finish_supervisor_task(task)
         channel_error: BaseException | None = None
         skill_error: BaseException | None = None
         try:
@@ -126,7 +129,14 @@ async def run_supervisor(agent: ReActAgent, query: str, conversation_id: str, ex
             except BaseException as error:
                 skill_error = error
 
+        expected_cleanup_cancellation = (
+            cleanup_requested_cancel and isinstance(task_error, asyncio.CancelledError)
+        )
+        if caller_cancellation is not None:
+            raise caller_cancellation
+        if task_error is not None and not expected_cleanup_cancellation:
+            raise task_error
         if primary_error is None:
-            for error in (task_error, cleanup_cancellation, channel_error, skill_error):
+            for error in (channel_error, skill_error):
                 if error is not None:
                     raise error
