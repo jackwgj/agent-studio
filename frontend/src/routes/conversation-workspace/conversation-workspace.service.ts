@@ -5,6 +5,7 @@ import { AgentConfigService } from '@routes/agent-center/agent-config.service';
 import { SSE } from '@shared/services/sse';
 import { BehaviorSubject } from 'rxjs';
 import dayjs from 'dayjs';
+import { ConversationSendRequest, ConversationSkillItem, ConversationSseCallbacks } from './conversation-skill.model';
 
 export interface SessionItem {
   conversation_id: string;
@@ -77,6 +78,22 @@ export class ConversationWorkspaceService {
     });
   }
 
+  /** 工作空间内可供对话推荐的最小 Skill 目录。 */
+  public listSkills(): Promise<ConversationSkillItem[]> {
+    return this.http
+      .getAsync<any[]>({
+        url: `${this.sessionsUrl}/skills`,
+        query: { workspace_id: this.http.getWorkspaceId() },
+      })
+      .then((items) =>
+        (items ?? []).map((item) => ({
+          skillId: item.skill_id,
+          name: item.name,
+          description: item.description,
+        })),
+      );
+  }
+
   /** 会话详情（含全部消息） */
   public detailSession(conversationId: string): Promise<any> {
     return this.http.getAsync({
@@ -99,8 +116,10 @@ export class ConversationWorkspaceService {
    */
   public chatSSE(
     conversationId: string,
-    params: any,
-    {
+    params: ConversationSendRequest,
+    callbacks: ConversationSseCallbacks = {},
+  ): any {
+    const {
       onStatus,
       onOpen,
       onMessage,
@@ -110,8 +129,7 @@ export class ConversationWorkspaceService {
       onError,
       onAbort,
       onReadyStateChange,
-    }: any = {},
-  ): any {
+    } = callbacks;
     const nilFunc = () => void 0;
     const url = `${this.http.prefixPath}/v1/${this.ctxServ.projectId}/conversation/sessions/${conversationId}/messages?workspace_id=${this.http.getWorkspaceId()}`;
 
@@ -136,7 +154,7 @@ export class ConversationWorkspaceService {
     });
     source.addEventListener('status', onStatus ?? nilFunc);
     source.addEventListener('open', onOpen ?? nilFunc);
-    source.addEventListener('message', onMessage ?? nilFunc);
+    source.addEventListener('message', (onMessage as unknown as EventListener) ?? nilFunc);
     source.addEventListener('error', onError ?? nilFunc);
     source.addEventListener('abort', onAbort ?? nilFunc);
     source.addEventListener('readystatechange', onReadyStateChange ?? nilFunc);
