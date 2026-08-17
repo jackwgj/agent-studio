@@ -35,4 +35,8 @@ public class SendMessageCmd {
      */
     @JsonProperty("recommended_skill_ids")
     private List<String> recommendedSkillIds = new ArrayList<>();
+
+    public void setRecommendedSkillIds(List<String> recommendedSkillIds) {
+        this.recommendedSkillIds = recommendedSkillIds == null ? new ArrayList<>() : new ArrayList<>(recommendedSkillIds);
+    }
 }
