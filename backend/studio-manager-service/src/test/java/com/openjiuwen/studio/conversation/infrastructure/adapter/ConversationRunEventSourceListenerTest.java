@@ -10,9 +10,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyEmitter;
 
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -20,6 +23,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 /**
@@ -95,11 +99,19 @@ class ConversationRunEventSourceListenerTest {
     }
 
     @Test
-    void testSkillActivatedEvent_ForwardOnlyAndNeverPersisted() {
-        feedEvent("{\"event\":\"skill_activated\",\"data\":{\"skillId\":\"s1\","
-            + "\"name\":\"会议纪要\",\"versionId\":\"v1\"},\"executionId\":\"exec-1\"}");
+    void testSkillActivatedEvent_ForwardOnlyAndNeverPersisted() throws Exception {
+        String event = "{\"event\":\"skill_activated\",\"data\":{\"skillId\":\"s1\","
+            + "\"name\":\"会议纪要\",\"versionId\":\"v1\"},\"executionId\":\"exec-1\"}";
+        feedEvent(event);
         listener.onClosed(mock(EventSource.class));
 
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Set<ResponseBodyEmitter.DataWithMediaType>> captor = ArgumentCaptor.forClass(Set.class);
+        verify(sseEmitter, times(1)).send(captor.capture());
+        String payload = captor.getValue().stream()
+            .map(data -> data.getData().toString())
+            .collect(Collectors.joining());
+        assertEquals("data:" + event + "\n\n", payload);
         verify(conversationRepository, never()).appendMessages(anyString(), anyList());
     }
 }

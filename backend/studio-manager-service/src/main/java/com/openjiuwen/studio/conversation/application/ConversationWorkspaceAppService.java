@@ -189,6 +189,7 @@ public class ConversationWorkspaceAppService {
                 List.of("model_deployment_id is required"));
         }
         Conversation conversation = getOwnedConversation(projectId, workspaceId, conversationId);
+        conversationWorkspaceAccessGuard.requireAccess(projectId, workspaceId);
         ConversationSkillContext skillContext = conversationSkillResolver.resolveForRun(projectId, workspaceId,
             RequestContextUtils.getRequestUserDomainId(), cmd.getRecommendedSkillIds());
 

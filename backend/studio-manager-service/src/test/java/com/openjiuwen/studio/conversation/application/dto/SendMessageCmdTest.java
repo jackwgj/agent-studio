@@ -62,4 +62,18 @@ class SendMessageCmdTest {
                 .map(JsonNode::asText).toList());
         assertFalse(json.has("recommendedSkillIds"));
     }
+
+    @Test
+    void deserialization_推荐技能保序且缺省或空值归一为空列表() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+
+        SendMessageCmd ordered = mapper.readValue(
+            "{\"recommended_skill_ids\":[\"s2\",\"s1\",\"s2\"]}", SendMessageCmd.class);
+        SendMessageCmd omitted = mapper.readValue("{}", SendMessageCmd.class);
+        SendMessageCmd explicitNull = mapper.readValue("{\"recommended_skill_ids\":null}", SendMessageCmd.class);
+
+        assertEquals(List.of("s2", "s1", "s2"), ordered.getRecommendedSkillIds());
+        assertEquals(List.of(), omitted.getRecommendedSkillIds());
+        assertEquals(List.of(), explicitNull.getRecommendedSkillIds());
+    }
 }

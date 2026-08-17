@@ -13,6 +13,7 @@ import com.openjiuwen.studio.conversation.application.dto.ConversationDetailVo;
 import com.openjiuwen.studio.conversation.application.dto.ConversationListQuery;
 import com.openjiuwen.studio.conversation.application.dto.ConversationSkillVo;
 import com.openjiuwen.studio.conversation.application.dto.ConversationSkillContext;
+import com.openjiuwen.studio.conversation.application.dto.ConversationSkillDescriptor;
 import com.openjiuwen.studio.conversation.application.dto.ConversationVo;
 import com.openjiuwen.studio.conversation.application.dto.MessageVo;
 import com.openjiuwen.studio.conversation.application.dto.SendMessageCmd;
@@ -28,6 +29,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.springframework.http.HttpHeaders;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -308,22 +310,61 @@ class ConversationWorkspaceAppServiceTest {
         cmd.setQuery("你好");
         cmd.setModelDeploymentId("m1");
         SseEmitter emitter = new SseEmitter();
+        ConversationSkillContext skillContext = new ConversationSkillContext(List.of(
+            ConversationSkillDescriptor.builder().skillId("s1").versionId("v1").name("meeting")
+                .description("meeting skill").objectKey("u1/skills/s1/v1/a.zip").build()), List.of("s1"));
         when(skillResolver.resolveForRun("p1", "w1", "d1", List.of()))
-            .thenReturn(ConversationSkillContext.empty());
-        when(runtimeAdapter.run(eq(conv), eq(cmd), anyList(), any(), anyString(), any())).thenReturn(emitter);
+            .thenReturn(skillContext);
+        when(historyAssembler.assemble(conv)).thenReturn(List.of());
+        when(runtimeAdapter.run(eq(conv), eq(cmd), anyList(), same(skillContext), anyString(), any()))
+            .thenReturn(emitter);
 
         SseEmitter result = appService.sendMessage("p1", "w1", "c1", cmd, new HttpHeaders());
 
         assertSame(emitter, result);
-        // ArgumentCaptor：不止验证"调用了 appendMessages"，还抓住传进去的消息内容深入断言
         ArgumentCaptor<List<ConversationMessage>> captor = ArgumentCaptor.forClass(List.class);
-        verify(repository).appendMessages(eq("c1"), captor.capture());
+        InOrder inOrder = inOrder(repository, workspaceAccessGuard, skillResolver, historyAssembler, runtimeAdapter);
+        inOrder.verify(repository).findById("c1");
+        inOrder.verify(workspaceAccessGuard).requireAccess("p1", "w1");
+        inOrder.verify(skillResolver).resolveForRun("p1", "w1", "d1", List.of());
+        inOrder.verify(repository).appendMessages(eq("c1"), captor.capture());
+        inOrder.verify(historyAssembler).assemble(conv);
+        inOrder.verify(runtimeAdapter).run(eq(conv), eq(cmd), anyList(), same(skillContext), anyString(), any());
         List<ConversationMessage> appended = captor.getValue();
         assertEquals(1, appended.size());
         assertEquals("user", appended.get(0).getRole());
         assertEquals("你好", appended.get(0).getContent());
-        verify(historyAssembler).assemble(any());
-        verify(runtimeAdapter).run(eq(conv), eq(cmd), anyList(), any(), anyString(), any());
+    }
+
+    @Test
+    void sendMessage_路径项目与认证项目不同时拒绝且不触发下游调用() {
+        Conversation conv = ownedConversation("c1");
+        conv.setProjectId("p2");
+        when(repository.findById("c1")).thenReturn(Optional.of(conv));
+        doThrow(new AgentStudioException(com.openjiuwen.studio.agent.common.enums.StudioError.USER_WORKSPACE_PERMISSION_INVALID))
+            .when(workspaceAccessGuard).requireAccess("p2", "w1");
+
+        assertThrows(AgentStudioException.class,
+            () -> appService.sendMessage("p2", "w1", "c1", validCmd(List.of()), new HttpHeaders()));
+
+        verify(workspaceAccessGuard).requireAccess("p2", "w1");
+        verifyNoInteractions(skillResolver, historyAssembler, runtimeAdapter);
+        verify(repository, never()).appendMessages(anyString(), anyList());
+    }
+
+    @Test
+    void sendMessage_当前用户非工作空间成员时拒绝且不触发下游调用() {
+        Conversation conv = ownedConversation("c1");
+        when(repository.findById("c1")).thenReturn(Optional.of(conv));
+        doThrow(new AgentStudioException(com.openjiuwen.studio.agent.common.enums.StudioError.USER_WORKSPACE_PERMISSION_INVALID))
+            .when(workspaceAccessGuard).requireAccess("p1", "w1");
+
+        assertThrows(AgentStudioException.class,
+            () -> appService.sendMessage("p1", "w1", "c1", validCmd(List.of()), new HttpHeaders()));
+
+        verify(workspaceAccessGuard).requireAccess("p1", "w1");
+        verifyNoInteractions(skillResolver, historyAssembler, runtimeAdapter);
+        verify(repository, never()).appendMessages(anyString(), anyList());
     }
 
     @Test
