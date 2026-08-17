@@ -12,6 +12,7 @@ import com.openjiuwen.studio.agent.foundation.connection.model.PageResult;
 import com.openjiuwen.studio.conversation.application.dto.ConversationCreateCmd;
 import com.openjiuwen.studio.conversation.application.dto.ConversationDetailVo;
 import com.openjiuwen.studio.conversation.application.dto.ConversationListQuery;
+import com.openjiuwen.studio.conversation.application.dto.ConversationSkillVo;
 import com.openjiuwen.studio.conversation.application.dto.ConversationVo;
 import com.openjiuwen.studio.conversation.application.dto.MessageVo;
 import com.openjiuwen.studio.conversation.application.dto.SendMessageCmd;
@@ -46,13 +47,28 @@ public class ConversationWorkspaceAppService {
     private final ConversationRepository conversationRepository;
     private final ConversationHistoryAssembler conversationHistoryAssembler;
     private final AgentRuntimeAdapter agentRuntimeAdapter;
+    private final ConversationSkillResolver conversationSkillResolver;
 
     public ConversationWorkspaceAppService(ConversationRepository conversationRepository,
                                            ConversationHistoryAssembler conversationHistoryAssembler,
-                                           AgentRuntimeAdapter agentRuntimeAdapter) {
+                                           AgentRuntimeAdapter agentRuntimeAdapter,
+                                           ConversationSkillResolver conversationSkillResolver) {
         this.conversationRepository = conversationRepository;
         this.conversationHistoryAssembler = conversationHistoryAssembler;
         this.agentRuntimeAdapter = agentRuntimeAdapter;
+        this.conversationSkillResolver = conversationSkillResolver;
+    }
+
+    /**
+     * 查询当前用户域可用的工作空间技能目录。
+     *
+     * @param projectId   租户
+     * @param workspaceId 工作空间
+     * @return 浏览器可见的技能目录
+     */
+    public List<ConversationSkillVo> listSkills(String projectId, String workspaceId) {
+        return conversationSkillResolver.listAvailable(projectId, workspaceId,
+            RequestContextUtils.getRequestUserDomainId());
     }
 
     /**

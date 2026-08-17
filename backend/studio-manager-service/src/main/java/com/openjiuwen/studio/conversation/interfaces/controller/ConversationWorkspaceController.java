@@ -9,6 +9,7 @@ import com.openjiuwen.studio.conversation.application.ConversationWorkspaceAppSe
 import com.openjiuwen.studio.conversation.application.dto.ConversationCreateCmd;
 import com.openjiuwen.studio.conversation.application.dto.ConversationDetailVo;
 import com.openjiuwen.studio.conversation.application.dto.ConversationListQuery;
+import com.openjiuwen.studio.conversation.application.dto.ConversationSkillVo;
 import com.openjiuwen.studio.conversation.application.dto.ConversationVo;
 import com.openjiuwen.studio.conversation.application.dto.SendMessageCmd;
 
@@ -27,6 +28,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+
+import java.util.List;
+
 
 /**
  * 对话工作台会话接口（挂载 manager 服务）
@@ -76,6 +80,14 @@ public class ConversationWorkspaceController {
         query.setPage(page);
         query.setSize(size);
         return conversationWorkspaceAppService.list(projectId, workspaceId, query);
+    }
+
+    @ApiOperation("工作空间技能目录")
+    @GetMapping("/skills")
+    public List<ConversationSkillVo> listSkills(
+            @PathVariable("project_id") String projectId,
+            @RequestParam("workspace_id") String workspaceId) {
+        return conversationWorkspaceAppService.listSkills(projectId, workspaceId);
     }
 
     /**
