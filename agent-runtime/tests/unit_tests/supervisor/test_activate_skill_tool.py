@@ -1,10 +1,12 @@
+import io
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
+import zipfile
 
 import pytest
 
 from agent_runtime.supervisor.event.channel import EventChannel, reset_channel, set_channel
-from agent_runtime.supervisor.skill_artifact_cache import SkillArtifactError
+from agent_runtime.supervisor.skill_artifact_cache import SkillArtifactCache, SkillArtifactError
 from agent_runtime.supervisor.skill_context import (
     attach_agent_context,
     bind_agent_skill_context,
@@ -65,14 +67,11 @@ async def test_activate_rejects_id_outside_current_catalog():
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize(
-    ("error", "code"),
-    [
-        (RuntimeError("storage unavailable"), "skill_download_failed"),
-        (SkillArtifactError("invalid skill archive"), "skill_artifact_invalid"),
-        (SkillArtifactError("exactly one root SKILL.md is required"), "skill_instructions_missing"),
-    ],
-)
+@pytest.mark.parametrize(("error", "code"), [
+    (RuntimeError("storage unavailable"), "skill_download_failed"),
+    (SkillArtifactError("invalid skill archive"), "skill_artifact_invalid"),
+    (SkillArtifactError("SKILL.md is missing"), "skill_instructions_missing"),
+])
 async def test_activate_returns_stable_cache_failure_codes_without_storage_details(error, code):
     cache = AsyncMock()
     cache.load_instructions.side_effect = error
@@ -88,6 +87,135 @@ async def test_activate_returns_stable_cache_failure_codes_without_storage_detai
     assert "user/skills/" not in result["error"]["message"]
 
 
+def skill_archive(entries):
+    output = io.BytesIO()
+    with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as archive:
+        for path, content in entries.items():
+            archive.writestr(path, content)
+    return output.getvalue()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("payload", [
+    skill_archive({"s1/SKILL.md": b"\xff"}),
+    skill_archive({"one/SKILL.md": b"one", "two/SKILL.md": b"two"}),
+    skill_archive({"s1/README.md": b"no instructions"}),
+])
+async def test_activate_classifies_real_cache_utf8_or_structure_failures_as_invalid(tmp_path, payload):
+    skill = descriptor("s1", "v1", "会议纪要", "整理会议")
+    cache = SkillArtifactCache(tmp_path, downloader=AsyncMock(return_value=payload))
+    agent = SimpleNamespace()
+    attach_agent_context(agent, [skill], [], cache)
+    token = bind_agent_skill_context(agent)
+    try:
+        result = await ActivateSkillTool().invoke({"skill_id": "s1"})
+    finally:
+        reset_skill_context(token)
+
+    assert result["error"] == {
+        "code": "skill_artifact_invalid",
+        "message": "Skill s1 activation failed: archive rejected.",
+    }
+
+
+@pytest.mark.asyncio
+async def test_activate_classifies_real_cached_skill_markdown_read_failure_as_invalid(tmp_path):
+    skill = descriptor("s1", "v1", "会议纪要", "整理会议")
+    cache_dir = tmp_path / skill.cache_key
+    cache_dir.mkdir()
+    (cache_dir / "SKILL.md").write_bytes(b"\xff")
+    downloader = AsyncMock()
+    cache = SkillArtifactCache(tmp_path, downloader=downloader)
+    agent = SimpleNamespace()
+    attach_agent_context(agent, [skill], [], cache)
+    token = bind_agent_skill_context(agent)
+    try:
+        result = await ActivateSkillTool().invoke({"skill_id": "s1"})
+    finally:
+        reset_skill_context(token)
+
+    assert result["error"]["code"] == "skill_artifact_invalid"
+    downloader.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("extra_key", ["objectKey", "versionId", "unexpected"])
+async def test_activate_rejects_extra_input_keys_without_loading_artifact(extra_key):
+    cache = AsyncMock()
+    agent = SimpleNamespace()
+    attach_agent_context(agent, [descriptor("s1", "v1", "会议纪要", "整理会议")], [], cache)
+    token = bind_agent_skill_context(agent)
+    try:
+        result = await ActivateSkillTool().invoke({"skill_id": "s1", extra_key: "untrusted"})
+    finally:
+        reset_skill_context(token)
+
+    assert result == {
+        "error": {
+            "code": "invalid_skill_activation_input",
+            "message": "activate_skill accepts only skill_id.",
+        }
+    }
+    cache.load_instructions.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_activate_succeeds_without_an_event_channel():
+    cache = AsyncMock()
+    cache.load_instructions.return_value = "完整技能指令"
+    agent = SimpleNamespace()
+    attach_agent_context(agent, [descriptor("s1", "v1", "会议纪要", "整理会议")], [], cache)
+    token = bind_agent_skill_context(agent)
+    try:
+        result = await ActivateSkillTool().invoke({"skill_id": "s1"})
+    finally:
+        reset_skill_context(token)
+
+    assert result["instructions"] == "完整技能指令"
+
+
+@pytest.mark.asyncio
+async def test_activate_keeps_success_result_when_event_delivery_fails():
+    class FailingChannel:
+        execution_id = "exec-1"
+
+        async def emit(self, event):
+            raise RuntimeError("event transport secret")
+
+    cache = AsyncMock()
+    cache.load_instructions.return_value = "完整技能指令"
+    agent = SimpleNamespace()
+    attach_agent_context(agent, [descriptor("s1", "v1", "会议纪要", "整理会议")], [], cache)
+    skill_token = bind_agent_skill_context(agent)
+    event_token = set_channel(FailingChannel())
+    try:
+        result = await ActivateSkillTool().invoke({"skill_id": "s1"})
+    finally:
+        reset_channel(event_token)
+        reset_skill_context(skill_token)
+
+    assert result["instructions"] == "完整技能指令"
+
+
+@pytest.mark.asyncio
+async def test_activate_failure_does_not_emit_success_event():
+    cache = AsyncMock()
+    cache.load_instructions.side_effect = SkillArtifactError("invalid skill archive")
+    channel = SimpleNamespace(execution_id="exec-1", emit=AsyncMock())
+    agent = SimpleNamespace()
+    attach_agent_context(agent, [descriptor("s1", "v1", "会议纪要", "整理会议")], [], cache)
+    skill_token = bind_agent_skill_context(agent)
+    event_token = set_channel(channel)
+    try:
+        result = await ActivateSkillTool().invoke({"skill_id": "s1"})
+    finally:
+        reset_channel(event_token)
+        reset_skill_context(skill_token)
+
+    assert result["error"]["code"] == "skill_artifact_invalid"
+    channel.emit.assert_not_awaited()
+
+
 def test_activate_tool_card_accepts_only_skill_id():
     card = ActivateSkillTool().card
 
@@ -97,4 +225,5 @@ def test_activate_tool_card_accepts_only_skill_id():
         "type": "object",
         "properties": {"skill_id": {"type": "string", "description": "目录中的 Skill ID"}},
         "required": ["skill_id"],
+        "additionalProperties": False,
     }

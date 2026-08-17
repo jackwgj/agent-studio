@@ -8,6 +8,9 @@ from agent_runtime.supervisor.skill_artifact_cache import SkillArtifactError
 from agent_runtime.supervisor.skill_context import get_skill_context
 
 
+_EXPLICIT_MISSING_INSTRUCTIONS_ARGS = frozenset({("SKILL.md is missing",)})
+
+
 class ActivateSkillTool(Tool):
     """Load only the selected Skill's instructions from the bound request catalog."""
 
@@ -23,12 +26,17 @@ class ActivateSkillTool(Tool):
                         "skill_id": {"type": "string", "description": "目录中的 Skill ID"}
                     },
                     "required": ["skill_id"],
+                    "additionalProperties": False,
                 },
             )
         )
 
     async def invoke(self, inputs, **kwargs):
-        skill_id = inputs.get("skill_id") if isinstance(inputs, dict) else getattr(inputs, "skill_id", None)
+        if not isinstance(inputs, dict) or set(inputs) != {"skill_id"}:
+            return self._error(
+                "invalid_skill_activation_input", "activate_skill accepts only skill_id."
+            )
+        skill_id = inputs["skill_id"]
         context = get_skill_context()
         if context is None:
             return self._error("skill_context_unavailable", "Skill activation is unavailable in this execution.")
@@ -39,7 +47,7 @@ class ActivateSkillTool(Tool):
         try:
             instructions = await context.artifact_cache.load_instructions(skill)
         except SkillArtifactError as error:
-            if "SKILL.md" in str(error):
+            if error.args in _EXPLICIT_MISSING_INSTRUCTIONS_ARGS:
                 return self._error(
                     "skill_instructions_missing",
                     f"Skill {skill.skill_id} activation failed: SKILL.md is missing.",
@@ -56,11 +64,15 @@ class ActivateSkillTool(Tool):
 
         channel = get_channel()
         if channel is not None:
-            await channel.emit(
-                build_skill_activated(
-                    channel.execution_id, skill.skill_id, skill.name, skill.version_id
+            try:
+                await channel.emit(
+                    build_skill_activated(
+                        channel.execution_id, skill.skill_id, skill.name, skill.version_id
+                    )
                 )
-            )
+            except Exception:
+                # SSE 通道仅作实时透传；投递失败不能撤销已成功加载给 Agent 的指令。
+                pass
         return {
             "skillId": skill.skill_id,
             "name": skill.name,
