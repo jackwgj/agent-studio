@@ -4,6 +4,8 @@
 package com.openjiuwen.studio.conversation.application;
 
 import com.openjiuwen.studio.agent.manager.bo.SkillDetails;
+import com.openjiuwen.studio.agent.common.enums.StudioError;
+import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
 import com.openjiuwen.studio.agent.manager.dto.SkillStatus;
 import com.openjiuwen.studio.agent.manager.entity.SkillEntity;
 import com.openjiuwen.studio.agent.manager.mapper.SkillMapper;
@@ -14,13 +16,17 @@ import com.openjiuwen.studio.conversation.application.dto.ConversationSkillVo;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
+import lombok.extern.slf4j.Slf4j;
+
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 public class ConversationSkillResolver {
     private static final int PAGE_SIZE = 1000;
 
@@ -42,13 +48,29 @@ public class ConversationSkillResolver {
 
     public ConversationSkillContext resolveForRun(String projectId, String workspaceId, String domainId,
                                                   List<String> requestedIds) {
-        List<ConversationSkillDescriptor> catalog = loadCatalog(projectId, workspaceId, domainId);
+        List<String> recommendedSkillIds = new ArrayList<>(new LinkedHashSet<>(
+            requestedIds == null ? List.of() : requestedIds));
+        List<ConversationSkillDescriptor> catalog;
+        try {
+            catalog = loadCatalog(projectId, workspaceId, domainId);
+        } catch (RuntimeException e) {
+            if (recommendedSkillIds.isEmpty()) {
+                log.warn("Failed to load conversation skill catalog without recommendations, using empty catalog: "
+                    + "projectId={}, workspaceId={}, domainId={}", projectId, workspaceId, domainId, e);
+                return ConversationSkillContext.empty();
+            }
+            log.warn("Failed to load conversation skill catalog with recommendations: projectId={}, workspaceId={}, "
+                + "domainId={}", projectId, workspaceId, domainId, e);
+            throw new AgentStudioException(StudioError.METHOD_ARGUMENT_NOT_VALID,
+                List.of("recommended skills are unavailable"));
+        }
         Set<String> availableIds = catalog.stream()
             .map(ConversationSkillDescriptor::getSkillId)
             .collect(Collectors.toSet());
-        List<String> recommendedSkillIds = (requestedIds == null ? List.<String>of() : requestedIds).stream()
-            .filter(availableIds::contains)
-            .toList();
+        if (!availableIds.containsAll(recommendedSkillIds)) {
+            throw new AgentStudioException(StudioError.METHOD_ARGUMENT_NOT_VALID,
+                List.of("recommended skill is unavailable"));
+        }
         return new ConversationSkillContext(catalog, recommendedSkillIds);
     }
 

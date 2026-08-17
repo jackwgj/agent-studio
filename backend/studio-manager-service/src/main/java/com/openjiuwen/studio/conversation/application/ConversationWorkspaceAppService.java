@@ -12,6 +12,7 @@ import com.openjiuwen.studio.agent.foundation.connection.model.PageResult;
 import com.openjiuwen.studio.conversation.application.dto.ConversationCreateCmd;
 import com.openjiuwen.studio.conversation.application.dto.ConversationDetailVo;
 import com.openjiuwen.studio.conversation.application.dto.ConversationListQuery;
+import com.openjiuwen.studio.conversation.application.dto.ConversationSkillContext;
 import com.openjiuwen.studio.conversation.application.dto.ConversationSkillVo;
 import com.openjiuwen.studio.conversation.application.dto.ConversationVo;
 import com.openjiuwen.studio.conversation.application.dto.MessageVo;
@@ -188,6 +189,8 @@ public class ConversationWorkspaceAppService {
                 List.of("model_deployment_id is required"));
         }
         Conversation conversation = getOwnedConversation(projectId, workspaceId, conversationId);
+        ConversationSkillContext skillContext = conversationSkillResolver.resolveForRun(projectId, workspaceId,
+            RequestContextUtils.getRequestUserDomainId(), cmd.getRecommendedSkillIds());
 
         // 本轮 execution_id（调用方生成，经 X-Execution-Id 下发引擎，事件原样携带）
         String executionId = UUID.randomUUID().toString();
@@ -203,7 +206,7 @@ public class ConversationWorkspaceAppService {
 
         // 全量历史组装（含工具消息合成）后注入运行链路
         List<Message> histories = conversationHistoryAssembler.assemble(conversation);
-        return agentRuntimeAdapter.run(conversation, cmd, histories, executionId, requestHeaders);
+        return agentRuntimeAdapter.run(conversation, cmd, histories, skillContext, executionId, requestHeaders);
     }
 
     /**
@@ -220,6 +223,7 @@ public class ConversationWorkspaceAppService {
                 List.of("conversation not found: " + conversationId)));
         if (!Objects.equals(conversation.getProjectId(), projectId)
             || !Objects.equals(conversation.getWorkspaceId(), workspaceId)
+            || !Objects.equals(conversation.getDomainId(), RequestContextUtils.getRequestUserDomainId())
             || !Objects.equals(conversation.getOwnerUserId(), RequestContextUtils.getRequestUserId())) {
             throw new AgentStudioException(StudioError.USER_WORKSPACE_PERMISSION_INVALID);
         }
