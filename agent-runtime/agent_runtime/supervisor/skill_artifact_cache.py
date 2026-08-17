@@ -40,6 +40,7 @@ _LOCAL_LOCK_STRIPES = [threading.Lock() for _ in range(_LOCK_STRIPES)]
 _LOCK_EXECUTOR = ThreadPoolExecutor(max_workers=1, thread_name_prefix="skill-lock")
 _STAGE_EXECUTOR = ThreadPoolExecutor(max_workers=2, thread_name_prefix="skill-stage")
 _BACKOFF_RANDOM = random.random
+_LOCK_BACKOFF_CAP_SECONDS = 0.05
 _LOCAL_HEADER = struct.Struct("<IHHHHHIIIHH")
 _LOCAL_HEADER_SIGNATURE = 0x04034B50
 _ALLOWED_ZIP_FLAGS = 0x02 | 0x04 | 0x08 | 0x800
@@ -431,30 +432,40 @@ async def _acquire_lock(lock: _CacheFileLock) -> None:
     """Poll lock I/O in a dedicated bounded executor with cancellation safety."""
     delay = 0.005
     while True:
-        cancelled = threading.Event()
-        release_scheduled = threading.Event()
+        cancellation_state = {"cancelled": False, "release_scheduled": False}
+        cancellation_lock = threading.Lock()
         attempt = _LOCK_EXECUTOR.submit(lock.try_acquire)
 
         def release_if_cancelled(done) -> None:
-            if cancelled.is_set() and not release_scheduled.is_set() and not done.cancelled():
-                try:
-                    if done.result():
-                        release_scheduled.set()
-                        _LOCK_EXECUTOR.submit(lock.release)
-                except Exception:
-                    pass
+            if not done.done() or done.cancelled():
+                return
+            try:
+                acquired = done.result()
+            except Exception:
+                return
+            if not acquired:
+                return
+            with cancellation_lock:
+                if not cancellation_state["cancelled"] or cancellation_state["release_scheduled"]:
+                    return
+                cancellation_state["release_scheduled"] = True
+            _LOCK_EXECUTOR.submit(lock.release)
 
         attempt.add_done_callback(release_if_cancelled)
         try:
             acquired = await asyncio.shield(asyncio.wrap_future(attempt))
         except asyncio.CancelledError:
-            cancelled.set()
-            release_if_cancelled(attempt)
+            with cancellation_lock:
+                cancellation_state["cancelled"] = True
+            if attempt.done():
+                release_if_cancelled(attempt)
             raise
         if acquired:
             return
-        await asyncio.sleep(delay * (0.75 + _BACKOFF_RANDOM() * 0.5))
-        delay = min(delay * 2, 0.05)
+        await asyncio.sleep(min(
+            delay * (0.75 + _BACKOFF_RANDOM() * 0.5), _LOCK_BACKOFF_CAP_SECONDS
+        ))
+        delay = min(delay * 2, _LOCK_BACKOFF_CAP_SECONDS)
 
 
 def _schedule_release(lease: _LockLease) -> None:

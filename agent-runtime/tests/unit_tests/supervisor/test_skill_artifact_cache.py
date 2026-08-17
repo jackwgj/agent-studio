@@ -1,7 +1,7 @@
 """Security regression tests for the conversation skill artifact cache."""
 
 import asyncio
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import Future, ThreadPoolExecutor
 from concurrent.futures import ThreadPoolExecutor as DefaultThreadPoolExecutor
 import io
 from multiprocessing import get_context
@@ -277,11 +277,64 @@ async def test_cancelled_acquire_releases_a_late_success_without_second_await():
     task = asyncio.create_task(skill_artifact_cache_module._acquire_lock(LateLock()))
     await asyncio.sleep(0)
     task.cancel()
+    unblock_executor.set()
     task.cancel()
     with pytest.raises(asyncio.CancelledError):
         await task
-    unblock_executor.set()
+    heartbeat = asyncio.Event()
+    asyncio.get_running_loop().call_soon(heartbeat.set)
+    await asyncio.wait_for(heartbeat.wait(), timeout=0.1)
     assert await asyncio.to_thread(released.wait, 1)
+
+
+@pytest.mark.asyncio
+async def test_cancelled_acquire_never_reads_a_pending_attempt_result(monkeypatch):
+    """Completion callback, not a cancelling task, owns a late lock result."""
+    released = 0
+
+    class CountingFuture(Future):
+        result_calls = 0
+
+        def result(self, *args, **kwargs):
+            self.result_calls += 1
+            return super().result(*args, **kwargs)
+
+    class LateLock:
+        def try_acquire(self):
+            return True
+
+        def release(self):
+            nonlocal released
+            released += 1
+
+    class ControlledExecutor:
+        def __init__(self, attempt):
+            self.attempt = attempt
+            self.calls = 0
+
+        def submit(self, function, *args):
+            self.calls += 1
+            if self.calls == 1:
+                return self.attempt
+            completed = Future()
+            try:
+                completed.set_result(function(*args))
+            except BaseException as error:  # pragma: no cover - test helper
+                completed.set_exception(error)
+            return completed
+
+    attempt = CountingFuture()
+    monkeypatch.setattr(skill_artifact_cache_module, "_LOCK_EXECUTOR", ControlledExecutor(attempt))
+    task = asyncio.create_task(skill_artifact_cache_module._acquire_lock(LateLock()))
+    await asyncio.sleep(0)
+    task.cancel()
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+    assert attempt.result_calls == 0
+
+    attempt.set_result(True)
+    assert released == 1
 
 
 @pytest.mark.asyncio
@@ -398,6 +451,31 @@ async def test_lock_backoff_uses_injectable_bounded_jitter(monkeypatch):
     await skill_artifact_cache_module._acquire_lock(EventuallyAvailableLock())
 
     assert delays == [pytest.approx(0.00625)]
+
+
+@pytest.mark.asyncio
+async def test_lock_backoff_jitter_never_exceeds_the_declared_cap(monkeypatch):
+    class EventuallyAvailableLock:
+        attempts = 0
+
+        def try_acquire(self):
+            self.attempts += 1
+            return self.attempts == 6
+
+        def release(self):
+            pass
+
+    delays = []
+
+    async def record_sleep(delay):
+        delays.append(delay)
+
+    monkeypatch.setattr(skill_artifact_cache_module, "_BACKOFF_RANDOM", lambda: 1.0)
+    monkeypatch.setattr(asyncio, "sleep", record_sleep)
+    await skill_artifact_cache_module._acquire_lock(EventuallyAvailableLock())
+
+    assert len(delays) == 5
+    assert max(delays) <= 0.05
 
 
 @pytest.mark.asyncio
