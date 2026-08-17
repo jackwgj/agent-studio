@@ -1,48 +1,8 @@
 <div class="conversation-workspace">
-  <!-- 左侧会话历史栏 -->
-  <div class="session-sidebar">
-    <div class="sidebar-header">
-      <span class="sidebar-title">会话</span>
-      <button nz-button nzType="primary" nzSize="small" (click)="newSession()">新建会话</button>
-    </div>
-    <div class="session-list">
-      <div
-        *ngFor="let session of sessions"
-        class="session-item"
-        [class.active]="currentSession?.conversation_id === session.conversation_id"
-        (click)="selectSession(session)"
-      >
-        <div class="session-info">
-          <div class="session-title">{{ session.title }}</div>
-          <div class="session-time">{{ session.updated_at || '' }}</div>
-        </div>
-        <span
-          class="session-delete"
-          title="删除"
-          (click)="deleteSession(session, $event)"
-        >×</span>
-      </div>
-      <div *ngIf="!sessions.length" class="session-empty">暂无会话，点击"新建会话"开始</div>
-    </div>
-  </div>
-
-  <!-- 右侧聊天区 -->
+  <!-- 聊天区（居中卡片） -->
   <div class="chat-area">
     <div class="chat-header">
-      <span>{{ currentSession?.title || '对话式工作台' }}</span>
-      <nz-select
-        *ngIf="modelOptions.length"
-        class="model-select"
-        nzPlaceHolder="选择模型"
-        [(ngModel)]="selectedModel"
-        nzSize="small"
-      >
-        <nz-option
-          *ngFor="let model of modelOptions"
-          [nzValue]="model.deployment_id"
-          [nzLabel]="model.label"
-        ></nz-option>
-      </nz-select>
+      <span>{{ currentSession?.title || '任务空间' }}</span>
     </div>
 
     <div class="message-list" #messageList>
@@ -65,23 +25,78 @@
       </div>
     </div>
 
-    <div class="chat-input-area">
+    <div class="chat-composer">
       <textarea
         nz-input
-        class="chat-input"
+        class="composer-input"
+        cdkTextareaAutosize
+        cdkAutosizeMinRows="1"
+        cdkAutosizeMaxRows="6"
         placeholder="输入消息，Enter 发送，Shift+Enter 换行"
         [(ngModel)]="inputText"
         (keydown)="onKeydown($event)"
       ></textarea>
-      <button
-        nz-button
-        nzType="primary"
-        [nzLoading]="streaming"
-        [disabled]="!inputText.trim() || streaming"
-        (click)="send()"
-      >
-        发送
-      </button>
+
+      <div class="composer-toolbar">
+        <div class="composer-tools">
+          <button
+            nz-button
+            class="tool-btn"
+            disabled
+            nz-tooltip
+            nzTooltipTitle="上传（暂未开放）"
+          >
+            <nz-icon nzType="upload" nzTheme="outline"></nz-icon>
+          </button>
+          <button
+            nz-button
+            class="tool-btn"
+            disabled
+            nz-tooltip
+            nzTooltipTitle="语音（暂未开放）"
+          >
+            <nz-icon nzType="audio" nzTheme="outline"></nz-icon>
+          </button>
+          <button
+            nz-button
+            class="tool-btn"
+            disabled
+            nz-tooltip
+            nzTooltipTitle="Token 用量（暂未开放）"
+          >
+            <nz-icon nzType="number" nzTheme="outline"></nz-icon>
+          </button>
+        </div>
+
+        <div class="composer-actions">
+          <nz-select
+            *ngIf="modelOptions.length"
+            class="model-pill"
+            nzPlaceHolder="选择模型"
+            [(ngModel)]="selectedModel"
+            nzSize="small"
+          >
+            <nz-option
+              *ngFor="let model of modelOptions"
+              [nzValue]="model.deployment_id"
+              [nzLabel]="model.label"
+            ></nz-option>
+          </nz-select>
+          <span *ngIf="!modelOptions.length" class="model-empty">暂无可用模型</span>
+
+          <button
+            nz-button
+            nzType="primary"
+            nzShape="circle"
+            class="send-btn"
+            [nzLoading]="streaming"
+            [disabled]="!inputText.trim() || streaming || !selectedModel"
+            (click)="send()"
+          >
+            <nz-icon nzType="send" nzTheme="outline"></nz-icon>
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </div>

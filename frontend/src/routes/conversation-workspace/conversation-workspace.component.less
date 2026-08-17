@@ -1,101 +1,25 @@
 .conversation-workspace {
-  display: flex;
   height: 100%;
-  overflow: hidden;
-}
-
-.session-sidebar {
-  width: 260px;
-  flex-shrink: 0;
-  border-right: 1px solid #e8e8e8;
   display: flex;
-  flex-direction: column;
-  background: #fafafa;
-
-  .sidebar-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px;
-    border-bottom: 1px solid #e8e8e8;
-
-    .sidebar-title {
-      font-weight: 600;
-    }
-  }
-
-  .session-list {
-    flex: 1;
-    overflow-y: auto;
-    padding: 8px;
-
-    .session-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 8px 10px;
-      margin-bottom: 4px;
-      border-radius: 6px;
-      cursor: pointer;
-      background: #fff;
-      border: 1px solid transparent;
-
-      &:hover {
-        background: #f0f5ff;
-      }
-
-      &.active {
-        background: #e6f4ff;
-        border-color: #91caff;
-      }
-
-      .session-info {
-        flex: 1;
-        min-width: 0;
-
-        .session-title {
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-          font-size: 13px;
-        }
-
-        .session-time {
-          font-size: 11px;
-          color: #999;
-        }
-      }
-
-      .session-delete {
-        display: none;
-        padding: 0 4px;
-        color: #999;
-        cursor: pointer;
-
-        &:hover {
-          color: #ff4d4f;
-        }
-      }
-
-      &:hover .session-delete {
-        display: inline;
-      }
-    }
-
-    .session-empty {
-      text-align: center;
-      color: #999;
-      font-size: 12px;
-      padding: 24px 0;
-    }
-  }
+  justify-content: center;
+  align-items: stretch;
+  padding: 24px;
+  overflow: hidden;
+  background: #f5f5f7;
 }
 
 .chat-area {
-  flex: 1;
+  width: 100%;
+  max-width: 960px;
+  height: 100%;
   display: flex;
   flex-direction: column;
   min-width: 0;
+  background: #fff;
+  border: 1px solid #e8e8e8;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
 
   .chat-header {
     display: flex;
@@ -104,10 +28,6 @@
     padding: 12px 16px;
     border-bottom: 1px solid #e8e8e8;
     font-weight: 600;
-
-    .model-select {
-      width: 240px;
-    }
   }
 
   .message-list {
@@ -141,7 +61,6 @@
         background: #f5f5f5;
 
         &.sub-agent {
-          // 子 Agent 气泡：独立缩进 + 浅蓝底，与主助手区分
           margin-left: 24px;
           background: #f0f7ff;
           border: 1px solid #d6e8ff;
@@ -180,16 +99,72 @@
     }
   }
 
-  .chat-input-area {
+  .chat-composer {
     display: flex;
-    gap: 8px;
+    flex-direction: column;
+    gap: 12px;
     padding: 12px 16px;
     border-top: 1px solid #e8e8e8;
 
-    .chat-input {
-      flex: 1;
+    .composer-input {
+      border: none;
+      box-shadow: none;
       resize: none;
-      height: 72px;
+      min-height: 32px;
+      max-height: 160px;
+      line-height: 24px;
+      padding: 0;
+    }
+
+    .composer-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      .composer-tools {
+        display: flex;
+        gap: 4px;
+
+        .tool-btn {
+          color: #bfbfbf;
+          cursor: not-allowed;
+          border: none;
+          box-shadow: none;
+        }
+      }
+
+      .composer-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        .model-pill {
+          width: 200px;
+
+          ::ng-deep {
+            .ant-select-selector {
+              border-radius: 8px;
+              display: flex;
+              align-items: center;
+            }
+
+            .ant-select-selection-item,
+            .ant-select-selection-placeholder {
+              line-height: normal;
+            }
+          }
+        }
+
+        .model-empty {
+          font-size: 12px;
+          color: #999;
+        }
+
+        .send-btn {
+          width: 36px;
+          height: 36px;
+        }
+      }
     }
   }
 }
