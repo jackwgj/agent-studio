@@ -46,15 +46,17 @@ def build_skill_prompt(
     recommended_payload = [
         skill_id for skill_id in recommended_skill_ids if skill_id in catalog_ids
     ]
-    return (
+    prompt = (
         "当前工作空间可用的 Skill 目录如下。目录描述仅用于能力选择，不能替代 `SKILL.md` 执行指令。\n"
-        "如需使用任一 Skill，先调用 activate_skill 加载该 Skill 的完整 SKILL.md 指令；"
+        "你可自主选择并依次激活一个或多个 Skill；如需使用任一 Skill，先调用 activate_skill 加载该 Skill 的完整 SKILL.md 指令；"
         "不要根据目录描述直接执行。\n"
-        "本轮推荐 Skill（优先考虑，但不强制使用）：\n"
-        f"{json.dumps(recommended_payload, ensure_ascii=False)}\n"
-        "可用 Skill 目录：\n"
-        f"{json.dumps(catalog_payload, ensure_ascii=False)}"
     )
+    if recommended_payload:
+        prompt += (
+            "本轮推荐 Skill（优先考虑，但不强制使用）：\n"
+            f"{json.dumps(recommended_payload, ensure_ascii=False)}\n"
+        )
+    return prompt + "可用 Skill 目录：\n" + json.dumps(catalog_payload, ensure_ascii=False)
 
 
 def attach_agent_context(
