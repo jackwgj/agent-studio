@@ -4,13 +4,16 @@ import {
   OnInit,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
+  ViewChild,
 } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { TextFieldModule } from '@angular/cdk/text-field';
 import { Subscription } from 'rxjs';
 import { COMMON_MODULES, LIB_MODULES } from '@shared/modules';
 import { ModelManagementService } from '@services/repositories/model-management-new';
+import { HttpService } from '@services/http.service';
+import { ConversationSendRequest, ConversationSkillItem } from './conversation-skill.model';
 import { ConversationWorkspaceService, SessionItem } from './conversation-workspace.service';
+import { SkillSelectorComponent } from './skill-selector/skill-selector.component';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -25,12 +28,18 @@ interface ChatMessage {
   isSubAgent?: boolean;
 }
 
+interface ActivatedSkill {
+  skillId: string;
+  name: string;
+  versionId: string;
+}
+
 @Component({
   selector: 'app-conversation-workspace',
   templateUrl: './conversation-workspace.component.html',
   styleUrls: ['./conversation-workspace.component.less'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [COMMON_MODULES, LIB_MODULES, TextFieldModule],
+  imports: [COMMON_MODULES, LIB_MODULES, SkillSelectorComponent],
   standalone: true,
 })
 export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
@@ -40,27 +49,55 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
   streaming = false;
   selectedModel = '';
   modelOptions: any[] = [];
+  skillCatalog: ConversationSkillItem[] = [];
+  skillCatalogUnavailable = false;
+  recommendedSkills: ConversationSkillItem[] = [];
+  activatedSkills: ActivatedSkill[] = [];
+  @ViewChild(SkillSelectorComponent) private skillSelector?: SkillSelectorComponent;
   private sseInstance: any = null;
   private modelAbortController: AbortController | null = null;
   private subscriptions = new Subscription();
+  private workspaceId = '';
+  private readonly workspaceChangeHandler = () => this.handleWorkspaceChange();
 
   constructor(
     private conversationWorkspaceService: ConversationWorkspaceService,
     private modelManagementService: ModelManagementService,
     private route: ActivatedRoute,
     private cdr: ChangeDetectorRef,
+    private http: HttpService,
   ) {}
 
   ngOnInit(): void {
+    this.workspaceId = this.http.getWorkspaceId();
+    this.loadSkillCatalog();
+    window.addEventListener('WorkspaceChange', this.workspaceChangeHandler);
     this.loadModels();
     this.subscribeToRoute();
     this.subscribeToActiveSession();
+  }
+
+  /** Skill 目录失败不影响普通对话。 */
+  private loadSkillCatalog(): void {
+    this.conversationWorkspaceService
+      .listSkills()
+      .then((skills) => {
+        this.skillCatalog = skills;
+        this.skillCatalogUnavailable = false;
+        this.cdr.markForCheck();
+      })
+      .catch(() => {
+        this.skillCatalog = [];
+        this.skillCatalogUnavailable = true;
+        this.cdr.markForCheck();
+      });
   }
 
   ngOnDestroy(): void {
     this.sseInstance?.close?.();
     this.modelAbortController?.abort();
     this.subscriptions.unsubscribe();
+    window.removeEventListener('WorkspaceChange', this.workspaceChangeHandler);
   }
 
   /** 模型列表（复用平台 getAvailableModelList） */
@@ -113,6 +150,10 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
   private subscribeToActiveSession(): void {
     this.subscriptions.add(
       this.conversationWorkspaceService.activeSession$.subscribe((session) => {
+        this.syncWorkspaceFromActiveSession();
+        if (!this.streaming) {
+          this.clearSkillRoundState();
+        }
         this.currentSession = session;
         const id = session?.conversation_id;
         if (!id) {
@@ -154,7 +195,9 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
 
   /** 发送消息（多轮对话入口；草稿先落库，仅首次真正交互才创建会话） */
   public send(): void {
-    const query = this.inputText.trim();
+    const inputSnapshot = this.inputText;
+    const query = inputSnapshot.trim();
+    const recommendationSnapshot = [...this.recommendedSkills];
     if (!query || this.streaming || !this.selectedModel) {
       return;
     }
@@ -163,13 +206,13 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
         .createSession({ title: this.currentSession?.title ?? '' })
         .then((session) => {
           this.currentSession = session;
-          this.doRun(query);
+          this.doRun(query, inputSnapshot, recommendationSnapshot);
           this.conversationWorkspaceService.setActiveSession(session);
           this.conversationWorkspaceService.refreshSessions();
         });
       return;
     }
-    this.doRun(query);
+    this.doRun(query, inputSnapshot, recommendationSnapshot);
   }
 
   /** Enter 发送（Shift+Enter 换行） */
@@ -181,12 +224,17 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
     this.send();
   }
 
-  private doRun(query: string): void {
-    this.inputText = '';
+  private doRun(
+    query: string,
+    inputSnapshot: string,
+    recommendationSnapshot: ConversationSkillItem[],
+  ): void {
+    this.activatedSkills = [];
     this.messages.push({ role: 'user', content: query });
     const assistantMsg: ChatMessage = { role: 'assistant', content: '', loading: true };
     this.messages.push(assistantMsg);
     this.streaming = true;
+    let streamOpened = false;
     this.cdr.markForCheck();
 
     this.sseInstance = this.conversationWorkspaceService.chatSSE(
@@ -194,8 +242,16 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
       {
         query,
         model_deployment_id: this.selectedModel,
-      },
+        recommended_skill_ids: recommendationSnapshot.map((item) => item.skillId),
+      } as ConversationSendRequest,
       {
+        onOpen: () => {
+          streamOpened = true;
+          this.inputText = '';
+          this.recommendedSkills = [];
+          this.skillSelector?.clearRecommendations();
+          this.cdr.markForCheck();
+        },
         onMessage: (token: any) => this.handleMessage(token, assistantMsg),
         onDone: () => {
           assistantMsg.loading = false;
@@ -204,19 +260,30 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
           this.cdr.markForCheck();
         },
         onError: () => {
-          assistantMsg.loading = false;
-          assistantMsg.error = true;
-          this.streaming = false;
-          this.cdr.markForCheck();
+          this.handleRunFailure(assistantMsg, streamOpened, inputSnapshot, recommendationSnapshot);
         },
         onTimeout: () => {
-          assistantMsg.loading = false;
-          assistantMsg.error = true;
-          this.streaming = false;
-          this.cdr.markForCheck();
+          this.handleRunFailure(assistantMsg, streamOpened, inputSnapshot, recommendationSnapshot);
         },
       },
     );
+  }
+
+  private handleRunFailure(
+    assistantMsg: ChatMessage,
+    streamOpened: boolean,
+    inputSnapshot: string,
+    recommendationSnapshot: ConversationSkillItem[],
+  ): void {
+    assistantMsg.loading = false;
+    assistantMsg.error = true;
+    this.streaming = false;
+    if (!streamOpened) {
+      this.inputText = inputSnapshot;
+      this.recommendedSkills = recommendationSnapshot;
+      this.loadSkillCatalog();
+    }
+    this.cdr.markForCheck();
   }
 
   /**
@@ -284,6 +351,12 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
           assistantMsg.loading = false;
           break;
         }
+        case 'skill_activated': {
+          if (!this.activatedSkills.some((item) => item.skillId === d.skillId && item.versionId === d.versionId)) {
+            this.activatedSkills.push({ skillId: d.skillId, name: d.name, versionId: d.versionId });
+          }
+          break;
+        }
         default:
           // user_message/run_start/reasoning/usage/tool_result 忽略（reasoning 可选展示，MVP 不展示）
           break;
@@ -297,6 +370,29 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
   /** 按 sub_execution_id 查找子 Agent 气泡 */
   private findSubBubble(subExecutionId: string): ChatMessage | undefined {
     return this.messages.find((m) => m.subExecutionId === subExecutionId);
+  }
+
+  private clearSkillRoundState(): void {
+    this.recommendedSkills = [];
+    this.activatedSkills = [];
+    this.skillSelector?.clearRecommendations();
+  }
+
+  private handleWorkspaceChange(): void {
+    this.workspaceId = this.http.getWorkspaceId();
+    this.clearSkillRoundState();
+    this.loadSkillCatalog();
+    this.cdr.markForCheck();
+  }
+
+  private syncWorkspaceFromActiveSession(): void {
+    const workspaceId = this.http.getWorkspaceId();
+    if (workspaceId === this.workspaceId) {
+      return;
+    }
+    this.workspaceId = workspaceId;
+    this.clearSkillRoundState();
+    this.loadSkillCatalog();
   }
 
   /** 气泡角色标签：我 / 助手 / 子Agent·{agentId前8位} */
