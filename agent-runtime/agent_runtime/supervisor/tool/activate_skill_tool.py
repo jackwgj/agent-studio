@@ -1,0 +1,76 @@
+"""Stateless tool that activates a cataloged workspace Skill on demand."""
+
+from openjiuwen.core.foundation.tool import Tool, ToolCard
+
+from agent_runtime.supervisor.event.adapt import build_skill_activated
+from agent_runtime.supervisor.event.channel import get_channel
+from agent_runtime.supervisor.skill_artifact_cache import SkillArtifactError
+from agent_runtime.supervisor.skill_context import get_skill_context
+
+
+class ActivateSkillTool(Tool):
+    """Load only the selected Skill's instructions from the bound request catalog."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            card=ToolCard(
+                id="conversation_activate_skill",
+                name="activate_skill",
+                description="按 Skill ID 加载当前工作空间 Skill 的完整 SKILL.md 指令",
+                input_params={
+                    "type": "object",
+                    "properties": {
+                        "skill_id": {"type": "string", "description": "目录中的 Skill ID"}
+                    },
+                    "required": ["skill_id"],
+                },
+            )
+        )
+
+    async def invoke(self, inputs, **kwargs):
+        skill_id = inputs.get("skill_id") if isinstance(inputs, dict) else getattr(inputs, "skill_id", None)
+        context = get_skill_context()
+        if context is None:
+            return self._error("skill_context_unavailable", "Skill activation is unavailable in this execution.")
+        if not isinstance(skill_id, str) or skill_id not in context.catalog_by_id:
+            return self._error("skill_not_available", "The requested Skill is not available in this catalog.")
+
+        skill = context.catalog_by_id[skill_id]
+        try:
+            instructions = await context.artifact_cache.load_instructions(skill)
+        except SkillArtifactError as error:
+            if "SKILL.md" in str(error):
+                return self._error(
+                    "skill_instructions_missing",
+                    f"Skill {skill.skill_id} activation failed: SKILL.md is missing.",
+                )
+            return self._error(
+                "skill_artifact_invalid",
+                f"Skill {skill.skill_id} activation failed: archive rejected.",
+            )
+        except Exception:
+            return self._error(
+                "skill_download_failed",
+                f"Skill {skill.skill_id} activation failed: artifact download failed.",
+            )
+
+        channel = get_channel()
+        if channel is not None:
+            await channel.emit(
+                build_skill_activated(
+                    channel.execution_id, skill.skill_id, skill.name, skill.version_id
+                )
+            )
+        return {
+            "skillId": skill.skill_id,
+            "name": skill.name,
+            "versionId": skill.version_id,
+            "instructions": instructions,
+        }
+
+    async def stream(self, inputs, **kwargs):
+        yield await self.invoke(inputs, **kwargs)
+
+    @staticmethod
+    def _error(code: str, message: str) -> dict:
+        return {"error": {"code": code, "message": message}}
