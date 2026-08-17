@@ -11,7 +11,7 @@ import { SkillSelectorComponent } from './skill-selector.component';
       [skills]="skills"
       [value]="value"
       [disabled]="disabled"
-      (valueChange)="value = $event"
+      (valueChange)="value = $event; valueChanges.push($event)"
       (selectedSkillsChange)="selectedChanges.push($event)"
       (sendRequested)="sendCount = sendCount + 1"
     />
@@ -22,6 +22,7 @@ class SkillSelectorHostComponent {
   value = '';
   disabled = false;
   sendCount = 0;
+  valueChanges: string[] = [];
   selectedChanges: ConversationSkillItem[][] = [];
 }
 
@@ -123,6 +124,38 @@ describe('SkillSelectorComponent', () => {
 
     textarea.dispatchEvent(new CompositionEvent('compositionend', { bubbles: true, data: '会' }));
     fixture.detectChanges();
+    expect(menu()).not.toBeNull();
+  });
+
+  it('IME 在 compositionend 前的最终 input 只为同一真实值发射一次', () => {
+    host.skills = [skill('s1', '会议')];
+    fixture.detectChanges();
+    const textarea = input();
+
+    textarea.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
+    textarea.value = '/会';
+    textarea.setSelectionRange(2, 2);
+    textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    textarea.dispatchEvent(new CompositionEvent('compositionend', { bubbles: true }));
+    fixture.detectChanges();
+
+    expect(host.valueChanges).toEqual(['/会']);
+    expect(menu()).not.toBeNull();
+  });
+
+  it('IME 在 compositionend 后的最终 input 只为同一真实值发射一次', () => {
+    host.skills = [skill('s1', '会议')];
+    fixture.detectChanges();
+    const textarea = input();
+
+    textarea.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
+    textarea.value = '/会';
+    textarea.setSelectionRange(2, 2);
+    textarea.dispatchEvent(new CompositionEvent('compositionend', { bubbles: true }));
+    textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    fixture.detectChanges();
+
+    expect(host.valueChanges).toEqual(['/会']);
     expect(menu()).not.toBeNull();
   });
 
@@ -234,6 +267,22 @@ describe('SkillSelectorComponent', () => {
     expect(menu()!.textContent).toContain('没有匹配的技能');
     keydown('Enter');
     expect(host.sendCount).toBe(1);
+  });
+
+  it('命令式 setSkills 和 clearRecommendations 在 OnPush 组件中标记模板更新', () => {
+    inputText('/');
+    expect(menuOptions()).toEqual([]);
+
+    component.setSkills([skill('s1', 'meeting-minutes')]);
+    fixture.detectChanges();
+    expect(menuOptions().map((option) => option.textContent?.trim())).toEqual(['meeting-minutesdescription-meeting-minutes']);
+
+    click(menuOptions()[0]);
+    fixture.detectChanges();
+    expect(chips().length).toBe(1);
+    component.clearRecommendations();
+    fixture.detectChanges();
+    expect(chips()).toEqual([]);
   });
 
   it('每个实例使用唯一且稳定的 menu 与 option ID，并保持 ARIA 关联', () => {
