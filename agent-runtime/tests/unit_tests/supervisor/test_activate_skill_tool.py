@@ -70,7 +70,6 @@ async def test_activate_rejects_id_outside_current_catalog():
 @pytest.mark.parametrize(("error", "code"), [
     (RuntimeError("storage unavailable"), "skill_download_failed"),
     (SkillArtifactError("invalid skill archive"), "skill_artifact_invalid"),
-    (SkillArtifactError("SKILL.md is missing"), "skill_instructions_missing"),
 ])
 async def test_activate_returns_stable_cache_failure_codes_without_storage_details(error, code):
     cache = AsyncMock()
@@ -99,7 +98,6 @@ def skill_archive(entries):
 @pytest.mark.parametrize("payload", [
     skill_archive({"s1/SKILL.md": b"\xff"}),
     skill_archive({"one/SKILL.md": b"one", "two/SKILL.md": b"two"}),
-    skill_archive({"s1/README.md": b"no instructions"}),
 ])
 async def test_activate_classifies_real_cache_utf8_or_structure_failures_as_invalid(tmp_path, payload):
     skill = descriptor("s1", "v1", "会议纪要", "整理会议")
@@ -115,6 +113,27 @@ async def test_activate_classifies_real_cache_utf8_or_structure_failures_as_inva
     assert result["error"] == {
         "code": "skill_artifact_invalid",
         "message": "Skill s1 activation failed: archive rejected.",
+    }
+
+
+@pytest.mark.asyncio
+async def test_activate_classifies_real_cache_missing_root_instructions_by_exception_type(tmp_path):
+    skill = descriptor("s1", "v1", "会议纪要", "整理会议")
+    cache = SkillArtifactCache(
+        tmp_path,
+        downloader=AsyncMock(return_value=skill_archive({"s1/README.md": b"no instructions"})),
+    )
+    agent = SimpleNamespace()
+    attach_agent_context(agent, [skill], [], cache)
+    token = bind_agent_skill_context(agent)
+    try:
+        result = await ActivateSkillTool().invoke({"skill_id": "s1"})
+    finally:
+        reset_skill_context(token)
+
+    assert result["error"] == {
+        "code": "skill_instructions_missing",
+        "message": "Skill s1 activation failed: SKILL.md is missing.",
     }
 
 
