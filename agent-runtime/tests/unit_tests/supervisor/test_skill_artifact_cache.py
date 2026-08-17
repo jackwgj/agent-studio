@@ -254,6 +254,34 @@ async def test_double_cancelling_waiter_does_not_unlock_owner(tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_cancelling_outer_task_keeps_lock_until_background_stage_finishes(tmp_path, monkeypatch):
+    entered_stage = threading.Event()
+    release_stage = threading.Event()
+    skill = descriptor("s1", "v1", "x", "u/skills/s1/v1/a.zip")
+    first = SkillArtifactCache(tmp_path, downloader=AsyncMock(return_value=skill_zip("x", "first")))
+    original_stage = first._stage_and_publish
+
+    def paused_stage(*args, **kwargs):
+        entered_stage.set()
+        release_stage.wait(timeout=2)
+        return original_stage(*args, **kwargs)
+
+    monkeypatch.setattr(first, "_stage_and_publish", paused_stage)
+    first_task = asyncio.create_task(first.load_instructions(skill))
+    await asyncio.to_thread(entered_stage.wait, 1)
+    first_task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await first_task
+
+    second_downloader = AsyncMock(return_value=skill_zip("x", "second"))
+    second_task = asyncio.create_task(SkillArtifactCache(tmp_path, downloader=second_downloader).load_instructions(skill))
+    await asyncio.sleep(0.03)
+    second_downloader.assert_not_awaited()
+    release_stage.set()
+    assert (await asyncio.wait_for(second_task, timeout=2)).endswith("first")
+
+
+@pytest.mark.asyncio
 async def test_new_version_uses_new_cache_entry(tmp_path):
     downloader = AsyncMock(side_effect=[skill_zip("x", "v1"), skill_zip("x", "v2")])
     cache = SkillArtifactCache(tmp_path, downloader=downloader)
