@@ -4,11 +4,11 @@ from openjiuwen.core.foundation.tool import Tool, ToolCard
 
 from agent_runtime.supervisor.event.adapt import build_skill_activated
 from agent_runtime.supervisor.event.channel import get_channel
-from agent_runtime.supervisor.skill_artifact_cache import SkillArtifactError
+from agent_runtime.supervisor.skill_artifact_cache import (
+    SkillArtifactError,
+    SkillInstructionsMissingError,
+)
 from agent_runtime.supervisor.skill_context import get_skill_context
-
-
-_EXPLICIT_MISSING_INSTRUCTIONS_ARGS = frozenset({("SKILL.md is missing",)})
 
 
 class ActivateSkillTool(Tool):
@@ -46,12 +46,12 @@ class ActivateSkillTool(Tool):
         skill = context.catalog_by_id[skill_id]
         try:
             instructions = await context.artifact_cache.load_instructions(skill)
-        except SkillArtifactError as error:
-            if error.args in _EXPLICIT_MISSING_INSTRUCTIONS_ARGS:
-                return self._error(
-                    "skill_instructions_missing",
-                    f"Skill {skill.skill_id} activation failed: SKILL.md is missing.",
-                )
+        except SkillInstructionsMissingError:
+            return self._error(
+                "skill_instructions_missing",
+                f"Skill {skill.skill_id} activation failed: SKILL.md is missing.",
+            )
+        except SkillArtifactError:
             return self._error(
                 "skill_artifact_invalid",
                 f"Skill {skill.skill_id} activation failed: archive rejected.",
