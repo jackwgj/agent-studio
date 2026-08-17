@@ -19,6 +19,7 @@ import agent_runtime.supervisor.skill_artifact_cache as skill_artifact_cache_mod
 from agent_runtime.supervisor.skill_artifact_cache import (
     SkillArtifactCache,
     SkillArtifactError,
+    SkillInstructionsMissingError,
 )
 from agent_runtime.supervisor.skill_model import SkillDescriptor
 
@@ -609,8 +610,39 @@ async def test_requires_a_root_skill_markdown(tmp_path):
         tmp_path, downloader=AsyncMock(return_value=zip_with("x/readme.md", b"body"))
     )
 
-    with pytest.raises(SkillArtifactError, match="exactly one root SKILL.md"):
+    with pytest.raises(SkillInstructionsMissingError):
         await cache.load_instructions(descriptor("s1", "v1", "x", "u/skills/s1/v1/a.zip"))
+
+
+@pytest.mark.asyncio
+async def test_unique_root_skill_markdown_is_not_a_missing_instruction_error(tmp_path):
+    cache = SkillArtifactCache(
+        tmp_path, downloader=AsyncMock(return_value=zip_with("x/SKILL.md", b"body"))
+    )
+
+    assert await cache.load_instructions(
+        descriptor("s1", "v1", "x", "u/skills/s1/v1/a.zip")
+    ) == "body"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "members",
+    [
+        [("x/SKILL.md", b"one"), ("y/SKILL.md", b"two")],
+        [("x/nested/SKILL.md", b"nested")],
+    ],
+)
+async def test_multiple_or_nested_skill_markdown_is_not_missing_error(tmp_path, members):
+    output = io.BytesIO()
+    with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as archive:
+        for name, body in members:
+            archive.writestr(name, body)
+    cache = SkillArtifactCache(tmp_path, downloader=AsyncMock(return_value=output.getvalue()))
+
+    with pytest.raises(SkillArtifactError) as raised:
+        await cache.load_instructions(descriptor("s1", "v1", "x", "u/skills/s1/v1/a.zip"))
+    assert not isinstance(raised.value, SkillInstructionsMissingError)
 
 
 @pytest.mark.asyncio

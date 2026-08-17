@@ -50,6 +50,10 @@ class SkillArtifactError(ValueError):
     """Raised when a skill artifact cannot safely enter the local cache."""
 
 
+class SkillInstructionsMissingError(SkillArtifactError):
+    """Raised only when an otherwise valid archive contains no SKILL.md at all."""
+
+
 Downloader = Callable[[str], Awaitable[bytes]]
 
 
@@ -304,6 +308,8 @@ class SkillArtifactCache:
             all_skills = sum(
                 not member.is_dir() and path.name == "SKILL.md" for member, path in validated_members
             )
+            if all_skills == 0:
+                raise SkillInstructionsMissingError("root SKILL.md is missing")
             if len(skill_members) != 1 or all_skills != 1:
                 raise SkillArtifactError("exactly one root SKILL.md is required")
 
