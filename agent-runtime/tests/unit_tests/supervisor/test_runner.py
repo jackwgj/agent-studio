@@ -354,3 +354,77 @@ async def test_repeated_consumer_cancellation_waits_for_child_before_reset(monke
 
     assert child_finished.is_set()
     assert reset_order == ["channel", "skill"]
+
+
+@pytest.mark.asyncio
+async def test_cancelling_close_task_escalates_to_child_and_propagates_without_manual_release(monkeypatch):
+    class EscalationAgent:
+        card = object()
+
+        async def stream(self, _inputs, _session):
+            yield object()
+            try:
+                await asyncio.Event().wait()
+            except asyncio.CancelledError:
+                first_cancel.set()
+                try:
+                    await asyncio.Event().wait()
+                except asyncio.CancelledError:
+                    second_cancel.set()
+                    raise
+            finally:
+                child_finished.set()
+
+    first_cancel = asyncio.Event()
+    second_cancel = asyncio.Event()
+    child_finished = asyncio.Event()
+    agent = EscalationAgent()
+    attach_agent_context(agent, [descriptor("s1", "v1")], [], SimpleNamespace())
+    monkeypatch.setattr(runner_module, "create_agent_session", lambda **_kwargs: object())
+    monkeypatch.setattr(runner_module, "adapt_stream_chunk", lambda *_args: [{"event": "message", "data": {}}])
+
+    async def consume_and_close():
+        stream = runner_module.run_supervisor(agent, "q", "c1", "e1")
+        await stream.__anext__()
+        await stream.aclose()
+
+    close_task = asyncio.create_task(consume_and_close())
+    await first_cancel.wait()
+    close_task.cancel()
+
+    with pytest.raises(asyncio.CancelledError):
+        await close_task
+
+    assert second_cancel.is_set()
+    assert child_finished.is_set()
+    assert get_channel() is None
+    assert get_skill_context() is None
+
+
+@pytest.mark.asyncio
+async def test_generator_close_propagates_child_base_exception_from_cancellation_cleanup(monkeypatch):
+    class CleanupFailure(BaseException):
+        pass
+
+    class FailingCleanupAgent:
+        card = object()
+
+        async def stream(self, _inputs, _session):
+            yield object()
+            try:
+                await asyncio.Event().wait()
+            except asyncio.CancelledError:
+                raise CleanupFailure("child cleanup failed")
+
+    agent = FailingCleanupAgent()
+    attach_agent_context(agent, [descriptor("s1", "v1")], [], SimpleNamespace())
+    monkeypatch.setattr(runner_module, "create_agent_session", lambda **_kwargs: object())
+    monkeypatch.setattr(runner_module, "adapt_stream_chunk", lambda *_args: [{"event": "message", "data": {}}])
+    stream = runner_module.run_supervisor(agent, "q", "c1", "e1")
+
+    await stream.__anext__()
+    with pytest.raises(CleanupFailure, match="child cleanup failed"):
+        await stream.aclose()
+
+    assert get_channel() is None
+    assert get_skill_context() is None
