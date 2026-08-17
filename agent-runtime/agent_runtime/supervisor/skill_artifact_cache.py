@@ -8,9 +8,9 @@ from pathlib import Path, PurePosixPath, PureWindowsPath
 import re
 import shutil
 import stat
+import struct
 import tempfile
 import threading
-import time
 import zipfile
 
 from agent_runtime.common.config import settings
@@ -32,8 +32,11 @@ _WINDOWS_RESERVED_NAMES = {
     *(f"LPT{number}" for number in range(1, 10)),
 }
 _WORKER_LIMIT = threading.BoundedSemaphore(2)
-_process_locks: dict[str, tuple[threading.Lock, int]] = {}
-_process_locks_guard = threading.Lock()
+_LOCK_STRIPES = 64
+_LOCAL_LOCK_STRIPES = [threading.Lock() for _ in range(_LOCK_STRIPES)]
+_LOCAL_HEADER = struct.Struct("<IHHHHHIIIHH")
+_LOCAL_HEADER_SIGNATURE = 0x04034B50
+_ALLOWED_ZIP_FLAGS = 0x02 | 0x04 | 0x08 | 0x800
 
 
 class SkillArtifactError(ValueError):
@@ -54,75 +57,84 @@ class _CacheFileLock:
     def __init__(self, root: Path, cache_key: str) -> None:
         self._root = root
         self._cache_key = cache_key
-        self._local_lock: threading.Lock | None = None
+        self._stripe = int(cache_key[:8], 16) % _LOCK_STRIPES
+        self._local_lock = _LOCAL_LOCK_STRIPES[self._stripe]
         self._file = None
         self._locked = False
 
-    def acquire(self) -> None:
-        with _process_locks_guard:
-            lock, references = _process_locks.get(self._cache_key, (threading.Lock(), 0))
-            _process_locks[self._cache_key] = (lock, references + 1)
-        self._local_lock = lock
+    def try_acquire(self) -> bool:
+        if not self._local_lock.acquire(blocking=False):
+            return False
         try:
-            lock.acquire()
-            lock_path = self._root.parent / f".{self._root.name}.{self._cache_key}.lock"
-            lock_path.parent.mkdir(parents=True, exist_ok=True)
-            self._file = lock_path.open("a+b")
-            self._file.seek(0, os.SEEK_END)
-            if self._file.tell() == 0:
-                self._file.write(b"0")
-                self._file.flush()
-            self._file.seek(0)
-            self._lock_file()
+            lock_dir = self._root / ".locks"
+            lock_dir.mkdir(parents=True, exist_ok=True)
+            lock_path = lock_dir / "skill-artifact.lock"
+            try:
+                with lock_path.open("xb") as initial_lock_file:
+                    initial_lock_file.write(b"\0" * _LOCK_STRIPES)
+                    initial_lock_file.flush()
+            except FileExistsError:
+                pass
+            self._file = lock_path.open("r+b")
+            if os.fstat(self._file.fileno()).st_size < _LOCK_STRIPES:
+                self._file.close()
+                self._file = None
+                self._local_lock.release()
+                return False
+            self._file.seek(self._stripe)
+            if not self._try_lock_file():
+                self._file.close()
+                self._file = None
+                self._local_lock.release()
+                return False
             self._locked = True
-        except Exception:
+            return True
+        except OSError:
             self.release()
-            raise
+            return False
 
     def release(self) -> None:
+        was_locked = self._locked
         try:
-            if self._file is not None and self._locked:
+            if self._file is not None and was_locked:
                 self._unlock_file()
             if self._file is not None:
                 self._file.close()
         finally:
             self._file = None
             self._locked = False
-            if self._local_lock is not None:
+            if was_locked:
                 self._local_lock.release()
-                with _process_locks_guard:
-                    lock, references = _process_locks[self._cache_key]
-                    if references == 1:
-                        del _process_locks[self._cache_key]
-                    else:
-                        _process_locks[self._cache_key] = (lock, references - 1)
-                self._local_lock = None
 
-    def _lock_file(self) -> None:
+    def _try_lock_file(self) -> bool:
         if os.name == "nt":
             import msvcrt
 
-            while True:
-                try:
-                    msvcrt.locking(self._file.fileno(), msvcrt.LK_NBLCK, 1)
-                    return
-                except PermissionError:
-                    time.sleep(0.05)
+            try:
+                msvcrt.locking(self._file.fileno(), msvcrt.LK_NBLCK, 1)
+                return True
+            except OSError:
+                return False
         else:
             import fcntl
 
-            fcntl.flock(self._file.fileno(), fcntl.LOCK_EX)
+            try:
+                fcntl.lockf(self._file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB, 1, self._stripe)
+                return True
+            except OSError:
+                return False
 
     def _unlock_file(self) -> None:
         if os.name == "nt":
             import msvcrt
 
             self._file.seek(0)
+            self._file.seek(self._stripe)
             msvcrt.locking(self._file.fileno(), msvcrt.LK_UNLCK, 1)
         else:
             import fcntl
 
-            fcntl.flock(self._file.fileno(), fcntl.LOCK_UN)
+            fcntl.lockf(self._file.fileno(), fcntl.LOCK_UN, 1, self._stripe)
 
 
 class SkillArtifactCache:
@@ -151,7 +163,7 @@ class SkillArtifactCache:
                 raise SkillArtifactError("archive too large")
             return await self._run_blocking(self._stage_and_publish, artifact, cache_dir)
         finally:
-            await _release_lock(lock)
+            lock.release()
 
     @staticmethod
     async def _run_blocking(function, *args):
@@ -217,7 +229,9 @@ class SkillArtifactCache:
             members = archive.infolist()
             if len(members) > MAX_ZIP_ENTRIES:
                 raise SkillArtifactError("too many zip entries")
-            validated_members = [(member, self._validate_member(member)) for member in members]
+            validated_members = [
+                (member, self._validate_member(member, artifact)) for member in members
+            ]
             skill_members = [
                 member for member, path in validated_members
                 if not member.is_dir() and path.name == "SKILL.md" and len(path.parts) == 2
@@ -271,8 +285,10 @@ class SkillArtifactCache:
             return instructions
 
     @staticmethod
-    def _validate_member(member: zipfile.ZipInfo) -> PurePosixPath:
+    def _validate_member(member: zipfile.ZipInfo, artifact: bytes) -> PurePosixPath:
         name = member.filename
+        if member.orig_filename != name:
+            raise SkillArtifactError("unsafe zip path")
         is_directory = member.is_dir()
         parts = _raw_posix_parts(name, allow_directory=is_directory, local_path=True)
         path = PurePosixPath(*parts)
@@ -289,7 +305,7 @@ class SkillArtifactCache:
             raise SkillArtifactError("unsafe zip member")
         if member.compress_type not in {zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED}:
             raise SkillArtifactError("unsupported zip compression")
-        if member.flag_bits & _FORBIDDEN_ZIP_FLAGS:
+        if member.flag_bits & ~_ALLOWED_ZIP_FLAGS:
             raise SkillArtifactError("unsafe zip flags")
         if member.file_size < 0 or member.file_size > MAX_FILE_BYTES:
             raise SkillArtifactError("uncompressed content too large")
@@ -301,7 +317,45 @@ class SkillArtifactCache:
             raise SkillArtifactError("zip compression ratio too high")
         if member.header_offset < 0:
             raise SkillArtifactError("invalid skill archive")
+        SkillArtifactCache._validate_local_header(member, artifact)
         return path
+
+    @staticmethod
+    def _validate_local_header(member: zipfile.ZipInfo, artifact: bytes) -> None:
+        offset = member.header_offset
+        if offset + _LOCAL_HEADER.size > len(artifact):
+            raise SkillArtifactError("invalid skill archive")
+        try:
+            (
+                signature,
+                _version,
+                flags,
+                compression,
+                _modified_time,
+                _modified_date,
+                _crc,
+                _compressed_size,
+                _uncompressed_size,
+                name_size,
+                extra_size,
+            ) = _LOCAL_HEADER.unpack_from(artifact, offset)
+        except struct.error as error:
+            raise SkillArtifactError("invalid skill archive") from error
+        end = offset + _LOCAL_HEADER.size + name_size + extra_size
+        if signature != _LOCAL_HEADER_SIGNATURE or end > len(artifact):
+            raise SkillArtifactError("invalid skill archive")
+        if flags != member.flag_bits or compression != member.compress_type:
+            raise SkillArtifactError("unsafe zip flags")
+        if flags & ~_ALLOWED_ZIP_FLAGS:
+            raise SkillArtifactError("unsafe zip flags")
+        encoding = "utf-8" if flags & 0x800 else "cp437"
+        try:
+            expected_name = member.orig_filename.encode(encoding)
+        except UnicodeEncodeError as error:
+            raise SkillArtifactError("unsafe zip path") from error
+        raw_name = artifact[offset + _LOCAL_HEADER.size : offset + _LOCAL_HEADER.size + name_size]
+        if raw_name != expected_name:
+            raise SkillArtifactError("unsafe zip path")
 
 
 def _run_limited(function, *args):
@@ -310,20 +364,9 @@ def _run_limited(function, *args):
 
 
 async def _acquire_lock(lock: _CacheFileLock) -> None:
-    """Acquire in a worker and release it even if the waiting task is cancelled."""
-    task = asyncio.create_task(asyncio.to_thread(lock.acquire))
-    try:
-        await asyncio.shield(task)
-    except BaseException:
-        try:
-            await asyncio.shield(task)
-        finally:
-            await _release_lock(lock)
-        raise
-
-
-async def _release_lock(lock: _CacheFileLock) -> None:
-    await asyncio.shield(asyncio.to_thread(lock.release))
+    """Poll non-blocking local and OS locks without consuming executor workers."""
+    while not lock.try_acquire():
+        await asyncio.sleep(0.01)
 
 
 def _raw_posix_parts(value: str, *, allow_directory: bool, local_path: bool) -> tuple[str, ...]:
@@ -347,7 +390,9 @@ def _raw_posix_parts(value: str, *, allow_directory: bool, local_path: bool) -> 
 
 
 def _is_windows_reserved_name(part: str) -> bool:
-    return part.rstrip(". ").split(".", 1)[0].upper() in _WINDOWS_RESERVED_NAMES
+    basename = part.rstrip(". ").split(".", 1)[0].rstrip(" ")
+    basename = basename.translate(str.maketrans({"¹": "1", "²": "2", "³": "3"}))
+    return basename.upper() in _WINDOWS_RESERVED_NAMES
 
 
 _default_cache: SkillArtifactCache | None = None
