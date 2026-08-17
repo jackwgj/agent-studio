@@ -2,6 +2,7 @@
 
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor as DefaultThreadPoolExecutor
 import io
 from multiprocessing import get_context
 import os
@@ -57,6 +58,33 @@ def set_zip_flags(payload: bytes, flags: int) -> bytes:
     return bytes(patched)
 
 
+def set_local_flags(payload: bytes, flags: int) -> bytes:
+    patched = bytearray(payload)
+    local_header = patched.index(b"PK\x03\x04")
+    patched[local_header + 6 : local_header + 8] = flags.to_bytes(2, "little")
+    return bytes(patched)
+
+
+def set_central_flags(payload: bytes, flags: int) -> bytes:
+    patched = bytearray(payload)
+    central_header = patched.index(b"PK\x01\x02")
+    patched[central_header + 8 : central_header + 10] = flags.to_bytes(2, "little")
+    return bytes(patched)
+
+
+def replace_raw_member_name(payload: bytes, replacement: bytes) -> bytes:
+    patched = bytearray(payload)
+    expected = b"x/SKILL.md"
+    assert len(replacement) == len(expected)
+    for signature, name_offset, name_length_offset in ((b"PK\x03\x04", 30, 26), (b"PK\x01\x02", 46, 28)):
+        index = patched.index(signature)
+        name_length = int.from_bytes(patched[index + name_length_offset : index + name_length_offset + 2], "little")
+        assert name_length == len(expected)
+        start = index + name_offset
+        patched[start : start + name_length] = replacement
+    return bytes(patched)
+
+
 def corrupt_first_member(payload: bytes) -> bytes:
     corrupted = bytearray(payload)
     central_header = corrupted.index(b"PK\x01\x02")
@@ -87,7 +115,7 @@ def overlap_second_member(payload: bytes) -> bytes:
     return bytes(patched)
 
 
-def _load_in_separate_process(root: str, counter, queue) -> None:
+def _load_in_separate_process(root: str, counter, ready, start, queue) -> None:
     async def downloader(_: str) -> bytes:
         with counter.get_lock():
             counter.value += 1
@@ -96,6 +124,9 @@ def _load_in_separate_process(root: str, counter, queue) -> None:
 
     try:
         skill = descriptor("s1", "v1", "x", "u/skills/s1/v1/a.zip")
+        with ready.get_lock():
+            ready.value += 1
+        start.wait(timeout=5)
         result = asyncio.run(SkillArtifactCache(root, downloader=downloader).load_instructions(skill))
         queue.put(("ok", result))
     except Exception as error:  # pragma: no cover - assertion is made in parent process
@@ -159,6 +190,70 @@ async def test_cancelling_a_waiting_lock_holder_does_not_leak_the_cache_lock(tmp
 
 
 @pytest.mark.asyncio
+async def test_lock_waiters_do_not_starve_default_executor(tmp_path):
+    entered = asyncio.Event()
+    release = asyncio.Event()
+    calls = 0
+    calls_lock = threading.Lock()
+    skill = descriptor("s1", "v1", "x", "u/skills/s1/v1/a.zip")
+
+    async def downloader(_: str) -> bytes:
+        nonlocal calls
+        with calls_lock:
+            calls += 1
+        entered.set()
+        await release.wait()
+        return skill_zip("x", "executor-safe")
+
+    loop = asyncio.get_running_loop()
+    previous_executor = loop._default_executor
+    executor = DefaultThreadPoolExecutor(max_workers=2)
+    loop.set_default_executor(executor)
+    try:
+        owner = asyncio.create_task(SkillArtifactCache(tmp_path, downloader=downloader).load_instructions(skill))
+        await entered.wait()
+        waiters = [
+            asyncio.create_task(SkillArtifactCache(tmp_path, downloader=downloader).load_instructions(skill))
+            for _ in range(3)
+        ]
+        await asyncio.sleep(0.03)
+        release.set()
+        results = await asyncio.wait_for(asyncio.gather(owner, *waiters), timeout=2)
+    finally:
+        loop.set_default_executor(previous_executor)
+        executor.shutdown(wait=True)
+
+    assert len(set(results)) == 1
+    assert calls == 1
+
+
+@pytest.mark.asyncio
+async def test_double_cancelling_waiter_does_not_unlock_owner(tmp_path):
+    entered = asyncio.Event()
+    release = asyncio.Event()
+    skill = descriptor("s1", "v1", "x", "u/skills/s1/v1/a.zip")
+
+    async def owner_downloader(_: str) -> bytes:
+        entered.set()
+        await release.wait()
+        return skill_zip("x", "owner")
+
+    owner = asyncio.create_task(SkillArtifactCache(tmp_path, downloader=owner_downloader).load_instructions(skill))
+    await entered.wait()
+    waiter_downloader = AsyncMock(return_value=skill_zip("x", "waiter"))
+    waiter = asyncio.create_task(SkillArtifactCache(tmp_path, downloader=waiter_downloader).load_instructions(skill))
+    await asyncio.sleep(0.02)
+    waiter.cancel()
+    waiter.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await waiter
+    waiter_downloader.assert_not_awaited()
+    release.set()
+    assert (await owner).endswith("owner")
+    assert (await SkillArtifactCache(tmp_path, downloader=waiter_downloader).load_instructions(skill)).endswith("owner")
+
+
+@pytest.mark.asyncio
 async def test_new_version_uses_new_cache_entry(tmp_path):
     downloader = AsyncMock(side_effect=[skill_zip("x", "v1"), skill_zip("x", "v2")])
     cache = SkillArtifactCache(tmp_path, downloader=downloader)
@@ -170,7 +265,7 @@ async def test_new_version_uses_new_cache_entry(tmp_path):
         descriptor("s1", "v2", "x", "u/skills/s1/v2/a.zip")
     )
     assert first != second
-    assert len(list(tmp_path.iterdir())) == 2
+    assert len([path for path in tmp_path.iterdir() if path.name != ".locks"]) == 2
 
 
 @pytest.mark.asyncio
@@ -327,7 +422,7 @@ async def test_failed_download_does_not_publish_or_poison_cache(tmp_path):
         await cache.load_instructions(skill)
 
     assert (await cache.load_instructions(skill)).endswith("recovered")
-    assert list(tmp_path.iterdir()) == [tmp_path / skill.cache_key]
+    assert [path for path in tmp_path.iterdir() if path.name != ".locks"] == [tmp_path / skill.cache_key]
     assert downloader.await_count == 2
 
 
@@ -381,19 +476,26 @@ def test_threaded_cache_instances_download_and_publish_once(tmp_path, monkeypatc
     assert results[0] == results[1]
     assert downloader.calls == 1
     assert replace_calls == 1
-    assert not skill_artifact_cache_module._process_locks
+    assert len(skill_artifact_cache_module._LOCAL_LOCK_STRIPES) == skill_artifact_cache_module._LOCK_STRIPES
 
 
 def test_process_cache_instances_download_once(tmp_path):
     context = get_context("spawn")
     counter = context.Value("i", 0)
+    ready = context.Value("i", 0)
+    start = context.Event()
     queue = context.Queue()
     processes = [
-        context.Process(target=_load_in_separate_process, args=(str(tmp_path), counter, queue))
+        context.Process(target=_load_in_separate_process, args=(str(tmp_path), counter, ready, start, queue))
         for _ in range(2)
     ]
     for process in processes:
         process.start()
+    deadline = time.monotonic() + 5
+    while ready.value != len(processes) and time.monotonic() < deadline:
+        time.sleep(0.01)
+    assert ready.value == len(processes)
+    start.set()
     for process in processes:
         process.join(timeout=10)
 
@@ -441,6 +543,39 @@ async def test_rejects_encrypted_strong_or_patched_zip_members(tmp_path, flags):
     )
 
     with pytest.raises(SkillArtifactError, match="unsafe zip flags"):
+        await cache.load_instructions(descriptor("s1", "v1", "x", "u/skills/s1/v1/a.zip"))
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("payload", [
+    set_local_flags(skill_zip("x", "body"), 0x01),
+    set_local_flags(skill_zip("x", "body"), 0x20),
+    set_local_flags(skill_zip("x", "body"), 0x40),
+    set_local_flags(skill_zip("x", "body"), 0x2000),
+    set_central_flags(skill_zip("x", "body"), 0x01),
+])
+async def test_rejects_local_or_central_unsafe_zip_flags(tmp_path, payload):
+    cache = SkillArtifactCache(tmp_path, downloader=AsyncMock(return_value=payload))
+
+    with pytest.raises(SkillArtifactError, match="unsafe zip flags"):
+        await cache.load_instructions(descriptor("s1", "v1", "x", "u/skills/s1/v1/a.zip"))
+
+
+@pytest.mark.asyncio
+async def test_accepts_consistent_data_descriptor_flag(tmp_path):
+    payload = set_zip_flags(skill_zip("x", "body"), 0x08)
+    cache = SkillArtifactCache(tmp_path, downloader=AsyncMock(return_value=payload))
+
+    assert (await cache.load_instructions(descriptor("s1", "v1", "x", "u/skills/s1/v1/a.zip"))).endswith("body")
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("raw_name", [b"x\\SKILL.md", b"x/SKILL\x00md"])
+async def test_rejects_raw_normalized_or_truncated_zip_member_names(tmp_path, raw_name):
+    payload = replace_raw_member_name(skill_zip("x", "body"), raw_name)
+    cache = SkillArtifactCache(tmp_path, downloader=AsyncMock(return_value=payload))
+
+    with pytest.raises(SkillArtifactError, match="unsafe zip path"):
         await cache.load_instructions(descriptor("s1", "v1", "x", "u/skills/s1/v1/a.zip"))
 
 
@@ -497,12 +632,15 @@ async def test_overlapping_zip_members_are_wrapped_as_skill_artifact_error(tmp_p
         archive.writestr("x/extra.txt", b"extra")
     cache = SkillArtifactCache(tmp_path, downloader=AsyncMock(return_value=overlap_second_member(payload.getvalue())))
 
-    with pytest.raises(SkillArtifactError, match="invalid skill archive"):
+    with pytest.raises(SkillArtifactError, match="invalid skill archive|unsafe zip path"):
         await cache.load_instructions(descriptor("s1", "v1", "x", "u/skills/s1/v1/a.zip"))
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("member", ["x/NUL", "x/nul.txt", "x/COM1.", "x/conout$ "])
+@pytest.mark.parametrize(
+    "member",
+    ["x/NUL", "x/nul.txt", "x/COM1.", "x/conout$ ", "x/NUL .txt", "x/COM1 .foo", "x/COM¹.txt", "x/LPT³.log"],
+)
 async def test_rejects_windows_reserved_device_names(tmp_path, member):
     payload = io.BytesIO()
     with zipfile.ZipFile(payload, "w", zipfile.ZIP_DEFLATED) as archive:
