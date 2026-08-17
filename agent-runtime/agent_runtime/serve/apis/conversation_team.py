@@ -16,9 +16,9 @@ import uuid
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, StreamingResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from agent_runtime.supervisor.builder import build_supervisor
+from agent_runtime.supervisor.builder import build_supervisor, normalize_skill_inputs
 from agent_runtime.supervisor.common.constants import TeamEventField
 from agent_runtime.supervisor.event.adapt import build_error, build_run_start, build_user_message, sse_line
 from agent_runtime.supervisor.runner import run_supervisor
@@ -32,15 +32,26 @@ logger = logging.getLogger(__name__)
 class SkillCatalogItemReq(BaseModel):
     """Manager 在对话请求中下发的受信任 Skill 描述。"""
 
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
+
     skill_id: str = Field(alias="skillId")
     version_id: str = Field(alias="versionId")
     name: str
     description: str
     object_key: str = Field(alias="objectKey")
 
+    @field_validator("skill_id", "version_id", "name", "description", "object_key")
+    @classmethod
+    def reject_blank_descriptor_fields(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("skill descriptor fields must not be blank")
+        return value
+
 
 class ConversationTeamReq(BaseModel):
     """/v1/conversation/team 请求体"""
+
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
 
     conversation_id: str = Field(alias="conversationId")
     user_id: str = Field(default="anonymous", alias="userId")
@@ -51,6 +62,21 @@ class ConversationTeamReq(BaseModel):
     conversation_history: list | None = Field(None, alias="conversationHistory")
     skill_catalog: list[SkillCatalogItemReq] = Field(default_factory=list, alias="skillCatalog")
     recommended_skill_ids: list[str] = Field(default_factory=list, alias="recommendedSkillIds")
+
+    @model_validator(mode="after")
+    def validate_skill_catalog(self):
+        catalog = [
+            SkillDescriptor(
+                skill_id=item.skill_id,
+                version_id=item.version_id,
+                name=item.name,
+                description=item.description,
+                object_key=item.object_key,
+            )
+            for item in self.skill_catalog
+        ]
+        _, self.recommended_skill_ids = normalize_skill_inputs(catalog, self.recommended_skill_ids)
+        return self
 
 
 async def team_sse_stream(req: ConversationTeamReq, execution_id: str | None = None):
@@ -78,31 +104,29 @@ async def team_sse_stream(req: ConversationTeamReq, execution_id: str | None = N
             )
             for item in req.skill_catalog
         ]
-        catalog_ids = {skill.skill_id for skill in skill_catalog}
-        unknown_recommended_ids = [
-            skill_id for skill_id in req.recommended_skill_ids if skill_id not in catalog_ids
-        ]
-        if unknown_recommended_ids:
-            raise ValueError(
-                "recommended skill IDs are not present in the catalog: "
-                + ", ".join(unknown_recommended_ids)
-            )
+        skill_catalog, recommended_skill_ids = normalize_skill_inputs(
+            skill_catalog, req.recommended_skill_ids
+        )
         agent = await build_supervisor(
             sub_agent_ids=req.sub_agent_ids,
             model_deployment_id=req.model_deployment_id,
             conversation_history=req.conversation_history,
             skill_catalog=skill_catalog,
-            recommended_skill_ids=req.recommended_skill_ids,
+            recommended_skill_ids=recommended_skill_ids,
         )
     except Exception as e:
         logger.error(f"conversation/team build_supervisor failed: {e}", exc_info=True)
         yield sse_line(build_error(execution_id, code="build_failed", message=str(e), index=index))
         return
 
-    async for event in run_supervisor(agent, req.query, req.conversation_id, execution_id):
-        event[TeamEventField.INDEX] = index  # 统一占序，覆盖增量事件自带 index
-        index += 1
-        yield sse_line(event)
+    runner = run_supervisor(agent, req.query, req.conversation_id, execution_id)
+    try:
+        async for event in runner:
+            event[TeamEventField.INDEX] = index  # 统一占序，覆盖增量事件自带 index
+            index += 1
+            yield sse_line(event)
+    finally:
+        await runner.aclose()
 
 
 @team_router.post("/v1/conversation/team")

@@ -8,6 +8,7 @@
 """
 
 import asyncio
+import sys
 
 from openjiuwen.core.session.agent import create_agent_session
 from openjiuwen.core.single_agent.agents.react_agent import ReActAgent
@@ -19,6 +20,31 @@ from agent_runtime.supervisor.skill_context import bind_agent_skill_context, res
 
 # 监督者 stream 消费任务结束哨兵
 _STOP = object()
+
+
+async def _finish_supervisor_task(
+    task: asyncio.Task | None,
+) -> tuple[BaseException | None, asyncio.CancelledError | None]:
+    """Cancel and await a copied-Context task, even when our caller is cancelled again."""
+    if task is None:
+        return None, None
+    if not task.done():
+        task.cancel()
+
+    cleanup_cancellation: asyncio.CancelledError | None = None
+    while not task.done():
+        try:
+            await asyncio.shield(task)
+        except asyncio.CancelledError as error:
+            cleanup_cancellation = error
+        except BaseException:
+            break
+
+    try:
+        task.result()
+    except BaseException as error:
+        return error, cleanup_cancellation
+    return None, cleanup_cancellation
 
 
 async def run_supervisor(agent: ReActAgent, query: str, conversation_id: str, execution_id: str):
@@ -40,15 +66,17 @@ async def run_supervisor(agent: ReActAgent, query: str, conversation_id: str, ex
     """
     # 请求级事件通道对象（execution_id + 队列）：经 ContextVar 注入，工具/子 Agent 经 channel.emit 冒泡
     skill_token = bind_agent_skill_context(agent)
-    channel = EventChannel(execution_id)
-    token = set_channel(channel)
-    # 必须传 card：agent.stream 内部 pre_run → checkpointer 读 session._card.id，缺 card 则 None.id 崩溃
-    session = create_agent_session(session_id=conversation_id, card=agent.card)
-    index = 0
-    ctx = StreamCtx(execution_id=execution_id)
-    error_sent = False
+    channel_token = None
     task: asyncio.Task | None = None
     try:
+        channel = EventChannel(execution_id)
+        channel_token = set_channel(channel)
+        # 必须传 card：agent.stream 内部 pre_run → checkpointer 读 session._card.id，缺 card 则 None.id 崩溃
+        session = create_agent_session(session_id=conversation_id, card=agent.card)
+        index = 0
+        ctx = StreamCtx(execution_id=execution_id)
+        error_sent = False
+
         async def supervisor_stream_task():
             # 监督者与子 Agent 同路径：stream 消费 → adapt_stream_chunk 提前转事件 dict → channel.emit
             try:
@@ -66,6 +94,8 @@ async def run_supervisor(agent: ReActAgent, query: str, conversation_id: str, ex
         while True:
             item = await channel.get()
             if item is _STOP:
+                if task is not None:
+                    task.result()
                 break
             if isinstance(item, Exception):
                 yield build_error(execution_id, code="supervisor_error", message=str(item), index=index)
@@ -81,15 +111,22 @@ async def run_supervisor(agent: ReActAgent, query: str, conversation_id: str, ex
         if not error_sent:
             yield build_run_done(execution_id, ctx.final_text, index=index)
     finally:
-        if task is not None:
-            cancelled_by_cleanup = False
-            if not task.done():
-                task.cancel()
-                cancelled_by_cleanup = True
+        primary_error = sys.exception()
+        task_error, cleanup_cancellation = await _finish_supervisor_task(task)
+        channel_error: BaseException | None = None
+        skill_error: BaseException | None = None
+        try:
+            if channel_token is not None:
+                reset_channel(channel_token)
+        except BaseException as error:
+            channel_error = error
+        finally:
             try:
-                await task
-            except asyncio.CancelledError:
-                if not cancelled_by_cleanup:
-                    raise
-        reset_channel(token)
-        reset_skill_context(skill_token)
+                reset_skill_context(skill_token)
+            except BaseException as error:
+                skill_error = error
+
+        if primary_error is None:
+            for error in (task_error, cleanup_cancellation, channel_error, skill_error):
+                if error is not None:
+                    raise error
