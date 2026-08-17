@@ -7,6 +7,7 @@ import com.openjiuwen.studio.agent.foundation.connection.model.PageResult;
 import com.openjiuwen.studio.conversation.application.dto.ConversationCreateCmd;
 import com.openjiuwen.studio.conversation.application.dto.ConversationDetailVo;
 import com.openjiuwen.studio.conversation.application.dto.ConversationListQuery;
+import com.openjiuwen.studio.conversation.application.dto.ConversationSkillVo;
 import com.openjiuwen.studio.conversation.application.dto.ConversationVo;
 import com.openjiuwen.studio.conversation.application.dto.MessageVo;
 import com.openjiuwen.studio.conversation.application.dto.SendMessageCmd;
@@ -15,15 +16,19 @@ import com.openjiuwen.studio.conversation.domain.model.ConversationMessage;
 import com.openjiuwen.studio.conversation.domain.repository.ConversationRepository;
 import com.openjiuwen.studio.conversation.domain.service.ConversationHistoryAssembler;
 import com.openjiuwen.studio.conversation.infrastructure.adapter.AgentRuntimeAdapter;
+import com.openjiuwen.studio.conversation.interfaces.controller.ConversationWorkspaceController;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.http.HttpHeaders;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
 import java.util.Optional;
+import java.lang.reflect.Method;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -34,6 +39,7 @@ class ConversationWorkspaceAppServiceTest {
     private ConversationRepository repository;
     private ConversationHistoryAssembler historyAssembler;
     private AgentRuntimeAdapter runtimeAdapter;
+    private ConversationSkillResolver skillResolver;
     private ConversationWorkspaceAppService appService;
 
     @BeforeEach
@@ -41,7 +47,8 @@ class ConversationWorkspaceAppServiceTest {
         repository = mock(ConversationRepository.class);
         historyAssembler = mock(ConversationHistoryAssembler.class);
         runtimeAdapter = mock(AgentRuntimeAdapter.class);
-        appService = new ConversationWorkspaceAppService(repository, historyAssembler, runtimeAdapter);
+        skillResolver = mock(ConversationSkillResolver.class);
+        appService = new ConversationWorkspaceAppService(repository, historyAssembler, runtimeAdapter, skillResolver);
 
         SimpleUser user = new SimpleUser();
         user.setUserId("u1");
@@ -55,6 +62,30 @@ class ConversationWorkspaceAppServiceTest {
     }
 
     // ---------- create ----------
+
+    @Test
+    void listSkills_只返回浏览器可见字段() {
+        when(skillResolver.listAvailable("p1", "w1", "d1"))
+            .thenReturn(List.of(ConversationSkillVo.builder()
+                .skillId("s1").name("会议纪要").description("整理会议内容").build()));
+
+        List<ConversationSkillVo> result = appService.listSkills("p1", "w1");
+
+        assertEquals("s1", result.get(0).getSkillId());
+    }
+
+    @Test
+    void listSkills_暴露固定路由并转发工作空间参数() throws NoSuchMethodException {
+        ConversationWorkspaceAppService controllerAppService = mock(ConversationWorkspaceAppService.class);
+        ConversationWorkspaceController controller = new ConversationWorkspaceController(controllerAppService);
+        List<ConversationSkillVo> expected = List.of(ConversationSkillVo.builder().skillId("s1").build());
+        when(controllerAppService.listSkills("p1", "w1")).thenReturn(expected);
+
+        Method method = ConversationWorkspaceController.class.getMethod("listSkills", String.class, String.class);
+        assertEquals(List.of("/skills"), List.of(method.getAnnotation(GetMapping.class).value()));
+        assertEquals("workspace_id", method.getParameters()[1].getAnnotation(RequestParam.class).value());
+        assertEquals(expected, controller.listSkills("p1", "w1"));
+    }
 
     @Test
     void testCreate_BlankTitle_UseDefaultTitle() {
