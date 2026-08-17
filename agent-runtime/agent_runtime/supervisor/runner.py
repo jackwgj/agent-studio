@@ -15,6 +15,7 @@ from openjiuwen.core.single_agent.agents.react_agent import ReActAgent
 from agent_runtime.supervisor.common.constants import TeamEventField
 from agent_runtime.supervisor.event.adapt import StreamCtx, adapt_stream_chunk, build_error, build_run_done
 from agent_runtime.supervisor.event.channel import EventChannel, reset_channel, set_channel
+from agent_runtime.supervisor.skill_context import bind_agent_skill_context, reset_skill_context
 
 # 监督者 stream 消费任务结束哨兵
 _STOP = object()
@@ -38,6 +39,7 @@ async def run_supervisor(agent: ReActAgent, query: str, conversation_id: str, ex
         事件 dict（无 done，流结束即正常终止；异常发 error）
     """
     # 请求级事件通道对象（execution_id + 队列）：经 ContextVar 注入，工具/子 Agent 经 channel.emit 冒泡
+    skill_token = bind_agent_skill_context(agent)
     channel = EventChannel(execution_id)
     token = set_channel(channel)
     # 必须传 card：agent.stream 内部 pre_run → checkpointer 读 session._card.id，缺 card 则 None.id 崩溃
@@ -45,6 +47,7 @@ async def run_supervisor(agent: ReActAgent, query: str, conversation_id: str, ex
     index = 0
     ctx = StreamCtx(execution_id=execution_id)
     error_sent = False
+    task: asyncio.Task | None = None
     try:
         async def supervisor_stream_task():
             # 监督者与子 Agent 同路径：stream 消费 → adapt_stream_chunk 提前转事件 dict → channel.emit
@@ -78,4 +81,15 @@ async def run_supervisor(agent: ReActAgent, query: str, conversation_id: str, ex
         if not error_sent:
             yield build_run_done(execution_id, ctx.final_text, index=index)
     finally:
+        if task is not None:
+            cancelled_by_cleanup = False
+            if not task.done():
+                task.cancel()
+                cancelled_by_cleanup = True
+            try:
+                await task
+            except asyncio.CancelledError:
+                if not cancelled_by_cleanup:
+                    raise
         reset_channel(token)
+        reset_skill_context(skill_token)
