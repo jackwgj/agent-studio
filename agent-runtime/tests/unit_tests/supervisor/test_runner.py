@@ -10,6 +10,7 @@ from agent_runtime.supervisor.skill_context import (
     get_skill_context,
     reset_skill_context as real_reset_skill_context,
 )
+from agent_runtime.supervisor.event.channel import get_channel
 from agent_runtime.supervisor.skill_model import SkillDescriptor
 
 
@@ -111,3 +112,245 @@ async def test_early_close_cancels_stream_task_before_context_reset_and_isolates
     assert first_finished.is_set()
     assert observed == [("top", "v1"), ("nested", "v1"), ("concurrent", "v2")]
     assert get_skill_context() is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("failure_point", ["channel", "session"])
+async def test_runner_resets_bound_context_when_initialization_fails(monkeypatch, failure_point):
+    agent = EmptyAgent()
+    attach_agent_context(agent, [descriptor("s1", "v1")], [], SimpleNamespace())
+    reset_order = []
+    original_reset_channel = runner_module.reset_channel
+    original_reset_skill = runner_module.reset_skill_context
+
+    def reset_channel(token):
+        reset_order.append("channel")
+        original_reset_channel(token)
+
+    def reset_skill(token):
+        reset_order.append("skill")
+        original_reset_skill(token)
+
+    monkeypatch.setattr(runner_module, "reset_channel", reset_channel)
+    monkeypatch.setattr(runner_module, "reset_skill_context", reset_skill)
+    if failure_point == "channel":
+        class ExplodingChannel:
+            def __init__(self, _execution_id):
+                raise RuntimeError("channel setup failed")
+
+        monkeypatch.setattr(runner_module, "EventChannel", ExplodingChannel)
+    else:
+        monkeypatch.setattr(runner_module, "create_agent_session", Mock(side_effect=RuntimeError("session setup failed")))
+
+    with pytest.raises(RuntimeError, match="setup failed"):
+        await runner_module.run_supervisor(agent, "q", "c1", "e1").__anext__()
+
+    assert get_skill_context() is None
+    assert get_channel() is None
+    assert reset_order == (["skill"] if failure_point == "channel" else ["channel", "skill"])
+
+
+class WorkerAbort(BaseException):
+    pass
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("failure", [asyncio.CancelledError(), WorkerAbort("worker base exception")])
+async def test_runner_resets_after_worker_base_exception_and_preserves_it(monkeypatch, failure):
+    class BaseFailingAgent:
+        card = object()
+
+        async def stream(self, _inputs, _session):
+            raise failure
+            yield None
+
+    agent = BaseFailingAgent()
+    attach_agent_context(agent, [descriptor("s1", "v1")], [], SimpleNamespace())
+    monkeypatch.setattr(runner_module, "create_agent_session", lambda **_kwargs: object())
+
+    stream = runner_module.run_supervisor(agent, "q", "c1", "e1")
+    with pytest.raises(type(failure)):
+        await stream.__anext__()
+
+    assert get_channel() is None
+    assert get_skill_context() is None
+
+
+@pytest.mark.asyncio
+async def test_cancelled_queue_consumer_waits_for_child_before_reset(monkeypatch):
+    class BlockingAgent:
+        card = object()
+
+        async def stream(self, _inputs, _session):
+            child_started.set()
+            try:
+                await release.wait()
+            finally:
+                child_finished.set()
+            if False:
+                yield None
+
+    child_started = asyncio.Event()
+    child_finished = asyncio.Event()
+    release = asyncio.Event()
+    reset_order = []
+    agent = BlockingAgent()
+    attach_agent_context(agent, [descriptor("s1", "v1")], [], SimpleNamespace())
+    monkeypatch.setattr(runner_module, "create_agent_session", lambda **_kwargs: object())
+    original_reset_channel = runner_module.reset_channel
+    original_reset_skill = runner_module.reset_skill_context
+
+    def reset_channel(token):
+        assert child_finished.is_set()
+        reset_order.append("channel")
+        original_reset_channel(token)
+
+    def reset_skill(token):
+        assert child_finished.is_set()
+        reset_order.append("skill")
+        original_reset_skill(token)
+
+    monkeypatch.setattr(runner_module, "reset_channel", reset_channel)
+    monkeypatch.setattr(runner_module, "reset_skill_context", reset_skill)
+    stream = runner_module.run_supervisor(agent, "q", "c1", "e1")
+    consumer = asyncio.create_task(stream.__anext__())
+    await child_started.wait()
+    consumer.cancel()
+
+    with pytest.raises(asyncio.CancelledError):
+        await consumer
+
+    assert child_finished.is_set()
+    assert reset_order == ["channel", "skill"]
+
+
+@pytest.mark.asyncio
+async def test_reset_channel_failure_still_resets_skill_after_child_finishes(monkeypatch):
+    class BlockingAgent:
+        card = object()
+
+        async def stream(self, _inputs, _session):
+            yield object()
+            try:
+                await release.wait()
+            finally:
+                child_finished.set()
+
+    child_finished = asyncio.Event()
+    release = asyncio.Event()
+    reset_order = []
+    agent = BlockingAgent()
+    attach_agent_context(agent, [descriptor("s1", "v1")], [], SimpleNamespace())
+    monkeypatch.setattr(runner_module, "create_agent_session", lambda **_kwargs: object())
+    monkeypatch.setattr(runner_module, "adapt_stream_chunk", lambda *_args: [{"event": "message", "data": {}}])
+    original_reset_channel = runner_module.reset_channel
+    original_reset_skill = runner_module.reset_skill_context
+
+    def reset_channel(token):
+        assert child_finished.is_set()
+        reset_order.append("channel")
+        original_reset_channel(token)
+        raise RuntimeError("channel reset failed")
+
+    def reset_skill(token):
+        assert child_finished.is_set()
+        reset_order.append("skill")
+        original_reset_skill(token)
+
+    monkeypatch.setattr(runner_module, "reset_channel", reset_channel)
+    monkeypatch.setattr(runner_module, "reset_skill_context", reset_skill)
+    stream = runner_module.run_supervisor(agent, "q", "c1", "e1")
+
+    await stream.__anext__()
+    await stream.aclose()
+
+    assert child_finished.is_set()
+    assert reset_order == ["channel", "skill"]
+    assert get_channel() is None
+    assert get_skill_context() is None
+
+
+@pytest.mark.asyncio
+async def test_normal_completion_propagates_channel_reset_failure_after_skill_reset(monkeypatch):
+    agent = EmptyAgent()
+    attach_agent_context(agent, [descriptor("s1", "v1")], [], SimpleNamespace())
+    monkeypatch.setattr(runner_module, "create_agent_session", lambda **_kwargs: object())
+    original_reset_channel = runner_module.reset_channel
+    original_reset_skill = runner_module.reset_skill_context
+    reset_order = []
+
+    def reset_channel(token):
+        reset_order.append("channel")
+        original_reset_channel(token)
+        raise RuntimeError("channel reset failed")
+
+    def reset_skill(token):
+        reset_order.append("skill")
+        original_reset_skill(token)
+
+    monkeypatch.setattr(runner_module, "reset_channel", reset_channel)
+    monkeypatch.setattr(runner_module, "reset_skill_context", reset_skill)
+
+    with pytest.raises(RuntimeError, match="channel reset failed"):
+        _ = [event async for event in runner_module.run_supervisor(agent, "q", "c1", "e1")]
+
+    assert reset_order == ["channel", "skill"]
+    assert get_channel() is None
+    assert get_skill_context() is None
+
+
+@pytest.mark.asyncio
+async def test_repeated_consumer_cancellation_waits_for_child_before_reset(monkeypatch):
+    class CancellationDelayingAgent:
+        card = object()
+
+        async def stream(self, _inputs, _session):
+            child_started.set()
+            try:
+                await release.wait()
+            except asyncio.CancelledError:
+                child_cancelled.set()
+                await release_after_cancel.wait()
+                raise
+            finally:
+                child_finished.set()
+            if False:
+                yield None
+
+    child_started = asyncio.Event()
+    child_cancelled = asyncio.Event()
+    child_finished = asyncio.Event()
+    release = asyncio.Event()
+    release_after_cancel = asyncio.Event()
+    reset_order = []
+    agent = CancellationDelayingAgent()
+    attach_agent_context(agent, [descriptor("s1", "v1")], [], SimpleNamespace())
+    monkeypatch.setattr(runner_module, "create_agent_session", lambda **_kwargs: object())
+    original_reset_channel = runner_module.reset_channel
+    original_reset_skill = runner_module.reset_skill_context
+
+    def reset_channel(token):
+        assert child_finished.is_set()
+        reset_order.append("channel")
+        original_reset_channel(token)
+
+    def reset_skill(token):
+        assert child_finished.is_set()
+        reset_order.append("skill")
+        original_reset_skill(token)
+
+    monkeypatch.setattr(runner_module, "reset_channel", reset_channel)
+    monkeypatch.setattr(runner_module, "reset_skill_context", reset_skill)
+    stream = runner_module.run_supervisor(agent, "q", "c1", "e1")
+    consumer = asyncio.create_task(stream.__anext__())
+    await child_started.wait()
+    consumer.cancel()
+    await child_cancelled.wait()
+    consumer.cancel()
+    release_after_cancel.set()
+
+    with pytest.raises(asyncio.CancelledError):
+        await consumer
+
+    assert child_finished.is_set()
+    assert reset_order == ["channel", "skill"]

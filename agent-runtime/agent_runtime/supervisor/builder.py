@@ -10,6 +10,9 @@ resource_mgr 是否已有同 id 实例，不存在才注册。工具无状态、
 运行（事件生成器 run_supervisor）在 runner.py —— build（组装）与 run（运行）职责分离。
 """
 
+from pathlib import PureWindowsPath
+import re
+
 from openjiuwen.core.runner import Runner
 from openjiuwen.core.single_agent.agents.react_agent import ReActAgent
 from openjiuwen.core.single_agent.schema.agent_card import AgentCard
@@ -33,6 +36,58 @@ SUPERVISOR_SYSTEM_PROMPT = (
 
 def _ir_path(agent_id: str) -> str:
     return f"agent/ir/{agent_id}/{agent_id}.json"
+
+
+def normalize_skill_inputs(
+    skill_catalog: list[SkillDescriptor] | None,
+    recommended_skill_ids: list[str] | None,
+) -> tuple[list[SkillDescriptor], list[str]]:
+    """Validate the Manager catalog and normalize recommendations for all call paths.
+
+    This repeats task 3's object-key acceptance semantics at the request boundary without
+    importing its private cache validator: object keys are relative POSIX paths and must
+    contain the descriptor's ``skills/{skill_id}/{version_id}`` identity path.
+    """
+    catalog = list(skill_catalog or [])
+    seen_ids: set[str] = set()
+    for skill in catalog:
+        if not isinstance(skill, SkillDescriptor):
+            raise ValueError("skill catalog entries must be SkillDescriptor instances")
+        values = (skill.skill_id, skill.version_id, skill.name, skill.description, skill.object_key)
+        if any(not isinstance(value, str) or not value.strip() for value in values):
+            raise ValueError("skill catalog descriptor fields must not be blank")
+        if skill.skill_id in seen_ids:
+            raise ValueError(f"duplicate skill ID in catalog: {skill.skill_id}")
+        seen_ids.add(skill.skill_id)
+        _validate_skill_object_key(skill)
+
+    recommended: list[str] = []
+    for skill_id in recommended_skill_ids or []:
+        if not isinstance(skill_id, str) or not skill_id.strip():
+            raise ValueError("recommended skill IDs must not be blank")
+        if skill_id not in seen_ids:
+            raise ValueError(f"recommended skill IDs are not present in the catalog: {skill_id}")
+        if skill_id not in recommended:
+            recommended.append(skill_id)
+    return catalog, recommended
+
+
+def _validate_skill_object_key(skill: SkillDescriptor) -> None:
+    """Mirror task 3's object-key boundary checks before a Skill reaches a prompt."""
+    key = skill.object_key
+    if "\\" in key or key.startswith("/") or PureWindowsPath(key).is_absolute() or re.match(r"^[A-Za-z]:", key):
+        raise ValueError("unsafe skill object key")
+    parts = key.split("/")
+    if any(not part or part in {".", ".."} for part in parts):
+        raise ValueError("unsafe skill object key")
+    if any(any(ord(character) < 32 or ord(character) == 127 for character in part) for part in parts):
+        raise ValueError("unsafe skill object key")
+    identity = (skill.skill_id, skill.version_id)
+    if any("/" in value or "\\" in value for value in identity):
+        raise ValueError("unsafe skill object key")
+    expected = ("skills", *identity)
+    if not any(tuple(parts[index : index + 3]) == expected for index in range(len(parts) - 2)):
+        raise ValueError("unsafe skill object key")
 
 
 async def _load_sub_agent_description(agent_id: str) -> str:
@@ -67,17 +122,9 @@ async def build_supervisor(
     Returns:
         已配置并注册工具的监督者 ReActAgent
     """
-    skill_catalog = skill_catalog or []
-    recommended_skill_ids = recommended_skill_ids or []
-    catalog_ids = {skill.skill_id for skill in skill_catalog}
-    unknown_recommended_ids = [
-        skill_id for skill_id in recommended_skill_ids if skill_id not in catalog_ids
-    ]
-    if unknown_recommended_ids:
-        raise ValueError(
-            "recommended skill IDs are not present in the catalog: "
-            + ", ".join(unknown_recommended_ids)
-        )
+    skill_catalog, recommended_skill_ids = normalize_skill_inputs(
+        skill_catalog, recommended_skill_ids
+    )
 
     tools = []
     for agent_id in sub_agent_ids:
