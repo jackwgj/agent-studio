@@ -1,5 +1,6 @@
 import {
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
   Component,
   ElementRef,
   EventEmitter,
@@ -35,6 +36,8 @@ export class SkillSelectorComponent {
 
   @ViewChild('textarea') private textarea?: ElementRef<HTMLTextAreaElement>;
 
+  constructor(private readonly cdr: ChangeDetectorRef) {}
+
   @Input()
   set skills(items: ConversationSkillItem[]) {
     this.setSkills(items ?? []);
@@ -49,7 +52,9 @@ export class SkillSelectorComponent {
     this.inputDisabled = value;
     if (value) {
       this.closeMenu();
+      return;
     }
+    this.cdr.markForCheck();
   }
 
   get disabled(): boolean {
@@ -86,6 +91,7 @@ export class SkillSelectorComponent {
     }
     this.selectedSkills = [];
     this.selectedSkillsChange.emit([]);
+    this.cdr.markForCheck();
   }
 
   /** 使用目录原有顺序更新候选项，并按 Skill ID 去重。 */
@@ -160,6 +166,7 @@ export class SkillSelectorComponent {
       event.preventDefault();
       const offset = event.key === 'ArrowDown' ? 1 : -1;
       this.activeSkillIndex = (this.activeSkillIndex + offset + this.filteredSkills.length) % this.filteredSkills.length;
+      this.cdr.markForCheck();
       return;
     }
 
@@ -209,12 +216,14 @@ export class SkillSelectorComponent {
     }
     this.selectedSkills = nextSelectedSkills;
     this.selectedSkillsChange.emit(this.selectedSkills);
+    this.cdr.markForCheck();
   }
 
   public closeMenu(): void {
     this.menuOpen = false;
     this.activeSkillIndex = -1;
     this.activeTrigger = null;
+    this.cdr.markForCheck();
   }
 
   public optionId(index: number): string {
@@ -226,6 +235,7 @@ export class SkillSelectorComponent {
       this.menuOpen = false;
       this.filteredSkills = [];
       this.activeSkillIndex = -1;
+      this.cdr.markForCheck();
       return;
     }
 
@@ -236,6 +246,7 @@ export class SkillSelectorComponent {
     );
     this.menuOpen = true;
     this.activeSkillIndex = this.filteredSkills.length ? 0 : -1;
+    this.cdr.markForCheck();
   }
 
   private findSlashTrigger(value: string, cursorPosition: number): SlashTrigger | null {
@@ -261,8 +272,12 @@ export class SkillSelectorComponent {
   }
 
   private updateValue(value: string): void {
+    if (this.inputValue === value) {
+      return;
+    }
     this.inputValue = value;
     this.valueChange.emit(value);
+    this.cdr.markForCheck();
   }
 
   private restoreTextareaFocus(position: number): void {
