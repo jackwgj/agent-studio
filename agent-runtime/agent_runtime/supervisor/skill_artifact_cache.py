@@ -1,10 +1,12 @@
 """Safe, version-isolated cache for conversation skill ZIP artifacts."""
 
 import asyncio
+import errno
 from collections.abc import Awaitable, Callable
 import io
 import os
 from pathlib import Path, PurePosixPath, PureWindowsPath
+import random
 import re
 import shutil
 import stat
@@ -36,6 +38,8 @@ _WORKER_LIMIT = threading.BoundedSemaphore(2)
 _LOCK_STRIPES = 64
 _LOCAL_LOCK_STRIPES = [threading.Lock() for _ in range(_LOCK_STRIPES)]
 _LOCK_EXECUTOR = ThreadPoolExecutor(max_workers=1, thread_name_prefix="skill-lock")
+_STAGE_EXECUTOR = ThreadPoolExecutor(max_workers=2, thread_name_prefix="skill-stage")
+_BACKOFF_RANDOM = random.random
 _LOCAL_HEADER = struct.Struct("<IHHHHHIIIHH")
 _LOCAL_HEADER_SIGNATURE = 0x04034B50
 _ALLOWED_ZIP_FLAGS = 0x02 | 0x04 | 0x08 | 0x800
@@ -62,11 +66,13 @@ class _CacheFileLock:
         self._stripe = int(cache_key[:8], 16) % _LOCK_STRIPES
         self._local_lock = _LOCAL_LOCK_STRIPES[self._stripe]
         self._file = None
+        self._local_owned = False
         self._locked = False
 
     def try_acquire(self) -> bool:
         if not self._local_lock.acquire(blocking=False):
             return False
+        self._local_owned = True
         try:
             lock_dir = self._root / ".locks"
             lock_dir.mkdir(parents=True, exist_ok=True)
@@ -80,6 +86,7 @@ class _CacheFileLock:
             if not self._try_lock_file():
                 self._file.close()
                 self._file = None
+                self._local_owned = False
                 self._local_lock.release()
                 return False
             self._locked = True
@@ -89,14 +96,15 @@ class _CacheFileLock:
             raise SkillArtifactError("cache lock failed") from error
 
     def release(self) -> None:
-        was_locked = self._locked
+        local_owned = self._local_owned
         try:
             if self._file is not None:
                 self._file.close()
         finally:
             self._file = None
             self._locked = False
-            if was_locked:
+            self._local_owned = False
+            if local_owned:
                 self._local_lock.release()
 
     def _try_lock_file(self) -> bool:
@@ -107,7 +115,7 @@ class _CacheFileLock:
                 msvcrt.locking(self._file.fileno(), msvcrt.LK_NBLCK, 1)
                 return True
             except OSError as error:
-                if error.errno in {11, 13}:
+                if error.errno in {errno.EACCES, errno.EAGAIN, errno.EWOULDBLOCK}:
                     return False
                 raise
         else:
@@ -117,7 +125,7 @@ class _CacheFileLock:
                 fcntl.flock(self._file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
                 return True
             except OSError as error:
-                if error.errno in {11, 13}:
+                if error.errno in {errno.EACCES, errno.EAGAIN, errno.EWOULDBLOCK}:
                     return False
                 raise
 
@@ -132,6 +140,40 @@ class _CacheFileLock:
             import fcntl
 
             fcntl.flock(self._file.fileno(), fcntl.LOCK_UN)
+
+
+class _LockLease:
+    """Make lock release idempotent across coroutine and worker lifetimes."""
+
+    def __init__(self, lock: _CacheFileLock) -> None:
+        self._lock = lock
+        self._state_lock = threading.Lock()
+        self._stage_started = False
+        self._released = False
+
+    def begin_stage(self) -> None:
+        with self._state_lock:
+            if self._released:
+                raise RuntimeError("cache lock already released")
+            self._stage_started = True
+
+    def abort_stage(self) -> None:
+        with self._state_lock:
+            self._stage_started = False
+
+    def release_before_stage(self) -> None:
+        with self._state_lock:
+            if self._stage_started or self._released:
+                return
+            self._released = True
+        self._lock.release()
+
+    def release_after_stage(self) -> None:
+        with self._state_lock:
+            if self._released:
+                return
+            self._released = True
+        self._lock.release()
 
 
 class SkillArtifactCache:
@@ -151,27 +193,32 @@ class SkillArtifactCache:
 
         lock = _CacheFileLock(self._root, skill.cache_key)
         await _acquire_lock(lock)
-        work = asyncio.create_task(self._load_while_locked(skill, cache_dir))
+        lease = _LockLease(lock)
+        work = asyncio.create_task(self._load_while_locked(skill, cache_dir, lease))
+        work.add_done_callback(lambda _: _schedule_release(lease))
         try:
-            result = await asyncio.shield(work)
+            return await asyncio.shield(work)
         except asyncio.CancelledError:
-            work.add_done_callback(lambda _: asyncio.create_task(_release_lock(lock)))
             raise
-        except BaseException:
-            await _release_lock(lock)
-            raise
-        else:
-            await _release_lock(lock)
-            return result
 
-    async def _load_while_locked(self, skill: SkillDescriptor, cache_dir: Path) -> str:
+    async def _load_while_locked(
+        self, skill: SkillDescriptor, cache_dir: Path, lease: _LockLease
+    ) -> str:
         cached = await self._run_blocking(self._read_cached_instructions, cache_dir)
         if cached is not None:
             return cached
         artifact = await self._downloader(skill.object_key)
         if not isinstance(artifact, bytes) or len(artifact) > MAX_ARCHIVE_BYTES:
             raise SkillArtifactError("archive too large")
-        return await self._run_blocking(self._stage_and_publish, artifact, cache_dir)
+        lease.begin_stage()
+        try:
+            stage = _STAGE_EXECUTOR.submit(
+                _run_limited, self._stage_and_release, artifact, cache_dir, lease
+            )
+        except BaseException:
+            lease.abort_stage()
+            raise
+        return await asyncio.shield(asyncio.wrap_future(stage))
 
     @staticmethod
     async def _run_blocking(function, *args):
@@ -226,6 +273,15 @@ class SkillArtifactCache:
             raise SkillArtifactError("invalid skill archive") from error
         finally:
             shutil.rmtree(temp_dir, ignore_errors=True)
+
+    def _stage_and_release(
+        self, artifact: bytes, cache_dir: Path, lease: _LockLease
+    ) -> str:
+        """Release only from the synchronous stage worker's real completion."""
+        try:
+            return self._stage_and_publish(artifact, cache_dir)
+        finally:
+            lease.release_after_stage()
 
     def _extract_and_validate(self, artifact: bytes, staged_dir: Path) -> str:
         try:
@@ -375,22 +431,35 @@ async def _acquire_lock(lock: _CacheFileLock) -> None:
     """Poll lock I/O in a dedicated bounded executor with cancellation safety."""
     delay = 0.005
     while True:
-        attempt = asyncio.get_running_loop().run_in_executor(_LOCK_EXECUTOR, lock.try_acquire)
+        cancelled = threading.Event()
+        release_scheduled = threading.Event()
+        attempt = _LOCK_EXECUTOR.submit(lock.try_acquire)
+
+        def release_if_cancelled(done) -> None:
+            if cancelled.is_set() and not release_scheduled.is_set() and not done.cancelled():
+                try:
+                    if done.result():
+                        release_scheduled.set()
+                        _LOCK_EXECUTOR.submit(lock.release)
+                except Exception:
+                    pass
+
+        attempt.add_done_callback(release_if_cancelled)
         try:
-            acquired = await asyncio.shield(attempt)
+            acquired = await asyncio.shield(asyncio.wrap_future(attempt))
         except asyncio.CancelledError:
-            acquired = await asyncio.shield(attempt)
-            if acquired:
-                await _release_lock(lock)
+            cancelled.set()
+            release_if_cancelled(attempt)
             raise
         if acquired:
             return
-        await asyncio.sleep(delay)
+        await asyncio.sleep(delay * (0.75 + _BACKOFF_RANDOM() * 0.5))
         delay = min(delay * 2, 0.05)
 
 
-async def _release_lock(lock: _CacheFileLock) -> None:
-    await asyncio.get_running_loop().run_in_executor(_LOCK_EXECUTOR, lock.release)
+def _schedule_release(lease: _LockLease) -> None:
+    """Schedule non-stage cleanup without needing a surviving event loop task."""
+    _LOCK_EXECUTOR.submit(lease.release_before_stage)
 
 
 def _raw_posix_parts(value: str, *, allow_directory: bool, local_path: bool) -> tuple[str, ...]:
