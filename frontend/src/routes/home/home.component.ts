@@ -12,6 +12,7 @@ import { environment } from 'src/environment/environment';
 import { IMenuItem, ViewModel } from './home.model';
 import { AgentConfigService } from '@routes/agent-center/agent-config.service';
 import { LeftMenuComponent } from '@routes/left-menu/left-menu.component';
+import { ConversationWorkspaceService } from '@routes/conversation-workspace/conversation-workspace.service';
 import { SpaceTeamManagementService } from '@services/space-team-management.service';
 import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
 import { cdnAssetUrl } from '../../single-spa/assets-url';
@@ -57,6 +58,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     private readonly i18NextEagerPipe: angularI18next.I18NextEagerPipe,
     private ctxServ: ContextService,
     private configServ: AgentConfigService,
+    private conversationWorkspaceService: ConversationWorkspaceService,
     private spaceTeamManagementService: SpaceTeamManagementService,
     private router: Router,
     private route: ActivatedRoute,
@@ -80,6 +82,8 @@ export class HomeComponent implements OnInit, OnDestroy {
           // 渲染菜单列表
           this.spanData = { ...data };
           this.render_menu_list(this.is_platform_hide);
+          // 空间就绪后刷新会话列表（左菜单「任务空间」分组依赖）
+          this.conversationWorkspaceService.refreshSessions();
           // 具体请查看this.spaceTeamManagementService.space$.subscribe 该方法
           if (is_neeed_reload) {
             this.router.navigate(['/home/overview']);
@@ -112,6 +116,15 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.render_menu_list(this.is_platform_hide);
 
     this.filterRoutesByPermission(this.vm.leftmenu.items);
+
+    // 会话列表/当前会话变化时重建「任务空间」分组
+    this.conversationWorkspaceService.refreshSessions();
+    this.conversationWorkspaceService.sessions$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.updateConversationMenu());
+    this.conversationWorkspaceService.activeSession$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.updateConversationMenu());
 
     this.sidebarServ.setSidebarsVisibilityByState('hideSidebar');
 
@@ -181,6 +194,33 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   spanData = {} as any;
 
+  /** 构建「任务空间」分组的会话子项（新建入口 + 会话列表） */
+  private buildConversationItems(): IMenuItem[] {
+    const activeId = this.conversationWorkspaceService.activeSession$.value?.conversation_id;
+    const newItem: IMenuItem = { id: 'conversation-new', name: '＋ 新建会话', label: '＋ 新建会话' };
+    const sessionItems: IMenuItem[] = this.conversationWorkspaceService.sessions$.value.map((s) => ({
+      name: s.title,
+      label: s.title,
+      queryParams: { conversation_id: s.conversation_id },
+      isSelected: s.conversation_id === activeId,
+    }));
+    return [newItem, ...sessionItems];
+  }
+
+  /** 会话列表/当前会话变化后，重建「任务空间」分组子项并触发 left-menu 重新渲染 */
+  private updateConversationMenu(): void {
+    const items = this.vm?.leftmenu?.items;
+    if (!items) {
+      return;
+    }
+    const group = items.find((i) => i.id === 'conversation-workspace');
+    if (group?.children?.[0]) {
+      group.children[0].children = this.buildConversationItems();
+    }
+    this.vm.leftmenu.items = [...items];
+    this.cdr.markForCheck();
+  }
+
   // 渲染菜单列表
   private render_menu_list(is_hide) {
     const { block_nodes } = this.configServ.getConfigs();
@@ -234,16 +274,6 @@ export class HomeComponent implements OnInit, OnDestroy {
                 rightIcon: cdnAssetUrl('assets/images/menu/pycharm.svg'),
                 isSelected: false,
                 router: ['/app-library'],
-              },
-              /** 对话助手 */
-              {
-                id: 'conversation-workspace',
-                name: '对话助手',
-                label: '对话助手',
-                icon: cdnAssetUrl('assets/images/menu/app-center.svg'),
-                iconSelected: cdnAssetUrl('assets/images/menu/app-center-selected.svg'),
-                isSelected: false,
-                router: ['conversation'],
               },
             ],
           },
@@ -403,6 +433,21 @@ export class HomeComponent implements OnInit, OnDestroy {
                 router: ['datasource/management'],
                 isSelected: false,
                 hide: isHideDatasource,
+              },
+            ],
+          },
+          /** 任务空间 */
+          {
+            id: 'conversation-workspace',
+            name: '任务空间',
+            label: '任务空间',
+            isGroup: true,
+            children: [
+              {
+                name: '任务空间',
+                label: '任务空间',
+                collapseStatus: 1,
+                children: this.buildConversationItems(),
               },
             ],
           },
