@@ -93,4 +93,13 @@ class ConversationRunEventSourceListenerTest {
         // 无完整输出边界 → 不落库
         verify(conversationRepository, never()).appendMessages(anyString(), anyList());
     }
+
+    @Test
+    void testSkillActivatedEvent_ForwardOnlyAndNeverPersisted() {
+        feedEvent("{\"event\":\"skill_activated\",\"data\":{\"skillId\":\"s1\","
+            + "\"name\":\"会议纪要\",\"versionId\":\"v1\"},\"executionId\":\"exec-1\"}");
+        listener.onClosed(mock(EventSource.class));
+
+        verify(conversationRepository, never()).appendMessages(anyString(), anyList());
+    }
 }

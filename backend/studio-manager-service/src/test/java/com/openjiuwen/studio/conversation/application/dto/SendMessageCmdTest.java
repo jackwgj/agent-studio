@@ -5,6 +5,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+import java.util.stream.StreamSupport;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class SendMessageCmdTest {
@@ -43,5 +46,20 @@ class SendMessageCmdTest {
 
         assertEquals("你好", back.getQuery());
         assertEquals("deploy-001", back.getModelDeploymentId());
+    }
+
+    @Test
+    void serialization_推荐技能使用下划线字段且保留顺序() throws Exception {
+        SendMessageCmd cmd = new SendMessageCmd();
+        cmd.setQuery("整理并润色");
+        cmd.setModelDeploymentId("m1");
+        cmd.setRecommendedSkillIds(List.of("s2", "s1"));
+
+        JsonNode json = new ObjectMapper().readTree(new ObjectMapper().writeValueAsString(cmd));
+
+        assertEquals(List.of("s2", "s1"),
+            StreamSupport.stream(json.get("recommended_skill_ids").spliterator(), false)
+                .map(JsonNode::asText).toList());
+        assertFalse(json.has("recommendedSkillIds"));
     }
 }

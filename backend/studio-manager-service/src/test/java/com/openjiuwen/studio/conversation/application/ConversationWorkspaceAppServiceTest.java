@@ -12,6 +12,7 @@ import com.openjiuwen.studio.conversation.application.dto.ConversationCreateCmd;
 import com.openjiuwen.studio.conversation.application.dto.ConversationDetailVo;
 import com.openjiuwen.studio.conversation.application.dto.ConversationListQuery;
 import com.openjiuwen.studio.conversation.application.dto.ConversationSkillVo;
+import com.openjiuwen.studio.conversation.application.dto.ConversationSkillContext;
 import com.openjiuwen.studio.conversation.application.dto.ConversationVo;
 import com.openjiuwen.studio.conversation.application.dto.MessageVo;
 import com.openjiuwen.studio.conversation.application.dto.SendMessageCmd;
@@ -307,7 +308,9 @@ class ConversationWorkspaceAppServiceTest {
         cmd.setQuery("你好");
         cmd.setModelDeploymentId("m1");
         SseEmitter emitter = new SseEmitter();
-        when(runtimeAdapter.run(eq(conv), eq(cmd), anyList(), anyString(), any())).thenReturn(emitter);
+        when(skillResolver.resolveForRun("p1", "w1", "d1", List.of()))
+            .thenReturn(ConversationSkillContext.empty());
+        when(runtimeAdapter.run(eq(conv), eq(cmd), anyList(), any(), anyString(), any())).thenReturn(emitter);
 
         SseEmitter result = appService.sendMessage("p1", "w1", "c1", cmd, new HttpHeaders());
 
@@ -320,7 +323,37 @@ class ConversationWorkspaceAppServiceTest {
         assertEquals("user", appended.get(0).getRole());
         assertEquals("你好", appended.get(0).getContent());
         verify(historyAssembler).assemble(any());
-        verify(runtimeAdapter).run(eq(conv), eq(cmd), anyList(), anyString(), any());
+        verify(runtimeAdapter).run(eq(conv), eq(cmd), anyList(), any(), anyString(), any());
+    }
+
+    @Test
+    void sendMessage_推荐技能非法时不写用户消息() {
+        Conversation conv = ownedConversation("c1");
+        when(repository.findById("c1")).thenReturn(Optional.of(conv));
+        SendMessageCmd cmd = validCmd(List.of("forbidden"));
+        when(skillResolver.resolveForRun("p1", "w1", "d1", List.of("forbidden")))
+            .thenThrow(new AgentStudioException(
+                com.openjiuwen.studio.agent.common.enums.StudioError.METHOD_ARGUMENT_NOT_VALID,
+                List.of("recommended skill is unavailable")));
+
+        assertThrows(AgentStudioException.class,
+            () -> appService.sendMessage("p1", "w1", "c1", cmd, new HttpHeaders()));
+
+        verify(repository, never()).appendMessages(anyString(), anyList());
+        verifyNoInteractions(runtimeAdapter);
+    }
+
+    @Test
+    void sendMessage_当前请求域与会话域不一致时拒绝且不解析技能() {
+        Conversation conv = ownedConversation("c1");
+        when(repository.findById("c1")).thenReturn(Optional.of(conv));
+        RequestContextUtils.getRequestUser().setDomainId("d2");
+
+        assertThrows(AgentStudioException.class,
+            () -> appService.sendMessage("p1", "w1", "c1", validCmd(List.of()), new HttpHeaders()));
+
+        verifyNoInteractions(skillResolver, runtimeAdapter);
+        verify(repository, never()).appendMessages(anyString(), anyList());
     }
 
     @Test
@@ -343,9 +376,18 @@ class ConversationWorkspaceAppServiceTest {
                 .title("会话")
                 .projectId("p1")
                 .workspaceId("w1")
+                .domainId("d1")
                 .ownerUserId("u1")
                 .status(ConversationWorkspaceAppService.STATUS_ACTIVE)
                 .build();
+    }
+
+    private SendMessageCmd validCmd(List<String> recommendedIds) {
+        SendMessageCmd cmd = new SendMessageCmd();
+        cmd.setQuery("整理会议");
+        cmd.setModelDeploymentId("m1");
+        cmd.setRecommendedSkillIds(recommendedIds);
+        return cmd;
     }
 
     private ConversationWorkspaceAppService guardedAppService(SkillMapper mapper, WorkspaceMapper workspaceMapper,

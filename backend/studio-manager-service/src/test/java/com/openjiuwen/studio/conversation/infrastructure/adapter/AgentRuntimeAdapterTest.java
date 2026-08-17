@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.openjiuwen.studio.agent.common.dto.agent.Message;
 import com.openjiuwen.studio.agent.common.utils.OkHttpClientUtils;
 import com.openjiuwen.studio.agent.common.utils.RequestContextUtils;
+import com.openjiuwen.studio.conversation.application.dto.ConversationSkillContext;
+import com.openjiuwen.studio.conversation.application.dto.ConversationSkillDescriptor;
 import com.openjiuwen.studio.conversation.application.dto.SendMessageCmd;
 import com.openjiuwen.studio.conversation.domain.model.Conversation;
 import com.openjiuwen.studio.conversation.domain.repository.ConversationRepository;
@@ -74,7 +76,7 @@ class AgentRuntimeAdapterTest {
         cmd.setModelDeploymentId("m1");
 
         assertThrows(IllegalArgumentException.class,
-                () -> adapter.run(conv, cmd, List.of(), "exec-1", new HttpHeaders()));
+                () -> adapter.run(conv, cmd, List.of(), ConversationSkillContext.empty(), "exec-1", new HttpHeaders()));
     }
 
     /**
@@ -113,7 +115,8 @@ class AgentRuntimeAdapterTest {
                 new Message().setRole("user").setContent("之前的天气？"),
                 new Message().setRole("assistant").setContent("昨天多云"));
 
-        Map<String, Object> body = ReflectionTestUtils.invokeMethod(adapter, "buildRequestBody", conv, cmd, histories);
+        Map<String, Object> body = ReflectionTestUtils.invokeMethod(adapter, "buildRequestBody", conv, cmd, histories,
+            ConversationSkillContext.empty());
         assertNotNull(body);
         assertEquals("c1", body.get("conversationId"));
         assertEquals("上海的天气怎么样？", body.get("query"));
@@ -126,6 +129,27 @@ class AgentRuntimeAdapterTest {
         assertNotNull(historyMaps);
         assertEquals(2, historyMaps.size());
         assertEquals("user", historyMaps.get(0).get("role"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void buildRequestBody_包含可信技能目录和有序推荐() {
+        ConversationSkillDescriptor skill = ConversationSkillDescriptor.builder()
+            .skillId("s1").versionId("v1").name("meeting-minutes")
+            .description("整理会议内容").objectKey("u1/skills/s1/v1/a.zip").build();
+        ConversationSkillContext skillContext = new ConversationSkillContext(List.of(skill), List.of("s1"));
+        Conversation conv = Conversation.builder().conversationId("c1").projectId("p1").workspaceId("w1").build();
+        SendMessageCmd cmd = new SendMessageCmd();
+        cmd.setQuery("整理会议");
+        cmd.setModelDeploymentId("m1");
+        cmd.setRecommendedSkillIds(List.of("browser-forged-id"));
+
+        Map<String, Object> body = adapter.buildRequestBody(conv, cmd, List.of(), skillContext);
+
+        assertEquals(List.of("s1"), body.get("recommendedSkillIds"));
+        assertNotEquals(cmd.getRecommendedSkillIds(), body.get("recommendedSkillIds"));
+        Map<String, Object> item = ((List<Map<String, Object>>) body.get("skillCatalog")).get(0);
+        assertEquals("u1/skills/s1/v1/a.zip", item.get("objectKey"));
     }
 
     /**
