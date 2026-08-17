@@ -32,13 +32,21 @@ class ConversationSkillResolverTest {
                 skill("s1", "d1", "p1", "w1", "developed", "v1", "u1/skills/s1/v1/a.zip"),
                 skill("s2", "d1", "p1", "w1", "developing", "v2", "u1/skills/s2/v2/b.zip"),
                 skill("s3", "d1", "p1", "w1", "developed", "v3", ""),
-                skill("s4", "d2", "p1", "w1", "developed", "v4", "u1/skills/s4/v4/a.zip")));
+                skill("s4", "d2", "p1", "w1", "developed", "v4", "u1/skills/s4/v4/a.zip"),
+                skill("s5", "d1", "p2", "w1", "developed", "v5", "u1/skills/s5/v5/a.zip"),
+                skill("s6", "d1", "p1", "w2", "developed", "v6", "u1/skills/s6/v6/a.zip"),
+                skill("s7", "d1", "p1", "w1", "developed", "", "u1/skills/s7/v7/a.zip"),
+                skill("s8", "d1", "p1", "w1", "developed", " ", "u1/skills/s8/v8/a.zip")));
 
         List<ConversationSkillVo> result = resolver.listAvailable("p1", "w1", "d1");
+        ConversationSkillContext context = resolver.resolveForRun("p1", "w1", "d1",
+            List.of("s1", "s2", "s3", "s4", "s5", "s6", "s7", "s8"));
 
         assertEquals(List.of("s1"), result.stream().map(ConversationSkillVo::getSkillId).toList());
+        assertEquals(List.of("s1"), context.getCatalog().stream().map(item -> item.getSkillId()).toList());
+        assertEquals(List.of("s1"), context.getRecommendedSkillIds());
         org.mockito.ArgumentCaptor<SkillEntity> condition = org.mockito.ArgumentCaptor.forClass(SkillEntity.class);
-        verify(skillMapper, times(1)).search(condition.capture(), eq(0), eq(1000), isNull(), isNull(), eq(0));
+        verify(skillMapper, times(2)).search(condition.capture(), eq(0), eq(1000), isNull(), isNull(), eq(0));
         assertEquals("p1", condition.getValue().getProjectId());
         assertEquals("w1", condition.getValue().getWorkspaceId());
         assertEquals("d1", condition.getValue().getDomainId());
@@ -52,9 +60,14 @@ class ConversationSkillResolverTest {
                 "u1/skills/s" + i + "/v" + i + "/a.zip"))
             .toList();
         when(skillMapper.search(any(), eq(0), eq(1000), isNull(), isNull(), eq(0))).thenReturn(firstPage);
-        when(skillMapper.search(any(), eq(1000), eq(1000), isNull(), isNull(), eq(0))).thenReturn(List.of());
+        when(skillMapper.search(any(), eq(1000), eq(1000), isNull(), isNull(), eq(0))).thenReturn(List.of(
+            skill("s1000", "d1", "p1", "w1", "developed", "v1000", "u1/skills/s1000/v1000/a.zip")));
 
-        assertEquals(1000, resolver.listAvailable("p1", "w1", "d1").size());
+        List<ConversationSkillVo> result = resolver.listAvailable("p1", "w1", "d1");
+
+        assertEquals(1001, result.size());
+        assertEquals("s1000", result.get(1000).getSkillId());
+        verify(skillMapper).search(any(), eq(0), eq(1000), isNull(), isNull(), eq(0));
         verify(skillMapper).search(any(), eq(1000), eq(1000), isNull(), isNull(), eq(0));
     }
 
