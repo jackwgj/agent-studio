@@ -223,7 +223,7 @@ export class HomeComponent implements OnInit, OnDestroy {
                 router: ['overview'],
                 isSelected: false,
               },
-              /** 资产中心 */
+              /** 专家·技能 */
               {
                 id: 'asset_center',
                 name: this.i18NextEagerPipe.transform('asset_center'),
@@ -440,7 +440,7 @@ export class HomeComponent implements OnInit, OnDestroy {
             label: '',
             router: ['dialog-home'],
             children: [
-              /** 资产中心 */
+              /** 专家·技能 */
               {
                 id: 'app-library',
                 name: this.i18NextEagerPipe.transform('app_square'),
@@ -452,46 +452,12 @@ export class HomeComponent implements OnInit, OnDestroy {
                 routerList: [['/knowledge-bot'], ['/flow/knowledge-bot'], ['/flow/preload'], ['/scenario-bot/:appType/:appId']],
               },
               {
-                name: this.i18NextEagerPipe.transform('model_square'),
-                label: this.i18NextEagerPipe.transform('model_square'),
-                icon: cdnAssetUrl('assets/images/menu/model-center.svg'),
-                iconSelected: cdnAssetUrl('assets/images/menu/model-center-selected.svg'),
-                isSelected: false,
-                router: ['model-square'],
-              },
-              {
                 name: this.i18NextEagerPipe.transform('mcp_square'),
                 label: this.i18NextEagerPipe.transform('mcp_square'),
                 icon: cdnAssetUrl('assets/images/menu/mcp-center.svg'),
                 iconSelected: cdnAssetUrl('assets/images/menu/mcp-center-selected.svg'),
                 isSelected: false,
                 router: ['service-market'],
-              },
-              {
-                name: this.i18NextEagerPipe.transform('plugin_square'),
-                label: this.i18NextEagerPipe.transform('plugin_square'),
-                icon: cdnAssetUrl('assets/images/menu/plugin-center.svg'),
-                iconSelected: cdnAssetUrl('assets/images/menu/plugin-center-selected.svg'),
-                router: ['plugin-market'],
-                isSelected: false,
-              },
-              {
-                id: this.i18NextEagerPipe.transform('route_prompt_management'),
-                name: this.i18NextEagerPipe.transform('route_prompt_management'),
-                icon: cdnAssetUrl('assets/images/menu/prompt-center.svg'),
-                iconSelected: cdnAssetUrl('assets/images/menu/prompt-center-selected.svg'),
-                label: this.i18NextEagerPipe.transform('route_prompt_management'),
-                router: ['prompt/prompt-template'],
-                isSelected: false,
-              },
-              {
-                name: this.i18NextEagerPipe.transform('kb_plaza'),
-                label: this.i18NextEagerPipe.transform('kb_plaza'),
-                icon: cdnAssetUrl('assets/images/menu/knowledge_base.svg'),
-                iconSelected: cdnAssetUrl('assets/images/menu/knowledge_base_selected.svg'),
-                isSelected: false,
-                router: ['knowledge-center/kb-plaza'],
-                hide: !this.configServ.isSupportSharedKb(),
               },
               {
                 name: this.i18NextEagerPipe.transform('skill_market'),
