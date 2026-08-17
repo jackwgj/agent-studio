@@ -5,9 +5,12 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
 } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
+import { TextFieldModule } from '@angular/cdk/text-field';
+import { Subscription } from 'rxjs';
 import { COMMON_MODULES, LIB_MODULES } from '@shared/modules';
 import { ModelManagementService } from '@services/repositories/model-management-new';
-import { ConversationWorkspaceService } from './conversation-workspace.service';
+import { ConversationWorkspaceService, SessionItem } from './conversation-workspace.service';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -22,23 +25,15 @@ interface ChatMessage {
   isSubAgent?: boolean;
 }
 
-interface SessionItem {
-  conversation_id: string;
-  title: string;
-  status: string;
-  updated_at?: string;
-}
-
 @Component({
   selector: 'app-conversation-workspace',
   templateUrl: './conversation-workspace.component.html',
   styleUrls: ['./conversation-workspace.component.less'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [COMMON_MODULES, LIB_MODULES],
+  imports: [COMMON_MODULES, LIB_MODULES, TextFieldModule],
   standalone: true,
 })
 export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
-  sessions: SessionItem[] = [];
   currentSession: SessionItem | null = null;
   messages: ChatMessage[] = [];
   inputText = '';
@@ -47,21 +42,25 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
   modelOptions: any[] = [];
   private sseInstance: any = null;
   private modelAbortController: AbortController | null = null;
+  private subscriptions = new Subscription();
 
   constructor(
     private conversationWorkspaceService: ConversationWorkspaceService,
     private modelManagementService: ModelManagementService,
+    private route: ActivatedRoute,
     private cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
     this.loadModels();
-    this.refreshSessions();
+    this.subscribeToRoute();
+    this.subscribeToActiveSession();
   }
 
   ngOnDestroy(): void {
     this.sseInstance?.close?.();
     this.modelAbortController?.abort();
+    this.subscriptions.unsubscribe();
   }
 
   /** 模型列表（复用平台 getAvailableModelList） */
@@ -95,73 +94,79 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
       .catch(() => void 0);
   }
 
-  /** 刷新历史栏（updated_on 倒序） */
-  private refreshSessions(): void {
-    this.conversationWorkspaceService.listSessions(0, 100).then((res) => {
-      this.sessions = res?.items ?? [];
-      this.cdr.markForCheck();
-    });
+  /** 路由 queryParams：conversation_id 打开会话 / new 新建草稿 / 兜底新建草稿 */
+  private subscribeToRoute(): void {
+    this.subscriptions.add(
+      this.route.queryParams.subscribe((params) => {
+        if (params['conversation_id']) {
+          this.openConversation(params['conversation_id']);
+        } else if (params['new']) {
+          this.conversationWorkspaceService.newDraftSession();
+        } else if (!this.conversationWorkspaceService.activeSession$.value) {
+          this.conversationWorkspaceService.newDraftSession();
+        }
+      }),
+    );
   }
 
-  /** 新建会话 */
-  public newSession(): void {
-    if (this.streaming) {
-      return;
-    }
-    this.conversationWorkspaceService.createSession({}).then((session) => {
-      this.currentSession = session;
-      this.messages = [];
-      this.refreshSessions();
-      this.cdr.markForCheck();
-    });
-  }
-
-  /** 恢复会话（加载全部消息） */
-  public selectSession(session: SessionItem): void {
-    if (this.streaming) {
-      return;
-    }
-    this.currentSession = session;
-    this.conversationWorkspaceService
-      .detailSession(session.conversation_id)
-      .then((detail) => {
-        this.messages = (detail?.messages ?? []).map((msg: any) => ({
-          role: msg.role === 'user' ? 'user' : 'assistant',
-          content: msg.content ?? '',
-          // 子 Agent 消息（t_conversation_sub_run 行）恢复为独立气泡；detail API 字段是下划线（MessageVo）
-          ...(msg.sub_execution_id
-            ? { subExecutionId: msg.sub_execution_id, agentId: msg.agent_id, isSubAgent: true }
-            : {}),
-        }));
+  /** 订阅当前会话：有真实 id 拉取消息，草稿清空（流式中跳过，避免覆盖正在发送的气泡） */
+  private subscribeToActiveSession(): void {
+    this.subscriptions.add(
+      this.conversationWorkspaceService.activeSession$.subscribe((session) => {
+        this.currentSession = session;
+        const id = session?.conversation_id;
+        if (!id) {
+          this.messages = [];
+        } else if (!this.streaming) {
+          this.messages = [];
+          this.conversationWorkspaceService.detailSession(id).then((detail) => {
+            this.messages = (detail?.messages ?? []).map((msg: any) => ({
+              role: msg.role === 'user' ? 'user' : 'assistant',
+              content: msg.content ?? '',
+              // 子 Agent 消息（t_conversation_sub_run 行）恢复为独立气泡；detail API 字段是下划线（MessageVo）
+              ...(msg.sub_execution_id
+                ? { subExecutionId: msg.sub_execution_id, agentId: msg.agent_id, isSubAgent: true }
+                : {}),
+            }));
+            if (!this.currentSession?.title) {
+              this.currentSession = { ...this.currentSession!, title: detail?.title ?? '' };
+            }
+            this.cdr.markForCheck();
+          });
+        }
         this.cdr.markForCheck();
-      });
+      }),
+    );
   }
 
-  /** 删除会话 */
-  public deleteSession(session: SessionItem, event: Event): void {
-    event.stopPropagation();
-    this.conversationWorkspaceService.deleteSession(session.conversation_id).then(() => {
-      if (this.currentSession?.conversation_id === session.conversation_id) {
-        this.currentSession = null;
-        this.messages = [];
-      }
-      this.refreshSessions();
-    });
+  /** 打开会话（列表命中直接用；深链则先占位、详情加载后补标题） */
+  private openConversation(id: string): void {
+    if (this.streaming) {
+      return;
+    }
+    const existing = this.conversationWorkspaceService.sessions$.value.find(
+      (s) => s.conversation_id === id,
+    );
+    this.conversationWorkspaceService.setActiveSession(
+      existing ?? { conversation_id: id, title: '', status: 'ACTIVE' },
+    );
   }
 
-  /** 发送消息（多轮对话入口） */
+  /** 发送消息（多轮对话入口；草稿先落库，仅首次真正交互才创建会话） */
   public send(): void {
     const query = this.inputText.trim();
-    if (!query || this.streaming) {
+    if (!query || this.streaming || !this.selectedModel) {
       return;
     }
-    if (!this.currentSession) {
-      // 无会话时先创建
-      this.conversationWorkspaceService.createSession({}).then((session) => {
-        this.currentSession = session;
-        this.doRun(query);
-        this.refreshSessions();
-      });
+    if (!this.currentSession?.conversation_id) {
+      this.conversationWorkspaceService
+        .createSession({ title: this.currentSession?.title ?? '' })
+        .then((session) => {
+          this.currentSession = session;
+          this.doRun(query);
+          this.conversationWorkspaceService.setActiveSession(session);
+          this.conversationWorkspaceService.refreshSessions();
+        });
       return;
     }
     this.doRun(query);
@@ -195,7 +200,7 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
         onDone: () => {
           assistantMsg.loading = false;
           this.streaming = false;
-          this.refreshSessions();
+          this.conversationWorkspaceService.refreshSessions();
           this.cdr.markForCheck();
         },
         onError: () => {
