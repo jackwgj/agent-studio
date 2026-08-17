@@ -28,6 +28,8 @@ async def _finish_supervisor_task(
     """Cancel and await a copied-Context task, even when our caller is cancelled again."""
     if task is None:
         return None, None, False
+    cleanup_task = asyncio.current_task()
+    cancellation_baseline = cleanup_task.cancelling() if cleanup_task is not None else 0
     cleanup_requested_cancel = False
     if not task.done():
         cleanup_requested_cancel = task.cancel()
@@ -37,8 +39,11 @@ async def _finish_supervisor_task(
         try:
             await asyncio.shield(task)
         except asyncio.CancelledError as error:
-            if not task.done():
+            current_cancellations = cleanup_task.cancelling() if cleanup_task is not None else 0
+            if current_cancellations > cancellation_baseline:
                 caller_cancellation = error
+                cancellation_baseline = current_cancellations
+            if not task.done():
                 task.cancel()
         except BaseException:
             break
