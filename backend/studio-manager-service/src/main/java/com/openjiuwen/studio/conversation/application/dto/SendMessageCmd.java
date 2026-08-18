@@ -25,7 +25,19 @@ public class SendMessageCmd {
     private String query;
 
     /**
-     * 模型部署id（=t_model_service.ID），模型选择驱动 IR 选取
+     * 执行目标类型：SUPERVISOR（默认团队）或 APP（用户配置的智能体应用）。
+     */
+    @JsonProperty("select_type")
+    private String selectType = "SUPERVISOR";
+
+    /**
+     * 用户配置的单/多智能体应用 ID，仅 APP 路径使用。
+     */
+    @JsonProperty("app_id")
+    private String appId;
+
+    /**
+     * 模型部署id（=t_model_service.ID），Supervisor 路径使用。
      */
     @JsonProperty("model_deployment_id")
     private String modelDeploymentId;

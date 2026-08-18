@@ -6,6 +6,7 @@ import { provideNzIcons } from 'ng-zorro-antd/icon';
 import { AudioOutline, NumberOutline, SendOutline, UploadOutline } from '@ant-design/icons-angular/icons';
 import { BehaviorSubject } from 'rxjs';
 import { ModelManagementService } from '@services/repositories/model-management-new';
+import { AppAgentRepoService } from '@services/agent-center/app-agent-repo.service';
 import { HttpService } from '@services/http.service';
 import { ConversationSkillItem } from './conversation-skill.model';
 import { ConversationWorkspaceComponent } from './conversation-workspace.component';
@@ -58,6 +59,10 @@ describe('ConversationWorkspaceComponent', () => {
         {
           provide: ModelManagementService,
           useValue: { getAvailableModelList: jasmine.createSpy('getAvailableModelList').and.returnValue(new Promise(() => void 0)) },
+        },
+        {
+          provide: AppAgentRepoService,
+          useValue: { getAgentList: jasmine.createSpy('getAgentList').and.resolveTo({ agent_list: [] }) },
         },
         { provide: HttpService, useValue: http },
         { provide: ActivatedRoute, useValue: { queryParams: routeParams } },

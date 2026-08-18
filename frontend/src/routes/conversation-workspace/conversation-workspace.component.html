@@ -104,6 +104,19 @@
 
         <div class="composer-actions">
           <nz-select
+            class="model-pill"
+            nzPlaceHolder="选择执行目标"
+            [(ngModel)]="selectedExecutionTarget"
+            nzSize="small"
+          >
+            <nz-option
+              *ngFor="let target of executionTargets"
+              [nzValue]="target.id"
+              [nzLabel]="target.name"
+            ></nz-option>
+          </nz-select>
+
+          <nz-select
             *ngIf="modelOptions.length"
             class="model-pill"
             nzPlaceHolder="选择模型"
@@ -124,7 +137,7 @@
             nzShape="circle"
             class="send-btn"
             [nzLoading]="streaming"
-            [disabled]="!inputText.trim() || isSending || !selectedModel"
+            [disabled]="!inputText.trim() || isSending || !selectedExecutionTarget || (selectedExecutionTarget === 'default-team' && !selectedModel)"
             (click)="send()"
           >
             <nz-icon nzType="send" nzTheme="outline"></nz-icon>

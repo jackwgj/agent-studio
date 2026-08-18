@@ -10,8 +10,14 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { COMMON_MODULES, LIB_MODULES } from '@shared/modules';
 import { ModelManagementService } from '@services/repositories/model-management-new';
+import { AppAgentRepoService } from '@services/agent-center/app-agent-repo.service';
+import { ApplicationType } from '@enums/agent-center.enum';
 import { HttpService } from '@services/http.service';
-import { ConversationSendRequest, ConversationSkillItem } from './conversation-skill.model';
+import {
+  ConversationExecutionTarget,
+  ConversationSendRequest,
+  ConversationSkillItem,
+} from './conversation-skill.model';
 import {
   ActiveSessionState,
   ConversationWorkspaceService,
@@ -90,6 +96,10 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
   streaming = false;
   selectedModel = '';
   modelOptions: any[] = [];
+  executionTargets: ConversationExecutionTarget[] = [
+    { id: 'default-team', name: '默认团队', type: 'SUPERVISOR' },
+  ];
+  selectedExecutionTarget = 'default-team';
   skillCatalog: ConversationSkillItem[] = [];
   skillCatalogUnavailable = false;
   recommendedSkills: ConversationSkillItem[] = [];
@@ -113,6 +123,7 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
   constructor(
     private conversationWorkspaceService: ConversationWorkspaceService,
     private modelManagementService: ModelManagementService,
+    private appAgentRepoService: AppAgentRepoService,
     private route: ActivatedRoute,
     private router: Router,
     private cdr: ChangeDetectorRef,
@@ -125,6 +136,7 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
     this.loadSkillCatalog();
     window.addEventListener('WorkspaceChange', this.workspaceChangeHandler);
     this.loadModels();
+    this.loadExecutionTargets();
     this.subscribeToSessionListState();
     this.subscribeToRoute();
     this.subscribeToActiveSession();
@@ -203,6 +215,53 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
         });
         this.modelOptions = options;
         this.selectedModel = options[0]?.deployment_id ?? '';
+        this.cdr.markForCheck();
+      })
+      .catch(() => void 0);
+  }
+
+  /** 复用 AgentCenter 现有资源接口，映射工作台执行目标。
+   *  该接口 type 为精确匹配（不支持逗号多值），故按单/多智能体各查一次再合并去重。 */
+  private loadExecutionTargets(): void {
+    Promise.all([
+      this.appAgentRepoService.getAgentList(
+        { type: ApplicationType.SINGLE_AGENT, status: 'published' },
+        0,
+        100,
+      ),
+      this.appAgentRepoService.getAgentList(
+        { type: ApplicationType.MULTI_AGENT, status: 'published' },
+        0,
+        100,
+      ),
+    ])
+      .then(([single, multi]) => {
+        const seen = new Set<string>();
+        const targets: ConversationExecutionTarget[] = [];
+        [single, multi].forEach((res) => {
+          (res?.agent_list ?? []).forEach((agent: any) => {
+            if (
+              ![ApplicationType.SINGLE_AGENT, ApplicationType.MULTI_AGENT].includes(agent.type)
+            ) {
+              return;
+            }
+            const id = String(agent.id ?? agent.agent_id);
+            const name = agent.name ?? agent.agent_name ?? id;
+            if (!id || !name || seen.has(id)) {
+              return;
+            }
+            seen.add(id);
+            targets.push({
+              id,
+              name,
+              type: agent.type === ApplicationType.MULTI_AGENT ? 'MULTI_AGENT' : 'SINGLE_AGENT',
+            });
+          });
+        });
+        this.executionTargets = [
+          { id: 'default-team', name: '默认团队', type: 'SUPERVISOR' },
+          ...targets,
+        ];
         this.cdr.markForCheck();
       })
       .catch(() => void 0);
@@ -379,14 +438,21 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
     this.cdr.markForCheck();
 
     let source: { close?: () => void } | undefined;
+    const selectedTarget = this.executionTargets.find(
+      (target) => target.id === this.selectedExecutionTarget,
+    );
+    const request: ConversationSendRequest = {
+      query: attempt.query,
+      recommended_skill_ids: attempt.recommendationSnapshot.map((item) => item.skillId),
+      select_type: selectedTarget?.type === 'SUPERVISOR' ? 'SUPERVISOR' : 'APP',
+      ...(selectedTarget?.type === 'SUPERVISOR'
+        ? { model_deployment_id: this.selectedModel }
+        : { app_id: selectedTarget?.id }),
+    };
     try {
       source = this.conversationWorkspaceService.chatSSE(
         conversationId,
-        {
-          query: attempt.query,
-          model_deployment_id: this.selectedModel,
-          recommended_skill_ids: attempt.recommendationSnapshot.map((item) => item.skillId),
-        } as ConversationSendRequest,
+        request,
         {
           onOpen: () => {
             if (!this.isCurrentAttempt(attempt)) {
