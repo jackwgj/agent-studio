@@ -373,6 +373,147 @@ describe('ConversationWorkspaceComponent', () => {
     expect((component as any).activatedSkills).toEqual([{ skillId: 's1', name: '会议纪要', versionId: 'v1' }]);
     expect(service.listSkills.calls.count()).toBe(callsBefore);
   });
+
+  it('草稿晋升不会加载详情，晚到详情也不会覆盖本轮气泡和 run_done', async () => {
+    const oldDetail = deferred<any>();
+    service.detailSession.and.returnValue(oldDetail.promise);
+    service.activeSession$.next(session('old-session'));
+    service.activeSession$.next({ conversation_id: '', title: '草稿', status: 'ACTIVE' });
+    component.inputText = '整理会议';
+
+    component.send();
+    await Promise.resolve();
+    const callbacks = service.chatSSE.calls.mostRecent().args[2];
+    callbacks.onMessage({ data: JSON.stringify({ event: 'message', data: { delta: '流式文本' } }) });
+    callbacks.onMessage({ data: JSON.stringify({ event: 'run_done', data: { text: '最终文本' } }) });
+    oldDetail.resolve({ messages: [] });
+    await Promise.resolve();
+
+    expect(service.detailSession).toHaveBeenCalledTimes(1);
+    expect(component.messages.map((message: any) => message.content)).toEqual(['整理会议', '最终文本']);
+  });
+
+  it('仅接受当前会话最新详情，c1 的晚到结果不能覆盖 c2', async () => {
+    const c1 = deferred<any>();
+    const c2 = deferred<any>();
+    service.detailSession.and.returnValues(c1.promise, c2.promise);
+
+    service.activeSession$.next(session('c1'));
+    service.activeSession$.next(session('c2'));
+    c2.resolve({ messages: [{ role: 'assistant', content: 'c2' }] });
+    await Promise.resolve();
+    c1.resolve({ messages: [{ role: 'assistant', content: 'c1' }] });
+    await Promise.resolve();
+
+    expect(component.messages.map((message: any) => message.content)).toEqual(['c2']);
+  });
+
+  it('切换工作空间或销毁后，旧详情的 resolve/reject 都不会写入页面', async () => {
+    const detailA = deferred<any>();
+    service.detailSession.and.returnValue(detailA.promise);
+    service.activeSession$.next(session('c1'));
+    http.workspaceId = 'workspace-2';
+    window.dispatchEvent(new Event('WorkspaceChange'));
+    detailA.resolve({ messages: [{ role: 'assistant', content: 'workspace-a' }] });
+    await Promise.resolve();
+
+    expect(component.messages).toEqual([]);
+    const detailB = deferred<any>();
+    service.detailSession.and.returnValue(detailB.promise);
+    service.activeSession$.next(session('c2'));
+    component.ngOnDestroy();
+    detailB.reject(new Error('late failure'));
+    await Promise.resolve();
+
+    expect(component.messages).toEqual([]);
+  });
+
+  it('A 到 B 后 A 的详情 reject 被消费且不影响 B 页面', async () => {
+    const detailA = deferred<any>();
+    service.detailSession.and.returnValue(detailA.promise);
+    service.activeSession$.next(session('c1'));
+    http.workspaceId = 'workspace-2';
+    window.dispatchEvent(new Event('WorkspaceChange'));
+
+    detailA.reject(new Error('workspace-a late failure'));
+    await Promise.resolve();
+
+    expect(component.messages).toEqual([]);
+    expect(component.currentSession?.conversation_id).toBe('c1');
+  });
+
+  it('chatSSE 同步抛错按连接前失败收口，保留输入和推荐', () => {
+    service.chatSSE.and.throwError(() => new Error('bad region'));
+    component.currentSession = session('c1');
+    component.inputText = '整理会议';
+    (component as any).recommendedSkills = [skill('s1')];
+
+    component.send();
+
+    expect(component.isSending).toBeFalse();
+    expect(component.streaming).toBeFalse();
+    expect(component.inputText).toBe('整理会议');
+    expect((component as any).recommendedSkills.map((item: ConversationSkillItem) => item.skillId)).toEqual(['s1']);
+    expect(service.listSkills.calls.count()).toBeGreaterThan(1);
+  });
+
+  it('source.close 抛错时 error、timeout、切换和销毁仍释放 attempt 与监听器', () => {
+    const source = { close: jasmine.createSpy('close').and.throwError(new Error('close failed')) };
+    service.chatSSE.and.returnValue(source);
+    component.currentSession = session('c1');
+    component.inputText = '第一轮';
+    component.send();
+    service.chatSSE.calls.mostRecent().args[2].onError();
+    expect(component.isSending).toBeFalse();
+
+    component.inputText = '第二轮';
+    component.send();
+    service.chatSSE.calls.mostRecent().args[2].onTimeout();
+    expect(component.isSending).toBeFalse();
+
+    component.inputText = '第三轮';
+    component.send();
+    service.activeSession$.next(session('c2'));
+    expect(component.isSending).toBeFalse();
+
+    component.inputText = '第四轮';
+    component.send();
+    expect(() => component.ngOnDestroy()).not.toThrow();
+    expect(component.isSending).toBeFalse();
+  });
+
+  it('流中重复相同 conversation_id 通知不取消 attempt、不清 Skill 或重复加载详情', () => {
+    const source = { close: jasmine.createSpy('close') };
+    service.chatSSE.and.returnValue(source);
+    service.activeSession$.next(session('c1'));
+    const initialDetails = service.detailSession.calls.count();
+    component.inputText = '整理会议';
+    (component as any).recommendedSkills = [skill('s1')];
+    component.send();
+    (component as any).activatedSkills = [{ skillId: 's1', name: '会议纪要', versionId: 'v1' }];
+
+    service.setActiveSession(session('c1'));
+
+    expect(component.isSending).toBeTrue();
+    expect(source.close).not.toHaveBeenCalled();
+    expect((component as any).recommendedSkills.map((item: ConversationSkillItem) => item.skillId)).toEqual(['s1']);
+    expect((component as any).activatedSkills).toEqual([{ skillId: 's1', name: '会议纪要', versionId: 'v1' }]);
+    expect(service.detailSession.calls.count()).toBe(initialDetails);
+  });
+
+  it('同一 conversation_id 的 query-param 重发不取消正在运行的流', () => {
+    const source = { close: jasmine.createSpy('close') };
+    const route = TestBed.inject(ActivatedRoute).queryParams as BehaviorSubject<any>;
+    service.chatSSE.and.returnValue(source);
+    service.activeSession$.next(session('c1'));
+    component.inputText = '整理会议';
+    component.send();
+
+    route.next({ conversation_id: 'c1' });
+
+    expect(component.isSending).toBeTrue();
+    expect(source.close).not.toHaveBeenCalled();
+  });
 });
 
 describe('ConversationWorkspaceService', () => {
