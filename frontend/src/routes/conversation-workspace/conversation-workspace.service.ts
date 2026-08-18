@@ -5,6 +5,7 @@ import { AgentConfigService } from '@routes/agent-center/agent-config.service';
 import { SSE } from '@shared/services/sse';
 import { BehaviorSubject } from 'rxjs';
 import dayjs from 'dayjs';
+import { ConversationSendRequest, ConversationSkillItem, ConversationSseCallbacks } from './conversation-skill.model';
 
 export interface SessionItem {
   conversation_id: string;
@@ -12,6 +13,18 @@ export interface SessionItem {
   status: string;
   updated_at?: string;
   created_at?: string;
+}
+
+export interface SessionListState {
+  workspaceId: string;
+  generation: number;
+  sessions: SessionItem[];
+}
+
+export interface ActiveSessionState {
+  workspaceId: string;
+  generation: number;
+  session: SessionItem | null;
 }
 
 /**
@@ -24,8 +37,23 @@ export interface SessionItem {
 export class ConversationWorkspaceService {
   /** 会话列表（左菜单 + 工作台共享） */
   public sessions$ = new BehaviorSubject<SessionItem[]>([]);
+  /** 带工作空间归属的会话列表快照，供路由归属校验使用。 */
+  public sessionListState$ = new BehaviorSubject<SessionListState>({
+    workspaceId: '',
+    generation: 0,
+    sessions: [],
+  });
   /** 当前打开的会话（可为无 id 的本地草稿） */
   public activeSession$ = new BehaviorSubject<SessionItem | null>(null);
+  /** 带工作空间归属的当前会话状态，避免根级残留会话跨空间重放。 */
+  public activeSessionState$ = new BehaviorSubject<ActiveSessionState>({
+    workspaceId: '',
+    generation: 0,
+    session: null,
+  });
+  private sessionListGeneration = 0;
+  private sessionListRequestId = 0;
+  private activeSessionGeneration = 0;
 
   constructor(
     private http: HttpService,
@@ -35,20 +63,36 @@ export class ConversationWorkspaceService {
 
   /** 刷新会话列表并广播 */
   public refreshSessions(): Promise<void> {
-    return this.listSessions(0, 100).then((res) => {
-      this.sessions$.next(res?.items ?? []);
+    const requestWorkspaceId = this.http.getWorkspaceId();
+    const requestId = ++this.sessionListRequestId;
+    return this.listSessions(0, 100, requestWorkspaceId).then((res) => {
+      if (!this.isCurrentSessionListRequest(requestWorkspaceId, requestId)) {
+        return;
+      }
+      this.publishSessionList(requestWorkspaceId, res?.items ?? []);
     });
+  }
+
+  /** 工作空间切换时清空共享列表，并使旧刷新请求失效。 */
+  public clearSessions(workspaceId = this.http.getWorkspaceId()): void {
+    this.sessionListRequestId += 1;
+    this.publishSessionList(workspaceId, []);
   }
 
   /** 新建本地草稿会话（标题=当前时间到分钟，未落库） */
   public newDraftSession(): void {
     const title = dayjs().format('YYYY-MM-DD HH:mm');
-    this.activeSession$.next({ conversation_id: '', title, status: 'ACTIVE' });
+    this.setActiveSession({ conversation_id: '', title, status: 'ACTIVE' });
   }
 
   /** 设置当前打开的会话 */
   public setActiveSession(session: SessionItem | null): void {
     this.activeSession$.next(session);
+    this.activeSessionState$.next({
+      workspaceId: this.http.getWorkspaceId(),
+      generation: ++this.activeSessionGeneration,
+      session,
+    });
   }
 
   private get sessionsUrl(): string {
@@ -66,15 +110,45 @@ export class ConversationWorkspaceService {
   }
 
   /** 会话列表（updated_on 倒序，分页） */
-  public listSessions(page = 0, size = 100): Promise<any> {
+  public listSessions(page = 0, size = 100, workspaceId = this.http.getWorkspaceId()): Promise<any> {
     return this.http.getAsync({
       url: this.sessionsUrl,
       query: {
-        workspace_id: this.http.getWorkspaceId(),
+        workspace_id: workspaceId,
         page,
         size,
       },
     });
+  }
+
+  private isCurrentSessionListRequest(workspaceId: string, requestId: number): boolean {
+    return workspaceId === this.http.getWorkspaceId() && requestId === this.sessionListRequestId;
+  }
+
+  private publishSessionList(workspaceId: string, sessions: SessionItem[]): void {
+    const state: SessionListState = {
+      workspaceId,
+      generation: ++this.sessionListGeneration,
+      sessions,
+    };
+    this.sessions$.next(sessions);
+    this.sessionListState$.next(state);
+  }
+
+  /** 工作空间内可供对话推荐的最小 Skill 目录。 */
+  public listSkills(): Promise<ConversationSkillItem[]> {
+    return this.http
+      .getAsync<any[]>({
+        url: `${this.sessionsUrl}/skills`,
+        query: { workspace_id: this.http.getWorkspaceId() },
+      })
+      .then((items) =>
+        (items ?? []).map((item) => ({
+          skillId: item.skill_id,
+          name: item.name,
+          description: item.description,
+        })),
+      );
   }
 
   /** 会话详情（含全部消息） */
@@ -99,8 +173,10 @@ export class ConversationWorkspaceService {
    */
   public chatSSE(
     conversationId: string,
-    params: any,
-    {
+    params: ConversationSendRequest,
+    callbacks: ConversationSseCallbacks = {},
+  ): any {
+    const {
       onStatus,
       onOpen,
       onMessage,
@@ -110,8 +186,7 @@ export class ConversationWorkspaceService {
       onError,
       onAbort,
       onReadyStateChange,
-    }: any = {},
-  ): any {
+    } = callbacks;
     const nilFunc = () => void 0;
     const url = `${this.http.prefixPath}/v1/${this.ctxServ.projectId}/conversation/sessions/${conversationId}/messages?workspace_id=${this.http.getWorkspaceId()}`;
 
@@ -136,7 +211,7 @@ export class ConversationWorkspaceService {
     });
     source.addEventListener('status', onStatus ?? nilFunc);
     source.addEventListener('open', onOpen ?? nilFunc);
-    source.addEventListener('message', onMessage ?? nilFunc);
+    source.addEventListener('message', (onMessage as unknown as EventListener) ?? nilFunc);
     source.addEventListener('error', onError ?? nilFunc);
     source.addEventListener('abort', onAbort ?? nilFunc);
     source.addEventListener('readystatechange', onReadyStateChange ?? nilFunc);

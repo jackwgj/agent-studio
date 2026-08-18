@@ -12,6 +12,8 @@ import com.openjiuwen.studio.agent.foundation.connection.model.PageResult;
 import com.openjiuwen.studio.conversation.application.dto.ConversationCreateCmd;
 import com.openjiuwen.studio.conversation.application.dto.ConversationDetailVo;
 import com.openjiuwen.studio.conversation.application.dto.ConversationListQuery;
+import com.openjiuwen.studio.conversation.application.dto.ConversationSkillContext;
+import com.openjiuwen.studio.conversation.application.dto.ConversationSkillVo;
 import com.openjiuwen.studio.conversation.application.dto.ConversationVo;
 import com.openjiuwen.studio.conversation.application.dto.MessageVo;
 import com.openjiuwen.studio.conversation.application.dto.SendMessageCmd;
@@ -47,13 +49,32 @@ public class ConversationWorkspaceAppService {
     private final ConversationRepository conversationRepository;
     private final ConversationHistoryAssembler conversationHistoryAssembler;
     private final AgentRuntimeAdapter agentRuntimeAdapter;
+    private final ConversationSkillResolver conversationSkillResolver;
+    private final ConversationWorkspaceAccessGuard conversationWorkspaceAccessGuard;
 
     public ConversationWorkspaceAppService(ConversationRepository conversationRepository,
                                            ConversationHistoryAssembler conversationHistoryAssembler,
-                                           AgentRuntimeAdapter agentRuntimeAdapter) {
+                                           AgentRuntimeAdapter agentRuntimeAdapter,
+                                           ConversationSkillResolver conversationSkillResolver,
+                                           ConversationWorkspaceAccessGuard conversationWorkspaceAccessGuard) {
         this.conversationRepository = conversationRepository;
         this.conversationHistoryAssembler = conversationHistoryAssembler;
         this.agentRuntimeAdapter = agentRuntimeAdapter;
+        this.conversationSkillResolver = conversationSkillResolver;
+        this.conversationWorkspaceAccessGuard = conversationWorkspaceAccessGuard;
+    }
+
+    /**
+     * 查询当前用户域可用的工作空间技能目录。
+     *
+     * @param projectId   租户
+     * @param workspaceId 工作空间
+     * @return 浏览器可见的技能目录
+     */
+    public List<ConversationSkillVo> listSkills(String projectId, String workspaceId) {
+        conversationWorkspaceAccessGuard.requireAccess(projectId, workspaceId);
+        return conversationSkillResolver.listAvailable(projectId, workspaceId,
+            RequestContextUtils.getRequestUserDomainId());
     }
 
     /**
@@ -169,6 +190,9 @@ public class ConversationWorkspaceAppService {
                 List.of("model_deployment_id is required"));
         }
         Conversation conversation = getOwnedConversation(projectId, workspaceId, conversationId);
+        conversationWorkspaceAccessGuard.requireAccess(projectId, workspaceId);
+        ConversationSkillContext skillContext = conversationSkillResolver.resolveForRun(projectId, workspaceId,
+            RequestContextUtils.getRequestUserDomainId(), cmd.getRecommendedSkillIds());
 
         // 本轮 execution_id（调用方生成，经 X-Execution-Id 下发引擎，事件原样携带）
         String executionId = UUID.randomUUID().toString();
@@ -186,7 +210,7 @@ public class ConversationWorkspaceAppService {
 
         // 全量历史组装（含工具消息合成）后注入运行链路
         List<Message> histories = conversationHistoryAssembler.assemble(conversation);
-        return agentRuntimeAdapter.run(conversation, cmd, histories, executionId, requestHeaders);
+        return agentRuntimeAdapter.run(conversation, cmd, histories, skillContext, executionId, requestHeaders);
     }
 
     /**
@@ -203,6 +227,7 @@ public class ConversationWorkspaceAppService {
                 List.of("conversation not found: " + conversationId)));
         if (!Objects.equals(conversation.getProjectId(), projectId)
             || !Objects.equals(conversation.getWorkspaceId(), workspaceId)
+            || !Objects.equals(conversation.getDomainId(), RequestContextUtils.getRequestUserDomainId())
             || !Objects.equals(conversation.getOwnerUserId(), RequestContextUtils.getRequestUserId())) {
             throw new AgentStudioException(StudioError.USER_WORKSPACE_PERMISSION_INVALID);
         }

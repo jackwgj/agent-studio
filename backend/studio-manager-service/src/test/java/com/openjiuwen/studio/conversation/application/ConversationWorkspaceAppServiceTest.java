@@ -4,9 +4,16 @@ import com.openjiuwen.studio.agent.common.dto.simple.SimpleUser;
 import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
 import com.openjiuwen.studio.agent.common.utils.RequestContextUtils;
 import com.openjiuwen.studio.agent.foundation.connection.model.PageResult;
+import com.openjiuwen.studio.agent.manager.mapper.SkillMapper;
+import com.openjiuwen.studio.agent.manager.mapper.workspace.WorkspaceMapper;
+import com.openjiuwen.studio.agent.manager.mapper.workspace.WorkspaceMemberMapper;
+import com.openjiuwen.studio.agent.manager.entity.WorkspaceEntity;
 import com.openjiuwen.studio.conversation.application.dto.ConversationCreateCmd;
 import com.openjiuwen.studio.conversation.application.dto.ConversationDetailVo;
 import com.openjiuwen.studio.conversation.application.dto.ConversationListQuery;
+import com.openjiuwen.studio.conversation.application.dto.ConversationSkillVo;
+import com.openjiuwen.studio.conversation.application.dto.ConversationSkillContext;
+import com.openjiuwen.studio.conversation.application.dto.ConversationSkillDescriptor;
 import com.openjiuwen.studio.conversation.application.dto.ConversationVo;
 import com.openjiuwen.studio.conversation.application.dto.MessageVo;
 import com.openjiuwen.studio.conversation.application.dto.SendMessageCmd;
@@ -15,15 +22,24 @@ import com.openjiuwen.studio.conversation.domain.model.ConversationMessage;
 import com.openjiuwen.studio.conversation.domain.repository.ConversationRepository;
 import com.openjiuwen.studio.conversation.domain.service.ConversationHistoryAssembler;
 import com.openjiuwen.studio.conversation.infrastructure.adapter.AgentRuntimeAdapter;
+import com.openjiuwen.studio.conversation.interfaces.controller.ConversationWorkspaceController;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.springframework.http.HttpHeaders;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
 import java.util.Optional;
+import java.lang.reflect.Method;
+import java.util.HashSet;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -34,6 +50,8 @@ class ConversationWorkspaceAppServiceTest {
     private ConversationRepository repository;
     private ConversationHistoryAssembler historyAssembler;
     private AgentRuntimeAdapter runtimeAdapter;
+    private ConversationSkillResolver skillResolver;
+    private ConversationWorkspaceAccessGuard workspaceAccessGuard;
     private ConversationWorkspaceAppService appService;
 
     @BeforeEach
@@ -41,11 +59,15 @@ class ConversationWorkspaceAppServiceTest {
         repository = mock(ConversationRepository.class);
         historyAssembler = mock(ConversationHistoryAssembler.class);
         runtimeAdapter = mock(AgentRuntimeAdapter.class);
-        appService = new ConversationWorkspaceAppService(repository, historyAssembler, runtimeAdapter);
+        skillResolver = mock(ConversationSkillResolver.class);
+        workspaceAccessGuard = mock(ConversationWorkspaceAccessGuard.class);
+        appService = new ConversationWorkspaceAppService(repository, historyAssembler, runtimeAdapter, skillResolver,
+            workspaceAccessGuard);
 
         SimpleUser user = new SimpleUser();
         user.setUserId("u1");
         user.setDomainId("d1");
+        user.setProjectId("p1");
         RequestContextUtils.setContext(user);
     }
 
@@ -55,6 +77,84 @@ class ConversationWorkspaceAppServiceTest {
     }
 
     // ---------- create ----------
+
+    @Test
+    void listSkills_只返回浏览器可见字段() {
+        when(skillResolver.listAvailable("p1", "w1", "d1"))
+            .thenReturn(List.of(ConversationSkillVo.builder()
+                .skillId("s1").name("会议纪要").description("整理会议内容").build()));
+
+        List<ConversationSkillVo> result = appService.listSkills("p1", "w1");
+
+        assertEquals("s1", result.get(0).getSkillId());
+    }
+
+    @Test
+    void listSkills_序列化时仅暴露浏览器字段() throws Exception {
+        ConversationSkillVo skill = ConversationSkillVo.builder()
+            .skillId("s1").name("会议纪要").description("整理会议内容").build();
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        JsonNode node = objectMapper.readTree(objectMapper.writeValueAsString(skill));
+        Set<String> fields = new HashSet<>();
+        node.fieldNames().forEachRemaining(fields::add);
+
+        assertEquals(Set.of("skill_id", "name", "description"), fields);
+        assertFalse(node.has("versionId"));
+        assertFalse(node.has("version_id"));
+        assertFalse(node.has("objectKey"));
+        assertFalse(node.has("object_key"));
+    }
+
+    @Test
+    void listSkills_请求项目不是认证项目时拒绝且不查询技能() {
+        SkillMapper mapper = mock(SkillMapper.class);
+        ConversationWorkspaceAppService guarded = guardedAppService(mapper, mock(WorkspaceMapper.class),
+            mock(WorkspaceMemberMapper.class));
+        RequestContextUtils.getRequestUser().setProjectId("p2");
+
+        assertThrows(AgentStudioException.class, () -> guarded.listSkills("p1", "w1"));
+
+        verifyNoInteractions(mapper);
+    }
+
+    @Test
+    void listSkills_当前用户不是工作空间成员时拒绝且不查询技能() {
+        SkillMapper mapper = mock(SkillMapper.class);
+        WorkspaceMapper workspaceMapper = mock(WorkspaceMapper.class);
+        WorkspaceMemberMapper workspaceMemberMapper = mock(WorkspaceMemberMapper.class);
+        when(workspaceMapper.getWorkspaceByWorkspaceId("p1", "w1"))
+            .thenReturn(new WorkspaceEntity().setId("w1").setProjectId("p1"));
+        ConversationWorkspaceAppService guarded = guardedAppService(mapper, workspaceMapper, workspaceMemberMapper);
+
+        assertThrows(AgentStudioException.class, () -> guarded.listSkills("p1", "w1"));
+
+        verifyNoInteractions(mapper);
+    }
+
+    @Test
+    void listSkills_工作空间不存在时拒绝且不查询技能() {
+        SkillMapper mapper = mock(SkillMapper.class);
+        ConversationWorkspaceAppService guarded = guardedAppService(mapper, mock(WorkspaceMapper.class),
+            mock(WorkspaceMemberMapper.class));
+
+        assertThrows(AgentStudioException.class, () -> guarded.listSkills("p1", "w1"));
+
+        verifyNoInteractions(mapper);
+    }
+
+    @Test
+    void listSkills_暴露固定路由并转发工作空间参数() throws NoSuchMethodException {
+        ConversationWorkspaceAppService controllerAppService = mock(ConversationWorkspaceAppService.class);
+        ConversationWorkspaceController controller = new ConversationWorkspaceController(controllerAppService);
+        List<ConversationSkillVo> expected = List.of(ConversationSkillVo.builder().skillId("s1").build());
+        when(controllerAppService.listSkills("p1", "w1")).thenReturn(expected);
+
+        Method method = ConversationWorkspaceController.class.getMethod("listSkills", String.class, String.class);
+        assertEquals(List.of("/skills"), List.of(method.getAnnotation(GetMapping.class).value()));
+        assertEquals("workspace_id", method.getParameters()[1].getAnnotation(RequestParam.class).value());
+        assertEquals(expected, controller.listSkills("p1", "w1"));
+    }
 
     @Test
     void testCreate_BlankTitle_UseDefaultTitle() {
@@ -210,20 +310,91 @@ class ConversationWorkspaceAppServiceTest {
         cmd.setQuery("你好");
         cmd.setModelDeploymentId("m1");
         SseEmitter emitter = new SseEmitter();
-        when(runtimeAdapter.run(eq(conv), eq(cmd), anyList(), anyString(), any())).thenReturn(emitter);
+        ConversationSkillContext skillContext = new ConversationSkillContext(List.of(
+            ConversationSkillDescriptor.builder().skillId("s1").versionId("v1").name("meeting")
+                .description("meeting skill").objectKey("u1/skills/s1/v1/a.zip").build()), List.of("s1"));
+        when(skillResolver.resolveForRun("p1", "w1", "d1", List.of()))
+            .thenReturn(skillContext);
+        when(historyAssembler.assemble(conv)).thenReturn(List.of());
+        when(runtimeAdapter.run(eq(conv), eq(cmd), anyList(), same(skillContext), anyString(), any()))
+            .thenReturn(emitter);
 
         SseEmitter result = appService.sendMessage("p1", "w1", "c1", cmd, new HttpHeaders());
 
         assertSame(emitter, result);
-        // ArgumentCaptor：不止验证"调用了 appendMessages"，还抓住传进去的消息内容深入断言
         ArgumentCaptor<List<ConversationMessage>> captor = ArgumentCaptor.forClass(List.class);
-        verify(repository).appendMessages(eq("c1"), captor.capture());
+        InOrder inOrder = inOrder(repository, workspaceAccessGuard, skillResolver, historyAssembler, runtimeAdapter);
+        inOrder.verify(repository).findById("c1");
+        inOrder.verify(workspaceAccessGuard).requireAccess("p1", "w1");
+        inOrder.verify(skillResolver).resolveForRun("p1", "w1", "d1", List.of());
+        inOrder.verify(repository).appendMessages(eq("c1"), captor.capture());
+        inOrder.verify(historyAssembler).assemble(conv);
+        inOrder.verify(runtimeAdapter).run(eq(conv), eq(cmd), anyList(), same(skillContext), anyString(), any());
         List<ConversationMessage> appended = captor.getValue();
         assertEquals(1, appended.size());
         assertEquals("user", appended.get(0).getRole());
         assertEquals("你好", appended.get(0).getContent());
-        verify(historyAssembler).assemble(any());
-        verify(runtimeAdapter).run(eq(conv), eq(cmd), anyList(), anyString(), any());
+    }
+
+    @Test
+    void sendMessage_路径项目与认证项目不同时拒绝且不触发下游调用() {
+        Conversation conv = ownedConversation("c1");
+        conv.setProjectId("p2");
+        when(repository.findById("c1")).thenReturn(Optional.of(conv));
+        doThrow(new AgentStudioException(com.openjiuwen.studio.agent.common.enums.StudioError.USER_WORKSPACE_PERMISSION_INVALID))
+            .when(workspaceAccessGuard).requireAccess("p2", "w1");
+
+        assertThrows(AgentStudioException.class,
+            () -> appService.sendMessage("p2", "w1", "c1", validCmd(List.of()), new HttpHeaders()));
+
+        verify(workspaceAccessGuard).requireAccess("p2", "w1");
+        verifyNoInteractions(skillResolver, historyAssembler, runtimeAdapter);
+        verify(repository, never()).appendMessages(anyString(), anyList());
+    }
+
+    @Test
+    void sendMessage_当前用户非工作空间成员时拒绝且不触发下游调用() {
+        Conversation conv = ownedConversation("c1");
+        when(repository.findById("c1")).thenReturn(Optional.of(conv));
+        doThrow(new AgentStudioException(com.openjiuwen.studio.agent.common.enums.StudioError.USER_WORKSPACE_PERMISSION_INVALID))
+            .when(workspaceAccessGuard).requireAccess("p1", "w1");
+
+        assertThrows(AgentStudioException.class,
+            () -> appService.sendMessage("p1", "w1", "c1", validCmd(List.of()), new HttpHeaders()));
+
+        verify(workspaceAccessGuard).requireAccess("p1", "w1");
+        verifyNoInteractions(skillResolver, historyAssembler, runtimeAdapter);
+        verify(repository, never()).appendMessages(anyString(), anyList());
+    }
+
+    @Test
+    void sendMessage_推荐技能非法时不写用户消息() {
+        Conversation conv = ownedConversation("c1");
+        when(repository.findById("c1")).thenReturn(Optional.of(conv));
+        SendMessageCmd cmd = validCmd(List.of("forbidden"));
+        when(skillResolver.resolveForRun("p1", "w1", "d1", List.of("forbidden")))
+            .thenThrow(new AgentStudioException(
+                com.openjiuwen.studio.agent.common.enums.StudioError.METHOD_ARGUMENT_NOT_VALID,
+                List.of("recommended skill is unavailable")));
+
+        assertThrows(AgentStudioException.class,
+            () -> appService.sendMessage("p1", "w1", "c1", cmd, new HttpHeaders()));
+
+        verify(repository, never()).appendMessages(anyString(), anyList());
+        verifyNoInteractions(runtimeAdapter);
+    }
+
+    @Test
+    void sendMessage_当前请求域与会话域不一致时拒绝且不解析技能() {
+        Conversation conv = ownedConversation("c1");
+        when(repository.findById("c1")).thenReturn(Optional.of(conv));
+        RequestContextUtils.getRequestUser().setDomainId("d2");
+
+        assertThrows(AgentStudioException.class,
+            () -> appService.sendMessage("p1", "w1", "c1", validCmd(List.of()), new HttpHeaders()));
+
+        verifyNoInteractions(skillResolver, runtimeAdapter);
+        verify(repository, never()).appendMessages(anyString(), anyList());
     }
 
     @Test
@@ -246,8 +417,24 @@ class ConversationWorkspaceAppServiceTest {
                 .title("会话")
                 .projectId("p1")
                 .workspaceId("w1")
+                .domainId("d1")
                 .ownerUserId("u1")
                 .status(ConversationWorkspaceAppService.STATUS_ACTIVE)
                 .build();
+    }
+
+    private SendMessageCmd validCmd(List<String> recommendedIds) {
+        SendMessageCmd cmd = new SendMessageCmd();
+        cmd.setQuery("整理会议");
+        cmd.setModelDeploymentId("m1");
+        cmd.setRecommendedSkillIds(recommendedIds);
+        return cmd;
+    }
+
+    private ConversationWorkspaceAppService guardedAppService(SkillMapper mapper, WorkspaceMapper workspaceMapper,
+                                                              WorkspaceMemberMapper workspaceMemberMapper) {
+        return new ConversationWorkspaceAppService(repository, historyAssembler, runtimeAdapter,
+            new ConversationSkillResolver(mapper),
+            new ConversationWorkspaceAccessGuard(workspaceMapper, workspaceMemberMapper));
     }
 }
