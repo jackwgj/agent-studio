@@ -82,6 +82,9 @@ public class ConversationSubRunEntity {
     @JsonProperty("file_ids")
     private String fileIds;
 
+    /**
+     * 事件类型：sub_done/reasoning/message/tool_call（按轮持久化，role 区分内容）
+     */
     @JsonProperty("event")
     private String event;
 

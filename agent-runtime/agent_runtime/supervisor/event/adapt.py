@@ -56,7 +56,8 @@ def build_reasoning(execution_id: str, content: str, agent_id: str | None = None
 
 
 def build_tool_call(execution_id: str, tool_call_id: str, tool_name: str,
-                    arguments: dict | None = None, agent_id: str | None = None, index: int | None = None) -> dict:
+                    arguments: dict | None = None, agent_id: str | None = None,
+                    sub_execution_id: str | None = None, index: int | None = None) -> dict:
     data = {
         TeamEventField.TOOL_CALL_ID: tool_call_id,
         TeamEventField.TOOL_NAME: tool_name,
@@ -65,11 +66,14 @@ def build_tool_call(execution_id: str, tool_call_id: str, tool_name: str,
         data[TeamEventField.ARGUMENTS] = arguments
     if agent_id is not None:
         data[TeamEventField.AGENT_ID] = agent_id
+    if sub_execution_id is not None:
+        data[TeamEventField.SUB_EXECUTION_ID] = sub_execution_id
     return _build_event(TeamEventType.TOOL_CALL, execution_id, data, index)
 
 
 def build_tool_result(execution_id: str, tool_call_id: str, tool_name: str,
-                      result: str | None = None, agent_id: str | None = None, index: int | None = None) -> dict:
+                      result: str | None = None, agent_id: str | None = None,
+                      sub_execution_id: str | None = None, index: int | None = None) -> dict:
     data = {
         TeamEventField.TOOL_CALL_ID: tool_call_id,
         TeamEventField.TOOL_NAME: tool_name,
@@ -78,6 +82,8 @@ def build_tool_result(execution_id: str, tool_call_id: str, tool_name: str,
         data[TeamEventField.RESULT] = result
     if agent_id is not None:
         data[TeamEventField.AGENT_ID] = agent_id
+    if sub_execution_id is not None:
+        data[TeamEventField.SUB_EXECUTION_ID] = sub_execution_id
     return _build_event(TeamEventType.TOOL_RESULT, execution_id, data, index)
 
 

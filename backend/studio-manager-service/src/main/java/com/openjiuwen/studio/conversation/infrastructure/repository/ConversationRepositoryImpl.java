@@ -214,6 +214,8 @@ public class ConversationRepositoryImpl implements ConversationRepository {
         }
         run.setEvent(message.getEvent());
         run.setModelDeploymentId(message.getModelDeploymentId());
+        // 按传入时间写入 created_on（监听器按到达序赋值，保证读序"先调用先渲染"；null 时回退 DB 默认）
+        run.setCreatedOn(message.getCreatedAt());
         return run;
     }
 
@@ -241,6 +243,8 @@ public class ConversationRepositoryImpl implements ConversationRepository {
             subRun.setTotalTokens(message.getTokenUsage().getTotalTokens());
         }
         subRun.setEvent(message.getEvent());
+        // 按传入时间写入 created_on（同 run 表）
+        subRun.setCreatedOn(message.getCreatedAt());
         return subRun;
     }
 
