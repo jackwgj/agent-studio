@@ -49,6 +49,12 @@ interface ConversationAttempt {
   assistantMsg?: ChatMessage;
 }
 
+interface PendingRouteConversation {
+  conversationId: string;
+  workspaceId: string;
+  minimumSessionListGeneration: number;
+}
+
 @Component({
   selector: 'app-conversation-workspace',
   templateUrl: './conversation-workspace.component.html',
@@ -79,6 +85,8 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
   private destroyed = false;
   private readonly workspaceRouteProvenanceKey = 'conversation-workspace-route-workspace';
   private workspaceRouteProvenance = '';
+  private sessionListGeneration = 0;
+  private pendingRouteConversation: PendingRouteConversation | null = null;
   private readonly workspaceChangeHandler = () => this.handleWorkspaceChange();
 
   constructor(
@@ -96,6 +104,7 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
     this.loadSkillCatalog();
     window.addEventListener('WorkspaceChange', this.workspaceChangeHandler);
     this.loadModels();
+    this.subscribeToSessions();
     this.subscribeToRoute();
     this.subscribeToActiveSession();
   }
@@ -128,6 +137,7 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.destroyed = true;
+    this.clearPendingRouteConversation();
     this.invalidateCatalogRequests();
     this.invalidateDetailRequests();
     try {
@@ -181,14 +191,24 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
     this.subscriptions.add(
       this.route.queryParams.subscribe((params) => {
         if (params['conversation_id']) {
-          if (this.canOpenConversationRoute(params['conversation_id'], params['workspace_id'])) {
-            this.openConversation(params['conversation_id']);
-          }
+          this.handleConversationRoute(params['conversation_id'], params['workspace_id']);
         } else if (params['new']) {
+          this.clearPendingRouteConversation();
           this.conversationWorkspaceService.newDraftSession();
         } else if (!this.conversationWorkspaceService.activeSession$.value) {
+          this.clearPendingRouteConversation();
           this.conversationWorkspaceService.newDraftSession();
         }
+      }),
+    );
+  }
+
+  /** 共享会话列表是无 workspace_id 历史路由的当前空间归属证明。 */
+  private subscribeToSessions(): void {
+    this.subscriptions.add(
+      this.conversationWorkspaceService.sessions$.subscribe(() => {
+        this.sessionListGeneration += 1;
+        this.resolvePendingRouteConversation();
       }),
     );
   }
@@ -496,10 +516,10 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
     }).then(
       (navigated) => {
         if (!navigated) {
-          this.cdr.markForCheck();
+          this.markForCheckIfAlive();
         }
       },
-      () => this.cdr.markForCheck(),
+      () => this.markForCheckIfAlive(),
     );
   }
 
@@ -507,6 +527,7 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
     if (nextWorkspaceId === this.workspaceId) {
       return false;
     }
+    this.clearPendingRouteConversation();
     this.cancelActiveAttempt();
     this.invalidateDetailRequests();
     this.workspaceId = nextWorkspaceId;
@@ -542,17 +563,57 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
     return Boolean(next?.conversation_id && next.conversation_id === current?.conversation_id);
   }
 
-  private canOpenConversationRoute(conversationId: string, routeWorkspaceId: unknown): boolean {
-    const provenance = typeof routeWorkspaceId === 'string' ? routeWorkspaceId : '';
-    if (provenance) {
-      return provenance === this.workspaceId;
+  private handleConversationRoute(conversationId: string, routeWorkspaceId: unknown): void {
+    const routeWorkspace = typeof routeWorkspaceId === 'string' ? routeWorkspaceId : '';
+    this.clearPendingRouteConversation();
+    if (routeWorkspace) {
+      if (routeWorkspace === this.workspaceId) {
+        this.openConversation(conversationId);
+      }
+      return;
     }
-    if (this.workspaceRouteProvenance !== this.workspaceId) {
-      return true;
+
+    // 没有任何历史归属时，保留旧版首次深链的兼容入口；其余情况必须经当前空间列表验证。
+    if (!this.workspaceRouteProvenance) {
+      this.openConversation(conversationId);
+      return;
     }
-    return this.conversationWorkspaceService.sessions$.value.some(
-      (session) => session.conversation_id === conversationId,
+
+    this.pendingRouteConversation = {
+      conversationId,
+      workspaceId: this.workspaceId,
+      // 历史 provenance 与当前空间不一致时，忽略订阅的初始快照，等待当前空间的下一次列表发射。
+      minimumSessionListGeneration: this.workspaceRouteProvenance === this.workspaceId
+        ? this.sessionListGeneration
+        : this.sessionListGeneration + 1,
+    };
+    this.resolvePendingRouteConversation();
+  }
+
+  private resolvePendingRouteConversation(): void {
+    const pending = this.pendingRouteConversation;
+    if (!pending || this.destroyed || pending.workspaceId !== this.workspaceId ||
+      this.sessionListGeneration < pending.minimumSessionListGeneration) {
+      return;
+    }
+    const belongsToCurrentWorkspace = this.conversationWorkspaceService.sessions$.value.some(
+      (session) => session.conversation_id === pending.conversationId,
     );
+    if (!belongsToCurrentWorkspace) {
+      return;
+    }
+    this.pendingRouteConversation = null;
+    this.openConversation(pending.conversationId);
+  }
+
+  private clearPendingRouteConversation(): void {
+    this.pendingRouteConversation = null;
+  }
+
+  private markForCheckIfAlive(): void {
+    if (!this.destroyed) {
+      this.cdr.markForCheck();
+    }
   }
 
   private loadSessionDetail(conversationId: string): void {

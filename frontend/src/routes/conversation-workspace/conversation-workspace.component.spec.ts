@@ -630,6 +630,106 @@ describe('ConversationWorkspaceComponent', () => {
     expect(service.detailSession).toHaveBeenCalledWith('c1');
   });
 
+  it('历史 provenance 为 A、当前 B 的无标记旧路由须等待 B 会话列表验证', async () => {
+    component.ngOnDestroy();
+    fixture.destroy();
+    sessionStorage.setItem('conversation-workspace-route-workspace', 'workspace-a');
+    http.workspaceId = 'workspace-b';
+    routeParams.next({ conversation_id: 'c1' });
+    service.detailSession.calls.reset();
+
+    fixture = TestBed.createComponent(ConversationWorkspaceComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+    component.selectedModel = 'model-1';
+    component.inputText = 'B 空间新问题';
+    component.send();
+    await Promise.resolve();
+
+    expect(component.currentSession?.conversation_id).toBe('new-session');
+    expect(service.detailSession).not.toHaveBeenCalledWith('c1');
+    expect(service.chatSSE).not.toHaveBeenCalledWith('c1', jasmine.any(Object), jasmine.any(Object));
+  });
+
+  it('无标记 B 路由早于列表到达时，在列表验证后只打开一次', () => {
+    (component as any).workspaceRouteProvenance = 'workspace-1';
+    routeParams.next({ conversation_id: 'b1' });
+    service.detailSession.calls.reset();
+    service.sessions$.next([session('b1')]);
+    service.sessions$.next([session('b1')]);
+
+    expect(component.currentSession?.conversation_id).toBe('b1');
+    expect(service.detailSession).toHaveBeenCalledTimes(1);
+    expect(service.detailSession).toHaveBeenCalledWith('b1');
+  });
+
+  it('显式 workspace_id 仍只接受当前空间并直接打开', () => {
+    routeParams.next({ conversation_id: 'other', workspace_id: 'workspace-2' });
+    expect(service.detailSession).not.toHaveBeenCalledWith('other');
+
+    routeParams.next({ conversation_id: 'current', workspace_id: 'workspace-1' });
+    expect(component.currentSession?.conversation_id).toBe('current');
+    expect(service.detailSession).toHaveBeenCalledWith('current');
+  });
+
+  it('无标记 pending 路由不在后续列表缺失时加载详情或向旧 ID 发送', async () => {
+    (component as any).workspaceRouteProvenance = 'workspace-1';
+    routeParams.next({ conversation_id: 'b1' });
+    service.sessions$.next([session('b2')]);
+    component.inputText = '新草稿问题';
+    component.send();
+    await Promise.resolve();
+
+    expect(service.detailSession).not.toHaveBeenCalledWith('b1');
+    expect(service.chatSSE).not.toHaveBeenCalledWith('b1', jasmine.any(Object), jasmine.any(Object));
+    expect(service.chatSSE).toHaveBeenCalledWith('new-session', jasmine.any(Object), jasmine.any(Object));
+  });
+
+  it('路由更新、工作空间切换与销毁都会丢弃旧的 pending 路由', () => {
+    (component as any).workspaceRouteProvenance = 'workspace-1';
+    routeParams.next({ conversation_id: 'b1' });
+    routeParams.next({ conversation_id: 'b2' });
+    service.sessions$.next([session('b1')]);
+    expect(service.detailSession).not.toHaveBeenCalledWith('b1');
+
+    http.workspaceId = 'workspace-2';
+    window.dispatchEvent(new Event('WorkspaceChange'));
+    service.sessions$.next([session('b2')]);
+    component.ngOnDestroy();
+    service.sessions$.next([session('b2')]);
+
+    expect(component.currentSession).toBeNull();
+    expect(service.detailSession).not.toHaveBeenCalledWith('b2');
+  });
+
+  it('导航 resolve false 在组件销毁后不触发旧视图变更检测', async () => {
+    const navigation = deferred<boolean>();
+    router.navigate.and.returnValue(navigation.promise);
+    const markForCheck = spyOn((component as any).cdr, 'markForCheck');
+    http.workspaceId = 'workspace-2';
+    window.dispatchEvent(new Event('WorkspaceChange'));
+    markForCheck.calls.reset();
+    component.ngOnDestroy();
+    navigation.resolve(false);
+    await Promise.resolve();
+
+    expect(markForCheck).not.toHaveBeenCalled();
+  });
+
+  it('导航 reject 在组件销毁后不触发旧视图变更检测', async () => {
+    const navigation = deferred<boolean>();
+    router.navigate.and.returnValue(navigation.promise);
+    const markForCheck = spyOn((component as any).cdr, 'markForCheck');
+    http.workspaceId = 'workspace-2';
+    window.dispatchEvent(new Event('WorkspaceChange'));
+    markForCheck.calls.reset();
+    component.ngOnDestroy();
+    navigation.reject(new Error('navigation rejected'));
+    await Promise.resolve();
+
+    expect(markForCheck).not.toHaveBeenCalled();
+  });
+
   it('组件销毁后，晚到 Skill 目录 resolve 不写入状态或触发变更检测', async () => {
     const catalog = deferred<ConversationSkillItem[]>();
     service.listSkills.and.returnValue(catalog.promise);
