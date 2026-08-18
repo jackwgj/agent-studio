@@ -22,6 +22,7 @@ class TeamEventType(str, Enum):
     SUB_DONE = "sub_done"              # 子 Agent 执行完成（完整文本，落 t_conversation_sub_run）
     RUN_DONE = "run_done"              # 监督者整轮完成（完整文本，落 t_conversation_run）
     USAGE = "usage"                    # LLM token 消耗统计
+    SKILL_ACTIVATED = "skill_activated"  # 工作空间 Skill 完整指令已按需加载
     ERROR = "error"                    # 异常终止
 
 
@@ -60,3 +61,6 @@ class TeamEventField:
     CODE = "code"
     MESSAGE = "message"
     INDEX = "index"
+    SKILL_ID = "skillId"
+    NAME = "name"
+    VERSION_ID = "versionId"

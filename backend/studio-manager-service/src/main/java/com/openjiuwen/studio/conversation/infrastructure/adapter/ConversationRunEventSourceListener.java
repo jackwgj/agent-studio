@@ -52,6 +52,7 @@ public class ConversationRunEventSourceListener extends EventSourceListener {
     private static final String EVENT_SUB_DONE = "sub_done";
     private static final String EVENT_RUN_DONE = "run_done";
     private static final String EVENT_ERROR = "error";
+    private static final String SSE_DONE_MARKER = "[DONE]";
 
     private static final String FIELD_SUB_EXECUTION_ID = "subExecutionId";
     private static final String FIELD_AGENT_ID = "agentId";
@@ -171,6 +172,15 @@ public class ConversationRunEventSourceListener extends EventSourceListener {
     @Override
     public void onClosed(@NotNull EventSource eventSource) {
         flush();
+        try {
+            // 浏览器公共 SSE 客户端只把 [DONE]/event=done 识别为正常终态；必须在落库完成后发送，
+            // 避免前端提前释放输入框并在上一轮消息尚未持久化时启动下一轮。
+            sseEmitter.send(SseEmitter.event().data(SSE_DONE_MARKER).build());
+        } catch (Throwable e) {
+            // 客户端主动断开时终止标记可能无法发送，不应影响服务端收口。
+            log.debug("SSE done marker send failed, conversationId={}, executionId={}",
+                conversationId, executionId, e);
+        }
         try {
             sseEmitter.complete();
         } catch (Exception ignored) {
