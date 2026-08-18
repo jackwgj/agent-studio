@@ -77,8 +77,8 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
   private nextAttemptId = 0;
   private activeAttempt: ConversationAttempt | null = null;
   private destroyed = false;
-  private invalidatedRouteConversationId = '';
-  private invalidatedRouteWorkspaceId = '';
+  private readonly workspaceRouteProvenanceKey = 'conversation-workspace-route-workspace';
+  private workspaceRouteProvenance = '';
   private readonly workspaceChangeHandler = () => this.handleWorkspaceChange();
 
   constructor(
@@ -92,6 +92,7 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.workspaceId = this.http.getWorkspaceId();
+    this.workspaceRouteProvenance = sessionStorage.getItem(this.workspaceRouteProvenanceKey) ?? '';
     this.loadSkillCatalog();
     window.addEventListener('WorkspaceChange', this.workspaceChangeHandler);
     this.loadModels();
@@ -180,7 +181,7 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
     this.subscriptions.add(
       this.route.queryParams.subscribe((params) => {
         if (params['conversation_id']) {
-          if (!this.isInvalidatedConversationRoute(params['conversation_id'])) {
+          if (this.canOpenConversationRoute(params['conversation_id'], params['workspace_id'])) {
             this.openConversation(params['conversation_id']);
           }
         } else if (params['new']) {
@@ -483,17 +484,23 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
 
   private handleWorkspaceChange(): void {
     const nextWorkspaceId = this.http.getWorkspaceId();
-    const previousConversationId =
-      this.currentSession?.conversation_id ?? this.conversationWorkspaceService.activeSession$.value?.conversation_id ?? '';
     if (!this.transitionWorkspace(nextWorkspaceId, true)) {
       return;
     }
-    this.invalidatedRouteConversationId = previousConversationId;
-    this.invalidatedRouteWorkspaceId = nextWorkspaceId;
+    this.workspaceRouteProvenance = nextWorkspaceId;
+    sessionStorage.setItem(this.workspaceRouteProvenanceKey, nextWorkspaceId);
+    this.conversationWorkspaceService.sessions$.next([]);
     this.router.navigate(['/home/conversation'], {
-      queryParams: { new: Date.now() },
+      queryParams: { new: Date.now(), workspace_id: nextWorkspaceId },
       replaceUrl: true,
-    }).catch(() => void 0);
+    }).then(
+      (navigated) => {
+        if (!navigated) {
+          this.cdr.markForCheck();
+        }
+      },
+      () => this.cdr.markForCheck(),
+    );
   }
 
   private transitionWorkspace(nextWorkspaceId: string, invalidateActiveSession = false): boolean {
@@ -535,11 +542,16 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
     return Boolean(next?.conversation_id && next.conversation_id === current?.conversation_id);
   }
 
-  private isInvalidatedConversationRoute(conversationId: string): boolean {
-    return Boolean(
-      conversationId &&
-      conversationId === this.invalidatedRouteConversationId &&
-      this.workspaceId === this.invalidatedRouteWorkspaceId,
+  private canOpenConversationRoute(conversationId: string, routeWorkspaceId: unknown): boolean {
+    const provenance = typeof routeWorkspaceId === 'string' ? routeWorkspaceId : '';
+    if (provenance) {
+      return provenance === this.workspaceId;
+    }
+    if (this.workspaceRouteProvenance !== this.workspaceId) {
+      return true;
+    }
+    return this.conversationWorkspaceService.sessions$.value.some(
+      (session) => session.conversation_id === conversationId,
     );
   }
 

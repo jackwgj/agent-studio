@@ -21,6 +21,7 @@ describe('ConversationWorkspaceComponent', () => {
   let routeParams: BehaviorSubject<any>;
 
   beforeEach(async () => {
+    sessionStorage.removeItem('conversation-workspace-route-workspace');
     service = {
       sessions$: new BehaviorSubject<SessionItem[]>([]),
       activeSession$: new BehaviorSubject<SessionItem | null>(null),
@@ -560,6 +561,73 @@ describe('ConversationWorkspaceComponent', () => {
     expect(service.detailSession.calls.count()).toBe(detailsBeforeTransition);
     expect(service.chatSSE).not.toHaveBeenCalledWith('c1', jasmine.any(Object), jasmine.any(Object));
     expect(service.chatSSE).toHaveBeenCalledWith('new-session', jasmine.any(Object), jasmine.any(Object));
+  });
+
+  it('A/c0→A/c1→B 后浏览器回退 c0 不会在 B 加载详情或发送旧会话', async () => {
+    service.activeSession$.next(session('c0'));
+    service.activeSession$.next(session('c1'));
+    const detailsBeforeTransition = service.detailSession.calls.count();
+    http.workspaceId = 'workspace-2';
+    window.dispatchEvent(new Event('WorkspaceChange'));
+
+    routeParams.next({ conversation_id: 'c0' });
+    component.inputText = 'B 空间问题';
+    component.send();
+    await Promise.resolve();
+
+    expect(service.detailSession.calls.count()).toBe(detailsBeforeTransition);
+    expect(service.chatSSE).not.toHaveBeenCalledWith('c0', jasmine.any(Object), jasmine.any(Object));
+    expect(service.chatSSE).toHaveBeenCalledWith('new-session', jasmine.any(Object), jasmine.any(Object));
+  });
+
+  it('导航 resolve false 后按旧 URL 重建仍验证 B 空间归属，不打开 A 会话', async () => {
+    router.navigate.and.resolveTo(false);
+    service.activeSession$.next(session('c1'));
+    http.workspaceId = 'workspace-2';
+    window.dispatchEvent(new Event('WorkspaceChange'));
+    service.detailSession.calls.reset();
+    component.ngOnDestroy();
+    fixture.destroy();
+    routeParams.next({ conversation_id: 'c1' });
+    fixture = TestBed.createComponent(ConversationWorkspaceComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+    component.selectedModel = 'model-1';
+    component.inputText = 'B 空间重建问题';
+    component.send();
+    await Promise.resolve();
+
+    expect(component.currentSession?.conversation_id).toBe('new-session');
+    expect(service.detailSession).not.toHaveBeenCalledWith('c1');
+    expect(service.chatSSE).not.toHaveBeenCalledWith('c1', jasmine.any(Object), jasmine.any(Object));
+  });
+
+  it('导航 reject 后按旧 URL 重建仍验证 B 空间归属', () => {
+    router.navigate.and.returnValue(Promise.reject(new Error('navigation rejected')));
+    service.activeSession$.next(session('c1'));
+    http.workspaceId = 'workspace-2';
+    window.dispatchEvent(new Event('WorkspaceChange'));
+    service.detailSession.calls.reset();
+    component.ngOnDestroy();
+    fixture.destroy();
+    routeParams.next({ conversation_id: 'c1' });
+    fixture = TestBed.createComponent(ConversationWorkspaceComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    expect(component.currentSession).toBeNull();
+    expect(service.detailSession).not.toHaveBeenCalledWith('c1');
+  });
+
+  it('B 空间列表已验证的同 ID 会话可正常打开', () => {
+    service.activeSession$.next(session('c1'));
+    http.workspaceId = 'workspace-2';
+    window.dispatchEvent(new Event('WorkspaceChange'));
+    service.sessions$.next([session('c1')]);
+    routeParams.next({ conversation_id: 'c1' });
+
+    expect(component.currentSession?.conversation_id).toBe('c1');
+    expect(service.detailSession).toHaveBeenCalledWith('c1');
   });
 
   it('组件销毁后，晚到 Skill 目录 resolve 不写入状态或触发变更检测', async () => {
