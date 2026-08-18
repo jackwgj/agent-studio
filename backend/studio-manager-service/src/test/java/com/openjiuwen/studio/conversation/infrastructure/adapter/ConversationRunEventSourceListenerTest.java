@@ -9,6 +9,7 @@ import okhttp3.sse.EventSource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyEmitter;
 
@@ -23,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockingDetails;
 import static org.mockito.Mockito.never;
@@ -181,6 +183,29 @@ class ConversationRunEventSourceListenerTest {
     // ---------------------------------------------------------------- 异常/幂等/边界
 
     @Test
+    void testNormalClose_PersistsBeforeSendingBrowserDoneMarker() throws Exception {
+        feedEvent(json("message", "{\"delta\":\"最终回答\"}"));
+        feedEvent(json("run_done", "{\"text\":\"最终回答\"}"));
+
+        listener.onClosed(mock(EventSource.class));
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<ConversationMessage>> rowsCaptor = ArgumentCaptor.forClass(List.class);
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Set<ResponseBodyEmitter.DataWithMediaType>> doneCaptor = ArgumentCaptor.forClass(Set.class);
+        InOrder closeOrder = inOrder(conversationRepository, sseEmitter);
+        closeOrder.verify(conversationRepository).appendMessages(eq("conv-1"), rowsCaptor.capture());
+        closeOrder.verify(sseEmitter).send(doneCaptor.capture());
+        closeOrder.verify(sseEmitter).complete();
+
+        assertEquals("最终回答", rowsCaptor.getValue().get(0).getContent());
+        String lastPayload = doneCaptor.getValue().stream()
+            .map(data -> data.getData().toString())
+            .collect(Collectors.joining());
+        assertEquals("data:[DONE]\n\n", lastPayload);
+    }
+
+    @Test
     void testOnFailure_PersistsBufferedContent() {
         feedEvent(json("run_start", "{}"));
         feedEvent(json("reasoning", "{\"content\":\"思考中\"}"));
@@ -249,11 +274,12 @@ class ConversationRunEventSourceListenerTest {
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<Set<ResponseBodyEmitter.DataWithMediaType>> captor = ArgumentCaptor.forClass(Set.class);
-        verify(sseEmitter, times(1)).send(captor.capture());
-        String payload = captor.getValue().stream()
+        verify(sseEmitter, times(2)).send(captor.capture());
+        String payload = captor.getAllValues().stream()
+            .flatMap(Set::stream)
             .map(data -> data.getData().toString())
             .collect(Collectors.joining());
-        assertEquals("data:" + event + "\n\n", payload);
+        assertEquals("data:" + event + "\n\ndata:[DONE]\n\n", payload);
         verify(conversationRepository, never()).appendMessages(anyString(), anyList());
     }
 
@@ -272,10 +298,10 @@ class ConversationRunEventSourceListenerTest {
         feedEvent(json("error", "{\"code\":\"e\",\"message\":\"m\"}"));
         listener.onClosed(mock(EventSource.class));
 
-        // 每个事件都透传前端（9 个事件 → 9 次 send；SseEventBuilder 存在重载，按方法名计数）
+        // 每个业务事件都透传前端，并在正常关闭时补一个浏览器终止标记（9 + 1 次 send）。
         long sendCount = mockingDetails(sseEmitter).getInvocations().stream()
             .filter(i -> i.getMethod().getName().equals("send"))
             .count();
-        assertEquals(9, sendCount);
+        assertEquals(10, sendCount);
     }
 }
