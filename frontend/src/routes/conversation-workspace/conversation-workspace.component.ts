@@ -26,6 +26,8 @@ interface ChatSegment {
   content: string;
   /** 工具名（仅 type=tool） */
   toolId?: string;
+  /** 工具调用关联标识（仅 type=tool，用于交错结果精确回填） */
+  toolCallId?: string;
 }
 
 interface ChatMessage {
@@ -480,7 +482,7 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
             ? (this.findSubBubble(d.subExecutionId) ?? assistantMsg)
             : assistantMsg;
           if (target && content) {
-            this.appendDetailSegment(target, 'reasoning', content);
+            this.appendExecutionDetailSegment(target, 'reasoning', content);
           }
           break;
         }
@@ -516,8 +518,12 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
             ? (this.findSubBubble(d.subExecutionId) ?? assistantMsg)
             : assistantMsg;
           if (target && d.toolName) {
-            target.detailSegments ??= [];
-            target.detailSegments.push({ type: 'tool', content: '', toolId: d.toolName });
+            const toolSegment: ChatSegment = { type: 'tool', content: '', toolId: d.toolName };
+            const toolCallId = d.toolCallId ?? d.tool_call_id;
+            if (toolCallId) {
+              toolSegment.toolCallId = toolCallId;
+            }
+            this.executionDetailSegments(target).push(toolSegment);
           }
           break;
         }
@@ -526,7 +532,14 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
             ? (this.findSubBubble(d.subExecutionId) ?? assistantMsg)
             : assistantMsg;
           if (target) {
-            const toolSeg = [...(target.detailSegments ?? [])].reverse().find((s) => s.type === 'tool');
+            const segments = this.executionDetailSegments(target);
+            const toolCallId = d.toolCallId ?? d.tool_call_id;
+            const toolSeg = toolCallId
+              ? [...segments].reverse().find((segment) =>
+                  segment.type === 'tool'
+                  && segment.toolCallId === toolCallId
+                  && !segment.content)
+              : this.findLegacyToolResultTarget(segments, d.toolName);
             if (toolSeg) {
               toolSeg.content = d.result ?? '';
             }
@@ -568,14 +581,33 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
     }
   }
 
-  private appendDetailSegment(message: ChatMessage, type: 'message' | 'reasoning', content: string): void {
-    message.detailSegments ??= [];
-    const last = message.detailSegments[message.detailSegments.length - 1];
+  private appendExecutionDetailSegment(message: ChatMessage, type: 'reasoning', content: string): void {
+    const segments = this.executionDetailSegments(message);
+    const last = segments[segments.length - 1];
     if (last && last.type === type) {
       last.content += content;
     } else {
-      message.detailSegments.push({ type, content });
+      segments.push({ type, content });
     }
+  }
+
+  /** 子 Agent 整体已位于折叠详情内；主 Agent 的执行段则进入自身折叠集合。 */
+  private executionDetailSegments(message: ChatMessage): ChatSegment[] {
+    if (message.isSubAgent) {
+      return message.segments;
+    }
+    message.detailSegments ??= [];
+    return message.detailSegments;
+  }
+
+  /** 兼容缺少调用 ID 的旧事件：只能回填唯一未完成候选，避免猜测导致串写。 */
+  private findLegacyToolResultTarget(segments: ChatSegment[], toolName?: string): ChatSegment | undefined {
+    const candidates = segments.filter((segment) =>
+      segment.type === 'tool'
+      && !segment.toolCallId
+      && !segment.content
+      && (!toolName || segment.toolId === toolName));
+    return candidates.length === 1 ? candidates[0] : undefined;
   }
 
   /** 按 execution_id 恢复：每次用户交互生成一个独立框。 */
@@ -622,7 +654,12 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
   /** run 表 handoff 工具进入详情；主界面只展示 message。 */
   private rowToSegment(row: any): ChatSegment | null {
     if (row.role === 'tool') {
-      return { type: 'tool', content: row.content ?? '', toolId: row.tool_id };
+      const segment: ChatSegment = { type: 'tool', content: row.content ?? '', toolId: row.tool_id };
+      const toolCallId = row.tool_call_id ?? row.toolCallId;
+      if (toolCallId) {
+        segment.toolCallId = toolCallId;
+      }
+      return segment;
     }
     if (row.event === 'reasoning') {
       return { type: 'reasoning', content: row.content ?? '' };
