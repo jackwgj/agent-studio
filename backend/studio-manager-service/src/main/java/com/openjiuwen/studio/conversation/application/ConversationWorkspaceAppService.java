@@ -31,6 +31,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -202,6 +203,8 @@ public class ConversationWorkspaceAppService {
             .content(cmd.getQuery())
             .executionRef(new ExecutionRef(executionId, null, null))
             .modelDeploymentId(cmd.getModelDeploymentId())
+            .event("user_message")
+            .createdAt(new Date())
             .build();
         conversationRepository.appendMessages(conversationId, List.of(userMessage));
 

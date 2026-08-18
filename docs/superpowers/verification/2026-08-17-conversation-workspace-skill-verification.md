@@ -136,3 +136,20 @@ git merge-tree (git merge-base HEAD origin/studio-2.0-dev-0804) HEAD origin/stud
 - 前端构建与类型检查通过，临时测试 harness 未进入提交。
 - 真实浏览器联调尚未执行，不能据此宣称七个端到端场景通过。
 - 远端 0804 已前进且存在两个明确冲突文件；合并准备状态为“等待用户确认后同步并解冲突”。
+
+## 7. 同步 `fbde38df` 后的验证
+
+- 用户确认后，以非快进 merge 将 `origin/studio-2.0-dev-0804@fbde38df0d41eabc095a784c169657d95e78a2c1` 同步到个人功能分支；合并前后远端目标未继续前进。
+- 实际文本冲突仅两处：`ConversationRunEventSourceListenerTest.java` 与 `conversation-workspace.component.ts`。
+- 后端冲突保留了 Skill `skill_activated` 原样透传且不落库的边界，同时保留同事的九类事件透传、按轮缓冲、幂等落库及失败收口测试。
+- 前端冲突以本分支已审查的 workspace provenance、session/detail generation、attempt 所有权和 SSE 安全收口为运行框架，接入同事新增的 `ChatSegment` / `segments` / `detailSegments` / `subAgents` 模型，保留 message、reasoning、tool_call/tool_result、sub_start/sub_done 实时展示与按 `execution_id` 恢复历史轮次。Skill 推荐 ID、按版本去重的激活标签、切空间/会话清理与过期回调隔离保持不变。
+- 没有新增或修改 `+` / Agent 选择功能。
+
+合并后回归结果：
+
+- Manager `conversation` 包排除已知 `AgentRuntimeConfigTest` 基线项：`80 passed`（同事新增轮次持久化测试使总数由 72 增至 80）。
+- Runtime supervisor + conversation team：`132 passed, 4 warnings`。
+- 前端 scoped ChromeHeadless：`68 SUCCESS`，其中新增两项合并契约覆盖流式轮次的主输出/思考/工具/子 Agent/Skill 并存和历史归属恢复。
+- `pnpm exec tsc --noEmit -p tsconfig.app.json`：通过。
+- `pnpm exec ng build --configuration development`：通过；仅有仓库既有 Browserslist、`isolatedModules` 和 Sass `@import` 弃用警告。
+- 临时 scoped Karma harness 已删除，未进入提交。
