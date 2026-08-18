@@ -15,6 +15,12 @@ export interface SessionItem {
   created_at?: string;
 }
 
+export interface SessionListState {
+  workspaceId: string;
+  generation: number;
+  sessions: SessionItem[];
+}
+
 /**
  * 对话工作台服务：会话 CRUD API + 发送消息 SSE 薄封装 + 会话列表/当前会话状态
  * （SSE 事件注册模式与平台 webPageChatSSE 一致，URL 指向对话工作台新端点，不改共享 service）
@@ -25,8 +31,16 @@ export interface SessionItem {
 export class ConversationWorkspaceService {
   /** 会话列表（左菜单 + 工作台共享） */
   public sessions$ = new BehaviorSubject<SessionItem[]>([]);
+  /** 带工作空间归属的会话列表快照，供路由归属校验使用。 */
+  public sessionListState$ = new BehaviorSubject<SessionListState>({
+    workspaceId: '',
+    generation: 0,
+    sessions: [],
+  });
   /** 当前打开的会话（可为无 id 的本地草稿） */
   public activeSession$ = new BehaviorSubject<SessionItem | null>(null);
+  private sessionListGeneration = 0;
+  private sessionListRequestId = 0;
 
   constructor(
     private http: HttpService,
@@ -36,9 +50,20 @@ export class ConversationWorkspaceService {
 
   /** 刷新会话列表并广播 */
   public refreshSessions(): Promise<void> {
-    return this.listSessions(0, 100).then((res) => {
-      this.sessions$.next(res?.items ?? []);
+    const requestWorkspaceId = this.http.getWorkspaceId();
+    const requestId = ++this.sessionListRequestId;
+    return this.listSessions(0, 100, requestWorkspaceId).then((res) => {
+      if (!this.isCurrentSessionListRequest(requestWorkspaceId, requestId)) {
+        return;
+      }
+      this.publishSessionList(requestWorkspaceId, res?.items ?? []);
     });
+  }
+
+  /** 工作空间切换时清空共享列表，并使旧刷新请求失效。 */
+  public clearSessions(workspaceId = this.http.getWorkspaceId()): void {
+    this.sessionListRequestId += 1;
+    this.publishSessionList(workspaceId, []);
   }
 
   /** 新建本地草稿会话（标题=当前时间到分钟，未落库） */
@@ -67,15 +92,29 @@ export class ConversationWorkspaceService {
   }
 
   /** 会话列表（updated_on 倒序，分页） */
-  public listSessions(page = 0, size = 100): Promise<any> {
+  public listSessions(page = 0, size = 100, workspaceId = this.http.getWorkspaceId()): Promise<any> {
     return this.http.getAsync({
       url: this.sessionsUrl,
       query: {
-        workspace_id: this.http.getWorkspaceId(),
+        workspace_id: workspaceId,
         page,
         size,
       },
     });
+  }
+
+  private isCurrentSessionListRequest(workspaceId: string, requestId: number): boolean {
+    return workspaceId === this.http.getWorkspaceId() && requestId === this.sessionListRequestId;
+  }
+
+  private publishSessionList(workspaceId: string, sessions: SessionItem[]): void {
+    const state: SessionListState = {
+      workspaceId,
+      generation: ++this.sessionListGeneration,
+      sessions,
+    };
+    this.sessions$.next(sessions);
+    this.sessionListState$.next(state);
   }
 
   /** 工作空间内可供对话推荐的最小 Skill 目录。 */
