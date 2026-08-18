@@ -12,7 +12,7 @@ import { COMMON_MODULES, LIB_MODULES } from '@shared/modules';
 import { ModelManagementService } from '@services/repositories/model-management-new';
 import { HttpService } from '@services/http.service';
 import { ConversationSendRequest, ConversationSkillItem } from './conversation-skill.model';
-import { ConversationWorkspaceService, SessionItem } from './conversation-workspace.service';
+import { ConversationWorkspaceService, SessionItem, SessionListState } from './conversation-workspace.service';
 import { SkillSelectorComponent } from './skill-selector/skill-selector.component';
 
 interface ChatMessage {
@@ -52,7 +52,6 @@ interface ConversationAttempt {
 interface PendingRouteConversation {
   conversationId: string;
   workspaceId: string;
-  minimumSessionListGeneration: number;
 }
 
 @Component({
@@ -85,7 +84,7 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
   private destroyed = false;
   private readonly workspaceRouteProvenanceKey = 'conversation-workspace-route-workspace';
   private workspaceRouteProvenance = '';
-  private sessionListGeneration = 0;
+  private sessionListState: SessionListState = { workspaceId: '', generation: 0, sessions: [] };
   private pendingRouteConversation: PendingRouteConversation | null = null;
   private readonly workspaceChangeHandler = () => this.handleWorkspaceChange();
 
@@ -104,7 +103,7 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
     this.loadSkillCatalog();
     window.addEventListener('WorkspaceChange', this.workspaceChangeHandler);
     this.loadModels();
-    this.subscribeToSessions();
+    this.subscribeToSessionListState();
     this.subscribeToRoute();
     this.subscribeToActiveSession();
   }
@@ -203,11 +202,11 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
     );
   }
 
-  /** 共享会话列表是无 workspace_id 历史路由的当前空间归属证明。 */
-  private subscribeToSessions(): void {
+  /** 带 workspace 归属的共享会话列表是无 workspace_id 历史路由的唯一证明。 */
+  private subscribeToSessionListState(): void {
     this.subscriptions.add(
-      this.conversationWorkspaceService.sessions$.subscribe(() => {
-        this.sessionListGeneration += 1;
+      this.conversationWorkspaceService.sessionListState$.subscribe((state) => {
+        this.sessionListState = state;
         this.resolvePendingRouteConversation();
       }),
     );
@@ -218,6 +217,9 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
     this.subscriptions.add(
       this.conversationWorkspaceService.activeSession$.subscribe((session) => {
         const workspaceChanged = this.transitionWorkspace(this.http.getWorkspaceId());
+        if (session) {
+          this.clearPendingRouteConversation();
+        }
         if (this.isDraftPromotion(session)) {
           this.currentSession = session;
           this.cdr.markForCheck();
@@ -261,6 +263,9 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
     const recommendationSnapshot = [...this.recommendedSkills];
     if (!query || this.isSending || !this.selectedModel) {
       return;
+    }
+    if (!this.currentSession?.conversation_id) {
+      this.clearPendingRouteConversation();
     }
     const attempt = this.createAttempt(query, inputSnapshot, recommendationSnapshot);
     if (!this.currentSession?.conversation_id) {
@@ -509,7 +514,7 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
     }
     this.workspaceRouteProvenance = nextWorkspaceId;
     sessionStorage.setItem(this.workspaceRouteProvenanceKey, nextWorkspaceId);
-    this.conversationWorkspaceService.sessions$.next([]);
+    this.conversationWorkspaceService.clearSessions(nextWorkspaceId);
     this.router.navigate(['/home/conversation'], {
       queryParams: { new: Date.now(), workspace_id: nextWorkspaceId },
       replaceUrl: true,
@@ -582,10 +587,6 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
     this.pendingRouteConversation = {
       conversationId,
       workspaceId: this.workspaceId,
-      // 历史 provenance 与当前空间不一致时，忽略订阅的初始快照，等待当前空间的下一次列表发射。
-      minimumSessionListGeneration: this.workspaceRouteProvenance === this.workspaceId
-        ? this.sessionListGeneration
-        : this.sessionListGeneration + 1,
     };
     this.resolvePendingRouteConversation();
   }
@@ -593,10 +594,10 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
   private resolvePendingRouteConversation(): void {
     const pending = this.pendingRouteConversation;
     if (!pending || this.destroyed || pending.workspaceId !== this.workspaceId ||
-      this.sessionListGeneration < pending.minimumSessionListGeneration) {
+      this.sessionListState.workspaceId !== pending.workspaceId) {
       return;
     }
-    const belongsToCurrentWorkspace = this.conversationWorkspaceService.sessions$.value.some(
+    const belongsToCurrentWorkspace = this.sessionListState.sessions.some(
       (session) => session.conversation_id === pending.conversationId,
     );
     if (!belongsToCurrentWorkspace) {

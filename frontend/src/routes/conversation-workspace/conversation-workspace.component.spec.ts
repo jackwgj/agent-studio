@@ -24,10 +24,12 @@ describe('ConversationWorkspaceComponent', () => {
     sessionStorage.removeItem('conversation-workspace-route-workspace');
     service = {
       sessions$: new BehaviorSubject<SessionItem[]>([]),
+      sessionListState$: new BehaviorSubject({ workspaceId: 'workspace-1', generation: 0, sessions: [] }),
       activeSession$: new BehaviorSubject<SessionItem | null>(null),
       createSession: jasmine.createSpy('createSession').and.resolveTo(session('new-session')),
       detailSession: jasmine.createSpy('detailSession').and.resolveTo({ messages: [] }),
       refreshSessions: jasmine.createSpy('refreshSessions').and.resolveTo(),
+      clearSessions: jasmine.createSpy('clearSessions').and.callFake((workspaceId: string) => publishSessionList(service, workspaceId, [])),
       setActiveSession: jasmine.createSpy('setActiveSession').and.callFake((item: SessionItem | null) => service.activeSession$.next(item)),
       newDraftSession: jasmine.createSpy('newDraftSession'),
       listSkills: jasmine.createSpy('listSkills').and.resolveTo([skill('s1')]),
@@ -623,7 +625,7 @@ describe('ConversationWorkspaceComponent', () => {
     service.activeSession$.next(session('c1'));
     http.workspaceId = 'workspace-2';
     window.dispatchEvent(new Event('WorkspaceChange'));
-    service.sessions$.next([session('c1')]);
+    publishSessionList(service, 'workspace-2', [session('c1')]);
     routeParams.next({ conversation_id: 'c1' });
 
     expect(component.currentSession?.conversation_id).toBe('c1');
@@ -655,8 +657,8 @@ describe('ConversationWorkspaceComponent', () => {
     (component as any).workspaceRouteProvenance = 'workspace-1';
     routeParams.next({ conversation_id: 'b1' });
     service.detailSession.calls.reset();
-    service.sessions$.next([session('b1')]);
-    service.sessions$.next([session('b1')]);
+    publishSessionList(service, 'workspace-1', [session('b1')]);
+    publishSessionList(service, 'workspace-1', [session('b1')]);
 
     expect(component.currentSession?.conversation_id).toBe('b1');
     expect(service.detailSession).toHaveBeenCalledTimes(1);
@@ -675,7 +677,7 @@ describe('ConversationWorkspaceComponent', () => {
   it('无标记 pending 路由不在后续列表缺失时加载详情或向旧 ID 发送', async () => {
     (component as any).workspaceRouteProvenance = 'workspace-1';
     routeParams.next({ conversation_id: 'b1' });
-    service.sessions$.next([session('b2')]);
+    publishSessionList(service, 'workspace-1', [session('b2')]);
     component.inputText = '新草稿问题';
     component.send();
     await Promise.resolve();
@@ -685,18 +687,60 @@ describe('ConversationWorkspaceComponent', () => {
     expect(service.chatSSE).toHaveBeenCalledWith('new-session', jasmine.any(Object), jasmine.any(Object));
   });
 
+  it('pending 只接受带有当前 workspace 归属的会话列表', () => {
+    (component as any).workspaceRouteProvenance = 'workspace-1';
+    routeParams.next({ conversation_id: 'b1' });
+    publishSessionList(service, 'workspace-a', [session('b1')]);
+
+    expect(component.currentSession).toBeNull();
+    expect(service.detailSession).not.toHaveBeenCalledWith('b1');
+
+    publishSessionList(service, 'workspace-1', [session('b1')]);
+
+    expect(component.currentSession?.conversation_id).toBe('b1');
+    expect(service.detailSession).toHaveBeenCalledWith('b1');
+  });
+
+  it('新草稿发送会原子失效 pending，晚到列表不能抢占或取消新流', async () => {
+    const source = { close: jasmine.createSpy('close') };
+    service.chatSSE.and.returnValue(source);
+    (component as any).workspaceRouteProvenance = 'workspace-1';
+    routeParams.next({ conversation_id: 'b1' });
+    component.inputText = '开始新草稿';
+    component.send();
+    await Promise.resolve();
+    const callbacks = service.chatSSE.calls.mostRecent().args[2];
+    callbacks.onOpen();
+    publishSessionList(service, 'workspace-1', [session('b1')]);
+
+    expect(component.currentSession?.conversation_id).toBe('new-session');
+    expect(component.isSending).toBeTrue();
+    expect(source.close).not.toHaveBeenCalled();
+    expect(service.detailSession).not.toHaveBeenCalledWith('b1');
+  });
+
+  it('非 pending 验证引起的有效会话切换会失效旧 pending', () => {
+    (component as any).workspaceRouteProvenance = 'workspace-1';
+    routeParams.next({ conversation_id: 'b1' });
+    service.activeSession$.next(session('c2'));
+    publishSessionList(service, 'workspace-1', [session('b1')]);
+
+    expect(component.currentSession?.conversation_id).toBe('c2');
+    expect(service.detailSession).not.toHaveBeenCalledWith('b1');
+  });
+
   it('路由更新、工作空间切换与销毁都会丢弃旧的 pending 路由', () => {
     (component as any).workspaceRouteProvenance = 'workspace-1';
     routeParams.next({ conversation_id: 'b1' });
     routeParams.next({ conversation_id: 'b2' });
-    service.sessions$.next([session('b1')]);
+    publishSessionList(service, 'workspace-1', [session('b1')]);
     expect(service.detailSession).not.toHaveBeenCalledWith('b1');
 
     http.workspaceId = 'workspace-2';
     window.dispatchEvent(new Event('WorkspaceChange'));
-    service.sessions$.next([session('b2')]);
+    publishSessionList(service, 'workspace-2', [session('b2')]);
     component.ngOnDestroy();
-    service.sessions$.next([session('b2')]);
+    publishSessionList(service, 'workspace-2', [session('b2')]);
 
     expect(component.currentSession).toBeNull();
     expect(service.detailSession).not.toHaveBeenCalledWith('b2');
@@ -764,6 +808,38 @@ describe('ConversationWorkspaceComponent', () => {
 });
 
 describe('ConversationWorkspaceService', () => {
+  it('刷新列表只写入请求时仍为当前 workspace 的最新响应及其归属快照', async () => {
+    const workspace = { id: 'workspace-a' };
+    const responseA = deferred<any>();
+    const responseB = deferred<any>();
+    const http = {
+      getWorkspaceId: () => workspace.id,
+      getAsync: jasmine.createSpy('getAsync').and.callFake(({ query }: any) =>
+        query.workspace_id === 'workspace-a' ? responseA.promise : responseB.promise),
+    };
+    const service = createWorkspaceService(http);
+
+    const pendingA = service.refreshSessions();
+    workspace.id = 'workspace-b';
+    service.clearSessions();
+    const pendingB = service.refreshSessions();
+    responseA.resolve({ items: [session('c1')] });
+    await pendingA;
+
+    expect(service.sessions$.value).toEqual([]);
+    expect(service.sessionListState$.value).toEqual(jasmine.objectContaining({
+      workspaceId: 'workspace-b', sessions: [],
+    }));
+
+    responseB.resolve({ items: [session('b1')] });
+    await pendingB;
+
+    expect(service.sessions$.value.map((item) => item.conversation_id)).toEqual(['b1']);
+    expect(service.sessionListState$.value).toEqual(jasmine.objectContaining({
+      workspaceId: 'workspace-b', sessions: [session('b1')],
+    }));
+  });
+
   it('加载目录时只携带工作空间并映射最小浏览器字段', async () => {
     const http = {
       getWorkspaceId: jasmine.createSpy('getWorkspaceId').and.returnValue('workspace-1'),
@@ -821,6 +897,12 @@ function skill(skillId: string): ConversationSkillItem {
 
 function session(conversationId: string): SessionItem {
   return { conversation_id: conversationId, title: '会话', status: 'ACTIVE' };
+}
+
+function publishSessionList(service: any, workspaceId: string, sessions: SessionItem[]): void {
+  const generation = service.sessionListState$.value.generation + 1;
+  service.sessions$.next(sessions);
+  service.sessionListState$.next({ workspaceId, generation, sessions });
 }
 
 function dispatchSse(component: ConversationWorkspaceComponent, assistant: any, payload: object): void {
