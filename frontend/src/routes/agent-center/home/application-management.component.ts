@@ -117,7 +117,7 @@ export class ApplicationManagementComponent implements OnInit, OnDestroy {
       id: ApplicationType.SINGLE_AGENT,
       title: this.i18n.transform("single_agent"),
       hash: "#/home/agent-center/single",
-      active: false,
+      active: true,
       disabledImport: false,
       disabledExport: false
     },
@@ -126,7 +126,7 @@ export class ApplicationManagementComponent implements OnInit, OnDestroy {
       id: ApplicationType.WORKFLOW,
       title: this.i18n.transform("workflow"),
       hash: "#/home/agent-center/workflow",
-      active: true,
+      active: false,
       disabledImport: false,
       disabledExport: false
     },
@@ -143,6 +143,10 @@ export class ApplicationManagementComponent implements OnInit, OnDestroy {
   ];
 
   get visibleTabs() {
+    // 当嵌入到专家页面时（appType 有值），隐藏工作流 Tab
+    if (this.appType) {
+      return this.tabs.filter(t => t.show && t.id !== ApplicationType.WORKFLOW);
+    }
     return this.tabs.filter(t => t.show);
   }
 
@@ -463,7 +467,8 @@ export class ApplicationManagementComponent implements OnInit, OnDestroy {
     }
 
     if (this.appType) {
-      this.sidebarVisibilityServ.setSidebarsVisibilityByState("init");
+      // 嵌入到专家页面时，不隐藏侧边栏
+      this.sidebarVisibilityServ.setSidebarsVisibilityByState(null);
     } else {
       this.sidebarVisibilityServ.setSidebarsVisibilityByState(null);
     }
@@ -482,7 +487,14 @@ export class ApplicationManagementComponent implements OnInit, OnDestroy {
 
   getIndexOfTab() {
     let index = 0;
-    if (!this.appType) {
+    if (this.appType) {
+      // 当嵌入到专家页面时，根据 appType 设置正确的 Tab
+      if (this.appType === 'controller') {
+        index = 1; // MULTI_AGENT（隐藏工作流后，多智能体是第 2 个）
+      } else {
+        index = 0; // SINGLE_AGENT
+      }
+    } else {
       const tempIndex = this.router.url.indexOf('workflow') > -1 ? 1 : 2;
       index = this.router.url.indexOf('single') > -1 ? 0 : tempIndex;
     }
@@ -490,7 +502,10 @@ export class ApplicationManagementComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.sidebarVisibilityServ.setSidebarsVisibilityByState("destroy");
+    // 嵌入到专家页面时，不恢复侧边栏状态（由父组件管理）
+    if (!this.appType) {
+      this.sidebarVisibilityServ.setSidebarsVisibilityByState("destroy");
+    }
     this.destroy$.next();
     this.destroy$.complete();
     this.ppServ.setImportRes();
