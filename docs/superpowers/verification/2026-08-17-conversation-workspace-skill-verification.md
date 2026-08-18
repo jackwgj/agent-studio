@@ -153,3 +153,15 @@ git merge-tree (git merge-base HEAD origin/studio-2.0-dev-0804) HEAD origin/stud
 - `pnpm exec tsc --noEmit -p tsconfig.app.json`：通过。
 - `pnpm exec ng build --configuration development`：通过；仅有仓库既有 Browserslist、`isolatedModules` 和 Sass `@import` 弃用警告。
 - 临时 scoped Karma harness 已删除，未进入提交。
+
+## 8. 合并复审 Important 修复验证
+
+独立合并复审发现两项实时/历史一致性问题后，以组件测试执行 RED→GREEN：
+
+- RED：scoped ChromeHeadless 共 70 项，其中 4 项失败，分别证明子 Agent 实时 reasoning/tool 未进入模板渲染集合、历史工具关联 ID 丢失、主/子 Agent 交错工具结果串写，以及缺少调用 ID 的旧协议结果会覆盖已完成或歧义工具段。
+- 实时协议字段核对：Runtime 统一事件字段为 `toolCallId`；前端同时兼容 `tool_call_id`。历史映射读取 `tool_call_id` 或 `toolCallId`，当前稳定的历史工具名字段仍为 `tool_id`。
+- GREEN：子 Agent 的执行详情写入其折叠区域已经渲染的 `segments`，主 Agent 仍写入默认折叠的 `detailSegments`；工具段保存调用 ID，结果按 ID 精确回填。无 ID 的旧协议仅在“唯一、未完成、且工具名匹配（若提供）”时兼容回填。
+- scoped ChromeHeadless：`70 SUCCESS`。
+- `pnpm exec tsc --noEmit -p tsconfig.app.json`：通过。
+- `pnpm exec ng build --configuration development`：通过，仅有仓库既有 `isolatedModules` 与 Sass `@import` 弃用警告。
+- 临时 scoped Karma harness 已删除；未修改模板、`+` / Agent 选择功能、官方源码或远端分支。
