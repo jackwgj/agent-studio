@@ -124,6 +124,7 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.destroyed = true;
+    this.invalidateCatalogRequests();
     this.invalidateDetailRequests();
     try {
       this.cancelActiveAttempt();
@@ -476,26 +477,30 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
   }
 
   private handleWorkspaceChange(): void {
-    this.transitionWorkspace(this.http.getWorkspaceId());
+    this.transitionWorkspace(this.http.getWorkspaceId(), true);
   }
 
-  private transitionWorkspace(nextWorkspaceId: string): boolean {
+  private transitionWorkspace(nextWorkspaceId: string, invalidateActiveSession = false): boolean {
     if (nextWorkspaceId === this.workspaceId) {
       return false;
     }
     this.cancelActiveAttempt();
     this.invalidateDetailRequests();
     this.workspaceId = nextWorkspaceId;
+    this.currentSession = null;
     this.skillCatalog = [];
     this.messages = [];
     this.clearSkillRoundState();
     this.loadSkillCatalog();
+    if (invalidateActiveSession) {
+      this.conversationWorkspaceService.setActiveSession(null);
+    }
     this.cdr.markForCheck();
     return true;
   }
 
   private isCurrentCatalogRequest(workspaceId: string, requestId: number): boolean {
-    return workspaceId === this.workspaceId && requestId === this.catalogRequestId;
+    return !this.destroyed && workspaceId === this.workspaceId && requestId === this.catalogRequestId;
   }
 
   private isDraftPromotion(session: SessionItem | null): boolean {
@@ -540,6 +545,10 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
 
   private invalidateDetailRequests(): void {
     this.detailRequestId += 1;
+  }
+
+  private invalidateCatalogRequests(): void {
+    this.catalogRequestId += 1;
   }
 
   private isCurrentDetailRequest(workspaceId: string, conversationId: string, requestId: number): boolean {

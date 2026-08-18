@@ -439,7 +439,7 @@ describe('ConversationWorkspaceComponent', () => {
     await Promise.resolve();
 
     expect(component.messages).toEqual([]);
-    expect(component.currentSession?.conversation_id).toBe('c1');
+    expect(component.currentSession).toBeNull();
   });
 
   it('chatSSE 同步抛错按连接前失败收口，保留输入和推荐', () => {
@@ -513,6 +513,58 @@ describe('ConversationWorkspaceComponent', () => {
 
     expect(component.isSending).toBeTrue();
     expect(source.close).not.toHaveBeenCalled();
+  });
+
+  it('工作空间 A/c1 切到 B 后立即发送会创建 B 草稿，且不保留 A 会话', async () => {
+    service.activeSession$.next(session('c1'));
+    const detailsBeforeTransition = service.detailSession.calls.count();
+    http.workspaceId = 'workspace-2';
+
+    window.dispatchEvent(new Event('WorkspaceChange'));
+    expect(component.currentSession).toBeNull();
+    expect(service.activeSession$.value).toBeNull();
+    component.inputText = 'B 空间的新问题';
+    component.send();
+    await Promise.resolve();
+
+    expect(component.currentSession?.conversation_id).toBe('new-session');
+    expect(service.activeSession$.value?.conversation_id).toBe('new-session');
+    expect(service.createSession).toHaveBeenCalledWith({ title: '' });
+    expect(service.chatSSE).toHaveBeenCalledWith('new-session', jasmine.any(Object), jasmine.any(Object));
+    expect(service.chatSSE).not.toHaveBeenCalledWith('c1', jasmine.any(Object), jasmine.any(Object));
+    expect(service.detailSession.calls.count()).toBe(detailsBeforeTransition);
+  });
+
+  it('组件销毁后，晚到 Skill 目录 resolve 不写入状态或触发变更检测', async () => {
+    const catalog = deferred<ConversationSkillItem[]>();
+    service.listSkills.and.returnValue(catalog.promise);
+    const markForCheck = spyOn((component as any).cdr, 'markForCheck');
+    const catalogBefore = component.skillCatalog;
+    const unavailableBefore = component.skillCatalogUnavailable;
+    (component as any).loadSkillCatalog();
+    component.ngOnDestroy();
+    catalog.resolve([skill('late')]);
+    await Promise.resolve();
+
+    expect(component.skillCatalog).toBe(catalogBefore);
+    expect(component.skillCatalogUnavailable).toBe(unavailableBefore);
+    expect(markForCheck).not.toHaveBeenCalled();
+  });
+
+  it('组件销毁后，晚到 Skill 目录 reject 不写不可用状态或触发变更检测', async () => {
+    const catalog = deferred<ConversationSkillItem[]>();
+    service.listSkills.and.returnValue(catalog.promise);
+    const markForCheck = spyOn((component as any).cdr, 'markForCheck');
+    const catalogBefore = component.skillCatalog;
+    const unavailableBefore = component.skillCatalogUnavailable;
+    (component as any).loadSkillCatalog();
+    component.ngOnDestroy();
+    catalog.reject(new Error('late catalog failure'));
+    await Promise.resolve();
+
+    expect(component.skillCatalog).toBe(catalogBefore);
+    expect(component.skillCatalogUnavailable).toBe(unavailableBefore);
+    expect(markForCheck).not.toHaveBeenCalled();
   });
 });
 
