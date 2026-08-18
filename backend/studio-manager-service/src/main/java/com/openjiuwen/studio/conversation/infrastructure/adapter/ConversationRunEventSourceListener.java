@@ -6,6 +6,7 @@ package com.openjiuwen.studio.conversation.infrastructure.adapter;
 
 import com.openjiuwen.studio.conversation.domain.model.ConversationMessage;
 import com.openjiuwen.studio.conversation.domain.model.valueobject.ExecutionRef;
+import com.openjiuwen.studio.conversation.domain.model.valueobject.ToolRef;
 import com.openjiuwen.studio.conversation.domain.repository.ConversationRepository;
 
 import com.alibaba.fastjson2.JSON;
@@ -22,34 +23,48 @@ import org.jetbrains.annotations.Nullable;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
 /**
- * 对话运行 SSE 监听器（团队新协议，Phase 5）：事件原样转发前端，同时缓冲**完整输出边界**——
- * sub_done（子 Agent 完整文本，按 sub_execution_id 分组）、run_done（监督者完整文本）；流关闭/异常时
- * 一次性落库（事务性，全量成功或全部回滚）。
+ * 对话运行 SSE 监听器（按轮持久化，团队新协议）：
+ * Java 对事件透明——只做「转发前端 + 按事件类型边界入库」，不分析事件内容。
  *
- * <p>落库口径（只在完整输出边界落库）：run_done → t_conversation_run（execution_id 整句）、
- * sub_done → t_conversation_sub_run（sub_execution_id + agent_id 整句）。
- * 增量事件（message/reasoning/usage）、边界事件（run_start/sub_start/tool_call/tool_result）仅透传前端不落库；
- * user_message 不落（user 行已在发送前由 Java 落库，避免重复）。</p>
+ * <p>入库粒度 = 每次 LLM 调用（一轮）：每轮 reasoning 行（event=reasoning）+ message 行（event=message），
+ * 工具一次调用合并一行（role=tool，event=tool_call，content=结果/异常，tool_args=参数，tool_id=toolName）。
+ * run_done/sub_done/run_start/sub_start 仅透传不落库（实时完成信号）；user_message 不落（user 行发送前已落）；
+ * error 只记日志。路由沿用 appendMessages 规则：subExecutionId 空 → t_conversation_run，非空 → t_conversation_sub_run。</p>
  *
- * <p>execution_id 由调用方确定（X-Execution-Id 下发引擎，引擎按头回显，2026-08-11 引擎已支持读头），
- * 落库统一使用本轮值，run/sub_run 分组精确。</p>
+ * <p>轮边界 = 事件类型（机械规则）：tool_call / sub_done / run_done / error 到达即结算当前轮；
+ * created_at 按到达序（base+seq）单调递增，供读侧"先调用先渲染"。</p>
  */
 @Slf4j
 public class ConversationRunEventSourceListener extends EventSourceListener {
 
+    private static final String EVENT_MESSAGE = "message";
+    private static final String EVENT_REASONING = "reasoning";
+    private static final String EVENT_TOOL_CALL = "tool_call";
+    private static final String EVENT_TOOL_RESULT = "tool_result";
     private static final String EVENT_SUB_DONE = "sub_done";
     private static final String EVENT_RUN_DONE = "run_done";
-    private static final String ROLE_ASSISTANT = "assistant";
+    private static final String EVENT_ERROR = "error";
 
     private static final String FIELD_SUB_EXECUTION_ID = "subExecutionId";
     private static final String FIELD_AGENT_ID = "agentId";
-    private static final String FIELD_TEXT = "text";
+    private static final String FIELD_TOOL_CALL_ID = "toolCallId";
+    private static final String FIELD_TOOL_NAME = "toolName";
+    private static final String FIELD_ARGUMENTS = "arguments";
+    private static final String FIELD_RESULT = "result";
+    private static final String FIELD_DELTA = "delta";
+    private static final String FIELD_CONTENT = "content";
+
+    private static final String ROLE_ASSISTANT = "assistant";
+    private static final String ROLE_TOOL = "tool";
+    private static final String NO_RESULT_MARK = "（未返回结果）";
 
     private final SseEmitter sseEmitter;
     private final CountDownLatch latch;
@@ -58,10 +73,15 @@ public class ConversationRunEventSourceListener extends EventSourceListener {
     private final String modelDeploymentId;
     private final ConversationRepository conversationRepository;
 
-    /** run_done 完整文本（监督者整轮回答，权威） */
-    private String mainAnswer;
-    /** sub_execution_id -> {agentId, text}（子 Agent 完整文本，权威） */
-    private final Map<String, SubAnswer> subAnswers = new LinkedHashMap<>();
+    /** 当前轮缓冲（key = subExecutionId，null = 主 Agent 轮） */
+    private final Map<String, RoundBuffer> currentRounds = new LinkedHashMap<>();
+    /** 已结算轮（按结算序） */
+    private final List<RoundBuffer> settledRounds = new ArrayList<>();
+    /** 工具调用缓冲（toolCallId → 调用），tool_result 按 toolCallId 配对回填 */
+    private final Map<String, ToolInvocation> toolInvocations = new LinkedHashMap<>();
+    /** 到达序计数器（每事件 +1），created_at = base + seq */
+    private long arrivalSeq;
+    private final long baseTime = System.currentTimeMillis();
     private volatile boolean flushed;
 
     public ConversationRunEventSourceListener(SseEmitter sseEmitter, CountDownLatch latch, String conversationId,
@@ -84,14 +104,15 @@ public class ConversationRunEventSourceListener extends EventSourceListener {
     @Override
     public void onEvent(@NotNull EventSource eventSource, @Nullable String id, @Nullable String type,
                         @NotNull String data) {
-        // 1. 原样转发前端（无事件名帧，前端按 data.event 区分）
+        // 1. 原样转发前端（不带事件名帧，前端按 data.event 区分）
         try {
             sseEmitter.send(SseEmitter.event().data(data).build());
         } catch (Throwable e) {
             log.warn("SSE send message fail, conversationId={}", conversationId, e);
         }
+        arrivalSeq++;
 
-        // 2. 缓冲完整输出边界（仅 sub_done/run_done；增量/边界事件不落库）
+        // 2. 机械缓冲：事件类型即落行边界（不分析事件内容）
         try {
             JSONObject json = JSON.parseObject(data);
             if (json == null) {
@@ -100,21 +121,46 @@ public class ConversationRunEventSourceListener extends EventSourceListener {
             JSONObject dataObj = json.getJSONObject("data");
             String event = json.getString("event");
             switch (event == null ? "" : event) {
-                case EVENT_SUB_DONE -> {
-                    String subExecutionId = dataObj == null ? null : dataObj.getString(FIELD_SUB_EXECUTION_ID);
-                    String text = dataObj == null ? null : dataObj.getString(FIELD_TEXT);
-                    if (subExecutionId != null && text != null && !text.isBlank()) {
-                        subAnswers.put(subExecutionId, new SubAnswer(dataObj.getString(FIELD_AGENT_ID), text));
+                case EVENT_MESSAGE -> {
+                    String delta = dataObj == null ? null : dataObj.getString(FIELD_DELTA);
+                    if (delta != null && !delta.isBlank()) {
+                        roundOf(dataObj).appendMessage(delta, arrivalSeq);
                     }
                 }
-                case EVENT_RUN_DONE -> {
-                    String text = dataObj == null ? null : dataObj.getString(FIELD_TEXT);
-                    if (text != null && !text.isBlank()) {
-                        mainAnswer = text;
+                case EVENT_REASONING -> {
+                    String content = dataObj == null ? null : dataObj.getString(FIELD_CONTENT);
+                    if (content != null && !content.isBlank()) {
+                        roundOf(dataObj).appendReasoning(content, arrivalSeq);
                     }
+                }
+                case EVENT_TOOL_CALL -> {
+                    // 该轮 LLM 决定调工具 → 本轮输出结束，结算当前轮
+                    settleRound(keyOf(dataObj));
+                    String callId = dataObj == null ? null : dataObj.getString(FIELD_TOOL_CALL_ID);
+                    if (callId != null) {
+                        toolInvocations.put(callId, new ToolInvocation(
+                            dataObj.getString(FIELD_TOOL_NAME),
+                            argsToJson(dataObj),
+                            keyOf(dataObj),
+                            dataObj == null ? null : dataObj.getString(FIELD_AGENT_ID),
+                            arrivalSeq));
+                    }
+                }
+                case EVENT_TOOL_RESULT -> {
+                    String callId = dataObj == null ? null : dataObj.getString(FIELD_TOOL_CALL_ID);
+                    ToolInvocation invocation = toolInvocations.get(callId);
+                    if (invocation != null) {
+                        invocation.result = dataObj.getString(FIELD_RESULT);
+                    }
+                }
+                case EVENT_SUB_DONE, EVENT_RUN_DONE -> settleRound(keyOf(dataObj));
+                case EVENT_ERROR -> {
+                    log.warn("Conversation team error event: conversationId={}, executionId={}, data={}",
+                        conversationId, executionId, data);
+                    settleRound(keyOf(dataObj));
                 }
                 default -> {
-                    // user_message/run_start/message/reasoning/tool_call/tool_result/sub_start/usage 仅透传不落
+                    // user_message/run_start/sub_start/usage 仅透传不落
                 }
             }
         } catch (Throwable e) {
@@ -144,23 +190,66 @@ public class ConversationRunEventSourceListener extends EventSourceListener {
     }
 
     /**
-     * 整轮结束一次性落库（appendMessages 按 ExecutionRef.subExecutionId 拆分路由，事务性）：
-     * run_done → t_conversation_run、sub_done → t_conversation_sub_run。
+     * 结算当前轮：把轮内 reasoning/message 移入已结算列表（空轮跳过）。
+     * 后续 flush 按到达序构造行；该 key 的下一批 delta 自然开启新一轮。
+     */
+    private void settleRound(String key) {
+        RoundBuffer round = currentRounds.remove(key);
+        if (round != null && round.hasContent()) {
+            settledRounds.add(round);
+        }
+    }
+
+    /** 结算所有未结算轮（流关闭/异常时把已接收的部分内容也落库） */
+    private void settleAllCurrentRounds() {
+        new ArrayList<>(currentRounds.keySet()).forEach(this::settleRound);
+    }
+
+    private RoundBuffer roundOf(JSONObject dataObj) {
+        String key = keyOf(dataObj);
+        return currentRounds.computeIfAbsent(key,
+            k -> new RoundBuffer(key, dataObj == null ? null : dataObj.getString(FIELD_AGENT_ID)));
+    }
+
+    private String keyOf(JSONObject dataObj) {
+        return dataObj == null ? null : dataObj.getString(FIELD_SUB_EXECUTION_ID);
+    }
+
+    private String argsToJson(JSONObject dataObj) {
+        if (dataObj == null) {
+            return null;
+        }
+        Object args = dataObj.get(FIELD_ARGUMENTS);
+        return args == null ? null : JSON.toJSONString(args);
+    }
+
+    /**
+     * 整轮结束/异常一次性批量落库（appendMessages 按 ExecutionRef.subExecutionId 拆分路由，事务性）。
+     * created_at 按到达序（base+seq）单调递增。
      */
     private void flush() {
         if (flushed) {
             return;
         }
         flushed = true;
-        List<ConversationMessage> rows = new ArrayList<>();
-        if (mainAnswer != null && !mainAnswer.isBlank()) {
-            rows.add(assistantMessage(null, null, mainAnswer, EVENT_RUN_DONE));
-        }
-        subAnswers.forEach((subExecutionId, sub) -> {
-            if (sub.text != null && !sub.text.isBlank()) {
-                rows.add(assistantMessage(subExecutionId, sub.agentId, sub.text, EVENT_SUB_DONE));
+        settleAllCurrentRounds();
+        List<ScoredRow> scored = new ArrayList<>();
+        for (RoundBuffer round : settledRounds) {
+            if (round.reasoning != null && !round.reasoning.isBlank()) {
+                scored.add(new ScoredRow(round.reasoningSeq,
+                    buildMessage(round, ROLE_ASSISTANT, round.reasoning, EVENT_REASONING, round.reasoningSeq)));
             }
-        });
+            if (round.message != null && !round.message.isBlank()) {
+                scored.add(new ScoredRow(round.messageSeq,
+                    buildMessage(round, ROLE_ASSISTANT, round.message, EVENT_MESSAGE, round.messageSeq)));
+            }
+        }
+        for (ToolInvocation invocation : toolInvocations.values()) {
+            scored.add(new ScoredRow(invocation.seq, buildToolMessage(invocation)));
+        }
+        scored.sort(Comparator.comparingLong(s -> s.seq));
+        List<ConversationMessage> rows = new ArrayList<>();
+        scored.forEach(scoredRow -> rows.add(scoredRow.message));
         if (!rows.isEmpty()) {
             try {
                 conversationRepository.appendMessages(conversationId, rows);
@@ -173,25 +262,93 @@ public class ConversationRunEventSourceListener extends EventSourceListener {
         }
     }
 
-    private ConversationMessage assistantMessage(String subExecutionId, String agentId, String content, String event) {
+    private ConversationMessage buildMessage(RoundBuffer round, String role, String content, String event, long seq) {
         return ConversationMessage.builder()
-            .role(ROLE_ASSISTANT)
+            .role(role)
             .content(content)
-            .executionRef(new ExecutionRef(executionId, subExecutionId, agentId))
+            .executionRef(new ExecutionRef(executionId, round.key, round.agentId))
             .modelDeploymentId(modelDeploymentId)
             .event(event)
+            .createdAt(new Date(baseTime + seq))
             .build();
     }
 
-    /** 子 Agent 完整输出（agentId + text） */
-    private static final class SubAnswer {
+    private ConversationMessage buildToolMessage(ToolInvocation invocation) {
+        String content = invocation.result == null || invocation.result.isBlank()
+            ? NO_RESULT_MARK : invocation.result;
+        return ConversationMessage.builder()
+            .role(ROLE_TOOL)
+            .content(content)
+            .toolRef(new ToolRef(invocation.toolName, invocation.argsJson))
+            .executionRef(new ExecutionRef(executionId, invocation.subExecutionId, invocation.agentId))
+            .modelDeploymentId(modelDeploymentId)
+            .event(EVENT_TOOL_CALL)
+            .createdAt(new Date(baseTime + invocation.seq))
+            .build();
+    }
 
+    /** 一轮（一次 LLM 调用）的缓冲：reasoning/message 增量累加 + 首个增量到达序 */
+    private static final class RoundBuffer {
+
+        private final String key;
         private final String agentId;
-        private final String text;
+        private String reasoning;
+        private String message;
+        private long reasoningSeq = -1;
+        private long messageSeq = -1;
 
-        SubAnswer(String agentId, String text) {
+        RoundBuffer(String key, String agentId) {
+            this.key = key;
             this.agentId = agentId;
-            this.text = text;
+        }
+
+        void appendReasoning(String content, long seq) {
+            if (reasoningSeq < 0) {
+                reasoningSeq = seq;
+            }
+            reasoning = reasoning == null ? content : reasoning + content;
+        }
+
+        void appendMessage(String content, long seq) {
+            if (messageSeq < 0) {
+                messageSeq = seq;
+            }
+            message = message == null ? content : message + content;
+        }
+
+        boolean hasContent() {
+            return (reasoning != null && !reasoning.isBlank()) || (message != null && !message.isBlank());
+        }
+    }
+
+    /** 一次工具调用：tool_call 注册（toolCallId 配对），tool_result 回填 result */
+    private static final class ToolInvocation {
+
+        private final String toolName;
+        private final String argsJson;
+        private final String subExecutionId;
+        private final String agentId;
+        private final long seq;
+        private String result;
+
+        ToolInvocation(String toolName, String argsJson, String subExecutionId, String agentId, long seq) {
+            this.toolName = toolName;
+            this.argsJson = argsJson;
+            this.subExecutionId = subExecutionId;
+            this.agentId = agentId;
+            this.seq = seq;
+        }
+    }
+
+    /** 到达序 + 待落库消息（flush 时按 seq 排序，created_at = base + seq） */
+    private static final class ScoredRow {
+
+        private final long seq;
+        private final ConversationMessage message;
+
+        ScoredRow(long seq, ConversationMessage message) {
+            this.seq = seq;
+            this.message = message;
         }
     }
 }

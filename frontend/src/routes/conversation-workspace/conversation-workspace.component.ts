@@ -20,16 +20,25 @@ import {
 } from './conversation-workspace.service';
 import { SkillSelectorComponent } from './skill-selector/skill-selector.component';
 
+/** 消息段：message 输出段 / reasoning 思考段 / tool 工具轨迹（按轮持久化的行形态） */
+interface ChatSegment {
+  type: 'message' | 'reasoning' | 'tool';
+  content: string;
+  /** 工具名（仅 type=tool） */
+  toolId?: string;
+}
+
 interface ChatMessage {
   role: 'user' | 'assistant';
-  content: string;
+  segments: ChatSegment[];
+  userContent?: string;
+  /** 非主 Agent 内容默认折叠，不主动展示 */
+  detailSegments?: ChatSegment[];
+  subAgents?: ChatMessage[];
   loading?: boolean;
   error?: boolean;
-  /** 子 Agent 气泡归属（sub_execution_id，每次 handoff 唯一） */
   subExecutionId?: string;
-  /** 子 Agent id（气泡标签用） */
   agentId?: string;
-  /** 是否子 Agent 气泡（独立渲染，方案 B：子 Agent 只收监督者 query） */
   isSubAgent?: boolean;
 }
 
@@ -354,8 +363,14 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
     attempt.phase = 'running';
     attempt.conversationId = conversationId;
     this.activatedSkills = [];
-    this.messages.push({ role: 'user', content: attempt.query });
-    const assistantMsg: ChatMessage = { role: 'assistant', content: '', loading: true };
+    const assistantMsg: ChatMessage = {
+      role: 'assistant',
+      userContent: attempt.query,
+      segments: [],
+      detailSegments: [],
+      subAgents: [],
+      loading: true,
+    };
     attempt.assistantMsg = assistantMsg;
     this.messages.push(assistantMsg);
     this.streaming = true;
@@ -437,9 +452,11 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * 流式消息处理（团队新协议）：
-   * message 增量取 data.delta（按 subExecutionId 路由主/子气泡）；sub_start 新建子 Agent 气泡、
-   * sub_done/run_done 权威完整文本收尾；tool_call 折叠展示；reasoning/user_message/usage 忽略（MVP）。
+   * 流式消息处理（按轮持久化协议）：
+   * message/reasoning 增量按 subExecutionId 路由主/子气泡并追加到对应段；
+   * sub_start 新建子 Agent 气泡；tool_call 建工具段、tool_result 回填结果；
+   * sub_done/run_done 仅收尾（结束 loading，不替换内容——入库即流式聚合，"所见即所存"）；
+   * error 标记失败；user_message/usage 忽略。
    */
   private handleMessage(token: any, assistantMsg: ChatMessage): void {
     try {
@@ -452,51 +469,71 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
             ? (this.findSubBubble(d.subExecutionId) ?? assistantMsg)
             : assistantMsg;
           if (target && delta) {
-            target.content += delta;
+            this.appendVisibleOrDetailSegment(target, 'message', delta);
             target.loading = false;
           }
           break;
         }
+        case 'reasoning': {
+          const content = d.content ?? '';
+          const target = d.subExecutionId
+            ? (this.findSubBubble(d.subExecutionId) ?? assistantMsg)
+            : assistantMsg;
+          if (target && content) {
+            this.appendDetailSegment(target, 'reasoning', content);
+          }
+          break;
+        }
         case 'sub_start': {
-          // 新子 Agent 气泡（按 sub_execution_id 独立）
+          // 子 Agent 内容挂在当前主 Agent 交互框内，默认折叠
           const sub: ChatMessage = {
             role: 'assistant',
-            content: '',
+            segments: [],
+            detailSegments: [],
             loading: true,
             subExecutionId: d.subExecutionId,
             agentId: d.agentId,
             isSubAgent: true,
           };
-          this.messages.push(sub);
+          assistantMsg.subAgents ??= [];
+          assistantMsg.subAgents.push(sub);
           break;
         }
         case 'sub_done': {
           const sub = this.findSubBubble(d.subExecutionId);
-          if (sub && d.text) {
-            sub.content = d.text; // 权威完整文本（整句）
-            sub.loading = false;
-          }
-          break;
-        }
-        case 'tool_call': {
-          // 工具调用折叠展示（附到当前上下文气泡）
-          const target = d.subExecutionId
-            ? (this.findSubBubble(d.subExecutionId) ?? assistantMsg)
-            : assistantMsg;
-          if (target && d.toolName) {
-            target.content += `\n[工具调用] ${d.toolName}`;
+          if (sub) {
+            sub.loading = false; // 完成信号，不替换内容（入库即流式聚合）
           }
           break;
         }
         case 'run_done': {
-          if (d.text) {
-            assistantMsg.content = d.text; // 权威完整文本（整句）
-          }
           assistantMsg.loading = false;
           break;
         }
+        case 'tool_call': {
+          // 工具轨迹默认折叠，不主动暴露
+          const target = d.subExecutionId
+            ? (this.findSubBubble(d.subExecutionId) ?? assistantMsg)
+            : assistantMsg;
+          if (target && d.toolName) {
+            target.detailSegments ??= [];
+            target.detailSegments.push({ type: 'tool', content: '', toolId: d.toolName });
+          }
+          break;
+        }
+        case 'tool_result': {
+          const target = d.subExecutionId
+            ? (this.findSubBubble(d.subExecutionId) ?? assistantMsg)
+            : assistantMsg;
+          if (target) {
+            const toolSeg = [...(target.detailSegments ?? [])].reverse().find((s) => s.type === 'tool');
+            if (toolSeg) {
+              toolSeg.content = d.result ?? '';
+            }
+          }
+          break;
+        }
         case 'error': {
-          assistantMsg.content = assistantMsg.content || '运行出错，请稍后重试';
           assistantMsg.error = true;
           assistantMsg.loading = false;
           break;
@@ -508,7 +545,7 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
           break;
         }
         default:
-          // user_message/run_start/reasoning/usage/tool_result 忽略（reasoning 可选展示，MVP 不展示）
+          // user_message/run_start/usage 仅透传不渲染
           break;
       }
     } catch (e) {
@@ -517,9 +554,93 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
     this.cdr.markForCheck();
   }
 
-  /** 按 sub_execution_id 查找子 Agent 气泡 */
+  /** 追加主 Agent 可见输出；reasoning/tool 进入默认折叠详情。 */
+  private appendVisibleOrDetailSegment(message: ChatMessage, type: 'message', delta: string): void {
+    this.appendSegment(message, type, delta);
+  }
+
+  private appendSegment(message: ChatMessage, type: 'message' | 'reasoning', delta: string): void {
+    const last = message.segments[message.segments.length - 1];
+    if (last && last.type === type) {
+      last.content += delta;
+    } else {
+      message.segments.push({ type, content: delta });
+    }
+  }
+
+  private appendDetailSegment(message: ChatMessage, type: 'message' | 'reasoning', content: string): void {
+    message.detailSegments ??= [];
+    const last = message.detailSegments[message.detailSegments.length - 1];
+    if (last && last.type === type) {
+      last.content += content;
+    } else {
+      message.detailSegments.push({ type, content });
+    }
+  }
+
+  /** 按 execution_id 恢复：每次用户交互生成一个独立框。 */
+  private mapDetailToMessages(rows: any[]): ChatMessage[] {
+    const turns = new Map<string, ChatMessage>();
+    for (const row of rows ?? []) {
+      const executionId = row.execution_id ?? `legacy-${row.created_at ?? Math.random()}`;
+      let turn = turns.get(executionId);
+      if (!turn) {
+        turn = { role: 'assistant', segments: [], detailSegments: [], subAgents: [] };
+        turns.set(executionId, turn);
+      }
+      if (row.role === 'user') {
+        turn.userContent = row.content ?? '';
+        continue;
+      }
+      const seg = this.rowToSegment(row);
+      if (!seg) {
+        continue;
+      }
+      if (row.sub_execution_id) {
+        let sub = turn.subAgents!.find((item) => item.subExecutionId === row.sub_execution_id);
+        if (!sub) {
+          sub = {
+            role: 'assistant',
+            segments: [],
+            detailSegments: [],
+            subExecutionId: row.sub_execution_id,
+            agentId: row.agent_id,
+            isSubAgent: true,
+          };
+          turn.subAgents!.push(sub);
+        }
+        sub.segments.push(seg);
+      } else if (seg.type === 'message') {
+        turn.segments.push(seg);
+      } else {
+        turn.detailSegments!.push(seg);
+      }
+    }
+    return Array.from(turns.values());
+  }
+
+  /** run 表 handoff 工具进入详情；主界面只展示 message。 */
+  private rowToSegment(row: any): ChatSegment | null {
+    if (row.role === 'tool') {
+      return { type: 'tool', content: row.content ?? '', toolId: row.tool_id };
+    }
+    if (row.event === 'reasoning') {
+      return { type: 'reasoning', content: row.content ?? '' };
+    }
+    if (row.event === 'message') {
+      return { type: 'message', content: row.content ?? '' };
+    }
+    return null;
+  }
+
   private findSubBubble(subExecutionId: string): ChatMessage | undefined {
-    return this.messages.find((m) => m.subExecutionId === subExecutionId);
+    for (const message of this.messages) {
+      const sub = message.subAgents?.find((item) => item.subExecutionId === subExecutionId);
+      if (sub) {
+        return sub;
+      }
+    }
+    return undefined;
   }
 
   private clearSkillRoundState(): void {
@@ -674,13 +795,7 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
         if (!this.isCurrentDetailRequest(requestWorkspaceId, conversationId, requestId)) {
           return;
         }
-        this.messages = (detail?.messages ?? []).map((msg: any) => ({
-          role: msg.role === 'user' ? 'user' : 'assistant',
-          content: msg.content ?? '',
-          ...(msg.sub_execution_id
-            ? { subExecutionId: msg.sub_execution_id, agentId: msg.agent_id, isSubAgent: true }
-            : {}),
-        }));
+        this.messages = this.mapDetailToMessages(detail?.messages ?? []);
         if (!this.currentSession?.title) {
           this.currentSession = { ...this.currentSession!, title: detail?.title ?? '' };
         }

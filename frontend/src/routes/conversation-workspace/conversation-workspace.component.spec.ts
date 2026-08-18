@@ -189,6 +189,68 @@ describe('ConversationWorkspaceComponent', () => {
     ]);
   });
 
+  it('流式轮次同时保留主输出、思考、工具、子 Agent 与 Skill 激活状态', () => {
+    component.currentSession = session('c1');
+    component.inputText = '执行任务';
+    component.send();
+    const callbacks = service.chatSSE.calls.mostRecent().args[2];
+
+    callbacks.onMessage({ data: JSON.stringify({ event: 'message', data: { delta: '主结果' } }) });
+    callbacks.onMessage({ data: JSON.stringify({ event: 'reasoning', data: { content: '主思考' } }) });
+    callbacks.onMessage({ data: JSON.stringify({ event: 'tool_call', data: { toolName: 'search' } }) });
+    callbacks.onMessage({ data: JSON.stringify({ event: 'tool_result', data: { result: '工具结果' } }) });
+    callbacks.onMessage({ data: JSON.stringify({ event: 'sub_start', data: { subExecutionId: 'sub-1', agentId: 'agent-1' } }) });
+    callbacks.onMessage({ data: JSON.stringify({ event: 'message', data: { delta: '子结果', subExecutionId: 'sub-1' } }) });
+    callbacks.onMessage({ data: JSON.stringify({ event: 'skill_activated', data: { skillId: 's1', name: '会议纪要', versionId: 'v1' } }) });
+
+    expect(component.messages).toEqual([
+      jasmine.objectContaining({
+        userContent: '执行任务',
+        segments: [{ type: 'message', content: '主结果' }],
+        detailSegments: [
+          { type: 'reasoning', content: '主思考' },
+          { type: 'tool', content: '工具结果', toolId: 'search' },
+        ],
+        subAgents: [jasmine.objectContaining({
+          subExecutionId: 'sub-1',
+          agentId: 'agent-1',
+          segments: [{ type: 'message', content: '子结果' }],
+        })],
+      }),
+    ]);
+    expect((component as any).activatedSkills).toEqual([
+      { skillId: 's1', name: '会议纪要', versionId: 'v1' },
+    ]);
+  });
+
+  it('历史详情按 execution_id 恢复轮次段和子 Agent 归属', () => {
+    const messages = (component as any).mapDetailToMessages([
+      { role: 'user', content: '问题', execution_id: 'exec-1' },
+      { role: 'assistant', event: 'message', content: '答案', execution_id: 'exec-1' },
+      { role: 'assistant', event: 'reasoning', content: '思考', execution_id: 'exec-1' },
+      { role: 'tool', content: '工具结果', tool_id: 'search', execution_id: 'exec-1' },
+      {
+        role: 'assistant', event: 'message', content: '子结果', execution_id: 'exec-1',
+        sub_execution_id: 'sub-1', agent_id: 'agent-1',
+      },
+    ]);
+
+    expect(messages).toEqual([
+      jasmine.objectContaining({
+        userContent: '问题',
+        segments: [{ type: 'message', content: '答案' }],
+        detailSegments: [
+          { type: 'reasoning', content: '思考' },
+          { type: 'tool', content: '工具结果', toolId: 'search' },
+        ],
+        subAgents: [jasmine.objectContaining({
+          subExecutionId: 'sub-1', agentId: 'agent-1',
+          segments: [{ type: 'message', content: '子结果' }],
+        })],
+      }),
+    ]);
+  });
+
   it('切换会话时清除推荐与激活标签，且不从历史恢复', async () => {
     (component as any).recommendedSkills = [skill('s1')];
     (component as any).activatedSkills = [{ skillId: 's1', name: '会议纪要', versionId: 'v1' }];
@@ -407,7 +469,13 @@ describe('ConversationWorkspaceComponent', () => {
     await Promise.resolve();
 
     expect(service.detailSession).toHaveBeenCalledTimes(1);
-    expect(component.messages.map((message: any) => message.content)).toEqual(['整理会议', '最终文本']);
+    expect(component.messages).toEqual([
+      jasmine.objectContaining({
+        userContent: '整理会议',
+        segments: [{ type: 'message', content: '流式文本' }],
+        loading: false,
+      }),
+    ]);
   });
 
   it('仅接受当前会话最新详情，c1 的晚到结果不能覆盖 c2', async () => {
@@ -417,12 +485,14 @@ describe('ConversationWorkspaceComponent', () => {
 
     service.activeSession$.next(session('c1'));
     service.activeSession$.next(session('c2'));
-    c2.resolve({ messages: [{ role: 'assistant', content: 'c2' }] });
+    c2.resolve({ messages: [{ role: 'assistant', event: 'message', content: 'c2', execution_id: 'e2' }] });
     await Promise.resolve();
-    c1.resolve({ messages: [{ role: 'assistant', content: 'c1' }] });
+    c1.resolve({ messages: [{ role: 'assistant', event: 'message', content: 'c1', execution_id: 'e1' }] });
     await Promise.resolve();
 
-    expect(component.messages.map((message: any) => message.content)).toEqual(['c2']);
+    expect(component.messages.map((message: any) => message.segments)).toEqual([
+      [{ type: 'message', content: 'c2' }],
+    ]);
   });
 
   it('切换工作空间或销毁后，旧详情的 resolve/reject 都不会写入页面', async () => {

@@ -11,15 +11,44 @@
       </div>
       <div
         *ngFor="let message of messages; let i = index"
-        class="message-row"
-        [class.user]="message.role === 'user'"
+        class="turn-card"
       >
-        <div class="message-bubble" [class.sub-agent]="message.isSubAgent">
-          <div class="message-role">{{ roleLabel(message) }}</div>
+        <div class="turn-user" *ngIf="message.userContent">
+          <div class="message-role">我</div>
+          <div class="turn-user-content">{{ message.userContent }}</div>
+        </div>
+        <div class="message-bubble">
+          <div class="message-role">助手</div>
           <div class="message-content">
-            <span>{{ message.content }}</span>
+            <ng-container *ngFor="let seg of message.segments">
+              <div *ngIf="seg.type === 'message'" class="segment-message">{{ seg.content }}</div>
+            </ng-container>
             <span *ngIf="message.loading" class="loading-dots">…</span>
           </div>
+          <details class="turn-details" *ngIf="message.detailSegments?.length || message.subAgents?.length">
+            <summary>查看思考与执行过程</summary>
+            <ng-container *ngFor="let seg of message.detailSegments">
+              <div *ngIf="seg.type === 'reasoning'" class="segment-reasoning">
+                <div class="segment-reasoning-title">思考</div>
+                <div class="segment-reasoning-content">{{ seg.content }}</div>
+              </div>
+              <div *ngIf="seg.type === 'tool'" class="segment-tool">
+                <span class="segment-tool-name">工具：{{ seg.toolId }}</span>
+                <span *ngIf="seg.content" class="segment-tool-result">{{ seg.content }}</span>
+              </div>
+            </ng-container>
+            <div class="sub-agent-detail" *ngFor="let sub of message.subAgents">
+              <div class="message-role">子 Agent{{ sub.agentId ? ' · ' + sub.agentId.slice(0, 8) : '' }}</div>
+              <ng-container *ngFor="let seg of sub.segments">
+                <div *ngIf="seg.type === 'reasoning'" class="segment-reasoning-content">{{ seg.content }}</div>
+                <div *ngIf="seg.type === 'message'" class="segment-message">{{ seg.content }}</div>
+                <div *ngIf="seg.type === 'tool'" class="segment-tool">
+                  <span class="segment-tool-name">工具：{{ seg.toolId }}</span>
+                  <span *ngIf="seg.content" class="segment-tool-result">{{ seg.content }}</span>
+                </div>
+              </ng-container>
+            </div>
+          </details>
           <div *ngIf="message.error" class="message-error">请求失败，请重试</div>
         </div>
       </div>
