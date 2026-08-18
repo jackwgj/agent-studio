@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { provideNzIcons } from 'ng-zorro-antd/icon';
 import { AudioOutline, NumberOutline, SendOutline, UploadOutline } from '@ant-design/icons-angular/icons';
 import { BehaviorSubject } from 'rxjs';
@@ -17,6 +17,8 @@ describe('ConversationWorkspaceComponent', () => {
   let component: ConversationWorkspaceComponent;
   let service: any;
   let http: { workspaceId: string; getWorkspaceId: () => string };
+  let router: any;
+  let routeParams: BehaviorSubject<any>;
 
   beforeEach(async () => {
     service = {
@@ -31,6 +33,8 @@ describe('ConversationWorkspaceComponent', () => {
       chatSSE: jasmine.createSpy('chatSSE').and.returnValue({ close: jasmine.createSpy('close') }),
     };
     http = { workspaceId: 'workspace-1', getWorkspaceId: () => http.workspaceId };
+    routeParams = new BehaviorSubject({});
+    router = { navigate: jasmine.createSpy('navigate').and.resolveTo(true) };
 
     await TestBed.configureTestingModule({
       imports: [ConversationWorkspaceComponent],
@@ -44,7 +48,8 @@ describe('ConversationWorkspaceComponent', () => {
           useValue: { getAvailableModelList: jasmine.createSpy('getAvailableModelList').and.returnValue(new Promise(() => void 0)) },
         },
         { provide: HttpService, useValue: http },
-        { provide: ActivatedRoute, useValue: { queryParams: new BehaviorSubject({}) } },
+        { provide: ActivatedRoute, useValue: { queryParams: routeParams } },
+        { provide: Router, useValue: router },
       ],
     }).compileComponents();
 
@@ -513,6 +518,7 @@ describe('ConversationWorkspaceComponent', () => {
 
     expect(component.isSending).toBeTrue();
     expect(source.close).not.toHaveBeenCalled();
+    expect(router.navigate).not.toHaveBeenCalled();
   });
 
   it('工作空间 A/c1 切到 B 后立即发送会创建 B 草稿，且不保留 A 会话', async () => {
@@ -533,6 +539,27 @@ describe('ConversationWorkspaceComponent', () => {
     expect(service.chatSSE).toHaveBeenCalledWith('new-session', jasmine.any(Object), jasmine.any(Object));
     expect(service.chatSSE).not.toHaveBeenCalledWith('c1', jasmine.any(Object), jasmine.any(Object));
     expect(service.detailSession.calls.count()).toBe(detailsBeforeTransition);
+  });
+
+  it('A/c1 切到 B 会替换为新草稿路由，旧 URL 重放或按旧 URL 重建均不能重新打开 c1', async () => {
+    service.activeSession$.next(session('c1'));
+    const detailsBeforeTransition = service.detailSession.calls.count();
+    http.workspaceId = 'workspace-2';
+
+    window.dispatchEvent(new Event('WorkspaceChange'));
+    expect(router.navigate).toHaveBeenCalledWith(['/home/conversation'], jasmine.objectContaining({
+      queryParams: jasmine.objectContaining({ new: jasmine.any(Number) }),
+      replaceUrl: true,
+    }));
+    routeParams.next({ conversation_id: 'c1' });
+    component.inputText = 'B 空间重建后的问题';
+    component.send();
+    await Promise.resolve();
+
+    expect(component.currentSession?.conversation_id).toBe('new-session');
+    expect(service.detailSession.calls.count()).toBe(detailsBeforeTransition);
+    expect(service.chatSSE).not.toHaveBeenCalledWith('c1', jasmine.any(Object), jasmine.any(Object));
+    expect(service.chatSSE).toHaveBeenCalledWith('new-session', jasmine.any(Object), jasmine.any(Object));
   });
 
   it('组件销毁后，晚到 Skill 目录 resolve 不写入状态或触发变更检测', async () => {

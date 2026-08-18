@@ -6,7 +6,7 @@ import {
   ChangeDetectorRef,
   ViewChild,
 } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { COMMON_MODULES, LIB_MODULES } from '@shared/modules';
 import { ModelManagementService } from '@services/repositories/model-management-new';
@@ -77,12 +77,15 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
   private nextAttemptId = 0;
   private activeAttempt: ConversationAttempt | null = null;
   private destroyed = false;
+  private invalidatedRouteConversationId = '';
+  private invalidatedRouteWorkspaceId = '';
   private readonly workspaceChangeHandler = () => this.handleWorkspaceChange();
 
   constructor(
     private conversationWorkspaceService: ConversationWorkspaceService,
     private modelManagementService: ModelManagementService,
     private route: ActivatedRoute,
+    private router: Router,
     private cdr: ChangeDetectorRef,
     private http: HttpService,
   ) {}
@@ -177,7 +180,9 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
     this.subscriptions.add(
       this.route.queryParams.subscribe((params) => {
         if (params['conversation_id']) {
-          this.openConversation(params['conversation_id']);
+          if (!this.isInvalidatedConversationRoute(params['conversation_id'])) {
+            this.openConversation(params['conversation_id']);
+          }
         } else if (params['new']) {
           this.conversationWorkspaceService.newDraftSession();
         } else if (!this.conversationWorkspaceService.activeSession$.value) {
@@ -477,7 +482,18 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
   }
 
   private handleWorkspaceChange(): void {
-    this.transitionWorkspace(this.http.getWorkspaceId(), true);
+    const nextWorkspaceId = this.http.getWorkspaceId();
+    const previousConversationId =
+      this.currentSession?.conversation_id ?? this.conversationWorkspaceService.activeSession$.value?.conversation_id ?? '';
+    if (!this.transitionWorkspace(nextWorkspaceId, true)) {
+      return;
+    }
+    this.invalidatedRouteConversationId = previousConversationId;
+    this.invalidatedRouteWorkspaceId = nextWorkspaceId;
+    this.router.navigate(['/home/conversation'], {
+      queryParams: { new: Date.now() },
+      replaceUrl: true,
+    }).catch(() => void 0);
   }
 
   private transitionWorkspace(nextWorkspaceId: string, invalidateActiveSession = false): boolean {
@@ -517,6 +533,14 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
 
   private isSameConversation(next: SessionItem | null, current: SessionItem | null): boolean {
     return Boolean(next?.conversation_id && next.conversation_id === current?.conversation_id);
+  }
+
+  private isInvalidatedConversationRoute(conversationId: string): boolean {
+    return Boolean(
+      conversationId &&
+      conversationId === this.invalidatedRouteConversationId &&
+      this.workspaceId === this.invalidatedRouteWorkspaceId,
+    );
   }
 
   private loadSessionDetail(conversationId: string): void {
