@@ -114,12 +114,22 @@ class HandoffTool(Tool):
         if channel is None:
             raise RuntimeError("事件通道未注入（子 Agent 只能在 run_supervisor 调用链内执行）")
         execution_id = channel.execution_id
+        # sub_execution_id 随本次调用生命周期诞生/回收：入口创建，函数返回即结束；不落 self（无状态共享实例，并行防串）
+        sub_execution_id = str(uuid.uuid4())
+        # handoff 决策时刻即发 tool_call（IR 加载失败也可见、可入库——工具异常需记录错误文本）
+        tool_call_id = str(uuid.uuid4())
+        tool_name = f"transfer_to_{self.agent_id[:8]}"
+        await channel.emit(build_tool_call(execution_id, tool_call_id, tool_name, arguments={"query": query}))
         try:
             ir_data = await async_ir_load(self._ir_path())
         except Exception as e:
-            raise RuntimeError(
-                f"子 Agent {self.agent_id} IR 加载失败（{self._ir_path()}）: {e}"
-            ) from e
+            # IR 加载失败 → 补发 tool_result（错误文本），再上交监督者（ability_manager 转 ToolMessage 喂回 LLM）
+            error_msg = f"子 Agent {self.agent_id} IR 加载失败（{self._ir_path()}）: {e}"
+            await channel.emit(build_tool_result(
+                execution_id, tool_call_id, tool_name,
+                result=error_msg,
+            ))
+            raise RuntimeError(error_msg) from e
 
         sub_agent = self._build_sub_agent(ir_data)
         # 装载子 Agent IR 工具（Plugin/MCP/Workflow/Skill），复用平台 flow agent 同一套注册语义（D0-3）
@@ -129,10 +139,6 @@ class HandoffTool(Tool):
         # （id=mock_weather_tool, name=query_weather_mock，返回固定数据），已实证可用；验证后须删除。
         # 真实插件问题见 _emit_tool_event 注释（天气 8dafdc64 的 Create_Document URL 非法）。
         # 监督者 handoff 是统一工具调用（tool_call 包着 sub_start/sub_done，不分主子；agentId 缺省=监督者）
-        tool_call_id = str(uuid.uuid4())
-        tool_name = f"transfer_to_{self.agent_id[:8]}"
-        await channel.emit(build_tool_call(execution_id, tool_call_id, tool_name, arguments={"query": query}))
-        sub_execution_id = str(uuid.uuid4())
         await channel.emit(build_sub_start(execution_id, sub_execution_id, self.agent_id))
         # 必须传 card：agent.stream 内部 pre_run → checkpointer 读 session._card.id，缺 card 则 None.id 崩溃
         session = create_agent_session(session_id=str(uuid.uuid4()), card=sub_agent.card)
@@ -141,12 +147,18 @@ class HandoffTool(Tool):
             async for chunk in sub_agent.stream({"query": query}, session):
                 # tracer_agent 是子 Agent 内部工具调用（需解析 payload），其余 chunk 走统一转换
                 if getattr(chunk, "type", "") == OutputSchemaType.TRACER_AGENT.value:
-                    await self._emit_tool_event(channel, getattr(chunk, "payload", {}) or {})
+                    await self._emit_tool_event(channel, getattr(chunk, "payload", {}) or {}, sub_execution_id)
                     continue
                 for ev in adapt_stream_chunk(chunk, ctx):
                     await channel.emit(ev)
         except Exception as e:
-            raise RuntimeError(f"子 Agent {self.agent_id} 执行失败: {e}") from e
+            # 工具异常 → 先补发 tool_result（错误文本，供入库/前端展示），再上交监督者（ability_manager 转 ToolMessage 喂回 LLM）
+            error_msg = f"子 Agent {self.agent_id} 执行失败: {e}"
+            await channel.emit(build_tool_result(
+                execution_id, tool_call_id, tool_name,
+                result=error_msg,
+            ))
+            raise RuntimeError(error_msg) from e
 
         # sub_done 完整文本：answer 权威，兜底累计 llm_output（ctx.final_text，保证与 message 增量一致）
         await channel.emit(build_sub_done(execution_id, sub_execution_id, self.agent_id, ctx.final_text))
@@ -156,10 +168,11 @@ class HandoffTool(Tool):
         ))
         return {"result": f"[子Agent {self.agent_id}] {ctx.final_text}"}
 
-    async def _emit_tool_event(self, channel: EventChannel, payload: dict) -> None:
+    async def _emit_tool_event(self, channel: EventChannel, payload: dict, sub_execution_id: str) -> None:
         """把子 Agent 的工具调用（tracer_agent payload）转成统一 tool_call/tool_result 事件冒泡。
 
-        工具事件不分主子 agent（用户决策 2026-08-11）：带 agentId 标明调用方，未来主 Agent 有工具直接复用。
+        工具事件不分主子 agent（用户决策 2026-08-11）：带 agentId/subExecutionId 标明归属子执行，
+        供 Java 侧路由到 t_conversation_sub_run。
 
         ⚠️ [F3 场景3 实证记录 2026-08-11] 已知插件问题（待修复，勿当事件代码 bug）：
         天气子 Agent（8dafdc64）的 Create_Document 插件调用失败，tool_result 透传
@@ -180,6 +193,7 @@ class HandoffTool(Tool):
                 execution_id, tool_call_id, name,
                 arguments=inputs.get("inputs") if isinstance(inputs, dict) else inputs,
                 agent_id=self.agent_id,
+                sub_execution_id=sub_execution_id,
             ))
         elif status == "finish":
             outputs = payload.get("outputs", {}) or {}
@@ -190,4 +204,5 @@ class HandoffTool(Tool):
                 execution_id, tool_call_id, name,
                 result=str(result) if result else None,
                 agent_id=self.agent_id,
+                sub_execution_id=sub_execution_id,
             ))
