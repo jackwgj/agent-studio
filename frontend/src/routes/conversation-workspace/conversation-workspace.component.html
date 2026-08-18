@@ -55,16 +55,21 @@
     </div>
 
     <div class="chat-composer">
-      <textarea
-        nz-input
-        class="composer-input"
-        cdkTextareaAutosize
-        cdkAutosizeMinRows="1"
-        cdkAutosizeMaxRows="6"
-        placeholder="输入消息，Enter 发送，Shift+Enter 换行"
-        [(ngModel)]="inputText"
-        (keydown)="onKeydown($event)"
-      ></textarea>
+      <div *ngIf="skillCatalogUnavailable" class="skill-catalog-notice">
+        当前无法加载工作空间 Skill，本轮仍可普通对话
+      </div>
+      <app-skill-selector
+        [skills]="skillCatalog"
+        [disabled]="isSending"
+        [value]="inputText"
+        (valueChange)="inputText = $event"
+        (selectedSkillsChange)="recommendedSkills = $event"
+        (sendRequested)="send()"
+      ></app-skill-selector>
+
+      <div *ngIf="activatedSkills.length" class="activated-skills" aria-label="已激活技能">
+        已激活技能：<span *ngFor="let skill of activatedSkills; let last = last">{{ skill.name }}<span *ngIf="!last">、</span></span>
+      </div>
 
       <div class="composer-toolbar">
         <div class="composer-tools">
@@ -119,7 +124,7 @@
             nzShape="circle"
             class="send-btn"
             [nzLoading]="streaming"
-            [disabled]="!inputText.trim() || streaming || !selectedModel"
+            [disabled]="!inputText.trim() || isSending || !selectedModel"
             (click)="send()"
           >
             <nz-icon nzType="send" nzTheme="outline"></nz-icon>
