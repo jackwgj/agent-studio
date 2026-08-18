@@ -117,6 +117,20 @@ def build_usage(execution_id: str, input_tokens: int, output_tokens: int, total_
     return _build_event(TeamEventType.USAGE, execution_id, data, index)
 
 
+def build_skill_activated(
+    execution_id: str,
+    skill_id: str,
+    name: str,
+    version_id: str,
+    index: int | None = None,
+) -> dict:
+    return _build_event(TeamEventType.SKILL_ACTIVATED, execution_id, {
+        TeamEventField.SKILL_ID: skill_id,
+        TeamEventField.NAME: name,
+        TeamEventField.VERSION_ID: version_id,
+    }, index)
+
+
 def build_error(execution_id: str, code: str | int, message: str, index: int | None = None) -> dict:
     return _build_event(TeamEventType.ERROR, execution_id,
                         {TeamEventField.CODE: code, TeamEventField.MESSAGE: message}, index)
