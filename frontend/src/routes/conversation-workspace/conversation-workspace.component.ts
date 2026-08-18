@@ -12,7 +12,12 @@ import { COMMON_MODULES, LIB_MODULES } from '@shared/modules';
 import { ModelManagementService } from '@services/repositories/model-management-new';
 import { HttpService } from '@services/http.service';
 import { ConversationSendRequest, ConversationSkillItem } from './conversation-skill.model';
-import { ConversationWorkspaceService, SessionItem, SessionListState } from './conversation-workspace.service';
+import {
+  ActiveSessionState,
+  ConversationWorkspaceService,
+  SessionItem,
+  SessionListState,
+} from './conversation-workspace.service';
 import { SkillSelectorComponent } from './skill-selector/skill-selector.component';
 
 interface ChatMessage {
@@ -54,6 +59,11 @@ interface PendingRouteConversation {
   workspaceId: string;
 }
 
+interface PendingActiveSession {
+  session: SessionItem;
+  workspaceId: string;
+}
+
 @Component({
   selector: 'app-conversation-workspace',
   templateUrl: './conversation-workspace.component.html',
@@ -86,6 +96,7 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
   private workspaceRouteProvenance = '';
   private sessionListState: SessionListState = { workspaceId: '', generation: 0, sessions: [] };
   private pendingRouteConversation: PendingRouteConversation | null = null;
+  private pendingActiveSession: PendingActiveSession | null = null;
   private readonly workspaceChangeHandler = () => this.handleWorkspaceChange();
 
   constructor(
@@ -137,6 +148,7 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroyed = true;
     this.clearPendingRouteConversation();
+    this.clearPendingActiveSession();
     this.invalidateCatalogRequests();
     this.invalidateDetailRequests();
     try {
@@ -208,42 +220,50 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
       this.conversationWorkspaceService.sessionListState$.subscribe((state) => {
         this.sessionListState = state;
         this.resolvePendingRouteConversation();
+        this.resolvePendingActiveSession();
       }),
     );
   }
 
-  /** 订阅当前会话：有真实 id 拉取消息，草稿清空（流式中跳过，避免覆盖正在发送的气泡） */
+  /** 订阅带 workspace 归属的当前会话：旧空间残留须先由列表证明。 */
   private subscribeToActiveSession(): void {
     this.subscriptions.add(
-      this.conversationWorkspaceService.activeSession$.subscribe((session) => {
+      this.conversationWorkspaceService.activeSessionState$.subscribe((state) => {
         const workspaceChanged = this.transitionWorkspace(this.http.getWorkspaceId());
-        if (session) {
-          this.clearPendingRouteConversation();
-        }
-        if (this.isDraftPromotion(session)) {
-          this.currentSession = session;
-          this.cdr.markForCheck();
+        if (!this.isCurrentWorkspaceActiveState(state)) {
+          this.queuePendingActiveSession(state.session);
           return;
         }
-        if (!workspaceChanged && this.isSameConversation(session, this.currentSession)) {
-          this.currentSession = session;
-          this.cdr.markForCheck();
-          return;
-        }
-        this.cancelActiveAttempt();
-        this.invalidateDetailRequests();
-        this.clearSkillRoundState();
-        this.currentSession = session;
-        const id = session?.conversation_id;
-        if (!id) {
-          this.messages = [];
-        } else {
-          this.messages = [];
-          this.loadSessionDetail(id);
-        }
-        this.cdr.markForCheck();
+        this.clearPendingActiveSession();
+        this.clearPendingRouteConversation();
+        this.applyActiveSession(state.session, workspaceChanged);
       }),
     );
+  }
+
+  private applyActiveSession(session: SessionItem | null, workspaceChanged: boolean): void {
+    if (this.isDraftPromotion(session)) {
+      this.currentSession = session;
+      this.cdr.markForCheck();
+      return;
+    }
+    if (!workspaceChanged && this.isSameConversation(session, this.currentSession)) {
+      this.currentSession = session;
+      this.cdr.markForCheck();
+      return;
+    }
+    this.cancelActiveAttempt();
+    this.invalidateDetailRequests();
+    this.clearSkillRoundState();
+    this.currentSession = session;
+    const id = session?.conversation_id;
+    if (!id) {
+      this.messages = [];
+    } else {
+      this.messages = [];
+      this.loadSessionDetail(id);
+    }
+    this.cdr.markForCheck();
   }
 
   /** 打开会话（列表命中直接用；深链则先占位、详情加载后补标题） */
@@ -266,6 +286,7 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
     }
     if (!this.currentSession?.conversation_id) {
       this.clearPendingRouteConversation();
+      this.clearPendingActiveSession();
     }
     const attempt = this.createAttempt(query, inputSnapshot, recommendationSnapshot);
     if (!this.currentSession?.conversation_id) {
@@ -533,6 +554,7 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
       return false;
     }
     this.clearPendingRouteConversation();
+    this.clearPendingActiveSession();
     this.cancelActiveAttempt();
     this.invalidateDetailRequests();
     this.workspaceId = nextWorkspaceId;
@@ -571,6 +593,7 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
   private handleConversationRoute(conversationId: string, routeWorkspaceId: unknown): void {
     const routeWorkspace = typeof routeWorkspaceId === 'string' ? routeWorkspaceId : '';
     this.clearPendingRouteConversation();
+    this.clearPendingActiveSession();
     if (routeWorkspace) {
       if (routeWorkspace === this.workspaceId) {
         this.openConversation(conversationId);
@@ -609,6 +632,31 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
 
   private clearPendingRouteConversation(): void {
     this.pendingRouteConversation = null;
+  }
+
+  private isCurrentWorkspaceActiveState(state: ActiveSessionState): boolean {
+    return state.workspaceId === this.workspaceId;
+  }
+
+  private queuePendingActiveSession(session: SessionItem | null): void {
+    if (session?.conversation_id) {
+      this.pendingActiveSession = { session, workspaceId: this.workspaceId };
+    }
+  }
+
+  private resolvePendingActiveSession(): void {
+    const pending = this.pendingActiveSession;
+    if (!pending || this.destroyed || pending.workspaceId !== this.workspaceId ||
+      this.sessionListState.workspaceId !== pending.workspaceId ||
+      !this.sessionListState.sessions.some((session) => session.conversation_id === pending.session.conversation_id)) {
+      return;
+    }
+    this.pendingActiveSession = null;
+    this.conversationWorkspaceService.setActiveSession(pending.session);
+  }
+
+  private clearPendingActiveSession(): void {
+    this.pendingActiveSession = null;
   }
 
   private markForCheckIfAlive(): void {

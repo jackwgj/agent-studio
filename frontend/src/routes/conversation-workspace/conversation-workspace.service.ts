@@ -21,6 +21,12 @@ export interface SessionListState {
   sessions: SessionItem[];
 }
 
+export interface ActiveSessionState {
+  workspaceId: string;
+  generation: number;
+  session: SessionItem | null;
+}
+
 /**
  * 对话工作台服务：会话 CRUD API + 发送消息 SSE 薄封装 + 会话列表/当前会话状态
  * （SSE 事件注册模式与平台 webPageChatSSE 一致，URL 指向对话工作台新端点，不改共享 service）
@@ -39,8 +45,15 @@ export class ConversationWorkspaceService {
   });
   /** 当前打开的会话（可为无 id 的本地草稿） */
   public activeSession$ = new BehaviorSubject<SessionItem | null>(null);
+  /** 带工作空间归属的当前会话状态，避免根级残留会话跨空间重放。 */
+  public activeSessionState$ = new BehaviorSubject<ActiveSessionState>({
+    workspaceId: '',
+    generation: 0,
+    session: null,
+  });
   private sessionListGeneration = 0;
   private sessionListRequestId = 0;
+  private activeSessionGeneration = 0;
 
   constructor(
     private http: HttpService,
@@ -69,12 +82,17 @@ export class ConversationWorkspaceService {
   /** 新建本地草稿会话（标题=当前时间到分钟，未落库） */
   public newDraftSession(): void {
     const title = dayjs().format('YYYY-MM-DD HH:mm');
-    this.activeSession$.next({ conversation_id: '', title, status: 'ACTIVE' });
+    this.setActiveSession({ conversation_id: '', title, status: 'ACTIVE' });
   }
 
   /** 设置当前打开的会话 */
   public setActiveSession(session: SessionItem | null): void {
     this.activeSession$.next(session);
+    this.activeSessionState$.next({
+      workspaceId: this.http.getWorkspaceId(),
+      generation: ++this.activeSessionGeneration,
+      session,
+    });
   }
 
   private get sessionsUrl(): string {
