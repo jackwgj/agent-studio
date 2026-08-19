@@ -19,4 +19,14 @@ public class FileRef {
      * OBS key/url
      */
     private String key;
+
+    /**
+     * 上传时的原始文件名
+     */
+    private String fileName;
+
+    public FileRef(String key) {
+        this(key, null);
+    }
+
 }

@@ -8,6 +8,8 @@ import com.openjiuwen.studio.agent.common.dto.agent.Message;
 import com.openjiuwen.studio.agent.common.utils.OkHttpClientUtils;
 import com.openjiuwen.studio.agent.common.utils.RequestContextUtils;
 import com.openjiuwen.studio.agent.manager.constant.CommonConstant;
+import com.openjiuwen.studio.conversation.application.dto.ConversationSkillContext;
+import com.openjiuwen.studio.conversation.application.dto.ConversationSkillDescriptor;
 import com.openjiuwen.studio.conversation.application.dto.SendMessageCmd;
 import com.openjiuwen.studio.conversation.domain.model.Conversation;
 import com.openjiuwen.studio.conversation.domain.repository.ConversationRepository;
@@ -81,11 +83,11 @@ public class AgentRuntimeAdapter {
      * @return SSE 流
      */
     public SseEmitter run(Conversation conversation, SendMessageCmd cmd, List<Message> histories,
-                          String executionId, HttpHeaders requestHeaders) {
+                          ConversationSkillContext skillContext, String executionId, HttpHeaders requestHeaders) {
         // 直传团队参数（方案 B）：引擎按 subAgentIds 加载各子 Agent 已有 IR 动态组装监督者，不再预烘焙 IR
         String url = buildTeamUrl(conversation);
 
-        Map<String, Object> body = buildRequestBody(conversation, cmd, histories);
+        Map<String, Object> body = buildRequestBody(conversation, cmd, histories, skillContext);
 
         Request.Builder builder = new Request.Builder()
             .url(url)
@@ -140,15 +142,46 @@ public class AgentRuntimeAdapter {
      * 引擎团队请求体（2026-08-12 直连后 conversationId 必须随 body 下发——引擎契约，原先由 runtime
      * 转发层从 URL path 补）。方案 B 直传团队参数，无 systemPrompt（监督者提示词固定引擎侧）。
      */
-    Map<String, Object> buildRequestBody(Conversation conversation, SendMessageCmd cmd, List<Message> histories) {
+    Map<String, Object> buildRequestBody(Conversation conversation, SendMessageCmd cmd, List<Message> histories,
+                                         ConversationSkillContext skillContext) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("conversationId", conversation.getConversationId());
         body.put("query", cmd.getQuery());
-        body.put("subAgentIds", parseTeamAgentIds(TEAM_AGENT_IDS));
-        body.put("modelDeploymentId", cmd.getModelDeploymentId());
+        String selectType = StringUtils.defaultIfBlank(cmd.getSelectType(), "SUPERVISOR");
+        body.put("selectType", selectType);
+        if ("APP".equals(selectType)) {
+            // APP 路径：用户应用互斥字段，只传 appId；模型来自应用自身 IR
+            body.put("appId", cmd.getAppId());
+        } else {
+            body.put("subAgentIds", parseTeamAgentIds(TEAM_AGENT_IDS));
+            body.put("modelDeploymentId", cmd.getModelDeploymentId());
+        }
         // conversationHistory 显式转 [{role, content}]（引擎契约，容忍 dict；仅监督者注入，子 Agent 不感知）
         body.put("conversationHistory", toHistoryMaps(histories));
+        if (cmd.getFileIds() != null && !cmd.getFileIds().isEmpty()) {
+            body.put("fileIds", cmd.getFileIds());
+        }
+        appendSkillContext(body, skillContext);
         return body;
+    }
+
+    private void appendSkillContext(Map<String, Object> body, ConversationSkillContext skillContext) {
+        ConversationSkillContext trustedContext = skillContext == null ? ConversationSkillContext.empty() : skillContext;
+        List<Map<String, String>> skillCatalog = trustedContext.getCatalog().stream()
+            .map(this::toSkillCatalogItem)
+            .toList();
+        body.put("skillCatalog", skillCatalog);
+        body.put("recommendedSkillIds", trustedContext.getRecommendedSkillIds());
+    }
+
+    private Map<String, String> toSkillCatalogItem(ConversationSkillDescriptor descriptor) {
+        Map<String, String> item = new LinkedHashMap<>();
+        item.put("skillId", descriptor.getSkillId());
+        item.put("versionId", descriptor.getVersionId());
+        item.put("name", descriptor.getName());
+        item.put("description", descriptor.getDescription());
+        item.put("objectKey", descriptor.getObjectKey());
+        return item;
     }
 
     private List<String> parseTeamAgentIds(String idsStr) {

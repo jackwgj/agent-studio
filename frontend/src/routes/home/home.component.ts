@@ -197,7 +197,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   /** 构建「任务空间」分组的会话子项（新建入口 + 会话列表） */
   private buildConversationItems(): IMenuItem[] {
     const activeId = this.conversationWorkspaceService.activeSession$.value?.conversation_id;
-    const newItem: IMenuItem = { id: 'conversation-new', name: '＋ 新建会话', label: '＋ 新建会话' };
+    const newItem: IMenuItem = { id: 'conversation-new', name: '＋ 新建任务', label: '＋ 新建任务' };
     const sessionItems: IMenuItem[] = this.conversationWorkspaceService.sessions$.value.map((s) => ({
       name: s.title,
       label: s.title,
