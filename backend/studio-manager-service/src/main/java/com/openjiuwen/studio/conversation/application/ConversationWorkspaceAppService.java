@@ -20,6 +20,7 @@ import com.openjiuwen.studio.conversation.application.dto.SendMessageCmd;
 import com.openjiuwen.studio.conversation.domain.model.Conversation;
 import com.openjiuwen.studio.conversation.domain.model.ConversationMessage;
 import com.openjiuwen.studio.conversation.domain.model.valueobject.ExecutionRef;
+import com.openjiuwen.studio.conversation.domain.model.valueobject.FileRef;
 import com.openjiuwen.studio.conversation.domain.repository.ConversationRepository;
 import com.openjiuwen.studio.conversation.domain.service.ConversationHistoryAssembler;
 import com.openjiuwen.studio.conversation.infrastructure.adapter.AgentRuntimeAdapter;
@@ -228,6 +229,7 @@ public class ConversationWorkspaceAppService {
             .role("user")
             .content(cmd.getQuery())
             .executionRef(new ExecutionRef(executionId, null, null))
+            .fileRefs(toFileRefs(cmd.getFileIds()))
             .modelDeploymentId(cmd.getModelDeploymentId())
             .event("user_message")
             .createdAt(new Date())
@@ -260,6 +262,16 @@ public class ConversationWorkspaceAppService {
         return conversation;
     }
 
+    private List<FileRef> toFileRefs(List<java.util.Map<String, String>> fileIds) {
+        if (fileIds == null || fileIds.isEmpty()) {
+            return null;
+        }
+        return fileIds.stream()
+            .map(item -> new FileRef(item.get("url"), item.get("fileName")))
+            .filter(item -> StringUtils.isNotBlank(item.getKey()))
+            .toList();
+    }
+
     private MessageVo toMessageVo(ConversationMessage message) {
         return MessageVo.builder()
             .role(message.getRole())
@@ -267,8 +279,7 @@ public class ConversationWorkspaceAppService {
             .toolId(message.getToolRef() == null ? null : message.getToolRef().getToolId())
             .toolArgs(message.getToolRef() == null ? null : message.getToolRef().getArgs())
             .fileIds(message.getFileRefs() == null ? null
-                : com.alibaba.fastjson2.JSON.toJSONString(
-                    message.getFileRefs().stream().map(f -> f.getKey()).toList()))
+                : com.alibaba.fastjson2.JSON.toJSONString(message.getFileRefs()))
             .executionId(message.getExecutionRef() == null ? null : message.getExecutionRef().getExecutionId())
             .subExecutionId(message.getExecutionRef() == null ? null : message.getExecutionRef().getSubExecutionId())
             .agentId(message.getExecutionRef() == null ? null : message.getExecutionRef().getAgentId())

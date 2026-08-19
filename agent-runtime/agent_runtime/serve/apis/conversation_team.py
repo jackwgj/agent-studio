@@ -77,6 +77,7 @@ class ConversationTeamReq(BaseModel):
     conversation_history: list | None = Field(None, alias="conversationHistory")
     skill_catalog: list[SkillCatalogItemReq] = Field(default_factory=list, alias="skillCatalog")
     recommended_skill_ids: list[str] = Field(default_factory=list, alias="recommendedSkillIds")
+    file_ids: list[dict[str, str]] = Field(default_factory=list, alias="fileIds")
 
     @model_validator(mode="before")
     @classmethod
@@ -91,6 +92,7 @@ class ConversationTeamReq(BaseModel):
             ("conversationHistory", "conversation_history"),
             ("skillCatalog", "skill_catalog"),
             ("recommendedSkillIds", "recommended_skill_ids"),
+            ("fileIds", "file_ids"),
             ("selectType", "select_type"),
             ("appId", "app_id"),
         )
@@ -155,6 +157,7 @@ async def team_sse_stream(req: ConversationTeamReq, execution_id: str | None = N
                 conversation_history=req.conversation_history,
                 skill_catalog=skill_catalog,
                 recommended_skill_ids=recommended_skill_ids,
+                file_references=req.file_ids,
             )
             runner = run_supervisor(agent, req.query, req.conversation_id, execution_id)
 

@@ -253,8 +253,16 @@ public class ConversationRepositoryImpl implements ConversationRepository {
             return null;
         }
         try {
+            List<FileRef> refs = JSON.parseArray(fileIds, FileRef.class);
+            if (refs != null && !refs.isEmpty() && refs.get(0).getKey() != null) {
+                return refs;
+            }
+        } catch (Exception ignored) {
+            // 兼容历史裸字符串数组。
+        }
+        try {
             return JSON.parseArray(fileIds, String.class).stream().map(FileRef::new).toList();
-        } catch (Exception e) {
+        } catch (Exception ignored) {
             return null;
         }
     }
@@ -263,6 +271,6 @@ public class ConversationRepositoryImpl implements ConversationRepository {
         if (fileRefs == null || fileRefs.isEmpty()) {
             return null;
         }
-        return JSON.toJSONString(fileRefs.stream().map(FileRef::getKey).toList());
+        return JSON.toJSONString(fileRefs);
     }
 }

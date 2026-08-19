@@ -48,6 +48,16 @@ public class SendMessageCmd {
     @JsonProperty("recommended_skill_ids")
     private List<String> recommendedSkillIds = new ArrayList<>();
 
+    /**
+     * 本轮上传文件引用，元素包含可访问 URL 和原始文件名。
+     */
+    @JsonProperty("file_ids")
+    private List<java.util.Map<String, String>> fileIds = new ArrayList<>();
+
+    public void setFileIds(List<java.util.Map<String, String>> fileIds) {
+        this.fileIds = fileIds == null ? new ArrayList<>() : new ArrayList<>(fileIds);
+    }
+
     public void setRecommendedSkillIds(List<String> recommendedSkillIds) {
         this.recommendedSkillIds = recommendedSkillIds == null ? new ArrayList<>() : new ArrayList<>(recommendedSkillIds);
     }

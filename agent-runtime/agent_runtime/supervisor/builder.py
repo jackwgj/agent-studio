@@ -21,6 +21,7 @@ from agent_runtime.supervisor.config import build_react_config, format_conversat
 from agent_runtime.supervisor.skill_context import attach as attach_skill_context
 from agent_runtime.supervisor.skill_model import SkillDescriptor
 from agent_runtime.supervisor.tool.handoff_tool import HandoffTool
+from agent_runtime.runner.react_file_reader_adapter import ReactFileReaderAdapter
 from jiuwen.serve.controllers.execution.open_utils import async_ir_load
 
 # 监督者系统提示词固定引擎侧（F4/用户决策 2026-08-11）：请求不再含 systemPrompt，Java 不传。
@@ -103,12 +104,39 @@ async def _load_sub_agent_description(agent_id: str) -> str:
         return f"将任务移交给子 Agent {agent_id} 处理"
 
 
+def format_file_references(file_references: list[dict] | None) -> str:
+    """Format this turn's uploaded files for the supervisor without inlining content."""
+    if not file_references:
+        return ""
+    lines = [
+        "\n\n## 本轮上传文件",
+        "以下文件由用户在本轮上传。文件名用于识别文件主题；只有在任务需要时才调用 read_file_from_url，且必须使用清单中的完整 URL。",
+    ]
+    for item in file_references:
+        file_name = str(item.get("fileName") or item.get("file_name") or "未命名文件")
+        url = str(item.get("url") or "")
+        if url:
+            lines.append(f"- **{file_name}**: {url}")
+    return "\n".join(lines) if len(lines) > 2 else ""
+
+
+def _register_file_reader(agent: ReActAgent) -> None:
+    """Register the existing URL file reader for this request only."""
+    reader = ReactFileReaderAdapter()
+    result = agent.ability_manager.add(reader.card)
+    if result.added:
+        existing = Runner.resource_mgr.get_tool(reader.card.id)
+        if existing is None:
+            Runner.resource_mgr.add_tool(reader)
+
+
 async def build_supervisor(
     sub_agent_ids: list,
     model_deployment_id: str,
     conversation_history: list | None = None,
     skill_catalog: list[SkillDescriptor] | None = None,
     recommended_skill_ids: list[str] | None = None,
+    file_references: list[dict] | None = None,
 ) -> ReActAgent:
     """按 sub_agent_ids 动态构建 N 个 handoff 工具，组装监督者 ReActAgent。
 
@@ -136,8 +164,12 @@ async def build_supervisor(
         )
         tools.append(tool)
 
-    # 监督者提示词 = 引擎侧固定角色/指令 + 历史段（F4：历史只进监督者，方案 B）
-    system_prompt = SUPERVISOR_SYSTEM_PROMPT + format_conversation_history(conversation_history)
+    # 监督者提示词 = 引擎侧固定角色/指令 + 历史段 + 本轮附件元信息
+    system_prompt = (
+        SUPERVISOR_SYSTEM_PROMPT
+        + format_conversation_history(conversation_history)
+        + format_file_references(file_references)
+    )
 
     agent = ReActAgent(
         card=AgentCard(
@@ -148,6 +180,8 @@ async def build_supervisor(
     )
     agent.configure(build_react_config(system_prompt, model_deployment_id))
     await attach_skill_context(agent, skill_catalog, recommended_skill_ids)
+    if file_references:
+        _register_file_reader(agent)
 
     # 注册工具：公开 API + 幂等（swarm 模板），不再直插私有 _tools 字段
     for tool in tools:

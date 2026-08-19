@@ -104,6 +104,21 @@ describe('ConversationWorkspaceComponent', () => {
     expect((component as any).recommendedSkills).toEqual([]);
   });
 
+  it('发送时携带本轮上传成功文件的 URL 和文件名', () => {
+    component.currentSession = session('c1');
+    component.inputText = '总结附件';
+    (component as any).uploadedFiles = [
+      { url: 'https://files.test/report.pdf', fileName: 'report.pdf', progress: 'succeeded' },
+      { url: '', fileName: 'failed.txt', progress: 'failed' },
+    ];
+
+    component.send();
+
+    expect(service.chatSSE).toHaveBeenCalledWith('c1', jasmine.objectContaining({
+      file_ids: [{ url: 'https://files.test/report.pdf', fileName: 'report.pdf' }],
+    }), jasmine.any(Object));
+  });
+
   it('连接前失败保留输入和推荐以便重试，并刷新目录', () => {
     (component as any).recommendedSkills = [skill('s1')];
     component.currentSession = session('c1');

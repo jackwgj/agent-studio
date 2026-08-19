@@ -17,7 +17,7 @@
   min-width: 0;
   background: #fff;
   border: 1px solid #e8e8e8;
-  border-radius: 16px;
+  border-radius: 24px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
   overflow: hidden;
 
@@ -63,6 +63,27 @@
           word-break: break-word;
           line-height: 1.6;
         }
+
+        .user-file-names {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+          margin-top: 8px;
+        }
+
+        .user-file-name {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          max-width: 260px;
+          padding: 4px 8px;
+          border-radius: 5px;
+          background: rgba(255, 255, 255, 0.16);
+          font-size: 12px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
       }
 
       .message-bubble {
@@ -78,12 +99,52 @@
         }
 
         .message-content {
-          white-space: pre-wrap;
           word-break: break-word;
-          line-height: 1.6;
+          line-height: 1.45;
           display: flex;
           flex-direction: column;
-          gap: 4px;
+          gap: 2px;
+
+          .markdown-segment {
+            display: block;
+            min-width: 0;
+
+            ::ng-deep .answer,
+            ::ng-deep .markdown-body {
+              margin: 0;
+              padding: 0;
+              background: transparent;
+              border: 0;
+              box-shadow: none;
+              font-size: 14px;
+              line-height: 1.55;
+            }
+
+            ::ng-deep .markdown-body h1,
+            ::ng-deep .markdown-body h2,
+            ::ng-deep .markdown-body h3,
+            ::ng-deep .markdown-body h4 {
+              margin: 10px 0 5px;
+              line-height: 1.35;
+            }
+
+            ::ng-deep .markdown-body p,
+            ::ng-deep .markdown-body ul,
+            ::ng-deep .markdown-body ol,
+            ::ng-deep .markdown-body blockquote,
+            ::ng-deep .markdown-body pre,
+            ::ng-deep .markdown-body table {
+              margin-top: 5px;
+              margin-bottom: 5px;
+            }
+
+            ::ng-deep .markdown-body p:first-child,
+            ::ng-deep .markdown-body h1:first-child,
+            ::ng-deep .markdown-body h2:first-child,
+            ::ng-deep .markdown-body h3:first-child {
+              margin-top: 0;
+            }
+          }
         }
 
         .turn-details {
@@ -171,10 +232,52 @@
     padding: 12px 16px;
     border-top: 1px solid #e8e8e8;
 
-    .skill-catalog-notice {
-      color: #8c8c8c;
-      font-size: 12px;
+    .conversation-attachments {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      min-width: 0;
     }
+
+    .conversation-attachment {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+      max-width: 280px;
+      min-height: 32px;
+      padding: 4px 6px 4px 8px;
+      border: 1px solid #e8e8e8;
+      border-radius: 6px;
+      background: #fafafa;
+      color: #595959;
+      font-size: 12px;
+
+      .attachment-name {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .attachment-status {
+        flex: 0 0 auto;
+        color: #ff4d4f;
+      }
+
+      .attachment-remove {
+        flex: 0 0 auto;
+        width: 24px;
+        height: 24px;
+        color: #8c8c8c;
+      }
+    }
+
+    .attachment-failed {
+      border-color: #ffccc7;
+      background: #fff2f0;
+    }
+
 
     .activated-skills {
       color: #595959;
@@ -191,10 +294,15 @@
         gap: 4px;
 
         .tool-btn {
-          color: #bfbfbf;
-          cursor: not-allowed;
+          color: #595959;
+          cursor: pointer;
           border: none;
           box-shadow: none;
+
+          &:disabled {
+            color: #bfbfbf;
+            cursor: not-allowed;
+          }
         }
       }
 
@@ -203,21 +311,80 @@
         align-items: center;
         gap: 8px;
 
+        .execution-target-picker,
         .model-pill {
-          width: 200px;
+          width: 176px;
+          height: 28px;
+          line-height: 28px;
 
-          ::ng-deep {
-            .ant-select-selector {
-              border-radius: 8px;
-              display: flex;
-              align-items: center;
-            }
+          ::ng-deep .ant-select-selector,
+          ::ng-deep .ant-cascader-picker {
+            box-sizing: border-box;
+            width: 100%;
+            height: 28px;
+            min-height: 28px;
+            padding-top: 0;
+            padding-bottom: 0;
+            border: 1px solid transparent;
+            border-radius: 8px;
+            background: transparent;
+            display: flex;
+            align-items: center;
+            transition: background-color 0.15s ease;
+          }
 
-            .ant-select-selection-item,
-            .ant-select-selection-placeholder {
-              line-height: normal;
+          &:hover {
+            ::ng-deep .ant-select-selector,
+            ::ng-deep .ant-cascader-picker {
+              background: #f5f5f5;
             }
           }
+
+          ::ng-deep .ant-select-selection-item,
+          ::ng-deep .ant-select-selection-placeholder,
+          ::ng-deep .ant-cascader-picker-label {
+            display: block;
+            box-sizing: border-box;
+            height: 28px;
+            line-height: 28px;
+            margin: 0;
+          }
+        }
+
+        .execution-target-picker {
+          ::ng-deep .ant-cascader-picker-label {
+            padding-right: 24px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
+
+          ::ng-deep .ant-cascader-picker-arrow {
+            right: 8px;
+            line-height: 28px;
+          }
+        }
+
+        .model-pill {
+          ::ng-deep {
+            .ant-select-selection-item,
+            .ant-select-selection-placeholder {
+              min-width: 0;
+              padding-right: 24px;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              white-space: nowrap;
+            }
+
+            .ant-select-arrow {
+              right: 8px;
+              line-height: 28px;
+            }
+          }
+        }
+
+        ::ng-deep .ant-cascader-menus {
+          min-width: 220px;
         }
 
         .model-empty {

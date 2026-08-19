@@ -158,6 +158,9 @@ public class AgentRuntimeAdapter {
         }
         // conversationHistory 显式转 [{role, content}]（引擎契约，容忍 dict；仅监督者注入，子 Agent 不感知）
         body.put("conversationHistory", toHistoryMaps(histories));
+        if (cmd.getFileIds() != null && !cmd.getFileIds().isEmpty()) {
+            body.put("fileIds", cmd.getFileIds());
+        }
         appendSkillContext(body, skillContext);
         return body;
     }
