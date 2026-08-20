@@ -1,6 +1,6 @@
-import { Component, OnInit, OnDestroy, Input } from '@angular/core';
+import { Component, OnInit, OnDestroy, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { NzModalModule, NzModalRef } from 'ng-zorro-antd/modal';
+import { NzModalModule, NzModalRef, NZ_MODAL_DATA } from 'ng-zorro-antd/modal';
 import { NzTableModule } from 'ng-zorro-antd/table';
 import { NzTagModule } from 'ng-zorro-antd/tag';
 import { NzButtonModule } from 'ng-zorro-antd/button';
@@ -183,8 +183,8 @@ import { SchedulerService, ExecutionLog } from './scheduler.service';
   `],
 })
 export class SchedulerLogsModalComponent implements OnInit, OnDestroy {
-  @Input() taskId = '';
-  @Input() taskName = '';
+  taskId = '';
+  taskName = '';
 
   logs: ExecutionLog[] = [];
   loading = false;
@@ -198,7 +198,11 @@ export class SchedulerLogsModalComponent implements OnInit, OnDestroy {
   constructor(
     private modal: NzModalRef,
     private schedulerService: SchedulerService,
-  ) {}
+    @Inject(NZ_MODAL_DATA) private data: any,
+  ) {
+    this.taskId = data?.taskId || '';
+    this.taskName = data?.taskName || '';
+  }
 
   ngOnInit(): void {
     this.loadLogs();
