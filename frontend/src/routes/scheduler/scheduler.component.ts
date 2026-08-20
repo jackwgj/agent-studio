@@ -413,6 +413,7 @@ export class SchedulerComponent implements OnInit, OnDestroy {
   openLogsModal(task: ScheduledTask): void {
     this.modal.create({
       nzContent: SchedulerLogsModalComponent,
+      nzTitle: `执行日志 - ${task.name}`,
       nzWidth: '900px',
       nzFooter: null,
       nzClosable: true,

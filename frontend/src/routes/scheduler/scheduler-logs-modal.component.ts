@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { NzModalModule, NzModalRef, NZ_MODAL_DATA } from 'ng-zorro-antd/modal';
+import { NZ_MODAL_DATA } from 'ng-zorro-antd/modal';
 import { NzTableModule } from 'ng-zorro-antd/table';
 import { NzTagModule } from 'ng-zorro-antd/tag';
 import { NzButtonModule } from 'ng-zorro-antd/button';
@@ -18,7 +18,6 @@ import { SchedulerService, ExecutionLog } from './scheduler.service';
   standalone: true,
   imports: [
     CommonModule,
-    NzModalModule,
     NzTableModule,
     NzTagModule,
     NzButtonModule,
@@ -30,26 +29,19 @@ import { SchedulerService, ExecutionLog } from './scheduler.service';
     NzDividerModule,
   ],
   template: `
-    <nz-modal
-      [nzVisible]="true"
-      [nzTitle]="'执行日志 - ' + taskName"
-      [nzWidth]="900"
-      (nzOnCancel)="onClose()"
-      [nzFooter]="null"
-    >
-      <div class="logs-container">
-        <nz-table
-          #logTable
-          [nzData]="logs"
-          [nzLoading]="loading"
-          [nzPageSize]="pageSize"
-          [(nzPageIndex)]="currentPage"
-          [nzTotal]="total"
-          nzShowPagination
-          (nzPageIndexChange)="loadLogs()"
-          [nzFrontPagination]="false"
-          [nzSize]="'small'"
-        >
+    <div class="logs-container">
+      <nz-table
+        #logTable
+        [nzData]="logs"
+        [nzLoading]="loading"
+        [nzPageSize]="pageSize"
+        [(nzPageIndex)]="currentPage"
+        [nzTotal]="total"
+        nzShowPagination
+        (nzPageIndexChange)="loadLogs()"
+        [nzFrontPagination]="false"
+        [nzSize]="'small'"
+      >
           <thead>
             <tr>
               <th>执行时间</th>
@@ -125,7 +117,6 @@ import { SchedulerService, ExecutionLog } from './scheduler.service';
 
         <nz-empty *ngIf="!loading && logs.length === 0" nzNotFoundContent="暂无执行日志"></nz-empty>
       </div>
-    </nz-modal>
   `,
   styles: [`
     .logs-container {
@@ -196,7 +187,6 @@ export class SchedulerLogsModalComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
 
   constructor(
-    private modal: NzModalRef,
     private schedulerService: SchedulerService,
     @Inject(NZ_MODAL_DATA) private data: any,
   ) {
@@ -235,9 +225,7 @@ export class SchedulerLogsModalComponent implements OnInit, OnDestroy {
     this.expandedId = this.expandedId === log.id ? '' : log.id;
   }
 
-  onClose(): void {
-    this.modal.close();
-  }
+
 
   getLogStatusColor(status: string): string {
     const m: Record<string, string> = {
