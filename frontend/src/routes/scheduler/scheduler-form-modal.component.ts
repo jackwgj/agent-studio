@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, Inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, Inject, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { NzModalModule, NzModalRef, NZ_MODAL_DATA } from 'ng-zorro-antd/modal';
@@ -12,6 +12,7 @@ import { NzIconModule } from 'ng-zorro-antd/icon';
 import { NzMessageService } from 'ng-zorro-antd/message';
 import { NzToolTipModule } from 'ng-zorro-antd/tooltip';
 import { NzInputNumberModule } from 'ng-zorro-antd/input-number';
+import { NzRadioModule } from 'ng-zorro-antd/radio';
 import { Subject, takeUntil } from 'rxjs';
 import { SchedulerService } from './scheduler.service';
 import type { ScheduledTask } from './scheduler.service';
@@ -36,11 +37,119 @@ import { ModelManagementService } from '@services/repositories/model-management-
     NzIconModule,
     NzToolTipModule,
     NzInputNumberModule,
+    NzRadioModule,
     ScheduleRulePickerComponent,
   ],
   template: `
-    <div class="form-modal-title">{{ editTask ? '编辑自动化' : '新建自动化' }}</div>
-    <div class="form-modal-body">
+    <!-- 标题栏：左上角按钮 -->
+    <div class="form-modal-header">
+      <div class="header-left">
+        <button *ngIf="viewMode === 'form' && !editTask"
+          nz-button nzType="default" nzSize="small"
+          (click)="switchToConversation()">
+          <nz-icon nzType="message"></nz-icon>
+          新建定时会话
+        </button>
+        <span class="form-modal-title" *ngIf="viewMode === 'form'">{{ editTask ? '编辑自动化' : '新建自动化' }}</span>
+        <span class="form-modal-title" *ngIf="viewMode === 'conversation'">
+          <nz-icon nzType="message" style="margin-right: 6px; color: #1890ff;"></nz-icon>
+          定时会话任务
+        </span>
+      </div>
+      <div class="header-right" *ngIf="viewMode === 'conversation'">
+        <button nz-button nzType="link" nzSize="small" (click)="switchToForm()">
+          <nz-icon nzType="form"></nz-icon>
+          高级模式
+        </button>
+      </div>
+    </div>
+
+    <!-- ==================== 会话模式 ==================== -->
+    <div *ngIf="viewMode === 'conversation'" class="conversation-view">
+      <div class="conversation-body">
+        <!-- 任务名称 -->
+        <div class="conv-field">
+          <label class="conv-label">任务名称 <span class="required">*</span></label>
+          <input nz-input [(ngModel)]="convName" placeholder="给这个定时任务起个名字" maxlength="100" />
+        </div>
+
+        <!-- 模型选择 -->
+        <div class="conv-field">
+          <label class="conv-label">执行模型</label>
+          <nz-select [(ngModel)]="convModelId" style="width: 100%;" placeholder="选择模型（选填）" nzShowSearch>
+            <nz-option *ngFor="let m of modelOptions" [nzValue]="m.id" [nzLabel]="m.name"></nz-option>
+          </nz-select>
+        </div>
+
+        <!-- 对话区域 -->
+        <div class="conv-chat-area">
+          <div class="conv-chat-label">执行内容</div>
+          <div class="conv-chat-box">
+            <div class="conv-chat-role">用户</div>
+            <textarea
+              nz-input
+              [(ngModel)]="convPrompt"
+              [nzAutosize]="{ minRows: 6, maxRows: 16 }"
+              placeholder="输入你想让 AI 在指定时间执行的内容...&#10;&#10;例如：每天早上 9 点发送一份系统状态报告&#10;例如：每周一总结上周的工作进展"
+            ></textarea>
+          </div>
+          <div class="conv-chat-box conv-chat-response" *ngIf="convPrompt">
+            <div class="conv-chat-role">AI 将执行</div>
+            <div class="conv-chat-preview">{{ convPrompt }}</div>
+          </div>
+        </div>
+
+        <!-- 调度配置 -->
+        <div class="conv-field">
+          <label class="conv-label">执行计划 <span class="required">*</span></label>
+          <nz-radio-group [(ngModel)]="convScheduleType" class="conv-radio-group">
+            <label nz-radio value="once">一次性</label>
+            <label nz-radio value="recurring">周期重复</label>
+          </nz-radio-group>
+        </div>
+
+        <!-- 一次性：选时间 -->
+        <div class="conv-field" *ngIf="convScheduleType === 'once'">
+          <label class="conv-label">执行时间 <span class="required">*</span></label>
+          <nz-date-picker
+            [(ngModel)]="convOnceTime"
+            nzShowTime
+            nzFormat="yyyy-MM-dd HH:mm"
+            style="width: 100%;"
+            placeholder="选择执行时间"
+          ></nz-date-picker>
+        </div>
+
+        <!-- 周期重复：调度规则 -->
+        <div class="conv-field" *ngIf="convScheduleType === 'recurring'">
+          <label class="conv-label">调度规则 <span class="required">*</span></label>
+          <nz-select [(ngModel)]="convCronPreset" style="width: 100%;" placeholder="选择频率">
+            <nz-option nzValue="hourly" nzLabel="每小时"></nz-option>
+            <nz-option nzValue="daily_09" nzLabel="每天 9:00"></nz-option>
+            <nz-option nzValue="daily_18" nzLabel="每天 18:00"></nz-option>
+            <nz-option nzValue="workdays_09" nzLabel="工作日 9:00"></nz-option>
+            <nz-option nzValue="weekly_mon_09" nzLabel="每周一 9:00"></nz-option>
+            <nz-option nzValue="monthly_1_09" nzLabel="每月 1 号 9:00"></nz-option>
+            <nz-option nzValue="custom" nzLabel="自定义..."></nz-option>
+          </nz-select>
+          <div *ngIf="convCronPreset === 'custom'" style="margin-top: 8px;">
+            <input nz-input [(ngModel)]="convCronCustom" placeholder="输入 cron 表达式，如: 0 9 * * 1-5" />
+          </div>
+        </div>
+      </div>
+
+      <!-- 底部按钮 -->
+      <div class="form-modal-footer">
+        <button nz-button (click)="onCancel()">取消</button>
+        <button nz-button nzType="primary" [nzLoading]="saving" (click)="onConversationSubmit()">
+          <nz-icon nzType="schedule"></nz-icon>
+          创建定时任务
+        </button>
+      </div>
+    </div>
+
+    <!-- ==================== 表单模式（原版） ==================== -->
+    <div *ngIf="viewMode === 'form'" class="form-modal-body">
       <form nz-form [formGroup]="form" nzLayout="vertical">
           <!-- 任务名称 -->
           <nz-form-item>
@@ -221,11 +330,21 @@ import { ModelManagementService } from '@services/repositories/model-management-
       </div>
   `,
   styles: [`
+    .form-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
     .form-modal-title {
       font-size: 16px;
       font-weight: 600;
       color: #333;
-      margin-bottom: 16px;
     }
     .form-modal-body {
       max-height: 60vh;
@@ -263,6 +382,71 @@ import { ModelManagementService } from '@services/repositories/model-management-
       font-size: 13px;
       color: #333;
     }
+    /* ===== 会话模式样式 ===== */
+    .conversation-view {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+    .conversation-body {
+      max-height: 55vh;
+      overflow-y: auto;
+      padding: 0;
+    }
+    .conv-field {
+      margin-bottom: 16px;
+    }
+    .conv-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: #333;
+      margin-bottom: 6px;
+    }
+    .conv-label .required {
+      color: #ff4d4f;
+    }
+    .conv-radio-group {
+      display: flex;
+      gap: 16px;
+    }
+    .conv-chat-area {
+      margin-bottom: 16px;
+    }
+    .conv-chat-label {
+      font-size: 13px;
+      font-weight: 500;
+      color: #333;
+      margin-bottom: 6px;
+    }
+    .conv-chat-box {
+      border: 1px solid #e8e8e8;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 8px;
+      background: #fff;
+    }
+    .conv-chat-response {
+      background: #f6ffed;
+      border-color: #b7eb8f;
+    }
+    .conv-chat-role {
+      font-size: 12px;
+      font-weight: 600;
+      color: #1890ff;
+      margin-bottom: 6px;
+    }
+    .conv-chat-response .conv-chat-role {
+      color: #52c41a;
+    }
+    .conv-chat-preview {
+      font-size: 13px;
+      color: #333;
+      white-space: pre-wrap;
+      line-height: 1.6;
+      max-height: 200px;
+      overflow-y: auto;
+    }
   `],
 })
 export class SchedulerFormModalComponent implements OnInit, OnDestroy {
@@ -270,11 +454,22 @@ export class SchedulerFormModalComponent implements OnInit, OnDestroy {
     return this.modalData?.editTask ?? null;
   }
 
+  viewMode: 'form' | 'conversation' = 'form';
+
   form!: FormGroup;
   saving = false;
   agentOptions: any[] = [];
   workflowOptions: any[] = [];
   modelOptions: any[] = [];
+
+  // 会话模式字段
+  convName = '';
+  convModelId: string | null = null;
+  convPrompt = '';
+  convScheduleType = 'once';
+  convOnceTime: Date | null = null;
+  convCronPreset = 'daily_09';
+  convCronCustom = '';
 
   private destroy$ = new Subject<void>();
 
@@ -290,9 +485,9 @@ export class SchedulerFormModalComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.initForm();
+    this.loadModels();
     this.loadAgents();
     this.loadWorkflows();
-    this.loadModels();
     if (this.editTask) {
       this.populateForm();
     }
@@ -301,6 +496,95 @@ export class SchedulerFormModalComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  switchToConversation(): void {
+    this.viewMode = 'conversation';
+  }
+
+  switchToForm(): void {
+    this.viewMode = 'form';
+  }
+
+  onConversationSubmit(): void {
+    if (!this.convName.trim()) {
+      this.message.warning('请输入任务名称');
+      return;
+    }
+    if (!this.convPrompt.trim()) {
+      this.message.warning('请输入执行内容');
+      return;
+    }
+
+    let scheduleConfig: any;
+    let scheduleType: string;
+    let repeatType: string;
+
+    if (this.convScheduleType === 'once') {
+      if (!this.convOnceTime) {
+        this.message.warning('请选择执行时间');
+        return;
+      }
+      scheduleType = 'cron';
+      repeatType = 'once';
+      const d = new Date(this.convOnceTime);
+      scheduleConfig = {
+        type: 'cron',
+        config: {
+          expression: `${d.getMinutes()} ${d.getHours()} ${d.getDate()} ${d.getMonth() + 1} *`,
+          run_at: this.convOnceTime.toISOString(),
+        },
+      };
+    } else {
+      const cronExpr = this.resolveCronPreset();
+      if (!cronExpr) {
+        this.message.warning('请选择调度规则');
+        return;
+      }
+      scheduleType = 'cron';
+      repeatType = 'always';
+      scheduleConfig = { type: 'cron', config: { expression: cronExpr } };
+    }
+
+    const payload: any = {
+      name: this.convName.trim(),
+      description: '',
+      workspace_id: this.schedulerService.getWorkspaceId(),
+      schedule: scheduleConfig,
+      repeat: { type: repeatType },
+      valid_from: null,
+      valid_until: null,
+      executor: { type: 'llm_prompt', config: {} },
+      model_id: this.convModelId || null,
+      prompt: this.convPrompt.trim(),
+      notification: { notify_on_success: true, notify_on_failure: true, channels: ['in_app'] },
+      max_retries: 3,
+    };
+
+    this.saving = true;
+    this.schedulerService.createTask(payload).pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => {
+        this.message.success('定时会话任务创建成功');
+        this.modal.close(true);
+      },
+      error: () => {
+        this.message.error('创建失败');
+        this.saving = false;
+      },
+    });
+  }
+
+  private resolveCronPreset(): string | null {
+    switch (this.convCronPreset) {
+      case 'hourly': return '0 * * * *';
+      case 'daily_09': return '0 9 * * *';
+      case 'daily_18': return '0 18 * * *';
+      case 'workdays_09': return '0 9 * * 1-5';
+      case 'weekly_mon_09': return '0 9 * * 1';
+      case 'monthly_1_09': return '0 9 1 * *';
+      case 'custom': return this.convCronCustom.trim() || null;
+      default: return '0 9 * * *';
+    }
   }
 
   private initForm(): void {
