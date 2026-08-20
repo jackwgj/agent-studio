@@ -103,3 +103,4 @@ docker/studio-builder/storage/
 docker/studio-builder/common_utils/
 docker/.source-build-hash
 docker/.last-build.env
+deploy/.env.bak\ndocker/tmp/
