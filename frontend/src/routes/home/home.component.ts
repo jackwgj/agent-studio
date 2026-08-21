@@ -194,17 +194,26 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   spanData = {} as any;
 
-  /** 构建「任务空间」分组的会话子项（新建入口 + 会话列表） */
+  /** 构建「任务空间」分组的会话子项（定时任务 + 新建入口 + 会话列表） */
   private buildConversationItems(): IMenuItem[] {
     const activeId = this.conversationWorkspaceService.activeSession$.value?.conversation_id;
-    const newItem: IMenuItem = { id: 'conversation-new', name: '＋ 新建任务', label: '＋ 新建任务' };
+    const schedulerItem: IMenuItem = {
+      id: 'scheduler',
+      name: '自动化',
+      label: '自动化',
+      icon: cdnAssetUrl('assets/images/menu/home.svg'),
+      iconSelected: cdnAssetUrl('assets/images/menu/home_selected.svg'),
+      router: ['scheduler'],
+      isSelected: false,
+    };
+    const newItem: IMenuItem = { id: 'conversation-new', name: '＋ 新建会话', label: '＋ 新建会话' };
     const sessionItems: IMenuItem[] = this.conversationWorkspaceService.sessions$.value.map((s) => ({
       name: s.title,
       label: s.title,
       queryParams: { conversation_id: s.conversation_id },
       isSelected: s.conversation_id === activeId,
     }));
-    return [newItem, ...sessionItems];
+    return [schedulerItem, newItem, ...sessionItems];
   }
 
   /** 会话列表/当前会话变化后，重建「任务空间」分组子项并触发 left-menu 重新渲染 */
