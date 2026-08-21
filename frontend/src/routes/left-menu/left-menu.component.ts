@@ -80,6 +80,8 @@ export class LeftMenuComponent implements OnInit, OnChanges {
   space_options: Array<any> = [];
   space_value: any = null;
   copyItems: IMenuItem[] = [];
+  private readonly taskSessionScrollPositions = new Map<string, number>();
+  private taskSessionRestoreFrame: number | null = null;
   copy_space_options: Array<any> = [];
   space_name: string = '';
   space_icon: string = cdnAssetUrl('assets/images/menu/space-user.svg');
@@ -134,7 +136,8 @@ export class LeftMenuComponent implements OnInit, OnChanges {
     private readonly i18NextEagerPipe: angularI18next.I18NextEagerPipe,
     private masOperatorService: MasOperatorService,
     private appAgentRepoServ: AppAgentRepoService,
-    private conversationWorkspaceService: ConversationWorkspaceService
+    private conversationWorkspaceService: ConversationWorkspaceService,
+    private readonly hostElement: ElementRef<HTMLElement>
   ) {
     // 箭头函数，保存this的指向
     this.handleClickOutMenu = event => {
@@ -286,6 +289,7 @@ export class LeftMenuComponent implements OnInit, OnChanges {
       return;
     }
     if (item.queryParams?.conversation_id) {
+      this.captureTaskSessionScrollPosition();
       this.router.navigate(['home/conversation'], {
         queryParams: { conversation_id: item.queryParams.conversation_id },
       });
@@ -564,6 +568,75 @@ export class LeftMenuComponent implements OnInit, OnChanges {
       }
     }
     this.cdr.detectChanges();
+    this.scheduleTaskSessionScrollRestore();
+  }
+
+  /** 同一工作空间内刷新/重建会话菜单时，保留用户当前浏览位置。 */
+  public onTaskSessionScroll(event: Event): void {
+    const list = event.currentTarget as HTMLElement | null;
+    if (!list?.classList.contains('task-session-list')) {
+      return;
+    }
+    this.taskSessionScrollPositions.set(this.getTaskSessionScrollKey(), list.scrollTop);
+  }
+
+  private getTaskSessionScrollKey(): string {
+    return String(this.space_value || this.ctxServ.workspaceId || 'default');
+  }
+
+  private getTaskSessionList(): HTMLElement | null {
+    return this.hostElement.nativeElement.querySelector<HTMLElement>('.task-session-list');
+  }
+
+  private captureTaskSessionScrollPosition(): void {
+    const list = this.getTaskSessionList();
+    if (list) {
+      this.taskSessionScrollPositions.set(this.getTaskSessionScrollKey(), list.scrollTop);
+    }
+  }
+
+  private scheduleTaskSessionScrollRestore(): void {
+    if (this.taskSessionRestoreFrame !== null) {
+      window.cancelAnimationFrame(this.taskSessionRestoreFrame);
+    }
+    const workspaceKey = this.getTaskSessionScrollKey();
+    this.taskSessionRestoreFrame = window.requestAnimationFrame(() => {
+      this.taskSessionRestoreFrame = null;
+      if (workspaceKey !== this.getTaskSessionScrollKey()) {
+        return;
+      }
+      const list = this.getTaskSessionList();
+      if (!list) {
+        return;
+      }
+
+      const savedScrollTop = this.taskSessionScrollPositions.get(workspaceKey);
+      if (savedScrollTop !== undefined) {
+        list.scrollTop = Math.min(savedScrollTop, Math.max(0, list.scrollHeight - list.clientHeight));
+      }
+      this.keepSelectedTaskSessionVisible(list);
+      this.taskSessionScrollPositions.set(workspaceKey, list.scrollTop);
+    });
+  }
+
+  /** 外部路由打开会话时也保证选中项可见；已在可视区域时不改变用户滚动位置。 */
+  private keepSelectedTaskSessionVisible(list: HTMLElement): void {
+    const selected = list.querySelector<HTMLElement>('.secondMenu.is-selected');
+    if (!selected) {
+      return;
+    }
+    const stickyCreate = list.querySelector<HTMLElement>('.task-session-create');
+    const listRect = list.getBoundingClientRect();
+    const selectedRect = selected.getBoundingClientRect();
+    const visibleTop = listRect.top + (stickyCreate?.getBoundingClientRect().height ?? 0);
+    let nextScrollTop = list.scrollTop;
+
+    if (selectedRect.top < visibleTop) {
+      nextScrollTop -= visibleTop - selectedRect.top;
+    } else if (selectedRect.bottom > listRect.bottom) {
+      nextScrollTop += selectedRect.bottom - listRect.bottom;
+    }
+    list.scrollTop = Math.max(0, Math.min(nextScrollTop, list.scrollHeight - list.clientHeight));
   }
 
   private isContainRouteUrl(data: any): boolean {
@@ -774,6 +847,9 @@ export class LeftMenuComponent implements OnInit, OnChanges {
   protected readonly cdnAssetUrl = cdnAssetUrl;
 
   ngOnDestroy(): void {
+    if (this.taskSessionRestoreFrame !== null) {
+      window.cancelAnimationFrame(this.taskSessionRestoreFrame);
+    }
     window.removeEventListener('click', this.handleClickOutMenu);
     if (this.permissionSubscription) {
       this.permissionSubscription.unsubscribe();

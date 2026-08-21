@@ -16,7 +16,7 @@
        [style]="{
         width: isMenuExpand ? '236px' : '36px',
         'padding-right':isMenuExpand? '12px':'4px',
-         'overflow-y': isMenuExpand ? 'scroll':'unset'
+         'overflow-y': isMenuExpand ? 'hidden':'unset'
      }"
   >
     <ng-container *ngIf="isMenuExpand;else collapsedMenu;">
@@ -117,10 +117,15 @@
           {{ 'create_ai_app' | i18nextEager }}
         </button>
 
-        <div class="side-nav-menu-item" *ngFor="let menu of copyItems; index as i">
+        <div
+          class="side-nav-menu-item"
+          [class.task-space-group]="menu.id === 'conversation-workspace'"
+          *ngFor="let menu of copyItems; index as i"
+        >
           <div style="width: 100%" *ngIf="menu.children && menu.children.length">
             <div
               class="tree-node gap-in-module"
+              [class.task-space-tree-expanded]="menu.id === 'conversation-workspace' && menuItem.collapseStatus === 2"
               [ngClass]="{
               'is-market': isMarket,
               'while-in-hover':isLeafNode(menuItem)
@@ -161,25 +166,32 @@
                          class="left_menu_space_name-foldI"/>
               </div>
               <div
-                (click)="handleNodeClick($event, menuChildItem, i, j)"
-                *ngFor="
-                  let menuChildItem of menuItem.children || [];
-                  index as ij
-                "
-                class="secondMenu gap-in-module"
-                [class]="{ 'is-selected': menuChildItem.isSelected }"
-                [style]="{'padding-left': isLeafNode(menuItem) ? '' : '12px'}"
+                class="menu-children"
+                [class.task-session-list]="menu.id === 'conversation-workspace' && menuItem.collapseStatus === 2"
+                (scroll)="onTaskSessionScroll($event)"
               >
-                <div class="secondMenu-label">
-                  <img alt="" class="menu-icon" [src]="getIcon(menuChildItem)" *ngIf="getIcon(menuChildItem)"/>
-                  {{ menuChildItem.label }}
+                <div
+                  (click)="handleNodeClick($event, menuChildItem, i, j)"
+                  *ngFor="
+                    let menuChildItem of menuItem.children || [];
+                    index as ij
+                  "
+                  class="secondMenu gap-in-module"
+                  [class]="{ 'is-selected': menuChildItem.isSelected }"
+                  [class.task-session-create]="menuChildItem.id === 'conversation-new'"
+                  [style]="{'padding-left': isLeafNode(menuItem) ? '' : '12px'}"
+                >
+                  <div class="secondMenu-label">
+                    <img alt="" class="menu-icon" [src]="getIcon(menuChildItem)" *ngIf="getIcon(menuChildItem)"/>
+                    {{ menuChildItem.label }}
+                  </div>
+                  <span
+                    *ngIf="menuChildItem.queryParams?.conversation_id"
+                    class="session-delete"
+                    title="删除"
+                    (click)="deleteConversation($event, menuChildItem)"
+                  >×</span>
                 </div>
-                <span
-                  *ngIf="menuChildItem.queryParams?.conversation_id"
-                  class="session-delete"
-                  title="删除"
-                  (click)="deleteConversation($event, menuChildItem)"
-                >×</span>
               </div>
               <div
                 class="welcome-model-btn"
