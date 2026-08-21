@@ -6,6 +6,7 @@ import { provideNzIcons } from 'ng-zorro-antd/icon';
 import { AudioOutline, NumberOutline, SendOutline, UploadOutline } from '@ant-design/icons-angular/icons';
 import { BehaviorSubject } from 'rxjs';
 import { ModelManagementService } from '@services/repositories/model-management-new';
+import { AppAgentRepoService } from '@services/agent-center/app-agent-repo.service';
 import { HttpService } from '@services/http.service';
 import { ConversationSkillItem } from './conversation-skill.model';
 import { ConversationWorkspaceComponent } from './conversation-workspace.component';
@@ -59,6 +60,10 @@ describe('ConversationWorkspaceComponent', () => {
           provide: ModelManagementService,
           useValue: { getAvailableModelList: jasmine.createSpy('getAvailableModelList').and.returnValue(new Promise(() => void 0)) },
         },
+        {
+          provide: AppAgentRepoService,
+          useValue: { getAgentList: jasmine.createSpy('getAgentList').and.resolveTo({ agent_list: [] }) },
+        },
         { provide: HttpService, useValue: http },
         { provide: ActivatedRoute, useValue: { queryParams: routeParams } },
         { provide: Router, useValue: router },
@@ -97,6 +102,21 @@ describe('ConversationWorkspaceComponent', () => {
     callbacks.onOpen();
     expect(component.inputText).toBe('');
     expect((component as any).recommendedSkills).toEqual([]);
+  });
+
+  it('发送时携带本轮上传成功文件的 URL 和文件名', () => {
+    component.currentSession = session('c1');
+    component.inputText = '总结附件';
+    (component as any).uploadedFiles = [
+      { url: 'https://files.test/report.pdf', fileName: 'report.pdf', progress: 'succeeded' },
+      { url: '', fileName: 'failed.txt', progress: 'failed' },
+    ];
+
+    component.send();
+
+    expect(service.chatSSE).toHaveBeenCalledWith('c1', jasmine.objectContaining({
+      file_ids: [{ url: 'https://files.test/report.pdf', fileName: 'report.pdf' }],
+    }), jasmine.any(Object));
   });
 
   it('连接前失败保留输入和推荐以便重试，并刷新目录', () => {

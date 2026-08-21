@@ -49,6 +49,8 @@ mybatis.xml
 env/
 
 .codemate
+### Internal E2E test cases, not for public repository ###
+agent-runtime/jiuwen/test/cases/
 /agent-runtime/open_lumina_engine.egg-info
 /agent-runtime/.venv
 /agent-runtime/logs
@@ -103,4 +105,3 @@ docker/studio-builder/storage/
 docker/studio-builder/common_utils/
 docker/.source-build-hash
 docker/.last-build.env
-deploy/.env.bak\ndocker/tmp/

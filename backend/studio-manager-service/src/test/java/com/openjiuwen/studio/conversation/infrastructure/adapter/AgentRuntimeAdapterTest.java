@@ -133,6 +133,20 @@ class AgentRuntimeAdapterTest {
 
     @Test
     @SuppressWarnings("unchecked")
+    void buildRequestBody_携带本轮文件引用和文件名() {
+        Conversation conv = Conversation.builder().conversationId("c1").projectId("p1").workspaceId("w1").build();
+        SendMessageCmd cmd = new SendMessageCmd();
+        cmd.setQuery("总结附件");
+        cmd.setModelDeploymentId("m1");
+        cmd.setFileIds(List.of(Map.of("url", "https://files.test/report.pdf", "fileName", "report.pdf")));
+
+        Map<String, Object> body = adapter.buildRequestBody(conv, cmd, List.of(), ConversationSkillContext.empty());
+
+        assertEquals(cmd.getFileIds(), body.get("fileIds"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
     void buildRequestBody_包含可信技能目录和有序推荐() {
         ConversationSkillDescriptor skill = ConversationSkillDescriptor.builder()
             .skillId("s1").versionId("v1").name("meeting-minutes")

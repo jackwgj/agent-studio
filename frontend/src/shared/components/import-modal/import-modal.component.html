@@ -65,8 +65,9 @@
         class="mt-[8px]"
         [nzAction]="''"
         [nzAccept]="'.jsonl'"
-        [nzShowUploadList]="!!fileInfo"
+        [nzShowUploadList]="showUploadList"
         (nzChange)="onAddFileSuccess($event)"
+        [(nzFileList)]="uploadFileList"
       >
         <button nz-button>
           <span nz-icon nzType="upload"></span>
@@ -87,6 +88,8 @@
           [nzShowSizeChanger]="false"
           [nzFrontPagination]="false"
           *ngIf="isFileImported"
+          [nzNoResult]="tableNoData"
+          [nzTableLayout]="'fixed'"
         >
           <thead>
             <tr>
@@ -99,23 +102,19 @@
             <ng-container *ngFor="let row of srcData.data;index as i">
               <tr>
                 <td>{{ row[columns[0].key] }}</td>
-                <td>{{ row[columns[1].key] }}</td>
+                <td>
+                  <span
+                    class="cell-ellipsis"
+                    nz-tooltip
+                    [nzTooltipTitle]="row[columns[1].key]"
+                  >{{ row[columns[1].key] }}</span>
+                </td>
                 <td>
                   <span *ngIf="columns[2].key!=='import_description'">{{ row[columns[2].key] }}</span>
                   <span *ngIf="columns[2].key==='import_description'" [nz-tooltip]="getStatusInfo(row)?.tip" class="flex align-center">
                     <span nz-icon [nzType]="getStatusInfo(row)?.icon" [ngStyle]="{'color': getStatusInfo(row)?.color}"></span>
                     {{getStatusInfo(row)?.text}}
                   </span>
-                </td>
-              </tr>
-            </ng-container>
-            <ng-container *ngIf="!srcData.data?.length">
-              <tr>
-                <td colspan="3">
-                  <div class="no-data-container">
-                    <div class="text">{{ 'no_match_resource' | i18nextEager}}</div>
-                    <div class="tip">{{ 'no_match_resource_tip' | i18nextEager}}</div>
-                  </div>
                 </td>
               </tr>
             </ng-container>
@@ -144,6 +143,13 @@
     </nz-space>
   </div>
 </div>
+
+<ng-template #tableNoData>
+  <div class="no-data-container">
+    <div class="text">{{ 'no_match_resource' | i18nextEager }}</div>
+    <div class="tip">{{ 'no_match_resource_tip' | i18nextEager }}</div>
+  </div>
+</ng-template>
 
 <ng-template #tipContent let-context="context">
   <div class="flex align-center">

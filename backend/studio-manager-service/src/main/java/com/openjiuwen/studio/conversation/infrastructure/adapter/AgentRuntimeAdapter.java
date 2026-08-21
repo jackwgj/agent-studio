@@ -147,10 +147,20 @@ public class AgentRuntimeAdapter {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("conversationId", conversation.getConversationId());
         body.put("query", cmd.getQuery());
-        body.put("subAgentIds", parseTeamAgentIds(TEAM_AGENT_IDS));
-        body.put("modelDeploymentId", cmd.getModelDeploymentId());
+        String selectType = StringUtils.defaultIfBlank(cmd.getSelectType(), "SUPERVISOR");
+        body.put("selectType", selectType);
+        if ("APP".equals(selectType)) {
+            // APP 路径：用户应用互斥字段，只传 appId；模型来自应用自身 IR
+            body.put("appId", cmd.getAppId());
+        } else {
+            body.put("subAgentIds", parseTeamAgentIds(TEAM_AGENT_IDS));
+            body.put("modelDeploymentId", cmd.getModelDeploymentId());
+        }
         // conversationHistory 显式转 [{role, content}]（引擎契约，容忍 dict；仅监督者注入，子 Agent 不感知）
         body.put("conversationHistory", toHistoryMaps(histories));
+        if (cmd.getFileIds() != null && !cmd.getFileIds().isEmpty()) {
+            body.put("fileIds", cmd.getFileIds());
+        }
         appendSkillContext(body, skillContext);
         return body;
     }

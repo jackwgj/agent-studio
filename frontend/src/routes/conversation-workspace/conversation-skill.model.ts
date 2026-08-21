@@ -6,10 +6,27 @@ export interface ConversationSkillItem {
 }
 
 /** 浏览器发往对话工作台的本轮请求。 */
+export interface ConversationFileReference {
+  url: string;
+  fileName: string;
+  progress?: 'loading' | 'succeeded' | 'failed';
+  fileId?: string;
+}
+
 export interface ConversationSendRequest {
   query: string;
-  model_deployment_id: string;
+  model_deployment_id?: string;
   recommended_skill_ids: string[];
+  select_type?: 'SUPERVISOR' | 'APP';
+  app_id?: string;
+  file_ids?: Array<Pick<ConversationFileReference, 'url' | 'fileName'>>;
+}
+
+/** 工作台可执行目标。资源列表复用 AgentCenter 现有接口。 */
+export interface ConversationExecutionTarget {
+  id: string;
+  name: string;
+  type: 'SUPERVISOR' | 'SINGLE_AGENT' | 'MULTI_AGENT';
 }
 
 /** 对话工作台 SSE 回调。 */

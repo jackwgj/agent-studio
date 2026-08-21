@@ -52,6 +52,7 @@ class ConversationWorkspaceAppServiceTest {
     private AgentRuntimeAdapter runtimeAdapter;
     private ConversationSkillResolver skillResolver;
     private ConversationWorkspaceAccessGuard workspaceAccessGuard;
+    private ConversationAgentResourceResolver agentResourceResolver;
     private ConversationWorkspaceAppService appService;
 
     @BeforeEach
@@ -61,8 +62,9 @@ class ConversationWorkspaceAppServiceTest {
         runtimeAdapter = mock(AgentRuntimeAdapter.class);
         skillResolver = mock(ConversationSkillResolver.class);
         workspaceAccessGuard = mock(ConversationWorkspaceAccessGuard.class);
+        agentResourceResolver = mock(ConversationAgentResourceResolver.class);
         appService = new ConversationWorkspaceAppService(repository, historyAssembler, runtimeAdapter, skillResolver,
-            workspaceAccessGuard);
+            workspaceAccessGuard, agentResourceResolver);
 
         SimpleUser user = new SimpleUser();
         user.setUserId("u1");
@@ -435,6 +437,7 @@ class ConversationWorkspaceAppServiceTest {
                                                               WorkspaceMemberMapper workspaceMemberMapper) {
         return new ConversationWorkspaceAppService(repository, historyAssembler, runtimeAdapter,
             new ConversationSkillResolver(mapper),
-            new ConversationWorkspaceAccessGuard(workspaceMapper, workspaceMemberMapper));
+            new ConversationWorkspaceAccessGuard(workspaceMapper, workspaceMemberMapper),
+            agentResourceResolver);
     }
 }

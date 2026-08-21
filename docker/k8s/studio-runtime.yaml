@@ -119,6 +119,9 @@ spec:
               value: 'false'
             - name: OPENSEARCH_SSL_VERIFY
               value: 'false'
+            # 知识库检索SSL验证（LakeSearch等自签证书端点，默认关闭以对齐旧版）
+            - name: KB_SSL_VERIFY
+              value: 'false'
             # ======== [选填] 记忆库配置（默认关闭） ========
             # 总开关，设为true启用记忆库功能
             - name: MEMORY_ENABLED
@@ -142,9 +145,9 @@ spec:
             - name: MEMORY_LLM_API_KEY
               value: ''
             # ======== [选填] 其他配置 ========
-            # Uvicorn worker 数量，未设置时默认 CPU 核心数 + 1
+            # Uvicorn worker 数量，未设置时默认 1
             - name: GUNICORN_WORK_NUM
-              value: ''
+              value: '1'
             - name: PORT
               value: '31014'
             - name: PLUGIN_SSL_API_CERT
@@ -172,6 +175,9 @@ spec:
             # 日志详细模式，设为true时显示完整错误信息
             - name: LOG_VERBOSE
               value: 'true'
+            # 模型调用详情日志开关，true时打印模型请求体/响应内容/token用量/延迟/tool_calls；错误日志不受此开关影响，始终输出
+            - name: MODEL_CALL_LOGGING_ENABLED
+              value: 'false'
             # ======== [选填] 提示词优化任务持久化存储（不填则仅存内存） ========
             # 数据库类型：mysql 或 gaussdb，默认mysql
             - name: STORE_DB_TYPE
@@ -212,6 +218,12 @@ spec:
             - name: STORAGE_CUSTOM_MODULE
               value: ''
             - name: STORAGE_CUSTOM_CLASS
+              value: ''
+            - name: DATASOURCE_PASSWORD_PROVIDER_TYPE
+              value: 'DEFAULT'
+            - name: DATASOURCE_PASSWORD_PROVIDER_MODULE
+              value: ''
+            - name: DATASOURCE_PASSWORD_PROVIDER_CLASS
               value: ''
             - name: STORAGE_LOCAL_BASE_PATH
               value: ''

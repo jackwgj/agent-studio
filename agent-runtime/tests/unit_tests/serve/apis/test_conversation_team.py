@@ -48,6 +48,15 @@ def request_payload(**overrides):
     return payload
 
 
+def test_request_accepts_file_references_with_names_and_urls():
+    req = ConversationTeamReq.model_validate(request_payload(fileIds=[{
+        "url": "https://files.test/report.pdf",
+        "fileName": "report.pdf",
+    }]))
+
+    assert req.file_ids == [{"url": "https://files.test/report.pdf", "fileName": "report.pdf"}]
+
+
 def test_request_accepts_manager_skill_contract():
     req = ConversationTeamReq.model_validate(request_payload())
 

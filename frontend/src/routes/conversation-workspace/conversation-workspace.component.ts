@@ -5,13 +5,21 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   ViewChild,
+  ElementRef,
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { COMMON_MODULES, LIB_MODULES } from '@shared/modules';
 import { ModelManagementService } from '@services/repositories/model-management-new';
+import { AppAgentRepoService } from '@services/agent-center/app-agent-repo.service';
+import { ApplicationType } from '@enums/agent-center.enum';
 import { HttpService } from '@services/http.service';
-import { ConversationSendRequest, ConversationSkillItem } from './conversation-skill.model';
+import {
+  ConversationExecutionTarget,
+  ConversationSendRequest,
+  ConversationSkillItem,
+  ConversationFileReference,
+} from './conversation-skill.model';
 import {
   ActiveSessionState,
   ConversationWorkspaceService,
@@ -19,6 +27,9 @@ import {
   SessionListState,
 } from './conversation-workspace.service';
 import { SkillSelectorComponent } from './skill-selector/skill-selector.component';
+import { AppMarkdownAnswerComponent } from '@shared/components/app-markdown-answer/app-markdown-answer.component';
+import { UploadFileIconComponent } from '@shared/components/upload-file-icon/upload-file-icon.component';
+import { v4 as uuidV4 } from 'uuid';
 
 /** 消息段：message 输出段 / reasoning 思考段 / tool 工具轨迹（按轮持久化的行形态） */
 interface ChatSegment {
@@ -34,6 +45,7 @@ interface ChatMessage {
   role: 'user' | 'assistant';
   segments: ChatSegment[];
   userContent?: string;
+  userFiles?: Array<Pick<ConversationFileReference, 'fileName'>>;
   /** 非主 Agent 内容默认折叠，不主动展示 */
   detailSegments?: ChatSegment[];
   subAgents?: ChatMessage[];
@@ -80,7 +92,7 @@ interface PendingActiveSession {
   templateUrl: './conversation-workspace.component.html',
   styleUrls: ['./conversation-workspace.component.less'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [COMMON_MODULES, LIB_MODULES, SkillSelectorComponent],
+  imports: [COMMON_MODULES, LIB_MODULES, SkillSelectorComponent, AppMarkdownAnswerComponent, UploadFileIconComponent],
   standalone: true,
 })
 export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
@@ -90,10 +102,25 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
   streaming = false;
   selectedModel = '';
   modelOptions: any[] = [];
+  executionTargets: ConversationExecutionTarget[] = [
+    { id: 'default-team', name: '默认团队', type: 'SUPERVISOR' },
+  ];
+  selectedExecutionTarget = 'default-team';
+  selectedExecutionPath: string[] = ['default-team'];
+  executionTargetOptions: any[] = [
+    { value: 'default-team', label: '默认团队', isLeaf: true },
+    { value: 'digital-employees', label: '数字员工', children: [] },
+    { value: 'digital-squads', label: '数字小队', children: [] },
+  ];
   skillCatalog: ConversationSkillItem[] = [];
   skillCatalogUnavailable = false;
   recommendedSkills: ConversationSkillItem[] = [];
   activatedSkills: ActivatedSkill[] = [];
+  uploadedFiles: ConversationFileReference[] = [];
+  readonly acceptedFileTypes = '.txt,.md,.json,.xml,.html,.docx,.pdf,.xlsx,.xls,.csv';
+  private readonly maxFiles = 10;
+  private readonly maxFileSize = 60 * 1024 * 1024;
+  @ViewChild('fileInput') private fileInput?: ElementRef<HTMLInputElement>;
   @ViewChild(SkillSelectorComponent) private skillSelector?: SkillSelectorComponent;
   private modelAbortController: AbortController | null = null;
   private subscriptions = new Subscription();
@@ -113,6 +140,7 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
   constructor(
     private conversationWorkspaceService: ConversationWorkspaceService,
     private modelManagementService: ModelManagementService,
+    private appAgentRepoService: AppAgentRepoService,
     private route: ActivatedRoute,
     private router: Router,
     private cdr: ChangeDetectorRef,
@@ -125,6 +153,7 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
     this.loadSkillCatalog();
     window.addEventListener('WorkspaceChange', this.workspaceChangeHandler);
     this.loadModels();
+    this.loadExecutionTargets();
     this.subscribeToSessionListState();
     this.subscribeToRoute();
     this.subscribeToActiveSession();
@@ -203,6 +232,70 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
         });
         this.modelOptions = options;
         this.selectedModel = options[0]?.deployment_id ?? '';
+        this.cdr.markForCheck();
+      })
+      .catch(() => void 0);
+  }
+
+  /** 复用 AgentCenter 现有资源接口，映射工作台执行目标。
+   *  该接口 type 为精确匹配（不支持逗号多值），故按单/多智能体各查一次再合并去重。 */
+  private loadExecutionTargets(): void {
+    Promise.all([
+      this.appAgentRepoService.getAgentList(
+        { type: ApplicationType.SINGLE_AGENT, status: 'published' },
+        0,
+        100,
+      ),
+      this.appAgentRepoService.getAgentList(
+        { type: ApplicationType.MULTI_AGENT, status: 'published' },
+        0,
+        100,
+      ),
+    ])
+      .then(([single, multi]) => {
+        const seen = new Set<string>();
+        const targets: ConversationExecutionTarget[] = [];
+        [single, multi].forEach((res) => {
+          (res?.agent_list ?? []).forEach((agent: any) => {
+            if (
+              ![ApplicationType.SINGLE_AGENT, ApplicationType.MULTI_AGENT].includes(agent.type)
+            ) {
+              return;
+            }
+            const id = String(agent.id ?? agent.agent_id);
+            const name = agent.name ?? agent.agent_name ?? id;
+            if (!id || !name || seen.has(id)) {
+              return;
+            }
+            seen.add(id);
+            targets.push({
+              id,
+              name,
+              type: agent.type === ApplicationType.MULTI_AGENT ? 'MULTI_AGENT' : 'SINGLE_AGENT',
+            });
+          });
+        });
+        this.executionTargets = [
+          { id: 'default-team', name: '默认团队', type: 'SUPERVISOR' },
+          ...targets,
+        ];
+        this.executionTargetOptions = [
+          { value: 'default-team', label: '默认团队', isLeaf: true },
+          {
+            value: 'digital-employees',
+            label: '数字员工',
+            children: targets
+              .filter((target) => target.type === 'SINGLE_AGENT')
+              .map((target) => ({ value: target.id, label: target.name, isLeaf: true })),
+          },
+          {
+            value: 'digital-squads',
+            label: '数字小队',
+            children: targets
+              .filter((target) => target.type === 'MULTI_AGENT')
+              .map((target) => ({ value: target.id, label: target.name, isLeaf: true })),
+          },
+        ];
         this.cdr.markForCheck();
       })
       .catch(() => void 0);
@@ -333,6 +426,81 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
     this.send();
   }
 
+  public openFilePicker(): void {
+    if (this.isSending || this.uploadedFiles.length >= this.maxFiles) {
+      return;
+    }
+    this.fileInput?.nativeElement.click();
+  }
+
+  public onFilesSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const files = Array.from(input.files ?? []);
+    input.value = '';
+    const remaining = this.maxFiles - this.uploadedFiles.length;
+    files.slice(0, remaining).forEach((file) => this.uploadFile(file));
+  }
+
+  public removeUploadedFile(fileId: string): void {
+    this.uploadedFiles = this.uploadedFiles.filter((file) => file.fileId !== fileId);
+    this.cdr.markForCheck();
+  }
+
+  private uploadFile(file: File): void {
+    const extension = file.name.split('.').pop()?.toLowerCase() ?? '';
+    const accepted = this.acceptedFileTypes
+      .split(',')
+      .map((item) => item.replace('.', ''));
+    if (!accepted.includes(extension) || file.size > this.maxFileSize) {
+      this.uploadedFiles = [
+        ...this.uploadedFiles,
+        { fileId: uuidV4(), fileName: file.name, url: '', progress: 'failed' },
+      ];
+      this.cdr.markForCheck();
+      return;
+    }
+
+    const fileId = uuidV4();
+    const item: ConversationFileReference = {
+      fileId,
+      fileName: file.name,
+      url: '',
+      progress: 'loading',
+    };
+    this.uploadedFiles = [...this.uploadedFiles, item];
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('is_image', 'false');
+    this.appAgentRepoService.uploadFile(formData)
+      .then((result) => {
+        this.uploadedFiles = this.uploadedFiles.map((current) =>
+          current.fileId === fileId
+            ? { ...current, url: result?.url ?? '', fileName: result?.file_name ?? current.fileName, progress: result?.url ? 'succeeded' : 'failed' }
+            : current,
+        );
+      })
+      .catch(() => {
+        this.uploadedFiles = this.uploadedFiles.map((current) =>
+          current.fileId === fileId ? { ...current, progress: 'failed' } : current,
+        );
+      })
+      .finally(() => this.cdr.markForCheck());
+  }
+
+  public onExecutionPathChange(path: string[]): void {
+    this.selectedExecutionPath = path;
+    const selectedId = path[path.length - 1];
+    const target = this.executionTargets.find((item) => item.id === selectedId);
+    if (target) {
+      this.selectedExecutionTarget = target.id;
+      this.cdr.markForCheck();
+    }
+  }
+
+  public get hasPendingUploads(): boolean {
+    return this.uploadedFiles.some((file) => file.progress === 'loading');
+  }
+
   public get isSending(): boolean {
     return Boolean(this.activeAttempt && !this.activeAttempt.settled);
   }
@@ -368,6 +536,9 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
     const assistantMsg: ChatMessage = {
       role: 'assistant',
       userContent: attempt.query,
+      userFiles: this.uploadedFiles
+        .filter((file) => file.progress === 'succeeded' && file.fileName)
+        .map(({ fileName }) => ({ fileName })),
       segments: [],
       detailSegments: [],
       subAgents: [],
@@ -379,14 +550,22 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
     this.cdr.markForCheck();
 
     let source: { close?: () => void } | undefined;
+    const selectedTarget = this.executionTargets.find(
+      (target) => target.id === this.selectedExecutionTarget,
+    );
+    const request: ConversationSendRequest = {
+      query: attempt.query,
+      recommended_skill_ids: attempt.recommendationSnapshot.map((item) => item.skillId),
+      select_type: selectedTarget?.type === 'SUPERVISOR' ? 'SUPERVISOR' : 'APP',
+      ...(selectedTarget?.type === 'SUPERVISOR'
+        ? { model_deployment_id: this.selectedModel }
+        : { app_id: selectedTarget?.id }),
+      ...this.buildFileReferences(),
+    };
     try {
       source = this.conversationWorkspaceService.chatSSE(
         conversationId,
-        {
-          query: attempt.query,
-          model_deployment_id: this.selectedModel,
-          recommended_skill_ids: attempt.recommendationSnapshot.map((item) => item.skillId),
-        } as ConversationSendRequest,
+        request,
         {
           onOpen: () => {
             if (!this.isCurrentAttempt(attempt)) {
@@ -396,6 +575,7 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
             if (this.inputText === attempt.inputSnapshot && this.sameSkills(this.recommendedSkills, attempt.recommendationSnapshot)) {
               this.inputText = '';
               this.recommendedSkills = [];
+              this.uploadedFiles = [];
               this.skillSelector?.clearRecommendations();
             }
             this.cdr.markForCheck();
@@ -428,6 +608,14 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
       return;
     }
     attempt.source = source;
+  }
+
+  /** 只发送上传成功且包含服务端引用的当前轮附件。 */
+  private buildFileReferences(): Pick<ConversationSendRequest, 'file_ids'> {
+    const file_ids = this.uploadedFiles
+      .filter((file) => file.progress === 'succeeded' && file.url && file.fileName)
+      .map(({ url, fileName }) => ({ url, fileName }));
+    return file_ids.length ? { file_ids } : {};
   }
 
   private settleRun(attempt: ConversationAttempt, outcome: 'done' | 'failed'): void {
@@ -622,6 +810,7 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
       }
       if (row.role === 'user') {
         turn.userContent = row.content ?? '';
+        turn.userFiles = this.parseUserFiles(row.file_ids ?? row.fileIds);
         continue;
       }
       const seg = this.rowToSegment(row);
@@ -649,6 +838,28 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
       }
     }
     return Array.from(turns.values());
+  }
+
+  private parseUserFiles(value: unknown): Array<Pick<ConversationFileReference, 'fileName'>> {
+    if (!value) {
+      return [];
+    }
+    try {
+      const parsed = typeof value === 'string' ? JSON.parse(value) : value;
+      if (!Array.isArray(parsed)) {
+        return [];
+      }
+      return parsed
+        .map((item) => {
+          if (typeof item === 'string') {
+            return { fileName: item };
+          }
+          return { fileName: item?.fileName ?? item?.file_name ?? '' };
+        })
+        .filter((item) => Boolean(item.fileName));
+    } catch {
+      return [];
+    }
   }
 
   /** run 表 handoff 工具进入详情；主界面只展示 message。 */

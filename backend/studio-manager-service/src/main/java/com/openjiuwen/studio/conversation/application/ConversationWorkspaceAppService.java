@@ -20,6 +20,7 @@ import com.openjiuwen.studio.conversation.application.dto.SendMessageCmd;
 import com.openjiuwen.studio.conversation.domain.model.Conversation;
 import com.openjiuwen.studio.conversation.domain.model.ConversationMessage;
 import com.openjiuwen.studio.conversation.domain.model.valueobject.ExecutionRef;
+import com.openjiuwen.studio.conversation.domain.model.valueobject.FileRef;
 import com.openjiuwen.studio.conversation.domain.repository.ConversationRepository;
 import com.openjiuwen.studio.conversation.domain.service.ConversationHistoryAssembler;
 import com.openjiuwen.studio.conversation.infrastructure.adapter.AgentRuntimeAdapter;
@@ -51,17 +52,20 @@ public class ConversationWorkspaceAppService {
     private final AgentRuntimeAdapter agentRuntimeAdapter;
     private final ConversationSkillResolver conversationSkillResolver;
     private final ConversationWorkspaceAccessGuard conversationWorkspaceAccessGuard;
+    private final ConversationAgentResourceResolver conversationAgentResourceResolver;
 
     public ConversationWorkspaceAppService(ConversationRepository conversationRepository,
                                            ConversationHistoryAssembler conversationHistoryAssembler,
                                            AgentRuntimeAdapter agentRuntimeAdapter,
                                            ConversationSkillResolver conversationSkillResolver,
-                                           ConversationWorkspaceAccessGuard conversationWorkspaceAccessGuard) {
+                                           ConversationWorkspaceAccessGuard conversationWorkspaceAccessGuard,
+                                           ConversationAgentResourceResolver conversationAgentResourceResolver) {
         this.conversationRepository = conversationRepository;
         this.conversationHistoryAssembler = conversationHistoryAssembler;
         this.agentRuntimeAdapter = agentRuntimeAdapter;
         this.conversationSkillResolver = conversationSkillResolver;
         this.conversationWorkspaceAccessGuard = conversationWorkspaceAccessGuard;
+        this.conversationAgentResourceResolver = conversationAgentResourceResolver;
     }
 
     /**
@@ -185,9 +189,32 @@ public class ConversationWorkspaceAppService {
         if (cmd == null || StringUtils.isBlank(cmd.getQuery())) {
             throw new AgentStudioException(StudioError.METHOD_ARGUMENT_NOT_VALID, List.of("query is required"));
         }
-        if (StringUtils.isBlank(cmd.getModelDeploymentId())) {
+        String selectType = StringUtils.defaultIfBlank(cmd.getSelectType(), "SUPERVISOR").toUpperCase();
+        boolean supervisor = "SUPERVISOR".equals(selectType);
+        boolean app = "APP".equals(selectType);
+        if (!supervisor && !app) {
+            throw new AgentStudioException(StudioError.METHOD_ARGUMENT_NOT_VALID,
+                List.of("select_type must be SUPERVISOR or APP"));
+        }
+        if (supervisor && StringUtils.isBlank(cmd.getModelDeploymentId())) {
             throw new AgentStudioException(StudioError.METHOD_ARGUMENT_NOT_VALID,
                 List.of("model_deployment_id is required"));
+        }
+        if (app && StringUtils.isBlank(cmd.getAppId())) {
+            throw new AgentStudioException(StudioError.METHOD_ARGUMENT_NOT_VALID,
+                List.of("app_id is required"));
+        }
+        if (supervisor && StringUtils.isNotBlank(cmd.getAppId())) {
+            throw new AgentStudioException(StudioError.METHOD_ARGUMENT_NOT_VALID,
+                List.of("app_id is not allowed for SUPERVISOR"));
+        }
+        if (app && StringUtils.isNotBlank(cmd.getModelDeploymentId())) {
+            throw new AgentStudioException(StudioError.METHOD_ARGUMENT_NOT_VALID,
+                List.of("model_deployment_id is not allowed for APP"));
+        }
+        cmd.setSelectType(selectType);
+        if (app) {
+            conversationAgentResourceResolver.requirePublished(projectId, workspaceId, cmd.getAppId());
         }
         Conversation conversation = getOwnedConversation(projectId, workspaceId, conversationId);
         conversationWorkspaceAccessGuard.requireAccess(projectId, workspaceId);
@@ -202,6 +229,7 @@ public class ConversationWorkspaceAppService {
             .role("user")
             .content(cmd.getQuery())
             .executionRef(new ExecutionRef(executionId, null, null))
+            .fileRefs(toFileRefs(cmd.getFileIds()))
             .modelDeploymentId(cmd.getModelDeploymentId())
             .event("user_message")
             .createdAt(new Date())
@@ -234,6 +262,16 @@ public class ConversationWorkspaceAppService {
         return conversation;
     }
 
+    private List<FileRef> toFileRefs(List<java.util.Map<String, String>> fileIds) {
+        if (fileIds == null || fileIds.isEmpty()) {
+            return null;
+        }
+        return fileIds.stream()
+            .map(item -> new FileRef(item.get("url"), item.get("fileName")))
+            .filter(item -> StringUtils.isNotBlank(item.getKey()))
+            .toList();
+    }
+
     private MessageVo toMessageVo(ConversationMessage message) {
         return MessageVo.builder()
             .role(message.getRole())
@@ -241,8 +279,7 @@ public class ConversationWorkspaceAppService {
             .toolId(message.getToolRef() == null ? null : message.getToolRef().getToolId())
             .toolArgs(message.getToolRef() == null ? null : message.getToolRef().getArgs())
             .fileIds(message.getFileRefs() == null ? null
-                : com.alibaba.fastjson2.JSON.toJSONString(
-                    message.getFileRefs().stream().map(f -> f.getKey()).toList()))
+                : com.alibaba.fastjson2.JSON.toJSONString(message.getFileRefs()))
             .executionId(message.getExecutionRef() == null ? null : message.getExecutionRef().getExecutionId())
             .subExecutionId(message.getExecutionRef() == null ? null : message.getExecutionRef().getSubExecutionId())
             .agentId(message.getExecutionRef() == null ? null : message.getExecutionRef().getAgentId())
