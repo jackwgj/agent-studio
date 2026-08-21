@@ -1,5 +1,6 @@
 import {
   Component,
+  Inject,
   OnDestroy,
   OnInit,
   ChangeDetectionStrategy,
@@ -7,6 +8,7 @@ import {
   ViewChild,
   ElementRef,
 } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { COMMON_MODULES, LIB_MODULES } from '@shared/modules';
@@ -135,9 +137,11 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
   private sessionListState: SessionListState = { workspaceId: '', generation: 0, sessions: [] };
   private pendingRouteConversation: PendingRouteConversation | null = null;
   private pendingActiveSession: PendingActiveSession | null = null;
+  private documentMinWidthBeforeWorkspace: string | null = null;
   private readonly workspaceChangeHandler = () => this.handleWorkspaceChange();
 
   constructor(
+    @Inject(DOCUMENT) private document: Document,
     private conversationWorkspaceService: ConversationWorkspaceService,
     private modelManagementService: ModelManagementService,
     private appAgentRepoService: AppAgentRepoService,
@@ -148,6 +152,7 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    this.enableResponsiveDocumentWidth();
     this.workspaceId = this.http.getWorkspaceId();
     this.workspaceRouteProvenance = sessionStorage.getItem(this.workspaceRouteProvenanceKey) ?? '';
     this.loadSkillCatalog();
@@ -187,6 +192,7 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.destroyed = true;
+    this.restoreDocumentMinWidth();
     this.clearPendingRouteConversation();
     this.clearPendingActiveSession();
     this.invalidateCatalogRequests();
@@ -204,6 +210,29 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
         }
       }
     }
+  }
+
+  /** 官方控制台全局固定了 html 最小宽度；仅在工作台存活期间解除，离开后完整恢复。 */
+  private enableResponsiveDocumentWidth(): void {
+    if (this.documentMinWidthBeforeWorkspace !== null) {
+      return;
+    }
+    const documentElement = this.document.documentElement;
+    this.documentMinWidthBeforeWorkspace = documentElement.style.minWidth;
+    documentElement.style.minWidth = '0px';
+  }
+
+  private restoreDocumentMinWidth(): void {
+    if (this.documentMinWidthBeforeWorkspace === null) {
+      return;
+    }
+    const documentElement = this.document.documentElement;
+    if (this.documentMinWidthBeforeWorkspace) {
+      documentElement.style.minWidth = this.documentMinWidthBeforeWorkspace;
+    } else {
+      documentElement.style.removeProperty('min-width');
+    }
+    this.documentMinWidthBeforeWorkspace = null;
   }
 
   /** 模型列表（复用平台 getAvailableModelList） */

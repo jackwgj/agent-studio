@@ -3,9 +3,9 @@
   display: flex;
   justify-content: stretch;
   align-items: stretch;
-  padding: 16px;
+  padding: 0;
   overflow: hidden;
-  background: #f5f5f7;
+  background: #fff;
 }
 
 .chat-area {
@@ -17,9 +17,9 @@
   flex-direction: column;
   min-width: 0;
   background: #fff;
-  border: 1px solid #e8e8e8;
-  border-radius: 24px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
   overflow: hidden;
 
   .chat-header {
@@ -33,7 +33,9 @@
 
   .message-list {
     flex: 1;
+    min-width: 0;
     overflow-y: auto;
+    overflow-x: hidden;
     padding: 16px;
 
     .chat-empty {
@@ -62,6 +64,7 @@
         .turn-user-content {
           white-space: pre-wrap;
           word-break: break-word;
+          overflow-wrap: anywhere;
           line-height: 1.6;
         }
 
@@ -88,10 +91,12 @@
       }
 
       .message-bubble {
+        min-width: 0;
         max-width: 75%;
         padding: 10px 12px;
         border-radius: 8px;
         background: #f5f5f5;
+        overflow: hidden;
 
         .message-role {
           font-size: 11px;
@@ -100,7 +105,9 @@
         }
 
         .message-content {
+          min-width: 0;
           word-break: break-word;
+          overflow-wrap: anywhere;
           line-height: 1.45;
           display: flex;
           flex-direction: column;
@@ -109,9 +116,12 @@
           .markdown-segment {
             display: block;
             min-width: 0;
+            max-width: 100%;
+            overflow: hidden;
 
             ::ng-deep .answer,
             ::ng-deep .markdown-body {
+              max-width: 100%;
               margin: 0;
               padding: 0;
               background: transparent;
@@ -119,6 +129,7 @@
               box-shadow: none;
               font-size: 14px;
               line-height: 1.55;
+              overflow-wrap: anywhere;
             }
 
             ::ng-deep .markdown-body h1,
@@ -137,6 +148,13 @@
             ::ng-deep .markdown-body table {
               margin-top: 5px;
               margin-bottom: 5px;
+            }
+
+            ::ng-deep .markdown-body pre,
+            ::ng-deep .markdown-body table {
+              display: block;
+              max-width: 100%;
+              overflow-x: auto;
             }
 
             ::ng-deep .markdown-body p:first-child,
@@ -227,15 +245,26 @@
   }
 
   .chat-composer {
+    box-sizing: border-box;
+    flex: 0 0 auto;
+    align-self: center;
+    position: relative;
+    z-index: 2;
     display: flex;
     flex-direction: column;
     gap: 8px;
-    margin: 0 16px 16px;
+    width: min(calc(100% - 64px), 1600px);
+    margin: 0 auto 24px;
     padding: 12px;
     border: 1px solid #e5e6eb;
     border-radius: 18px;
     background: #fff;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.08);
+
+    app-skill-selector {
+      display: block;
+      min-width: 0;
+    }
 
     .conversation-attachments {
       display: flex;
@@ -291,8 +320,10 @@
 
     .composer-toolbar {
       display: flex;
+      min-width: 0;
       justify-content: space-between;
       align-items: center;
+      gap: 8px;
 
       .composer-tools {
         display: flex;
@@ -313,7 +344,9 @@
 
       .composer-actions {
         display: flex;
+        min-width: 0;
         align-items: center;
+        justify-content: flex-end;
         gap: 8px;
 
         .execution-target-picker,
@@ -400,6 +433,87 @@
         .send-btn {
           width: 36px;
           height: 36px;
+        }
+      }
+    }
+  }
+}
+
+@media (max-width: 1024px) {
+  .chat-area {
+    .message-list {
+      padding: 12px;
+
+      .turn-card {
+        .turn-user,
+        .message-bubble {
+          max-width: 88%;
+        }
+      }
+    }
+
+    .chat-composer {
+      width: calc(100% - 32px);
+      margin-bottom: 16px;
+
+      .composer-actions {
+        flex: 1 1 auto;
+
+        .execution-target-picker,
+        .model-pill {
+          flex: 1 1 140px;
+          min-width: 0;
+          max-width: 176px;
+        }
+      }
+    }
+  }
+}
+
+@media (max-width: 720px) {
+  .chat-area {
+    .message-list {
+      padding: 10px;
+
+      .turn-card {
+        .turn-user,
+        .message-bubble {
+          max-width: 94%;
+        }
+      }
+    }
+
+    .chat-composer {
+      width: calc(100% - 24px);
+      margin-bottom: 12px;
+      padding: 10px;
+      border-radius: 16px;
+
+      .composer-toolbar {
+        flex-wrap: wrap;
+      }
+
+      .composer-tools {
+        flex: 0 0 auto;
+      }
+
+      .composer-actions {
+        flex: 1 1 100%;
+        width: 100%;
+
+        .execution-target-picker,
+        .model-pill {
+          flex: 1 1 0;
+          width: auto;
+          max-width: none;
+        }
+
+        .model-empty {
+          flex: 1 1 auto;
+        }
+
+        .send-btn {
+          flex: 0 0 auto;
         }
       }
     }

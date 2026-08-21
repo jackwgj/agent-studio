@@ -85,6 +85,14 @@ describe('ConversationWorkspaceComponent', () => {
     expect(fixture.nativeElement.querySelector('.chat-composer > .composer-toolbar')).not.toBeNull();
   });
 
+  it('进入工作台时解除全局最小宽度，并在销毁时恢复，避免影响其他页面', () => {
+    expect(document.documentElement.style.minWidth).toBe('0px');
+
+    fixture.destroy();
+
+    expect(document.documentElement.style.minWidth).toBe('');
+  });
+
   it('发送时只提交有序推荐 ID，并且只在 SSE open 后清空输入和选择', () => {
     (component as any).recommendedSkills = [skill('s2'), skill('s1')];
     component.currentSession = session('c1');
