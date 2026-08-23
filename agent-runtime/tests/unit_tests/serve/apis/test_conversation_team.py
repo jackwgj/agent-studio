@@ -162,6 +162,7 @@ async def test_team_stream_converts_manager_catalog_to_runtime_descriptors(monke
     async def run_supervisor(*_args):
         yield {"event": "message", "data": {"delta": "已整理"}, "executionId": "e1"}
 
+    monkeypatch.setenv("CONVERSATION_TEAM_USE_LEGACY_SUPERVISOR", "true")
     monkeypatch.setattr("agent_runtime.serve.apis.conversation_team.build_supervisor", build_supervisor)
     monkeypatch.setattr("agent_runtime.serve.apis.conversation_team.run_supervisor", run_supervisor)
 
@@ -253,6 +254,7 @@ async def test_outer_sse_close_waits_for_runner_cleanup_in_the_consuming_context
         skill_id="s1", version_id="v1", name="会议纪要", description="整理会议",
         object_key="u/skills/s1/v1/a.zip",
     )], [], SimpleNamespace())
+    monkeypatch.setenv("CONVERSATION_TEAM_USE_LEGACY_SUPERVISOR", "true")
     monkeypatch.setattr(conversation_team_module, "build_supervisor", AsyncMock(return_value=agent))
     monkeypatch.setattr(runner_module, "create_agent_session", lambda **_kwargs: object())
     monkeypatch.setattr(
@@ -296,6 +298,7 @@ async def test_streaming_response_disconnect_closes_body_in_its_consuming_contex
         skill_id="s1", version_id="v1", name="会议纪要", description="整理会议",
         object_key="u/skills/s1/v1/a.zip",
     )], [], SimpleNamespace())
+    monkeypatch.setenv("CONVERSATION_TEAM_USE_LEGACY_SUPERVISOR", "true")
     monkeypatch.setattr(conversation_team_module, "build_supervisor", AsyncMock(return_value=agent))
     monkeypatch.setattr(runner_module, "create_agent_session", lambda **_kwargs: object())
     monkeypatch.setattr(

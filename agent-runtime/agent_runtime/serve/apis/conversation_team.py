@@ -12,6 +12,7 @@ tool_result/sub_start/sub_done/run_done/usage/error），暴露执行边界给�
 """
 
 import logging
+import os
 import uuid
 
 from fastapi import APIRouter, Request
@@ -19,6 +20,10 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from agent_runtime.supervisor.builder import build_supervisor, normalize_skill_inputs
+from agent_runtime.supervisor.conversation_supervisor_builder import (
+    build_conversation_supervisor_config,
+)
+from agent_runtime.conversation.supervisor_runner import run_conversation_supervisor
 from agent_runtime.supervisor.common.constants import TeamEventField
 from agent_runtime.supervisor.event.adapt import build_error, build_run_start, build_user_message, sse_line
 from agent_runtime.supervisor.runner import run_supervisor
@@ -151,15 +156,26 @@ async def team_sse_stream(req: ConversationTeamReq, execution_id: str | None = N
             skill_catalog, recommended_skill_ids = normalize_skill_inputs(
                 skill_catalog, req.recommended_skill_ids
             )
-            agent = await build_supervisor(
-                sub_agent_ids=req.sub_agent_ids,
-                model_deployment_id=req.model_deployment_id,
-                conversation_history=req.conversation_history,
-                skill_catalog=skill_catalog,
-                recommended_skill_ids=recommended_skill_ids,
-                file_references=req.file_ids,
-            )
-            runner = run_supervisor(agent, req.query, req.conversation_id, execution_id)
+            if os.environ.get("CONVERSATION_TEAM_USE_LEGACY_SUPERVISOR", "false").lower() == "true":
+                agent = await build_supervisor(
+                    sub_agent_ids=req.sub_agent_ids,
+                    model_deployment_id=req.model_deployment_id,
+                    conversation_history=req.conversation_history,
+                    skill_catalog=skill_catalog,
+                    recommended_skill_ids=recommended_skill_ids,
+                    file_references=req.file_ids,
+                )
+                runner = run_supervisor(agent, req.query, req.conversation_id, execution_id)
+            else:
+                # The new main path owns Runner execution. Skill attachment remains
+                # on the legacy path until Phase 5, so Phase 4 changes only routing.
+                supervisor_config = await build_conversation_supervisor_config(
+                    sub_agent_ids=req.sub_agent_ids,
+                    model_deployment_id=req.model_deployment_id,
+                    conversation_history=req.conversation_history,
+                    file_references=req.file_ids,
+                )
+                runner = run_conversation_supervisor(req, execution_id, supervisor_config)
 
         async for event in runner:
             event[TeamEventField.INDEX] = index  # 统一占序，覆盖增量事件自带 index

@@ -7,7 +7,10 @@ import json
 import logging
 from typing import Any, AsyncGenerator
 
-from agent_runtime.serve.apis.orchestration import _get_runner_by_type, prepare_params
+from agent_runtime.serve.apis.orchestration import prepare_params
+from agent_runtime.conversation.runner.conversation_runner_factory import (
+    ConversationRunnerFactory,
+)
 from agent_runtime.schemas.orchestration_mgr import ExecutionRequest, ExecutionParams
 from jiuwen.serve.controllers.execution.open_utils import async_ir_load
 from agent_runtime.supervisor.event.adapt import (
@@ -20,6 +23,7 @@ from agent_runtime.supervisor.event.adapt import (
 )
 
 logger = logging.getLogger(__name__)
+_conversation_runner_factory = ConversationRunnerFactory()
 
 
 def _event_payload(raw: Any) -> dict | None:
@@ -159,7 +163,7 @@ async def stream_application(
         headers={},
     )
     execution_request.params = prepare_params(execution_request)
-    runner = _get_runner_by_type(mode)
+    runner = _conversation_runner_factory.get(mode)
     raw_stream = runner.run_streaming(execution_request, execution_id)
     async for raw in raw_stream:
         event = _adapt_event(raw, execution_id)
