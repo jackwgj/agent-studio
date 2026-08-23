@@ -41,6 +41,19 @@ async def run_conversation_supervisor(
                 "conversationTeam": {
                     "type": "SUPERVISOR",
                     "subAgentIds": list(req.sub_agent_ids),
+                    "skillCatalog": [
+                        {
+                            "skillId": item.skill_id,
+                            "versionId": item.version_id,
+                            "name": item.name,
+                            "description": item.description,
+                            "objectKey": item.object_key,
+                        }
+                        for item in (getattr(req, "skill_catalog", None) or [])
+                    ],
+                    "recommendedSkillIds": list(
+                        getattr(req, "recommended_skill_ids", None) or []
+                    ),
                 },
             },
             pluginConfigs=[],

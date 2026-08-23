@@ -12,6 +12,12 @@ from typing import AsyncGenerator, Dict, Optional
 
 from agent_runtime.conversation.config.supervisor_config import SupervisorConfig
 from agent_runtime.runner.react_agent_runner import ReActAgentRunner
+from agent_runtime.supervisor.skill_context import (
+    attach as attach_skill_context,
+    bind_agent_skill_context,
+    reset_skill_context,
+)
+from agent_runtime.supervisor.skill_model import SkillDescriptor
 from agent_runtime.runner.react_stream_data_adapter import ReactStreamDataAdapter
 from agent_runtime.schemas.orchestration_mgr import ExecutionRequest
 from openjiuwen.core.common.logging import workflow_logger
@@ -31,6 +37,27 @@ class ConversationReActRunner(ReActAgentRunner):
     def _get_request_ir(req: ExecutionRequest) -> dict | None:
         """Return a request-local IR snapshot when one was prepared by conversation."""
         return getattr(req.params, "ir_cache", None)
+
+    @staticmethod
+    async def _attach_supervisor_skill_context(agent, team_config: dict) -> None:
+        """Attach the request-scoped workspace Skill catalog to Supervisor only."""
+        catalog = [
+            SkillDescriptor(
+                skill_id=item.get("skillId") or item.get("skill_id") or "",
+                version_id=item.get("versionId") or item.get("version_id") or "",
+                name=item.get("name") or "",
+                description=item.get("description") or "",
+                object_key=item.get("objectKey") or item.get("object_key") or "",
+            )
+            for item in team_config.get("skillCatalog") or []
+        ]
+        recommended = list(
+            team_config.get("recommendedSkillIds")
+            or team_config.get("recommended_skill_ids")
+            or []
+        )
+        if catalog:
+            await attach_skill_context(agent, catalog, recommended)
 
     async def _register_supervisor_handoff_tools(
         self, agent, agent_ids: list[str]
@@ -111,10 +138,15 @@ class ConversationReActRunner(ReActAgentRunner):
                 self._register_file_reader_tool(agent, agent_id)
 
             team_config = (global_variables or {}).get("conversationTeam") or {}
+            skill_token = None
             if team_config.get("type") == "SUPERVISOR":
+                await self._attach_supervisor_skill_context(agent, team_config)
                 await self._register_supervisor_handoff_tools(
                     agent, list(team_config.get("subAgentIds") or [])
                 )
+                skill_token = bind_agent_skill_context(agent)
+            else:
+                skill_token = None
         except Exception as error:
             workflow_logger.error("Failed to register conversation tools: %s", error)
             yield adapter.adapt_error(f"Failed to register tools: {error}")
@@ -204,3 +236,5 @@ class ConversationReActRunner(ReActAgentRunner):
         finally:
             if session is not None:
                 await session.post_run()
+            if skill_token is not None:
+                reset_skill_context(skill_token)
