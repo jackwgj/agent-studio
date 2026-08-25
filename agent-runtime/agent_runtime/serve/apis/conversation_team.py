@@ -25,6 +25,7 @@ from agent_runtime.conversation.execution_context import (
     reset_conversation_execution_context,
     set_conversation_execution_context,
 )
+from agent_runtime.common.config import settings
 from agent_runtime.supervisor.builder import build_supervisor, normalize_skill_inputs
 from agent_runtime.supervisor.conversation_supervisor_builder import (
     build_conversation_supervisor_config,
@@ -158,8 +159,7 @@ async def team_sse_stream(req: ConversationTeamReq, execution_id: str | None = N
     )
     context = ConversationExecutionContext.create(
         identity,
-        os.environ.get("CONVERSATION_SANDBOX_WORKSPACE_ROOT")
-        or "/workspace",
+        settings.security_sandbox.workspace_root,
     )
     context_token = set_conversation_execution_context(context)
     runner = None

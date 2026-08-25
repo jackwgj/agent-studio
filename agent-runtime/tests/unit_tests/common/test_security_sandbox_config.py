@@ -14,6 +14,7 @@ class TestSecuritySandboxSettingsDefaults:
     @staticmethod
     def test_default_values():
         env_vars_to_clear = [
+            "CONVERSATION_SANDBOX_WORKSPACE_ROOT",
             "SECURITY_SANDBOX_SERVER",
             "SECURITY_SANDBOX_SSL_VERIFY",
             "SECURITY_SANDBOX_IDLE_TTL",
@@ -28,6 +29,7 @@ class TestSecuritySandboxSettingsDefaults:
             assert s.idle_ttl_seconds == 600
             assert s.timeout_seconds == 300
             assert s.scope == "system"
+            assert s.workspace_root == "/workspace"
         finally:
             for k, v in saved.items():
                 if v is not None:
@@ -75,6 +77,31 @@ class TestSecuritySandboxSettingsDefaults:
             s = SecuritySandboxSettings()
             assert s.scope == "system"
 
+    @staticmethod
+    def test_workspace_root_normalizes_trailing_slash():
+        with patch.dict(os.environ, {"CONVERSATION_SANDBOX_WORKSPACE_ROOT": "/sandbox/conversations/"}):
+            s = SecuritySandboxSettings()
+            assert s.workspace_root == "/sandbox/conversations"
+
+    @staticmethod
+    @pytest.mark.parametrize(
+        "workspace_root",
+        [
+            "",
+            "   ",
+            "workspace",
+            "../workspace",
+            "/workspace/../other",
+            "C:/workspace",
+            r"C:\\workspace",
+            r"\\workspace",
+        ],
+    )
+    def test_workspace_root_rejects_non_posix_absolute_paths(workspace_root):
+        with patch.dict(os.environ, {"CONVERSATION_SANDBOX_WORKSPACE_ROOT": workspace_root}):
+            with pytest.raises(ValidationError, match="CONVERSATION_SANDBOX_WORKSPACE_ROOT"):
+                SecuritySandboxSettings()
+
 
 class TestSettingsIntegration:
     @staticmethod
@@ -85,6 +112,7 @@ class TestSettingsIntegration:
     @staticmethod
     def test_settings_security_sandbox_defaults():
         env_vars_to_clear = [
+            "CONVERSATION_SANDBOX_WORKSPACE_ROOT",
             "SECURITY_SANDBOX_SERVER",
             "SECURITY_SANDBOX_SSL_VERIFY",
             "SECURITY_SANDBOX_IDLE_TTL",
@@ -99,6 +127,7 @@ class TestSettingsIntegration:
             assert s.idle_ttl_seconds == 600
             assert s.timeout_seconds == 300
             assert s.scope == "system"
+            assert s.workspace_root == "/workspace"
         finally:
             for k, v in saved.items():
                 if v is not None:

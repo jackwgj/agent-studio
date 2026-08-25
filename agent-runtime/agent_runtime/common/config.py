@@ -2,6 +2,7 @@
 # Copyright (c) Huawei Technologies Co., Ltd. 2026. All rights reserved.
 
 from enum import Enum
+from pathlib import PurePosixPath
 from typing import Literal, Optional
 
 from pydantic import Field, field_validator, model_validator
@@ -162,6 +163,30 @@ class SecuritySandboxSettings(BaseSettings):
         default="aio", validation_alias="SECURITY_SANDBOX_TYPE"
     )
     scope: str = Field(default="system", validation_alias="SECURITY_SANDBOX_SCOPE")
+    workspace_root: str = Field(
+        default="/workspace", validation_alias="CONVERSATION_SANDBOX_WORKSPACE_ROOT"
+    )
+
+    @field_validator("workspace_root")
+    @classmethod
+    def _validate_workspace_root(cls, value: str) -> str:
+        if not value or not value.strip():
+            raise ValueError("CONVERSATION_SANDBOX_WORKSPACE_ROOT must not be blank")
+        if "\\" in value:
+            raise ValueError(
+                "CONVERSATION_SANDBOX_WORKSPACE_ROOT must be an absolute POSIX path"
+            )
+
+        workspace_root = PurePosixPath(value)
+        if not workspace_root.is_absolute() or workspace_root.root != "/":
+            raise ValueError(
+                "CONVERSATION_SANDBOX_WORKSPACE_ROOT must be an absolute POSIX path"
+            )
+        if ".." in workspace_root.parts:
+            raise ValueError(
+                "CONVERSATION_SANDBOX_WORKSPACE_ROOT must not contain '..' segments"
+            )
+        return str(workspace_root)
 
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore"

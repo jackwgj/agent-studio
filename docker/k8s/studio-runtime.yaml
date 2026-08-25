@@ -107,6 +107,9 @@ spec:
               value: '300'
             - name: SECURITY_SANDBOX_SCOPE
               value: 'system'
+            # 对话沙箱工作区根目录（必须为绝对 POSIX 路径）
+            - name: CONVERSATION_SANDBOX_WORKSPACE_ROOT
+              value: '/workspace'
             # ======== [选填] OpenSearch（启用记忆库时必填） ========
             # 格式: host:port，多节点用逗号分隔
             - name: OPENSEARCH_HOSTS

@@ -16,7 +16,7 @@
 
 ## 3. Docker Volume 与部署约束
 
-- [ ] 3.1 增加 `CONVERSATION_SANDBOX_WORKSPACE_ROOT` 配置并以 `/workspace` 为默认值，完成启动配置校验，验证相对路径、父目录穿越或非 POSIX 根路径会给出明确错误
+- [x] 3.1 增加 `CONVERSATION_SANDBOX_WORKSPACE_ROOT` 配置并以 `/workspace` 为默认值，完成启动配置校验，验证相对路径、父目录穿越或非 POSIX 根路径会给出明确错误
 - [ ] 3.2 在 AIO 部署编排中把命名 Docker Volume 挂载到 `/workspace`，核对 Manager 不挂载该 Volume，并通过容器内挂载点检查验证配置生效
 - [ ] 3.3 增加“更新不得执行 `down -v` 或删除命名 Volume”的部署说明和检查脚本，并验证危险命令能被检查流程识别
 - [ ] 3.4 执行 AIO Volume 可写与容器重建冒烟测试，验证 `/workspace` 可写、已有会话的 `input/skills/work` 文件保留且新 execution 获得独立 `output/tmp`

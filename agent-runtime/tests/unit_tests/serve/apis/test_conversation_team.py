@@ -270,7 +270,15 @@ async def test_team_stream_rejects_recommended_skill_outside_manager_catalog(mon
 
 @pytest.mark.asyncio
 async def test_team_stream_binds_before_first_event_and_resets_when_closed_immediately(monkeypatch):
-    monkeypatch.setenv("CONVERSATION_SANDBOX_WORKSPACE_ROOT", "/sandbox/conversations")
+    monkeypatch.setenv("CONVERSATION_SANDBOX_WORKSPACE_ROOT", "/ignored-by-stream")
+    monkeypatch.setattr(
+        conversation_team_module,
+        "settings",
+        SimpleNamespace(
+            security_sandbox=SimpleNamespace(workspace_root="/sandbox/conversations/")
+        ),
+        raising=False,
+    )
     stream = team_sse_stream(
         ConversationTeamReq.model_validate(request_payload()),
         "execution-first",
