@@ -17,6 +17,7 @@ import com.openjiuwen.studio.conversation.application.dto.ConversationSkillDescr
 import com.openjiuwen.studio.conversation.application.dto.ConversationVo;
 import com.openjiuwen.studio.conversation.application.dto.MessageVo;
 import com.openjiuwen.studio.conversation.application.dto.SendMessageCmd;
+import com.openjiuwen.studio.conversation.application.dto.ConversationInputFileRef;
 import com.openjiuwen.studio.conversation.domain.model.Conversation;
 import com.openjiuwen.studio.conversation.domain.model.ConversationMessage;
 import com.openjiuwen.studio.conversation.domain.repository.ConversationRepository;
@@ -148,7 +149,8 @@ class ConversationWorkspaceAppServiceTest {
     @Test
     void listSkills_暴露固定路由并转发工作空间参数() throws NoSuchMethodException {
         ConversationWorkspaceAppService controllerAppService = mock(ConversationWorkspaceAppService.class);
-        ConversationWorkspaceController controller = new ConversationWorkspaceController(controllerAppService);
+        ConversationWorkspaceController controller = new ConversationWorkspaceController(
+            controllerAppService, mock(ConversationInputUploadService.class));
         List<ConversationSkillVo> expected = List.of(ConversationSkillVo.builder().skillId("s1").build());
         when(controllerAppService.listSkills("p1", "w1")).thenReturn(expected);
 
@@ -336,6 +338,28 @@ class ConversationWorkspaceAppServiceTest {
         assertEquals(1, appended.size());
         assertEquals("user", appended.get(0).getRole());
         assertEquals("你好", appended.get(0).getContent());
+    }
+
+    @Test
+    void sendMessage_拒绝前缀内伪造路径和不一致文件名且不落库() {
+        Conversation conv = ownedConversation("c1");
+        when(repository.findById("c1")).thenReturn(Optional.of(conv));
+        SendMessageCmd cmd = validCmd(List.of());
+        ConversationInputFileRef ref = new ConversationInputFileRef();
+        String prefix = "conversation-inputs/" + ConversationInputUploadService.sha256("p1") + "/"
+            + ConversationInputUploadService.sha256("w1") + "/"
+            + ConversationInputUploadService.sha256("u1") + "/";
+        ref.setObjectKey(prefix + "../00000000-0000-0000-0000-000000000001/report.pdf");
+        ref.setFileName("renamed.pdf");
+        ref.setSize(4);
+        ref.setChecksum("0".repeat(64));
+        cmd.setFileIds(List.of(ref));
+
+        assertThrows(AgentStudioException.class,
+            () -> appService.sendMessage("p1", "w1", "c1", cmd, new HttpHeaders()));
+
+        verify(repository, never()).appendMessages(anyString(), anyList());
+        verifyNoInteractions(runtimeAdapter);
     }
 
     @Test

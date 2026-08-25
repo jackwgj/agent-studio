@@ -6,6 +6,7 @@ import com.openjiuwen.studio.agent.common.utils.OkHttpClientUtils;
 import com.openjiuwen.studio.agent.common.utils.RequestContextUtils;
 import com.openjiuwen.studio.conversation.application.dto.ConversationSkillContext;
 import com.openjiuwen.studio.conversation.application.dto.ConversationSkillDescriptor;
+import com.openjiuwen.studio.conversation.application.dto.ConversationInputFileRef;
 import com.openjiuwen.studio.conversation.application.dto.SendMessageCmd;
 import com.openjiuwen.studio.conversation.domain.model.Conversation;
 import com.openjiuwen.studio.conversation.domain.repository.ConversationRepository;
@@ -141,7 +142,12 @@ class AgentRuntimeAdapterTest {
         SendMessageCmd cmd = new SendMessageCmd();
         cmd.setQuery("总结附件");
         cmd.setModelDeploymentId("m1");
-        cmd.setFileIds(List.of(Map.of("url", "https://files.test/report.pdf", "fileName", "report.pdf")));
+        ConversationInputFileRef input = new ConversationInputFileRef();
+        input.setObjectKey("conversation-inputs/project/workspace/file-report.pdf");
+        input.setFileName("report.pdf");
+        input.setSize(4);
+        input.setChecksum("3a6eb0790f39ac87c94f3856b2dd2c5d110e6811602261a9a923d3bb23adc8b7");
+        cmd.setFileIds(List.of(input));
 
         Map<String, Object> body = adapter.buildRequestBody(conv, cmd, List.of(), ConversationSkillContext.empty());
 

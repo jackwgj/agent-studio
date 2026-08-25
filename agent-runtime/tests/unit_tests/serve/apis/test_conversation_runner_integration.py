@@ -105,8 +105,8 @@ async def test_team_stream_defaults_to_new_supervisor_path(monkeypatch):
         called["config"] = kwargs
         return SimpleNamespace()
 
-    async def new_runner(req, execution_id, config):
-        called["run"] = (req, execution_id, config)
+    async def new_runner(req, execution_id, config, prepared_file_references=None):
+        called["run"] = (req, execution_id, config, prepared_file_references)
         yield {"event": "message", "data": {"delta": "new-path"}}
 
     async def old_builder(**_kwargs):
@@ -175,8 +175,11 @@ async def test_app_react_uses_conversation_runner_factory(monkeypatch):
         execution_id="execution-1",
     ), "/sandbox/root")
     token = execution_context_module.set_conversation_execution_context(context)
+    prepared_inputs = [{"fileName": "report.pdf", "path": "/sandbox/root/input/a/report.pdf"}]
     try:
-        events = [event async for event in conversation_team_app.stream_application(req, "ignored-execution")]
+        events = [event async for event in conversation_team_app.stream_application(
+            req, "ignored-execution", prepared_inputs
+        )]
     finally:
         execution_context_module.reset_conversation_execution_context(token)
 
@@ -194,5 +197,6 @@ async def test_app_react_uses_conversation_runner_factory(monkeypatch):
     assert global_variables["workspaceId"] == "trusted-workspace"
     assert global_variables["userId"] == "trusted-user"
     assert global_variables["executionId"] == "execution-1"
+    assert global_variables["conversationInputFiles"] == prepared_inputs
     assert [event["event"] for event in events] == ["message", "run_done"]
     assert events[0]["data"]["delta"] == "app-answer"

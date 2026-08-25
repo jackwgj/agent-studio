@@ -133,6 +133,7 @@ def _adapt_event(raw: Any, execution_id: str) -> dict | None:
 async def stream_application(
     req: Any,
     execution_id: str,
+    prepared_file_references: list[dict] | None = None,
 ) -> AsyncGenerator[dict, None]:
     """执行用户 APP 并输出统一 TeamEvent。"""
     execution_context = get_conversation_execution_context().for_child_call()
@@ -161,6 +162,7 @@ async def stream_application(
             "workspaceId": identity.workspace_id,
             "userId": identity.user_id,
             "executionId": identity.execution_id,
+            "conversationInputFiles": list(prepared_file_references or []),
         },
         pluginConfigs=[],
         toolSwitchDict={},

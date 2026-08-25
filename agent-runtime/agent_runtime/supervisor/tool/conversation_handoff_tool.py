@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import AsyncGenerator
+from types import MappingProxyType
 
 from agent_runtime.conversation.execution_context import (
     get_conversation_execution_context,
@@ -37,6 +38,19 @@ _runner_factory = ConversationRunnerFactory()
 class ConversationHandoffTool(HandoffTool):
     """Supervisor-only handoff that delegates child execution to the new runner."""
 
+    def __init__(
+        self,
+        agent_id: str,
+        description: str,
+        prepared_file_references: list[dict] | None = None,
+    ) -> None:
+        super().__init__(agent_id=agent_id, description=description)
+        self._prepared_file_references = tuple(
+            MappingProxyType(dict(item))
+            for item in (prepared_file_references or [])
+            if isinstance(item, dict) and item.get("path")
+        )
+
     async def build_child_request(
         self,
         query: str,
@@ -57,6 +71,7 @@ class ConversationHandoffTool(HandoffTool):
                 "userId": identity.user_id,
                 "executionId": identity.execution_id,
                 "subExecutionId": sub_execution_id,
+                "conversationInputFiles": [dict(item) for item in self._prepared_file_references],
             },
             pluginConfigs=[],
             toolSwitchDict={},

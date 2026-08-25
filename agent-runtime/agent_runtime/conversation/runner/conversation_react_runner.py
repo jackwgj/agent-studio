@@ -61,7 +61,7 @@ class ConversationReActRunner(ReActAgentRunner):
             await attach_skill_context(agent, catalog, recommended)
 
     async def _register_supervisor_handoff_tools(
-        self, agent, agent_ids: list[str]
+        self, agent, agent_ids: list[str], prepared_file_references: list[dict] | None = None
     ) -> None:
         """Attach only built-in Supervisor handoff tools to this request's Agent."""
         from openjiuwen.core.runner import Runner
@@ -72,7 +72,11 @@ class ConversationReActRunner(ReActAgentRunner):
 
         for agent_id in agent_ids:
             description = await _load_sub_agent_description(agent_id)
-            tool = ConversationHandoffTool(agent_id=agent_id, description=description)
+            tool = ConversationHandoffTool(
+                agent_id=agent_id,
+                description=description,
+                prepared_file_references=prepared_file_references,
+            )
             result = agent.ability_manager.add(tool.card)
             if result.added and Runner.resource_mgr.get_tool(tool.card.id) is None:
                 Runner.resource_mgr.add_tool(tool)
@@ -114,6 +118,18 @@ class ConversationReActRunner(ReActAgentRunner):
         has_file_links = self._has_file_links(query)
         conversation_history = req.params.conversation_history
         global_variables = req.params.global_variables or {}
+        prepared_inputs = list(global_variables.get("conversationInputFiles") or [])
+        if prepared_inputs:
+            input_lines = [
+                "以下本轮上传文件已准备到当前会话沙箱 input 目录；只能使用这些沙箱路径："
+            ]
+            for item in prepared_inputs:
+                if isinstance(item, dict) and item.get("path"):
+                    input_lines.append(
+                        f"- {item.get('fileName') or '未命名文件'}: {item['path']}"
+                    )
+            if len(input_lines) > 1:
+                query = f"{query}\n\n" + "\n".join(input_lines)
 
         try:
             agent, agent_id = self._create_agent(
@@ -147,7 +163,9 @@ class ConversationReActRunner(ReActAgentRunner):
                 if team_config.get("type") == "SUPERVISOR":
                     await self._attach_supervisor_skill_context(agent, team_config)
                     await self._register_supervisor_handoff_tools(
-                        agent, list(team_config.get("subAgentIds") or [])
+                        agent,
+                        list(team_config.get("subAgentIds") or []),
+                        list(global_variables.get("conversationInputFiles") or []),
                     )
                     skill_token = bind_agent_skill_context(agent)
             except Exception as error:

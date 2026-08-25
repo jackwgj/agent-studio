@@ -44,6 +44,7 @@ describe('ConversationWorkspaceComponent', () => {
       setActiveSession: jasmine.createSpy('setActiveSession').and.callFake((item: SessionItem | null) => service.activeSession$.next(item)),
       newDraftSession: jasmine.createSpy('newDraftSession'),
       listSkills: jasmine.createSpy('listSkills').and.resolveTo([skill('s1')]),
+      uploadInputFile: jasmine.createSpy('uploadInputFile').and.resolveTo({}),
       chatSSE: jasmine.createSpy('chatSSE').and.returnValue({ close: jasmine.createSpy('close') }),
     };
     routeParams = new BehaviorSubject({});
@@ -112,18 +113,20 @@ describe('ConversationWorkspaceComponent', () => {
     expect((component as any).recommendedSkills).toEqual([]);
   });
 
-  it('发送时携带本轮上传成功文件的 URL 和文件名', () => {
+  it('发送时携带本轮上传成功文件的持久对象元数据', () => {
     component.currentSession = session('c1');
     component.inputText = '总结附件';
     (component as any).uploadedFiles = [
-      { url: 'https://files.test/report.pdf', fileName: 'report.pdf', progress: 'succeeded' },
-      { url: '', fileName: 'failed.txt', progress: 'failed' },
+      { objectKey: 'conversation-inputs/p/w/u/file-report.pdf', fileName: 'report.pdf', size: 4,
+        checksum: '3a6eb0790f39ac87c94f3856b2dd2c5d110e6811602261a9a923d3bb23adc8b7', progress: 'succeeded' },
+      { objectKey: '', fileName: 'failed.txt', size: 0, checksum: '', progress: 'failed' },
     ];
 
     component.send();
 
     expect(service.chatSSE).toHaveBeenCalledWith('c1', jasmine.objectContaining({
-      file_ids: [{ url: 'https://files.test/report.pdf', fileName: 'report.pdf' }],
+      file_ids: [{ object_key: 'conversation-inputs/p/w/u/file-report.pdf', file_name: 'report.pdf', size: 4,
+        checksum: '3a6eb0790f39ac87c94f3856b2dd2c5d110e6811602261a9a923d3bb23adc8b7 }],
     }), jasmine.any(Object));
   });
 

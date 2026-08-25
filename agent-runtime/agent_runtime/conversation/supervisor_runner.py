@@ -29,6 +29,7 @@ async def run_conversation_supervisor(
     req,
     execution_id: str,
     supervisor_config,
+    prepared_file_references: list[dict] | None = None,
 ):
     """Consume the standard ReAct runner for the built-in Supervisor."""
     execution_context = get_conversation_execution_context().for_child_call()
@@ -47,6 +48,7 @@ async def run_conversation_supervisor(
                 "workspaceId": identity.workspace_id,
                 "userId": identity.user_id,
                 "executionId": identity.execution_id,
+                "conversationInputFiles": list(prepared_file_references or []),
                 "conversationTeam": {
                     "type": "SUPERVISOR",
                     "subAgentIds": list(req.sub_agent_ids),

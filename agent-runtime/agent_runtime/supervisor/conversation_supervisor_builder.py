@@ -7,8 +7,6 @@ from openjiuwen.core.single_agent.schema.agent_card import AgentCard
 from agent_runtime.supervisor.builder import (
     SUPERVISOR_SYSTEM_PROMPT,
     _load_sub_agent_description,
-    _register_file_reader,
-    format_file_references,
     normalize_skill_inputs,
 )
 from agent_runtime.supervisor.config import build_react_config, format_conversation_history
@@ -28,7 +26,7 @@ async def build_conversation_supervisor_config(
     system_prompt = (
         SUPERVISOR_SYSTEM_PROMPT
         + format_conversation_history(conversation_history)
-        + format_file_references(file_references)
+        + format_conversation_file_references(file_references)
     )
     return SupervisorConfig(
         agent_id="conversation_team_supervisor",
@@ -56,12 +54,18 @@ async def build_conversation_supervisor(
     tools = []
     for agent_id in sub_agent_ids:
         description = await _load_sub_agent_description(agent_id)
-        tools.append(ConversationHandoffTool(agent_id=agent_id, description=description))
+        tools.append(
+            ConversationHandoffTool(
+                agent_id=agent_id,
+                description=description,
+                prepared_file_references=file_references,
+            )
+        )
 
     system_prompt = (
         SUPERVISOR_SYSTEM_PROMPT
         + format_conversation_history(conversation_history)
-        + format_file_references(file_references)
+        + format_conversation_file_references(file_references)
     )
     agent = ReActAgent(
         card=AgentCard(
@@ -72,9 +76,6 @@ async def build_conversation_supervisor(
     )
     agent.configure(build_react_config(system_prompt, model_deployment_id))
     await attach_skill_context(agent, skill_catalog, recommended_skill_ids)
-    if file_references:
-        _register_file_reader(agent)
-
     for tool in tools:
         result = agent.ability_manager.add(tool.card)
         if result.added:
@@ -82,3 +83,16 @@ async def build_conversation_supervisor(
             if existing is None:
                 Runner.resource_mgr.add_tool(tool)
     return agent
+
+
+def format_conversation_file_references(file_references: list[dict] | None) -> str:
+    """Expose only server-derived sandbox paths; no URL reader is registered."""
+    if not file_references:
+        return ""
+    lines = ["\n\n## 本轮上传文件", "以下文件已准备到当前会话沙箱 input 目录，可按路径读取。"]
+    for item in file_references:
+        file_name = str(item.get("fileName") or item.get("file_name") or "未命名文件")
+        path = str(item.get("path") or "")
+        if path:
+            lines.append(f"- **{file_name}**: {path}")
+    return "\n".join(lines) if len(lines) > 2 else ""

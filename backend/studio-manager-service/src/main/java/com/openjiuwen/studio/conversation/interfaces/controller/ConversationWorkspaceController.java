@@ -6,11 +6,13 @@ package com.openjiuwen.studio.conversation.interfaces.controller;
 
 import com.openjiuwen.studio.agent.foundation.connection.model.PageResult;
 import com.openjiuwen.studio.conversation.application.ConversationWorkspaceAppService;
+import com.openjiuwen.studio.conversation.application.ConversationInputUploadService;
 import com.openjiuwen.studio.conversation.application.dto.ConversationCreateCmd;
 import com.openjiuwen.studio.conversation.application.dto.ConversationDetailVo;
 import com.openjiuwen.studio.conversation.application.dto.ConversationListQuery;
 import com.openjiuwen.studio.conversation.application.dto.ConversationSkillVo;
 import com.openjiuwen.studio.conversation.application.dto.ConversationVo;
+import com.openjiuwen.studio.conversation.application.dto.ConversationInputUploadVo;
 import com.openjiuwen.studio.conversation.application.dto.SendMessageCmd;
 
 import io.swagger.annotations.Api;
@@ -27,6 +29,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
@@ -41,9 +44,20 @@ import java.util.List;
 public class ConversationWorkspaceController {
 
     private final ConversationWorkspaceAppService conversationWorkspaceAppService;
+    private final ConversationInputUploadService conversationInputUploadService;
 
-    public ConversationWorkspaceController(ConversationWorkspaceAppService conversationWorkspaceAppService) {
+    public ConversationWorkspaceController(ConversationWorkspaceAppService conversationWorkspaceAppService,
+                                           ConversationInputUploadService conversationInputUploadService) {
         this.conversationWorkspaceAppService = conversationWorkspaceAppService;
+        this.conversationInputUploadService = conversationInputUploadService;
+    }
+
+    @ApiOperation("上传对话附件")
+    @PostMapping(value = "/input-files", consumes = "multipart/form-data")
+    public ConversationInputUploadVo uploadInputFile(@PathVariable("project_id") String projectId,
+                                                      @RequestParam("workspace_id") String workspaceId,
+                                                      @RequestParam("file") MultipartFile file) {
+        return conversationInputUploadService.upload(projectId, workspaceId, file);
     }
 
     /**

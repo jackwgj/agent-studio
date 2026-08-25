@@ -125,13 +125,73 @@ def test_request_requires_trusted_execution_identity():
             ConversationTeamReq.model_validate(request_payload(**{field_name: "  "}))
 
 
-def test_request_accepts_file_references_with_names_and_urls():
+def test_request_accepts_only_durable_input_artifact_references():
     req = ConversationTeamReq.model_validate(request_payload(fileIds=[{
-        "url": "https://files.test/report.pdf",
+        "objectKey": "conversation-inputs/project/workspace/user/00000000-0000-0000-0000-000000000001/report.pdf",
         "fileName": "report.pdf",
+        "size": 4,
+        "checksum": "3a6eb0790f39ac87c94f3856b2dd2c5d110e6811602261a9a923d3bb23adc8b7",
     }]))
 
-    assert req.file_ids == [{"url": "https://files.test/report.pdf", "fileName": "report.pdf"}]
+    assert req.file_ids[0].object_key == "conversation-inputs/project/workspace/user/00000000-0000-0000-0000-000000000001/report.pdf"
+    assert req.file_ids[0].file_name == "report.pdf"
+    with pytest.raises(ValidationError):
+        ConversationTeamReq.model_validate(request_payload(fileIds=[{
+            "url": "https://files.test/report.pdf", "fileName": "report.pdf",
+        }]))
+
+
+@pytest.mark.asyncio
+async def test_team_stream_prepares_inputs_before_building_agent_and_only_passes_sandbox_paths(monkeypatch):
+    prepared_path = "/workspace/project/workspace/user/conversation/input/1234-report.pdf"
+    prepare = AsyncMock(return_value=[prepared_path])
+    captured = {}
+
+    async def build_config(**kwargs):
+        captured.update(kwargs)
+        return SimpleNamespace()
+
+    async def run_in_context(*_args):
+        yield {"event": "message", "data": {"delta": "ok"}}
+
+    monkeypatch.setattr(conversation_team_module, "prepare_conversation_inputs", prepare)
+    monkeypatch.setattr(conversation_team_module, "build_conversation_supervisor_config", build_config)
+    monkeypatch.setattr(conversation_team_module, "run_conversation_supervisor", run_in_context)
+    req = ConversationTeamReq.model_validate(request_payload(fileIds=[{
+        "objectKey": "conversation-inputs/project/workspace/user/00000000-0000-0000-0000-000000000001/report.pdf",
+        "fileName": "report.pdf",
+        "size": 4,
+        "checksum": "3a6eb0790f39ac87c94f3856b2dd2c5d110e6811602261a9a923d3bb23adc8b7",
+    }]))
+
+    events = [json.loads(line.removeprefix("data: ")) async for line in team_sse_stream(req, "input-execution")]
+
+    prepare.assert_awaited_once_with(req.file_ids)
+    assert captured["file_references"] == [{"fileName": "report.pdf", "path": prepared_path}]
+    assert "url" not in captured["file_references"][0]
+    assert events[-1]["event"] == "message"
+
+
+@pytest.mark.asyncio
+async def test_team_stream_returns_standard_error_when_input_preparation_fails(monkeypatch):
+    async def fail_prepare(_artifacts):
+        raise RuntimeError("input preparation rejected")
+
+    monkeypatch.setattr(conversation_team_module, "prepare_conversation_inputs", fail_prepare)
+    req = ConversationTeamReq.model_validate(request_payload(fileIds=[{
+        "objectKey": "conversation-inputs/project/workspace/user/00000000-0000-0000-0000-000000000001/report.pdf",
+        "fileName": "report.pdf",
+        "size": 4,
+        "checksum": "3a6eb0790f39ac87c94f3856b2dd2c5d110e6811602261a9a923d3bb23adc8b7",
+    }]))
+
+    events = [json.loads(line.removeprefix("data: ")) async for line in team_sse_stream(req, "input-execution")]
+
+    assert len(events) == 1
+    assert events[0]["event"] == "error"
+    assert events[0]["executionId"] == "input-execution"
+    assert events[0]["index"] == 0
+    assert "input preparation rejected" in events[0]["data"]["message"]
 
 
 def test_request_accepts_manager_skill_contract():

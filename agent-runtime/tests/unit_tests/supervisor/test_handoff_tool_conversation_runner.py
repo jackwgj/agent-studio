@@ -41,7 +41,10 @@ async def test_conversation_handoff_uses_standard_conversation_runner(monkeypatc
         lambda path: _ir_load(path),
     )
 
-    tool = ConversationHandoffTool(agent_id="child-a", description="child")
+    prepared_inputs = [{"fileName": "report.pdf", "path": "/sandbox/root/input/a/report.pdf"}]
+    tool = ConversationHandoffTool(
+        agent_id="child-a", description="child", prepared_file_references=prepared_inputs
+    )
     context = ConversationExecutionContext.create(ConversationIdentity(
         project_id="project-1",
         workspace_id="workspace-1",
@@ -82,6 +85,7 @@ async def test_conversation_handoff_uses_standard_conversation_runner(monkeypatc
         "userId": "user-1",
         "executionId": "turn-1",
         "subExecutionId": "sub-1",
+        "conversationInputFiles": prepared_inputs,
     }
     assert events[0]["executionId"] == "turn-1"
     assert events[0]["data"]["subExecutionId"] == "sub-1"

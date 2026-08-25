@@ -28,10 +28,12 @@ import com.openjiuwen.studio.conversation.infrastructure.adapter.AgentRuntimeAda
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
@@ -229,7 +231,7 @@ public class ConversationWorkspaceAppService {
             .role("user")
             .content(cmd.getQuery())
             .executionRef(new ExecutionRef(executionId, null, null))
-            .fileRefs(toFileRefs(cmd.getFileIds()))
+            .fileRefs(toFileRefs(projectId, workspaceId, cmd.getFileIds()))
             .modelDeploymentId(cmd.getModelDeploymentId())
             .event("user_message")
             .createdAt(new Date())
@@ -262,14 +264,43 @@ public class ConversationWorkspaceAppService {
         return conversation;
     }
 
-    private List<FileRef> toFileRefs(List<java.util.Map<String, String>> fileIds) {
+    private List<FileRef> toFileRefs(String projectId, String workspaceId,
+                                     List<com.openjiuwen.studio.conversation.application.dto.ConversationInputFileRef> fileIds) {
         if (fileIds == null || fileIds.isEmpty()) {
             return null;
         }
         return fileIds.stream()
-            .map(item -> new FileRef(item.get("url"), item.get("fileName")))
-            .filter(item -> StringUtils.isNotBlank(item.getKey()))
+            .map(item -> toTrustedFileRef(item, projectId, workspaceId))
             .toList();
+    }
+
+    private FileRef toTrustedFileRef(
+        com.openjiuwen.studio.conversation.application.dto.ConversationInputFileRef item, String projectId,
+        String workspaceId) {
+        String[] parts = item == null || item.getObjectKey() == null ? new String[0] : item.getObjectKey().split("/", -1);
+        String expectedProject = ConversationInputUploadService.sha256(projectId);
+        String expectedWorkspace = ConversationInputUploadService.sha256(workspaceId);
+        String expectedUser = ConversationInputUploadService.sha256(RequestContextUtils.getRequestUserId());
+        boolean safeName = item != null && StringUtils.isNotBlank(item.getFileName())
+            && item.getFileName().equals(FilenameUtils.getName(item.getFileName()))
+            && item.getFileName().getBytes(StandardCharsets.UTF_8).length <= 180
+            && item.getFileName().chars().noneMatch(character -> character < 32 || character == 127);
+        if (item == null || parts.length != 6 || !"conversation-inputs".equals(parts[0])
+            || !expectedProject.equals(parts[1]) || !expectedWorkspace.equals(parts[2]) || !expectedUser.equals(parts[3])
+            || !isCanonicalUuid(parts[4]) || !safeName || !parts[5].equals(item.getFileName())
+            || item.getSize() <= 0 || item.getChecksum() == null || !item.getChecksum().matches("[0-9a-f]{64}")) {
+            throw new AgentStudioException(StudioError.METHOD_ARGUMENT_NOT_VALID,
+                List.of("file_ids must contain trusted conversation input objects"));
+        }
+        return new FileRef(item.getObjectKey(), item.getFileName());
+    }
+
+    private boolean isCanonicalUuid(String value) {
+        try {
+            return UUID.fromString(value).toString().equals(value);
+        } catch (IllegalArgumentException exception) {
+            return false;
+        }
     }
 
     private MessageVo toMessageVo(ConversationMessage message) {

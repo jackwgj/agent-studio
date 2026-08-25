@@ -483,7 +483,7 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
     if (!accepted.includes(extension) || file.size > this.maxFileSize) {
       this.uploadedFiles = [
         ...this.uploadedFiles,
-        { fileId: uuidV4(), fileName: file.name, url: '', progress: 'failed' },
+        { fileId: uuidV4(), fileName: file.name, objectKey: '', size: 0, checksum: '', progress: 'failed' },
       ];
       this.cdr.markForCheck();
       return;
@@ -493,18 +493,26 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
     const item: ConversationFileReference = {
       fileId,
       fileName: file.name,
-      url: '',
+      objectKey: '',
+      size: 0,
+      checksum: '',
       progress: 'loading',
     };
     this.uploadedFiles = [...this.uploadedFiles, item];
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('is_image', 'false');
-    this.appAgentRepoService.uploadFile(formData)
+    this.conversationWorkspaceService.uploadInputFile(formData)
       .then((result) => {
         this.uploadedFiles = this.uploadedFiles.map((current) =>
           current.fileId === fileId
-            ? { ...current, url: result?.url ?? '', fileName: result?.file_name ?? current.fileName, progress: result?.url ? 'succeeded' : 'failed' }
+            ? {
+              ...current,
+              objectKey: result?.objectKey ?? '',
+              fileName: result?.fileName ?? current.fileName,
+              size: result?.size ?? 0,
+              checksum: result?.checksum ?? '',
+              progress: result?.objectKey ? 'succeeded' : 'failed',
+            }
             : current,
         );
       })
@@ -642,8 +650,13 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
   /** 只发送上传成功且包含服务端引用的当前轮附件。 */
   private buildFileReferences(): Pick<ConversationSendRequest, 'file_ids'> {
     const file_ids = this.uploadedFiles
-      .filter((file) => file.progress === 'succeeded' && file.url && file.fileName)
-      .map(({ url, fileName }) => ({ url, fileName }));
+      .filter((file) => file.progress === 'succeeded' && file.objectKey && file.fileName && file.size > 0 && file.checksum)
+      .map(({ objectKey, fileName, size, checksum }) => ({
+        object_key: objectKey,
+        file_name: fileName,
+        size,
+        checksum,
+      }));
     return file_ids.length ? { file_ids } : {};
   }
 

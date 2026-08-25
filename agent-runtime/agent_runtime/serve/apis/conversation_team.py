@@ -25,6 +25,10 @@ from agent_runtime.conversation.execution_context import (
     reset_conversation_execution_context,
     set_conversation_execution_context,
 )
+from agent_runtime.conversation.input_artifact_bridge import (
+    ConversationInputArtifact,
+    prepare_conversation_inputs,
+)
 from agent_runtime.common.config import settings
 from agent_runtime.supervisor.builder import build_supervisor, normalize_skill_inputs
 from agent_runtime.supervisor.conversation_supervisor_builder import (
@@ -91,7 +95,7 @@ class ConversationTeamReq(BaseModel):
     conversation_history: list | None = Field(None, alias="conversationHistory")
     skill_catalog: list[SkillCatalogItemReq] = Field(default_factory=list, alias="skillCatalog")
     recommended_skill_ids: list[str] = Field(default_factory=list, alias="recommendedSkillIds")
-    file_ids: list[dict[str, str]] = Field(default_factory=list, alias="fileIds")
+    file_ids: list[ConversationInputArtifact] = Field(default_factory=list, alias="fileIds")
 
     @model_validator(mode="before")
     @classmethod
@@ -163,15 +167,23 @@ async def team_sse_stream(req: ConversationTeamReq, execution_id: str | None = N
     )
     context_token = set_conversation_execution_context(context)
     runner = None
+    index = 0
     try:
-        index = 0
+        prepared_file_references = [
+            {"fileName": artifact.file_name, "path": path}
+            for artifact, path in zip(
+                req.file_ids,
+                await prepare_conversation_inputs(req.file_ids),
+                strict=True,
+            )
+        ]
         yield sse_line(build_user_message(execution_id, req.conversation_id, req.query, index=index))
         index += 1
         yield sse_line(build_run_start(execution_id, index=index))
         index += 1
 
         if req.select_type.upper() == "APP":
-            runner = stream_application(req, execution_id)
+            runner = stream_application(req, execution_id, prepared_file_references)
         else:
             skill_catalog = [
                 SkillDescriptor(
@@ -193,7 +205,7 @@ async def team_sse_stream(req: ConversationTeamReq, execution_id: str | None = N
                     conversation_history=req.conversation_history,
                     skill_catalog=skill_catalog,
                     recommended_skill_ids=recommended_skill_ids,
-                    file_references=req.file_ids,
+                    file_references=prepared_file_references,
                 )
                 runner = run_supervisor(agent, req.query, req.conversation_id, execution_id)
             else:
@@ -203,9 +215,11 @@ async def team_sse_stream(req: ConversationTeamReq, execution_id: str | None = N
                     sub_agent_ids=req.sub_agent_ids,
                     model_deployment_id=req.model_deployment_id,
                     conversation_history=req.conversation_history,
-                    file_references=req.file_ids,
+                    file_references=prepared_file_references,
                 )
-                runner = run_conversation_supervisor(req, execution_id, supervisor_config)
+                runner = run_conversation_supervisor(
+                    req, execution_id, supervisor_config, prepared_file_references
+                )
 
         async for event in runner:
             event[TeamEventField.INDEX] = index  # 统一占序，覆盖增量事件自带 index
