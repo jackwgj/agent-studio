@@ -166,6 +166,15 @@ class SecuritySandboxSettings(BaseSettings):
     workspace_root: str = Field(
         default="/workspace", validation_alias="CONVERSATION_SANDBOX_WORKSPACE_ROOT"
     )
+    cleanup_internal_token: str = Field(
+        default="", validation_alias="CONVERSATION_CLEANUP_INTERNAL_TOKEN"
+    )
+    execution_cleanup_ttl_seconds: int = Field(
+        default=600, validation_alias="CONVERSATION_EXECUTION_CLEANUP_TTL"
+    )
+    cleanup_uploaded_output: bool = Field(
+        default=True, validation_alias="CONVERSATION_CLEANUP_UPLOADED_OUTPUT"
+    )
 
     @field_validator("workspace_root")
     @classmethod

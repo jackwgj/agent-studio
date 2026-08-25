@@ -32,6 +32,10 @@ from agent_runtime.conversation.input_artifact_bridge import (
 from agent_runtime.conversation.output_artifact_publisher import (
     publish_conversation_outputs,
 )
+from agent_runtime.conversation.execution_cleanup import (
+    cleanup_execution_directories,
+    schedule_execution_cleanup,
+)
 from agent_runtime.common.config import settings
 from agent_runtime.supervisor.builder import build_supervisor, normalize_skill_inputs
 from agent_runtime.supervisor.conversation_supervisor_builder import (
@@ -177,6 +181,7 @@ async def team_sse_stream(req: ConversationTeamReq, execution_id: str | None = N
     context_token = set_conversation_execution_context(context)
     runner = None
     index = 0
+    execution_completed = False
     try:
         prepared_file_references = [
             {"fileName": artifact.file_name, "path": path}
@@ -249,6 +254,7 @@ async def team_sse_stream(req: ConversationTeamReq, execution_id: str | None = N
                 index=index,
             ))
             index += 1
+        execution_completed = True
         if pending_run_done is not None:
             pending_run_done[TeamEventField.INDEX] = index
             yield sse_line(pending_run_done)
@@ -263,6 +269,32 @@ async def team_sse_stream(req: ConversationTeamReq, execution_id: str | None = N
                 except Exception:
                     pass
         finally:
+            try:
+                if execution_completed:
+                    await cleanup_execution_directories(
+                        context,
+                        remove_output=getattr(
+                            settings.security_sandbox, "cleanup_uploaded_output", True
+                        ),
+                    )
+                else:
+                    schedule_execution_cleanup(
+                        context,
+                        remove_output=False,
+                        delay_seconds=getattr(
+                            settings.security_sandbox, "execution_cleanup_ttl_seconds", 600
+                        ),
+                    )
+            except Exception:
+                logger.warning("conversation execution cleanup failed; scheduling TTL retry", exc_info=True)
+                schedule_execution_cleanup(
+                    context,
+                    remove_output=execution_completed
+                    and getattr(settings.security_sandbox, "cleanup_uploaded_output", True),
+                    delay_seconds=getattr(
+                        settings.security_sandbox, "execution_cleanup_ttl_seconds", 600
+                    ),
+                )
             reset_conversation_execution_context(context_token)
 
 
