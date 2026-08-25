@@ -29,6 +29,9 @@ from agent_runtime.conversation.input_artifact_bridge import (
     ConversationInputArtifact,
     prepare_conversation_inputs,
 )
+from agent_runtime.conversation.output_artifact_publisher import (
+    publish_conversation_outputs,
+)
 from agent_runtime.common.config import settings
 from agent_runtime.supervisor.builder import build_supervisor, normalize_skill_inputs
 from agent_runtime.supervisor.conversation_supervisor_builder import (
@@ -36,7 +39,13 @@ from agent_runtime.supervisor.conversation_supervisor_builder import (
 )
 from agent_runtime.conversation.supervisor_runner import run_conversation_supervisor
 from agent_runtime.supervisor.common.constants import TeamEventField
-from agent_runtime.supervisor.event.adapt import build_error, build_run_start, build_user_message, sse_line
+from agent_runtime.supervisor.event.adapt import (
+    build_artifact,
+    build_error,
+    build_run_start,
+    build_user_message,
+    sse_line,
+)
 from agent_runtime.supervisor.runner import run_supervisor
 from agent_runtime.supervisor.skill_model import SkillDescriptor
 from agent_runtime.serve.apis.conversation_team_app import stream_application
@@ -221,10 +230,28 @@ async def team_sse_stream(req: ConversationTeamReq, execution_id: str | None = N
                     req, execution_id, supervisor_config, prepared_file_references
                 )
 
+        pending_run_done = None
         async for event in runner:
+            if event.get(TeamEventField.EVENT) == "run_done":
+                pending_run_done = event
+                continue
             event[TeamEventField.INDEX] = index  # 统一占序，覆盖增量事件自带 index
             index += 1
             yield sse_line(event)
+        for artifact in await publish_conversation_outputs():
+            yield sse_line(build_artifact(
+                execution_id,
+                object_key=artifact.object_key,
+                file_name=artifact.file_name,
+                size=artifact.size,
+                media_type=artifact.media_type,
+                checksum=artifact.checksum,
+                index=index,
+            ))
+            index += 1
+        if pending_run_done is not None:
+            pending_run_done[TeamEventField.INDEX] = index
+            yield sse_line(pending_run_done)
     except Exception as e:
         logger.error(f"conversation/team build or app adapter failed: {e}", exc_info=True)
         yield sse_line(build_error(execution_id, code="build_failed", message=str(e), index=index))

@@ -7,6 +7,10 @@ import pytest
 from pydantic import ValidationError
 
 from agent_runtime.conversation import execution_context as execution_context_module
+from agent_runtime.conversation.output_artifact_publisher import (
+    OutputArtifactPublishError,
+    PublishedConversationArtifact,
+)
 from agent_runtime.serve.apis import conversation_team as conversation_team_module
 from agent_runtime.serve.apis import conversation_team_app as conversation_team_app_module
 from agent_runtime.serve.apis.conversation_team import ConversationTeamReq, team_sse_stream
@@ -192,6 +196,79 @@ async def test_team_stream_returns_standard_error_when_input_preparation_fails(m
     assert events[0]["executionId"] == "input-execution"
     assert events[0]["index"] == 0
     assert "input preparation rejected" in events[0]["data"]["message"]
+
+
+@pytest.mark.asyncio
+async def test_team_stream_emits_artifact_after_upload_and_before_terminal_run_done(monkeypatch):
+    async def build_config(**_kwargs):
+        return SimpleNamespace()
+
+    async def completed_runner(*_args):
+        yield {"event": "message", "data": {"delta": "done"}}
+        yield {"event": "run_done", "data": {"text": "done"}}
+
+    publish = AsyncMock(return_value=[PublishedConversationArtifact(
+        object_key="conversation-artifacts/trusted/report.pdf",
+        file_name="report.pdf",
+        size=4,
+        media_type="application/pdf",
+        checksum="0" * 64,
+        execution_id="artifact-execution",
+    )])
+    monkeypatch.setattr(
+        conversation_team_module, "build_conversation_supervisor_config", build_config
+    )
+    monkeypatch.setattr(
+        conversation_team_module, "run_conversation_supervisor", completed_runner
+    )
+    monkeypatch.setattr(
+        conversation_team_module, "publish_conversation_outputs", publish
+    )
+
+    events = [json.loads(line.removeprefix("data: ")) async for line in team_sse_stream(
+        ConversationTeamReq.model_validate(request_payload()), "artifact-execution"
+    )]
+
+    assert [event["event"] for event in events[-3:]] == [
+        "message", "artifact", "run_done"
+    ]
+    assert events[-2]["data"] == {
+        "objectKey": "conversation-artifacts/trusted/report.pdf",
+        "fileName": "report.pdf",
+        "size": 4,
+        "mediaType": "application/pdf",
+        "checksum": "0" * 64,
+    }
+    publish.assert_awaited_once_with()
+
+
+@pytest.mark.asyncio
+async def test_team_stream_does_not_emit_artifact_or_run_done_when_upload_fails(monkeypatch):
+    async def build_config(**_kwargs):
+        return SimpleNamespace()
+
+    async def completed_runner(*_args):
+        yield {"event": "run_done", "data": {"text": "done"}}
+
+    monkeypatch.setattr(
+        conversation_team_module, "build_conversation_supervisor_config", build_config
+    )
+    monkeypatch.setattr(
+        conversation_team_module, "run_conversation_supervisor", completed_runner
+    )
+    monkeypatch.setattr(
+        conversation_team_module,
+        "publish_conversation_outputs",
+        AsyncMock(side_effect=OutputArtifactPublishError("minio unavailable")),
+    )
+
+    events = [json.loads(line.removeprefix("data: ")) async for line in team_sse_stream(
+        ConversationTeamReq.model_validate(request_payload()), "artifact-failure"
+    )]
+
+    assert events[-1]["event"] == "error"
+    assert "minio unavailable" in events[-1]["data"]["message"]
+    assert all(event["event"] not in {"artifact", "run_done"} for event in events)
 
 
 def test_request_accepts_manager_skill_contract():

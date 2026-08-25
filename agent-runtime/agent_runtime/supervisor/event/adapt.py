@@ -131,6 +131,25 @@ def build_skill_activated(
     }, index)
 
 
+def build_artifact(
+    execution_id: str,
+    *,
+    object_key: str,
+    file_name: str,
+    size: int,
+    media_type: str,
+    checksum: str,
+    index: int | None = None,
+) -> dict:
+    return _build_event(TeamEventType.ARTIFACT, execution_id, {
+        TeamEventField.OBJECT_KEY: object_key,
+        TeamEventField.FILE_NAME: file_name,
+        TeamEventField.SIZE: size,
+        TeamEventField.MEDIA_TYPE: media_type,
+        TeamEventField.CHECKSUM: checksum,
+    }, index)
+
+
 def build_error(execution_id: str, code: str | int, message: str, index: int | None = None) -> dict:
     return _build_event(TeamEventType.ERROR, execution_id,
                         {TeamEventField.CODE: code, TeamEventField.MESSAGE: message}, index)

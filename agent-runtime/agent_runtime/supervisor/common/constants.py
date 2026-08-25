@@ -23,6 +23,7 @@ class TeamEventType(str, Enum):
     RUN_DONE = "run_done"              # 监督者整轮完成（完整文本，落 t_conversation_run）
     USAGE = "usage"                    # LLM token 消耗统计
     SKILL_ACTIVATED = "skill_activated"  # 工作空间 Skill 完整指令已按需加载
+    ARTIFACT = "artifact"                # 正式输出已成功上传对象存储
     ERROR = "error"                    # 异常终止
 
 
@@ -64,3 +65,8 @@ class TeamEventField:
     SKILL_ID = "skillId"
     NAME = "name"
     VERSION_ID = "versionId"
+    OBJECT_KEY = "objectKey"
+    FILE_NAME = "fileName"
+    SIZE = "size"
+    MEDIA_TYPE = "mediaType"
+    CHECKSUM = "checksum"
