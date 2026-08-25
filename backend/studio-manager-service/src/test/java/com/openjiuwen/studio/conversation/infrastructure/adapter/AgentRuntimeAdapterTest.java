@@ -107,7 +107,7 @@ class AgentRuntimeAdapterTest {
     @SuppressWarnings("unchecked")
     void testBuildRequestBody_IncludesConversationIdAndTeamParams() {
         Conversation conv = Conversation.builder()
-                .conversationId("c1").projectId("p1").workspaceId("w1").build();
+                .conversationId("c1").projectId("p1").workspaceId("w1").ownerUserId("u1").build();
         SendMessageCmd cmd = new SendMessageCmd();
         cmd.setQuery("上海的天气怎么样？");
         cmd.setModelDeploymentId("m1");
@@ -119,6 +119,9 @@ class AgentRuntimeAdapterTest {
             ConversationSkillContext.empty());
         assertNotNull(body);
         assertEquals("c1", body.get("conversationId"));
+        assertEquals("p1", body.get("projectId"));
+        assertEquals("w1", body.get("workspaceId"));
+        assertEquals("u1", body.get("userId"));
         assertEquals("上海的天气怎么样？", body.get("query"));
         assertEquals(List.of("d321fa88-a768-4b63-8d68-13cd743c6903", "8dafdc64-2c52-40b5-9b24-49894314b763"),
                 body.get("subAgentIds"));

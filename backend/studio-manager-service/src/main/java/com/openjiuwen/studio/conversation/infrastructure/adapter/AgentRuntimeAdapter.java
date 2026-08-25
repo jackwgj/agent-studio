@@ -146,6 +146,9 @@ public class AgentRuntimeAdapter {
                                          ConversationSkillContext skillContext) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("conversationId", conversation.getConversationId());
+        body.put("projectId", conversation.getProjectId());
+        body.put("workspaceId", conversation.getWorkspaceId());
+        body.put("userId", conversation.getOwnerUserId());
         body.put("query", cmd.getQuery());
         String selectType = StringUtils.defaultIfBlank(cmd.getSelectType(), "SUPERVISOR");
         body.put("selectType", selectType);

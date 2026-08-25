@@ -37,6 +37,8 @@ async def run_conversation_supervisor(
             conversationHistory=[],
             globalVariables={
                 "conversationId": req.conversation_id,
+                "projectId": req.project_id,
+                "workspaceId": req.workspace_id,
                 "userId": req.user_id,
                 "conversationTeam": {
                     "type": "SUPERVISOR",

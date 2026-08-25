@@ -72,7 +72,9 @@ class ConversationTeamReq(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra="ignore")
 
     conversation_id: str = Field(alias="conversationId")
-    user_id: str = Field(default="anonymous", alias="userId")
+    project_id: str = Field(alias="projectId")
+    workspace_id: str = Field(alias="workspaceId")
+    user_id: str = Field(alias="userId")
     query: str
     select_type: str = Field(default="SUPERVISOR", alias="selectType")
     app_id: str | None = Field(default=None, alias="appId")
@@ -91,6 +93,8 @@ class ConversationTeamReq(BaseModel):
             return values
         aliases = (
             ("conversationId", "conversation_id"),
+            ("projectId", "project_id"),
+            ("workspaceId", "workspace_id"),
             ("userId", "user_id"),
             ("subAgentIds", "sub_agent_ids"),
             ("modelDeploymentId", "model_deployment_id"),
@@ -107,6 +111,13 @@ class ConversationTeamReq(BaseModel):
         ):
             raise ValueError("conflicting request field aliases")
         return values
+
+    @field_validator("conversation_id", "project_id", "workspace_id", "user_id")
+    @classmethod
+    def validate_execution_identity(cls, value: str) -> str:
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError("execution identity fields must not be blank")
+        return value.strip()
 
     @model_validator(mode="after")
     def validate_skill_catalog(self):

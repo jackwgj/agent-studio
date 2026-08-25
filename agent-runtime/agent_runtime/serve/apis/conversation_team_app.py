@@ -145,9 +145,13 @@ async def stream_application(
             "sys": {
                 "conversationHistory": history,
                 "conversationId": req.conversation_id,
+                "projectId": req.project_id,
+                "workspaceId": req.workspace_id,
                 "userId": req.user_id,
             },
             "conversationId": req.conversation_id,
+            "projectId": req.project_id,
+            "workspaceId": req.workspace_id,
             "userId": req.user_id,
         },
         pluginConfigs=[],

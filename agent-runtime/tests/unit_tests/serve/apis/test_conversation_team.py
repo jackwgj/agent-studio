@@ -38,6 +38,9 @@ def manager_skill_catalog():
 def request_payload(**overrides):
     payload = {
         "conversationId": "c1",
+        "projectId": "p1",
+        "workspaceId": "w1",
+        "userId": "u1",
         "query": "整理会议",
         "subAgentIds": ["a1"],
         "modelDeploymentId": "m1",
@@ -46,6 +49,23 @@ def request_payload(**overrides):
     }
     payload.update(overrides)
     return payload
+
+
+def test_request_requires_trusted_execution_identity():
+    req = ConversationTeamReq.model_validate(request_payload())
+
+    assert req.project_id == "p1"
+    assert req.workspace_id == "w1"
+    assert req.user_id == "u1"
+
+    for field_name in ("projectId", "workspaceId", "userId"):
+        missing = request_payload()
+        missing.pop(field_name)
+        with pytest.raises(ValidationError):
+            ConversationTeamReq.model_validate(missing)
+
+        with pytest.raises(ValidationError):
+            ConversationTeamReq.model_validate(request_payload(**{field_name: "  "}))
 
 
 def test_request_accepts_file_references_with_names_and_urls():
@@ -96,6 +116,9 @@ def test_request_normalizes_duplicate_recommendations_and_explicitly_supports_al
     req = ConversationTeamReq.model_validate(request_payload(recommendedSkillIds=["s1", "s1"]))
     snake_case = ConversationTeamReq.model_validate({
         "conversation_id": "c1",
+        "project_id": "p1",
+        "workspace_id": "w1",
+        "user_id": "u1",
         "query": "整理会议",
         "sub_agent_ids": ["a1"],
         "model_deployment_id": "m1",

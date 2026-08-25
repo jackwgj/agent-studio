@@ -43,6 +43,8 @@ async def test_conversation_supervisor_bridge_consumes_standard_runner_events(mo
     )
     request = SimpleNamespace(
         conversation_id="conversation-1",
+        project_id="project-1",
+        workspace_id="workspace-1",
         user_id="user-1",
         query="hello",
         sub_agent_ids=["child-a"],
@@ -62,6 +64,10 @@ async def test_conversation_supervisor_bridge_consumes_standard_runner_events(mo
     assert events[0]["data"]["delta"] == "主回答"
     assert events[0]["executionId"] == "execution-1"
     assert events[-1]["data"]["text"] == "主回答"
+    execution_request = raw_runner.calls[0][0]
+    assert execution_request.params.global_variables["projectId"] == "project-1"
+    assert execution_request.params.global_variables["workspaceId"] == "workspace-1"
+    assert execution_request.params.global_variables["userId"] == "user-1"
     assert get_channel() is None
 
 
@@ -96,6 +102,9 @@ async def test_team_stream_defaults_to_new_supervisor_path(monkeypatch):
 
     req = ConversationTeamReq.model_validate({
         "conversationId": "conversation-1",
+        "projectId": "project-1",
+        "workspaceId": "workspace-1",
+        "userId": "user-1",
         "query": "hello",
         "subAgentIds": ["child-a"],
         "modelDeploymentId": "deployment-a",
@@ -126,6 +135,8 @@ async def test_app_react_uses_conversation_runner_factory(monkeypatch):
     req = SimpleNamespace(
         app_id="app-1",
         conversation_id="conversation-1",
+        project_id="project-1",
+        workspace_id="workspace-1",
         user_id="user-1",
         query="hello",
         conversation_history=[],
@@ -135,5 +146,9 @@ async def test_app_react_uses_conversation_runner_factory(monkeypatch):
     assert factory.modes == ["ReAct"]
     assert raw_runner.calls[0][0].ir_path == "agent/ir/app-1/app-1.json"
     assert raw_runner.calls[0][1] == "execution-1"
+    global_variables = raw_runner.calls[0][0].params.global_variables
+    assert global_variables["projectId"] == "project-1"
+    assert global_variables["workspaceId"] == "workspace-1"
+    assert global_variables["userId"] == "user-1"
     assert [event["event"] for event in events] == ["message", "run_done"]
     assert events[0]["data"]["delta"] == "app-answer"

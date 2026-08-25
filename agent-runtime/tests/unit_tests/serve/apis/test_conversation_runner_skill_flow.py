@@ -25,6 +25,8 @@ async def test_supervisor_bridge_passes_skill_catalog_to_runner_context(monkeypa
 
     req = SimpleNamespace(
         conversation_id="conversation-1",
+        project_id="project-1",
+        workspace_id="workspace-1",
         user_id="user-1",
         query="hello",
         sub_agent_ids=[],
