@@ -36,6 +36,10 @@ public class ConversationHistoryAssembler {
     public List<Message> assemble(Conversation conversation) {
         List<Message> messages = new ArrayList<>();
         for (ConversationMessage message : conversation.getMessages()) {
+            // 正式产物消息只用于历史展示与下载，不能作为空 Assistant 消息再次注入模型。
+            if ("artifact".equals(message.getEvent())) {
+                continue;
+            }
             // TODO 不要直接用字符串，用枚举类
             if ("tool".equals(message.getRole()) && message.getToolRef() != null) {
                 appendSynthesizedToolPair(messages, message);

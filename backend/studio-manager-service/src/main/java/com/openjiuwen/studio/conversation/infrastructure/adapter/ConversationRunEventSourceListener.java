@@ -6,6 +6,7 @@ package com.openjiuwen.studio.conversation.infrastructure.adapter;
 
 import com.openjiuwen.studio.conversation.domain.model.ConversationMessage;
 import com.openjiuwen.studio.conversation.domain.model.valueobject.ExecutionRef;
+import com.openjiuwen.studio.conversation.domain.model.valueobject.FileRef;
 import com.openjiuwen.studio.conversation.domain.model.valueobject.ToolRef;
 import com.openjiuwen.studio.conversation.domain.repository.ConversationRepository;
 
@@ -52,6 +53,7 @@ public class ConversationRunEventSourceListener extends EventSourceListener {
     private static final String EVENT_SUB_DONE = "sub_done";
     private static final String EVENT_RUN_DONE = "run_done";
     private static final String EVENT_ERROR = "error";
+    private static final String EVENT_ARTIFACT = "artifact";
     private static final String SSE_DONE_MARKER = "[DONE]";
 
     private static final String FIELD_SUB_EXECUTION_ID = "subExecutionId";
@@ -62,6 +64,11 @@ public class ConversationRunEventSourceListener extends EventSourceListener {
     private static final String FIELD_RESULT = "result";
     private static final String FIELD_DELTA = "delta";
     private static final String FIELD_CONTENT = "content";
+    private static final String FIELD_OBJECT_KEY = "objectKey";
+    private static final String FIELD_FILE_NAME = "fileName";
+    private static final String FIELD_SIZE = "size";
+    private static final String FIELD_MEDIA_TYPE = "mediaType";
+    private static final String FIELD_CHECKSUM = "checksum";
 
     private static final String ROLE_ASSISTANT = "assistant";
     private static final String ROLE_TOOL = "tool";
@@ -80,6 +87,8 @@ public class ConversationRunEventSourceListener extends EventSourceListener {
     private final List<RoundBuffer> settledRounds = new ArrayList<>();
     /** 工具调用缓冲（toolCallId → 调用），tool_result 按 toolCallId 配对回填 */
     private final Map<String, ToolInvocation> toolInvocations = new LinkedHashMap<>();
+    /** 已上传正式产物；事件来自受信 Runtime，持久化时只采用当前监听器 executionId。 */
+    private final List<ArtifactInvocation> artifacts = new ArrayList<>();
     /** 到达序计数器（每事件 +1），created_at = base + seq */
     private long arrivalSeq;
     private final long baseTime = System.currentTimeMillis();
@@ -154,6 +163,7 @@ public class ConversationRunEventSourceListener extends EventSourceListener {
                         invocation.result = dataObj.getString(FIELD_RESULT);
                     }
                 }
+                case EVENT_ARTIFACT -> bufferArtifact(dataObj);
                 case EVENT_SUB_DONE, EVENT_RUN_DONE -> settleRound(keyOf(dataObj));
                 case EVENT_ERROR -> {
                     log.warn("Conversation team error event: conversationId={}, executionId={}, data={}",
@@ -233,6 +243,26 @@ public class ConversationRunEventSourceListener extends EventSourceListener {
         return args == null ? null : JSON.toJSONString(args);
     }
 
+    private void bufferArtifact(JSONObject dataObj) {
+        if (dataObj == null) {
+            return;
+        }
+        String objectKey = dataObj.getString(FIELD_OBJECT_KEY);
+        String fileName = dataObj.getString(FIELD_FILE_NAME);
+        Long size = dataObj.getLong(FIELD_SIZE);
+        String mediaType = dataObj.getString(FIELD_MEDIA_TYPE);
+        String checksum = dataObj.getString(FIELD_CHECKSUM);
+        if (objectKey == null || objectKey.isBlank() || fileName == null || fileName.isBlank()
+            || size == null || size < 0 || mediaType == null || mediaType.isBlank()
+            || checksum == null || !checksum.matches("[0-9a-f]{64}")) {
+            log.warn("Ignore incomplete artifact event: conversationId={}, executionId={}",
+                conversationId, executionId);
+            return;
+        }
+        artifacts.add(new ArtifactInvocation(
+            new FileRef(objectKey, fileName, size, mediaType, checksum, executionId), arrivalSeq));
+    }
+
     /**
      * 整轮结束/异常一次性批量落库（appendMessages 按 ExecutionRef.subExecutionId 拆分路由，事务性）。
      * created_at 按到达序（base+seq）单调递增。
@@ -256,6 +286,9 @@ public class ConversationRunEventSourceListener extends EventSourceListener {
         }
         for (ToolInvocation invocation : toolInvocations.values()) {
             scored.add(new ScoredRow(invocation.seq, buildToolMessage(invocation)));
+        }
+        for (ArtifactInvocation artifact : artifacts) {
+            scored.add(new ScoredRow(artifact.seq, buildArtifactMessage(artifact)));
         }
         scored.sort(Comparator.comparingLong(s -> s.seq));
         List<ConversationMessage> rows = new ArrayList<>();
@@ -294,6 +327,17 @@ public class ConversationRunEventSourceListener extends EventSourceListener {
             .modelDeploymentId(modelDeploymentId)
             .event(EVENT_TOOL_CALL)
             .createdAt(new Date(baseTime + invocation.seq))
+            .build();
+    }
+
+    private ConversationMessage buildArtifactMessage(ArtifactInvocation artifact) {
+        return ConversationMessage.builder()
+            .role(ROLE_ASSISTANT)
+            .fileRefs(List.of(artifact.fileRef))
+            .executionRef(new ExecutionRef(executionId, null, null))
+            .modelDeploymentId(modelDeploymentId)
+            .event(EVENT_ARTIFACT)
+            .createdAt(new Date(baseTime + artifact.seq))
             .build();
     }
 
@@ -346,6 +390,16 @@ public class ConversationRunEventSourceListener extends EventSourceListener {
             this.argsJson = argsJson;
             this.subExecutionId = subExecutionId;
             this.agentId = agentId;
+            this.seq = seq;
+        }
+    }
+
+    private static final class ArtifactInvocation {
+        private final FileRef fileRef;
+        private final long seq;
+
+        ArtifactInvocation(FileRef fileRef, long seq) {
+            this.fileRef = fileRef;
             this.seq = seq;
         }
     }

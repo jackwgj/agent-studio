@@ -70,6 +70,16 @@ class ConversationHistoryAssemblerTest {
     }
 
     @Test
+    void testAssemble_ArtifactMessage_DoesNotPolluteModelHistory() {
+        ConversationMessage artifact = ConversationMessage.builder()
+                .role("assistant")
+                .event("artifact")
+                .build();
+
+        assertTrue(service.assemble(conversationOf(artifact)).isEmpty());
+    }
+
+    @Test
     void testAssemble_ToolMessage_WithoutToolRef_Discards() {
         ConversationMessage toolMsg = ConversationMessage.builder()
                 .role("tool")

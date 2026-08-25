@@ -283,6 +283,31 @@ class ConversationRunEventSourceListenerTest {
         verify(conversationRepository, never()).appendMessages(anyString(), anyList());
     }
 
+    @Test
+    void testArtifactEvent_PersistsCompleteDurableMetadata() {
+        String objectKey = "conversation-artifacts/project/workspace/user/conversation/execution/report.pdf";
+        String checksum = "0".repeat(64);
+        feedEvent(json("artifact", "{\"objectKey\":\"" + objectKey + "\","
+            + "\"fileName\":\"report.pdf\",\"size\":128,\"mediaType\":\"application/pdf\","
+            + "\"checksum\":\"" + checksum + "\"}"));
+        feedEvent(json("run_done", "{}"));
+        listener.onClosed(mock(EventSource.class));
+
+        List<ConversationMessage> rows = captureRows();
+        assertEquals(1, rows.size());
+        ConversationMessage artifact = rows.get(0);
+        assertEquals("assistant", artifact.getRole());
+        assertEquals("artifact", artifact.getEvent());
+        assertEquals(EXEC, artifact.getExecutionRef().getExecutionId());
+        assertEquals(1, artifact.getFileRefs().size());
+        assertEquals(objectKey, artifact.getFileRefs().get(0).getObjectKey());
+        assertEquals("report.pdf", artifact.getFileRefs().get(0).getFileName());
+        assertEquals(128L, artifact.getFileRefs().get(0).getSize());
+        assertEquals("application/pdf", artifact.getFileRefs().get(0).getMediaType());
+        assertEquals(checksum, artifact.getFileRefs().get(0).getChecksum());
+        assertEquals(EXEC, artifact.getFileRefs().get(0).getExecutionId());
+    }
+
     // ---------------------------------------------------------------- 透传
 
     @Test

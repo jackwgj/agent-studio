@@ -254,7 +254,7 @@ public class ConversationRepositoryImpl implements ConversationRepository {
         }
         try {
             List<FileRef> refs = JSON.parseArray(fileIds, FileRef.class);
-            if (refs != null && !refs.isEmpty() && refs.get(0).getKey() != null) {
+            if (refs != null && !refs.isEmpty() && refs.get(0).getObjectKey() != null) {
                 return refs;
             }
         } catch (Exception ignored) {
