@@ -54,7 +54,9 @@ class ConversationSysOperationFactory:
             return ""
 
         if server != server.strip() or any(
-            ord(character) <= 0x1F or ord(character) == 0x7F
+            character.isspace()
+            or ord(character) <= 0x1F
+            or ord(character) == 0x7F
             for character in server
         ):
             raise ConversationSandboxConfigurationError(

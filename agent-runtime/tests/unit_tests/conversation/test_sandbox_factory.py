@@ -203,6 +203,8 @@ def test_factory_rejects_userinfo_without_a_host():
         "https://sandbox.example ",
         "\thttps://sandbox.example",
         "https://sandbox.example\n",
+        "http://sandbox .example",
+        "http://sandbox\u00a0.example",
         "https://sandbox.example\x00",
         "https://sandbox.example\x01",
         "https://sandbox.example\x7f",
