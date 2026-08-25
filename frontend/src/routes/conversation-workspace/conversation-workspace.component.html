@@ -35,6 +35,23 @@
             </ng-container>
             <span *ngIf="message.loading" class="loading-dots">…</span>
           </div>
+          <div class="artifact-list" *ngIf="message.artifacts?.length" aria-label="正式产物">
+            <div class="artifact-card" *ngFor="let artifact of message.artifacts">
+              <meta-upload-file-icon [fileName]="artifact.fileName"></meta-upload-file-icon>
+              <div class="artifact-info">
+                <span class="artifact-name" [title]="artifact.fileName">{{ artifact.fileName }}</span>
+                <span class="artifact-meta">{{ formatArtifactSize(artifact.size) }} · {{ artifact.mediaType }}</span>
+                <span class="artifact-error" *ngIf="artifact.downloadState === 'failed'">下载地址生成失败，请重试</span>
+              </div>
+              <button
+                nz-button
+                nzType="default"
+                class="artifact-download"
+                [nzLoading]="artifact.downloadState === 'loading'"
+                (click)="downloadArtifact(artifact)"
+              >下载</button>
+            </div>
+          </div>
           <details class="turn-details" *ngIf="message.detailSegments?.length || message.subAgents?.length">
             <summary>查看思考与执行过程</summary>
             <ng-container *ngFor="let seg of message.detailSegments">

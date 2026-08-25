@@ -21,6 +21,7 @@ import {
   ConversationSendRequest,
   ConversationSkillItem,
   ConversationFileReference,
+  ConversationArtifactReference,
 } from './conversation-skill.model';
 import {
   ActiveSessionState,
@@ -48,6 +49,7 @@ interface ChatMessage {
   segments: ChatSegment[];
   userContent?: string;
   userFiles?: Array<Pick<ConversationFileReference, 'fileName'>>;
+  artifacts?: ConversationArtifactReference[];
   /** 非主 Agent 内容默认折叠，不主动展示 */
   detailSegments?: ChatSegment[];
   subAgents?: ChatMessage[];
@@ -787,6 +789,14 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
           }
           break;
         }
+        case 'artifact': {
+          const artifact = this.toArtifact(d, d.executionId);
+          if (artifact && !assistantMsg.artifacts?.some((item) => item.objectKey === artifact.objectKey)) {
+            assistantMsg.artifacts ??= [];
+            assistantMsg.artifacts.push(artifact);
+          }
+          break;
+        }
         default:
           // user_message/run_start/usage 仅透传不渲染
           break;
@@ -855,6 +865,16 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
         turn.userFiles = this.parseUserFiles(row.file_ids ?? row.fileIds);
         continue;
       }
+      if (row.event === 'artifact') {
+        const artifacts = this.parseArtifacts(row.file_ids ?? row.fileIds, executionId);
+        turn.artifacts ??= [];
+        for (const artifact of artifacts) {
+          if (!turn.artifacts.some((item) => item.objectKey === artifact.objectKey)) {
+            turn.artifacts.push(artifact);
+          }
+        }
+        continue;
+      }
       const seg = this.rowToSegment(row);
       if (!seg) {
         continue;
@@ -902,6 +922,65 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
     } catch {
       return [];
     }
+  }
+
+  private parseArtifacts(value: unknown, executionId: string): ConversationArtifactReference[] {
+    if (!value) {
+      return [];
+    }
+    try {
+      const parsed = typeof value === 'string' ? JSON.parse(value) : value;
+      return Array.isArray(parsed)
+        ? parsed.map((item) => this.toArtifact(item, executionId)).filter(Boolean) as ConversationArtifactReference[]
+        : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private toArtifact(value: any, fallbackExecutionId?: string): ConversationArtifactReference | null {
+    const objectKey = value?.objectKey ?? value?.object_key;
+    const fileName = value?.fileName ?? value?.file_name;
+    if (!objectKey || !fileName) {
+      return null;
+    }
+    return {
+      objectKey,
+      fileName,
+      size: Number(value?.size ?? 0),
+      mediaType: value?.mediaType ?? value?.media_type ?? 'application/octet-stream',
+      checksum: value?.checksum ?? '',
+      executionId: value?.executionId ?? value?.execution_id ?? fallbackExecutionId ?? '',
+      downloadState: 'idle',
+    };
+  }
+
+  public downloadArtifact(artifact: ConversationArtifactReference): void {
+    const conversationId = this.currentSession?.conversation_id;
+    if (!conversationId || artifact.downloadState === 'loading') {
+      return;
+    }
+    artifact.downloadState = 'loading';
+    this.conversationWorkspaceService.downloadArtifact(conversationId, artifact.objectKey)
+      .then((result) => {
+        artifact.downloadState = 'idle';
+        this.document.defaultView?.open(result.download_url, '_blank', 'noopener,noreferrer');
+        this.cdr.markForCheck();
+      })
+      .catch(() => {
+        artifact.downloadState = 'failed';
+        this.cdr.markForCheck();
+      });
+  }
+
+  public formatArtifactSize(size: number): string {
+    if (size < 1024) {
+      return `${size} B`;
+    }
+    if (size < 1024 * 1024) {
+      return `${(size / 1024).toFixed(1)} KB`;
+    }
+    return `${(size / (1024 * 1024)).toFixed(1)} MB`;
   }
 
   /** run 表 handoff 工具进入详情；主界面只展示 message。 */

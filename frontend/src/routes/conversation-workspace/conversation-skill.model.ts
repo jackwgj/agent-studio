@@ -15,6 +15,17 @@ export interface ConversationFileReference {
   fileId?: string;
 }
 
+/** Runtime 已上传并由 Manager 持久化的正式输出产物。 */
+export interface ConversationArtifactReference {
+  objectKey: string;
+  fileName: string;
+  size: number;
+  mediaType: string;
+  checksum: string;
+  executionId: string;
+  downloadState?: 'idle' | 'loading' | 'failed';
+}
+
 export interface ConversationSendRequest {
   query: string;
   model_deployment_id?: string;

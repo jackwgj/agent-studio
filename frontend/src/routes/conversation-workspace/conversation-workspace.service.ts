@@ -168,6 +168,14 @@ export class ConversationWorkspaceService {
     });
   }
 
+  /** 校验会话所有权后为正式产物生成新的短期下载地址。 */
+  public downloadArtifact(conversationId: string, objectKey: string): Promise<{ download_url: string; expires_in: number }> {
+    return this.http.getAsync({
+      url: `${this.sessionsUrl}/${conversationId}/artifacts/download`,
+      query: { workspace_id: this.http.getWorkspaceId(), object_key: objectKey },
+    });
+  }
+
   /** 删除会话（软删除） */
   public deleteSession(conversationId: string): Promise<any> {
     return this.http.deleteAsync({

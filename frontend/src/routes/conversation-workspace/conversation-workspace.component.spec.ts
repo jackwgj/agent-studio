@@ -45,6 +45,7 @@ describe('ConversationWorkspaceComponent', () => {
       newDraftSession: jasmine.createSpy('newDraftSession'),
       listSkills: jasmine.createSpy('listSkills').and.resolveTo([skill('s1')]),
       uploadInputFile: jasmine.createSpy('uploadInputFile').and.resolveTo({}),
+      downloadArtifact: jasmine.createSpy('downloadArtifact').and.resolveTo({ download_url: 'https://download/file', expires_in: 300 }),
       chatSSE: jasmine.createSpy('chatSSE').and.returnValue({ close: jasmine.createSpy('close') }),
     };
     routeParams = new BehaviorSubject({});
@@ -126,7 +127,7 @@ describe('ConversationWorkspaceComponent', () => {
 
     expect(service.chatSSE).toHaveBeenCalledWith('c1', jasmine.objectContaining({
       file_ids: [{ object_key: 'conversation-inputs/p/w/u/file-report.pdf', file_name: 'report.pdf', size: 4,
-        checksum: '3a6eb0790f39ac87c94f3856b2dd2c5d110e6811602261a9a923d3bb23adc8b7 }],
+        checksum: '3a6eb0790f39ac87c94f3856b2dd2c5d110e6811602261a9a923d3bb23adc8b7' }],
     }), jasmine.any(Object));
   });
 
@@ -218,6 +219,33 @@ describe('ConversationWorkspaceComponent', () => {
       { skillId: 's1', name: '会议纪要', versionId: 'v1' },
       { skillId: 's1', name: '会议纪要 v2', versionId: 'v2' },
     ]);
+  });
+
+  it('接收正式产物事件后展示文件信息并按会话重新获取下载地址', async () => {
+    component.currentSession = session('c1');
+    const assistant: any = { role: 'assistant', segments: [], loading: true };
+    component.messages = [assistant];
+    const openSpy = spyOn(window, 'open');
+
+    dispatchSse(component, assistant, {
+      event: 'artifact',
+      data: {
+        objectKey: 'conversation-artifacts/p/w/u/c/e/report.pdf',
+        fileName: 'report.pdf',
+        size: 2048,
+        mediaType: 'application/pdf',
+        checksum: '0'.repeat(64),
+      },
+    });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.artifact-name').textContent).toContain('report.pdf');
+    expect(fixture.nativeElement.querySelector('.artifact-meta').textContent).toContain('2.0 KB');
+    fixture.nativeElement.querySelector('.artifact-download').click();
+    await Promise.resolve();
+
+    expect(service.downloadArtifact).toHaveBeenCalledWith('c1', 'conversation-artifacts/p/w/u/c/e/report.pdf');
+    expect(openSpy).toHaveBeenCalledWith('https://download/file', '_blank', 'noopener,noreferrer');
   });
 
   it('流式轮次同时保留主输出、思考、工具、子 Agent 详情与 Skill 激活状态', () => {
@@ -346,6 +374,23 @@ describe('ConversationWorkspaceComponent', () => {
         })],
       }),
     ]);
+  });
+
+  it('刷新历史详情后从持久 file_ids 恢复正式产物', () => {
+    const messages = (component as any).mapDetailToMessages([{
+      role: 'assistant', event: 'artifact', execution_id: 'exec-1',
+      file_ids: JSON.stringify([{
+        objectKey: 'conversation-artifacts/p/w/u/c/e/report.pdf', fileName: 'report.pdf', size: 128,
+        mediaType: 'application/pdf', checksum: '0'.repeat(64), executionId: 'exec-1',
+      }]),
+    }]);
+
+    expect(messages[0].artifacts).toEqual([jasmine.objectContaining({
+      objectKey: 'conversation-artifacts/p/w/u/c/e/report.pdf',
+      fileName: 'report.pdf',
+      size: 128,
+      executionId: 'exec-1',
+    })]);
   });
 
   it('切换会话时清除推荐与激活标签，且不从历史恢复', async () => {
