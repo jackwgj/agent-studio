@@ -34,6 +34,15 @@ class ConversationSandboxConfig:
     timeout_seconds: int
     scope: str
 
+    def __post_init__(self) -> None:
+        try:
+            mode = ConversationSandboxMode(self.mode)
+        except (TypeError, ValueError) as error:
+            raise ConversationSandboxConfigurationError(
+                "CONVERSATION_SANDBOX_MODE must be one of: auto, sandbox, disabled"
+            ) from error
+        object.__setattr__(self, "mode", mode)
+
     @classmethod
     def from_security_sandbox_settings(
         cls,

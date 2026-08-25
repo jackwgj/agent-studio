@@ -48,6 +48,20 @@ def _create(mode: str | None = None, **sandbox_overrides: object):
     return ConversationSysOperationFactory(_config(mode, **sandbox_overrides)).create()
 
 
+def _direct_config(
+    mode: ConversationSandboxMode | str, server: str
+) -> ConversationSandboxConfig:
+    return ConversationSandboxConfig(
+        mode=mode,
+        server=server,
+        ssl_verify=True,
+        sandbox_type="aio",
+        idle_ttl_seconds=600,
+        timeout_seconds=300,
+        scope="system",
+    )
+
+
 def test_auto_mode_is_default_and_returns_no_card_without_a_remote_server():
     assert _config().mode is ConversationSandboxMode.AUTO
     assert _create() is None
@@ -117,3 +131,87 @@ def test_disabled_mode_returns_no_card_even_with_valid_or_invalid_server(server:
 def test_factory_rejects_modes_outside_auto_sandbox_and_disabled(mode: str):
     with pytest.raises(ConversationSandboxConfigurationError, match="CONVERSATION_SANDBOX_MODE"):
         _create(mode, server="https://sandbox.example")
+
+
+@pytest.mark.parametrize(
+    ("mode", "expects_card"),
+    [
+        (ConversationSandboxMode.AUTO, True),
+        (ConversationSandboxMode.SANDBOX, True),
+        (ConversationSandboxMode.DISABLED, False),
+    ],
+)
+def test_factory_honors_directly_constructed_legal_mode_enums(
+    mode: ConversationSandboxMode, expects_card: bool
+):
+    card = ConversationSysOperationFactory(
+        _direct_config(mode, "https://sandbox.example")
+    ).create()
+
+    assert (card is not None) is expects_card
+    if card is not None:
+        assert card.mode is OperationMode.SANDBOX
+
+
+def test_factory_fails_closed_for_directly_constructed_disabled_mode_string():
+    card = ConversationSysOperationFactory(
+        _direct_config("disabled", "https://sandbox.example")
+    ).create()
+
+    assert card is None
+
+
+@pytest.mark.parametrize("mode", ["local", "unknown"])
+def test_factory_rejects_directly_constructed_unsupported_mode_strings(mode: str):
+    with pytest.raises(ConversationSandboxConfigurationError, match="CONVERSATION_SANDBOX_MODE"):
+        ConversationSysOperationFactory(
+            _direct_config(mode, "https://sandbox.example")
+        ).create()
+
+
+@pytest.mark.parametrize(
+    "server",
+    [
+        "HTTP://sandbox.example",
+        "HTTPS://sandbox.example:9443",
+        "http://user:password@sandbox.example:8082",
+    ],
+)
+def test_factory_preserves_valid_uppercase_scheme_and_userinfo_server(server: str):
+    card = ConversationSysOperationFactory(
+        _direct_config(ConversationSandboxMode.SANDBOX, server)
+    ).create()
+
+    assert card is not None
+    assert card.mode is OperationMode.SANDBOX
+    assert card.gateway_config.launcher_config.base_url == server
+
+
+def test_factory_rejects_userinfo_without_a_host():
+    with pytest.raises(
+        ConversationSandboxConfigurationError, match="absolute http:// or https:// URL"
+    ):
+        ConversationSysOperationFactory(
+            _direct_config(ConversationSandboxMode.SANDBOX, "http://user@")
+        ).create()
+
+
+@pytest.mark.parametrize(
+    "server",
+    [
+        " https://sandbox.example",
+        "https://sandbox.example ",
+        "\thttps://sandbox.example",
+        "https://sandbox.example\n",
+        "https://sandbox.example\x00",
+        "https://sandbox.example\x01",
+        "https://sandbox.example\x7f",
+    ],
+)
+def test_factory_rejects_whitespace_and_ascii_control_characters_in_server(server: str):
+    with pytest.raises(
+        ConversationSandboxConfigurationError, match="absolute http:// or https:// URL"
+    ):
+        ConversationSysOperationFactory(
+            _direct_config(ConversationSandboxMode.SANDBOX, server)
+        ).create()

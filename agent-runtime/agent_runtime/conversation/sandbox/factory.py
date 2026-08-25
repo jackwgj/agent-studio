@@ -45,13 +45,21 @@ class ConversationSysOperationFactory:
         )
 
     def _validated_server(self) -> str:
-        server = self._config.server.strip()
+        server = self._config.server
         if not server:
             if self._config.mode is ConversationSandboxMode.SANDBOX:
                 raise ConversationSandboxConfigurationError(
                     "CONVERSATION_SANDBOX_MODE=sandbox requires SECURITY_SANDBOX_SERVER"
                 )
             return ""
+
+        if server != server.strip() or any(
+            ord(character) <= 0x1F or ord(character) == 0x7F
+            for character in server
+        ):
+            raise ConversationSandboxConfigurationError(
+                "SECURITY_SANDBOX_SERVER must be an absolute http:// or https:// URL"
+            )
 
         try:
             parsed = urlsplit(server)
@@ -66,7 +74,6 @@ class ConversationSysOperationFactory:
             parsed.scheme not in {"http", "https"}
             or not parsed.netloc
             or not hostname
-            or any(character.isspace() for character in server)
         ):
             raise ConversationSandboxConfigurationError(
                 "SECURITY_SANDBOX_SERVER must be an absolute http:// or https:// URL"
@@ -84,12 +91,16 @@ class ConversationSysOperationFactory:
             ),
             "timeout_seconds": self._config.timeout_seconds,
         }
+        gateway_options.update(self._ssl_gateway_options())
+        return SandboxGatewayConfig(**gateway_options)
+
+    def _ssl_gateway_options(self) -> dict[str, bool]:
         gateway_parameters = inspect.signature(SandboxGatewayConfig).parameters
         if "ssl_verify" in gateway_parameters:
-            gateway_options["ssl_verify"] = self._config.ssl_verify
-        elif "verify_ssl" in gateway_parameters:
-            gateway_options["verify_ssl"] = self._config.ssl_verify
-        return SandboxGatewayConfig(**gateway_options)
+            return {"ssl_verify": self._config.ssl_verify}
+        if "verify_ssl" in gateway_parameters:
+            return {"verify_ssl": self._config.ssl_verify}
+        return {}
 
     def _container_scope(self) -> ContainerScope:
         if self._config.scope == "system":
