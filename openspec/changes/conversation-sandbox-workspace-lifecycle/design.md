@@ -47,7 +47,7 @@ Runtime 启动阶段已有面向 Flow Code 的全局 LOCAL/SANDBOX SysOperation 
 
 身份原值保留在 Context 中用于审计，路径片段使用确定性 SHA-256 摘要，避免分隔符、父目录、保留字符和长度造成路径逃逸。路径模型使用 `PurePosixPath`，不使用 Runtime 主机的 `Path.resolve()` 推断远程沙箱路径。
 
-Docker/AIO 部署把 `<root>` 挂载为命名 Volume。普通更新只重建容器，不删除 Volume；`down -v` 和主动删除 Volume 明确列为危险部署操作。
+Docker/AIO 部署把 `<root>` 挂载为命名 Volume，当前确定的容器内根目录为 `/workspace`。普通更新只重建容器，不删除 Volume；`down -v` 和主动删除 Volume 明确列为危险部署操作。
 
 ### 3. 对话执行模式不提供 LOCAL 回退
 
