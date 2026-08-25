@@ -11,6 +11,7 @@ import uuid
 from typing import AsyncGenerator, Dict, Optional
 
 from agent_runtime.conversation.config.supervisor_config import SupervisorConfig
+from agent_runtime.conversation.sandbox import ConversationSandboxToolBinder
 from agent_runtime.runner.react_agent_runner import ReActAgentRunner
 from agent_runtime.supervisor.skill_context import (
     attach as attach_skill_context,
@@ -83,6 +84,7 @@ class ConversationReActRunner(ReActAgentRunner):
         exec_id = execution_id or req.conversation_id or str(uuid.uuid4())
         adapter = ReactStreamDataAdapter(execution_id=exec_id)
 
+        sandbox_binder: ConversationSandboxToolBinder | None = None
         try:
             ir_json = self._get_request_ir(req) or await self._load_ir(req.ir_path)
         except Exception as error:
@@ -140,6 +142,8 @@ class ConversationReActRunner(ReActAgentRunner):
             team_config = (global_variables or {}).get("conversationTeam") or {}
             skill_token = None
             if team_config.get("type") == "SUPERVISOR":
+                sandbox_binder = ConversationSandboxToolBinder.from_runtime_settings()
+                sandbox_binder.register(agent)
                 await self._attach_supervisor_skill_context(agent, team_config)
                 await self._register_supervisor_handoff_tools(
                     agent, list(team_config.get("subAgentIds") or [])
@@ -148,6 +152,8 @@ class ConversationReActRunner(ReActAgentRunner):
             else:
                 skill_token = None
         except Exception as error:
+            if sandbox_binder is not None:
+                sandbox_binder.cleanup()
             workflow_logger.error("Failed to register conversation tools: %s", error)
             yield adapter.adapt_error(f"Failed to register tools: {error}")
             return
@@ -234,6 +240,8 @@ class ConversationReActRunner(ReActAgentRunner):
             workflow_logger.error("Conversation ReAct stream failed: %s", error, exc_info=True)
             yield adapter.adapt_error(f"Agent execution failed: {error}")
         finally:
+            if sandbox_binder is not None:
+                sandbox_binder.cleanup()
             if session is not None:
                 await session.post_run()
             if skill_token is not None:
