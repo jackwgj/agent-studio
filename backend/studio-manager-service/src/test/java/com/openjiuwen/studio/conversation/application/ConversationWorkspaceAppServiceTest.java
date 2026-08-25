@@ -277,7 +277,7 @@ class ConversationWorkspaceAppServiceTest {
 
         appService.delete("p1", "w1", "c1");
 
-        verify(repository).softDelete("c1");
+        verify(repository).softDeleteAndScheduleCleanup("c1");
     }
 
     @Test
@@ -287,7 +287,7 @@ class ConversationWorkspaceAppServiceTest {
         when(repository.findById("c1")).thenReturn(Optional.of(other));
 
         assertThrows(AgentStudioException.class, () -> appService.delete("p1", "w1", "c1"));
-        verify(repository, never()).softDelete("c1");   // 未授权：不允许软删
+        verify(repository, never()).softDeleteAndScheduleCleanup("c1");   // 未授权：不允许软删
     }
 
     // ---------- sendMessage ----------

@@ -199,7 +199,7 @@ public class ConversationWorkspaceAppService {
      */
     public void delete(String projectId, String workspaceId, String conversationId) {
         getOwnedConversation(projectId, workspaceId, conversationId);
-        conversationRepository.softDelete(conversationId);
+        conversationRepository.softDeleteAndScheduleCleanup(conversationId);
     }
 
     /**

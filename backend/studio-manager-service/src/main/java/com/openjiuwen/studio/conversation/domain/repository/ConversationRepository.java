@@ -66,5 +66,5 @@ public interface ConversationRepository {
      *
      * @param conversationId 会话ID
      */
-    void softDelete(String conversationId);
+    void softDeleteAndScheduleCleanup(String conversationId);
 }
