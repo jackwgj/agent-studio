@@ -6,10 +6,10 @@
 
 ## 2. ConversationExecutionContext 与工作目录模型
 
-- [ ] 2.1 （RED）为不可变 `ConversationIdentity`、`ConversationWorkspace`、`ConversationExecutionContext` 编写单元测试，覆盖必填字段、不可变性和父子调用共享身份，并验证测试先失败
-- [ ] 2.2 （GREEN）实现三个执行上下文模型，并验证 2.1 的模型测试全部通过
-- [ ] 2.3 （RED）为工作目录派生编写测试，覆盖同会话复用、不同身份隔离、execution 目录隔离、危险字符、超长身份和目录逃逸，并验证测试先失败
-- [ ] 2.4 （GREEN）使用 SHA-256 路径键和 `PurePosixPath` 实现 conversation 级 `input/skills/work` 与 execution 级 `runs/<execution>/output/tmp`，并验证所有路径始终位于配置根目录内
+- [x] 2.1 （RED）为不可变 `ConversationIdentity`、`ConversationWorkspace`、`ConversationExecutionContext` 编写单元测试，覆盖必填字段、不可变性和父子调用共享身份，并验证测试先失败
+- [x] 2.2 （GREEN）实现三个执行上下文模型，并验证 2.1 的模型测试全部通过
+- [x] 2.3 （RED）为工作目录派生编写测试，覆盖同会话复用、不同身份隔离、execution 目录隔离、危险字符、超长身份和目录逃逸，并验证测试先失败
+- [x] 2.4 （GREEN）使用 SHA-256 路径键和 `PurePosixPath` 实现 conversation 级 `input/skills/work` 与 execution 级 `runs/<execution>/output/tmp`，并验证所有路径始终位于配置根目录内
 - [ ] 2.5 （RED）为专用 `ContextVar` 编写并发、正常结束、异常和 SSE 取消测试，并验证上下文泄漏测试在实现前失败
 - [ ] 2.6 （GREEN）在 `team_sse_stream` 确定 execution 后绑定上下文，并在 Runner 关闭后的 `finally` 中可靠 reset，验证并发与取消测试通过
 - [ ] 2.7 补充 APP 与 handoff 子 Agent 的上下文继承测试并实现共享业务身份和 Workspace、独立 `subExecutionId`，验证父子事件分组正确且路径相同
