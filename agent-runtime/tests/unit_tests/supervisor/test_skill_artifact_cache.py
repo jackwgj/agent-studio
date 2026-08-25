@@ -117,6 +117,16 @@ def overlap_second_member(payload: bytes) -> bytes:
     return bytes(patched)
 
 
+def complete_skill_zip(name: str, marker: str = "v1") -> bytes:
+    output = io.BytesIO()
+    with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr(f"{name}/SKILL.md", f"# {name}\n{marker}")
+        archive.writestr(f"{name}/scripts/run.py", b"print('ok')")
+        archive.writestr(f"{name}/templates/report.md", b"# report")
+        archive.writestr(f"{name}/assets/example.txt", b"resource")
+    return output.getvalue()
+
+
 def _load_in_separate_process(root: str, counter, ready, start, queue) -> None:
     async def downloader(_: str) -> bytes:
         with counter.get_lock():
@@ -943,6 +953,87 @@ async def test_rejects_noncanonical_zip_member_paths(tmp_path, member):
 
     with pytest.raises(SkillArtifactError, match="unsafe zip"):
         await cache.load_instructions(descriptor("s1", "v1", "x", "u/skills/s1/v1/a.zip"))
+
+
+@pytest.mark.asyncio
+async def test_load_artifact_exposes_complete_validated_skill_tree(tmp_path):
+    skill = descriptor("s1", "v1", "complete", "u/skills/s1/v1/a.zip")
+    cache = SkillArtifactCache(
+        tmp_path,
+        downloader=AsyncMock(return_value=complete_skill_zip("complete")),
+    )
+
+    artifact = await cache.load_artifact(skill)
+
+    assert artifact.instructions == "# complete\nv1"
+    assert artifact.artifact_dir == tmp_path / skill.cache_key
+    assert (artifact.artifact_dir / "scripts" / "run.py").read_bytes() == b"print('ok')"
+    assert (artifact.artifact_dir / "templates" / "report.md").read_bytes() == b"# report"
+    assert (artifact.artifact_dir / "assets" / "example.txt").read_bytes() == b"resource"
+
+
+@pytest.mark.asyncio
+async def test_load_artifact_reuses_same_version_and_isolates_changed_version(tmp_path):
+    downloader = AsyncMock(side_effect=[
+        complete_skill_zip("complete", "v1"),
+        complete_skill_zip("complete", "v2"),
+    ])
+    cache = SkillArtifactCache(tmp_path, downloader=downloader)
+    version_one = descriptor("s1", "v1", "complete", "u/skills/s1/v1/a.zip")
+    version_two = descriptor("s1", "v2", "complete", "u/skills/s1/v2/a.zip")
+
+    first = await cache.load_artifact(version_one)
+    reused = await cache.load_artifact(version_one)
+    changed = await cache.load_artifact(version_two)
+
+    assert first.artifact_dir == reused.artifact_dir
+    assert first.artifact_dir != changed.artifact_dir
+    assert first.instructions.endswith("v1")
+    assert changed.instructions.endswith("v2")
+    assert downloader.await_count == 2
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("unsafe_kind", ["traversal", "symlink"])
+async def test_load_artifact_rejects_unsafe_complete_archive(tmp_path, unsafe_kind):
+    output = io.BytesIO()
+    with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr("complete/SKILL.md", b"body")
+        if unsafe_kind == "traversal":
+            archive.writestr("complete/../../escape.txt", b"escape")
+        else:
+            link = zipfile.ZipInfo("complete/link")
+            link.create_system = 3
+            link.external_attr = (stat.S_IFLNK | 0o777) << 16
+            archive.writestr(link, "target")
+    cache = SkillArtifactCache(tmp_path, downloader=AsyncMock(return_value=output.getvalue()))
+
+    with pytest.raises(SkillArtifactError, match="unsafe zip"):
+        await cache.load_artifact(
+            descriptor("s1", "v1", "complete", "u/skills/s1/v1/a.zip")
+        )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("limit_kind", ["entries", "total_size"])
+async def test_load_artifact_rejects_entry_count_and_total_size_limits(tmp_path, monkeypatch, limit_kind):
+    output = io.BytesIO()
+    with zipfile.ZipFile(output, "w", zipfile.ZIP_STORED) as archive:
+        archive.writestr("complete/SKILL.md", b"body")
+        archive.writestr("complete/one.txt", b"12345")
+        archive.writestr("complete/two.txt", b"67890")
+    if limit_kind == "entries":
+        monkeypatch.setattr(skill_artifact_cache_module, "MAX_ZIP_ENTRIES", 2)
+        expected = "too many zip entries"
+    else:
+        monkeypatch.setattr(skill_artifact_cache_module, "MAX_UNCOMPRESSED_BYTES", 8)
+        expected = "uncompressed content too large"
+    cache = SkillArtifactCache(tmp_path, downloader=AsyncMock(return_value=output.getvalue()))
+
+    with pytest.raises(SkillArtifactError, match=expected):
+        await cache.load_artifact(
+            descriptor("s1", "v1", "complete", "u/skills/s1/v1/a.zip")
+        )
 
 
 @pytest.mark.asyncio
