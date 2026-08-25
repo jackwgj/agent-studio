@@ -9,6 +9,10 @@ from agent_runtime.supervisor.skill_artifact_cache import (
     SkillInstructionsMissingError,
 )
 from agent_runtime.supervisor.skill_context import get_skill_context
+from agent_runtime.conversation.skill_artifact_bridge import (
+    conversation_skill_sandbox_enabled,
+    prepare_conversation_skill,
+)
 
 
 class ActivateSkillTool(Tool):
@@ -45,7 +49,13 @@ class ActivateSkillTool(Tool):
 
         skill = context.catalog_by_id[skill_id]
         try:
-            instructions = await context.artifact_cache.load_instructions(skill)
+            sandbox_path = None
+            if conversation_skill_sandbox_enabled():
+                artifact = await context.artifact_cache.load_artifact(skill)
+                instructions = artifact.instructions
+                sandbox_path = await prepare_conversation_skill(skill, artifact)
+            else:
+                instructions = await context.artifact_cache.load_instructions(skill)
         except SkillInstructionsMissingError:
             return self._error(
                 "skill_instructions_missing",
@@ -73,12 +83,15 @@ class ActivateSkillTool(Tool):
             except Exception:
                 # SSE 通道仅作实时透传；投递失败不能撤销已成功加载给 Agent 的指令。
                 pass
-        return {
+        result = {
             "skillId": skill.skill_id,
             "name": skill.name,
             "versionId": skill.version_id,
             "instructions": instructions,
         }
+        if sandbox_path:
+            result["sandboxPath"] = sandbox_path
+        return result
 
     async def stream(self, inputs, **kwargs):
         yield await self.invoke(inputs, **kwargs)

@@ -15,6 +15,7 @@ import tempfile
 import threading
 import zipfile
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
 
 from agent_runtime.common.config import settings
 from storage import get_storage_provider
@@ -55,6 +56,14 @@ class SkillInstructionsMissingError(SkillArtifactError):
 
 
 Downloader = Callable[[str], Awaitable[bytes]]
+
+
+@dataclass(frozen=True, slots=True)
+class CachedSkillArtifact:
+    """A complete, validated and atomically published Skill tree."""
+
+    instructions: str
+    artifact_dir: Path
 
 
 async def _download(object_key: str) -> bytes:
@@ -205,6 +214,14 @@ class SkillArtifactCache:
             return await asyncio.shield(work)
         except asyncio.CancelledError:
             raise
+
+    async def load_artifact(self, skill: SkillDescriptor) -> CachedSkillArtifact:
+        """Return the complete validated Skill directory for sandbox preparation."""
+        instructions = await self.load_instructions(skill)
+        artifact_dir = self._root / skill.cache_key
+        if not artifact_dir.is_dir() or artifact_dir.is_symlink():
+            raise SkillArtifactError("invalid existing cache entry")
+        return CachedSkillArtifact(instructions=instructions, artifact_dir=artifact_dir)
 
     async def _load_while_locked(
         self, skill: SkillDescriptor, cache_dir: Path, lease: _LockLease

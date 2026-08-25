@@ -6,6 +6,7 @@ import hashlib
 import posixpath
 import re
 import uuid
+from contextlib import asynccontextmanager
 from pathlib import PurePosixPath
 from typing import Callable, Sequence
 
@@ -179,22 +180,30 @@ async def prepare_conversation_inputs(
     if not artifacts:
         return []
 
+    from storage.object_storage import LocalStorageProvider, get_storage_provider
+
+    storage = get_storage_provider()
+    if isinstance(storage, LocalStorageProvider):
+        raise InputArtifactPreparationError("remote object storage is unavailable for conversation inputs")
+
+    async with conversation_sandbox_operation("conversation_input_bridge") as operation:
+        return await InputArtifactBridge(storage, lambda: operation).prepare(artifacts)
+
+
+@asynccontextmanager
+async def conversation_sandbox_operation(operation_prefix: str):
+    """Register one short-lived, remote-only SysOperation for internal bridges."""
     from openjiuwen.core.runner import Runner
     from openjiuwen.core.sys_operation import OperationMode
-    from storage.object_storage import LocalStorageProvider, get_storage_provider
 
     config = ConversationSandboxConfig.from_security_sandbox_settings(
         __import__("agent_runtime.common.config", fromlist=["settings"]).settings.security_sandbox
     )
     card = ConversationSysOperationFactory(config).create()
     if card is None or card.mode is not OperationMode.SANDBOX:
-        raise InputArtifactPreparationError("remote sandbox is unavailable for conversation inputs")
+        raise InputArtifactPreparationError("remote sandbox is unavailable for conversation artifacts")
 
-    storage = get_storage_provider()
-    if isinstance(storage, LocalStorageProvider):
-        raise InputArtifactPreparationError("remote object storage is unavailable for conversation inputs")
-
-    operation_id = f"conversation_input_bridge_{uuid.uuid4().hex}"
+    operation_id = f"{operation_prefix}_{uuid.uuid4().hex}"
     tag = operation_id
     request_card = card.model_copy(update={"id": operation_id})
     registered = False
@@ -206,8 +215,8 @@ async def prepare_conversation_inputs(
         registered = True
         operation = Runner.resource_mgr.get_sys_operation(operation_id, tag=tag)
         if operation is None:
-            raise InputArtifactPreparationError("remote sandbox is unavailable for conversation inputs")
-        return await InputArtifactBridge(storage, lambda: operation).prepare(artifacts)
+            raise InputArtifactPreparationError("remote sandbox is unavailable for conversation artifacts")
+        yield operation
     finally:
         if registered:
             try:
