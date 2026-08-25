@@ -159,7 +159,7 @@ async def team_sse_stream(req: ConversationTeamReq, execution_id: str | None = N
     context = ConversationExecutionContext.create(
         identity,
         os.environ.get("CONVERSATION_SANDBOX_WORKSPACE_ROOT")
-        or "/home/gem/workspaces",
+        or "/workspace",
     )
     context_token = set_conversation_execution_context(context)
     runner = None

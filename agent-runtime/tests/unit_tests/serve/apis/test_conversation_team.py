@@ -8,6 +8,7 @@ from pydantic import ValidationError
 
 from agent_runtime.conversation import execution_context as execution_context_module
 from agent_runtime.serve.apis import conversation_team as conversation_team_module
+from agent_runtime.serve.apis import conversation_team_app as conversation_team_app_module
 from agent_runtime.serve.apis.conversation_team import ConversationTeamReq, team_sse_stream
 from agent_runtime.supervisor import runner as runner_module
 from agent_runtime.supervisor.event.channel import (
@@ -50,6 +51,61 @@ def request_payload(**overrides):
     }
     payload.update(overrides)
     return payload
+
+
+def app_request():
+    return ConversationTeamReq.model_validate(request_payload(
+        selectType="APP",
+        appId="app-1",
+        subAgentIds=[],
+        modelDeploymentId=None,
+        skillCatalog=[],
+        recommendedSkillIds=[],
+    ))
+
+
+class BlockingAppRunner:
+    def __init__(self, cleanup_order):
+        self.cleanup_order = cleanup_order
+        self.started = asyncio.Event()
+        self.closed = asyncio.Event()
+        self.contexts = []
+        self.close_contexts = []
+
+    async def run_streaming(self, _request, _execution_id):
+        self.contexts.append(
+            execution_context_module.get_conversation_execution_context()
+        )
+        self.started.set()
+        try:
+            yield {"event": "message", "data": {"answer": "app-first"}}
+            await asyncio.Event().wait()
+        finally:
+            self.close_contexts.append(
+                execution_context_module.get_conversation_execution_context()
+            )
+            self.cleanup_order.append("raw_close")
+            self.closed.set()
+
+
+def configure_blocking_app(monkeypatch, cleanup_order):
+    runner = BlockingAppRunner(cleanup_order)
+
+    async def load_ir(_path):
+        return {"configs": {"mode": "ReAct"}}
+
+    monkeypatch.setattr(conversation_team_app_module, "async_ir_load", load_ir)
+    monkeypatch.setattr(
+        conversation_team_app_module,
+        "prepare_params",
+        lambda request: request.params,
+    )
+    monkeypatch.setattr(
+        conversation_team_app_module,
+        "_conversation_runner_factory",
+        SimpleNamespace(get=lambda _mode: runner),
+    )
+    return runner
 
 
 def test_request_requires_trusted_execution_identity():
@@ -260,7 +316,7 @@ async def test_team_stream_keeps_context_through_runner_close_and_resets_after_n
     assert events[-1]["event"] == "message"
     assert observed == closed
     assert observed[0].identity.execution_id == "execution-normal"
-    assert str(observed[0].workspace.sandbox_root) == "/home/gem/workspaces"
+    assert str(observed[0].workspace.sandbox_root) == "/workspace"
     with pytest.raises(LookupError, match="no conversation execution context is active"):
         execution_context_module.get_conversation_execution_context()
 
@@ -336,6 +392,80 @@ async def test_concurrent_team_streams_observe_only_their_own_context(monkeypatc
     assert context_a.workspace.conversation_root != context_b.workspace.conversation_root
     with pytest.raises(LookupError, match="no conversation execution context is active"):
         execution_context_module.get_conversation_execution_context()
+
+
+@pytest.mark.asyncio
+async def test_app_first_event_close_closes_raw_runner_before_context_reset(monkeypatch):
+    cleanup_order = []
+    runner = configure_blocking_app(monkeypatch, cleanup_order)
+    original_reset = conversation_team_module.reset_conversation_execution_context
+
+    def reset_context(token):
+        cleanup_order.append("context_reset")
+        original_reset(token)
+
+    monkeypatch.setattr(
+        conversation_team_module,
+        "reset_conversation_execution_context",
+        reset_context,
+    )
+    stream = team_sse_stream(app_request(), "app-close-execution")
+
+    await stream.__anext__()
+    await stream.__anext__()
+    app_event = json.loads((await stream.__anext__()).removeprefix("data: "))
+    await stream.aclose()
+
+    assert app_event["event"] == "message"
+    assert runner.started.is_set()
+    assert runner.closed.is_set()
+    assert runner.contexts == runner.close_contexts
+    assert cleanup_order == ["raw_close", "context_reset"]
+    with pytest.raises(LookupError, match="no conversation execution context is active"):
+        execution_context_module.get_conversation_execution_context()
+
+
+@pytest.mark.asyncio
+async def test_app_send_cancellation_closes_raw_runner_before_context_reset_in_consumer(monkeypatch):
+    cleanup_order = []
+    runner = configure_blocking_app(monkeypatch, cleanup_order)
+    original_reset = conversation_team_module.reset_conversation_execution_context
+
+    def reset_context(token):
+        cleanup_order.append("context_reset")
+        original_reset(token)
+
+    monkeypatch.setattr(
+        conversation_team_module,
+        "reset_conversation_execution_context",
+        reset_context,
+    )
+    response = await conversation_team_module.conversation_team(
+        app_request(), SimpleNamespace(headers={"x-execution-id": "app-cancel-execution"})
+    )
+    app_body_started = asyncio.Event()
+    never = asyncio.Event()
+    body_count = 0
+
+    async def send(message):
+        nonlocal body_count
+        if message["type"] != "http.response.body" or not message.get("more_body"):
+            return
+        body_count += 1
+        if body_count == 3:
+            app_body_started.set()
+            await never.wait()
+
+    response_task = asyncio.create_task(response.stream_response(send))
+    await asyncio.wait_for(app_body_started.wait(), timeout=1)
+    response_task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await response_task
+
+    assert runner.started.is_set()
+    assert runner.closed.is_set()
+    assert runner.contexts == runner.close_contexts
+    assert cleanup_order == ["raw_close", "context_reset"]
 
 
 @pytest.mark.asyncio

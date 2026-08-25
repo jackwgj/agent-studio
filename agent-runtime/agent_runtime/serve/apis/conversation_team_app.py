@@ -177,7 +177,12 @@ async def stream_application(
     execution_request.params = prepare_params(execution_request)
     runner = _conversation_runner_factory.get(mode)
     raw_stream = runner.run_streaming(execution_request, execution_id)
-    async for raw in raw_stream:
-        event = _adapt_event(raw, execution_id)
-        if event is not None:
-            yield event
+    try:
+        async for raw in raw_stream:
+            event = _adapt_event(raw, execution_id)
+            if event is not None:
+                yield event
+    finally:
+        close = getattr(raw_stream, "aclose", None)
+        if close is not None:
+            await close()
