@@ -1,5 +1,7 @@
 import hashlib
 import importlib
+import json
+from types import SimpleNamespace
 
 import pytest
 
@@ -39,6 +41,44 @@ def _api():
         module.OutputArtifactCollectionError,
         module.SandboxOutputEntry,
     )
+
+
+class RecordingShell:
+    def __init__(self, stdout="[]", exit_code=0, ok=True):
+        self.result = SimpleNamespace(
+            is_ok=lambda: ok,
+            data=SimpleNamespace(stdout=stdout, exit_code=exit_code),
+        )
+        self.calls = []
+
+    async def execute_cmd(self, command, **kwargs):
+        self.calls.append((command, kwargs))
+        return self.result
+
+
+class RecordingRemoteFs:
+    def __init__(self, content=b"data", ok=True):
+        self.result = SimpleNamespace(
+            is_ok=lambda: ok,
+            data=SimpleNamespace(content=content),
+        )
+        self.calls = []
+
+    async def read_file(self, path, **kwargs):
+        self.calls.append((path, kwargs))
+        return self.result
+
+
+class RecordingRemoteOperation:
+    def __init__(self, shell, fs):
+        self._shell = shell
+        self._fs = fs
+
+    def shell(self):
+        return self._shell
+
+    def fs(self):
+        return self._fs
 
 
 def _context(execution_id="execution-current"):
@@ -210,3 +250,39 @@ async def test_rejects_unsupported_output_types(file_name):
     with pytest.raises(error_type, match="file type"):
         await _collect(source)
     assert source.read_paths == []
+
+
+@pytest.mark.asyncio
+async def test_remote_source_scans_and_reads_only_the_server_supplied_output_root():
+    module = importlib.import_module(
+        "agent_runtime.conversation.output_artifact_collector"
+    )
+    context = _context()
+    output_path = str(context.output_dir / "result.txt")
+    shell = RecordingShell(json.dumps([{
+        "path": output_path,
+        "size": 4,
+        "is_symlink": False,
+        "is_regular_file": True,
+    }]))
+    fs = RecordingRemoteFs()
+    source = module.RemoteSandboxOutputSource(
+        RecordingRemoteOperation(shell, fs)
+    )
+
+    entries = await source.scan(str(context.output_dir))
+    content = await source.read_bytes(output_path)
+
+    assert entries == [module.SandboxOutputEntry(
+        path=output_path,
+        size=4,
+        is_symlink=False,
+        is_regular_file=True,
+    )]
+    assert shell.calls[0][1] == {
+        "cwd": str(context.output_dir),
+        "environment": {"OJW_OUTPUT_ROOT": str(context.output_dir)},
+    }
+    assert "python3 -c" in shell.calls[0][0]
+    assert fs.calls == [(output_path, {"mode": "bytes"})]
+    assert content == b"data"
