@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
@@ -22,6 +23,7 @@ from agent_runtime.conversation.sandbox import (
 from agent_runtime.conversation.runner import conversation_react_runner
 from agent_runtime.conversation.runner.conversation_react_runner import ConversationReActRunner
 from openjiuwen.core.sys_operation import OperationMode
+from openjiuwen.core.runner import Runner
 
 
 class _Result:
@@ -172,12 +174,12 @@ async def test_configured_sandbox_binds_exactly_three_remote_tools_and_anchors_p
         await tools["execute_code"].invoke({"code": "print(1)", "cwd": "scratch"})
         await tools["execute_cmd"].invoke({"command": "pwd"})
 
-        assert remote.calls == [
-            ("read_file", f"{context.workspace.work_dir}/plan.md", {}),
-            ("read_file", str(context.workspace.input_dir / "source.md"), {}),
-            ("execute_code", "print(1)", {"cwd": f"{context.workspace.work_dir}/scratch"}),
-            ("execute_cmd", "pwd", {"cwd": str(context.workspace.work_dir)}),
-        ]
+        assert remote.calls[0] == ("read_file", f"{context.workspace.work_dir}/plan.md", {})
+        assert remote.calls[1] == ("read_file", str(context.workspace.input_dir / "source.md"), {})
+        assert remote.calls[2][0] == "execute_code"
+        assert "os.chdir" in remote.calls[2][1]
+        assert remote.calls[2][2] == {"cwd": f"{context.workspace.work_dir}/scratch"}
+        assert remote.calls[3] == ("execute_cmd", "pwd", {"cwd": str(context.workspace.work_dir)})
     finally:
         execution_context_module.reset_conversation_execution_context(token)
 
@@ -213,6 +215,96 @@ async def test_remote_error_is_raised_unchanged_without_a_local_fallback():
 
         assert error.value is remote.command_error
         assert remote.calls == []
+        assert manager.sys_operation_cards[0][0].mode is OperationMode.SANDBOX
+    finally:
+        execution_context_module.reset_conversation_execution_context(token)
+
+
+def test_real_resource_manager_registers_only_request_owned_sandbox_resources():
+    context = _context()
+    token = execution_context_module.set_conversation_execution_context(context)
+    binder = ConversationSandboxToolBinder(_Factory(_sandbox_card()))
+    try:
+        agent = _Agent()
+        binder.register(agent)
+
+        operation = Runner.resource_mgr.get_sys_operation(
+            binder.operation_id, tag=binder.operation_id
+        )
+        assert operation is not None
+        assert operation.mode is OperationMode.SANDBOX
+        assert [card.name for card in agent.ability_manager.cards] == [
+            "read_file",
+            "execute_code",
+            "execute_cmd",
+        ]
+    finally:
+        binder.cleanup()
+        execution_context_module.reset_conversation_execution_context(token)
+
+    assert Runner.resource_mgr.get_sys_operation(
+        binder.operation_id, tag=binder.operation_id
+    ) is None
+    assert Runner.resource_mgr.get_tool(
+        f"{binder.operation_id}.fs.read_file", tag=binder.operation_id
+    ) is None
+
+
+@pytest.mark.asyncio
+async def test_sandbox_tools_reject_paths_outside_the_active_conversation_root():
+    context = _context()
+    token = execution_context_module.set_conversation_execution_context(context)
+    try:
+        remote = _RemoteOperation()
+        manager = _ResourceManager(remote)
+        binder = ConversationSandboxToolBinder(_Factory(_sandbox_card()), manager)
+        binder.register(_Agent())
+        tools = {tool.card.name: tool for tool, _tag in manager.tools.values()}
+
+        with pytest.raises(ValueError, match="conversation workspace"):
+            await tools["read_file"].invoke({"path": "../../other-conversation.txt"})
+        with pytest.raises(ValueError, match="conversation workspace"):
+            await tools["execute_cmd"].invoke({"command": "pwd", "cwd": "/workspace/foreign/work"})
+        await tools["read_file"].invoke({"path": str(context.output_dir / "answer.txt")})
+
+        assert remote.calls == [
+            ("read_file", str(context.output_dir / "answer.txt"), {}),
+        ]
+    finally:
+        execution_context_module.reset_conversation_execution_context(token)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("language", "source", "expected_chdir"),
+    [
+        ("python", "from __future__ import annotations\nprint('ok')", "os.chdir"),
+        ("javascript", "'use strict'; console.log('ok')", "process.chdir"),
+    ],
+)
+async def test_code_tool_embeds_the_validated_cwd_when_the_official_provider_ignores_cwd(
+    language, source, expected_chdir
+):
+    context = _context()
+    token = execution_context_module.set_conversation_execution_context(context)
+    try:
+        remote = _RemoteOperation()
+        manager = _ResourceManager(remote)
+        binder = ConversationSandboxToolBinder(_Factory(_sandbox_card()), manager)
+        binder.register(_Agent())
+        code_tool = next(
+            tool for tool, _tag in manager.tools.values() if tool.card.name == "execute_code"
+        )
+
+        await code_tool.invoke({"code": source, "language": language})
+
+        operation, transmitted_code, kwargs = remote.calls[-1]
+        assert operation == "execute_code"
+        assert transmitted_code != source
+        assert source not in transmitted_code
+        assert expected_chdir in transmitted_code
+        assert str(context.workspace.work_dir) in transmitted_code
+        assert kwargs["cwd"] == str(context.workspace.work_dir)
     finally:
         execution_context_module.reset_conversation_execution_context(token)
 
@@ -351,6 +443,56 @@ async def test_runner_cleans_supervisor_sandbox_binding_after_a_successful_strea
         )
 
         _ = [event async for event in runner.run_streaming(_streaming_request())]
+
+        assert binder.registered_agents == [agent]
+        assert binder.cleanup_count == 1
+    finally:
+        execution_context_module.reset_conversation_execution_context(token)
+
+
+@pytest.mark.asyncio
+async def test_runner_cleans_sandbox_binding_when_the_stream_is_closed_after_start(monkeypatch):
+    context = _context()
+    token = execution_context_module.set_conversation_execution_context(context)
+    try:
+        runner = ConversationReActRunner()
+        agent = _StreamingAgent()
+        binder = _RunnerBinder()
+        _configure_runner_for_stream(monkeypatch, runner, agent)
+        monkeypatch.setattr(
+            conversation_react_runner,
+            "ConversationSandboxToolBinder",
+            SimpleNamespace(from_runtime_settings=lambda: binder),
+        )
+        stream = runner.run_streaming(_streaming_request())
+
+        assert (await anext(stream))["event"] == "start"
+        await stream.aclose()
+
+        assert binder.registered_agents == [agent]
+        assert binder.cleanup_count == 1
+    finally:
+        execution_context_module.reset_conversation_execution_context(token)
+
+
+@pytest.mark.asyncio
+async def test_runner_cleans_sandbox_binding_when_rail_registration_is_cancelled(monkeypatch):
+    context = _context()
+    token = execution_context_module.set_conversation_execution_context(context)
+    try:
+        runner = ConversationReActRunner()
+        agent = _StreamingAgent()
+        agent.register_rail = AsyncMock(side_effect=asyncio.CancelledError())
+        binder = _RunnerBinder()
+        _configure_runner_for_stream(monkeypatch, runner, agent)
+        monkeypatch.setattr(
+            conversation_react_runner,
+            "ConversationSandboxToolBinder",
+            SimpleNamespace(from_runtime_settings=lambda: binder),
+        )
+
+        with pytest.raises(asyncio.CancelledError):
+            await anext(runner.run_streaming(_streaming_request()))
 
         assert binder.registered_agents == [agent]
         assert binder.cleanup_count == 1

@@ -129,120 +129,117 @@ class ConversationReActRunner(ReActAgentRunner):
             yield adapter.adapt_error(f"Failed to create agent: {error}")
             return
 
-        try:
-            await self._register_plugins(ir_json, agent, agent_id)
-            await self._register_mcp_servers(ir_json, agent, agent_id)
-            await self._register_workflows(ir_json, agent, agent_id)
-            await self._register_skills(ir_json, agent, agent_id, skill_work_dir)
-            if skills_conf and skill_work_dir and skill_info_list:
-                self._register_skill_tools(agent, agent_id, skill_work_dir)
-            if has_file_links:
-                self._register_file_reader_tool(agent, agent_id)
-
-            team_config = (global_variables or {}).get("conversationTeam") or {}
-            skill_token = None
-            if team_config.get("type") == "SUPERVISOR":
-                sandbox_binder = ConversationSandboxToolBinder.from_runtime_settings()
-                sandbox_binder.register(agent)
-                await self._attach_supervisor_skill_context(agent, team_config)
-                await self._register_supervisor_handoff_tools(
-                    agent, list(team_config.get("subAgentIds") or [])
-                )
-                skill_token = bind_agent_skill_context(agent)
-            else:
-                skill_token = None
-        except Exception as error:
-            if sandbox_binder is not None:
-                sandbox_binder.cleanup()
-            workflow_logger.error("Failed to register conversation tools: %s", error)
-            yield adapter.adapt_error(f"Failed to register tools: {error}")
-            return
-
-        try:
-            from openjiuwen.extensions.tracer_otel.otel_rail import OtelRail
-
-            await agent.register_rail(OtelRail())
-        except Exception as error:
-            workflow_logger.debug("Conversation OtelRail registration skipped: %s", error)
-
-        inputs = {
-            "query": query,
-            "conversation_id": req.conversation_id,
-            "user_id": req.user_id,
-        }
-        yield adapter.create_start_event()
-        adapter.start_time = int(time.time() * 1000)
-        chain_id = str(uuid.uuid4())
-        adapter.set_chain_and_agent_ids(chain_id, chain_id)
-        yield adapter.create_agent_node_start_event(
-            invoke_id=chain_id,
-            chain_id=chain_id,
-            invoke_type="chain",
-            name=ir_json.get("agentName", "Agent"),
-        )
-
         session: Optional[Session] = None
+        skill_token = None
         is_first_llm_call = True
         try:
-            session_id = req.conversation_id or "default_session"
-            session = create_agent_session(session_id=session_id, card=agent.card)
-            await session.pre_run(inputs=inputs)
-            inputs.setdefault("_jiuwen_runtime_kwargs", {})["session"] = session
-            prompt_messages = self._parse_prompt_template(
-                ir_json, conversation_history, skill_work_dir, global_variables, has_file_links
-            )
-            llm_inputs = list(prompt_messages) + [{"role": "user", "content": query}]
-            functions = self._get_agent_functions(agent)
-            llm_meta_data = {
-                "class_name": "Openai",
-                "instance_attributes": {
-                    "model": ir_json.get("configs", {}).get("modelConfig", {}).get("modelName", ""),
-                    "temperature": ir_json.get("configs", {}).get("modelConfig", {}).get("hyperParameters", {}).get("temperature", 0.0),
-                    "top_p": ir_json.get("configs", {}).get("modelConfig", {}).get("hyperParameters", {}).get("top_p", 1.0),
-                    "functions": functions,
-                },
-            }
-            async for chunk in agent.stream(
-                inputs,
-                session,
-                [BaseStreamMode.OUTPUT, BaseStreamMode.TRACE, BaseStreamMode.CUSTOM],
-            ):
-                chunk_type = getattr(chunk, "type", None)
-                if chunk_type == "llm_output" and is_first_llm_call:
-                    is_first_llm_call = False
-                    llm_invoke_id = str(uuid.uuid4())
-                    adapter.set_llm_invoke_id(llm_invoke_id)
-                    adapter.set_llm_inputs(llm_inputs)
-                    adapter.set_llm_meta_data(llm_meta_data)
-                    adapter.add_child_invoke_id(llm_invoke_id)
-                    adapter._is_llm_call_started = True
-                    yield adapter.create_agent_node_start_event(
-                        invoke_id=llm_invoke_id,
-                        chain_id=chain_id,
-                        invoke_type="llm",
-                        name="Openai",
-                        inputs=llm_inputs,
-                        meta_data=llm_meta_data,
+            try:
+                await self._register_plugins(ir_json, agent, agent_id)
+                await self._register_mcp_servers(ir_json, agent, agent_id)
+                await self._register_workflows(ir_json, agent, agent_id)
+                await self._register_skills(ir_json, agent, agent_id, skill_work_dir)
+                if skills_conf and skill_work_dir and skill_info_list:
+                    self._register_skill_tools(agent, agent_id, skill_work_dir)
+                if has_file_links:
+                    self._register_file_reader_tool(agent, agent_id)
+
+                team_config = (global_variables or {}).get("conversationTeam") or {}
+                if team_config.get("type") == "SUPERVISOR":
+                    sandbox_binder = ConversationSandboxToolBinder.from_runtime_settings()
+                    sandbox_binder.register(agent)
+                    await self._attach_supervisor_skill_context(agent, team_config)
+                    await self._register_supervisor_handoff_tools(
+                        agent, list(team_config.get("subAgentIds") or [])
                     )
-                for event in adapter.adapt(chunk):
-                    if event:
-                        yield event
-            yield adapter.create_agent_node_end_event(
+                    skill_token = bind_agent_skill_context(agent)
+            except Exception as error:
+                workflow_logger.error("Failed to register conversation tools: %s", error)
+                yield adapter.adapt_error(f"Failed to register tools: {error}")
+                return
+
+            try:
+                from openjiuwen.extensions.tracer_otel.otel_rail import OtelRail
+
+                await agent.register_rail(OtelRail())
+            except Exception as error:
+                workflow_logger.debug("Conversation OtelRail registration skipped: %s", error)
+
+            inputs = {
+                "query": query,
+                "conversation_id": req.conversation_id,
+                "user_id": req.user_id,
+            }
+            yield adapter.create_start_event()
+            adapter.start_time = int(time.time() * 1000)
+            chain_id = str(uuid.uuid4())
+            adapter.set_chain_and_agent_ids(chain_id, chain_id)
+            yield adapter.create_agent_node_start_event(
                 invoke_id=chain_id,
                 chain_id=chain_id,
                 invoke_type="chain",
                 name=ir_json.get("agentName", "Agent"),
-                inputs={"query": query},
-                outputs=adapter.final_output,
-                child_invokes=adapter.child_invoke_ids,
             )
-        except Exception as error:
-            workflow_logger.error("Conversation ReAct stream failed: %s", error, exc_info=True)
-            yield adapter.adapt_error(f"Agent execution failed: {error}")
+
+            try:
+                session_id = req.conversation_id or "default_session"
+                session = create_agent_session(session_id=session_id, card=agent.card)
+                await session.pre_run(inputs=inputs)
+                inputs.setdefault("_jiuwen_runtime_kwargs", {})["session"] = session
+                prompt_messages = self._parse_prompt_template(
+                    ir_json, conversation_history, skill_work_dir, global_variables, has_file_links
+                )
+                llm_inputs = list(prompt_messages) + [{"role": "user", "content": query}]
+                functions = self._get_agent_functions(agent)
+                llm_meta_data = {
+                    "class_name": "Openai",
+                    "instance_attributes": {
+                        "model": ir_json.get("configs", {}).get("modelConfig", {}).get("modelName", ""),
+                        "temperature": ir_json.get("configs", {}).get("modelConfig", {}).get("hyperParameters", {}).get("temperature", 0.0),
+                        "top_p": ir_json.get("configs", {}).get("modelConfig", {}).get("hyperParameters", {}).get("top_p", 1.0),
+                        "functions": functions,
+                    },
+                }
+                async for chunk in agent.stream(
+                    inputs,
+                    session,
+                    [BaseStreamMode.OUTPUT, BaseStreamMode.TRACE, BaseStreamMode.CUSTOM],
+                ):
+                    chunk_type = getattr(chunk, "type", None)
+                    if chunk_type == "llm_output" and is_first_llm_call:
+                        is_first_llm_call = False
+                        llm_invoke_id = str(uuid.uuid4())
+                        adapter.set_llm_invoke_id(llm_invoke_id)
+                        adapter.set_llm_inputs(llm_inputs)
+                        adapter.set_llm_meta_data(llm_meta_data)
+                        adapter.add_child_invoke_id(llm_invoke_id)
+                        adapter._is_llm_call_started = True
+                        yield adapter.create_agent_node_start_event(
+                            invoke_id=llm_invoke_id,
+                            chain_id=chain_id,
+                            invoke_type="llm",
+                            name="Openai",
+                            inputs=llm_inputs,
+                            meta_data=llm_meta_data,
+                        )
+                    for event in adapter.adapt(chunk):
+                        if event:
+                            yield event
+                yield adapter.create_agent_node_end_event(
+                    invoke_id=chain_id,
+                    chain_id=chain_id,
+                    invoke_type="chain",
+                    name=ir_json.get("agentName", "Agent"),
+                    inputs={"query": query},
+                    outputs=adapter.final_output,
+                    child_invokes=adapter.child_invoke_ids,
+                )
+            except Exception as error:
+                workflow_logger.error("Conversation ReAct stream failed: %s", error, exc_info=True)
+                yield adapter.adapt_error(f"Agent execution failed: {error}")
         finally:
             if sandbox_binder is not None:
                 sandbox_binder.cleanup()
-            if session is not None:
-                await session.post_run()
             if skill_token is not None:
                 reset_skill_context(skill_token)
+            if session is not None:
+                await session.post_run()

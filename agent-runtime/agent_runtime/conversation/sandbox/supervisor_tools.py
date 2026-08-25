@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import base64
+import json
 import posixpath
 import uuid
 from pathlib import PurePosixPath
@@ -54,6 +56,7 @@ class ConversationSandboxToolBinder:
 
         context = get_conversation_execution_context()
         work_dir = str(context.workspace.work_dir)
+        conversation_root = str(context.workspace.conversation_root)
         operation_id = f"{factory_card.id}_{uuid.uuid4().hex}"
         request_card = factory_card.model_copy(update={"id": operation_id})
         self._operation_id = operation_id
@@ -69,7 +72,7 @@ class ConversationSandboxToolBinder:
             if operation is None:
                 raise RuntimeError("conversation SANDBOX SysOperation was not available after registration")
 
-            for tool in self._build_tools(operation, work_dir):
+            for tool in self._build_tools(operation, work_dir, conversation_root):
                 self._require_ok(
                     self._resource_manager.add_tool(tool, tag=self._tag),
                     f"Failed to register conversation sandbox tool {tool.card.name}",
@@ -103,26 +106,33 @@ class ConversationSandboxToolBinder:
             except Exception:
                 pass
 
-    def _build_tools(self, operation, work_dir: str) -> list[LocalFunction]:
+    def _build_tools(
+        self, operation, work_dir: str, conversation_root: str
+    ) -> list[LocalFunction]:
         if self._operation_id is None:
             raise RuntimeError("conversation sandbox operation id is not initialized")
 
         async def read_file(path: str, **kwargs: Any):
             return await operation.fs().read_file(
-                self._absolute_posix_path(work_dir, path), **self._without_none(kwargs)
+                self._absolute_posix_path(work_dir, conversation_root, path),
+                **self._without_none(kwargs),
             )
 
         async def execute_code(code: str, cwd: str | None = None, **kwargs: Any):
+            remote_kwargs = self._without_none(kwargs)
+            resolved_cwd = self._absolute_posix_path(work_dir, conversation_root, cwd)
             return await operation.code().execute_code(
-                code,
-                cwd=self._absolute_posix_path(work_dir, cwd),
-                **self._without_none(kwargs),
+                self._code_with_working_directory(
+                    code, remote_kwargs.get("language", "python"), resolved_cwd
+                ),
+                cwd=resolved_cwd,
+                **remote_kwargs,
             )
 
         async def execute_cmd(command: str, cwd: str | None = None, **kwargs: Any):
             return await operation.shell().execute_cmd(
                 command,
-                cwd=self._absolute_posix_path(work_dir, cwd),
+                cwd=self._absolute_posix_path(work_dir, conversation_root, cwd),
                 **self._without_none(kwargs),
             )
 
@@ -141,10 +151,37 @@ class ConversationSandboxToolBinder:
         )
 
     @staticmethod
-    def _absolute_posix_path(work_dir: str, value: str | None) -> str:
+    def _absolute_posix_path(
+        work_dir: str, conversation_root: str, value: str | None
+    ) -> str:
         candidate = PurePosixPath(value) if value is not None else PurePosixPath()
         path = candidate if candidate.is_absolute() else PurePosixPath(work_dir) / candidate
-        return posixpath.normpath(str(path))
+        normalized = PurePosixPath(posixpath.normpath(str(path)))
+        trusted_root = PurePosixPath(conversation_root)
+        if not normalized.is_relative_to(trusted_root):
+            raise ValueError("path must remain within the active conversation workspace")
+        return str(normalized)
+
+    @staticmethod
+    def _code_with_working_directory(code: str, language: str, cwd: str) -> str:
+        """Embed a remote cwd because the installed AIO code provider ignores it."""
+        encoded = base64.b64encode(code.encode("utf-8")).decode("ascii")
+        if language == "python":
+            return (
+                "import base64 as __conversation_base64\n"
+                "import os as __conversation_os\n"
+                f"__conversation_os.chdir({cwd!r})\n"
+                "exec(compile(__conversation_base64.b64decode("
+                f"'{encoded}'), '<conversation>', 'exec'))"
+            )
+        if language == "javascript":
+            return (
+                f"process.chdir({json.dumps(cwd)});\n"
+                "require('vm').runInThisContext(Buffer.from("
+                f"'{encoded}', 'base64').toString('utf8'), "
+                "{ filename: '<conversation>' });"
+            )
+        return code
 
     @staticmethod
     def _require_ok(result, message: str) -> None:
