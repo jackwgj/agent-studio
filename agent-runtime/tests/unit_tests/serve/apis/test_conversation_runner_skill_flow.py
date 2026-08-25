@@ -2,6 +2,11 @@ from types import SimpleNamespace
 
 import pytest
 
+from agent_runtime.conversation import execution_context as execution_context_module
+from agent_runtime.conversation.execution_context import (
+    ConversationExecutionContext,
+    ConversationIdentity,
+)
 from agent_runtime.conversation import supervisor_runner
 
 
@@ -48,9 +53,20 @@ async def test_supervisor_bridge_passes_skill_catalog_to_runner_context(monkeypa
         }
     )
 
-    _ = [event async for event in supervisor_runner.run_conversation_supervisor(
-        req, "execution-1", config
-    )]
+    context = ConversationExecutionContext.create(ConversationIdentity(
+        project_id="project-1",
+        workspace_id="workspace-1",
+        user_id="user-1",
+        conversation_id="conversation-1",
+        execution_id="execution-1",
+    ), "/sandbox/root")
+    token = execution_context_module.set_conversation_execution_context(context)
+    try:
+        _ = [event async for event in supervisor_runner.run_conversation_supervisor(
+            req, "execution-1", config
+        )]
+    finally:
+        execution_context_module.reset_conversation_execution_context(token)
 
     team = runner.request.params.global_variables["conversationTeam"]
     assert team["recommendedSkillIds"] == ["meeting-minutes"]

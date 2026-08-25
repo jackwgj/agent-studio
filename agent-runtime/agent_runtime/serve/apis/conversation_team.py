@@ -19,6 +19,12 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from agent_runtime.conversation.execution_context import (
+    ConversationExecutionContext,
+    ConversationIdentity,
+    reset_conversation_execution_context,
+    set_conversation_execution_context,
+)
 from agent_runtime.supervisor.builder import build_supervisor, normalize_skill_inputs
 from agent_runtime.supervisor.conversation_supervisor_builder import (
     build_conversation_supervisor_config,
@@ -143,14 +149,27 @@ async def team_sse_stream(req: ConversationTeamReq, execution_id: str | None = N
     """
     if not execution_id:
         execution_id = str(uuid.uuid4())
-    index = 0
-    yield sse_line(build_user_message(execution_id, req.conversation_id, req.query, index=index))
-    index += 1
-    yield sse_line(build_run_start(execution_id, index=index))
-    index += 1
-
+    identity = ConversationIdentity(
+        project_id=req.project_id,
+        workspace_id=req.workspace_id,
+        user_id=req.user_id,
+        conversation_id=req.conversation_id,
+        execution_id=execution_id,
+    )
+    context = ConversationExecutionContext.create(
+        identity,
+        os.environ.get("CONVERSATION_SANDBOX_WORKSPACE_ROOT")
+        or "/home/gem/workspaces",
+    )
+    context_token = set_conversation_execution_context(context)
     runner = None
     try:
+        index = 0
+        yield sse_line(build_user_message(execution_id, req.conversation_id, req.query, index=index))
+        index += 1
+        yield sse_line(build_run_start(execution_id, index=index))
+        index += 1
+
         if req.select_type.upper() == "APP":
             runner = stream_application(req, execution_id)
         else:
@@ -196,11 +215,14 @@ async def team_sse_stream(req: ConversationTeamReq, execution_id: str | None = N
         logger.error(f"conversation/team build or app adapter failed: {e}", exc_info=True)
         yield sse_line(build_error(execution_id, code="build_failed", message=str(e), index=index))
     finally:
-        if runner is not None:
-            try:
-                await runner.aclose()
-            except Exception:
-                pass
+        try:
+            if runner is not None:
+                try:
+                    await runner.aclose()
+                except Exception:
+                    pass
+        finally:
+            reset_conversation_execution_context(context_token)
 
 
 @team_router.post("/v1/conversation/team")

@@ -7,6 +7,9 @@ import json
 import logging
 from typing import Any, AsyncGenerator
 
+from agent_runtime.conversation.execution_context import (
+    get_conversation_execution_context,
+)
 from agent_runtime.serve.apis.orchestration import prepare_params
 from agent_runtime.conversation.runner.conversation_runner_factory import (
     ConversationRunnerFactory,
@@ -132,6 +135,9 @@ async def stream_application(
     execution_id: str,
 ) -> AsyncGenerator[dict, None]:
     """执行用户 APP 并输出统一 TeamEvent。"""
+    execution_context = get_conversation_execution_context().for_child_call()
+    identity = execution_context.identity
+    execution_id = identity.execution_id
     ir_path = f"agent/ir/{req.app_id}/{req.app_id}.json"
     ir_data = await async_ir_load(ir_path)
     mode = (ir_data.get("configs") or {}).get("mode", "ReAct")
@@ -144,23 +150,25 @@ async def stream_application(
         globalVariables={
             "sys": {
                 "conversationHistory": history,
-                "conversationId": req.conversation_id,
-                "projectId": req.project_id,
-                "workspaceId": req.workspace_id,
-                "userId": req.user_id,
+                "conversationId": identity.conversation_id,
+                "projectId": identity.project_id,
+                "workspaceId": identity.workspace_id,
+                "userId": identity.user_id,
+                "executionId": identity.execution_id,
             },
-            "conversationId": req.conversation_id,
-            "projectId": req.project_id,
-            "workspaceId": req.workspace_id,
-            "userId": req.user_id,
+            "conversationId": identity.conversation_id,
+            "projectId": identity.project_id,
+            "workspaceId": identity.workspace_id,
+            "userId": identity.user_id,
+            "executionId": identity.execution_id,
         },
         pluginConfigs=[],
         toolSwitchDict={},
         isDebug=False,
     )
     execution_request = ExecutionRequest(
-        conversationId=req.conversation_id,
-        userId=req.user_id,
+        conversationId=identity.conversation_id,
+        userId=identity.user_id,
         irPath=ir_path,
         query=req.query,
         params=params,

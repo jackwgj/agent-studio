@@ -10,6 +10,9 @@ from __future__ import annotations
 import uuid
 from collections.abc import AsyncGenerator
 
+from agent_runtime.conversation.execution_context import (
+    get_conversation_execution_context,
+)
 from agent_runtime.conversation.runner.conversation_runner_factory import (
     ConversationRunnerFactory,
 )
@@ -41,19 +44,28 @@ class ConversationHandoffTool(HandoffTool):
         sub_execution_id: str,
     ) -> ExecutionRequest:
         """Load existing child IR and build the standard runner request."""
+        execution_context = get_conversation_execution_context().for_child_call()
+        identity = execution_context.identity
         ir_data = await async_ir_load(self._ir_path())
         history = []
         params = ExecutionParams(
             conversationHistory=history,
-            globalVariables={},
+            globalVariables={
+                "conversationId": identity.conversation_id,
+                "projectId": identity.project_id,
+                "workspaceId": identity.workspace_id,
+                "userId": identity.user_id,
+                "executionId": identity.execution_id,
+                "subExecutionId": sub_execution_id,
+            },
             pluginConfigs=[],
             toolSwitchDict={},
             isDebug=False,
             ir_cache=ir_data,
         )
         return ExecutionRequest(
-            conversationId=f"conversation-child-{sub_execution_id}",
-            userId="anonymous",
+            conversationId=identity.conversation_id,
+            userId=identity.user_id,
             irPath=self._ir_path(),
             query=query,
             params=params,
@@ -68,7 +80,9 @@ class ConversationHandoffTool(HandoffTool):
         sub_execution_id: str | None = None,
     ) -> AsyncGenerator[dict, None]:
         """Run the child through the standard runner and add child metadata."""
-        child_execution_id = sub_execution_id or execution_id or request.conversation_id
+        execution_context = get_conversation_execution_context().for_child_call()
+        main_execution_id = execution_context.identity.execution_id
+        child_execution_id = sub_execution_id or main_execution_id
         async for raw in runner.run_streaming(request, child_execution_id):
             payload = _event_payload(raw)
             if not payload:
@@ -82,7 +96,7 @@ class ConversationHandoffTool(HandoffTool):
                 delta = data.get("delta") or data.get("answer") or data.get("content") or ""
                 if delta:
                     yield build_message(
-                        execution_id or request.conversation_id,
+                        main_execution_id,
                         str(delta),
                         agent_id=self.agent_id,
                         sub_execution_id=child_execution_id,
@@ -91,7 +105,7 @@ class ConversationHandoffTool(HandoffTool):
                 content = data.get("content") or ""
                 if content:
                     yield build_reasoning(
-                        execution_id or request.conversation_id,
+                        main_execution_id,
                         str(content),
                         agent_id=self.agent_id,
                         sub_execution_id=child_execution_id,
@@ -104,8 +118,9 @@ class ConversationHandoffTool(HandoffTool):
     async def invoke(self, inputs, **kwargs):
         """Execute one handoff using the standard conversation runner path."""
         query = self._extract_query(inputs)
+        execution_context = get_conversation_execution_context().for_child_call()
         channel = get_channel()
-        execution_id = kwargs.get("execution_id") or (channel.execution_id if channel else "")
+        execution_id = execution_context.identity.execution_id
         sub_execution_id = kwargs.get("sub_execution_id") or str(uuid.uuid4())
         tool_call_id = kwargs.get("tool_call_id") or str(uuid.uuid4())
         tool_name = self.card.name

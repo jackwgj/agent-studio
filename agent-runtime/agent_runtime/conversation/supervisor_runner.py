@@ -10,6 +10,9 @@ from __future__ import annotations
 import asyncio
 import sys
 
+from agent_runtime.conversation.execution_context import (
+    get_conversation_execution_context,
+)
 from agent_runtime.conversation.runner.conversation_runner_factory import (
     ConversationRunnerFactory,
 )
@@ -28,6 +31,9 @@ async def run_conversation_supervisor(
     supervisor_config,
 ):
     """Consume the standard ReAct runner for the built-in Supervisor."""
+    execution_context = get_conversation_execution_context().for_child_call()
+    identity = execution_context.identity
+    execution_id = identity.execution_id
     channel = EventChannel(execution_id)
     channel_token = set_channel(channel)
     task = None
@@ -36,10 +42,11 @@ async def run_conversation_supervisor(
         params = ExecutionParams(
             conversationHistory=[],
             globalVariables={
-                "conversationId": req.conversation_id,
-                "projectId": req.project_id,
-                "workspaceId": req.workspace_id,
-                "userId": req.user_id,
+                "conversationId": identity.conversation_id,
+                "projectId": identity.project_id,
+                "workspaceId": identity.workspace_id,
+                "userId": identity.user_id,
+                "executionId": identity.execution_id,
                 "conversationTeam": {
                     "type": "SUPERVISOR",
                     "subAgentIds": list(req.sub_agent_ids),
@@ -64,8 +71,8 @@ async def run_conversation_supervisor(
             ir_cache=ir_json,
         )
         execution_request = ExecutionRequest(
-            conversationId=req.conversation_id,
-            userId=req.user_id,
+            conversationId=identity.conversation_id,
+            userId=identity.user_id,
             irPath="__conversation_supervisor__",
             query=req.query,
             params=params,

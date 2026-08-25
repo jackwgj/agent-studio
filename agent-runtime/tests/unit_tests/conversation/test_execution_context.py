@@ -3,11 +3,17 @@ from pathlib import PurePosixPath
 
 import pytest
 
+from agent_runtime.conversation import execution_context as execution_context_module
 from agent_runtime.conversation.execution_context import (
     ConversationExecutionContext,
     ConversationIdentity,
     ConversationWorkspace,
 )
+
+
+def test_get_execution_context_explicitly_fails_outside_an_active_execution():
+    with pytest.raises(LookupError, match="no conversation execution context is active"):
+        execution_context_module.get_conversation_execution_context()
 
 
 def _identity(**overrides):

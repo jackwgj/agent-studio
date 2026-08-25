@@ -3,6 +3,11 @@ from types import SimpleNamespace
 
 import pytest
 
+from agent_runtime.conversation import execution_context as execution_context_module
+from agent_runtime.conversation.execution_context import (
+    ConversationExecutionContext,
+    ConversationIdentity,
+)
 from agent_runtime.conversation import supervisor_runner
 from agent_runtime.serve.apis import conversation_team_app
 from agent_runtime.serve.apis.conversation_team import ConversationTeamReq, team_sse_stream
@@ -13,9 +18,13 @@ class _FakeConversationRunner:
     def __init__(self, events):
         self.events = events
         self.calls = []
+        self.contexts = []
 
     async def run_streaming(self, request, execution_id=None):
         self.calls.append((request, execution_id))
+        self.contexts.append(
+            execution_context_module.get_conversation_execution_context()
+        )
         for event in self.events:
             yield event
 
@@ -42,10 +51,10 @@ async def test_conversation_supervisor_bridge_consumes_standard_runner_events(mo
         lambda: _FakeFactory(raw_runner),
     )
     request = SimpleNamespace(
-        conversation_id="conversation-1",
-        project_id="project-1",
-        workspace_id="workspace-1",
-        user_id="user-1",
+        conversation_id="untrusted-conversation",
+        project_id="untrusted-project",
+        workspace_id="untrusted-workspace",
+        user_id="untrusted-user",
         query="hello",
         sub_agent_ids=["child-a"],
     )
@@ -56,18 +65,35 @@ async def test_conversation_supervisor_bridge_consumes_standard_runner_events(mo
         }
     )
 
-    events = [event async for event in supervisor_runner.run_conversation_supervisor(
-        request, "execution-1", config
-    )]
+    context = ConversationExecutionContext.create(ConversationIdentity(
+        project_id="project-1",
+        workspace_id="workspace-1",
+        user_id="user-1",
+        conversation_id="conversation-1",
+        execution_id="execution-1",
+    ), "/sandbox/root")
+    token = execution_context_module.set_conversation_execution_context(context)
+    try:
+        events = [event async for event in supervisor_runner.run_conversation_supervisor(
+            request, "execution-1", config
+        )]
+    finally:
+        execution_context_module.reset_conversation_execution_context(token)
 
     assert [event["event"] for event in events] == ["message", "run_done"]
     assert events[0]["data"]["delta"] == "主回答"
     assert events[0]["executionId"] == "execution-1"
     assert events[-1]["data"]["text"] == "主回答"
     execution_request = raw_runner.calls[0][0]
+    assert raw_runner.contexts == [context]
+    assert raw_runner.contexts[0].workspace is context.workspace
+    assert execution_request.conversation_id == "conversation-1"
+    assert execution_request.user_id == "user-1"
+    assert execution_request.params.global_variables["conversationId"] == "conversation-1"
     assert execution_request.params.global_variables["projectId"] == "project-1"
     assert execution_request.params.global_variables["workspaceId"] == "workspace-1"
     assert execution_request.params.global_variables["userId"] == "user-1"
+    assert execution_request.params.global_variables["executionId"] == "execution-1"
     assert get_channel() is None
 
 
@@ -141,14 +167,32 @@ async def test_app_react_uses_conversation_runner_factory(monkeypatch):
         query="hello",
         conversation_history=[],
     )
-    events = [event async for event in conversation_team_app.stream_application(req, "execution-1")]
+    context = ConversationExecutionContext.create(ConversationIdentity(
+        project_id="trusted-project",
+        workspace_id="trusted-workspace",
+        user_id="trusted-user",
+        conversation_id="trusted-conversation",
+        execution_id="execution-1",
+    ), "/sandbox/root")
+    token = execution_context_module.set_conversation_execution_context(context)
+    try:
+        events = [event async for event in conversation_team_app.stream_application(req, "ignored-execution")]
+    finally:
+        execution_context_module.reset_conversation_execution_context(token)
 
     assert factory.modes == ["ReAct"]
     assert raw_runner.calls[0][0].ir_path == "agent/ir/app-1/app-1.json"
+    execution_request = raw_runner.calls[0][0]
+    assert raw_runner.contexts == [context]
+    assert raw_runner.contexts[0].workspace is context.workspace
+    assert execution_request.conversation_id == "trusted-conversation"
+    assert execution_request.user_id == "trusted-user"
     assert raw_runner.calls[0][1] == "execution-1"
     global_variables = raw_runner.calls[0][0].params.global_variables
-    assert global_variables["projectId"] == "project-1"
-    assert global_variables["workspaceId"] == "workspace-1"
-    assert global_variables["userId"] == "user-1"
+    assert global_variables["conversationId"] == "trusted-conversation"
+    assert global_variables["projectId"] == "trusted-project"
+    assert global_variables["workspaceId"] == "trusted-workspace"
+    assert global_variables["userId"] == "trusted-user"
+    assert global_variables["executionId"] == "execution-1"
     assert [event["event"] for event in events] == ["message", "run_done"]
     assert events[0]["data"]["delta"] == "app-answer"

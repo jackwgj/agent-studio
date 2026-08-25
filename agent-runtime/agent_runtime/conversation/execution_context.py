@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from contextvars import ContextVar, Token
 from dataclasses import dataclass
 import hashlib
 from pathlib import PurePosixPath
@@ -138,6 +139,33 @@ class ConversationExecutionContext:
     def for_child_call(self) -> ConversationExecutionContext:
         """Reuse this immutable context for a nested conversation call."""
         return self
+
+
+_current_conversation_execution_context: ContextVar[ConversationExecutionContext] = (
+    ContextVar("conversation_execution_context")
+)
+
+
+def set_conversation_execution_context(
+    context: ConversationExecutionContext,
+) -> Token[ConversationExecutionContext]:
+    """Bind one execution context to the current async consuming context."""
+    return _current_conversation_execution_context.set(context)
+
+
+def get_conversation_execution_context() -> ConversationExecutionContext:
+    """Return the active execution context or fail explicitly when unbound."""
+    try:
+        return _current_conversation_execution_context.get()
+    except LookupError as error:
+        raise LookupError("no conversation execution context is active") from error
+
+
+def reset_conversation_execution_context(
+    token: Token[ConversationExecutionContext],
+) -> None:
+    """Restore the preceding context in the same async consuming context."""
+    _current_conversation_execution_context.reset(token)
 
 
 def _path_key(value: str) -> str:

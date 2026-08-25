@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock
 import pytest
 from pydantic import ValidationError
 
+from agent_runtime.conversation import execution_context as execution_context_module
 from agent_runtime.serve.apis import conversation_team as conversation_team_module
 from agent_runtime.serve.apis.conversation_team import ConversationTeamReq, team_sse_stream
 from agent_runtime.supervisor import runner as runner_module
@@ -212,6 +213,132 @@ async def test_team_stream_rejects_recommended_skill_outside_manager_catalog(mon
 
 
 @pytest.mark.asyncio
+async def test_team_stream_binds_before_first_event_and_resets_when_closed_immediately(monkeypatch):
+    monkeypatch.setenv("CONVERSATION_SANDBOX_WORKSPACE_ROOT", "/sandbox/conversations")
+    stream = team_sse_stream(
+        ConversationTeamReq.model_validate(request_payload()),
+        "execution-first",
+    )
+
+    first = json.loads((await stream.__anext__()).removeprefix("data: "))
+    active = execution_context_module.get_conversation_execution_context()
+
+    assert first["event"] == "user_message"
+    assert active.identity.conversation_id == "c1"
+    assert active.identity.execution_id == "execution-first"
+    assert str(active.workspace.sandbox_root) == "/sandbox/conversations"
+
+    await stream.aclose()
+    with pytest.raises(LookupError, match="no conversation execution context is active"):
+        execution_context_module.get_conversation_execution_context()
+
+
+@pytest.mark.asyncio
+async def test_team_stream_keeps_context_through_runner_close_and_resets_after_normal_end(monkeypatch):
+    observed = []
+    closed = []
+
+    async def build_config(**_kwargs):
+        return SimpleNamespace()
+
+    async def run_in_context(*_args):
+        observed.append(execution_context_module.get_conversation_execution_context())
+        try:
+            yield {"event": "message", "data": {"delta": "ok"}}
+        finally:
+            closed.append(execution_context_module.get_conversation_execution_context())
+
+    monkeypatch.delenv("CONVERSATION_SANDBOX_WORKSPACE_ROOT", raising=False)
+    monkeypatch.delenv("CONVERSATION_TEAM_USE_LEGACY_SUPERVISOR", raising=False)
+    monkeypatch.setattr(conversation_team_module, "build_conversation_supervisor_config", build_config)
+    monkeypatch.setattr(conversation_team_module, "run_conversation_supervisor", run_in_context)
+
+    events = [json.loads(line.removeprefix("data: ")) async for line in team_sse_stream(
+        ConversationTeamReq.model_validate(request_payload()), "execution-normal"
+    )]
+
+    assert events[-1]["event"] == "message"
+    assert observed == closed
+    assert observed[0].identity.execution_id == "execution-normal"
+    assert str(observed[0].workspace.sandbox_root) == "/home/gem/workspaces"
+    with pytest.raises(LookupError, match="no conversation execution context is active"):
+        execution_context_module.get_conversation_execution_context()
+
+
+@pytest.mark.asyncio
+async def test_team_stream_resets_context_after_runner_exception(monkeypatch):
+    observed = []
+
+    async def build_config(**_kwargs):
+        return SimpleNamespace()
+
+    async def failing_runner(*_args):
+        observed.append(execution_context_module.get_conversation_execution_context())
+        raise RuntimeError("runner exploded")
+        yield
+
+    monkeypatch.delenv("CONVERSATION_TEAM_USE_LEGACY_SUPERVISOR", raising=False)
+    monkeypatch.setattr(conversation_team_module, "build_conversation_supervisor_config", build_config)
+    monkeypatch.setattr(conversation_team_module, "run_conversation_supervisor", failing_runner)
+
+    events = [json.loads(line.removeprefix("data: ")) async for line in team_sse_stream(
+        ConversationTeamReq.model_validate(request_payload()), "execution-error"
+    )]
+
+    assert observed[0].identity.execution_id == "execution-error"
+    assert events[-1]["event"] == "error"
+    assert events[-1]["data"]["message"] == "runner exploded"
+    with pytest.raises(LookupError, match="no conversation execution context is active"):
+        execution_context_module.get_conversation_execution_context()
+
+
+@pytest.mark.asyncio
+async def test_concurrent_team_streams_observe_only_their_own_context(monkeypatch):
+    contexts = {}
+    both_started = asyncio.Event()
+
+    async def build_config(**_kwargs):
+        return SimpleNamespace()
+
+    async def isolated_runner(req, *_args):
+        contexts[req.conversation_id] = execution_context_module.get_conversation_execution_context()
+        if len(contexts) == 2:
+            both_started.set()
+        await asyncio.wait_for(both_started.wait(), timeout=1)
+        yield {"event": "message", "data": {"delta": req.conversation_id}}
+
+    async def consume(payload, execution_id):
+        req = ConversationTeamReq.model_validate(request_payload(**payload))
+        return [line async for line in team_sse_stream(req, execution_id)]
+
+    monkeypatch.setenv("CONVERSATION_SANDBOX_WORKSPACE_ROOT", "/shared/root")
+    monkeypatch.delenv("CONVERSATION_TEAM_USE_LEGACY_SUPERVISOR", raising=False)
+    monkeypatch.setattr(conversation_team_module, "build_conversation_supervisor_config", build_config)
+    monkeypatch.setattr(conversation_team_module, "run_conversation_supervisor", isolated_runner)
+
+    await asyncio.gather(
+        consume({
+            "conversationId": "conversation-a", "projectId": "project-a",
+            "workspaceId": "workspace-a", "userId": "user-a",
+        }, "execution-a"),
+        consume({
+            "conversationId": "conversation-b", "projectId": "project-b",
+            "workspaceId": "workspace-b", "userId": "user-b",
+        }, "execution-b"),
+    )
+
+    context_a = contexts["conversation-a"]
+    context_b = contexts["conversation-b"]
+    assert context_a.identity.project_id == "project-a"
+    assert context_a.identity.execution_id == "execution-a"
+    assert context_b.identity.project_id == "project-b"
+    assert context_b.identity.execution_id == "execution-b"
+    assert context_a.workspace.conversation_root != context_b.workspace.conversation_root
+    with pytest.raises(LookupError, match="no conversation execution context is active"):
+        execution_context_module.get_conversation_execution_context()
+
+
+@pytest.mark.asyncio
 async def test_concurrent_skill_context_and_event_channel_are_isolated():
     def agent_with_catalog(skill_id):
         agent = SimpleNamespace()
@@ -262,16 +389,24 @@ async def test_outer_sse_close_waits_for_runner_cleanup_in_the_consuming_context
         card = object()
 
         async def stream(self, _inputs, _session):
+            observed_context.append(
+                execution_context_module.get_conversation_execution_context()
+            )
             yield object()
             stream_started.set()
             try:
                 await release.wait()
             finally:
+                closed_context.append(
+                    execution_context_module.get_conversation_execution_context()
+                )
                 child_finished.set()
 
     stream_started = asyncio.Event()
     child_finished = asyncio.Event()
     release = asyncio.Event()
+    observed_context = []
+    closed_context = []
     agent = BlockingAgent()
     attach_agent_context(agent, [SkillDescriptor(
         skill_id="s1", version_id="v1", name="会议纪要", description="整理会议",
@@ -295,6 +430,10 @@ async def test_outer_sse_close_waits_for_runner_cleanup_in_the_consuming_context
 
     assert json.loads(event.removeprefix("data: "))["event"] == "message"
     assert child_finished.is_set()
+    assert observed_context == closed_context
+    assert observed_context[0].identity.execution_id == "e1"
+    with pytest.raises(LookupError, match="no conversation execution context is active"):
+        execution_context_module.get_conversation_execution_context()
     assert get_channel() is None
     assert get_skill_context() is None
 
@@ -306,16 +445,24 @@ async def test_streaming_response_disconnect_closes_body_in_its_consuming_contex
         card = object()
 
         async def stream(self, _inputs, _session):
+            observed_context.append(
+                execution_context_module.get_conversation_execution_context()
+            )
             child_started.set()
             yield object()
             try:
                 await release.wait()
             finally:
+                closed_context.append(
+                    execution_context_module.get_conversation_execution_context()
+                )
                 child_finished.set()
 
     child_started = asyncio.Event()
     child_finished = asyncio.Event()
     release = asyncio.Event()
+    observed_context = []
+    closed_context = []
     agent = BlockingAgent()
     attach_agent_context(agent, [SkillDescriptor(
         skill_id="s1", version_id="v1", name="会议纪要", description="整理会议",
@@ -382,6 +529,9 @@ async def test_streaming_response_disconnect_closes_body_in_its_consuming_contex
 
     assert child_started.is_set()
     assert child_finished.is_set()
+    assert observed_context == closed_context
+    with pytest.raises(LookupError, match="no conversation execution context is active"):
+        execution_context_module.get_conversation_execution_context()
     assert reset_order == ["channel", "skill"]
     assert reset_errors == []
     assert get_channel() is None
