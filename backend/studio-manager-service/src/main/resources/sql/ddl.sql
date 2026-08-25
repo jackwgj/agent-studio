@@ -2172,6 +2172,10 @@ CREATE TABLE IF NOT EXISTS `t_conversation`  (
     `created_on`            TIMESTAMP     NULL     DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `updated_on`            TIMESTAMP     NULL     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     `deleted`               TINYINT(1)    NOT NULL DEFAULT 0 COMMENT '逻辑删除：0-未删除，1-已删除',
+    `cleanup_status`        VARCHAR(16)   NOT NULL DEFAULT 'NONE' COMMENT '资源清理状态：NONE/PENDING/PROCESSING/DONE/FAILED',
+    `cleanup_attempts`      INT           NOT NULL DEFAULT 0 COMMENT '资源清理尝试次数',
+    `cleanup_updated_at`    TIMESTAMP     NULL COMMENT '资源清理状态更新时间',
+    `cleanup_error`         VARCHAR(1024) NULL COMMENT '最近一次资源清理错误',
     PRIMARY KEY (`conversation_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='对话式工作台会话表';
 
