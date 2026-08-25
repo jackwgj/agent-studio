@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import sys
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
@@ -86,6 +87,7 @@ class _ResourceManager:
         self.operation = operation
         self.sys_operation_cards = []
         self.tools = {}
+        self.added_tools = {}
         self.removed_tools = []
         self.removed_operations = []
 
@@ -98,6 +100,7 @@ class _ResourceManager:
 
     def add_tool(self, tool, *, tag):
         self.tools[tool.card.id] = (tool, tag)
+        self.added_tools[tool.card.id] = tool
         return _Result()
 
     def remove_tool(self, tool_id, *, tag):
@@ -113,8 +116,10 @@ class _ResourceManager:
 class _Factory:
     def __init__(self, card):
         self.card = card
+        self.create_count = 0
 
     def create(self):
+        self.create_count += 1
         return self.card
 
 
@@ -327,6 +332,49 @@ def test_cleanup_is_idempotent_and_removes_request_scoped_resources():
         execution_context_module.reset_conversation_execution_context(token)
 
 
+def test_parent_and_handoff_child_bindings_cleanup_only_their_own_resources():
+    parent_context = _context()
+    child_context = parent_context.for_child_call()
+    manager = _ResourceManager(_RemoteOperation())
+    token = execution_context_module.set_conversation_execution_context(parent_context)
+    try:
+        parent_binder = ConversationSandboxToolBinder(_Factory(_sandbox_card()), manager)
+        parent_binder.register(_Agent())
+
+        child_token = execution_context_module.set_conversation_execution_context(child_context)
+        try:
+            child_binder = ConversationSandboxToolBinder(_Factory(_sandbox_card()), manager)
+            child_binder.register(_Agent())
+        finally:
+            execution_context_module.reset_conversation_execution_context(child_token)
+
+        assert child_context.workspace.conversation_root == parent_context.workspace.conversation_root
+        assert child_context.workspace.work_dir == parent_context.workspace.work_dir
+        assert child_binder.operation_id != parent_binder.operation_id
+
+        child_binder.cleanup()
+
+        assert parent_binder.operation_id not in [
+            operation_id for operation_id, _tag in manager.removed_operations
+        ]
+        assert all(
+            tool_id in manager.tools
+            for tool_id in (
+                f"{parent_binder.operation_id}.read_file",
+                f"{parent_binder.operation_id}.execute_code",
+                f"{parent_binder.operation_id}.execute_cmd",
+            )
+        )
+
+        parent_binder.cleanup()
+
+        assert {
+            operation_id for operation_id, _tag in manager.removed_operations
+        } == {parent_binder.operation_id, child_binder.operation_id}
+    finally:
+        execution_context_module.reset_conversation_execution_context(token)
+
+
 @pytest.mark.asyncio
 async def test_repeated_bindings_keep_each_conversation_work_directory_isolated():
     first_context = _context("execution-a")
@@ -399,7 +447,13 @@ class _RunnerBinder:
         self.cleanup_count += 1
 
 
-def _streaming_request(team_type: str = "SUPERVISOR"):
+def _streaming_request(
+    team_type: str | None = "SUPERVISOR", global_variables: dict | None = None
+):
+    if global_variables is None:
+        global_variables = {}
+        if team_type is not None:
+            global_variables["conversationTeam"] = {"type": team_type}
     return SimpleNamespace(
         conversation_id="conversation-a",
         user_id="user-a",
@@ -408,7 +462,7 @@ def _streaming_request(team_type: str = "SUPERVISOR"):
         ir_path="ignored",
         params=SimpleNamespace(
             conversation_history=[],
-            global_variables={"conversationTeam": {"type": team_type}},
+            global_variables=global_variables,
             ir_cache={"agentName": "Supervisor", "configs": {}},
         ),
     )
@@ -446,6 +500,8 @@ async def test_runner_cleans_supervisor_sandbox_binding_after_a_successful_strea
 
         assert binder.registered_agents == [agent]
         assert binder.cleanup_count == 1
+        runner._attach_supervisor_skill_context.assert_awaited_once()
+        runner._register_supervisor_handoff_tools.assert_awaited_once()
     finally:
         execution_context_module.reset_conversation_execution_context(token)
 
@@ -490,6 +546,11 @@ async def test_runner_cleans_sandbox_binding_when_rail_registration_is_cancelled
             "ConversationSandboxToolBinder",
             SimpleNamespace(from_runtime_settings=lambda: binder),
         )
+        monkeypatch.setitem(
+            sys.modules,
+            "openjiuwen.extensions.tracer_otel.otel_rail",
+            SimpleNamespace(OtelRail=object),
+        )
 
         with pytest.raises(asyncio.CancelledError):
             await anext(runner.run_streaming(_streaming_request()))
@@ -527,24 +588,141 @@ async def test_runner_cleans_sandbox_binding_when_later_supervisor_registration_
 
 
 @pytest.mark.asyncio
-async def test_runner_never_builds_a_sandbox_binding_for_an_app(monkeypatch):
+async def test_runner_binds_sandbox_for_an_app_without_supervisor_context(monkeypatch):
     context = _context()
     token = execution_context_module.set_conversation_execution_context(context)
     try:
         runner = ConversationReActRunner()
         agent = _StreamingAgent()
+        remote = _RemoteOperation()
+        manager = _ResourceManager(remote)
+        binder = ConversationSandboxToolBinder(_Factory(_sandbox_card()), manager)
         _configure_runner_for_stream(monkeypatch, runner, agent)
-
-        def fail_if_called():
-            raise AssertionError("APP must not receive conversation sandbox tools")
-
         monkeypatch.setattr(
             conversation_react_runner,
             "ConversationSandboxToolBinder",
-            SimpleNamespace(from_runtime_settings=fail_if_called),
+            SimpleNamespace(from_runtime_settings=lambda: binder),
             raising=False,
         )
 
-        _ = [event async for event in runner.run_streaming(_streaming_request("APP"))]
+        _ = [event async for event in runner.run_streaming(_streaming_request(None))]
+
+        assert [card.name for card in agent.ability_manager.cards] == [
+            "read_file",
+            "execute_code",
+            "execute_cmd",
+        ]
+        command_tool = next(
+            tool for tool in manager.added_tools.values() if tool.card.name == "execute_cmd"
+        )
+        await command_tool.invoke({"command": "pwd"})
+        assert remote.calls == [("execute_cmd", "pwd", {"cwd": str(context.workspace.work_dir)})]
+        assert len(manager.removed_tools) == 3
+        assert manager.removed_operations == [(binder.operation_id, binder.operation_id)]
+        runner._attach_supervisor_skill_context.assert_not_awaited()
+        runner._register_supervisor_handoff_tools.assert_not_awaited()
+    finally:
+        execution_context_module.reset_conversation_execution_context(token)
+
+
+@pytest.mark.asyncio
+async def test_runner_binds_sandbox_for_handoff_child_without_supervisor_context(monkeypatch):
+    parent_context = _context()
+    child_context = parent_context.for_child_call()
+    token = execution_context_module.set_conversation_execution_context(child_context)
+    try:
+        runner = ConversationReActRunner()
+        agent = _StreamingAgent()
+        remote = _RemoteOperation()
+        manager = _ResourceManager(remote)
+        binder = ConversationSandboxToolBinder(_Factory(_sandbox_card()), manager)
+        _configure_runner_for_stream(monkeypatch, runner, agent)
+        monkeypatch.setattr(
+            conversation_react_runner,
+            "ConversationSandboxToolBinder",
+            SimpleNamespace(from_runtime_settings=lambda: binder),
+            raising=False,
+        )
+
+        _ = [
+            event
+            async for event in runner.run_streaming(
+                _streaming_request(
+                    None,
+                    {
+                        "trustedConversationIdentity": {"conversationId": "conversation-a"},
+                        "subExecutionId": "handoff-child-a",
+                    },
+                ),
+                execution_id="handoff-child-a",
+            )
+        ]
+
+        assert child_context.workspace.conversation_root == parent_context.workspace.conversation_root
+        assert child_context.workspace.work_dir == parent_context.workspace.work_dir
+        assert [card.name for card in agent.ability_manager.cards] == [
+            "read_file",
+            "execute_code",
+            "execute_cmd",
+        ]
+        command_tool = next(
+            tool for tool in manager.added_tools.values() if tool.card.name == "execute_cmd"
+        )
+        await command_tool.invoke({"command": "pwd"})
+        assert remote.calls == [
+            ("execute_cmd", "pwd", {"cwd": str(parent_context.workspace.work_dir)})
+        ]
+        assert len(manager.removed_tools) == 3
+        assert manager.removed_operations == [(binder.operation_id, binder.operation_id)]
+        runner._attach_supervisor_skill_context.assert_not_awaited()
+        runner._register_supervisor_handoff_tools.assert_not_awaited()
+    finally:
+        execution_context_module.reset_conversation_execution_context(token)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "global_variables",
+    [
+        {},
+        {
+            "trustedConversationIdentity": {"conversationId": "conversation-a"},
+            "subExecutionId": "handoff-child-a",
+        },
+    ],
+    ids=["app", "handoff-child"],
+)
+async def test_runner_does_not_create_sandbox_or_local_tools_when_unconfigured(
+    monkeypatch, global_variables
+):
+    context = _context()
+    token = execution_context_module.set_conversation_execution_context(context)
+    try:
+        runner = ConversationReActRunner()
+        agent = _StreamingAgent()
+        manager = _ResourceManager(_RemoteOperation())
+        factory = _Factory(None)
+        binder = ConversationSandboxToolBinder(factory, manager)
+        _configure_runner_for_stream(monkeypatch, runner, agent)
+        monkeypatch.setattr(
+            conversation_react_runner,
+            "ConversationSandboxToolBinder",
+            SimpleNamespace(from_runtime_settings=lambda: binder),
+            raising=False,
+        )
+
+        _ = [
+            event
+            async for event in runner.run_streaming(
+                _streaming_request(None, global_variables)
+            )
+        ]
+
+        assert factory.create_count == 1
+        assert agent.ability_manager.cards == []
+        assert manager.sys_operation_cards == []
+        assert manager.tools == {}
+        runner._attach_supervisor_skill_context.assert_not_awaited()
+        runner._register_supervisor_handoff_tools.assert_not_awaited()
     finally:
         execution_context_module.reset_conversation_execution_context(token)

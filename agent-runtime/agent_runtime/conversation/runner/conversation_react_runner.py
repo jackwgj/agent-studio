@@ -143,10 +143,10 @@ class ConversationReActRunner(ReActAgentRunner):
                 if has_file_links:
                     self._register_file_reader_tool(agent, agent_id)
 
+                sandbox_binder = ConversationSandboxToolBinder.from_runtime_settings()
+                sandbox_binder.register(agent)
                 team_config = (global_variables or {}).get("conversationTeam") or {}
                 if team_config.get("type") == "SUPERVISOR":
-                    sandbox_binder = ConversationSandboxToolBinder.from_runtime_settings()
-                    sandbox_binder.register(agent)
                     await self._attach_supervisor_skill_context(agent, team_config)
                     await self._register_supervisor_handoff_tools(
                         agent, list(team_config.get("subAgentIds") or [])
