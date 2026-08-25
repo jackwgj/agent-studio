@@ -20,7 +20,7 @@ class _Agent:
 
 
 @pytest.mark.asyncio
-async def test_activate_skill_loads_instructions_and_emits_event(tmp_path):
+async def test_activate_skill_loads_instructions_and_emits_event(tmp_path, monkeypatch):
     skill = SkillDescriptor(
         skill_id="meeting-minutes",
         version_id="v1",
@@ -32,6 +32,10 @@ async def test_activate_skill_loads_instructions_and_emits_event(tmp_path):
         return _zip_bytes()
 
     cache = SkillArtifactCache(tmp_path, downloader=download)
+    monkeypatch.setattr(
+        "agent_runtime.supervisor.tool.activate_skill_tool.conversation_skill_sandbox_enabled",
+        lambda: False,
+    )
     agent = _Agent()
     attach_agent_context(agent, [skill], [], cache)
     skill_token = bind_agent_skill_context(agent)
@@ -40,6 +44,8 @@ async def test_activate_skill_loads_instructions_and_emits_event(tmp_path):
     try:
         result = await ActivateSkillTool().invoke({"skill_id": "meeting-minutes"})
         assert result["instructions"] == "# Meeting Minutes\nUse the table format."
+        assert result["resourceState"] == "instructions_only"
+        assert "sandboxPath" not in result
         event = await channel.get()
         assert event["event"] == "skill_activated"
         assert event["data"]["skillId"] == "meeting-minutes"
@@ -106,4 +112,5 @@ async def test_activate_skill_prepares_complete_artifact_when_remote_sandbox_is_
     cache.load_instructions.assert_not_awaited()
     prepare.assert_awaited_once_with(skill, artifact)
     assert result["instructions"] == "# complete"
+    assert result["resourceState"] == "prepared"
     assert result["sandboxPath"] == "/workspace/conversation/skills/version"

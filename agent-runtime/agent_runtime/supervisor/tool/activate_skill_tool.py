@@ -88,6 +88,7 @@ class ActivateSkillTool(Tool):
             "name": skill.name,
             "versionId": skill.version_id,
             "instructions": instructions,
+            "resourceState": "prepared" if sandbox_path else "instructions_only",
         }
         if sandbox_path:
             result["sandboxPath"] = sandbox_path
