@@ -138,8 +138,6 @@ class ConversationReActRunner(ReActAgentRunner):
                 await self._register_mcp_servers(ir_json, agent, agent_id)
                 await self._register_workflows(ir_json, agent, agent_id)
                 await self._register_skills(ir_json, agent, agent_id, skill_work_dir)
-                if skills_conf and skill_work_dir and skill_info_list:
-                    self._register_skill_tools(agent, agent_id, skill_work_dir)
                 if has_file_links:
                     self._register_file_reader_tool(agent, agent_id)
 

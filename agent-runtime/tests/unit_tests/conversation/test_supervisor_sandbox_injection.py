@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import sys
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -468,8 +468,18 @@ def _streaming_request(
     )
 
 
+def _skill_streaming_request(global_variables: dict | None = None):
+    request = _streaming_request(None, global_variables)
+    request.params.ir_cache["configs"]["skills"] = {
+        "skill_dir": "workspace-skills",
+        "skill_info": [{"name": "meeting-minutes", "description": "Summarize meetings"}],
+    }
+    return request
+
+
 def _configure_runner_for_stream(monkeypatch, runner, agent):
     runner._create_llm = AsyncMock(return_value=object())
+    runner._download_skills = AsyncMock(return_value="/workspace/workspace-skills")
     runner._create_agent = lambda *_args: (agent, "supervisor")
     runner._register_plugins = AsyncMock()
     runner._register_mcp_servers = AsyncMock()
@@ -724,5 +734,141 @@ async def test_runner_does_not_create_sandbox_or_local_tools_when_unconfigured(
         assert manager.tools == {}
         runner._attach_supervisor_skill_context.assert_not_awaited()
         runner._register_supervisor_handoff_tools.assert_not_awaited()
+    finally:
+        execution_context_module.reset_conversation_execution_context(token)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "global_variables",
+    [
+        {},
+        {
+            "trustedConversationIdentity": {"conversationId": "conversation-a"},
+            "subExecutionId": "handoff-child-a",
+        },
+    ],
+    ids=["app", "handoff-child"],
+)
+async def test_skill_configured_app_and_child_keep_skill_registration_without_local_tools(
+    monkeypatch, global_variables
+):
+    """A local Skill tool registration would make this request fail its isolation contract."""
+    context = _context()
+    token = execution_context_module.set_conversation_execution_context(context)
+    try:
+        runner = ConversationReActRunner()
+        agent = _StreamingAgent()
+        binder = ConversationSandboxToolBinder(_Factory(None), _ResourceManager(_RemoteOperation()))
+        _configure_runner_for_stream(monkeypatch, runner, agent)
+        local_skill_registration = MagicMock()
+        runner._register_skill_tools = local_skill_registration
+        monkeypatch.setattr(
+            conversation_react_runner,
+            "ConversationSandboxToolBinder",
+            SimpleNamespace(from_runtime_settings=lambda: binder),
+            raising=False,
+        )
+
+        events = [
+            event
+            async for event in runner.run_streaming(
+                _skill_streaming_request(global_variables)
+            )
+        ]
+
+        assert all(event["event"] != "error" for event in events)
+        runner._download_skills.assert_awaited_once_with(
+            "workspace-skills", [{"name": "meeting-minutes", "description": "Summarize meetings"}]
+        )
+        runner._register_skills.assert_awaited_once_with(
+            {
+                "agentName": "Supervisor",
+                "configs": {
+                    "skills": {
+                        "skill_dir": "workspace-skills",
+                        "skill_info": [
+                            {"name": "meeting-minutes", "description": "Summarize meetings"}
+                        ],
+                    }
+                },
+            },
+            agent,
+            "supervisor",
+            "/workspace/workspace-skills",
+        )
+        local_skill_registration.assert_not_called()
+        assert agent.ability_manager.cards == []
+    finally:
+        execution_context_module.reset_conversation_execution_context(token)
+
+
+@pytest.mark.asyncio
+async def test_skill_configured_conversation_never_attempts_a_local_sysoperation(monkeypatch):
+    """Changing the conversation path to add a LOCAL card must trip this guard."""
+    context = _context()
+    token = execution_context_module.set_conversation_execution_context(context)
+    try:
+        runner = ConversationReActRunner()
+        agent = _StreamingAgent()
+        binder = ConversationSandboxToolBinder(_Factory(None), _ResourceManager(_RemoteOperation()))
+        _configure_runner_for_stream(monkeypatch, runner, agent)
+        monkeypatch.setattr(
+            conversation_react_runner,
+            "ConversationSandboxToolBinder",
+            SimpleNamespace(from_runtime_settings=lambda: binder),
+            raising=False,
+        )
+
+        attempted_local_cards = []
+
+        def reject_local_sysoperation(card, *, tag):
+            if card.mode is OperationMode.LOCAL:
+                attempted_local_cards.append((card, tag))
+            return _Result()
+
+        monkeypatch.setattr(Runner.resource_mgr, "add_sys_operation", reject_local_sysoperation)
+
+        _ = [event async for event in runner.run_streaming(_skill_streaming_request())]
+
+        assert attempted_local_cards == []
+    finally:
+        execution_context_module.reset_conversation_execution_context(token)
+
+
+@pytest.mark.asyncio
+async def test_skill_configured_conversation_binds_one_sandbox_tool_set_without_local_duplicate(
+    monkeypatch,
+):
+    """Replacing the SANDBOX set with LOCAL or adding a second set must fail this check."""
+    context = _context()
+    token = execution_context_module.set_conversation_execution_context(context)
+    try:
+        runner = ConversationReActRunner()
+        agent = _StreamingAgent()
+        manager = _ResourceManager(_RemoteOperation())
+        binder = ConversationSandboxToolBinder(_Factory(_sandbox_card()), manager)
+        _configure_runner_for_stream(monkeypatch, runner, agent)
+        local_skill_registration = MagicMock()
+        runner._register_skill_tools = local_skill_registration
+        monkeypatch.setattr(
+            conversation_react_runner,
+            "ConversationSandboxToolBinder",
+            SimpleNamespace(from_runtime_settings=lambda: binder),
+            raising=False,
+        )
+
+        _ = [event async for event in runner.run_streaming(_skill_streaming_request())]
+
+        local_skill_registration.assert_not_called()
+        assert [card.name for card in agent.ability_manager.cards] == [
+            "read_file",
+            "execute_code",
+            "execute_cmd",
+        ]
+        assert len(manager.sys_operation_cards) == 1
+        sandbox_card, _tag = manager.sys_operation_cards[0]
+        assert sandbox_card.mode is OperationMode.SANDBOX
+        assert all(card.mode is not OperationMode.LOCAL for card, _tag in manager.sys_operation_cards)
     finally:
         execution_context_module.reset_conversation_execution_context(token)
