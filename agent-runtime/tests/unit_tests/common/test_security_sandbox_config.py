@@ -3,11 +3,47 @@
 """SecuritySandboxSettings unit tests."""
 
 import os
+import subprocess
+import sys
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 from pydantic import ValidationError
 from agent_runtime.common.config import SecuritySandboxSettings, Settings
+
+
+REPOSITORY_ROOT = Path(__file__).resolve().parents[4]
+MONOREPO_PYTHONPATH = os.pathsep.join(
+    str(REPOSITORY_ROOT / path)
+    for path in (
+        "agent-runtime",
+        "packages/common_utils",
+        "packages/storage",
+        "packages/model_service",
+    )
+)
+
+
+def import_runtime_settings(workspace_root: str) -> subprocess.CompletedProcess[str]:
+    env = os.environ.copy()
+    env["PYTHONPATH"] = MONOREPO_PYTHONPATH
+    env["CONVERSATION_SANDBOX_WORKSPACE_ROOT"] = workspace_root
+    return subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            (
+                "from agent_runtime.common.config import settings; "
+                "print(f'workspace_root={settings.security_sandbox.workspace_root}')"
+            ),
+        ],
+        cwd=REPOSITORY_ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
 
 
 class TestSecuritySandboxSettingsDefaults:
@@ -132,3 +168,30 @@ class TestSettingsIntegration:
             for k, v in saved.items():
                 if v is not None:
                     os.environ[k] = v
+
+    @staticmethod
+    def test_import_time_settings_uses_workspace_root_from_environment():
+        result = import_runtime_settings("/sandbox/conversations/")
+
+        assert result.returncode == 0, result.stderr
+        assert "workspace_root=/sandbox/conversations" in result.stdout
+
+    @staticmethod
+    @pytest.mark.parametrize(
+        "workspace_root",
+        [
+            "",
+            "   ",
+            "relative/workspace",
+            "../workspace",
+            "/workspace/../other",
+            "C:/workspace",
+            r"C:\\workspace",
+            r"\\workspace",
+        ],
+    )
+    def test_import_time_settings_rejects_invalid_workspace_root(workspace_root):
+        result = import_runtime_settings(workspace_root)
+
+        assert result.returncode != 0
+        assert "CONVERSATION_SANDBOX_WORKSPACE_ROOT" in result.stderr
