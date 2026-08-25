@@ -7,6 +7,7 @@ import com.openjiuwen.studio.agent.foundation.connection.model.PageResult;
 import com.openjiuwen.studio.agent.manager.mapper.SkillMapper;
 import com.openjiuwen.studio.agent.manager.mapper.workspace.WorkspaceMapper;
 import com.openjiuwen.studio.agent.manager.mapper.workspace.WorkspaceMemberMapper;
+import com.openjiuwen.studio.agent.manager.obs.MgObsService;
 import com.openjiuwen.studio.agent.manager.entity.WorkspaceEntity;
 import com.openjiuwen.studio.conversation.application.dto.ConversationCreateCmd;
 import com.openjiuwen.studio.conversation.application.dto.ConversationDetailVo;
@@ -20,6 +21,8 @@ import com.openjiuwen.studio.conversation.application.dto.SendMessageCmd;
 import com.openjiuwen.studio.conversation.application.dto.ConversationInputFileRef;
 import com.openjiuwen.studio.conversation.domain.model.Conversation;
 import com.openjiuwen.studio.conversation.domain.model.ConversationMessage;
+import com.openjiuwen.studio.conversation.domain.model.valueobject.ExecutionRef;
+import com.openjiuwen.studio.conversation.domain.model.valueobject.FileRef;
 import com.openjiuwen.studio.conversation.domain.repository.ConversationRepository;
 import com.openjiuwen.studio.conversation.domain.service.ConversationHistoryAssembler;
 import com.openjiuwen.studio.conversation.infrastructure.adapter.AgentRuntimeAdapter;
@@ -54,6 +57,7 @@ class ConversationWorkspaceAppServiceTest {
     private ConversationSkillResolver skillResolver;
     private ConversationWorkspaceAccessGuard workspaceAccessGuard;
     private ConversationAgentResourceResolver agentResourceResolver;
+    private MgObsService mgObsService;
     private ConversationWorkspaceAppService appService;
 
     @BeforeEach
@@ -64,8 +68,9 @@ class ConversationWorkspaceAppServiceTest {
         skillResolver = mock(ConversationSkillResolver.class);
         workspaceAccessGuard = mock(ConversationWorkspaceAccessGuard.class);
         agentResourceResolver = mock(ConversationAgentResourceResolver.class);
+        mgObsService = mock(MgObsService.class);
         appService = new ConversationWorkspaceAppService(repository, historyAssembler, runtimeAdapter, skillResolver,
-            workspaceAccessGuard, agentResourceResolver);
+            workspaceAccessGuard, agentResourceResolver, mgObsService);
 
         SimpleUser user = new SimpleUser();
         user.setUserId("u1");
@@ -437,6 +442,44 @@ class ConversationWorkspaceAppServiceTest {
 
     // ---------- 工具方法 ----------
 
+    @Test
+    void downloadArtifact_仅为会话拥有者的持久产物生成新地址() {
+        String objectKey = "conversation-artifacts/p/w/u/c/e/report.pdf";
+        Conversation owned = ownedConversation("c1");
+        owned.setMessages(List.of(ConversationMessage.builder()
+            .role("assistant").event("artifact")
+            .executionRef(new ExecutionRef("exec-1", null, null))
+            .fileRefs(List.of(new FileRef(objectKey, "report.pdf", 128L,
+                "application/pdf", "0".repeat(64), "exec-1")))
+            .build()));
+        when(repository.findById("c1")).thenReturn(Optional.of(owned));
+        when(mgObsService.getTemporaryGetRsp(false, objectKey, 300L))
+            .thenReturn("https://download/first", "https://download/second");
+
+        assertEquals("https://download/first",
+            appService.downloadArtifact("p1", "w1", "c1", objectKey).getDownloadUrl());
+        assertEquals("https://download/second",
+            appService.downloadArtifact("p1", "w1", "c1", objectKey).getDownloadUrl());
+        verify(mgObsService, times(2)).getTemporaryGetRsp(false, objectKey, 300L);
+    }
+
+    @Test
+    void downloadArtifact_拒绝其他用户或不属于会话的对象() {
+        String objectKey = "conversation-artifacts/p/w/u/c/e/report.pdf";
+        Conversation other = ownedConversation("c1");
+        other.setOwnerUserId("u2");
+        when(repository.findById("c1")).thenReturn(Optional.of(other));
+
+        assertThrows(AgentStudioException.class,
+            () -> appService.downloadArtifact("p1", "w1", "c1", objectKey));
+        verifyNoInteractions(mgObsService);
+
+        when(repository.findById("c1")).thenReturn(Optional.of(ownedConversation("c1")));
+        assertThrows(AgentStudioException.class,
+            () -> appService.downloadArtifact("p1", "w1", "c1", "conversation-artifacts/other/file.pdf"));
+        verifyNoInteractions(mgObsService);
+    }
+
     private Conversation ownedConversation(String conversationId) {
         return Conversation.builder()
                 .conversationId(conversationId)
@@ -462,6 +505,6 @@ class ConversationWorkspaceAppServiceTest {
         return new ConversationWorkspaceAppService(repository, historyAssembler, runtimeAdapter,
             new ConversationSkillResolver(mapper),
             new ConversationWorkspaceAccessGuard(workspaceMapper, workspaceMemberMapper),
-            agentResourceResolver);
+            agentResourceResolver, mgObsService);
     }
 }

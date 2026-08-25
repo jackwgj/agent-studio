@@ -10,6 +10,7 @@ import com.openjiuwen.studio.agent.common.dto.agent.Message;
 import com.openjiuwen.studio.agent.common.utils.RequestContextUtils;
 import com.openjiuwen.studio.agent.foundation.connection.model.PageResult;
 import com.openjiuwen.studio.conversation.application.dto.ConversationCreateCmd;
+import com.openjiuwen.studio.conversation.application.dto.ConversationArtifactDownloadVo;
 import com.openjiuwen.studio.conversation.application.dto.ConversationDetailVo;
 import com.openjiuwen.studio.conversation.application.dto.ConversationListQuery;
 import com.openjiuwen.studio.conversation.application.dto.ConversationSkillContext;
@@ -24,6 +25,7 @@ import com.openjiuwen.studio.conversation.domain.model.valueobject.FileRef;
 import com.openjiuwen.studio.conversation.domain.repository.ConversationRepository;
 import com.openjiuwen.studio.conversation.domain.service.ConversationHistoryAssembler;
 import com.openjiuwen.studio.conversation.infrastructure.adapter.AgentRuntimeAdapter;
+import com.openjiuwen.studio.agent.manager.obs.MgObsService;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -55,19 +57,43 @@ public class ConversationWorkspaceAppService {
     private final ConversationSkillResolver conversationSkillResolver;
     private final ConversationWorkspaceAccessGuard conversationWorkspaceAccessGuard;
     private final ConversationAgentResourceResolver conversationAgentResourceResolver;
+    private final MgObsService mgObsService;
 
     public ConversationWorkspaceAppService(ConversationRepository conversationRepository,
                                            ConversationHistoryAssembler conversationHistoryAssembler,
                                            AgentRuntimeAdapter agentRuntimeAdapter,
                                            ConversationSkillResolver conversationSkillResolver,
                                            ConversationWorkspaceAccessGuard conversationWorkspaceAccessGuard,
-                                           ConversationAgentResourceResolver conversationAgentResourceResolver) {
+                                           ConversationAgentResourceResolver conversationAgentResourceResolver,
+                                           MgObsService mgObsService) {
         this.conversationRepository = conversationRepository;
         this.conversationHistoryAssembler = conversationHistoryAssembler;
         this.agentRuntimeAdapter = agentRuntimeAdapter;
         this.conversationSkillResolver = conversationSkillResolver;
         this.conversationWorkspaceAccessGuard = conversationWorkspaceAccessGuard;
         this.conversationAgentResourceResolver = conversationAgentResourceResolver;
+        this.mgObsService = mgObsService;
+    }
+
+    /**
+     * 为当前用户拥有的会话正式产物生成短期下载地址。
+     * 浏览器传入的 objectKey 必须与服务端已持久化的 Artifact FileRef 完全匹配。
+     */
+    public ConversationArtifactDownloadVo downloadArtifact(String projectId, String workspaceId,
+                                                            String conversationId, String objectKey) {
+        Conversation conversation = getOwnedConversation(projectId, workspaceId, conversationId);
+        FileRef artifact = conversation.getMessages().stream()
+            .filter(message -> "artifact".equals(message.getEvent()) && message.getFileRefs() != null)
+            .flatMap(message -> message.getFileRefs().stream())
+            .filter(fileRef -> Objects.equals(fileRef.getObjectKey(), objectKey))
+            .findFirst()
+            .orElseThrow(() -> new AgentStudioException(StudioError.METHOD_ARGUMENT_NOT_VALID,
+                List.of("artifact does not belong to conversation")));
+        String url = mgObsService.getTemporaryGetRsp(false, artifact.getObjectKey(), 300L);
+        return ConversationArtifactDownloadVo.builder()
+            .downloadUrl(url)
+            .expiresIn(300L)
+            .build();
     }
 
     /**

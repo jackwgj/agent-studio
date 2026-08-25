@@ -8,6 +8,7 @@ import com.openjiuwen.studio.agent.foundation.connection.model.PageResult;
 import com.openjiuwen.studio.conversation.application.ConversationWorkspaceAppService;
 import com.openjiuwen.studio.conversation.application.ConversationInputUploadService;
 import com.openjiuwen.studio.conversation.application.dto.ConversationCreateCmd;
+import com.openjiuwen.studio.conversation.application.dto.ConversationArtifactDownloadVo;
 import com.openjiuwen.studio.conversation.application.dto.ConversationDetailVo;
 import com.openjiuwen.studio.conversation.application.dto.ConversationListQuery;
 import com.openjiuwen.studio.conversation.application.dto.ConversationSkillVo;
@@ -118,6 +119,16 @@ public class ConversationWorkspaceController {
                                        @ApiParam("空间id") @RequestParam(value = "workspace_id") String workspaceId,
                                        @PathVariable("conversation_id") String conversationId) {
         return conversationWorkspaceAppService.detail(projectId, workspaceId, conversationId);
+    }
+
+    @ApiOperation("获取对话正式产物临时下载地址")
+    @GetMapping("/{conversation_id}/artifacts/download")
+    public ConversationArtifactDownloadVo downloadArtifact(
+        @PathVariable("project_id") String projectId,
+        @RequestParam("workspace_id") String workspaceId,
+        @PathVariable("conversation_id") String conversationId,
+        @RequestParam("object_key") String objectKey) {
+        return conversationWorkspaceAppService.downloadArtifact(projectId, workspaceId, conversationId, objectKey);
     }
 
     /**
