@@ -23,7 +23,7 @@ import java.util.List;
  */
 @Slf4j
 @Service
-public class SIESkillManagementService {
+public class SIESkillManagementService implements ISIESkillManagementService {
 
     private final SIESkillMapper sieskillMapper;
 
