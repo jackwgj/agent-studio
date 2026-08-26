@@ -18,7 +18,7 @@ import { MODULES } from '@shared/modules';
 import { AgentConfigService } from '@routes/agent-center/agent-config.service';
 import { SKILL_MAX_COUNT, SkillPublishedAsset, SkillStatus, SkillTabId } from '@enums/skill.enum';
 import { CommonService } from '@services/common.service';
-import { SkillApi } from '@agentcore/api/skill.api';
+import { SIESkillApi } from '@agentcore/api/sie-skill.api';
 import { IMPORT_TYPE } from '@agentcore/constants/skill';
 import { ImportSkillModalComponent } from '@agentcore/library/skill/import-skill-modal/import-skill-modal.component';
 import { I18nPipe } from '@agentcore/shared/pipes/i18n.pipe';
@@ -112,7 +112,7 @@ export class AddSkillHalfModalComponent implements OnInit, OnDestroy {
     private i18n: I18nService,
     private configService: AgentConfigService,
     private commonService: CommonService,
-    private skillApi: SkillApi,
+    private skillApi: SIESkillApi,
     private nzModal: NzModalService
   ) {}
 
@@ -200,8 +200,12 @@ export class AddSkillHalfModalComponent implements OnInit, OnDestroy {
       limit: this.pageLimit,
       offset,
       priority_status: SkillStatus.DEVELOPED,
-      published_asset: tabId === SkillTabId.SKILL_MARKET ? SkillPublishedAsset.PUBLISHED : SkillPublishedAsset.NOT_PUBLISHED,
     };
+
+    // 资产广场 Tab 过滤 published_asset=1，组件库 Tab 不过滤以同时显示已发布和未发布的 skill
+    if (tabId === SkillTabId.SKILL_MARKET) {
+      params.published_asset = SkillPublishedAsset.PUBLISHED;
+    }
 
     if (this.searchValue) {
       params.name = this.searchValue;

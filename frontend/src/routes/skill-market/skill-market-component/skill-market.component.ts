@@ -13,7 +13,7 @@ import { NzIconModule } from 'ng-zorro-antd/icon';
 import { NzSpinModule } from 'ng-zorro-antd/spin';
 import { NzInputModule } from 'ng-zorro-antd/input';
 import { NzSelectModule } from 'ng-zorro-antd/select';
-import { SkillApi } from '@agentcore/api/skill.api';
+import { SIESkillApi } from '@agentcore/api/sie-skill.api';
 import { I18N_NAMESPACE } from '@agentcore/constants/common';
 import { SKILL_RESOURCE_TYPE_CONFIG, SkillDetail, SkillDetailFromPage, SkillResourceType } from '@agentcore/constants/skill.model';
 import { i18nProviderValue, I18nService } from '@agentcore/core/i18n.service';
@@ -94,7 +94,7 @@ export class SkillMarketComponent {
   public activeTabIndex = 0;
   constructor(
     private _router: Router,
-    private _skillApi: SkillApi,
+    private _skillApi: SIESkillApi,
     private _i18n: I18nService
   ) {}
 

@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.openjiuwen.studio.agent.manager.mapper.SIESkillMapper">
+<resultMap id="BaseResultMap" type="com.openjiuwen.studio.agent.manager.entity.SkillEntity">
+        <id column="skill_id" jdbcType="VARCHAR" property="skillId"/>
+        <result column="domain_id" jdbcType="VARCHAR" property="domainId"/>
+        <result column="name" jdbcType="VARCHAR" property="name"/>
+        <result column="icon" jdbcType="VARCHAR" property="icon"/>
+        <result column="status" jdbcType="VARCHAR" property="status"/>
+        <result column="source" jdbcType="VARCHAR" property="source"/>
+        <result column="description" jdbcType="VARCHAR" property="description"/>
+        <result column="creator_id" jdbcType="VARCHAR" property="creatorId"/>
+        <result column="creator_name" jdbcType="VARCHAR" property="creatorName"/>
+        <result column="created_at" jdbcType="BIGINT" property="createdAt"/>
+        <result column="updated_at" jdbcType="BIGINT" property="updatedAt"/>
+        <result column="latest_version" jdbcType="VARCHAR" property="latestVersion"/>
+        <result column="used_version" jdbcType="VARCHAR" property="usedVersion"/>
+        <result column="workspace_id" jdbcType="VARCHAR" property="workspaceId"/>
+        <result column="project_id" jdbcType="VARCHAR" property="projectId"/>
+    </resultMap>
+
+    <resultMap id="SearchResultMap" type="com.openjiuwen.studio.agent.manager.bo.SkillDetails" extends="BaseResultMap">
+        <result column="obs_path" jdbcType="VARCHAR" property="obsPath"/>
+        <result column="version_name" jdbcType="VARCHAR" property="versionName"/>
+    </resultMap>
+
+    <select id="search" resultMap="SearchResultMap" parameterType="com.openjiuwen.studio.agent.manager.entity.SkillEntity">
+        SELECT
+        t_skill.*,
+        t_skill_version.obs_path,
+        t_skill_version.version_name
+        FROM
+        t_skill
+        LEFT JOIN
+        t_skill_version ON t_skill.latest_version = t_skill_version.id
+        <where>
+            <if test="skill.domainId != null and skill.domainId != ''">
+                AND domain_id = #{skill.domainId, jdbcType=VARCHAR}
+            </if>
+            <if test="skill.name != null and skill.name != ''">
+                AND t_skill.name LIKE CONCAT('%', #{skill.name, jdbcType=VARCHAR}, '%') ESCAPE '!'
+            </if>
+            <if test="skill.description != null and skill.description != ''">
+                AND t_skill.description LIKE CONCAT('%', #{skill.description, jdbcType=VARCHAR}, '%') ESCAPE '!'
+            </if>
+            <if test="skill.status != null and skill.status != ''">
+                AND status = #{skill.status, jdbcType=VARCHAR}
+            </if>
+            <if test="skill.source != null and skill.source != ''">
+                AND source = #{skill.source, jdbcType=VARCHAR}
+            </if>
+            <if test="skill.workspaceId != null and skill.workspaceId != ''">
+                AND workspace_id = #{skill.workspaceId, jdbcType=VARCHAR}
+            </if>
+            <if test="skill.projectId != null and skill.projectId != ''">
+                AND project_id = #{skill.projectId, jdbcType=VARCHAR}
+            </if>
+            <if test="tagId != null and tagId != ''">
+                AND tag_id = #{tagId, jdbcType=VARCHAR}
+            </if>
+            <if test="publishedAsset != null">
+                AND published_asset = #{publishedAsset, jdbcType=VARCHAR}
+            </if>
+        </where>
+        ORDER BY
+        <choose>
+            <when test="priorityStatus != null and priorityStatus != ''">
+                (t_skill.status = #{priorityStatus, jdbcType=VARCHAR}) DESC,
+                t_skill.created_at DESC
+            </when>
+            <otherwise>
+                t_skill.created_at DESC
+            </otherwise>
+        </choose>
+        LIMIT #{limit, jdbcType=INTEGER} OFFSET #{offset, jdbcType=INTEGER}
+    </select>
+
+    <select id="countSelectedSkills" resultType="java.lang.Integer"
+            parameterType="com.openjiuwen.studio.agent.manager.entity.SkillEntity">
+        SELECT
+        COUNT(*)
+        FROM
+        t_skill
+        LEFT JOIN
+        t_skill_version ON t_skill.latest_version = t_skill_version.id
+        <where>
+            <if test="domainId != null and domainId != ''">
+                AND domain_id = #{domainId, jdbcType=VARCHAR}
+            </if>
+            <if test="name != null and name != ''">
+                AND t_skill.name LIKE CONCAT('%', #{name, jdbcType=VARCHAR}, '%') ESCAPE '!'
+            </if>
+            <if test="description != null and description != ''">
+                AND t_skill.description LIKE CONCAT('%', #{description, jdbcType=VARCHAR}, '%') ESCAPE '!'
+            </if>
+            <if test="status != null and status != ''">
+                AND status = #{status, jdbcType=VARCHAR}
+            </if>
+            <if test="source != null and source != ''">
+                AND source = #{source, jdbcType=VARCHAR}
+            </if>
+            <if test="workspaceId != null and workspaceId != ''">
+                AND workspace_id = #{workspaceId, jdbcType=VARCHAR}
+            </if>
+            <if test="projectId != null and projectId != ''">
+                AND project_id = #{projectId, jdbcType=VARCHAR}
+            </if>
+            <if test="publishedAsset != null">
+                AND published_asset = #{publishedAsset, jdbcType=VARCHAR}
+            </if>
+        </where>
+    </select>
+
+    <select id="searchBySkillId" resultMap="SearchResultMap" parameterType="java.lang.String">
+        SELECT
+            t_skill.*,
+            t_skill_version.obs_path,
+            t_skill_version.version_name
+        FROM
+            t_skill
+                LEFT JOIN
+            t_skill_version ON t_skill.latest_version = t_skill_version.id
+        WHERE
+            t_skill.skill_id = #{skillId, jdbcType=VARCHAR}
+    </select>
+</mapper>
