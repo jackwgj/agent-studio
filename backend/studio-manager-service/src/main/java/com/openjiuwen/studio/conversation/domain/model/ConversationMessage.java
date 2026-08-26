@@ -45,10 +45,12 @@ public class ConversationMessage {
      */
     private List<FileRef> fileRefs;
 
-    /**
-     * 执行上下文（execution_id / sub_execution_id / agent_id）
-     */
+    /** 执行上下文（run_id / parent_run_id / agent_id / execution_type）。 */
     private ExecutionRef executionRef;
+
+    private String workflowId;
+    private String nodeId;
+    private Long eventIndex;
 
     /**
      * Token 用量（assistant 消息）

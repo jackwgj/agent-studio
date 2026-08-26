@@ -6,6 +6,7 @@ package com.openjiuwen.studio.conversation.infrastructure.repository;
 
 import com.openjiuwen.studio.conversation.domain.model.Conversation;
 import com.openjiuwen.studio.conversation.domain.model.ConversationMessage;
+import com.openjiuwen.studio.conversation.domain.model.ConversationWorkflowNode;
 import com.openjiuwen.studio.conversation.domain.model.valueobject.ExecutionRef;
 import com.openjiuwen.studio.conversation.domain.model.valueobject.FileRef;
 import com.openjiuwen.studio.conversation.domain.model.valueobject.TokenUsage;
@@ -14,6 +15,7 @@ import com.openjiuwen.studio.conversation.domain.repository.ConversationReposito
 import com.openjiuwen.studio.conversation.infrastructure.entity.ConversationEntity;
 import com.openjiuwen.studio.conversation.infrastructure.entity.ConversationRunEntity;
 import com.openjiuwen.studio.conversation.infrastructure.entity.ConversationSubRunEntity;
+import com.openjiuwen.studio.conversation.infrastructure.entity.ConversationWorkflowEntity;
 
 import com.alibaba.fastjson2.JSON;
 
@@ -40,13 +42,16 @@ public class ConversationRepositoryImpl implements ConversationRepository {
     private final ConversationEntityRepository conversationEntityRepository;
     private final ConversationRunEntityRepository runEntityRepository;
     private final ConversationSubRunEntityRepository subRunEntityRepository;
+    private final ConversationWorkflowEntityRepository workflowEntityRepository;
 
     public ConversationRepositoryImpl(ConversationEntityRepository conversationEntityRepository,
                                       ConversationRunEntityRepository runEntityRepository,
-                                      ConversationSubRunEntityRepository subRunEntityRepository) {
+                                      ConversationSubRunEntityRepository subRunEntityRepository,
+                                      ConversationWorkflowEntityRepository workflowEntityRepository) {
         this.conversationEntityRepository = conversationEntityRepository;
         this.runEntityRepository = runEntityRepository;
         this.subRunEntityRepository = subRunEntityRepository;
+        this.workflowEntityRepository = workflowEntityRepository;
     }
 
     @Override
@@ -104,7 +109,7 @@ public class ConversationRepositoryImpl implements ConversationRepository {
         List<ConversationSubRunEntity> subRuns = new ArrayList<>();
         for (ConversationMessage message : messages) {
             ExecutionRef ref = message.getExecutionRef();
-            if (ref != null && ref.getSubExecutionId() != null) {
+            if (ref != null && ref.getParentRunId() != null) {
                 subRuns.add(toSubRunEntity(conversationId, entity, message, ref));
             } else {
                 runs.add(toRunEntity(conversationId, entity, message));
@@ -119,6 +124,47 @@ public class ConversationRepositoryImpl implements ConversationRepository {
         // 触碰会话 updated_on，保证历史栏按最近活跃倒序
         entity.setUpdatedOn(new Date());
         conversationEntityRepository.save(entity);
+    }
+
+    @Override
+    @Transactional
+    public void appendWorkflowNodes(String conversationId, List<ConversationWorkflowNode> nodes) {
+        if (nodes == null || nodes.isEmpty()) {
+            return;
+        }
+        ConversationEntity conversation = conversationEntityRepository.findById(conversationId).orElse(null);
+        if (conversation == null) {
+            return;
+        }
+        List<ConversationWorkflowEntity> entities = nodes.stream().map(node -> {
+            ConversationWorkflowEntity entity = new ConversationWorkflowEntity();
+            entity.setConversationId(conversationId);
+            entity.setToolId(node.getToolId());
+            entity.setParentRunId(node.getParentRunId());
+            entity.setWorkflowId(node.getWorkflowId());
+            entity.setNodeId(node.getNodeId());
+            entity.setNodeName(node.getNodeName());
+            entity.setNodeType(node.getNodeType());
+            entity.setNodeIndex(node.getNodeIndex());
+            entity.setStatus(node.getStatus());
+            entity.setInputContent(node.getInputContent());
+            entity.setOutputContent(node.getOutputContent());
+            entity.setErrorCode(node.getErrorCode());
+            entity.setErrorMessage(node.getErrorMessage());
+            entity.setStartedOn(node.getStartedOn());
+            entity.setFinishedOn(node.getFinishedOn());
+            entity.setProjectId(conversation.getProjectId());
+            entity.setWorkspaceId(conversation.getWorkspaceId());
+            entity.setDomainId(conversation.getDomainId());
+            entity.setCreatorId(node.getCreatorId());
+            entity.setCreatedOn(new Date());
+            entity.setUpdatedOn(new Date());
+            entity.setDeleted(NOT_DELETED);
+            return entity;
+        }).toList();
+        workflowEntityRepository.saveAll(entities);
+        conversation.setUpdatedOn(new Date());
+        conversationEntityRepository.save(conversation);
     }
 
     @Override
@@ -165,9 +211,12 @@ public class ConversationRepositoryImpl implements ConversationRepository {
         return ConversationMessage.builder()
             .role(run.getRole())
             .content(run.getContent())
-            .toolRef(run.getToolId() == null ? null : new ToolRef(run.getToolId(), run.getToolArgs()))
+            .toolRef(run.getToolId() == null ? null : new ToolRef(run.getToolId(), run.getToolName(), run.getToolArgs()))
             .fileRefs(parseFileRefs(run.getFileIds()))
-            .executionRef(new ExecutionRef(run.getExecutionId(), null, run.getAgentId()))
+            .executionRef(new ExecutionRef(run.getRunId(), run.getParentRunId(), run.getAgentId(), run.getExecutionType()))
+            .workflowId(run.getWorkflowId())
+            .nodeId(run.getNodeId())
+            .eventIndex(run.getEventIndex())
             .tokenUsage(new TokenUsage(run.getPromptTokens(), run.getCompletionTokens(), run.getTotalTokens()))
             .event(run.getEvent())
             .modelDeploymentId(run.getModelDeploymentId())
@@ -179,9 +228,12 @@ public class ConversationRepositoryImpl implements ConversationRepository {
         return ConversationMessage.builder()
             .role(subRun.getRole())
             .content(subRun.getContent())
-            .toolRef(subRun.getToolId() == null ? null : new ToolRef(subRun.getToolId(), subRun.getToolArgs()))
+            .toolRef(subRun.getToolId() == null ? null : new ToolRef(subRun.getToolId(), subRun.getToolName(), subRun.getToolArgs()))
             .fileRefs(parseFileRefs(subRun.getFileIds()))
-            .executionRef(new ExecutionRef(subRun.getExecutionId(), subRun.getSubExecutionId(), subRun.getAgentId()))
+            .executionRef(new ExecutionRef(subRun.getRunId(), subRun.getParentRunId(), subRun.getAgentId(), subRun.getExecutionType()))
+            .workflowId(subRun.getWorkflowId())
+            .nodeId(subRun.getNodeId())
+            .eventIndex(subRun.getEventIndex())
             .tokenUsage(new TokenUsage(subRun.getPromptTokens(), subRun.getCompletionTokens(), subRun.getTotalTokens()))
             .event(subRun.getEvent())
             .createdAt(subRun.getCreatedOn())
@@ -200,13 +252,19 @@ public class ConversationRepositoryImpl implements ConversationRepository {
         run.setDeleted(NOT_DELETED);
         if (message.getToolRef() != null) {
             run.setToolId(message.getToolRef().getToolId());
+            run.setToolName(message.getToolRef().getToolName());
             run.setToolArgs(message.getToolRef().getArgs());
         }
         run.setFileIds(encodeFileRefs(message.getFileRefs()));
         if (message.getExecutionRef() != null) {
-            run.setExecutionId(message.getExecutionRef().getExecutionId());
+            run.setRunId(message.getExecutionRef().getRunId());
+            run.setParentRunId(message.getExecutionRef().getParentRunId());
             run.setAgentId(message.getExecutionRef().getAgentId());
+            run.setExecutionType(message.getExecutionRef().getExecutionType());
         }
+        run.setWorkflowId(message.getWorkflowId());
+        run.setNodeId(message.getNodeId());
+        run.setEventIndex(message.getEventIndex());
         if (message.getTokenUsage() != null) {
             run.setPromptTokens(message.getTokenUsage().getPromptTokens());
             run.setCompletionTokens(message.getTokenUsage().getCompletionTokens());
@@ -231,12 +289,17 @@ public class ConversationRepositoryImpl implements ConversationRepository {
         subRun.setDeleted(NOT_DELETED);
         if (message.getToolRef() != null) {
             subRun.setToolId(message.getToolRef().getToolId());
+            subRun.setToolName(message.getToolRef().getToolName());
             subRun.setToolArgs(message.getToolRef().getArgs());
         }
         subRun.setFileIds(encodeFileRefs(message.getFileRefs()));
-        subRun.setExecutionId(ref.getExecutionId());
-        subRun.setSubExecutionId(ref.getSubExecutionId());
+        subRun.setRunId(ref.getRunId());
+        subRun.setParentRunId(ref.getParentRunId());
         subRun.setAgentId(ref.getAgentId());
+        subRun.setExecutionType(ref.getExecutionType());
+        subRun.setWorkflowId(message.getWorkflowId());
+        subRun.setNodeId(message.getNodeId());
+        subRun.setEventIndex(message.getEventIndex());
         if (message.getTokenUsage() != null) {
             subRun.setPromptTokens(message.getTokenUsage().getPromptTokens());
             subRun.setCompletionTokens(message.getTokenUsage().getCompletionTokens());

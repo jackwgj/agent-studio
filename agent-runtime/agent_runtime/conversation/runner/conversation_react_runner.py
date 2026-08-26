@@ -39,8 +39,8 @@ class ConversationReActRunner(ReActAgentRunner):
         return getattr(req.params, "ir_cache", None)
 
     @staticmethod
-    async def _attach_supervisor_skill_context(agent, team_config: dict) -> None:
-        """Attach the request-scoped workspace Skill catalog to Supervisor only."""
+    async def _attach_request_skill_context(agent, team_config: dict) -> bool:
+        """Attach request-local workspace Skill context to the current Agent."""
         catalog = [
             SkillDescriptor(
                 skill_id=item.get("skillId") or item.get("skill_id") or "",
@@ -56,8 +56,15 @@ class ConversationReActRunner(ReActAgentRunner):
             or team_config.get("recommended_skill_ids")
             or []
         )
-        if catalog:
-            await attach_skill_context(agent, catalog, recommended)
+        if not catalog:
+            return False
+        await attach_skill_context(agent, catalog, recommended)
+        return True
+
+    @staticmethod
+    async def _attach_supervisor_skill_context(agent, team_config: dict) -> None:
+        """Attach the request-scoped workspace Skill catalog to Supervisor only."""
+        await ConversationReActRunner._attach_request_skill_context(agent, team_config)
 
     async def _register_supervisor_handoff_tools(
         self, agent, agent_ids: list[str]
@@ -139,14 +146,12 @@ class ConversationReActRunner(ReActAgentRunner):
 
             team_config = (global_variables or {}).get("conversationTeam") or {}
             skill_token = None
+            if await self._attach_request_skill_context(agent, team_config):
+                skill_token = bind_agent_skill_context(agent)
             if team_config.get("type") == "SUPERVISOR":
-                await self._attach_supervisor_skill_context(agent, team_config)
                 await self._register_supervisor_handoff_tools(
                     agent, list(team_config.get("subAgentIds") or [])
                 )
-                skill_token = bind_agent_skill_context(agent)
-            else:
-                skill_token = None
         except Exception as error:
             workflow_logger.error("Failed to register conversation tools: %s", error)
             yield adapter.adapt_error(f"Failed to register tools: {error}")

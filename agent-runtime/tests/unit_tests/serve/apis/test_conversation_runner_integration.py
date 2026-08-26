@@ -3,7 +3,10 @@ from types import SimpleNamespace
 
 import pytest
 
-from agent_runtime.conversation import supervisor_runner
+from agent_runtime.conversation.runner import conversation_controller_runner as controller_runner_module
+from agent_runtime.conversation.runner.conversation_controller_runner import (
+    ConversationControllerRunner,
+)
 from agent_runtime.serve.apis import conversation_team_app
 from agent_runtime.serve.apis.conversation_team import ConversationTeamReq, team_sse_stream
 from agent_runtime.supervisor.event.channel import get_channel
@@ -28,41 +31,6 @@ class _FakeFactory:
     def get(self, mode):
         self.modes.append(mode)
         return self.runner
-
-
-@pytest.mark.asyncio
-async def test_conversation_supervisor_bridge_consumes_standard_runner_events(monkeypatch):
-    raw_runner = _FakeConversationRunner([
-        {"event": "message", "data": {"answer": "主回答"}},
-        {"event": "done", "data": {}},
-    ])
-    monkeypatch.setattr(
-        supervisor_runner,
-        "ConversationRunnerFactory",
-        lambda: _FakeFactory(raw_runner),
-    )
-    request = SimpleNamespace(
-        conversation_id="conversation-1",
-        user_id="user-1",
-        query="hello",
-        sub_agent_ids=["child-a"],
-    )
-    config = SimpleNamespace(
-        to_ir=lambda: {
-            "agentId": "conversation_team_supervisor",
-            "configs": {"mode": "ReAct"},
-        }
-    )
-
-    events = [event async for event in supervisor_runner.run_conversation_supervisor(
-        request, "execution-1", config
-    )]
-
-    assert [event["event"] for event in events] == ["message", "run_done"]
-    assert events[0]["data"]["delta"] == "主回答"
-    assert events[0]["executionId"] == "execution-1"
-    assert events[-1]["data"]["text"] == "主回答"
-    assert get_channel() is None
 
 
 @pytest.mark.asyncio
@@ -108,32 +76,59 @@ async def test_team_stream_defaults_to_new_supervisor_path(monkeypatch):
     assert events[-1]["data"]["delta"] == "new-path"
 
 
+def test_controller_runner_builds_request_skill_context_without_rewriting_ir():
+    team_config = {
+        "skillCatalog": [
+            {
+                "skillId": "research",
+                "versionId": "v2",
+                "name": "research",
+                "description": "research tasks",
+                "objectKey": "skills/research/v2.zip",
+            }
+        ],
+        "recommendedSkillIds": ["research"],
+    }
+
+    context = ConversationControllerRunner._build_skill_context(team_config)
+
+    assert context.catalog_by_id["research"].version_id == "v2"
+    assert context.recommended_skill_ids == ("research",)
+
 @pytest.mark.asyncio
-async def test_app_react_uses_conversation_runner_factory(monkeypatch):
+async def test_app_controller_preserves_request_skills_in_runner_request(monkeypatch):
     raw_runner = _FakeConversationRunner([
-        {"event": "message", "data": {"answer": "app-answer"}},
-        {"event": "done", "data": {}},
+        {"event": "message", "data": {"answer": "controller-answer"}},
     ])
     factory = _FakeFactory(raw_runner)
 
     async def load_ir(_path):
-        return {"configs": {"mode": "ReAct"}}
+        return {"configs": {"mode": "Controller"}}
 
     monkeypatch.setattr(conversation_team_app, "async_ir_load", load_ir)
     monkeypatch.setattr(conversation_team_app, "prepare_params", lambda request: request.params)
     monkeypatch.setattr(conversation_team_app, "_conversation_runner_factory", factory)
 
     req = SimpleNamespace(
-        app_id="app-1",
-        conversation_id="conversation-1",
+        app_id="app-controller",
+        conversation_id="conversation-controller",
         user_id="user-1",
-        query="hello",
+        query="use the skill",
         conversation_history=[],
+        skill_catalog=[
+            SimpleNamespace(
+                skill_id="research",
+                version_id="v2",
+                name="Research",
+                description="Research tasks",
+                object_key="skills/research/v2.zip",
+            )
+        ],
+        recommended_skill_ids=["research"],
     )
-    events = [event async for event in conversation_team_app.stream_application(req, "execution-1")]
 
-    assert factory.modes == ["ReAct"]
-    assert raw_runner.calls[0][0].ir_path == "agent/ir/app-1/app-1.json"
-    assert raw_runner.calls[0][1] == "execution-1"
-    assert [event["event"] for event in events] == ["message", "run_done"]
-    assert events[0]["data"]["delta"] == "app-answer"
+    [event async for event in conversation_team_app.stream_application(req, "execution-controller")]
+
+    assert factory.modes == ["Controller"]
+    assert raw_runner.calls[0][0].params.global_variables["conversationTeam"]["type"] == "APP"
+    assert raw_runner.calls[0][0].params.global_variables["conversationTeam"]["skillCatalog"][0]["skillId"] == "research"

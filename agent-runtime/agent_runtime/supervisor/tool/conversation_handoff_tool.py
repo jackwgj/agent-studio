@@ -7,6 +7,7 @@ runner's standard run_streaming contract.
 
 from __future__ import annotations
 
+import logging
 import uuid
 from collections.abc import AsyncGenerator
 
@@ -29,6 +30,7 @@ from jiuwen.serve.controllers.execution.open_utils import async_ir_load
 
 
 _runner_factory = ConversationRunnerFactory()
+logger = logging.getLogger(__name__)
 
 
 class ConversationHandoffTool(HandoffTool):
@@ -72,9 +74,28 @@ class ConversationHandoffTool(HandoffTool):
         async for raw in runner.run_streaming(request, child_execution_id):
             payload = _event_payload(raw)
             if not payload:
+                logger.info(
+                    "conversation.handoff.child_raw_unparsed executionId=%s "
+                    "subExecutionId=%s toolCallId=%s agentId=%s toolName=%s",
+                    execution_id or request.conversation_id,
+                    child_execution_id,
+                    "",
+                    self.agent_id,
+                    self.card.name,
+                )
                 continue
             event = payload.get("event", "")
             data = payload.get("data") or {}
+            logger.info(
+                "conversation.handoff.child_raw_event executionId=%s "
+                "subExecutionId=%s toolCallId=%s agentId=%s toolName=%s event=%s",
+                execution_id or request.conversation_id,
+                child_execution_id,
+                data.get("toolCallId") or data.get("tool_call_id") or "",
+                self.agent_id,
+                self.card.name,
+                event,
+            )
             if not isinstance(data, dict):
                 data = {"content": str(data)}
 
@@ -109,16 +130,43 @@ class ConversationHandoffTool(HandoffTool):
         sub_execution_id = kwargs.get("sub_execution_id") or str(uuid.uuid4())
         tool_call_id = kwargs.get("tool_call_id") or str(uuid.uuid4())
         tool_name = self.card.name
+        logger.info(
+            "conversation.handoff.invoke executionId=%s subExecutionId=%s "
+            "toolCallId=%s agentId=%s toolName=%s",
+            execution_id,
+            sub_execution_id,
+            tool_call_id,
+            self.agent_id,
+            tool_name,
+        )
         request = await self.build_child_request(query, execution_id, sub_execution_id)
         runner = _runner_factory.get("ReAct")
 
         if channel is not None:
+            logger.info(
+                "conversation.handoff.emit executionId=%s subExecutionId=%s "
+                "toolCallId=%s agentId=%s toolName=%s event=tool_call",
+                execution_id,
+                sub_execution_id,
+                tool_call_id,
+                self.agent_id,
+                tool_name,
+            )
             await channel.emit(build_tool_call(
                 execution_id,
                 tool_call_id,
                 tool_name,
                 arguments={"query": query},
             ))
+            logger.info(
+                "conversation.handoff.emit executionId=%s subExecutionId=%s "
+                "toolCallId=%s agentId=%s toolName=%s event=sub_start",
+                execution_id,
+                sub_execution_id,
+                tool_call_id,
+                self.agent_id,
+                tool_name,
+            )
             await channel.emit(build_sub_start(execution_id, sub_execution_id, self.agent_id))
         events = []
         try:
