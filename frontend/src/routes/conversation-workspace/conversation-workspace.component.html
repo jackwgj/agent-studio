@@ -34,7 +34,9 @@
             </ng-container>
             <span *ngIf="message.loading" class="loading-dots">…</span>
           </div>
-          <div class="message-error" *ngIf="message.error">请求失败，请重试</div>
+          <div class="message-error" *ngIf="message.error">
+            {{ message.errorCode ? message.errorCode + '：' : '' }}{{ message.errorMessage || '请求失败，请重试' }}
+          </div>
         </div>
       </div>
     </div>
