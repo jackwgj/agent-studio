@@ -16,7 +16,9 @@ from agent_runtime.conversation.execution_context import (
     ConversationIdentity,
     get_conversation_execution_context,
 )
+from agent_runtime.conversation.operation_result import operation_succeeded
 from agent_runtime.conversation.sandbox import ConversationSandboxConfig, ConversationSysOperationFactory
+from agent_runtime.conversation.sandbox.registration import get_conversation_sandbox_operation
 
 
 DEFAULT_MAX_INPUT_FILE_SIZE = 60 * 1024 * 1024
@@ -160,8 +162,7 @@ class InputArtifactBridge:
             )
         except Exception as error:
             raise InputArtifactPreparationError("input artifact sandbox write failed") from error
-        is_ok = getattr(result, "is_ok", None)
-        if callable(is_ok) and not is_ok():
+        if not operation_succeeded(result):
             raise InputArtifactPreparationError("input artifact sandbox write failed")
 
     @staticmethod
@@ -192,7 +193,7 @@ async def prepare_conversation_inputs(
 
 @asynccontextmanager
 async def conversation_sandbox_operation(operation_prefix: str):
-    """Register one short-lived, remote-only SysOperation for internal bridges."""
+    """Borrow the process-owned remote operation, without changing its lifetime."""
     from openjiuwen.core.runner import Runner
     from openjiuwen.core.sys_operation import OperationMode
 
@@ -203,23 +204,8 @@ async def conversation_sandbox_operation(operation_prefix: str):
     if card is None or card.mode is not OperationMode.SANDBOX:
         raise InputArtifactPreparationError("remote sandbox is unavailable for conversation artifacts")
 
-    operation_id = f"{operation_prefix}_{uuid.uuid4().hex}"
-    tag = operation_id
-    request_card = card.model_copy(update={"id": operation_id})
-    registered = False
     try:
-        result = Runner.resource_mgr.add_sys_operation(request_card, tag=tag)
-        is_ok = getattr(result, "is_ok", None)
-        if callable(is_ok) and not is_ok():
-            raise InputArtifactPreparationError("failed to register remote sandbox for conversation inputs")
-        registered = True
-        operation = Runner.resource_mgr.get_sys_operation(operation_id, tag=tag)
-        if operation is None:
-            raise InputArtifactPreparationError("remote sandbox is unavailable for conversation artifacts")
-        yield operation
-    finally:
-        if registered:
-            try:
-                Runner.resource_mgr.remove_sys_operation(operation_id, tag=tag)
-            except Exception:
-                pass
+        operation = get_conversation_sandbox_operation(Runner.resource_mgr, card)
+    except Exception as error:
+        raise RuntimeError(f"{operation_prefix}: sandbox registration failed: {error}") from error
+    yield operation

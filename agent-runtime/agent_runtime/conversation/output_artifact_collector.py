@@ -2,18 +2,19 @@
 
 from __future__ import annotations
 
-import base64
 import hashlib
 import json
 import mimetypes
 import posixpath
 from dataclasses import dataclass
 from pathlib import PurePosixPath
-from typing import Protocol, Sequence
+from typing import Mapping, Protocol, Sequence
 
 from agent_runtime.conversation.execution_context import (
     get_conversation_execution_context,
 )
+from agent_runtime.conversation.operation_result import operation_error_detail, operation_succeeded
+from agent_runtime.conversation.sandbox.remote_directories import remote_directory_command
 
 
 DEFAULT_MAX_OUTPUT_FILES = 20
@@ -91,7 +92,32 @@ class ConversationOutputCollector:
             extension.lower() for extension in allowed_extensions
         )
 
-    async def collect(self) -> list[CollectedOutputArtifact]:
+    async def collect(
+        self, *, baseline: Mapping[str, str] | None = None
+    ) -> list[CollectedOutputArtifact]:
+        artifacts = await self._collect_all(enforce_batch_limits=baseline is None)
+        if baseline is None:
+            return artifacts
+        output_root = get_conversation_execution_context().output_dir
+        changed = [
+            artifact for artifact in artifacts
+            if baseline.get(
+                PurePosixPath(artifact.sandbox_path).relative_to(output_root).as_posix()
+            ) != artifact.checksum
+        ]
+        self._validate_batch_limits(changed)
+        return changed
+
+    async def snapshot(self) -> dict[str, str]:
+        output_root = get_conversation_execution_context().output_dir
+        return {
+            PurePosixPath(artifact.sandbox_path).relative_to(output_root).as_posix(): artifact.checksum
+            for artifact in await self._collect_all(enforce_batch_limits=False)
+        }
+
+    async def _collect_all(
+        self, *, enforce_batch_limits: bool
+    ) -> list[CollectedOutputArtifact]:
         context = get_conversation_execution_context()
         output_root = context.output_dir
         try:
@@ -103,7 +129,9 @@ class ConversationOutputCollector:
                 "remote sandbox output scan failed"
             ) from error
 
-        self._validate_entries(output_root, entries)
+        self._validate_entries(
+            output_root, entries, enforce_batch_limits=enforce_batch_limits
+        )
 
         artifacts: list[CollectedOutputArtifact] = []
         actual_total = 0
@@ -129,7 +157,7 @@ class ConversationOutputCollector:
                     "output file exceeds the configured file size limit"
                 )
             actual_total += len(content)
-            if actual_total > self._max_total_size:
+            if enforce_batch_limits and actual_total > self._max_total_size:
                 raise OutputArtifactCollectionError(
                     "outputs exceed the configured total size limit"
                 )
@@ -148,8 +176,10 @@ class ConversationOutputCollector:
         self,
         output_root: PurePosixPath,
         entries: Sequence[SandboxOutputEntry],
+        *,
+        enforce_batch_limits: bool,
     ) -> None:
-        if len(entries) > self._max_files:
+        if enforce_batch_limits and len(entries) > self._max_files:
             raise OutputArtifactCollectionError(
                 "outputs exceed the configured file count limit"
             )
@@ -190,10 +220,22 @@ class ConversationOutputCollector:
                     "output file type is not allowed"
                 )
             declared_total += entry.size
-            if declared_total > self._max_total_size:
+            if enforce_batch_limits and declared_total > self._max_total_size:
                 raise OutputArtifactCollectionError(
                     "outputs exceed the configured total size limit"
                 )
+
+    def _validate_batch_limits(
+        self, artifacts: Sequence[CollectedOutputArtifact]
+    ) -> None:
+        if len(artifacts) > self._max_files:
+            raise OutputArtifactCollectionError(
+                "outputs exceed the configured file count limit"
+            )
+        if sum(artifact.size for artifact in artifacts) > self._max_total_size:
+            raise OutputArtifactCollectionError(
+                "outputs exceed the configured total size limit"
+            )
 
 
 class RemoteSandboxOutputSource:
@@ -203,16 +245,23 @@ class RemoteSandboxOutputSource:
         self._operation = operation
 
     async def scan(self, root: str) -> list[SandboxOutputEntry]:
+        context = get_conversation_execution_context()
+        if root != str(context.output_dir):
+            raise OutputArtifactCollectionError("output root is outside the active execution boundary")
         result = await self._operation.shell().execute_cmd(
             _remote_scan_command(),
-            cwd=root,
+            # The target may not exist. Never cd into it before checking it.
+            cwd="/",
             environment={"OJW_OUTPUT_ROOT": root},
         )
-        if not _result_succeeded(result):
-            raise OutputArtifactCollectionError("remote sandbox output scan failed")
+        if not operation_succeeded(result):
+            raise OutputArtifactCollectionError(
+                f"remote sandbox output scan failed: {str(operation_error_detail(result))[:1000]}"
+            )
         data = getattr(result, "data", None)
         if data is None or getattr(data, "exit_code", None) != 0:
-            raise OutputArtifactCollectionError("remote sandbox output scan failed")
+            detail = getattr(data, "stderr", "") or getattr(data, "stdout", "")
+            raise OutputArtifactCollectionError(f"remote sandbox output scan failed: {str(detail)[:1000]}")
         try:
             payload = json.loads(data.stdout)
             if not isinstance(payload, list):
@@ -225,7 +274,7 @@ class RemoteSandboxOutputSource:
 
     async def read_bytes(self, path: str) -> bytes:
         result = await self._operation.fs().read_file(path, mode="bytes")
-        if not _result_succeeded(result):
+        if not operation_succeeded(result):
             raise OutputArtifactCollectionError("remote sandbox output read failed")
         data = getattr(result, "data", None)
         content = getattr(data, "content", None)
@@ -236,56 +285,42 @@ class RemoteSandboxOutputSource:
         return content
 
 
-def _result_succeeded(result) -> bool:
-    is_ok = getattr(result, "is_ok", None)
-    return not callable(is_ok) or bool(is_ok())
-
-
 def _media_type(file_name: str) -> str:
     guessed, _ = mimetypes.guess_type(file_name)
     return guessed or "application/octet-stream"
 
 
 def _remote_scan_command() -> str:
-    script = r'''import json
-import os
-import stat
-
+    script = r'''
 root = os.environ["OJW_OUTPUT_ROOT"]
 entries = []
-if not os.path.lexists(root):
+root_fd = open_absolute(root, missing_ok=True)
+if root_fd is None:
     print("[]")
     raise SystemExit(0)
-root_metadata = os.lstat(root)
-if stat.S_ISLNK(root_metadata.st_mode) or not stat.S_ISDIR(root_metadata.st_mode):
-    raise RuntimeError("output root must be a real directory")
-if os.path.realpath(root) != os.path.abspath(root):
-    raise RuntimeError("output root contains a symbolic-link component")
-for directory, directory_names, file_names in os.walk(root, followlinks=False):
-    for name in list(directory_names):
+
+def scan(directory, fd):
+    # Unlike os.walk's default, permission and enumeration errors propagate.
+    for name in sorted(os.listdir(fd)):
         path = os.path.join(directory, name)
-        metadata = os.lstat(path)
-        if stat.S_ISLNK(metadata.st_mode):
-            entries.append({
-                "path": path,
-                "size": metadata.st_size,
-                "is_symlink": True,
-                "is_regular_file": False,
-            })
-            directory_names.remove(name)
-    for name in file_names:
-        path = os.path.join(directory, name)
-        metadata = os.lstat(path)
+        metadata = os.stat(name, dir_fd=fd, follow_symlinks=False)
+        if stat.S_ISDIR(metadata.st_mode):
+            child_fd = open_child(fd, name)
+            try:
+                scan(path, child_fd)
+            finally:
+                os.close(child_fd)
+            continue
         entries.append({
             "path": path,
             "size": metadata.st_size,
             "is_symlink": stat.S_ISLNK(metadata.st_mode),
             "is_regular_file": stat.S_ISREG(metadata.st_mode),
         })
+try:
+    scan(root, root_fd)
+finally:
+    os.close(root_fd)
 print(json.dumps(entries, ensure_ascii=False))
 '''
-    encoded = base64.b64encode(script.encode("utf-8")).decode("ascii")
-    return (
-        "python3 -c \"import base64;"
-        f"exec(base64.b64decode('{encoded}'))\""
-    )
+    return remote_directory_command(script, {})

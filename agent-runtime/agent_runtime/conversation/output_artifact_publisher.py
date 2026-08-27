@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable, Sequence
+from typing import Callable, Mapping, Sequence
 
 from agent_runtime.conversation.artifact_object_key import (
     create_conversation_artifact_object_key,
@@ -77,7 +77,20 @@ class ConversationOutputArtifactPublisher:
         return published
 
 
-async def publish_conversation_outputs() -> list[PublishedConversationArtifact]:
+async def capture_conversation_output_baseline() -> dict[str, str]:
+    """Capture trusted content identity before the Agent can mutate output."""
+    from agent_runtime.common.config import settings
+
+    config = ConversationSandboxConfig.from_security_sandbox_settings(settings.security_sandbox)
+    if ConversationSysOperationFactory(config).create() is None:
+        return {}
+    async with conversation_sandbox_operation("conversation_output_baseline") as operation:
+        return await ConversationOutputCollector(RemoteSandboxOutputSource(operation)).snapshot()
+
+
+async def publish_conversation_outputs(
+    baseline: Mapping[str, str] | None = None,
+) -> list[PublishedConversationArtifact]:
     """Collect from remote AIO and upload to configured remote object storage."""
     from agent_runtime.common.config import settings
     from storage.object_storage import LocalStorageProvider, get_storage_provider
@@ -91,7 +104,7 @@ async def publish_conversation_outputs() -> list[PublishedConversationArtifact]:
     async with conversation_sandbox_operation("conversation_output_bridge") as operation:
         artifacts = await ConversationOutputCollector(
             RemoteSandboxOutputSource(operation)
-        ).collect()
+        ).collect(baseline=baseline)
     if not artifacts:
         return []
 

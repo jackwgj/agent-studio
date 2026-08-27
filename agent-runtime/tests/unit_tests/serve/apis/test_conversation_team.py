@@ -129,6 +129,13 @@ def test_request_requires_trusted_execution_identity():
             ConversationTeamReq.model_validate(request_payload(**{field_name: "  "}))
 
 
+@pytest.mark.parametrize("field_name", ["userId", "conversationId"])
+@pytest.mark.parametrize("value", ["contains/slash", "中文标识", "x" * 65, ".", ".."])
+def test_request_rejects_non_path_safe_visible_identity(field_name, value):
+    with pytest.raises(ValidationError, match="path-safe platform identifier"):
+        ConversationTeamReq.model_validate(request_payload(**{field_name: value}))
+
+
 def test_request_accepts_only_durable_input_artifact_references():
     req = ConversationTeamReq.model_validate(request_payload(fileIds=[{
         "objectKey": "conversation-inputs/project/workspace/user/00000000-0000-0000-0000-000000000001/report.pdf",
@@ -239,7 +246,7 @@ async def test_team_stream_emits_artifact_after_upload_and_before_terminal_run_d
         "mediaType": "application/pdf",
         "checksum": "0" * 64,
     }
-    publish.assert_awaited_once_with()
+    publish.assert_awaited_once_with({})
 
 
 @pytest.mark.asyncio
@@ -271,6 +278,39 @@ async def test_team_stream_does_not_emit_artifact_or_run_done_when_upload_fails(
     assert all(event["event"] not in {"artifact", "run_done"} for event in events)
 
 
+@pytest.mark.asyncio
+@pytest.mark.parametrize("terminal", [False, True])
+async def test_runner_error_skips_output_publication_and_retains_failure_cleanup(monkeypatch, terminal):
+    """An emitted error must not become a second output error or successful run_done."""
+    closed = []
+
+    async def failed_runner(*_args):
+        try:
+            yield {"event": "error", "data": {"code": "103104", "message": "sandbox registration failed"}}
+            if terminal:
+                yield {"event": "run_done", "data": {"text": ""}}
+        finally:
+            closed.append(True)
+
+    publish = AsyncMock(side_effect=RuntimeError("unexpected output publication"))
+    cleanup = AsyncMock()
+    monkeypatch.setattr(conversation_team_module, "build_conversation_supervisor_config", AsyncMock(return_value=SimpleNamespace()))
+    monkeypatch.setattr(conversation_team_module, "run_conversation_supervisor", failed_runner)
+    monkeypatch.setattr(conversation_team_module, "publish_conversation_outputs", publish)
+    monkeypatch.setattr(conversation_team_module, "cleanup_execution_directories", cleanup)
+    events = [json.loads(line.removeprefix("data: ")) async for line in team_sse_stream(
+        ConversationTeamReq.model_validate(request_payload()), "registration-failure"
+    )]
+    assert [e["event"] for e in events] == ["user_message", "run_start", "error"]
+    assert events[-1]["data"]["message"] == "sandbox registration failed"
+    assert closed == [True]
+    publish.assert_not_awaited()
+    cleanup.assert_awaited_once()
+    assert cleanup.await_args.kwargs["remove_output"] is False
+    with pytest.raises(LookupError):
+        execution_context_module.get_conversation_execution_context()
+
+
 def test_request_accepts_manager_skill_contract():
     req = ConversationTeamReq.model_validate(request_payload())
 
@@ -278,6 +318,59 @@ def test_request_accepts_manager_skill_contract():
     assert req.skill_catalog[0].version_id == "v1"
     assert req.skill_catalog[0].object_key == "u/skills/s1/v1/a.zip"
     assert req.recommended_skill_ids == ["s1"]
+
+
+@pytest.mark.asyncio
+async def test_workspace_initialization_precedes_inputs_and_agent(monkeypatch):
+    order = []
+
+    async def initialize():
+        assert execution_context_module.get_conversation_execution_context().identity.execution_id == "init-test"
+        order.append("ensure")
+
+    async def prepare(_files):
+        order.append("inputs")
+        return []
+
+    async def baseline():
+        order.append("baseline")
+        return {"old.txt": "a" * 64}
+
+    async def runner(*_args):
+        order.append("agent")
+        yield {"event": "run_done", "data": {"text": "ok"}}
+
+    monkeypatch.setattr(conversation_team_module, "ensure_conversation_workspace", initialize, raising=False)
+    monkeypatch.setattr(conversation_team_module, "prepare_conversation_inputs", prepare)
+    monkeypatch.setattr(conversation_team_module, "capture_conversation_output_baseline", baseline, raising=False)
+    monkeypatch.setattr(conversation_team_module, "build_conversation_supervisor_config", AsyncMock(return_value=SimpleNamespace()))
+    monkeypatch.setattr(conversation_team_module, "run_conversation_supervisor", runner)
+    publish = AsyncMock(return_value=[])
+    monkeypatch.setattr(conversation_team_module, "publish_conversation_outputs", publish)
+    monkeypatch.setattr(conversation_team_module, "cleanup_execution_directories", AsyncMock())
+    events = [line async for line in team_sse_stream(ConversationTeamReq.model_validate(request_payload()), "init-test")]
+    assert order == ["ensure", "inputs", "baseline", "agent"]
+    publish.assert_awaited_once_with({"old.txt": "a" * 64})
+    assert 'run_done' in events[-1]
+
+
+@pytest.mark.asyncio
+async def test_workspace_initialization_failure_stops_before_input_and_model(monkeypatch):
+    initialize = AsyncMock(side_effect=RuntimeError("workspace initialization failed: permission denied"))
+    prepare = AsyncMock()
+    build = AsyncMock()
+    monkeypatch.setattr(conversation_team_module, "ensure_conversation_workspace", initialize, raising=False)
+    monkeypatch.setattr(conversation_team_module, "prepare_conversation_inputs", prepare)
+    monkeypatch.setattr(conversation_team_module, "build_conversation_supervisor_config", build)
+    monkeypatch.setattr(conversation_team_module, "cleanup_execution_directories", AsyncMock())
+    events = [json.loads(line.removeprefix("data: ")) async for line in team_sse_stream(
+        ConversationTeamReq.model_validate(request_payload()), "init-failure"
+    )]
+    assert len(events) == 1
+    assert events[0]["event"] == "error"
+    assert "workspace initialization failed" in events[0]["data"]["message"]
+    prepare.assert_not_awaited()
+    build.assert_not_awaited()
 
 
 @pytest.mark.parametrize("field_name", ["skillId", "versionId", "name", "description", "objectKey"])

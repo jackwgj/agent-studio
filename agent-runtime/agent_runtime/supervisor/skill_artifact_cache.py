@@ -361,8 +361,6 @@ class SkillArtifactCache:
                         destination.write(chunk)
                 if written != member.file_size:
                     raise SkillArtifactError("invalid skill archive")
-                if zipfile.is_zipfile(target):
-                    raise SkillArtifactError("nested zip")
                 if member is skill_members[0]:
                     try:
                         instructions = target.read_text(encoding="utf-8")

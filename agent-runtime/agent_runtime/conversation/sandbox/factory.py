@@ -85,7 +85,7 @@ class ConversationSysOperationFactory:
     def _gateway_config(self, server: str) -> SandboxGatewayConfig:
         scope = self._container_scope()
         gateway_options: dict[str, object] = {
-            "isolation": SandboxIsolationConfig(container_scope=scope),
+            "isolation": SandboxIsolationConfig(container_scope=scope, prefix="conversation"),
             "launcher_config": PreDeployLauncherConfig(
                 base_url=server,
                 sandbox_type=self._config.sandbox_type,

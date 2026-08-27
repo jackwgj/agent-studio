@@ -9,17 +9,18 @@ from agent_runtime.conversation.execution_context import (
     set_conversation_execution_context,
 )
 from agent_runtime.conversation.skill_artifact_bridge import ConversationSkillArtifactBridge
-from agent_runtime.supervisor.skill_artifact_cache import CachedSkillArtifact
+from agent_runtime.supervisor.skill_artifact_cache import CachedSkillArtifact, SkillArtifactError
 from agent_runtime.supervisor.skill_model import SkillDescriptor
 
 
 class RecordingFs:
-    def __init__(self):
+    def __init__(self, result=None):
         self.calls = []
+        self._result = result or SimpleNamespace(is_ok=lambda: True)
 
     async def write_file(self, path, content, **kwargs):
         self.calls.append((path, content, kwargs))
-        return SimpleNamespace(is_ok=lambda: True)
+        return self._result
 
 
 class RecordingOperation:
@@ -63,3 +64,25 @@ async def test_skill_bridge_writes_complete_tree_to_server_derived_skills_path(t
     assert all(call[2] == {
         "mode": "bytes", "prepend_newline": False, "append_newline": False,
     } for call in fs.calls)
+
+
+@pytest.mark.asyncio
+async def test_skill_bridge_rejects_aio_nonzero_write_result(tmp_path):
+    artifact_dir = tmp_path / "validated"
+    artifact_dir.mkdir()
+    (artifact_dir / "SKILL.md").write_text("# complete", encoding="utf-8")
+    skill = SkillDescriptor("s1", "v1", "complete", "description", "u/skills/s1/v1/a.zip")
+    artifact = CachedSkillArtifact("# complete", artifact_dir)
+    fs = RecordingFs(SimpleNamespace(code=199003, message="permission denied", data=None))
+    context = ConversationExecutionContext.create(
+        ConversationIdentity("project", "workspace", "user", "conversation", "execution"),
+        "/workspace",
+    )
+    token = set_conversation_execution_context(context)
+    try:
+        with pytest.raises(SkillArtifactError, match="sandbox write failed"):
+            await ConversationSkillArtifactBridge(lambda: RecordingOperation(fs)).prepare(
+                skill, artifact
+            )
+    finally:
+        reset_conversation_execution_context(token)

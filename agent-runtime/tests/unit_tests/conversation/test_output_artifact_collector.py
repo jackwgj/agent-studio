@@ -43,6 +43,15 @@ def _api():
     )
 
 
+@pytest.fixture(autouse=True)
+def active_execution():
+    token = set_conversation_execution_context(_context())
+    try:
+        yield
+    finally:
+        reset_conversation_execution_context(token)
+
+
 class RecordingShell:
     def __init__(self, stdout="[]", exit_code=0, ok=True):
         self.result = SimpleNamespace(
@@ -54,6 +63,30 @@ class RecordingShell:
     async def execute_cmd(self, command, **kwargs):
         self.calls.append((command, kwargs))
         return self.result
+
+
+@pytest.mark.asyncio
+async def test_absent_output_does_not_chdir_to_missing_directory():
+    module = importlib.import_module("agent_runtime.conversation.output_artifact_collector")
+    ctx = _context()
+    token = set_conversation_execution_context(ctx)
+    calls = []
+
+    async def execute(_command, **kwargs):
+        calls.append(kwargs)
+        # The AIO wrapper runs cd before the scan script gets to check existence.
+        missing_cwd = kwargs.get("cwd") == str(ctx.output_dir)
+        return SimpleNamespace(code=0, data=SimpleNamespace(
+            exit_code=1 if missing_cwd else 0, stdout="" if missing_cwd else "[]",
+            stderr="cd: No such file or directory" if missing_cwd else "",
+        ))
+
+    try:
+        source = module.RemoteSandboxOutputSource(SimpleNamespace(shell=lambda: SimpleNamespace(execute_cmd=execute)))
+        assert await source.scan(str(ctx.output_dir)) == []
+        assert len(calls) == 1
+    finally:
+        reset_conversation_execution_context(token)
 
 
 class RecordingRemoteFs:
@@ -122,6 +155,88 @@ async def test_collects_regular_files_from_current_execution_output_only():
     assert artifacts[0].media_type == "application/pdf"
     assert artifacts[0].checksum == hashlib.sha256(content).hexdigest()
     assert artifacts[0].content == content
+
+
+@pytest.mark.asyncio
+async def test_baseline_filters_unchanged_files_but_keeps_created_and_modified():
+    collector_type, _, entry_type = _api()
+    context = _context()
+    unchanged = str(context.output_dir / "unchanged.txt")
+    modified = str(context.output_dir / "modified.txt")
+    created = str(context.output_dir / "created.txt")
+    source = RecordingOutputSource(
+        [entry_type(unchanged, 4, False), entry_type(modified, 3, False), entry_type(created, 3, False)],
+        {unchanged: b"same", modified: b"new", created: b"new"},
+    )
+    baseline = {
+        "unchanged.txt": hashlib.sha256(b"same").hexdigest(),
+        "modified.txt": hashlib.sha256(b"old").hexdigest(),
+        "deleted.txt": hashlib.sha256(b"old").hexdigest(),
+    }
+
+    artifacts = await collector_type(source).collect(baseline=baseline)
+
+    assert [artifact.file_name for artifact in artifacts] == ["modified.txt", "created.txt"]
+
+
+@pytest.mark.asyncio
+async def test_historical_outputs_do_not_consume_per_turn_limits():
+    collector_type, _, entry_type = _api()
+    context = _context()
+    entries = []
+    contents = {}
+    baseline = {}
+    for index in range(3):
+        path = str(context.output_dir / f"historical-{index}.txt")
+        content = f"old-{index}".encode()
+        entries.append(entry_type(path, len(content), False))
+        contents[path] = content
+        baseline[f"historical-{index}.txt"] = hashlib.sha256(content).hexdigest()
+    created = str(context.output_dir / "created.txt")
+    entries.append(entry_type(created, 3, False))
+    contents[created] = b"new"
+
+    artifacts = await collector_type(
+        RecordingOutputSource(entries, contents),
+        max_files=1,
+        max_total_size=3,
+    ).collect(baseline=baseline)
+
+    assert [artifact.file_name for artifact in artifacts] == ["created.txt"]
+
+
+@pytest.mark.asyncio
+async def test_snapshot_allows_persistent_history_beyond_per_turn_limits():
+    collector_type, _, entry_type = _api()
+    context = _context()
+    entries = []
+    contents = {}
+    for index in range(3):
+        path = str(context.output_dir / f"historical-{index}.txt")
+        content = f"old-{index}".encode()
+        entries.append(entry_type(path, len(content), False))
+        contents[path] = content
+
+    snapshot = await collector_type(
+        RecordingOutputSource(entries, contents),
+        max_files=1,
+        max_total_size=1,
+    ).snapshot()
+
+    assert set(snapshot) == {
+        "historical-0.txt", "historical-1.txt", "historical-2.txt"
+    }
+
+
+@pytest.mark.asyncio
+async def test_snapshot_uses_relative_paths_and_full_content_checksums():
+    collector_type, _, entry_type = _api()
+    context = _context()
+    path = str(context.output_dir / "nested" / "report.txt")
+    collector = collector_type(RecordingOutputSource([entry_type(path, 4, False)], {path: b"data"}))
+    assert await collector.snapshot() == {
+        "nested/report.txt": hashlib.sha256(b"data").hexdigest()
+    }
 
 
 @pytest.mark.asyncio
@@ -280,9 +395,47 @@ async def test_remote_source_scans_and_reads_only_the_server_supplied_output_roo
         is_regular_file=True,
     )]
     assert shell.calls[0][1] == {
-        "cwd": str(context.output_dir),
+        "cwd": "/",
         "environment": {"OJW_OUTPUT_ROOT": str(context.output_dir)},
     }
     assert "python3 -c" in shell.calls[0][0]
     assert fs.calls == [(output_path, {"mode": "bytes"})]
     assert content == b"data"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("path", ["../other", "/etc", "/workspace/other/output", "/workspace/../etc"])
+async def test_remote_source_rejects_non_execution_roots_before_shell(path):
+    module = importlib.import_module("agent_runtime.conversation.output_artifact_collector")
+    shell = RecordingShell()
+    source = module.RemoteSandboxOutputSource(RecordingRemoteOperation(shell, RecordingRemoteFs()))
+    with pytest.raises(module.OutputArtifactCollectionError, match="boundary"):
+        await source.scan(path)
+    assert shell.calls == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("boundary", ["scan", "read"])
+async def test_remote_source_rejects_aio_nonzero_results_without_is_ok(boundary):
+    module = importlib.import_module(
+        "agent_runtime.conversation.output_artifact_collector"
+    )
+    context = _context()
+    output_path = str(context.output_dir / "result.txt")
+    shell = RecordingShell()
+    fs = RecordingRemoteFs()
+    failed_result = SimpleNamespace(code=199003, message="remote failure", data=None)
+    if boundary == "scan":
+        shell.result = failed_result
+    else:
+        fs.result = failed_result
+    source = module.RemoteSandboxOutputSource(RecordingRemoteOperation(shell, fs))
+
+    with pytest.raises(
+        module.OutputArtifactCollectionError,
+        match=f"output {boundary} failed",
+    ):
+        if boundary == "scan":
+            await source.scan(str(context.output_dir))
+        else:
+            await source.read_bytes(output_path)

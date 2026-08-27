@@ -150,8 +150,15 @@ async def test_bridge_rejects_oversized_or_failed_download_without_writing():
 
 
 @pytest.mark.asyncio
-async def test_bridge_fails_when_sandbox_write_does_not_succeed():
-    failed_result = SimpleNamespace(is_ok=lambda: False, error=lambda: "remote write rejected")
+@pytest.mark.parametrize(
+    "failed_result",
+    [
+        SimpleNamespace(is_ok=lambda: False, error=lambda: "remote write rejected"),
+        SimpleNamespace(code=199003, message="permission denied", data=None),
+    ],
+    ids=["callable-is-ok", "aio-status-code"],
+)
+async def test_bridge_fails_when_sandbox_write_does_not_succeed(failed_result):
     bridge = InputArtifactBridge(
         BytesStorage(b"report contents"),
         lambda: RecordingOperation(RecordingFs(failed_result)),

@@ -523,40 +523,34 @@ async def test_rejects_object_key_outside_skill_version(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_rejects_nested_zip(tmp_path):
-    nested = zip_with("inner.zip", skill_zip("inner", "x"))
+@pytest.mark.parametrize(
+    ("resource_name", "resource_bytes"),
+    [
+        ("assets/template.docx", zip_with("word/document.xml", b"docx")),
+        ("assets/workbook.xlsx", zip_with("xl/workbook.xml", b"xlsx")),
+        ("assets/slides.pptx", zip_with("ppt/presentation.xml", b"pptx")),
+        ("assets/reference.zip", zip_with("reference/readme.txt", b"zip")),
+        ("assets/embedded-data", zip_with("data/value.txt", b"data")),
+        ("assets/self-extracting", b"SFX-prefix" + zip_with("data/value.txt", b"data")),
+    ],
+)
+async def test_zip_based_resources_are_preserved_without_recursive_extraction(
+    tmp_path, resource_name, resource_bytes
+):
     payload = io.BytesIO()
     with zipfile.ZipFile(payload, "w", zipfile.ZIP_DEFLATED) as archive:
         archive.writestr("x/SKILL.md", b"body")
-        archive.writestr("x/inner.zip", nested)
+        archive.writestr(f"x/{resource_name}", resource_bytes)
     cache = SkillArtifactCache(tmp_path, downloader=AsyncMock(return_value=payload.getvalue()))
 
-    with pytest.raises(SkillArtifactError, match="nested zip"):
-        await cache.load_instructions(descriptor("s1", "v1", "x", "u/skills/s1/v1/a.zip"))
+    artifact = await cache.load_artifact(
+        descriptor("s1", "v1", "x", "u/skills/s1/v1/a.zip")
+    )
 
-
-@pytest.mark.asyncio
-async def test_rejects_nested_zip_without_zip_suffix(tmp_path):
-    payload = io.BytesIO()
-    with zipfile.ZipFile(payload, "w", zipfile.ZIP_DEFLATED) as archive:
-        archive.writestr("x/SKILL.md", b"body")
-        archive.writestr("x/embedded-data", skill_zip("inner", "x"))
-    cache = SkillArtifactCache(tmp_path, downloader=AsyncMock(return_value=payload.getvalue()))
-
-    with pytest.raises(SkillArtifactError, match="nested zip"):
-        await cache.load_instructions(descriptor("s1", "v1", "x", "u/skills/s1/v1/a.zip"))
-
-
-@pytest.mark.asyncio
-async def test_rejects_self_extracting_nested_zip_without_zip_suffix(tmp_path):
-    payload = io.BytesIO()
-    with zipfile.ZipFile(payload, "w", zipfile.ZIP_DEFLATED) as archive:
-        archive.writestr("x/SKILL.md", b"body")
-        archive.writestr("x/embedded-data", b"SFX-prefix" + skill_zip("inner", "x"))
-    cache = SkillArtifactCache(tmp_path, downloader=AsyncMock(return_value=payload.getvalue()))
-
-    with pytest.raises(SkillArtifactError, match="nested zip"):
-        await cache.load_instructions(descriptor("s1", "v1", "x", "u/skills/s1/v1/a.zip"))
+    resource_path = artifact.artifact_dir.joinpath(*resource_name.split("/"))
+    assert resource_path.read_bytes() == resource_bytes
+    assert not artifact.artifact_dir.joinpath("data", "value.txt").exists()
+    assert not artifact.artifact_dir.joinpath("reference", "readme.txt").exists()
 
 
 @pytest.mark.asyncio

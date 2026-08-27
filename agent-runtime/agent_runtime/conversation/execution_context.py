@@ -5,6 +5,8 @@ from __future__ import annotations
 from contextvars import ContextVar, Token
 from dataclasses import dataclass
 import hashlib
+import json
+import re
 from pathlib import PurePosixPath
 
 
@@ -43,16 +45,13 @@ class ConversationWorkspace:
     input_dir: PurePosixPath
     skills_dir: PurePosixPath
     work_dir: PurePosixPath
+    output_dir: PurePosixPath
+    tmp_dir: PurePosixPath
 
     def __post_init__(self) -> None:
         root = _sandbox_root(self.sandbox_root)
         object.__setattr__(self, "sandbox_root", root)
-        conversation_root = root.joinpath(
-            _path_key(self.identity.project_id),
-            _path_key(self.identity.workspace_id),
-            _path_key(self.identity.user_id),
-            _path_key(self.identity.conversation_id),
-        )
+        conversation_root = _conversation_root(root, self.identity)
         _require_paths_under_root(
             root,
             conversation_root,
@@ -60,12 +59,16 @@ class ConversationWorkspace:
             self.input_dir,
             self.skills_dir,
             self.work_dir,
+            self.output_dir,
+            self.tmp_dir,
         )
         if (
             self.conversation_root != conversation_root
             or self.input_dir != conversation_root / "input"
             or self.skills_dir != conversation_root / "skills"
             or self.work_dir != conversation_root / "work"
+            or self.output_dir != conversation_root / "output"
+            or self.tmp_dir != conversation_root / "tmp"
         ):
             raise ValueError("workspace paths must match the deterministic layout")
 
@@ -74,12 +77,7 @@ class ConversationWorkspace:
         cls, identity: ConversationIdentity, sandbox_root: str | PurePosixPath
     ) -> ConversationWorkspace:
         root = _sandbox_root(sandbox_root)
-        conversation_root = root.joinpath(
-            _path_key(identity.project_id),
-            _path_key(identity.workspace_id),
-            _path_key(identity.user_id),
-            _path_key(identity.conversation_id),
-        )
+        conversation_root = _conversation_root(root, identity)
         return cls(
             identity=identity,
             sandbox_root=root,
@@ -87,6 +85,8 @@ class ConversationWorkspace:
             input_dir=conversation_root / "input",
             skills_dir=conversation_root / "skills",
             work_dir=conversation_root / "work",
+            output_dir=conversation_root / "output",
+            tmp_dir=conversation_root / "tmp",
         )
 
 
@@ -96,45 +96,28 @@ class ConversationExecutionContext:
 
     identity: ConversationIdentity
     workspace: ConversationWorkspace
-    execution_root: PurePosixPath
-    output_dir: PurePosixPath
-    tmp_dir: PurePosixPath
 
     def __post_init__(self) -> None:
         if self.workspace.identity != self.identity:
             raise ValueError("workspace identity must match execution identity")
-        execution_root = self.workspace.conversation_root / "runs" / _path_key(
-            self.identity.execution_id
-        )
-        _require_paths_under_root(
-            self.workspace.sandbox_root,
-            execution_root,
-            self.execution_root,
-            self.output_dir,
-            self.tmp_dir,
-        )
-        if (
-            self.execution_root != execution_root
-            or self.output_dir != execution_root / "output"
-            or self.tmp_dir != execution_root / "tmp"
-        ):
-            raise ValueError("execution paths must match the deterministic layout")
 
     @classmethod
     def create(
         cls, identity: ConversationIdentity, sandbox_root: str | PurePosixPath
     ) -> ConversationExecutionContext:
         workspace = ConversationWorkspace.create(identity, sandbox_root)
-        execution_root = workspace.conversation_root / "runs" / _path_key(
-            identity.execution_id
-        )
         return cls(
             identity=identity,
             workspace=workspace,
-            execution_root=execution_root,
-            output_dir=execution_root / "output",
-            tmp_dir=execution_root / "tmp",
         )
+
+    @property
+    def output_dir(self) -> PurePosixPath:
+        return self.workspace.output_dir
+
+    @property
+    def tmp_dir(self) -> PurePosixPath:
+        return self.workspace.tmp_dir
 
     def for_child_call(self) -> ConversationExecutionContext:
         """Reuse this immutable context for a nested conversation call."""
@@ -168,9 +151,32 @@ def reset_conversation_execution_context(
     _current_conversation_execution_context.reset(token)
 
 
-def _path_key(value: str) -> str:
-    """Return a path-safe key without exposing an audit identity on disk."""
-    return hashlib.sha256(value.encode("utf-8")).hexdigest()
+_VISIBLE_KEY = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
+
+
+def validate_conversation_path_key(value: str, field_name: str) -> str:
+    """Validate an identity segment that remains visible in sandbox paths."""
+    if not _VISIBLE_KEY.fullmatch(value) or value in {".", ".."}:
+        raise ValueError(f"{field_name} must be a path-safe platform identifier")
+    return value
+
+
+def _scope_key(project_id: str, workspace_id: str) -> str:
+    canonical = json.dumps(
+        ["conversation-scope", project_id, workspace_id],
+        ensure_ascii=False,
+        separators=(",", ":"),
+    )
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:32]
+
+
+def _conversation_root(root: PurePosixPath, identity: ConversationIdentity) -> PurePosixPath:
+    return root.joinpath(
+        "conversations",
+        validate_conversation_path_key(identity.user_id, "user_id"),
+        _scope_key(identity.project_id, identity.workspace_id),
+        validate_conversation_path_key(identity.conversation_id, "conversation_id"),
+    )
 
 
 def _sandbox_root(value: str | PurePosixPath) -> PurePosixPath:

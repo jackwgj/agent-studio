@@ -29,6 +29,7 @@ from abc import ABC, abstractmethod
 from typing import Optional
 
 import aioboto3
+import boto3
 from botocore.config import Config as BotoConfig
 from botocore.exceptions import ClientError
 from openjiuwen.core.common.logging import workflow_logger
@@ -100,6 +101,7 @@ class S3StorageProvider(ObjectStorageProvider):
     def __init__(self):
         self._context = None      # aioboto3 ClientCreatorContext (async context manager)
         self._client = None       # actual S3 client returned by __aenter__
+        self._sync_write_client = None  # MinIO 兼容写入 client；在线程中调用
         self._initialized: bool = False
         self._bucket: Optional[str] = None
 
@@ -185,6 +187,11 @@ class S3StorageProvider(ObjectStorageProvider):
             self._initialized = False
             self._bucket = None
             workflow_logger.info("S3 async client closed")
+        if self._sync_write_client is not None:
+            sync_client = self._sync_write_client
+            self._sync_write_client = None
+            await asyncio.to_thread(sync_client.close)
+            workflow_logger.info("S3 sync write client closed")
 
     def _ensure_initialized(self):
         """检查 client 是否已初始化，未初始化则抛出 StorageConfigError"""
@@ -336,7 +343,16 @@ class S3StorageProvider(ObjectStorageProvider):
         self._ensure_initialized()
         bucket = bucket_name or self._bucket
         try:
-            await self._client.put_object(Bucket=bucket, Key=object_key, Body=data)
+            # 部分 MinIO 版本会让 aioboto3/aiobotocore 的 PutObject 请求长期挂起，
+            # 而相同配置下 boto3 可正常完成。写入因此复用同步 boto3 client，
+            # 并通过 asyncio.to_thread 执行，避免阻塞 Runtime 事件循环。
+            client = self._get_sync_write_client()
+            await asyncio.to_thread(
+                client.put_object,
+                Bucket=bucket,
+                Key=object_key,
+                Body=data,
+            )
         except Exception as e:
             if isinstance(e, (StorageConfigError, StorageWriteError)):
                 raise
@@ -347,6 +363,28 @@ class S3StorageProvider(ObjectStorageProvider):
             raise StorageWriteError(
                 f"S3 put failed: object_key={object_key}, error={e}"
             ) from e
+
+    def _get_sync_write_client(self):
+        """按需创建 MinIO/OBS 兼容的同步写入 client。"""
+        if self._sync_write_client is None:
+            self._sync_write_client = boto3.client(
+                "s3",
+                endpoint_url=settings.object_storage.server,
+                aws_access_key_id=settings.object_storage.access_key,
+                aws_secret_access_key=self._decrypt_sk(
+                    settings.object_storage.secret_key
+                ),
+                verify=settings.object_storage.enable_ssl,
+                config=BotoConfig(
+                    signature_version="s3v4",
+                    s3={"addressing_style": settings.object_storage.path_style},
+                    connect_timeout=5,
+                    read_timeout=30,
+                    request_checksum_calculation="when_required",
+                    response_checksum_validation="when_required",
+                ),
+            )
+        return self._sync_write_client
 
     async def get_presigned_url(
         self, object_key: str, expires_seconds: int, bucket_name: Optional[str] = None

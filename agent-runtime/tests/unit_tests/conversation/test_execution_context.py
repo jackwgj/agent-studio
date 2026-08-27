@@ -73,28 +73,22 @@ def test_execution_context_is_immutable_and_parent_child_calls_share_identity():
 
 def test_execution_context_uses_the_exact_deterministic_sandbox_layout():
     context = ConversationExecutionContext.create(_identity(), "/remote/sandboxes")
-    conversation_root = PurePosixPath(
-        "/remote/sandboxes/"
-        "0e3ffbf31db2e5b45f9fe42abf9ae60d024e48dc0dc1f0ab6b366739b961bf89/"
-        "0dcf2d98505da17dc4a5eaefb2553d5b86f2ed378a08219fe8c9dae3f55cc288/"
-        "fc95297aa4f56781f0decb7d4bf59b1447f09b3611039b80188b1c6beb03ee6a/"
-        "30d36aa9aeae09e9c322f17c7d13842a1035dbe88abd25606d199f7279a902b7"
-    )
+    conversation_root = context.workspace.conversation_root
 
+    assert conversation_root.parts[-4] == "conversations"
+    assert conversation_root.parts[-3] == "user-a"
+    assert len(conversation_root.parts[-2]) == 32
+    assert conversation_root.parts[-1] == "conversation-a"
     assert context.workspace.conversation_root == conversation_root
     assert context.workspace.input_dir == conversation_root / "input"
     assert context.workspace.skills_dir == conversation_root / "skills"
     assert context.workspace.work_dir == conversation_root / "work"
-    assert context.execution_root == (
-        conversation_root
-        / "runs"
-        / "db47f954a31a24a3070622baacdc07470d3369bf327ffb43df78a4ac4942ad2a"
-    )
-    assert context.output_dir == context.execution_root / "output"
-    assert context.tmp_dir == context.execution_root / "tmp"
+    assert context.output_dir == conversation_root / "output"
+    assert context.tmp_dir == conversation_root / "tmp"
+    assert "runs" not in context.output_dir.parts
 
 
-def test_execution_ids_share_conversation_directories_but_isolate_run_directories():
+def test_execution_ids_share_the_entire_persistent_conversation_workspace():
     parent = ConversationExecutionContext.create(_identity(execution_id="execution-a"), "/remote/sandboxes")
     child = ConversationExecutionContext.create(_identity(execution_id="execution-b"), "/remote/sandboxes")
 
@@ -102,9 +96,8 @@ def test_execution_ids_share_conversation_directories_but_isolate_run_directorie
     assert child.workspace.input_dir == parent.workspace.input_dir
     assert child.workspace.skills_dir == parent.workspace.skills_dir
     assert child.workspace.work_dir == parent.workspace.work_dir
-    assert child.execution_root != parent.execution_root
-    assert child.output_dir != parent.output_dir
-    assert child.tmp_dir != parent.tmp_dir
+    assert child.output_dir == parent.output_dir
+    assert child.tmp_dir == parent.tmp_dir
 
 
 @pytest.mark.parametrize(
@@ -131,24 +124,17 @@ def test_unsafe_and_long_identities_are_opaque_and_cannot_escape_sandbox_root():
     identity = _identity(
         project_id="project/../../evil",
         workspace_id="workspace:reserved?",
-        user_id="用户😀",
-        conversation_id="x" * 4096,
+        user_id="user-safe",
+        conversation_id="conversation-safe",
         execution_id="..\\..\\escape",
     )
     context = ConversationExecutionContext.create(identity, "/remote/sandboxes")
-    raw_values = (
-        identity.project_id,
-        identity.workspace_id,
-        identity.user_id,
-        identity.conversation_id,
-        identity.execution_id,
-    )
+    opaque_values = (identity.project_id, identity.workspace_id, identity.execution_id)
     paths = (
         context.workspace.conversation_root,
         context.workspace.input_dir,
         context.workspace.skills_dir,
         context.workspace.work_dir,
-        context.execution_root,
         context.output_dir,
         context.tmp_dir,
     )
@@ -157,5 +143,25 @@ def test_unsafe_and_long_identities_are_opaque_and_cannot_escape_sandbox_root():
         assert isinstance(path, PurePosixPath)
         assert path.is_relative_to(PurePosixPath("/remote/sandboxes"))
         assert ".." not in path.parts
-        assert all(raw not in path.parts for raw in raw_values)
+        assert all(raw not in path.parts for raw in opaque_values)
+        assert identity.user_id in path.parts
+        assert identity.conversation_id in path.parts
     assert all(len(part) <= 64 for path in paths for part in path.parts)
+
+
+@pytest.mark.parametrize("field_name", ["user_id", "conversation_id"])
+@pytest.mark.parametrize("value", ["../escape", "/absolute", "x" * 65, "用户"])
+def test_operator_visible_path_keys_reject_unsafe_values(field_name, value):
+    with pytest.raises(ValueError, match="path-safe"):
+        ConversationExecutionContext.create(_identity(**{field_name: value}), "/workspace")
+
+
+def test_real_uuid_user_and_conversation_ids_are_visible_for_operations():
+    identity = _identity(
+        user_id="e67ad621d9ec421581ebc60d131ac8ba",
+        conversation_id="66738d0a-7684-4c26-966b-84e4fce164ca",
+    )
+    root = ConversationExecutionContext.create(identity, "/workspace").workspace.conversation_root
+    assert root.parts[-3] == identity.user_id
+    assert root.parts[-1] == identity.conversation_id
+    assert len(str(root)) == 127

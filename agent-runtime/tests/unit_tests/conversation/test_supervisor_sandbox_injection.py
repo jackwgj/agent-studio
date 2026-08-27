@@ -25,6 +25,8 @@ from agent_runtime.conversation.runner import conversation_react_runner
 from agent_runtime.conversation.runner.conversation_react_runner import ConversationReActRunner
 from openjiuwen.core.sys_operation import OperationMode
 from openjiuwen.core.runner import Runner
+from openjiuwen.core.runner.resources_manager.resource_manager import ResourceMgr
+from agent_runtime.conversation.sandbox.registration import SHARED_OPERATION_ID
 
 
 class _Result:
@@ -86,6 +88,7 @@ class _ResourceManager:
     def __init__(self, operation: _RemoteOperation):
         self.operation = operation
         self.sys_operation_cards = []
+        self.operations = {}
         self.tools = {}
         self.added_tools = {}
         self.removed_tools = []
@@ -93,10 +96,11 @@ class _ResourceManager:
 
     def add_sys_operation(self, card, *, tag):
         self.sys_operation_cards.append((card, tag))
+        self.operations[(card.id, tag)] = self.operation
         return _Result()
 
-    def get_sys_operation(self, _operation_id, *, tag):
-        return self.operation
+    def get_sys_operation(self, operation_id, *, tag):
+        return self.operations.get((operation_id, tag))
 
     def add_tool(self, tool, *, tag):
         self.tools[tool.card.id] = (tool, tag)
@@ -110,6 +114,7 @@ class _ResourceManager:
 
     def remove_sys_operation(self, operation_id, *, tag):
         self.removed_operations.append((operation_id, tag))
+        self.operations.pop((operation_id, tag), None)
         return _Result()
 
 
@@ -150,6 +155,43 @@ def _sandbox_card():
     ).create()
 
 
+def _workspace_environment(context: ConversationExecutionContext) -> dict[str, str]:
+    return {
+        "CONVERSATION_ROOT": str(context.workspace.conversation_root),
+        "CONVERSATION_INPUT_DIR": str(context.workspace.input_dir),
+        "CONVERSATION_SKILLS_DIR": str(context.workspace.skills_dir),
+        "CONVERSATION_WORK_DIR": str(context.workspace.work_dir),
+        "CONVERSATION_OUTPUT_DIR": str(context.workspace.output_dir),
+        "CONVERSATION_TMP_DIR": str(context.workspace.tmp_dir),
+    }
+
+
+def test_conversation_prompt_describes_the_workspace_directory_protocol():
+    context = _context()
+    token = execution_context_module.set_conversation_execution_context(context)
+    try:
+        prompt = ConversationReActRunner()._parse_prompt_template(
+            {
+                "configs": {
+                    "sysPromptTemplate": "你是对话工作台顶层 Agent。",
+                    "skills": {},
+                }
+            }
+        )[0]["content"]
+
+        assert "## 当前会话沙箱目录协议" in prompt
+        assert f"`{context.workspace.conversation_root}`" in prompt
+        assert f"`{context.workspace.input_dir}`：用户上传的原始输入文件" in prompt
+        assert f"`{context.workspace.skills_dir}`：已激活 Skill 的完整制品和配套资源" in prompt
+        assert f"`{context.workspace.work_dir}`：默认工作目录" in prompt
+        assert f"`{context.workspace.output_dir}`：正式成果目录" in prompt
+        assert f"`{context.workspace.tmp_dir}`：临时目录" in prompt
+        assert "只有写入 output 目录的文件才会作为正式成果被采集和发布" in prompt
+        assert "不得访问或写入当前会话根目录之外" in prompt
+    finally:
+        execution_context_module.reset_conversation_execution_context(token)
+
+
 @pytest.mark.asyncio
 async def test_configured_sandbox_binds_exactly_three_remote_tools_and_anchors_paths():
     context = _context()
@@ -171,7 +213,7 @@ async def test_configured_sandbox_binds_exactly_three_remote_tools_and_anchors_p
         assert registered_card.mode is OperationMode.SANDBOX
         assert registered_card.id != CONVERSATION_SYS_OPERATION_ID
         assert tag == registered_card.id
-        assert all(card.id.startswith(f"{registered_card.id}.") for card in agent.ability_manager.cards)
+        assert all(card.id.startswith(f"{binder.operation_id}.") for card in agent.ability_manager.cards)
 
         tools = {tool.card.name: tool for tool, _tag in manager.tools.values()}
         await tools["read_file"].invoke({"path": "notes/../plan.md"})
@@ -183,8 +225,18 @@ async def test_configured_sandbox_binds_exactly_three_remote_tools_and_anchors_p
         assert remote.calls[1] == ("read_file", str(context.workspace.input_dir / "source.md"), {})
         assert remote.calls[2][0] == "execute_code"
         assert "os.chdir" in remote.calls[2][1]
-        assert remote.calls[2][2] == {"cwd": f"{context.workspace.work_dir}/scratch"}
-        assert remote.calls[3] == ("execute_cmd", "pwd", {"cwd": str(context.workspace.work_dir)})
+        assert remote.calls[2][2] == {
+            "cwd": f"{context.workspace.work_dir}/scratch",
+            "environment": _workspace_environment(context),
+        }
+        assert remote.calls[3] == (
+            "execute_cmd",
+            "pwd",
+            {
+                "cwd": str(context.workspace.work_dir),
+                "environment": _workspace_environment(context),
+            },
+        )
     finally:
         execution_context_module.reset_conversation_execution_context(token)
 
@@ -228,13 +280,14 @@ async def test_remote_error_is_raised_unchanged_without_a_local_fallback():
 def test_real_resource_manager_registers_only_request_owned_sandbox_resources():
     context = _context()
     token = execution_context_module.set_conversation_execution_context(context)
-    binder = ConversationSandboxToolBinder(_Factory(_sandbox_card()))
+    manager = ResourceMgr()
+    binder = ConversationSandboxToolBinder(_Factory(_sandbox_card()), manager)
     try:
         agent = _Agent()
         binder.register(agent)
 
-        operation = Runner.resource_mgr.get_sys_operation(
-            binder.operation_id, tag=binder.operation_id
+        operation = manager.get_sys_operation(
+            SHARED_OPERATION_ID, tag=SHARED_OPERATION_ID
         )
         assert operation is not None
         assert operation.mode is OperationMode.SANDBOX
@@ -247,11 +300,11 @@ def test_real_resource_manager_registers_only_request_owned_sandbox_resources():
         binder.cleanup()
         execution_context_module.reset_conversation_execution_context(token)
 
-    assert Runner.resource_mgr.get_sys_operation(
-        binder.operation_id, tag=binder.operation_id
-    ) is None
-    assert Runner.resource_mgr.get_tool(
-        f"{binder.operation_id}.fs.read_file", tag=binder.operation_id
+    assert manager.get_sys_operation(
+        SHARED_OPERATION_ID, tag=SHARED_OPERATION_ID
+    ) is operation
+    assert manager.get_tool(
+        f"{binder.operation_id}.read_file", tag=binder.operation_id
     ) is None
 
 
@@ -274,6 +327,73 @@ async def test_sandbox_tools_reject_paths_outside_the_active_conversation_root()
 
         assert remote.calls == [
             ("read_file", str(context.output_dir / "answer.txt"), {}),
+        ]
+    finally:
+        execution_context_module.reset_conversation_execution_context(token)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "command",
+    [
+        "mkdir -p /tmp/output",
+        "printf result > '/home/gem/result.txt'",
+        "cd / && touch result.txt",
+        "cd ../../../../tmp && touch result.txt",
+    ],
+)
+async def test_command_tool_rejects_literal_paths_outside_the_conversation_workspace(command):
+    context = _context()
+    token = execution_context_module.set_conversation_execution_context(context)
+    try:
+        remote = _RemoteOperation()
+        manager = _ResourceManager(remote)
+        binder = ConversationSandboxToolBinder(_Factory(_sandbox_card()), manager)
+        binder.register(_Agent())
+        command_tool = next(
+            tool for tool, _tag in manager.tools.values() if tool.card.name == "execute_cmd"
+        )
+
+        with pytest.raises(ValueError, match="outside the active conversation workspace"):
+            await command_tool.invoke({"command": command})
+
+        assert remote.calls == []
+    finally:
+        execution_context_module.reset_conversation_execution_context(token)
+
+
+@pytest.mark.asyncio
+async def test_command_tool_allows_paths_that_normalize_inside_the_conversation_workspace():
+    context = _context()
+    token = execution_context_module.set_conversation_execution_context(context)
+    try:
+        remote = _RemoteOperation()
+        manager = _ResourceManager(remote)
+        binder = ConversationSandboxToolBinder(_Factory(_sandbox_card()), manager)
+        binder.register(_Agent())
+        command_tool = next(
+            tool for tool, _tag in manager.tools.values() if tool.card.name == "execute_cmd"
+        )
+
+        await command_tool.invoke(
+            {
+                "command": "cp report.md ../output/report.md",
+                "environment": {"CONVERSATION_ROOT": "/untrusted", "CUSTOM_FLAG": "on"},
+            }
+        )
+
+        assert remote.calls == [
+            (
+                "execute_cmd",
+                "cp report.md ../output/report.md",
+                {
+                    "cwd": str(context.workspace.work_dir),
+                    "environment": {
+                        "CUSTOM_FLAG": "on",
+                        **_workspace_environment(context),
+                    },
+                },
+            )
         ]
     finally:
         execution_context_module.reset_conversation_execution_context(token)
@@ -326,8 +446,8 @@ def test_cleanup_is_idempotent_and_removes_request_scoped_resources():
         binder.cleanup()
 
         assert len(manager.removed_tools) == 3
-        assert len(manager.removed_operations) == 1
-        assert manager.removed_operations[0][0] == manager.sys_operation_cards[0][0].id
+        assert manager.removed_operations == []
+        assert manager.get_sys_operation(SHARED_OPERATION_ID, tag=SHARED_OPERATION_ID) is manager.operation
     finally:
         execution_context_module.reset_conversation_execution_context(token)
 
@@ -368,9 +488,9 @@ def test_parent_and_handoff_child_bindings_cleanup_only_their_own_resources():
 
         parent_binder.cleanup()
 
-        assert {
-            operation_id for operation_id, _tag in manager.removed_operations
-        } == {parent_binder.operation_id, child_binder.operation_id}
+        assert manager.removed_operations == []
+        assert manager.tools == {}
+        assert len(manager.sys_operation_cards) == 1
     finally:
         execution_context_module.reset_conversation_execution_context(token)
 
@@ -626,9 +746,18 @@ async def test_runner_binds_sandbox_for_an_app_without_supervisor_context(monkey
             tool for tool in manager.added_tools.values() if tool.card.name == "execute_cmd"
         )
         await command_tool.invoke({"command": "pwd"})
-        assert remote.calls == [("execute_cmd", "pwd", {"cwd": str(context.workspace.work_dir)})]
+        assert remote.calls == [
+            (
+                "execute_cmd",
+                "pwd",
+                {
+                    "cwd": str(context.workspace.work_dir),
+                    "environment": _workspace_environment(context),
+                },
+            )
+        ]
         assert len(manager.removed_tools) == 3
-        assert manager.removed_operations == [(binder.operation_id, binder.operation_id)]
+        assert manager.removed_operations == []
         runner._attach_supervisor_skill_context.assert_not_awaited()
         runner._register_supervisor_handoff_tools.assert_not_awaited()
     finally:
@@ -680,10 +809,17 @@ async def test_runner_binds_sandbox_for_handoff_child_without_supervisor_context
         )
         await command_tool.invoke({"command": "pwd"})
         assert remote.calls == [
-            ("execute_cmd", "pwd", {"cwd": str(parent_context.workspace.work_dir)})
+            (
+                "execute_cmd",
+                "pwd",
+                {
+                    "cwd": str(parent_context.workspace.work_dir),
+                    "environment": _workspace_environment(parent_context),
+                },
+            )
         ]
         assert len(manager.removed_tools) == 3
-        assert manager.removed_operations == [(binder.operation_id, binder.operation_id)]
+        assert manager.removed_operations == []
         runner._attach_supervisor_skill_context.assert_not_awaited()
         runner._register_supervisor_handoff_tools.assert_not_awaited()
     finally:

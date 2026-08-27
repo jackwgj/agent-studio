@@ -8,6 +8,7 @@ import shlex
 
 from agent_runtime.conversation.execution_context import ConversationExecutionContext
 from agent_runtime.conversation.input_artifact_bridge import conversation_sandbox_operation
+from agent_runtime.conversation.operation_result import operation_succeeded
 
 logger = logging.getLogger(__name__)
 
@@ -15,22 +16,21 @@ logger = logging.getLogger(__name__)
 async def cleanup_execution_directories(
     context: ConversationExecutionContext, *, remove_output: bool
 ) -> None:
+    # output is conversation-persistent. The compatibility flag is intentionally
+    # ignored so old callers cannot delete it after the layout refactor.
     targets = [context.tmp_dir]
-    if remove_output:
-        targets.append(context.output_dir)
     if any(
         target == context.workspace.conversation_root
-        or not target.is_relative_to(context.execution_root)
+        or not target.is_relative_to(context.workspace.conversation_root)
         for target in targets
     ):
-        raise ValueError("execution cleanup target escaped its execution root")
+        raise ValueError("temporary cleanup target escaped its conversation root")
     async with conversation_sandbox_operation("conversation_execution_cleanup") as operation:
         command = "rm -rf -- " + " ".join(shlex.quote(str(target)) for target in targets)
         result = await operation.shell().execute_cmd(
             command, cwd=str(context.workspace.conversation_root)
         )
-        is_ok = getattr(result, "is_ok", None)
-        if callable(is_ok) and not is_ok():
+        if not operation_succeeded(result):
             raise RuntimeError("remote execution cleanup failed")
 
 

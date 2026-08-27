@@ -10,6 +10,7 @@ from agent_runtime.conversation.execution_context import (
     ConversationWorkspace,
 )
 from agent_runtime.conversation.input_artifact_bridge import conversation_sandbox_operation
+from agent_runtime.conversation.operation_result import operation_succeeded
 
 
 class ConversationWorkspaceCleanupError(RuntimeError):
@@ -41,6 +42,5 @@ async def delete_conversation_workspace(
             )
         except Exception as error:
             raise ConversationWorkspaceCleanupError("remote workspace cleanup failed") from error
-        is_ok = getattr(result, "is_ok", None)
-        if callable(is_ok) and not is_ok():
+        if not operation_succeeded(result):
             raise ConversationWorkspaceCleanupError("remote workspace cleanup failed")

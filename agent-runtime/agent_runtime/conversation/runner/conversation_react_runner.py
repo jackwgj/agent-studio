@@ -11,6 +11,7 @@ import uuid
 from typing import AsyncGenerator, Dict, Optional
 
 from agent_runtime.conversation.config.supervisor_config import SupervisorConfig
+from agent_runtime.conversation.execution_context import get_conversation_execution_context
 from agent_runtime.conversation.sandbox import ConversationSandboxToolBinder
 from agent_runtime.runner.react_agent_runner import ReActAgentRunner
 from agent_runtime.supervisor.skill_context import (
@@ -28,6 +29,53 @@ from openjiuwen.core.session.stream import BaseStreamMode
 
 class ConversationReActRunner(ReActAgentRunner):
     """Conversation wrapper around the official ReAct runner."""
+
+    def _parse_prompt_template(
+        self,
+        ir_json: dict,
+        conversation_history: list | None = None,
+        skill_work_dir: str = "",
+        global_variables: dict | None = None,
+        has_file_links: bool = False,
+    ) -> list[dict]:
+        """Append the conversation-only workspace contract to the official prompt."""
+        messages = super()._parse_prompt_template(
+            ir_json,
+            conversation_history,
+            skill_work_dir,
+            global_variables,
+            has_file_links,
+        )
+        protocol = self._build_workspace_protocol_prompt()
+        return [
+            {
+                **message,
+                "content": f"{message.get('content', '')}{protocol}"
+                if message.get("role") == "system"
+                else message.get("content", ""),
+            }
+            for message in messages
+        ]
+
+    @staticmethod
+    def _build_workspace_protocol_prompt() -> str:
+        workspace = get_conversation_execution_context().workspace
+        return (
+            "\n\n## 当前会话沙箱目录协议\n"
+            f"当前会话根目录：`{workspace.conversation_root}`。所有文件操作必须限制在该目录内，"
+            "不得访问或写入当前会话根目录之外。\n"
+            f"- `{workspace.input_dir}`：用户上传的原始输入文件。处理附件时优先从这里读取，"
+            "不要覆盖用户原始文件。\n"
+            f"- `{workspace.skills_dir}`：已激活 Skill 的完整制品和配套资源。执行 Skill 前读取其"
+            " `SKILL.md`，并按需使用同目录资源，不要修改 Skill 制品。\n"
+            f"- `{workspace.work_dir}`：默认工作目录。过程文件、中间结果和可继续编辑的工作文件"
+            "放在这里。\n"
+            f"- `{workspace.output_dir}`：正式成果目录。最终需要交付给用户下载的文档、表格、"
+            "图片、压缩包等必须写入这里；只有写入 output 目录的文件才会作为正式成果被采集和发布。\n"
+            f"- `{workspace.tmp_dir}`：临时目录。仅用于可丢弃的缓存和短期暂存，不要把最终成果"
+            "留在这里。\n"
+            "执行命令和代码时默认以 work 目录为 cwd；引用其他目录时使用以上明确路径。"
+        )
 
     @staticmethod
     def _convert_supervisor_to_ir(config: SupervisorConfig) -> dict:

@@ -4,9 +4,7 @@ from __future__ import annotations
 
 import base64
 import json
-import posixpath
 import uuid
-from pathlib import PurePosixPath
 from typing import Any
 
 from openjiuwen.core.foundation.tool import LocalFunction, ToolCard
@@ -16,9 +14,15 @@ from openjiuwen.extensions.sys_operation.sandbox import providers as _sandbox_pr
 
 from agent_runtime.common.config import settings
 from agent_runtime.conversation.execution_context import get_conversation_execution_context
+from agent_runtime.conversation.operation_result import (
+    operation_error_detail,
+    operation_succeeded,
+)
 
 from .config import ConversationSandboxConfig
 from .factory import ConversationSysOperationFactory
+from .path_policy import ConversationPathPolicy
+from .registration import get_conversation_sandbox_operation
 
 
 class ConversationSandboxToolBinder:
@@ -30,7 +34,6 @@ class ConversationSandboxToolBinder:
         self._operation_id: str | None = None
         self._tag: str | None = None
         self._tool_ids: list[str] = []
-        self._registered_operation = False
         self._cleaned_up = False
 
     @classmethod
@@ -43,7 +46,7 @@ class ConversationSandboxToolBinder:
 
     @property
     def operation_id(self) -> str | None:
-        """Return this binding's unique official SysOperation identifier."""
+        """Return this request's unique tool namespace (not the shared operation ID)."""
         return self._operation_id
 
     def register(self, agent) -> None:
@@ -55,24 +58,22 @@ class ConversationSandboxToolBinder:
             raise RuntimeError("conversation sandbox factory must return a SANDBOX SysOperationCard")
 
         context = get_conversation_execution_context()
-        work_dir = str(context.workspace.work_dir)
-        conversation_root = str(context.workspace.conversation_root)
+        path_policy = ConversationPathPolicy(
+            conversation_root=context.workspace.conversation_root,
+            input_dir=context.workspace.input_dir,
+            skills_dir=context.workspace.skills_dir,
+            work_dir=context.workspace.work_dir,
+            output_dir=context.workspace.output_dir,
+            tmp_dir=context.workspace.tmp_dir,
+        )
         operation_id = f"{factory_card.id}_{uuid.uuid4().hex}"
-        request_card = factory_card.model_copy(update={"id": operation_id})
         self._operation_id = operation_id
         self._tag = operation_id
 
         try:
-            self._require_ok(
-                self._resource_manager.add_sys_operation(request_card, tag=self._tag),
-                "Failed to register conversation SANDBOX SysOperation",
-            )
-            self._registered_operation = True
-            operation = self._resource_manager.get_sys_operation(operation_id, tag=self._tag)
-            if operation is None:
-                raise RuntimeError("conversation SANDBOX SysOperation was not available after registration")
+            operation = get_conversation_sandbox_operation(self._resource_manager, factory_card)
 
-            for tool in self._build_tools(operation, work_dir, conversation_root):
+            for tool in self._build_tools(operation, path_policy):
                 self._require_ok(
                     self._resource_manager.add_tool(tool, tag=self._tag),
                     f"Failed to register conversation sandbox tool {tool.card.name}",
@@ -100,27 +101,27 @@ class ConversationSandboxToolBinder:
                 self._resource_manager.remove_tool(tool_id, tag=self._tag)
             except Exception:
                 pass
-        if self._registered_operation and self._operation_id is not None:
-            try:
-                self._resource_manager.remove_sys_operation(self._operation_id, tag=self._tag)
-            except Exception:
-                pass
+        # The shared operation outlives this request and may be in use by a
+        # parent, child, artifact bridge or concurrent conversation.
 
     def _build_tools(
-        self, operation, work_dir: str, conversation_root: str
+        self, operation, path_policy: ConversationPathPolicy
     ) -> list[LocalFunction]:
         if self._operation_id is None:
             raise RuntimeError("conversation sandbox operation id is not initialized")
 
         async def read_file(path: str, **kwargs: Any):
             return await operation.fs().read_file(
-                self._absolute_posix_path(work_dir, conversation_root, path),
+                path_policy.resolve(path),
                 **self._without_none(kwargs),
             )
 
         async def execute_code(code: str, cwd: str | None = None, **kwargs: Any):
             remote_kwargs = self._without_none(kwargs)
-            resolved_cwd = self._absolute_posix_path(work_dir, conversation_root, cwd)
+            resolved_cwd = path_policy.resolve(cwd)
+            remote_kwargs["environment"] = path_policy.environment(
+                remote_kwargs.get("environment")
+            )
             return await operation.code().execute_code(
                 self._code_with_working_directory(
                     code, remote_kwargs.get("language", "python"), resolved_cwd
@@ -130,10 +131,16 @@ class ConversationSandboxToolBinder:
             )
 
         async def execute_cmd(command: str, cwd: str | None = None, **kwargs: Any):
+            resolved_cwd = path_policy.resolve(cwd)
+            path_policy.validate_command(command, resolved_cwd)
+            remote_kwargs = self._without_none(kwargs)
+            remote_kwargs["environment"] = path_policy.environment(
+                remote_kwargs.get("environment")
+            )
             return await operation.shell().execute_cmd(
                 command,
-                cwd=self._absolute_posix_path(work_dir, conversation_root, cwd),
-                **self._without_none(kwargs),
+                cwd=resolved_cwd,
+                **remote_kwargs,
             )
 
         return [
@@ -149,18 +156,6 @@ class ConversationSandboxToolBinder:
             description=f"Run {name} in the conversation remote sandbox.",
             input_params=input_params,
         )
-
-    @staticmethod
-    def _absolute_posix_path(
-        work_dir: str, conversation_root: str, value: str | None
-    ) -> str:
-        candidate = PurePosixPath(value) if value is not None else PurePosixPath()
-        path = candidate if candidate.is_absolute() else PurePosixPath(work_dir) / candidate
-        normalized = PurePosixPath(posixpath.normpath(str(path)))
-        trusted_root = PurePosixPath(conversation_root)
-        if not normalized.is_relative_to(trusted_root):
-            raise ValueError("path must remain within the active conversation workspace")
-        return str(normalized)
 
     @staticmethod
     def _code_with_working_directory(code: str, language: str, cwd: str) -> str:
@@ -185,11 +180,9 @@ class ConversationSandboxToolBinder:
 
     @staticmethod
     def _require_ok(result, message: str) -> None:
-        is_ok = getattr(result, "is_ok", None)
-        if not callable(is_ok) or is_ok():
+        if operation_succeeded(result):
             return
-        error = getattr(result, "error", None)
-        detail = error() if callable(error) else error
+        detail = operation_error_detail(result)
         raise RuntimeError(f"{message}: {detail}")
 
     @staticmethod

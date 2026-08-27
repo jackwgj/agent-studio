@@ -24,18 +24,21 @@ from agent_runtime.conversation.execution_context import (
     ConversationIdentity,
     reset_conversation_execution_context,
     set_conversation_execution_context,
+    validate_conversation_path_key,
 )
 from agent_runtime.conversation.input_artifact_bridge import (
     ConversationInputArtifact,
     prepare_conversation_inputs,
 )
+from agent_runtime.conversation.workspace_initializer import ensure_conversation_workspace
 from agent_runtime.conversation.output_artifact_publisher import (
+    capture_conversation_output_baseline,
     publish_conversation_outputs,
 )
 from agent_runtime.conversation.execution_cleanup import (
     cleanup_execution_directories,
-    schedule_execution_cleanup,
 )
+from agent_runtime.conversation.execution_coordinator import acquire_conversation_execution
 from agent_runtime.common.config import settings
 from agent_runtime.supervisor.builder import build_supervisor, normalize_skill_inputs
 from agent_runtime.supervisor.conversation_supervisor_builder import (
@@ -143,6 +146,11 @@ class ConversationTeamReq(BaseModel):
             raise ValueError("execution identity fields must not be blank")
         return value.strip()
 
+    @field_validator("conversation_id", "user_id")
+    @classmethod
+    def validate_visible_execution_identity(cls, value: str) -> str:
+        return validate_conversation_path_key(value, "execution identity")
+
     @model_validator(mode="after")
     def validate_skill_catalog(self):
         catalog = [
@@ -180,9 +188,11 @@ async def team_sse_stream(req: ConversationTeamReq, execution_id: str | None = N
     )
     context_token = set_conversation_execution_context(context)
     runner = None
+    execution_lease = None
     index = 0
-    execution_completed = False
     try:
+        execution_lease = await acquire_conversation_execution(context)
+        await ensure_conversation_workspace()
         prepared_file_references = [
             {"fileName": artifact.file_name, "path": path}
             for artifact, path in zip(
@@ -191,6 +201,7 @@ async def team_sse_stream(req: ConversationTeamReq, execution_id: str | None = N
                 strict=True,
             )
         ]
+        output_baseline = await capture_conversation_output_baseline()
         yield sse_line(build_user_message(execution_id, req.conversation_id, req.query, index=index))
         index += 1
         yield sse_line(build_run_start(execution_id, index=index))
@@ -236,14 +247,22 @@ async def team_sse_stream(req: ConversationTeamReq, execution_id: str | None = N
                 )
 
         pending_run_done = None
+        runner_failed = False
         async for event in runner:
+            if event.get(TeamEventField.EVENT) == "error":
+                runner_failed = True
             if event.get(TeamEventField.EVENT) == "run_done":
                 pending_run_done = event
                 continue
             event[TeamEventField.INDEX] = index  # 统一占序，覆盖增量事件自带 index
             index += 1
             yield sse_line(event)
-        for artifact in await publish_conversation_outputs():
+        if runner_failed:
+            # The Runner reports failures as events rather than exceptions.
+            # Preserve that error and use the failure/TTL cleanup path below;
+            # do not turn it into a second artifact error or a successful run.
+            return
+        for artifact in await publish_conversation_outputs(output_baseline):
             yield sse_line(build_artifact(
                 execution_id,
                 object_key=artifact.object_key,
@@ -254,7 +273,6 @@ async def team_sse_stream(req: ConversationTeamReq, execution_id: str | None = N
                 index=index,
             ))
             index += 1
-        execution_completed = True
         if pending_run_done is not None:
             pending_run_done[TeamEventField.INDEX] = index
             yield sse_line(pending_run_done)
@@ -270,32 +288,14 @@ async def team_sse_stream(req: ConversationTeamReq, execution_id: str | None = N
                     pass
         finally:
             try:
-                if execution_completed:
-                    await cleanup_execution_directories(
-                        context,
-                        remove_output=getattr(
-                            settings.security_sandbox, "cleanup_uploaded_output", True
-                        ),
-                    )
-                else:
-                    schedule_execution_cleanup(
-                        context,
-                        remove_output=False,
-                        delay_seconds=getattr(
-                            settings.security_sandbox, "execution_cleanup_ttl_seconds", 600
-                        ),
-                    )
+                if execution_lease is not None:
+                    await cleanup_execution_directories(context, remove_output=False)
             except Exception:
-                logger.warning("conversation execution cleanup failed; scheduling TTL retry", exc_info=True)
-                schedule_execution_cleanup(
-                    context,
-                    remove_output=execution_completed
-                    and getattr(settings.security_sandbox, "cleanup_uploaded_output", True),
-                    delay_seconds=getattr(
-                        settings.security_sandbox, "execution_cleanup_ttl_seconds", 600
-                    ),
-                )
-            reset_conversation_execution_context(context_token)
+                logger.warning("conversation tmp cleanup failed; retained until conversation cleanup", exc_info=True)
+            finally:
+                if execution_lease is not None:
+                    await execution_lease.release()
+                reset_conversation_execution_context(context_token)
 
 
 @team_router.post("/v1/conversation/team")

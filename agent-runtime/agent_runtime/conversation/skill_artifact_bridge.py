@@ -9,6 +9,7 @@ from agent_runtime.conversation.input_artifact_bridge import (
     InputArtifactPreparationError,
     conversation_sandbox_operation,
 )
+from agent_runtime.conversation.operation_result import operation_succeeded
 from agent_runtime.conversation.sandbox import ConversationSandboxConfig, ConversationSysOperationFactory
 from agent_runtime.supervisor.skill_artifact_cache import (
     CachedSkillArtifact,
@@ -45,8 +46,7 @@ class ConversationSkillArtifactBridge:
                 )
             except Exception as error:
                 raise SkillArtifactError("Skill sandbox write failed") from error
-            is_ok = getattr(result, "is_ok", None)
-            if callable(is_ok) and not is_ok():
+            if not operation_succeeded(result):
                 raise SkillArtifactError("Skill sandbox write failed")
         return str(target_root)
 
