@@ -12,6 +12,7 @@ import { ConversationSkillItem } from './conversation-skill.model';
 import { ConversationWorkspaceComponent } from './conversation-workspace.component';
 import { ConversationWorkspaceService, SessionItem } from './conversation-workspace.service';
 import { SSE } from '@shared/services/sse';
+import { CommonUtils } from 'src/utils/common.util';
 
 describe('ConversationWorkspaceComponent', () => {
   let fixture: ComponentFixture<ConversationWorkspaceComponent>;
@@ -45,7 +46,7 @@ describe('ConversationWorkspaceComponent', () => {
       newDraftSession: jasmine.createSpy('newDraftSession'),
       listSkills: jasmine.createSpy('listSkills').and.resolveTo([skill('s1')]),
       uploadInputFile: jasmine.createSpy('uploadInputFile').and.resolveTo({}),
-      downloadArtifact: jasmine.createSpy('downloadArtifact').and.resolveTo({ download_url: 'https://download/file', expires_in: 300 }),
+      downloadArtifact: jasmine.createSpy('downloadArtifact').and.resolveTo(new Blob(['file-content'], { type: 'text/plain' })),
       chatSSE: jasmine.createSpy('chatSSE').and.returnValue({ close: jasmine.createSpy('close') }),
     };
     routeParams = new BehaviorSubject({});
@@ -95,6 +96,33 @@ describe('ConversationWorkspaceComponent', () => {
     expect(document.documentElement.style.minWidth).toBe('');
   });
 
+  it('历史详情渲染完成后通过双帧恢复到最新消息位置', async () => {
+    const frameCallbacks: FrameRequestCallback[] = [];
+    spyOn(window, 'requestAnimationFrame').and.callFake((callback: FrameRequestCallback) => {
+      frameCallbacks.push(callback);
+      return frameCallbacks.length;
+    });
+    service.detailSession.and.resolveTo({
+      title: '历史会话',
+      messages: [{ role: 'assistant', content: '历史回答' }],
+    });
+    const list = fixture.nativeElement.querySelector('.message-list') as HTMLElement;
+    Object.defineProperty(list, 'scrollHeight', { configurable: true, value: 1600 });
+    list.scrollTop = 120;
+
+    service.setActiveSession(session('history-session'));
+    await Promise.resolve();
+    fixture.detectChanges();
+
+    expect(frameCallbacks.length).toBe(1);
+    frameCallbacks.shift()!(0);
+    expect(list.scrollTop).toBe(120);
+    expect(frameCallbacks.length).toBe(1);
+    frameCallbacks.shift()!(16);
+
+    expect(list.scrollTop).toBe(1600);
+  });
+
   it('发送时只提交有序推荐 ID，并且只在 SSE open 后清空输入和选择', () => {
     (component as any).recommendedSkills = [skill('s2'), skill('s1')];
     component.currentSession = session('c1');
@@ -129,6 +157,27 @@ describe('ConversationWorkspaceComponent', () => {
       file_ids: [{ object_key: 'conversation-inputs/p/w/u/file-report.pdf', file_name: 'report.pdf', size: 4,
         checksum: '3a6eb0790f39ac87c94f3856b2dd2c5d110e6811602261a9a923d3bb23adc8b7' }],
     }), jasmine.any(Object));
+  });
+
+  it('上传中文文件名时独立传输UTF8文件名并保留本地展示名称', async () => {
+    const originalName = 'Skill功能手工验证提示词.md';
+    const mojibakeName = 'Skill鍔熻兘鎵嬪伐楠岃瘉鎻愮ず璇�.md';
+    const file = new File(['中文内容'], originalName, { type: 'text/markdown' });
+    service.uploadInputFile.and.resolveTo({
+      objectKey: `conversation-inputs/p/w/u/id/${mojibakeName}`,
+      fileName: mojibakeName,
+      size: file.size,
+      checksum: '0'.repeat(64),
+    });
+
+    (component as any).uploadFile(file);
+    await Promise.resolve();
+
+    const formData = service.uploadInputFile.calls.mostRecent().args[0] as FormData;
+    const expectedEncodedName = btoa(String.fromCharCode(...new TextEncoder().encode(originalName)))
+      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+    expect(formData.get('file_name_base64')).toBe(expectedEncodedName);
+    expect((component as any).uploadedFiles[0].fileName).toBe(originalName);
   });
 
   it('连接前失败保留输入和推荐以便重试，并刷新目录', () => {
@@ -221,31 +270,31 @@ describe('ConversationWorkspaceComponent', () => {
     ]);
   });
 
-  it('接收正式产物事件后展示文件信息并按会话重新获取下载地址', async () => {
+  it('正式产物下载使用原始中文文件名而不是带前缀的对象键', async () => {
     component.currentSession = session('c1');
     const assistant: any = { role: 'assistant', segments: [], loading: true };
     component.messages = [assistant];
-    const openSpy = spyOn(window, 'open');
+    const downloadSpy = spyOn(CommonUtils, 'downloadFile');
 
     dispatchSse(component, assistant, {
       event: 'artifact',
       data: {
-        objectKey: 'conversation-artifacts/p/w/u/c/e/report.pdf',
-        fileName: 'report.pdf',
+        objectKey: 'conversation-artifacts/p/w/u/c/e/12345678-txt',
+        fileName: '测试结果.txt',
         size: 2048,
-        mediaType: 'application/pdf',
+        mediaType: 'text/plain',
         checksum: '0'.repeat(64),
       },
     });
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('.artifact-name').textContent).toContain('report.pdf');
+    expect(fixture.nativeElement.querySelector('.artifact-name').textContent).toContain('测试结果.txt');
     expect(fixture.nativeElement.querySelector('.artifact-meta').textContent).toContain('2.0 KB');
     fixture.nativeElement.querySelector('.artifact-download').click();
     await Promise.resolve();
 
-    expect(service.downloadArtifact).toHaveBeenCalledWith('c1', 'conversation-artifacts/p/w/u/c/e/report.pdf');
-    expect(openSpy).toHaveBeenCalledWith('https://download/file', '_blank', 'noopener,noreferrer');
+    expect(service.downloadArtifact).toHaveBeenCalledWith('c1', 'conversation-artifacts/p/w/u/c/e/12345678-txt');
+    expect(downloadSpy).toHaveBeenCalledWith(jasmine.any(Blob), '测试结果.txt', true);
   });
 
   it('流式轮次同时保留主输出、思考、工具、子 Agent 详情与 Skill 激活状态', () => {

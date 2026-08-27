@@ -168,9 +168,9 @@ export class ConversationWorkspaceService {
     });
   }
 
-  /** 校验会话所有权后为正式产物生成新的短期下载地址。 */
-  public downloadArtifact(conversationId: string, objectKey: string): Promise<{ download_url: string; expires_in: number }> {
-    return this.http.getAsync({
+  /** 校验会话所有权后通过 Manager 同源下载正式产物。 */
+  public downloadArtifact(conversationId: string, objectKey: string): Promise<Blob> {
+    return this.http.getBlobAsync({
       url: `${this.sessionsUrl}/${conversationId}/artifacts/download`,
       query: { workspace_id: this.http.getWorkspaceId(), object_key: objectKey },
     });

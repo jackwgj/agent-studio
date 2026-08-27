@@ -41,7 +41,7 @@
               <div class="artifact-info">
                 <span class="artifact-name" [title]="artifact.fileName">{{ artifact.fileName }}</span>
                 <span class="artifact-meta">{{ formatArtifactSize(artifact.size) }} · {{ artifact.mediaType }}</span>
-                <span class="artifact-error" *ngIf="artifact.downloadState === 'failed'">下载地址生成失败，请重试</span>
+                <span class="artifact-error" *ngIf="artifact.downloadState === 'failed'">文件下载失败，请重试</span>
               </div>
               <button
                 nz-button

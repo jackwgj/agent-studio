@@ -33,6 +33,7 @@ import { SkillSelectorComponent } from './skill-selector/skill-selector.componen
 import { AppMarkdownAnswerComponent } from '@shared/components/app-markdown-answer/app-markdown-answer.component';
 import { UploadFileIconComponent } from '@shared/components/upload-file-icon/upload-file-icon.component';
 import { v4 as uuidV4 } from 'uuid';
+import { CommonUtils } from 'src/utils/common.util';
 
 /** 消息段：message 输出段 / reasoning 思考段 / tool 工具轨迹（按轮持久化的行形态） */
 interface ChatSegment {
@@ -125,6 +126,7 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
   private readonly maxFiles = 10;
   private readonly maxFileSize = 60 * 1024 * 1024;
   @ViewChild('fileInput') private fileInput?: ElementRef<HTMLInputElement>;
+  @ViewChild('messageList') private messageList?: ElementRef<HTMLElement>;
   @ViewChild(SkillSelectorComponent) private skillSelector?: SkillSelectorComponent;
   private modelAbortController: AbortController | null = null;
   private subscriptions = new Subscription();
@@ -140,6 +142,7 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
   private pendingRouteConversation: PendingRouteConversation | null = null;
   private pendingActiveSession: PendingActiveSession | null = null;
   private documentMinWidthBeforeWorkspace: string | null = null;
+  private historyScrollFrameIds: number[] = [];
   private readonly workspaceChangeHandler = () => this.handleWorkspaceChange();
 
   constructor(
@@ -194,6 +197,7 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.destroyed = true;
+    this.cancelHistoryScrollRestore();
     this.restoreDocumentMinWidth();
     this.clearPendingRouteConversation();
     this.clearPendingActiveSession();
@@ -503,6 +507,7 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
     this.uploadedFiles = [...this.uploadedFiles, item];
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('file_name_base64', this.encodeFileName(file.name));
     this.conversationWorkspaceService.uploadInputFile(formData)
       .then((result) => {
         this.uploadedFiles = this.uploadedFiles.map((current) =>
@@ -510,7 +515,7 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
             ? {
               ...current,
               objectKey: result?.objectKey ?? '',
-              fileName: result?.fileName ?? current.fileName,
+              fileName: current.fileName,
               size: result?.size ?? 0,
               checksum: result?.checksum ?? '',
               progress: result?.objectKey ? 'succeeded' : 'failed',
@@ -524,6 +529,13 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
         );
       })
       .finally(() => this.cdr.markForCheck());
+  }
+
+  private encodeFileName(fileName: string): string {
+    const bytes = new TextEncoder().encode(fileName);
+    let binary = '';
+    bytes.forEach((byte) => binary += String.fromCharCode(byte));
+    return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
   }
 
   public onExecutionPathChange(path: string[]): void {
@@ -962,9 +974,9 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
     }
     artifact.downloadState = 'loading';
     this.conversationWorkspaceService.downloadArtifact(conversationId, artifact.objectKey)
-      .then((result) => {
+      .then((content) => {
         artifact.downloadState = 'idle';
-        this.document.defaultView?.open(result.download_url, '_blank', 'noopener,noreferrer');
+        CommonUtils.downloadFile(content, artifact.fileName, true);
         this.cdr.markForCheck();
       })
       .catch(() => {
@@ -1169,11 +1181,45 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
           this.currentSession = { ...this.currentSession!, title: detail?.title ?? '' };
         }
         this.cdr.markForCheck();
+        this.scheduleHistoryScrollToBottom();
       })
       .catch(() => void 0);
   }
 
+  /** 历史详情和 Markdown 均完成布局后，稳定定位到最新一轮。 */
+  private scheduleHistoryScrollToBottom(): void {
+    this.cancelHistoryScrollRestore();
+    const view = this.document.defaultView;
+    if (!view) {
+      return;
+    }
+    const firstFrame = view.requestAnimationFrame(() => {
+      this.historyScrollFrameIds = this.historyScrollFrameIds.filter((id) => id !== firstFrame);
+      const secondFrame = view.requestAnimationFrame(() => {
+        this.historyScrollFrameIds = this.historyScrollFrameIds.filter((id) => id !== secondFrame);
+        if (this.destroyed) {
+          return;
+        }
+        const list = this.messageList?.nativeElement;
+        if (list) {
+          list.scrollTop = list.scrollHeight;
+        }
+      });
+      this.historyScrollFrameIds.push(secondFrame);
+    });
+    this.historyScrollFrameIds.push(firstFrame);
+  }
+
+  private cancelHistoryScrollRestore(): void {
+    const view = this.document.defaultView;
+    if (view) {
+      this.historyScrollFrameIds.forEach((id) => view.cancelAnimationFrame(id));
+    }
+    this.historyScrollFrameIds = [];
+  }
+
   private invalidateDetailRequests(): void {
+    this.cancelHistoryScrollRestore();
     this.detailRequestId += 1;
   }
 
