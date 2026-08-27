@@ -10,7 +10,7 @@ import com.openjiuwen.studio.agent.common.dto.agent.Message;
 import com.openjiuwen.studio.agent.common.utils.RequestContextUtils;
 import com.openjiuwen.studio.agent.foundation.connection.model.PageResult;
 import com.openjiuwen.studio.conversation.application.dto.ConversationCreateCmd;
-import com.openjiuwen.studio.conversation.application.dto.ConversationArtifactDownloadVo;
+import com.openjiuwen.studio.conversation.application.dto.ConversationArtifactDownload;
 import com.openjiuwen.studio.conversation.application.dto.ConversationDetailVo;
 import com.openjiuwen.studio.conversation.application.dto.ConversationListQuery;
 import com.openjiuwen.studio.conversation.application.dto.ConversationSkillContext;
@@ -76,11 +76,11 @@ public class ConversationWorkspaceAppService {
     }
 
     /**
-     * 为当前用户拥有的会话正式产物生成短期下载地址。
+     * 为当前用户拥有的会话正式产物打开受控文件流。
      * 浏览器传入的 objectKey 必须与服务端已持久化的 Artifact FileRef 完全匹配。
      */
-    public ConversationArtifactDownloadVo downloadArtifact(String projectId, String workspaceId,
-                                                            String conversationId, String objectKey) {
+    public ConversationArtifactDownload downloadArtifact(String projectId, String workspaceId,
+                                                          String conversationId, String objectKey) {
         Conversation conversation = getOwnedConversation(projectId, workspaceId, conversationId);
         FileRef artifact = conversation.getMessages().stream()
             .filter(message -> "artifact".equals(message.getEvent()) && message.getFileRefs() != null)
@@ -89,11 +89,21 @@ public class ConversationWorkspaceAppService {
             .findFirst()
             .orElseThrow(() -> new AgentStudioException(StudioError.METHOD_ARGUMENT_NOT_VALID,
                 List.of("artifact does not belong to conversation")));
+        requireSafeArtifactFileName(artifact.getFileName());
         String url = mgObsService.getTemporaryGetRsp(false, artifact.getObjectKey(), 300L);
-        return ConversationArtifactDownloadVo.builder()
-            .downloadUrl(url)
-            .expiresIn(300L)
-            .build();
+        return new ConversationArtifactDownload(
+            mgObsService.getByUrl(url), artifact.getFileName(), artifact.getMediaType(), artifact.getSize());
+    }
+
+    private void requireSafeArtifactFileName(String fileName) {
+        boolean safe = StringUtils.isNotBlank(fileName)
+            && fileName.equals(FilenameUtils.getName(fileName))
+            && fileName.getBytes(StandardCharsets.UTF_8).length <= 180
+            && fileName.chars().noneMatch(character -> character < 32 || character == 127);
+        if (!safe) {
+            throw new AgentStudioException(StudioError.METHOD_ARGUMENT_NOT_VALID,
+                List.of("artifact file name is invalid"));
+        }
     }
 
     /**

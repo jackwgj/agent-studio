@@ -6,11 +6,30 @@ package com.openjiuwen.studio.conversation.infrastructure.migration;
 
 import org.h2.jdbcx.JdbcDataSource;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 class ConversationCleanupSchemaMigrationTest {
+    private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
+        .withBean(JdbcTemplate.class, () -> mock(JdbcTemplate.class))
+        .withUserConfiguration(MigrationConfiguration.class);
+
+    @Test
+    void shouldEnableMigrationByDefaultAndAllowExplicitDisable() {
+        contextRunner.run(context -> assertThat(context)
+            .hasSingleBean(ConversationCleanupSchemaMigration.class));
+
+        contextRunner
+            .withPropertyValues("conversation.cleanup.schema-migration-enabled=false")
+            .run(context -> assertThat(context)
+                .doesNotHaveBean(ConversationCleanupSchemaMigration.class));
+    }
+
     @Test
     void shouldBackfillHistoricalRowsAndRemainRepeatable() throws Exception {
         JdbcDataSource dataSource = new JdbcDataSource();
@@ -30,5 +49,10 @@ class ConversationCleanupSchemaMigrationTest {
         assertThat(jdbc.queryForObject(
             "SELECT cleanup_attempts FROM t_conversation WHERE conversation_id = 'historical'", Integer.class))
             .isZero();
+    }
+
+    @Configuration(proxyBeanMethods = false)
+    @Import(ConversationCleanupSchemaMigration.class)
+    static class MigrationConfiguration {
     }
 }

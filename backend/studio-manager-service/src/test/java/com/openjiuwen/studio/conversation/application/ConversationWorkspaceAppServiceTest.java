@@ -10,6 +10,7 @@ import com.openjiuwen.studio.agent.manager.mapper.workspace.WorkspaceMemberMappe
 import com.openjiuwen.studio.agent.manager.obs.MgObsService;
 import com.openjiuwen.studio.agent.manager.entity.WorkspaceEntity;
 import com.openjiuwen.studio.conversation.application.dto.ConversationCreateCmd;
+import com.openjiuwen.studio.conversation.application.dto.ConversationArtifactDownload;
 import com.openjiuwen.studio.conversation.application.dto.ConversationDetailVo;
 import com.openjiuwen.studio.conversation.application.dto.ConversationListQuery;
 import com.openjiuwen.studio.conversation.application.dto.ConversationSkillVo;
@@ -35,10 +36,16 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
 import java.lang.reflect.Method;
@@ -443,24 +450,54 @@ class ConversationWorkspaceAppServiceTest {
     // ---------- 工具方法 ----------
 
     @Test
-    void downloadArtifact_仅为会话拥有者的持久产物生成新地址() {
-        String objectKey = "conversation-artifacts/p/w/u/c/e/report.pdf";
+    void downloadArtifact_仅为会话拥有者的持久产物返回原名文件流() throws Exception {
+        String objectKey = "conversation-artifacts/p/w/u/c/e/12345678-report-txt";
+        byte[] content = "测试内容".getBytes(StandardCharsets.UTF_8);
         Conversation owned = ownedConversation("c1");
         owned.setMessages(List.of(ConversationMessage.builder()
             .role("assistant").event("artifact")
             .executionRef(new ExecutionRef("exec-1", null, null))
-            .fileRefs(List.of(new FileRef(objectKey, "report.pdf", 128L,
-                "application/pdf", "0".repeat(64), "exec-1")))
+            .fileRefs(List.of(new FileRef(objectKey, "测试结果.txt", (long) content.length,
+                "text/plain", "0".repeat(64), "exec-1")))
             .build()));
         when(repository.findById("c1")).thenReturn(Optional.of(owned));
         when(mgObsService.getTemporaryGetRsp(false, objectKey, 300L))
-            .thenReturn("https://download/first", "https://download/second");
+            .thenReturn("https://download/signed");
+        when(mgObsService.getByUrl("https://download/signed"))
+            .thenReturn(new ByteArrayInputStream(content));
 
-        assertEquals("https://download/first",
-            appService.downloadArtifact("p1", "w1", "c1", objectKey).getDownloadUrl());
-        assertEquals("https://download/second",
-            appService.downloadArtifact("p1", "w1", "c1", objectKey).getDownloadUrl());
-        verify(mgObsService, times(2)).getTemporaryGetRsp(false, objectKey, 300L);
+        ConversationArtifactDownload download =
+            appService.downloadArtifact("p1", "w1", "c1", objectKey);
+
+        assertEquals("测试结果.txt", download.getFileName());
+        assertEquals("text/plain", download.getMediaType());
+        assertEquals(content.length, download.getSize());
+        assertArrayEquals(content, download.getContent().readAllBytes());
+        verify(mgObsService).getTemporaryGetRsp(false, objectKey, 300L);
+        verify(mgObsService).getByUrl("https://download/signed");
+    }
+
+    @Test
+    void downloadArtifact_控制器使用原始中文文件名和文件内容响应() throws Exception {
+        byte[] content = "测试内容".getBytes(StandardCharsets.UTF_8);
+        ConversationWorkspaceAppService controllerAppService = mock(ConversationWorkspaceAppService.class);
+        ConversationWorkspaceController controller = new ConversationWorkspaceController(
+            controllerAppService, mock(ConversationInputUploadService.class));
+        when(controllerAppService.downloadArtifact("p1", "w1", "c1", "stored-key"))
+            .thenReturn(new ConversationArtifactDownload(
+                new ByteArrayInputStream(content), "测试结果.txt", "text/plain", (long) content.length));
+
+        ResponseEntity<StreamingResponseBody> response =
+            controller.downloadArtifact("p1", "w1", "c1", "stored-key");
+        ByteArrayOutputStream body = new ByteArrayOutputStream();
+        assertNotNull(response.getBody());
+        response.getBody().writeTo(body);
+
+        assertEquals("测试结果.txt", ContentDisposition.parse(
+            response.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION)).getFilename());
+        assertEquals("text/plain", response.getHeaders().getContentType().toString());
+        assertEquals(content.length, response.getHeaders().getContentLength());
+        assertArrayEquals(content, body.toByteArray());
     }
 
     @Test

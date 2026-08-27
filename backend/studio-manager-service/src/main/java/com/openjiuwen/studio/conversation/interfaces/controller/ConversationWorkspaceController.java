@@ -8,7 +8,7 @@ import com.openjiuwen.studio.agent.foundation.connection.model.PageResult;
 import com.openjiuwen.studio.conversation.application.ConversationWorkspaceAppService;
 import com.openjiuwen.studio.conversation.application.ConversationInputUploadService;
 import com.openjiuwen.studio.conversation.application.dto.ConversationCreateCmd;
-import com.openjiuwen.studio.conversation.application.dto.ConversationArtifactDownloadVo;
+import com.openjiuwen.studio.conversation.application.dto.ConversationArtifactDownload;
 import com.openjiuwen.studio.conversation.application.dto.ConversationDetailVo;
 import com.openjiuwen.studio.conversation.application.dto.ConversationListQuery;
 import com.openjiuwen.studio.conversation.application.dto.ConversationSkillVo;
@@ -21,6 +21,9 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -32,7 +35,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 
@@ -57,8 +63,10 @@ public class ConversationWorkspaceController {
     @PostMapping(value = "/input-files", consumes = "multipart/form-data")
     public ConversationInputUploadVo uploadInputFile(@PathVariable("project_id") String projectId,
                                                       @RequestParam("workspace_id") String workspaceId,
+                                                      @RequestParam(value = "file_name_base64", required = false)
+                                                      String fileNameBase64,
                                                       @RequestParam("file") MultipartFile file) {
-        return conversationInputUploadService.upload(projectId, workspaceId, file);
+        return conversationInputUploadService.upload(projectId, workspaceId, file, fileNameBase64);
     }
 
     /**
@@ -121,14 +129,33 @@ public class ConversationWorkspaceController {
         return conversationWorkspaceAppService.detail(projectId, workspaceId, conversationId);
     }
 
-    @ApiOperation("获取对话正式产物临时下载地址")
+    @ApiOperation("下载对话正式产物")
     @GetMapping("/{conversation_id}/artifacts/download")
-    public ConversationArtifactDownloadVo downloadArtifact(
+    public ResponseEntity<StreamingResponseBody> downloadArtifact(
         @PathVariable("project_id") String projectId,
         @RequestParam("workspace_id") String workspaceId,
         @PathVariable("conversation_id") String conversationId,
         @RequestParam("object_key") String objectKey) {
-        return conversationWorkspaceAppService.downloadArtifact(projectId, workspaceId, conversationId, objectKey);
+        ConversationArtifactDownload download = conversationWorkspaceAppService.downloadArtifact(
+            projectId, workspaceId, conversationId, objectKey);
+        StreamingResponseBody body = outputStream -> {
+            try (InputStream inputStream = download.getContent()) {
+                inputStream.transferTo(outputStream);
+            }
+        };
+        MediaType mediaType;
+        try {
+            mediaType = MediaType.parseMediaType(download.getMediaType());
+        } catch (IllegalArgumentException error) {
+            mediaType = MediaType.APPLICATION_OCTET_STREAM;
+        }
+        return ResponseEntity.ok()
+            .contentType(mediaType)
+            .contentLength(download.getSize())
+            .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                .filename(download.getFileName(), StandardCharsets.UTF_8)
+                .build().toString())
+            .body(body);
     }
 
     /**

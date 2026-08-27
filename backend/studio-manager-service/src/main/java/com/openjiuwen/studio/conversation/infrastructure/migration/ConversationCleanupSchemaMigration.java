@@ -22,13 +22,14 @@ import java.util.Map;
 /**
  * 对话资源清理字段的显式、幂等迁移器。
  *
- * <p>默认关闭，部署迁移窗口通过
- * {@code conversation.cleanup.schema-migration-enabled=true} 显式启用一次。
+ * <p>默认随 Manager 启动自动执行，可通过
+ * {@code conversation.cleanup.schema-migration-enabled=false} 显式禁用。
  * 每列均先通过 JDBC metadata 检查，因而服务重复启动不会重复执行 DDL。</p>
  */
 @Slf4j
 @Component
-@ConditionalOnProperty(name = "conversation.cleanup.schema-migration-enabled", havingValue = "true")
+@ConditionalOnProperty(name = "conversation.cleanup.schema-migration-enabled", havingValue = "true",
+    matchIfMissing = true)
 public class ConversationCleanupSchemaMigration implements ApplicationRunner {
     private static final String TABLE = "t_conversation";
 

@@ -46,6 +46,27 @@ class ConversationCleanupOrchestratorTest {
     }
 
     @Test
+    void shouldRetryAfterObjectStorageRecoversWithoutCallingRuntimeEarly() throws Exception {
+        ConversationEntityRepository repository = mock(ConversationEntityRepository.class);
+        MgObsService obs = mock(MgObsService.class);
+        ConversationRuntimeCleanupAdapter runtime = mock(ConversationRuntimeCleanupAdapter.class);
+        ConversationEntity entity = entity();
+        when(repository.findById("c1")).thenReturn(Optional.of(entity));
+        when(obs.deleteByPrefix(anyString())).thenReturn(false).thenReturn(true);
+        when(runtime.deleteWorkspace(entity)).thenReturn(true);
+        ConversationCleanupOrchestrator orchestrator =
+            new ConversationCleanupOrchestrator(repository, obs, runtime);
+
+        orchestrator.process("c1");
+        assertEquals("FAILED", entity.getCleanupStatus());
+        verifyNoInteractions(runtime);
+
+        orchestrator.process("c1");
+        assertEquals("DONE", entity.getCleanupStatus());
+        verify(runtime).deleteWorkspace(entity);
+    }
+
+    @Test
     void shouldTruncatePersistedFailureAndSucceedAfterRecovery() throws Exception {
         ConversationEntityRepository repository = mock(ConversationEntityRepository.class);
         MgObsService obs = mock(MgObsService.class);

@@ -13,6 +13,8 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.mock.web.MockMultipartFile;
 
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -70,5 +72,21 @@ class ConversationInputUploadServiceTest {
             "file", "../report.txt", "text/plain", "report".getBytes(java.nio.charset.StandardCharsets.UTF_8));
 
         assertThrows(AgentStudioException.class, () -> service.upload("p1", "w1", file));
+    }
+
+    @Test
+    void upload_优先使用独立传输的UTF8原始文件名() {
+        byte[] bytes = "中文内容".getBytes(StandardCharsets.UTF_8);
+        MockMultipartFile file = new MockMultipartFile(
+            "file", "Skill鍔熻兘鎵嬪伐楠岃瘉鎻愮ず璇�.md", "text/markdown", bytes);
+        String encodedFileName = Base64.getUrlEncoder().withoutPadding()
+            .encodeToString("Skill功能手工验证提示词.md".getBytes(StandardCharsets.UTF_8));
+
+        ConversationInputUploadVo result = service.upload("p1", "w1", file, encodedFileName);
+
+        ArgumentCaptor<String> key = ArgumentCaptor.forClass(String.class);
+        verify(obsService).uploadObsFile(key.capture(), any(InputStream.class), eq(-1));
+        assertTrue(key.getValue().endsWith("/Skill功能手工验证提示词.md"));
+        assertEquals("Skill功能手工验证提示词.md", result.getFileName());
     }
 }
