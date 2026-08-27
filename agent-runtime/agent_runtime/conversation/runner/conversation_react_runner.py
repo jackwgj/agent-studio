@@ -201,11 +201,12 @@ class ConversationReActRunner(ReActAgentRunner):
                     "functions": functions,
                 },
             }
-            async for chunk in agent.stream(
+            agent_stream = agent.stream(
                 inputs,
                 session,
                 [BaseStreamMode.OUTPUT, BaseStreamMode.TRACE, BaseStreamMode.CUSTOM],
-            ):
+            )
+            async for chunk in agent_stream:
                 chunk_type = getattr(chunk, "type", None)
                 if chunk_type == "llm_output" and is_first_llm_call:
                     is_first_llm_call = False

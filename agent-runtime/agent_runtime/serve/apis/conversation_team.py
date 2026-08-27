@@ -1,32 +1,24 @@
 # -*- coding: UTF-8 -*-
-"""团队对话 API —— `/v1/conversation/team`（SSE 事件流）
+"""团队对话 API —— `/v1/conversation/team`（SSE canonical ConversationEvent 流）
 
-独立 API（不耦合 /v1/orchestration/ir/execute）：
-接收子 Agent IDs + 模型部署 ID（+ 多轮历史），引擎侧内置组装「监督者 + handoff 工具」并执行。
-监督者系统提示词固定引擎侧（F4/用户决策 2026-08-11）：Java 不再传 systemPrompt。
-子 Agent 通过其已有 IR 加载（OBS agent/ir/{agentId}/{agentId}.json）。
-
-SSE 事件化（Phase 3）：产出结构化事件流（user_message/run_start/message/reasoning/tool_call/
-tool_result/sub_start/sub_done/run_done/usage/error），暴露执行边界给前端与 Java 三表落库。
-无 done 事件（SSE 流关闭即正常结束），error 用于异常。
+独立 API 接收团队对话请求并输出 canonical ConversationEvent。
 """
 
 import logging
-import os
 import uuid
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from agent_runtime.supervisor.builder import build_supervisor, normalize_skill_inputs
+from agent_runtime.supervisor.builder import normalize_skill_inputs
 from agent_runtime.supervisor.conversation_supervisor_builder import (
     build_conversation_supervisor_config,
 )
 from agent_runtime.conversation.supervisor_runner import run_conversation_supervisor
 from agent_runtime.supervisor.common.constants import TeamEventField
-from agent_runtime.supervisor.event.adapt import build_error, build_run_start, build_user_message, sse_line
-from agent_runtime.supervisor.runner import run_supervisor
+from agent_runtime.supervisor.event.canonical import build_canonical_event, build_run_end, build_run_start, sse_line
+from agent_runtime.supervisor.event.types import ConversationEventType
 from agent_runtime.supervisor.skill_model import SkillDescriptor
 from agent_runtime.serve.apis.conversation_team_app import stream_application
 
@@ -133,9 +125,15 @@ async def team_sse_stream(req: ConversationTeamReq, execution_id: str | None = N
     if not execution_id:
         execution_id = str(uuid.uuid4())
     index = 0
-    yield sse_line(build_user_message(execution_id, req.conversation_id, req.query, index=index))
+    yield sse_line(build_canonical_event(
+        ConversationEventType.MESSAGE,
+        conversation_id=req.conversation_id,
+        run_id=execution_id,
+        data={"content": req.query, "role": "user"},
+        index=index,
+    ))
     index += 1
-    yield sse_line(build_run_start(execution_id, index=index))
+    yield sse_line(build_run_start(req.conversation_id, execution_id, index=index))
     index += 1
 
     runner = None
@@ -143,39 +141,13 @@ async def team_sse_stream(req: ConversationTeamReq, execution_id: str | None = N
         if req.select_type.upper() == "APP":
             runner = stream_application(req, execution_id)
         else:
-            skill_catalog = [
-                SkillDescriptor(
-                    skill_id=item.skill_id,
-                    version_id=item.version_id,
-                    name=item.name,
-                    description=item.description,
-                    object_key=item.object_key,
-                )
-                for item in req.skill_catalog
-            ]
-            skill_catalog, recommended_skill_ids = normalize_skill_inputs(
-                skill_catalog, req.recommended_skill_ids
+            supervisor_config = await build_conversation_supervisor_config(
+                sub_agent_ids=req.sub_agent_ids,
+                model_deployment_id=req.model_deployment_id,
+                conversation_history=req.conversation_history,
+                file_references=req.file_ids,
             )
-            if os.environ.get("CONVERSATION_TEAM_USE_LEGACY_SUPERVISOR", "false").lower() == "true":
-                agent = await build_supervisor(
-                    sub_agent_ids=req.sub_agent_ids,
-                    model_deployment_id=req.model_deployment_id,
-                    conversation_history=req.conversation_history,
-                    skill_catalog=skill_catalog,
-                    recommended_skill_ids=recommended_skill_ids,
-                    file_references=req.file_ids,
-                )
-                runner = run_supervisor(agent, req.query, req.conversation_id, execution_id)
-            else:
-                # The new main path owns Runner execution. Skill attachment remains
-                # on the legacy path until Phase 5, so Phase 4 changes only routing.
-                supervisor_config = await build_conversation_supervisor_config(
-                    sub_agent_ids=req.sub_agent_ids,
-                    model_deployment_id=req.model_deployment_id,
-                    conversation_history=req.conversation_history,
-                    file_references=req.file_ids,
-                )
-                runner = run_conversation_supervisor(req, execution_id, supervisor_config)
+            runner = run_conversation_supervisor(req, execution_id, supervisor_config)
 
         async for event in runner:
             event[TeamEventField.INDEX] = index  # 统一占序，覆盖增量事件自带 index
@@ -183,7 +155,13 @@ async def team_sse_stream(req: ConversationTeamReq, execution_id: str | None = N
             yield sse_line(event)
     except Exception as e:
         logger.error(f"conversation/team build or app adapter failed: {e}", exc_info=True)
-        yield sse_line(build_error(execution_id, code="build_failed", message=str(e), index=index))
+        yield sse_line(build_canonical_event(
+            ConversationEventType.ERROR,
+            conversation_id=req.conversation_id,
+            run_id=execution_id,
+            data={"code": "build_failed", "message": str(e)},
+            index=index,
+        ))
     finally:
         if runner is not None:
             try:

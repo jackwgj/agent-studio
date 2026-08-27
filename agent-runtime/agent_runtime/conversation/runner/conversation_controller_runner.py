@@ -221,8 +221,6 @@ class ConversationControllerRunner(ControllerRunner):
                             answer = answer.get("content", "")
                         if not answer and isinstance(event_payload, dict):
                             answer = event_payload.get("content", "")
-                        if event in {"message", "summary_response", "workflow_end", "done"} and isinstance(answer, str) and answer:
-                            print(answer, flush=True)
                         if event in ("message", "done") and answer:
                             memory_response_parts.append(str(answer))
                 except Exception:

@@ -8,7 +8,6 @@ ConversationReActRunner stream for the main agent.
 from __future__ import annotations
 
 import asyncio
-import logging
 import sys
 
 from agent_runtime.conversation.runner.conversation_runner_factory import (
@@ -17,10 +16,10 @@ from agent_runtime.conversation.runner.conversation_runner_factory import (
 from agent_runtime.schemas.orchestration_mgr import ExecutionParams, ExecutionRequest
 from agent_runtime.serve.apis.conversation_team_app import _adapt_event
 from agent_runtime.supervisor.common.constants import TeamEventField
-from agent_runtime.supervisor.event.adapt import build_error
+from agent_runtime.supervisor.event.canonical import build_canonical_event, build_run_end
 from agent_runtime.supervisor.event.channel import EventChannel, reset_channel, set_channel
+from agent_runtime.supervisor.event.types import ConversationEventType
 
-logger = logging.getLogger(__name__)
 
 _STOP = object()
 
@@ -31,7 +30,7 @@ async def run_conversation_supervisor(
     supervisor_config,
 ):
     """Consume the standard ReAct runner for the built-in Supervisor."""
-    channel = EventChannel(execution_id)
+    channel = EventChannel(execution_id, req.conversation_id)
     channel_token = set_channel(channel)
     task = None
     try:
@@ -81,32 +80,10 @@ async def run_conversation_supervisor(
             nonlocal final_text, error_sent
             try:
                 async for raw in runner.run_streaming(execution_request, execution_id):
-                    raw_payload = raw if isinstance(raw, dict) else None
-                    raw_data = (raw_payload or {}).get("data") or {}
-                    logger.info(
-                        "conversation.supervisor.raw_event executionId=%s "
-                        "subExecutionId=%s toolCallId=%s agentId=%s toolName=%s event=%s",
-                        execution_id,
-                        raw_data.get("subExecutionId") or raw_data.get("sub_execution_id") or "",
-                        raw_data.get("toolCallId") or raw_data.get("tool_call_id") or "",
-                        raw_data.get("agentId") or raw_data.get("agent_id") or "",
-                        raw_data.get("toolName") or raw_data.get("tool_name") or "",
-                        (raw_payload or {}).get("event", type(raw).__name__),
-                    )
                     event = _adapt_event(raw, execution_id, req.conversation_id)
                     if event is None:
                         continue
                     event_data = event.get("data") or {}
-                    logger.info(
-                        "conversation.supervisor.adapted_event executionId=%s "
-                        "subExecutionId=%s toolCallId=%s agentId=%s toolName=%s event=%s",
-                        execution_id,
-                        event_data.get("subExecutionId") or "",
-                        event_data.get("toolCallId") or "",
-                        event_data.get("agentId") or "",
-                        event_data.get("toolName") or "",
-                        event.get("event", ""),
-                    )
                     if event.get("event") == "run_end":
                         data = event.get("data") or {}
                         final_text = str(data.get("text") or final_text)
@@ -130,7 +107,13 @@ async def run_conversation_supervisor(
                 break
             if isinstance(item, BaseException):
                 error_sent = True
-                yield build_error(execution_id, "supervisor_error", str(item), index=index)
+                yield build_canonical_event(
+                    ConversationEventType.ERROR,
+                    conversation_id=req.conversation_id,
+                    run_id=execution_id,
+                    data={"code": "supervisor_error", "message": str(item)},
+                    index=index,
+                )
                 index += 1
                 continue
             item[TeamEventField.INDEX] = index
@@ -140,7 +123,12 @@ async def run_conversation_supervisor(
         if task is not None:
             task.result()
         if not error_sent:
-            yield build_run_done(execution_id, final_text, index=index)
+            yield build_run_end(
+                req.conversation_id,
+                execution_id,
+                text=final_text,
+                index=index,
+            )
     finally:
         primary_error = sys.exception()
         if task is not None and not task.done():

@@ -2,8 +2,9 @@
 
 from openjiuwen.core.foundation.tool import Tool, ToolCard
 
-from agent_runtime.supervisor.event.adapt import build_skill_activated
+from agent_runtime.supervisor.event.canonical import build_canonical_event
 from agent_runtime.supervisor.event.channel import get_channel
+from agent_runtime.supervisor.event.types import ConversationEventType
 from agent_runtime.supervisor.skill_artifact_cache import (
     SkillArtifactError,
     SkillInstructionsMissingError,
@@ -66,8 +67,15 @@ class ActivateSkillTool(Tool):
         if channel is not None:
             try:
                 await channel.emit(
-                    build_skill_activated(
-                        channel.execution_id, skill.skill_id, skill.name, skill.version_id
+                    build_canonical_event(
+                        ConversationEventType.SKILL_ACTIVATED,
+                        conversation_id=channel.conversation_id,
+                        run_id=channel.execution_id,
+                        data={
+                            "skillId": skill.skill_id,
+                            "name": skill.name,
+                            "versionId": skill.version_id,
+                        },
                     )
                 )
             except Exception:

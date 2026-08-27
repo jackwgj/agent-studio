@@ -21,6 +21,10 @@ import {
   ConversationSendRequest,
   ConversationSkillItem,
   ConversationFileReference,
+  ConversationEvent,
+  ConversationEventType,
+  ConversationRunNode,
+  ChatSegment,
 } from './conversation-skill.model';
 import {
   ActiveSessionState,
@@ -33,16 +37,6 @@ import { AppMarkdownAnswerComponent } from '@shared/components/app-markdown-answ
 import { UploadFileIconComponent } from '@shared/components/upload-file-icon/upload-file-icon.component';
 import { v4 as uuidV4 } from 'uuid';
 
-/** 消息段：message 输出段 / reasoning 思考段 / tool 工具轨迹（按轮持久化的行形态） */
-interface ChatSegment {
-  type: 'message' | 'reasoning' | 'tool';
-  content: string;
-  /** 工具名（仅 type=tool） */
-  toolId?: string;
-  /** 工具调用关联标识（仅 type=tool，用于交错结果精确回填） */
-  toolCallId?: string;
-}
-
 interface ChatMessage {
   role: 'user' | 'assistant';
   segments: ChatSegment[];
@@ -50,12 +44,9 @@ interface ChatMessage {
   userFiles?: Array<Pick<ConversationFileReference, 'fileName'>>;
   /** 非主 Agent 内容默认折叠，不主动展示 */
   detailSegments?: ChatSegment[];
-  subAgents?: ChatMessage[];
+  runs: ConversationRunNode[];
   loading?: boolean;
   error?: boolean;
-  subExecutionId?: string;
-  agentId?: string;
-  isSubAgent?: boolean;
 }
 
 interface ActivatedSkill {
@@ -570,7 +561,7 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
         .map(({ fileName }) => ({ fileName })),
       segments: [],
       detailSegments: [],
-      subAgents: [],
+      runs: [],
       loading: true,
     };
     attempt.assistantMsg = assistantMsg;
@@ -670,201 +661,107 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
     }
   }
 
-  /**
-   * 流式消息处理（按轮持久化协议）：
-   * message/reasoning 增量按 subExecutionId 路由主/子气泡并追加到对应段；
-   * sub_start 新建子 Agent 气泡；tool_call 建工具段、tool_result 回填结果；
-   * sub_done/run_done 仅收尾（结束 loading，不替换内容——入库即流式聚合，"所见即所存"）；
-   * error 标记失败；user_message/usage 忽略。
-   */
+  /** Route every event through its run node; child runs attach recursively by parentRunId. */
   private handleMessage(token: any, assistantMsg: ChatMessage): void {
     try {
-      const { event, data } = JSON.parse(token.data);
-      const d = data ?? {};
+      const parsed = JSON.parse(token.data) as ConversationEvent;
+      const event = parsed.event;
+      const d = parsed.data ?? {};
+      const run = this.ensureRun(assistantMsg, d, event === ConversationEventType.RUN_START);
       switch (event) {
-        case 'message': {
-          const delta = d.delta ?? '';
-          const target = d.subExecutionId
-            ? (this.findSubBubble(d.subExecutionId) ?? assistantMsg)
-            : assistantMsg;
-          if (target && delta) {
-            this.appendVisibleOrDetailSegment(target, 'message', delta);
-            target.loading = false;
+        case ConversationEventType.RUN_START:
+          if (run) run.status = d.status ?? 'running';
+          break;
+        case ConversationEventType.MESSAGE: {
+          const content = String(d.delta ?? d.content ?? d.text ?? '');
+          if (run && content) { this.appendSegment(run.segments, 'message', content); assistantMsg.loading = false; }
+          break;
+        }
+        case ConversationEventType.REASONING:
+          if (run) this.appendSegment(run.detailSegments, 'reasoning', String(d.content ?? d.delta ?? ''));
+          break;
+        case ConversationEventType.TOOL_CALL:
+          if (run && d.toolId) run.detailSegments.push({ type: 'tool', content: '', toolId: String(d.toolId), toolName: d.toolName, arguments: d.arguments });
+          break;
+        case ConversationEventType.TOOL_RESULT:
+          if (run && d.toolId) {
+            const tool = [...run.detailSegments].reverse().find((segment) => segment.type === 'tool' && segment.toolId === String(d.toolId) && !segment.content);
+            if (tool) { tool.content = this.displayValue(d.result ?? d.output ?? d.content); tool.toolStatus = d.status; }
           }
           break;
-        }
-        case 'reasoning': {
-          const content = d.content ?? '';
-          const target = d.subExecutionId
-            ? (this.findSubBubble(d.subExecutionId) ?? assistantMsg)
-            : assistantMsg;
-          if (target && content) {
-            this.appendExecutionDetailSegment(target, 'reasoning', content);
-          }
+        case ConversationEventType.WORKFLOW_NODE:
+          if (run) run.workflowNodes.push({ nodeId: d.nodeId, nodeName: d.nodeName, nodeType: d.nodeType, nodeIndex: d.nodeIndex, status: d.status, input: d.input, output: d.output, content: d.content, errorCode: d.errorCode, errorMessage: d.errorMessage });
           break;
-        }
-        case 'sub_start': {
-          // 子 Agent 内容挂在当前主 Agent 交互框内，默认折叠
-          const sub: ChatMessage = {
-            role: 'assistant',
-            segments: [],
-            detailSegments: [],
-            loading: true,
-            subExecutionId: d.subExecutionId,
-            agentId: d.agentId,
-            isSubAgent: true,
-          };
-          assistantMsg.subAgents ??= [];
-          assistantMsg.subAgents.push(sub);
-          break;
-        }
-        case 'sub_done': {
-          const sub = this.findSubBubble(d.subExecutionId);
-          if (sub) {
-            sub.loading = false; // 完成信号，不替换内容（入库即流式聚合）
-          }
-          break;
-        }
-        case 'run_done': {
-          assistantMsg.loading = false;
-          break;
-        }
-        case 'tool_call': {
-          // 工具轨迹默认折叠，不主动暴露
-          const target = d.subExecutionId
-            ? (this.findSubBubble(d.subExecutionId) ?? assistantMsg)
-            : assistantMsg;
-          if (target && d.toolName) {
-            const toolSegment: ChatSegment = { type: 'tool', content: '', toolId: d.toolName };
-            const toolCallId = d.toolCallId ?? d.tool_call_id;
-            if (toolCallId) {
-              toolSegment.toolCallId = toolCallId;
-            }
-            this.executionDetailSegments(target).push(toolSegment);
-          }
-          break;
-        }
-        case 'tool_result': {
-          const target = d.subExecutionId
-            ? (this.findSubBubble(d.subExecutionId) ?? assistantMsg)
-            : assistantMsg;
-          if (target) {
-            const segments = this.executionDetailSegments(target);
-            const toolCallId = d.toolCallId ?? d.tool_call_id;
-            const toolSeg = toolCallId
-              ? [...segments].reverse().find((segment) =>
-                  segment.type === 'tool'
-                  && segment.toolCallId === toolCallId
-                  && !segment.content)
-              : this.findLegacyToolResultTarget(segments, d.toolName);
-            if (toolSeg) {
-              toolSeg.content = d.result ?? '';
-            }
-          }
-          break;
-        }
-        case 'error': {
+        case ConversationEventType.ERROR:
+          if (run) run.status = 'error';
           assistantMsg.error = true;
           assistantMsg.loading = false;
           break;
-        }
-        case 'skill_activated': {
-          if (!this.activatedSkills.some((item) => item.skillId === d.skillId && item.versionId === d.versionId)) {
-            this.activatedSkills.push({ skillId: d.skillId, name: d.name, versionId: d.versionId });
-          }
+        case ConversationEventType.RUN_END:
+          if (run) run.status = d.status ?? 'completed';
+          if (!d.runId || d.runId === this.rootRunId(assistantMsg)) assistantMsg.loading = false;
           break;
-        }
+        case ConversationEventType.SKILL_ACTIVATED:
+          if (d.skillId && !this.activatedSkills.some((item) => item.skillId === d.skillId && item.versionId === d.versionId)) this.activatedSkills.push({ skillId: String(d.skillId), name: String(d.name ?? d.skillId), versionId: String(d.versionId ?? '') });
+          break;
         default:
-          // user_message/run_start/usage 仅透传不渲染
           break;
       }
-    } catch (e) {
-      // 非 JSON 数据（如 [DONE]），忽略
+    } catch {
+      // Ignore non-JSON sentinels such as [DONE].
     }
     this.cdr.markForCheck();
   }
 
-  /** 追加主 Agent 可见输出；reasoning/tool 进入默认折叠详情。 */
-  private appendVisibleOrDetailSegment(message: ChatMessage, type: 'message', delta: string): void {
-    this.appendSegment(message, type, delta);
-  }
-
-  private appendSegment(message: ChatMessage, type: 'message' | 'reasoning', delta: string): void {
-    const last = message.segments[message.segments.length - 1];
-    if (last && last.type === type) {
-      last.content += delta;
+  private ensureRun(message: ChatMessage, data: any, createRoot = false): ConversationRunNode | undefined {
+    const runId = data.runId ? String(data.runId) : (createRoot ? `legacy-${message.runs.length + 1}` : this.rootRunId(message));
+    if (!runId) return undefined;
+    const existing = this.findRun(message.runs, runId);
+    if (existing) return existing;
+    const run: ConversationRunNode = { runId, parentRunId: data.parentRunId ?? null, executionType: data.executionType ?? 'unknown', agentId: data.agentId, workflowId: data.workflowId, status: data.status ?? 'running', segments: [], detailSegments: [], workflowNodes: [], children: [] };
+    if (run.parentRunId) {
+      const parent = this.findRun(message.runs, String(run.parentRunId));
+      if (parent) parent.children.push(run); else message.runs.push(run);
     } else {
-      message.segments.push({ type, content: delta });
+      message.runs.push(run);
+      for (const candidate of [...message.runs]) {
+        if (candidate !== run && candidate.parentRunId === run.runId) {
+          message.runs.splice(message.runs.indexOf(candidate), 1);
+          run.children.push(candidate);
+        }
+      }
     }
+    return run;
   }
 
-  private appendExecutionDetailSegment(message: ChatMessage, type: 'reasoning', content: string): void {
-    const segments = this.executionDetailSegments(message);
+  private findRun(runs: ConversationRunNode[], runId: string): ConversationRunNode | undefined {
+    for (const run of runs) { if (run.runId === runId) return run; const child = this.findRun(run.children, runId); if (child) return child; }
+    return undefined;
+  }
+
+  private rootRunId(message: ChatMessage): string | undefined { return message.runs[0]?.runId; }
+
+  private displayValue(value: unknown): string { return typeof value === 'string' ? value : value == null ? '' : JSON.stringify(value); }
+
+  private appendSegment(segments: ChatSegment[], type: 'message' | 'reasoning', content: string): void {
+    if (!content) return;
     const last = segments[segments.length - 1];
-    if (last && last.type === type) {
-      last.content += content;
-    } else {
-      segments.push({ type, content });
-    }
+    if (last?.type === type) last.content += content; else segments.push({ type, content });
   }
 
-  /** 子 Agent 整体已位于折叠详情内；主 Agent 的执行段则进入自身折叠集合。 */
-  private executionDetailSegments(message: ChatMessage): ChatSegment[] {
-    if (message.isSubAgent) {
-      return message.segments;
-    }
-    message.detailSegments ??= [];
-    return message.detailSegments;
-  }
-
-  /** 兼容缺少调用 ID 的旧事件：只能回填唯一未完成候选，避免猜测导致串写。 */
-  private findLegacyToolResultTarget(segments: ChatSegment[], toolName?: string): ChatSegment | undefined {
-    const candidates = segments.filter((segment) =>
-      segment.type === 'tool'
-      && !segment.toolCallId
-      && !segment.content
-      && (!toolName || segment.toolId === toolName));
-    return candidates.length === 1 ? candidates[0] : undefined;
-  }
-
-  /** 按 execution_id 恢复：每次用户交互生成一个独立框。 */
   private mapDetailToMessages(rows: any[]): ChatMessage[] {
     const turns = new Map<string, ChatMessage>();
     for (const row of rows ?? []) {
-      const executionId = row.execution_id ?? `legacy-${row.created_at ?? Math.random()}`;
+      const executionId = row.execution_id ?? row.run_id ?? `legacy-${row.created_at ?? Math.random()}`;
       let turn = turns.get(executionId);
-      if (!turn) {
-        turn = { role: 'assistant', segments: [], detailSegments: [], subAgents: [] };
-        turns.set(executionId, turn);
-      }
-      if (row.role === 'user') {
-        turn.userContent = row.content ?? '';
-        turn.userFiles = this.parseUserFiles(row.file_ids ?? row.fileIds);
-        continue;
-      }
+      if (!turn) { turn = { role: 'assistant', segments: [], detailSegments: [], runs: [] }; turns.set(executionId, turn); }
+      if (row.role === 'user') { turn.userContent = row.content ?? ''; turn.userFiles = this.parseUserFiles(row.file_ids ?? row.fileIds); continue; }
+      const runId = row.run_id ?? row.runId ?? `legacy-run-${executionId}`;
+      const run = this.ensureRun(turn, { runId, parentRunId: row.parent_run_id ?? row.parentRunId, executionType: row.execution_type ?? row.executionType, agentId: row.agent_id, workflowId: row.workflow_id });
+      if (!run) continue;
       const seg = this.rowToSegment(row);
-      if (!seg) {
-        continue;
-      }
-      if (row.sub_execution_id) {
-        let sub = turn.subAgents!.find((item) => item.subExecutionId === row.sub_execution_id);
-        if (!sub) {
-          sub = {
-            role: 'assistant',
-            segments: [],
-            detailSegments: [],
-            subExecutionId: row.sub_execution_id,
-            agentId: row.agent_id,
-            isSubAgent: true,
-          };
-          turn.subAgents!.push(sub);
-        }
-        sub.segments.push(seg);
-      } else if (seg.type === 'message') {
-        turn.segments.push(seg);
-      } else {
-        turn.detailSegments!.push(seg);
-      }
+      if (seg) (seg.type === 'message' ? run.segments : run.detailSegments).push(seg);
+      if (row.node_id || row.nodeId) run.workflowNodes.push({ nodeId: row.node_id ?? row.nodeId, nodeName: row.node_name ?? row.nodeName, nodeType: row.node_type ?? row.nodeType, status: row.status, input: row.input, output: row.output });
     }
     return Array.from(turns.values());
   }
@@ -891,33 +788,21 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
     }
   }
 
-  /** run 表 handoff 工具进入详情；主界面只展示 message。 */
   private rowToSegment(row: any): ChatSegment | null {
-    if (row.role === 'tool') {
-      const segment: ChatSegment = { type: 'tool', content: row.content ?? '', toolId: row.tool_id };
-      const toolCallId = row.tool_call_id ?? row.toolCallId;
-      if (toolCallId) {
-        segment.toolCallId = toolCallId;
-      }
-      return segment;
+    const event = row.event ?? row.type;
+    if (row.role === 'tool' || event === 'tool_call' || event === 'tool_result') {
+      return {
+        type: 'tool',
+        content: this.displayValue(row.content ?? row.result ?? row.output),
+        toolId: row.tool_id ?? row.toolId,
+        toolName: row.tool_name ?? row.toolName,
+        arguments: row.arguments,
+        toolStatus: row.status,
+      };
     }
-    if (row.event === 'reasoning') {
-      return { type: 'reasoning', content: row.content ?? '' };
-    }
-    if (row.event === 'message') {
-      return { type: 'message', content: row.content ?? '' };
-    }
+    if (event === 'reasoning') return { type: 'reasoning', content: row.content ?? row.delta ?? '' };
+    if (event === 'message') return { type: 'message', content: row.content ?? row.delta ?? row.text ?? '' };
     return null;
-  }
-
-  private findSubBubble(subExecutionId: string): ChatMessage | undefined {
-    for (const message of this.messages) {
-      const sub = message.subAgents?.find((item) => item.subExecutionId === subExecutionId);
-      if (sub) {
-        return sub;
-      }
-    }
-    return undefined;
   }
 
   private clearSkillRoundState(): void {
@@ -1144,12 +1029,6 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
 
   /** 气泡角色标签：我 / 助手 / 子Agent·{agentId前8位} */
   public roleLabel(message: ChatMessage): string {
-    if (message.role === 'user') {
-      return '我';
-    }
-    if (message.isSubAgent) {
-      return `子Agent${message.agentId ? '·' + message.agentId.slice(0, 8) : ''}`;
-    }
-    return '助手';
+    return message.role === 'user' ? '我' : '助手';
   }
 }

@@ -45,10 +45,6 @@ async def test_team_stream_defaults_to_new_supervisor_path(monkeypatch):
         called["run"] = (req, execution_id, config)
         yield {"event": "message", "data": {"delta": "new-path"}}
 
-    async def old_builder(**_kwargs):
-        raise AssertionError("legacy Supervisor path must not be default")
-
-    monkeypatch.delenv("CONVERSATION_TEAM_USE_LEGACY_SUPERVISOR", raising=False)
     monkeypatch.setattr(
         "agent_runtime.serve.apis.conversation_team.build_conversation_supervisor_config",
         build_config,
@@ -56,10 +52,6 @@ async def test_team_stream_defaults_to_new_supervisor_path(monkeypatch):
     monkeypatch.setattr(
         "agent_runtime.serve.apis.conversation_team.run_conversation_supervisor",
         new_runner,
-    )
-    monkeypatch.setattr(
-        "agent_runtime.serve.apis.conversation_team.build_supervisor",
-        old_builder,
     )
 
     req = ConversationTeamReq.model_validate({
