@@ -10,6 +10,9 @@ from __future__ import annotations
 import asyncio
 import sys
 
+from agent_runtime.conversation.execution_context import (
+    get_conversation_execution_context,
+)
 from agent_runtime.conversation.runner.conversation_runner_factory import (
     ConversationRunnerFactory,
 )
@@ -28,9 +31,13 @@ async def run_conversation_supervisor(
     req,
     execution_id: str,
     supervisor_config,
+    prepared_file_references: list[dict] | None = None,
 ):
     """Consume the standard ReAct runner for the built-in Supervisor."""
-    channel = EventChannel(execution_id, req.conversation_id)
+    execution_context = get_conversation_execution_context().for_child_call()
+    identity = execution_context.identity
+    execution_id = identity.execution_id
+    channel = EventChannel(execution_id, identity.conversation_id)
     channel_token = set_channel(channel)
     task = None
     try:
@@ -38,11 +45,16 @@ async def run_conversation_supervisor(
         params = ExecutionParams(
             conversationHistory=[],
             globalVariables={
-                "conversationId": req.conversation_id,
-                "userId": req.user_id,
+                "conversationId": identity.conversation_id,
+                "projectId": identity.project_id,
+                "workspaceId": identity.workspace_id,
+                "userId": identity.user_id,
+                "executionId": identity.execution_id,
+                "conversationInputFiles": list(prepared_file_references or []),
                 "conversationTeam": {
                     "type": "SUPERVISOR",
                     "subAgentIds": list(req.sub_agent_ids),
+                    "modelDeploymentId": getattr(req, "model_deployment_id", None),
                     "skillCatalog": [
                         {
                             "skillId": item.skill_id,
@@ -64,8 +76,8 @@ async def run_conversation_supervisor(
             ir_cache=ir_json,
         )
         execution_request = ExecutionRequest(
-            conversationId=req.conversation_id,
-            userId=req.user_id,
+            conversationId=identity.conversation_id,
+            userId=identity.user_id,
             irPath="__conversation_supervisor__",
             query=req.query,
             params=params,
@@ -87,12 +99,24 @@ async def run_conversation_supervisor(
                     if event.get("event") == "run_end":
                         data = event.get("data") or {}
                         final_text = str(data.get("text") or final_text)
+                        # The API boundary owns the root terminal event so it can
+                        # publish Artifacts first. Do not forward the runner's
+                        # terminal frame through the channel.
+                        continue
                     if event.get("event") == "error":
                         error_sent = True
-                    await channel.emit(event)
                     if event.get("event") == "message":
                         data = event.get("data") or {}
-                        final_text += str(data.get("delta") or "")
+                        delta = str(data.get("delta") or "")
+                        if (
+                            data.get("controllerEvent") == "intermediate_message"
+                            and delta
+                            and final_text
+                        ):
+                            # Controller's terminal snapshot repeats the token stream.
+                            continue
+                        final_text += delta
+                    await channel.emit(event)
             except asyncio.CancelledError:
                 raise
             except Exception as error:

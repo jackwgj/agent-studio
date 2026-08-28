@@ -7,10 +7,24 @@ export interface ConversationSkillItem {
 
 /** 浏览器发往对话工作台的本轮请求。 */
 export interface ConversationFileReference {
-  url: string;
+  objectKey: string;
   fileName: string;
+  size: number;
+  checksum: string;
   progress?: 'loading' | 'succeeded' | 'failed';
   fileId?: string;
+}
+
+/** Runtime 已上传并由 Manager 持久化的正式输出产物。 */
+export interface ConversationArtifactReference {
+  objectKey: string;
+  fileName: string;
+  size: number;
+  mediaType: string;
+  checksum: string;
+  executionId: string;
+  runId: string;
+  downloadState?: 'idle' | 'loading' | 'failed';
 }
 
 export interface ConversationSendRequest {
@@ -19,7 +33,12 @@ export interface ConversationSendRequest {
   recommended_skill_ids: string[];
   select_type?: 'SUPERVISOR' | 'APP';
   app_id?: string;
-  file_ids?: Array<Pick<ConversationFileReference, 'url' | 'fileName'>>;
+  file_ids?: Array<{
+    object_key: string;
+    file_name: string;
+    size: number;
+    checksum: string;
+  }>;
 }
 
 /** 工作台可执行目标。资源列表复用 AgentCenter 现有接口。 */
@@ -40,6 +59,7 @@ export enum ConversationEventType {
   ERROR = 'error',
   WORKFLOW_NODE = 'workflow_node',
   SKILL_ACTIVATED = 'skill_activated',
+  ARTIFACT = 'artifact',
   USAGE = 'usage',
 }
 
@@ -55,13 +75,21 @@ export interface ConversationRunNode {
   segments: ChatSegment[];
   detailSegments: ChatSegment[];
   workflowNodes: WorkflowNodeSegment[];
+  activatedSkills: ConversationSkillActivation[];
   children: ConversationRunNode[];
+}
+
+export interface ConversationSkillActivation {
+  skillId: string;
+  name: string;
+  versionId: string;
 }
 
 export interface ChatSegment {
   type: 'message' | 'reasoning' | 'tool';
   content: string;
   toolId?: string;
+  toolCallId?: string;
   toolName?: string;
   toolStatus?: string;
   arguments?: unknown;
@@ -105,6 +133,14 @@ export interface ConversationEventData {
   skillId?: string;
   name?: string;
   versionId?: string;
+  executionId?: string;
+  objectKey?: string;
+  fileName?: string;
+  size?: number;
+  mediaType?: string;
+  checksum?: string;
+  code?: string | number;
+  message?: string;
   [key: string]: unknown;
 }
 

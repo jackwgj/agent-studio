@@ -168,11 +168,13 @@ public class ConversationRepositoryImpl implements ConversationRepository {
     }
 
     @Override
-    public void softDelete(String conversationId) {
-        conversationEntityRepository.findById(conversationId).ifPresent(entity -> {
-            entity.setDeleted(DELETED);
-            conversationEntityRepository.save(entity);
-        });
+    @Transactional
+    public void softDeleteAndScheduleCleanup(String conversationId) {
+        int changed = conversationEntityRepository.markDeletedAndPendingCleanup(
+            conversationId, new Date());
+        if (changed != 1) {
+            throw new IllegalStateException("conversation delete state changed concurrently: " + conversationId);
+        }
     }
 
     private Conversation toDomain(ConversationEntity entity) {
@@ -317,7 +319,7 @@ public class ConversationRepositoryImpl implements ConversationRepository {
         }
         try {
             List<FileRef> refs = JSON.parseArray(fileIds, FileRef.class);
-            if (refs != null && !refs.isEmpty() && refs.get(0).getKey() != null) {
+            if (refs != null && !refs.isEmpty() && refs.get(0).getObjectKey() != null) {
                 return refs;
             }
         } catch (Exception ignored) {

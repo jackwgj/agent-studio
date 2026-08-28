@@ -62,7 +62,9 @@ async def test_react_runner_attaches_request_supervisor_skill_context(monkeypatc
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("mode", ["Controller", "PlanExecute"])
-async def test_controller_runner_injects_request_skill_function_into_agent_configs(monkeypatch, mode):
+async def test_controller_modes_build_real_agent_group_without_mode_rejection(
+    monkeypatch, mode
+):
     captured = {}
 
     class _Config:
@@ -74,20 +76,16 @@ async def test_controller_runner_injects_request_skill_function_into_agent_confi
             self.main_agent = _Config()
             self.agents = [_Config()]
 
-    async def create_group_config(*args, **kwargs):
-        group_config = _GroupConfig()
-        captured["group_config"] = group_config
-        return group_config, {}
-
     class _IRConverter:
         @staticmethod
         async def create_agent_group_config(*args, **kwargs):
-            return await create_group_config(*args, **kwargs)
+            captured["group_config"] = _GroupConfig()
+            return captured["group_config"], {}
 
-    monkeypatch.setattr(conversation_controller_runner, "IRConverter", _IRConverter, raising=False)
     async def load_ir(_path):
-        return {"agentId": "app-1", "configs": {}}
+        return {"agentId": "app-1", "configs": {"mode": mode}}
 
+    monkeypatch.setattr(conversation_controller_runner, "IRConverter", _IRConverter)
     monkeypatch.setattr(conversation_controller_runner, "async_ir_load", load_ir)
 
     runner = ConversationControllerRunner()
@@ -110,24 +108,18 @@ async def test_controller_runner_injects_request_skill_function_into_agent_confi
             "recommendedSkillIds": ["meeting-minutes"],
         }
     }
-    request.params.conversation_history = []
-    request.params.global_variables = request.params.global_variables
-    request.user_id = "user-1"
-    request.headers = {}
-    request.query = "hello"
 
-    await runner._build_request_agent_group(request, mode)
+    _, _, skill_context = await runner._build_request_agent_group(request, mode)
 
     assert len(captured["group_config"].main_agent.plugins) == 1
-    assert len(captured["group_config"].agents[0].plugins) == 1
-    function = captured["group_config"].main_agent.plugins[0]
-    assert function.name == "activate_skill"
-    assert function.params[0].name == "skill_id"
-    assert "meeting-minutes" in function.description
+    assert captured["group_config"].main_agent.plugins[0].name == "activate_skill"
+    assert skill_context.prepare_sandbox_resources is False
 
 
 @pytest.mark.asyncio
-async def test_controller_skill_function_loads_instructions_through_shared_cache():
+async def test_controller_skill_function_loads_instructions_without_preparing_sandbox(
+    monkeypatch,
+):
     class _Cache:
         async def load_instructions(self, skill):
             assert skill.skill_id == "meeting-minutes"
@@ -136,6 +128,7 @@ async def test_controller_skill_function_loads_instructions_through_shared_cache
     from agent_runtime.conversation.runner.conversation_skill_function import (
         ConversationActivateSkillFunction,
     )
+    from agent_runtime.supervisor.tool import activate_skill_tool
     from agent_runtime.supervisor.skill_context import build_skill_execution_context
     from agent_runtime.supervisor.skill_model import SkillDescriptor
 
@@ -146,14 +139,32 @@ async def test_controller_skill_function_loads_instructions_through_shared_cache
         description="Structure meeting notes",
         object_key="skills/meeting-minutes/v1/skill.zip",
     )
-    context = build_skill_execution_context([descriptor], ["meeting-minutes"], _Cache())
+    context = build_skill_execution_context(
+        [descriptor],
+        ["meeting-minutes"],
+        _Cache(),
+        prepare_sandbox_resources=False,
+    )
     function = ConversationActivateSkillFunction(context)
+
+    monkeypatch.setattr(
+        activate_skill_tool, "conversation_skill_sandbox_enabled", lambda: True
+    )
+
+    async def unexpected_prepare(*_args, **_kwargs):
+        raise AssertionError("Controller/PlanExecute must not prepare AIO resources")
+
+    monkeypatch.setattr(
+        activate_skill_tool, "prepare_conversation_skill", unexpected_prepare
+    )
 
     result = await function.ainvoke({"skill_id": "meeting-minutes"})
 
     assert result["errCode"] == 0
     assert result["data"]["skillId"] == "meeting-minutes"
     assert result["data"]["instructions"] == "# meeting instructions"
+    assert result["data"]["resourceState"] == "instructions_only"
+    assert "sandboxPath" not in result["data"]
 
 
 @pytest.mark.asyncio

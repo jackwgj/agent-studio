@@ -2,14 +2,17 @@
 
 from openjiuwen.core.foundation.tool import Tool, ToolCard
 
-from agent_runtime.supervisor.event.canonical import build_canonical_event
+from agent_runtime.supervisor.event.canonical import build_skill_activated
 from agent_runtime.supervisor.event.channel import get_channel
-from agent_runtime.supervisor.event.types import ConversationEventType
 from agent_runtime.supervisor.skill_artifact_cache import (
     SkillArtifactError,
     SkillInstructionsMissingError,
 )
 from agent_runtime.supervisor.skill_context import get_skill_context
+from agent_runtime.conversation.skill_artifact_bridge import (
+    conversation_skill_sandbox_enabled,
+    prepare_conversation_skill,
+)
 
 
 class ActivateSkillTool(Tool):
@@ -46,7 +49,16 @@ class ActivateSkillTool(Tool):
 
         skill = context.catalog_by_id[skill_id]
         try:
-            instructions = await context.artifact_cache.load_instructions(skill)
+            sandbox_path = None
+            if (
+                context.prepare_sandbox_resources
+                and conversation_skill_sandbox_enabled()
+            ):
+                artifact = await context.artifact_cache.load_artifact(skill)
+                instructions = artifact.instructions
+                sandbox_path = await prepare_conversation_skill(skill, artifact)
+            else:
+                instructions = await context.artifact_cache.load_instructions(skill)
         except SkillInstructionsMissingError:
             return self._error(
                 "skill_instructions_missing",
@@ -67,26 +79,30 @@ class ActivateSkillTool(Tool):
         if channel is not None:
             try:
                 await channel.emit(
-                    build_canonical_event(
-                        ConversationEventType.SKILL_ACTIVATED,
-                        conversation_id=channel.conversation_id,
-                        run_id=channel.execution_id,
-                        data={
-                            "skillId": skill.skill_id,
-                            "name": skill.name,
-                            "versionId": skill.version_id,
-                        },
+                    build_skill_activated(
+                        channel.conversation_id,
+                        channel.execution_id,
+                        skill_id=skill.skill_id,
+                        name=skill.name,
+                        version_id=skill.version_id,
+                        parent_run_id=channel.parent_run_id,
+                        execution_type=channel.execution_type,
+                        agent_id=channel.agent_id,
                     )
                 )
             except Exception:
                 # SSE 通道仅作实时透传；投递失败不能撤销已成功加载给 Agent 的指令。
                 pass
-        return {
+        result = {
             "skillId": skill.skill_id,
             "name": skill.name,
             "versionId": skill.version_id,
             "instructions": instructions,
+            "resourceState": "prepared" if sandbox_path else "instructions_only",
         }
+        if sandbox_path:
+            result["sandboxPath"] = sandbox_path
+        return result
 
     async def stream(self, inputs, **kwargs):
         yield await self.invoke(inputs, **kwargs)

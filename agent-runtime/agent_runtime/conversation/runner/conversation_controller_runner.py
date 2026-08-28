@@ -11,9 +11,7 @@ from typing import Any, AsyncGenerator
 
 from agent_runtime.context.request_context import _request_ctx
 from agent_runtime.runner.controller_runner import ControllerRunner
-from agent_runtime.runner.controller_stream_data_adapter import (
-    ControllerStreamDataAdapter,
-)
+from agent_runtime.runner.controller_stream_data_adapter import ControllerStreamDataAdapter
 from agent_runtime.runner.memory_extraction_context import MemoryExtractionContext
 from agent_runtime.supervisor.skill_context import build_skill_execution_context
 from agent_runtime.supervisor.skill_model import SkillDescriptor
@@ -36,7 +34,7 @@ from openjiuwen.core.session.agent import Session, create_agent_session
 
 
 class ConversationControllerRunner(ControllerRunner):
-    """Controller/PlanExecute wrapper with request-local Skill adaptation."""
+    """Controller/PlanExecute wrapper without conversation sandbox execution tools."""
 
     @staticmethod
     def _conversation_team(req) -> dict:
@@ -66,12 +64,16 @@ class ConversationControllerRunner(ControllerRunner):
             or team_config.get("recommended_skill_ids")
             or []
         )
-        return build_skill_execution_context(catalog, recommended)
+        return build_skill_execution_context(
+            catalog,
+            recommended,
+            prepare_sandbox_resources=False,
+        )
 
     async def _build_request_agent_group(
         self, req: ExecutionRequest, mode: str, ir_json: dict | None = None
     ):
-        """Build official in-memory group config and add request-local Skill Functions."""
+        """Build the official group config and add request-local Skill Functions."""
         ir_json = ir_json or await async_ir_load(req.ir_path)
         request_context = _request_ctx.get()
         cust_headers = request_context.customer_headers if request_context else {}
@@ -107,7 +109,7 @@ class ConversationControllerRunner(ControllerRunner):
     async def run_streaming(
         self, req: ExecutionRequest, execution_id: str | None = None
     ) -> AsyncGenerator[Any, None]:
-        """Execute official Controller/PlanExecute flow with request Skill injection."""
+        """Execute the official Controller/PlanExecute flow without LOCAL fallback."""
         session_id = req.conversation_id
         exec_id = execution_id or session_id or str(uuid.uuid4())
         adapter = ControllerStreamDataAdapter(execution_id=exec_id)
@@ -182,7 +184,9 @@ class ConversationControllerRunner(ControllerRunner):
         session: Session | None = None
         try:
             start = time.perf_counter()
-            workflow_logger.info("Starting conversation agent_group.astream for query: %s", req.query)
+            workflow_logger.info(
+                "Starting conversation agent_group.astream for query: %s", req.query
+            )
             session_id = req.conversation_id or "default_session"
             session_inputs = {
                 "query": req.query or "",
@@ -216,7 +220,11 @@ class ConversationControllerRunner(ControllerRunner):
                         event_data = json.loads(chunk_text[6:])
                         event = event_data.get("event")
                         event_payload = event_data.get("data") or {}
-                        answer = event_payload.get("answer", "") if isinstance(event_payload, dict) else ""
+                        answer = (
+                            event_payload.get("answer", "")
+                            if isinstance(event_payload, dict)
+                            else ""
+                        )
                         if isinstance(answer, dict):
                             answer = answer.get("content", "")
                         if not answer and isinstance(event_payload, dict):
@@ -228,8 +236,10 @@ class ConversationControllerRunner(ControllerRunner):
                         "Failed to parse Controller SSE chunk for memory extraction",
                         exc_info=True,
                     )
-                adapted_chunk = adapter.adapt_execution_id(chunk)
-                yield adapted_chunk
+                # Keep the Controller/PlanExecute task executionId intact.  The
+                # canonical adapter uses it as the child run identity beneath
+                # the business conversation execution.
+                yield chunk
 
             performance_logger.info(
                 "conversation_agent_group_stream|%s",

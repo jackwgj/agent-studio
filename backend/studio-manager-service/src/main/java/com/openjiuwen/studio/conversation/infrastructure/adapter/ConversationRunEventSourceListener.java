@@ -7,6 +7,7 @@ package com.openjiuwen.studio.conversation.infrastructure.adapter;
 import com.openjiuwen.studio.conversation.domain.model.ConversationMessage;
 import com.openjiuwen.studio.conversation.domain.model.ConversationWorkflowNode;
 import com.openjiuwen.studio.conversation.domain.model.valueobject.ExecutionRef;
+import com.openjiuwen.studio.conversation.domain.model.valueobject.FileRef;
 import com.openjiuwen.studio.conversation.domain.model.valueobject.ToolRef;
 import com.openjiuwen.studio.conversation.domain.repository.ConversationRepository;
 
@@ -33,14 +34,14 @@ import java.util.concurrent.CountDownLatch;
 
 /**
  * 对话运行 SSE 监听器（按轮持久化，团队新协议）：
- * Java 对事件透明——只做「转发前端 + 按事件类型边界入库」，不分析事件内容。
+ * Java 对事件透明——只做「转发前端 + 按 canonical 运行身份持久化」，不解释 Agent 业务内容。
  *
  * <p>入库粒度 = 每次 LLM 调用（一轮）：每轮 reasoning 行（event=reasoning）+ message 行（event=message），
  * 工具一次调用合并一行（role=tool，event=tool_call，content=结果/异常，tool_args=参数，tool_id=toolName）。
- * run_done/sub_done/run_start/sub_start 仅透传不落库（实时完成信号）；user_message 不落（user 行发送前已落）；
+ * run_start/skill_activated/error/run_end 作为运行树状态落库；user_message 不落（user 行发送前已落）；
  * runId/parentRunId/toolId 路由，只有收到 canonical tool_result 的工具调用才落库。</p>
  *
- * <p>轮边界 = 事件类型（机械规则）：tool_call / sub_done / run_done / error 到达即结算当前轮；
+ * <p>轮边界 = 事件类型（机械规则）：tool_call / run_end / error 到达即结算当前轮；
  * created_at 按到达序（base+seq）单调递增，供读侧"先调用先渲染"。</p>
  */
 @Slf4j
@@ -48,11 +49,14 @@ public class ConversationRunEventSourceListener extends EventSourceListener {
 
     private static final String EVENT_MESSAGE = "message";
     private static final String EVENT_REASONING = "reasoning";
+    private static final String EVENT_RUN_START = "run_start";
     private static final String EVENT_TOOL_CALL = "tool_call";
     private static final String EVENT_TOOL_RESULT = "tool_result";
     private static final String EVENT_WORKFLOW_NODE = "workflow_node";
     private static final String EVENT_RUN_END = "run_end";
     private static final String EVENT_ERROR = "error";
+    private static final String EVENT_SKILL_ACTIVATED = "skill_activated";
+    private static final String EVENT_ARTIFACT = "artifact";
     private static final String SSE_DONE_MARKER = "[DONE]";
 
     private static final String FIELD_RUN_ID = "runId";
@@ -65,10 +69,15 @@ public class ConversationRunEventSourceListener extends EventSourceListener {
     private static final String FIELD_RESULT = "result";
     private static final String FIELD_DELTA = "delta";
     private static final String FIELD_CONTENT = "content";
+    private static final String FIELD_OBJECT_KEY = "objectKey";
+    private static final String FIELD_FILE_NAME = "fileName";
+    private static final String FIELD_SIZE = "size";
+    private static final String FIELD_MEDIA_TYPE = "mediaType";
+    private static final String FIELD_CHECKSUM = "checksum";
+    private static final String FIELD_EXECUTION_ID = "executionId";
 
     private static final String ROLE_ASSISTANT = "assistant";
     private static final String ROLE_TOOL = "tool";
-    private static final String NO_RESULT_MARK = "（未返回结果）";
 
     private final SseEmitter sseEmitter;
     private final CountDownLatch latch;
@@ -84,6 +93,10 @@ public class ConversationRunEventSourceListener extends EventSourceListener {
     private final List<RoundBuffer> settledRounds = new ArrayList<>();
     /** 工具调用缓冲（toolCallId → 调用），tool_result 按 toolCallId 配对回填 */
     private final Map<String, ToolInvocation> toolInvocations = new LinkedHashMap<>();
+    /** 已上传正式产物；事件来自受信 Runtime，持久化时只采用当前监听器 executionId。 */
+    private final List<ArtifactInvocation> artifacts = new ArrayList<>();
+    /** 运行树控制事件，供刷新后恢复根/子状态、Skill 与错误。 */
+    private final List<ScoredRow> controlEvents = new ArrayList<>();
     /** 到达序计数器（每事件 +1），created_at = base + seq */
     private long arrivalSeq;
     private final long baseTime = System.currentTimeMillis();
@@ -132,6 +145,7 @@ public class ConversationRunEventSourceListener extends EventSourceListener {
             copyIfAbsent(dataObj, FIELD_RUN_ID, json.getString(FIELD_RUN_ID));
             copyIfAbsent(dataObj, FIELD_PARENT_RUN_ID, json.getString(FIELD_PARENT_RUN_ID));
             copyIfAbsent(dataObj, FIELD_EXECUTION_TYPE, json.getString(FIELD_EXECUTION_TYPE));
+            copyIfAbsent(dataObj, FIELD_EXECUTION_ID, json.getString(FIELD_EXECUTION_ID));
             copyIfAbsent(dataObj, "workflowId", json.getString("workflowId"));
             copyIfAbsent(dataObj, "nodeId", json.getString("nodeId"));
             copyIfAbsent(dataObj, "eventIndex", json.getLong("index"));
@@ -145,6 +159,7 @@ public class ConversationRunEventSourceListener extends EventSourceListener {
                 dataObj == null ? null : dataObj.getString(FIELD_AGENT_ID),
                 dataObj == null ? null : dataObj.getString(FIELD_TOOL_NAME));
             switch (event == null ? "" : event) {
+                case EVENT_RUN_START -> bufferControlEvent(EVENT_RUN_START, dataObj);
                 case EVENT_MESSAGE -> {
                     String delta = dataObj == null ? null : dataObj.getString(FIELD_DELTA);
                     if (delta != null && !delta.isBlank()) {
@@ -183,15 +198,24 @@ public class ConversationRunEventSourceListener extends EventSourceListener {
                         invocation.result = dataObj.getString(FIELD_RESULT);
                     }
                 }
-                case EVENT_WORKFLOW_NODE -> workflowNodes.add(toWorkflowNode(dataObj));
-                case EVENT_RUN_END -> settleRound(keyOf(dataObj));
+                case EVENT_ARTIFACT -> bufferArtifact(dataObj);
+                case EVENT_WORKFLOW_NODE -> {
+                    workflowNodes.add(toWorkflowNode(dataObj));
+                    bufferControlEvent(EVENT_WORKFLOW_NODE, dataObj);
+                }
+                case EVENT_SKILL_ACTIVATED -> bufferControlEvent(EVENT_SKILL_ACTIVATED, dataObj);
+                case EVENT_RUN_END -> {
+                    settleRound(keyOf(dataObj));
+                    bufferControlEvent(EVENT_RUN_END, dataObj);
+                }
                 case EVENT_ERROR -> {
                     log.warn("Conversation team error event: conversationId={}, executionId={}, data={}",
                         conversationId, executionId, data);
                     settleRound(keyOf(dataObj));
+                    bufferControlEvent(EVENT_ERROR, dataObj);
                 }
                 default -> {
-                    // user_message/run_start/sub_start/usage 仅透传不落
+                    // user_message/run_start/usage 仅透传不落
                 }
             }
         } catch (Throwable e) {
@@ -258,7 +282,11 @@ public class ConversationRunEventSourceListener extends EventSourceListener {
     }
 
     private String keyOf(JSONObject dataObj) {
-        return dataObj == null ? null : dataObj.getString(FIELD_RUN_ID);
+        if (dataObj == null) {
+            return executionId;
+        }
+        String runId = dataObj.getString(FIELD_RUN_ID);
+        return runId == null || runId.isBlank() ? executionId : runId;
     }
 
     private void copyIfAbsent(JSONObject target, String key, String value) {
@@ -306,6 +334,59 @@ public class ConversationRunEventSourceListener extends EventSourceListener {
         return args == null ? null : JSON.toJSONString(args);
     }
 
+    private void bufferArtifact(JSONObject dataObj) {
+        if (dataObj == null) {
+            return;
+        }
+        String objectKey = dataObj.getString(FIELD_OBJECT_KEY);
+        String fileName = dataObj.getString(FIELD_FILE_NAME);
+        Long size = dataObj.getLong(FIELD_SIZE);
+        String mediaType = dataObj.getString(FIELD_MEDIA_TYPE);
+        String checksum = dataObj.getString(FIELD_CHECKSUM);
+        String payloadExecutionId = dataObj.getString(FIELD_EXECUTION_ID);
+        if (objectKey == null || objectKey.isBlank() || fileName == null || fileName.isBlank()
+            || size == null || size < 0 || mediaType == null || mediaType.isBlank()
+            || checksum == null || !checksum.matches("[0-9a-f]{64}")) {
+            log.warn("Ignore incomplete artifact event: conversationId={}, executionId={}",
+                conversationId, executionId);
+            return;
+        }
+        if (payloadExecutionId != null && !payloadExecutionId.isBlank()
+            && !executionId.equals(payloadExecutionId)) {
+            log.warn("Ignore artifact with mismatched execution ownership: conversationId={}, executionId={}",
+                conversationId, executionId);
+            return;
+        }
+        artifacts.add(new ArtifactInvocation(
+            new FileRef(objectKey, fileName, size, mediaType, checksum, executionId),
+            keyOf(dataObj), dataObj.getString(FIELD_PARENT_RUN_ID), dataObj.getString(FIELD_AGENT_ID),
+            executionTypeOf(dataObj), dataObj.getString("workflowId"), dataObj.getString("nodeId"),
+            dataObj.getLong("eventIndex"), arrivalSeq));
+    }
+
+    private void bufferControlEvent(String event, JSONObject dataObj) {
+        String content = JSON.toJSONString(dataObj == null ? new JSONObject() : dataObj);
+        ConversationMessage message = ConversationMessage.builder()
+            .role(ROLE_ASSISTANT)
+            .content(content)
+            .executionRef(new ExecutionRef(keyOf(dataObj),
+                dataObj == null ? null : dataObj.getString(FIELD_PARENT_RUN_ID),
+                dataObj == null ? null : dataObj.getString(FIELD_AGENT_ID), executionTypeOf(dataObj)))
+            .workflowId(dataObj == null ? null : dataObj.getString("workflowId"))
+            .nodeId(dataObj == null ? null : dataObj.getString("nodeId"))
+            .eventIndex(dataObj == null ? null : dataObj.getLong("eventIndex"))
+            .modelDeploymentId(modelDeploymentId)
+            .event(event)
+            .createdAt(new Date(baseTime + arrivalSeq))
+            .build();
+        controlEvents.add(new ScoredRow(arrivalSeq, message));
+    }
+
+    private String executionTypeOf(JSONObject dataObj) {
+        String executionType = dataObj == null ? null : dataObj.getString(FIELD_EXECUTION_TYPE);
+        return executionType == null || executionType.isBlank() ? "agent" : executionType;
+    }
+
     /**
      * 整轮结束/异常一次性批量落库（按 canonical runId/parentRunId 路由，事务性）。
      * created_at 按到达序（base+seq）单调递增。
@@ -317,6 +398,7 @@ public class ConversationRunEventSourceListener extends EventSourceListener {
         flushed = true;
         settleAllCurrentRounds();
         List<ScoredRow> scored = new ArrayList<>();
+        scored.addAll(controlEvents);
         for (RoundBuffer round : settledRounds) {
             if (round.reasoning != null && !round.reasoning.isBlank()) {
                 scored.add(new ScoredRow(round.reasoningSeq,
@@ -340,6 +422,9 @@ public class ConversationRunEventSourceListener extends EventSourceListener {
             if (invocation.result != null && !invocation.result.isBlank()) {
                 scored.add(new ScoredRow(invocation.seq, buildToolMessage(invocation)));
             }
+        }
+        for (ArtifactInvocation artifact : artifacts) {
+            scored.add(new ScoredRow(artifact.seq, buildArtifactMessage(artifact)));
         }
         scored.sort(Comparator.comparingLong(s -> s.seq));
         List<ConversationMessage> rows = new ArrayList<>();
@@ -391,6 +476,21 @@ public class ConversationRunEventSourceListener extends EventSourceListener {
             .modelDeploymentId(modelDeploymentId)
             .event(EVENT_TOOL_RESULT)
             .createdAt(new Date(baseTime + invocation.seq))
+            .build();
+    }
+
+    private ConversationMessage buildArtifactMessage(ArtifactInvocation artifact) {
+        return ConversationMessage.builder()
+            .role(ROLE_ASSISTANT)
+            .fileRefs(List.of(artifact.fileRef))
+            .executionRef(new ExecutionRef(artifact.runId, artifact.parentRunId, artifact.agentId,
+                artifact.executionType))
+            .workflowId(artifact.workflowId)
+            .nodeId(artifact.nodeId)
+            .eventIndex(artifact.eventIndex)
+            .modelDeploymentId(modelDeploymentId)
+            .event(EVENT_ARTIFACT)
+            .createdAt(new Date(baseTime + artifact.seq))
             .build();
     }
 
@@ -466,6 +566,31 @@ public class ConversationRunEventSourceListener extends EventSourceListener {
             this.runId = runId;
             this.agentId = agentId;
             this.parentRunId = parentRunId;
+            this.executionType = executionType;
+            this.workflowId = workflowId;
+            this.nodeId = nodeId;
+            this.eventIndex = eventIndex;
+            this.seq = seq;
+        }
+    }
+
+    private static final class ArtifactInvocation {
+        private final FileRef fileRef;
+        private final String runId;
+        private final String parentRunId;
+        private final String agentId;
+        private final String executionType;
+        private final String workflowId;
+        private final String nodeId;
+        private final Long eventIndex;
+        private final long seq;
+
+        ArtifactInvocation(FileRef fileRef, String runId, String parentRunId, String agentId,
+                           String executionType, String workflowId, String nodeId, Long eventIndex, long seq) {
+            this.fileRef = fileRef;
+            this.runId = runId;
+            this.parentRunId = parentRunId;
+            this.agentId = agentId;
             this.executionType = executionType;
             this.workflowId = workflowId;
             this.nodeId = nodeId;

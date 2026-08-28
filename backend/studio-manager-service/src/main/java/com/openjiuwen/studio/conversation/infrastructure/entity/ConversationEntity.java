@@ -7,6 +7,7 @@ package com.openjiuwen.studio.conversation.infrastructure.entity;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.Column;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -99,4 +100,16 @@ public class ConversationEntity {
 
     @JsonProperty("deleted")
     private Integer deleted;
+
+    @Column(name = "cleanup_status", nullable = false)
+    private String cleanupStatus = "NONE";
+
+    @Column(name = "cleanup_attempts", nullable = false)
+    private Integer cleanupAttempts = 0;
+
+    @Column(name = "cleanup_updated_at")
+    private Date cleanupUpdatedAt;
+
+    @Column(name = "cleanup_error", length = 1024)
+    private String cleanupError;
 }

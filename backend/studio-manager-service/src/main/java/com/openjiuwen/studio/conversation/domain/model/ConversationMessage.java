@@ -64,7 +64,8 @@ public class ConversationMessage {
     private TokenUsage tokenUsage;
 
     /**
-     * 事件类型：run_start/run_end/reasoning/message/tool_call/tool_result/error（按轮持久化，role 区分内容）
+     * canonical 事件类型：run_start/run_end/reasoning/message/tool_call/tool_result/error 等
+     * （按轮持久化，role 区分内容）
      */
     private String event;
 

@@ -902,8 +902,6 @@ class PlanExecuteMode(BaseMode):
             llm_output["error"] = str(e)
 
         self._log_llm_output(llm_output)
-        if llm_output.get("content"):
-            print(f"[LLM_RAW_OUTPUT]\n{llm_output['content']}\n[LLM_RAW_OUTPUT_END]", flush=True)
         return llm_output
 
     def _process_stream_item(
@@ -919,8 +917,6 @@ class PlanExecuteMode(BaseMode):
             elif item.content:
                 content_parts.append(item.content)
         elif isinstance(item, dict):
-            if item.get("content"):
-                print(item["content"], flush=True)
             if item.get("content"):
                 content_parts.append(item["content"])
             for key in ["function_call", "function_call_list"]:

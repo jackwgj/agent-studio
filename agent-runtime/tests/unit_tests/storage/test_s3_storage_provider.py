@@ -279,6 +279,45 @@ class TestS3StorageProviderRead:
 
 
 # ---------------------------------------------------------------------------
+# TestS3StorageProviderWrite
+# ---------------------------------------------------------------------------
+
+
+class TestS3StorageProviderWrite:
+    """Tests for S3StorageProvider.put_object_bytes()."""
+
+    @pytest.mark.asyncio
+    @patch("boto3.client")
+    @patch("storage.object_storage.aioboto3")
+    async def test_put_uses_threaded_sync_client_for_minio_compatibility(
+        self, mock_aioboto3, mock_boto3_client
+    ):
+        """MinIO 写入走同步 boto3 兼容路径，并在线程中执行以免阻塞事件循环。"""
+        async_client = _make_mock_client()
+        async_context = _make_mock_context(async_client)
+        async_session = MagicMock()
+        async_session.client = MagicMock(return_value=async_context)
+        mock_aioboto3.Session = MagicMock(return_value=async_session)
+
+        sync_client = MagicMock()
+        mock_boto3_client.return_value = sync_client
+
+        provider = S3StorageProvider()
+        await provider.initialize()
+        await provider.put_object_bytes("conversation-artifacts/test/result.txt", b"result")
+
+        sync_client.put_object.assert_called_once_with(
+            Bucket="test-bucket",
+            Key="conversation-artifacts/test/result.txt",
+            Body=b"result",
+        )
+        async_client.put_object.assert_not_awaited()
+
+        await provider.close()
+        sync_client.close.assert_called_once_with()
+
+
+# ---------------------------------------------------------------------------
 # TestS3StorageProviderSingleton
 # ---------------------------------------------------------------------------
 

@@ -172,6 +172,12 @@ services:
       server_ssl_key_store_password: ${SERVER_SSL_KEY_STORE_PASSWORD:-}
       server_ssl_key_password: ${SERVER_SSL_KEY_PASSWORD:-}
       agent_runtime_endpoint: ${AGENT_RUNTIME_ENDPOINT:-http://studio-runtime:31014}
+      conversation_cleanup_internal_token: ${CONVERSATION_CLEANUP_INTERNAL_TOKEN:-}
+      conversation_cleanup_schema_migration_enabled: ${CONVERSATION_CLEANUP_SCHEMA_MIGRATION_ENABLED:-true}
+      conversation_cleanup_max_attempts: ${CONVERSATION_CLEANUP_MAX_ATTEMPTS:-8}
+      conversation_cleanup_base_backoff_seconds: ${CONVERSATION_CLEANUP_BASE_BACKOFF_SECONDS:-30}
+      conversation_cleanup_claim_timeout_seconds: ${CONVERSATION_CLEANUP_CLAIM_TIMEOUT_SECONDS:-300}
+      conversation_cleanup_retry_interval_ms: ${CONVERSATION_CLEANUP_RETRY_INTERVAL_MS:-30000}
       user_auth_endpoint: ${USER_AUTH_ENDPOINT:-http://studio-manager:31111}
       agent_builder_endpoint: ${AGENT_BUILDER_ENDPOINT:-http://studio-builder:31015}
       front_page_block_nodes: ${FRONT_PAGE_BLOCK_NODES:-Sql,DataQuery,Agent}
@@ -245,10 +251,16 @@ services:
       TLS_CERT_KEY_PATH: /opt/cloud/agent-runtime/tls/key.pem
       TLS_CERT_PATH: /opt/cloud/agent-runtime/tls/cert.pem
       SECURITY_SANDBOX_SERVER: ${SECURITY_SANDBOX_SERVER:-}
+      SECURITY_SANDBOX_TYPE: ${SECURITY_SANDBOX_TYPE:-aio}
+      CONVERSATION_SANDBOX_MODE: ${CONVERSATION_SANDBOX_MODE:-auto}
       SECURITY_SANDBOX_SSL_VERIFY: ${SECURITY_SANDBOX_SSL_VERIFY:-false}
       SECURITY_SANDBOX_IDLE_TTL: ${SECURITY_SANDBOX_IDLE_TTL:-600}
       SECURITY_SANDBOX_TIMEOUT: ${SECURITY_SANDBOX_TIMEOUT:-300}
       SECURITY_SANDBOX_SCOPE: ${SECURITY_SANDBOX_SCOPE:-system}
+      CONVERSATION_SANDBOX_WORKSPACE_ROOT: ${CONVERSATION_SANDBOX_WORKSPACE_ROOT:-/workspace}
+      CONVERSATION_CLEANUP_INTERNAL_TOKEN: ${CONVERSATION_CLEANUP_INTERNAL_TOKEN:-}
+      CONVERSATION_EXECUTION_CLEANUP_TTL: ${CONVERSATION_EXECUTION_CLEANUP_TTL:-600}
+      CONVERSATION_CLEANUP_UPLOADED_OUTPUT: ${CONVERSATION_CLEANUP_UPLOADED_OUTPUT:-true}
       OPENSEARCH_HOSTS: ${OPENSEARCH_HOSTS:-}
       OPENSEARCH_USERNAME: ${OPENSEARCH_USERNAME:-admin}
       OPENSEARCH_PASSWORD: ${OPENSEARCH_PASSWORD:-admin}
@@ -279,7 +291,6 @@ services:
       IR_LLM_API_KEY: ${IR_LLM_API_KEY:-sk-placeholder}
       DATASOURCE_OBS_PATH_STYLE: ${DATASOURCE_OBS_PATH_STYLE:-path}
       GUNICORN_WORK_NUM: ${GUNICORN_WORK_NUM:-1}
-      SECURITY_SANDBOX_TYPE: ${SECURITY_SANDBOX_TYPE:-jiuwenbox}
       OTEL_ENABLED: ${OTEL_ENABLED:-false}
       # agent_builder 启动时会强制初始化关系库存储；代码读取的是 STORE_DB_*（非 STORE_MYSQL_*）
       STORE_DB_TYPE: ${STORE_DB_TYPE:-mysql}

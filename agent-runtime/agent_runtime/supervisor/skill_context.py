@@ -22,6 +22,7 @@ class SkillExecutionContext:
     catalog_by_id: Mapping[str, SkillDescriptor]
     recommended_skill_ids: tuple[str, ...]
     artifact_cache: SkillArtifactCache
+    prepare_sandbox_resources: bool = True
 
 
 _current_skill_context: ContextVar[SkillExecutionContext | None] = ContextVar(
@@ -63,12 +64,14 @@ def build_skill_execution_context(
     catalog: Sequence[SkillDescriptor],
     recommended_skill_ids: Sequence[str],
     artifact_cache: SkillArtifactCache | None = None,
+    prepare_sandbox_resources: bool = True,
 ) -> SkillExecutionContext:
     """Build immutable request context for an Agent or Jiuwen Function adapter."""
     return SkillExecutionContext(
         catalog_by_id=MappingProxyType({skill.skill_id: skill for skill in catalog}),
         recommended_skill_ids=tuple(recommended_skill_ids),
         artifact_cache=artifact_cache or default_cache(),
+        prepare_sandbox_resources=prepare_sandbox_resources,
     )
 
 

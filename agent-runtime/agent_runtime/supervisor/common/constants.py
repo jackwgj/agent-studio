@@ -19,6 +19,8 @@ class TeamEventType(str, Enum):
     TOOL_RESULT = "tool_result"
     USAGE = "usage"
     SKILL_ACTIVATED = "skill_activated"
+    ARTIFACT = "artifact"
+    RUN_END = "run_end"
     ERROR = "error"
 
 
@@ -59,3 +61,8 @@ class TeamEventField:
     SKILL_ID = "skillId"
     NAME = "name"
     VERSION_ID = "versionId"
+    OBJECT_KEY = "objectKey"
+    FILE_NAME = "fileName"
+    SIZE = "size"
+    MEDIA_TYPE = "mediaType"
+    CHECKSUM = "checksum"

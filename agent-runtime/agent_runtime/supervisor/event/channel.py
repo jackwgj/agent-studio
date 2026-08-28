@@ -21,10 +21,22 @@ class EventChannel:
     工具/子 Agent 写事件（emit）。
     """
 
-    def __init__(self, execution_id: str, conversation_id: str):
+    def __init__(
+        self,
+        execution_id: str,
+        conversation_id: str,
+        *,
+        parent_run_id: str | None = None,
+        execution_type: str = "agent",
+        agent_id: str | None = None,
+        queue: asyncio.Queue | None = None,
+    ):
         self._execution_id = execution_id
         self._conversation_id = conversation_id
-        self._queue: asyncio.Queue = asyncio.Queue()
+        self._parent_run_id = parent_run_id
+        self._execution_type = execution_type
+        self._agent_id = agent_id
+        self._queue: asyncio.Queue = queue or asyncio.Queue()
 
     @property
     def conversation_id(self) -> str:
@@ -34,6 +46,29 @@ class EventChannel:
     def execution_id(self) -> str:
         """本轮唯一标识（监督者一轮，全量 uuid4）"""
         return self._execution_id
+
+    @property
+    def parent_run_id(self) -> str | None:
+        return self._parent_run_id
+
+    @property
+    def execution_type(self) -> str:
+        return self._execution_type
+
+    @property
+    def agent_id(self) -> str | None:
+        return self._agent_id
+
+    def child(self, run_id: str, *, agent_id: str | None = None) -> "EventChannel":
+        """Create a child-run view that forwards events to the root queue."""
+        return EventChannel(
+            run_id,
+            self._conversation_id,
+            parent_run_id=self._execution_id,
+            execution_type="sub_agent",
+            agent_id=agent_id,
+            queue=self._queue,
+        )
 
     async def emit(self, event: dict) -> None:
         """把事件写入队列（供主生成器消费）。"""

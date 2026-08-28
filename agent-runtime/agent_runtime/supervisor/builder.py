@@ -92,16 +92,16 @@ async def _load_sub_agent_description(agent_id: str) -> str:
 
 
 def format_file_references(file_references: list[dict] | None) -> str:
-    """Format this turn's uploaded files for the supervisor without inlining content."""
+    """Expose only server-derived sandbox paths to the conversation Supervisor."""
     if not file_references:
         return ""
     lines = [
         "\n\n## 本轮上传文件",
-        "以下文件由用户在本轮上传。文件名用于识别文件主题；只有在任务需要时才调用 read_file_from_url，且必须使用清单中的完整 URL。",
+        "以下文件已准备到当前会话沙箱 input 目录；只能使用清单中的沙箱路径读取，禁止覆盖用户原始文件。",
     ]
     for item in file_references:
         file_name = str(item.get("fileName") or item.get("file_name") or "未命名文件")
-        url = str(item.get("url") or "")
-        if url:
-            lines.append(f"- **{file_name}**: {url}")
+        path = str(item.get("path") or "")
+        if path:
+            lines.append(f"- **{file_name}**: {path}")
     return "\n".join(lines) if len(lines) > 2 else ""

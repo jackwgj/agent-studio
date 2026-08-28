@@ -36,6 +36,7 @@
     min-width: 0;
     overflow-y: auto;
     overflow-x: hidden;
+    overflow-anchor: none;
     padding: 16px;
 
     .chat-empty {
@@ -164,6 +165,52 @@
               margin-top: 0;
             }
           }
+        }
+
+        .artifact-list {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          margin-top: 12px;
+        }
+
+        .artifact-card {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          max-width: 520px;
+          padding: 10px 12px;
+          background: #fff;
+          border: 1px solid #d9d9d9;
+          border-radius: 8px;
+        }
+
+        .artifact-info {
+          display: flex;
+          flex: 1;
+          min-width: 0;
+          flex-direction: column;
+        }
+
+        .artifact-name {
+          overflow: hidden;
+          color: #252b3a;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .artifact-meta,
+        .artifact-error {
+          color: #8a8e99;
+          font-size: 12px;
+        }
+
+        .artifact-error {
+          color: #cf1322;
+        }
+
+        .artifact-download {
+          flex: none;
         }
 
         .turn-details {

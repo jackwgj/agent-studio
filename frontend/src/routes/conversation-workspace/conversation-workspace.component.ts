@@ -21,6 +21,7 @@ import {
   ConversationSendRequest,
   ConversationSkillItem,
   ConversationFileReference,
+  ConversationArtifactReference,
   ConversationEvent,
   ConversationEventType,
   ConversationRunNode,
@@ -36,12 +37,14 @@ import { SkillSelectorComponent } from './skill-selector/skill-selector.componen
 import { AppMarkdownAnswerComponent } from '@shared/components/app-markdown-answer/app-markdown-answer.component';
 import { UploadFileIconComponent } from '@shared/components/upload-file-icon/upload-file-icon.component';
 import { v4 as uuidV4 } from 'uuid';
+import { CommonUtils } from 'src/utils/common.util';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
   segments: ChatSegment[];
   userContent?: string;
   userFiles?: Array<Pick<ConversationFileReference, 'fileName'>>;
+  artifacts?: ConversationArtifactReference[];
   /** 非主 Agent 内容默认折叠，不主动展示 */
   detailSegments?: ChatSegment[];
   runs: ConversationRunNode[];
@@ -118,6 +121,7 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
   private readonly maxFiles = 10;
   private readonly maxFileSize = 60 * 1024 * 1024;
   @ViewChild('fileInput') private fileInput?: ElementRef<HTMLInputElement>;
+  @ViewChild('messageList') private messageList?: ElementRef<HTMLElement>;
   @ViewChild(SkillSelectorComponent) private skillSelector?: SkillSelectorComponent;
   private modelAbortController: AbortController | null = null;
   private subscriptions = new Subscription();
@@ -133,6 +137,7 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
   private pendingRouteConversation: PendingRouteConversation | null = null;
   private pendingActiveSession: PendingActiveSession | null = null;
   private documentMinWidthBeforeWorkspace: string | null = null;
+  private historyScrollFrameIds: number[] = [];
   private readonly workspaceChangeHandler = () => this.handleWorkspaceChange();
 
   constructor(
@@ -187,6 +192,7 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.destroyed = true;
+    this.cancelHistoryScrollRestore();
     this.restoreDocumentMinWidth();
     this.clearPendingRouteConversation();
     this.clearPendingActiveSession();
@@ -245,6 +251,9 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
         this.modelAbortController.signal,
       )
       .then((res) => {
+        if (this.destroyed) {
+          return;
+        }
         const options: any[] = [];
         res?.data?.forEach((provider: any) => {
           (provider.models ?? []).forEach((model: any) => {
@@ -415,7 +424,7 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
     const selectedTarget = this.executionTargets.find(
       (target) => target.id === this.selectedExecutionTarget,
     );
-    if (!query || this.isSending || (selectedTarget?.type === 'SUPERVISOR' && !this.selectedModel)) {
+    if (!query || this.isSending || !selectedTarget || (selectedTarget.type === 'SUPERVISOR' && !this.selectedModel)) {
       return;
     }
     if (!this.currentSession?.conversation_id) {
@@ -484,7 +493,7 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
     if (!accepted.includes(extension) || file.size > this.maxFileSize) {
       this.uploadedFiles = [
         ...this.uploadedFiles,
-        { fileId: uuidV4(), fileName: file.name, url: '', progress: 'failed' },
+        { fileId: uuidV4(), fileName: file.name, objectKey: '', size: 0, checksum: '', progress: 'failed' },
       ];
       this.cdr.markForCheck();
       return;
@@ -494,18 +503,27 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
     const item: ConversationFileReference = {
       fileId,
       fileName: file.name,
-      url: '',
+      objectKey: '',
+      size: 0,
+      checksum: '',
       progress: 'loading',
     };
     this.uploadedFiles = [...this.uploadedFiles, item];
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('is_image', 'false');
-    this.appAgentRepoService.uploadFile(formData)
+    formData.append('file_name_base64', this.encodeFileName(file.name));
+    this.conversationWorkspaceService.uploadInputFile(formData)
       .then((result) => {
         this.uploadedFiles = this.uploadedFiles.map((current) =>
           current.fileId === fileId
-            ? { ...current, url: result?.url ?? '', fileName: result?.file_name ?? current.fileName, progress: result?.url ? 'succeeded' : 'failed' }
+            ? {
+              ...current,
+              objectKey: result?.objectKey ?? '',
+              fileName: current.fileName,
+              size: result?.size ?? 0,
+              checksum: result?.checksum ?? '',
+              progress: result?.objectKey ? 'succeeded' : 'failed',
+            }
             : current,
         );
       })
@@ -515,6 +533,13 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
         );
       })
       .finally(() => this.cdr.markForCheck());
+  }
+
+  private encodeFileName(fileName: string): string {
+    const bytes = new TextEncoder().encode(fileName);
+    let binary = '';
+    bytes.forEach((byte) => binary += String.fromCharCode(byte));
+    return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
   }
 
   public onExecutionPathChange(path: string[]): void {
@@ -643,8 +668,13 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
   /** 只发送上传成功且包含服务端引用的当前轮附件。 */
   private buildFileReferences(): Pick<ConversationSendRequest, 'file_ids'> {
     const file_ids = this.uploadedFiles
-      .filter((file) => file.progress === 'succeeded' && file.url && file.fileName)
-      .map(({ url, fileName }) => ({ url, fileName }));
+      .filter((file) => file.progress === 'succeeded' && file.objectKey && file.fileName && file.size > 0 && file.checksum)
+      .map(({ objectKey, fileName, size, checksum }) => ({
+        object_key: objectKey,
+        file_name: fileName,
+        size,
+        checksum,
+      }));
     return file_ids.length ? { file_ids } : {};
   }
 
@@ -671,19 +701,52 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
     }
   }
 
-  /** Route every event through its run node; child runs attach recursively by parentRunId. */
+  /** 实时流与历史恢复共用同一 canonical reducer，避免刷新前后视图语义漂移。 */
   private handleMessage(token: any, assistantMsg: ChatMessage): void {
     try {
       const parsed = JSON.parse(token.data) as ConversationEvent & Record<string, unknown>;
-      const event = parsed.event ?? token.eventName;
-      const d = this.normaliseEventData(parsed);
-      if (event === ConversationEventType.MESSAGE && d.role === 'user') {
+      const event = (parsed.event ?? token.eventName) as ConversationEventType;
+      const data = this.normaliseEventData(parsed);
+      if (event === ConversationEventType.MESSAGE && data.role === 'user') {
         return;
       }
-      const run = [ConversationEventType.SKILL_ACTIVATED, ConversationEventType.USAGE].includes(event as ConversationEventType)
+      this.reduceCanonicalEvent(assistantMsg, { ...parsed, event, data } as ConversationEvent, true);
+    } catch {
+      // Ignore non-JSON sentinels such as [DONE].
+    }
+    this.cdr.markForCheck();
+  }
+
+  private normalizeEvent(event: ConversationEvent): ConversationEvent {
+    const source = event as ConversationEvent & Record<string, unknown>;
+    const stringValue = (...values: unknown[]): string | undefined => {
+      const value = values.find((candidate) => typeof candidate === 'string');
+      return typeof value === 'string' ? value : undefined;
+    };
+    const parentRunId = stringValue(event.data?.parentRunId, source['parentRunId'], source['parent_run_id']);
+    return {
+      ...event,
+      data: {
+        ...(event.data ?? {}),
+        runId: stringValue(event.data?.runId, source['runId'], source['run_id']),
+        parentRunId: parentRunId ?? null,
+        executionType: stringValue(event.data?.executionType, source['executionType'], source['execution_type']),
+        executionId: stringValue(event.data?.executionId, source['executionId'], source['execution_id']),
+      },
+    };
+  }
+
+  private reduceCanonicalEvent(assistantMsg: ChatMessage, parsed: ConversationEvent, realtime: boolean): void {
+    const event = parsed.event;
+    const d = parsed.data ?? {};
+    const run = event === ConversationEventType.SKILL_ACTIVATED && d.runId
+      ? this.findRun(assistantMsg.runs ?? [], String(d.runId))
+      : [ConversationEventType.SKILL_ACTIVATED, ConversationEventType.USAGE, ConversationEventType.ARTIFACT]
+          .includes(event as ConversationEventType)
         ? undefined
         : this.ensureRun(assistantMsg, d, event === ConversationEventType.RUN_START);
-      switch (event) {
+    const isRoot = this.isRootRunEvent(assistantMsg, d);
+    switch (event) {
         case ConversationEventType.RUN_START:
           if (run) {
             this.mergeRunMetadata(run, d);
@@ -712,6 +775,14 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
             if (tool) {
               tool.content = this.displayValue(d.result ?? d.output ?? d.content);
               tool.toolStatus = d.status;
+            } else if (!realtime) {
+              run.detailSegments.push({
+                type: 'tool',
+                content: this.displayValue(d.result ?? d.output ?? d.content),
+                toolId: String(d.toolId),
+                toolName: d.toolName,
+                toolStatus: d.status,
+              });
             }
           }
           break;
@@ -720,9 +791,9 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
           break;
         case ConversationEventType.ERROR: {
           if (run) run.status = 'error';
-          this.setAssistantError(assistantMsg, d);
-          if (!d.runId || d.runId === this.rootRunId(assistantMsg)) {
-            this.settleAttemptForMessage(assistantMsg, 'failed');
+          if (isRoot) {
+            this.setAssistantError(assistantMsg, d);
+            if (realtime) this.settleCanonicalRoot(assistantMsg, 'failed');
           }
           break;
         }
@@ -732,27 +803,51 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
           if (run && content) {
             this.appendSegment(run.segments, 'message', content);
           }
-          if (!d.runId || d.runId === this.rootRunId(assistantMsg)) {
-            if (String(d.status ?? '').toLowerCase() === 'error' || String(d.status ?? '').toLowerCase() === 'failed') {
-              this.setAssistantError(assistantMsg, d);
-              this.settleAttemptForMessage(assistantMsg, 'failed');
-            } else {
-              assistantMsg.loading = false;
-              this.settleAttemptForMessage(assistantMsg, 'done');
-            }
+          if (isRoot) {
+            const failed = !['success', 'completed', 'done'].includes(String(d.status ?? 'success').toLowerCase());
+            assistantMsg.loading = false;
+            assistantMsg.error = failed;
+            if (failed) this.setAssistantError(assistantMsg, d);
+            if (realtime) this.settleCanonicalRoot(assistantMsg, failed ? 'failed' : 'done');
           }
           break;
         }
         case ConversationEventType.SKILL_ACTIVATED:
-          if (d.skillId && !this.activatedSkills.some((item) => item.skillId === d.skillId && item.versionId === d.versionId)) this.activatedSkills.push({ skillId: String(d.skillId), name: String(d.name ?? d.skillId), versionId: String(d.versionId ?? '') });
+          if (d.skillId) {
+            const activation = { skillId: String(d.skillId), name: String(d.name ?? d.skillId), versionId: String(d.versionId ?? '') };
+            if (run && !run.activatedSkills.some((item) => item.skillId === activation.skillId && item.versionId === activation.versionId)) {
+              run.activatedSkills.push(activation);
+            }
+            if (!this.activatedSkills.some((item) => item.skillId === activation.skillId && item.versionId === activation.versionId)) {
+              this.activatedSkills.push(activation);
+            }
+          }
           break;
+        case ConversationEventType.ARTIFACT: {
+          const artifact = this.toArtifact(d, String(d.executionId ?? ''), String(d.runId ?? ''));
+          if (artifact && !assistantMsg.artifacts?.some((item) => item.objectKey === artifact.objectKey)) {
+            assistantMsg.artifacts ??= [];
+            assistantMsg.artifacts.push(artifact);
+          }
+          break;
+        }
         default:
           break;
-      }
-    } catch {
-      // Ignore non-JSON sentinels such as [DONE].
     }
-    this.cdr.markForCheck();
+  }
+
+  private settleCanonicalRoot(message: ChatMessage, outcome: 'done' | 'failed'): void {
+    const attempt = this.activeAttempt;
+    if (attempt?.assistantMsg === message && this.isCurrentAttempt(attempt)) {
+      this.settleRun(attempt, outcome);
+    }
+  }
+
+  private isRootRunEvent(message: ChatMessage, data: any): boolean {
+    const runId = data.runId ? String(data.runId) : '';
+    if (!runId) return true;
+    const run = this.findRun(message.runs, runId);
+    return !String(data.parentRunId ?? run?.parentRunId ?? '');
   }
 
   private normaliseEventData(parsed: ConversationEvent & Record<string, unknown>): any {
@@ -831,6 +926,7 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
       segments: [],
       detailSegments: [],
       workflowNodes: [],
+      activatedSkills: [],
       children: [],
     };
     message.runs.push(run);
@@ -918,6 +1014,14 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
         current = { role: 'assistant', segments: [], detailSegments: [], runs: [] };
         messages.push(current);
       }
+      if (row.event === ConversationEventType.ARTIFACT || row.type === ConversationEventType.ARTIFACT) {
+        const executionId = row.execution_id ?? row.executionId ?? row.run_id ?? row.runId ?? '';
+        const artifacts = this.parseArtifacts(row.file_ids ?? row.fileIds, String(executionId));
+        for (const artifact of artifacts) {
+          this.reduceCanonicalEvent(current, this.historyEvent(row, ConversationEventType.ARTIFACT, { ...artifact }), false);
+        }
+        continue;
+      }
       const run = this.ensureRun(current, {
         runId: this.historyRunId(row) ?? `legacy-run-${messages.length}`,
         parentRunId: this.historyParentRunId(row),
@@ -985,6 +1089,37 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
     return Number.isFinite(timestamp) ? timestamp : null;
   }
 
+  private historyEvent(row: any, eventOverride?: ConversationEventType, dataOverride?: Record<string, unknown>): ConversationEvent {
+    const event = eventOverride ?? row.event ?? row.type ?? (row.role === 'tool' ? ConversationEventType.TOOL_RESULT : ConversationEventType.MESSAGE);
+    const runId = row.run_id ?? row.runId ?? `legacy-run-${row.execution_id ?? row.executionId ?? 'unknown'}`;
+    const data: any = {
+      runId,
+      parentRunId: row.parent_run_id ?? row.parentRunId ?? null,
+      executionType: row.execution_type ?? row.executionType ?? 'unknown',
+      executionId: row.execution_id ?? row.executionId,
+      agentId: row.agent_id ?? row.agentId,
+      workflowId: row.workflow_id ?? row.workflowId,
+      nodeId: row.node_id ?? row.nodeId,
+      nodeName: row.node_name ?? row.nodeName,
+      nodeType: row.node_type ?? row.nodeType,
+      nodeIndex: row.node_index ?? row.nodeIndex,
+      toolId: row.tool_call_id ?? row.toolCallId ?? row.tool_id ?? row.toolId,
+      toolName: row.tool_name ?? row.toolName ?? row.tool_id ?? row.toolId,
+      arguments: row.tool_args ?? row.arguments,
+      result: row.result ?? row.output ?? row.content,
+      status: row.status,
+      delta: event === ConversationEventType.MESSAGE ? row.content ?? row.delta ?? row.text : undefined,
+      content: row.content,
+      errorCode: row.error_code ?? row.errorCode,
+      errorMessage: row.error_message ?? row.errorMessage,
+      skillId: row.skill_id ?? row.skillId,
+      name: row.name,
+      versionId: row.version_id ?? row.versionId,
+      ...dataOverride,
+    };
+    return this.normalizeEvent({ event, data });
+  }
+
   private parseUserFiles(value: unknown): Array<Pick<ConversationFileReference, 'fileName'>> {
     if (!value) {
       return [];
@@ -1007,13 +1142,74 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
     }
   }
 
+  private parseArtifacts(value: unknown, executionId: string): ConversationArtifactReference[] {
+    if (!value) {
+      return [];
+    }
+    try {
+      const parsed = typeof value === 'string' ? JSON.parse(value) : value;
+      return Array.isArray(parsed)
+        ? parsed.map((item) => this.toArtifact(item, executionId, String(item?.runId ?? item?.run_id ?? ''))).filter(Boolean) as ConversationArtifactReference[]
+        : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private toArtifact(value: any, fallbackExecutionId?: string, fallbackRunId?: string): ConversationArtifactReference | null {
+    const objectKey = value?.objectKey ?? value?.object_key;
+    const fileName = value?.fileName ?? value?.file_name;
+    if (!objectKey || !fileName) {
+      return null;
+    }
+    return {
+      objectKey,
+      fileName,
+      size: Number(value?.size ?? 0),
+      mediaType: value?.mediaType ?? value?.media_type ?? 'application/octet-stream',
+      checksum: value?.checksum ?? '',
+      executionId: value?.executionId ?? value?.execution_id ?? fallbackExecutionId ?? '',
+      runId: value?.runId ?? value?.run_id ?? fallbackRunId ?? '',
+      downloadState: 'idle',
+    };
+  }
+
+  public downloadArtifact(artifact: ConversationArtifactReference): void {
+    const conversationId = this.currentSession?.conversation_id;
+    if (!conversationId || artifact.downloadState === 'loading') {
+      return;
+    }
+    artifact.downloadState = 'loading';
+    this.conversationWorkspaceService.downloadArtifact(conversationId, artifact.objectKey)
+      .then((content) => {
+        artifact.downloadState = 'idle';
+        CommonUtils.downloadFile(content, artifact.fileName, true);
+        this.cdr.markForCheck();
+      })
+      .catch(() => {
+        artifact.downloadState = 'failed';
+        this.cdr.markForCheck();
+      });
+  }
+
+  public formatArtifactSize(size: number): string {
+    if (size < 1024) {
+      return `${size} B`;
+    }
+    if (size < 1024 * 1024) {
+      return `${(size / 1024).toFixed(1)} KB`;
+    }
+    return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  /** run 表 handoff 工具进入详情；主界面只展示 message。 */
   private rowToSegment(row: any): ChatSegment | null {
     const event = row.event ?? row.type;
     if (row.role === 'tool' || event === 'tool_call' || event === 'tool_result') {
       return {
         type: 'tool',
         content: this.displayValue(row.content ?? row.result ?? row.output),
-        toolId: row.tool_id ?? row.toolId,
+        toolId: row.tool_call_id ?? row.toolCallId ?? row.tool_id ?? row.toolId,
         toolName: row.tool_name ?? row.toolName,
         arguments: row.arguments,
         toolStatus: row.status,
@@ -1181,11 +1377,45 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
           this.currentSession = { ...this.currentSession!, title: detail?.title ?? '' };
         }
         this.cdr.markForCheck();
+        this.scheduleHistoryScrollToBottom();
       })
       .catch(() => void 0);
   }
 
+  /** 历史详情和 Markdown 均完成布局后，稳定定位到最新一轮。 */
+  private scheduleHistoryScrollToBottom(): void {
+    this.cancelHistoryScrollRestore();
+    const view = this.document.defaultView;
+    if (!view) {
+      return;
+    }
+    const firstFrame = view.requestAnimationFrame(() => {
+      this.historyScrollFrameIds = this.historyScrollFrameIds.filter((id) => id !== firstFrame);
+      const secondFrame = view.requestAnimationFrame(() => {
+        this.historyScrollFrameIds = this.historyScrollFrameIds.filter((id) => id !== secondFrame);
+        if (this.destroyed) {
+          return;
+        }
+        const list = this.messageList?.nativeElement;
+        if (list) {
+          list.scrollTop = list.scrollHeight;
+        }
+      });
+      this.historyScrollFrameIds.push(secondFrame);
+    });
+    this.historyScrollFrameIds.push(firstFrame);
+  }
+
+  private cancelHistoryScrollRestore(): void {
+    const view = this.document.defaultView;
+    if (view) {
+      this.historyScrollFrameIds.forEach((id) => view.cancelAnimationFrame(id));
+    }
+    this.historyScrollFrameIds = [];
+  }
+
   private invalidateDetailRequests(): void {
+    this.cancelHistoryScrollRestore();
     this.detailRequestId += 1;
   }
 

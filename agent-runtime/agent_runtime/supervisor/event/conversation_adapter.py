@@ -34,10 +34,25 @@ def _answer(data: dict) -> dict:
 
 
 def _text(data: dict) -> str:
-    for key in ("delta", "content", "text", "output", "answer"):
+    for key in ("delta", "content", "text", "output", "answer", "question", "message"):
         value = data.get(key)
         if isinstance(value, str) and value:
             return value
+        if isinstance(value, dict):
+            nested = _text(value)
+            if nested:
+                return nested
+        if isinstance(value, list):
+            parts = []
+            for item in value:
+                if isinstance(item, str) and item:
+                    parts.append(item)
+                elif isinstance(item, dict):
+                    nested = _text(item)
+                    if nested:
+                        parts.append(nested)
+            if parts:
+                return "\n".join(parts)
     return ""
 
 
@@ -57,8 +72,18 @@ def adapt_runner_event(
     raw_event = str(payload.get(F.EVENT, ""))
     data = _answer(_data(payload.get(F.DATA)))
     event: T | None = None
-    canonical_run_id = payload.get(F.RUN_ID) or data.get(F.RUN_ID) or run_id
-    canonical_parent_run_id = payload.get(F.PARENT_RUN_ID) or data.get(F.PARENT_RUN_ID) or parent_run_id
+    raw_execution_id = payload.get(F.EXECUTION_ID) or data.get(F.EXECUTION_ID)
+    canonical_run_id = (
+        payload.get(F.RUN_ID)
+        or data.get(F.RUN_ID)
+        or raw_execution_id
+        or run_id
+    )
+    canonical_parent_run_id = (
+        payload.get(F.PARENT_RUN_ID)
+        or data.get(F.PARENT_RUN_ID)
+        or (run_id if canonical_run_id != run_id else parent_run_id)
+    )
     canonical_execution_type = payload.get(F.EXECUTION_TYPE) or data.get(F.EXECUTION_TYPE) or execution_type
     event_data: dict[str, Any] = {
         F.RUN_ID: canonical_run_id,
@@ -70,13 +95,19 @@ def adapt_runner_event(
         if value is not None:
             event_data[field] = value
 
-    if raw_event in {"message", "message_end"}:
+    if raw_event in {"start", "task_start"}:
+        event = T.RUN_START
+        event_data.update({"status": "running", "controllerEvent": raw_event})
+    elif raw_event in {"message", "message_end"}:
         if data.get("isReasoning") or data.get("think"):
             event = T.REASONING
             event_data["content"] = data.get("think") or data.get("content") or ""
         else:
             event = T.MESSAGE
             event_data["delta"] = _text(data)
+    elif raw_event == T.REASONING.value:
+        event = T.REASONING
+        event_data["content"] = _text(data)
     elif raw_event in {"function_call", "pe_function_call"}:
         call = data.get("function_call") or data.get("functionCall") or data
         if not isinstance(call, dict):
@@ -109,18 +140,75 @@ def adapt_runner_event(
     elif raw_event in {"usage", "llm_usage", T.USAGE.value}:
         event = T.USAGE
         event_data["usage"] = data.get("usage") or data.get("usage_metadata") or data
-    elif raw_event in {"done", "task_complete", "run_end"}:
+    elif raw_event in {"done", "run_end", "task_end"}:
         event = T.RUN_END
-        event_data.update({"status": str(data.get("status") or "success")})
+        event_data.update(
+            {
+                "status": str(data.get("status") or "success"),
+                "controllerEvent": raw_event,
+            }
+        )
         text = _text(data)
         if text:
             event_data["text"] = text
-    elif raw_event in {"error", "exception", "task_terminated"}:
+    elif raw_event in {
+        "error",
+        "exception",
+        "task_terminated",
+        "agent_interrupted",
+    }:
         event = T.ERROR
-        event_data.update({"code": data.get("code") or raw_event, "message": str(data.get("message") or data.get("error") or data)})
-    elif raw_event in {"workflow_node_message", "workflow_node"}:
+        event_data.update(
+            {
+                "code": data.get("code") or raw_event,
+                "message": str(
+                    data.get("message") or data.get("reason") or data.get("error") or data
+                ),
+                "controllerEvent": raw_event,
+            }
+        )
+    elif raw_event in {"waiting_user_input", "intermediate_message"}:
+        event = T.MESSAGE
+        event_data.update(
+            {
+                "delta": _text(data),
+                "status": raw_event,
+                "controllerEvent": raw_event,
+            }
+        )
+    elif raw_event in {
+        "workflow_start",
+        "workflow_end",
+        "workflow_node_message",
+        "workflow_node",
+        "agent_node_message",
+        "agent_handoff",
+        "scene_match",
+        "plan_end",
+        "step_start",
+        "step_end",
+        "task_complete",
+        "statistic_data",
+        "summary_response",
+    }:
         event = T.WORKFLOW_NODE
-        event_data.update({F.NODE_ID: data.get("nodeId") or data.get("node_id"), "content": _text(data)})
+        target_agent = data.get("target_agent")
+        event_data.update(
+            {
+                F.NODE_ID: (
+                    data.get("nodeId")
+                    or data.get("node_id")
+                    or data.get("task_id")
+                    or data.get("step_id")
+                    or data.get("workflow_id")
+                ),
+                F.WORKFLOW_ID: data.get("workflowId") or data.get("workflow_id"),
+                "content": _text(data),
+                "status": raw_event,
+                "controllerEvent": raw_event,
+                "targetAgent": target_agent if isinstance(target_agent, dict) else None,
+            }
+        )
     else:
         return None
 

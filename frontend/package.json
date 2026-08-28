@@ -15,7 +15,8 @@
     "build": "ng build",
     "lint:es": "pnpm exec eslint --fix --cache --cache-location ./.cache/eslint/ --cache-strategy content ./",
     "lint:style": "pnpm exec stylelint --fix --cache --cache-location ./.cache/stylelint/ --cache-strategy content \"**/*.{scss,html}\"",
-    "test": "jest"
+    "test": "ng test --watch=false --browsers=ChromeHeadless",
+    "test:conversation": "ng test --watch=false --browsers=ChromeHeadless --ts-config=src/test/tsconfig.conversation.spec.json --include=src/routes/conversation-workspace/conversation-workspace.component.spec.ts --include=src/routes/conversation-workspace/skill-selector/skill-selector.component.spec.ts"
   },
   "dependencies": {
     "@angular/animations": "20.3.25",

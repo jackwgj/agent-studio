@@ -14,6 +14,7 @@ class ConversationEventType(str, Enum):
     WORKFLOW_NODE = "workflow_node"
     RUN_NODE = "workflow_node"  # backward-compatible name
     SKILL_ACTIVATED = "skill_activated"
+    ARTIFACT = "artifact"
     USAGE = "usage"
 
 
@@ -29,5 +30,14 @@ class ConversationEventField:
     NODE_ID = "nodeId"
     TOOL_ID = "toolId"
     TOOL_NAME = "toolName"
+    SKILL_ID = "skillId"
+    NAME = "name"
+    VERSION_ID = "versionId"
+    OBJECT_KEY = "objectKey"
+    FILE_NAME = "fileName"
+    SIZE = "size"
+    MEDIA_TYPE = "mediaType"
+    CHECKSUM = "checksum"
+    EXECUTION_ID = "executionId"
     INDEX = "index"
     CREATED_TIME = "createdTime"

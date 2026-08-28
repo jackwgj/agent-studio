@@ -384,6 +384,7 @@ class ReactStreamDataAdapter:
                         "answer": {
                             "role": "function",
                             "name": plugin_name,
+                            "tool_call_id": invoke_id,
                             "content": {
                                 "error_code": output_data.get("errCode", 0) if isinstance(output_data, dict) else 0,
                                 "result": output_data.get("data", {}) if isinstance(output_data, dict) else output_data,
