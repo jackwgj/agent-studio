@@ -10,6 +10,7 @@ export interface ISSEvent extends CustomEvent {
   source?: any;
   readyState?: number;
   data?: any;
+  eventName?: string;
   id?: string | number;
 }
 
@@ -39,6 +40,8 @@ export class SSE {
   private listeners: Record<string, EventListener[]>;
 
   private xhr: XMLHttpRequest;
+
+  private streamCompleted = false;
 
   private readyState: number;
 
@@ -165,14 +168,24 @@ export class SSE {
     return true;
   };
 
+  private emitDone(): void {
+    if (this.streamCompleted) {
+      return;
+    }
+    this.streamCompleted = true;
+    this.dispatchEvent(new CustomEvent('done'));
+  }
+
   close() {
     if (this.readyState === this.CLOSED) {
       return;
     }
 
-    this.xhr.abort();
+    const xhr = this.xhr;
     this.xhr = null;
     this.setReadyStatus(this.CLOSED);
+    xhr?.abort();
+    this.listeners = {};
   }
 
   stream = () => {
@@ -212,6 +225,7 @@ export class SSE {
     // query发送的当前时间
     this.requestStartTime = new Date();
     this.firstTokenReceived = false;
+    this.streamCompleted = false;
 
     // 附带一个定时器处理成功状态的流式接口返回超时问题
     this.addTimer(this.streamFirstChunkTimeout);
@@ -295,6 +309,7 @@ export class SSE {
     this.chunk = '';
     try {
       this.dispatchEvent(tailChunk);
+      this.emitDone();
     } catch (err) {
       console.error('[SSE] event listener error:', err);
     }
@@ -331,17 +346,18 @@ export class SSE {
       if (field === 'data') {
         e.data += value;
       }
+      if (field === 'event') {
+        e.event = value;
+      }
     });
 
     let event: ISSEvent;
-    if (
-      e.data === '[DONE]' ||
-      this.isDebugRunCompleted(e.data) ||
-      e.data === '[Done]'
-    ) {
+    if (e.data === '[DONE]' || this.isDebugRunCompleted(e.data) || e.data === '[Done]') {
       event = new CustomEvent('done');
+      this.streamCompleted = true;
     } else {
       event = new CustomEvent('message');
+      event.eventName = e.event;
       // message 类型还需要检查是否是流式报错，统一拦截
       try {
         const eventData = JSON.parse(e.data);

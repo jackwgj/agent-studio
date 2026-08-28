@@ -50,6 +50,8 @@ interface ChatMessage {
   runs: ConversationRunNode[];
   loading?: boolean;
   error?: boolean;
+  errorCode?: string;
+  errorMessage?: string;
 }
 
 interface ActivatedSkill {
@@ -66,6 +68,8 @@ interface ConversationAttempt {
   query: string;
   inputSnapshot: string;
   recommendationSnapshot: ConversationSkillItem[];
+  executionTarget?: ConversationExecutionTarget;
+  modelSnapshot: string;
   phase: 'creating' | 'running';
   opened: boolean;
   settled: boolean;
@@ -417,15 +421,17 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
     const inputSnapshot = this.inputText;
     const query = inputSnapshot.trim();
     const recommendationSnapshot = [...this.recommendedSkills];
-    const target = this.executionTargets.find((item) => item.id === this.selectedExecutionTarget);
-    if (!query || this.isSending || !target || (target.type === 'SUPERVISOR' && !this.selectedModel)) {
+    const selectedTarget = this.executionTargets.find(
+      (target) => target.id === this.selectedExecutionTarget,
+    );
+    if (!query || this.isSending || !selectedTarget || (selectedTarget.type === 'SUPERVISOR' && !this.selectedModel)) {
       return;
     }
     if (!this.currentSession?.conversation_id) {
       this.clearPendingRouteConversation();
       this.clearPendingActiveSession();
     }
-    const attempt = this.createAttempt(query, inputSnapshot, recommendationSnapshot);
+    const attempt = this.createAttempt(query, inputSnapshot, recommendationSnapshot, selectedTarget);
     if (!this.currentSession?.conversation_id) {
       this.conversationWorkspaceService
         .createSession({ title: this.currentSession?.title ?? '' })
@@ -558,6 +564,7 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
     query: string,
     inputSnapshot: string,
     recommendationSnapshot: ConversationSkillItem[],
+    executionTarget?: ConversationExecutionTarget,
   ): ConversationAttempt {
     const attempt: ConversationAttempt = {
       id: ++this.nextAttemptId,
@@ -566,6 +573,8 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
       query,
       inputSnapshot,
       recommendationSnapshot,
+      executionTarget,
+      modelSnapshot: this.selectedModel,
       phase: this.currentSession?.conversation_id ? 'running' : 'creating',
       opened: false,
       settled: false,
@@ -599,16 +608,13 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
     this.cdr.markForCheck();
 
     let source: { close?: () => void } | undefined;
-    const selectedTarget = this.executionTargets.find(
-      (target) => target.id === this.selectedExecutionTarget,
-    );
     const request: ConversationSendRequest = {
       query: attempt.query,
       recommended_skill_ids: attempt.recommendationSnapshot.map((item) => item.skillId),
-      select_type: selectedTarget?.type === 'SUPERVISOR' ? 'SUPERVISOR' : 'APP',
-      ...(selectedTarget?.type === 'SUPERVISOR'
-        ? { model_deployment_id: this.selectedModel }
-        : { app_id: selectedTarget?.id }),
+      select_type: attempt.executionTarget?.type === 'SUPERVISOR' ? 'SUPERVISOR' : 'APP',
+      ...(attempt.executionTarget?.type === 'SUPERVISOR'
+        ? { model_deployment_id: attempt.modelSnapshot }
+        : { app_id: attempt.executionTarget?.id }),
       ...this.buildFileReferences(),
     };
     try {
@@ -698,8 +704,13 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
   /** 实时流与历史恢复共用同一 canonical reducer，避免刷新前后视图语义漂移。 */
   private handleMessage(token: any, assistantMsg: ChatMessage): void {
     try {
-      const parsed = this.normalizeEvent(JSON.parse(token.data) as ConversationEvent);
-      this.reduceCanonicalEvent(assistantMsg, parsed, true);
+      const parsed = JSON.parse(token.data) as ConversationEvent & Record<string, unknown>;
+      const event = (parsed.event ?? token.eventName) as ConversationEventType;
+      const data = this.normaliseEventData(parsed);
+      if (event === ConversationEventType.MESSAGE && data.role === 'user') {
+        return;
+      }
+      this.reduceCanonicalEvent(assistantMsg, { ...parsed, event, data } as ConversationEvent, true);
     } catch {
       // Ignore non-JSON sentinels such as [DONE].
     }
@@ -728,15 +739,28 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
   private reduceCanonicalEvent(assistantMsg: ChatMessage, parsed: ConversationEvent, realtime: boolean): void {
     const event = parsed.event;
     const d = parsed.data ?? {};
-    const run = this.ensureRun(assistantMsg, d, event === ConversationEventType.RUN_START);
+    const run = event === ConversationEventType.SKILL_ACTIVATED && d.runId
+      ? this.findRun(assistantMsg.runs ?? [], String(d.runId))
+      : [ConversationEventType.SKILL_ACTIVATED, ConversationEventType.USAGE, ConversationEventType.ARTIFACT]
+          .includes(event as ConversationEventType)
+        ? undefined
+        : this.ensureRun(assistantMsg, d, event === ConversationEventType.RUN_START);
     const isRoot = this.isRootRunEvent(assistantMsg, d);
     switch (event) {
         case ConversationEventType.RUN_START:
-          if (run) run.status = d.status ?? 'running';
+          if (run) {
+            this.mergeRunMetadata(run, d);
+          }
           break;
         case ConversationEventType.MESSAGE: {
+          if (d.role === 'user') {
+            break;
+          }
           const content = String(d.delta ?? d.content ?? d.text ?? '');
-          if (run && content) this.appendSegment(run.segments, 'message', content);
+          if (run && content) {
+            this.appendSegment(run.segments, 'message', content);
+            assistantMsg.loading = false;
+          }
           break;
         }
         case ConversationEventType.REASONING:
@@ -765,23 +789,29 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
         case ConversationEventType.WORKFLOW_NODE:
           if (run) run.workflowNodes.push({ nodeId: d.nodeId, nodeName: d.nodeName, nodeType: d.nodeType, nodeIndex: d.nodeIndex, status: d.status, input: d.input, output: d.output, content: d.content, errorCode: d.errorCode, errorMessage: d.errorMessage });
           break;
-        case ConversationEventType.ERROR:
+        case ConversationEventType.ERROR: {
           if (run) run.status = 'error';
           if (isRoot) {
-            assistantMsg.error = true;
-            assistantMsg.loading = false;
+            this.setAssistantError(assistantMsg, d);
             if (realtime) this.settleCanonicalRoot(assistantMsg, 'failed');
           }
           break;
-        case ConversationEventType.RUN_END:
+        }
+        case ConversationEventType.RUN_END: {
           if (run) run.status = d.status ?? 'completed';
+          const content = String(d.delta ?? d.content ?? d.text ?? '');
+          if (run && content) {
+            this.appendSegment(run.segments, 'message', content);
+          }
           if (isRoot) {
             const failed = !['success', 'completed', 'done'].includes(String(d.status ?? 'success').toLowerCase());
             assistantMsg.loading = false;
             assistantMsg.error = failed;
+            if (failed) this.setAssistantError(assistantMsg, d);
             if (realtime) this.settleCanonicalRoot(assistantMsg, failed ? 'failed' : 'done');
           }
           break;
+        }
         case ConversationEventType.SKILL_ACTIVATED:
           if (d.skillId) {
             const activation = { skillId: String(d.skillId), name: String(d.name ?? d.skillId), versionId: String(d.versionId ?? '') };
@@ -820,25 +850,135 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
     return !String(data.parentRunId ?? run?.parentRunId ?? '');
   }
 
+  private normaliseEventData(parsed: ConversationEvent & Record<string, unknown>): any {
+    const hasDataObject = parsed.data && typeof parsed.data === 'object';
+    const data = hasDataObject ? { ...(parsed.data as any) } : { ...(parsed as any) };
+    delete data.event;
+    delete data.data;
+    const envelope = parsed as any;
+    const aliases: Array<[string, string]> = [
+      ['runId', 'run_id'],
+      ['parentRunId', 'parent_run_id'],
+      ['toolId', 'tool_id'],
+      ['toolName', 'tool_name'],
+      ['executionType', 'execution_type'],
+      ['agentId', 'agent_id'],
+      ['workflowId', 'workflow_id'],
+      ['nodeId', 'node_id'],
+      ['nodeName', 'node_name'],
+      ['nodeType', 'node_type'],
+      ['nodeIndex', 'node_index'],
+      ['errorCode', 'error_code'],
+      ['errorMessage', 'error_message'],
+    ];
+    aliases.forEach(([camel, snake]) => {
+      if (data[camel] == null && data[snake] != null) data[camel] = data[snake];
+      if (data[camel] == null && envelope[camel] != null) data[camel] = envelope[camel];
+      if (data[camel] == null && envelope[snake] != null) data[camel] = envelope[snake];
+    });
+    return data;
+  }
+
+  private setAssistantError(message: ChatMessage, data: any): void {
+    message.error = true;
+    message.loading = false;
+    const code = data.errorCode ?? data.code;
+    const detail = data.errorMessage ?? data.message;
+    if (code != null) message.errorCode = String(code);
+    if (detail != null) message.errorMessage = String(detail);
+  }
+
+  private settleAttemptForMessage(message: ChatMessage, outcome: 'done' | 'failed'): void {
+    const attempt = this.activeAttempt;
+    if (attempt?.assistantMsg === message) {
+      this.settleRun(attempt, outcome);
+    }
+  }
+
   private ensureRun(message: ChatMessage, data: any, createRoot = false): ConversationRunNode | undefined {
-    const runId = data.runId ? String(data.runId) : (createRoot ? `legacy-${message.runs.length + 1}` : this.rootRunId(message));
-    if (!runId) return undefined;
+    message.runs ??= [];
+    message.segments ??= [];
+    message.detailSegments ??= [];
+    const explicitRunId = data.runId != null && String(data.runId) ? String(data.runId) : undefined;
+    const temporaryRoot = explicitRunId && createRoot
+      ? message.runs.find((candidate) => candidate.runId.startsWith('legacy-root-') && !candidate.parentRunId)
+      : undefined;
+    if (temporaryRoot) {
+      temporaryRoot.runId = explicitRunId;
+      this.mergeRunMetadata(temporaryRoot, data);
+      this.reconcileChildren(message, temporaryRoot);
+      return temporaryRoot;
+    }
+    const runId = explicitRunId ?? this.rootRunId(message) ?? `legacy-root-${message.runs.length + 1}`;
     const existing = this.findRun(message.runs, runId);
-    if (existing) return existing;
-    const run: ConversationRunNode = { runId, parentRunId: data.parentRunId ?? null, executionType: data.executionType ?? 'unknown', agentId: data.agentId, workflowId: data.workflowId, status: data.status ?? 'running', segments: [], detailSegments: [], workflowNodes: [], activatedSkills: [], children: [] };
-    if (run.parentRunId) {
-      const parent = this.findRun(message.runs, String(run.parentRunId));
-      if (parent) parent.children.push(run); else message.runs.push(run);
+    if (existing) {
+      this.mergeRunMetadata(existing, data);
+      this.reconcileRunPlacement(message, existing);
+      return existing;
+    }
+    const run: ConversationRunNode = {
+      runId,
+      parentRunId: data.parentRunId != null ? String(data.parentRunId) : null,
+      executionType: data.executionType ?? 'unknown',
+      agentId: data.agentId,
+      workflowId: data.workflowId,
+      status: data.status ?? 'running',
+      segments: [],
+      detailSegments: [],
+      workflowNodes: [],
+      activatedSkills: [],
+      children: [],
+    };
+    message.runs.push(run);
+    this.reconcileRunPlacement(message, run);
+    this.reconcileChildren(message, run);
+    return run;
+  }
+
+  private mergeRunMetadata(run: ConversationRunNode, data: any): void {
+    if (data.parentRunId !== undefined) run.parentRunId = data.parentRunId == null ? null : String(data.parentRunId);
+    if (data.executionType) run.executionType = data.executionType;
+    if (data.agentId) run.agentId = String(data.agentId);
+    if (data.workflowId) run.workflowId = String(data.workflowId);
+    if (data.status) run.status = String(data.status);
+  }
+
+  private reconcileRunPlacement(message: ChatMessage, run: ConversationRunNode): void {
+    this.detachRun(message, run);
+    const parent = run.parentRunId ? this.findRun(message.runs, String(run.parentRunId)) : undefined;
+    if (parent && parent !== run && !this.containsRun(run, parent)) {
+      parent.children.push(run);
     } else {
       message.runs.push(run);
-      for (const candidate of [...message.runs]) {
-        if (candidate !== run && candidate.parentRunId === run.runId) {
-          message.runs.splice(message.runs.indexOf(candidate), 1);
-          run.children.push(candidate);
-        }
+    }
+  }
+
+  private reconcileChildren(message: ChatMessage, parent: ConversationRunNode): void {
+    for (const candidate of this.flattenRuns(message.runs)) {
+      if (candidate !== parent && candidate.parentRunId === parent.runId) {
+        this.reconcileRunPlacement(message, candidate);
       }
     }
-    return run;
+  }
+
+  private detachRun(message: ChatMessage, target: ConversationRunNode): void {
+    const remove = (runs: ConversationRunNode[]): boolean => {
+      const index = runs.indexOf(target);
+      if (index >= 0) {
+        runs.splice(index, 1);
+        return true;
+      }
+      return runs.some((run) => remove(run.children));
+    };
+    remove(message.runs);
+  }
+
+  private containsRun(root: ConversationRunNode, target: ConversationRunNode): boolean {
+    return root === target || root.children.some((child) => this.containsRun(child, target));
+  }
+
+  private flattenRuns(runs: ConversationRunNode[]): ConversationRunNode[] {
+    return runs.flatMap((run) => [run, ...this.flattenRuns(run.children)]);
   }
 
   private findRun(runs: ConversationRunNode[], runId: string): ConversationRunNode | undefined {
@@ -859,22 +999,94 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
   }
 
   private mapDetailToMessages(rows: any[]): ChatMessage[] {
-    const turns = new Map<string, ChatMessage>();
-    for (const row of rows ?? []) {
-      const executionId = row.execution_id ?? row.run_id ?? `legacy-${row.created_at ?? Math.random()}`;
-      let turn = turns.get(executionId);
-      if (!turn) { turn = { role: 'assistant', segments: [], detailSegments: [], runs: [] }; turns.set(executionId, turn); }
-      if (row.role === 'user') { turn.userContent = row.content ?? ''; turn.userFiles = this.parseUserFiles(row.file_ids ?? row.fileIds); continue; }
-      if (row.event === 'artifact') {
-        const artifacts = this.parseArtifacts(row.file_ids ?? row.fileIds, executionId);
+    const orderedRows = [...(rows ?? [])].sort((left, right) => this.compareHistoryRows(left, right));
+    const messages: ChatMessage[] = [];
+    let current: ChatMessage | undefined;
+    for (const row of orderedRows) {
+      if (row.role === 'user') {
+        current = { role: 'assistant', segments: [], detailSegments: [], runs: [] };
+        current.userContent = row.content ?? row.text ?? '';
+        current.userFiles = this.parseUserFiles(row.file_ids ?? row.fileIds);
+        messages.push(current);
+        continue;
+      }
+      if (!current) {
+        current = { role: 'assistant', segments: [], detailSegments: [], runs: [] };
+        messages.push(current);
+      }
+      if (row.event === ConversationEventType.ARTIFACT || row.type === ConversationEventType.ARTIFACT) {
+        const executionId = row.execution_id ?? row.executionId ?? row.run_id ?? row.runId ?? '';
+        const artifacts = this.parseArtifacts(row.file_ids ?? row.fileIds, String(executionId));
         for (const artifact of artifacts) {
-          this.reduceCanonicalEvent(turn, this.historyEvent(row, ConversationEventType.ARTIFACT, { ...artifact }), false);
+          this.reduceCanonicalEvent(current, this.historyEvent(row, ConversationEventType.ARTIFACT, { ...artifact }), false);
         }
         continue;
       }
-      this.reduceCanonicalEvent(turn, this.historyEvent(row), false);
+      const run = this.ensureRun(current, {
+        runId: this.historyRunId(row) ?? `legacy-run-${messages.length}`,
+        parentRunId: this.historyParentRunId(row),
+        executionType: row.execution_type ?? row.executionType,
+        agentId: row.agent_id ?? row.agentId,
+        workflowId: row.workflow_id ?? row.workflowId,
+        status: row.status,
+      });
+      if (!run) continue;
+      const seg = this.rowToSegment(row);
+      if (seg) {
+        if (seg.type === 'message') this.appendSegment(run.segments, 'message', seg.content);
+        else if (seg.type === 'reasoning') this.appendSegment(run.detailSegments, 'reasoning', seg.content);
+        else run.detailSegments.push(seg);
+      }
+      if (row.event === 'run_end' || row.type === 'run_end') {
+        const finalContent = row.content ?? row.text ?? row.delta;
+        if (finalContent) this.appendSegment(run.segments, 'message', String(finalContent));
+      }
+      if (row.node_id || row.nodeId) {
+        run.workflowNodes.push({
+          nodeId: row.node_id ?? row.nodeId,
+          nodeName: row.node_name ?? row.nodeName,
+          nodeType: row.node_type ?? row.nodeType,
+          nodeIndex: row.node_index ?? row.nodeIndex,
+          status: row.status,
+          input: row.input,
+          output: row.output,
+          content: row.content,
+          errorCode: row.error_code ?? row.errorCode,
+          errorMessage: row.error_message ?? row.errorMessage,
+        });
+      }
+      if (row.event === 'error' || row.type === 'error') {
+        this.setAssistantError(current, {
+          errorCode: row.error_code ?? row.errorCode ?? row.code,
+          errorMessage: row.error_message ?? row.errorMessage ?? row.message,
+        });
+      }
     }
-    return Array.from(turns.values());
+    return messages;
+  }
+
+  private historyRunId(row: any): string | undefined {
+    const value = row.run_id ?? row.runId;
+    return value == null || value === '' ? undefined : String(value);
+  }
+
+  private historyParentRunId(row: any): string | null {
+    const value = row.parent_run_id ?? row.parentRunId;
+    return value == null || value === '' ? null : String(value);
+  }
+
+  private compareHistoryRows(left: any, right: any): number {
+    const leftTime = this.historyTime(left);
+    const rightTime = this.historyTime(right);
+    if (leftTime != null && rightTime != null && leftTime !== rightTime) return leftTime - rightTime;
+    return 0;
+  }
+
+  private historyTime(row: any): number | null {
+    const value = row.created_time ?? row.createdTime ?? row.created_at ?? row.createdAt;
+    if (value == null) return null;
+    const timestamp = typeof value === 'number' ? value : Date.parse(String(value));
+    return Number.isFinite(timestamp) ? timestamp : null;
   }
 
   private historyEvent(row: any, eventOverride?: ConversationEventType, dataOverride?: Record<string, unknown>): ConversationEvent {
@@ -997,7 +1209,7 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
       return {
         type: 'tool',
         content: this.displayValue(row.content ?? row.result ?? row.output),
-        toolId: row.tool_id ?? row.toolId,
+        toolId: row.tool_call_id ?? row.toolCallId ?? row.tool_id ?? row.toolId,
         toolName: row.tool_name ?? row.toolName,
         arguments: row.arguments,
         toolStatus: row.status,

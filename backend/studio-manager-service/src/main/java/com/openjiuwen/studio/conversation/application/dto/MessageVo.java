@@ -69,6 +69,11 @@ public class MessageVo {
     @JsonProperty("node_id")
     private String nodeId;
 
+    /**
+     * Canonical ConversationEvent 的可选业务顺序元数据（事件 envelope 的 index）。
+     * 允许为空，仅用于后端明确提供稳定业务顺序时的辅助信息；它不是时间戳，
+     * 前端默认按事件到达/创建时间顺序展示，不应把 event_index 当作强制排序字段。
+     */
     @JsonProperty("event_index")
     private Long eventIndex;
 

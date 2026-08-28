@@ -197,6 +197,23 @@ describe('ConversationWorkspaceComponent', () => {
     }), jasmine.any(Object));
   });
 
+  it('数字员工不依赖模型也能发送 APP 请求', () => {
+    component.currentSession = session('c1');
+    component.executionTargets = [
+      { id: 'default-team', name: '默认团队', type: 'SUPERVISOR' },
+      { id: 'employee-1', name: '数字员工', type: 'SINGLE_AGENT' },
+    ];
+    component.selectedExecutionTarget = 'employee-1';
+    component.inputText = '执行任务';
+    component.selectedModel = '';
+
+    component.send();
+
+    expect(service.chatSSE).toHaveBeenCalledWith('c1', jasmine.objectContaining({
+      select_type: 'APP', app_id: 'employee-1',
+    }), jasmine.any(Object));
+  });
+
   it('上传中文文件名时独立传输UTF8文件名并保留本地展示名称', async () => {
     const originalName = 'Skill功能手工验证提示词.md';
     const mojibakeName = 'Skill鍔熻兘鎵嬪伐楠岃瘉鎻愮ず璇�.md';
@@ -471,6 +488,126 @@ describe('ConversationWorkspaceComponent', () => {
     ]);
   });
 
+  it('canonical 主 Agent message 即使缺少 runId 也渲染，并由 run_end 结束 loading', () => {
+    component.currentSession = session('c1');
+    component.inputText = '执行任务';
+    component.send();
+    const callbacks = service.chatSSE.calls.mostRecent().args[2];
+
+    callbacks.onMessage({ data: JSON.stringify({ event: 'message', data: { delta: '主结果' } }) });
+    callbacks.onMessage({ data: JSON.stringify({ event: 'run_end', data: { status: 'completed' } }) });
+
+    expect(component.messages[0].runs[0].segments).toEqual([{ type: 'message', content: '主结果' }]);
+    expect(component.messages[0].loading).toBeFalse();
+    expect(component.isSending).toBeFalse();
+  });
+
+  it('首个无 runId 的主消息随后收到正式 run_start 时仍保留在同一主运行', () => {
+    const assistant: any = { role: 'assistant', segments: [], detailSegments: [], runs: [], loading: true };
+    component.messages = [assistant];
+
+    dispatchSse(component, assistant, { event: 'message', data: { delta: '首段' } });
+    dispatchSse(component, assistant, { event: 'run_start', data: { runId: 'root', executionType: 'supervisor' } });
+    dispatchSse(component, assistant, { event: 'message', data: { runId: 'root', delta: '后段' } });
+
+    expect(assistant.runs).toHaveSize(1);
+    expect(assistant.runs[0]).toEqual(jasmine.objectContaining({
+      runId: 'root', segments: [{ type: 'message', content: '首段后段' }],
+    }));
+  });
+
+
+  it('canonical runId 和 toolId 驱动主运行渲染，子运行挂到 parentRunId', () => {
+    const assistant: any = { role: 'assistant', segments: [], detailSegments: [], runs: [], loading: true };
+    component.messages = [assistant];
+
+    dispatchSse(component, assistant, { event: 'run_start', data: { runId: 'root', executionType: 'supervisor' } });
+    dispatchSse(component, assistant, { event: 'message', data: { runId: 'root', delta: '主结果' } });
+    dispatchSse(component, assistant, { event: 'tool_call', data: { runId: 'root', toolId: 'tool-1', toolName: 'search' } });
+    dispatchSse(component, assistant, { event: 'tool_result', data: { runId: 'root', toolId: 'tool-1', result: '工具结果' } });
+    dispatchSse(component, assistant, { event: 'run_start', data: { runId: 'child', parentRunId: 'root', executionType: 'agent', agentId: 'agent-1' } });
+    dispatchSse(component, assistant, { event: 'message', data: { runId: 'child', parentRunId: 'root', delta: '子结果' } });
+
+    expect(assistant.runs).toHaveSize(1);
+    expect(assistant.runs[0].runId).toBe('root');
+    expect(assistant.runs[0].segments).toEqual([{ type: 'message', content: '主结果' }]);
+    expect(assistant.runs[0].detailSegments[0]).toEqual(jasmine.objectContaining({ type: 'tool', toolId: 'tool-1', content: '工具结果' }));
+    expect(assistant.runs[0].children[0].segments).toEqual([{ type: 'message', content: '子结果' }]);
+  });
+
+  it('子运行先到且主消息无 runId 时，主消息不会写入孤儿子运行', () => {
+    const assistant: any = { role: 'assistant', segments: [], detailSegments: [], runs: [], loading: true };
+    component.messages = [assistant];
+
+    dispatchSse(component, assistant, { event: 'message', data: {
+      runId: 'child', parentRunId: 'root', delta: '子结果',
+    } });
+    dispatchSse(component, assistant, { event: 'message', data: { delta: '主结果' } });
+    dispatchSse(component, assistant, { event: 'run_start', data: {
+      runId: 'root', executionType: 'supervisor',
+    } });
+
+    expect(assistant.runs).toHaveSize(1);
+    expect(assistant.runs[0].segments).toEqual([{ type: 'message', content: '主结果' }]);
+    expect(assistant.runs[0].children[0].segments).toEqual([{ type: 'message', content: '子结果' }]);
+  });
+
+
+  it('子运行先到且缺少父节点时，后续 run_start 会重新挂载', () => {
+    const assistant: any = { role: 'assistant', segments: [], detailSegments: [], runs: [], loading: true };
+    component.messages = [assistant];
+
+    dispatchSse(component, assistant, { event: 'message', data: { runId: 'child', parentRunId: 'root', delta: '子结果' } });
+    dispatchSse(component, assistant, { event: 'run_start', data: { runId: 'root', executionType: 'supervisor' } });
+
+    expect(assistant.runs.map((run: any) => run.runId)).toEqual(['root']);
+    expect(assistant.runs[0].children[0]).toEqual(jasmine.objectContaining({ runId: 'child', parentRunId: 'root', segments: [{ type: 'message', content: '子结果' }] }));
+  });
+
+  it('canonical error 展示 code/message 并释放当前 attempt', () => {
+    component.currentSession = session('c1');
+    component.inputText = '执行任务';
+    component.send();
+    const callbacks = service.chatSSE.calls.mostRecent().args[2];
+
+    callbacks.onMessage({ data: JSON.stringify({ event: 'error', data: { code: 'RUN_FAILED', message: '模型调用失败' } }) });
+
+    expect(component.messages[0]).toEqual(jasmine.objectContaining({ error: true, errorCode: 'RUN_FAILED', errorMessage: '模型调用失败', loading: false }));
+    expect(component.isSending).toBeFalse();
+  });
+
+  it('主与子 Agent 的交错工具结果按 toolId 精确回填且互不串写', () => {
+    const assistant: any = { role: 'assistant', segments: [], detailSegments: [], runs: [], loading: true };
+    component.messages = [assistant];
+    dispatchSse(component, assistant, { event: 'run_start', data: { runId: 'root' } });
+    dispatchSse(component, assistant, { event: 'run_start', data: { runId: 'child', parentRunId: 'root' } });
+
+    dispatchSse(component, assistant, { event: 'tool_call', data: { runId: 'root', toolId: 'main-a', toolName: 'mainA' } });
+    dispatchSse(component, assistant, { event: 'tool_call', data: { runId: 'child', toolId: 'sub-a', toolName: 'subA' } });
+    dispatchSse(component, assistant, { event: 'tool_result', data: { runId: 'child', toolId: 'sub-a', result: 'sub-result-a' } });
+    dispatchSse(component, assistant, { event: 'tool_result', data: { runId: 'root', toolId: 'main-a', result: 'main-result-a' } });
+
+    expect(assistant.runs[0].detailSegments[0]).toEqual(jasmine.objectContaining({ toolId: 'main-a', content: 'main-result-a' }));
+    expect(assistant.runs[0].children[0].detailSegments[0]).toEqual(jasmine.objectContaining({ toolId: 'sub-a', content: 'sub-result-a' }));
+  });
+
+  it('历史详情按创建时间恢复轮次段和 parentRunId 运行树', () => {
+    const messages = (component as any).mapDetailToMessages([
+      { role: 'assistant', event: 'message', content: '答案后半', execution_id: 'exec-1', run_id: 'root', created_at: '2026-08-27T10:00:03.000Z' },
+      { role: 'user', content: '问题', execution_id: 'exec-1', created_at: '2026-08-27T10:00:00.000Z' },
+      { role: 'assistant', event: 'run_start', execution_id: 'exec-1', run_id: 'root', execution_type: 'supervisor', created_at: '2026-08-27T10:00:01.000Z' },
+      { role: 'assistant', event: 'message', content: '答案前半', execution_id: 'exec-1', run_id: 'root', created_at: '2026-08-27T10:00:02.000Z' },
+      { role: 'assistant', event: 'workflow_node', execution_id: 'exec-1', run_id: 'root', node_id: 'node-1', node_name: '检索', status: 'completed', created_at: '2026-08-27T10:00:04.000Z' },
+      { role: 'assistant', event: 'run_start', execution_id: 'exec-1', run_id: 'child', parent_run_id: 'root', agent_id: 'agent-1', created_at: '2026-08-27T10:00:05.000Z' },
+    ]);
+
+    expect(messages).toHaveSize(1);
+    expect(messages[0].userContent).toBe('问题');
+    expect(messages[0].runs[0].segments).toEqual([{ type: 'message', content: '答案前半答案后半' }]);
+    expect(messages[0].runs[0].workflowNodes[0]).toEqual(jasmine.objectContaining({ nodeId: 'node-1', nodeName: '检索' }));
+    expect(messages[0].runs[0].children[0]).toEqual(jasmine.objectContaining({ runId: 'child', agentId: 'agent-1' }));
+  });
+
   it('刷新历史详情后从持久 file_ids 恢复正式产物', () => {
     const messages = (component as any).mapDetailToMessages([{
       role: 'assistant', event: 'artifact', execution_id: 'exec-1',
@@ -700,9 +837,8 @@ describe('ConversationWorkspaceComponent', () => {
     component.send();
     await Promise.resolve();
     const callbacks = service.chatSSE.calls.mostRecent().args[2];
-    callbacks.onMessage({ data: JSON.stringify({ event: 'run_start', data: { runId: 'root-1', executionType: 'supervisor' } }) });
-    callbacks.onMessage({ data: JSON.stringify({ event: 'message', data: { runId: 'root-1', delta: '流式文本' } }) });
-    callbacks.onMessage({ data: JSON.stringify({ event: 'run_end', data: { runId: 'root-1', status: 'success' } }) });
+    callbacks.onMessage({ data: JSON.stringify({ event: 'message', data: { delta: '流式文本' } }) });
+    callbacks.onMessage({ data: JSON.stringify({ event: 'run_end', data: { text: '最终文本', status: 'completed' } }) });
     oldDetail.resolve({ messages: [] });
     await Promise.resolve();
 
@@ -710,12 +846,10 @@ describe('ConversationWorkspaceComponent', () => {
     expect(component.messages).toEqual([
       jasmine.objectContaining({
         userContent: '整理会议',
-        runs: [jasmine.objectContaining({
-          runId: 'root-1',
-          segments: [{ type: 'message', content: '流式文本' }],
-          status: 'success',
-        })],
         loading: false,
+        runs: [jasmine.objectContaining({
+          segments: [{ type: 'message', content: '流式文本最终文本' }],
+        })],
       }),
     ]);
   });
@@ -727,12 +861,18 @@ describe('ConversationWorkspaceComponent', () => {
 
     service.activeSession$.next(session('c1'));
     service.activeSession$.next(session('c2'));
-    c2.resolve({ messages: [{ role: 'assistant', event: 'message', content: 'c2', execution_id: 'e2', run_id: 'root-2', execution_type: 'supervisor' }] });
+    c2.resolve({ messages: [
+      { role: 'user', content: '问题2', execution_id: 'e2', created_at: '2026-08-27T10:00:00.000Z' },
+      { role: 'assistant', event: 'message', content: 'c2', run_id: 'r2', created_at: '2026-08-27T10:00:01.000Z' },
+    ] });
     await Promise.resolve();
-    c1.resolve({ messages: [{ role: 'assistant', event: 'message', content: 'c1', execution_id: 'e1', run_id: 'root-1', execution_type: 'supervisor' }] });
+    c1.resolve({ messages: [
+      { role: 'user', content: '问题1', execution_id: 'e1', created_at: '2026-08-27T10:00:00.000Z' },
+      { role: 'assistant', event: 'message', content: 'c1', run_id: 'r1', created_at: '2026-08-27T10:00:01.000Z' },
+    ] });
     await Promise.resolve();
 
-    expect(component.messages.map((message: any) => message.runs[0].segments)).toEqual([
+    expect(component.messages.map((message: any) => message.runs[0]?.segments)).toEqual([
       [{ type: 'message', content: 'c2' }],
     ]);
   });
@@ -1119,6 +1259,8 @@ describe('ConversationWorkspaceComponent', () => {
     window.dispatchEvent(new Event('WorkspaceChange'));
     markForCheck.calls.reset();
     component.ngOnDestroy();
+    markForCheck.calls.reset();
+    markForCheck.and.callFake(() => { throw new Error('markForCheck after destroy'); });
     navigation.resolve(false);
     await Promise.resolve();
 
@@ -1133,6 +1275,7 @@ describe('ConversationWorkspaceComponent', () => {
     window.dispatchEvent(new Event('WorkspaceChange'));
     markForCheck.calls.reset();
     component.ngOnDestroy();
+    markForCheck.calls.reset();
     navigation.reject(new Error('navigation rejected'));
     await Promise.resolve();
 
@@ -1147,6 +1290,7 @@ describe('ConversationWorkspaceComponent', () => {
     const unavailableBefore = component.skillCatalogUnavailable;
     (component as any).loadSkillCatalog();
     component.ngOnDestroy();
+    markForCheck.calls.reset();
     catalog.resolve([skill('late')]);
     await Promise.resolve();
 
@@ -1163,6 +1307,7 @@ describe('ConversationWorkspaceComponent', () => {
     const unavailableBefore = component.skillCatalogUnavailable;
     (component as any).loadSkillCatalog();
     component.ngOnDestroy();
+    markForCheck.calls.reset();
     catalog.reject(new Error('late catalog failure'));
     await Promise.resolve();
 
