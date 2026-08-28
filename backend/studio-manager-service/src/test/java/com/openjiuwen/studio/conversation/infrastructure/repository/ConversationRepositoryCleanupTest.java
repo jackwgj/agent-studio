@@ -19,7 +19,8 @@ class ConversationRepositoryCleanupTest {
         ConversationEntityRepository entities = mock(ConversationEntityRepository.class);
         when(entities.markDeletedAndPendingCleanup(eq("c1"), any())).thenReturn(1);
         ConversationRepositoryImpl repository = new ConversationRepositoryImpl(entities,
-            mock(ConversationRunEntityRepository.class), mock(ConversationSubRunEntityRepository.class));
+            mock(ConversationRunEntityRepository.class), mock(ConversationSubRunEntityRepository.class),
+            mock(ConversationWorkflowEntityRepository.class));
 
         repository.softDeleteAndScheduleCleanup("c1");
 
@@ -32,7 +33,8 @@ class ConversationRepositoryCleanupTest {
         when(entities.markDeletedAndPendingCleanup(eq("c1"), any()))
             .thenThrow(new IllegalStateException("database unavailable"));
         ConversationRepositoryImpl repository = new ConversationRepositoryImpl(entities,
-            mock(ConversationRunEntityRepository.class), mock(ConversationSubRunEntityRepository.class));
+            mock(ConversationRunEntityRepository.class), mock(ConversationSubRunEntityRepository.class),
+            mock(ConversationWorkflowEntityRepository.class));
 
         assertThrows(IllegalStateException.class, () -> repository.softDeleteAndScheduleCleanup("c1"));
     }

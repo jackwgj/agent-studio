@@ -14,7 +14,6 @@ from agent_runtime.conversation.output_artifact_publisher import (
 from agent_runtime.serve.apis import conversation_team as conversation_team_module
 from agent_runtime.serve.apis import conversation_team_app as conversation_team_app_module
 from agent_runtime.serve.apis.conversation_team import ConversationTeamReq, team_sse_stream
-from agent_runtime.supervisor import runner as runner_module
 from agent_runtime.supervisor.event.channel import (
     EventChannel,
     get_channel,
@@ -180,7 +179,7 @@ async def test_team_stream_prepares_inputs_before_building_agent_and_only_passes
     prepare.assert_awaited_once_with(req.file_ids)
     assert captured["file_references"] == [{"fileName": "report.pdf", "path": prepared_path}]
     assert "url" not in captured["file_references"][0]
-    assert events[-1]["event"] == "message"
+    assert [event["event"] for event in events[-2:]] == ["message", "run_end"]
 
 
 @pytest.mark.asyncio
@@ -200,19 +199,19 @@ async def test_team_stream_returns_standard_error_when_input_preparation_fails(m
 
     assert len(events) == 1
     assert events[0]["event"] == "error"
-    assert events[0]["executionId"] == "input-execution"
+    assert events[0]["runId"] == "input-execution"
     assert events[0]["index"] == 0
     assert "input preparation rejected" in events[0]["data"]["message"]
 
 
 @pytest.mark.asyncio
-async def test_team_stream_emits_artifact_after_upload_and_before_terminal_run_done(monkeypatch):
+async def test_team_stream_emits_artifact_after_upload_and_before_terminal_run_end(monkeypatch):
     async def build_config(**_kwargs):
         return SimpleNamespace()
 
     async def completed_runner(*_args):
         yield {"event": "message", "data": {"delta": "done"}}
-        yield {"event": "run_done", "data": {"text": "done"}}
+        yield {"event": "run_end", "data": {"status": "success", "text": "done"}}
 
     publish = AsyncMock(return_value=[PublishedConversationArtifact(
         object_key="conversation-artifacts/trusted/report.pdf",
@@ -237,25 +236,26 @@ async def test_team_stream_emits_artifact_after_upload_and_before_terminal_run_d
     )]
 
     assert [event["event"] for event in events[-3:]] == [
-        "message", "artifact", "run_done"
+        "message", "artifact", "run_end"
     ]
-    assert events[-2]["data"] == {
-        "objectKey": "conversation-artifacts/trusted/report.pdf",
-        "fileName": "report.pdf",
-        "size": 4,
-        "mediaType": "application/pdf",
-        "checksum": "0" * 64,
-    }
+    artifact = events[-2]
+    assert artifact["runId"] == "artifact-execution"
+    assert artifact["data"]["executionId"] == "artifact-execution"
+    assert artifact["data"]["objectKey"] == "conversation-artifacts/trusted/report.pdf"
+    assert artifact["data"]["fileName"] == "report.pdf"
+    assert artifact["data"]["size"] == 4
+    assert artifact["data"]["mediaType"] == "application/pdf"
+    assert artifact["data"]["checksum"] == "0" * 64
     publish.assert_awaited_once_with({})
 
 
 @pytest.mark.asyncio
-async def test_team_stream_does_not_emit_artifact_or_run_done_when_upload_fails(monkeypatch):
+async def test_team_stream_does_not_emit_artifact_or_run_end_when_upload_fails(monkeypatch):
     async def build_config(**_kwargs):
         return SimpleNamespace()
 
     async def completed_runner(*_args):
-        yield {"event": "run_done", "data": {"text": "done"}}
+        yield {"event": "run_end", "data": {"status": "success", "text": "done"}}
 
     monkeypatch.setattr(
         conversation_team_module, "build_conversation_supervisor_config", build_config
@@ -275,20 +275,20 @@ async def test_team_stream_does_not_emit_artifact_or_run_done_when_upload_fails(
 
     assert events[-1]["event"] == "error"
     assert "minio unavailable" in events[-1]["data"]["message"]
-    assert all(event["event"] not in {"artifact", "run_done"} for event in events)
+    assert all(event["event"] not in {"artifact", "run_end"} for event in events)
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("terminal", [False, True])
 async def test_runner_error_skips_output_publication_and_retains_failure_cleanup(monkeypatch, terminal):
-    """An emitted error must not become a second output error or successful run_done."""
+    """An emitted error must not become a second output error or successful run_end."""
     closed = []
 
     async def failed_runner(*_args):
         try:
             yield {"event": "error", "data": {"code": "103104", "message": "sandbox registration failed"}}
             if terminal:
-                yield {"event": "run_done", "data": {"text": ""}}
+                yield {"event": "run_end", "data": {"status": "success", "text": ""}}
         finally:
             closed.append(True)
 
@@ -301,7 +301,7 @@ async def test_runner_error_skips_output_publication_and_retains_failure_cleanup
     events = [json.loads(line.removeprefix("data: ")) async for line in team_sse_stream(
         ConversationTeamReq.model_validate(request_payload()), "registration-failure"
     )]
-    assert [e["event"] for e in events] == ["user_message", "run_start", "error"]
+    assert [e["event"] for e in events] == ["message", "run_start", "error"]
     assert events[-1]["data"]["message"] == "sandbox registration failed"
     assert closed == [True]
     publish.assert_not_awaited()
@@ -309,6 +309,38 @@ async def test_runner_error_skips_output_publication_and_retains_failure_cleanup
     assert cleanup.await_args.kwargs["remove_output"] is False
     with pytest.raises(LookupError):
         execution_context_module.get_conversation_execution_context()
+
+
+@pytest.mark.asyncio
+async def test_team_stream_owns_root_start_and_deduplicates_controller_snapshot(monkeypatch):
+    """Runner root lifecycle/snapshot frames must not duplicate API-owned output."""
+
+    async def runner(*_args):
+        yield {"event": "run_start", "runId": "dedupe-run", "data": {"runId": "dedupe-run"}}
+        yield {"event": "message", "runId": "dedupe-run", "data": {"runId": "dedupe-run", "delta": "完成"}}
+        yield {
+            "event": "message",
+            "runId": "dedupe-run",
+            "data": {
+                "runId": "dedupe-run",
+                "delta": "工具历史\n完成",
+                "status": "intermediate_message",
+                "controllerEvent": "intermediate_message",
+            },
+        }
+        yield {"event": "run_end", "runId": "dedupe-run", "data": {"runId": "dedupe-run", "status": "success", "text": "完成"}}
+
+    monkeypatch.setattr(conversation_team_module, "build_conversation_supervisor_config", AsyncMock(return_value=SimpleNamespace()))
+    monkeypatch.setattr(conversation_team_module, "run_conversation_supervisor", runner)
+    monkeypatch.setattr(conversation_team_module, "publish_conversation_outputs", AsyncMock(return_value=[]))
+    monkeypatch.setattr(conversation_team_module, "cleanup_execution_directories", AsyncMock())
+
+    events = [json.loads(line.removeprefix("data: ")) async for line in team_sse_stream(
+        ConversationTeamReq.model_validate(request_payload()), "dedupe-run"
+    )]
+
+    assert [event["event"] for event in events] == ["message", "run_start", "message", "run_end"]
+    assert events[2]["data"]["delta"] == "完成"
 
 
 def test_request_accepts_manager_skill_contract():
@@ -338,7 +370,7 @@ async def test_workspace_initialization_precedes_inputs_and_agent(monkeypatch):
 
     async def runner(*_args):
         order.append("agent")
-        yield {"event": "run_done", "data": {"text": "ok"}}
+        yield {"event": "run_end", "data": {"status": "success", "text": "ok"}}
 
     monkeypatch.setattr(conversation_team_module, "ensure_conversation_workspace", initialize, raising=False)
     monkeypatch.setattr(conversation_team_module, "prepare_conversation_inputs", prepare)
@@ -351,7 +383,7 @@ async def test_workspace_initialization_precedes_inputs_and_agent(monkeypatch):
     events = [line async for line in team_sse_stream(ConversationTeamReq.model_validate(request_payload()), "init-test")]
     assert order == ["ensure", "inputs", "baseline", "agent"]
     publish.assert_awaited_once_with({"old.txt": "a" * 64})
-    assert 'run_done' in events[-1]
+    assert 'run_end' in events[-1]
 
 
 @pytest.mark.asyncio
@@ -466,33 +498,6 @@ def test_request_rejects_conflicting_alias_and_field_name_but_keeps_descriptor_e
 
 
 @pytest.mark.asyncio
-async def test_team_stream_converts_manager_catalog_to_runtime_descriptors(monkeypatch):
-    build_supervisor = AsyncMock(return_value=SimpleNamespace())
-
-    async def run_supervisor(*_args):
-        yield {"event": "message", "data": {"delta": "已整理"}, "executionId": "e1"}
-
-    monkeypatch.setenv("CONVERSATION_TEAM_USE_LEGACY_SUPERVISOR", "true")
-    monkeypatch.setattr("agent_runtime.serve.apis.conversation_team.build_supervisor", build_supervisor)
-    monkeypatch.setattr("agent_runtime.serve.apis.conversation_team.run_supervisor", run_supervisor)
-
-    events = [json.loads(line.removeprefix("data: ")) async for line in team_sse_stream(
-        ConversationTeamReq.model_validate(request_payload()), "e1"
-    )]
-
-    catalog = build_supervisor.await_args.kwargs["skill_catalog"]
-    assert catalog == [SkillDescriptor(
-        skill_id="s1",
-        version_id="v1",
-        name="会议纪要",
-        description="整理会议",
-        object_key="u/skills/s1/v1/a.zip",
-    )]
-    assert build_supervisor.await_args.kwargs["recommended_skill_ids"] == ["s1"]
-    assert events[-1]["event"] == "message"
-
-
-@pytest.mark.asyncio
 async def test_team_stream_rejects_recommended_skill_outside_manager_catalog(monkeypatch):
     with pytest.raises(ValidationError):
         ConversationTeamReq.model_validate(request_payload(recommendedSkillIds=["other"]))
@@ -517,7 +522,8 @@ async def test_team_stream_binds_before_first_event_and_resets_when_closed_immed
     first = json.loads((await stream.__anext__()).removeprefix("data: "))
     active = execution_context_module.get_conversation_execution_context()
 
-    assert first["event"] == "user_message"
+    assert first["event"] == "message"
+    assert first["data"]["role"] == "user"
     assert active.identity.conversation_id == "c1"
     assert active.identity.execution_id == "execution-first"
     assert str(active.workspace.sandbox_root) == "/sandbox/conversations"
@@ -551,7 +557,7 @@ async def test_team_stream_keeps_context_through_runner_close_and_resets_after_n
         ConversationTeamReq.model_validate(request_payload()), "execution-normal"
     )]
 
-    assert events[-1]["event"] == "message"
+    assert events[-1]["event"] == "run_end"
     assert observed == closed
     assert observed[0].identity.execution_id == "execution-normal"
     assert str(observed[0].workspace.sandbox_root) == "/workspace"
@@ -728,7 +734,7 @@ async def test_concurrent_skill_context_and_event_channel_are_isolated():
 
     async def invoke_in_context(agent, skill_id, execution_id):
         skill_token = bind_agent_skill_context(agent)
-        channel = EventChannel(execution_id)
+        channel = EventChannel(execution_id, f"conversation-{skill_id}")
         event_token = set_channel(channel)
         try:
             result = await ActivateSkillTool().invoke({"skill_id": skill_id})
@@ -745,162 +751,7 @@ async def test_concurrent_skill_context_and_event_channel_are_isolated():
 
     assert result_a["skillId"] == event_a["data"]["skillId"] == "s1"
     assert result_b["skillId"] == event_b["data"]["skillId"] == "s2"
-    assert event_a["executionId"] == "exec-1"
-    assert event_b["executionId"] == "exec-2"
-    assert get_channel() is None
-    assert get_skill_context() is None
-
-
-@pytest.mark.asyncio
-async def test_outer_sse_close_waits_for_runner_cleanup_in_the_consuming_context(monkeypatch):
-    class BlockingAgent:
-        card = object()
-
-        async def stream(self, _inputs, _session):
-            observed_context.append(
-                execution_context_module.get_conversation_execution_context()
-            )
-            yield object()
-            stream_started.set()
-            try:
-                await release.wait()
-            finally:
-                closed_context.append(
-                    execution_context_module.get_conversation_execution_context()
-                )
-                child_finished.set()
-
-    stream_started = asyncio.Event()
-    child_finished = asyncio.Event()
-    release = asyncio.Event()
-    observed_context = []
-    closed_context = []
-    agent = BlockingAgent()
-    attach_agent_context(agent, [SkillDescriptor(
-        skill_id="s1", version_id="v1", name="会议纪要", description="整理会议",
-        object_key="u/skills/s1/v1/a.zip",
-    )], [], SimpleNamespace())
-    monkeypatch.setenv("CONVERSATION_TEAM_USE_LEGACY_SUPERVISOR", "true")
-    monkeypatch.setattr(conversation_team_module, "build_supervisor", AsyncMock(return_value=agent))
-    monkeypatch.setattr(runner_module, "create_agent_session", lambda **_kwargs: object())
-    monkeypatch.setattr(
-        runner_module,
-        "adapt_stream_chunk",
-        lambda _chunk, _ctx: [{"event": "message", "data": {"delta": "x"}}],
-    )
-    stream = team_sse_stream(ConversationTeamReq.model_validate(request_payload()), "e1")
-
-    await stream.__anext__()
-    await stream.__anext__()
-    event = await stream.__anext__()
-    await stream_started.wait()
-    await stream.aclose()
-
-    assert json.loads(event.removeprefix("data: "))["event"] == "message"
-    assert child_finished.is_set()
-    assert observed_context == closed_context
-    assert observed_context[0].identity.execution_id == "e1"
-    with pytest.raises(LookupError, match="no conversation execution context is active"):
-        execution_context_module.get_conversation_execution_context()
-    assert get_channel() is None
-    assert get_skill_context() is None
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("disconnect", ["cancel", "error"])
-async def test_streaming_response_disconnect_closes_body_in_its_consuming_context(monkeypatch, disconnect):
-    class BlockingAgent:
-        card = object()
-
-        async def stream(self, _inputs, _session):
-            observed_context.append(
-                execution_context_module.get_conversation_execution_context()
-            )
-            child_started.set()
-            yield object()
-            try:
-                await release.wait()
-            finally:
-                closed_context.append(
-                    execution_context_module.get_conversation_execution_context()
-                )
-                child_finished.set()
-
-    child_started = asyncio.Event()
-    child_finished = asyncio.Event()
-    release = asyncio.Event()
-    observed_context = []
-    closed_context = []
-    agent = BlockingAgent()
-    attach_agent_context(agent, [SkillDescriptor(
-        skill_id="s1", version_id="v1", name="会议纪要", description="整理会议",
-        object_key="u/skills/s1/v1/a.zip",
-    )], [], SimpleNamespace())
-    monkeypatch.setenv("CONVERSATION_TEAM_USE_LEGACY_SUPERVISOR", "true")
-    monkeypatch.setattr(conversation_team_module, "build_supervisor", AsyncMock(return_value=agent))
-    monkeypatch.setattr(runner_module, "create_agent_session", lambda **_kwargs: object())
-    monkeypatch.setattr(
-        runner_module,
-        "adapt_stream_chunk",
-        lambda _chunk, _ctx: [{"event": "message", "data": {"delta": "x"}}],
-    )
-    reset_order = []
-    reset_errors = []
-    original_reset_channel = runner_module.reset_channel
-    original_reset_skill = runner_module.reset_skill_context
-
-    def reset_channel(token):
-        try:
-            original_reset_channel(token)
-        except ValueError as error:
-            reset_errors.append(error)
-            raise
-        reset_order.append("channel")
-
-    def reset_skill(token):
-        try:
-            original_reset_skill(token)
-        except ValueError as error:
-            reset_errors.append(error)
-            raise
-        reset_order.append("skill")
-
-    monkeypatch.setattr(runner_module, "reset_channel", reset_channel)
-    monkeypatch.setattr(runner_module, "reset_skill_context", reset_skill)
-    response = await conversation_team_module.conversation_team(
-        ConversationTeamReq.model_validate(request_payload()), SimpleNamespace(headers={})
-    )
-    runner_entered_send = asyncio.Event()
-    never = asyncio.Event()
-    body_count = 0
-
-    async def send(message):
-        nonlocal body_count
-        if message["type"] != "http.response.body" or not message.get("more_body"):
-            return
-        body_count += 1
-        if body_count == 3:
-            runner_entered_send.set()
-            if disconnect == "error":
-                raise OSError("client disconnected")
-            await never.wait()
-
-    if disconnect == "cancel":
-        response_task = asyncio.create_task(response.stream_response(send))
-        await runner_entered_send.wait()
-        response_task.cancel()
-        with pytest.raises(asyncio.CancelledError):
-            await response_task
-    else:
-        with pytest.raises(OSError, match="client disconnected"):
-            await response.stream_response(send)
-
-    assert child_started.is_set()
-    assert child_finished.is_set()
-    assert observed_context == closed_context
-    with pytest.raises(LookupError, match="no conversation execution context is active"):
-        execution_context_module.get_conversation_execution_context()
-    assert reset_order == ["channel", "skill"]
-    assert reset_errors == []
+    assert event_a["runId"] == "exec-1"
+    assert event_b["runId"] == "exec-2"
     assert get_channel() is None
     assert get_skill_context() is None

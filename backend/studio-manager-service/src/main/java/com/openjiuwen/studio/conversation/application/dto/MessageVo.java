@@ -42,6 +42,9 @@ public class MessageVo {
     /**
      * 工具调用请求参数json（仅role=tool）
      */
+    @JsonProperty("tool_name")
+    private String toolName;
+
     @JsonProperty("tool_args")
     private String toolArgs;
 
@@ -51,17 +54,23 @@ public class MessageVo {
     @JsonProperty("file_ids")
     private String fileIds;
 
-    /**
-     * 主轮次execution_id
-     */
-    @JsonProperty("execution_id")
-    private String executionId;
+    @JsonProperty("run_id")
+    private String runId;
 
-    /**
-     * 子任务分组键（子agent消息）
-     */
-    @JsonProperty("sub_execution_id")
-    private String subExecutionId;
+    @JsonProperty("parent_run_id")
+    private String parentRunId;
+
+    @JsonProperty("execution_type")
+    private String executionType;
+
+    @JsonProperty("workflow_id")
+    private String workflowId;
+
+    @JsonProperty("node_id")
+    private String nodeId;
+
+    @JsonProperty("event_index")
+    private Long eventIndex;
 
     /**
      * agent溯源

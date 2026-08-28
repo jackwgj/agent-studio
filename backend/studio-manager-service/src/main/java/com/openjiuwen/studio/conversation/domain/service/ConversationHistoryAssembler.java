@@ -54,10 +54,17 @@ public class ConversationHistoryAssembler {
      * 合成 assistant(tool_calls) + tool 结果一对 Message
      */
     private void appendSynthesizedToolPair(List<Message> messages, ConversationMessage message) {
-        String callId = "call_" + UUID.randomUUID();
+        String callId = message.getToolRef().getToolId();
+        if (callId == null || callId.isBlank()) {
+            callId = "call_" + UUID.randomUUID();
+        }
+        String toolName = message.getToolRef().getToolName();
+        if (toolName == null || toolName.isBlank()) {
+            toolName = message.getToolRef().getToolId();
+        }
 
         Map<String, Object> function = new LinkedHashMap<>();
-        function.put("name", message.getToolRef().getToolId());
+        function.put("name", toolName);
         function.put("arguments", message.getToolRef().getArgs());
         Map<String, Object> toolCall = new LinkedHashMap<>();
         toolCall.put("id", callId);

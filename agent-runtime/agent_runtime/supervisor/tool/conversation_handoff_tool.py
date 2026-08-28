@@ -1,12 +1,8 @@
-"""Conversation-specific Supervisor handoff tool.
-
-The legacy HandoffTool remains unchanged. This additive tool reuses its card and
-IR-path behavior while delegating child execution to the conversation ReAct
-runner's standard run_streaming contract.
-"""
+"""Conversation-only handoff through the canonical ReAct runner path."""
 
 from __future__ import annotations
 
+import copy
 import uuid
 from collections.abc import AsyncGenerator
 from types import MappingProxyType
@@ -18,16 +14,18 @@ from agent_runtime.conversation.runner.conversation_runner_factory import (
     ConversationRunnerFactory,
 )
 from agent_runtime.schemas.orchestration_mgr import ExecutionParams, ExecutionRequest
-from agent_runtime.supervisor.event.adapt import (
-    build_message,
-    build_reasoning,
-    build_sub_done,
-    build_sub_start,
+from agent_runtime.serve.apis.conversation_team_app import _event_payload
+from agent_runtime.supervisor.event.canonical import (
+    build_run_end,
     build_tool_call,
     build_tool_result,
 )
-from agent_runtime.supervisor.event.channel import get_channel
-from agent_runtime.serve.apis.conversation_team_app import _event_payload
+from agent_runtime.supervisor.event.channel import (
+    get_channel,
+    reset_channel,
+    set_channel,
+)
+from agent_runtime.supervisor.event.conversation_adapter import adapt_runner_event
 from agent_runtime.supervisor.tool.handoff_tool import HandoffTool
 from jiuwen.serve.controllers.execution.open_utils import async_ir_load
 
@@ -36,13 +34,14 @@ _runner_factory = ConversationRunnerFactory()
 
 
 class ConversationHandoffTool(HandoffTool):
-    """Supervisor-only handoff that delegates child execution to the new runner."""
+    """Delegate to one ReAct child while preserving trusted conversation state."""
 
     def __init__(
         self,
         agent_id: str,
         description: str,
         prepared_file_references: list[dict] | None = None,
+        model_deployment_id: str | None = None,
     ) -> None:
         super().__init__(agent_id=agent_id, description=description)
         self._prepared_file_references = tuple(
@@ -50,28 +49,40 @@ class ConversationHandoffTool(HandoffTool):
             for item in (prepared_file_references or [])
             if isinstance(item, dict) and item.get("path")
         )
+        self._model_deployment_id = model_deployment_id
 
     async def build_child_request(
         self,
         query: str,
-        execution_id: str,
-        sub_execution_id: str,
+        conversation_id: str | None = None,
+        sub_execution_id: str | None = None,
     ) -> ExecutionRequest:
-        """Load existing child IR and build the standard runner request."""
-        execution_context = get_conversation_execution_context().for_child_call()
-        identity = execution_context.identity
-        ir_data = await async_ir_load(self._ir_path())
-        history = []
+        """Build a request from trusted ContextVar identity, never caller identity."""
+        context = get_conversation_execution_context().for_child_call()
+        identity = context.identity
+        child_run_id = sub_execution_id or str(uuid.uuid4())
+        ir_data = copy.deepcopy(await async_ir_load(self._ir_path()))
+        if self._model_deployment_id:
+            model_config = ir_data.setdefault("configs", {}).setdefault(
+                "modelConfig", {}
+            )
+            model_config["modelName"] = self._model_deployment_id
+        trusted_identity = {
+            "projectId": identity.project_id,
+            "workspaceId": identity.workspace_id,
+            "userId": identity.user_id,
+            "conversationId": identity.conversation_id,
+            "executionId": identity.execution_id,
+        }
         params = ExecutionParams(
-            conversationHistory=history,
+            conversationHistory=[],
             globalVariables={
-                "conversationId": identity.conversation_id,
-                "projectId": identity.project_id,
-                "workspaceId": identity.workspace_id,
-                "userId": identity.user_id,
-                "executionId": identity.execution_id,
-                "subExecutionId": sub_execution_id,
-                "conversationInputFiles": [dict(item) for item in self._prepared_file_references],
+                **trusted_identity,
+                "subExecutionId": child_run_id,
+                "trustedConversationIdentity": trusted_identity,
+                "conversationInputFiles": [
+                    dict(item) for item in self._prepared_file_references
+                ],
             },
             pluginConfigs=[],
             toolSwitchDict={},
@@ -94,96 +105,104 @@ class ConversationHandoffTool(HandoffTool):
         execution_id: str | None = None,
         sub_execution_id: str | None = None,
     ) -> AsyncGenerator[dict, None]:
-        """Run the child through the standard runner and add child metadata."""
-        execution_context = get_conversation_execution_context().for_child_call()
-        main_execution_id = execution_context.identity.execution_id
-        child_execution_id = sub_execution_id or main_execution_id
-        async for raw in runner.run_streaming(request, child_execution_id):
-            payload = _event_payload(raw)
-            if not payload:
+        """Adapt a child stream with an independent run and parent relation."""
+        parent_run_id = execution_id or get_conversation_execution_context().identity.execution_id
+        child_run_id = sub_execution_id or str(uuid.uuid4())
+        terminal_seen = False
+        async for raw in runner.run_streaming(request, child_run_id):
+            if _event_payload(raw) is None:
                 continue
-            event = payload.get("event", "")
-            data = payload.get("data") or {}
-            if not isinstance(data, dict):
-                data = {"content": str(data)}
-
-            if event == "message":
-                delta = data.get("delta") or data.get("answer") or data.get("content") or ""
-                if delta:
-                    yield build_message(
-                        main_execution_id,
-                        str(delta),
-                        agent_id=self.agent_id,
-                        sub_execution_id=child_execution_id,
-                    )
-            elif event == "reasoning":
-                content = data.get("content") or ""
-                if content:
-                    yield build_reasoning(
-                        main_execution_id,
-                        str(content),
-                        agent_id=self.agent_id,
-                        sub_execution_id=child_execution_id,
-                    )
-            elif event == "done":
-                # The enclosing handoff emits sub_done exactly once after the
-                # standard child stream closes; done is not forwarded as a child boundary.
+            event = adapt_runner_event(
+                raw,
+                conversation_id=request.conversation_id,
+                run_id=child_run_id,
+                parent_run_id=parent_run_id,
+                execution_type="sub_agent",
+            )
+            if event is None:
                 continue
+            event["data"]["agentId"] = self.agent_id
+            if event["event"] in {"run_end", "error"}:
+                if terminal_seen:
+                    continue
+                terminal_seen = True
+            yield event
+        if not terminal_seen:
+            event = build_run_end(
+                request.conversation_id,
+                child_run_id,
+                parent_run_id=parent_run_id,
+                execution_type="sub_agent",
+            )
+            event["data"]["agentId"] = self.agent_id
+            yield event
 
     async def invoke(self, inputs, **kwargs):
-        """Execute one handoff using the standard conversation runner path."""
+        """Execute one child and forward its canonical events to the root channel."""
         query = self._extract_query(inputs)
-        execution_context = get_conversation_execution_context().for_child_call()
-        channel = get_channel()
-        execution_id = execution_context.identity.execution_id
-        sub_execution_id = kwargs.get("sub_execution_id") or str(uuid.uuid4())
+        context = get_conversation_execution_context().for_child_call()
+        identity = context.identity
+        root_channel = get_channel()
+        if root_channel is None:
+            raise RuntimeError("conversation event channel is required for handoff")
+        parent_run_id = kwargs.get("execution_id") or identity.execution_id
+        child_run_id = kwargs.get("sub_execution_id") or str(uuid.uuid4())
         tool_call_id = kwargs.get("tool_call_id") or str(uuid.uuid4())
         tool_name = self.card.name
-        request = await self.build_child_request(query, execution_id, sub_execution_id)
+        request = await self.build_child_request(
+            query,
+            identity.conversation_id,
+            child_run_id,
+        )
         runner = _runner_factory.get("ReAct")
 
-        if channel is not None:
-            await channel.emit(build_tool_call(
-                execution_id,
+        await root_channel.emit(
+            build_tool_call(
+                identity.conversation_id,
+                parent_run_id,
                 tool_call_id,
                 tool_name,
                 arguments={"query": query},
-            ))
-            await channel.emit(build_sub_start(execution_id, sub_execution_id, self.agent_id))
-        events = []
+            )
+        )
+        events: list[dict] = []
+        child_channel = root_channel.child(child_run_id, agent_id=self.agent_id)
+        child_channel_token = set_channel(child_channel)
         try:
             async for event in self.stream_child_request(
                 request,
                 runner,
-                execution_id=execution_id,
-                sub_execution_id=sub_execution_id,
+                execution_id=parent_run_id,
+                sub_execution_id=child_run_id,
             ):
                 events.append(event)
-                if channel is not None:
-                    await channel.emit(event)
+                await root_channel.emit(event)
         except Exception as error:
-            if channel is not None:
-                await channel.emit(build_tool_result(
-                    execution_id,
+            await root_channel.emit(
+                build_tool_result(
+                    identity.conversation_id,
+                    parent_run_id,
                     tool_call_id,
                     tool_name,
                     result=str(error),
-                ))
-            raise
-
-        result = ""
-        if events:
-            result = "".join(
-                str(event.get("data", {}).get("delta") or "")
-                for event in events
-                if event.get("event") == "message"
+                )
             )
-        if channel is not None:
-            await channel.emit(build_sub_done(execution_id, sub_execution_id, self.agent_id, result))
-            await channel.emit(build_tool_result(
-                execution_id,
+            raise
+        finally:
+            reset_channel(child_channel_token)
+
+        result = "".join(
+            str(event.get("data", {}).get("delta") or "")
+            for event in events
+            if event.get("event") == "message"
+        )
+        await root_channel.emit(
+            build_tool_result(
+                identity.conversation_id,
+                parent_run_id,
                 tool_call_id,
                 tool_name,
                 result=f"[子Agent {self.agent_id}] {result}",
-            ))
+            )
+        )
         return {"result": result}

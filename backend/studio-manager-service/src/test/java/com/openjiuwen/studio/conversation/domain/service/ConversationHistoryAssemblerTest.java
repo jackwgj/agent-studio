@@ -24,7 +24,7 @@ class ConversationHistoryAssemblerTest {
         ConversationMessage toolMsg = ConversationMessage.builder()
                 .role("tool")
                 .content("查询结果")
-                .toolRef(new ToolRef("search_tool", "{\"q\":\"test\"}"))
+                .toolRef(new ToolRef("call-1", "search_tool", "{\"q\":\"test\"}"))
                 .build();
 
         List<Message> msgs = service.assemble(conversationOf(toolMsg));
@@ -41,6 +41,7 @@ class ConversationHistoryAssemblerTest {
         assertEquals("tool", result.getRole());
         assertEquals("查询结果", result.getContent());
         assertEquals(toolCalls.get(0).get("id"), result.getToolCallId(), "共享 call_id");
+        assertEquals("call-1", result.getToolCallId(), "保留 canonical toolId");
     }
 
     @Test

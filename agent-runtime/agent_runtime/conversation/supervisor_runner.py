@@ -19,8 +19,10 @@ from agent_runtime.conversation.runner.conversation_runner_factory import (
 from agent_runtime.schemas.orchestration_mgr import ExecutionParams, ExecutionRequest
 from agent_runtime.serve.apis.conversation_team_app import _adapt_event
 from agent_runtime.supervisor.common.constants import TeamEventField
-from agent_runtime.supervisor.event.adapt import build_error, build_run_done
+from agent_runtime.supervisor.event.canonical import build_canonical_event, build_run_end
 from agent_runtime.supervisor.event.channel import EventChannel, reset_channel, set_channel
+from agent_runtime.supervisor.event.types import ConversationEventType
+
 
 _STOP = object()
 
@@ -35,7 +37,7 @@ async def run_conversation_supervisor(
     execution_context = get_conversation_execution_context().for_child_call()
     identity = execution_context.identity
     execution_id = identity.execution_id
-    channel = EventChannel(execution_id)
+    channel = EventChannel(execution_id, identity.conversation_id)
     channel_token = set_channel(channel)
     task = None
     try:
@@ -52,6 +54,7 @@ async def run_conversation_supervisor(
                 "conversationTeam": {
                     "type": "SUPERVISOR",
                     "subAgentIds": list(req.sub_agent_ids),
+                    "modelDeploymentId": getattr(req, "model_deployment_id", None),
                     "skillCatalog": [
                         {
                             "skillId": item.skill_id,
@@ -89,19 +92,31 @@ async def run_conversation_supervisor(
             nonlocal final_text, error_sent
             try:
                 async for raw in runner.run_streaming(execution_request, execution_id):
-                    event = _adapt_event(raw, execution_id)
+                    event = _adapt_event(raw, execution_id, req.conversation_id)
                     if event is None:
                         continue
-                    if event.get("event") == "run_done":
+                    event_data = event.get("data") or {}
+                    if event.get("event") == "run_end":
                         data = event.get("data") or {}
                         final_text = str(data.get("text") or final_text)
+                        # The API boundary owns the root terminal event so it can
+                        # publish Artifacts first. Do not forward the runner's
+                        # terminal frame through the channel.
                         continue
                     if event.get("event") == "error":
                         error_sent = True
-                    await channel.emit(event)
                     if event.get("event") == "message":
                         data = event.get("data") or {}
-                        final_text += str(data.get("delta") or "")
+                        delta = str(data.get("delta") or "")
+                        if (
+                            data.get("controllerEvent") == "intermediate_message"
+                            and delta
+                            and final_text
+                        ):
+                            # Controller's terminal snapshot repeats the token stream.
+                            continue
+                        final_text += delta
+                    await channel.emit(event)
             except asyncio.CancelledError:
                 raise
             except Exception as error:
@@ -116,7 +131,13 @@ async def run_conversation_supervisor(
                 break
             if isinstance(item, BaseException):
                 error_sent = True
-                yield build_error(execution_id, "supervisor_error", str(item), index=index)
+                yield build_canonical_event(
+                    ConversationEventType.ERROR,
+                    conversation_id=req.conversation_id,
+                    run_id=execution_id,
+                    data={"code": "supervisor_error", "message": str(item)},
+                    index=index,
+                )
                 index += 1
                 continue
             item[TeamEventField.INDEX] = index
@@ -126,7 +147,12 @@ async def run_conversation_supervisor(
         if task is not None:
             task.result()
         if not error_sent:
-            yield build_run_done(execution_id, final_text, index=index)
+            yield build_run_end(
+                req.conversation_id,
+                execution_id,
+                text=final_text,
+                index=index,
+            )
     finally:
         primary_error = sys.exception()
         if task is not None and not task.done():

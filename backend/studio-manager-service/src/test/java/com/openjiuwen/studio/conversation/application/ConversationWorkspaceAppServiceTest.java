@@ -271,8 +271,9 @@ class ConversationWorkspaceAppServiceTest {
         assertNull(m.getToolId());
         assertNull(m.getToolArgs());
         assertNull(m.getFileIds());
-        assertNull(m.getExecutionId());
-        assertNull(m.getSubExecutionId());
+        assertNull(m.getRunId());
+        assertNull(m.getParentRunId());
+        assertNull(m.getExecutionType());
         assertNull(m.getAgentId());
     }
 
@@ -456,7 +457,7 @@ class ConversationWorkspaceAppServiceTest {
         Conversation owned = ownedConversation("c1");
         owned.setMessages(List.of(ConversationMessage.builder()
             .role("assistant").event("artifact")
-            .executionRef(new ExecutionRef("exec-1", null, null))
+            .executionRef(new ExecutionRef("exec-1", null, null, "agent"))
             .fileRefs(List.of(new FileRef(objectKey, "测试结果.txt", (long) content.length,
                 "text/plain", "0".repeat(64), "exec-1")))
             .build()));

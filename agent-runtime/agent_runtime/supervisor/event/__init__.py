@@ -1,2 +1,6 @@
-# -*- coding: UTF-8 -*-
-"""团队对话事件系统 —— 事件通道（channel）与事件构造/转换（adapt）。"""
+"""Canonical conversation events and legacy TeamEvent compatibility helpers."""
+
+from .conversation_adapter import adapt_runner_event
+from .types import ConversationEventField, ConversationEventType
+
+__all__ = ["ConversationEventField", "ConversationEventType", "adapt_runner_event"]

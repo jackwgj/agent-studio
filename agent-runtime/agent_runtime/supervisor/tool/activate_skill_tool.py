@@ -2,7 +2,7 @@
 
 from openjiuwen.core.foundation.tool import Tool, ToolCard
 
-from agent_runtime.supervisor.event.adapt import build_skill_activated
+from agent_runtime.supervisor.event.canonical import build_skill_activated
 from agent_runtime.supervisor.event.channel import get_channel
 from agent_runtime.supervisor.skill_artifact_cache import (
     SkillArtifactError,
@@ -50,7 +50,10 @@ class ActivateSkillTool(Tool):
         skill = context.catalog_by_id[skill_id]
         try:
             sandbox_path = None
-            if conversation_skill_sandbox_enabled():
+            if (
+                context.prepare_sandbox_resources
+                and conversation_skill_sandbox_enabled()
+            ):
                 artifact = await context.artifact_cache.load_artifact(skill)
                 instructions = artifact.instructions
                 sandbox_path = await prepare_conversation_skill(skill, artifact)
@@ -77,7 +80,14 @@ class ActivateSkillTool(Tool):
             try:
                 await channel.emit(
                     build_skill_activated(
-                        channel.execution_id, skill.skill_id, skill.name, skill.version_id
+                        channel.conversation_id,
+                        channel.execution_id,
+                        skill_id=skill.skill_id,
+                        name=skill.name,
+                        version_id=skill.version_id,
+                        parent_run_id=channel.parent_run_id,
+                        execution_type=channel.execution_type,
+                        agent_id=channel.agent_id,
                     )
                 )
             except Exception:

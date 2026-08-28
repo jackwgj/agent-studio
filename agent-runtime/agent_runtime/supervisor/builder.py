@@ -1,27 +1,14 @@
 # -*- coding: UTF-8 -*-
-"""监督者组装器 —— 给定子 Agent IDs，为每个构建 handoff 工具，组装监督者 ReActAgent。
+"""监督者共享工具函数 —— Skill 输入验证、子 Agent 描述加载、文件引用格式化。
 
-监督者 = openjiuwen ReActAgent（system_prompt 固定引擎侧，F4：Java 不传）+ N 个 HandoffTool。
-子 Agent 由 HandoffTool.invoke 按需加载其已有 IR 执行（见 tool/handoff_tool.py）。
-
-工具注册采用公开 API + 幂等（swarm 模板，D0-4）：ability_manager.add(card) 成功后才检查
-resource_mgr 是否已有同 id 实例，不存在才注册。工具无状态、跨会话共享安全，数量有界。
-
-运行（事件生成器 run_supervisor）在 runner.py —— build（组装）与 run（运行）职责分离。
+这些函数由 conversation_supervisor_builder.py 和 conversation_react_runner.py 调用，
+服务于当前默认团队主路径。
 """
 
 from pathlib import PureWindowsPath
 import re
 
-from openjiuwen.core.runner import Runner
-from openjiuwen.core.single_agent.agents.react_agent import ReActAgent
-from openjiuwen.core.single_agent.schema.agent_card import AgentCard
-
-from agent_runtime.supervisor.config import build_react_config, format_conversation_history
-from agent_runtime.supervisor.skill_context import attach as attach_skill_context
 from agent_runtime.supervisor.skill_model import SkillDescriptor
-from agent_runtime.supervisor.tool.handoff_tool import HandoffTool
-from agent_runtime.runner.react_file_reader_adapter import ReactFileReaderAdapter
 from jiuwen.serve.controllers.execution.open_utils import async_ir_load
 
 # 监督者系统提示词固定引擎侧（F4/用户决策 2026-08-11）：请求不再含 systemPrompt，Java 不传。
@@ -105,90 +92,16 @@ async def _load_sub_agent_description(agent_id: str) -> str:
 
 
 def format_file_references(file_references: list[dict] | None) -> str:
-    """Format this turn's uploaded files for the supervisor without inlining content."""
+    """Expose only server-derived sandbox paths to the conversation Supervisor."""
     if not file_references:
         return ""
     lines = [
         "\n\n## 本轮上传文件",
-        "以下文件由用户在本轮上传。文件名用于识别文件主题；只有在任务需要时才调用 read_file_from_url，且必须使用清单中的完整 URL。",
+        "以下文件已准备到当前会话沙箱 input 目录；只能使用清单中的沙箱路径读取，禁止覆盖用户原始文件。",
     ]
     for item in file_references:
         file_name = str(item.get("fileName") or item.get("file_name") or "未命名文件")
-        url = str(item.get("url") or "")
-        if url:
-            lines.append(f"- **{file_name}**: {url}")
+        path = str(item.get("path") or "")
+        if path:
+            lines.append(f"- **{file_name}**: {path}")
     return "\n".join(lines) if len(lines) > 2 else ""
-
-
-def _register_file_reader(agent: ReActAgent) -> None:
-    """Register the existing URL file reader for this request only."""
-    reader = ReactFileReaderAdapter()
-    result = agent.ability_manager.add(reader.card)
-    if result.added:
-        existing = Runner.resource_mgr.get_tool(reader.card.id)
-        if existing is None:
-            Runner.resource_mgr.add_tool(reader)
-
-
-async def build_supervisor(
-    sub_agent_ids: list,
-    model_deployment_id: str,
-    conversation_history: list | None = None,
-    skill_catalog: list[SkillDescriptor] | None = None,
-    recommended_skill_ids: list[str] | None = None,
-    file_references: list[dict] | None = None,
-) -> ReActAgent:
-    """按 sub_agent_ids 动态构建 N 个 handoff 工具，组装监督者 ReActAgent。
-
-    Args:
-        sub_agent_ids: 子 Agent IDs（已注册 Agent）
-        model_deployment_id: 监督者模型部署 id（非模型名；路由解析成真实模型名，D0-8）
-        conversation_history: 多轮历史 list[{role, content}]，仅注入监督者上下文（方案 B），子 Agent 不感知
-        skill_catalog: Manager 下发的本轮工作空间 Skill 目录
-        recommended_skill_ids: 目录内的推荐 Skill ID
-
-    Returns:
-        已配置并注册工具的监督者 ReActAgent
-    """
-    skill_catalog, recommended_skill_ids = normalize_skill_inputs(
-        skill_catalog, recommended_skill_ids
-    )
-
-    tools = []
-    for agent_id in sub_agent_ids:
-        description = await _load_sub_agent_description(agent_id)
-        # 工具名 = transfer_to_{agentId[:8]}（HandoffTool 内生成，ASCII 短唯一；路由靠 description）
-        tool = HandoffTool(
-            agent_id=agent_id,
-            description=description,
-        )
-        tools.append(tool)
-
-    # 监督者提示词 = 引擎侧固定角色/指令 + 历史段 + 本轮附件元信息
-    system_prompt = (
-        SUPERVISOR_SYSTEM_PROMPT
-        + format_conversation_history(conversation_history)
-        + format_file_references(file_references)
-    )
-
-    agent = ReActAgent(
-        card=AgentCard(
-            id="conversation_team_supervisor",
-            name="Team Supervisor",
-            description="团队监督者，负责把任务分派给最合适的子 Agent",
-        )
-    )
-    agent.configure(build_react_config(system_prompt, model_deployment_id))
-    await attach_skill_context(agent, skill_catalog, recommended_skill_ids)
-    if file_references:
-        _register_file_reader(agent)
-
-    # 注册工具：公开 API + 幂等（swarm 模板），不再直插私有 _tools 字段
-    for tool in tools:
-        result = agent.ability_manager.add(tool.card)
-        if result.added:
-            existing = Runner.resource_mgr.get_tool(tool.card.id)
-            if existing is None:
-                Runner.resource_mgr.add_tool(tool)
-
-    return agent

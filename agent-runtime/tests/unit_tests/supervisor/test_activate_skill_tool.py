@@ -39,7 +39,7 @@ async def test_activate_skill_loads_instructions_and_emits_event(tmp_path, monke
     agent = _Agent()
     attach_agent_context(agent, [skill], [], cache)
     skill_token = bind_agent_skill_context(agent)
-    channel = EventChannel("execution-1")
+    channel = EventChannel("execution-1", "conversation-1")
     channel_token = set_channel(channel)
     try:
         result = await ActivateSkillTool().invoke({"skill_id": "meeting-minutes"})

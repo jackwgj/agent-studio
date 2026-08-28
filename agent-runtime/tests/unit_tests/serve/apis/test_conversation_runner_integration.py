@@ -42,8 +42,8 @@ class _FakeFactory:
 @pytest.mark.asyncio
 async def test_conversation_supervisor_bridge_consumes_standard_runner_events(monkeypatch):
     raw_runner = _FakeConversationRunner([
-        {"event": "message", "data": {"answer": "主回答"}},
-        {"event": "done", "data": {}},
+        {"event": "message", "data": {"delta": "主回答"}},
+        {"event": "run_end", "data": {"status": "success", "text": "主回答"}},
     ])
     monkeypatch.setattr(
         supervisor_runner,
@@ -57,6 +57,9 @@ async def test_conversation_supervisor_bridge_consumes_standard_runner_events(mo
         user_id="untrusted-user",
         query="hello",
         sub_agent_ids=["child-a"],
+        model_deployment_id="deployment-a",
+        skill_catalog=[],
+        recommended_skill_ids=[],
     )
     config = SimpleNamespace(
         to_ir=lambda: {
@@ -80,9 +83,9 @@ async def test_conversation_supervisor_bridge_consumes_standard_runner_events(mo
     finally:
         execution_context_module.reset_conversation_execution_context(token)
 
-    assert [event["event"] for event in events] == ["message", "run_done"]
+    assert [event["event"] for event in events] == ["message", "run_end"]
     assert events[0]["data"]["delta"] == "主回答"
-    assert events[0]["executionId"] == "execution-1"
+    assert events[0]["runId"] == "execution-1"
     assert events[-1]["data"]["text"] == "主回答"
     execution_request = raw_runner.calls[0][0]
     assert raw_runner.contexts == [context]
@@ -109,10 +112,6 @@ async def test_team_stream_defaults_to_new_supervisor_path(monkeypatch):
         called["run"] = (req, execution_id, config, prepared_file_references)
         yield {"event": "message", "data": {"delta": "new-path"}}
 
-    async def old_builder(**_kwargs):
-        raise AssertionError("legacy Supervisor path must not be default")
-
-    monkeypatch.delenv("CONVERSATION_TEAM_USE_LEGACY_SUPERVISOR", raising=False)
     monkeypatch.setattr(
         "agent_runtime.serve.apis.conversation_team.build_conversation_supervisor_config",
         build_config,
@@ -120,10 +119,6 @@ async def test_team_stream_defaults_to_new_supervisor_path(monkeypatch):
     monkeypatch.setattr(
         "agent_runtime.serve.apis.conversation_team.run_conversation_supervisor",
         new_runner,
-    )
-    monkeypatch.setattr(
-        "agent_runtime.serve.apis.conversation_team.build_supervisor",
-        old_builder,
     )
 
     req = ConversationTeamReq.model_validate({
@@ -139,15 +134,13 @@ async def test_team_stream_defaults_to_new_supervisor_path(monkeypatch):
 
     assert called["config"]["sub_agent_ids"] == ["child-a"]
     assert called["run"][1] == "execution-1"
-    assert events[-1]["event"] == "message"
-    assert events[-1]["data"]["delta"] == "new-path"
-
+    assert [event["event"] for event in events[-2:]] == ["message", "run_end"]
+    assert events[-2]["data"]["delta"] == "new-path"
 
 @pytest.mark.asyncio
-async def test_app_react_uses_conversation_runner_factory(monkeypatch):
+async def test_app_react_preserves_trusted_context_inputs_and_request_skills(monkeypatch):
     raw_runner = _FakeConversationRunner([
-        {"event": "message", "data": {"answer": "app-answer"}},
-        {"event": "done", "data": {}},
+        {"event": "message", "data": {"answer": "controller-answer"}},
     ])
     factory = _FakeFactory(raw_runner)
 
@@ -164,8 +157,18 @@ async def test_app_react_uses_conversation_runner_factory(monkeypatch):
         project_id="project-1",
         workspace_id="workspace-1",
         user_id="user-1",
-        query="hello",
+        query="use the skill",
         conversation_history=[],
+        skill_catalog=[
+            SimpleNamespace(
+                skill_id="research",
+                version_id="v2",
+                name="Research",
+                description="Research tasks",
+                object_key="skills/research/v2.zip",
+            )
+        ],
+        recommended_skill_ids=["research"],
     )
     context = ConversationExecutionContext.create(ConversationIdentity(
         project_id="trusted-project",
@@ -198,5 +201,59 @@ async def test_app_react_uses_conversation_runner_factory(monkeypatch):
     assert global_variables["userId"] == "trusted-user"
     assert global_variables["executionId"] == "execution-1"
     assert global_variables["conversationInputFiles"] == prepared_inputs
-    assert [event["event"] for event in events] == ["message", "run_done"]
-    assert events[0]["data"]["delta"] == "app-answer"
+    assert [event["event"] for event in events] == ["message"]
+    assert events[0]["data"]["delta"] == "controller-answer"
+    assert global_variables["conversationTeam"]["type"] == "APP"
+    assert global_variables["conversationTeam"]["skillCatalog"][0]["skillId"] == "research"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mode", ["Controller", "PlanExecute"])
+async def test_app_non_react_modes_remain_routable_without_sys_operation_card(
+    monkeypatch, mode
+):
+    raw_runner = _FakeConversationRunner(
+        [{"event": "message", "data": {"answer": f"{mode}-answer"}}]
+    )
+    factory = _FakeFactory(raw_runner)
+
+    async def load_ir(_path):
+        return {"configs": {"mode": mode}}
+
+    monkeypatch.setattr(conversation_team_app, "async_ir_load", load_ir)
+    monkeypatch.setattr(
+        conversation_team_app, "prepare_params", lambda request: request.params
+    )
+    monkeypatch.setattr(conversation_team_app, "_conversation_runner_factory", factory)
+
+    req = SimpleNamespace(
+        app_id="app-non-react",
+        conversation_history=[],
+        query="hello",
+        skill_catalog=[],
+        recommended_skill_ids=[],
+    )
+    context = ConversationExecutionContext.create(
+        ConversationIdentity(
+            project_id="project-1",
+            workspace_id="workspace-1",
+            user_id="user-1",
+            conversation_id="conversation-1",
+            execution_id="execution-1",
+        ),
+        "/sandbox/root",
+    )
+    token = execution_context_module.set_conversation_execution_context(context)
+    try:
+        events = [
+            event
+            async for event in conversation_team_app.stream_application(
+                req, "execution-1"
+            )
+        ]
+    finally:
+        execution_context_module.reset_conversation_execution_context(token)
+
+    assert factory.modes == [mode]
+    assert raw_runner.calls[0][0].params.sys_operation_card is None
+    assert [event["event"] for event in events] == ["message"]

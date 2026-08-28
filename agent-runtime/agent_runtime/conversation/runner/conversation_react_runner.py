@@ -88,8 +88,8 @@ class ConversationReActRunner(ReActAgentRunner):
         return getattr(req.params, "ir_cache", None)
 
     @staticmethod
-    async def _attach_supervisor_skill_context(agent, team_config: dict) -> None:
-        """Attach the request-scoped workspace Skill catalog to Supervisor only."""
+    async def _attach_request_skill_context(agent, team_config: dict) -> bool:
+        """Attach request-local workspace Skill context to the current Agent."""
         catalog = [
             SkillDescriptor(
                 skill_id=item.get("skillId") or item.get("skill_id") or "",
@@ -105,11 +105,24 @@ class ConversationReActRunner(ReActAgentRunner):
             or team_config.get("recommended_skill_ids")
             or []
         )
-        if catalog:
-            await attach_skill_context(agent, catalog, recommended)
+        if not catalog:
+            return False
+        await attach_skill_context(agent, catalog, recommended)
+        return True
+
+    @staticmethod
+    async def _attach_supervisor_skill_context(agent, team_config: dict) -> bool:
+        """Attach the request-scoped workspace Skill catalog to Supervisor only."""
+        return await ConversationReActRunner._attach_request_skill_context(
+            agent, team_config
+        )
 
     async def _register_supervisor_handoff_tools(
-        self, agent, agent_ids: list[str], prepared_file_references: list[dict] | None = None
+        self,
+        agent,
+        agent_ids: list[str],
+        prepared_file_references: list[dict] | None = None,
+        model_deployment_id: str | None = None,
     ) -> None:
         """Attach only built-in Supervisor handoff tools to this request's Agent."""
         from openjiuwen.core.runner import Runner
@@ -124,6 +137,7 @@ class ConversationReActRunner(ReActAgentRunner):
                 agent_id=agent_id,
                 description=description,
                 prepared_file_references=prepared_file_references,
+                model_deployment_id=model_deployment_id,
             )
             result = agent.ability_manager.add(tool.card)
             if result.added and Runner.resource_mgr.get_tool(tool.card.id) is None:
@@ -209,12 +223,20 @@ class ConversationReActRunner(ReActAgentRunner):
                 sandbox_binder.register(agent)
                 team_config = (global_variables or {}).get("conversationTeam") or {}
                 if team_config.get("type") == "SUPERVISOR":
-                    await self._attach_supervisor_skill_context(agent, team_config)
+                    skill_attached = await self._attach_supervisor_skill_context(
+                        agent, team_config
+                    )
                     await self._register_supervisor_handoff_tools(
                         agent,
                         list(team_config.get("subAgentIds") or []),
                         list(global_variables.get("conversationInputFiles") or []),
+                        team_config.get("modelDeploymentId"),
                     )
+                else:
+                    skill_attached = await self._attach_request_skill_context(
+                        agent, team_config
+                    )
+                if skill_attached:
                     skill_token = bind_agent_skill_context(agent)
             except Exception as error:
                 workflow_logger.error("Failed to register conversation tools: %s", error)
