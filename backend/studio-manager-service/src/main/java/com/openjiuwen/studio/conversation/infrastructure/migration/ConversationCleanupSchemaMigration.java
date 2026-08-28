@@ -81,6 +81,7 @@ public class ConversationCleanupSchemaMigration implements ApplicationRunner {
             ensureColumns(metadata, connection.getCatalog(), "t_conversation_run", RUN_COLUMNS);
             ensureColumns(metadata, connection.getCatalog(), "t_conversation_sub_run", SUB_RUN_COLUMNS);
             backfillLegacyRunIds(metadata, connection.getCatalog());
+            relaxLegacyRunIdentityConstraints(metadata, connection.getCatalog());
         }
     }
 
@@ -138,6 +139,46 @@ public class ConversationCleanupSchemaMigration implements ApplicationRunner {
         if (columnExists(metadata, catalog, "t_conversation_sub_run", "execution_id")) {
             jdbcTemplate.update("UPDATE t_conversation_sub_run SET parent_run_id = execution_id "
                 + "WHERE parent_run_id IS NULL");
+        }
+    }
+
+    /**
+     * 旧版对话表以 execution_id/sub_execution_id 作为必填运行标识。canonical 模型改为写入
+     * run_id/parent_run_id 后，遗留的 NOT NULL 约束会阻止新实体插入。历史值完成回填后仅将
+     * 旧列调整为可空，不删除列，确保旧版本回滚和滚动升级期间仍可读取、写入这些字段。
+     */
+    private void relaxLegacyRunIdentityConstraints(DatabaseMetaData metadata, String catalog) throws SQLException {
+        relaxLegacyColumn(metadata, catalog, "t_conversation_run", "execution_id");
+        relaxLegacyColumn(metadata, catalog, "t_conversation_sub_run", "sub_execution_id");
+        relaxLegacyColumn(metadata, catalog, "t_conversation_sub_run", "execution_id");
+    }
+
+    private void relaxLegacyColumn(DatabaseMetaData metadata, String catalog, String table, String column)
+        throws SQLException {
+        if (!columnExists(metadata, catalog, table, column) || isColumnNullable(metadata, catalog, table, column)) {
+            return;
+        }
+        String productName = metadata.getDatabaseProductName().toLowerCase(Locale.ROOT);
+        String sql;
+        if (productName.contains("mysql") || productName.contains("mariadb")) {
+            sql = "ALTER TABLE " + table + " MODIFY COLUMN " + column + " VARCHAR(64) NULL";
+        } else {
+            sql = "ALTER TABLE " + table + " ALTER COLUMN " + column + " DROP NOT NULL";
+        }
+        jdbcTemplate.execute(sql);
+        log.info("Relaxed legacy conversation column constraint: {}.{}", table, column);
+    }
+
+    private boolean isColumnNullable(DatabaseMetaData metadata, String catalog, String table, String column)
+        throws SQLException {
+        try (ResultSet columns = metadata.getColumns(catalog, null, table, column)) {
+            if (columns.next()) {
+                return columns.getInt("NULLABLE") != DatabaseMetaData.columnNoNulls;
+            }
+        }
+        try (ResultSet columns = metadata.getColumns(catalog, null, table.toUpperCase(Locale.ROOT),
+            column.toUpperCase(Locale.ROOT))) {
+            return columns.next() && columns.getInt("NULLABLE") != DatabaseMetaData.columnNoNulls;
         }
     }
 

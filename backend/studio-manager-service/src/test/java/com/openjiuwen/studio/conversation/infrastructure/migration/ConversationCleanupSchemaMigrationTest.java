@@ -73,9 +73,9 @@ class ConversationCleanupSchemaMigrationTest {
         dataSource.setURL("jdbc:h2:mem:conversation_legacy;MODE=MySQL;DB_CLOSE_DELAY=-1");
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
         jdbc.execute("CREATE TABLE t_conversation_run (id BIGINT AUTO_INCREMENT PRIMARY KEY, "
-            + "execution_id VARCHAR(64), conversation_id VARCHAR(64), role VARCHAR(16), project_id VARCHAR(64))");
+            + "execution_id VARCHAR(64) NOT NULL, conversation_id VARCHAR(64), role VARCHAR(16), project_id VARCHAR(64))");
         jdbc.execute("CREATE TABLE t_conversation_sub_run (id BIGINT AUTO_INCREMENT PRIMARY KEY, "
-            + "sub_execution_id VARCHAR(64), execution_id VARCHAR(64), conversation_id VARCHAR(64), "
+            + "sub_execution_id VARCHAR(64) NOT NULL, execution_id VARCHAR(64) NOT NULL, conversation_id VARCHAR(64), "
             + "role VARCHAR(16), project_id VARCHAR(64))");
         jdbc.update("INSERT INTO t_conversation_run(execution_id, conversation_id, role, project_id) VALUES (?,?,?,?)",
             "root-1", "c1", "assistant", "p1");
@@ -84,6 +84,7 @@ class ConversationCleanupSchemaMigrationTest {
 
         ConversationCleanupSchemaMigration migration = new ConversationCleanupSchemaMigration(jdbc);
         migration.run(null);
+        migration.run(null);
 
         assertThat(jdbc.queryForObject("SELECT run_id FROM t_conversation_run WHERE id=1", String.class))
             .isEqualTo("root-1");
@@ -91,6 +92,12 @@ class ConversationCleanupSchemaMigrationTest {
             .isEqualTo("child-1");
         assertThat(jdbc.queryForObject("SELECT parent_run_id FROM t_conversation_sub_run WHERE id=1", String.class))
             .isEqualTo("root-1");
+        jdbc.update("INSERT INTO t_conversation_run(run_id, conversation_id, role, project_id) VALUES (?,?,?,?)",
+            "root-2", "c2", "assistant", "p1");
+        jdbc.update("INSERT INTO t_conversation_sub_run(run_id, parent_run_id, conversation_id, role, project_id) "
+            + "VALUES (?,?,?,?,?)", "child-2", "root-2", "c2", "assistant", "p1");
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM t_conversation_run", Integer.class)).isEqualTo(2);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM t_conversation_sub_run", Integer.class)).isEqualTo(2);
     }
 
     @Configuration(proxyBeanMethods = false)
