@@ -315,10 +315,11 @@ async def team_sse_stream(req: ConversationTeamReq, execution_id: str | None = N
                 index += 1
                 yield sse_line(accepted)
         usage_event = token_estimator.finalize(req.conversation_id)
-        for accepted in sequencer.accept(usage_event):
-            accepted[TeamEventField.INDEX] = index
-            index += 1
-            yield sse_line(accepted)
+        if usage_event is not None:
+            for accepted in sequencer.accept(usage_event):
+                accepted[TeamEventField.INDEX] = index
+                index += 1
+                yield sse_line(accepted)
         for accepted in sequencer.release_root_end():
             accepted[TeamEventField.INDEX] = index
             index += 1
