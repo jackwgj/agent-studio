@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.openjiuwen.studio.agent.common.dto.agent.Message;
 import com.openjiuwen.studio.agent.common.utils.OkHttpClientUtils;
 import com.openjiuwen.studio.agent.common.utils.RequestContextUtils;
+import com.openjiuwen.studio.conversation.application.ToolRegistrationService;
 import com.openjiuwen.studio.conversation.application.dto.ConversationSkillContext;
 import com.openjiuwen.studio.conversation.application.dto.ConversationSkillDescriptor;
 import com.openjiuwen.studio.conversation.application.dto.ConversationInputFileRef;
@@ -42,7 +43,8 @@ class AgentRuntimeAdapterTest {
     void setUp() {
         conversationRepository = mock(ConversationRepository.class);
         okHttpClientUtils = mock(OkHttpClientUtils.class);
-        adapter = new AgentRuntimeAdapter(conversationRepository, okHttpClientUtils, new ObjectMapper());
+        adapter = new AgentRuntimeAdapter(conversationRepository, mock(ToolRegistrationService.class),
+            okHttpClientUtils, new ObjectMapper());
         // @Value 字段在裸 new 下为 null，必须手工注入（Spring 只在 bean 创建时解析）。
         // 忠实模拟生产：${agent_runtime_endpoint:} → 空字符串，URL 无协议头 → OkHttp 抛 IllegalArgumentException
         ReflectionTestUtils.setField(adapter, "runtimeEndpoint", "");
