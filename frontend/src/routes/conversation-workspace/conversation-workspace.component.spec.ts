@@ -402,9 +402,9 @@ describe('ConversationWorkspaceComponent', () => {
     expect((component as any).activatedSkills).toEqual([
       { skillId: 's1', name: '会议纪要', versionId: 'v1' },
     ]);
-    fixture.detectChanges();
-    const rootRun = fixture.nativeElement.querySelector('[data-run-id="root-1"]');
-    expect(rootRun.textContent).toContain('主结果');
+    expect((component.messages[0] as any).timeline).toEqual(jasmine.arrayContaining([
+      jasmine.objectContaining({ kind: 'message', content: '主结果' }),
+    ]));
     callbacks.onMessage({ data: JSON.stringify({ event: 'run_end', data: { runId: 'root-1', status: 'success' } }) });
     expect(component.isSending).toBeFalse();
   });
@@ -486,6 +486,131 @@ describe('ConversationWorkspaceComponent', () => {
         })],
       }),
     ]);
+  });
+
+  it('同一轮 message、reasoning、tool 按历史返回顺序进入统一时间线', () => {
+    const messages = (component as any).mapDetailToMessages([
+      { role: 'user', content: '请执行', execution_id: 'exec-1', created_at: '2026-08-31T08:00:00.000Z' },
+      { role: 'assistant', event: 'message', content: '阶段一', execution_id: 'exec-1', run_id: 'root', created_at: '2026-08-31T08:00:01.000Z' },
+      { role: 'assistant', event: 'reasoning', content: '判断中', execution_id: 'exec-1', run_id: 'root', created_at: '2026-08-31T08:00:02.000Z' },
+      { role: 'tool', event: 'tool_call', content: '', tool_id: 'search', tool_name: '资料检索', execution_id: 'exec-1', run_id: 'root', created_at: '2026-08-31T08:00:03.000Z' },
+      { role: 'tool', event: 'tool_result', content: '找到结果', tool_id: 'search', tool_name: '资料检索', execution_id: 'exec-1', run_id: 'root', created_at: '2026-08-31T08:00:04.000Z' },
+      { role: 'assistant', event: 'message', content: '最终结论', execution_id: 'exec-1', run_id: 'root', created_at: '2026-08-31T08:00:05.000Z' },
+    ]);
+
+    expect(messages[0].timeline.map((item: any) => item.kind)).toEqual([
+      'message', 'reasoning', 'tool', 'message',
+    ]);
+    expect(messages[0].timeline[0].content).toBe('阶段一');
+    expect(messages[0].timeline[1].content).toBe('判断中');
+    expect(messages[0].timeline[2]).toEqual(jasmine.objectContaining({
+      toolId: 'search', toolName: '资料检索', result: '找到结果',
+    }));
+    expect(messages[0].timeline[3].content).toBe('最终结论');
+  });
+
+  it('run_end 后同步更新同一运行的所有时间线节点状态', () => {
+    const assistant: any = { role: 'assistant', segments: [], timeline: [], detailSegments: [], runs: [], loading: true };
+    component.messages = [assistant];
+
+    dispatchSse(component, assistant, { event: 'run_start', data: { runId: 'root', executionType: 'supervisor' } });
+    dispatchSse(component, assistant, { event: 'reasoning', data: { runId: 'root', content: '思考' } });
+    dispatchSse(component, assistant, { event: 'tool_call', data: { runId: 'root', toolId: 'tool-1', toolName: '资料检索' } });
+    expect(assistant.timeline.map((item: any) => item.status)).toEqual(['running', 'running']);
+
+    dispatchSse(component, assistant, { event: 'run_end', data: { runId: 'root', status: 'success' } });
+
+    expect(assistant.timeline.map((item: any) => item.status)).toEqual(['success', 'success']);
+    expect(component.displayStatus(assistant.timeline[0].status)).toBe('已完成');
+    expect(component.displayStatus(assistant.timeline[1].status)).toBe('已完成');
+  });
+
+  it('历史 message 行之间保留换行，避免 Markdown 标题、表格和列表粘连', () => {
+    const messages = (component as any).mapDetailToMessages([
+      { role: 'user', content: '请生成报告', execution_id: 'exec-1', created_at: '2026-08-31T08:00:00.000Z' },
+      { role: 'assistant', event: 'message', content: '# 报告', execution_id: 'exec-1', run_id: 'root', created_at: '2026-08-31T08:00:01.000Z' },
+      { role: 'assistant', event: 'message', content: '## 概览', execution_id: 'exec-1', run_id: 'root', created_at: '2026-08-31T08:00:02.000Z' },
+    ]);
+
+    expect(messages[0].runs[0].segments).toEqual([
+      { type: 'message', content: '# 报告\n## 概览' },
+    ]);
+  });
+
+  it('run_end 只更新运行状态，不把控制文本追加到最终回答', () => {
+    const assistant: any = { role: 'assistant', segments: [], detailSegments: [], runs: [], loading: true };
+    component.messages = [assistant];
+
+    dispatchSse(component, assistant, { event: 'run_start', data: { runId: 'root', executionType: 'supervisor' } });
+    dispatchSse(component, assistant, { event: 'message', data: { runId: 'root', delta: '真实回答' } });
+    dispatchSse(component, assistant, { event: 'run_end', data: {
+      runId: 'root', status: 'success', text: JSON.stringify({ runId: 'root', controllerEvent: 'done' }),
+    } });
+
+    expect(assistant.runs[0].segments).toEqual([{ type: 'message', content: '真实回答' }]);
+  });
+
+  it('伪 workflow_node 运行元数据不进入真实 workflow 节点列表', () => {
+    const assistant: any = { role: 'assistant', segments: [], detailSegments: [], runs: [], loading: true };
+    component.messages = [assistant];
+
+    dispatchSse(component, assistant, { event: 'workflow_node', data: {
+      runId: 'root', executionType: 'agent', status: 'success', controllerEvent: 'done', eventIndex: 2920,
+    } });
+
+    expect(assistant.runs[0].workflowNodes).toEqual([]);
+  });
+
+  it('reasoning 每段独立保留，不摘要、不截断、不合并', () => {
+    const assistant: any = { role: 'assistant', segments: [], detailSegments: [], runs: [], loading: true };
+    component.messages = [assistant];
+
+    dispatchSse(component, assistant, { event: 'reasoning', data: { runId: 'root', content: '第一段思考' } });
+    dispatchSse(component, assistant, { event: 'reasoning', data: { runId: 'root', content: '第二段思考' } });
+
+    expect(assistant.runs[0].detailSegments).toEqual([
+      { type: 'reasoning', content: '第一段思考' },
+      { type: 'reasoning', content: '第二段思考' },
+    ]);
+  });
+
+  it('tool_call 与 tool_result 按 toolId 合并并保留名称、参数、结果和状态', () => {
+    const assistant: any = { role: 'assistant', segments: [], detailSegments: [], runs: [], loading: true };
+    component.messages = [assistant];
+
+    dispatchSse(component, assistant, { event: 'tool_call', data: {
+      runId: 'root', toolId: 'tool-1', toolName: '资料检索', arguments: { query: '合同' },
+    } });
+    dispatchSse(component, assistant, { event: 'tool_result', data: {
+      runId: 'root', toolId: 'tool-1', result: '找到 3 条', status: 'completed',
+    } });
+
+    expect(assistant.runs[0].detailSegments).toEqual([
+      jasmine.objectContaining({
+        type: 'tool', toolId: 'tool-1', toolName: '资料检索',
+        arguments: { query: '合同' }, content: '找到 3 条', toolStatus: 'completed',
+      }),
+    ]);
+  });
+
+  it('最终回答与过程时间线分离，最终回答不使用助手气泡容器', () => {
+    const assistant: any = { role: 'assistant', segments: [], timeline: [], detailSegments: [], runs: [], loading: true };
+    component.messages = [assistant];
+    dispatchSse(component, assistant, { event: 'run_start', data: { runId: 'root', executionType: 'supervisor', status: 'completed' } });
+    dispatchSse(component, assistant, { event: 'reasoning', data: { runId: 'root', content: '思考内容' } });
+    dispatchSse(component, assistant, { event: 'message', data: { runId: 'root', delta: '最终答案' } });
+    fixture.detectChanges();
+
+    const turn = fixture.nativeElement.querySelector('.turn-card');
+    const timeline = turn?.querySelector('.assistant-process');
+    const answer = turn?.querySelector('.assistant-answer');
+    expect(turn).not.toBeNull();
+    expect(timeline).not.toBeNull();
+    expect(answer).not.toBeNull();
+    expect(turn.querySelector('.message-bubble')).toBeNull();
+    expect(timeline.textContent).toContain('思考内容');
+    expect(answer.textContent).toContain('最终答案');
+    expect(turn.querySelector('.process-item[open]')).toBeNull();
   });
 
   it('canonical 主 Agent message 即使缺少 runId 也渲染，并由 run_end 结束 loading', () => {
@@ -603,7 +728,7 @@ describe('ConversationWorkspaceComponent', () => {
 
     expect(messages).toHaveSize(1);
     expect(messages[0].userContent).toBe('问题');
-    expect(messages[0].runs[0].segments).toEqual([{ type: 'message', content: '答案前半答案后半' }]);
+    expect(messages[0].runs[0].segments).toEqual([{ type: 'message', content: '答案前半\n答案后半' }]);
     expect(messages[0].runs[0].workflowNodes[0]).toEqual(jasmine.objectContaining({ nodeId: 'node-1', nodeName: '检索' }));
     expect(messages[0].runs[0].children[0]).toEqual(jasmine.objectContaining({ runId: 'child', agentId: 'agent-1' }));
   });
@@ -839,6 +964,7 @@ describe('ConversationWorkspaceComponent', () => {
     const callbacks = service.chatSSE.calls.mostRecent().args[2];
     callbacks.onMessage({ data: JSON.stringify({ event: 'message', data: { delta: '流式文本' } }) });
     callbacks.onMessage({ data: JSON.stringify({ event: 'run_end', data: { text: '最终文本', status: 'completed' } }) });
+    expect((component.messages[0] as any).runs[0].segments).toEqual([{ type: 'message', content: '流式文本' }]);
     oldDetail.resolve({ messages: [] });
     await Promise.resolve();
 
@@ -848,7 +974,7 @@ describe('ConversationWorkspaceComponent', () => {
         userContent: '整理会议',
         loading: false,
         runs: [jasmine.objectContaining({
-          segments: [{ type: 'message', content: '流式文本最终文本' }],
+          segments: [{ type: 'message', content: '流式文本' }],
         })],
       }),
     ]);

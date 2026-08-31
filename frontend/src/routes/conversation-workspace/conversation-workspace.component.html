@@ -23,15 +23,30 @@
             </div>
           </div>
         </div>
-        <div class="message-bubble">
-          <div class="message-role">助手</div>
-          <div class="message-content">
-            <ng-container *ngFor="let seg of message.segments">
-              <app-markdown-answer *ngIf="seg.type === 'message'" class="segment-message markdown-segment" [answer]="seg.content"></app-markdown-answer>
+        <div class="assistant-turn">
+          <div class="assistant-process" *ngIf="message.timeline?.length">
+            <ng-container *ngFor="let item of message.timeline">
+              <div class="timeline-message assistant-answer" *ngIf="item.kind === 'message'">
+                <app-markdown-answer class="markdown-segment" [answer]="item.content || ''"></app-markdown-answer>
+              </div>
+              <details class="process-item" *ngIf="item.kind !== 'message'">
+                <summary>
+                  <span class="process-dot"></span>
+                  <span class="process-title">{{ item.kind === 'reasoning' ? '思考' : item.kind === 'workflow' ? (item.title || '工作流节点') : '调用工具：' + (item.toolName || item.toolId || '未知工具') }}</span>
+                </summary>
+                <div class="process-body">
+                  <div class="process-reasoning" *ngIf="item.kind === 'reasoning'">{{ item.content }}</div>
+                  <ng-container *ngIf="item.kind === 'tool'">
+                    <div class="process-meta" *ngIf="item.toolId">工具 ID：{{ item.toolId }}</div>
+                    <pre class="process-arguments" *ngIf="item.arguments != null">{{ item.arguments | json }}</pre>
+                    <div class="process-result" *ngIf="item.result">{{ item.result }}</div>
+                  </ng-container>
+                  <div class="process-result" *ngIf="item.kind === 'workflow'">{{ item.result }}</div>
+                </div>
+              </details>
             </ng-container>
-            <ng-container *ngFor="let run of message.runs">
-              <ng-container *ngTemplateOutlet="runTemplate; context: { $implicit: run }"></ng-container>
-            </ng-container>
+          </div>
+          <div class="assistant-answer">
             <span *ngIf="message.loading" class="loading-dots">…</span>
           </div>
           <div class="artifact-list" *ngIf="message.artifacts?.length" aria-label="正式产物">
@@ -42,13 +57,7 @@
                 <span class="artifact-meta">{{ formatArtifactSize(artifact.size) }} · {{ artifact.mediaType }}</span>
                 <span class="artifact-error" *ngIf="artifact.downloadState === 'failed'">文件下载失败，请重试</span>
               </div>
-              <button
-                nz-button
-                nzType="default"
-                class="artifact-download"
-                [nzLoading]="artifact.downloadState === 'loading'"
-                (click)="downloadArtifact(artifact)"
-              >下载</button>
+              <button nz-button nzType="default" class="artifact-download" [nzLoading]="artifact.downloadState === 'loading'" (click)="downloadArtifact(artifact)">下载</button>
             </div>
           </div>
           <div class="message-error" *ngIf="message.error">

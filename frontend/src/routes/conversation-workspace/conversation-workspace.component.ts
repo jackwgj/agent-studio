@@ -26,6 +26,8 @@ import {
   ConversationEventType,
   ConversationRunNode,
   ChatSegment,
+  ConversationProcessItem,
+  ConversationTimelineItem,
 } from './conversation-skill.model';
 import {
   ActiveSessionState,
@@ -42,6 +44,7 @@ import { CommonUtils } from 'src/utils/common.util';
 interface ChatMessage {
   role: 'user' | 'assistant';
   segments: ChatSegment[];
+  timeline: ConversationTimelineItem[];
   userContent?: string;
   userFiles?: Array<Pick<ConversationFileReference, 'fileName'>>;
   artifacts?: ConversationArtifactReference[];
@@ -598,6 +601,7 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
         .filter((file) => file.progress === 'succeeded' && file.fileName)
         .map(({ fileName }) => ({ fileName })),
       segments: [],
+      timeline: [],
       detailSegments: [],
       runs: [],
       loading: true,
@@ -759,35 +763,75 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
           const content = String(d.delta ?? d.content ?? d.text ?? '');
           if (run && content) {
             this.appendSegment(run.segments, 'message', content);
+            this.appendTimelineMessage(assistantMsg, content, String(d.runId ?? run.runId), realtime);
             assistantMsg.loading = false;
           }
           break;
         }
-        case ConversationEventType.REASONING:
-          if (run) this.appendSegment(run.detailSegments, 'reasoning', String(d.content ?? d.delta ?? ''));
+        case ConversationEventType.REASONING: {
+          const content = String(d.content ?? d.delta ?? '');
+          if (run && content) {
+            run.detailSegments.push({ type: 'reasoning', content });
+            assistantMsg.timeline.push({ kind: 'reasoning', content, runId: run.runId, status: run.status || 'running' });
+          }
           break;
+        }
         case ConversationEventType.TOOL_CALL:
-          if (run && d.toolId) run.detailSegments.push({ type: 'tool', content: '', toolId: String(d.toolId), toolName: d.toolName, arguments: d.arguments });
+          if (run && d.toolId) {
+            const toolId = String(d.toolId);
+            const existing = run.detailSegments.find((segment) => segment.type === 'tool' && segment.toolId === toolId);
+            if (existing?.type === 'tool') {
+              existing.toolName ??= d.toolName ? String(d.toolName) : undefined;
+              existing.arguments ??= d.arguments;
+              existing.content ||= this.displayValue(d.result ?? d.output ?? d.content);
+              existing.toolStatus ??= d.status ? String(d.status) : undefined;
+              this.appendTimelineTool(assistantMsg, existing, run.runId);
+            } else {
+              const segment: ChatSegment = {
+                type: 'tool',
+                content: this.displayValue(d.result ?? d.output ?? d.content),
+                toolId,
+                toolName: d.toolName ? String(d.toolName) : undefined,
+                arguments: d.arguments,
+                toolStatus: d.status ? String(d.status) : undefined,
+              };
+              run.detailSegments.push(segment);
+              assistantMsg.timeline.push({ kind: 'tool', toolId, toolName: segment.toolName || toolId, arguments: segment.arguments, result: segment.content || undefined, status: segment.toolStatus || (segment.content ? 'completed' : run.status || 'running'), runId: run.runId });
+            }
+          }
           break;
         case ConversationEventType.TOOL_RESULT:
           if (run && d.toolId) {
-            const tool = [...run.detailSegments].reverse().find((segment) => segment.type === 'tool' && segment.toolId === String(d.toolId) && !segment.content);
-            if (tool) {
-              tool.content = this.displayValue(d.result ?? d.output ?? d.content);
-              tool.toolStatus = d.status;
-            } else if (!realtime) {
-              run.detailSegments.push({
-                type: 'tool',
-                content: this.displayValue(d.result ?? d.output ?? d.content),
-                toolId: String(d.toolId),
-                toolName: d.toolName,
-                toolStatus: d.status,
-              });
+            const toolId = String(d.toolId);
+            const result = this.displayValue(d.result ?? d.output ?? d.content);
+            const tool = [...run.detailSegments].reverse().find((segment) => segment.type === 'tool' && segment.toolId === toolId);
+            if (tool?.type === 'tool') {
+              tool.content = result;
+              tool.toolName ??= d.toolName ? String(d.toolName) : undefined;
+              tool.toolStatus = d.status ? String(d.status) : tool.toolStatus;
+              const timelineTool = [...assistantMsg.timeline].reverse().find((item) => item.kind === 'tool' && item.toolId === toolId && item.runId === run.runId);
+              if (timelineTool) {
+                timelineTool.toolName = tool.toolName || timelineTool.toolName;
+                timelineTool.result = result;
+                timelineTool.status = tool.toolStatus || run.status;
+              }
+            } else {
+              const segment: ChatSegment = {
+                type: 'tool', content: result, toolId,
+                toolName: d.toolName ? String(d.toolName) : undefined,
+                toolStatus: d.status ? String(d.status) : undefined,
+              };
+              run.detailSegments.push(segment);
+              assistantMsg.timeline.push({ kind: 'tool', content: result, toolId, toolName: segment.toolName || toolId, result, status: segment.toolStatus || run.status, runId: run.runId });
             }
           }
           break;
         case ConversationEventType.WORKFLOW_NODE:
-          if (run) run.workflowNodes.push({ nodeId: d.nodeId, nodeName: d.nodeName, nodeType: d.nodeType, nodeIndex: d.nodeIndex, status: d.status, input: d.input, output: d.output, content: d.content, errorCode: d.errorCode, errorMessage: d.errorMessage });
+          if (run && this.isRealWorkflowNode(d)) {
+            const node = { nodeId: d.nodeId, nodeName: d.nodeName, nodeType: d.nodeType, nodeIndex: d.nodeIndex, status: d.status, input: d.input, output: d.output, content: d.content, errorCode: d.errorCode, errorMessage: d.errorMessage };
+            run.workflowNodes.push(node);
+            assistantMsg.timeline.push({ kind: 'workflow', title: node.nodeName || node.nodeId || '工作流节点', status: node.status, result: node.output == null ? node.content : this.displayValue(node.output), runId: run.runId, node });
+          }
           break;
         case ConversationEventType.ERROR: {
           if (run) run.status = 'error';
@@ -798,10 +842,9 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
           break;
         }
         case ConversationEventType.RUN_END: {
-          if (run) run.status = d.status ?? 'completed';
-          const content = String(d.delta ?? d.content ?? d.text ?? '');
-          if (run && content) {
-            this.appendSegment(run.segments, 'message', content);
+          if (run) {
+            run.status = d.status ?? 'completed';
+            this.updateTimelineStatus(assistantMsg, run.runId, run.status);
           }
           if (isRoot) {
             const failed = !['success', 'completed', 'done'].includes(String(d.status ?? 'success').toLowerCase());
@@ -992,10 +1035,107 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
 
   private displayValue(value: unknown): string { return typeof value === 'string' ? value : value == null ? '' : JSON.stringify(value); }
 
+  public displayStatus(status: unknown, fallback = '处理中'): string {
+    const value = String(status ?? '').toLowerCase();
+    if (['success', 'completed', 'done', 'succeeded'].includes(value)) return '已完成';
+    if (['error', 'failed', 'failure', 'cancelled', 'canceled'].includes(value)) return '失败';
+    if (['pending', 'queued', 'running', 'started', 'processing', 'in_progress'].includes(value)) return '处理中';
+    return fallback;
+  }
+
+  public answerSegments(message: ChatMessage): ChatSegment[] {
+    const root = (message.runs ?? []).find((run) => !run.parentRunId);
+    return [...(message.segments ?? []), ...(root?.segments ?? [])];
+  }
+
+  public processItems(message: ChatMessage): ConversationProcessItem[] {
+    return (message.runs ?? []).flatMap((run) => this.processItemsForRun(run));
+  }
+
+  private processItemsForRun(run: ConversationRunNode): ConversationProcessItem[] {
+    const items: ConversationProcessItem[] = [];
+    for (const segment of run.detailSegments ?? []) {
+      if (segment.type === 'reasoning') {
+        items.push({ kind: 'reasoning', title: '思考', reasoning: segment.content, status: run.status });
+      } else if (segment.type === 'tool') {
+        const name = segment.toolName || segment.toolId || '未知工具';
+        items.push({
+          kind: 'tool', title: `调用工具：${name}`,
+          status: segment.toolStatus || (segment.content ? 'completed' : run.status),
+          toolId: segment.toolId, toolName: name, arguments: segment.arguments, result: segment.content || undefined,
+        });
+      }
+    }
+    for (const node of run.workflowNodes ?? []) {
+      items.push({ kind: 'workflow', title: node.nodeName || node.nodeId || '工作流节点', status: node.status, result: node.output == null ? node.content : this.displayValue(node.output) });
+    }
+    for (const child of run.children ?? []) {
+      const childTool = (child.detailSegments ?? []).find((segment) => segment.type === 'tool');
+      const childName = childTool?.type === 'tool' ? childTool.toolName || childTool.toolId : undefined;
+      items.push({
+        kind: 'agent', title: `子 Agent：${childName || child.agentId || child.runId}`, status: child.status,
+        toolId: childTool?.type === 'tool' ? childTool.toolId : undefined,
+        toolName: childName,
+        result: childTool?.type === 'tool' ? childTool.content || undefined : undefined,
+        children: this.processItemsForRun(child).filter((item) => item.kind !== 'agent'),
+      });
+    }
+    return items;
+  }
+
   private appendSegment(segments: ChatSegment[], type: 'message' | 'reasoning', content: string): void {
     if (!content) return;
     const last = segments[segments.length - 1];
     if (last?.type === type) last.content += content; else segments.push({ type, content });
+  }
+
+  private updateTimelineStatus(message: ChatMessage, runId: string, status: string): void {
+    for (const item of message.timeline) {
+      if (item.runId === runId && !['message'].includes(item.kind)) {
+        item.status = status;
+      }
+    }
+  }
+
+  private appendTimelineMessage(message: ChatMessage, content: string, runId: string, realtime: boolean): void {
+    const last = message.timeline[message.timeline.length - 1];
+    if (realtime && last?.kind === 'message' && last.runId === runId) {
+      last.content = `${last.content ?? ''}${content}`;
+      return;
+    }
+    message.timeline.push({ kind: 'message', content, runId });
+  }
+
+  private appendTimelineTool(message: ChatMessage, segment: ChatSegment, runId: string): void {
+    const item = [...message.timeline].reverse().find((candidate) =>
+      candidate.kind === 'tool' && candidate.toolId === segment.toolId && candidate.runId === runId,
+    );
+    if (!item) {
+      message.timeline.push({
+        kind: 'tool', toolId: segment.toolId, toolName: segment.toolName || segment.toolId,
+        arguments: segment.arguments, result: segment.content || undefined,
+        status: segment.toolStatus, runId,
+      });
+      return;
+    }
+    item.toolName = segment.toolName || item.toolName;
+    item.arguments ??= segment.arguments;
+    item.result = segment.content || item.result;
+    item.status = segment.toolStatus || item.status;
+  }
+
+  private appendHistoryMessage(segments: ChatSegment[], content: string): void {
+    if (!content) return;
+    const last = segments[segments.length - 1];
+    if (last?.type === 'message') last.content += `\n${content}`;
+    else segments.push({ type: 'message', content });
+  }
+
+  private isRealWorkflowNode(data: any): boolean {
+    return Boolean(
+      data?.nodeId ?? data?.node_id ?? data?.nodeName ?? data?.node_name ??
+      data?.nodeType ?? data?.node_type ?? data?.nodeIndex ?? data?.node_index,
+    );
   }
 
   private mapDetailToMessages(rows: any[]): ChatMessage[] {
@@ -1004,14 +1144,14 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
     let current: ChatMessage | undefined;
     for (const row of orderedRows) {
       if (row.role === 'user') {
-        current = { role: 'assistant', segments: [], detailSegments: [], runs: [] };
+        current = { role: 'assistant', segments: [], timeline: [], detailSegments: [], runs: [] };
         current.userContent = row.content ?? row.text ?? '';
         current.userFiles = this.parseUserFiles(row.file_ids ?? row.fileIds);
         messages.push(current);
         continue;
       }
       if (!current) {
-        current = { role: 'assistant', segments: [], detailSegments: [], runs: [] };
+        current = { role: 'assistant', segments: [], timeline: [], detailSegments: [], runs: [] };
         messages.push(current);
       }
       if (row.event === ConversationEventType.ARTIFACT || row.type === ConversationEventType.ARTIFACT) {
@@ -1033,16 +1173,31 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
       if (!run) continue;
       const seg = this.rowToSegment(row);
       if (seg) {
-        if (seg.type === 'message') this.appendSegment(run.segments, 'message', seg.content);
-        else if (seg.type === 'reasoning') this.appendSegment(run.detailSegments, 'reasoning', seg.content);
-        else run.detailSegments.push(seg);
+        if (seg.type === 'message') {
+          this.appendHistoryMessage(run.segments, seg.content);
+          current.timeline.push({ kind: 'message', content: seg.content, runId: run.runId });
+        } else if (seg.type === 'reasoning') {
+          run.detailSegments.push(seg);
+          current.timeline.push({ kind: 'reasoning', content: seg.content, runId: run.runId });
+        } else {
+          run.detailSegments.push(seg);
+          if (seg.type === 'tool') {
+            const existing = [...current.timeline].reverse().find((item) => item.kind === 'tool' && item.toolId === seg.toolId && item.runId === run.runId);
+            if (existing) {
+              existing.toolName ??= seg.toolName;
+              existing.arguments ??= seg.arguments;
+              existing.result = seg.content || existing.result;
+            } else {
+              current.timeline.push({ kind: 'tool', toolId: seg.toolId, toolName: seg.toolName || seg.toolId, arguments: seg.arguments, result: seg.content || undefined, status: seg.toolStatus || row.status, runId: run.runId });
+            }
+          }
+        }
       }
       if (row.event === 'run_end' || row.type === 'run_end') {
-        const finalContent = row.content ?? row.text ?? row.delta;
-        if (finalContent) this.appendSegment(run.segments, 'message', String(finalContent));
+        run.status = row.status ?? run.status ?? 'completed';
       }
-      if (row.node_id || row.nodeId) {
-        run.workflowNodes.push({
+      if (this.isRealWorkflowNode(row)) {
+        const node = {
           nodeId: row.node_id ?? row.nodeId,
           nodeName: row.node_name ?? row.nodeName,
           nodeType: row.node_type ?? row.nodeType,
@@ -1053,6 +1208,12 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
           content: row.content,
           errorCode: row.error_code ?? row.errorCode,
           errorMessage: row.error_message ?? row.errorMessage,
+        };
+        run.workflowNodes.push(node);
+        current.timeline.push({
+          kind: 'workflow', title: node.nodeName || node.nodeId || '工作流节点',
+          status: node.status, result: node.output == null ? node.content : this.displayValue(node.output),
+          runId: run.runId, node,
         });
       }
       if (row.event === 'error' || row.type === 'error') {

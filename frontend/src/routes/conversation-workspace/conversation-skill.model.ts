@@ -108,6 +108,33 @@ export interface WorkflowNodeSegment {
   errorMessage?: string;
 }
 
+/** 一轮对话按事件到达/历史返回顺序排列的展示项。 */
+export interface ConversationTimelineItem {
+  kind: 'message' | 'reasoning' | 'tool' | 'workflow';
+  content?: string;
+  title?: string;
+  status?: string;
+  runId?: string;
+  toolId?: string;
+  toolName?: string;
+  arguments?: unknown;
+  result?: string;
+  node?: WorkflowNodeSegment;
+}
+
+/** 过程时间线展示项，不参与 ConversationEvent 路由或排序。 */
+export interface ConversationProcessItem {
+  kind: 'reasoning' | 'tool' | 'workflow' | 'agent';
+  title: string;
+  status?: string;
+  reasoning?: string;
+  toolId?: string;
+  toolName?: string;
+  arguments?: unknown;
+  result?: string;
+  children?: ConversationProcessItem[];
+}
+
 export interface ConversationEventData {
   runId?: string;
   parentRunId?: string | null;
