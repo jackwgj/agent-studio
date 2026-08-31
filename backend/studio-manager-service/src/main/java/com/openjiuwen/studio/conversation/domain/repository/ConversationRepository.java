@@ -6,6 +6,7 @@ package com.openjiuwen.studio.conversation.domain.repository;
 
 import com.openjiuwen.studio.conversation.domain.model.Conversation;
 import com.openjiuwen.studio.conversation.domain.model.ConversationMessage;
+import com.openjiuwen.studio.conversation.domain.model.ConversationWorkflowNode;
 
 import java.util.List;
 import java.util.Optional;
@@ -61,10 +62,13 @@ public interface ConversationRepository {
      */
     void appendMessages(String conversationId, List<ConversationMessage> messages);
 
+    /** 保存 Workflow 调用中的节点内容。 */
+    void appendWorkflowNodes(String conversationId, List<ConversationWorkflowNode> nodes);
+
     /**
      * 软删除会话
      *
      * @param conversationId 会话ID
      */
-    void softDelete(String conversationId);
+    void softDeleteAndScheduleCleanup(String conversationId);
 }

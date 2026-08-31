@@ -5,7 +5,7 @@ import { AgentConfigService } from '@routes/agent-center/agent-config.service';
 import { SSE } from '@shared/services/sse';
 import { BehaviorSubject } from 'rxjs';
 import dayjs from 'dayjs';
-import { ConversationSendRequest, ConversationSkillItem, ConversationSseCallbacks } from './conversation-skill.model';
+import { ConversationFileReference, ConversationSendRequest, ConversationSkillItem, ConversationSseCallbacks } from './conversation-skill.model';
 
 export interface SessionItem {
   conversation_id: string;
@@ -151,11 +151,28 @@ export class ConversationWorkspaceService {
       );
   }
 
+  /** 上传到对话专用对象前缀，返回持久 objectKey 而非预签名 URL。 */
+  public uploadInputFile(formData: FormData): Promise<ConversationFileReference> {
+    return this.http.postAsync({
+      url: `${this.sessionsUrl}/input-files`,
+      body: formData,
+      query: { workspace_id: this.http.getWorkspaceId() },
+    });
+  }
+
   /** 会话详情（含全部消息） */
   public detailSession(conversationId: string): Promise<any> {
     return this.http.getAsync({
       url: `${this.sessionsUrl}/${conversationId}`,
       query: { workspace_id: this.http.getWorkspaceId() },
+    });
+  }
+
+  /** 校验会话所有权后通过 Manager 同源下载正式产物。 */
+  public downloadArtifact(conversationId: string, objectKey: string): Promise<Blob> {
+    return this.http.getBlobAsync({
+      url: `${this.sessionsUrl}/${conversationId}/artifacts/download`,
+      query: { workspace_id: this.http.getWorkspaceId(), object_key: objectKey },
     });
   }
 

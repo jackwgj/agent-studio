@@ -7,8 +7,10 @@ import com.openjiuwen.studio.agent.foundation.connection.model.PageResult;
 import com.openjiuwen.studio.agent.manager.mapper.SkillMapper;
 import com.openjiuwen.studio.agent.manager.mapper.workspace.WorkspaceMapper;
 import com.openjiuwen.studio.agent.manager.mapper.workspace.WorkspaceMemberMapper;
+import com.openjiuwen.studio.agent.manager.obs.MgObsService;
 import com.openjiuwen.studio.agent.manager.entity.WorkspaceEntity;
 import com.openjiuwen.studio.conversation.application.dto.ConversationCreateCmd;
+import com.openjiuwen.studio.conversation.application.dto.ConversationArtifactDownload;
 import com.openjiuwen.studio.conversation.application.dto.ConversationDetailVo;
 import com.openjiuwen.studio.conversation.application.dto.ConversationListQuery;
 import com.openjiuwen.studio.conversation.application.dto.ConversationSkillVo;
@@ -17,8 +19,11 @@ import com.openjiuwen.studio.conversation.application.dto.ConversationSkillDescr
 import com.openjiuwen.studio.conversation.application.dto.ConversationVo;
 import com.openjiuwen.studio.conversation.application.dto.MessageVo;
 import com.openjiuwen.studio.conversation.application.dto.SendMessageCmd;
+import com.openjiuwen.studio.conversation.application.dto.ConversationInputFileRef;
 import com.openjiuwen.studio.conversation.domain.model.Conversation;
 import com.openjiuwen.studio.conversation.domain.model.ConversationMessage;
+import com.openjiuwen.studio.conversation.domain.model.valueobject.ExecutionRef;
+import com.openjiuwen.studio.conversation.domain.model.valueobject.FileRef;
 import com.openjiuwen.studio.conversation.domain.repository.ConversationRepository;
 import com.openjiuwen.studio.conversation.domain.service.ConversationHistoryAssembler;
 import com.openjiuwen.studio.conversation.infrastructure.adapter.AgentRuntimeAdapter;
@@ -31,10 +36,16 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
 import java.lang.reflect.Method;
@@ -53,6 +64,7 @@ class ConversationWorkspaceAppServiceTest {
     private ConversationSkillResolver skillResolver;
     private ConversationWorkspaceAccessGuard workspaceAccessGuard;
     private ConversationAgentResourceResolver agentResourceResolver;
+    private MgObsService mgObsService;
     private ConversationWorkspaceAppService appService;
 
     @BeforeEach
@@ -63,8 +75,9 @@ class ConversationWorkspaceAppServiceTest {
         skillResolver = mock(ConversationSkillResolver.class);
         workspaceAccessGuard = mock(ConversationWorkspaceAccessGuard.class);
         agentResourceResolver = mock(ConversationAgentResourceResolver.class);
+        mgObsService = mock(MgObsService.class);
         appService = new ConversationWorkspaceAppService(repository, historyAssembler, runtimeAdapter, skillResolver,
-            workspaceAccessGuard, agentResourceResolver);
+            workspaceAccessGuard, agentResourceResolver, mgObsService);
 
         SimpleUser user = new SimpleUser();
         user.setUserId("u1");
@@ -148,7 +161,8 @@ class ConversationWorkspaceAppServiceTest {
     @Test
     void listSkills_暴露固定路由并转发工作空间参数() throws NoSuchMethodException {
         ConversationWorkspaceAppService controllerAppService = mock(ConversationWorkspaceAppService.class);
-        ConversationWorkspaceController controller = new ConversationWorkspaceController(controllerAppService);
+        ConversationWorkspaceController controller = new ConversationWorkspaceController(
+            controllerAppService, mock(ConversationInputUploadService.class));
         List<ConversationSkillVo> expected = List.of(ConversationSkillVo.builder().skillId("s1").build());
         when(controllerAppService.listSkills("p1", "w1")).thenReturn(expected);
 
@@ -257,8 +271,9 @@ class ConversationWorkspaceAppServiceTest {
         assertNull(m.getToolId());
         assertNull(m.getToolArgs());
         assertNull(m.getFileIds());
-        assertNull(m.getExecutionId());
-        assertNull(m.getSubExecutionId());
+        assertNull(m.getRunId());
+        assertNull(m.getParentRunId());
+        assertNull(m.getExecutionType());
         assertNull(m.getAgentId());
     }
 
@@ -270,7 +285,7 @@ class ConversationWorkspaceAppServiceTest {
 
         appService.delete("p1", "w1", "c1");
 
-        verify(repository).softDelete("c1");
+        verify(repository).softDeleteAndScheduleCleanup("c1");
     }
 
     @Test
@@ -280,7 +295,7 @@ class ConversationWorkspaceAppServiceTest {
         when(repository.findById("c1")).thenReturn(Optional.of(other));
 
         assertThrows(AgentStudioException.class, () -> appService.delete("p1", "w1", "c1"));
-        verify(repository, never()).softDelete("c1");   // 未授权：不允许软删
+        verify(repository, never()).softDeleteAndScheduleCleanup("c1");   // 未授权：不允许软删
     }
 
     // ---------- sendMessage ----------
@@ -336,6 +351,28 @@ class ConversationWorkspaceAppServiceTest {
         assertEquals(1, appended.size());
         assertEquals("user", appended.get(0).getRole());
         assertEquals("你好", appended.get(0).getContent());
+    }
+
+    @Test
+    void sendMessage_拒绝前缀内伪造路径和不一致文件名且不落库() {
+        Conversation conv = ownedConversation("c1");
+        when(repository.findById("c1")).thenReturn(Optional.of(conv));
+        SendMessageCmd cmd = validCmd(List.of());
+        ConversationInputFileRef ref = new ConversationInputFileRef();
+        String prefix = "conversation-inputs/" + ConversationInputUploadService.sha256("p1") + "/"
+            + ConversationInputUploadService.sha256("w1") + "/"
+            + ConversationInputUploadService.sha256("u1") + "/";
+        ref.setObjectKey(prefix + "../00000000-0000-0000-0000-000000000001/report.pdf");
+        ref.setFileName("renamed.pdf");
+        ref.setSize(4);
+        ref.setChecksum("0".repeat(64));
+        cmd.setFileIds(List.of(ref));
+
+        assertThrows(AgentStudioException.class,
+            () -> appService.sendMessage("p1", "w1", "c1", cmd, new HttpHeaders()));
+
+        verify(repository, never()).appendMessages(anyString(), anyList());
+        verifyNoInteractions(runtimeAdapter);
     }
 
     @Test
@@ -413,6 +450,74 @@ class ConversationWorkspaceAppServiceTest {
 
     // ---------- 工具方法 ----------
 
+    @Test
+    void downloadArtifact_仅为会话拥有者的持久产物返回原名文件流() throws Exception {
+        String objectKey = "conversation-artifacts/p/w/u/c/e/12345678-report-txt";
+        byte[] content = "测试内容".getBytes(StandardCharsets.UTF_8);
+        Conversation owned = ownedConversation("c1");
+        owned.setMessages(List.of(ConversationMessage.builder()
+            .role("assistant").event("artifact")
+            .executionRef(new ExecutionRef("exec-1", null, null, "agent"))
+            .fileRefs(List.of(new FileRef(objectKey, "测试结果.txt", (long) content.length,
+                "text/plain", "0".repeat(64), "exec-1")))
+            .build()));
+        when(repository.findById("c1")).thenReturn(Optional.of(owned));
+        when(mgObsService.getTemporaryGetRsp(false, objectKey, 300L))
+            .thenReturn("https://download/signed");
+        when(mgObsService.getByUrl("https://download/signed"))
+            .thenReturn(new ByteArrayInputStream(content));
+
+        ConversationArtifactDownload download =
+            appService.downloadArtifact("p1", "w1", "c1", objectKey);
+
+        assertEquals("测试结果.txt", download.getFileName());
+        assertEquals("text/plain", download.getMediaType());
+        assertEquals(content.length, download.getSize());
+        assertArrayEquals(content, download.getContent().readAllBytes());
+        verify(mgObsService).getTemporaryGetRsp(false, objectKey, 300L);
+        verify(mgObsService).getByUrl("https://download/signed");
+    }
+
+    @Test
+    void downloadArtifact_控制器使用原始中文文件名和文件内容响应() throws Exception {
+        byte[] content = "测试内容".getBytes(StandardCharsets.UTF_8);
+        ConversationWorkspaceAppService controllerAppService = mock(ConversationWorkspaceAppService.class);
+        ConversationWorkspaceController controller = new ConversationWorkspaceController(
+            controllerAppService, mock(ConversationInputUploadService.class));
+        when(controllerAppService.downloadArtifact("p1", "w1", "c1", "stored-key"))
+            .thenReturn(new ConversationArtifactDownload(
+                new ByteArrayInputStream(content), "测试结果.txt", "text/plain", (long) content.length));
+
+        ResponseEntity<StreamingResponseBody> response =
+            controller.downloadArtifact("p1", "w1", "c1", "stored-key");
+        ByteArrayOutputStream body = new ByteArrayOutputStream();
+        assertNotNull(response.getBody());
+        response.getBody().writeTo(body);
+
+        assertEquals("测试结果.txt", ContentDisposition.parse(
+            response.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION)).getFilename());
+        assertEquals("text/plain", response.getHeaders().getContentType().toString());
+        assertEquals(content.length, response.getHeaders().getContentLength());
+        assertArrayEquals(content, body.toByteArray());
+    }
+
+    @Test
+    void downloadArtifact_拒绝其他用户或不属于会话的对象() {
+        String objectKey = "conversation-artifacts/p/w/u/c/e/report.pdf";
+        Conversation other = ownedConversation("c1");
+        other.setOwnerUserId("u2");
+        when(repository.findById("c1")).thenReturn(Optional.of(other));
+
+        assertThrows(AgentStudioException.class,
+            () -> appService.downloadArtifact("p1", "w1", "c1", objectKey));
+        verifyNoInteractions(mgObsService);
+
+        when(repository.findById("c1")).thenReturn(Optional.of(ownedConversation("c1")));
+        assertThrows(AgentStudioException.class,
+            () -> appService.downloadArtifact("p1", "w1", "c1", "conversation-artifacts/other/file.pdf"));
+        verifyNoInteractions(mgObsService);
+    }
+
     private Conversation ownedConversation(String conversationId) {
         return Conversation.builder()
                 .conversationId(conversationId)
@@ -438,6 +543,6 @@ class ConversationWorkspaceAppServiceTest {
         return new ConversationWorkspaceAppService(repository, historyAssembler, runtimeAdapter,
             new ConversationSkillResolver(mapper),
             new ConversationWorkspaceAccessGuard(workspaceMapper, workspaceMemberMapper),
-            agentResourceResolver);
+            agentResourceResolver, mgObsService);
     }
 }

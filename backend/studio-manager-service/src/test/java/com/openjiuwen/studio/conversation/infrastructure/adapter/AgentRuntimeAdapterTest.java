@@ -4,8 +4,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.openjiuwen.studio.agent.common.dto.agent.Message;
 import com.openjiuwen.studio.agent.common.utils.OkHttpClientUtils;
 import com.openjiuwen.studio.agent.common.utils.RequestContextUtils;
+import com.openjiuwen.studio.conversation.application.ToolRegistrationService;
 import com.openjiuwen.studio.conversation.application.dto.ConversationSkillContext;
 import com.openjiuwen.studio.conversation.application.dto.ConversationSkillDescriptor;
+import com.openjiuwen.studio.conversation.application.dto.ConversationInputFileRef;
 import com.openjiuwen.studio.conversation.application.dto.SendMessageCmd;
 import com.openjiuwen.studio.conversation.domain.model.Conversation;
 import com.openjiuwen.studio.conversation.domain.repository.ConversationRepository;
@@ -41,7 +43,8 @@ class AgentRuntimeAdapterTest {
     void setUp() {
         conversationRepository = mock(ConversationRepository.class);
         okHttpClientUtils = mock(OkHttpClientUtils.class);
-        adapter = new AgentRuntimeAdapter(conversationRepository, okHttpClientUtils, new ObjectMapper());
+        adapter = new AgentRuntimeAdapter(conversationRepository, mock(ToolRegistrationService.class),
+            okHttpClientUtils, new ObjectMapper());
         // @Value 字段在裸 new 下为 null，必须手工注入（Spring 只在 bean 创建时解析）。
         // 忠实模拟生产：${agent_runtime_endpoint:} → 空字符串，URL 无协议头 → OkHttp 抛 IllegalArgumentException
         ReflectionTestUtils.setField(adapter, "runtimeEndpoint", "");
@@ -107,7 +110,7 @@ class AgentRuntimeAdapterTest {
     @SuppressWarnings("unchecked")
     void testBuildRequestBody_IncludesConversationIdAndTeamParams() {
         Conversation conv = Conversation.builder()
-                .conversationId("c1").projectId("p1").workspaceId("w1").build();
+                .conversationId("c1").projectId("p1").workspaceId("w1").ownerUserId("u1").build();
         SendMessageCmd cmd = new SendMessageCmd();
         cmd.setQuery("上海的天气怎么样？");
         cmd.setModelDeploymentId("m1");
@@ -119,6 +122,9 @@ class AgentRuntimeAdapterTest {
             ConversationSkillContext.empty());
         assertNotNull(body);
         assertEquals("c1", body.get("conversationId"));
+        assertEquals("p1", body.get("projectId"));
+        assertEquals("w1", body.get("workspaceId"));
+        assertEquals("u1", body.get("userId"));
         assertEquals("上海的天气怎么样？", body.get("query"));
         assertEquals(List.of("d321fa88-a768-4b63-8d68-13cd743c6903", "8dafdc64-2c52-40b5-9b24-49894314b763"),
                 body.get("subAgentIds"));
@@ -138,7 +144,12 @@ class AgentRuntimeAdapterTest {
         SendMessageCmd cmd = new SendMessageCmd();
         cmd.setQuery("总结附件");
         cmd.setModelDeploymentId("m1");
-        cmd.setFileIds(List.of(Map.of("url", "https://files.test/report.pdf", "fileName", "report.pdf")));
+        ConversationInputFileRef input = new ConversationInputFileRef();
+        input.setObjectKey("conversation-inputs/project/workspace/file-report.pdf");
+        input.setFileName("report.pdf");
+        input.setSize(4);
+        input.setChecksum("3a6eb0790f39ac87c94f3856b2dd2c5d110e6811602261a9a923d3bb23adc8b7");
+        cmd.setFileIds(List.of(input));
 
         Map<String, Object> body = adapter.buildRequestBody(conv, cmd, List.of(), ConversationSkillContext.empty());
 

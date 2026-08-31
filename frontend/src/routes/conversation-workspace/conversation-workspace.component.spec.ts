@@ -1,3 +1,4 @@
+import { Component, Input } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
@@ -12,6 +13,17 @@ import { ConversationSkillItem } from './conversation-skill.model';
 import { ConversationWorkspaceComponent } from './conversation-workspace.component';
 import { ConversationWorkspaceService, SessionItem } from './conversation-workspace.service';
 import { SSE } from '@shared/services/sse';
+import { CommonUtils } from 'src/utils/common.util';
+import { AppMarkdownAnswerComponent } from '@shared/components/app-markdown-answer/app-markdown-answer.component';
+
+@Component({
+  selector: 'app-markdown-answer',
+  standalone: true,
+  template: '{{ answer }}',
+})
+class MarkdownAnswerStubComponent {
+  @Input() answer = '';
+}
 
 describe('ConversationWorkspaceComponent', () => {
   let fixture: ComponentFixture<ConversationWorkspaceComponent>;
@@ -44,6 +56,8 @@ describe('ConversationWorkspaceComponent', () => {
       setActiveSession: jasmine.createSpy('setActiveSession').and.callFake((item: SessionItem | null) => service.activeSession$.next(item)),
       newDraftSession: jasmine.createSpy('newDraftSession'),
       listSkills: jasmine.createSpy('listSkills').and.resolveTo([skill('s1')]),
+      uploadInputFile: jasmine.createSpy('uploadInputFile').and.resolveTo({}),
+      downloadArtifact: jasmine.createSpy('downloadArtifact').and.resolveTo(new Blob(['file-content'], { type: 'text/plain' })),
       chatSSE: jasmine.createSpy('chatSSE').and.returnValue({ close: jasmine.createSpy('close') }),
     };
     routeParams = new BehaviorSubject({});
@@ -68,7 +82,12 @@ describe('ConversationWorkspaceComponent', () => {
         { provide: ActivatedRoute, useValue: { queryParams: routeParams } },
         { provide: Router, useValue: router },
       ],
-    }).compileComponents();
+    })
+      .overrideComponent(ConversationWorkspaceComponent, {
+        remove: { imports: [AppMarkdownAnswerComponent] },
+        add: { imports: [MarkdownAnswerStubComponent] },
+      })
+      .compileComponents();
 
     fixture = TestBed.createComponent(ConversationWorkspaceComponent);
     component = fixture.componentInstance;
@@ -93,6 +112,35 @@ describe('ConversationWorkspaceComponent', () => {
     expect(document.documentElement.style.minWidth).toBe('');
   });
 
+  it('历史详情渲染完成后通过双帧恢复到最新消息位置', async () => {
+    const frameCallbacks = new Map<number, FrameRequestCallback>();
+    let nextFrameId = 0;
+    spyOn(window, 'requestAnimationFrame').and.callFake((callback: FrameRequestCallback) => {
+      const id = ++nextFrameId;
+      frameCallbacks.set(id, callback);
+      return id;
+    });
+    service.detailSession.and.resolveTo({
+      title: '历史会话',
+      messages: [{ role: 'assistant', content: '历史回答' }],
+    });
+    service.setActiveSession(session('history-session'));
+    await Promise.resolve();
+    const list = (component as any).messageList.nativeElement as HTMLElement;
+    Object.defineProperty(list, 'scrollHeight', { configurable: true, value: 1600 });
+    Object.defineProperty(list, 'scrollTop', { configurable: true, writable: true, value: 120 });
+
+    const firstFrameId = (component as any).historyScrollFrameIds[0] as number;
+    expect(firstFrameId).toBeDefined();
+    frameCallbacks.get(firstFrameId)!(0);
+    expect(list.scrollTop).toBe(120);
+    const secondFrameId = (component as any).historyScrollFrameIds[0] as number;
+    expect(secondFrameId).toBeDefined();
+    frameCallbacks.get(secondFrameId)!(16);
+
+    expect(list.scrollTop).toBe(1600);
+  });
+
   it('发送时只提交有序推荐 ID，并且只在 SSE open 后清空输入和选择', () => {
     (component as any).recommendedSkills = [skill('s2'), skill('s1')];
     component.currentSession = session('c1');
@@ -112,19 +160,79 @@ describe('ConversationWorkspaceComponent', () => {
     expect((component as any).recommendedSkills).toEqual([]);
   });
 
-  it('发送时携带本轮上传成功文件的 URL 和文件名', () => {
+  it('选择已发布 Agent 时保持同事的选择链路并按 APP 请求发送，不依赖顶层模型选择', () => {
+    component.executionTargets = [
+      { id: 'default-team', name: '默认团队', type: 'SUPERVISOR' },
+      { id: 'agent-1', name: '通用智能体', type: 'SINGLE_AGENT' },
+    ];
+    component.selectedExecutionTarget = 'agent-1';
+    component.selectedModel = '';
+    component.currentSession = session('c1');
+    component.inputText = '调用智能体';
+
+    component.send();
+
+    expect(service.chatSSE).toHaveBeenCalledWith('c1', jasmine.objectContaining({
+      query: '调用智能体',
+      select_type: 'APP',
+      app_id: 'agent-1',
+    }), jasmine.any(Object));
+    expect(service.chatSSE.calls.mostRecent().args[1].model_deployment_id).toBeUndefined();
+  });
+
+  it('发送时携带本轮上传成功文件的持久对象元数据', () => {
     component.currentSession = session('c1');
     component.inputText = '总结附件';
     (component as any).uploadedFiles = [
-      { url: 'https://files.test/report.pdf', fileName: 'report.pdf', progress: 'succeeded' },
-      { url: '', fileName: 'failed.txt', progress: 'failed' },
+      { objectKey: 'conversation-inputs/p/w/u/file-report.pdf', fileName: 'report.pdf', size: 4,
+        checksum: '3a6eb0790f39ac87c94f3856b2dd2c5d110e6811602261a9a923d3bb23adc8b7', progress: 'succeeded' },
+      { objectKey: '', fileName: 'failed.txt', size: 0, checksum: '', progress: 'failed' },
     ];
 
     component.send();
 
     expect(service.chatSSE).toHaveBeenCalledWith('c1', jasmine.objectContaining({
-      file_ids: [{ url: 'https://files.test/report.pdf', fileName: 'report.pdf' }],
+      file_ids: [{ object_key: 'conversation-inputs/p/w/u/file-report.pdf', file_name: 'report.pdf', size: 4,
+        checksum: '3a6eb0790f39ac87c94f3856b2dd2c5d110e6811602261a9a923d3bb23adc8b7' }],
     }), jasmine.any(Object));
+  });
+
+  it('数字员工不依赖模型也能发送 APP 请求', () => {
+    component.currentSession = session('c1');
+    component.executionTargets = [
+      { id: 'default-team', name: '默认团队', type: 'SUPERVISOR' },
+      { id: 'employee-1', name: '数字员工', type: 'SINGLE_AGENT' },
+    ];
+    component.selectedExecutionTarget = 'employee-1';
+    component.inputText = '执行任务';
+    component.selectedModel = '';
+
+    component.send();
+
+    expect(service.chatSSE).toHaveBeenCalledWith('c1', jasmine.objectContaining({
+      select_type: 'APP', app_id: 'employee-1',
+    }), jasmine.any(Object));
+  });
+
+  it('上传中文文件名时独立传输UTF8文件名并保留本地展示名称', async () => {
+    const originalName = 'Skill功能手工验证提示词.md';
+    const mojibakeName = 'Skill鍔熻兘鎵嬪伐楠岃瘉鎻愮ず璇�.md';
+    const file = new File(['中文内容'], originalName, { type: 'text/markdown' });
+    service.uploadInputFile.and.resolveTo({
+      objectKey: `conversation-inputs/p/w/u/id/${mojibakeName}`,
+      fileName: mojibakeName,
+      size: file.size,
+      checksum: '0'.repeat(64),
+    });
+
+    (component as any).uploadFile(file);
+    await Promise.resolve();
+
+    const formData = service.uploadInputFile.calls.mostRecent().args[0] as FormData;
+    const expectedEncodedName = btoa(String.fromCharCode(...new TextEncoder().encode(originalName)))
+      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+    expect(formData.get('file_name_base64')).toBe(expectedEncodedName);
+    expect((component as any).uploadedFiles[0].fileName).toBe(originalName);
   });
 
   it('连接前失败保留输入和推荐以便重试，并刷新目录', () => {
@@ -205,52 +313,89 @@ describe('ConversationWorkspaceComponent', () => {
   });
 
   it('接收技能激活事件后只在当前页面显示按版本去重的标签', () => {
-    const assistant = { role: 'assistant' as const, content: '', loading: true };
+    const assistant: any = { role: 'assistant', segments: [], detailSegments: [], runs: [], loading: true };
 
-    dispatchSse(component, assistant, { event: 'skill_activated', data: { skillId: 's1', name: '会议纪要', versionId: 'v1' } });
-    dispatchSse(component, assistant, { event: 'skill_activated', data: { skillId: 's1', name: '会议纪要', versionId: 'v1' } });
-    dispatchSse(component, assistant, { event: 'skill_activated', data: { skillId: 's1', name: '会议纪要 v2', versionId: 'v2' } });
+    dispatchSse(component, assistant, { event: 'run_start', data: { runId: 'root-1', executionType: 'supervisor' } });
+    dispatchSse(component, assistant, { event: 'skill_activated', data: { runId: 'root-1', skillId: 's1', name: '会议纪要', versionId: 'v1' } });
+    dispatchSse(component, assistant, { event: 'skill_activated', data: { runId: 'root-1', skillId: 's1', name: '会议纪要', versionId: 'v1' } });
+    dispatchSse(component, assistant, { event: 'skill_activated', data: { runId: 'root-1', skillId: 's1', name: '会议纪要 v2', versionId: 'v2' } });
 
     expect((component as any).activatedSkills).toEqual([
       { skillId: 's1', name: '会议纪要', versionId: 'v1' },
       { skillId: 's1', name: '会议纪要 v2', versionId: 'v2' },
     ]);
+    expect(assistant.runs[0].activatedSkills).toEqual((component as any).activatedSkills);
   });
 
-  it('流式轮次同时保留主输出、思考、工具、子 Agent 详情与 Skill 激活状态', () => {
+  it('正式产物下载使用原始中文文件名而不是带前缀的对象键', async () => {
+    component.currentSession = session('c1');
+    const assistant: any = { role: 'assistant', segments: [], detailSegments: [], runs: [], loading: true };
+    component.messages = [assistant];
+    const downloadSpy = spyOn(CommonUtils, 'downloadFile');
+
+    dispatchSse(component, assistant, { event: 'run_start', data: { runId: 'root-1', executionType: 'supervisor' } });
+    dispatchSse(component, assistant, {
+      event: 'artifact',
+      data: {
+        runId: 'root-1',
+        executionId: 'exec-1',
+        objectKey: 'conversation-artifacts/p/w/u/c/e/12345678-txt',
+        fileName: '测试结果.txt',
+        size: 2048,
+        mediaType: 'text/plain',
+        checksum: '0'.repeat(64),
+      },
+    });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.artifact-name').textContent).toContain('测试结果.txt');
+    expect(fixture.nativeElement.querySelector('.artifact-meta').textContent).toContain('2.0 KB');
+    fixture.nativeElement.querySelector('.artifact-download').click();
+    await Promise.resolve();
+
+    expect(service.downloadArtifact).toHaveBeenCalledWith('c1', 'conversation-artifacts/p/w/u/c/e/12345678-txt');
+    expect(downloadSpy).toHaveBeenCalledWith(jasmine.any(Blob), '测试结果.txt', true);
+  });
+
+  it('canonical 流式轮次按父子 Run Tree 归并输出、工具与 Skill，子结束不释放根发送权', () => {
     component.currentSession = session('c1');
     component.inputText = '执行任务';
     component.send();
     const callbacks = service.chatSSE.calls.mostRecent().args[2];
 
-    callbacks.onMessage({ data: JSON.stringify({ event: 'message', data: { delta: '主结果' } }) });
-    callbacks.onMessage({ data: JSON.stringify({ event: 'reasoning', data: { content: '主思考' } }) });
-    callbacks.onMessage({ data: JSON.stringify({ event: 'tool_call', data: { toolCallId: 'main-call', toolName: 'search' } }) });
-    callbacks.onMessage({ data: JSON.stringify({ event: 'tool_result', data: { toolCallId: 'main-call', result: '工具结果' } }) });
-    callbacks.onMessage({ data: JSON.stringify({ event: 'sub_start', data: { subExecutionId: 'sub-1', agentId: 'agent-1' } }) });
-    callbacks.onMessage({ data: JSON.stringify({ event: 'message', data: { delta: '子结果', subExecutionId: 'sub-1' } }) });
-    callbacks.onMessage({ data: JSON.stringify({ event: 'reasoning', data: { content: '子思考', subExecutionId: 'sub-1' } }) });
-    callbacks.onMessage({ data: JSON.stringify({ event: 'tool_call', data: { toolCallId: 'sub-call', toolName: 'document', subExecutionId: 'sub-1' } }) });
-    callbacks.onMessage({ data: JSON.stringify({ event: 'tool_result', data: { toolCallId: 'sub-call', result: '子工具结果', subExecutionId: 'sub-1' } }) });
-    callbacks.onMessage({ data: JSON.stringify({ event: 'skill_activated', data: { skillId: 's1', name: '会议纪要', versionId: 'v1' } }) });
+    callbacks.onMessage({ data: JSON.stringify({ event: 'run_start', data: { runId: 'root-1', executionType: 'supervisor' } }) });
+    callbacks.onMessage({ data: JSON.stringify({ event: 'message', data: { runId: 'root-1', delta: '主结果' } }) });
+    callbacks.onMessage({ data: JSON.stringify({ event: 'reasoning', data: { runId: 'root-1', content: '主思考' } }) });
+    callbacks.onMessage({ data: JSON.stringify({ event: 'tool_call', data: { runId: 'root-1', toolId: 'main-call', toolName: 'search' } }) });
+    callbacks.onMessage({ data: JSON.stringify({ event: 'tool_result', data: { runId: 'root-1', toolId: 'main-call', result: '工具结果' } }) });
+    callbacks.onMessage({ data: JSON.stringify({ event: 'run_start', data: { runId: 'sub-1', parentRunId: 'root-1', executionType: 'agent', agentId: 'agent-1' } }) });
+    callbacks.onMessage({ data: JSON.stringify({ event: 'message', data: { runId: 'sub-1', parentRunId: 'root-1', delta: '子结果' } }) });
+    callbacks.onMessage({ data: JSON.stringify({ event: 'reasoning', data: { runId: 'sub-1', parentRunId: 'root-1', content: '子思考' } }) });
+    callbacks.onMessage({ data: JSON.stringify({ event: 'tool_call', data: { runId: 'sub-1', parentRunId: 'root-1', toolId: 'sub-call', toolName: 'document' } }) });
+    callbacks.onMessage({ data: JSON.stringify({ event: 'tool_result', data: { runId: 'sub-1', parentRunId: 'root-1', toolId: 'sub-call', result: '子工具结果' } }) });
+    callbacks.onMessage({ data: JSON.stringify({ event: 'skill_activated', data: { runId: 'sub-1', parentRunId: 'root-1', skillId: 's1', name: '会议纪要', versionId: 'v1' } }) });
+    callbacks.onMessage({ data: JSON.stringify({ event: 'run_end', data: { runId: 'sub-1', parentRunId: 'root-1', status: 'success' } }) });
+
+    expect(component.isSending).toBeTrue();
 
     expect(component.messages).toEqual([
       jasmine.objectContaining({
         userContent: '执行任务',
-        segments: [{ type: 'message', content: '主结果' }],
-        detailSegments: [
-          { type: 'reasoning', content: '主思考' },
-          { type: 'tool', content: '工具结果', toolId: 'search', toolCallId: 'main-call' },
-        ],
-        subAgents: [jasmine.objectContaining({
-          subExecutionId: 'sub-1',
-          agentId: 'agent-1',
-          segments: [
-            { type: 'message', content: '子结果' },
-            { type: 'reasoning', content: '子思考' },
-            { type: 'tool', content: '子工具结果', toolId: 'document', toolCallId: 'sub-call' },
+        runs: [jasmine.objectContaining({
+          runId: 'root-1',
+          segments: [{ type: 'message', content: '主结果' }],
+          detailSegments: [
+            jasmine.objectContaining({ type: 'reasoning', content: '主思考' }),
+            jasmine.objectContaining({ type: 'tool', content: '工具结果', toolId: 'main-call', toolName: 'search' }),
           ],
-          detailSegments: [],
+          children: [jasmine.objectContaining({
+            runId: 'sub-1', parentRunId: 'root-1', agentId: 'agent-1', status: 'success',
+            segments: [{ type: 'message', content: '子结果' }],
+            detailSegments: [
+              jasmine.objectContaining({ type: 'reasoning', content: '子思考' }),
+              jasmine.objectContaining({ type: 'tool', content: '子工具结果', toolId: 'sub-call', toolName: 'document' }),
+            ],
+          })],
         })],
       }),
     ]);
@@ -258,91 +403,226 @@ describe('ConversationWorkspaceComponent', () => {
       { skillId: 's1', name: '会议纪要', versionId: 'v1' },
     ]);
     fixture.detectChanges();
-    const subAgentDetail = fixture.nativeElement.querySelector('.sub-agent-detail');
-    expect(subAgentDetail.textContent).toContain('子结果');
-    expect(subAgentDetail.textContent).toContain('子思考');
-    expect(subAgentDetail.textContent).toContain('子工具结果');
+    const rootRun = fixture.nativeElement.querySelector('[data-run-id="root-1"]');
+    expect(rootRun.textContent).toContain('主结果');
+    callbacks.onMessage({ data: JSON.stringify({ event: 'run_end', data: { runId: 'root-1', status: 'success' } }) });
+    expect(component.isSending).toBeFalse();
+  });
+
+  it('canonical 根错误会释放发送权，子错误仅更新子节点而不提前解锁', () => {
+    component.currentSession = session('c1');
+    component.inputText = '执行任务';
+    component.send();
+    const callbacks = service.chatSSE.calls.mostRecent().args[2];
+    callbacks.onMessage({ data: JSON.stringify({ event: 'run_start', data: { runId: 'root-1', executionType: 'supervisor' } }) });
+    callbacks.onMessage({ data: JSON.stringify({ event: 'run_start', data: { runId: 'sub-1', parentRunId: 'root-1', executionType: 'agent' } }) });
+    callbacks.onMessage({ data: JSON.stringify({ event: 'error', data: { runId: 'sub-1', parentRunId: 'root-1', errorMessage: '子运行失败' } }) });
+
+    expect(component.isSending).toBeTrue();
+    expect((component.messages[0] as any).runs[0].children[0].status).toBe('error');
+
+    callbacks.onMessage({ data: JSON.stringify({ event: 'error', data: { runId: 'root-1', errorMessage: '根运行失败' } }) });
+
+    expect(component.isSending).toBeFalse();
+    expect((component.messages[0] as any).error).toBeTrue();
   });
 
   it('主与子 Agent 的交错工具结果按 toolCallId 精确回填且互不串写', () => {
-    const assistant: any = { role: 'assistant', segments: [], detailSegments: [], subAgents: [] };
+    const assistant: any = { role: 'assistant', segments: [], detailSegments: [], runs: [] };
     component.messages = [assistant];
-    dispatchSse(component, assistant, { event: 'sub_start', data: { subExecutionId: 'sub-1', agentId: 'agent-1' } });
+    dispatchSse(component, assistant, { event: 'run_start', data: { runId: 'root-1', executionType: 'supervisor' } });
+    dispatchSse(component, assistant, { event: 'run_start', data: { runId: 'sub-1', parentRunId: 'root-1', executionType: 'agent', agentId: 'agent-1' } });
 
-    dispatchSse(component, assistant, { event: 'tool_call', data: { toolCallId: 'main-a', toolName: 'mainA' } });
-    dispatchSse(component, assistant, { event: 'tool_call', data: { toolCallId: 'main-b', toolName: 'mainB' } });
-    dispatchSse(component, assistant, { event: 'tool_call', data: { toolCallId: 'sub-a', toolName: 'subA', subExecutionId: 'sub-1' } });
-    dispatchSse(component, assistant, { event: 'tool_call', data: { toolCallId: 'sub-b', toolName: 'subB', subExecutionId: 'sub-1' } });
-    dispatchSse(component, assistant, { event: 'tool_result', data: { toolCallId: 'main-a', result: 'main-result-a' } });
-    dispatchSse(component, assistant, { event: 'tool_result', data: { toolCallId: 'sub-a', result: 'sub-result-a', subExecutionId: 'sub-1' } });
-    dispatchSse(component, assistant, { event: 'tool_result', data: { toolCallId: 'main-b', result: 'main-result-b' } });
-    dispatchSse(component, assistant, { event: 'tool_result', data: { toolCallId: 'sub-b', result: 'sub-result-b', subExecutionId: 'sub-1' } });
+    dispatchSse(component, assistant, { event: 'tool_call', data: { runId: 'root-1', toolId: 'main-a', toolName: 'mainA' } });
+    dispatchSse(component, assistant, { event: 'tool_call', data: { runId: 'root-1', toolId: 'main-b', toolName: 'mainB' } });
+    dispatchSse(component, assistant, { event: 'tool_call', data: { runId: 'sub-1', parentRunId: 'root-1', toolId: 'sub-a', toolName: 'subA' } });
+    dispatchSse(component, assistant, { event: 'tool_call', data: { runId: 'sub-1', parentRunId: 'root-1', toolId: 'sub-b', toolName: 'subB' } });
+    dispatchSse(component, assistant, { event: 'tool_result', data: { runId: 'root-1', toolId: 'main-a', result: 'main-result-a' } });
+    dispatchSse(component, assistant, { event: 'tool_result', data: { runId: 'sub-1', parentRunId: 'root-1', toolId: 'sub-a', result: 'sub-result-a' } });
+    dispatchSse(component, assistant, { event: 'tool_result', data: { runId: 'root-1', toolId: 'main-b', result: 'main-result-b' } });
+    dispatchSse(component, assistant, { event: 'tool_result', data: { runId: 'sub-1', parentRunId: 'root-1', toolId: 'sub-b', result: 'sub-result-b' } });
 
-    expect(assistant.detailSegments).toEqual([
-      { type: 'tool', content: 'main-result-a', toolId: 'mainA', toolCallId: 'main-a' },
-      { type: 'tool', content: 'main-result-b', toolId: 'mainB', toolCallId: 'main-b' },
+    expect(assistant.runs[0].detailSegments).toEqual([
+      jasmine.objectContaining({ type: 'tool', content: 'main-result-a', toolId: 'main-a', toolName: 'mainA' }),
+      jasmine.objectContaining({ type: 'tool', content: 'main-result-b', toolId: 'main-b', toolName: 'mainB' }),
     ]);
-    expect(assistant.subAgents[0].segments).toEqual([
-      { type: 'tool', content: 'sub-result-a', toolId: 'subA', toolCallId: 'sub-a' },
-      { type: 'tool', content: 'sub-result-b', toolId: 'subB', toolCallId: 'sub-b' },
+    expect(assistant.runs[0].children[0].detailSegments).toEqual([
+      jasmine.objectContaining({ type: 'tool', content: 'sub-result-a', toolId: 'sub-a', toolName: 'subA' }),
+      jasmine.objectContaining({ type: 'tool', content: 'sub-result-b', toolId: 'sub-b', toolName: 'subB' }),
     ]);
   });
 
-  it('旧协议工具结果缺少调用 ID 时只回填唯一安全候选，不覆盖已完成或歧义工具段', () => {
-    const assistant: any = { role: 'assistant', segments: [], detailSegments: [], subAgents: [] };
-    component.messages = [assistant];
-    dispatchSse(component, assistant, { event: 'tool_call', data: { toolName: 'search' } });
-    dispatchSse(component, assistant, { event: 'tool_result', data: { toolName: 'search', result: '首次结果' } });
-    dispatchSse(component, assistant, { event: 'tool_result', data: { toolName: 'search', result: '不得覆盖' } });
-    dispatchSse(component, assistant, { event: 'tool_call', data: { toolName: 'tool-a' } });
-    dispatchSse(component, assistant, { event: 'tool_call', data: { toolName: 'tool-b' } });
-    dispatchSse(component, assistant, { event: 'tool_result', data: { result: '歧义结果' } });
-
-    expect(assistant.detailSegments).toEqual([
-      { type: 'tool', content: '首次结果', toolId: 'search' },
-      { type: 'tool', content: '', toolId: 'tool-a' },
-      { type: 'tool', content: '', toolId: 'tool-b' },
-    ]);
-  });
-
-  it('历史详情按 execution_id 恢复轮次段和子 Agent 归属', () => {
+  it('历史详情按 canonical run_id 与 parent_run_id 恢复等价 Run Tree', () => {
     const messages = (component as any).mapDetailToMessages([
       { role: 'user', content: '问题', execution_id: 'exec-1' },
-      { role: 'assistant', event: 'message', content: '答案', execution_id: 'exec-1' },
-      { role: 'assistant', event: 'reasoning', content: '思考', execution_id: 'exec-1' },
-      { role: 'tool', content: '工具结果', tool_id: 'search', execution_id: 'exec-1' },
-      {
-        role: 'assistant', event: 'message', content: '子结果', execution_id: 'exec-1',
-        sub_execution_id: 'sub-1', agent_id: 'agent-1',
-      },
-      {
-        role: 'assistant', event: 'reasoning', content: '子思考', execution_id: 'exec-1',
-        sub_execution_id: 'sub-1', agent_id: 'agent-1',
-      },
-      {
-        role: 'tool', content: '子工具结果', tool_id: 'document', tool_call_id: 'sub-call', execution_id: 'exec-1',
-        sub_execution_id: 'sub-1', agent_id: 'agent-1',
-      },
+      { role: 'assistant', event: 'run_start', execution_id: 'exec-1', run_id: 'root-1', execution_type: 'supervisor' },
+      { role: 'assistant', event: 'message', content: '答案', execution_id: 'exec-1', run_id: 'root-1' },
+      { role: 'assistant', event: 'reasoning', content: '思考', execution_id: 'exec-1', run_id: 'root-1' },
+      { role: 'tool', event: 'tool_result', content: '工具结果', tool_name: 'search', tool_call_id: 'main-call', execution_id: 'exec-1', run_id: 'root-1' },
+      { role: 'assistant', event: 'run_start', execution_id: 'exec-1', run_id: 'sub-1', parent_run_id: 'root-1', execution_type: 'agent', agent_id: 'agent-1' },
+      { role: 'assistant', event: 'message', content: '子结果', execution_id: 'exec-1', run_id: 'sub-1', parent_run_id: 'root-1', agent_id: 'agent-1' },
+      { role: 'assistant', event: 'reasoning', content: '子思考', execution_id: 'exec-1', run_id: 'sub-1', parent_run_id: 'root-1', agent_id: 'agent-1' },
+      { role: 'tool', event: 'tool_result', content: '子工具结果', tool_name: 'document', tool_call_id: 'sub-call', execution_id: 'exec-1', run_id: 'sub-1', parent_run_id: 'root-1', agent_id: 'agent-1' },
     ]);
 
     expect(messages).toEqual([
       jasmine.objectContaining({
         userContent: '问题',
-        segments: [{ type: 'message', content: '答案' }],
-        detailSegments: [
-          { type: 'reasoning', content: '思考' },
-          { type: 'tool', content: '工具结果', toolId: 'search' },
-        ],
-        subAgents: [jasmine.objectContaining({
-          subExecutionId: 'sub-1', agentId: 'agent-1',
-          segments: [
-            { type: 'message', content: '子结果' },
-            { type: 'reasoning', content: '子思考' },
-            { type: 'tool', content: '子工具结果', toolId: 'document', toolCallId: 'sub-call' },
+        runs: [jasmine.objectContaining({
+          runId: 'root-1',
+          segments: [{ type: 'message', content: '答案' }],
+          detailSegments: [
+            { type: 'reasoning', content: '思考' },
+            jasmine.objectContaining({ type: 'tool', content: '工具结果', toolId: 'main-call', toolName: 'search' }),
           ],
+          children: [jasmine.objectContaining({
+            runId: 'sub-1', parentRunId: 'root-1', agentId: 'agent-1',
+            segments: [{ type: 'message', content: '子结果' }],
+            detailSegments: [
+              { type: 'reasoning', content: '子思考' },
+              jasmine.objectContaining({ type: 'tool', content: '子工具结果', toolId: 'sub-call', toolName: 'document' }),
+            ],
+          })],
         })],
       }),
     ]);
+  });
+
+  it('canonical 主 Agent message 即使缺少 runId 也渲染，并由 run_end 结束 loading', () => {
+    component.currentSession = session('c1');
+    component.inputText = '执行任务';
+    component.send();
+    const callbacks = service.chatSSE.calls.mostRecent().args[2];
+
+    callbacks.onMessage({ data: JSON.stringify({ event: 'message', data: { delta: '主结果' } }) });
+    callbacks.onMessage({ data: JSON.stringify({ event: 'run_end', data: { status: 'completed' } }) });
+
+    expect(component.messages[0].runs[0].segments).toEqual([{ type: 'message', content: '主结果' }]);
+    expect(component.messages[0].loading).toBeFalse();
+    expect(component.isSending).toBeFalse();
+  });
+
+  it('首个无 runId 的主消息随后收到正式 run_start 时仍保留在同一主运行', () => {
+    const assistant: any = { role: 'assistant', segments: [], detailSegments: [], runs: [], loading: true };
+    component.messages = [assistant];
+
+    dispatchSse(component, assistant, { event: 'message', data: { delta: '首段' } });
+    dispatchSse(component, assistant, { event: 'run_start', data: { runId: 'root', executionType: 'supervisor' } });
+    dispatchSse(component, assistant, { event: 'message', data: { runId: 'root', delta: '后段' } });
+
+    expect(assistant.runs).toHaveSize(1);
+    expect(assistant.runs[0]).toEqual(jasmine.objectContaining({
+      runId: 'root', segments: [{ type: 'message', content: '首段后段' }],
+    }));
+  });
+
+
+  it('canonical runId 和 toolId 驱动主运行渲染，子运行挂到 parentRunId', () => {
+    const assistant: any = { role: 'assistant', segments: [], detailSegments: [], runs: [], loading: true };
+    component.messages = [assistant];
+
+    dispatchSse(component, assistant, { event: 'run_start', data: { runId: 'root', executionType: 'supervisor' } });
+    dispatchSse(component, assistant, { event: 'message', data: { runId: 'root', delta: '主结果' } });
+    dispatchSse(component, assistant, { event: 'tool_call', data: { runId: 'root', toolId: 'tool-1', toolName: 'search' } });
+    dispatchSse(component, assistant, { event: 'tool_result', data: { runId: 'root', toolId: 'tool-1', result: '工具结果' } });
+    dispatchSse(component, assistant, { event: 'run_start', data: { runId: 'child', parentRunId: 'root', executionType: 'agent', agentId: 'agent-1' } });
+    dispatchSse(component, assistant, { event: 'message', data: { runId: 'child', parentRunId: 'root', delta: '子结果' } });
+
+    expect(assistant.runs).toHaveSize(1);
+    expect(assistant.runs[0].runId).toBe('root');
+    expect(assistant.runs[0].segments).toEqual([{ type: 'message', content: '主结果' }]);
+    expect(assistant.runs[0].detailSegments[0]).toEqual(jasmine.objectContaining({ type: 'tool', toolId: 'tool-1', content: '工具结果' }));
+    expect(assistant.runs[0].children[0].segments).toEqual([{ type: 'message', content: '子结果' }]);
+  });
+
+  it('子运行先到且主消息无 runId 时，主消息不会写入孤儿子运行', () => {
+    const assistant: any = { role: 'assistant', segments: [], detailSegments: [], runs: [], loading: true };
+    component.messages = [assistant];
+
+    dispatchSse(component, assistant, { event: 'message', data: {
+      runId: 'child', parentRunId: 'root', delta: '子结果',
+    } });
+    dispatchSse(component, assistant, { event: 'message', data: { delta: '主结果' } });
+    dispatchSse(component, assistant, { event: 'run_start', data: {
+      runId: 'root', executionType: 'supervisor',
+    } });
+
+    expect(assistant.runs).toHaveSize(1);
+    expect(assistant.runs[0].segments).toEqual([{ type: 'message', content: '主结果' }]);
+    expect(assistant.runs[0].children[0].segments).toEqual([{ type: 'message', content: '子结果' }]);
+  });
+
+
+  it('子运行先到且缺少父节点时，后续 run_start 会重新挂载', () => {
+    const assistant: any = { role: 'assistant', segments: [], detailSegments: [], runs: [], loading: true };
+    component.messages = [assistant];
+
+    dispatchSse(component, assistant, { event: 'message', data: { runId: 'child', parentRunId: 'root', delta: '子结果' } });
+    dispatchSse(component, assistant, { event: 'run_start', data: { runId: 'root', executionType: 'supervisor' } });
+
+    expect(assistant.runs.map((run: any) => run.runId)).toEqual(['root']);
+    expect(assistant.runs[0].children[0]).toEqual(jasmine.objectContaining({ runId: 'child', parentRunId: 'root', segments: [{ type: 'message', content: '子结果' }] }));
+  });
+
+  it('canonical error 展示 code/message 并释放当前 attempt', () => {
+    component.currentSession = session('c1');
+    component.inputText = '执行任务';
+    component.send();
+    const callbacks = service.chatSSE.calls.mostRecent().args[2];
+
+    callbacks.onMessage({ data: JSON.stringify({ event: 'error', data: { code: 'RUN_FAILED', message: '模型调用失败' } }) });
+
+    expect(component.messages[0]).toEqual(jasmine.objectContaining({ error: true, errorCode: 'RUN_FAILED', errorMessage: '模型调用失败', loading: false }));
+    expect(component.isSending).toBeFalse();
+  });
+
+  it('主与子 Agent 的交错工具结果按 toolId 精确回填且互不串写', () => {
+    const assistant: any = { role: 'assistant', segments: [], detailSegments: [], runs: [], loading: true };
+    component.messages = [assistant];
+    dispatchSse(component, assistant, { event: 'run_start', data: { runId: 'root' } });
+    dispatchSse(component, assistant, { event: 'run_start', data: { runId: 'child', parentRunId: 'root' } });
+
+    dispatchSse(component, assistant, { event: 'tool_call', data: { runId: 'root', toolId: 'main-a', toolName: 'mainA' } });
+    dispatchSse(component, assistant, { event: 'tool_call', data: { runId: 'child', toolId: 'sub-a', toolName: 'subA' } });
+    dispatchSse(component, assistant, { event: 'tool_result', data: { runId: 'child', toolId: 'sub-a', result: 'sub-result-a' } });
+    dispatchSse(component, assistant, { event: 'tool_result', data: { runId: 'root', toolId: 'main-a', result: 'main-result-a' } });
+
+    expect(assistant.runs[0].detailSegments[0]).toEqual(jasmine.objectContaining({ toolId: 'main-a', content: 'main-result-a' }));
+    expect(assistant.runs[0].children[0].detailSegments[0]).toEqual(jasmine.objectContaining({ toolId: 'sub-a', content: 'sub-result-a' }));
+  });
+
+  it('历史详情按创建时间恢复轮次段和 parentRunId 运行树', () => {
+    const messages = (component as any).mapDetailToMessages([
+      { role: 'assistant', event: 'message', content: '答案后半', execution_id: 'exec-1', run_id: 'root', created_at: '2026-08-27T10:00:03.000Z' },
+      { role: 'user', content: '问题', execution_id: 'exec-1', created_at: '2026-08-27T10:00:00.000Z' },
+      { role: 'assistant', event: 'run_start', execution_id: 'exec-1', run_id: 'root', execution_type: 'supervisor', created_at: '2026-08-27T10:00:01.000Z' },
+      { role: 'assistant', event: 'message', content: '答案前半', execution_id: 'exec-1', run_id: 'root', created_at: '2026-08-27T10:00:02.000Z' },
+      { role: 'assistant', event: 'workflow_node', execution_id: 'exec-1', run_id: 'root', node_id: 'node-1', node_name: '检索', status: 'completed', created_at: '2026-08-27T10:00:04.000Z' },
+      { role: 'assistant', event: 'run_start', execution_id: 'exec-1', run_id: 'child', parent_run_id: 'root', agent_id: 'agent-1', created_at: '2026-08-27T10:00:05.000Z' },
+    ]);
+
+    expect(messages).toHaveSize(1);
+    expect(messages[0].userContent).toBe('问题');
+    expect(messages[0].runs[0].segments).toEqual([{ type: 'message', content: '答案前半答案后半' }]);
+    expect(messages[0].runs[0].workflowNodes[0]).toEqual(jasmine.objectContaining({ nodeId: 'node-1', nodeName: '检索' }));
+    expect(messages[0].runs[0].children[0]).toEqual(jasmine.objectContaining({ runId: 'child', agentId: 'agent-1' }));
+  });
+
+  it('刷新历史详情后从持久 file_ids 恢复正式产物', () => {
+    const messages = (component as any).mapDetailToMessages([{
+      role: 'assistant', event: 'artifact', execution_id: 'exec-1',
+      file_ids: JSON.stringify([{
+        objectKey: 'conversation-artifacts/p/w/u/c/e/report.pdf', fileName: 'report.pdf', size: 128,
+        mediaType: 'application/pdf', checksum: '0'.repeat(64), executionId: 'exec-1',
+      }]),
+    }]);
+
+    expect(messages[0].artifacts).toEqual([jasmine.objectContaining({
+      objectKey: 'conversation-artifacts/p/w/u/c/e/report.pdf',
+      fileName: 'report.pdf',
+      size: 128,
+      executionId: 'exec-1',
+    })]);
   });
 
   it('切换会话时清除推荐与激活标签，且不从历史恢复', async () => {
@@ -547,7 +827,7 @@ describe('ConversationWorkspaceComponent', () => {
     expect(service.listSkills.calls.count()).toBe(callsBefore);
   });
 
-  it('草稿晋升不会加载详情，晚到详情也不会覆盖本轮气泡和 run_done', async () => {
+  it('草稿晋升不会加载详情，晚到详情也不会覆盖本轮 canonical 气泡和 run_end', async () => {
     const oldDetail = deferred<any>();
     service.detailSession.and.returnValue(oldDetail.promise);
     service.activeSession$.next(session('old-session'));
@@ -558,7 +838,7 @@ describe('ConversationWorkspaceComponent', () => {
     await Promise.resolve();
     const callbacks = service.chatSSE.calls.mostRecent().args[2];
     callbacks.onMessage({ data: JSON.stringify({ event: 'message', data: { delta: '流式文本' } }) });
-    callbacks.onMessage({ data: JSON.stringify({ event: 'run_done', data: { text: '最终文本' } }) });
+    callbacks.onMessage({ data: JSON.stringify({ event: 'run_end', data: { text: '最终文本', status: 'completed' } }) });
     oldDetail.resolve({ messages: [] });
     await Promise.resolve();
 
@@ -566,8 +846,10 @@ describe('ConversationWorkspaceComponent', () => {
     expect(component.messages).toEqual([
       jasmine.objectContaining({
         userContent: '整理会议',
-        segments: [{ type: 'message', content: '流式文本' }],
         loading: false,
+        runs: [jasmine.objectContaining({
+          segments: [{ type: 'message', content: '流式文本最终文本' }],
+        })],
       }),
     ]);
   });
@@ -579,12 +861,18 @@ describe('ConversationWorkspaceComponent', () => {
 
     service.activeSession$.next(session('c1'));
     service.activeSession$.next(session('c2'));
-    c2.resolve({ messages: [{ role: 'assistant', event: 'message', content: 'c2', execution_id: 'e2' }] });
+    c2.resolve({ messages: [
+      { role: 'user', content: '问题2', execution_id: 'e2', created_at: '2026-08-27T10:00:00.000Z' },
+      { role: 'assistant', event: 'message', content: 'c2', run_id: 'r2', created_at: '2026-08-27T10:00:01.000Z' },
+    ] });
     await Promise.resolve();
-    c1.resolve({ messages: [{ role: 'assistant', event: 'message', content: 'c1', execution_id: 'e1' }] });
+    c1.resolve({ messages: [
+      { role: 'user', content: '问题1', execution_id: 'e1', created_at: '2026-08-27T10:00:00.000Z' },
+      { role: 'assistant', event: 'message', content: 'c1', run_id: 'r1', created_at: '2026-08-27T10:00:01.000Z' },
+    ] });
     await Promise.resolve();
 
-    expect(component.messages.map((message: any) => message.segments)).toEqual([
+    expect(component.messages.map((message: any) => message.runs[0]?.segments)).toEqual([
       [{ type: 'message', content: 'c2' }],
     ]);
   });
@@ -971,6 +1259,8 @@ describe('ConversationWorkspaceComponent', () => {
     window.dispatchEvent(new Event('WorkspaceChange'));
     markForCheck.calls.reset();
     component.ngOnDestroy();
+    markForCheck.calls.reset();
+    markForCheck.and.callFake(() => { throw new Error('markForCheck after destroy'); });
     navigation.resolve(false);
     await Promise.resolve();
 
@@ -985,6 +1275,7 @@ describe('ConversationWorkspaceComponent', () => {
     window.dispatchEvent(new Event('WorkspaceChange'));
     markForCheck.calls.reset();
     component.ngOnDestroy();
+    markForCheck.calls.reset();
     navigation.reject(new Error('navigation rejected'));
     await Promise.resolve();
 
@@ -999,6 +1290,7 @@ describe('ConversationWorkspaceComponent', () => {
     const unavailableBefore = component.skillCatalogUnavailable;
     (component as any).loadSkillCatalog();
     component.ngOnDestroy();
+    markForCheck.calls.reset();
     catalog.resolve([skill('late')]);
     await Promise.resolve();
 
@@ -1015,6 +1307,7 @@ describe('ConversationWorkspaceComponent', () => {
     const unavailableBefore = component.skillCatalogUnavailable;
     (component as any).loadSkillCatalog();
     component.ngOnDestroy();
+    markForCheck.calls.reset();
     catalog.reject(new Error('late catalog failure'));
     await Promise.resolve();
 

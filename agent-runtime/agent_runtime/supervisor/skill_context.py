@@ -22,6 +22,7 @@ class SkillExecutionContext:
     catalog_by_id: Mapping[str, SkillDescriptor]
     recommended_skill_ids: tuple[str, ...]
     artifact_cache: SkillArtifactCache
+    prepare_sandbox_resources: bool = True
 
 
 _current_skill_context: ContextVar[SkillExecutionContext | None] = ContextVar(
@@ -59,6 +60,26 @@ def build_skill_prompt(
     return prompt + "可用 Skill 目录：\n" + json.dumps(catalog_payload, ensure_ascii=False)
 
 
+def build_skill_execution_context(
+    catalog: Sequence[SkillDescriptor],
+    recommended_skill_ids: Sequence[str],
+    artifact_cache: SkillArtifactCache | None = None,
+    prepare_sandbox_resources: bool = True,
+) -> SkillExecutionContext:
+    """Build immutable request context for an Agent or Jiuwen Function adapter."""
+    return SkillExecutionContext(
+        catalog_by_id=MappingProxyType({skill.skill_id: skill for skill in catalog}),
+        recommended_skill_ids=tuple(recommended_skill_ids),
+        artifact_cache=artifact_cache or default_cache(),
+        prepare_sandbox_resources=prepare_sandbox_resources,
+    )
+
+
+def bind_skill_context(context: SkillExecutionContext | None) -> Token:
+    """Bind a request context directly when no Agent object owns it."""
+    return _current_skill_context.set(context)
+
+
 def attach_agent_context(
     agent,
     catalog: Sequence[SkillDescriptor],
@@ -66,13 +87,11 @@ def attach_agent_context(
     artifact_cache: SkillArtifactCache,
 ) -> None:
     """Store an immutable context on this agent only; no request data is global."""
-    catalog_by_id = MappingProxyType({skill.skill_id: skill for skill in catalog})
-    context = SkillExecutionContext(
-        catalog_by_id=catalog_by_id,
-        recommended_skill_ids=tuple(recommended_skill_ids),
-        artifact_cache=artifact_cache,
+    setattr(
+        agent,
+        _AGENT_CONTEXT_ATTRIBUTE,
+        build_skill_execution_context(catalog, recommended_skill_ids, artifact_cache),
     )
-    setattr(agent, _AGENT_CONTEXT_ATTRIBUTE, context)
 
 
 def bind_agent_skill_context(agent) -> Token:

@@ -5,6 +5,7 @@
   - [02-用户指南](tutorial/02-user-guide.md)
 - [操作指南（How-to）](how-to/)
   - [安装部署](how-to/deploy-service.md)
+  - [对话工作台接入 AIO 沙箱](how-to/conversation-sandbox.md)
   - [Beta5 升级部署](how-to/upgrade-from-beta4.md)
   - [开发指南](how-to/development-guide.md)
   - [资产广场预置](how-to/asset-plaza-preset.md)

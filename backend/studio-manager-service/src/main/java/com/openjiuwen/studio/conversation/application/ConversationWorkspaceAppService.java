@@ -10,6 +10,7 @@ import com.openjiuwen.studio.agent.common.dto.agent.Message;
 import com.openjiuwen.studio.agent.common.utils.RequestContextUtils;
 import com.openjiuwen.studio.agent.foundation.connection.model.PageResult;
 import com.openjiuwen.studio.conversation.application.dto.ConversationCreateCmd;
+import com.openjiuwen.studio.conversation.application.dto.ConversationArtifactDownload;
 import com.openjiuwen.studio.conversation.application.dto.ConversationDetailVo;
 import com.openjiuwen.studio.conversation.application.dto.ConversationListQuery;
 import com.openjiuwen.studio.conversation.application.dto.ConversationSkillContext;
@@ -24,14 +25,17 @@ import com.openjiuwen.studio.conversation.domain.model.valueobject.FileRef;
 import com.openjiuwen.studio.conversation.domain.repository.ConversationRepository;
 import com.openjiuwen.studio.conversation.domain.service.ConversationHistoryAssembler;
 import com.openjiuwen.studio.conversation.infrastructure.adapter.AgentRuntimeAdapter;
+import com.openjiuwen.studio.agent.manager.obs.MgObsService;
 
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
@@ -53,19 +57,53 @@ public class ConversationWorkspaceAppService {
     private final ConversationSkillResolver conversationSkillResolver;
     private final ConversationWorkspaceAccessGuard conversationWorkspaceAccessGuard;
     private final ConversationAgentResourceResolver conversationAgentResourceResolver;
+    private final MgObsService mgObsService;
 
     public ConversationWorkspaceAppService(ConversationRepository conversationRepository,
                                            ConversationHistoryAssembler conversationHistoryAssembler,
                                            AgentRuntimeAdapter agentRuntimeAdapter,
                                            ConversationSkillResolver conversationSkillResolver,
                                            ConversationWorkspaceAccessGuard conversationWorkspaceAccessGuard,
-                                           ConversationAgentResourceResolver conversationAgentResourceResolver) {
+                                           ConversationAgentResourceResolver conversationAgentResourceResolver,
+                                           MgObsService mgObsService) {
         this.conversationRepository = conversationRepository;
         this.conversationHistoryAssembler = conversationHistoryAssembler;
         this.agentRuntimeAdapter = agentRuntimeAdapter;
         this.conversationSkillResolver = conversationSkillResolver;
         this.conversationWorkspaceAccessGuard = conversationWorkspaceAccessGuard;
         this.conversationAgentResourceResolver = conversationAgentResourceResolver;
+        this.mgObsService = mgObsService;
+    }
+
+    /**
+     * 为当前用户拥有的会话正式产物打开受控文件流。
+     * 浏览器传入的 objectKey 必须与服务端已持久化的 Artifact FileRef 完全匹配。
+     */
+    public ConversationArtifactDownload downloadArtifact(String projectId, String workspaceId,
+                                                          String conversationId, String objectKey) {
+        Conversation conversation = getOwnedConversation(projectId, workspaceId, conversationId);
+        FileRef artifact = conversation.getMessages().stream()
+            .filter(message -> "artifact".equals(message.getEvent()) && message.getFileRefs() != null)
+            .flatMap(message -> message.getFileRefs().stream())
+            .filter(fileRef -> Objects.equals(fileRef.getObjectKey(), objectKey))
+            .findFirst()
+            .orElseThrow(() -> new AgentStudioException(StudioError.METHOD_ARGUMENT_NOT_VALID,
+                List.of("artifact does not belong to conversation")));
+        requireSafeArtifactFileName(artifact.getFileName());
+        String url = mgObsService.getTemporaryGetRsp(false, artifact.getObjectKey(), 300L);
+        return new ConversationArtifactDownload(
+            mgObsService.getByUrl(url), artifact.getFileName(), artifact.getMediaType(), artifact.getSize());
+    }
+
+    private void requireSafeArtifactFileName(String fileName) {
+        boolean safe = StringUtils.isNotBlank(fileName)
+            && fileName.equals(FilenameUtils.getName(fileName))
+            && fileName.getBytes(StandardCharsets.UTF_8).length <= 180
+            && fileName.chars().noneMatch(character -> character < 32 || character == 127);
+        if (!safe) {
+            throw new AgentStudioException(StudioError.METHOD_ARGUMENT_NOT_VALID,
+                List.of("artifact file name is invalid"));
+        }
     }
 
     /**
@@ -171,7 +209,7 @@ public class ConversationWorkspaceAppService {
      */
     public void delete(String projectId, String workspaceId, String conversationId) {
         getOwnedConversation(projectId, workspaceId, conversationId);
-        conversationRepository.softDelete(conversationId);
+        conversationRepository.softDeleteAndScheduleCleanup(conversationId);
     }
 
     /**
@@ -228,8 +266,8 @@ public class ConversationWorkspaceAppService {
         ConversationMessage userMessage = ConversationMessage.builder()
             .role("user")
             .content(cmd.getQuery())
-            .executionRef(new ExecutionRef(executionId, null, null))
-            .fileRefs(toFileRefs(cmd.getFileIds()))
+            .executionRef(new ExecutionRef(executionId, null, null, "agent"))
+            .fileRefs(toFileRefs(projectId, workspaceId, cmd.getFileIds()))
             .modelDeploymentId(cmd.getModelDeploymentId())
             .event("user_message")
             .createdAt(new Date())
@@ -262,14 +300,43 @@ public class ConversationWorkspaceAppService {
         return conversation;
     }
 
-    private List<FileRef> toFileRefs(List<java.util.Map<String, String>> fileIds) {
+    private List<FileRef> toFileRefs(String projectId, String workspaceId,
+                                     List<com.openjiuwen.studio.conversation.application.dto.ConversationInputFileRef> fileIds) {
         if (fileIds == null || fileIds.isEmpty()) {
             return null;
         }
         return fileIds.stream()
-            .map(item -> new FileRef(item.get("url"), item.get("fileName")))
-            .filter(item -> StringUtils.isNotBlank(item.getKey()))
+            .map(item -> toTrustedFileRef(item, projectId, workspaceId))
             .toList();
+    }
+
+    private FileRef toTrustedFileRef(
+        com.openjiuwen.studio.conversation.application.dto.ConversationInputFileRef item, String projectId,
+        String workspaceId) {
+        String[] parts = item == null || item.getObjectKey() == null ? new String[0] : item.getObjectKey().split("/", -1);
+        String expectedProject = ConversationInputUploadService.sha256(projectId);
+        String expectedWorkspace = ConversationInputUploadService.sha256(workspaceId);
+        String expectedUser = ConversationInputUploadService.sha256(RequestContextUtils.getRequestUserId());
+        boolean safeName = item != null && StringUtils.isNotBlank(item.getFileName())
+            && item.getFileName().equals(FilenameUtils.getName(item.getFileName()))
+            && item.getFileName().getBytes(StandardCharsets.UTF_8).length <= 180
+            && item.getFileName().chars().noneMatch(character -> character < 32 || character == 127);
+        if (item == null || parts.length != 6 || !"conversation-inputs".equals(parts[0])
+            || !expectedProject.equals(parts[1]) || !expectedWorkspace.equals(parts[2]) || !expectedUser.equals(parts[3])
+            || !isCanonicalUuid(parts[4]) || !safeName || !parts[5].equals(item.getFileName())
+            || item.getSize() <= 0 || item.getChecksum() == null || !item.getChecksum().matches("[0-9a-f]{64}")) {
+            throw new AgentStudioException(StudioError.METHOD_ARGUMENT_NOT_VALID,
+                List.of("file_ids must contain trusted conversation input objects"));
+        }
+        return new FileRef(item.getObjectKey(), item.getFileName());
+    }
+
+    private boolean isCanonicalUuid(String value) {
+        try {
+            return UUID.fromString(value).toString().equals(value);
+        } catch (IllegalArgumentException exception) {
+            return false;
+        }
     }
 
     private MessageVo toMessageVo(ConversationMessage message) {
@@ -277,11 +344,16 @@ public class ConversationWorkspaceAppService {
             .role(message.getRole())
             .content(message.getContent())
             .toolId(message.getToolRef() == null ? null : message.getToolRef().getToolId())
+            .toolName(message.getToolRef() == null ? null : message.getToolRef().getToolName())
             .toolArgs(message.getToolRef() == null ? null : message.getToolRef().getArgs())
             .fileIds(message.getFileRefs() == null ? null
                 : com.alibaba.fastjson2.JSON.toJSONString(message.getFileRefs()))
-            .executionId(message.getExecutionRef() == null ? null : message.getExecutionRef().getExecutionId())
-            .subExecutionId(message.getExecutionRef() == null ? null : message.getExecutionRef().getSubExecutionId())
+            .runId(message.getExecutionRef() == null ? null : message.getExecutionRef().getRunId())
+            .parentRunId(message.getExecutionRef() == null ? null : message.getExecutionRef().getParentRunId())
+            .executionType(message.getExecutionRef() == null ? null : message.getExecutionRef().getExecutionType())
+            .workflowId(message.getWorkflowId())
+            .nodeId(message.getNodeId())
+            .eventIndex(message.getEventIndex())
             .agentId(message.getExecutionRef() == null ? null : message.getExecutionRef().getAgentId())
             .event(message.getEvent())
             .createdAt(message.getCreatedAt())

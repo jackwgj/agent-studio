@@ -57,3 +57,25 @@ def test_interaction_accepts_dict_payload_and_structured_question():
     assert events[0]["data"]["answer"] == "是否批准？"
     assert events[0]["data"]["interaction_id"] == "approval-r01"
     assert events[0]["data"]["should_interrupt"] is True
+
+
+def test_plugin_finish_keeps_tool_call_id_for_canonical_result_pairing():
+    adapter = ReactStreamDataAdapter(execution_id="exec-tool-result")
+    chunk = SimpleNamespace(
+        type="tracer_agent",
+        payload={
+            "invokeId": "tool-call-1",
+            "invokeType": "plugin",
+            "name": "execute_cmd",
+            "status": "finish",
+            "inputs": {"inputs": {"command": "pwd"}},
+            "outputs": {"outputs": {"errCode": 0, "data": {"stdout": "/workspace"}}},
+            "metaData": {"class_name": "execute_cmd"},
+        },
+    )
+
+    events = adapter.adapt(chunk)
+    result = next(event for event in events if event["event"] == "api_exec_data")
+
+    assert result["data"]["answer"]["tool_call_id"] == "tool-call-1"
+    assert result["data"]["answer"]["name"] == "execute_cmd"

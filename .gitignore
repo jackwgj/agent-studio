@@ -84,6 +84,12 @@ docker/AgentBuilder.tar.gz
 docker/studio-console/agent-console.tar
 .worktrees/
 
+### 个人本地开发工具与规格记录（不参与团队同步）###
+/.agent/
+/.agents/
+/openspec/
+/.superpowers/
+
 ### Docker build context artifacts ###
 ### 以下为 build.sh / 准备脚本拷贝进 docker/studio-*/ 的构建产物，不应入库
 docker/studio-console/config/

@@ -24,7 +24,7 @@ class ConversationHistoryAssemblerTest {
         ConversationMessage toolMsg = ConversationMessage.builder()
                 .role("tool")
                 .content("查询结果")
-                .toolRef(new ToolRef("search_tool", "{\"q\":\"test\"}"))
+                .toolRef(new ToolRef("call-1", "search_tool", "{\"q\":\"test\"}"))
                 .build();
 
         List<Message> msgs = service.assemble(conversationOf(toolMsg));
@@ -41,6 +41,7 @@ class ConversationHistoryAssemblerTest {
         assertEquals("tool", result.getRole());
         assertEquals("查询结果", result.getContent());
         assertEquals(toolCalls.get(0).get("id"), result.getToolCallId(), "共享 call_id");
+        assertEquals("call-1", result.getToolCallId(), "保留 canonical toolId");
     }
 
     @Test
@@ -67,6 +68,16 @@ class ConversationHistoryAssemblerTest {
         assertEquals(1, msgs.size(), "一条 assistant 消息应透传");
         assertEquals("assistant", msgs.get(0).getRole());
         assertEquals("查询结果", msgs.get(0).getContent());
+    }
+
+    @Test
+    void testAssemble_ArtifactMessage_DoesNotPolluteModelHistory() {
+        ConversationMessage artifact = ConversationMessage.builder()
+                .role("assistant")
+                .event("artifact")
+                .build();
+
+        assertTrue(service.assemble(conversationOf(artifact)).isEmpty());
     }
 
     @Test

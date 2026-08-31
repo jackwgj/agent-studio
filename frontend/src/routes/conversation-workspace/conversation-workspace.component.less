@@ -36,6 +36,7 @@
     min-width: 0;
     overflow-y: auto;
     overflow-x: hidden;
+    overflow-anchor: none;
     padding: 16px;
 
     .chat-empty {
@@ -166,6 +167,52 @@
           }
         }
 
+        .artifact-list {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          margin-top: 12px;
+        }
+
+        .artifact-card {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          max-width: 520px;
+          padding: 10px 12px;
+          background: #fff;
+          border: 1px solid #d9d9d9;
+          border-radius: 8px;
+        }
+
+        .artifact-info {
+          display: flex;
+          flex: 1;
+          min-width: 0;
+          flex-direction: column;
+        }
+
+        .artifact-name {
+          overflow: hidden;
+          color: #252b3a;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .artifact-meta,
+        .artifact-error {
+          color: #8a8e99;
+          font-size: 12px;
+        }
+
+        .artifact-error {
+          color: #cf1322;
+        }
+
+        .artifact-download {
+          flex: none;
+        }
+
         .turn-details {
           margin-top: 8px;
           border-top: 1px solid #e8e8e8;
@@ -180,12 +227,26 @@
           }
         }
 
-        .sub-agent-detail {
+        .execution-run {
           margin-top: 8px;
-          padding: 8px;
-          background: #f0f7ff;
-          border-left: 3px solid #91caff;
-          border-radius: 4px;
+          padding-left: 8px;
+          border-left: 2px solid #d9d9d9;
+        }
+
+        .run-label,
+        .workflow-node {
+          font-size: 12px;
+          color: #8c8c8c;
+        }
+
+        .workflow-node {
+          display: flex;
+          gap: 8px;
+          padding: 4px 0;
+
+          .workflow-node-name {
+            color: #1677ff;
+          }
         }
 
         .segment-reasoning {

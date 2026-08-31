@@ -45,10 +45,18 @@ public class ConversationMessage {
      */
     private List<FileRef> fileRefs;
 
-    /**
-     * 执行上下文（execution_id / sub_execution_id / agent_id）
-     */
+    /** 执行上下文（run_id / parent_run_id / agent_id / execution_type）。 */
     private ExecutionRef executionRef;
+
+    private String workflowId;
+    private String nodeId;
+
+    /**
+     * Canonical ConversationEvent 可选携带的业务顺序元数据（来自事件 envelope 的 index）。
+     * 该字段允许为空，不是时间戳；当前前端实时/历史展示仍以事件到达/创建时间顺序为准，
+     * 不应将其作为默认或强制排序字段。
+     */
+    private Long eventIndex;
 
     /**
      * Token 用量（assistant 消息）
@@ -56,7 +64,8 @@ public class ConversationMessage {
     private TokenUsage tokenUsage;
 
     /**
-     * 事件类型：run_done/sub_done/reasoning/message/tool_call（按轮持久化，role 区分内容）
+     * canonical 事件类型：run_start/run_end/reasoning/message/tool_call/tool_result/error 等
+     * （按轮持久化，role 区分内容）
      */
     private String event;
 
