@@ -128,6 +128,8 @@ class ConversationControllerRunner(ControllerRunner):
         try:
             start = time.perf_counter()
             insight_client, runtime_context, tracer = await build_agent_input(req)
+            # Controller/PlanExecute 的深层 LLM 调用不会可靠继承外层 TraceManager handler。
+            # usage 由模型输出适配边界统一处理，不再注入 ConversationUsageTraceHandler。
             performance_logger.info(
                 "build_agent_input|%s",
                 round((time.perf_counter() - start) * 1000),
@@ -236,10 +238,8 @@ class ConversationControllerRunner(ControllerRunner):
                         "Failed to parse Controller SSE chunk for memory extraction",
                         exc_info=True,
                     )
-                # Keep the Controller/PlanExecute task executionId intact.  The
-                # canonical adapter uses it as the child run identity beneath
-                # the business conversation execution.
-                yield chunk
+                adapted_chunk = adapter.adapt_execution_id(chunk)
+                yield adapted_chunk
 
             performance_logger.info(
                 "conversation_agent_group_stream|%s",

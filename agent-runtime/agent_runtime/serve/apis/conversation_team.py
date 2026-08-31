@@ -24,6 +24,7 @@ from agent_runtime.conversation.execution_context import (
 from agent_runtime.conversation.execution_coordinator import (
     acquire_conversation_execution,
 )
+from agent_runtime.conversation.usage import TokenEstimateAccumulator
 from agent_runtime.conversation.input_artifact_bridge import (
     ConversationInputArtifact,
     prepare_conversation_inputs,
@@ -216,6 +217,9 @@ async def team_sse_stream(req: ConversationTeamReq, execution_id: str | None = N
     root_terminal_seen = False
     root_failed = False
     accumulated_messages: dict[str, str] = {}
+    token_estimator = TokenEstimateAccumulator(execution_id)
+    token_estimator.add_input(req.query)
+    token_estimator.add_input(req.conversation_history)
     try:
         execution_lease = await acquire_conversation_execution(context)
         await ensure_conversation_workspace()
@@ -261,6 +265,7 @@ async def team_sse_stream(req: ConversationTeamReq, execution_id: str | None = N
             event = _canonical_runner_event(raw_event, req, execution_id)
             if event is None:
                 continue
+            token_estimator.add(event)
             event_run_id = event.get("runId") or event.get("data", {}).get("runId")
             if event.get("event") == "run_start" and event_run_id == execution_id:
                 # The API boundary already emitted the single authoritative root start.
@@ -279,6 +284,7 @@ async def team_sse_stream(req: ConversationTeamReq, execution_id: str | None = N
                 accumulated_messages[event_run_id] = (
                     accumulated_messages.get(event_run_id, "") + delta
                 )
+            token_estimator.add(event)
             if event_run_id == execution_id and event.get("event") in {"run_end", "error"}:
                 root_terminal_seen = True
                 root_failed = root_failed or event.get("event") == "error"
@@ -303,10 +309,16 @@ async def team_sse_stream(req: ConversationTeamReq, execution_id: str | None = N
                 media_type=artifact.media_type,
                 checksum=artifact.checksum,
             )
+            token_estimator.add(artifact_event)
             for accepted in sequencer.accept(artifact_event):
                 accepted[TeamEventField.INDEX] = index
                 index += 1
                 yield sse_line(accepted)
+        usage_event = token_estimator.finalize(req.conversation_id)
+        for accepted in sequencer.accept(usage_event):
+            accepted[TeamEventField.INDEX] = index
+            index += 1
+            yield sse_line(accepted)
         for accepted in sequencer.release_root_end():
             accepted[TeamEventField.INDEX] = index
             index += 1

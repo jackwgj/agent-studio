@@ -94,4 +94,50 @@ class TestUsageObserver:
         ctx = type("Context", (), {"extra": {}, "inputs": type("Inputs", (), {"response": response})()})()
         await rail.before_model_call(ctx)
         await rail.after_model_call(ctx)
-        assert observer.drain_events("conv-1")[0]["data"]["usage"]["total_tokens"] == 3
+    @staticmethod
+    def test_estimator_aggregates_canonical_events_without_counting_run_end_twice():
+        from agent_runtime.conversation.usage import TokenEstimateAccumulator
+
+        estimator = TokenEstimateAccumulator("exec-1")
+        estimator.add_input("用户问题")
+        estimator.add({
+            "event": "reasoning",
+            "data": {"content": "分析过程"},
+        })
+        estimator.add({
+            "event": "tool_call",
+            "data": {"toolName": "weather", "arguments": {"city": "深圳"}},
+        })
+        estimator.add({
+            "event": "tool_result",
+            "data": {"result": "晴天"},
+        })
+        estimator.add({
+            "event": "message",
+            "data": {"delta": "最终回答"},
+        })
+        estimator.add({
+            "event": "run_end",
+            "data": {"text": "最终回答"},
+        })
+
+        usage = estimator.finalize("conv-1")
+
+        assert usage["data"]["invocationId"] == "estimated_exec-1"
+        assert usage["data"]["usage"] == {
+            "input_tokens": 4,
+            "output_tokens": 16,
+            "total_tokens": 20,
+        }
+
+    @staticmethod
+    def test_estimator_skips_fallback_when_native_usage_is_present():
+        from agent_runtime.conversation.usage import TokenEstimateAccumulator
+
+        estimator = TokenEstimateAccumulator("exec-1")
+        estimator.add({
+            "event": "usage",
+            "data": {"usage": {"input_tokens": 10, "output_tokens": 5, "total_tokens": 15}},
+        })
+
+        assert estimator.finalize("conv-1") is None

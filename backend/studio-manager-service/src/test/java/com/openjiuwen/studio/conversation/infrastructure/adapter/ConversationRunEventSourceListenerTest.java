@@ -46,7 +46,7 @@ class ConversationRunEventSourceListenerTest {
         emitter = mock(SseEmitter.class);
         repository = mock(ConversationRepository.class);
         listener = new ConversationRunEventSourceListener(emitter, new CountDownLatch(1), "conversation-1",
-            EXECUTION_ID, "model-1", repository);
+            EXECUTION_ID, "model-1", "app-1", repository);
     }
 
     @Test

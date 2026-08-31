@@ -10,6 +10,10 @@ import time
 import uuid
 from typing import AsyncGenerator, Dict, Optional
 
+from agent_runtime.conversation.usage import (
+    ConversationUsageRail,
+    get_or_create_observer,
+)
 from agent_runtime.conversation.config.supervisor_config import SupervisorConfig
 from agent_runtime.conversation.execution_context import get_conversation_execution_context
 from agent_runtime.conversation.sandbox import ConversationSandboxToolBinder
@@ -143,6 +147,15 @@ class ConversationReActRunner(ReActAgentRunner):
             if result.added and Runner.resource_mgr.get_tool(tool.card.id) is None:
                 Runner.resource_mgr.add_tool(tool)
 
+    async def _register_usage_rail(self, agent, exec_id: str, parent_run_id: str | None = None,
+                                   execution_type: str = "agent"):
+        """Bind one request-local usage observer to every ReAct Agent we create."""
+        observer = get_or_create_observer(exec_id)
+        await agent.register_rail(
+            ConversationUsageRail(observer, exec_id, parent_run_id, execution_type)
+        )
+        return observer
+
     async def run_streaming(
         self, req: ExecutionRequest, execution_id: str | None = None
     ) -> AsyncGenerator[Dict, None]:
@@ -202,6 +215,12 @@ class ConversationReActRunner(ReActAgentRunner):
                 has_file_links,
             )
             agent.set_llm(llm)
+            observer = await self._register_usage_rail(
+                agent,
+                exec_id,
+                parent_run_id=global_variables.get("parentRunId"),
+                execution_type=global_variables.get("executionType", "agent"),
+            )
         except Exception as error:
             workflow_logger.error("Failed to create conversation Agent: %s", error)
             yield adapter.adapt_error(f"Failed to create agent: {error}")
@@ -266,6 +285,8 @@ class ConversationReActRunner(ReActAgentRunner):
                 name=ir_json.get("agentName", "Agent"),
             )
 
+            session: Optional[Session] = None
+            is_first_llm_call = True
             try:
                 session_id = req.conversation_id or "default_session"
                 session = create_agent_session(session_id=session_id, card=agent.card)
@@ -310,6 +331,8 @@ class ConversationReActRunner(ReActAgentRunner):
                     for event in adapter.adapt(chunk):
                         if event:
                             yield event
+                    for usage_event in observer.drain_events(req.conversation_id):
+                        yield usage_event
                 yield adapter.create_agent_node_end_event(
                     invoke_id=chain_id,
                     chain_id=chain_id,

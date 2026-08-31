@@ -1,4 +1,9 @@
-"""Conversation-only handoff through the canonical ReAct runner path."""
+"""Conversation-specific Supervisor handoff tool.
+
+The legacy HandoffTool remains unchanged. This additive tool reuses its card and
+IR-path behavior while delegating child execution to the conversation ReAct
+runner's standard run_streaming contract.
+"""
 
 from __future__ import annotations
 
@@ -14,6 +19,8 @@ from agent_runtime.conversation.runner.conversation_runner_factory import (
     ConversationRunnerFactory,
 )
 from agent_runtime.schemas.orchestration_mgr import ExecutionParams, ExecutionRequest
+from agent_runtime.supervisor.event.canonical import build_message, build_reasoning, build_tool_call, build_tool_result
+from agent_runtime.supervisor.event.channel import get_channel
 from agent_runtime.serve.apis.conversation_team_app import _event_payload
 from agent_runtime.supervisor.event.canonical import (
     build_run_end,
@@ -108,10 +115,15 @@ class ConversationHandoffTool(HandoffTool):
         """Adapt a child stream with an independent run and parent relation."""
         parent_run_id = execution_id or get_conversation_execution_context().identity.execution_id
         child_run_id = sub_execution_id or str(uuid.uuid4())
+        conversation_id = request.conversation_id
         terminal_seen = False
         async for raw in runner.run_streaming(request, child_run_id):
             if _event_payload(raw) is None:
                 continue
+            payload = _event_payload(raw)
+            if not payload:
+                continue
+
             event = adapt_runner_event(
                 raw,
                 conversation_id=request.conversation_id,

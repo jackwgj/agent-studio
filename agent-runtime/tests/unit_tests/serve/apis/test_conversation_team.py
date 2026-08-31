@@ -179,7 +179,10 @@ async def test_team_stream_prepares_inputs_before_building_agent_and_only_passes
     prepare.assert_awaited_once_with(req.file_ids)
     assert captured["file_references"] == [{"fileName": "report.pdf", "path": prepared_path}]
     assert "url" not in captured["file_references"][0]
-    assert [event["event"] for event in events[-2:]] == ["message", "run_end"]
+    assert [event["event"] for event in events[-3:]] == ["message", "usage", "run_end"]
+    usage = events[-2]
+    assert usage["data"]["invocationId"] == "estimated_input-execution"
+    assert usage["data"]["usage"]["total_tokens"] > 0
 
 
 @pytest.mark.asyncio
@@ -235,10 +238,12 @@ async def test_team_stream_emits_artifact_after_upload_and_before_terminal_run_e
         ConversationTeamReq.model_validate(request_payload()), "artifact-execution"
     )]
 
-    assert [event["event"] for event in events[-3:]] == [
-        "message", "artifact", "run_end"
+    assert [event["event"] for event in events[-4:]] == [
+        "message", "artifact", "usage", "run_end"
     ]
-    artifact = events[-2]
+    usage = events[-2]
+    assert usage["data"]["invocationId"] == "estimated_artifact-execution"
+    artifact = events[-3]
     assert artifact["runId"] == "artifact-execution"
     assert artifact["data"]["executionId"] == "artifact-execution"
     assert artifact["data"]["objectKey"] == "conversation-artifacts/trusted/report.pdf"
@@ -339,7 +344,7 @@ async def test_team_stream_owns_root_start_and_deduplicates_controller_snapshot(
         ConversationTeamReq.model_validate(request_payload()), "dedupe-run"
     )]
 
-    assert [event["event"] for event in events] == ["message", "run_start", "message", "run_end"]
+    assert [event["event"] for event in events] == ["message", "run_start", "message", "usage", "run_end"]
     assert events[2]["data"]["delta"] == "完成"
 
 
