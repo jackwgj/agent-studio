@@ -7,6 +7,7 @@ package com.openjiuwen.studio.conversation.infrastructure.adapter;
 import com.openjiuwen.studio.conversation.domain.model.ConversationMessage;
 import com.openjiuwen.studio.conversation.domain.model.ConversationWorkflowNode;
 import com.openjiuwen.studio.conversation.domain.model.valueobject.ExecutionRef;
+import com.openjiuwen.studio.conversation.domain.model.valueobject.TokenUsage;
 import com.openjiuwen.studio.conversation.domain.model.valueobject.FileRef;
 import com.openjiuwen.studio.conversation.domain.model.valueobject.ToolRef;
 import com.openjiuwen.studio.conversation.domain.repository.ConversationRepository;
@@ -30,6 +31,8 @@ import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.HashSet;
 import java.util.concurrent.CountDownLatch;
 
 /**
@@ -39,9 +42,9 @@ import java.util.concurrent.CountDownLatch;
  * <p>入库粒度 = 每次 LLM 调用（一轮）：每轮 reasoning 行（event=reasoning）+ message 行（event=message），
  * 工具一次调用合并一行（role=tool，event=tool_call，content=结果/异常，tool_args=参数，tool_id=toolName）。
  * run_start/skill_activated/error/run_end 作为运行树状态落库；user_message 不落（user 行发送前已落）；
- * runId/parentRunId/toolId 路由，只有收到 canonical tool_result 的工具调用才落库。</p>
+ * 运行控制事件仅透传；runId/parentRunId/toolId 路由，只有收到 canonical tool_result 的工具调用才落库。</p>
  *
- * <p>轮边界 = 事件类型（机械规则）：tool_call / run_end / error 到达即结算当前轮；
+ * <p>轮边界 = canonical 事件类型：tool_call / run_end / error 到达即结算当前轮；
  * created_at 按到达序（base+seq）单调递增，供读侧"先调用先渲染"。</p>
  */
 @Slf4j
@@ -55,6 +58,7 @@ public class ConversationRunEventSourceListener extends EventSourceListener {
     private static final String EVENT_WORKFLOW_NODE = "workflow_node";
     private static final String EVENT_RUN_END = "run_end";
     private static final String EVENT_ERROR = "error";
+    private static final String EVENT_USAGE = "usage";
     private static final String EVENT_SKILL_ACTIVATED = "skill_activated";
     private static final String EVENT_ARTIFACT = "artifact";
     private static final String SSE_DONE_MARKER = "[DONE]";
@@ -78,14 +82,23 @@ public class ConversationRunEventSourceListener extends EventSourceListener {
 
     private static final String ROLE_ASSISTANT = "assistant";
     private static final String ROLE_TOOL = "tool";
+    private static final String NO_RESULT_MARK = "（未返回结果）";
 
     private final SseEmitter sseEmitter;
     private final CountDownLatch latch;
     private final String conversationId;
     private final String executionId;
     private final String modelDeploymentId;
+    /** 主运行 agent_id 归属：APP 路径记录 app_id；SUPERVISOR 为空时保持事件 agentId。 */
+    private final String appId;
     private final ConversationRepository conversationRepository;
     private final List<ConversationWorkflowNode> workflowNodes = new ArrayList<>();
+
+    /** 本轮已累计的 LLM 调用 ID，防止同一次调用从多个观察出口重复统计。 */
+    private final Set<String> usageInvocationIds = new HashSet<>();
+    private long promptTokens;
+    private long completionTokens;
+    private long totalTokens;
 
     /** 当前轮缓冲（key = canonical runId） */
     private final Map<String, RoundBuffer> currentRounds = new LinkedHashMap<>();
@@ -103,13 +116,14 @@ public class ConversationRunEventSourceListener extends EventSourceListener {
     private volatile boolean flushed;
 
     public ConversationRunEventSourceListener(SseEmitter sseEmitter, CountDownLatch latch, String conversationId,
-                                              String executionId, String modelDeploymentId,
+                                              String executionId, String modelDeploymentId, String appId,
                                               ConversationRepository conversationRepository) {
         this.sseEmitter = sseEmitter;
         this.latch = latch;
         this.conversationId = conversationId;
         this.executionId = executionId;
         this.modelDeploymentId = modelDeploymentId;
+        this.appId = appId;
         this.conversationRepository = conversationRepository;
     }
 
@@ -214,7 +228,23 @@ public class ConversationRunEventSourceListener extends EventSourceListener {
                     settleRound(keyOf(dataObj));
                     bufferControlEvent(EVENT_ERROR, dataObj);
                 }
+                case EVENT_USAGE -> {
+                    // 本轮所有 usage 事件的 total_tokens 等求和，作为主运行总消耗（近似）
+                    String invocationId = dataObj == null ? null : dataObj.getString("invocationId");
+                    if (invocationId != null && !usageInvocationIds.add(invocationId)) {
+                        break;
+                    }
+                    JSONObject usage = dataObj == null ? null : dataObj.getJSONObject("usage");
+                    if (usage != null) {
+                        promptTokens += usage.getLongValue("input_tokens",
+                            usage.getLongValue("prompt_tokens", 0L));
+                        completionTokens += usage.getLongValue("output_tokens",
+                            usage.getLongValue("completion_tokens", 0L));
+                        totalTokens += usage.getLongValue("total_tokens", 0L);
+                    }
+                }
                 default -> {
+                    // user message and run control events are forwarded only.
                     // user_message/run_start/usage 仅透传不落
                 }
             }
@@ -452,10 +482,12 @@ public class ConversationRunEventSourceListener extends EventSourceListener {
         return ConversationMessage.builder()
             .role(role)
             .content(content)
-            .executionRef(new ExecutionRef(round.runId, round.parentRunId, round.agentId, round.executionType))
+            .executionRef(new ExecutionRef(round.runId, round.parentRunId,
+                runAgentId(round.parentRunId, round.agentId), round.executionType))
             .workflowId(round.workflowId)
             .nodeId(round.nodeId)
             .eventIndex(round.eventIndex)
+            .tokenUsage(mainRunTokenUsage(round.parentRunId))
             .modelDeploymentId(modelDeploymentId)
             .event(event)
             .createdAt(new Date(baseTime + seq))
@@ -468,11 +500,13 @@ public class ConversationRunEventSourceListener extends EventSourceListener {
             .role(ROLE_TOOL)
             .content(content)
             .toolRef(new ToolRef(invocation.toolCallId, invocation.toolName, invocation.argsJson))
-            .executionRef(new ExecutionRef(invocation.runId, invocation.parentRunId, invocation.agentId,
+            .executionRef(new ExecutionRef(invocation.runId, invocation.parentRunId,
+                runAgentId(invocation.parentRunId, invocation.agentId),
                 invocation.executionType == null ? "agent" : invocation.executionType))
             .workflowId(invocation.workflowId)
             .nodeId(invocation.nodeId)
             .eventIndex(invocation.eventIndex)
+            .tokenUsage(mainRunTokenUsage(invocation.parentRunId))
             .modelDeploymentId(modelDeploymentId)
             .event(EVENT_TOOL_RESULT)
             .createdAt(new Date(baseTime + invocation.seq))
@@ -492,6 +526,23 @@ public class ConversationRunEventSourceListener extends EventSourceListener {
             .event(EVENT_ARTIFACT)
             .createdAt(new Date(baseTime + artifact.seq))
             .build();
+    }
+
+    /** APP 主运行记录 app_id；SUPERVISOR 没有 app_id 时保持 null，不回退事件节点 agentId。 */
+    private String runAgentId(String parentRunId, String eventAgentId) {
+        if (parentRunId == null) {
+            return appId;
+        }
+        return eventAgentId;
+    }
+
+    /** 主运行落库本轮累计 token 用量（近似）；无用量返回 null。 */
+    private TokenUsage mainRunTokenUsage(String parentRunId) {
+        if (parentRunId != null || totalTokens <= 0) {
+            return null;
+        }
+        return new TokenUsage(String.valueOf(promptTokens), String.valueOf(completionTokens),
+            String.valueOf(totalTokens));
     }
 
     /** 一轮（一次 LLM 调用）的缓冲：reasoning/message 增量累加 + 首个增量到达序 */
