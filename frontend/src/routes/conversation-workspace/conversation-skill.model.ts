@@ -124,10 +124,11 @@ export interface ConversationTimelineItem {
 
 /** 过程时间线展示项，不参与 ConversationEvent 路由或排序。 */
 export interface ConversationProcessItem {
-  kind: 'reasoning' | 'tool' | 'workflow' | 'agent';
+  kind: 'reasoning' | 'message' | 'tool' | 'workflow' | 'agent';
   title: string;
   status?: string;
   reasoning?: string;
+  message?: string;
   toolId?: string;
   toolName?: string;
   arguments?: unknown;

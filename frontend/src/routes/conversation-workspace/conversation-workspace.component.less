@@ -46,7 +46,9 @@
     }
 
     .turn-card {
-      margin-bottom: 16px;
+      width: min(100%, 920px);
+      min-width: 0;
+      margin: 0 auto 16px;
 
       .turn-user {
         display: table;
@@ -302,14 +304,62 @@
         }
       }
       .assistant-turn {
-        width: min(100%, 920px);
+        width: 100%;
         min-width: 0;
-        margin: 0 auto;
+        margin: 0;
       }
 
       .assistant-process {
         margin: 0 0 12px;
-        padding-left: 0;
+        padding: 8px 12px;
+        border: 1px solid #eceef2;
+        border-radius: 10px;
+        background: #fafbfc;
+
+        &[open] {
+          background: #fff;
+        }
+      }
+
+      .assistant-process-summary {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 24px;
+        color: #595959;
+        cursor: pointer;
+        list-style: none;
+        font-size: 13px;
+        user-select: none;
+
+        &::-webkit-details-marker {
+          display: none;
+        }
+
+        &::after {
+          content: '›';
+          margin-left: 2px;
+          color: #8c8c8c;
+          font-size: 16px;
+          line-height: 1;
+          transition: transform 0.15s ease;
+        }
+
+        .assistant-process[open] > &::after {
+          transform: rotate(90deg);
+        }
+      }
+
+      .process-count {
+        margin-left: auto;
+        color: #a0a0a0;
+        font-size: 11px;
+      }
+
+      .assistant-process-tree {
+        margin-top: 6px;
+        padding-top: 6px;
+        border-top: 1px solid #f0f0f0;
       }
 
       .process-item,
@@ -352,6 +402,11 @@
         height: 6px;
         border-radius: 50%;
         background: #8c8c8c;
+
+        &.running {
+          background: #1677ff;
+          box-shadow: 0 0 0 3px rgba(22, 119, 255, 0.12);
+        }
       }
 
       .process-title {
@@ -378,9 +433,42 @@
       }
 
       .process-reasoning,
+      .process-message,
       .process-result {
         white-space: pre-wrap;
         overflow-wrap: anywhere;
+      }
+
+      .process-children {
+        margin-left: 4px;
+        padding-left: 10px;
+        border-left: 1px solid #e8e8e8;
+      }
+
+      .assistant-progress {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        margin: 0 0 10px;
+        padding: 8px 10px;
+        border-radius: 8px;
+        background: #f7f9fc;
+        color: #6b7280;
+        font-size: 13px;
+
+        .progress-pulse {
+          flex: 0 0 auto;
+          width: 6px;
+          height: 6px;
+          margin-top: 7px;
+          border-radius: 50%;
+          background: #1677ff;
+          animation: blink 1s infinite;
+        }
+
+        .markdown-segment {
+          min-width: 0;
+        }
       }
 
       .process-meta {
@@ -468,8 +556,9 @@
         display: flex;
         flex-direction: column;
         gap: 8px;
+        width: 100%;
         max-width: 520px;
-        margin: 14px auto 0;
+        margin: 14px 0 0;
       }
 
       .artifact-card {
@@ -528,7 +617,7 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
-    width: min(calc(100% - 64px), 1600px);
+    width: min(calc(100% - 64px), 1120px);
     margin: 0 auto 24px;
     padding: 12px;
     border: 1px solid #e5e6eb;

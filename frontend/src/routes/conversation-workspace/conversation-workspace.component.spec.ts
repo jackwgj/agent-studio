@@ -561,17 +561,63 @@ describe('ConversationWorkspaceComponent', () => {
     expect(assistant.runs[0].workflowNodes).toEqual([]);
   });
 
-  it('reasoning 每段独立保留，不摘要、不截断、不合并', () => {
+  it('同一执行阶段的 reasoning 流式分片合并，工具调用后开启新的思考节点', () => {
     const assistant: any = { role: 'assistant', segments: [], detailSegments: [], runs: [], loading: true };
     component.messages = [assistant];
 
     dispatchSse(component, assistant, { event: 'reasoning', data: { runId: 'root', content: '第一段思考' } });
     dispatchSse(component, assistant, { event: 'reasoning', data: { runId: 'root', content: '第二段思考' } });
+    dispatchSse(component, assistant, { event: 'tool_call', data: { runId: 'root', toolId: 'tool-1', toolName: '检索' } });
+    dispatchSse(component, assistant, { event: 'reasoning', data: { runId: 'root', content: '工具后的思考' } });
 
     expect(assistant.runs[0].detailSegments).toEqual([
-      { type: 'reasoning', content: '第一段思考' },
-      { type: 'reasoning', content: '第二段思考' },
+      { type: 'reasoning', content: '第一段思考第二段思考' },
+      jasmine.objectContaining({ type: 'tool', toolId: 'tool-1' }),
+      { type: 'reasoning', content: '工具后的思考' },
     ]);
+    expect(assistant.timeline.filter((item: any) => item.kind === 'reasoning').map((item: any) => item.content)).toEqual([
+      '第一段思考第二段思考', '工具后的思考',
+    ]);
+  });
+
+  it('最终答案只展示根运行最后一段正式消息，前序消息与子 Agent 消息归入执行过程', () => {
+    const assistant: any = { role: 'assistant', segments: [], timeline: [], detailSegments: [], runs: [], loading: true };
+    component.messages = [assistant];
+
+    dispatchSse(component, assistant, { event: 'run_start', data: { runId: 'root', executionType: 'supervisor' } });
+    dispatchSse(component, assistant, { event: 'message', data: { runId: 'root', delta: '正在读取文件' } });
+    dispatchSse(component, assistant, { event: 'tool_call', data: { runId: 'root', toolId: 'tool-1', toolName: 'read_file' } });
+    dispatchSse(component, assistant, { event: 'run_start', data: { runId: 'child', parentRunId: 'root', agentId: 'agent-1' } });
+    dispatchSse(component, assistant, { event: 'message', data: { runId: 'child', parentRunId: 'root', delta: '子 Agent 中间输出' } });
+    dispatchSse(component, assistant, { event: 'message', data: { runId: 'root', delta: '这是最终答案' } });
+
+    expect(component.finalAnswerContent(assistant)).toBe('这是最终答案');
+    const process = component.processItems(assistant);
+    expect(process).toEqual(jasmine.arrayContaining([
+      jasmine.objectContaining({ kind: 'message', message: '正在读取文件' }),
+      jasmine.objectContaining({ kind: 'tool', toolId: 'tool-1' }),
+      jasmine.objectContaining({
+        kind: 'agent',
+        children: jasmine.arrayContaining([
+          jasmine.objectContaining({ kind: 'message', message: '子 Agent 中间输出' }),
+        ]),
+      }),
+    ]));
+    expect(JSON.stringify(process)).not.toContain('这是最终答案');
+  });
+
+  it('工具执行期间短暂展示阶段性消息，正式答案到达后自动清除进度提示', () => {
+    const assistant: any = { role: 'assistant', segments: [], timeline: [], detailSegments: [], runs: [], loading: true };
+    component.messages = [assistant];
+
+    dispatchSse(component, assistant, { event: 'message', data: { runId: 'root', delta: '正在查询，请稍候' } });
+    dispatchSse(component, assistant, { event: 'tool_call', data: { runId: 'root', toolId: 'tool-1', toolName: 'search' } });
+    expect(component.finalAnswerContent(assistant)).toBe('');
+    expect(component.activeProgressContent(assistant)).toBe('正在查询，请稍候');
+
+    dispatchSse(component, assistant, { event: 'message', data: { runId: 'root', delta: '查询完成' } });
+    expect(component.finalAnswerContent(assistant)).toBe('查询完成');
+    expect(component.activeProgressContent(assistant)).toBe('');
   });
 
   it('tool_call 与 tool_result 按 toolId 合并并保留名称、参数、结果和状态', () => {
