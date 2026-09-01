@@ -45,6 +45,7 @@ interface ChatMessage {
   role: 'user' | 'assistant';
   segments: ChatSegment[];
   timeline: ConversationTimelineItem[];
+  seenEventIndexes?: Set<number>;
   userContent?: string;
   userFiles?: Array<Pick<ConversationFileReference, 'fileName'>>;
   artifacts?: ConversationArtifactReference[];
@@ -648,18 +649,18 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
             this.settleRun(attempt, 'done');
           },
           onError: () => {
-            this.settleRun(attempt, 'failed');
+            this.settleRun(attempt, 'failed', '连接中断，未能完整接收执行结果');
           },
           onTimeout: () => {
-            this.settleRun(attempt, 'failed');
+            this.settleRun(attempt, 'failed', '请求超时，请稍后重试');
           },
           onAbort: () => {
-            this.settleRun(attempt, 'failed');
+            this.settleRun(attempt, 'failed', '请求已中止');
           },
         },
       );
     } catch {
-      this.settleRun(attempt, 'failed');
+      this.settleRun(attempt, 'failed', '请求发送失败，请检查服务状态');
       return;
     }
     if (!this.isCurrentAttempt(attempt)) {
@@ -682,7 +683,7 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
     return file_ids.length ? { file_ids } : {};
   }
 
-  private settleRun(attempt: ConversationAttempt, outcome: 'done' | 'failed'): void {
+  private settleRun(attempt: ConversationAttempt, outcome: 'done' | 'failed', fallbackError?: string): void {
     if (!this.isCurrentAttempt(attempt)) {
       return;
     }
@@ -693,6 +694,9 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
       if (attempt.assistantMsg) {
         attempt.assistantMsg.loading = false;
         attempt.assistantMsg.error = outcome === 'failed';
+        if (outcome === 'failed' && !attempt.assistantMsg.errorMessage && fallbackError) {
+          attempt.assistantMsg.errorMessage = fallbackError;
+        }
       }
       this.activeAttempt = null;
       this.streaming = false;
@@ -743,6 +747,11 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
   private reduceCanonicalEvent(assistantMsg: ChatMessage, parsed: ConversationEvent, realtime: boolean): void {
     const event = parsed.event;
     const d = parsed.data ?? {};
+    if (realtime && typeof parsed.index === 'number') {
+      assistantMsg.seenEventIndexes ??= new Set<number>();
+      if (assistantMsg.seenEventIndexes.has(parsed.index)) return;
+      assistantMsg.seenEventIndexes.add(parsed.index);
+    }
     const run = event === ConversationEventType.SKILL_ACTIVATED && d.runId
       ? this.findRun(assistantMsg.runs ?? [], String(d.runId))
       : [ConversationEventType.SKILL_ACTIVATED, ConversationEventType.USAGE, ConversationEventType.ARTIFACT]
@@ -763,16 +772,18 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
           const content = String(d.delta ?? d.content ?? d.text ?? '');
           if (run && content) {
             this.appendSegment(run.segments, 'message', content);
-            this.appendTimelineMessage(assistantMsg, content, String(d.runId ?? run.runId), realtime);
-            assistantMsg.loading = false;
+            this.appendTimelineMessage(
+              assistantMsg, content, String(d.runId ?? run.runId), '',
+              d.status ? String(d.status) : undefined,
+            );
           }
           break;
         }
         case ConversationEventType.REASONING: {
           const content = String(d.content ?? d.delta ?? '');
           if (run && content) {
-            run.detailSegments.push({ type: 'reasoning', content });
-            assistantMsg.timeline.push({ kind: 'reasoning', content, runId: run.runId, status: run.status || 'running' });
+            this.appendSegment(run.detailSegments, 'reasoning', content);
+            this.appendTimelineReasoning(assistantMsg, content, run.runId, run.status || 'running');
           }
           break;
         }
@@ -850,7 +861,10 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
             const failed = !['success', 'completed', 'done'].includes(String(d.status ?? 'success').toLowerCase());
             assistantMsg.loading = false;
             assistantMsg.error = failed;
-            if (failed) this.setAssistantError(assistantMsg, d);
+            if (failed) {
+              this.setAssistantError(assistantMsg, d);
+              assistantMsg.errorMessage ||= 'Agent 执行失败，但未返回详细错误';
+            }
             if (realtime) this.settleCanonicalRoot(assistantMsg, failed ? 'failed' : 'done');
           }
           break;
@@ -941,6 +955,7 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
   private ensureRun(message: ChatMessage, data: any, createRoot = false): ConversationRunNode | undefined {
     message.runs ??= [];
     message.segments ??= [];
+    message.timeline ??= [];
     message.detailSegments ??= [];
     const explicitRunId = data.runId != null && String(data.runId) ? String(data.runId) : undefined;
     const temporaryRoot = explicitRunId && createRoot
@@ -1043,44 +1058,78 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
     return fallback;
   }
 
-  public answerSegments(message: ChatMessage): ChatSegment[] {
-    const root = (message.runs ?? []).find((run) => !run.parentRunId);
-    return [...(message.segments ?? []), ...(root?.segments ?? [])];
+  public finalAnswerContent(message: ChatMessage): string {
+    const rootRunId = this.rootRunId(message);
+    if (!rootRunId) return '';
+    const finalItem = this.finalAnswerTimelineItem(message, rootRunId);
+    return finalItem?.content ?? '';
+  }
+
+  public activeProgressContent(message: ChatMessage): string {
+    if (!message.loading) return '';
+    const rootRunId = this.rootRunId(message);
+    if (!rootRunId) return '';
+    const finalItem = this.finalAnswerTimelineItem(message, rootRunId);
+    const messages = (message.timeline ?? []).filter((item) => item.kind === 'message' && item.runId === rootRunId);
+    const latest = messages[messages.length - 1];
+    if (!latest || latest === finalItem) return '';
+    return latest.content ?? '';
   }
 
   public processItems(message: ChatMessage): ConversationProcessItem[] {
-    return (message.runs ?? []).flatMap((run) => this.processItemsForRun(run));
+    const rootRunId = this.rootRunId(message);
+    const finalItem = rootRunId ? this.finalAnswerTimelineItem(message, rootRunId) : undefined;
+    return (message.runs ?? []).flatMap((run) => this.processItemsForRun(run, message.timeline ?? [], finalItem));
   }
 
-  private processItemsForRun(run: ConversationRunNode): ConversationProcessItem[] {
-    const items: ConversationProcessItem[] = [];
-    for (const segment of run.detailSegments ?? []) {
-      if (segment.type === 'reasoning') {
-        items.push({ kind: 'reasoning', title: '思考', reasoning: segment.content, status: run.status });
-      } else if (segment.type === 'tool') {
-        const name = segment.toolName || segment.toolId || '未知工具';
-        items.push({
-          kind: 'tool', title: `调用工具：${name}`,
-          status: segment.toolStatus || (segment.content ? 'completed' : run.status),
-          toolId: segment.toolId, toolName: name, arguments: segment.arguments, result: segment.content || undefined,
-        });
-      }
-    }
-    for (const node of run.workflowNodes ?? []) {
-      items.push({ kind: 'workflow', title: node.nodeName || node.nodeId || '工作流节点', status: node.status, result: node.output == null ? node.content : this.displayValue(node.output) });
-    }
+  private processItemsForRun(
+    run: ConversationRunNode,
+    timeline: ConversationTimelineItem[],
+    finalItem?: ConversationTimelineItem,
+  ): ConversationProcessItem[] {
+    const items = timeline
+      .filter((item) => item.runId === run.runId && item !== finalItem)
+      .map((item): ConversationProcessItem => {
+        if (item.kind === 'message') {
+          return { kind: 'message', title: '阶段性消息', message: item.content ?? '', status: item.status };
+        }
+        if (item.kind === 'reasoning') {
+          return { kind: 'reasoning', title: '思考', reasoning: item.content ?? '', status: item.status };
+        }
+        if (item.kind === 'workflow') {
+          return { kind: 'workflow', title: item.title || '工作流节点', status: item.status, result: item.result };
+        }
+        const name = item.toolName || item.toolId || '未知工具';
+        return {
+          kind: 'tool', title: `调用工具：${name}`, status: item.status,
+          toolId: item.toolId, toolName: name, arguments: item.arguments, result: item.result,
+        };
+      });
     for (const child of run.children ?? []) {
-      const childTool = (child.detailSegments ?? []).find((segment) => segment.type === 'tool');
-      const childName = childTool?.type === 'tool' ? childTool.toolName || childTool.toolId : undefined;
       items.push({
-        kind: 'agent', title: `子 Agent：${childName || child.agentId || child.runId}`, status: child.status,
-        toolId: childTool?.type === 'tool' ? childTool.toolId : undefined,
-        toolName: childName,
-        result: childTool?.type === 'tool' ? childTool.content || undefined : undefined,
-        children: this.processItemsForRun(child).filter((item) => item.kind !== 'agent'),
+        kind: 'agent', title: `子 Agent：${child.agentId || child.runId}`, status: child.status,
+        children: this.processItemsForRun(child, timeline),
       });
     }
     return items;
+  }
+
+  private finalAnswerTimelineItem(message: ChatMessage, rootRunId: string): ConversationTimelineItem | undefined {
+    const timeline = message.timeline ?? [];
+    for (let index = timeline.length - 1; index >= 0; index -= 1) {
+      const item = timeline[index];
+      if (item.runId !== rootRunId || item.kind !== 'message') continue;
+      if (this.isIntermediateMessageStatus(item.status)) continue;
+      const followedByExecution = timeline.slice(index + 1).some((candidate) =>
+        candidate.runId === rootRunId && ['tool', 'workflow'].includes(candidate.kind),
+      );
+      return followedByExecution ? undefined : item;
+    }
+    return undefined;
+  }
+
+  private isIntermediateMessageStatus(status: unknown): boolean {
+    return ['intermediate_message', 'waiting_user_input', 'progress'].includes(String(status ?? '').toLowerCase());
   }
 
   private appendSegment(segments: ChatSegment[], type: 'message' | 'reasoning', content: string): void {
@@ -1097,13 +1146,36 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
     }
   }
 
-  private appendTimelineMessage(message: ChatMessage, content: string, runId: string, realtime: boolean): void {
-    const last = message.timeline[message.timeline.length - 1];
-    if (realtime && last?.kind === 'message' && last.runId === runId) {
-      last.content = `${last.content ?? ''}${content}`;
-      return;
+  private appendTimelineMessage(
+    message: ChatMessage,
+    content: string,
+    runId: string,
+    separator = '',
+    status?: string,
+  ): void {
+    for (let index = message.timeline.length - 1; index >= 0; index -= 1) {
+      const item = message.timeline[index];
+      if (item.runId !== runId || ['tool', 'workflow'].includes(item.kind)) break;
+      if (item.kind === 'message' && this.isIntermediateMessageStatus(item.status) === this.isIntermediateMessageStatus(status)) {
+        item.content = `${item.content ?? ''}${separator}${content}`;
+        item.status = status || item.status;
+        return;
+      }
     }
-    message.timeline.push({ kind: 'message', content, runId });
+    message.timeline.push({ kind: 'message', content, runId, status });
+  }
+
+  private appendTimelineReasoning(message: ChatMessage, content: string, runId: string, status: string): void {
+    for (let index = message.timeline.length - 1; index >= 0; index -= 1) {
+      const item = message.timeline[index];
+      if (item.runId !== runId || ['tool', 'workflow'].includes(item.kind)) break;
+      if (item.kind === 'reasoning') {
+        item.content = `${item.content ?? ''}${content}`;
+        item.status = status;
+        return;
+      }
+    }
+    message.timeline.push({ kind: 'reasoning', content, runId, status });
   }
 
   private appendTimelineTool(message: ChatMessage, segment: ChatSegment, runId: string): void {
@@ -1175,10 +1247,10 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
       if (seg) {
         if (seg.type === 'message') {
           this.appendHistoryMessage(run.segments, seg.content);
-          current.timeline.push({ kind: 'message', content: seg.content, runId: run.runId });
+          this.appendTimelineMessage(current, seg.content, run.runId, '\n', row.status);
         } else if (seg.type === 'reasoning') {
-          run.detailSegments.push(seg);
-          current.timeline.push({ kind: 'reasoning', content: seg.content, runId: run.runId });
+          this.appendSegment(run.detailSegments, 'reasoning', seg.content);
+          this.appendTimelineReasoning(current, seg.content, run.runId, run.status);
         } else {
           run.detailSegments.push(seg);
           if (seg.type === 'tool') {
