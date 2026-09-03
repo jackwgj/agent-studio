@@ -345,13 +345,12 @@ export class SchedulerComponent implements OnInit, OnDestroy {
       search: this.searchValue || undefined,
     }).pipe(takeUntil(this.destroy$)).subscribe({
       next: (res: any) => {
-        const data = res?.data;
-        this.taskList = (data?.items || []).map((t: any) => ({
+        this.taskList = (res?.items || []).map((t: any) => ({
           ...t,
           _triggering: false,
           _toggling: false,
         }));
-        this.total = data?.total || 0;
+        this.total = res?.total || 0;
         this.loading = false;
       },
       error: () => {
