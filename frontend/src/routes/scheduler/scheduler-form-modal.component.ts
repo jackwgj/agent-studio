@@ -18,6 +18,7 @@ import { SchedulerService } from './scheduler.service';
 import type { ScheduledTask } from './scheduler.service';
 import { ScheduleRulePickerComponent, ScheduleValue } from './schedule-rule-picker.component';
 import { AppAgentRepoService } from '@services/agent-center/app-agent-repo.service';
+import { AppFlowRepoService } from '@services/agent-center/app-flow-repo.service';
 import { ModelManagementService } from '@services/repositories/model-management-new';
 
 @Component({
@@ -103,8 +104,8 @@ import { ModelManagementService } from '@services/repositories/model-management-
         <div class="conv-field">
           <label class="conv-label">执行计划 <span class="required">*</span></label>
           <nz-radio-group [(ngModel)]="convScheduleType" class="conv-radio-group">
-            <label nz-radio value="once">一次性</label>
-            <label nz-radio value="recurring">周期重复</label>
+            <label nz-radio [nzValue]="'once'">一次性</label>
+            <label nz-radio [nzValue]="'recurring'">周期重复</label>
           </nz-radio-group>
         </div>
 
@@ -173,8 +174,8 @@ import { ModelManagementService } from '@services/repositories/model-management-
             <nz-form-label nzRequired>调度类型</nz-form-label>
             <nz-form-control>
               <nz-radio-group formControlName="scheduleType" (ngModelChange)="onScheduleTypeChange()">
-                <label nz-radio value="once">一次性任务</label>
-                <label nz-radio value="recurring">周期重复任务</label>
+                <label nz-radio [nzValue]="'once'">一次性任务</label>
+                <label nz-radio [nzValue]="'recurring'">周期重复任务</label>
               </nz-radio-group>
             </nz-form-control>
           </nz-form-item>
@@ -253,6 +254,19 @@ import { ModelManagementService } from '@services/repositories/model-management-
             </nz-form-control>
           </nz-form-item>
 
+          <!-- 智能体入参（query） -->
+          <nz-form-item *ngIf="form.get('executorType')?.value === 'agent_run' && form.get('agentId')?.value">
+            <nz-form-label nzRequired>入参配置</nz-form-label>
+            <nz-form-control nzErrorTip="请输入智能体的运行入参">
+              <textarea
+                nz-input
+                formControlName="prompt"
+                [nzAutosize]="{ minRows: 3, maxRows: 8 }"
+                placeholder="输入定时执行时传给智能体的 query，例如：生成今日系统状态报告"
+              ></textarea>
+            </nz-form-control>
+          </nz-form-item>
+
           <nz-form-item *ngIf="form.get('executorType')?.value === 'workflow_run'">
             <nz-form-label nzRequired>选择工作流</nz-form-label>
             <nz-form-control>
@@ -263,7 +277,27 @@ import { ModelManagementService } from '@services/repositories/model-management-
                 nzShowSearch
                 [nzOptions]="workflowOptions"
                 (nzOnSearch)="searchWorkflows($event)"
+                (ngModelChange)="onWorkflowSelect($event)"
               ></nz-select>
+            </nz-form-control>
+          </nz-form-item>
+
+          <!-- 工作流入参（根据开始节点动态渲染） -->
+          <nz-form-item *ngIf="form.get('executorType')?.value === 'workflow_run' && workflowInputParams.length > 0">
+            <nz-form-label nzRequired>入参配置</nz-form-label>
+            <nz-form-control>
+              <div class="wf-input-row" *ngFor="let p of workflowInputParams">
+                <span class="wf-input-label" [title]="p.description || p.name">
+                  {{ p.name }}<span class="required" *ngIf="p.required"> *</span>
+                  <span class="wf-input-type">{{ p.type }}</span>
+                </span>
+                <input
+                  nz-input
+                  [(ngModel)]="workflowInputs[p.name]"
+                  [ngModelOptions]="{ standalone: true }"
+                  [placeholder]="p.description || ('请输入 ' + p.name)"
+                />
+              </div>
             </nz-form-control>
           </nz-form-item>
 
@@ -382,6 +416,28 @@ import { ModelManagementService } from '@services/repositories/model-management-
       font-size: 13px;
       color: #333;
     }
+    .wf-input-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .wf-input-label {
+      flex: 0 0 160px;
+      font-size: 13px;
+      color: #333;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .wf-input-label .required {
+      color: #ff4d4f;
+    }
+    .wf-input-type {
+      margin-left: 4px;
+      font-size: 12px;
+      color: #999;
+    }
     /* ===== 会话模式样式 ===== */
     .conversation-view {
       display: flex;
@@ -462,6 +518,10 @@ export class SchedulerFormModalComponent implements OnInit, OnDestroy {
   workflowOptions: any[] = [];
   modelOptions: any[] = [];
 
+  // 工作流入参：所选工作流开始节点的参数定义及用户填写的值
+  workflowInputParams: any[] = [];
+  workflowInputs: Record<string, any> = {};
+
   // 会话模式字段
   convName = '';
   convModelId: string | null = null;
@@ -479,6 +539,7 @@ export class SchedulerFormModalComponent implements OnInit, OnDestroy {
     private message: NzMessageService,
     private schedulerService: SchedulerService,
     private appAgentRepo: AppAgentRepoService,
+    private appFlowRepo: AppFlowRepoService,
     private modelManagementService: ModelManagementService,
     @Inject(NZ_MODAL_DATA) private modalData: any,
   ) {}
@@ -621,13 +682,18 @@ export class SchedulerFormModalComponent implements OnInit, OnDestroy {
       workflowId: t.executor_config?.workflow_id || null,
       httpUrl: t.executor_config?.url || '',
       modelId: t.model_id || null,
-      prompt: t.prompt || '',
+      prompt: t.prompt || t.executor_config?.query || '',
       notifyOnSuccess: t.notification?.notify_on_success ?? false,
       notifyOnFailure: t.notification?.notify_on_failure ?? true,
       maxRetries: t.max_retries ?? 3,
       validFrom: t.valid_from ? new Date(t.valid_from) : null,
       validUntil: t.valid_until ? new Date(t.valid_until) : null,
     });
+
+    // 编辑工作流任务时，加载所选工作流的入参定义并回填已保存的值
+    if (t.executor_type === 'workflow_run' && t.executor_config?.workflow_id) {
+      this.onWorkflowSelect(t.executor_config.workflow_id, t.executor_config?.inputs || {});
+    }
 
     if (t.repeat_type === 'once') {
       this.form.patchValue({ onceTime: t.schedule_config?.run_at ? new Date(t.schedule_config.run_at) : null });
@@ -653,6 +719,10 @@ export class SchedulerFormModalComponent implements OnInit, OnDestroy {
   onSubmit(): void {
     if (this.form.invalid) {
       Object.values(this.form.controls).forEach(c => c.markAsDirty());
+      const invalidFields = Object.keys(this.form.controls)
+        .filter(key => this.form.controls[key].invalid)
+        .join('、');
+      this.message.warning(`表单校验未通过，请检查: ${invalidFields || '必填项'}`);
       return;
     }
     const val = this.form.value;
@@ -696,10 +766,34 @@ export class SchedulerFormModalComponent implements OnInit, OnDestroy {
       }
     }
 
+    if (val.executorType === 'agent_run' && !val.agentId) {
+      this.message.warning('请选择智能体');
+      return;
+    }
+    if (val.executorType === 'agent_run' && !(val.prompt || '').trim()) {
+      this.message.warning('请配置智能体的运行入参');
+      return;
+    }
+    if (val.executorType === 'workflow_run' && !val.workflowId) {
+      this.message.warning('请选择工作流');
+      return;
+    }
+    if (val.executorType === 'workflow_run') {
+      const missingRequired = this.workflowInputParams.some(
+        (p: any) => p.required && !String(this.workflowInputs[p.name] ?? '').trim(),
+      );
+      if (missingRequired) {
+        this.message.warning('请填写工作流的必填入参');
+        return;
+      }
+    }
+
     const executorConfig: any = { type: val.executorType };
-    if (val.executorType === 'agent_run') executorConfig.config = { agent_id: val.agentId };
-    else if (val.executorType === 'workflow_run') executorConfig.config = { workflow_id: val.workflowId };
-    else if (val.executorType === 'http_call') executorConfig.config = { url: val.httpUrl };
+    if (val.executorType === 'agent_run') {
+      executorConfig.config = { agent_id: val.agentId, query: (val.prompt || '').trim() };
+    } else if (val.executorType === 'workflow_run') {
+      executorConfig.config = { workflow_id: val.workflowId, inputs: { ...this.workflowInputs } };
+    } else if (val.executorType === 'http_call') executorConfig.config = { url: val.httpUrl };
     else if (val.executorType === 'llm_prompt') executorConfig.config = {};
 
     const payload: any = {
@@ -762,7 +856,8 @@ export class SchedulerFormModalComponent implements OnInit, OnDestroy {
     if (keyword) params.name = keyword;
     this.appAgentRepo.getAgentList(params, 0, 50).then((res: any) => {
       this.agentOptions = (res?.agent_list || []).map((a: any) => ({
-        value: a.id,
+        // 后端返回的字段是 agent_id（不是 id），否则所有选项 value 都是 undefined，无法逐个选择
+        value: a.agent_id,
         label: a.name,
       }));
     }).catch(() => {});
@@ -781,6 +876,35 @@ export class SchedulerFormModalComponent implements OnInit, OnDestroy {
 
   loadAgents(): void { this.searchAgents(''); }
   loadWorkflows(): void { this.searchWorkflows(''); }
+
+  /** 系统内置参数名，不作为用户入参渲染 */
+  private static readonly WORKFLOW_INPUT_FILTER_KEYS = ['sys', 'conversation_history', 'env'];
+
+  /**
+   * 选择工作流后，拉取工作流详情并解析开始节点的输出参数，作为需要配置的入参。
+   * @param workflowId 工作流 id
+   * @param preservedInputs 编辑场景下已保存的入参值，用于回填
+   */
+  onWorkflowSelect(workflowId: string, preservedInputs?: Record<string, any>): void {
+    this.workflowInputParams = [];
+    this.workflowInputs = {};
+    if (!workflowId) {
+      return;
+    }
+    this.appFlowRepo.getFlow(workflowId).then((wf: any) => {
+      const nodes = wf?.workflow_details?.nodes || wf?.details?.nodes || [];
+      const startNode = nodes.find((n: any) => n.type === 'Start');
+      const outputs = Array.isArray(startNode?.outputs) ? startNode.outputs : [];
+      this.workflowInputParams = outputs.filter(
+        (p: any) => p?.name && !SchedulerFormModalComponent.WORKFLOW_INPUT_FILTER_KEYS.includes(p.name),
+      );
+      this.workflowInputParams.forEach((p: any) => {
+        this.workflowInputs[p.name] = preservedInputs?.[p.name] ?? '';
+      });
+    }).catch(() => {
+      this.message.error('获取工作流入参失败');
+    });
+  }
 
   loadModels(): void {
     this.modelManagementService
