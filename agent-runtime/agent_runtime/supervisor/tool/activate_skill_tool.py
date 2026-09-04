@@ -10,6 +10,7 @@ from agent_runtime.supervisor.skill_artifact_cache import (
 )
 from agent_runtime.supervisor.skill_context import get_skill_context
 from agent_runtime.conversation.skill_artifact_bridge import (
+    SkillSandboxPreparationError,
     conversation_skill_sandbox_enabled,
     prepare_conversation_skill,
 )
@@ -63,6 +64,11 @@ class ActivateSkillTool(Tool):
             return self._error(
                 "skill_instructions_missing",
                 f"Skill {skill.skill_id} activation failed: SKILL.md is missing.",
+            )
+        except SkillSandboxPreparationError:
+            return self._error(
+                "skill_sandbox_preparation_failed",
+                f"Skill {skill.skill_id} activation failed: sandbox preparation failed.",
             )
         except SkillArtifactError:
             return self._error(

@@ -169,6 +169,7 @@ async def test_app_react_preserves_trusted_context_inputs_and_request_skills(mon
             )
         ],
         recommended_skill_ids=["research"],
+        agent_bound_skill_ids=["research"],
     )
     context = ConversationExecutionContext.create(ConversationIdentity(
         project_id="trusted-project",
@@ -205,6 +206,7 @@ async def test_app_react_preserves_trusted_context_inputs_and_request_skills(mon
     assert events[0]["data"]["delta"] == "controller-answer"
     assert global_variables["conversationTeam"]["type"] == "APP"
     assert global_variables["conversationTeam"]["skillCatalog"][0]["skillId"] == "research"
+    assert global_variables["conversationTeam"]["agentBoundSkillIds"] == ["research"]
 
 
 @pytest.mark.asyncio

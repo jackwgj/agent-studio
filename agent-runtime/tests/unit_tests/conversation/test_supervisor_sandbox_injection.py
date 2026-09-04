@@ -886,10 +886,10 @@ async def test_runner_does_not_create_sandbox_or_local_tools_when_unconfigured(
     ],
     ids=["app", "handoff-child"],
 )
-async def test_skill_configured_app_and_child_keep_skill_registration_without_local_tools(
+async def test_skill_configured_app_and_child_defer_skill_download_and_local_registration(
     monkeypatch, global_variables
 ):
-    """A local Skill tool registration would make this request fail its isolation contract."""
+    """Conversation ReAct must use a request-local IR view without bound Skill artifacts."""
     context = _context()
     token = execution_context_module.set_conversation_execution_context(context)
     try:
@@ -897,6 +897,13 @@ async def test_skill_configured_app_and_child_keep_skill_registration_without_lo
         agent = _StreamingAgent()
         binder = ConversationSandboxToolBinder(_Factory(None), _ResourceManager(_RemoteOperation()))
         _configure_runner_for_stream(monkeypatch, runner, agent)
+        created = {}
+
+        def create_agent(ir_json, *_args):
+            created["ir"] = ir_json
+            return agent, "supervisor"
+
+        runner._create_agent = create_agent
         local_skill_registration = MagicMock()
         runner._register_skill_tools = local_skill_registration
         monkeypatch.setattr(
@@ -906,33 +913,17 @@ async def test_skill_configured_app_and_child_keep_skill_registration_without_lo
             raising=False,
         )
 
+        request = _skill_streaming_request(global_variables)
         events = [
             event
-            async for event in runner.run_streaming(
-                _skill_streaming_request(global_variables)
-            )
+            async for event in runner.run_streaming(request)
         ]
 
         assert all(event["event"] != "error" for event in events)
-        runner._download_skills.assert_awaited_once_with(
-            "workspace-skills", [{"name": "meeting-minutes", "description": "Summarize meetings"}]
-        )
-        runner._register_skills.assert_awaited_once_with(
-            {
-                "agentName": "Supervisor",
-                "configs": {
-                    "skills": {
-                        "skill_dir": "workspace-skills",
-                        "skill_info": [
-                            {"name": "meeting-minutes", "description": "Summarize meetings"}
-                        ],
-                    }
-                },
-            },
-            agent,
-            "supervisor",
-            "/workspace/workspace-skills",
-        )
+        runner._download_skills.assert_not_awaited()
+        runner._register_skills.assert_not_awaited()
+        assert "skills" not in created["ir"]["configs"]
+        assert "skills" in request.params.ir_cache["configs"]
         local_skill_registration.assert_not_called()
         assert agent.ability_manager.cards == []
     finally:

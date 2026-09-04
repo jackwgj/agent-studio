@@ -112,6 +112,9 @@ class ConversationTeamReq(BaseModel):
     recommended_skill_ids: list[str] = Field(
         default_factory=list, alias="recommendedSkillIds"
     )
+    agent_bound_skill_ids: list[str] = Field(
+        default_factory=list, alias="agentBoundSkillIds"
+    )
     file_ids: list[ConversationInputArtifact] = Field(
         default_factory=list, alias="fileIds"
     )
@@ -131,6 +134,7 @@ class ConversationTeamReq(BaseModel):
             ("conversationHistory", "conversation_history"),
             ("skillCatalog", "skill_catalog"),
             ("recommendedSkillIds", "recommended_skill_ids"),
+            ("agentBoundSkillIds", "agent_bound_skill_ids"),
             ("fileIds", "file_ids"),
             ("selectType", "select_type"),
             ("appId", "app_id"),
@@ -171,6 +175,18 @@ class ConversationTeamReq(BaseModel):
         _, self.recommended_skill_ids = normalize_skill_inputs(
             catalog, self.recommended_skill_ids
         )
+        catalog_ids = {item.skill_id for item in catalog}
+        normalized_bound_ids: list[str] = []
+        for skill_id in self.agent_bound_skill_ids:
+            if not isinstance(skill_id, str) or not skill_id.strip():
+                raise ValueError("agent-bound skill IDs must not be blank")
+            if skill_id not in catalog_ids:
+                raise ValueError(
+                    f"agent-bound skill IDs are not present in the catalog: {skill_id}"
+                )
+            if skill_id not in normalized_bound_ids:
+                normalized_bound_ids.append(skill_id)
+        self.agent_bound_skill_ids = normalized_bound_ids
         return self
 
 

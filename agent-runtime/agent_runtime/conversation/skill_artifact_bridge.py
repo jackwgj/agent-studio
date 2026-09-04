@@ -21,6 +21,10 @@ from agent_runtime.supervisor.skill_artifact_cache import (
 from agent_runtime.supervisor.skill_model import SkillDescriptor
 
 
+class SkillSandboxPreparationError(SkillArtifactError):
+    """Raised when a validated Skill cannot be prepared in the remote sandbox."""
+
+
 class ConversationSkillArtifactBridge:
     """Copy a trusted local cache tree to a server-derived sandbox Skill directory."""
 
@@ -30,7 +34,9 @@ class ConversationSkillArtifactBridge:
     async def prepare(self, skill: SkillDescriptor, artifact: CachedSkillArtifact) -> str:
         operation = self._operation_supplier()
         if operation is None:
-            raise SkillArtifactError("remote sandbox is unavailable for Skill preparation")
+            raise SkillSandboxPreparationError(
+                "remote sandbox is unavailable for Skill preparation"
+            )
         files = self._collect_files(artifact.artifact_dir)
         target_root = get_conversation_execution_context().workspace.skills_dir / skill.cache_key
         for relative_path, source_path in files:
@@ -45,9 +51,9 @@ class ConversationSkillArtifactBridge:
                     append_newline=False,
                 )
             except Exception as error:
-                raise SkillArtifactError("Skill sandbox write failed") from error
+                raise SkillSandboxPreparationError("Skill sandbox write failed") from error
             if not operation_succeeded(result):
-                raise SkillArtifactError("Skill sandbox write failed")
+                raise SkillSandboxPreparationError("Skill sandbox write failed")
         return str(target_root)
 
     @staticmethod
@@ -87,7 +93,9 @@ async def prepare_conversation_skill(
         async with conversation_sandbox_operation("conversation_skill_bridge") as operation:
             return await ConversationSkillArtifactBridge(lambda: operation).prepare(skill, artifact)
     except InputArtifactPreparationError as error:
-        raise SkillArtifactError("remote sandbox is unavailable for Skill preparation") from error
+        raise SkillSandboxPreparationError(
+            "remote sandbox is unavailable for Skill preparation"
+        ) from error
 
 
 def conversation_skill_sandbox_enabled() -> bool:

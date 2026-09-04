@@ -5,6 +5,8 @@ import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
 import com.openjiuwen.studio.agent.common.utils.RequestContextUtils;
 import com.openjiuwen.studio.agent.foundation.connection.model.PageResult;
 import com.openjiuwen.studio.agent.manager.mapper.SkillMapper;
+import com.openjiuwen.studio.agent.manager.dto.AgentInfo;
+import com.openjiuwen.studio.agent.manager.dto.SkillReference;
 import com.openjiuwen.studio.agent.manager.mapper.workspace.WorkspaceMapper;
 import com.openjiuwen.studio.agent.manager.mapper.workspace.WorkspaceMemberMapper;
 import com.openjiuwen.studio.agent.manager.obs.MgObsService;
@@ -351,6 +353,35 @@ class ConversationWorkspaceAppServiceTest {
         assertEquals(1, appended.size());
         assertEquals("user", appended.get(0).getRole());
         assertEquals("你好", appended.get(0).getContent());
+    }
+
+    @Test
+    void sendMessage_APP把已发布智能体绑定技能交给解析器() {
+        Conversation conv = ownedConversation("c1");
+        when(repository.findById("c1")).thenReturn(Optional.of(conv));
+        SendMessageCmd cmd = new SendMessageCmd();
+        cmd.setQuery("查询天气");
+        cmd.setSelectType("APP");
+        cmd.setAppId("agent-1");
+        cmd.setRecommendedSkillIds(List.of("s-extra"));
+        AgentInfo published = new AgentInfo().setSkills(List.of(
+            new SkillReference().setSkillId("s-bound").setSkillName("weather"),
+            new SkillReference().setSkillId("s-bound").setSkillName("weather-copy"),
+            new SkillReference().setSkillId(" ").setSkillName("invalid")));
+        when(agentResourceResolver.requirePublished("p1", "w1", "agent-1")).thenReturn(published);
+        ConversationSkillContext skillContext = new ConversationSkillContext(
+            List.of(), List.of("s-extra"), List.of("s-bound"));
+        when(skillResolver.resolveForRun(
+            "p1", "w1", "d1", List.of("s-extra"), List.of("s-bound"))).thenReturn(skillContext);
+        when(historyAssembler.assemble(conv)).thenReturn(List.of());
+        when(runtimeAdapter.run(eq(conv), eq(cmd), anyList(), same(skillContext), anyString(), any()))
+            .thenReturn(new SseEmitter());
+
+        appService.sendMessage("p1", "w1", "c1", cmd, new HttpHeaders());
+
+        verify(agentResourceResolver).requirePublished("p1", "w1", "agent-1");
+        verify(skillResolver).resolveForRun(
+            "p1", "w1", "d1", List.of("s-extra"), List.of("s-bound"));
     }
 
     @Test

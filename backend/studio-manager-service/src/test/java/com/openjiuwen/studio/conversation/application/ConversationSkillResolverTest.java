@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -97,6 +98,45 @@ class ConversationSkillResolverTest {
         ConversationSkillContext context = resolver.resolveForRun("p1", "w1", "d1", List.of("s2", "s1", "s2"));
 
         assertEquals(List.of("s2", "s1"), context.getRecommendedSkillIds());
+    }
+
+    @Test
+    void resolveForRun_按绑定ID分类且保留同名不同ID() {
+        when(skillMapper.search(any(), eq(0), eq(1000), isNull(), isNull(), eq(0)))
+            .thenReturn(List.of(
+                skill("s-bound", "d1", "p1", "w1", "developed", "v-bound",
+                    "u1/skills/s-bound/v-bound/a.zip").setName("weather"),
+                skill("s-supplement", "d1", "p1", "w1", "developed", "v-supplement",
+                    "u1/skills/s-supplement/v-supplement/a.zip").setName("weather")));
+
+        ConversationSkillContext context = resolver.resolveForRun(
+            "p1", "w1", "d1", List.of("s-supplement"), List.of("s-bound", "missing", "s-bound"));
+
+        assertEquals(List.of("s-bound"), context.getAgentBoundSkillIds());
+        assertEquals(List.of("s-supplement"), context.getRecommendedSkillIds());
+        assertEquals(List.of("s-bound", "s-supplement"),
+            context.getCatalog().stream().map(item -> item.getSkillId()).toList());
+        assertEquals(List.of("weather", "weather"),
+            context.getCatalog().stream().map(item -> item.getName()).toList());
+    }
+
+    @Test
+    void skillContext_对目录推荐和绑定集合执行不可变复制() {
+        List<com.openjiuwen.studio.conversation.application.dto.ConversationSkillDescriptor> catalog =
+            new ArrayList<>();
+        List<String> recommendations = new ArrayList<>(List.of("s1"));
+        List<String> boundIds = new ArrayList<>(List.of("s1"));
+        ConversationSkillContext context = new ConversationSkillContext(catalog, recommendations, boundIds);
+
+        catalog.clear();
+        recommendations.clear();
+        boundIds.clear();
+
+        assertEquals(List.of("s1"), context.getRecommendedSkillIds());
+        assertEquals(List.of("s1"), context.getAgentBoundSkillIds());
+        assertThrows(UnsupportedOperationException.class, () -> context.getAgentBoundSkillIds().add("s2"));
+        assertTrue(ConversationSkillContext.empty().getCatalog().isEmpty());
+        assertTrue(ConversationSkillContext.empty().getAgentBoundSkillIds().isEmpty());
     }
 
     @Test
