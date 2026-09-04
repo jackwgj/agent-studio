@@ -2300,3 +2300,52 @@ CREATE TABLE IF NOT EXISTS `t_task` (
     INDEX `idx_status_time`(`status` ASC, `create_time` ASC) USING BTREE,
     INDEX `idx_finish_time`(`finish_time` ASC) USING BTREE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci ROW_FORMAT=DYNAMIC COMMENT='任务记录表';
+
+-- 自动化（定时任务）表
+CREATE TABLE IF NOT EXISTS `t_scheduled_task` (
+    `id`              VARCHAR(64)   NOT NULL COMMENT '任务唯一标识',
+    `project_id`      VARCHAR(64)   NOT NULL COMMENT '项目唯一标识',
+    `workspace_id`    VARCHAR(64)   NOT NULL COMMENT '工作空间唯一标识',
+    `creator_id`      VARCHAR(64)   NULL COMMENT '创建人id',
+    `creator_name`    VARCHAR(128)  NULL COMMENT '创建人名称',
+    `name`            VARCHAR(128)  NOT NULL COMMENT '任务名称',
+    `description`     VARCHAR(1024) NULL COMMENT '任务描述',
+    `status`          VARCHAR(16)   NOT NULL DEFAULT 'enabled' COMMENT '状态：enabled/disabled',
+    `schedule_type`   VARCHAR(32)   NULL COMMENT '调度类型：cron/natural_language',
+    `schedule_config` TEXT          NULL COMMENT '调度配置JSON，如{"expression":"0 9 * * *","run_at":...}',
+    `repeat_type`     VARCHAR(16)   NULL COMMENT '重复类型：once/always',
+    `valid_from`      BIGINT        NULL COMMENT '生效时间（毫秒时间戳）',
+    `valid_until`     BIGINT        NULL COMMENT '截止时间（毫秒时间戳）',
+    `executor_type`   VARCHAR(32)   NULL COMMENT '执行方式：llm_prompt/agent_run/workflow_run/http_call',
+    `executor_config` TEXT          NULL COMMENT '执行配置JSON，如{"agent_id":"..","query":".."}/{"workflow_id":"..","inputs":{}}',
+    `model_id`        VARCHAR(128)  NULL COMMENT '模型id',
+    `prompt`          TEXT          NULL COMMENT '提示词/入参',
+    `max_retries`     INT           NULL DEFAULT 3 COMMENT '失败重试次数',
+    `notification`    TEXT          NULL COMMENT '通知配置JSON',
+    `last_run_at`     BIGINT        NULL COMMENT '最近执行时间（毫秒时间戳）',
+    `next_run_at`     BIGINT        NULL COMMENT '下次执行时间（毫秒时间戳）',
+    `last_run_status` VARCHAR(16)   NULL COMMENT '最近执行状态：success/failed',
+    `run_count`       BIGINT        NULL DEFAULT 0 COMMENT '累计执行次数',
+    `created_at`      BIGINT        NULL COMMENT '创建时间（毫秒时间戳）',
+    `updated_at`      BIGINT        NULL COMMENT '更新时间（毫秒时间戳）',
+    PRIMARY KEY (`id`),
+    INDEX `idx_project_workspace`(`project_id` ASC, `workspace_id` ASC) USING BTREE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci ROW_FORMAT=DYNAMIC COMMENT='自动化定时任务表';
+
+-- 自动化任务执行日志表
+CREATE TABLE IF NOT EXISTS `t_scheduled_task_execution` (
+    `id`            VARCHAR(64) NOT NULL COMMENT '执行记录唯一标识',
+    `task_id`       VARCHAR(64) NOT NULL COMMENT '任务id',
+    `project_id`    VARCHAR(64) NULL COMMENT '项目id',
+    `workspace_id`  VARCHAR(64) NULL COMMENT '工作空间id',
+    `status`        VARCHAR(16) NULL COMMENT '执行状态：pending/running/success/failed/retrying',
+    `trigger_type`  VARCHAR(16) NULL COMMENT '触发方式：scheduled/manual/retry',
+    `started_at`    BIGINT      NULL COMMENT '开始时间（毫秒时间戳）',
+    `finished_at`   BIGINT      NULL COMMENT '结束时间（毫秒时间戳）',
+    `duration_ms`   BIGINT      NULL COMMENT '耗时（毫秒）',
+    `error_message` TEXT        NULL COMMENT '错误信息',
+    `model_output`  MEDIUMTEXT  NULL COMMENT '模型/执行输出',
+    `retry_count`   INT         NULL DEFAULT 0 COMMENT '重试次数',
+    PRIMARY KEY (`id`),
+    INDEX `idx_task_started`(`task_id` ASC, `started_at` DESC) USING BTREE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci ROW_FORMAT=DYNAMIC COMMENT='自动化定时任务执行日志表';

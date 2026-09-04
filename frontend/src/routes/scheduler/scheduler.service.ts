@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpService } from '@services/http.service';
+import { ContextService } from '@services/context.service';
 import { Observable } from 'rxjs';
 
 export interface ScheduleConfig {
@@ -90,9 +91,11 @@ export interface ExecutionListResponse {
 
 @Injectable({ providedIn: 'root' })
 export class SchedulerService {
-  private prefix = '/platform/v1/scheduler';
+  private get prefix() {
+    return `${this.ctxServ.baseUrl}/agent-manager/scheduler`;
+  }
 
-  constructor(private http: HttpService) {}
+  constructor(private http: HttpService, private ctxServ: ContextService) {}
 
   getWorkspaceId(): string {
     return this.http.getWorkspaceId();
