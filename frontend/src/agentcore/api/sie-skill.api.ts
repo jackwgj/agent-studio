@@ -16,6 +16,33 @@
     override serviceId = (window as any).iamTargetId || ServiceId.JIUWEN;
     prefix = '/v1/{projectId}/agent-manager/sie/skills';
 
+    importSkill(params: FormData): Observable<any> {
+      return this.request.post({
+        url: `${this.prefix}/import`,
+        query: {
+          workspace_id: this.request.getWorkspaceId(),
+        },
+        body: params,
+      } as any);
+    }
+
+    deleteSkill(skillId: string) {
+      return this.request.delete({
+        url: `${this.prefix}/${skillId}`,
+        query: {
+          workspace_id: this.request.getWorkspaceId(),
+        },
+      } as any);
+    }
+
+    exportSkillVersion(skillId: string) {
+      return this.request.post({
+        url: `${this.prefix}/${skillId}/export`,
+        query: {
+          workspace_id: this.request.getWorkspaceId(),
+        },
+      } as any);
+    }
 
     querySkillList(params = {}): Observable<any> {
       return this.request.get({
@@ -23,6 +50,22 @@
         params,
       } as any);
     }
+
+    querySkillVersionList(skillId: string, offset: number, limit: number) {
+      return this.request
+        .get({
+          url: `${this.prefix}/${skillId}/versions`,
+          query: {
+            offset,
+            limit,
+          },
+        } as any)
+        .pipe(
+          catchError(() => of({})),
+          map(res => customPropTransfer(res, SkillVersionListRes))
+        );
+    }
+
     querySkillDetail(skillId: string, messageConfig?: MessageConfig) {
       return this.request
         .get(

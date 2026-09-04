@@ -8,7 +8,7 @@ import com.openjiuwen.studio.agent.manager.dto.GetStudioSkillDetailsResponseBody
 import com.openjiuwen.studio.agent.manager.dto.ImportStudioSkillResponseBody;
 import com.openjiuwen.studio.agent.manager.dto.ListStudioSkillsQo;
 import com.openjiuwen.studio.agent.manager.dto.ListStudioSkillsResponseBody;
-import com.openjiuwen.studio.agent.manager.service.SIESkillManagementService;
+import com.openjiuwen.studio.agent.manager.service.ISIESkillManagementService;
 import com.openjiuwen.studio.agent.common.utils.ResponseModel;
 
 import org.slf4j.Logger;
@@ -27,17 +27,34 @@ public class SIESkillManagementApiController implements SIESkillManagementApi {
     private static final Logger log = LoggerFactory.getLogger(SIESkillManagementApiController.class);
 
     @Autowired
-    private SIESkillManagementService SIEskillManagementService;
+    private ISIESkillManagementService sieSkillManagementService;
+      @Override
+    public ResponseEntity<Void> deleteStudioSkill(String skillId, String workspaceId, String projectId) {
+        return ResponseModel.success(sieSkillManagementService.deleteStudioSkill(skillId, workspaceId, projectId));
+    }
+
+    @Override
+    public ResponseEntity<ExportStudioSkillResponseBody> exportStudioSkill(String skillId, String workspaceId,
+        String projectId) {
+        return ResponseModel.success(sieSkillManagementService.exportStudioSkill(skillId, workspaceId, projectId));
+    }
+
+    @Override
+    public ResponseEntity<ImportStudioSkillResponseBody> importStudioSkill(String workspaceId, String projectId,
+        MultipartFile file) {
+        return ResponseModel.success(sieSkillManagementService.importStudioSkill(workspaceId, projectId, file));
+    }
+
 
     @Override
     public ResponseEntity<ListStudioSkillsResponseBody> listStudioSkills(String projectId,
         ListStudioSkillsQo listStudioSkillsQo) {
-        return ResponseModel.success(SIEskillManagementService.listStudioSkills(projectId, listStudioSkillsQo));
+        return ResponseModel.success(sieSkillManagementService.listStudioSkills(projectId, listStudioSkillsQo));
     }
 
     @Override
     public ResponseEntity<GetStudioSkillDetailsResponseBody> showStudioSkillDetail(String skillId, String workspaceId,
         String projectId) {
-        return ResponseModel.success(SIEskillManagementService.showStudioSkillDetail(skillId, workspaceId, projectId));
+        return ResponseModel.success(sieSkillManagementService.showStudioSkillDetail(skillId, workspaceId, projectId));
     }
 }

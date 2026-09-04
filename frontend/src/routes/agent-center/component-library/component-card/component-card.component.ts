@@ -4,7 +4,7 @@ import { Router } from '@angular/router';
 import { I18NEXT_NAMESPACE, I18NextEagerPipe } from 'angular-i18next';
 import { Subscription } from 'rxjs';
 import { MessageComponent } from '@shared/services/cfdata.service';
-import { SkillApi } from '@agentcore/api/skill.api';
+import { SIESkillApi } from '@agentcore/api/sie-skill.api';
 import { CARD_LIST_TYPE } from '@agentcore/constants/skill';
 import { I18nService } from '@agentcore/core/i18n.service';
 import { SkillCommonService } from '@agentcore/library/skill/services/skill.common.service';
@@ -156,7 +156,7 @@ export class ComponentCardComponent implements OnInit {
     private clipboard: Clipboard,
     private router: Router,
     private i18n: I18NextEagerPipe,
-    private _skillApi: SkillApi,
+    private _skillApi: SIESkillApi,
     private i18nCore: I18nService,
     private skillCommonService: SkillCommonService,
     private appPluginRepoServ: AppPluginRepoService,

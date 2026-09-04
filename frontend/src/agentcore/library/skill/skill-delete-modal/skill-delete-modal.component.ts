@@ -5,7 +5,7 @@ import { I18NEXT_NAMESPACE, I18NextEagerPipe } from 'angular-i18next';
 import { I18nNamespace } from '@i18n';
 import { RefTypeToTextPipe } from 'src/pipes/ref-type-to-text.pipe';
 import { HttpService } from '@services/http.service';
-import { SkillApi } from '@agentcore/api/skill.api';
+import { SIESkillApi } from '@agentcore/api/sie-skill.api';
 import { I18nService } from '@agentcore/core/i18n.service';
 import { BehaviorSubject, catchError, map, of } from 'rxjs';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -65,7 +65,7 @@ export class SkillDeleteModalComponent {
 
   constructor(
     private readonly http: HttpService,
-    private _skillApi: SkillApi,
+    private _skillApi: SIESkillApi,
     private _i18n: I18nService,
     private router: Router
   ) {}

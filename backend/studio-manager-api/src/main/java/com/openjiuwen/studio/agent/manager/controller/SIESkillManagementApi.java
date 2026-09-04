@@ -39,7 +39,66 @@ import org.springframework.web.multipart.MultipartFile;
 /**
  * SkillManagementApi interface
  */ public interface SIESkillManagementApi {
+    @ApiOperation(value = "删除Skill", nickname = "deleteStudioSkill", notes = "删除Skill。", tags = {"SkillManagement"})
+    @ApiResponses(value = {
+        @ApiResponse(code = 204, message = "删除成功，无响应返回。"),
+        @ApiResponse(code = 400, message = "Bad Request 请求错误。", response = ErrorRsp.class),
+        @ApiResponse(code = 403, message = "Forbidden 没有操作权限。", response = ErrorRsp.class),
+        @ApiResponse(code = 404, message = "Not Found 找不到资源。", response = ErrorRsp.class),
+        @ApiResponse(code = 500, message = "Internal Server Error 服务内部错误。", response = ErrorRsp.class)
+    })
+    @RequestMapping(value = "/v1/{project_id}/agent-manager/sie/skills/{skill_id}", produces = {"application/json"},
+        method = RequestMethod.DELETE)
+    ResponseEntity<Void> deleteStudioSkill(
+        @Pattern(regexp = "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
+        @Parameter(in = ParameterIn.PATH, description = "Skill ID。", required = true, schema = @Schema())
+        @PathVariable("skill_id") String skillId,
+        @NotNull @Pattern(regexp = "^[a-zA-Z0-9_()\\-]{1,40}$") @ApiParam(value = "空间ID", required = true)
+        @RequestParam(value = "workspace_id", required = true) String workspaceId,
+        @Pattern(regexp = "^[a-zA-Z0-9_-]{1,40}$")
+        @Parameter(in = ParameterIn.PATH, description = "项目ID", required = true, schema = @Schema())
+        @PathVariable("project_id") String projectId);
 
+    @ApiOperation(value = "导出Skill", nickname = "exportStudioSkill", notes = "导出指定Skill的最新版本。",
+        response = ExportStudioSkillResponseBody.class, tags = {"SkillManagement"})
+    @ApiResponses(value = {
+        @ApiResponse(code = 200, message = "导出成功，返回带有鉴权信息的obs_url。",
+            response = ExportStudioSkillResponseBody.class),
+        @ApiResponse(code = 400, message = "Bad Request 请求错误。", response = ErrorRsp.class),
+        @ApiResponse(code = 403, message = "Forbidden 没有操作权限。", response = ErrorRsp.class),
+        @ApiResponse(code = 500, message = "Internal Server Error 服务内部错误。", response = ErrorRsp.class)
+    })
+    @RequestMapping(value = "/v1/{project_id}/agent-manager/sie/skills/{skill_id}/export", produces = {"application/json"},
+        method = RequestMethod.POST)
+    ResponseEntity<ExportStudioSkillResponseBody> exportStudioSkill(
+        @Pattern(regexp = "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
+        @Parameter(in = ParameterIn.PATH, description = "Skill ID。", required = true, schema = @Schema())
+        @PathVariable("skill_id") String skillId,
+        @NotNull @Pattern(regexp = "^[a-zA-Z0-9_()\\-]{1,40}$") @ApiParam(value = "空间ID", required = true)
+        @RequestParam(value = "workspace_id", required = true) String workspaceId,
+        @Pattern(regexp = "^[a-zA-Z0-9_-]{1,40}$")
+        @Parameter(in = ParameterIn.PATH, description = "项目ID", required = true, schema = @Schema())
+        @PathVariable("project_id") String projectId);
+
+    @ApiOperation(value = "导入Skill", nickname = "importStudioSkill", notes = "导入Skill，支持上传zip包或obs分享文件。",
+        response = ImportStudioSkillResponseBody.class, tags = {"SkillManagement"})
+    @ApiResponses(value = {
+        @ApiResponse(code = 200, message = "导入成功，返回导入的Skill信息。",
+            response = ImportStudioSkillResponseBody.class),
+        @ApiResponse(code = 400, message = "Bad Request 请求错误。", response = ErrorRsp.class),
+        @ApiResponse(code = 403, message = "Forbidden 没有操作权限。", response = ErrorRsp.class),
+        @ApiResponse(code = 500, message = "Internal Server Error 服务内部错误。", response = ErrorRsp.class)
+    })
+    @RequestMapping(value = "/v1/{project_id}/agent-manager/sie/skills/import", produces = {"application/json"},
+        consumes = {"multipart/form-data"}, method = RequestMethod.POST)
+    ResponseEntity<ImportStudioSkillResponseBody> importStudioSkill(
+        @NotNull @Pattern(regexp = "^[a-zA-Z0-9_()\\-]{1,40}$") @ApiParam(value = "空间ID", required = true)
+        @RequestParam(value = "workspace_id", required = true) String workspaceId,
+        @Pattern(regexp = "^[a-zA-Z0-9_-]{1,40}$")
+        @Parameter(in = ParameterIn.PATH, description = "项目ID", required = true, schema = @Schema())
+        @PathVariable("project_id") String projectId,
+        @Parameter(description = "file detail") @Valid @RequestPart(value = "file", required = true)
+        MultipartFile file);
     @ApiOperation(value = "查询Skill列表", nickname = "listStudioSkills", notes = "查询Skill列表，支持多种过滤条件。",
         response = ListStudioSkillsResponseBody.class, tags = {"SkillManagement"})
     @ApiResponses(value = {
