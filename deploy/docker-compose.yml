@@ -1,4 +1,4 @@
-﻿# openJiuwen AgentStudio Docker Compose 部署编排
+# openJiuwen AgentStudio Docker Compose 部署编排
 # 在线/离线统一编排：默认 8 个服务（4 基础设施 + 4 应用），另有 3 个可选日志服务
 # 在线部署：IMAGE_SOURCE=ghcr/dockerhub，脚本自动 pull 镜像
 # 离线部署：IMAGE_SOURCE=offline，脚本自动 docker load 镜像
@@ -174,6 +174,7 @@ services:
       server_ssl_key_password: ${SERVER_SSL_KEY_PASSWORD:-}
       agent_runtime_endpoint: ${AGENT_RUNTIME_ENDPOINT:-http://studio-runtime:31014}
       conversation_cleanup_internal_token: ${CONVERSATION_CLEANUP_INTERNAL_TOKEN:-}
+      agent_manx_iteration: ${AGENT_MAX_ITERATION:-100}
       conversation_cleanup_schema_migration_enabled: ${CONVERSATION_CLEANUP_SCHEMA_MIGRATION_ENABLED:-true}
       conversation_cleanup_max_attempts: ${CONVERSATION_CLEANUP_MAX_ATTEMPTS:-8}
       conversation_cleanup_base_backoff_seconds: ${CONVERSATION_CLEANUP_BASE_BACKOFF_SECONDS:-30}
