@@ -61,6 +61,8 @@ from agent_runtime.observability import setup_otel_tracer
 from agent_runtime.memory.adapter.ltm_manager import init_ltm
 from agent_runtime.memory.internal_routes import memory_internal_router
 from agent_runtime.serve.apis.conversation_team import team_router
+from agent_runtime.serve.apis.conversation_tool import tool_router
+from agent_runtime.serve.apis.conversation_cleanup import conversation_cleanup_router
 from agent_runtime.serve.apis.orchestration import execution_app
 from agent_runtime.serve.apis.app_run import app_run_app
 from agent_runtime.serve.apis.web_run import web_run_app
@@ -68,6 +70,7 @@ from agent_runtime.serve.apis.user_variable_api import user_variable_router
 from agent_runtime.serve.apis.conversation_variable_api import conversation_variable_router
 from agent_runtime.serve.apis.inner_tools import inner_tools_router
 from agent_runtime.serve.apis.release_api import release_api_router
+from agent_runtime.serve.apis.openjiuwen_kb_api import openjiuwen_kb_router
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -111,10 +114,30 @@ logger.info("Registered workflow component: jiuwen.code")
 # FastAPI routers must be included BEFORE Flask app mount (Flask catches all routes)
 # 注：prompt_manage_app（agent_builder.app）已随 agent_builder 抽离到 studio-builder 镜像，runtime 不含。
 apps_map = [
-    execution_app, team_router, app_run_app, web_run_app, user_variable_router,
+    execution_app, team_router, tool_router, conversation_cleanup_router, app_run_app, web_run_app, user_variable_router,
     conversation_variable_router, memory_internal_router, inner_tools_router,
-    release_api_router,
+    release_api_router, openjiuwen_kb_router,
 ]
+
+
+def _load_customer_header_profile() -> None:
+    """从环境变量加载客户 Header 配置"""
+    from common_utils.customer_header import load_from_env, set_config
+    cfg = load_from_env()
+    set_config(cfg)
+    logger.info(f"[customer-header] Config loaded from env, enabled={cfg.enabled}, mappings={list(cfg.mappings)}")
+
+
+def _register_customer_header_provider() -> None:
+    """注册 customer Header provider 到 model_service ports"""
+    from model_service import ports
+    from agent_runtime.context.request_context import _request_ctx
+
+    def _get_customer_headers():
+        ctx = _request_ctx.get()
+        return ctx.customer_headers if ctx else {}
+
+    ports.set_request_customer_headers(_get_customer_headers)
 
 
 @asynccontextmanager
@@ -148,6 +171,10 @@ async def lifespan(app: FastAPI):  # noqa: redefined-outer-name
 
     # 注册 LLM 调用日志回调 — 打印模型请求体和响应内容
     register_llm_call_logging_callbacks()
+
+    # 加载客户 Header Profile 配置 + 注册 customer Header provider
+    _load_customer_header_profile()
+    _register_customer_header_provider()
 
     # 初始化 Redis 客户端
     redis_mgr = RedisClientManager.get_instance()

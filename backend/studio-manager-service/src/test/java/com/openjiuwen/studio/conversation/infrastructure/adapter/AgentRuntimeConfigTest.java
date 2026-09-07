@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * <p>模拟 Spring Boot 属性解析路径（加载 yml + ConfigurationPropertySources relaxed binding），
  * 一次打印三组解析结果做对照：</p>
  * <ol>
- *   <li>控制项：${conversation-workspace.team-agent-ids:}（kebab 嵌套键，精确匹配）——用于验证 harness 忠实</li>
+ *   <li>控制项：${server.port:}（稳定的 yml 嵌套键）——用于验证 harness 忠实</li>
  *   <li>adapter 当前读法：${agent_runtime_endpoint:}（平铺下划线键）</li>
  *   <li>yml 嵌套键：${agent-runtime.endpoint:}（kebab 嵌套键）</li>
  * </ol>
@@ -35,10 +35,12 @@ class AgentRuntimeConfigTest {
         sources.forEach(env.getPropertySources()::addFirst);
         ConfigurationPropertySources.attach(env);
 
-        // ① 控制项：kebab 嵌套键精确匹配，应解析出 UUID → 证明 harness 忠实于 Spring 行为
-        String teamAgentIds = env.resolvePlaceholders("${conversation-workspace.team-agent-ids:}");
-        System.out.println(">> [控制] conversation-workspace.team-agent-ids = [" + teamAgentIds + "]");
-        assertFalse(teamAgentIds.isEmpty(), "控制项失败：harness 未忠实模拟 Spring，后续结论不可信");
+        // ① 控制项：使用仍存在的稳定配置，避免依赖已删除的 POC 团队 Agent 配置。
+        String serverPort = env.resolvePlaceholders("${server.port:}");
+        assertEquals("31111", serverPort, "控制项失败：harness 未忠实模拟 Spring，后续结论不可信");
+
+        // 模拟部署时实际注入的环境变量；flat adapter 与 yml 嵌套引用必须解析到同一端点。
+        env.setProperty("agent_runtime_endpoint", "http://127.0.0.1:31014");
 
         // ② adapter 当前读的平铺键（无 inner 前缀，对不上任何 yml 键）
         String flat = env.resolvePlaceholders("${agent_runtime_endpoint:}");
@@ -51,5 +53,8 @@ class AgentRuntimeConfigTest {
         // ④ 用户实际写的形式：inner.agent_runtime.endpoint（下划线）——是否 relaxed binding 能匹配？
         String underscore = env.resolvePlaceholders("${inner.agent_runtime.endpoint:}");
         System.out.println(">> ${inner.agent_runtime.endpoint:}（下划线，用户写的） = [" + underscore + "]");
+
+        assertEquals("http://127.0.0.1:31014", flat);
+        assertEquals(flat, correct);
     }
 }

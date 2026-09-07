@@ -5,7 +5,11 @@
 package com.openjiuwen.studio.conversation.infrastructure.adapter;
 
 import com.openjiuwen.studio.conversation.domain.model.ConversationMessage;
+import com.openjiuwen.studio.conversation.domain.model.ConversationWorkflowNode;
 import com.openjiuwen.studio.conversation.domain.model.valueobject.ExecutionRef;
+import com.openjiuwen.studio.conversation.domain.model.valueobject.TokenUsage;
+import com.openjiuwen.studio.conversation.domain.model.valueobject.FileRef;
+import com.openjiuwen.studio.conversation.domain.model.valueobject.ToolRef;
 import com.openjiuwen.studio.conversation.domain.repository.ConversationRepository;
 
 import com.alibaba.fastjson2.JSON;
@@ -22,56 +26,104 @@ import org.jetbrains.annotations.Nullable;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.HashSet;
 import java.util.concurrent.CountDownLatch;
 
 /**
- * 对话运行 SSE 监听器（团队新协议，Phase 5）：事件原样转发前端，同时缓冲**完整输出边界**——
- * sub_done（子 Agent 完整文本，按 sub_execution_id 分组）、run_done（监督者完整文本）；流关闭/异常时
- * 一次性落库（事务性，全量成功或全部回滚）。
+ * 对话运行 SSE 监听器（按轮持久化，团队新协议）：
+ * Java 对事件透明——只做「转发前端 + 按 canonical 运行身份持久化」，不解释 Agent 业务内容。
  *
- * <p>落库口径（只在完整输出边界落库）：run_done → t_conversation_run（execution_id 整句）、
- * sub_done → t_conversation_sub_run（sub_execution_id + agent_id 整句）。
- * 增量事件（message/reasoning/usage）、边界事件（run_start/sub_start/tool_call/tool_result）仅透传前端不落库；
- * user_message 不落（user 行已在发送前由 Java 落库，避免重复）。</p>
+ * <p>入库粒度 = 每次 LLM 调用（一轮）：每轮 reasoning 行（event=reasoning）+ message 行（event=message），
+ * 工具一次调用合并一行（role=tool，event=tool_call，content=结果/异常，tool_args=参数，tool_id=toolName）。
+ * run_start/skill_activated/error/run_end 作为运行树状态落库；user_message 不落（user 行发送前已落）；
+ * 运行控制事件仅透传；runId/parentRunId/toolId 路由，只有收到 canonical tool_result 的工具调用才落库。</p>
  *
- * <p>execution_id 由调用方确定（X-Execution-Id 下发引擎，引擎按头回显，2026-08-11 引擎已支持读头），
- * 落库统一使用本轮值，run/sub_run 分组精确。</p>
+ * <p>轮边界 = canonical 事件类型：tool_call / run_end / error 到达即结算当前轮；
+ * created_at 按到达序（base+seq）单调递增，供读侧"先调用先渲染"。</p>
  */
 @Slf4j
 public class ConversationRunEventSourceListener extends EventSourceListener {
 
-    private static final String EVENT_SUB_DONE = "sub_done";
-    private static final String EVENT_RUN_DONE = "run_done";
-    private static final String ROLE_ASSISTANT = "assistant";
+    private static final String EVENT_MESSAGE = "message";
+    private static final String EVENT_REASONING = "reasoning";
+    private static final String EVENT_RUN_START = "run_start";
+    private static final String EVENT_TOOL_CALL = "tool_call";
+    private static final String EVENT_TOOL_RESULT = "tool_result";
+    private static final String EVENT_WORKFLOW_NODE = "workflow_node";
+    private static final String EVENT_RUN_END = "run_end";
+    private static final String EVENT_ERROR = "error";
+    private static final String EVENT_USAGE = "usage";
+    private static final String EVENT_SKILL_ACTIVATED = "skill_activated";
+    private static final String EVENT_ARTIFACT = "artifact";
+    private static final String SSE_DONE_MARKER = "[DONE]";
 
-    private static final String FIELD_SUB_EXECUTION_ID = "subExecutionId";
+    private static final String FIELD_RUN_ID = "runId";
+    private static final String FIELD_PARENT_RUN_ID = "parentRunId";
+    private static final String FIELD_EXECUTION_TYPE = "executionType";
     private static final String FIELD_AGENT_ID = "agentId";
-    private static final String FIELD_TEXT = "text";
+    private static final String FIELD_TOOL_CALL_ID = "toolId";
+    private static final String FIELD_TOOL_NAME = "toolName";
+    private static final String FIELD_ARGUMENTS = "arguments";
+    private static final String FIELD_RESULT = "result";
+    private static final String FIELD_DELTA = "delta";
+    private static final String FIELD_CONTENT = "content";
+    private static final String FIELD_OBJECT_KEY = "objectKey";
+    private static final String FIELD_FILE_NAME = "fileName";
+    private static final String FIELD_SIZE = "size";
+    private static final String FIELD_MEDIA_TYPE = "mediaType";
+    private static final String FIELD_CHECKSUM = "checksum";
+    private static final String FIELD_EXECUTION_ID = "executionId";
+
+    private static final String ROLE_ASSISTANT = "assistant";
+    private static final String ROLE_TOOL = "tool";
+    private static final String NO_RESULT_MARK = "（未返回结果）";
 
     private final SseEmitter sseEmitter;
     private final CountDownLatch latch;
     private final String conversationId;
     private final String executionId;
     private final String modelDeploymentId;
+    /** 主运行 agent_id 归属：APP 路径记录 app_id；SUPERVISOR 为空时保持事件 agentId。 */
+    private final String appId;
     private final ConversationRepository conversationRepository;
+    private final List<ConversationWorkflowNode> workflowNodes = new ArrayList<>();
 
-    /** run_done 完整文本（监督者整轮回答，权威） */
-    private String mainAnswer;
-    /** sub_execution_id -> {agentId, text}（子 Agent 完整文本，权威） */
-    private final Map<String, SubAnswer> subAnswers = new LinkedHashMap<>();
+    /** 本轮已累计的 LLM 调用 ID，防止同一次调用从多个观察出口重复统计。 */
+    private final Set<String> usageInvocationIds = new HashSet<>();
+    private long promptTokens;
+    private long completionTokens;
+    private long totalTokens;
+
+    /** 当前轮缓冲（key = canonical runId） */
+    private final Map<String, RoundBuffer> currentRounds = new LinkedHashMap<>();
+    /** 已结算轮（按结算序） */
+    private final List<RoundBuffer> settledRounds = new ArrayList<>();
+    /** 工具调用缓冲（toolCallId → 调用），tool_result 按 toolCallId 配对回填 */
+    private final Map<String, ToolInvocation> toolInvocations = new LinkedHashMap<>();
+    /** 已上传正式产物；事件来自受信 Runtime，持久化时只采用当前监听器 executionId。 */
+    private final List<ArtifactInvocation> artifacts = new ArrayList<>();
+    /** 运行树控制事件，供刷新后恢复根/子状态、Skill 与错误。 */
+    private final List<ScoredRow> controlEvents = new ArrayList<>();
+    /** 到达序计数器（每事件 +1），created_at = base + seq */
+    private long arrivalSeq;
+    private final long baseTime = System.currentTimeMillis();
     private volatile boolean flushed;
 
     public ConversationRunEventSourceListener(SseEmitter sseEmitter, CountDownLatch latch, String conversationId,
-                                              String executionId, String modelDeploymentId,
+                                              String executionId, String modelDeploymentId, String appId,
                                               ConversationRepository conversationRepository) {
         this.sseEmitter = sseEmitter;
         this.latch = latch;
         this.conversationId = conversationId;
         this.executionId = executionId;
         this.modelDeploymentId = modelDeploymentId;
+        this.appId = appId;
         this.conversationRepository = conversationRepository;
     }
 
@@ -84,14 +136,15 @@ public class ConversationRunEventSourceListener extends EventSourceListener {
     @Override
     public void onEvent(@NotNull EventSource eventSource, @Nullable String id, @Nullable String type,
                         @NotNull String data) {
-        // 1. 原样转发前端（无事件名帧，前端按 data.event 区分）
+        // 1. 原样转发前端（不带事件名帧，前端按 data.event 区分）
         try {
             sseEmitter.send(SseEmitter.event().data(data).build());
         } catch (Throwable e) {
             log.warn("SSE send message fail, conversationId={}", conversationId, e);
         }
+        arrivalSeq++;
 
-        // 2. 缓冲完整输出边界（仅 sub_done/run_done；增量/边界事件不落库）
+        // 2. 机械缓冲：事件类型即落行边界（不分析事件内容）
         try {
             JSONObject json = JSON.parseObject(data);
             if (json == null) {
@@ -99,22 +152,100 @@ public class ConversationRunEventSourceListener extends EventSourceListener {
             }
             JSONObject dataObj = json.getJSONObject("data");
             String event = json.getString("event");
+            if (dataObj == null) {
+                dataObj = new JSONObject();
+            }
+            // Canonical adapters may carry identity at envelope level; keep data routing deterministic.
+            copyIfAbsent(dataObj, FIELD_RUN_ID, json.getString(FIELD_RUN_ID));
+            copyIfAbsent(dataObj, FIELD_PARENT_RUN_ID, json.getString(FIELD_PARENT_RUN_ID));
+            copyIfAbsent(dataObj, FIELD_EXECUTION_TYPE, json.getString(FIELD_EXECUTION_TYPE));
+            copyIfAbsent(dataObj, FIELD_EXECUTION_ID, json.getString(FIELD_EXECUTION_ID));
+            copyIfAbsent(dataObj, "workflowId", json.getString("workflowId"));
+            copyIfAbsent(dataObj, "nodeId", json.getString("nodeId"));
+            copyIfAbsent(dataObj, "eventIndex", json.getLong("index"));
+            log.info("Conversation team event received: conversationId={}, runId={}, event={}, "
+                    + "parentRunId={}, toolId={}, agentId={}, toolName={}",
+                conversationId,
+                executionId,
+                event,
+                dataObj == null ? null : dataObj.getString(FIELD_PARENT_RUN_ID),
+                dataObj == null ? null : dataObj.getString(FIELD_TOOL_CALL_ID),
+                dataObj == null ? null : dataObj.getString(FIELD_AGENT_ID),
+                dataObj == null ? null : dataObj.getString(FIELD_TOOL_NAME));
             switch (event == null ? "" : event) {
-                case EVENT_SUB_DONE -> {
-                    String subExecutionId = dataObj == null ? null : dataObj.getString(FIELD_SUB_EXECUTION_ID);
-                    String text = dataObj == null ? null : dataObj.getString(FIELD_TEXT);
-                    if (subExecutionId != null && text != null && !text.isBlank()) {
-                        subAnswers.put(subExecutionId, new SubAnswer(dataObj.getString(FIELD_AGENT_ID), text));
+                case EVENT_RUN_START -> bufferControlEvent(EVENT_RUN_START, dataObj);
+                case EVENT_MESSAGE -> {
+                    String delta = dataObj == null ? null : dataObj.getString(FIELD_DELTA);
+                    if (delta != null && !delta.isBlank()) {
+                        roundOf(dataObj).appendMessage(delta, arrivalSeq);
                     }
                 }
-                case EVENT_RUN_DONE -> {
-                    String text = dataObj == null ? null : dataObj.getString(FIELD_TEXT);
-                    if (text != null && !text.isBlank()) {
-                        mainAnswer = text;
+                case EVENT_REASONING -> {
+                    String content = dataObj == null ? null : dataObj.getString(FIELD_CONTENT);
+                    if (content != null && !content.isBlank()) {
+                        roundOf(dataObj).appendReasoning(content, arrivalSeq);
+                    }
+                }
+                case EVENT_TOOL_CALL -> {
+                    // 该轮 LLM 决定调工具 → 本轮输出结束，结算当前轮
+                    settleRound(keyOf(dataObj));
+                    String callId = dataObj == null ? null : dataObj.getString(FIELD_TOOL_CALL_ID);
+                    if (callId != null && !callId.isBlank()) {
+                        toolInvocations.put(callId, new ToolInvocation(
+                            callId,
+                            dataObj.getString(FIELD_TOOL_NAME),
+                            argsToJson(dataObj),
+                            keyOf(dataObj),
+                            dataObj == null ? null : dataObj.getString(FIELD_AGENT_ID),
+                            dataObj == null ? null : dataObj.getString(FIELD_PARENT_RUN_ID),
+                            dataObj == null ? null : dataObj.getString(FIELD_EXECUTION_TYPE),
+                            dataObj == null ? null : dataObj.getString("workflowId"),
+                            dataObj == null ? null : dataObj.getString("nodeId"),
+                            dataObj == null ? null : dataObj.getLong("eventIndex"),
+                            arrivalSeq));
+                    }
+                }
+                case EVENT_TOOL_RESULT -> {
+                    String callId = dataObj.getString(FIELD_TOOL_CALL_ID);
+                    ToolInvocation invocation = toolInvocations.get(callId);
+                    if (invocation != null) {
+                        invocation.result = dataObj.getString(FIELD_RESULT);
+                    }
+                }
+                case EVENT_ARTIFACT -> bufferArtifact(dataObj);
+                case EVENT_WORKFLOW_NODE -> {
+                    workflowNodes.add(toWorkflowNode(dataObj));
+                    bufferControlEvent(EVENT_WORKFLOW_NODE, dataObj);
+                }
+                case EVENT_SKILL_ACTIVATED -> bufferControlEvent(EVENT_SKILL_ACTIVATED, dataObj);
+                case EVENT_RUN_END -> {
+                    settleRound(keyOf(dataObj));
+                    bufferControlEvent(EVENT_RUN_END, dataObj);
+                }
+                case EVENT_ERROR -> {
+                    log.warn("Conversation team error event: conversationId={}, executionId={}, data={}",
+                        conversationId, executionId, data);
+                    settleRound(keyOf(dataObj));
+                    bufferControlEvent(EVENT_ERROR, dataObj);
+                }
+                case EVENT_USAGE -> {
+                    // 本轮所有 usage 事件的 total_tokens 等求和，作为主运行总消耗（近似）
+                    String invocationId = dataObj == null ? null : dataObj.getString("invocationId");
+                    if (invocationId != null && !usageInvocationIds.add(invocationId)) {
+                        break;
+                    }
+                    JSONObject usage = dataObj == null ? null : dataObj.getJSONObject("usage");
+                    if (usage != null) {
+                        promptTokens += usage.getLongValue("input_tokens",
+                            usage.getLongValue("prompt_tokens", 0L));
+                        completionTokens += usage.getLongValue("output_tokens",
+                            usage.getLongValue("completion_tokens", 0L));
+                        totalTokens += usage.getLongValue("total_tokens", 0L);
                     }
                 }
                 default -> {
-                    // user_message/run_start/message/reasoning/tool_call/tool_result/sub_start/usage 仅透传不落
+                    // user message and run control events are forwarded only.
+                    // user_message/run_start/usage 仅透传不落
                 }
             }
         } catch (Throwable e) {
@@ -125,6 +256,15 @@ public class ConversationRunEventSourceListener extends EventSourceListener {
     @Override
     public void onClosed(@NotNull EventSource eventSource) {
         flush();
+        try {
+            // 浏览器公共 SSE 客户端只把 [DONE]/event=done 识别为正常终态；必须在落库完成后发送，
+            // 避免前端提前释放输入框并在上一轮消息尚未持久化时启动下一轮。
+            sseEmitter.send(SseEmitter.event().data(SSE_DONE_MARKER).build());
+        } catch (Throwable e) {
+            // 客户端主动断开时终止标记可能无法发送，不应影响服务端收口。
+            log.debug("SSE done marker send failed, conversationId={}, executionId={}",
+                conversationId, executionId, e);
+        }
         try {
             sseEmitter.complete();
         } catch (Exception ignored) {
@@ -144,23 +284,181 @@ public class ConversationRunEventSourceListener extends EventSourceListener {
     }
 
     /**
-     * 整轮结束一次性落库（appendMessages 按 ExecutionRef.subExecutionId 拆分路由，事务性）：
-     * run_done → t_conversation_run、sub_done → t_conversation_sub_run。
+     * 结算当前轮：把轮内 reasoning/message 移入已结算列表（空轮跳过）。
+     * 后续 flush 按到达序构造行；该 key 的下一批 delta 自然开启新一轮。
+     */
+    private void settleRound(String key) {
+        RoundBuffer round = currentRounds.remove(key);
+        if (round != null && round.hasContent()) {
+            settledRounds.add(round);
+        }
+    }
+
+    /** 结算所有未结算轮（流关闭/异常时把已接收的部分内容也落库） */
+    private void settleAllCurrentRounds() {
+        new ArrayList<>(currentRounds.keySet()).forEach(this::settleRound);
+    }
+
+    private RoundBuffer roundOf(JSONObject dataObj) {
+        String key = keyOf(dataObj);
+        return currentRounds.computeIfAbsent(key,
+            k -> new RoundBuffer(k,
+                dataObj.getString(FIELD_PARENT_RUN_ID),
+                dataObj.getString(FIELD_EXECUTION_TYPE),
+                dataObj.getString("workflowId"),
+                dataObj.getString("nodeId"),
+                dataObj.getLong("eventIndex"),
+                dataObj.getString(FIELD_AGENT_ID)));
+    }
+
+    private String keyOf(JSONObject dataObj) {
+        if (dataObj == null) {
+            return executionId;
+        }
+        String runId = dataObj.getString(FIELD_RUN_ID);
+        return runId == null || runId.isBlank() ? executionId : runId;
+    }
+
+    private void copyIfAbsent(JSONObject target, String key, String value) {
+        if (value != null && !target.containsKey(key)) {
+            target.put(key, value);
+        }
+    }
+
+    private void copyIfAbsent(JSONObject target, String key, Long value) {
+        if (value != null && !target.containsKey(key)) {
+            target.put(key, value);
+        }
+    }
+
+    private ConversationWorkflowNode toWorkflowNode(JSONObject data) {
+        return ConversationWorkflowNode.builder()
+            .conversationId(conversationId)
+            .toolId(data.getString(FIELD_TOOL_CALL_ID))
+            .parentRunId(data.getString(FIELD_PARENT_RUN_ID))
+            .workflowId(data.getString("workflowId"))
+            .nodeId(data.getString("nodeId"))
+            .nodeName(data.getString("nodeName"))
+            .nodeType(data.getString("nodeType"))
+            .nodeIndex(data.getInteger("nodeIndex"))
+            .status(data.getString("status"))
+            .inputContent(jsonText(data.get("input")))
+            .outputContent(jsonText(data.get("output")))
+            .errorCode(data.getString("errorCode"))
+            .errorMessage(data.getString("errorMessage"))
+            .build();
+    }
+
+    private String jsonText(Object value) {
+        if (value == null) {
+            return null;
+        }
+        return value instanceof String ? (String) value : JSON.toJSONString(value);
+    }
+
+    private String argsToJson(JSONObject dataObj) {
+        if (dataObj == null) {
+            return null;
+        }
+        Object args = dataObj.get(FIELD_ARGUMENTS);
+        return args == null ? null : JSON.toJSONString(args);
+    }
+
+    private void bufferArtifact(JSONObject dataObj) {
+        if (dataObj == null) {
+            return;
+        }
+        String objectKey = dataObj.getString(FIELD_OBJECT_KEY);
+        String fileName = dataObj.getString(FIELD_FILE_NAME);
+        Long size = dataObj.getLong(FIELD_SIZE);
+        String mediaType = dataObj.getString(FIELD_MEDIA_TYPE);
+        String checksum = dataObj.getString(FIELD_CHECKSUM);
+        String payloadExecutionId = dataObj.getString(FIELD_EXECUTION_ID);
+        if (objectKey == null || objectKey.isBlank() || fileName == null || fileName.isBlank()
+            || size == null || size < 0 || mediaType == null || mediaType.isBlank()
+            || checksum == null || !checksum.matches("[0-9a-f]{64}")) {
+            log.warn("Ignore incomplete artifact event: conversationId={}, executionId={}",
+                conversationId, executionId);
+            return;
+        }
+        if (payloadExecutionId != null && !payloadExecutionId.isBlank()
+            && !executionId.equals(payloadExecutionId)) {
+            log.warn("Ignore artifact with mismatched execution ownership: conversationId={}, executionId={}",
+                conversationId, executionId);
+            return;
+        }
+        artifacts.add(new ArtifactInvocation(
+            new FileRef(objectKey, fileName, size, mediaType, checksum, executionId),
+            keyOf(dataObj), dataObj.getString(FIELD_PARENT_RUN_ID), dataObj.getString(FIELD_AGENT_ID),
+            executionTypeOf(dataObj), dataObj.getString("workflowId"), dataObj.getString("nodeId"),
+            dataObj.getLong("eventIndex"), arrivalSeq));
+    }
+
+    private void bufferControlEvent(String event, JSONObject dataObj) {
+        String content = JSON.toJSONString(dataObj == null ? new JSONObject() : dataObj);
+        ConversationMessage message = ConversationMessage.builder()
+            .role(ROLE_ASSISTANT)
+            .content(content)
+            .executionRef(new ExecutionRef(keyOf(dataObj),
+                dataObj == null ? null : dataObj.getString(FIELD_PARENT_RUN_ID),
+                dataObj == null ? null : dataObj.getString(FIELD_AGENT_ID), executionTypeOf(dataObj)))
+            .workflowId(dataObj == null ? null : dataObj.getString("workflowId"))
+            .nodeId(dataObj == null ? null : dataObj.getString("nodeId"))
+            .eventIndex(dataObj == null ? null : dataObj.getLong("eventIndex"))
+            .modelDeploymentId(modelDeploymentId)
+            .event(event)
+            .createdAt(new Date(baseTime + arrivalSeq))
+            .build();
+        controlEvents.add(new ScoredRow(arrivalSeq, message));
+    }
+
+    private String executionTypeOf(JSONObject dataObj) {
+        String executionType = dataObj == null ? null : dataObj.getString(FIELD_EXECUTION_TYPE);
+        return executionType == null || executionType.isBlank() ? "agent" : executionType;
+    }
+
+    /**
+     * 整轮结束/异常一次性批量落库（按 canonical runId/parentRunId 路由，事务性）。
+     * created_at 按到达序（base+seq）单调递增。
      */
     private void flush() {
         if (flushed) {
             return;
         }
         flushed = true;
-        List<ConversationMessage> rows = new ArrayList<>();
-        if (mainAnswer != null && !mainAnswer.isBlank()) {
-            rows.add(assistantMessage(null, null, mainAnswer, EVENT_RUN_DONE));
-        }
-        subAnswers.forEach((subExecutionId, sub) -> {
-            if (sub.text != null && !sub.text.isBlank()) {
-                rows.add(assistantMessage(subExecutionId, sub.agentId, sub.text, EVENT_SUB_DONE));
+        settleAllCurrentRounds();
+        List<ScoredRow> scored = new ArrayList<>();
+        scored.addAll(controlEvents);
+        for (RoundBuffer round : settledRounds) {
+            if (round.reasoning != null && !round.reasoning.isBlank()) {
+                scored.add(new ScoredRow(round.reasoningSeq,
+                    buildMessage(round, ROLE_ASSISTANT, round.reasoning, EVENT_REASONING, round.reasoningSeq)));
             }
-        });
+            if (round.message != null && !round.message.isBlank()) {
+                scored.add(new ScoredRow(round.messageSeq,
+                    buildMessage(round, ROLE_ASSISTANT, round.message, EVENT_MESSAGE, round.messageSeq)));
+            }
+        }
+        for (ToolInvocation invocation : toolInvocations.values()) {
+            log.info("Conversation team tool invocation before flush: conversationId={}, runId={}, "
+                    + "parentRunId={}, toolId={}, agentId={}, toolName={}, resultPresent={}",
+                conversationId,
+                invocation.runId,
+                invocation.parentRunId,
+                invocation.toolCallId,
+                invocation.agentId,
+                invocation.toolName,
+                invocation.result != null && !invocation.result.isBlank());
+            if (invocation.result != null && !invocation.result.isBlank()) {
+                scored.add(new ScoredRow(invocation.seq, buildToolMessage(invocation)));
+            }
+        }
+        for (ArtifactInvocation artifact : artifacts) {
+            scored.add(new ScoredRow(artifact.seq, buildArtifactMessage(artifact)));
+        }
+        scored.sort(Comparator.comparingLong(s -> s.seq));
+        List<ConversationMessage> rows = new ArrayList<>();
+        scored.forEach(scoredRow -> rows.add(scoredRow.message));
         if (!rows.isEmpty()) {
             try {
                 conversationRepository.appendMessages(conversationId, rows);
@@ -171,27 +469,196 @@ public class ConversationRunEventSourceListener extends EventSourceListener {
                     conversationId, executionId, e);
             }
         }
+        if (!workflowNodes.isEmpty()) {
+            try {
+                conversationRepository.appendWorkflowNodes(conversationId, workflowNodes);
+            } catch (Throwable e) {
+                log.error("Failed to persist conversation workflow nodes, conversationId={}", conversationId, e);
+            }
+        }
     }
 
-    private ConversationMessage assistantMessage(String subExecutionId, String agentId, String content, String event) {
+    private ConversationMessage buildMessage(RoundBuffer round, String role, String content, String event, long seq) {
         return ConversationMessage.builder()
-            .role(ROLE_ASSISTANT)
+            .role(role)
             .content(content)
-            .executionRef(new ExecutionRef(executionId, subExecutionId, agentId))
+            .executionRef(new ExecutionRef(round.runId, round.parentRunId,
+                runAgentId(round.parentRunId, round.agentId), round.executionType))
+            .workflowId(round.workflowId)
+            .nodeId(round.nodeId)
+            .eventIndex(round.eventIndex)
+            .tokenUsage(mainRunTokenUsage(round.parentRunId))
             .modelDeploymentId(modelDeploymentId)
             .event(event)
+            .createdAt(new Date(baseTime + seq))
             .build();
     }
 
-    /** 子 Agent 完整输出（agentId + text） */
-    private static final class SubAnswer {
+    private ConversationMessage buildToolMessage(ToolInvocation invocation) {
+        String content = invocation.result;
+        return ConversationMessage.builder()
+            .role(ROLE_TOOL)
+            .content(content)
+            .toolRef(new ToolRef(invocation.toolCallId, invocation.toolName, invocation.argsJson))
+            .executionRef(new ExecutionRef(invocation.runId, invocation.parentRunId,
+                runAgentId(invocation.parentRunId, invocation.agentId),
+                invocation.executionType == null ? "agent" : invocation.executionType))
+            .workflowId(invocation.workflowId)
+            .nodeId(invocation.nodeId)
+            .eventIndex(invocation.eventIndex)
+            .tokenUsage(mainRunTokenUsage(invocation.parentRunId))
+            .modelDeploymentId(modelDeploymentId)
+            .event(EVENT_TOOL_RESULT)
+            .createdAt(new Date(baseTime + invocation.seq))
+            .build();
+    }
 
+    private ConversationMessage buildArtifactMessage(ArtifactInvocation artifact) {
+        return ConversationMessage.builder()
+            .role(ROLE_ASSISTANT)
+            .fileRefs(List.of(artifact.fileRef))
+            .executionRef(new ExecutionRef(artifact.runId, artifact.parentRunId, artifact.agentId,
+                artifact.executionType))
+            .workflowId(artifact.workflowId)
+            .nodeId(artifact.nodeId)
+            .eventIndex(artifact.eventIndex)
+            .modelDeploymentId(modelDeploymentId)
+            .event(EVENT_ARTIFACT)
+            .createdAt(new Date(baseTime + artifact.seq))
+            .build();
+    }
+
+    /** APP 主运行记录 app_id；SUPERVISOR 没有 app_id 时保持 null，不回退事件节点 agentId。 */
+    private String runAgentId(String parentRunId, String eventAgentId) {
+        if (parentRunId == null) {
+            return appId;
+        }
+        return eventAgentId;
+    }
+
+    /** 主运行落库本轮累计 token 用量（近似）；无用量返回 null。 */
+    private TokenUsage mainRunTokenUsage(String parentRunId) {
+        if (parentRunId != null || totalTokens <= 0) {
+            return null;
+        }
+        return new TokenUsage(String.valueOf(promptTokens), String.valueOf(completionTokens),
+            String.valueOf(totalTokens));
+    }
+
+    /** 一轮（一次 LLM 调用）的缓冲：reasoning/message 增量累加 + 首个增量到达序 */
+    private static final class RoundBuffer {
+
+        private final String key;
+        private final String runId;
+        private final String parentRunId;
+        private final String executionType;
+        private final String workflowId;
+        private final String nodeId;
+        private final Long eventIndex;
         private final String agentId;
-        private final String text;
+        private String reasoning;
+        private String message;
+        private long reasoningSeq = -1;
+        private long messageSeq = -1;
 
-        SubAnswer(String agentId, String text) {
+        RoundBuffer(String key, String parentRunId, String executionType, String workflowId,
+                    String nodeId, Long eventIndex, String agentId) {
+            this.key = key;
+            this.runId = key;
+            this.parentRunId = parentRunId;
+            this.executionType = executionType == null ? "agent" : executionType;
+            this.workflowId = workflowId;
+            this.nodeId = nodeId;
+            this.eventIndex = eventIndex;
             this.agentId = agentId;
-            this.text = text;
+        }
+
+        void appendReasoning(String content, long seq) {
+            if (reasoningSeq < 0) {
+                reasoningSeq = seq;
+            }
+            reasoning = reasoning == null ? content : reasoning + content;
+        }
+
+        void appendMessage(String content, long seq) {
+            if (messageSeq < 0) {
+                messageSeq = seq;
+            }
+            message = message == null ? content : message + content;
+        }
+
+        boolean hasContent() {
+            return (reasoning != null && !reasoning.isBlank()) || (message != null && !message.isBlank());
+        }
+    }
+
+    /** 一次工具调用：tool_call 注册（toolCallId 配对），tool_result 回填 result */
+    private static final class ToolInvocation {
+
+        private final String toolCallId;
+        private final String toolName;
+        private final String argsJson;
+        private final String runId;
+        private final String agentId;
+        private final String parentRunId;
+        private final String executionType;
+        private final String workflowId;
+        private final String nodeId;
+        private final Long eventIndex;
+        private final long seq;
+        private String result;
+
+        ToolInvocation(String toolCallId, String toolName, String argsJson, String runId, String agentId,
+                       String parentRunId, String executionType, String workflowId, String nodeId,
+                       Long eventIndex, long seq) {
+            this.toolCallId = toolCallId;
+            this.toolName = toolName;
+            this.argsJson = argsJson;
+            this.runId = runId;
+            this.agentId = agentId;
+            this.parentRunId = parentRunId;
+            this.executionType = executionType;
+            this.workflowId = workflowId;
+            this.nodeId = nodeId;
+            this.eventIndex = eventIndex;
+            this.seq = seq;
+        }
+    }
+
+    private static final class ArtifactInvocation {
+        private final FileRef fileRef;
+        private final String runId;
+        private final String parentRunId;
+        private final String agentId;
+        private final String executionType;
+        private final String workflowId;
+        private final String nodeId;
+        private final Long eventIndex;
+        private final long seq;
+
+        ArtifactInvocation(FileRef fileRef, String runId, String parentRunId, String agentId,
+                           String executionType, String workflowId, String nodeId, Long eventIndex, long seq) {
+            this.fileRef = fileRef;
+            this.runId = runId;
+            this.parentRunId = parentRunId;
+            this.agentId = agentId;
+            this.executionType = executionType;
+            this.workflowId = workflowId;
+            this.nodeId = nodeId;
+            this.eventIndex = eventIndex;
+            this.seq = seq;
+        }
+    }
+
+    /** 到达序 + 待落库消息（flush 时按 seq 排序，created_at = base + seq） */
+    private static final class ScoredRow {
+
+        private final long seq;
+        private final ConversationMessage message;
+
+        ScoredRow(long seq, ConversationMessage message) {
+            this.seq = seq;
+            this.message = message;
         }
     }
 }

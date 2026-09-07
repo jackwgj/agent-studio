@@ -1,5 +1,5 @@
 {
-  "extends": "../test/tsconfig.json",
+  "extends": "../../tsconfig.json",
   "compilerOptions": {
     "outDir": "../out-tsc/spec",
     "types": [
@@ -8,12 +8,9 @@
     ],
     "moduleResolution": "bundler"
   },
-  "files": [
-    "test.ts",
-    "./app/app.component.spec.ts"
-  ],
+  "files": ["test.ts", "app-path.polyfill.ts"],
   "include": [
-    "**/*.spec.ts",
-    "**/*.d.ts"
+    "../**/*.spec.ts",
+    "../**/*.d.ts"
   ]
 }

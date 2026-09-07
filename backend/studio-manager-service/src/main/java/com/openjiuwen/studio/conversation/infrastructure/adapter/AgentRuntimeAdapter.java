@@ -8,10 +8,16 @@ import com.openjiuwen.studio.agent.common.dto.agent.Message;
 import com.openjiuwen.studio.agent.common.utils.OkHttpClientUtils;
 import com.openjiuwen.studio.agent.common.utils.RequestContextUtils;
 import com.openjiuwen.studio.agent.manager.constant.CommonConstant;
+import com.openjiuwen.studio.conversation.application.ToolRegistrationService;
+import com.openjiuwen.studio.conversation.application.dto.ConversationSkillContext;
+import com.openjiuwen.studio.conversation.application.dto.ConversationSkillDescriptor;
 import com.openjiuwen.studio.conversation.application.dto.SendMessageCmd;
+import com.openjiuwen.studio.conversation.application.dto.ToolSpecDto;
 import com.openjiuwen.studio.conversation.domain.model.Conversation;
 import com.openjiuwen.studio.conversation.domain.repository.ConversationRepository;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +25,7 @@ import lombok.extern.slf4j.Slf4j;
 import okhttp3.MediaType;
 import okhttp3.Request;
 import okhttp3.RequestBody;
+import okhttp3.Response;
 import okhttp3.sse.EventSources;
 
 import org.apache.commons.lang3.StringUtils;
@@ -50,6 +57,7 @@ public class AgentRuntimeAdapter {
 
     private static final long SSE_TIMEOUT = 900_000L;
     private static final long CONNECT_TIMEOUT_SECONDS = 30L;
+    private static final String TOOL_DESCRIBE_PATH = "/v1/conversation/tools/describe";
 
     @Value("${agent_runtime_endpoint:http://127.0.0.1:31014}")
     private String runtimeEndpoint;
@@ -59,13 +67,16 @@ public class AgentRuntimeAdapter {
         "d321fa88-a768-4b63-8d68-13cd743c6903,8dafdc64-2c52-40b5-9b24-49894314b763";
 
     private final ConversationRepository conversationRepository;
+    private final ToolRegistrationService toolRegistrationService;
     private final OkHttpClientUtils okHttpClientUtils;
     private final ObjectMapper objectMapper;
 
     public AgentRuntimeAdapter(ConversationRepository conversationRepository,
+                               ToolRegistrationService toolRegistrationService,
                                OkHttpClientUtils okHttpClientUtils,
                                ObjectMapper objectMapper) {
         this.conversationRepository = conversationRepository;
+        this.toolRegistrationService = toolRegistrationService;
         this.okHttpClientUtils = okHttpClientUtils;
         this.objectMapper = objectMapper;
     }
@@ -81,11 +92,19 @@ public class AgentRuntimeAdapter {
      * @return SSE 流
      */
     public SseEmitter run(Conversation conversation, SendMessageCmd cmd, List<Message> histories,
-                          String executionId, HttpHeaders requestHeaders) {
+                          ConversationSkillContext skillContext, String executionId, HttpHeaders requestHeaders) {
         // 直传团队参数（方案 B）：引擎按 subAgentIds 加载各子 Agent 已有 IR 动态组装监督者，不再预烘焙 IR
         String url = buildTeamUrl(conversation);
 
-        Map<String, Object> body = buildRequestBody(conversation, cmd, histories);
+        Map<String, Object> body = buildRequestBody(conversation, cmd, histories, skillContext);
+
+        // 方案 A2：向 Python 索取本请求所需工具描述并幂等注册到 t_tool。
+        // 注册失败不阻断对话主流程，降级为仅内存注册（工具仍由 runner 执行期绑定）。
+        try {
+            toolRegistrationService.ensureTools(describeTools(body));
+        } catch (Exception e) {
+            log.warn("Conversation tool registration skipped, degrade to runtime-only registration.", e);
+        }
 
         Request.Builder builder = new Request.Builder()
             .url(url)
@@ -100,7 +119,7 @@ public class AgentRuntimeAdapter {
         EventSources.createFactory(okHttpClientUtils.getHttpClient())
             .newEventSource(builder.build(),
                 new ConversationRunEventSourceListener(sseEmitter, latch, conversation.getConversationId(),
-                    executionId, cmd.getModelDeploymentId(), conversationRepository));
+                    executionId, cmd.getModelDeploymentId(), cmd.getAppId(), conversationRepository));
         try {
             latch.await(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
@@ -116,6 +135,34 @@ public class AgentRuntimeAdapter {
      * 把当前请求头转发给 runtime（manager 统一模式，参照 AgentServiceProxyService.stream），
      * 并补齐 runtime 认证所需 X-Auth-Token（POC 模式按 userId|projectId 解析，取自 IAM 上下文）。
      */
+    /**
+     * 向 Python describe 端点索取本请求所需工具描述（方案 A2）。
+     *
+     * @param body 与团队请求一致的请求体（selectType/subAgentIds/appId 等）
+     * @return 工具描述列表；失败返回空列表（调用方降级，不阻断对话）
+     */
+    private List<ToolSpecDto> describeTools(Map<String, Object> body) {
+        Request request = new Request.Builder()
+            .url(runtimeEndpoint + TOOL_DESCRIBE_PATH)
+            .post(RequestBody.create(toJson(body), MediaType.parse("application/json; charset=utf-8")))
+            .build();
+        try (Response response = okHttpClientUtils.getHttpClient().newCall(request).execute()) {
+            if (!response.isSuccessful() || response.body() == null) {
+                log.warn("Describe conversation tools failed: status={}", response.code());
+                return Collections.emptyList();
+            }
+            JsonNode root = objectMapper.readTree(response.body().string());
+            JsonNode tools = root.path("tools");
+            if (!tools.isArray()) {
+                return Collections.emptyList();
+            }
+            return objectMapper.convertValue(tools, new TypeReference<List<ToolSpecDto>>() {});
+        } catch (Exception e) {
+            log.warn("Describe conversation tools error, degrade to runtime-only registration.", e);
+            return Collections.emptyList();
+        }
+    }
+
     void copyRequestHeaders(Request.Builder builder, HttpHeaders requestHeaders) {
         requestHeaders.forEach((key, value) -> {
             // X-Auth-Token 以 IAM 上下文为准，跳过外部传入值，避免重复头
@@ -140,15 +187,49 @@ public class AgentRuntimeAdapter {
      * 引擎团队请求体（2026-08-12 直连后 conversationId 必须随 body 下发——引擎契约，原先由 runtime
      * 转发层从 URL path 补）。方案 B 直传团队参数，无 systemPrompt（监督者提示词固定引擎侧）。
      */
-    Map<String, Object> buildRequestBody(Conversation conversation, SendMessageCmd cmd, List<Message> histories) {
+    Map<String, Object> buildRequestBody(Conversation conversation, SendMessageCmd cmd, List<Message> histories,
+                                         ConversationSkillContext skillContext) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("conversationId", conversation.getConversationId());
+        body.put("projectId", conversation.getProjectId());
+        body.put("workspaceId", conversation.getWorkspaceId());
+        body.put("userId", conversation.getOwnerUserId());
         body.put("query", cmd.getQuery());
-        body.put("subAgentIds", parseTeamAgentIds(TEAM_AGENT_IDS));
-        body.put("modelDeploymentId", cmd.getModelDeploymentId());
+        String selectType = StringUtils.defaultIfBlank(cmd.getSelectType(), "SUPERVISOR");
+        body.put("selectType", selectType);
+        if ("APP".equals(selectType)) {
+            // APP 路径：用户应用互斥字段，只传 appId；模型来自应用自身 IR
+            body.put("appId", cmd.getAppId());
+        } else {
+            body.put("subAgentIds", parseTeamAgentIds(TEAM_AGENT_IDS));
+            body.put("modelDeploymentId", cmd.getModelDeploymentId());
+        }
         // conversationHistory 显式转 [{role, content}]（引擎契约，容忍 dict；仅监督者注入，子 Agent 不感知）
         body.put("conversationHistory", toHistoryMaps(histories));
+        if (cmd.getFileIds() != null && !cmd.getFileIds().isEmpty()) {
+            body.put("fileIds", cmd.getFileIds());
+        }
+        appendSkillContext(body, skillContext);
         return body;
+    }
+
+    private void appendSkillContext(Map<String, Object> body, ConversationSkillContext skillContext) {
+        ConversationSkillContext trustedContext = skillContext == null ? ConversationSkillContext.empty() : skillContext;
+        List<Map<String, String>> skillCatalog = trustedContext.getCatalog().stream()
+            .map(this::toSkillCatalogItem)
+            .toList();
+        body.put("skillCatalog", skillCatalog);
+        body.put("recommendedSkillIds", trustedContext.getRecommendedSkillIds());
+    }
+
+    private Map<String, String> toSkillCatalogItem(ConversationSkillDescriptor descriptor) {
+        Map<String, String> item = new LinkedHashMap<>();
+        item.put("skillId", descriptor.getSkillId());
+        item.put("versionId", descriptor.getVersionId());
+        item.put("name", descriptor.getName());
+        item.put("description", descriptor.getDescription());
+        item.put("objectKey", descriptor.getObjectKey());
+        return item;
     }
 
     private List<String> parseTeamAgentIds(String idsStr) {

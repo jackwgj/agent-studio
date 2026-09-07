@@ -42,6 +42,9 @@ public class MessageVo {
     /**
      * 工具调用请求参数json（仅role=tool）
      */
+    @JsonProperty("tool_name")
+    private String toolName;
+
     @JsonProperty("tool_args")
     private String toolArgs;
 
@@ -51,17 +54,28 @@ public class MessageVo {
     @JsonProperty("file_ids")
     private String fileIds;
 
-    /**
-     * 主轮次execution_id
-     */
-    @JsonProperty("execution_id")
-    private String executionId;
+    @JsonProperty("run_id")
+    private String runId;
+
+    @JsonProperty("parent_run_id")
+    private String parentRunId;
+
+    @JsonProperty("execution_type")
+    private String executionType;
+
+    @JsonProperty("workflow_id")
+    private String workflowId;
+
+    @JsonProperty("node_id")
+    private String nodeId;
 
     /**
-     * 子任务分组键（子agent消息）
+     * Canonical ConversationEvent 的可选业务顺序元数据（事件 envelope 的 index）。
+     * 允许为空，仅用于后端明确提供稳定业务顺序时的辅助信息；它不是时间戳，
+     * 前端默认按事件到达/创建时间顺序展示，不应把 event_index 当作强制排序字段。
      */
-    @JsonProperty("sub_execution_id")
-    private String subExecutionId;
+    @JsonProperty("event_index")
+    private Long eventIndex;
 
     /**
      * agent溯源

@@ -1,0 +1,192 @@
+"""Immutable identity and execution context values for conversations."""
+
+from __future__ import annotations
+
+from contextvars import ContextVar, Token
+from dataclasses import dataclass
+import hashlib
+import json
+import re
+from pathlib import PurePosixPath
+
+
+@dataclass(frozen=True, slots=True)
+class ConversationIdentity:
+    """Audit identity supplied for one conversation execution."""
+
+    project_id: str
+    workspace_id: str
+    user_id: str
+    conversation_id: str
+    execution_id: str
+
+    def __post_init__(self) -> None:
+        for field_name in (
+            "project_id",
+            "workspace_id",
+            "user_id",
+            "conversation_id",
+            "execution_id",
+        ):
+            value = getattr(self, field_name)
+            if not isinstance(value, str):
+                raise TypeError(f"{field_name} must be a string")
+            if not value.strip():
+                raise ValueError(f"{field_name} must not be blank")
+
+
+@dataclass(frozen=True, slots=True)
+class ConversationWorkspace:
+    """Immutable, conversation-scoped directories in a remote sandbox."""
+
+    identity: ConversationIdentity
+    sandbox_root: PurePosixPath
+    conversation_root: PurePosixPath
+    input_dir: PurePosixPath
+    skills_dir: PurePosixPath
+    work_dir: PurePosixPath
+    output_dir: PurePosixPath
+    tmp_dir: PurePosixPath
+
+    def __post_init__(self) -> None:
+        root = _sandbox_root(self.sandbox_root)
+        object.__setattr__(self, "sandbox_root", root)
+        conversation_root = _conversation_root(root, self.identity)
+        _require_paths_under_root(
+            root,
+            conversation_root,
+            self.conversation_root,
+            self.input_dir,
+            self.skills_dir,
+            self.work_dir,
+            self.output_dir,
+            self.tmp_dir,
+        )
+        if (
+            self.conversation_root != conversation_root
+            or self.input_dir != conversation_root / "input"
+            or self.skills_dir != conversation_root / "skills"
+            or self.work_dir != conversation_root / "work"
+            or self.output_dir != conversation_root / "output"
+            or self.tmp_dir != conversation_root / "tmp"
+        ):
+            raise ValueError("workspace paths must match the deterministic layout")
+
+    @classmethod
+    def create(
+        cls, identity: ConversationIdentity, sandbox_root: str | PurePosixPath
+    ) -> ConversationWorkspace:
+        root = _sandbox_root(sandbox_root)
+        conversation_root = _conversation_root(root, identity)
+        return cls(
+            identity=identity,
+            sandbox_root=root,
+            conversation_root=conversation_root,
+            input_dir=conversation_root / "input",
+            skills_dir=conversation_root / "skills",
+            work_dir=conversation_root / "work",
+            output_dir=conversation_root / "output",
+            tmp_dir=conversation_root / "tmp",
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class ConversationExecutionContext:
+    """Immutable context shared by every call in one conversation execution."""
+
+    identity: ConversationIdentity
+    workspace: ConversationWorkspace
+
+    def __post_init__(self) -> None:
+        if self.workspace.identity != self.identity:
+            raise ValueError("workspace identity must match execution identity")
+
+    @classmethod
+    def create(
+        cls, identity: ConversationIdentity, sandbox_root: str | PurePosixPath
+    ) -> ConversationExecutionContext:
+        workspace = ConversationWorkspace.create(identity, sandbox_root)
+        return cls(
+            identity=identity,
+            workspace=workspace,
+        )
+
+    @property
+    def output_dir(self) -> PurePosixPath:
+        return self.workspace.output_dir
+
+    @property
+    def tmp_dir(self) -> PurePosixPath:
+        return self.workspace.tmp_dir
+
+    def for_child_call(self) -> ConversationExecutionContext:
+        """Reuse this immutable context for a nested conversation call."""
+        return self
+
+
+_current_conversation_execution_context: ContextVar[ConversationExecutionContext] = (
+    ContextVar("conversation_execution_context")
+)
+
+
+def set_conversation_execution_context(
+    context: ConversationExecutionContext,
+) -> Token[ConversationExecutionContext]:
+    """Bind one execution context to the current async consuming context."""
+    return _current_conversation_execution_context.set(context)
+
+
+def get_conversation_execution_context() -> ConversationExecutionContext:
+    """Return the active execution context or fail explicitly when unbound."""
+    try:
+        return _current_conversation_execution_context.get()
+    except LookupError as error:
+        raise LookupError("no conversation execution context is active") from error
+
+
+def reset_conversation_execution_context(
+    token: Token[ConversationExecutionContext],
+) -> None:
+    """Restore the preceding context in the same async consuming context."""
+    _current_conversation_execution_context.reset(token)
+
+
+_VISIBLE_KEY = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
+
+
+def validate_conversation_path_key(value: str, field_name: str) -> str:
+    """Validate an identity segment that remains visible in sandbox paths."""
+    if not _VISIBLE_KEY.fullmatch(value) or value in {".", ".."}:
+        raise ValueError(f"{field_name} must be a path-safe platform identifier")
+    return value
+
+
+def _scope_key(project_id: str, workspace_id: str) -> str:
+    canonical = json.dumps(
+        ["conversation-scope", project_id, workspace_id],
+        ensure_ascii=False,
+        separators=(",", ":"),
+    )
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:32]
+
+
+def _conversation_root(root: PurePosixPath, identity: ConversationIdentity) -> PurePosixPath:
+    return root.joinpath(
+        "conversations",
+        validate_conversation_path_key(identity.user_id, "user_id"),
+        _scope_key(identity.project_id, identity.workspace_id),
+        validate_conversation_path_key(identity.conversation_id, "conversation_id"),
+    )
+
+
+def _sandbox_root(value: str | PurePosixPath) -> PurePosixPath:
+    root = PurePosixPath(value)
+    if not root.is_absolute() or ".." in root.parts:
+        raise ValueError("sandbox_root must be an absolute, non-traversing POSIX path")
+    return root
+
+
+def _require_paths_under_root(root: PurePosixPath, *paths: PurePosixPath) -> None:
+    for path in paths:
+        if not path.is_relative_to(root):
+            raise ValueError("sandbox paths must remain under sandbox_root")
