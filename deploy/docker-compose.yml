@@ -1,4 +1,4 @@
-# openJiuwen AgentStudio Docker Compose 部署编排
+﻿# openJiuwen AgentStudio Docker Compose 部署编排
 # 在线/离线统一编排：默认 8 个服务（4 基础设施 + 4 应用），另有 3 个可选日志服务
 # 在线部署：IMAGE_SOURCE=ghcr/dockerhub，脚本自动 pull 镜像
 # 离线部署：IMAGE_SOURCE=offline，脚本自动 docker load 镜像
@@ -18,6 +18,7 @@ services:
     pull_policy: if_not_present
     restart: always
     environment:
+      TZ: Asia/Shanghai
       MYSQL_ROOT_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-123456}
       MYSQL_DATABASE: "agent-builder"
       MYSQL_CHARACTER_SET_SERVER: utf8mb4
@@ -172,6 +173,12 @@ services:
       server_ssl_key_store_password: ${SERVER_SSL_KEY_STORE_PASSWORD:-}
       server_ssl_key_password: ${SERVER_SSL_KEY_PASSWORD:-}
       agent_runtime_endpoint: ${AGENT_RUNTIME_ENDPOINT:-http://studio-runtime:31014}
+      conversation_cleanup_internal_token: ${CONVERSATION_CLEANUP_INTERNAL_TOKEN:-}
+      conversation_cleanup_schema_migration_enabled: ${CONVERSATION_CLEANUP_SCHEMA_MIGRATION_ENABLED:-true}
+      conversation_cleanup_max_attempts: ${CONVERSATION_CLEANUP_MAX_ATTEMPTS:-8}
+      conversation_cleanup_base_backoff_seconds: ${CONVERSATION_CLEANUP_BASE_BACKOFF_SECONDS:-30}
+      conversation_cleanup_claim_timeout_seconds: ${CONVERSATION_CLEANUP_CLAIM_TIMEOUT_SECONDS:-300}
+      conversation_cleanup_retry_interval_ms: ${CONVERSATION_CLEANUP_RETRY_INTERVAL_MS:-30000}
       user_auth_endpoint: ${USER_AUTH_ENDPOINT:-http://studio-manager:31111}
       agent_builder_endpoint: ${AGENT_BUILDER_ENDPOINT:-http://studio-builder:31015}
       front_page_block_nodes: ${FRONT_PAGE_BLOCK_NODES:-Sql,DataQuery,Agent}
@@ -185,6 +192,17 @@ services:
       knowledge_lakeSearch_auth_mode: ${KNOWLEDGE_LAKESEARCH_AUTH_MODE:-basic}
       # SSO 鉴权验证地址，填写后启用 SSO 远程鉴权，留空则使用默认简单鉴权
       auth_sso_validate_url: ${AUTH_SSO_VALIDATE_URL:-}
+      # 非图片文件上传大小上限（单位 KB，默认 131072 即 128MB）
+      agent_max_upload_file_size: ${AGENT_MAX_UPLOAD_FILE_SIZE:-131072}
+      # 用户上传文件累计大小上限（单位 KB，默认 204800 即 200MB）
+      max_upload_total_size: ${MAX_UPLOAD_TOTAL_SIZE:-204800}
+      # 客户 Header 改写规则引擎：默认关闭，客户部署时置 true
+      CUSTOMER_HEADER_ENABLED: ${CUSTOMER_HEADER_ENABLED:-false}
+      CUSTOMER_HEADER_MAPPINGS: ${CUSTOMER_HEADER_MAPPINGS:-}
+      # redis json序列化最大长度
+      redis_max_string_length: ${REDIS_MAX_STRING_LENGTH:-20000000}
+      # 引用未发布插件：默认关闭，置 true 时允许引用未发布的插件
+      plugin_publish_choice: ${PLUGIN_PUBLISH_CHOICE:-false}
     depends_on:
       mysql:
         condition: service_healthy
@@ -234,10 +252,16 @@ services:
       TLS_CERT_KEY_PATH: /opt/cloud/agent-runtime/tls/key.pem
       TLS_CERT_PATH: /opt/cloud/agent-runtime/tls/cert.pem
       SECURITY_SANDBOX_SERVER: ${SECURITY_SANDBOX_SERVER:-}
+      SECURITY_SANDBOX_TYPE: ${SECURITY_SANDBOX_TYPE:-aio}
+      CONVERSATION_SANDBOX_MODE: ${CONVERSATION_SANDBOX_MODE:-auto}
       SECURITY_SANDBOX_SSL_VERIFY: ${SECURITY_SANDBOX_SSL_VERIFY:-false}
       SECURITY_SANDBOX_IDLE_TTL: ${SECURITY_SANDBOX_IDLE_TTL:-600}
       SECURITY_SANDBOX_TIMEOUT: ${SECURITY_SANDBOX_TIMEOUT:-300}
       SECURITY_SANDBOX_SCOPE: ${SECURITY_SANDBOX_SCOPE:-system}
+      CONVERSATION_SANDBOX_WORKSPACE_ROOT: ${CONVERSATION_SANDBOX_WORKSPACE_ROOT:-/workspace}
+      CONVERSATION_CLEANUP_INTERNAL_TOKEN: ${CONVERSATION_CLEANUP_INTERNAL_TOKEN:-}
+      CONVERSATION_EXECUTION_CLEANUP_TTL: ${CONVERSATION_EXECUTION_CLEANUP_TTL:-600}
+      CONVERSATION_CLEANUP_UPLOADED_OUTPUT: ${CONVERSATION_CLEANUP_UPLOADED_OUTPUT:-true}
       OPENSEARCH_HOSTS: ${OPENSEARCH_HOSTS:-}
       OPENSEARCH_USERNAME: ${OPENSEARCH_USERNAME:-admin}
       OPENSEARCH_PASSWORD: ${OPENSEARCH_PASSWORD:-admin}
@@ -267,8 +291,7 @@ services:
       WORKFLOW_EXECUTE_TIMEOUT: ${WORKFLOW_EXECUTE_TIMEOUT:-900}
       IR_LLM_API_KEY: ${IR_LLM_API_KEY:-sk-placeholder}
       DATASOURCE_OBS_PATH_STYLE: ${DATASOURCE_OBS_PATH_STYLE:-path}
-      GUNICORN_WORK_NUM: ${GUNICORN_WORK_NUM:-}
-      SECURITY_SANDBOX_TYPE: ${SECURITY_SANDBOX_TYPE:-jiuwenbox}
+      GUNICORN_WORK_NUM: ${GUNICORN_WORK_NUM:-1}
       OTEL_ENABLED: ${OTEL_ENABLED:-false}
       # agent_builder 启动时会强制初始化关系库存储；代码读取的是 STORE_DB_*（非 STORE_MYSQL_*）
       STORE_DB_TYPE: ${STORE_DB_TYPE:-mysql}
@@ -278,6 +301,9 @@ services:
       STORE_DB_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-123456}
       STORE_DB_DATABASE: ${STORE_DB_DATABASE:-agent-builder}
       STORE_DB_SSLMODE: ${STORE_DB_SSLMODE:-disable}
+      # 客户 Header 改写规则引擎：默认关闭，客户部署时置 true
+      CUSTOMER_HEADER_ENABLED: ${CUSTOMER_HEADER_ENABLED:-false}
+      CUSTOMER_HEADER_MAPPINGS: ${CUSTOMER_HEADER_MAPPINGS:-}
     depends_on:
       redis:
         condition: service_healthy
@@ -334,6 +360,9 @@ services:
       LOGGING_LOG_PATH: /opt/cloud/logs/agent-builder
       LOG_VERBOSE: ${LOG_VERBOSE:-true}
       OTEL_ENABLED: ${OTEL_ENABLED:-false}
+      # 客户 Header 改写规则引擎：默认关闭，客户部署时置 true（前置）
+      CUSTOMER_HEADER_ENABLED: ${CUSTOMER_HEADER_ENABLED:-false}
+      CUSTOMER_HEADER_MAPPINGS: ${CUSTOMER_HEADER_MAPPINGS:-}
     depends_on:
       mysql:
         condition: service_healthy

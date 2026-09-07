@@ -1,0 +1,22 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "../out-tsc/conversation-workspace-spec",
+    "types": ["jasmine", "node"],
+    "skipLibCheck": true
+  },
+  "files": [
+    "conversation-workspace-test.ts",
+    "conversation-workspace-globals.ts",
+    "../routes/conversation-workspace/conversation-workspace.component.spec.ts"
+  ],
+  "include": [
+    "../types/**/*.d.ts",
+    "../agentcore/types/**/*.d.ts"
+  ],
+  "exclude": [
+    "../shared/services/websocket/**/*.spec.ts",
+    "../routes/knowledge-center/**/*.ts",
+    "../single-spa/**/*.ts"
+  ]
+}

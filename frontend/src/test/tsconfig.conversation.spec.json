@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "../out-tsc/conversation-spec",
+    "types": ["jasmine", "node"],
+    "moduleResolution": "bundler"
+  },
+  "files": [
+    "test.ts",
+    "app-path.polyfill.ts",
+    "../routes/conversation-workspace/conversation-workspace.component.spec.ts",
+    "../routes/conversation-workspace/skill-selector/skill-selector.component.spec.ts"
+  ],
+  "include": ["../**/*.d.ts"]
+}

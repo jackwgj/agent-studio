@@ -15,13 +15,12 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ToolRef {
-    /**
-     * 工具标识，=t_tool.tool_id
-     */
+    /** 一次具体工具调用的业务 ID。 */
     private String toolId;
 
-    /**
-     * 工具调用请求参数json
-     */
+    /** 工具名称，可重复，不承担调用唯一性。 */
+    private String toolName;
+
+    /** 工具调用请求参数 JSON。 */
     private String args;
 }

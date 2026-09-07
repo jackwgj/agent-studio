@@ -10,6 +10,7 @@ export interface ISSEvent extends CustomEvent {
   source?: any;
   readyState?: number;
   data?: any;
+  eventName?: string;
   id?: string | number;
 }
 
@@ -39,6 +40,8 @@ export class SSE {
   private listeners: Record<string, EventListener[]>;
 
   private xhr: XMLHttpRequest;
+
+  private streamCompleted = false;
 
   private readyState: number;
 
@@ -165,14 +168,24 @@ export class SSE {
     return true;
   };
 
+  private emitDone(): void {
+    if (this.streamCompleted) {
+      return;
+    }
+    this.streamCompleted = true;
+    this.dispatchEvent(new CustomEvent('done'));
+  }
+
   close() {
     if (this.readyState === this.CLOSED) {
       return;
     }
 
-    this.xhr.abort();
+    const xhr = this.xhr;
     this.xhr = null;
     this.setReadyStatus(this.CLOSED);
+    xhr?.abort();
+    this.listeners = {};
   }
 
   stream = () => {
@@ -212,6 +225,7 @@ export class SSE {
     // query发送的当前时间
     this.requestStartTime = new Date();
     this.firstTokenReceived = false;
+    this.streamCompleted = false;
 
     // 附带一个定时器处理成功状态的流式接口返回超时问题
     this.addTimer(this.streamFirstChunkTimeout);
@@ -273,9 +287,15 @@ export class SSE {
     this.progress += data.length;
     data.split(/(\r\n|\r|\n){2}/g).forEach((part) => {
       if (part.trim().length === 0) {
-        this.handleFirstToken(this.parseEventChunk(this.chunk.trim()));
-        this.dispatchEvent(this.parseEventChunk(this.chunk.trim()));
+        const eventChunk = this.parseEventChunk(this.chunk.trim());
         this.chunk = '';
+        try {
+          this.handleFirstToken(eventChunk);
+          this.dispatchEvent(eventChunk);
+        } catch (err) {
+          // 监听器异常不能中断解析循环，否则剩余字节丢失会让后续事件拼接成损坏数据
+          console.error('[SSE] event listener error:', err);
+        }
       } else {
         this.chunk += part;
       }
@@ -285,8 +305,14 @@ export class SSE {
   private onStreamLoaded(e: Event) {
     this.onStreamProgress(e);
 
-    this.dispatchEvent(this.parseEventChunk(this.chunk));
+    const tailChunk = this.parseEventChunk(this.chunk);
     this.chunk = '';
+    try {
+      this.dispatchEvent(tailChunk);
+      this.emitDone();
+    } catch (err) {
+      console.error('[SSE] event listener error:', err);
+    }
   }
 
   private checkStreamClosed = () => {
@@ -320,17 +346,18 @@ export class SSE {
       if (field === 'data') {
         e.data += value;
       }
+      if (field === 'event') {
+        e.event = value;
+      }
     });
 
     let event: ISSEvent;
-    if (
-      e.data === '[DONE]' ||
-      this.isDebugRunCompleted(e.data) ||
-      e.data === '[Done]'
-    ) {
+    if (e.data === '[DONE]' || this.isDebugRunCompleted(e.data) || e.data === '[Done]') {
       event = new CustomEvent('done');
+      this.streamCompleted = true;
     } else {
       event = new CustomEvent('message');
+      event.eventName = e.event;
       // message 类型还需要检查是否是流式报错，统一拦截
       try {
         const eventData = JSON.parse(e.data);
