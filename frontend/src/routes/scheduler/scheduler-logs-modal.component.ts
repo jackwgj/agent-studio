@@ -210,9 +210,8 @@ export class SchedulerLogsModalComponent implements OnInit, OnDestroy {
       page_size: this.pageSize,
     }).pipe(takeUntil(this.destroy$)).subscribe({
       next: (res: any) => {
-        const data = res?.data;
-        this.logs = data?.items || [];
-        this.total = data?.total || 0;
+        this.logs = res?.items || [];
+        this.total = res?.total || 0;
         this.loading = false;
       },
       error: () => {
