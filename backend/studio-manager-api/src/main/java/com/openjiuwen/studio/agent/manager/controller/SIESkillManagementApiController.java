@@ -28,7 +28,7 @@ public class SIESkillManagementApiController implements SIESkillManagementApi {
 
     @Autowired
     private ISIESkillManagementService sieSkillManagementService;
-      @Override
+    @Override
     public ResponseEntity<Void> deleteStudioSkill(String skillId, String workspaceId, String projectId) {
         return ResponseModel.success(sieSkillManagementService.deleteStudioSkill(skillId, workspaceId, projectId));
     }
@@ -44,8 +44,6 @@ public class SIESkillManagementApiController implements SIESkillManagementApi {
         MultipartFile file) {
         return ResponseModel.success(sieSkillManagementService.importStudioSkill(workspaceId, projectId, file));
     }
-
-
     @Override
     public ResponseEntity<ListStudioSkillsResponseBody> listStudioSkills(String projectId,
         ListStudioSkillsQo listStudioSkillsQo) {
