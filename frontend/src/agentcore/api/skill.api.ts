@@ -15,10 +15,11 @@ import { JiuwenBaseApi } from './jiuwen-base.api';
 export class SkillApi extends JiuwenBaseApi {
   override serviceId = (window as any).iamTargetId || ServiceId.JIUWEN;
   prefix = '/v1/{projectId}/agent-manager/skills';
+  bffPrefix = '/platform/v1/skills';
 
   importSkill(params: FormData): Observable<any> {
     return this.request.post({
-      url: `${this.prefix}/import`,
+      url: `${this.bffPrefix}/import`,
       query: {
         workspace_id: this.request.getWorkspaceId(),
       },
@@ -46,7 +47,7 @@ export class SkillApi extends JiuwenBaseApi {
 
   querySkillList(params = {}): Observable<any> {
     return this.request.get({
-      url: `${this.prefix}`,
+      url: `${this.bffPrefix}`,
       params,
     } as any);
   }
@@ -94,15 +95,15 @@ export class SkillApi extends JiuwenBaseApi {
   queryResourceSkill({ offset, limit, tagId, name, description }: { offset: number; limit: number; tagId?: string; name?: string; description?: string }) {
     return this.request
       .get({
-        url: this.prefix,
-        params: {
-          offset,
-          limit,
-          tag_id: tagId,
-          name: name || undefined,
-          description,
-          published_asset: 1,
-        },
+      url: this.bffPrefix,
+      params: {
+        offset,
+        limit,
+        tag_id: tagId,
+        name: name || undefined,
+        description,
+        published_asset: 1,
+      },
       } as any)
       .pipe(map(res => customPropTransfer(res, SkillListRes)));
   }

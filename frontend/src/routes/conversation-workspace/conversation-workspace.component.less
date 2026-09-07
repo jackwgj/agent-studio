@@ -6,6 +6,7 @@
   padding: 0;
   overflow: hidden;
   background: #fff;
+  position: relative;
 }
 
 .chat-area {
@@ -887,5 +888,114 @@
 @keyframes blink {
   50% {
     opacity: 0.3;
+  }
+}
+
+// ===== 预览面板 =====
+
+// 可点击的文件名（消息附件 chips / 产物名称）
+.user-file-name.file-clickable,
+.artifact-name.file-clickable {
+  cursor: pointer;
+  color: rgb(var(--color-primary));
+  transition: opacity 120ms ease;
+
+  &:hover {
+    opacity: 0.8;
+    text-decoration: underline;
+  }
+}
+
+// 宽度分割条：4px 视觉宽度，::before 扩大命中区到 8px
+.preview-resizer {
+  flex: 0 0 4px;
+  width: 4px;
+  height: 100%;
+  cursor: col-resize;
+  background: transparent;
+  border-left: 1px solid #f0f0f0;
+  position: relative;
+  outline: none;
+  transition: background-color 120ms ease;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -2px;
+    right: -2px;
+  }
+
+  &:hover,
+  &.dragging {
+    background: rgb(var(--color-primary));
+    border-left-color: transparent;
+  }
+
+  &:focus-visible {
+    background: rgba(31, 66, 206, 0.35);
+  }
+}
+
+// 拖拽期间全局反馈：禁用文本选中、统一光标（指令在 body 上加 .preview-resizing）
+::ng-deep body.preview-resizing {
+  cursor: col-resize;
+  user-select: none;
+}
+
+// 预览面板宿主
+.preview-panel-host {
+  display: block;
+  flex: 0 0 auto;
+  height: 100%;
+  min-width: 0;
+  background: #fff;
+  border-left: 1px solid #f0f0f0;
+  box-shadow: -4px 0 12px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  animation: preview-panel-in 160ms ease;
+
+  // 单预览拦截反馈：240ms 轻微位移动画
+  &.preview-blocked {
+    animation: preview-blocked-nudge 240ms ease;
+  }
+}
+
+@keyframes preview-panel-in {
+  from {
+    transform: translateX(24px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes preview-blocked-nudge {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  40% {
+    transform: translateX(-8px);
+  }
+}
+
+// 窄屏（<1200px）：全屏覆盖层，替代分栏（拖拽禁用，工具栏出现「返回对话」）
+.conversation-workspace.preview-narrow {
+  .preview-panel-host.preview-fullscreen {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: auto !important;
+    z-index: 20;
+    border-left: none;
+    box-shadow: none;
   }
 }

@@ -1,0 +1,110 @@
+<div class="preview-panel-inner">
+  <header class="preview-toolbar">
+    <button
+      *ngIf="narrow"
+      type="button"
+      class="preview-back"
+      (click)="close.emit()"
+      aria-label="返回对话"
+    >
+      <span nz-icon nzType="arrow-left"></span>
+      <span>返回对话</span>
+    </button>
+
+    <div class="preview-title-group">
+      <span nz-icon [nzType]="iconType" class="preview-title-icon"></span>
+      <span class="preview-title" [title]="state.title">{{ state.title }}</span>
+      <span class="preview-type-tag">{{ typeLabel }}</span>
+    </div>
+
+    <div class="preview-actions">
+      <button
+        type="button"
+        class="preview-action"
+        nz-tooltip="刷新"
+        [disabled]="state.type === 'unsupported'"
+        (click)="refresh.emit()"
+        aria-label="刷新"
+      >
+        <span nz-icon nzType="reload"></span>
+      </button>
+      <button
+        *ngIf="state.url"
+        type="button"
+        class="preview-action"
+        nz-tooltip="在新标签打开"
+        (click)="onOpenExternal()"
+        aria-label="在新标签打开"
+      >
+        <span nz-icon nzType="export"></span>
+      </button>
+      <button
+        *ngIf="!state.url && state.objectKey"
+        type="button"
+        class="preview-action"
+        nz-tooltip="下载文件"
+        (click)="download.emit(state)"
+        aria-label="下载文件"
+      >
+        <span nz-icon nzType="download"></span>
+      </button>
+      <button
+        type="button"
+        class="preview-action"
+        (click)="close.emit()"
+        aria-label="关闭预览"
+      >
+        <span nz-icon nzType="close"></span>
+      </button>
+    </div>
+  </header>
+
+  <div class="preview-address" *ngIf="state.url">
+    <span nz-icon nzType="lock" class="preview-address-icon"></span>
+    <span class="preview-address-text" [title]="state.url">{{ state.url }}</span>
+    <button
+      type="button"
+      class="preview-copy"
+      (click)="onCopy()"
+      [attr.aria-label]="copied ? '已复制' : '复制链接'"
+    >
+      <span nz-icon [nzType]="copied ? 'check' : 'copy'"></span>
+    </button>
+  </div>
+
+  <div class="preview-content">
+    <app-preview-url
+      *ngIf="state.type === 'url'"
+      [state]="state"
+    ></app-preview-url>
+
+    <app-preview-text
+      *ngIf="state.type === 'md' || state.type === 'txt'"
+      [state]="state"
+      (fallback)="fallback.emit($event)"
+      (navigate)="navigate.emit($event)"
+    ></app-preview-text>
+
+    <div class="preview-unsupported" *ngIf="state.type === 'unsupported'">
+      <span nz-icon nzType="file-protect" class="preview-unsupported-icon"></span>
+      <p class="preview-unsupported-title">暂不支持预览此类型</p>
+      <p class="preview-unsupported-desc">{{ state.fileName || state.title }}</p>
+      <button
+        *ngIf="state.objectKey"
+        nz-button
+        nzType="primary"
+        (click)="download.emit(state)"
+      >
+        下载文件
+      </button>
+      <button
+        *ngIf="!state.objectKey && state.url"
+        nz-button
+        nzType="primary"
+        (click)="onOpenExternal()"
+      >
+        在新标签打开
+      </button>
+    </div>
+  </div>
+</div>

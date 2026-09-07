@@ -1,4 +1,4 @@
-<div class="conversation-workspace">
+<div class="conversation-workspace" [class.preview-narrow]="narrowPreview && !!previewState">
   <!-- 聊天区（居中卡片） -->
   <div class="chat-area">
     <div class="chat-header">
@@ -17,7 +17,10 @@
           <div class="message-role">我</div>
           <div class="turn-user-content" *ngIf="message.userContent">{{ message.userContent }}</div>
           <div class="user-file-names" *ngIf="message.userFiles?.length">
-            <div class="user-file-name" *ngFor="let file of message.userFiles">
+            <div class="user-file-name" [class.file-clickable]="canPreviewFile(file.fileName) && !!file.objectKey"
+                 (click)="canPreviewFile(file.fileName) && !!file.objectKey && openFilePreview(file)"
+                 [title]="canPreviewFile(file.fileName) && !!file.objectKey ? '点击预览 ' + file.fileName : file.fileName"
+                 *ngFor="let file of message.userFiles">
               <meta-upload-file-icon [fileName]="file.fileName"></meta-upload-file-icon>
               <span>{{ file.fileName }}</span>
             </div>
@@ -38,17 +41,19 @@
           </details>
           <div class="assistant-progress" *ngIf="activeProgressContent(message)">
             <span class="progress-pulse"></span>
-            <app-markdown-answer class="markdown-segment" [answer]="activeProgressContent(message)"></app-markdown-answer>
+            <app-markdown-answer class="markdown-segment" [answer]="activeProgressContent(message)" (linkClick)="openUrlPreview($event)"></app-markdown-answer>
           </div>
           <div class="assistant-answer" *ngIf="finalAnswerContent(message) || message.loading">
-            <app-markdown-answer *ngIf="finalAnswerContent(message)" class="markdown-segment" [answer]="finalAnswerContent(message)"></app-markdown-answer>
+            <app-markdown-answer *ngIf="finalAnswerContent(message)" class="markdown-segment" [answer]="finalAnswerContent(message)" (linkClick)="openUrlPreview($event)"></app-markdown-answer>
             <span *ngIf="message.loading" class="loading-dots">…</span>
           </div>
           <div class="artifact-list" *ngIf="message.artifacts?.length" aria-label="正式产物">
             <div class="artifact-card" *ngFor="let artifact of message.artifacts">
               <meta-upload-file-icon [fileName]="artifact.fileName"></meta-upload-file-icon>
               <div class="artifact-info">
-                <span class="artifact-name" [title]="artifact.fileName">{{ artifact.fileName }}</span>
+                <span class="artifact-name" [class.file-clickable]="canPreviewFile(artifact.fileName)"
+                      (click)="canPreviewFile(artifact.fileName) && openFilePreview(artifact)"
+                      [title]="canPreviewFile(artifact.fileName) ? '点击预览 ' + artifact.fileName : artifact.fileName">{{ artifact.fileName }}</span>
                 <span class="artifact-meta">{{ formatArtifactSize(artifact.size) }} · {{ artifact.mediaType }}</span>
                 <span class="artifact-error" *ngIf="artifact.downloadState === 'failed'">文件下载失败，请重试</span>
               </div>
@@ -208,4 +213,36 @@
       </div>
     </div>
   </div>
+
+  <!-- 宽度分割条（预览打开且非窄屏时显示） -->
+  <div
+    *ngIf="previewState && !narrowPreview"
+    class="preview-resizer"
+    appPreviewResizer
+    [min]="30"
+    [max]="60"
+    [width]="previewWidth"
+    (widthChange)="onPreviewWidthChange($event)"
+    role="separator"
+    aria-orientation="vertical"
+    tabindex="0"
+    aria-label="拖拽调整预览面板宽度，或使用左右方向键微调"
+  ></div>
+
+  <!-- 右侧预览面板 -->
+  <app-preview-panel
+    *ngIf="previewState"
+    class="preview-panel-host"
+    [class.preview-blocked]="previewBlocked"
+    [class.preview-fullscreen]="narrowPreview"
+    [state]="previewState"
+    [narrow]="narrowPreview"
+    [style.width.%]="narrowPreview ? null : previewWidth"
+    (close)="closePreview()"
+    (refresh)="refreshPreview()"
+    (openExternal)="openPreviewExternal($event)"
+    (download)="downloadPreviewFile($event)"
+    (fallback)="onPreviewFallback($event)"
+    (navigate)="openUrlPreview($event, true)"
+  ></app-preview-panel>
 </div>

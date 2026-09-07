@@ -84,6 +84,12 @@ export class LinkInterceptorService implements OnDestroy {
       return;
     }
 
+    // 聊天/对话正文里的链接（app-markdown-answer 渲染）由组件自己接管：
+    // 有预览面板的消费方走面板，没有的保持 a 标签原生新开标签页，均不弹安全确认框
+    if (target?.closest?.('a.custom-link')) {
+      return;
+    }
+
     const href = (target as HTMLAnchorElement).getAttribute('href');
     if (!href) {
       return;
