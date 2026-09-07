@@ -147,6 +147,22 @@ async def test_controller_modes_build_real_agent_group_without_mode_rejection(
 
     monkeypatch.setattr(conversation_controller_runner, "IRConverter", _IRConverter)
     monkeypatch.setattr(conversation_controller_runner, "async_ir_load", load_ir)
+    monkeypatch.setattr(
+        ConversationControllerRunner,
+        "_build_workspace_protocol_prompt",
+        staticmethod(lambda: "workspace protocol"),
+    )
+    monkeypatch.setattr(
+        conversation_controller_runner.ConversationSandboxFunctionBinder,
+        "from_runtime_settings",
+        classmethod(
+            lambda _cls: type(
+                "NoSandboxBinder",
+                (),
+                {"build": lambda self: [], "cleanup": lambda self: None},
+            )()
+        ),
+    )
 
     runner = ConversationControllerRunner()
     request = type("Request", (), {})()
@@ -169,11 +185,17 @@ async def test_controller_modes_build_real_agent_group_without_mode_rejection(
         }
     }
 
-    _, _, skill_context = await runner._build_request_agent_group(request, mode)
+    _, _, skill_context, _sandbox_binder = await runner._build_request_agent_group(
+        request, mode
+    )
 
-    assert len(captured["group_config"].main_agent.plugins) == 1
-    assert captured["group_config"].main_agent.plugins[0].name == "activate_skill"
-    assert skill_context.prepare_sandbox_resources is False
+    if mode == "PlanExecute":
+        assert len(captured["group_config"].main_agent.plugins) == 1
+        assert captured["group_config"].main_agent.plugins[0].name == "activate_skill"
+        assert skill_context.prepare_sandbox_resources is True
+    else:
+        assert captured["group_config"].main_agent.plugins == []
+        assert skill_context is None
 
 
 @pytest.mark.asyncio

@@ -7,7 +7,8 @@ from agent_runtime.supervisor.tool.activate_skill_tool import ActivateSkillTool
 from agent_runtime.supervisor.skill_context import (
     SkillExecutionContext,
     bind_skill_context,
-    build_skill_prompt,
+    build_skill_catalog_prompt,
+    build_skill_recommendation_prompt,
     reset_skill_context,
 )
 
@@ -17,11 +18,18 @@ class ConversationActivateSkillFunction(Function):
 
     def __init__(self, context: SkillExecutionContext):
         catalog = list(context.catalog_by_id.values())
+        bound_ids = [skill.skill_id for skill in context.agent_bound_skills]
+        prompt = build_skill_catalog_prompt(catalog, bound_ids)
+        recommendation = build_skill_recommendation_prompt(
+            catalog, context.recommended_skill_ids, bound_ids
+        )
+        if recommendation:
+            prompt = f"{prompt}\n\n{recommendation}"
         super().__init__(
             name="activate_skill",
             description=(
                 "按 Skill ID 加载当前工作空间 Skill 的完整 SKILL.md 指令。\n"
-                + build_skill_prompt(catalog, context.recommended_skill_ids)
+                + prompt
             ),
             params=[
                 Param(
