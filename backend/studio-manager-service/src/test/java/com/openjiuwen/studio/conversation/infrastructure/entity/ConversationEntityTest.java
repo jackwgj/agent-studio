@@ -15,8 +15,6 @@ class ConversationEntityTest {
     @Test
     void testSerialization_UsesJsonPropertySnakeCase() throws JsonProcessingException {
         ConversationEntity e = new ConversationEntity();
-        assertEquals("NONE", e.getCleanupStatus());
-        assertEquals(0, e.getCleanupAttempts());
         e.setConversationId("c1");
         e.setTitle("会话");
         e.setProjectId("p1");

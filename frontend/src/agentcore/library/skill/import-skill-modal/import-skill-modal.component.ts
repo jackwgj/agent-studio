@@ -5,7 +5,7 @@ import { I18NEXT_NAMESPACE, I18NextModule } from 'angular-i18next';
 import { Unzipped, unzipSync } from 'fflate';
 import { lastValueFrom } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
-import { SkillApi } from '@agentcore/api/skill.api';
+import { SIESkillApi } from '@agentcore/api/sie-skill.api';
 import { I18N_NAMESPACE } from '@agentcore/constants/common';
 import { IMPORT_TYPE } from '@agentcore/constants/skill';
 import { i18nProviderValue, I18nService } from '@agentcore/core/i18n.service';
@@ -55,7 +55,7 @@ export class ImportSkillModalComponent {
   constructor(
     private http: HttpClient,
     fb: FormBuilder,
-    private skillApi: SkillApi,
+    private skillApi: SIESkillApi,
     private readonly i18n: I18nService,
     private helpLinksService: HelpLinksService,
     private skillCommonService: SkillCommonService,

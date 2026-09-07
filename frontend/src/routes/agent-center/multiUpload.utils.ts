@@ -1,6 +1,4 @@
 import { v4 as uuidV4 } from 'uuid';
-import { AgentConfigService } from './agent-config.service';
-import { formatUploadSizeMb } from './utils';
 
 export interface FileItem {
   fileId: string;
@@ -11,31 +9,26 @@ export interface FileItem {
   controller: AbortController;
 }
 
-export interface FileSizeError {
-  key: string;
-  params?: { size: number | string };
-}
-
 export function validateFileSize(
   file: File,
   isImage: boolean,
-  maxImageSizeKb: number = 5 * 1024,
-  maxFileSizeKb: number = AgentConfigService.DEFAULT_FILE_MAX_SIZE_KB,
-): FileSizeError | null {
+  maxImageSize: number = 5 * 1024 * 1024,
+  maxFileSize: number = 60 * 1024 * 1024,
+): string | null {
   const extension = file.name.split('.').pop()?.toLowerCase() || '';
   const validImageExtensions = ['png', 'jpeg', 'gif', 'webp', 'jpg', 'svg'];
 
   // 检查文件类型是否为图片
   if (isImage && !validImageExtensions.includes(extension)) {
-    return { key: 'Invalid image format' };
+    return 'Invalid image format';
   }
 
   // 检查文件大小
-  const maxSizeKb = isImage ? maxImageSizeKb : maxFileSizeKb;
-  if (file.size > maxSizeKb * 1024) {
+  const maxSize = isImage ? maxImageSize : maxFileSize;
+  if (file.size > maxSize) {
     return isImage
-      ? { key: 'image_size_cannot_exceed_5mb' }
-      : { key: 'file_size_cannot_exceed', params: { size: formatUploadSizeMb(maxFileSizeKb) } };
+      ? `image_size_cannot_exceed_5mb`
+      : `file_size_cannot_exceed_128mb`;
   }
 
   return null;
@@ -57,7 +50,6 @@ export async function uploadFile(
   file: File,
   isImage: boolean,
   fileItem: FileItem,
-  onError?: () => void,
 ): Promise<void> {
   const formData = new FormData();
   formData.append('file', file);
@@ -69,6 +61,5 @@ export async function uploadFile(
     fileItem.url = res.url;
   } catch (error) {
     fileItem.progress = 'failed';
-    onError?.();
   }
 }

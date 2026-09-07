@@ -30,11 +30,6 @@ import { NzToolTipModule } from 'ng-zorro-antd/tooltip';
 import { FormsModule } from '@angular/forms';
 import { ParamLabelPipe } from 'src/pipes/param-label.pipe';
 
-export interface IPluginParamConf {
-  inputs: IWorkflowField[];
-  outputs: IWorkflowField[];
-}
-
 @Component({
   selector: 'meta-plugin-config-modal',
   standalone: true,

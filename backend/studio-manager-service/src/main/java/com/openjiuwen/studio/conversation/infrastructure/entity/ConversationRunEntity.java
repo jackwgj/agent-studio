@@ -37,11 +37,8 @@ public class ConversationRunEntity {
     /**
      * 业务主键（一次输入输出轮次，=引擎execution_id）
      */
-    @JsonProperty("run_id")
-    private String runId;
-
-    @JsonProperty("parent_run_id")
-    private String parentRunId;
+    @JsonProperty("execution_id")
+    private String executionId;
 
     /**
      * 会话ID
@@ -67,9 +64,6 @@ public class ConversationRunEntity {
     @JsonProperty("tool_id")
     private String toolId;
 
-    @JsonProperty("tool_name")
-    private String toolName;
-
     /**
      * 工具调用请求参数json（仅role=tool）
      */
@@ -82,23 +76,11 @@ public class ConversationRunEntity {
     @JsonProperty("file_ids")
     private String fileIds;
 
-    /** 统一事件类型。 */
+    /**
+     * 终止事件：sub_done/run_done
+     */
     @JsonProperty("event")
     private String event;
-
-    /** Agent 或 Workflow。 */
-    @JsonProperty("execution_type")
-    private String executionType;
-
-    @JsonProperty("workflow_id")
-    private String workflowId;
-
-    @JsonProperty("node_id")
-    private String nodeId;
-
-    @JsonProperty("event_index")
-    private Long eventIndex;
-
 
     /**
      * 主agent（溯源）

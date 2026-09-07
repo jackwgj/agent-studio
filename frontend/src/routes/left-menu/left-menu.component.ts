@@ -1,12 +1,26 @@
 import { CommonModule, NgForOf, NgIf } from '@angular/common';
-import { ChangeDetectorRef, Component, ElementRef, HostListener, Input, OnChanges, OnInit, SimpleChanges, ViewChild, ViewContainerRef } from '@angular/core';
+import {
+  ChangeDetectorRef,
+  Component,
+  ElementRef,
+  HostListener,
+  Input,
+  OnChanges,
+  OnInit,
+  SimpleChanges,
+  ViewChild,
+  ViewContainerRef,
+} from '@angular/core';
 import { cdnAssetUrl } from 'src/single-spa/assets-url';
 
 import * as angularI18next from 'angular-i18next';
-import { I18NEXT_NAMESPACE, I18NextEagerPipe, I18NextModule } from 'angular-i18next';
+import {
+  I18NEXT_NAMESPACE,
+  I18NextEagerPipe,
+  I18NextModule,
+} from 'angular-i18next';
 import { I18nNamespace } from '@i18n';
 import { IMenuItem } from '@routes/home/home.model';
-import { ConversationWorkspaceService } from '@routes/conversation-workspace/conversation-workspace.service';
 import { ContextService } from '@services/context.service';
 import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
 import { filter, Subject, Subscription } from 'rxjs';
@@ -25,7 +39,7 @@ import { AppAgentRepoService } from '@services/agent-center/app-agent-repo.servi
 import { AppExceedModalComponent } from '@routes/knowledge-center/components/app-exceed-modal/app-exceed-modal.component';
 
 import { CommonUtils } from '../../utils/common.util';
-import { NzModalService } from 'ng-zorro-antd/modal';
+import { NzModalService } from "ng-zorro-antd/modal";
 import { StorageService } from '@shared/services/cfdata.service';
 
 @Component({
@@ -33,7 +47,15 @@ import { StorageService } from '@shared/services/cfdata.service';
   templateUrl: './left-menu.component.html',
   styleUrls: ['./left-menu.component.less'],
   standalone: true,
-  imports: [NgIf, NgForOf, I18NextModule, FormsModule, CommonModule, MODULES, AppExceedModalComponent],
+  imports: [
+    NgIf,
+    NgForOf,
+    I18NextModule,
+    FormsModule,
+    CommonModule,
+    MODULES,
+    AppExceedModalComponent,
+  ],
   providers: [
     {
       provide: I18NEXT_NAMESPACE,
@@ -80,8 +102,6 @@ export class LeftMenuComponent implements OnInit, OnChanges {
   space_options: Array<any> = [];
   space_value: any = null;
   copyItems: IMenuItem[] = [];
-  private readonly taskSessionScrollPositions = new Map<string, number>();
-  private taskSessionRestoreFrame: number | null = null;
   copy_space_options: Array<any> = [];
   space_name: string = '';
   space_icon: string = cdnAssetUrl('assets/images/menu/space-user.svg');
@@ -119,8 +139,6 @@ export class LeftMenuComponent implements OnInit, OnChanges {
   private queryWorkSpace = '';
   searchSpaceLoading = false;
 
-  isFocusSpaceSelectBox = false;
-
   constructor(
     private ctxServ: ContextService,
     private router: Router,
@@ -136,13 +154,15 @@ export class LeftMenuComponent implements OnInit, OnChanges {
     private readonly i18NextEagerPipe: angularI18next.I18NextEagerPipe,
     private masOperatorService: MasOperatorService,
     private appAgentRepoServ: AppAgentRepoService,
-    private conversationWorkspaceService: ConversationWorkspaceService,
-    private readonly hostElement: ElementRef<HTMLElement>
   ) {
     // 箭头函数，保存this的指向
-    this.handleClickOutMenu = event => {
+    this.handleClickOutMenu = (event) => {
       // 当屏幕尺寸小于1600px时，点击菜单外面收起菜单
-      if (this.isMenuExpand && event.clientX > 256 && window.innerWidth <= this.windowMenu) {
+      if (
+        this.isMenuExpand &&
+        event.clientX > 256 &&
+        window.innerWidth <= this.windowMenu
+      ) {
         this.collapseMenu();
       }
     };
@@ -152,7 +172,7 @@ export class LeftMenuComponent implements OnInit, OnChanges {
     }
     this.get_space_member_roles();
 
-    this.route.queryParams.subscribe(params => {
+    this.route.queryParams.subscribe((params) => {
       this.from_page = params.from;
       this.queryWorkSpace = params.workspace_id;
     });
@@ -162,25 +182,25 @@ export class LeftMenuComponent implements OnInit, OnChanges {
     this.setSelectedStatus();
     this.router.events.pipe(filter(event => event instanceof NavigationEnd)).subscribe((event: any) => {
       this.tipInstance?.hide(); // 隐藏tip提示
-      CommonUtils.setCurUserLocalStorage('authorization_manage_tip', false);
+      CommonUtils.setCurUserLocalStorage('authorization_manage_tip',false);
     });
   }
 
-  authorizationManageTipClick($event) {
+  authorizationManageTipClick($event){
     $event.stopPropagation();
     if (!this.tipInstance) {
       this.tipInstance = true;
     }
     this.authorizationManageShow = !this.authorizationManageShow;
   }
-  closeAuthorizationManageTip() {
+  closeAuthorizationManageTip(){
     this.authorizationManageShow = false;
-    CommonUtils.setCurUserLocalStorage('authorization_manage_tip', true);
+    CommonUtils.setCurUserLocalStorage('authorization_manage_tip',true);
   }
 
   role_name(id: string): string {
     const lang = CommonUtils.getLanguage();
-    const role = this.roles_list.filter(item => item.roleId === id);
+    const role = this.roles_list.filter((item) => item.roleId === id);
     if (role.length) {
       if (lang === 'zh-cn') {
         return role[0].roleNameCn;
@@ -195,19 +215,19 @@ export class LeftMenuComponent implements OnInit, OnChanges {
   /**
    * 进入hover态
    */
-  enterHover() {
-    this.isHover = true;
+  enterHover(){
+    this.isHover=true
     this.cdr.markForCheck();
   }
   /**
    * 离开hover态
    * 加与动画时间相等延时
    */
-  leaveHover() {
-    setTimeout(() => {
-      this.isHover = false;
+  leaveHover(){
+    setTimeout(()=>{
+      this.isHover=false
       this.cdr.markForCheck();
-    }, 300);
+    },300)
   }
   // 点击收起时又会触发enter导致无法折叠，需要加与动画时间相等的锁
   mouseEnterLock = false;
@@ -221,17 +241,13 @@ export class LeftMenuComponent implements OnInit, OnChanges {
 
   handleMouseLeave($event) {
     const targetDom = $event?.toElement?.closest('body>ti-drop');
-    if (targetDom) {
-      // 判断是否为空间下拉框
-      return;
-    }
-    if (this.isFocusSpaceSelectBox) {
+    if (targetDom) { // 判断是否为空间下拉框
       return;
     }
     if (window.innerWidth <= this.windowMenu) {
       this.collapseMenu();
-    } else {
-      if (this.isHover) {
+    }else{
+      if(this.isHover){
         this.leaveHover();
         this.collapseMenu();
       }
@@ -244,38 +260,21 @@ export class LeftMenuComponent implements OnInit, OnChanges {
     }
     if (window.innerWidth <= this.windowMenu) {
       this.expandMenu();
-    } else {
-      if (!this.isMenuExpand) {
-        this.enterHover();
+    }else{
+      if(!this.isMenuExpand){
+        this.enterHover()
       }
       this.expandMenu();
     }
   }
 
-  /** 删除会话（软删除，带确认弹窗）：左菜单「任务空间」会话项悬停删除 */
-  public deleteConversation(event: Event, item: any): void {
-    event.stopPropagation();
-    const id = item?.queryParams?.conversation_id;
-    if (!id) {
-      return;
-    }
-    this.nzModalService.confirm({
-      nzTitle: '删除会话',
-      nzContent: '确定要删除该会话吗？删除后不可恢复。',
-      nzOkText: '删除',
-      nzOkDanger: true,
-      nzCancelText: '取消',
-      nzOnOk: () =>
-        this.conversationWorkspaceService.deleteSession(id).then(() => {
-          if (this.conversationWorkspaceService.activeSession$.value?.conversation_id === id) {
-            this.conversationWorkspaceService.newDraftSession();
-          }
-          return this.conversationWorkspaceService.refreshSessions();
-        }),
-    });
-  }
-
-  handleNodeClick(event: Event, item: any, index: number, childIndex: number, isRouter: boolean = true) {
+  handleNodeClick(
+    event: Event,
+    item: any,
+    index: number,
+    childIndex: number,
+    isRouter: boolean = true,
+  ) {
     if (item.name !== '应用广场') {
       StorageService.delSessionStorage('application_square_type');
     }
@@ -283,23 +282,19 @@ export class LeftMenuComponent implements OnInit, OnChanges {
       StorageService.delSessionStorage('JIUWEN_SEARCH_PARAMS');
     }
     this.onClick(event);
-    // 会话助手：新建/打开会话用查询参数驱动导航（不依赖 router，避免整组误高亮）
-    if (item.id === 'conversation-new') {
-      this.router.navigate(['home/conversation'], { queryParams: { new: Date.now() } });
-      return;
-    }
-    if (item.queryParams?.conversation_id) {
-      this.captureTaskSessionScrollPosition();
-      this.router.navigate(['home/conversation'], {
-        queryParams: { conversation_id: item.queryParams.conversation_id },
-      });
-      return;
-    }
-    if (this.cacheMenuData.children.length && this.cacheMenuData.children[this.cacheMenuData.children.length - 1].name === item.name) {
+    if (
+      this.cacheMenuData.children.length &&
+      this.cacheMenuData.children[this.cacheMenuData.children.length - 1]
+        .name === item.name
+    ) {
       return;
     }
     this.cancelSelectChildMenu(item);
-    if (!item.collapseStatus && (!item.children || !item.children.length) && !item.isSelected) {
+    if (
+      !item.collapseStatus &&
+      (!item.children || !item.children.length) &&
+      !item.isSelected
+    ) {
       this.cacheMenuData.parent.length = 0;
       for (let index = 0; index < this.cacheMenuData.children.length; index++) {
         // 取消其他三级菜单的选择
@@ -316,7 +311,11 @@ export class LeftMenuComponent implements OnInit, OnChanges {
     }
     if (!item.collapseStatus) {
       if (isRouter) {
-        if (this.routeUrl && item.routerList && item.routerList.flat().indexOf(this.routeUrl) > -1) {
+        if (
+          this.routeUrl &&
+          item.routerList &&
+          item.routerList.flat().indexOf(this.routeUrl) > -1
+        ) {
           return;
         } else {
           this.router.navigate(['home/' + item.router[0]], {
@@ -334,20 +333,23 @@ export class LeftMenuComponent implements OnInit, OnChanges {
     }
     // 切换折叠展开状态后记录用户目录
     this.recordUserMenuState();
-    if (!this.cacheMenuData.parent.some(data => data.name === item.name)) {
+    if (!this.cacheMenuData.parent.some((data) => data.name === item.name)) {
       this.cacheMenuData.parent.push(item);
     }
   }
 
   async onSpaceSelect(option: any) {
-    console.log(this.space_value);
+    console.log(this.space_value)
     this.isRotate = false;
     this.space_value = option.id;
     this.space_name = option.name;
     this.space_icon = option.icon;
     this.isSwitchSpace = true;
     this.ctxServ.addUserIdToLocal(option);
-    StorageService.setSessionStorage('CUR_SPACE_OPTIONS', JSON.stringify(option));
+    StorageService.setSessionStorage(
+      'CUR_SPACE_OPTIONS',
+      JSON.stringify(option),
+    );
 
     StorageService.setSessionStorage('agentOpsQueryAddtion', null);
     StorageService.setSessionStorage('agentOpsQueryAddtionOptions', null);
@@ -361,10 +363,12 @@ export class LeftMenuComponent implements OnInit, OnChanges {
     // 订阅权限变化
     // 初始过滤
     this.permissionService.fetchPermissions().subscribe({
-      next: permissions => {},
+      next: (permissions) => {
+      },
     });
     this.masOperatorService.fetchMasOperators().subscribe({
-      next: permissions => {},
+      next: (permissions) => {
+      },
     });
   }
 
@@ -384,7 +388,9 @@ export class LeftMenuComponent implements OnInit, OnChanges {
       }
       // 需要折叠其他包含三级菜单
       if (this.cacheMenuData.parent.length > 1) {
-        this.cacheMenuData.parent = [this.cacheMenuData.parent[this.cacheMenuData.parent.length - 1]];
+        this.cacheMenuData.parent = [
+          this.cacheMenuData.parent[this.cacheMenuData.parent.length - 1],
+        ];
       }
     }
   }
@@ -419,7 +425,8 @@ export class LeftMenuComponent implements OnInit, OnChanges {
 
   async ngOnInit(): Promise<void> {
     this.userInfo = StorageService.getLocalStorage('PROMPT_ENGINEERING_ME');
-    const language = this.consoleFrameworkService?.dataService?.getLocale() as string;
+    const language =
+      this.consoleFrameworkService?.dataService?.getLocale() as string;
     if (language === 'zh-cn') {
       this.selectLanguage = {
         id: 'zh-cn',
@@ -434,7 +441,7 @@ export class LeftMenuComponent implements OnInit, OnChanges {
 
     await this.init_space();
 
-    this.spaceTeamManagementService.space$.subscribe(async data => {
+    this.spaceTeamManagementService.space$.subscribe(async (data) => {
       // 该方法会在增加删除时触发
       if (data) {
         // 设置空间的默认值
@@ -442,18 +449,20 @@ export class LeftMenuComponent implements OnInit, OnChanges {
       }
     });
     // 订阅权限变化
-    this.permissionSubscription = this.permissionService.permissions$.subscribe(permissions => {
-      this.filterItems(permissions);
-      this.currentPermissions = permissions;
-      this.initMenu();
-    });
+    this.permissionSubscription = this.permissionService.permissions$.subscribe(
+      (permissions) => {
+        this.filterItems(permissions);
+        this.currentPermissions = permissions;
+        this.initMenu();
+      },
+    );
     // 初始过滤
     this.initIsMarket(window.location.hash);
     // 订阅路由变化事件
     this.routerSub = this.router.events
       .pipe(
         // 只关注NavigationEnd事件
-        filter(event => event instanceof NavigationEnd)
+        filter((event) => event instanceof NavigationEnd),
       )
       .subscribe(async (event: any) => {
         this.initIsMarket(event?.url);
@@ -500,7 +509,10 @@ export class LeftMenuComponent implements OnInit, OnChanges {
       this.filteredItems = [...this.items];
     }
     if (permissions && permissions.OPERATOR) {
-      this.filteredItems = this.filteredItems.filter(item => item.label !== this.i18NextEagerPipe.transform('develop-center'));
+      this.filteredItems = this.filteredItems.filter(
+        (item) =>
+          item.label !== this.i18NextEagerPipe.transform('develop-center'),
+      );
     }
   }
 
@@ -523,35 +535,38 @@ export class LeftMenuComponent implements OnInit, OnChanges {
   // 初始化菜单栏的折叠状态
   private initMenu() {
     this.setCopyMenuItem();
-    const menuStateCache = this.loadUserMenuState();
+    const menuStateCache=this.loadUserMenuState();
     for (let index = 0; index < this.filteredItems.length; index++) {
       const item = JSON.parse(JSON.stringify(this.filteredItems[index]));
       this.copyItems.push(item);
       // 如果userMenuState不是空对象（即包含键），从其获取折叠状态
-      if (menuStateCache && Object.keys(menuStateCache).length > 0) {
-        if (item.isGroup && item.children && item.children.length > 0) {
-          item.children[0].collapseStatus = menuStateCache[item.id] ?? 1;
+      if (menuStateCache  && Object.keys(menuStateCache).length > 0) {
+        if(item.isGroup && item.children && item.children.length > 0){
+          item.children[0].collapseStatus = menuStateCache[item.id]??1;
         }
-      } else {
+      }else{
         // 没有用户菜单缓存则使用默认配置
-        if (
-          this.routeUrl === 'overview' &&
-          item.id === 'develop-center' &&
-          (Object.keys(menuStateCache).length === 0 || menuStateCache[item.id] === undefined)
-        ) {
+        if (this.routeUrl === 'overview' && item.id === 'develop-center' &&
+          (Object.keys(menuStateCache).length === 0 || menuStateCache[item.id] === undefined)) {
           item.children[0].collapseStatus = 2;
         }
       }
     }
     for (let index = 0; index < this.copyItems.length; index++) {
-      if (this.copyItems[index].children && this.copyItems[index].children.length > 0) {
+      if (
+        this.copyItems[index].children &&
+        this.copyItems[index].children.length > 0
+      ) {
         const childData = this.copyItems[index].children;
         let isFinish = false;
         for (let childIndex = 0; childIndex < childData.length; childIndex++) {
           if (isFinish) {
             break;
           }
-          if (childData[childIndex].collapseStatus && childData[childIndex].children) {
+          if (
+            childData[childIndex].collapseStatus &&
+            childData[childIndex].children
+          ) {
             // 需要进一步去for循环迭代
             isFinish = this.handleSecondChildData(childData, childIndex, index);
             continue;
@@ -568,89 +583,37 @@ export class LeftMenuComponent implements OnInit, OnChanges {
       }
     }
     this.cdr.detectChanges();
-    this.scheduleTaskSessionScrollRestore();
-  }
-
-  /** 同一工作空间内刷新/重建会话菜单时，保留用户当前浏览位置。 */
-  public onTaskSessionScroll(event: Event): void {
-    const list = event.currentTarget as HTMLElement | null;
-    if (!list?.classList.contains('task-session-list')) {
-      return;
-    }
-    this.taskSessionScrollPositions.set(this.getTaskSessionScrollKey(), list.scrollTop);
-  }
-
-  private getTaskSessionScrollKey(): string {
-    return String(this.space_value || this.ctxServ.workspaceId || 'default');
-  }
-
-  private getTaskSessionList(): HTMLElement | null {
-    return this.hostElement.nativeElement.querySelector<HTMLElement>('.task-session-list');
-  }
-
-  private captureTaskSessionScrollPosition(): void {
-    const list = this.getTaskSessionList();
-    if (list) {
-      this.taskSessionScrollPositions.set(this.getTaskSessionScrollKey(), list.scrollTop);
-    }
-  }
-
-  private scheduleTaskSessionScrollRestore(): void {
-    if (this.taskSessionRestoreFrame !== null) {
-      window.cancelAnimationFrame(this.taskSessionRestoreFrame);
-    }
-    const workspaceKey = this.getTaskSessionScrollKey();
-    this.taskSessionRestoreFrame = window.requestAnimationFrame(() => {
-      this.taskSessionRestoreFrame = null;
-      if (workspaceKey !== this.getTaskSessionScrollKey()) {
-        return;
-      }
-      const list = this.getTaskSessionList();
-      if (!list) {
-        return;
-      }
-
-      const savedScrollTop = this.taskSessionScrollPositions.get(workspaceKey);
-      if (savedScrollTop !== undefined) {
-        list.scrollTop = Math.min(savedScrollTop, Math.max(0, list.scrollHeight - list.clientHeight));
-      }
-      this.keepSelectedTaskSessionVisible(list);
-      this.taskSessionScrollPositions.set(workspaceKey, list.scrollTop);
-    });
-  }
-
-  /** 外部路由打开会话时也保证选中项可见；已在可视区域时不改变用户滚动位置。 */
-  private keepSelectedTaskSessionVisible(list: HTMLElement): void {
-    const selected = list.querySelector<HTMLElement>('.secondMenu.is-selected');
-    if (!selected) {
-      return;
-    }
-    const stickyCreate = list.querySelector<HTMLElement>('.task-session-create');
-    const listRect = list.getBoundingClientRect();
-    const selectedRect = selected.getBoundingClientRect();
-    const visibleTop = listRect.top + (stickyCreate?.getBoundingClientRect().height ?? 0);
-    let nextScrollTop = list.scrollTop;
-
-    if (selectedRect.top < visibleTop) {
-      nextScrollTop -= visibleTop - selectedRect.top;
-    } else if (selectedRect.bottom > listRect.bottom) {
-      nextScrollTop += selectedRect.bottom - listRect.bottom;
-    }
-    list.scrollTop = Math.max(0, Math.min(nextScrollTop, list.scrollHeight - list.clientHeight));
   }
 
   private isContainRouteUrl(data: any): boolean {
-    return (data.router && data.router.indexOf(this.routeUrl) > -1) || (data.routerList && data.routerList.flat().indexOf(this.routeUrl) > -1);
+    return (
+      (data.router && data.router.indexOf(this.routeUrl) > -1) ||
+      (data.routerList && data.routerList.flat().indexOf(this.routeUrl) > -1)
+    );
   }
 
-  private handleSecondChildData(childData: any[], childIndex: number, index: number): boolean {
+  private handleSecondChildData(
+    childData: any[],
+    childIndex: number,
+    index: number,
+  ): boolean {
     const childChildren = childData[childIndex].children;
     let isFinish = false;
-    for (let childChildIndex = 0; childChildIndex < childChildren.length; childChildIndex++) {
+    for (
+      let childChildIndex = 0;
+      childChildIndex < childChildren.length;
+      childChildIndex++
+    ) {
       if (this.isContainRouteUrl(childChildren[childChildIndex])) {
         childData[childIndex].collapseStatus = 2;
         this.cacheMenuData.parent.push(childData[childIndex]);
-        this.handleNodeClick('' as any, childChildren[childChildIndex], index, childIndex, true);
+        this.handleNodeClick(
+          '' as any,
+          childChildren[childChildIndex],
+          index,
+          childIndex,
+          true,
+        );
         isFinish = true;
         break;
       }
@@ -659,25 +622,40 @@ export class LeftMenuComponent implements OnInit, OnChanges {
   }
 
   getClassName(menuItem: any): string {
-    if ((menuItem.router && menuItem.router.indexOf(this.routeUrl) > -1) || (menuItem.routerList && menuItem.routerList.flat().indexOf(this.routeUrl) > -1)) {
+    if (
+      (menuItem.router && menuItem.router.indexOf(this.routeUrl) > -1) ||
+      (menuItem.routerList &&
+        menuItem.routerList.flat().indexOf(this.routeUrl) > -1)
+    ) {
       return 'is-selected';
     }
     return '';
   }
 
   getIcon(menuItem: any): string {
-    if ((menuItem.router && menuItem.router.indexOf(this.routeUrl) > -1) || (menuItem.routerList && menuItem.routerList.flat().indexOf(this.routeUrl) > -1)) {
+    if (
+      (menuItem.router && menuItem.router.indexOf(this.routeUrl) > -1) ||
+      (menuItem.routerList &&
+        menuItem.routerList.flat().indexOf(this.routeUrl) > -1)
+    ) {
       return menuItem.iconSelected;
     }
     return menuItem.icon;
   }
 
   isContainSecondMenu(menuItem: any): boolean {
-    return menuItem.children && menuItem.children.length > 0 && menuItem.collapseStatus === 2;
+    return (
+      menuItem.children &&
+      menuItem.children.length > 0 &&
+      menuItem.collapseStatus === 2
+    );
   }
 
   isLeafNode(menuItem: any): boolean {
-    return !menuItem.children || (menuItem.children && menuItem.children.length === 0);
+    return (
+      !menuItem.children ||
+      (menuItem.children && menuItem.children.length === 0)
+    );
   }
 
   getMenuMaxHeight(menuItem: any): string {
@@ -724,9 +702,10 @@ export class LeftMenuComponent implements OnInit, OnChanges {
     const modal = this.nzModalService.create<CreateSpaceComponent, any>({
       nzTitle: this.i18NextEagerPipe.transform('create_space'),
       nzContent: CreateSpaceComponent,
+      nzViewContainerRef: this.selectViewContainerRef,
       nzWidth: 600,
       nzMaskClosable: false,
-      nzFooter: null,
+      nzFooter: null
     });
 
     modal.afterClose.subscribe(() => {
@@ -744,8 +723,8 @@ export class LeftMenuComponent implements OnInit, OnChanges {
   async get_space() {
     await this.spaceTeamManagementService
       .getWorkspace()
-      .then(res => {
-        res.workspaceList.forEach(ws => {
+      .then((res) => {
+        res.workspaceList.forEach((ws) => {
           if (ws.type === 'PERSON' && this.lang === 'en-us') {
             ws.name = this.i18n.transform('personal_space');
           }
@@ -754,18 +733,27 @@ export class LeftMenuComponent implements OnInit, OnChanges {
 
         this.commonGetWorkSpaceCode(workspaceList);
         // 存储最新的下拉选项
-        StorageService.setSessionStorage('SPACE_OPTIONS', JSON.stringify(workspaceList));
+        StorageService.setSessionStorage(
+          'SPACE_OPTIONS',
+          JSON.stringify(workspaceList),
+        );
       })
-      .finally(() => {});
+      .finally(() => {
+      });
   }
 
   set_current_sapce() {
-    const cur_space = this.space_options?.filter(item => item.type === 'PERSON')[0];
+    const cur_space = this.space_options?.filter(
+      (item) => item.type === 'PERSON',
+    )[0];
     this.space_value = cur_space?.id ?? '';
     this.space_name = cur_space?.name ?? '';
     this.space_icon = cur_space.icon;
     this.ctxServ.addUserIdToLocal(cur_space);
-    StorageService.setSessionStorage('CUR_SPACE_OPTIONS', JSON.stringify(cur_space));
+    StorageService.setSessionStorage(
+      'CUR_SPACE_OPTIONS',
+      JSON.stringify(cur_space),
+    );
     const params = {
       is_neeed_reload: true, // 这个判断是否跳转至首页
       cur_space: cur_space,
@@ -774,10 +762,15 @@ export class LeftMenuComponent implements OnInit, OnChanges {
   }
 
   async get_space_member_roles() {
-    await this.spaceTeamManagementService.getSpaceMemberRoles().then((res: any) => {
-      this.roles_list = res.roleList ?? [];
-      StorageService.setSessionStorage('ROLES', JSON.stringify(this.roles_list));
-    });
+    await this.spaceTeamManagementService
+      .getSpaceMemberRoles()
+      .then((res: any) => {
+        this.roles_list = res.roleList ?? [];
+        StorageService.setSessionStorage(
+          'ROLES',
+          JSON.stringify(this.roles_list),
+        );
+      });
   }
 
   /**
@@ -837,19 +830,11 @@ export class LeftMenuComponent implements OnInit, OnChanges {
 
   handleBlurSpaceSelectBox() {
     this.isRotate = false;
-    this.isFocusSpaceSelectBox = false;
-  }
-
-  handleFocusSpaceSelectBox() {
-    this.isFocusSpaceSelectBox = true;
   }
 
   protected readonly cdnAssetUrl = cdnAssetUrl;
 
   ngOnDestroy(): void {
-    if (this.taskSessionRestoreFrame !== null) {
-      window.cancelAnimationFrame(this.taskSessionRestoreFrame);
-    }
     window.removeEventListener('click', this.handleClickOutMenu);
     if (this.permissionSubscription) {
       this.permissionSubscription.unsubscribe();
@@ -885,13 +870,18 @@ export class LeftMenuComponent implements OnInit, OnChanges {
     if (this.isSelectedAuthorizationManage) {
       return;
     }
-    this.router.navigate([`/home/platform-management/authorization-management`]);
+    this.router.navigate([
+      `/home/platform-management/authorization-management`,
+    ]);
   }
 
   private setSelectedStatus() {
     let routeUrl = window.location.hash.slice(7);
-    this.isSelectedResourceManage = routeUrl === 'platform-management/resource-management';
-    this.isSelectedAuthorizationManage = routeUrl.startsWith('platform-management/authorization-management');
+    this.isSelectedResourceManage =
+      routeUrl === 'platform-management/resource-management';
+    this.isSelectedAuthorizationManage = routeUrl.startsWith(
+      'platform-management/authorization-management',
+    );
   }
 
   public collapseMenu() {
@@ -900,16 +890,29 @@ export class LeftMenuComponent implements OnInit, OnChanges {
     this.cdr.markForCheck();
     this.expandMenuData.length = 0;
     for (let index = 0; index < this.copyItems.length; index++) {
-      if (!this.copyItems[index].children || this.copyItems[index].children.length <= 0) {
+      if (
+        !this.copyItems[index].children ||
+        this.copyItems[index].children.length <= 0
+      ) {
         continue;
       }
-      for (let _index = 0; _index < this.copyItems[index].children.length; _index++) {
+      for (
+        let _index = 0;
+        _index < this.copyItems[index].children.length;
+        _index++
+      ) {
         if (!this.copyItems[index].children[_index].children) {
           this.expandMenuData.push(this.copyItems[index].children[_index]);
           continue;
         }
-        for (let thirdIndex = 0; thirdIndex < this.copyItems[index].children[_index].children.length; thirdIndex++) {
-          this.expandMenuData.push(this.copyItems[index].children[_index].children[thirdIndex]);
+        for (
+          let thirdIndex = 0;
+          thirdIndex < this.copyItems[index].children[_index].children.length;
+          thirdIndex++
+        ) {
+          this.expandMenuData.push(
+            this.copyItems[index].children[_index].children[thirdIndex],
+          );
         }
       }
     }
@@ -920,29 +923,29 @@ export class LeftMenuComponent implements OnInit, OnChanges {
     this.cdr.markForCheck();
   }
 
-  private recordUserMenuState() {
-    const menuStateCache: any = {};
-    this.copyItems.forEach(item => {
+  private recordUserMenuState(){
+    const menuStateCache:any={};
+    this.copyItems.forEach((item)=>{
       // 记录用户菜单的展开状态
-      if (item?.isGroup) {
-        menuStateCache[item.id] = item?.children[0]?.collapseStatus ?? 1;
+      if(item?.isGroup){
+        menuStateCache[item.id]=item?.children[0]?.collapseStatus??1;
       }
     });
 
-    const userMenuState: any = this.loadUserMenuState();
+    const userMenuState: any=this.loadUserMenuState();
 
     userMenuState[this.ctxServ.user.userId] = menuStateCache;
-    StorageService.setLocalStorage('USER_MENU_STATE', JSON.stringify(userMenuState));
+    StorageService.setLocalStorage('USER_MENU_STATE',JSON.stringify(userMenuState));
   }
-  private loadUserMenuState() {
+  private loadUserMenuState(){
     const userMenuStateStr = StorageService.getLocalStorage('USER_MENU_STATE');
     let userMenuState: any;
-    try {
-      userMenuState = JSON.parse(userMenuStateStr) ?? {};
-    } catch (e) {
-      return {};
+    try{
+      userMenuState=JSON.parse(userMenuStateStr)??{};
+    }catch(e){
+      return {}
     }
-    return userMenuState[this.ctxServ.user.userId] ?? {};
+    return userMenuState[this.ctxServ.user.userId]??{};
   }
   goBack() {
     this.router.navigate([`/home/overview`]);
@@ -959,7 +962,7 @@ export class LeftMenuComponent implements OnInit, OnChanges {
       '/model-square',
       '/skill-market',
     ];
-    let hasMarketUrl = marketUrl.find(v => url.includes(v));
+    let hasMarketUrl = marketUrl.find((v) => url.includes(v));
     if (hasMarketUrl) {
       this.isMarket = true;
       this.filterItems(currentPermissions);
@@ -1004,9 +1007,12 @@ export class LeftMenuComponent implements OnInit, OnChanges {
    */
   private handlerWorkSpace() {
     if (this.queryWorkSpace) {
-      const curSpace = this.space_options?.find(item => item.id === this.queryWorkSpace);
+      const curSpace = this.space_options?.find((item) => item.id === this.queryWorkSpace);
       if (curSpace) {
-        StorageService.setSessionStorage('CUR_SPACE_OPTIONS', JSON.stringify(curSpace));
+        StorageService.setSessionStorage(
+          'CUR_SPACE_OPTIONS',
+          JSON.stringify(curSpace),
+        );
         this.initWorkSapce(curSpace);
         return;
       }
@@ -1017,23 +1023,26 @@ export class LeftMenuComponent implements OnInit, OnChanges {
         const spaceObj = JSON.parse(currentSpace);
         this.initWorkSapce(spaceObj);
         return;
-      } catch (err) {}
+      } catch(err) {}
     }
     // 设置空间为默认账户,再将默认账户更新到session中 进行兜底
-    const firstSpace = this.space_options?.find(item => item.type === 'PERSON');
+    const firstSpace = this.space_options?.find((item) => item.type === 'PERSON');
     this.space_value = firstSpace?.id ?? '';
     this.space_name = firstSpace?.name ?? '';
-    StorageService.setSessionStorage('CUR_SPACE_OPTIONS', JSON.stringify(firstSpace));
+    StorageService.setSessionStorage(
+      'CUR_SPACE_OPTIONS',
+      JSON.stringify(firstSpace),
+    );
   }
 
   private initWorkSapce(data) {
     this.space_value = data?.id ?? '';
     this.space_name = data.type === 'PERSON' ? this.i18n.transform('personal_space') : data.name;
     this.space_icon = data.icon;
-    const params = {
-      is_neeed_reload: false, // 无需跳转至overview页面
-      cur_space: data,
-    };
-    this.spaceTeamManagementService.updateSpaceOptionsSelected(params);
+      const params = {
+        is_neeed_reload: false, // 无需跳转至overview页面
+        cur_space: data,
+      };
+      this.spaceTeamManagementService.updateSpaceOptionsSelected(params);
   }
 }

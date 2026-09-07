@@ -125,14 +125,14 @@ export class ExceptionModalComponent extends ModalBaseComponent implements OnIni
   close(): void {}
 
   validateNode() {
-    const value = this.responseTemplate;
-    if (!value || value.trim() === '') {
+    if (!this.tempForm?.valid) {
+      this.validError = true;
+    } else {
       this.validError = false;
-      return;
     }
     try {
-      const obj = JSON.parse(value);
-      this.validError = typeof obj !== 'object' || obj === null || Array.isArray(obj);
+      JSON.parse(this.responseTemplate);
+      this.validError = false;
     } catch {
       this.validError = true;
     }

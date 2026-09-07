@@ -335,6 +335,8 @@ public interface CommonConstant {
 
         String PLUGINS = "plugins";
 
+        String BREAK_PLUGIN_IDS = "break_plugin_ids";
+
         String MODEL = "model";
 
         String VARIABLES = "variables";
@@ -1616,6 +1618,7 @@ public interface CommonConstant {
 
         String DESCRIPTION_TEXT = "descriptionText";
 
+        String ENABLE_INTENT_BREAK = "enable_intent_break";
     }
 
     /**

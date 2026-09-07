@@ -156,9 +156,6 @@ export class ControllerModalComponent
   @ViewChild('updateVersionModal')
   updateVersionModal: TemplateRef<HTMLDivElement>;
 
-  @ViewChild('updateVersionModalFooter')
-  updateVersionModalFooter: TemplateRef<HTMLDivElement>;
-
   @Output('confirm') confirm = new EventEmitter<IControllerNode>();
 
   displayeIntentdData: Array<TableRowData> = [];
@@ -293,10 +290,6 @@ export class ControllerModalComponent
    * @type INeedUpdateFlow[]
    */
   public checkedFlows: any = [];
-
-  public allChecked = false;
-
-  public indeterminate = false;
 
   public updateModal: NzModalRef = null;
   public drawerRef: NzDrawerRef = null;
@@ -1087,7 +1080,6 @@ export class ControllerModalComponent
     await this.setPublishedSubAgentDetails(agentInfo.id, agentInfo.version_id);
     if (agentInfo.update) {
       agentInfo.update = null;
-      this.cd.markForCheck();
     }
     if (isUpdate) {
       this.handelSave();
@@ -1117,7 +1109,6 @@ export class ControllerModalComponent
       nzTitle: '',
       nzContent: this.updateVersionModal,
       nzClassName: 'update-version-modal',
-      nzFooter: this.updateVersionModalFooter,
     });
   }
 
@@ -1183,10 +1174,6 @@ export class ControllerModalComponent
           this.needUpdateFlowCtx = this.needUpdateFlowCtx.filter(
             (ctx) => !(this.checkedFlows as INeedUpdateFlow[]).includes(ctx),
           );
-          this.checkedFlows = [];
-          this.allChecked = false;
-          this.indeterminate = false;
-          this.cd.markForCheck();
 
           MessageComponent.showSuccess(this.i18n.transform('update_success'));
           this.updateModal?.destroy();
@@ -1567,7 +1554,6 @@ export class ControllerModalComponent
           v.update = this.handleShowUpdatedIcon(v.id, v.version_id);
         });
       }
-      this.cd.markForCheck();
     });
   }
 
@@ -1723,11 +1709,10 @@ export class ControllerModalComponent
 
   checkAll(checked: boolean) {
     if (checked) {
-      this.checkedFlows = [...this.tableSrcData.data.filter((item) => !item.disabled)];
+      this.checkedFlows = this.displayedData.filter((item) => !item.disabled);
     } else {
       this.checkedFlows = [];
     }
-    this.refreshAllCheckedState();
   }
 
   checkItem(row: any, checked: boolean) {
@@ -1738,13 +1723,5 @@ export class ControllerModalComponent
     } else {
       this.checkedFlows = this.checkedFlows.filter((item) => item !== row);
     }
-    this.refreshAllCheckedState();
-  }
-
-  refreshAllCheckedState() {
-    const selectable = this.tableSrcData.data.filter((item) => !item.disabled);
-    const checkedCount = selectable.filter((item) => this.checkedFlows.includes(item)).length;
-    this.allChecked = checkedCount === selectable.length && selectable.length > 0;
-    this.indeterminate = checkedCount > 0 && checkedCount < selectable.length;
   }
 }

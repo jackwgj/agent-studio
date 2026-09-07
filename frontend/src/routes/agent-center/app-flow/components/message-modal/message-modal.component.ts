@@ -89,12 +89,6 @@ export class MessageModalComponent extends ModalBaseComponent implements OnInit 
 
   readonly showVarListSubject$ = new Subject<boolean>();
 
-  onShowVarList(event: Event, subject: Subject<boolean>) {
-    event.preventDefault();
-    event.stopPropagation();
-    subject.next(true);
-  }
-
   needValid = false;
 
   public enableHistory = true;

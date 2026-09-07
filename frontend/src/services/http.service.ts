@@ -405,9 +405,8 @@ export class HttpService {
       return {...this.defaultConfig, ...httpConfig};
     }
 
-    // 不在此处拼接 prefixPath——拼接统一由 mergeConfig 完成。
-    // 此前这里会 ${this.prefixPath}${httpConfig.url} 拼一次，随后 fetchAsync/fetch → get → mergeConfig
-    // 又拼一次，导致 url 重复 origin（http://localhosthttp//localhost/...），workspace 请求失败。
+    httpConfig.url = `${this.prefixPath}${httpConfig.url}`;
+
     return {...this.defaultConfig, ...httpConfig};
   }
 

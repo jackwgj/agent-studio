@@ -63,37 +63,20 @@ export class PluginNodeComponent extends NodeBaseComponent {
     this.setNodeBase(this.nodeInfo);
     super.ngOnInit();
 
-    if (this.configServ.getConfigs()?.studio_btn_show) {
-      this.actions.unshift({
-        id: 'detail',
-        label: this.i18n.transform('plugin_details'),
-      });
-    }
+    this.actions.unshift({
+      id: 'detail',
+      label: this.i18n.transform('plugin_details'),
+    });
 
     this.appFlowServ.setApiOriginInfo({
       id: this.nodeInfo.configs.id,
       name: this.nodeInfo.name,
     });
 
-    // 响应式订阅：resNodes 数据到达时更新 updateFlowTip，避免 ngOnInit 同步读取时数据未到
-    this.appFlowServ
-      .resNodesUpdate()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe((childFlowNodes) => {
-        const matchedNode = childFlowNodes.find((n) => n.id === this.nodeBase?.id);
-        if (matchedNode) {
-          this.isChildFlowsUpdated = matchedNode;
-          this.updateFlowTip = this.i18n.transform('update_flow_tip', {
-            versionName: matchedNode.ref_workflows?.last_version_name,
-          });
-        }
-      });
-
-    // 如果 super.ngOnInit() 中数据已同步到达，也处理一次
+    const { ref_workflows } = this.isChildFlowsUpdated || {};
     this.updateFlowTip = this.i18n.transform('update_flow_tip', {
-      versionName: this.isChildFlowsUpdated?.ref_workflows?.last_version_name,
+      versionName: ref_workflows?.last_version_name,
     });
-
     this.appFlowServ
       .nodeRefChange$()
       .pipe(takeUntil(this.destroy$))

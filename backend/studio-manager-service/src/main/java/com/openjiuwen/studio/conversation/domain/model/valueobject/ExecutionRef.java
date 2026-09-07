@@ -15,15 +15,18 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ExecutionRef {
-    /** 当前运行实例业务 ID。 */
-    private String runId;
+    /**
+     * 主轮次 execution_id（=引擎execution_id）
+     */
+    private String executionId;
 
-    /** 直接父运行实例业务 ID，根运行为空。 */
-    private String parentRunId;
+    /**
+     * 子任务分组键（子 agent 消息必填，主 agent 消息为空）
+     */
+    private String subExecutionId;
 
-    /** Agent 配置或成员身份。 */
+    /**
+     * agent 溯源（主 agent 或子 agent）
+     */
     private String agentId;
-
-    /** agent 或 workflow。 */
-    private String executionType;
 }

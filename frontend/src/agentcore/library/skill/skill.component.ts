@@ -1,4 +1,4 @@
-import { SkillApi } from '@agentcore/api/skill.api';
+import { SIESkillApi } from '@agentcore/api/sie-skill.api';
 import { CARD_LIST_TYPE } from '@agentcore/constants/skill';
 import { I18nService } from '@agentcore/core/i18n.service';
 import { I18nPipe } from '@agentcore/shared/pipes/i18n.pipe';
@@ -84,7 +84,7 @@ export class SkillComponent implements OnInit {
   ];
 
   constructor(
-    private _skillApi: SkillApi,
+    private _skillApi: SIESkillApi,
     private _i18n: I18nService,
     public commonService: CommonService,
     private skillCommonService: SkillCommonService
@@ -115,7 +115,6 @@ export class SkillComponent implements OnInit {
     const params: QueryParams = {
       offset: 0,
       limit: this.cardPageSize.size || 10, // 提供默认值
-      published_asset: 0,
       [mapKeys.LANGUAGE]: this.isZH() ? 'ZH' : 'EN', // 直接初始化语言参数
     };
     if (this.searchName.length > 0) {

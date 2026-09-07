@@ -6,14 +6,10 @@ package com.openjiuwen.studio.conversation.interfaces.controller;
 
 import com.openjiuwen.studio.agent.foundation.connection.model.PageResult;
 import com.openjiuwen.studio.conversation.application.ConversationWorkspaceAppService;
-import com.openjiuwen.studio.conversation.application.ConversationInputUploadService;
 import com.openjiuwen.studio.conversation.application.dto.ConversationCreateCmd;
-import com.openjiuwen.studio.conversation.application.dto.ConversationArtifactDownload;
 import com.openjiuwen.studio.conversation.application.dto.ConversationDetailVo;
 import com.openjiuwen.studio.conversation.application.dto.ConversationListQuery;
-import com.openjiuwen.studio.conversation.application.dto.ConversationSkillVo;
 import com.openjiuwen.studio.conversation.application.dto.ConversationVo;
-import com.openjiuwen.studio.conversation.application.dto.ConversationInputUploadVo;
 import com.openjiuwen.studio.conversation.application.dto.SendMessageCmd;
 
 import io.swagger.annotations.Api;
@@ -21,9 +17,6 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.ContentDisposition;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -33,14 +26,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
-import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
-
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-
 
 /**
  * 对话工作台会话接口（挂载 manager 服务）
@@ -51,22 +37,9 @@ import java.util.List;
 public class ConversationWorkspaceController {
 
     private final ConversationWorkspaceAppService conversationWorkspaceAppService;
-    private final ConversationInputUploadService conversationInputUploadService;
 
-    public ConversationWorkspaceController(ConversationWorkspaceAppService conversationWorkspaceAppService,
-                                           ConversationInputUploadService conversationInputUploadService) {
+    public ConversationWorkspaceController(ConversationWorkspaceAppService conversationWorkspaceAppService) {
         this.conversationWorkspaceAppService = conversationWorkspaceAppService;
-        this.conversationInputUploadService = conversationInputUploadService;
-    }
-
-    @ApiOperation("上传对话附件")
-    @PostMapping(value = "/input-files", consumes = "multipart/form-data")
-    public ConversationInputUploadVo uploadInputFile(@PathVariable("project_id") String projectId,
-                                                      @RequestParam("workspace_id") String workspaceId,
-                                                      @RequestParam(value = "file_name_base64", required = false)
-                                                      String fileNameBase64,
-                                                      @RequestParam("file") MultipartFile file) {
-        return conversationInputUploadService.upload(projectId, workspaceId, file, fileNameBase64);
     }
 
     /**
@@ -105,14 +78,6 @@ public class ConversationWorkspaceController {
         return conversationWorkspaceAppService.list(projectId, workspaceId, query);
     }
 
-    @ApiOperation("工作空间技能目录")
-    @GetMapping("/skills")
-    public List<ConversationSkillVo> listSkills(
-            @PathVariable("project_id") String projectId,
-            @RequestParam("workspace_id") String workspaceId) {
-        return conversationWorkspaceAppService.listSkills(projectId, workspaceId);
-    }
-
     /**
      * 会话详情（含全部消息）
      *
@@ -127,35 +92,6 @@ public class ConversationWorkspaceController {
                                        @ApiParam("空间id") @RequestParam(value = "workspace_id") String workspaceId,
                                        @PathVariable("conversation_id") String conversationId) {
         return conversationWorkspaceAppService.detail(projectId, workspaceId, conversationId);
-    }
-
-    @ApiOperation("下载对话正式产物")
-    @GetMapping("/{conversation_id}/artifacts/download")
-    public ResponseEntity<StreamingResponseBody> downloadArtifact(
-        @PathVariable("project_id") String projectId,
-        @RequestParam("workspace_id") String workspaceId,
-        @PathVariable("conversation_id") String conversationId,
-        @RequestParam("object_key") String objectKey) {
-        ConversationArtifactDownload download = conversationWorkspaceAppService.downloadArtifact(
-            projectId, workspaceId, conversationId, objectKey);
-        StreamingResponseBody body = outputStream -> {
-            try (InputStream inputStream = download.getContent()) {
-                inputStream.transferTo(outputStream);
-            }
-        };
-        MediaType mediaType;
-        try {
-            mediaType = MediaType.parseMediaType(download.getMediaType());
-        } catch (IllegalArgumentException error) {
-            mediaType = MediaType.APPLICATION_OCTET_STREAM;
-        }
-        return ResponseEntity.ok()
-            .contentType(mediaType)
-            .contentLength(download.getSize())
-            .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
-                .filename(download.getFileName(), StandardCharsets.UTF_8)
-                .build().toString())
-            .body(body);
     }
 
     /**

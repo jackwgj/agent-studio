@@ -65,8 +65,6 @@ import { CONVERSATION_TYPE } from '@services/agent-center/app-controller.service
 export class AgentLogModalComponent {
   @Input() showLogModal = false;
 
-  @Input() conversationId = '';
-
   @Output('close') close = new EventEmitter<void>();
 
   public ALL_ITEM = ALL;
@@ -138,7 +136,6 @@ export class AgentLogModalComponent {
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes.showLogModal && changes.showLogModal.currentValue) {
-      this.conversationSelected = '';
       this.getConversations().then(() => {
         this.handleAllDate(this.conversationList);
         this.selectDateObj = this.dates?.[0] || null;
@@ -366,19 +363,9 @@ export class AgentLogModalComponent {
       );
       this.conversationList = res.conversation_infos;
       if (this.conversationList.length > 0) {
-        const prevId = this.conversationSelected;
-        const matched = prevId
-          ? this.conversationList.find((c: any) => c.conversation_id === prevId)
-          : null;
-        if (matched) {
-          this.conversationSelected = matched.conversation_id;
-        } else if (this.conversationId) {
-          const found = this.conversationList.find((c: any) => c.conversation_id === this.conversationId);
-          this.conversationSelected = found ? found.conversation_id : this.conversationList[0].conversation_id;
-        } else {
-          this.conversationSelected = this.conversationList[0].conversation_id;
-        }
-        this.getExecutions(this.conversationSelected);
+        this.conversationSelected = this.conversationList[0].conversation_id;
+        const { conversation_id } = this.conversationList[0] || {};
+        this.getExecutions(conversation_id);
       } else {
         this.conversationSelected = '';
         this.executionSelected = '';

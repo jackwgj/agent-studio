@@ -70,7 +70,7 @@
             <asset-format-icon
               class="cursor-pointer"
               (click)="formatJson(inputItem.name)"
-              [tiTip]="'format' | i18nextEager"
+              nz-tooltip [nzTooltipTitle]="'format' | i18nextEager"
             ></asset-format-icon>
           </div>
           <ngx-monaco-editor

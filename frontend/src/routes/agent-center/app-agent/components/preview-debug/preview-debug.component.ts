@@ -441,7 +441,6 @@ export class PreviewDebugComponent {
   }
 
   public openLogModal() {
-    this.agentDataServe.setCurrentConversationId(this.uuid);
     this.agentDataServe.setInsightBtnClicked(true);
   }
 

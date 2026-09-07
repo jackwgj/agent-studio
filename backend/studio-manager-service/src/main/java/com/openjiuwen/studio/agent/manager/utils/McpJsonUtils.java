@@ -70,8 +70,8 @@ public class McpJsonUtils {
      **/
     public static boolean isValidJson(String jsonStr) {
         try {
-            JsonNode node = OBJECT_MAPPER.readTree(jsonStr);
-            return node != null && (node.isObject() || node.isArray());
+            OBJECT_MAPPER.readTree(jsonStr);  // 解析 JSON 树
+            return true;
         } catch (Exception e) {
             return false;
         }

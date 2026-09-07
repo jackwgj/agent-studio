@@ -22,6 +22,11 @@ import org.mockito.quality.Strictness;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
 /**
  * CustomModelManagementService测试类
  *
@@ -56,6 +61,14 @@ public class ParamExtractionNodeServiceTest extends BaseTest {
         WorkflowVO workflowVO = JSON.parseObject(jsonContent, WorkflowVO.class);
         WorkflowValidationVO res = workflowValidationService.validate("1", "1", workflowVO);
         Assertions.assertEquals(6, res.getErrors().size());
+    }
+
+    @Test
+    void test_handlePluginId() {
+        Map<String, Object> pluginConfig = new HashMap<>();
+        pluginConfig.put("id", "plugin1#plugin2");
+        Set<String> pluginIds = new HashSet<>();
+        workflowValidationService.handlePluginId(pluginConfig, pluginIds);
     }
 
     @Test

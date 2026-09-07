@@ -264,12 +264,6 @@ export class DynamicNodeParamsComponent {
   }
 
   public handleUserInput(control_name: string, isValidate: boolean) {
-    // 用户输入时重置错误标志，立即清除错误提示
-    const inputItem = this.inputList?.find(item => item.name === control_name);
-    if (inputItem) {
-      inputItem.isEmpty = false;
-      inputItem.isError = false;
-    }
     // 启用校验
     const control = this.parameterFromGroup.get([`${control_name}`]);
     if (control) {
@@ -592,7 +586,7 @@ export class DynamicNodeParamsComponent {
     return type === 'object' || type.startsWith('array');
   }
 
-  public async onUploadFile(e: Event, inputItem, uploadType = 'multi'): Promise<void> {
+  public onUploadFile(e: Event, inputItem, uploadType = 'multi'): void {
     const input = e.target as HTMLInputElement;
     if (uploadType === 'single') {
       const file: File = input.files[0];
@@ -600,14 +594,14 @@ export class DynamicNodeParamsComponent {
         return;
       }
       const fileExtension = file.name.split('.').pop().toLowerCase();
-      const valid = checkFileTypeAndSize(
+      const isImage = checkFileTypeAndSize(
         fileExtension,
         file.size,
         this.i18n,
-        this.configServ.getFileMaxSizeKb(),
+        this.configServ,
       );
 
-      if (!valid) {
+      if (!isImage) {
         return;
       }
 
@@ -639,8 +633,7 @@ export class DynamicNodeParamsComponent {
           this.appFlowServe.setFileList(inputItem);
         })
         .catch(() => {
-          inputItem.uploadData = null;
-          inputItem.file = null;
+          inputItem.uploadData.progress = 'failed';
           this.fileLoading = false;
           this.parameterFromGroup.controls[inputItem.name].setValue('');
         });
@@ -670,17 +663,14 @@ export class DynamicNodeParamsComponent {
         const isImage = ['png', 'jpeg', 'gif', 'webp', 'jpg', 'svg'].includes(
           extension,
         );
-        const validationError = validateFileSize(file, isImage, 5 * 1024, this.configServ.getFileMaxSizeKb());
+        const validationError = validateFileSize(file, isImage);
         if (validationError) {
-          MessageComponent.showWarn(this.i18n.transform(validationError.key, validationError.params));
+          MessageComponent.showWarn(this.i18n.transform(validationError));
           continue;
         }
         const fileItem = createFileItem(file);
         inputItem.uploadDatas.push(fileItem);
-        await new Promise(resolve => setTimeout(resolve));
-        await uploadFile(this.appAgentServe, file, isImage, fileItem, () => {
-          inputItem.uploadDatas = inputItem.uploadDatas.filter((f) => f.fileId !== fileItem.fileId);
-        });
+        uploadFile(this.appAgentServe, file, isImage, fileItem);
       }
       this.parameterFromGroup.controls[inputItem.name].setValue(
         inputItem.uploadDatas,

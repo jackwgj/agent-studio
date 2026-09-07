@@ -1,6 +1,5 @@
 import { Component, Input, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { MODULES } from '@shared/modules';
 import { I18nNamespace } from '@i18n';
 import { I18NEXT_NAMESPACE, I18NextEagerPipe } from 'angular-i18next';
@@ -8,15 +7,12 @@ import { ModelManagementService } from '@services/repositories/model-management-
 import { DeleteModalComponent } from "@routes/model-management/delete-modal/delete-modal.component";
 import { NzModalService, NzModalRef } from 'ng-zorro-antd/modal';
 import { NzMessageService } from 'ng-zorro-antd/message';
-import { NzInputModule } from 'ng-zorro-antd/input';
-import { NzIconModule } from 'ng-zorro-antd/icon';
-import { NzToolTipModule } from 'ng-zorro-antd/tooltip';
 import type { ProviderInfo } from "@routes/model-management/components/auth-modal/auth.type";
 
 @Component({
   selector: 'meta-auth-modal',
   standalone: true,
-  imports: [CommonModule, MODULES, FormsModule, NzInputModule, NzIconModule, NzToolTipModule],
+  imports: [CommonModule, MODULES],
   templateUrl: './auth-modal.component.html',
   styleUrls: ['./auth-modal.component.scss'],
   providers: [
@@ -47,6 +43,7 @@ export class AuthModalComponent implements OnInit {
 
   @Input() provider_info: ProviderInfo;
 
+  confirmText = 'DELETE';
   loading = false;
   authsInfo: any = {
     'API Key': '',
@@ -55,8 +52,6 @@ export class AuthModalComponent implements OnInit {
   };
 
   authsList: any[] = [];
-  authType = '';
-  apiKeyAuthArgs = [{ target_name: '', auth_key: '' }];
 
   constructor(
     private modelManagementService: ModelManagementService,
@@ -77,7 +72,6 @@ export class AuthModalComponent implements OnInit {
       .getProviderAuths({ provider_id: this.provider_info.id })
       .then((res: any) => {
         this.authsList = [];
-        this.authType = res?.data[0]?.auth_type || '';
         if (res?.data[0]?.auth_info) {
           this.authsInfo = JSON.parse(res?.data[0].auth_info);
           const passwordList = [
@@ -89,16 +83,6 @@ export class AuthModalComponent implements OnInit {
             'iamAK',
             'iamSK',
           ];
-          if (res?.data[0].auth_type === 'CUSTOM_APIKEY') {
-            this.apiKeyAuthArgs = [];
-            Object.keys(this.authsInfo).forEach((key) => {
-              this.apiKeyAuthArgs.push({
-                target_name: key,
-                auth_key: this.authsInfo[key],
-              });
-              this.authsInfo[key] = '***';
-            });
-          }
           Object.keys(this.authsInfo).forEach((key) => {
             let nj = {
               key: key,
@@ -130,9 +114,6 @@ export class AuthModalComponent implements OnInit {
           this.authsInfo.auth_id = res?.data[0].auth_id;
         } else {
           this.authsInfo = res?.data[0] || {};
-          if (this.authType === 'CUSTOM_APIKEY') {
-            this.apiKeyAuthArgs = [{ target_name: '', auth_key: '' }];
-          }
         }
       });
   }
@@ -140,61 +121,6 @@ export class AuthModalComponent implements OnInit {
   handelAuth() {
     let checkAuth = true;
     this.loading = true;
-
-    if (this.authType === 'CUSTOM_APIKEY') {
-      if (this.authsInfo.auth_id) {
-        const modal = this.modalService.create({
-          nzContent: DeleteModalComponent,
-          nzWidth: '500px',
-          nzFooter: null,
-          nzData: {
-            context: {
-              id: this.authsInfo.auth_id,
-              title: this.i18n.transform('remove_auth'),
-              tip: this.i18n.transform('confirm_remove_auth'),
-              fnName: 'deleteProviderAuths',
-              close: () => {
-                this.message.success(this.i18n.transform('remove_success'));
-                this.close();
-                modal.close();
-              },
-            },
-          } as any,
-        });
-        this.loading = false;
-        return;
-      }
-      checkAuth = this.apiKeyAuthArgs.every(
-        (item) => item.target_name.trim() && item.auth_key.trim()
-      );
-      if (!checkAuth) {
-        this.message.error(this.i18n.transform('input_auth_info'));
-        this.loading = false;
-        return;
-      }
-      let authInfo = {};
-      this.apiKeyAuthArgs.forEach((item) => {
-        authInfo[item.target_name] = item.auth_key;
-      });
-      let params = {
-        metadata_id: this.provider_info.auth_configs[0].metadata_id,
-        auth_info: authInfo,
-      };
-      this.modelManagementService
-        .postProviderAuths(params, { available_check: true })
-        .then((res: any) => {
-          this.message.success(this.i18n.transform('auth_config_success'));
-          this.close();
-        })
-        .catch((error) => {
-          this.message.error(this.i18n.transform('auth_config_failed'));
-        })
-        .finally(() => {
-          this.loading = false;
-        });
-      return;
-    }
-
     Object.keys(this.authsInfo).forEach((key) => {
       if (key !== 'auth_id' && !this.authsInfo[key]) {
         checkAuth = false;
@@ -206,25 +132,7 @@ export class AuthModalComponent implements OnInit {
       return;
     }
     if (this.authsInfo.auth_id) {
-      const modal = this.modalService.create({
-        nzContent: DeleteModalComponent,
-        nzWidth: '500px',
-        nzFooter: null,
-        nzData: {
-          context: {
-            id: this.authsInfo.auth_id,
-            title: this.i18n.transform('remove_auth'),
-            tip: this.i18n.transform('confirm_remove_auth'),
-            fnName: 'deleteProviderAuths',
-            close: () => {
-              this.message.success(this.i18n.transform('remove_success'));
-              this.close();
-              modal.close();
-            },
-          },
-        } as any,
-      });
-      this.loading = false;
+      this.delete();
       return;
     } else {
       let params = {
@@ -243,12 +151,24 @@ export class AuthModalComponent implements OnInit {
     }
   }
 
-  public addArgs() {
-    this.apiKeyAuthArgs.push({ target_name: '', auth_key: '' });
-  }
+  public deleteModal(item: any) {
+    const modal = this.modalService.create({
+      nzContent: DeleteModalComponent,
+      nzClassName: 'tp-modal-sm-index',
+      nzData: {
+        id: item.id,
+        title: this.i18n.transform('remove_auth'),
+        tip: this.i18n.transform('confirm_remove_auth'),
+        fnName: 'deleteProviderAuths',
+      }
+    });
 
-  public deleteArgs(i: number) {
-    this.apiKeyAuthArgs.splice(i, 1);
+    modal.afterClose.subscribe((result) => {
+      if (result) {
+        this.close();
+        this.message.success(this.i18n.transform('remove_success'));
+      }
+    });
   }
 
   delete() {

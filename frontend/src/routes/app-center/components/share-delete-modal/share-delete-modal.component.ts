@@ -65,6 +65,7 @@ export class ShareDeleteModalComponent {
         })
         .then(() => {
           this.close();
+          MessageComponent.showSuccess(this.i18n.transform('share-delete-modal-4'), 3000);
           if(this.shareData.resource_type === SHARE_PAGE.plugin){
             this.router.navigate(['/home/plugin-market'],{
               state:{
@@ -89,10 +90,10 @@ export class ShareDeleteModalComponent {
   }
 
   close(): void {
-    this.modalRef.destroy(true);
+    this.modalRef.destroy();
   }
   dismiss(): void {
-    this.modalRef.destroy(false);
+    this.modalRef.destroy();
   }
 
 }

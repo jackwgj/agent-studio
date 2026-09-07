@@ -79,7 +79,6 @@ import {
 import { AddChildFlowModalComponent } from '../components/add-child-flow-modal/add-child-flow-modal.component';
 import { AddMCPServiceModalComponent } from '../components/add-mcp-service-modal/add-mcp-service-modal.component';
 import { AddPluginModalComponent } from '../components/add-plugin-modal/add-plugin-modal.component';
-import { AgentModalComponent } from '../components/agent-modal/agent-modal.component';
 import { AggregationModalComponent } from '../components/aggregation-modal/aggregation-modal.component';
 import { BranchModalComponent } from '../components/branch-modal/branch-modal.component';
 import { ChildFlowModalComponent } from '../components/child-flow-modal/child-flow-modal.component';
@@ -163,7 +162,6 @@ import {
 import { FlowUtils, TargetMarker } from '../utils/flow-utils';
 import { isEditableTarget } from '../utils/editable-target.util';
 import { shouldClearHalfModalOnClose } from '../utils/pending-open-node.util';
-import { withDrawerAutoClose } from '../utils/drawer-auto-close.util';
 import { IAppRefList } from '@routes/agent-center/types/common.types';
 import { getMaxReplySetting } from '@routes/agent-center/utils';
 import { ModelManagementService } from '@services/repositories/model-management-new';
@@ -237,7 +235,6 @@ const NodeMap = {
   Loop: LoopModalComponent,
   SetVariable: SetVariableModalComponent,
   IntentDetectionContainer: IntentContainerModalComponent,
-  Agent: AgentModalComponent,
   Controller: ControllerModalComponent,
   SubController: ControllerModalComponent,
   QA: QAModalComponent,
@@ -602,7 +599,6 @@ export class FlowComponent implements OnInit, OnDestroy, AfterViewInit {
       id: 'appConfig',
       title: this.i18n.transform('multi_agent_config'),
       active: true,
-      show: this.configServ.getConfigs()?.studio_btn_show,
     },
     {
       id: 'releaseManage',
@@ -610,7 +606,6 @@ export class FlowComponent implements OnInit, OnDestroy, AfterViewInit {
       active: false,
       disabled: !this.historyVersionList.length,
       tips: '',
-      show: this.configServ.getConfigs()?.studio_btn_show,
     },
   ];
   public curActiveConfigTabId = this.configHeaderTabs[0].id;
@@ -1361,7 +1356,7 @@ export class FlowComponent implements OnInit, OnDestroy, AfterViewInit {
         if (!ref?.nodeData) {
           return;
         }
-        let {nodeData = {}} = ref || {};
+        let {nodeData = {}, nodeInfo = {}} = ref || {};
 
         // 保存
         this.exceptionBranchHandler(nodeData);
@@ -1433,14 +1428,7 @@ export class FlowComponent implements OnInit, OnDestroy, AfterViewInit {
         if (nodeData?.id === 'node_start') {
           this.isStartNodeBtnClicked = true;
         }
-        // 保存事件只携带 nodeData，旧节点快照需从当前 graph 按 nodeData.id 读取并深拷贝，
-        // 作为 checkRefChangeAndUpdateNode 的 oldNodeData；旧节点不存在（新增节点）时传
-        // {} 哨兵安全跳过差异检查（其内部 getOutputsRefIndex 对空 outputs 返回 []，不报错也不误更新）。
-        const graphOldNode = this.getNodeInfoById(nodeData.id);
-        const oldNodeData: NodeInfo = graphOldNode
-          ? cloneDeep(graphOldNode)
-          : ({} as NodeInfo);
-        this.checkRefChangeAndUpdateNode(oldNodeData, nodeData);
+        this.checkRefChangeAndUpdateNode(nodeInfo, nodeData);
 
         // 更新画布上的node
         if (nodeData?.type === 'SubController') {
@@ -2072,19 +2060,13 @@ export class FlowComponent implements OnInit, OnDestroy, AfterViewInit {
       });
       modalRef.afterClose.subscribe((result) => {
         if (result) {
-          this.ngZone.run(() => {
-            nodeInfo.name = removeHTMLTag(result);
-            if (node?.data?.ngArguments?.nodeInfo) {
-              node.data.ngArguments.nodeInfo.name = nodeInfo.name;
-              node.data.ngArguments.nodeInfo.configs.isDefaultName = false;
-            }
-            if (this.nodeConfigNodeInfo && this.nodeConfigNodeInfo.id === nodeInfo.id) {
-              this.nodeConfigNodeInfo.name = nodeInfo.name;
-            }
-            this.appFlowServ.setNodeNameChange({id: nodeInfo.id, name: nodeInfo.name});
-            this.updateFlowData();
-            this.cdr.detectChanges();
-          });
+          nodeInfo.name = removeHTMLTag(result);
+          if (node?.data?.ngArguments?.nodeInfo) {
+            node.data.ngArguments.nodeInfo.name = nodeInfo.name;
+            node.data.ngArguments.nodeInfo.configs.isDefaultName = false;
+          }
+          this.appFlowServ.setNodeNameChange({id: nodeInfo.id, name: nodeInfo.name});
+          this.updateFlowData();
         }
       });
     }
@@ -4548,16 +4530,11 @@ export class FlowComponent implements OnInit, OnDestroy, AfterViewInit {
       },
     );
     this.appFlowServ.setPluginList(addedPluginList);
-    // 闭包保存“本次”创建的 drawerRef：outputs 必须先于 create() 传入
-    // nzContentParams、而 ref 由 create() 返回，故用 getter 延迟读取局部
-    // let drawerRef；选择成功后关闭本次实例，不依赖会被后续打开覆盖的 this.pluginModalRef。
-    let drawerRef: NzDrawerRef | undefined;
-    const onSelect = withDrawerAutoClose(callback, () => drawerRef);
-    this.pluginCallback = onSelect;
+    this.pluginCallback = callback;
     const outputs = {
-      pluginChange: onSelect,
+      pluginChange: callback,
     };
-    drawerRef = this.nzDrawerService.create({
+    this.pluginModalRef = this.nzDrawerService.create({
       nzTitle: this.i18n.transform('addpluginmodalcomponent_252'),
       nzContent: AddPluginModalComponent,
       nzPlacement: 'right',
@@ -4570,7 +4547,6 @@ export class FlowComponent implements OnInit, OnDestroy, AfterViewInit {
         outputs,
       },
     });
-    this.pluginModalRef = drawerRef;
   }
 
   private useAddFlowModal(
@@ -4582,14 +4558,11 @@ export class FlowComponent implements OnInit, OnDestroy, AfterViewInit {
       config: any;
     }) => void,
   ) {
-    // 闭包保存“本次”创建的 drawerRef（见 useAddPluginModal 注释）。
-    let drawerRef: NzDrawerRef | undefined;
-    const onSelect = withDrawerAutoClose(callback, () => drawerRef);
-    this.childFlowCallback = onSelect;
+    this.childFlowCallback = callback;
     const outputs = {
-      workflowChange: onSelect,
+      workflowChange: callback,
     };
-    drawerRef = this.nzDrawerService.create({
+    this.childFlowModalRef = this.nzDrawerService.create({
       nzTitle: '',
       nzContent: AddChildFlowModalComponent,
       nzPlacement: 'right',
@@ -4607,25 +4580,20 @@ export class FlowComponent implements OnInit, OnDestroy, AfterViewInit {
         workflowSelectedLimit: 1,
       },
     });
-    this.childFlowModalRef = drawerRef;
   }
 
   private useAddMcpModal(
     callback: (mcpService: IMCPService) => void,
     type: string,
   ) {
-    // 闭包保存“本次”创建的 drawerRef（见 useAddPluginModal 注释）；
-    // MCP 回调为异步，withDrawerAutoClose 会 await 异步初始化/节点创建完成后再 close。
-    let drawerRef: NzDrawerRef | undefined;
-    const onSelect = withDrawerAutoClose(callback, () => drawerRef);
-    this.mcpServiceCallback = onSelect;
+    this.mcpServiceCallback = callback;
     const outputs = {
-      mcpServiceChange: onSelect,
+      mcpServiceChange: callback,
       createMcpRes: (data: any) => {
         this.createMcpResEmit(data);
       },
     };
-    drawerRef = this.nzDrawerService.create({
+    this.mcpModalRef = this.nzDrawerService.create({
       nzTitle: '',
       nzContent: AddMCPServiceModalComponent,
       nzPlacement: 'right',
@@ -4639,7 +4607,6 @@ export class FlowComponent implements OnInit, OnDestroy, AfterViewInit {
         outputs,
       },
     });
-    this.mcpModalRef = drawerRef;
   }
 
   get halfModalWidth() {
@@ -4969,11 +4936,8 @@ export class FlowComponent implements OnInit, OnDestroy, AfterViewInit {
         ) {
           field.type = index.type;
 
-          // 视觉字段（标量与数组）都需按媒体类型同步命名与 configs.vision；
-          // 不能仅在 array/object 时调用，否则标量 file/image↔file/video 切换会漏同步。
-          this.changeLLMVisionName(field, index, node);
-
           if (['array', 'object'].includes(field.type)) {
+            this.changeLLMVisionName(field, index, node);
             field.schema = index.schema;
           } else if (field?.schema) {
             delete field.schema;
@@ -5004,35 +4968,25 @@ export class FlowComponent implements OnInit, OnDestroy, AfterViewInit {
     if (!node?.configs?.vision) {
       return;
     }
-    // 数组 schema 子类型优先，否则标量 newRef.type（标量引用经 getDtoInput 后 schema 被删除）
-    const refType = newRef.schema?.type ?? newRef.type;
-    // file/video -> 视频；file/image 或数组元素 string -> 图片
-    const isVideo = refType === 'file/video';
-    const isImage = refType === 'file/image' || refType === 'string';
-    if (!isVideo && !isImage) {
-      return;
+    const type = newRef.schema?.type;
+    if (field.name.startsWith('_image_vision_') && type === 'file/video') {
+      const originIndex =
+        node.configs.vision.findIndex((v) => {
+          return v === field.name;
+        }) ?? 0;
+      field.name = field.name.replace('_image_', '_video_');
+      node.configs.vision[originIndex] = field.name;
+    } else if (
+      field.name.startsWith('_video_vision_') &&
+      type === 'file/image'
+    ) {
+      const originIndex =
+        node.configs.vision.findIndex((v) => {
+          return v === field.name;
+        }) ?? 0;
+      field.name = field.name.replace('_video_', '_image_');
+      node.configs.vision[originIndex] = field.name;
     }
-
-    const currentIsImage = field.name.startsWith('_image_vision_');
-    const currentIsVideo = field.name.startsWith('_video_vision_');
-    if (!currentIsImage && !currentIsVideo) {
-      return;
-    }
-    // 媒体类型未变化 -> 无需重命名
-    if ((isVideo && currentIsVideo) || (isImage && currentIsImage)) {
-      return;
-    }
-
-    // 精确定位旧字段名；找不到时安全 no-op，不得写入 configs.vision[-1]
-    const originIndex = node.configs.vision.findIndex((v) => v === field.name);
-    if (originIndex === -1) {
-      return;
-    }
-
-    field.name = isVideo
-      ? field.name.replace('_image_', '_video_')
-      : field.name.replace('_video_', '_image_');
-    node.configs.vision[originIndex] = field.name;
   }
 
   /**

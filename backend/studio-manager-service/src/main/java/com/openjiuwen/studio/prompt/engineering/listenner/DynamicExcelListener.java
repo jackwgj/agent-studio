@@ -28,7 +28,7 @@ public class DynamicExcelListener extends AnalysisEventListener<Map<Integer, Str
     // 表头缓存：列索引 → 变量名（varKey）
     private Map<Integer, String> headerMap;
 
-    private static final int MAX_NUMS = 100;
+    private static final long MAX_NUMS = 100L;
 
 
     /**
@@ -59,10 +59,13 @@ public class DynamicExcelListener extends AnalysisEventListener<Map<Integer, Str
         if (headerMap == null || headerMap.isEmpty()) {
             return;
         }
-        // 按实际数据行数校验，不将表头计入100条上限
-        if (rowDataList.size() >= MAX_NUMS) {
-            log.error("prompt template import row count exceeds limit: {}", MAX_NUMS);
-            throw new AgentStudioException(StudioError.PROMPT_TEMPLATE_IMPORT_NUM_EXCEED);
+        // 获取当前行号（EasyExcel 行号从1开始）
+        long currentRowNum = context.readRowHolder().getRowIndex() + 2;
+        // 校验是否超过最大行数
+        if (currentRowNum > MAX_NUMS) {
+            // 抛出异常终止读取
+            log.error("excel header is empty");
+            throw new AgentStudioException(StudioError.JSON_CONTENT_LENGTH_EXCEED);
         }
 
         TemplateOneRow templateOneRow = new TemplateOneRow();

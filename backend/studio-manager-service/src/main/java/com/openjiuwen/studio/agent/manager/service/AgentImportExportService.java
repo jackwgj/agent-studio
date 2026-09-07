@@ -1160,10 +1160,7 @@ public class AgentImportExportService {
             agentExportEntity =
                 replaceAgentExportId(agentExportEntity, targetWorkspaceId, projectId, wfImportDataWrapper);
 
-            if (!importAgentHandler(projectId, targetWorkspaceId, agentExportEntity, wfImportDataWrapper)) {
-                log.error("Fail to import agent: {}", id);
-                throw new AgentStudioException(StudioError.AGENT_IMPORT_FILE);
-            }
+            importAgentHandler(projectId, targetWorkspaceId, agentExportEntity, wfImportDataWrapper);
 
         } catch (AgentStudioException e) {
             throw e;
@@ -1632,7 +1629,7 @@ public class AgentImportExportService {
             agentCommonService.uploadToObsNoNull(metadata, ir, CommonConstant.Workflow.IR);
             modelDeploymentId = dsl.getNodes()
                 .stream()
-                .filter(nodeVo -> AgentType.CONTROLLER.getValue().equalsIgnoreCase(nodeVo.getType())
+                .filter(nodeVo -> nodeVo.getType().equalsIgnoreCase(AgentType.CONTROLLER.getValue())
                     && nodeVo.getConfigs() != null)
                 .map(nodeVo -> {
                     ControllerNodeConfigVO controllerNodeConfig =

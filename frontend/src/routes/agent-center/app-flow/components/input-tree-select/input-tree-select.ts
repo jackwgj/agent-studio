@@ -1,4 +1,4 @@
-import { Component, ChangeDetectorRef, ElementRef, EventEmitter, forwardRef, HostListener, Inject, Input, Output, ViewChild } from '@angular/core';
+import { Component, ElementRef, EventEmitter, forwardRef, HostListener, Inject, Input, Output, ViewChild } from '@angular/core';
 import { ControlContainer, ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { I18nNamespace } from '@i18n';
 import { CommonService } from '@services/common.service';
@@ -75,8 +75,7 @@ export class InputTreeSelect implements ControlValueAccessor {
   constructor(
     public commonService: CommonService,
     @Inject(ControlContainer) public controlContainer: ControlContainer,
-    private el: ElementRef,
-    private cdr: ChangeDetectorRef
+    private el: ElementRef
   ) {}
 
   ngOnInit() {
@@ -195,7 +194,6 @@ export class InputTreeSelect implements ControlValueAccessor {
       }
       this.searchTimeout = setTimeout(() => {
         this.searchSelectList = this.getSearchSelectList(val);
-        this.cdr.markForCheck();
       }, 200);
     } else {
       this.treeSelectIndexList = [];

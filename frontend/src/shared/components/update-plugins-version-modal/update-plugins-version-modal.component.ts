@@ -1,11 +1,14 @@
-import { Component, Input, Output, EventEmitter, inject } from '@angular/core';
+import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { MODULES } from '@shared/modules';
 import { I18nNamespace } from '@i18n';
 import { I18NEXT_NAMESPACE, I18NextEagerPipe } from 'angular-i18next';
 import { NodeDependencies } from '@routes/agent-center/app-flow/components/modules';
 import { AppFlowService } from '@routes/agent-center/app-flow/app-flow.service';
-import type { IIntentContainerBranch, IAgentRepo } from '@routes/agent-center/app-flow/node.type';
-import { NzModalRef, NZ_MODAL_DATA } from 'ng-zorro-antd/modal';
+import type {
+  IIntentContainerBranch,
+  IAgentRepo,
+} from '@routes/agent-center/app-flow/node.type';
+
 @Component({
   selector: 'meta-update-plugins-version-modal',
   templateUrl: './update-plugins-version-modal.component.html',
@@ -25,8 +28,6 @@ export class UpdatePluginsVersionModalComponent {
   @Input('nodeInfo') nodeInfo: IAgentRepo;
 
   @Output('confirm') confirm = new EventEmitter<IIntentContainerBranch[]>();
-
-  readonly modalRef = inject(NzModalRef);
 
   public table: any = {
     checkedList: [],
@@ -58,7 +59,7 @@ export class UpdatePluginsVersionModalComponent {
 
   constructor(
     private appFlowServ: AppFlowService,
-    private i18n: I18NextEagerPipe
+    private i18n: I18NextEagerPipe,
   ) {}
 
   ngOnInit(): void {
@@ -102,15 +103,17 @@ export class UpdatePluginsVersionModalComponent {
 
   public updateVersions() {
     // 用户手动选上的插件的最新版本信息
-    const pluginsSelected = this.table.checkedList.map(item => ({
+    const pluginsSelected = this.table.checkedList.map((item) => ({
       description: item.description,
       id: item.id,
       name: item.name,
       version_id: item.last_version_id,
     }));
 
-    const plugins = this.nodeInfo.configs.plugins.map(item => {
-      const matchingItem = pluginsSelected.find(subItem => item.id === subItem.id);
+    const plugins = this.nodeInfo.configs.plugins.map((item) => {
+      const matchingItem = pluginsSelected.find(
+        (subItem) => item.id === subItem.id,
+      );
       return matchingItem || item;
     });
     this.appFlowServ.setContainerDsl({
@@ -124,11 +127,7 @@ export class UpdatePluginsVersionModalComponent {
     this.close();
   }
 
-  close(): void {
-    this.modalRef.destroy();
-  }
+  close(): void {}
 
-  dismiss() {
-    this.close();
-  }
+  dismiss() {}
 }

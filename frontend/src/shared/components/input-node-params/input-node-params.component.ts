@@ -10,8 +10,6 @@ import {AppAgentRepoService} from '@services/agent-center/app-agent-repo.service
 import {AppFlowService} from '@routes/agent-center/app-flow/app-flow.service';
 import {MessageComponent} from '@shared/services/cfdata.service';
 import {createFileItem, uploadFile, validateFileSize,} from '@routes/agent-center/multiUpload.utils';
-import {AgentConfigService} from '@routes/agent-center/agent-config.service';
-import {formatUploadSizeMb} from '@routes/agent-center/utils';
 import {UploadFileIconComponent} from '../upload-file-icon/upload-file-icon.component';
 import {UploadFileAccPipe, UploadFileDescPipe,} from 'src/pipes/upload-file.pipe';
 import type {InputChatItem, InputParamConfig} from './input-node-params.interface';
@@ -64,7 +62,6 @@ export class InputNodeParamsComponent {
     private appAgentServe: AppAgentRepoService,
     private appFlowServe: AppFlowService,
     private i18n: I18NextEagerPipe,
-    private configServ: AgentConfigService,
   ) {
     this.parameterFromGroup = this.fb.group({});
   }
@@ -76,9 +73,6 @@ export class InputNodeParamsComponent {
       }
       if (item.type === 'array' && item?.actualType?.includes('file')) {
         item.type = `array<${item.actualType}>`;
-      }
-      if (item.type === 'string' && item?.actualType?.includes('file')) {
-        item.type = item.actualType;
       }
     });
     if (changes.inputList) {
@@ -162,7 +156,7 @@ export class InputNodeParamsComponent {
     });
   }
 
-  public async onUploadFile(e: Event, inputItem: InputParamConfig, uploadType = 'multi'): Promise<void> {
+  public onUploadFile(e: Event, inputItem: InputParamConfig, uploadType = 'multi') {
     const input = e.target as HTMLInputElement;
     if (uploadType === 'single') {
       const file: File = input.files[0];
@@ -171,20 +165,20 @@ export class InputNodeParamsComponent {
       }
       const fileExtension = file.name.split('.').pop().toLowerCase();
       let isImage = false;
-      // 上传大小限制： 图片5mb 非图片由部署配置控制
+      // 上传大小限制： 图片5mb 其他60mb
       if (
         ['png', 'jpeg', 'gif', 'webp', 'jpg', 'svg'].includes(fileExtension)
       ) {
-        if (file.size > 5 * 1024 * 1024) {
+        if (file.size > 1024 * 1024 * 5) {
           MessageComponent.showWarn(
             this.i18n.transform('image_size_cannot_exceed_5mb'),
           );
           return;
         }
         isImage = true;
-      } else if (file.size > this.configServ.getFileMaxSizeKb() * 1024) {
+      } else if (file.size > 1024 * 1024 * 60) {
         MessageComponent.showWarn(
-          this.i18n.transform('file_size_cannot_exceed', { size: formatUploadSizeMb(this.configServ.getFileMaxSizeKb()) }),
+          this.i18n.transform('file_size_cannot_exceed_128mb'),
         );
         return;
       }
@@ -211,8 +205,7 @@ export class InputNodeParamsComponent {
           );
         })
         .catch(() => {
-          inputItem.uploadData = null;
-          inputItem.file = undefined;
+          inputItem.uploadData.progress = 'failed';
           this.fileUploadStatus.emit('failed');
           this.parameterFromGroup.controls[inputItem.uniqueId].setValue('');
         });
@@ -239,17 +232,14 @@ export class InputNodeParamsComponent {
         const isImage = ['png', 'jpeg', 'gif', 'webp', 'jpg', 'svg'].includes(
           extension,
         );
-        const validationError = validateFileSize(file, isImage, 5 * 1024, this.configServ.getFileMaxSizeKb());
+        const validationError = validateFileSize(file, isImage);
         if (validationError) {
-          MessageComponent.showWarn(this.i18n.transform(validationError.key, validationError.params));
+          MessageComponent.showWarn(this.i18n.transform(validationError));
           continue;
         }
         const fileItem = createFileItem(file);
         inputItem.uploadDatas.push(fileItem);
-        await new Promise(resolve => setTimeout(resolve));
-        await uploadFile(this.appAgentServe, file, isImage, fileItem, () => {
-          inputItem.uploadDatas = inputItem.uploadDatas.filter((f) => f.fileId !== fileItem.fileId);
-        });
+        uploadFile(this.appAgentServe, file, isImage, fileItem);
       }
       this.parameterFromGroup.controls[inputItem.uniqueId].setValue(
         inputItem.uploadDatas,

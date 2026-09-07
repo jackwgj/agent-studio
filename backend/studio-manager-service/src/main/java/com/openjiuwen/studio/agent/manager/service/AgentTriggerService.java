@@ -91,7 +91,7 @@ public class AgentTriggerService extends QuartzJobBean {
         SpringBeanUtils.getBean(MgAsyncService.class).callRunAgentStream(() -> {
             try {
                 Request request = buildRequest(projectId, agentId, token, jobDetailMap, JSON.toJSONString(agentRunReq),
-                        UUID.randomUUID().toString() // Agent运行接口路径需要conversation_id
+                        null // Agent任务不需要UUID
                 );
                 executeStreamRequest(request, sseEmitter, jobDetailMap);
             } catch (Exception e) {

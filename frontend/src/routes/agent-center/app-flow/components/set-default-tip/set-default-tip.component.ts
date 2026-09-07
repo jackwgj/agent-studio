@@ -42,8 +42,6 @@ import {
   validateFileSize,
   FileItem,
 } from '@routes/agent-center/multiUpload.utils';
-import { AgentConfigService } from '@routes/agent-center/agent-config.service';
-import { formatUploadSizeMb } from '@routes/agent-center/utils';
 import { UploadFileIconComponent } from '@shared/components/upload-file-icon/upload-file-icon.component';
 import {
   UploadFileAccPipe,
@@ -159,7 +157,6 @@ export class SetDefaultTipComponent implements OnInit, OnDestroy {
     public cdr: ChangeDetectorRef,
     public i18n: I18NextEagerPipe,
     public repoServ: AppAgentRepoService,
-    private configServ: AgentConfigService,
     private nzMessage?: NzMessageService,
   ) {}
 
@@ -249,20 +246,20 @@ export class SetDefaultTipComponent implements OnInit, OnDestroy {
       const file: File = files[0];
       const fileExtension = file.name.split('.').pop().toLowerCase();
       let isImage = false;
-      // 上传大小限制： 图片5mb 非图片由部署配置控制
+      // 上传大小限制： 图片5mb 其他60mb
       if (
         ['png', 'jpeg', 'gif', 'webp', 'jpg', 'svg'].includes(fileExtension)
       ) {
-        if (file.size > 5 * 1024 * 1024) {
+        if (file.size > 1024 * 1024 * 5) {
           this.nzMessage?.warning(
             this.i18n.transform('image_size_cannot_exceed_5mb'),
           );
           return;
         }
         isImage = true;
-      } else if (file.size > this.configServ.getFileMaxSizeKb() * 1024) {
+      } else if (file.size > 1024 * 1024 * 60) {
         this.nzMessage?.warning(
-          this.i18n.transform('file_size_cannot_exceed', { size: formatUploadSizeMb(this.configServ.getFileMaxSizeKb()) }),
+          this.i18n.transform('file_size_cannot_exceed_128mb'),
         );
         return;
       }
@@ -288,8 +285,7 @@ export class SetDefaultTipComponent implements OnInit, OnDestroy {
         fileItem.url = res.url;
         this.cdr.detectChanges();
       } catch (error) {
-        this.fileList = this.fileList.filter((f) => f.fileId !== fileItem.fileId);
-        this.cdr.detectChanges();
+        fileItem.progress = 'failed';
       }
     } else {
       if (len + this.fileList.length > 10) {
@@ -303,19 +299,14 @@ export class SetDefaultTipComponent implements OnInit, OnDestroy {
         const isImage = ['png', 'jpeg', 'gif', 'webp', 'jpg', 'svg'].includes(
           extension,
         );
-        const validationError = validateFileSize(file, isImage, 5 * 1024, this.configServ.getFileMaxSizeKb());
+        const validationError = validateFileSize(file, isImage);
         if (validationError) {
-          this.nzMessage?.warning(this.i18n.transform(validationError.key, validationError.params));
+          this.nzMessage?.warning(this.i18n.transform(validationError));
           continue;
         }
         const fileItem = createFileItem(file);
         this.fileList.push(fileItem);
-        this.cdr.detectChanges();
-        await new Promise(resolve => setTimeout(resolve));
-        await uploadFile(this.repoServ, file, isImage, fileItem, () => {
-          this.fileList = this.fileList.filter((f) => f.fileId !== fileItem.fileId);
-          this.cdr.detectChanges();
-        });
+        await uploadFile(this.repoServ, file, isImage, fileItem);
       }
     }
     this.isUploading = false;

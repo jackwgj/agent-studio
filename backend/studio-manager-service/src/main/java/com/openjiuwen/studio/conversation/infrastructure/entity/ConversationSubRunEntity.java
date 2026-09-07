@@ -37,11 +37,14 @@ public class ConversationSubRunEntity {
     /**
      * 业务分组键（一次任务指派）
      */
-    @JsonProperty("run_id")
-    private String runId;
+    @JsonProperty("sub_execution_id")
+    private String subExecutionId;
 
-    @JsonProperty("parent_run_id")
-    private String parentRunId;
+    /**
+     * 所属主轮次execution_id
+     */
+    @JsonProperty("execution_id")
+    private String executionId;
 
     /**
      * 会话ID
@@ -70,9 +73,6 @@ public class ConversationSubRunEntity {
     @JsonProperty("tool_id")
     private String toolId;
 
-    @JsonProperty("tool_name")
-    private String toolName;
-
     /**
      * 仅role=tool
      */
@@ -82,22 +82,8 @@ public class ConversationSubRunEntity {
     @JsonProperty("file_ids")
     private String fileIds;
 
-    /** 统一事件类型。 */
     @JsonProperty("event")
     private String event;
-
-    @JsonProperty("execution_type")
-    private String executionType;
-
-    @JsonProperty("workflow_id")
-    private String workflowId;
-
-    @JsonProperty("node_id")
-    private String nodeId;
-
-    @JsonProperty("event_index")
-    private Long eventIndex;
-
 
     @JsonProperty("total_tokens")
     private String totalTokens;

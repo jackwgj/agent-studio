@@ -36,10 +36,6 @@ public class ConversationHistoryAssembler {
     public List<Message> assemble(Conversation conversation) {
         List<Message> messages = new ArrayList<>();
         for (ConversationMessage message : conversation.getMessages()) {
-            // 正式产物消息只用于历史展示与下载，不能作为空 Assistant 消息再次注入模型。
-            if ("artifact".equals(message.getEvent())) {
-                continue;
-            }
             // TODO 不要直接用字符串，用枚举类
             if ("tool".equals(message.getRole()) && message.getToolRef() != null) {
                 appendSynthesizedToolPair(messages, message);
@@ -54,17 +50,10 @@ public class ConversationHistoryAssembler {
      * 合成 assistant(tool_calls) + tool 结果一对 Message
      */
     private void appendSynthesizedToolPair(List<Message> messages, ConversationMessage message) {
-        String callId = message.getToolRef().getToolId();
-        if (callId == null || callId.isBlank()) {
-            callId = "call_" + UUID.randomUUID();
-        }
-        String toolName = message.getToolRef().getToolName();
-        if (toolName == null || toolName.isBlank()) {
-            toolName = message.getToolRef().getToolId();
-        }
+        String callId = "call_" + UUID.randomUUID();
 
         Map<String, Object> function = new LinkedHashMap<>();
-        function.put("name", toolName);
+        function.put("name", message.getToolRef().getToolId());
         function.put("arguments", message.getToolRef().getArgs());
         Map<String, Object> toolCall = new LinkedHashMap<>();
         toolCall.put("id", callId);

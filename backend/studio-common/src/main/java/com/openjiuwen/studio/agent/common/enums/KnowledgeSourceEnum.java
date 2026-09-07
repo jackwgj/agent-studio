@@ -25,12 +25,7 @@ public enum KnowledgeSourceEnum {
     /**
      * CUSTOM知识库
      */
-    CUSTOM("CUSTOM"),
-
-    /**
-     * OpenJiuwen本地知识库
-     */
-    OPENJIUWEN("OpenJiuwen");
+    CUSTOM("CUSTOM");
 
     /**
      * 知识库类型

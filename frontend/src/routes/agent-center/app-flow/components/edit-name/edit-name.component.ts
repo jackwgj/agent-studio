@@ -1,13 +1,11 @@
 import {
   Component,
   OnInit,
-  OnChanges,
   Input,
   Output,
   EventEmitter,
   ViewChild,
   ElementRef,
-  SimpleChanges,
 } from '@angular/core';
 import { FormBuilder, FormControl, Validators } from '@angular/forms';
 import { I18nNamespace } from '@i18n';
@@ -31,7 +29,7 @@ import { I18NEXT_NAMESPACE } from 'angular-i18next';
     },
   ],
 })
-export class EditNameComponent implements OnInit, OnChanges {
+export class EditNameComponent implements OnInit {
   @Input() name!: any;
   @Output() nameChange = new EventEmitter<any>();
   @Output() onBlurConfirm = new EventEmitter();
@@ -48,12 +46,6 @@ export class EditNameComponent implements OnInit, OnChanges {
 
   ngOnInit() {
     this.groupFormControl.controls.name.setValue(this.name || '');
-  }
-
-  ngOnChanges(changes: SimpleChanges) {
-    if (changes.name && !changes.name.firstChange && this.shoNameDiv) {
-      this.groupFormControl.controls.name.setValue(this.name || '');
-    }
   }
 
   nameDivClice() {

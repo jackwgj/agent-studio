@@ -220,7 +220,10 @@ export class LLMSelectComponent implements OnDestroy {
     if (changes.selectedModel && changes.selectedModel.currentValue) {
       this.selectedModel = changes.selectedModel.currentValue;
       if(this.serviceMap[this.selectedModel]){
-        this.updateSelectedModelInfo(this.serviceMap[this.selectedModel]);
+        this.selectedModelInfo = {
+          logo: this.serviceMap[this.selectedModel].logo,
+          service_name: this.serviceMap[this.selectedModel].service_name,
+        }
       }
     }
   }
@@ -298,7 +301,10 @@ export class LLMSelectComponent implements OnDestroy {
         });
         this._modelOptions.set(options);
         if(this.selectedModel){
-          this.updateSelectedModelInfo(this.serviceMap[this.selectedModel]);
+          this.selectedModelInfo = {
+            logo: this.serviceMap[this.selectedModel].logo,
+            service_name: this.serviceMap[this.selectedModel].service_name,
+          }
         }
         this.cdr.detectChanges();
       });
@@ -315,16 +321,6 @@ export class LLMSelectComponent implements OnDestroy {
     //模型调测 需要返回模型对象 & index
     //路由策略需要加index
 
-    // 先设置选中模型的图标信息
-    if (this.serviceMap[modelId]) {
-      this.updateSelectedModelInfo(this.serviceMap[modelId]);
-    } else {
-      this.selectedModelInfo = {
-        logo: '',
-        service_name: '',
-      };
-    }
-
     if (this.modelType) {
       this.update.emit({
         modelInfo: this.serviceMap[modelId],
@@ -338,25 +334,21 @@ export class LLMSelectComponent implements OnDestroy {
       });
     }
 
-    this.cdr.detectChanges();
+    this.selectedModelInfo = {
+      logo: this.serviceMap[modelId].logo,
+      service_name: this.serviceMap[modelId].service_name,
+    }
   }
 
   onBeforeSearch(searchWord: string) {
     this.searchValue = searchWord;
     if (searchWord) {
-      this.updateSelectedModelInfo(this.serviceMap[this.selectedModel]);
+      this.selectedModelInfo = this.serviceMap[this.selectedModel];
     }
     this.getModelOptions(searchWord ? {service_name: searchWord} : {});
     if (!searchWord) {
       return;
     }
-  }
-
-  private updateSelectedModelInfo(model?: { logo?: string; service_name?: string }): void {
-    this.selectedModelInfo = {
-      logo: model?.logo || this.image,
-      service_name: model?.service_name || '',
-    };
   }
 
   ngOnDestroy(): void {

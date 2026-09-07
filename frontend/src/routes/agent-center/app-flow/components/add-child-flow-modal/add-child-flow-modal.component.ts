@@ -269,18 +269,13 @@ export class AddChildFlowModalComponent implements OnInit {
 
   public clicked: boolean = false; //组件
 
-  public get isWorkflowSelectionLimitReached(): boolean {
-    return !this.isAgentPage && this.addedCnt >= this.workflowSelectedLimit;
-  }
-
   public async addWorkflow(e: Event, workflow: PublishedWorkflow) {
-    e.stopPropagation();
-    if (this.clicked || this.isWorkflowSelectionLimitReached) {
+    if (this.clicked) {
       return;
     }
     this.clicked = true;
+    e.stopPropagation();
     if (this.isAgentPage) {
-      this.clicked = false;
       return;
     }
     try {
@@ -325,18 +320,18 @@ export class AddChildFlowModalComponent implements OnInit {
         if (this.outputs && this.outputs.workflowChange) {
           this.outputs.workflowChange(result);
         }
-        this.clicked = false;
         this.cdr.markForCheck();
         this.cdr.detectChanges();
-        this.drawerRef.close();
       });
+      setTimeout(() => {
+        this.ngZone.run(() => {
+          this.clicked = false;
+          this.cdr.markForCheck();
+          this.cdr.detectChanges();
+        });
+      }, 1000);
     } catch (error) {
       console.error('addWorkflow error:', error);
-      this.ngZone.run(() => {
-        this.clicked = false;
-        this.cdr.markForCheck();
-        this.cdr.detectChanges();
-      });
     }
   }
 

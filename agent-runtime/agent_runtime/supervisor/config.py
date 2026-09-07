@@ -60,7 +60,6 @@ def build_react_config(
         api_key="sk-placeholder",
         api_base="https://studio-placeholder",
         timeout=settings.llm.timeout,
-        verify_ssl=settings.llm.ssl_verify,
         model_service_id=model_deployment_id,
     )
     model_request_config = ModelRequestConfig(

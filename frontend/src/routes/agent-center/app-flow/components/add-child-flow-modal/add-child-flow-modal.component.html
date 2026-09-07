@@ -74,7 +74,7 @@
               (click)="addWorkflow($event, workflow)"
               nz-button
               [nzType]="'default'"
-              [disabled]="isDisabled(workflow) || clicked || isWorkflowSelectionLimitReached"
+              [disabled]="isDisabled(workflow) || clicked"
             >
               <span nz-icon nzType="plus"></span>
             </button>

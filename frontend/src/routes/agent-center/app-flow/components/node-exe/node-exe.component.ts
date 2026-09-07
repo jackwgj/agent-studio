@@ -76,7 +76,6 @@ import {
 } from 'src/pipes/upload-file.pipe';
 import { CommonUtils } from 'src/utils/common.util';
 import { checkFileTypeAndSize } from '@routes/agent-center/utils';
-import { AgentConfigService } from '@routes/agent-center/agent-config.service';
 
 type PlainType = string | number | boolean | Record<string, any>;
 
@@ -223,8 +222,6 @@ export class NodeExeComponent implements OnChanges {
 
   @ViewChild('chatContainerRef') chatContainerRef!: ElementRef<HTMLDivElement>;
 
-  @ViewChild('resultScrollRef') resultScrollRef?: ElementRef<HTMLDivElement>;
-
   @ViewChildren('exeEditor') editors: QueryList<any>;
 
   @ViewChildren('fileInput') fileInputs: QueryList<any>;
@@ -354,7 +351,6 @@ export class NodeExeComponent implements OnChanges {
     private appPluginRepoServ: AppPluginRepoService,
     private i18n: I18NextEagerPipe,
     private nzMessage: NzMessageService,
-    private configServ: AgentConfigService,
   ) {}
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -638,7 +634,6 @@ export class NodeExeComponent implements OnChanges {
                 this.runInfo = { answer: '' };
               }
               this.runInfo.answer = (this.runInfo.answer || '') + text;
-              this.scrollAnswerToBottom();
 
               if (exeResult.data.is_finished) {
                 this.lastChat.answer.loading = false;
@@ -796,11 +791,11 @@ export class NodeExeComponent implements OnChanges {
     this.appFlowServe.setTokenData({});
   }
 
-  public async onUploadFile(
+  public onUploadFile(
     e: Event,
     inputItem: IExeField,
     uploadType = 'multi',
-  ): Promise<void> {
+  ): void {
     const input = e.target as HTMLInputElement;
     if (uploadType === 'single') {
       const file: File = input.files[0];
@@ -809,18 +804,7 @@ export class NodeExeComponent implements OnChanges {
       }
 
       const fileExtension = file.name.split('.').pop().toLowerCase();
-      const valid = checkFileTypeAndSize(
-        fileExtension,
-        file.size,
-        this.i18n,
-        this.configServ.getFileMaxSizeKb(),
-      );
-
-      if (!valid) {
-        return;
-      }
-
-      const isImage = ['png', 'jpeg', 'gif', 'webp', 'jpg', 'svg'].includes(fileExtension);
+      const isImage = checkFileTypeAndSize(fileExtension, file.size, this.i18n);
 
       inputItem.uploadData = {
         name: file.name,
@@ -840,9 +824,7 @@ export class NodeExeComponent implements OnChanges {
           this.cdr.detectChanges();
         })
         .catch(() => {
-          inputItem.uploadData = null;
-          inputItem.file = undefined;
-          this.cdr.detectChanges();
+          inputItem.uploadData.progress = 'failed';
         });
     } else {
       const len = input?.files?.length;
@@ -866,20 +848,16 @@ export class NodeExeComponent implements OnChanges {
         const isImage = ['png', 'jpeg', 'gif', 'webp', 'jpg', 'svg'].includes(
           extension,
         );
-        const validationError = validateFileSize(file, isImage, 5 * 1024, this.configServ.getFileMaxSizeKb());
+        const validationError = validateFileSize(file, isImage);
         if (validationError) {
-          this.nzMessage.warning(this.i18n.transform(validationError.key, validationError.params));
+          this.nzMessage.warning(this.i18n.transform(validationError));
           continue;
         }
         const fileItem = createFileItem(file);
         inputItem.uploadDatas.push(fileItem);
         this.cdr.detectChanges();
         this.isUploading = true;
-        await new Promise(resolve => setTimeout(resolve));
-        uploadFile(this.repoServ, file, isImage, fileItem, () => {
-          inputItem.uploadDatas = inputItem.uploadDatas.filter((f) => f.fileId !== fileItem.fileId);
-          this.cdr.detectChanges();
-        }).finally(() => {
+        uploadFile(this.repoServ, file, isImage, fileItem).finally(() => {
           this.cdr.detectChanges();
           this.isUploading = false;
         });
@@ -980,15 +958,6 @@ export class NodeExeComponent implements OnChanges {
     setTimeout(() => {
       this.chatContainerRef.nativeElement.scrollTop =
         this.chatContainerRef.nativeElement.scrollHeight;
-    }, 0);
-  }
-
-  private scrollAnswerToBottom() {
-    setTimeout(() => {
-      if (this.resultScrollRef?.nativeElement) {
-        this.resultScrollRef.nativeElement.scrollTop =
-          this.resultScrollRef.nativeElement.scrollHeight;
-      }
     }, 0);
   }
 

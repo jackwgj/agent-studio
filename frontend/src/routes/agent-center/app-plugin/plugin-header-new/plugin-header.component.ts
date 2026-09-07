@@ -26,7 +26,6 @@ import { ContextService } from '@services/context.service';
 import { ShareService } from '@routes/app-center/components/edit-share-modal/share.service';
 import { CommonUtils } from 'src/utils/common.util';
 import { NzModalService } from 'ng-zorro-antd/modal';
-import { NzDrawerService, NzDrawerModule } from 'ng-zorro-antd/drawer';
 enum mapKeys {
   credential_status = 'credential_status',
   auth_required = 'auth_required',
@@ -35,7 +34,7 @@ enum mapKeys {
 @Component({
   selector: 'meta-plugin-header-new',
   standalone: true,
-  imports: [COMMON_MODULES, MODULES, InlineSvgComponent, ShareDetailBtnComponent, NzDrawerModule],
+  imports: [COMMON_MODULES, MODULES, InlineSvgComponent, ShareDetailBtnComponent],
   templateUrl: './plugin-header.component.html',
   styleUrl: './plugin-header.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -89,8 +88,7 @@ export class PluginHeaderNewComponent {
     public commonService: CommonService,
     private readonly http: HttpService,
     private shareService: ShareService,
-    private nzModal: NzModalService,
-    private nzDrawerService: NzDrawerService
+    private nzModal: NzModalService
   ) {}
 
   ngOnInit() {
@@ -221,7 +219,7 @@ export class PluginHeaderNewComponent {
   }
 
   getReference() {
-    const modalRef: any = this.nzDrawerService.create({
+    const modalRef: any = this.nzModal.create({
       nzContent: PluginReferenceComponent,
       nzWidth: 600,
       nzData: {

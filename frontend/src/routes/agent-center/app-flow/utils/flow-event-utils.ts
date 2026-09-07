@@ -56,8 +56,6 @@ export const FlowEventUtils = {
       lastClickedNodeId = undefined;
     };
 
-    let batchNodeEventTimer = null;
-
     flowComponent.graph.on('render:done', (data: any) => {
       // 画布渲染完成，重新设置连接桩样式
       this.resetNodePort(flowComponent.graph);
@@ -169,16 +167,9 @@ export const FlowEventUtils = {
         return;
       }
 
-      if (batchNodeEventTimer) {
-        clearTimeout(batchNodeEventTimer);
-        batchNodeEventTimer = null;
-      }
-
-      batchNodeEventTimer = setTimeout(() => {
-        flowComponent.updateFlowData({
-          isDrag: true,
-        });
-      }, 50);
+      flowComponent.updateFlowData({
+        isDrag: true,
+      });
     });
 
     flowComponent.graph.on('translate', () => {

@@ -56,8 +56,7 @@
             },
             "index": ".staging/index.html",
             "polyfills": [
-              "zone.js",
-              "src/polyfills-compat.ts"
+              "zone.js"
             ],
             "tsConfig": "tsconfig.app.json",
             "inlineStyleLanguage": "scss",
@@ -137,11 +136,6 @@
           "builder": "@angular/build:karma",
           "options": {
             "main": "src/test/test.ts",
-            "polyfills": [
-              "zone.js",
-              "src/test/app-path.polyfill.ts",
-              "zone.js/testing"
-            ],
             "tsConfig": "src/test/tsconfig.spec.json",
             "karmaConfig": "src/test/karma.conf.js",
             "assets": [

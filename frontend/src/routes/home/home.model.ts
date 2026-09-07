@@ -15,7 +15,6 @@ export interface IMenuItem {
   isSelected?: boolean;
   collapseStatus?: number;
   onlyOpAccount?: boolean;
-  queryParams?: Record<string, string>;
 }
 
 interface LeftmenuConfig {

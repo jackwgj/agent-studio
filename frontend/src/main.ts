@@ -23,8 +23,7 @@ import { NzModalModule } from 'ng-zorro-antd/modal';
 import { NzMessageService } from 'ng-zorro-antd/message';
 import { initMessageService } from '@shared/services/cfdata.service';
 
-const basePath = document.getElementsByTagName('base')[0]?.getAttribute('href') || '/';
-const prifix = isDevMode() ? `${window.location.origin}/` : `${window.location.origin}${basePath}`;
+const prifix = isDevMode() ? `${window.location.origin}/` : window.location.href.split('#')[0];
 
 const PROVIDERS: (Provider | EnvironmentProviders)[] = [
   ROUTER_PROVIDER,

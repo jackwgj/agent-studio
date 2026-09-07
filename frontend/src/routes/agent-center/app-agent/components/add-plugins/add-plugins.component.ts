@@ -393,10 +393,6 @@ export class AddPluginsComponent {
     ).catch();
   }
 
-  get useUnpublishedPlugin(){
-    return this.configServ.getConfigs().plugin_publish_choice;
-  }
-
   get pluginLimit() {
     return this.configServ.getConfigs()?.agent_tool_bound_limit ?? 20;
   }
@@ -575,7 +571,7 @@ export class AddPluginsComponent {
         plugin.plugin_display_name = plugin.resource_name_en;
       }
 
-      const canAdd = !isPersonal || plugin.last_version_id || this.useUnpublishedPlugin;
+      const canAdd = !isPersonal || plugin.last_version_id;
       let data: any = {
         id: plugin.plugin_id,
         name: this.getPluginName(plugin),

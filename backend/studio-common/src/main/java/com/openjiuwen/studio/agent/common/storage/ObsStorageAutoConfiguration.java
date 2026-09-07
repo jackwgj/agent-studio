@@ -4,8 +4,6 @@
 
 package com.openjiuwen.studio.agent.common.storage;
 
-import com.openjiuwen.studio.agent.common.utils.CryptoUtils;
-
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -20,7 +18,7 @@ import org.springframework.context.annotation.Configuration;
 public class ObsStorageAutoConfiguration {
 
     @Bean
-    public FileStore storageService(StorageProperties properties, CryptoUtils cryptoUtils) {
+    public FileStore storageService(StorageProperties properties) {
         log.info("Initializing OBS StorageService, bucket: {}", properties.getObs().getBucket());
         ObsFileStoreImpl obsService = new ObsFileStoreImpl(properties.getObs());
         obsService.init();

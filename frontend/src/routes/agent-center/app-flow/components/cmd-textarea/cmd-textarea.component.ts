@@ -239,8 +239,6 @@ export class CmdTextareaComponent implements ControlValueAccessor {
       document.execCommand('delete');
     }
     this.emit();
-    this.updateSelection();
-    this.scrollCursorToVisible();
   }
 
   getLength() {
@@ -707,8 +705,6 @@ export class CmdTextareaComponent implements ControlValueAccessor {
       if (this.reRenderTimes !== 0) {
         // 首次渲染（初始化）不需要恢复光标位置
         this.restoreCursorPosition(this.editor.nativeElement, charOffset);
-        this.updateSelection();
-        this.scrollCursorToVisible();
       }
     }
 

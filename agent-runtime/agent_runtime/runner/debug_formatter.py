@@ -121,11 +121,9 @@ class DebugStreamFormatter:
                     {"assistant": data.get("answer", {}).get("answer", "")},
                 ]
             # node_message(结束状态) 带 outputs
-            # 异常恢复（innerError 存在）时状态为 error，否则为 finish
-            node_status = "error" if inner_error else self._finish_status(data)
             events.append(
                 self._build_node_message(
-                    node_status,
+                    self._finish_status(data),
                     outputs=outputs,
                     invoke_data=invoke_data,
                     inner_error=inner_error,
@@ -167,10 +165,10 @@ class DebugStreamFormatter:
             self._message_index += 1
             return events
 
-        # ERROR → node_message(error) + error 事件
+        # ERROR → node_message(finish) + error 事件
         if code == StreamCode.ERROR.value:
             data = stream_data.data if isinstance(stream_data.data, dict) else {}
-            events.append(self._build_node_message("error", error=data))
+            events.append(self._build_node_message("finish", error=data))
             events.append(
                 {
                     "event": "error",
@@ -270,7 +268,7 @@ class DebugStreamFormatter:
             "executionId": self._execution_id,
             "conversationId": "",
             "startTime": self._start_time,
-            "endTime": now if status in ("finish", "running", "error") else None,
+            "endTime": now if status in ("finish", "running") else None,
             "onInvokeData": invoke_data,
             "agentId": self._agent_id,
             "componentId": self._component_id,

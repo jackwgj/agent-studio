@@ -523,10 +523,7 @@ public class WorkflowRuntimeService implements IWorkflowRuntimeService {
                 nodeRunInfos.add(JiuwenEventProcessor.convertNodeRunInfo(jiuwenEvent.getData()));
             }
         }
-        // 保留事件原始到达顺序，不按 startTime 排序。
-        // 对话型工作流中结束节点的 stream 路径会提前触发，导致其 startTime 早于拓扑顺序中的后续节点，
-        // 按 startTime 排序会导致调用链顺序错误（如：开始→大模型→结束→大模型_1，预期为开始→大模型→大模型_1→结束）。
-        // 事件由运行时按拓扑顺序发送，原始到达顺序即为正确的执行顺序。
+        nodeRunInfos = nodeRunInfos.stream().sorted(Comparator.comparing(NodeRunInfo::getStartTime)).toList();
         processOriginLoopInputs(nodeRunInfos);
         return nodeRunInfos;
     }
