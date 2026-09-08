@@ -1,0 +1,22 @@
+<div class="preview-text">
+  <div class="preview-loading-bar" *ngIf="loading"></div>
+
+  <div class="preview-text-body" [class.is-plain]="state.type === 'txt'">
+    <div
+      *ngIf="state.type === 'md' && html"
+      class="markdown-body"
+      [innerHTML]="html"
+    ></div>
+
+    <pre *ngIf="state.type === 'txt'" class="preview-plain">{{ plainText }}</pre>
+  </div>
+
+  <div class="preview-truncate-hint" *ngIf="truncated">
+    内容过长，仅展示前 {{ 500000 }} 个字符
+  </div>
+
+  <div class="preview-error" *ngIf="error">
+    <span>{{ error }}</span>
+    <button type="button" class="preview-retry" (click)="load()">重试</button>
+  </div>
+</div>

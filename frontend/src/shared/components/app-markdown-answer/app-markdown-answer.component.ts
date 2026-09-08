@@ -70,6 +70,9 @@ export class AppMarkdownAnswerComponent
 
   @Output() answerChange = new EventEmitter();
 
+  /** 正文内的链接被点击时上抛 href，由宿主决定「新标签打开」还是「右侧面板预览」 */
+  @Output() linkClick = new EventEmitter<string>();
+
   @ViewChild('textareaRef', { static: false }) textareaRef!: ElementRef;
 
   @ViewChild('alertModal')
@@ -424,12 +427,17 @@ export class AppMarkdownAnswerComponent
     }
 
     // 使用DOMPurify消除XSS攻击
-    const purifiedHtml = DOMPurify.sanitize(intermediateValue);
+    // FORBID_TAGS: style —— 模型回答里的原始 HTML（如整页 SPA 代码）经围栏
+    // 错位解析后会注入 <style>，其中 fixed + z-index 全屏层会盖住整个应用
+    // （历史案例：供应链AI管理系统 loading 页铺满）。回答内容不允许改全局样式。
+    const purifiedHtml = DOMPurify.sanitize(intermediateValue, {
+      FORBID_TAGS: ['style', 'form', 'input'],
+    });
     this.transformedAnswer =
       this.sanitizer.bypassSecurityTrustHtml(purifiedHtml);
   }
 
-  /** 使用 HostListener 监听每个代码块的点击事件 */
+  /** 监听正文内的点击事件（代码块复制 / 链接） */
   @HostListener('click', ['$event'])
   onClick(event: MouseEvent) {
     const target = event.target as HTMLElement;
@@ -439,6 +447,21 @@ export class AppMarkdownAnswerComponent
       const copyIcons = this.el.nativeElement.querySelectorAll('.copy-icon');
       if (code) {
         this.copyCode(target, copyIcons.length, code);
+      }
+      return;
+    }
+
+    // 正文是 innerHTML 注入的，无法在模板上绑 (click)，这里统一委托拦截
+    const anchor = target.closest?.('a');
+    if (anchor && anchor.classList.contains('custom-link')) {
+      const href = anchor.getAttribute('href');
+      if (href) {
+        // 有消费方（如会话工作空间的预览面板）则走面板；
+        // 没有则不 preventDefault，保持 a 标签 target=_blank 原生新开标签页
+        if (this.linkClick.observed) {
+          event.preventDefault();
+          this.linkClick.emit(href);
+        }
       }
     }
   }

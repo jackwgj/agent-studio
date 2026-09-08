@@ -1,0 +1,20 @@
+<div class="preview-url">
+  <div class="preview-loading-bar" *ngIf="loading"></div>
+
+  <div class="preview-url-frame-wrap">
+    <iframe
+      *ngIf="safeUrl"
+      class="preview-url-frame"
+      [src]="safeUrl"
+      [attr.title]="'预览 ' + state.title"
+      sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+      referrerpolicy="no-referrer"
+      (load)="onLoad()"
+    ></iframe>
+  </div>
+
+  <div class="preview-stall-hint" *ngIf="stalled">
+    <span nz-icon nzType="info-circle" nzTheme="outline"></span>
+    <span>该站点可能不允许被嵌入预览，可点击右上角「在新标签打开」查看</span>
+  </div>
+</div>
