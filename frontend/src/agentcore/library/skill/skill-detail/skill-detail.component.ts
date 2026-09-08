@@ -65,10 +65,10 @@ export class SkillDetailComponent {
           clickFn: () => this._router.navigateByUrl(this.fromUrl),
         },
         {
-          label: this.skillDetail?.description || this.skillDetail?.skillName,
+          label: this.skillDetail?.skillName,
         },
       ],
-      title: this.skillDetail?.description || this.skillDetail?.skillName,
+      title: this.skillDetail?.skillName,
       img: this.skillDetail?.icon,
       tags: this.getTitleTag(),
       operators: this.generateOperator(),
