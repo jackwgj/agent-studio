@@ -4,7 +4,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { I18NextModule } from 'angular-i18next';
 import { catchError, from, mergeMap } from 'rxjs';
-import { SkillApi } from '@agentcore/api/skill.api';
+import { SIESkillApi } from '@agentcore/api/sie-skill.api';
 import { SkillDetail, SkillDetailFromPage, skillDetailSignal, SkillSourceTag, SkillStatusTag } from '@agentcore/constants/skill.model';
 import { I18nService } from '@agentcore/core/i18n.service';
 import { CustomHeaderComponent } from '@agentcore/shared/components/custom-header/custom-header.component';
@@ -65,10 +65,10 @@ export class SkillDetailComponent {
           clickFn: () => this._router.navigateByUrl(this.fromUrl),
         },
         {
-          label: this.skillDetail?.description || this.skillDetail?.skillName,
+          label: this.skillDetail?.skillName,
         },
       ],
-      title: this.skillDetail?.description || this.skillDetail?.skillName,
+      title: this.skillDetail?.skillName,
       img: this.skillDetail?.icon,
       tags: this.getTitleTag(),
       operators: this.generateOperator(),
@@ -82,7 +82,7 @@ export class SkillDetailComponent {
     private _route: ActivatedRoute,
     private _router: Router,
     private nzModal: NzModalService,
-    private _skillApi: SkillApi,
+    private _skillApi: SIESkillApi,
     private _i18n: I18nService,
     private _customEditorService: CustomEditorService,
     private _setSidebarVisibilityService: SetSidebarVisibilityService,

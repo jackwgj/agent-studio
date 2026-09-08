@@ -6,7 +6,7 @@ import { MODULES } from '@shared/modules';
 import { I18nService } from '@agentcore/core/i18n.service';
 import { I18nPipe } from '@agentcore/shared/pipes/i18n.pipe';
 import { SkillReferenceTableService } from './skill-reference-table.service';
-import { SkillApi } from '@agentcore/api/skill.api';
+import { SIESkillApi } from '@agentcore/api/sie-skill.api';
 import { NZ_DRAWER_DATA, NzDrawerModule, NzDrawerRef } from 'ng-zorro-antd/drawer';
 import { NzPaginationModule } from 'ng-zorro-antd/pagination';
 @Component({

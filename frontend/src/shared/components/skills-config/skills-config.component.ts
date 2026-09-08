@@ -13,7 +13,7 @@ import { SkillInputPromptService } from '@services/agent-center/skill/skill-inpu
 import { AddSkillHalfModalComponent } from '@shared/components/skills-config/add-skill-modal/add-skill-halfmodal.component';
 import { SKILL_MAX_COUNT } from '@enums/skill.enum';
 import { cdnAssetUrl } from 'src/single-spa/assets-url';
-import { SkillApi } from '@agentcore/api/skill.api';
+import { SIESkillApi } from '@agentcore/api/sie-skill.api';
 import { I18nService } from '@agentcore/core/i18n.service';
 import { I18nPipe } from '@agentcore/shared/pipes/i18n.pipe';
 
@@ -62,7 +62,7 @@ export class SkillsConfigComponent implements OnInit {
     private configService: AgentConfigService,
     private nzModal: NzModalService,
     private inputService: SkillInputPromptService,
-    private skillApi: SkillApi
+    private skillApi: SIESkillApi
   ) {}
 
   ngOnChanges(changes: SimpleChanges): void {

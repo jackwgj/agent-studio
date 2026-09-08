@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject, catchError, map, of } from 'rxjs';
 import { NzModalService } from 'ng-zorro-antd/modal';
 import { NzMessageService } from 'ng-zorro-antd/message';
-import { SkillApi } from '@agentcore/api/skill.api';
+import { SIESkillApi } from '@agentcore/api/sie-skill.api';
 import { I18nService } from '@agentcore/core/i18n.service';
 import { SkillDeleteModalComponent } from '@agentcore/library/skill/skill-delete-modal/skill-delete-modal.component';
 @Injectable({
@@ -16,7 +16,7 @@ export class SkillCommonService {
   constructor(
     private nzModal: NzModalService,
     private message: NzMessageService,
-    private _skillApi: SkillApi,
+    private _skillApi: SIESkillApi,
     private i18n: I18nService
   ) {}
 
