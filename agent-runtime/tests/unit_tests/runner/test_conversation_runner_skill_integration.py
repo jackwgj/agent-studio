@@ -27,10 +27,11 @@ class _Agent:
 async def test_react_runner_attaches_request_supervisor_skill_context(monkeypatch):
     captured = {}
 
-    async def attach(agent, catalog, recommended):
+    async def attach(agent, catalog, recommended, agent_bound_skill_ids=None):
         captured["agent"] = agent
         captured["catalog"] = catalog
         captured["recommended"] = recommended
+        captured["bound"] = agent_bound_skill_ids
 
     monkeypatch.setattr(
         "agent_runtime.conversation.runner.conversation_react_runner.attach_skill_context",
@@ -58,6 +59,65 @@ async def test_react_runner_attaches_request_supervisor_skill_context(monkeypatc
     assert captured["agent"] is agent
     assert captured["catalog"][0].skill_id == "meeting-minutes"
     assert captured["recommended"] == ["meeting-minutes"]
+    assert captured["bound"] == []
+
+
+def test_react_runner_builds_current_turn_recommendation_without_changing_source_group():
+    team_config = {
+        "skillCatalog": [
+            {
+                "skillId": "bound",
+                "versionId": "v1",
+                "name": "Bound Skill",
+                "description": "bound",
+                "objectKey": "skills/bound/v1/skill.zip",
+            },
+            {
+                "skillId": "extra",
+                "versionId": "v2",
+                "name": "Extra Skill",
+                "description": "extra",
+                "objectKey": "skills/extra/v2/skill.zip",
+            },
+        ],
+        "recommendedSkillIds": ["extra", "bound"],
+        "agentBoundSkillIds": ["bound"],
+    }
+
+    prompt = ConversationReActRunner._build_request_skill_recommendation(team_config)
+
+    assert "本轮推荐 Skill" in prompt
+    assert '"skillId": "extra"' in prompt
+    assert '"source": "工作空间补充"' in prompt
+    assert '"skillId": "bound"' in prompt
+    assert '"source": "当前智能体已绑定"' in prompt
+    assert ConversationReActRunner._build_request_skill_recommendation({
+        **team_config, "recommendedSkillIds": []
+    }) == ""
+
+
+def test_conversation_safe_ir_removes_only_bound_skill_config_from_deep_copy():
+    published = {
+        "agentId": "agent-1",
+        "configs": {
+            "mode": "ReAct",
+            "modelConfig": {"modelName": "model-1"},
+            "plugins": [{"id": "plugin-1"}],
+            "mcpServers": [{"id": "mcp-1"}],
+            "workflows": [{"id": "flow-1"}],
+            "maxIterations": 30,
+            "skills": {"skill_dir": "agent-skills", "skill_info": [{"name": "old"}]},
+        },
+    }
+
+    safe = ConversationReActRunner._build_conversation_safe_ir(published)
+
+    assert "skills" not in safe["configs"]
+    for key in ("mode", "modelConfig", "plugins", "mcpServers", "workflows", "maxIterations"):
+        assert safe["configs"][key] == published["configs"][key]
+    assert "skills" in published["configs"]
+    safe["configs"]["modelConfig"]["modelName"] = "changed"
+    assert published["configs"]["modelConfig"]["modelName"] == "model-1"
 
 
 @pytest.mark.asyncio
@@ -87,6 +147,22 @@ async def test_controller_modes_build_real_agent_group_without_mode_rejection(
 
     monkeypatch.setattr(conversation_controller_runner, "IRConverter", _IRConverter)
     monkeypatch.setattr(conversation_controller_runner, "async_ir_load", load_ir)
+    monkeypatch.setattr(
+        ConversationControllerRunner,
+        "_build_workspace_protocol_prompt",
+        staticmethod(lambda: "workspace protocol"),
+    )
+    monkeypatch.setattr(
+        conversation_controller_runner.ConversationSandboxFunctionBinder,
+        "from_runtime_settings",
+        classmethod(
+            lambda _cls: type(
+                "NoSandboxBinder",
+                (),
+                {"build": lambda self: [], "cleanup": lambda self: None},
+            )()
+        ),
+    )
 
     runner = ConversationControllerRunner()
     request = type("Request", (), {})()
@@ -109,11 +185,17 @@ async def test_controller_modes_build_real_agent_group_without_mode_rejection(
         }
     }
 
-    _, _, skill_context = await runner._build_request_agent_group(request, mode)
+    _, _, skill_context, _sandbox_binder = await runner._build_request_agent_group(
+        request, mode
+    )
 
-    assert len(captured["group_config"].main_agent.plugins) == 1
-    assert captured["group_config"].main_agent.plugins[0].name == "activate_skill"
-    assert skill_context.prepare_sandbox_resources is False
+    if mode == "PlanExecute":
+        assert len(captured["group_config"].main_agent.plugins) == 1
+        assert captured["group_config"].main_agent.plugins[0].name == "activate_skill"
+        assert skill_context.prepare_sandbox_resources is True
+    else:
+        assert captured["group_config"].main_agent.plugins == []
+        assert skill_context is None
 
 
 @pytest.mark.asyncio

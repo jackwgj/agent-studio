@@ -9,6 +9,8 @@ import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
 import com.openjiuwen.studio.agent.common.dto.agent.Message;
 import com.openjiuwen.studio.agent.common.utils.RequestContextUtils;
 import com.openjiuwen.studio.agent.foundation.connection.model.PageResult;
+import com.openjiuwen.studio.agent.manager.dto.AgentInfo;
+import com.openjiuwen.studio.agent.manager.dto.SkillReference;
 import com.openjiuwen.studio.conversation.application.dto.ConversationCreateCmd;
 import com.openjiuwen.studio.conversation.application.dto.ConversationArtifactDownload;
 import com.openjiuwen.studio.conversation.application.dto.ConversationDetailVo;
@@ -37,6 +39,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -251,13 +254,17 @@ public class ConversationWorkspaceAppService {
                 List.of("model_deployment_id is not allowed for APP"));
         }
         cmd.setSelectType(selectType);
-        if (app) {
-            conversationAgentResourceResolver.requirePublished(projectId, workspaceId, cmd.getAppId());
-        }
+        AgentInfo publishedAgent = app
+            ? conversationAgentResourceResolver.requirePublished(projectId, workspaceId, cmd.getAppId())
+            : null;
         Conversation conversation = getOwnedConversation(projectId, workspaceId, conversationId);
         conversationWorkspaceAccessGuard.requireAccess(projectId, workspaceId);
-        ConversationSkillContext skillContext = conversationSkillResolver.resolveForRun(projectId, workspaceId,
-            RequestContextUtils.getRequestUserDomainId(), cmd.getRecommendedSkillIds());
+        List<String> agentBoundSkillIds = extractAgentBoundSkillIds(publishedAgent);
+        ConversationSkillContext skillContext = app
+            ? conversationSkillResolver.resolveForRun(projectId, workspaceId,
+                RequestContextUtils.getRequestUserDomainId(), cmd.getRecommendedSkillIds(), agentBoundSkillIds)
+            : conversationSkillResolver.resolveForRun(projectId, workspaceId,
+                RequestContextUtils.getRequestUserDomainId(), cmd.getRecommendedSkillIds());
 
         // 本轮 execution_id（调用方生成，经 X-Execution-Id 下发引擎，事件原样携带）
         String executionId = UUID.randomUUID().toString();
@@ -277,6 +284,19 @@ public class ConversationWorkspaceAppService {
         // 全量历史组装（含工具消息合成）后注入运行链路
         List<Message> histories = conversationHistoryAssembler.assemble(conversation);
         return agentRuntimeAdapter.run(conversation, cmd, histories, skillContext, executionId, requestHeaders);
+    }
+
+    private List<String> extractAgentBoundSkillIds(AgentInfo publishedAgent) {
+        if (publishedAgent == null || publishedAgent.getSkills() == null) {
+            return List.of();
+        }
+        LinkedHashSet<String> result = new LinkedHashSet<>();
+        publishedAgent.getSkills().stream()
+            .filter(Objects::nonNull)
+            .map(SkillReference::getSkillId)
+            .filter(StringUtils::isNotBlank)
+            .forEach(result::add);
+        return List.copyOf(result);
     }
 
     /**

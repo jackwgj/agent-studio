@@ -48,6 +48,11 @@ public class ConversationSkillResolver {
 
     public ConversationSkillContext resolveForRun(String projectId, String workspaceId, String domainId,
                                                   List<String> requestedIds) {
+        return resolveForRun(projectId, workspaceId, domainId, requestedIds, List.of());
+    }
+
+    public ConversationSkillContext resolveForRun(String projectId, String workspaceId, String domainId,
+                                                   List<String> requestedIds, List<String> agentBoundIds) {
         List<String> recommendedSkillIds = new ArrayList<>(new LinkedHashSet<>(
             requestedIds == null ? List.of() : requestedIds));
         List<ConversationSkillDescriptor> catalog;
@@ -71,7 +76,14 @@ public class ConversationSkillResolver {
             throw new AgentStudioException(StudioError.METHOD_ARGUMENT_NOT_VALID,
                 List.of("recommended skill is unavailable"));
         }
-        return new ConversationSkillContext(catalog, recommendedSkillIds);
+        Set<String> requestedAgentBoundIds = new LinkedHashSet<>(
+            agentBoundIds == null ? List.of() : agentBoundIds);
+        List<String> trustedAgentBoundIds = catalog.stream()
+            .map(ConversationSkillDescriptor::getSkillId)
+            .filter(requestedAgentBoundIds::contains)
+            .distinct()
+            .toList();
+        return new ConversationSkillContext(catalog, recommendedSkillIds, trustedAgentBoundIds);
     }
 
     private List<ConversationSkillDescriptor> loadCatalog(String projectId, String workspaceId, String domainId) {

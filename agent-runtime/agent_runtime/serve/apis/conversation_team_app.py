@@ -54,6 +54,9 @@ def _skill_context_variables(req: Any) -> dict:
         "recommendedSkillIds": list(
             getattr(req, "recommended_skill_ids", None) or []
         ),
+        "agentBoundSkillIds": list(
+            getattr(req, "agent_bound_skill_ids", None) or []
+        ),
     }
 
 

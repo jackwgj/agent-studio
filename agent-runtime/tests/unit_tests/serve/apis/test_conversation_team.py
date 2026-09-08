@@ -349,12 +349,19 @@ async def test_team_stream_owns_root_start_and_deduplicates_controller_snapshot(
 
 
 def test_request_accepts_manager_skill_contract():
-    req = ConversationTeamReq.model_validate(request_payload())
+    req = ConversationTeamReq.model_validate(request_payload(agentBoundSkillIds=["s1", "s1"]))
 
     assert req.skill_catalog[0].skill_id == "s1"
     assert req.skill_catalog[0].version_id == "v1"
     assert req.skill_catalog[0].object_key == "u/skills/s1/v1/a.zip"
     assert req.recommended_skill_ids == ["s1"]
+    assert req.agent_bound_skill_ids == ["s1"]
+
+
+def test_request_defaults_missing_bound_field_and_rejects_unknown_bound_skill():
+    assert ConversationTeamReq.model_validate(request_payload()).agent_bound_skill_ids == []
+    with pytest.raises(ValidationError):
+        ConversationTeamReq.model_validate(request_payload(agentBoundSkillIds=["other"]))
 
 
 @pytest.mark.asyncio

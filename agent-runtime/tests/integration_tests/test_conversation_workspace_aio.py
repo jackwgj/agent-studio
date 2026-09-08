@@ -26,6 +26,9 @@ from agent_runtime.conversation.output_artifact_collector import (
 from agent_runtime.conversation.sandbox import ConversationSandboxConfig, ConversationSysOperationFactory
 from agent_runtime.conversation.sandbox.registration import get_conversation_sandbox_operation
 from agent_runtime.conversation.sandbox.remote_directories import remote_directory_command
+from agent_runtime.conversation.runner.conversation_sandbox_function import (
+    ConversationSandboxFunctionBinder,
+)
 from agent_runtime.conversation.workspace_initializer import (
     ConversationWorkspaceInitializer, ConversationWorkspaceInitializationError,
 )
@@ -173,5 +176,52 @@ async def test_real_aio_scan_cannot_target_another_conversation(aio):
     try:
         with pytest.raises(OutputArtifactCollectionError, match="boundary"):
             await RemoteSandboxOutputSource(operation).scan(str(context(conversation="other").output_dir))
+    finally:
+        reset_conversation_execution_context(token)
+
+
+@pytest.mark.asyncio
+async def test_real_aio_planexecute_functions_use_conversation_workspace(aio):
+    operation, context, _ = aio
+    ctx = context(execution="planexecute")
+    await ConversationWorkspaceInitializer(operation).ensure(ctx)
+    manager = ResourceMgr()
+    factory = ConversationSysOperationFactory(ConversationSandboxConfig(
+        mode="sandbox", server=URL, ssl_verify=False, sandbox_type="aio",
+        idle_ttl_seconds=600, timeout_seconds=30, scope="system",
+    ))
+    token = set_conversation_execution_context(ctx)
+    try:
+        binder = ConversationSandboxFunctionBinder(factory, manager)
+        functions = {item.name: item for item in binder.build()}
+
+        shell_result = await functions["execute_cmd"].ainvoke({
+            "command": "printf 'shell artifact' > ../output/shell.txt",
+        })
+        code_result = await functions["execute_code"].ainvoke({
+            "code": (
+                "import os\n"
+                "path = os.path.join(os.environ['CONVERSATION_OUTPUT_DIR'], 'code.txt')\n"
+                "open(path, 'w', encoding='utf-8').write('code artifact')"
+            ),
+        })
+        read_result = await functions["read_file"].ainvoke({
+            "path": "../output/shell.txt",
+        })
+
+        assert shell_result["errCode"] == 0
+        assert shell_result["data"]["exit_code"] == 0
+        assert code_result["errCode"] == 0
+        assert read_result["errCode"] == 0
+        artifacts = await ConversationOutputCollector(
+            RemoteSandboxOutputSource(operation)
+        ).collect()
+        assert {item.file_name for item in artifacts} == {
+            "code.txt", "shell.txt"
+        }
+
+        with pytest.raises(ValueError, match="outside the active conversation"):
+            await functions["execute_cmd"].ainvoke({"command": "cat /etc/passwd"})
+        binder.cleanup()
     finally:
         reset_conversation_execution_context(token)

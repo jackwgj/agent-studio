@@ -130,6 +130,7 @@ class AgentRuntimeAdapterTest {
                 body.get("subAgentIds"));
         assertEquals("m1", body.get("modelDeploymentId"));
         assertNull(body.get("systemPrompt"));
+        assertEquals(List.of(), body.get("agentBoundSkillIds"));
 
         List<Map<String, String>> historyMaps = (List<Map<String, String>>) body.get("conversationHistory");
         assertNotNull(historyMaps);
@@ -162,7 +163,8 @@ class AgentRuntimeAdapterTest {
         ConversationSkillDescriptor skill = ConversationSkillDescriptor.builder()
             .skillId("s1").versionId("v1").name("meeting-minutes")
             .description("整理会议内容").objectKey("u1/skills/s1/v1/a.zip").build();
-        ConversationSkillContext skillContext = new ConversationSkillContext(List.of(skill), List.of("s1"));
+        ConversationSkillContext skillContext = new ConversationSkillContext(
+            List.of(skill), List.of("s1"), List.of("s1"));
         Conversation conv = Conversation.builder().conversationId("c1").projectId("p1").workspaceId("w1").build();
         SendMessageCmd cmd = new SendMessageCmd();
         cmd.setQuery("整理会议");
@@ -172,6 +174,7 @@ class AgentRuntimeAdapterTest {
         Map<String, Object> body = adapter.buildRequestBody(conv, cmd, List.of(), skillContext);
 
         assertEquals(List.of("s1"), body.get("recommendedSkillIds"));
+        assertEquals(List.of("s1"), body.get("agentBoundSkillIds"));
         assertNotEquals(cmd.getRecommendedSkillIds(), body.get("recommendedSkillIds"));
         Map<String, Object> item = ((List<Map<String, Object>>) body.get("skillCatalog")).get(0);
         assertEquals("u1/skills/s1/v1/a.zip", item.get("objectKey"));

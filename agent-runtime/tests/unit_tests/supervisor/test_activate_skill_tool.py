@@ -4,7 +4,11 @@ from unittest.mock import AsyncMock
 import pytest
 
 from agent_runtime.supervisor.event.channel import EventChannel, reset_channel, set_channel
-from agent_runtime.supervisor.skill_artifact_cache import SkillArtifactCache
+from agent_runtime.supervisor.skill_artifact_cache import (
+    SkillArtifactCache,
+    SkillArtifactError,
+    SkillInstructionsMissingError,
+)
 from agent_runtime.supervisor.skill_context import (
     SkillExecutionContext,
     attach_agent_context,
@@ -114,3 +118,100 @@ async def test_activate_skill_prepares_complete_artifact_when_remote_sandbox_is_
     assert result["instructions"] == "# complete"
     assert result["resourceState"] == "prepared"
     assert result["sandboxPath"] == "/workspace/conversation/skills/version"
+
+
+@pytest.mark.asyncio
+async def test_activate_skill_accepts_bound_and_supplement_ids_from_one_index(monkeypatch):
+    bound = SkillDescriptor(
+        "bound", "v1", "weather", "bound", "user/skills/bound/v1/skill.zip"
+    )
+    supplement = SkillDescriptor(
+        "supplement", "v2", "weather", "extra", "user/skills/supplement/v2/skill.zip"
+    )
+    cache = SimpleNamespace(load_instructions=AsyncMock(side_effect=["bound", "extra"]))
+    monkeypatch.setattr(
+        "agent_runtime.supervisor.tool.activate_skill_tool.conversation_skill_sandbox_enabled",
+        lambda: False,
+    )
+    agent = _Agent()
+    attach_agent_context(
+        agent, [bound, supplement], [], cache, agent_bound_skill_ids=["bound"]
+    )
+    token = bind_agent_skill_context(agent)
+    try:
+        bound_result = await ActivateSkillTool().invoke({"skill_id": "bound"})
+        supplement_result = await ActivateSkillTool().invoke({"skill_id": "supplement"})
+        missing_result = await ActivateSkillTool().invoke({"skill_id": "missing"})
+    finally:
+        reset_skill_context(token)
+
+    assert bound_result["instructions"] == "bound"
+    assert supplement_result["instructions"] == "extra"
+    assert missing_result["error"]["code"] == "skill_not_available"
+
+
+@pytest.mark.asyncio
+async def test_activate_skill_reports_sandbox_preparation_failure_without_path_leak(monkeypatch):
+    from agent_runtime.conversation.skill_artifact_bridge import (
+        SkillSandboxPreparationError,
+    )
+
+    skill = SkillDescriptor(
+        "s1", "v1", "Skill", "description", "user/skills/s1/v1/secret.zip"
+    )
+    artifact = SimpleNamespace(instructions="# instructions", artifact_dir="/opt/private")
+    cache = SimpleNamespace(load_artifact=AsyncMock(return_value=artifact))
+    monkeypatch.setattr(
+        "agent_runtime.supervisor.tool.activate_skill_tool.conversation_skill_sandbox_enabled",
+        lambda: True,
+    )
+    monkeypatch.setattr(
+        "agent_runtime.supervisor.tool.activate_skill_tool.prepare_conversation_skill",
+        AsyncMock(side_effect=SkillSandboxPreparationError("/workspace/partial failed")),
+    )
+    agent = _Agent()
+    attach_agent_context(agent, [skill], [], cache)
+    token = bind_agent_skill_context(agent)
+    try:
+        result = await ActivateSkillTool().invoke({"skill_id": "s1"})
+    finally:
+        reset_skill_context(token)
+
+    assert result["error"]["code"] == "skill_sandbox_preparation_failed"
+    assert "/workspace/partial" not in result["error"]["message"]
+    assert "/opt/private" not in result["error"]["message"]
+    assert "secret.zip" not in result["error"]["message"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("failure", "expected_code"),
+    [
+        (SkillInstructionsMissingError("missing"), "skill_instructions_missing"),
+        (SkillArtifactError("unsafe /opt/private"), "skill_artifact_invalid"),
+        (RuntimeError("storage secret"), "skill_download_failed"),
+    ],
+)
+async def test_activate_skill_returns_sanitized_artifact_errors(
+    monkeypatch, failure, expected_code
+):
+    skill = SkillDescriptor(
+        "s1", "v1", "Skill", "description", "user/skills/s1/v1/secret.zip"
+    )
+    cache = SimpleNamespace(load_instructions=AsyncMock(side_effect=failure))
+    monkeypatch.setattr(
+        "agent_runtime.supervisor.tool.activate_skill_tool.conversation_skill_sandbox_enabled",
+        lambda: False,
+    )
+    agent = _Agent()
+    attach_agent_context(agent, [skill], [], cache)
+    token = bind_agent_skill_context(agent)
+    try:
+        result = await ActivateSkillTool().invoke({"skill_id": "s1"})
+    finally:
+        reset_skill_context(token)
+
+    assert result["error"]["code"] == expected_code
+    assert "/opt/private" not in result["error"]["message"]
+    assert "storage secret" not in result["error"]["message"]
+    assert "secret.zip" not in result["error"]["message"]

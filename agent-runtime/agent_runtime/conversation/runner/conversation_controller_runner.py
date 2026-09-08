@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import json
 import os
 import time
@@ -10,20 +11,35 @@ import uuid
 from typing import Any, AsyncGenerator
 
 from agent_runtime.context.request_context import _request_ctx
+from agent_runtime.conversation.execution_context import (
+    get_conversation_execution_context,
+)
 from agent_runtime.runner.controller_runner import ControllerRunner
 from agent_runtime.runner.controller_stream_data_adapter import ControllerStreamDataAdapter
 from agent_runtime.runner.memory_extraction_context import MemoryExtractionContext
-from agent_runtime.supervisor.skill_context import build_skill_execution_context
+from agent_runtime.supervisor.skill_context import (
+    build_skill_catalog_prompt,
+    build_skill_execution_context,
+    build_skill_recommendation_prompt,
+)
 from agent_runtime.supervisor.skill_model import SkillDescriptor
 from agent_runtime.conversation.runner.conversation_skill_function import (
     ConversationActivateSkillFunction,
 )
+from agent_runtime.conversation.runner.conversation_sandbox_function import (
+    ConversationSandboxFunctionBinder,
+)
+from agent_runtime.conversation.runner.conversation_planexecute_agent import (
+    ConversationPlanExecuteAgentGroup,
+    attach_conversation_skill_context,
+)
 from agent_runtime.schemas.orchestration_mgr import ExecutionRequest
+from jiuwen.controller.common.config import SkillInjectionContext
 from jiuwen.controller.common.constants import WorkflowConstants
 from jiuwen.serve.controllers.execution.enum import IRType
 from jiuwen.serve.controllers.execution.ir_converter import IRConverter
 from jiuwen.serve.controllers.execution.manager import AsyncStateManager
-from jiuwen.serve.controllers.execution.open_utils import async_ir_load
+from jiuwen.serve.controllers.execution.open_utils import async_ir_load, deserialize_object
 from jiuwen.serve.controllers.execution.types import ExecutionData
 from jiuwen.serve.controllers.execution.utils import (
     build_agent_input,
@@ -34,7 +50,7 @@ from openjiuwen.core.session.agent import Session, create_agent_session
 
 
 class ConversationControllerRunner(ControllerRunner):
-    """Controller/PlanExecute wrapper without conversation sandbox execution tools."""
+    """Keep Controller unchanged and adapt top-level PlanExecute per request."""
 
     @staticmethod
     def _conversation_team(req) -> dict:
@@ -46,7 +62,9 @@ class ConversationControllerRunner(ControllerRunner):
         )
 
     @staticmethod
-    def _build_skill_context(team_config: dict):
+    def _build_skill_context(
+        team_config: dict, *, prepare_sandbox_resources: bool = False
+    ):
         catalog = [
             SkillDescriptor(
                 skill_id=item.get("skillId") or item.get("skill_id") or "",
@@ -64,47 +82,137 @@ class ConversationControllerRunner(ControllerRunner):
             or team_config.get("recommended_skill_ids")
             or []
         )
+        bound = list(
+            team_config.get("agentBoundSkillIds")
+            or team_config.get("agent_bound_skill_ids")
+            or []
+        )
         return build_skill_execution_context(
             catalog,
             recommended,
-            prepare_sandbox_resources=False,
+            prepare_sandbox_resources=prepare_sandbox_resources,
+            agent_bound_skill_ids=bound,
         )
+
+    @staticmethod
+    def _build_skill_prompt_suffix(skill_context) -> str:
+        workspace_prompt = ConversationControllerRunner._build_workspace_protocol_prompt()
+        if skill_context is None:
+            return workspace_prompt
+        catalog = list(skill_context.catalog_by_id.values())
+        bound_ids = [skill.skill_id for skill in skill_context.agent_bound_skills]
+        stable = build_skill_catalog_prompt(catalog, bound_ids)
+        recommendation = build_skill_recommendation_prompt(
+            catalog, skill_context.recommended_skill_ids, bound_ids
+        )
+        skill_prompt = f"{stable}\n\n{recommendation}" if recommendation else stable
+        return f"{workspace_prompt}\n\n{skill_prompt}"
+
+    @staticmethod
+    def _build_workspace_protocol_prompt() -> str:
+        workspace = get_conversation_execution_context().workspace
+        return (
+            "## 当前会话沙箱目录协议\n"
+            f"当前会话根目录：`{workspace.conversation_root}`。所有文件操作必须限制在该目录内，"
+            "不得访问或写入当前会话根目录之外。\n"
+            f"- `{workspace.input_dir}`：用户上传的原始输入文件，不得覆盖。\n"
+            f"- `{workspace.skills_dir}`：已激活 Skill 的完整制品和配套资源，执行前读取 `SKILL.md`。\n"
+            f"- `{workspace.work_dir}`：默认 cwd，存放过程文件和中间结果。\n"
+            f"- `{workspace.output_dir}`：正式成果目录，只有这里的文件会被采集和发布。\n"
+            f"- `{workspace.tmp_dir}`：可丢弃的临时文件目录。"
+        )
+
+    @staticmethod
+    def _build_conversation_safe_ir(ir_json: dict, mode: str) -> dict:
+        if mode != "PlanExecute":
+            return ir_json
+        safe_ir = copy.deepcopy(ir_json)
+        (safe_ir.get("configs") or {}).pop("skills", None)
+        # The conversation request owns mutable tool and prompt state; bypass the
+        # published Agent/AgentGroup caches without changing the stored IR.
+        safe_ir["is_published"] = False
+        return safe_ir
+
+    @staticmethod
+    def _protect_planexecute_capabilities(agent_config, names: set[str]) -> None:
+        if not names:
+            return
+        plan_config = getattr(agent_config, "plan_config", None)
+        for scene in list(getattr(plan_config, "scenes", None) or []):
+            existing = list(getattr(scene, "tools", None) or [])
+            scene.tools = existing + sorted(names.difference(existing))
 
     async def _build_request_agent_group(
         self, req: ExecutionRequest, mode: str, ir_json: dict | None = None
     ):
         """Build the official group config and add request-local Skill Functions."""
         ir_json = ir_json or await async_ir_load(req.ir_path)
+        is_planexecute = mode == "PlanExecute"
+        request_ir = self._build_conversation_safe_ir(ir_json, mode)
         request_context = _request_ctx.get()
         cust_headers = request_context.customer_headers if request_context else {}
         project_id = request_context.project_id if request_context else ""
         group_config, agent_info_map = await IRConverter.create_agent_group_config(
-            ir_json,
+            request_ir,
             req.conversation_id,
             cust_headers=cust_headers,
             project_id=project_id,
         )
-        skill_context = self._build_skill_context(self._conversation_team(req))
+        if not is_planexecute:
+            return group_config, agent_info_map, None, None
+
+        skill_context = self._build_skill_context(
+            self._conversation_team(req), prepare_sandbox_resources=True
+        )
+        plugins = list(group_config.main_agent.plugins or [])
+        protected_names: set[str] = set()
         if skill_context is not None:
             skill_function = ConversationActivateSkillFunction(skill_context)
-            for agent_config in [group_config.main_agent, *group_config.agents]:
-                plugins = list(agent_config.plugins or [])
-                if not any(plugin.name == skill_function.name for plugin in plugins):
-                    plugins.append(skill_function)
-                agent_config.plugins = plugins
-        return group_config, agent_info_map, skill_context
+            if not any(getattr(plugin, "name", None) == skill_function.name for plugin in plugins):
+                plugins.append(skill_function)
+            protected_names.add(skill_function.name)
+
+        sandbox_binder = ConversationSandboxFunctionBinder.from_runtime_settings()
+        for function in sandbox_binder.build():
+            if not any(getattr(plugin, "name", None) == function.name for plugin in plugins):
+                plugins.append(function)
+            protected_names.add(function.name)
+
+        group_config.main_agent.plugins = plugins
+        group_config.main_agent.skill_dir = ""
+        group_config.main_agent.skill_info = []
+        self._protect_planexecute_capabilities(group_config.main_agent, protected_names)
+        prompt_suffix = self._build_skill_prompt_suffix(skill_context)
+        injection_context = SkillInjectionContext(
+            prompt_suffix=prompt_suffix,
+            tool_names=protected_names,
+            tool_refs={id(plugin) for plugin in plugins if getattr(plugin, "name", None) in protected_names},
+        )
+        attach_conversation_skill_context(group_config.main_agent, injection_context)
+        return group_config, agent_info_map, skill_context, sandbox_binder
 
     async def _create_request_agent_group(
         self, req: ExecutionRequest, mode: str, ir_json: dict
     ):
-        group_config, agent_info_map, skill_context = (
+        group_config, agent_info_map, skill_context, sandbox_binder = (
             await self._build_request_agent_group(req, mode, ir_json)
         )
-        agent_group = await IRConverter.create_or_restore_agent_group(
-            group_config, req.conversation_id
-        )
-        agent_group.update_group_prompt(agent_info_map)
-        return agent_group, skill_context
+        try:
+            if mode == "PlanExecute":
+                agent_group = ConversationPlanExecuteAgentGroup(group_config)
+                serialized = await AsyncStateManager().get_state(req.conversation_id)
+                state = deserialize_object(serialized) if serialized else None
+                await agent_group.start(state)
+            else:
+                agent_group = await IRConverter.create_or_restore_agent_group(
+                    group_config, req.conversation_id
+                )
+            agent_group.update_group_prompt(agent_info_map)
+            return agent_group, skill_context, sandbox_binder
+        except BaseException:
+            if sandbox_binder is not None:
+                sandbox_binder.cleanup()
+            raise
 
     async def run_streaming(
         self, req: ExecutionRequest, execution_id: str | None = None
@@ -157,7 +265,7 @@ class ConversationControllerRunner(ControllerRunner):
 
         try:
             start = time.perf_counter()
-            agent_group, _skill_context = await self._create_request_agent_group(
+            agent_group, _skill_context, sandbox_binder = await self._create_request_agent_group(
                 req,
                 (ir_json.get("configs") or {}).get("mode", "Controller"),
                 ir_json,
@@ -264,5 +372,9 @@ class ConversationControllerRunner(ControllerRunner):
             )
             await AsyncStateManager().delete_state(session_id)
         finally:
-            if session is not None:
-                await session.post_run()
+            try:
+                if session is not None:
+                    await session.post_run()
+            finally:
+                if sandbox_binder is not None:
+                    sandbox_binder.cleanup()

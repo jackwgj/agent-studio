@@ -220,6 +220,7 @@ public class AgentRuntimeAdapter {
             .toList();
         body.put("skillCatalog", skillCatalog);
         body.put("recommendedSkillIds", trustedContext.getRecommendedSkillIds());
+        body.put("agentBoundSkillIds", trustedContext.getAgentBoundSkillIds());
     }
 
     private Map<String, String> toSkillCatalogItem(ConversationSkillDescriptor descriptor) {

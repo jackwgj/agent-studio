@@ -9,7 +9,10 @@ from agent_runtime.supervisor.skill_context import (
     attach,
     attach_agent_context,
     bind_agent_skill_context,
+    build_skill_catalog_prompt,
+    build_skill_execution_context,
     build_skill_prompt,
+    build_skill_recommendation_prompt,
     reset_skill_context,
 )
 from agent_runtime.supervisor.skill_model import SkillDescriptor
@@ -60,6 +63,58 @@ def test_prompt_omits_empty_recommendations_and_json_escapes_catalog_description
         "name": '带"引号"',
         "description": description,
     }]
+
+
+def test_execution_context_groups_bound_and_supplement_skills_by_id():
+    catalog = [
+        descriptor("bound", "v1", "weather", "绑定天气能力"),
+        descriptor("supplement", "v2", "weather", "补充天气能力"),
+    ]
+
+    context = build_skill_execution_context(
+        catalog,
+        ["supplement", "bound"],
+        agent_bound_skill_ids=["bound", "bound"],
+    )
+
+    assert [item.skill_id for item in context.agent_bound_skills] == ["bound"]
+    assert [item.skill_id for item in context.workspace_supplement_skills] == ["supplement"]
+    assert context.recommended_skill_ids == ("supplement", "bound")
+    assert list(context.catalog_by_id) == ["bound", "supplement"]
+    with pytest.raises(TypeError):
+        context.catalog_by_id["other"] = catalog[0]
+
+
+def test_execution_context_without_bound_field_keeps_legacy_catalog_as_supplement():
+    context = build_skill_execution_context(
+        [descriptor("s1", "v1", "会议纪要", "整理会议")], []
+    )
+
+    assert context.agent_bound_skills == ()
+    assert [item.skill_id for item in context.workspace_supplement_skills] == ["s1"]
+
+
+def test_grouped_prompts_hide_storage_fields_and_separate_turn_recommendations():
+    catalog = [
+        descriptor("bound", "v1", "天气", "查询天气"),
+        descriptor("extra", "v2", "天气", "补充天气信息"),
+    ]
+
+    stable = build_skill_catalog_prompt(catalog, ["bound"])
+    turn = build_skill_recommendation_prompt(catalog, ["extra", "bound"], ["bound"])
+
+    assert "当前智能体已绑定 Skill" in stable
+    assert "工作空间补充 Skill" in stable
+    assert stable.count('"name": "天气"') == 2
+    assert "本轮推荐 Skill" not in stable
+    assert "本轮推荐 Skill" in turn
+    assert '"skillId": "extra"' in turn
+    assert '"source": "工作空间补充"' in turn
+    assert '"source": "当前智能体已绑定"' in turn
+    for hidden in ("versionId", "objectKey", "/opt/", "user/skills/"):
+        assert hidden not in stable
+        assert hidden not in turn
+    assert build_skill_recommendation_prompt(catalog, [], ["bound"]) == ""
 
 
 @pytest.mark.asyncio

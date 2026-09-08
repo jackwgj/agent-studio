@@ -6,6 +6,7 @@ request-local IR cache so the built-in Supervisor can use an in-memory IR view.
 
 from __future__ import annotations
 
+import copy
 import time
 import uuid
 from typing import AsyncGenerator, Dict, Optional
@@ -21,6 +22,7 @@ from agent_runtime.runner.react_agent_runner import ReActAgentRunner
 from agent_runtime.supervisor.skill_context import (
     attach as attach_skill_context,
     bind_agent_skill_context,
+    build_skill_recommendation_prompt,
     reset_skill_context,
 )
 from agent_runtime.supervisor.skill_model import SkillDescriptor
@@ -92,6 +94,15 @@ class ConversationReActRunner(ReActAgentRunner):
         return getattr(req.params, "ir_cache", None)
 
     @staticmethod
+    def _build_conversation_safe_ir(ir_json: dict) -> dict:
+        """Copy published IR and hide base-runner bound Skill artifacts for this request."""
+        safe_ir = copy.deepcopy(ir_json)
+        configs = safe_ir.get("configs")
+        if isinstance(configs, dict):
+            configs.pop("skills", None)
+        return safe_ir
+
+    @staticmethod
     async def _attach_request_skill_context(agent, team_config: dict) -> bool:
         """Attach request-local workspace Skill context to the current Agent."""
         catalog = [
@@ -109,10 +120,44 @@ class ConversationReActRunner(ReActAgentRunner):
             or team_config.get("recommended_skill_ids")
             or []
         )
+        agent_bound_skill_ids = list(
+            team_config.get("agentBoundSkillIds")
+            or team_config.get("agent_bound_skill_ids")
+            or []
+        )
         if not catalog:
             return False
-        await attach_skill_context(agent, catalog, recommended)
+        await attach_skill_context(
+            agent,
+            catalog,
+            recommended,
+            agent_bound_skill_ids=agent_bound_skill_ids,
+        )
         return True
+
+    @staticmethod
+    def _build_request_skill_recommendation(team_config: dict) -> str:
+        catalog = [
+            SkillDescriptor(
+                skill_id=item.get("skillId") or item.get("skill_id") or "",
+                version_id=item.get("versionId") or item.get("version_id") or "",
+                name=item.get("name") or "",
+                description=item.get("description") or "",
+                object_key=item.get("objectKey") or item.get("object_key") or "",
+            )
+            for item in team_config.get("skillCatalog") or []
+        ]
+        recommended = list(
+            team_config.get("recommendedSkillIds")
+            or team_config.get("recommended_skill_ids")
+            or []
+        )
+        bound = list(
+            team_config.get("agentBoundSkillIds")
+            or team_config.get("agent_bound_skill_ids")
+            or []
+        )
+        return build_skill_recommendation_prompt(catalog, recommended, bound)
 
     @staticmethod
     async def _attach_supervisor_skill_context(agent, team_config: dict) -> bool:
@@ -165,7 +210,8 @@ class ConversationReActRunner(ReActAgentRunner):
 
         sandbox_binder: ConversationSandboxToolBinder | None = None
         try:
-            ir_json = self._get_request_ir(req) or await self._load_ir(req.ir_path)
+            published_ir = self._get_request_ir(req) or await self._load_ir(req.ir_path)
+            ir_json = self._build_conversation_safe_ir(published_ir)
         except Exception as error:
             workflow_logger.error("Failed to load conversation IR: %s", error, exc_info=True)
             yield adapter.adapt_error(f"Failed to load workflow configuration: {error}")
@@ -178,21 +224,16 @@ class ConversationReActRunner(ReActAgentRunner):
             yield adapter.adapt_error(f"Failed to create LLM: {error}")
             return
 
-        skills_conf = ir_json.get("configs", {}).get("skills", {})
         skill_work_dir = ""
-        skill_info_list = []
-        if skills_conf:
-            skill_dir = skills_conf.get("skill_dir", "")
-            skill_info_list = skills_conf.get("skill_info", [])
-            try:
-                skill_work_dir = await self._download_skills(skill_dir, skill_info_list) or ""
-            except Exception as error:
-                workflow_logger.warning("Conversation skill download failed: %s", error)
 
         query = self._resolve_user_query(req)
         has_file_links = self._has_file_links(query)
         conversation_history = req.params.conversation_history
         global_variables = req.params.global_variables or {}
+        team_config = global_variables.get("conversationTeam") or {}
+        recommendation_prompt = self._build_request_skill_recommendation(team_config)
+        if recommendation_prompt:
+            query = f"{query}\n\n{recommendation_prompt}"
         prepared_inputs = list(global_variables.get("conversationInputFiles") or [])
         if prepared_inputs:
             input_lines = [
@@ -234,13 +275,11 @@ class ConversationReActRunner(ReActAgentRunner):
                 await self._register_plugins(ir_json, agent, agent_id)
                 await self._register_mcp_servers(ir_json, agent, agent_id)
                 await self._register_workflows(ir_json, agent, agent_id)
-                await self._register_skills(ir_json, agent, agent_id, skill_work_dir)
                 if has_file_links:
                     self._register_file_reader_tool(agent, agent_id)
 
                 sandbox_binder = ConversationSandboxToolBinder.from_runtime_settings()
                 sandbox_binder.register(agent)
-                team_config = (global_variables or {}).get("conversationTeam") or {}
                 if team_config.get("type") == "SUPERVISOR":
                     skill_attached = await self._attach_supervisor_skill_context(
                         agent, team_config

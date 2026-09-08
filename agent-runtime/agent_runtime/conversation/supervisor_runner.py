@@ -68,6 +68,7 @@ async def run_conversation_supervisor(
                     "recommendedSkillIds": list(
                         getattr(req, "recommended_skill_ids", None) or []
                     ),
+                    "agentBoundSkillIds": [],
                 },
             },
             pluginConfigs=[],

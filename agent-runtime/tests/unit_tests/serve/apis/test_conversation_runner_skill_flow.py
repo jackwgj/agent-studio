@@ -45,6 +45,7 @@ async def test_supervisor_bridge_passes_skill_catalog_to_runner_context(monkeypa
             )
         ],
         recommended_skill_ids=["meeting-minutes"],
+        agent_bound_skill_ids=["meeting-minutes"],
     )
     config = SimpleNamespace(
         to_ir=lambda: {
@@ -71,3 +72,4 @@ async def test_supervisor_bridge_passes_skill_catalog_to_runner_context(monkeypa
     team = runner.request.params.global_variables["conversationTeam"]
     assert team["recommendedSkillIds"] == ["meeting-minutes"]
     assert team["skillCatalog"][0]["skillId"] == "meeting-minutes"
+    assert team["agentBoundSkillIds"] == []
