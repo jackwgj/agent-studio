@@ -105,7 +105,7 @@ export class ComponentCardComponent implements OnInit {
 
   public get name() {
     if (this.isZH()) {
-      return this.data.name || this.data.plugin_chinese_name || this.data.skill_name;
+      return this.data.displayName || this.data.skill_name;
     }
     return this.data.name_en || this.data.plugin_display_name || this.data.name || this.data.plugin_chinese_name || this.data.skill_name;
   }

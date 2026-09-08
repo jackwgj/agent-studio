@@ -30,4 +30,7 @@ opentelemetry-sdk==1.42.1
 opentelemetry-exporter-otlp-proto-grpc==1.42.1
 opentelemetry-exporter-otlp-proto-http==1.42.1
 starlette==1.3.1
+# anyio 钉在 <4.15：4.15 懒加载重构后顶层无 from_thread，starlette WSGIMiddleware 会
+# AttributeError（builder /docs 500），详见 .workbuddy/本地环境验证报告.md
+anyio==4.14.2
 jinja2==3.1.6

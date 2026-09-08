@@ -7,10 +7,12 @@ import {
   ChangeDetectorRef,
   ViewChild,
   ElementRef,
+  HostListener,
 } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
+import { NzMessageService } from 'ng-zorro-antd/message';
 import { COMMON_MODULES, LIB_MODULES } from '@shared/modules';
 import { ModelManagementService } from '@services/repositories/model-management-new';
 import { AppAgentRepoService } from '@services/agent-center/app-agent-repo.service';
@@ -38,6 +40,15 @@ import {
 import { SkillSelectorComponent } from './skill-selector/skill-selector.component';
 import { AppMarkdownAnswerComponent } from '@shared/components/app-markdown-answer/app-markdown-answer.component';
 import { UploadFileIconComponent } from '@shared/components/upload-file-icon/upload-file-icon.component';
+import {
+  PreviewSource,
+  PreviewState,
+  buildFilePreviewSource,
+  resolvePreviewType,
+  urlToTitle,
+} from './preview.model';
+import { PreviewPanelComponent } from './components/preview-panel/preview-panel.component';
+import { PreviewResizerDirective } from './components/preview-panel/preview-resizer.directive';
 import { v4 as uuidV4 } from 'uuid';
 import { CommonUtils } from 'src/utils/common.util';
 
@@ -47,7 +58,7 @@ interface ChatMessage {
   timeline: ConversationTimelineItem[];
   seenEventIndexes?: Set<number>;
   userContent?: string;
-  userFiles?: Array<Pick<ConversationFileReference, 'fileName'>>;
+  userFiles?: Array<Pick<ConversationFileReference, 'fileName' | 'objectKey'>>;
   artifacts?: ConversationArtifactReference[];
   /** 非主 Agent 内容默认折叠，不主动展示 */
   detailSegments?: ChatSegment[];
@@ -96,7 +107,15 @@ interface PendingActiveSession {
   templateUrl: './conversation-workspace.component.html',
   styleUrls: ['./conversation-workspace.component.less'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [COMMON_MODULES, LIB_MODULES, SkillSelectorComponent, AppMarkdownAnswerComponent, UploadFileIconComponent],
+  imports: [
+    COMMON_MODULES,
+    LIB_MODULES,
+    SkillSelectorComponent,
+    AppMarkdownAnswerComponent,
+    UploadFileIconComponent,
+    PreviewPanelComponent,
+    PreviewResizerDirective,
+  ],
   standalone: true,
 })
 export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
@@ -141,6 +160,19 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
   private pendingRouteConversation: PendingRouteConversation | null = null;
   private pendingActiveSession: PendingActiveSession | null = null;
   private documentMinWidthBeforeWorkspace: string | null = null;
+
+  // ===== 预览面板状态 =====
+  /** 当前预览；null 表示面板关闭。单预览约束：打开时必须先关闭才能开新的。 */
+  previewState: PreviewState | null = null;
+  /** 预览面板宽度百分比（30~60），持久化到 localStorage */
+  previewWidth = 60;
+  /** 窗口 <1200px 时面板切换为全屏覆盖层 */
+  narrowPreview = false;
+  /** 单预览拦截后的短暂反馈态（驱动面板轻微位移动画） */
+  previewBlocked = false;
+  private readonly previewWidthKey = 'cw.preview.widthPct';
+  private blockedTimer: ReturnType<typeof setTimeout> | null = null;
+  private widthSaveTimer: ReturnType<typeof setTimeout> | null = null;
   private historyScrollFrameIds: number[] = [];
   private readonly workspaceChangeHandler = () => this.handleWorkspaceChange();
 
@@ -153,10 +185,20 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
     private router: Router,
     private cdr: ChangeDetectorRef,
     private http: HttpService,
+    private message: NzMessageService,
   ) {}
 
   ngOnInit(): void {
     this.enableResponsiveDocumentWidth();
+    this.narrowPreview = window.matchMedia('(max-width: 1199px)').matches;
+    try {
+      const saved = Number(localStorage.getItem(this.previewWidthKey));
+      if (Number.isFinite(saved) && saved >= 30 && saved <= 60) {
+        this.previewWidth = saved;
+      }
+    } catch {
+      // localStorage 不可用时使用默认宽度
+    }
     this.workspaceId = this.http.getWorkspaceId();
     this.workspaceRouteProvenance = sessionStorage.getItem(this.workspaceRouteProvenanceKey) ?? '';
     this.loadSkillCatalog();
@@ -196,6 +238,14 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.destroyed = true;
+    if (this.blockedTimer) {
+      clearTimeout(this.blockedTimer);
+      this.blockedTimer = null;
+    }
+    if (this.widthSaveTimer) {
+      clearTimeout(this.widthSaveTimer);
+      this.widthSaveTimer = null;
+    }
     this.cancelHistoryScrollRestore();
     this.restoreDocumentMinWidth();
     this.clearPendingRouteConversation();
@@ -600,7 +650,7 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
       userContent: attempt.query,
       userFiles: this.uploadedFiles
         .filter((file) => file.progress === 'succeeded' && file.fileName)
-        .map(({ fileName }) => ({ fileName })),
+        .map(({ fileName, objectKey }) => ({ fileName, objectKey })),
       segments: [],
       timeline: [],
       detailSegments: [],
@@ -1353,7 +1403,7 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
     return this.normalizeEvent({ event, data });
   }
 
-  private parseUserFiles(value: unknown): Array<Pick<ConversationFileReference, 'fileName'>> {
+  private parseUserFiles(value: unknown): Array<Pick<ConversationFileReference, 'fileName' | 'objectKey'>> {
     if (!value) {
       return [];
     }
@@ -1365,9 +1415,12 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
       return parsed
         .map((item) => {
           if (typeof item === 'string') {
-            return { fileName: item };
+            return { fileName: item, objectKey: '' };
           }
-          return { fileName: item?.fileName ?? item?.file_name ?? '' };
+          return {
+            fileName: item?.fileName ?? item?.file_name ?? '',
+            objectKey: item?.objectKey ?? item?.object_key ?? '',
+          };
         })
         .filter((item) => Boolean(item.fileName));
     } catch {
@@ -1433,6 +1486,143 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
       return `${(size / 1024).toFixed(1)} KB`;
     }
     return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  // ===== 预览面板 =====
+
+  /** Esc 关闭预览（窄屏全屏模式下的「返回对话」等价操作）。 */
+  @HostListener('document:keydown.escape')
+  onEscapeClosePreview(): void {
+    if (this.previewState) {
+      this.closePreview();
+    }
+  }
+
+  /** 窗口尺寸变化：<1200px 时面板从分栏切换为全屏覆盖层。 */
+  @HostListener('window:resize')
+  onWindowResize(): void {
+    this.narrowPreview = window.matchMedia('(max-width: 1199px)').matches;
+  }
+
+  /**
+   * 打开网址预览。
+   * @param inPanel 面板内导航（预览正文里的链接被点击）：绕过单预览拦截，直接替换内容
+   */
+  public openUrlPreview(url: string, inPanel = false): void {
+    if (!url) {
+      return;
+    }
+    if (this.previewState && !inPanel) {
+      this.signalPreviewBlocked();
+      return;
+    }
+    const type = resolvePreviewType(url);
+    let title = urlToTitle(url);
+    if (type !== 'url') {
+      try {
+        title = decodeURIComponent(url.split(/[?#]/)[0].split('/').pop() || title);
+      } catch {
+        // 编码异常时退回 host 标题
+      }
+    }
+    this.previewState = { type, title, url, key: uuidV4() };
+    this.cdr.markForCheck();
+  }
+
+  /** md/markdown/txt/log 文本类文件可进入预览面板，其余类型仅下载。 */
+  public canPreviewFile(fileName: string): boolean {
+    return resolvePreviewType(fileName || '') !== 'url';
+  }
+
+  /** 打开文件预览（消息附件 / 正式产物），仅支持 md/txt 等文本类型。 */
+  public openFilePreview(file: Partial<PreviewSource>): void {
+    const fileName = file?.fileName || '';
+    const objectKey = file?.objectKey || '';
+    if (!fileName || !objectKey) {
+      return;
+    }
+    if (this.previewState) {
+      this.signalPreviewBlocked();
+      return;
+    }
+    const source = buildFilePreviewSource({
+      fileName,
+      conversationId: this.currentSession?.conversation_id,
+      objectKey,
+      size: file.size,
+      mediaType: file.mediaType,
+    });
+    this.previewState = { ...source, key: uuidV4() };
+    this.cdr.markForCheck();
+  }
+
+  public closePreview(): void {
+    this.previewState = null;
+    this.cdr.markForCheck();
+  }
+
+  /** 刷新：更换 key 强制渲染器重建（iframe 重载 / 文本重取）。 */
+  public refreshPreview(): void {
+    if (!this.previewState) {
+      return;
+    }
+    this.previewState = { ...this.previewState, key: uuidV4() };
+    this.cdr.markForCheck();
+  }
+
+  public openPreviewExternal(url: string): void {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+
+  /** 面板内下载（不支持预览的类型兜底）。 */
+  public downloadPreviewFile(state: PreviewState): void {
+    const conversationId = state.conversationId || this.currentSession?.conversation_id;
+    if (!conversationId || !state.objectKey) {
+      return;
+    }
+    this.conversationWorkspaceService
+      .downloadArtifact(conversationId, state.objectKey)
+      .then((content) => {
+        CommonUtils.downloadFile(content, state.fileName || state.title, true);
+      })
+      .catch(() => {
+        this.message.error('文件下载失败，请重试');
+      });
+  }
+
+  /** 外链文本 CORS 被拒：渲染器已把 state.type 置为 url，直接采用即可走 iframe 原生渲染。 */
+  public onPreviewFallback(state: PreviewState): void {
+    this.previewState = state;
+    this.cdr.markForCheck();
+  }
+
+  public onPreviewWidthChange(percent: number): void {
+    this.previewWidth = percent;
+    this.cdr.markForCheck();
+    if (this.widthSaveTimer) {
+      clearTimeout(this.widthSaveTimer);
+    }
+    this.widthSaveTimer = setTimeout(() => {
+      try {
+        localStorage.setItem(this.previewWidthKey, String(percent));
+      } catch {
+        // localStorage 不可用时静默跳过
+      }
+    }, 300);
+  }
+
+  /** 单预览拦截反馈：轻提示 + 面板轻微位移动画，避免「点了没反应」的错觉。 */
+  private signalPreviewBlocked(): void {
+    this.message.info('请先关闭当前预览');
+    this.previewBlocked = true;
+    this.cdr.markForCheck();
+    if (this.blockedTimer) {
+      clearTimeout(this.blockedTimer);
+    }
+    this.blockedTimer = setTimeout(() => {
+      this.previewBlocked = false;
+      this.cdr.markForCheck();
+    }, 300);
   }
 
   /** run 表 handoff 工具进入详情；主界面只展示 message。 */

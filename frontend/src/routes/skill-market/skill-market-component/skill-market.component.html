@@ -31,7 +31,7 @@
             <img [src]="card.icon" alt="" />
           </div>
           <div class="ml-[16px]">
-            <div class="label mb-[4px]">{{ card.skillName }}</div>
+            <div class="label mb-[4px]">{{ card.displayName || card.description || card.skillName }}</div>
             <div>
               @if (card.tagId && resourceConfig[card.tagId]?.id) {
                 <nz-tag>{{ resourceConfig[card.tagId].i18key | i18n }}</nz-tag>

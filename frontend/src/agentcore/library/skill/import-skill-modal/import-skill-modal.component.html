@@ -53,11 +53,11 @@
           @if (skillInfo?.name?.trim() && skillInfo?.description?.trim()) {
             <div class="mb-[8px] mt-[8px]">
               <span>{{ 'skill.import.result.name' | i18nextEager }}</span>
-              <div class="ml-[16px]">{{ skillInfo.name }}</div>
+              <div class="ml-[16px]">{{ skillInfo.description }}</div>
             </div>
             <div>
               <span>{{ 'skill.import.result.description' | i18nextEager }}</span>
-              <div style="flex: 1" class="ml-[16px]">{{ skillInfo.description }}</div>
+              <div style="flex: 1" class="ml-[16px]">{{ skillInfo.name }}</div>
             </div>
           } @else {
             <div class="error-info mt-[8px]">{{ importZipErrorTip }}</div>

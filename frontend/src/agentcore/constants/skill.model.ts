@@ -191,6 +191,9 @@ export class SkillDetail {
   usedVersionName: string;
 
   @autoProp()
+  displayName: string;
+
+  @autoProp()
   tagId?: string;
 
   @prop({ name: 'viewMode' })
