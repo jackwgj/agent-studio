@@ -15,11 +15,9 @@ import { JiuwenBaseApi } from './jiuwen-base.api';
 export class SkillApi extends JiuwenBaseApi {
   override serviceId = (window as any).iamTargetId || ServiceId.JIUWEN;
   prefix = '/v1/{projectId}/agent-manager/skills';
-  bffPrefix = '/platform/v1/skills';
-
   importSkill(params: FormData): Observable<any> {
     return this.request.post({
-      url: `${this.bffPrefix}/import`,
+      url: `${this.prefix}/import`,
       query: {
         workspace_id: this.request.getWorkspaceId(),
       },
@@ -47,7 +45,7 @@ export class SkillApi extends JiuwenBaseApi {
 
   querySkillList(params = {}): Observable<any> {
     return this.request.get({
-      url: `${this.bffPrefix}`,
+      url: `${this.prefix}`,
       params,
     } as any);
   }
@@ -95,7 +93,7 @@ export class SkillApi extends JiuwenBaseApi {
   queryResourceSkill({ offset, limit, tagId, name, description }: { offset: number; limit: number; tagId?: string; name?: string; description?: string }) {
     return this.request
       .get({
-      url: this.bffPrefix,
+      url: this.prefix,
       params: {
         offset,
         limit,
