@@ -156,7 +156,10 @@ export class SkillDetail {
 
   @autoProp()
   icon = '';
-
+  
+  @autoProp()
+  displayName?: string;
+  
   @autoProp()
   status: SkillDetailStatus;
 
