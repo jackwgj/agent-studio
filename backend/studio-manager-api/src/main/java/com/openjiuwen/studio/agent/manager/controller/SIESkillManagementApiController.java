@@ -28,6 +28,23 @@ public class SIESkillManagementApiController implements SIESkillManagementApi {
 
     @Autowired
     private ISIESkillManagementService sieSkillManagementService;
+      @Override
+    public ResponseEntity<Void> deleteStudioSkill(String skillId, String workspaceId, String projectId) {
+        return ResponseModel.success(sieSkillManagementService.deleteStudioSkill(skillId, workspaceId, projectId));
+    }
+
+    @Override
+    public ResponseEntity<ExportStudioSkillResponseBody> exportStudioSkill(String skillId, String workspaceId,
+        String projectId) {
+        return ResponseModel.success(sieSkillManagementService.exportStudioSkill(skillId, workspaceId, projectId));
+    }
+
+    @Override
+    public ResponseEntity<ImportStudioSkillResponseBody> importStudioSkill(String workspaceId, String projectId,
+        MultipartFile file) {
+        return ResponseModel.success(sieSkillManagementService.importStudioSkill(workspaceId, projectId, file));
+    }
+
 
     @Override
     public ResponseEntity<ListStudioSkillsResponseBody> listStudioSkills(String projectId,
