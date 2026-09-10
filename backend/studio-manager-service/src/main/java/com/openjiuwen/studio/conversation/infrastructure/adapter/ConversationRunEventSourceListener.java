@@ -176,13 +176,13 @@ public class ConversationRunEventSourceListener extends EventSourceListener {
                 case EVENT_RUN_START -> bufferControlEvent(EVENT_RUN_START, dataObj);
                 case EVENT_MESSAGE -> {
                     String delta = dataObj == null ? null : dataObj.getString(FIELD_DELTA);
-                    if (delta != null && !delta.isBlank()) {
+                    if (delta != null && !delta.isEmpty()) {
                         roundOf(dataObj).appendMessage(delta, arrivalSeq);
                     }
                 }
                 case EVENT_REASONING -> {
                     String content = dataObj == null ? null : dataObj.getString(FIELD_CONTENT);
-                    if (content != null && !content.isBlank()) {
+                    if (content != null && !content.isEmpty()) {
                         roundOf(dataObj).appendReasoning(content, arrivalSeq);
                     }
                 }
