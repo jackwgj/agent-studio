@@ -1,11 +1,9 @@
 import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
-  ChangeDetectorRef,
   Component,
   EventEmitter,
   Input,
-  OnChanges,
   Output,
 } from '@angular/core';
 import { NzButtonModule } from 'ng-zorro-antd/button';
@@ -15,7 +13,7 @@ import type { PreviewState, PreviewType } from '../../preview.model';
 import { PreviewTextComponent } from './preview-text.component';
 import { PreviewUrlComponent } from './preview-url.component';
 
-/** 预览面板容器：工具栏 + 地址栏 + 渲染器路由 + 各状态位。 */
+/** 预览面板容器：工具栏 + 渲染器路由 + 各状态位。 */
 @Component({
   selector: 'app-preview-panel',
   templateUrl: './preview-panel.component.html',
@@ -31,7 +29,7 @@ import { PreviewUrlComponent } from './preview-url.component';
     PreviewTextComponent,
   ],
 })
-export class PreviewPanelComponent implements OnChanges {
+export class PreviewPanelComponent {
   @Input() state!: PreviewState;
   /** 窄屏全屏模式：顶栏显示「返回对话」 */
   @Input() narrow = false;
@@ -45,21 +43,12 @@ export class PreviewPanelComponent implements OnChanges {
   /** 文本渲染器上抛：正文内链接点击，在面板内继续预览 */
   @Output() readonly navigate = new EventEmitter<string>();
 
-  copied = false;
   typeLabelMap: Record<PreviewType, string> = {
     url: '网页',
     md: 'Markdown',
     txt: '文本',
     unsupported: '文件',
   };
-
-  private copyTimer: ReturnType<typeof setTimeout> | null = null;
-
-  constructor(private readonly cdr: ChangeDetectorRef) {}
-
-  public ngOnChanges(): void {
-    this.copied = false;
-  }
 
   public get iconType(): string {
     switch (this.state?.type) {
@@ -83,23 +72,4 @@ export class PreviewPanelComponent implements OnChanges {
     }
   }
 
-  public async onCopy(): Promise<void> {
-    if (!this.state?.url) {
-      return;
-    }
-    try {
-      await navigator.clipboard.writeText(this.state.url);
-      this.copied = true;
-      this.cdr.markForCheck();
-      if (this.copyTimer) {
-        clearTimeout(this.copyTimer);
-      }
-      this.copyTimer = setTimeout(() => {
-        this.copied = false;
-        this.cdr.markForCheck();
-      }, 1500);
-    } catch {
-      // 剪贴板不可用时静默失败，地址仍可通过「在新标签打开」访问
-    }
-  }
 }
