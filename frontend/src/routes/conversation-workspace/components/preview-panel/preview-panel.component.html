@@ -11,7 +11,8 @@
       <span>返回对话</span>
     </button>
 
-    <div class="preview-title-group">
+    <!-- 网址预览不显示标题行：iframe 内容自带站点信息，host/类型标签属冗余 -->
+    <div class="preview-title-group" *ngIf="state.type !== 'url'">
       <span nz-icon [nzType]="iconType" class="preview-title-icon"></span>
       <span class="preview-title" [title]="state.title">{{ state.title }}</span>
       <span class="preview-type-tag">{{ typeLabel }}</span>
@@ -58,19 +59,6 @@
       </button>
     </div>
   </header>
-
-  <div class="preview-address" *ngIf="state.url">
-    <span nz-icon nzType="lock" class="preview-address-icon"></span>
-    <span class="preview-address-text" [title]="state.url">{{ state.url }}</span>
-    <button
-      type="button"
-      class="preview-copy"
-      (click)="onCopy()"
-      [attr.aria-label]="copied ? '已复制' : '复制链接'"
-    >
-      <span nz-icon [nzType]="copied ? 'check' : 'copy'"></span>
-    </button>
-  </div>
 
   <div class="preview-content">
     <app-preview-url

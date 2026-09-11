@@ -72,6 +72,8 @@
 
 .preview-actions {
   flex: 0 0 auto;
+  /* 网址预览无标题行占位时，靠 auto 外边距把图标组顶到最右 */
+  margin-left: auto;
   display: flex;
   align-items: center;
   gap: 2px;
@@ -98,49 +100,6 @@
   &[disabled] {
     color: #d9d9d9;
     cursor: not-allowed;
-  }
-}
-
-.preview-address {
-  flex: 0 0 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0 12px;
-  background: #fafafa;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.preview-address-icon {
-  flex: 0 0 auto;
-  font-size: 11px;
-  color: #8c8c8c;
-}
-
-.preview-address-text {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 12px;
-  color: #8c8c8c;
-  direction: ltr;
-  text-align: left;
-}
-
-.preview-copy {
-  flex: 0 0 auto;
-  border: none;
-  background: none;
-  padding: 2px 4px;
-  color: #8c8c8c;
-  cursor: pointer;
-  border-radius: 4px;
-
-  &:hover {
-    color: rgb(var(--color-primary));
   }
 }
 
