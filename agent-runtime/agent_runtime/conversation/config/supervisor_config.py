@@ -12,6 +12,7 @@ class SupervisorConfig:
     description: str
     system_prompt: str
     model_deployment_id: str
+    max_iterations: int
     allowed_sub_agent_ids: tuple[str, ...] = field(default_factory=tuple)
 
     def to_ir(self) -> dict:
@@ -25,7 +26,7 @@ class SupervisorConfig:
             "configs": {
                 "mode": "ReAct",
                 "sysPromptTemplate": self.system_prompt,
-                "maxIteration": 5,
+                "maxIteration": self.max_iterations,
                 "modelConfig": {
                     "modelName": self.model_deployment_id,
                     "extension": {"clientProvider": "studio"},

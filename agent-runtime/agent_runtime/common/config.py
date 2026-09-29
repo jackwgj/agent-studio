@@ -99,6 +99,21 @@ class LLMSettings(BaseSettings):
         return _decrypt(v)
 
 
+class AgentSettings(BaseSettings):
+    """Agent execution limits shared by runtime-created Agents."""
+
+    max_iteration: int = Field(
+        default=100,
+        ge=1,
+        le=100,
+        validation_alias="AGENT_MAX_ITERATION",
+    )
+
+    model_config = SettingsConfigDict(
+        env_file=".env", env_file_encoding="utf-8", extra="ignore"
+    )
+
+
 class ObjectStorageSettings(BaseSettings):
     type: str = Field(default="OBS", validation_alias="STORAGE_TYPE")
     custom_module: str = Field(default="", validation_alias="STORAGE_CUSTOM_MODULE")
@@ -522,6 +537,7 @@ class KnowledgeBaseSettings(BaseSettings):
 class Settings:
     server = ServerSettings()
     llm = LLMSettings()
+    agent = AgentSettings()
     object_storage = ObjectStorageSettings()
     health_check = HealthCheckSettings()
     security_sandbox = SecuritySandboxSettings()
