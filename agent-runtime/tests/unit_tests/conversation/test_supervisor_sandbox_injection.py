@@ -23,6 +23,7 @@ from agent_runtime.conversation.sandbox import (
 )
 from agent_runtime.conversation.runner import conversation_react_runner
 from agent_runtime.conversation.runner.conversation_react_runner import ConversationReActRunner
+from agent_runtime.conversation.rail import GracefulToolBudgetRail
 from openjiuwen.core.sys_operation import OperationMode
 from openjiuwen.core.runner import Runner
 from openjiuwen.core.runner.resources_manager.resource_manager import ResourceMgr
@@ -544,11 +545,15 @@ class _Session:
 class _StreamingAgent(_Agent):
     card = SimpleNamespace(id="supervisor-card")
 
+    def __init__(self):
+        super().__init__()
+        self.rails = []
+
     def set_llm(self, _llm):
         return None
 
-    async def register_rail(self, _rail):
-        return None
+    async def register_rail(self, rail):
+        self.rails.append(rail)
 
     async def stream(self, *_args):
         if False:
@@ -637,6 +642,45 @@ async def test_runner_cleans_supervisor_sandbox_binding_after_a_successful_strea
 
 
 @pytest.mark.asyncio
+async def test_runner_enables_graceful_budget_only_for_builtin_supervisor(monkeypatch):
+    context = _context()
+    token = execution_context_module.set_conversation_execution_context(context)
+    try:
+        runner = ConversationReActRunner()
+        agent = _StreamingAgent()
+        binder = _RunnerBinder()
+        captured_ir = {}
+        _configure_runner_for_stream(monkeypatch, runner, agent)
+
+        def create_agent(ir_json, *_args):
+            captured_ir.update(ir_json)
+            return agent, "supervisor"
+
+        runner._create_agent = create_agent
+        monkeypatch.setattr(
+            conversation_react_runner,
+            "ConversationSandboxToolBinder",
+            SimpleNamespace(from_runtime_settings=lambda: binder),
+            raising=False,
+        )
+        request = _streaming_request()
+        request.params.ir_cache = {
+            "agentId": "conversation_team_supervisor",
+            "agentName": "Supervisor",
+            "configs": {"mode": "ReAct", "maxIteration": 2},
+        }
+
+        _ = [event async for event in runner.run_streaming(request)]
+
+        budget_rails = [rail for rail in agent.rails if isinstance(rail, GracefulToolBudgetRail)]
+        assert len(budget_rails) == 1
+        assert budget_rails[0].max_tool_call_rounds == 2
+        assert captured_ir["configs"]["maxIteration"] == 3
+    finally:
+        execution_context_module.reset_conversation_execution_context(token)
+
+
+@pytest.mark.asyncio
 async def test_runner_cleans_sandbox_binding_when_the_stream_is_closed_after_start(monkeypatch):
     context = _context()
     token = execution_context_module.set_conversation_execution_context(context)
@@ -668,6 +712,9 @@ async def test_runner_cleans_sandbox_binding_when_rail_registration_is_cancelled
     try:
         runner = ConversationReActRunner()
         agent = _StreamingAgent()
+        # Keep this regression focused on the later Otel registration, after
+        # sandbox resources have been acquired.
+        runner._register_usage_rail = AsyncMock(return_value=SimpleNamespace())
         agent.register_rail = AsyncMock(side_effect=asyncio.CancelledError())
         binder = _RunnerBinder()
         _configure_runner_for_stream(monkeypatch, runner, agent)

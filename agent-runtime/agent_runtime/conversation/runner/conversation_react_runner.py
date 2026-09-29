@@ -17,6 +17,7 @@ from agent_runtime.conversation.usage import (
 )
 from agent_runtime.conversation.config.supervisor_config import SupervisorConfig
 from agent_runtime.conversation.execution_context import get_conversation_execution_context
+from agent_runtime.conversation.rail import GracefulToolBudgetRail
 from agent_runtime.conversation.sandbox import ConversationSandboxToolBinder
 from agent_runtime.runner.react_agent_runner import ReActAgentRunner
 from agent_runtime.supervisor.skill_context import (
@@ -35,6 +36,8 @@ from openjiuwen.core.session.stream import BaseStreamMode
 
 class ConversationReActRunner(ReActAgentRunner):
     """Conversation wrapper around the official ReAct runner."""
+
+    _DEFAULT_SUPERVISOR_AGENT_ID = "conversation_team_supervisor"
 
     def _parse_prompt_template(
         self,
@@ -101,6 +104,33 @@ class ConversationReActRunner(ReActAgentRunner):
         if isinstance(configs, dict):
             configs.pop("skills", None)
         return safe_ir
+
+    @classmethod
+    def _prepare_graceful_tool_budget_ir(
+        cls, ir_json: dict, team_config: dict
+    ) -> tuple[dict, int | None]:
+        """Reserve one tool-free model call for the built-in Supervisor only."""
+        prepared_ir = copy.deepcopy(ir_json)
+        is_default_supervisor = (
+            prepared_ir.get("agentId") == cls._DEFAULT_SUPERVISOR_AGENT_ID
+            and str(team_config.get("type") or "").upper() == "SUPERVISOR"
+        )
+        if not is_default_supervisor:
+            return prepared_ir, None
+
+        configs = prepared_ir.setdefault("configs", {})
+        tool_budget = int(configs.get("maxIteration", 0))
+        if tool_budget < 1:
+            raise ValueError("Default Supervisor maxIteration must be positive")
+        configs["maxIteration"] = tool_budget + 1
+        return prepared_ir, tool_budget
+
+    @staticmethod
+    async def _register_graceful_tool_budget_rail(agent, tool_budget: int) -> None:
+        """Register the request-local convergence policy explicitly."""
+        await agent.register_rail(
+            GracefulToolBudgetRail(max_tool_call_rounds=tool_budget)
+        )
 
     @staticmethod
     async def _attach_request_skill_context(agent, team_config: dict) -> bool:
@@ -231,6 +261,16 @@ class ConversationReActRunner(ReActAgentRunner):
         conversation_history = req.params.conversation_history
         global_variables = req.params.global_variables or {}
         team_config = global_variables.get("conversationTeam") or {}
+        try:
+            ir_json, graceful_tool_budget = self._prepare_graceful_tool_budget_ir(
+                ir_json, team_config
+            )
+        except (TypeError, ValueError) as error:
+            workflow_logger.error(
+                "Failed to configure default Supervisor tool budget: %s", error
+            )
+            yield adapter.adapt_error(f"Failed to configure agent: {error}")
+            return
         recommendation_prompt = self._build_request_skill_recommendation(team_config)
         if recommendation_prompt:
             query = f"{query}\n\n{recommendation_prompt}"
@@ -262,6 +302,10 @@ class ConversationReActRunner(ReActAgentRunner):
                 parent_run_id=global_variables.get("parentRunId"),
                 execution_type=global_variables.get("executionType", "agent"),
             )
+            if graceful_tool_budget is not None:
+                await self._register_graceful_tool_budget_rail(
+                    agent, graceful_tool_budget
+                )
         except Exception as error:
             workflow_logger.error("Failed to create conversation Agent: %s", error)
             yield adapter.adapt_error(f"Failed to create agent: {error}")

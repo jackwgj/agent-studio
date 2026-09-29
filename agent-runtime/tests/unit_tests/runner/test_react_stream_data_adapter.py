@@ -79,3 +79,23 @@ def test_plugin_finish_keeps_tool_call_id_for_canonical_result_pairing():
 
     assert result["data"]["answer"]["tool_call_id"] == "tool-call-1"
     assert result["data"]["answer"]["name"] == "execute_cmd"
+
+
+def test_tool_budget_summary_is_a_normal_answer_without_error_event():
+    adapter = ReactStreamDataAdapter(execution_id="exec-budget-summary")
+    adapter.start_time = 1
+    chunk = SimpleNamespace(
+        type="answer",
+        payload={
+            "output": "本轮工具调用预算已用完，请在下一轮继续。",
+            "result_type": "answer",
+        },
+    )
+
+    events = adapter.adapt(chunk)
+
+    event_types = [event["event"] for event in events]
+    assert event_types.count("done") == 1
+    assert "error" not in event_types
+    summary = next(event for event in events if event["event"] == "summary_response")
+    assert summary["data"]["answer"]["content"] == chunk.payload["output"]

@@ -4,6 +4,8 @@ import com.openjiuwen.studio.conversation.domain.model.ConversationMessage;
 import com.openjiuwen.studio.conversation.domain.model.ConversationWorkflowNode;
 import com.openjiuwen.studio.conversation.domain.repository.ConversationRepository;
 
+import com.alibaba.fastjson2.JSON;
+
 import okhttp3.Response;
 import okhttp3.sse.EventSource;
 
@@ -71,6 +73,29 @@ class ConversationRunEventSourceListenerTest {
         assertEquals("agent", childMessage.getExecutionRef().getExecutionType());
         assertEquals("子回答", childMessage.getContent());
         assertTrue(rows.stream().map(ConversationMessage::getCreatedAt).allMatch(java.util.Objects::nonNull));
+    }
+
+    @Test
+    void messageAndReasoningPersistencePreservesWhitespaceOnlyStreamDeltas() {
+        List<String> messageChunks = List.of(
+            "### 校验报告", "\n", "\n", "| 项目 | 内容 |", "\r\n", "| --- | --- |", "\n",
+            "| 状态 | 通过 |", "\n", "    缩进内容", "\t", "结尾");
+        List<String> reasoningChunks = List.of("分析", "\n", "\n", "  ", "\t", "完成");
+
+        messageChunks.forEach(chunk -> feed(canonical("message", ROOT_RUN_ID, null, "agent",
+            "{\"delta\":" + JSON.toJSONString(chunk) + "}")));
+        reasoningChunks.forEach(chunk -> feed(canonical("reasoning", ROOT_RUN_ID, null, "agent",
+            "{\"content\":" + JSON.toJSONString(chunk) + "}")));
+        feed(canonical("run_end", ROOT_RUN_ID, null, "agent", "{\"status\":\"success\"}"));
+        listener.onClosed(mock(EventSource.class));
+
+        List<ConversationMessage> rows = captureMessages();
+        ConversationMessage message = rows.stream().filter(row -> "message".equals(row.getEvent()))
+            .findFirst().orElseThrow();
+        ConversationMessage reasoning = rows.stream().filter(row -> "reasoning".equals(row.getEvent()))
+            .findFirst().orElseThrow();
+        assertEquals(String.join("", messageChunks), message.getContent());
+        assertEquals(String.join("", reasoningChunks), reasoning.getContent());
     }
 
     @Test

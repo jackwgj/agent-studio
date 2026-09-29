@@ -5,6 +5,7 @@ from agent_runtime.supervisor.builder import (
     format_file_references,
 )
 from agent_runtime.supervisor.config import format_conversation_history
+from agent_runtime.common.config import settings
 from agent_runtime.conversation.config.supervisor_config import SupervisorConfig
 
 
@@ -26,5 +27,6 @@ async def build_conversation_supervisor_config(
         description="团队监督者，负责把任务分派给最合适的子 Agent",
         system_prompt=system_prompt,
         model_deployment_id=model_deployment_id,
+        max_iterations=settings.agent.max_iteration,
         allowed_sub_agent_ids=tuple(sub_agent_ids),
     )

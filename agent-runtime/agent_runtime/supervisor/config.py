@@ -73,7 +73,7 @@ def build_react_config(
         model_provider="studio",
         api_key="sk-placeholder",
         api_base="https://studio-placeholder",
-        max_iterations=5,
+        max_iterations=settings.agent.max_iteration,
         prompt_template=[{"role": "system", "content": system_prompt}]
         if system_prompt
         else [],
