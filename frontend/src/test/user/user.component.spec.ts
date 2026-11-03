@@ -1,6 +1,8 @@
-// xdescribe：pre-existing 空用例样板（describe 内只有类定义、零个 it()，Jasmine 报 afterAll "No specs found"），
-// 与本功能（DSL 版本对比阶段一）无关，测试入口恢复前从未跑过。待单独补 it() 或删除，先明确跳过。
+// 以下为尚未接入 Jasmine 的测试样板。保留一个显式 pending 用例，
+// 避免空 xdescribe 在全套测试结束时触发 "No specs found"。
 xdescribe('user test (pre-existing 空用例样板，待单独处理)', () => {
+  xit('待将以下样板迁移为 Jasmine 用例');
+
   // ==================== 基础类型和接口定义 ====================
   interface User {
     id: number;
