@@ -253,8 +253,9 @@ public class ZipValidationUtils {
      */
     private static boolean isWindowsSymlink(ZipEntry entry) {
         String name = entry.getName().toLowerCase(Locale.ROOT);
-        return name.contains("lnk") || name.contains("url") ||
-                name.contains("desktop.ini") || name.contains(".lnk");
+        String fileName = name.substring(name.lastIndexOf('/') + 1);
+        return fileName.endsWith(".lnk") || fileName.endsWith(".url") ||
+                fileName.equals("desktop.ini");
     }
 
     /**
@@ -262,8 +263,9 @@ public class ZipValidationUtils {
      */
     private static boolean isUnixSymlink(ZipEntry entry) {
         String name = entry.getName();
-        return name.startsWith("@") || name.startsWith("._") ||
-                name.contains("symlink") || name.contains("link");
+        String fileName = name.substring(name.lastIndexOf('/') + 1);
+        return fileName.startsWith("._") || fileName.endsWith(".symlink") ||
+                fileName.endsWith(".link");
     }
 
     /**
@@ -271,6 +273,7 @@ public class ZipValidationUtils {
      */
     private static void validateExtractedContent(File zipFile) {
         Path tempDir = null;
+        Path tempDirForValidation = null;
         String zipFileName;
         try {
             zipFileName = zipFile.getName().substring(0, zipFile.getName().lastIndexOf('.'));
@@ -278,7 +281,7 @@ public class ZipValidationUtils {
             // 创建临时目录
             tempDir = Files.createTempDirectory(zipFileName);
 
-            Path tempDirForValidation = tempDir.resolveSibling(zipFileName);
+            tempDirForValidation = tempDir.resolve(zipFileName);
 
             // 解压ZIP文件
             unzip(zipFile, tempDirForValidation);
@@ -293,7 +296,6 @@ public class ZipValidationUtils {
             log.error("Failed to verify the decompressed content: {}", e.getMessage(), e);
             throw new AgentStudioException(StudioError.RESOURCE_READER_ERROR);
         } finally {
-            // 清理临时文件
             if (tempDir != null) {
                 deleteDirectoryQuietly(tempDir);
             }

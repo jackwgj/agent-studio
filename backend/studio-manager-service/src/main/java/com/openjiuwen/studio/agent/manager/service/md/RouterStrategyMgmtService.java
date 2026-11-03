@@ -232,6 +232,9 @@ public class RouterStrategyMgmtService implements IRouterStrategyMgmtService {
         int totalSize = routerStrategyMapper.selectTotalSizeByQueryParameter(condition);
 
         int offset = (listRouterStrategyQo.getPageNum() - 1) * listRouterStrategyQo.getPageSize();
+        if (offset < 0) {
+            offset = 0;
+        }
         if (totalSize <= offset) {
             return new RouterStrategyListResponse().setTotal(totalSize).setData(new ArrayList<>());
         }
@@ -441,7 +444,7 @@ public class RouterStrategyMgmtService implements IRouterStrategyMgmtService {
                 List<String> modelIds = Arrays.asList(serviceIdStr.split(","));
                 // 组装导出实体
                 List<ModelExportEntity> modelExportEntities = modelServiceMgmtService.buildModelExportEntity(projectId,
-                    workspaceId, modelIds);
+                    workspaceId, modelIds, true, false);
                 ModelStrategyExportEntity exportEntity = new ModelStrategyExportEntity();
                 exportEntity.setModelExportEntity(modelExportEntities);
                 exportEntity.setRouterStrategyEntityMetadata(strategy);

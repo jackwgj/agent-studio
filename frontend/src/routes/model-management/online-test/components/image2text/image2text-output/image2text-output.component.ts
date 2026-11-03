@@ -60,6 +60,10 @@ export class Image2textOutputComponent {
     content: '',
   };
 
+  @Input() envVarValues: Record<string, string> = {};
+  /** 默认环境 id（占位符模型免填时由后端按默认环境解析真实地址） */
+  @Input() environmentId: string | undefined;
+
   @ViewChild('chatContainerRef') chatContainerRef!: ElementRef;
 
   public isShowStopIcon = false;
@@ -90,6 +94,12 @@ export class Image2textOutputComponent {
 
   public result = '';
 
+  public isError = false;
+
+  public errorContent = '';
+
+  public errorIsOpen = false;
+
   constructor(
     private i18n: I18NextEagerPipe,
     private cdr: ChangeDetectorRef,
@@ -119,6 +129,9 @@ export class Image2textOutputComponent {
     }
     this.clearChat();
     this.result = '';
+    this.isError = false;
+    this.errorContent = '';
+    this.errorIsOpen = false;
     this.isUserScrolling = false;
     this.scrollToBottom();
     const messages = this.getDebugRunParam();
@@ -146,13 +159,7 @@ export class Image2textOutputComponent {
   private getChatParam(msg: any) {
     const messages = [];
     messages.push(msg);
-    let thinking = {type: ''}
-    if (this.settingInfo.thinking) {
-      thinking.type = 'enabled'
-    }else{
-      thinking.type = 'disabled'
-    }
-    const params:any = {
+    return {
       model: this.serviceInfo.id,
       stream: this.settingInfo.stream_val,
       messages,
@@ -161,11 +168,7 @@ export class Image2textOutputComponent {
         is_response_verify: this.settingInfo.securityVerify,
         is_request_verify: this.settingInfo.securityVerify,
       },
-    }
-    if(this.serviceInfo.is_reasoning){
-      params.thinking = thinking
-    }
-    return params;
+    };
   }
 
   private postChat(messages) {
@@ -189,12 +192,34 @@ export class Image2textOutputComponent {
       }, 0);
     }
   }
+
+  /**
+   * 切换"问题详情"展开/收起。
+   * 展开时需主动将新渲染的详情内容滚入可视区：当"展开问题详情"按钮位于滚动容器视口底部
+   * （如上传多张图片、错误内容较长时）时，详情按 *ngIf 渲染到按钮下方，会落到可视区之外，
+   * 且收起时浏览器钳回 scrollTop 已把 isUserScrolling 置为 true，故此处需重置后再滚动。
+   */
+  public toggleErrorDetail(open: boolean) {
+    this.errorIsOpen = open;
+    if (open) {
+      this.isUserScrolling = false;
+      this.scrollToBottom();
+    }
+  }
   private postMessage(param) {
     this.abortController = new AbortController();
     this.jiuwenModelServ
-      .modelTestChat(param, this.abortController?.signal)
+      .modelTestChat(param, this.abortController?.signal, this.envVarValues, this.environmentId)
       .then(({ content }) => {
         this.result = content;
+        this.scrollToBottom();
+      })
+      .catch((error) => {
+        // 用户主动点击“停止”触发 abort 不属于错误，不渲染错误框
+        if (this.abortController?.signal?.aborted) {
+          return;
+        }
+        this.setErrorInfo(error);
         this.scrollToBottom();
       })
       .finally(() => {
@@ -203,6 +228,33 @@ export class Image2textOutputComponent {
         this.isShowStopIcon = false;
         this.cdr.markForCheck();
       });
+  }
+
+  /**
+   * 从错误响应中提取错误信息并设置到组件状态（含上游 details）。
+   * 兼容 SSE 路径（error.data 为字符串）和非流式路径（error 为 HttpErrorResponse）。
+   * 参照文本对话 chat-item 的 isError/errorContent/errorIsOpen 机制。
+   */
+  private setErrorInfo(errorData: any) {
+    try {
+      const raw = errorData?.error ?? errorData?.data ?? errorData;
+      const errInfo =
+        typeof raw === 'string'
+          ? JSON.parse(raw)
+          : raw;
+      const errMsg = errInfo?.error_msg || errInfo?.message || this.i18n.transform('third_party_model_call_error');
+      this.result = errMsg;
+      this.isError = true;
+      this.errorContent = JSON.stringify(
+        errInfo?.details || this.i18n.transform('unknown_reason')
+      );
+      this.errorIsOpen = true;
+    } catch {
+      this.result = this.i18n.transform('third_party_model_call_error');
+      this.isError = true;
+      this.errorContent = JSON.stringify(this.i18n.transform('unknown_reason'));
+      this.errorIsOpen = true;
+    }
   }
 
   private postStream(param) {
@@ -248,9 +300,9 @@ export class Image2textOutputComponent {
           this.isLoading = false;
           this.isShowStopIcon = false;
           this.isTimeoutOrError = true;
-          // SSE 基类 dispatchEvent 已对含 error_code 的错误统一弹窗，
-          // 此处仅当无响应体（纯网络层错误）时显示通用错误提示
-          if (!error?.data) {
+          if (error?.data) {
+            this.setErrorInfo(error);
+          } else {
             this.message.error(this.i18n.transform('NetErrorTips'));
           }
           this.scrollToBottom();
@@ -264,7 +316,7 @@ export class Image2textOutputComponent {
           this.scrollToBottom();
           this.cdr.markForCheck();
         },
-      },
+      }, this.envVarValues, this.environmentId,
     );
   }
 
@@ -313,6 +365,16 @@ export class Image2textOutputComponent {
     this.isShowStopIcon = false;
     this.scrollToBottom();
     this.cdr.markForCheck();
+  }
+
+  public copy(text: string) {
+    const el = document.createElement('input');
+    el.setAttribute('value', text);
+    document.body.appendChild(el);
+    el.select();
+    document.execCommand('copy');
+    document.body.removeChild(el);
+    this.message.success(this.i18n.transform('copy_success'));
   }
 
   @HostListener('scroll', ['$event.target'])

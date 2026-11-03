@@ -31,6 +31,9 @@ class RequestContext:
     secret_env_keys: list = field(default_factory=list)
     # 当前节点引用了加密环境变量的字段名集合（由 on_* 入口设置，供模板渲染层读取）
     current_secret_field_names: dict = field(default_factory=dict)
+    # 已加载的环境变量（load_environment_variables 产出；由请求入口写入，供
+    # StudioModelClient 解析 apiUrl 中的 ${_env.plugin_url_params.VAR} 占位符）
+    env_variables: dict = field(default_factory=dict)
     # 内容审核引擎实例（由请求入口设置，供审核节点读取）
     moderation_engine: Any = None
 
@@ -39,8 +42,30 @@ class RequestContext:
     customer_headers: dict = field(default_factory=dict)
     # 平台 header（X-Auth-Token 等），独立分仓
     platform_headers: dict = field(default_factory=dict)
+    # 请求内 IR 加载 memo；仅由 HTTP 请求中间件初始化，避免跨请求复用。
+    ir_load_cache: dict[str, Any] | None = None
 
 
 _request_ctx: ContextVar[RequestContext] = ContextVar(
     "request_ctx", default=RequestContext()
 )
+
+
+try:
+    from opentelemetry.propagators.tracecontext import TraceContextTextMapPropagator
+    _tp_propagator = TraceContextTextMapPropagator()
+except ImportError:
+    _tp_propagator = None
+
+
+def inject_traceparent(headers: dict) -> None:
+    """Inject W3C traceparent header from current OTel context into headers dict.
+
+    This enables downstream services (plugins, MCP servers, LLM gateways)
+    with their own OTel SDK to continue the same trace, achieving
+    cross-service distributed tracing.
+
+    No-op when opentelemetry is not installed or no active span exists.
+    """
+    if _tp_propagator is not None:
+        _tp_propagator.inject(headers)

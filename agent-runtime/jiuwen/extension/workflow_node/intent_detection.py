@@ -303,6 +303,26 @@ def filter_enable_history(chat_history: list) -> list:
     return filtered_history
 
 
+def _extract_history_role_content(history) -> tuple[str, str]:
+    """从历史消息中提取 role/content。
+
+    兼容两种形态：dict（遗留 fixture/旧路径）与 ``ConversationMessage`` /
+    ``BaseMessage`` 对象（``context.get_messages()`` 返回的 pydantic 模型，
+    role/content 为属性而非 dict 键，无 ``.get()`` 方法）。
+    """
+    if isinstance(history, dict):
+        return history.get(ROLE, "") or "", history.get(CONTENT, "") or ""
+    # ConversationMessage(pydantic) / BaseMessage：属性访问
+    role = getattr(history, "role", None) or getattr(history, "type", None) or ""
+    content = getattr(history, "content", None)
+    if content is None:
+        content = getattr(history, "text", "") or ""
+    if not isinstance(content, str):
+        content = str(content)
+    return role, content
+
+
+
 def _get_default_prompt_template() -> PromptTemplate:
     """获取默认意图识别 prompt 模板。"""
     return PromptTemplate(
@@ -799,7 +819,7 @@ class IntentDetection(WorkflowComponent):
             llm_output = await self.llm.invoke(messages=llm_inputs)
             llm_output = llm_output.content
         except Exception as e:
-            self._raise_llm_invoke_error(type(e).__name__)
+            self._raise_llm_invoke_error(self._format_llm_invoke_error(e))
         return llm_output
 
     # --------------------------------------------------------------------------
@@ -973,8 +993,9 @@ class IntentDetection(WorkflowComponent):
         for history in filtered_chat_history[
             -self.intent_config.chat_history_max_turn :
         ]:
+            role, content = _extract_history_role_content(history)
             chat_history_str += "{}：{}\n".format(
-                ROLE_MAP.get(history.get(ROLE, CONTENT), "用户"), history.get(CONTENT)
+                ROLE_MAP.get(role, "用户"), content
             )
         return chat_history_str
 
@@ -1115,6 +1136,39 @@ class IntentDetection(WorkflowComponent):
             IntentDetectionStatusCode.WORKFLOW_INTENT_DETECTION_LLM_INVOKE_ERROR,
             error_msg=error_msg,
         )
+
+    def _format_llm_invoke_error(self, exc: Exception) -> str:
+        """格式化 LLM 调用异常为面向用户的错误信息。
+
+        URL 协议缺失通常是模型 api_url 不正确，或环境变量占位符未解析为有效 URL。
+        此类错误给出明确中文提示帮助用户定位，而非仅暴露 httpx 异常类名（如
+        UnsupportedProtocol），避免用户无法判断真实原因。
+        """
+        from model_service.env_resolver import friendly_message
+        # ModelServiceError（占位符未解析/模型服务不可用等）统一用 friendly_message
+        # 取 .msg 剥 [code] 前缀（如「模型服务API地址配置有误：...」）。
+        formatted = friendly_message(exc)
+        # friendly_message 对非 ModelServiceError 返回 str(exc)；若是，继续做 URL 错误包装。
+        err_name = type(exc).__name__
+        err_detail = formatted.strip()
+        detail_lower = (err_detail or err_name).lower()
+        # 子串匹配需收窄：单独的 "protocol" 会把 MCP / HTTP2 协议错误误判为模型 URL 错误，
+        # 故要求 url 与 (scheme|protocol) 同时出现，或匹配 httpx 的 URL 异常类名。
+        is_url_error = (
+            err_name in ("UnsupportedProtocol", "InvalidURL")
+            or ("url" in detail_lower and ("scheme" in detail_lower or "protocol" in detail_lower))
+        )
+        if is_url_error:
+            cause_hint = err_detail or (
+                "Request URL is missing an 'http://' or 'https://' protocol."
+            )
+            return (
+                f"{err_name}（模型服务API地址不正确：{cause_hint}。"
+                "请检查模型 api_url 配置；若使用环境变量占位符，请确认环境已配置该变量"
+                "且其值为有效的 http(s) URL）"
+            )
+        # 其他异常：保留原始信息，避免仅暴露类名导致无法定位
+        return err_detail or err_name
 
     # --------------------------------------------------------------------------
     # 配置解析

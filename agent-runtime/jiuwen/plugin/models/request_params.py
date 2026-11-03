@@ -1,4 +1,5 @@
 #  Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
+import json
 import os
 from dataclasses import dataclass, field
 from enum import Enum
@@ -7,8 +8,10 @@ from typing import List
 from jiuwen.common.configs.env_constants import PLUGIN_SSL_API_CERT_KEY
 from jiuwen.common.exception.status_code import StatusCode
 from jiuwen.common.log.base import logger, get_x_request_id, get_x_execution_id
+from openjiuwen.core.common.logging import workflow_logger
 from jiuwen.common.types import ValueTypeEnum
 from jiuwen.orchestration.flow.constant import X_REQUEST_ID, X_EXECUTION_ID
+from agent_runtime.context.request_context import inject_traceparent
 from jiuwen.plugin.common import exception, constant
 from jiuwen.plugin.handlers.handler_manager import HandlerManager
 from jiuwen.plugin.models.api_utils import ApiUtils
@@ -139,6 +142,8 @@ class RequestParamsCreator:
 
         request_params.headers[X_REQUEST_ID] = get_x_request_id()
         request_params.headers[X_EXECUTION_ID] = get_x_execution_id()
+        inject_traceparent(request_params.headers)
+        workflow_logger.debug(f"Plugin request headers: {request_params.headers}")
 
         return request_params
 
@@ -282,6 +287,19 @@ class RequestParamsCreator:
         self, api_inputs_params: List[Param], inputs: dict
     ):
         """缺少的required参数填充默认值"""
+        if isinstance(inputs, str):
+            try:
+                inputs = json.loads(inputs)
+            except (ValueError, TypeError) as e:
+                raise exception.PluginCommonException(
+                    code=StatusCode.PLUGIN_PARAMS_CHECK_FAILED,
+                    message=f"参数值应为合法的JSON字符串，实际收到: {inputs[:100]}",
+                ) from e
+        if not isinstance(inputs, dict):
+            raise exception.PluginCommonException(
+                code=StatusCode.PLUGIN_PARAMS_CHECK_FAILED,
+                message=f"参数值应为JSON对象(dict)，实际收到{type(inputs).__name__}类型，请检查输入是否为合法的JSON字符串",
+            )
         if not inputs:
             inputs = {}
         for param in api_inputs_params:

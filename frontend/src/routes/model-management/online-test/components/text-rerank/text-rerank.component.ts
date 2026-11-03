@@ -62,6 +62,10 @@ export class TextRerankComponent {
     question: String,
   };
 
+  @Input() envVarValues: Record<string, string> = {};
+  /** 默认环境 id（占位符模型免填时由后端按默认环境解析真实地址） */
+  @Input() environmentId: string | undefined;
+
   @ViewChild('chatContainerRef') chatContainerRef!: ElementRef;
 
   public isShowStopIcon = false;
@@ -91,6 +95,8 @@ export class TextRerankComponent {
   private currentServiceId = '';
 
   public result: any = '';
+
+  public errorMessage = '';
 
   public displayedData = [];
   public srcData = {
@@ -123,6 +129,7 @@ export class TextRerankComponent {
   public sendQuestion() {
     this.result = '';
     this.srcData.data = [];
+    this.errorMessage = '';
     this.isUserScrolling = false;
     this.scrollToBottom();
     if (!this.getDebugRunParam()) return;
@@ -169,7 +176,7 @@ export class TextRerankComponent {
   private postMessage(param) {
     this.abortController = new AbortController();
     this.jiuwenModelServ
-      .modelTestReRank(param, this.abortController?.signal)
+      .modelTestReRank(param, this.abortController?.signal, this.envVarValues, this.environmentId)
       .then((content) => {
         this.result = content;
         const newData = [];
@@ -184,6 +191,13 @@ export class TextRerankComponent {
 
         this.scrollToBottom();
       })
+      .catch((error) => {
+        if (this.abortController?.signal?.aborted) { return; }
+        this.result = null;
+        this.srcData.data = [];
+        this.errorMessage = this.extractErrorMsg(error);
+        this.scrollToBottom();
+      })
       .finally(() => {
         this.isRequesting = false;
         this.isLoading = false;
@@ -192,9 +206,33 @@ export class TextRerankComponent {
       });
   }
 
+  /**
+   * 从错误响应中提取可展示的错误信息（含上游 details）。
+   */
+  private extractErrorMsg(error: any): string {
+    try {
+      const errInfo =
+        typeof error?.error === 'string'
+          ? JSON.parse(error.error)
+          : error?.error || error;
+      const errMsg = errInfo?.error_msg || errInfo?.message || '';
+      const details = errInfo?.details;
+      let detailStr = '';
+      if (Array.isArray(details) && details.length > 0) {
+        detailStr = details
+          .map((d) => d?.error_msg || '')
+          .filter((m) => m)
+          .join('\n');
+      }
+      return detailStr || errMsg || this.i18n.transform('NetErrorTips');
+    } catch {
+      return this.i18n.transform('NetErrorTips');
+    }
+  }
+
   private getDebugRunParam() {
     if (this.param?.question.trim() === '') {
-      this.message.error(this.i18n.transform('chat_placeholder_llm'));
+      this.message.error(this.i18n.transform('rerank_query_empty'));
       return false;
     }
     let legalAmount = 0;

@@ -6,11 +6,13 @@
       "jasmine",
       "node"
     ],
-    "moduleResolution": "bundler"
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true
   },
   "files": ["test.ts", "app-path.polyfill.ts"],
   "include": [
-    "../**/*.spec.ts",
+    "**/*.spec.ts",
+    "../routes/conversation-workspace/**/*.spec.ts",
     "../**/*.d.ts"
   ]
 }

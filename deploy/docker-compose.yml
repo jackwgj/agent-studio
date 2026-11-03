@@ -109,8 +109,12 @@ services:
     image: ${STUDIO_CONSOLE_IMAGE}
     pull_policy: ${APP_PULL_POLICY:-always}
     restart: always
+    user: "1001:1000"
     cpus: 0.5
     mem_limit: 512m
+    environment:
+      # DSL 版本对比大 DSL 降级阈值（单侧规范化后文本字节，Monaco 保护阈值），暂定 10MB，压测后调整
+      LARGE_DSL_BYTES_THRESHOLD: ${LARGE_DSL_BYTES_THRESHOLD:-10485760}
     volumes:
       - ./config/nginx.conf:/home/conf/nginx.conf
       - console_logs:/opt/cloud/wiseagent-nginx/logs
@@ -119,10 +123,11 @@ services:
       # - ./config/cert.pem:/home/secret/cert.pem
       # - ./config/pri_key.pem:/home/secret/pri_key.pem
     ports:
-      # HTTPS启动：改为 443:443
-      - '${CONSOLE_PORT:-80}:80'
+      # HTTPS启动：改为 ${CONSOLE_PORT:-443}:8443
+      - '${CONSOLE_PORT:-80}:8080'
     healthcheck:
-      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/80'"]
+      # HTTPS启动：将8080改为8443
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/8080'"]
       interval: 10s
       timeout: 5s
       retries: 6
@@ -142,7 +147,7 @@ services:
     image: ${STUDIO_MANAGER_IMAGE}
     pull_policy: ${APP_PULL_POLICY:-always}
     restart: always
-    privileged: true
+    user: "1001:1001"
     cpus: 2
     mem_limit: 4g
     ports:
@@ -166,6 +171,16 @@ services:
       obs_staging_bucket: ${OBS_BUCKET:-}
       obs_ak: ${OBS_AK:-}
       obs_sk: ${OBS_SK:-}
+      storage_type: ${STORAGE_TYPE:-OBS}
+      storage_custom_class: ${STORAGE_CUSTOM_CLASS:-}
+      storage_custom_classpath: ${STORAGE_CUSTOM_CLASSPATH:-}
+      datasource_password_provider_type: ${DATASOURCE_PASSWORD_PROVIDER_TYPE:-DEFAULT}
+      datasource_password_provider_custom_class: ${DATASOURCE_PASSWORD_PROVIDER_CUSTOM_CLASS:-}
+      datasource_password_provider_custom_classpath: ${DATASOURCE_PASSWORD_PROVIDER_CUSTOM_CLASSPATH:-}
+      storage_local_base_path: ${STORAGE_LOCAL_BASE_PATH:-}
+      storage_local_bucket: ${STORAGE_LOCAL_BUCKET:-}
+      storage_local_staging_bucket: ${STORAGE_LOCAL_STAGING_BUCKET:-}
+      storage_local_server_url: ${STORAGE_LOCAL_SERVER_URL:-}
       server_ssl_enabled: ${SERVER_SSL_ENABLED:-false}
       CB_CF_SERVER_KEYSTORE: ${CB_CF_SERVER_KEYSTORE:-}
       CB_CF_TRUST_KEYSTORE: ${CB_CF_TRUST_KEYSTORE:-}
@@ -182,7 +197,7 @@ services:
       conversation_cleanup_retry_interval_ms: ${CONVERSATION_CLEANUP_RETRY_INTERVAL_MS:-30000}
       user_auth_endpoint: ${USER_AUTH_ENDPOINT:-http://studio-manager:31111}
       agent_builder_endpoint: ${AGENT_BUILDER_ENDPOINT:-http://studio-builder:31015}
-      front_page_block_nodes: ${FRONT_PAGE_BLOCK_NODES:-Sql,DataQuery,Agent}
+      front_page_block_nodes: ${FRONT_PAGE_BLOCK_NODES:-Sql,DataQuery}
       share_knowledge_enabled: ${SHARE_KNOWLEDGE_ENABLED:-true}
       workflow_async_enable: ${WORKFLOW_ASYNC_ENABLED:-true}
       # 知识库模式（可选，默认 LakeSearch 行为不变）：LakeSearch/CUSTOM
@@ -200,8 +215,19 @@ services:
       # 客户 Header 改写规则引擎：默认关闭，客户部署时置 true
       CUSTOMER_HEADER_ENABLED: ${CUSTOMER_HEADER_ENABLED:-false}
       CUSTOMER_HEADER_MAPPINGS: ${CUSTOMER_HEADER_MAPPINGS:-}
-      # redis json序列化最大长度
-      redis_max_string_length: ${REDIS_MAX_STRING_LENGTH:-20000000}
+      front_page_runtime_host: ${FRONT_PAGE_RUNTIME_HOST:-}
+      studio_btn_show: ${STUDIO_BTN_SHOW:-true}
+      system_crypt_name: ${SYSTEM_CRYPT_NAME:-}
+      enable_tool_url_check: ${ENABLE_TOOL_URL_CHECK:-true}
+      studio_operationLog_switch: ${STUDIO_OPERATION_LOG_SWITCH:-false}
+      # Redisson codec 反序列化允许的最大字符串长度(字符数)，覆盖 Jackson 2.18 默认 20MB 限制，用于反序列化调用链缓存等大字符串值。默认 100MB
+      redis_max_string_length: ${REDIS_MAX_STRING_LENGTH:-100000000}
+      # 写入 Redis 前对单条消息内容做截断的长度(字符数)，超过则截断并追加 [TRUNCATED] 标记。设为 -1 不截断。默认 -1
+      redis_max_single_message_length: ${REDIS_MAX_SINGLE_MESSAGE_LENGTH:--1}
+      # Redis 读取溢出时历史消息清理比例，保留最近指定比例的数据，清理最旧的部分。0.75 表示保留 75%。默认 0.75
+      redis_history_eviction_threshold: ${REDIS_HISTORY_EVICTION_THRESHOLD:-0.75}
+      # Jackson 全局反序列化最大字符串长度(字符数)，影响 RedisTemplate 等使用容器 ObjectMapper 的组件。默认 50MB
+      jackson_max_string_length: ${JACKSON_MAX_STRING_LENGTH:-50000000}
       # 引用未发布插件：默认关闭，置 true 时允许引用未发布的插件
       plugin_publish_choice: ${PLUGIN_PUBLISH_CHOICE:-false}
     depends_on:
@@ -223,7 +249,7 @@ services:
     image: ${STUDIO_RUNTIME_IMAGE}
     pull_policy: ${APP_PULL_POLICY:-always}
     restart: always
-    privileged: true
+    user: "1000:1000"
     cpus: 2
     mem_limit: 4g
     ports:
@@ -295,14 +321,32 @@ services:
       DATASOURCE_OBS_PATH_STYLE: ${DATASOURCE_OBS_PATH_STYLE:-path}
       GUNICORN_WORK_NUM: ${GUNICORN_WORK_NUM:-1}
       OTEL_ENABLED: ${OTEL_ENABLED:-false}
-      # agent_builder 启动时会强制初始化关系库存储；代码读取的是 STORE_DB_*（非 STORE_MYSQL_*）
-      STORE_DB_TYPE: ${STORE_DB_TYPE:-mysql}
-      STORE_DB_HOST: ${STORE_DB_HOST:-mysql}
-      STORE_DB_PORT: ${STORE_DB_PORT:-3306}
-      STORE_DB_USER: ${SPRING_DATASOURCE_USERNAME:-root}
-      STORE_DB_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-123456}
-      STORE_DB_DATABASE: ${STORE_DB_DATABASE:-agent-builder}
-      STORE_DB_SSLMODE: ${STORE_DB_SSLMODE:-disable}
+      STORAGE_TYPE: ${STORAGE_TYPE:-OBS}
+      STORAGE_CUSTOM_MODULE: ${RUNTIME_STORAGE_CUSTOM_MODULE:-}
+      STORAGE_CUSTOM_CLASS: ${RUNTIME_STORAGE_CUSTOM_CLASS:-}
+      STORAGE_LOCAL_BASE_PATH: ${STORAGE_LOCAL_BASE_PATH:-}
+      STORAGE_LOCAL_BUCKET: ${STORAGE_LOCAL_BUCKET:-}
+      MODEL_CONFIG_STRATEGY: ${MODEL_CONFIG_STRATEGY:-obs}
+      MAX_MODEL_SERVICE_CACHE_NUM: ${MAX_MODEL_SERVICE_CACHE_NUM:-500}
+      MAX_MODEL_AUTH_CACHE_NUM: ${MAX_MODEL_AUTH_CACHE_NUM:-500}
+      MODEL_CACHE_MEM_TTL: ${MODEL_CACHE_MEM_TTL:-60}
+      MODEL_CACHE_REDIS_TTL: ${MODEL_CACHE_REDIS_TTL:-300}
+      KB_SSL_VERIFY: ${KB_SSL_VERIFY:-false}
+      BACKUP_COMMON_LOG_DIR: ${BACKUP_COMMON_LOG_DIR:-}
+      BACKUP_COMMON_LOG_FILE: ${BACKUP_COMMON_LOG_FILE:-}
+      BACKUP_COMMON_LOG_STRATEGY: ${BACKUP_COMMON_LOG_STRATEGY:-}
+      BACKUP_COMMON_LOG_COMPRESS: ${BACKUP_COMMON_LOG_COMPRESS:-}
+      BACKUP_COMMON_LOG_MAX_SIZE: ${BACKUP_COMMON_LOG_MAX_SIZE:-}
+      BACKUP_COMMON_LOG_SIZE_CHECK_INTERVAL: ${BACKUP_COMMON_LOG_SIZE_CHECK_INTERVAL:-}
+      LOG_MASKED_ENABLED: ${LOG_MASKED_ENABLED:-false}
+      LOG_MASKED_PATTERNS: ${LOG_MASKED_PATTERNS:-}
+      MODEL_CALL_LOGGING_ENABLED: ${MODEL_CALL_LOGGING_ENABLED:-false}
+      # 性能日志开关，默认开启。设为 false 关闭 performance_logger 输出，降低日志开销
+      PERFORMANCE_LOG_ENABLED: ${PERFORMANCE_LOG_ENABLED:-true}
+      ENABLE_INTENT_WORKFLOW: ${ENABLE_INTENT_WORKFLOW:-true}
+      EXECUTION_STATE_STORAGE_MEDIUM: ${EXECUTION_STATE_STORAGE_MEDIUM:-redis}
+      INSIGHT_EI_DEBUG_INFO_ENABLE: ${INSIGHT_EI_DEBUG_INFO_ENABLE:-}
+      LOG_VERBOSE: ${LOG_VERBOSE:-true}
       # 客户 Header 改写规则引擎：默认关闭，客户部署时置 true
       CUSTOMER_HEADER_ENABLED: ${CUSTOMER_HEADER_ENABLED:-false}
       CUSTOMER_HEADER_MAPPINGS: ${CUSTOMER_HEADER_MAPPINGS:-}
@@ -325,7 +369,7 @@ services:
     image: ${STUDIO_BUILDER_IMAGE}
     pull_policy: ${APP_PULL_POLICY:-always}
     restart: always
-    privileged: true
+    user: "1000:1000"
     cpus: 2
     mem_limit: 4g
     ports:
@@ -347,8 +391,8 @@ services:
       STORE_DB_TYPE: ${STORE_DB_TYPE:-mysql}
       STORE_DB_HOST: ${STORE_DB_HOST:-mysql}
       STORE_DB_PORT: ${STORE_DB_PORT:-3306}
-      STORE_DB_USER: ${SPRING_DATASOURCE_USERNAME:-root}
-      STORE_DB_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-123456}
+      STORE_DB_USER: ${STORE_DB_USER:-${SPRING_DATASOURCE_USERNAME:-}}
+      STORE_DB_PASSWORD: ${STORE_DB_PASSWORD:-${SPRING_DATASOURCE_PASSWORD:-}}
       STORE_DB_DATABASE: ${STORE_DB_DATABASE:-agent-builder}
       STORE_DB_SCHEMA: ${STORE_DB_SCHEMA:-}
       STORE_DB_SSLMODE: ${STORE_DB_SSLMODE:-disable}
@@ -362,6 +406,15 @@ services:
       LOGGING_LOG_PATH: /opt/cloud/logs/agent-builder
       LOG_VERBOSE: ${LOG_VERBOSE:-true}
       OTEL_ENABLED: ${OTEL_ENABLED:-false}
+      STORAGE_TYPE: ${STORAGE_TYPE:-OBS}
+      STORAGE_CUSTOM_MODULE: ${RUNTIME_STORAGE_CUSTOM_MODULE:-}
+      STORAGE_CUSTOM_CLASS: ${RUNTIME_STORAGE_CUSTOM_CLASS:-}
+      DATASOURCE_PASSWORD_PROVIDER_TYPE: ${DATASOURCE_PASSWORD_PROVIDER_TYPE:-DEFAULT}
+      DATASOURCE_PASSWORD_PROVIDER_MODULE: ${DATASOURCE_PASSWORD_PROVIDER_MODULE:-}
+      DATASOURCE_PASSWORD_PROVIDER_CLASS: ${DATASOURCE_PASSWORD_PROVIDER_CLASS:-}
+      STORAGE_LOCAL_BASE_PATH: ${STORAGE_LOCAL_BASE_PATH:-}
+      STORAGE_LOCAL_BUCKET: ${STORAGE_LOCAL_BUCKET:-}
+      MODEL_CONFIG_STRATEGY: ${MODEL_CONFIG_STRATEGY:-obs}
       # 客户 Header 改写规则引擎：默认关闭，客户部署时置 true（前置）
       CUSTOMER_HEADER_ENABLED: ${CUSTOMER_HEADER_ENABLED:-false}
       CUSTOMER_HEADER_MAPPINGS: ${CUSTOMER_HEADER_MAPPINGS:-}

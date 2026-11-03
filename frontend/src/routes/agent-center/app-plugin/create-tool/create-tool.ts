@@ -105,6 +105,7 @@ import { CollapseText } from '@routes/agent-center/app-plugin/components/collaps
 import { PluginFunctionComponent } from '@routes/agent-center/app-plugin/components/plugin-function/plugin-function.component';
 import { CommonService } from '@services/common.service';
 import { EnvManagementService } from '@routes/platform-management/environment-management/env-management.service';
+import { EnvironmentVariablesManagementService } from '@routes/platform-management/environment-variables-management/environment-variables-management.service';
 import { MonacoEditorConstructionOptions, MonacoEditorModule } from '@materia-ui/ngx-monaco-editor';
 import { pluginContentImportModal } from '@routes/agent-center/app-plugin/components/import-openapi-modal/plugin-content-import-modal.component';
 import { IParamRef, IWFView, IWorkflowField } from '@routes/agent-center/app-flow/node.type';
@@ -242,6 +243,7 @@ export class CreateToolComponent implements OnInit {
     private elementRef: ElementRef,
     public commonService: CommonService,
     private environmentManagementService: EnvManagementService,
+    private envVarService: EnvironmentVariablesManagementService,
     private swaggerTreeConvertService: SwaggerTreeConvertService
   ) {
     this.agentDataServe
@@ -407,6 +409,9 @@ export class CreateToolComponent implements OnInit {
 
   public patchArgs: any[] = [];
 
+  /** 环境变量列表，供 Path 参数引用选择 */
+  public envVarList: { name: string; type: string }[] = [];
+
   public strValidateOps = [
     {
       label: this.i18n.transform('char_label'),
@@ -495,6 +500,7 @@ export class CreateToolComponent implements OnInit {
   ngOnInit() {
     this.isOp = this.ctxServ.isOpAccount;
 
+    this.loadEnvVarList();
     this.showTips = StorageService.getLocalStorage(CREATE_ALERT_TIPS_STKEY) !== 0;
     if (!this.toolId) {
       this.modalTitle = this.i18n.transform('createtool_777');
@@ -510,6 +516,23 @@ export class CreateToolComponent implements OnInit {
 
   ngOnDestroy(): void {
     this.agentDataServe.setPluginDebugRes('');
+  }
+
+  /** 加载环境变量列表，供 Path 参数引用选择 */
+  private loadEnvVarList(): void {
+    this.envVarService.getEnvVariablesList({ offset: 0, limit: 100 }).then(res => {
+      const allVars: { name: string; type: string }[] = [];
+      (res?.variables || []).forEach(envGroup => {
+        (envGroup?.variables || []).forEach(v => {
+          if (v.name && !allVars.find(x => x.name === v.name)) {
+            allVars.push({ name: v.name, type: v.value?.type || 'string' });
+          }
+        });
+      });
+      this.envVarList = allVars;
+    }).catch(() => {
+      this.envVarList = [];
+    });
   }
 
   InitPluginConfigs(): void {
@@ -701,7 +724,6 @@ export class CreateToolComponent implements OnInit {
 
   onInput() {
     window.setTimeout(() => {
-      this.requestArgs = mapTreeAddKeyIndex(this.requestArgs, 0);
       if (!this.inputForm) {
         return;
       }
@@ -715,6 +737,7 @@ export class CreateToolComponent implements OnInit {
       param.default = '';
     } else {
       delete param?.children;
+      (param as any).isLeaf = true;
 
       if (param.type === 'string') {
         param.validate_type = 'CHAR';
@@ -725,9 +748,11 @@ export class CreateToolComponent implements OnInit {
 
     if (param.type.startsWith('array') && param.type !== 'array<object>' && param?.children) {
       delete param?.children;
+      (param as any).isLeaf = true;
     }
 
     if (this.isObjectLikeType(param.type)) {
+      (param as any).isLeaf = false;
       if (!param?.children) {
         this.addReqObjProps(param);
       }
@@ -789,13 +814,16 @@ export class CreateToolComponent implements OnInit {
   onResParamTypeChange(param: IResponseArgsView) {
     if (this.isSimpleType(param.type) && param?.children) {
       delete param?.children;
+      (param as any).isLeaf = true;
     }
 
     if (param.type.startsWith('array') && param.type !== 'array<object>' && param?.children) {
       delete param?.children;
+      (param as any).isLeaf = true;
     }
 
     if (this.isObjectLikeType(param.type)) {
+      (param as any).isLeaf = false;
       if (!param?.children) {
         this.addResObjProps(param);
       }
@@ -1061,6 +1089,7 @@ export class CreateToolComponent implements OnInit {
         validate_type: 'CHAR',
         validated: false,
         children: item.type === 'object' ? schema2View(item.schema, 1, 'object') : undefined,
+        isLeaf: item.type !== 'object',
       }));
       this.requestArgs.unshift(...headerArgs);
       this.requestArgs = mapTreeAddKeyIndex(this.requestArgs, 0);

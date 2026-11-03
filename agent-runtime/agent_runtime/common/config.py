@@ -5,11 +5,10 @@ from enum import Enum
 from pathlib import PurePosixPath
 from typing import Literal, Optional
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from common_utils.crypto_tool import decrypt
-from common_utils.password_provider import get_password_provider
 
 
 def _decrypt(v):
@@ -31,6 +30,9 @@ class ServerSettings(BaseSettings):
     workers: int = Field(default=1, validation_alias="GUNICORN_WORK_NUM")
     # Nginx 负载均衡模式。启用时 uvicorn 以单 worker 运行，由 Nginx 做负载均衡
     nginx_load_balancing: bool = Field(default=False, validation_alias="NGINX_LOAD_BALANCING")
+    docs_enabled: bool = Field(default=False, validation_alias="API_DOCS_ENABLED")
+    # 性能日志开关，默认开启。设为 false 关闭 performance_logger 输出
+    performance_log_enabled: bool = Field(default=True, validation_alias="PERFORMANCE_LOG_ENABLED")
 
     @field_validator("nginx_load_balancing", mode="before")
     @classmethod
@@ -38,6 +40,22 @@ class ServerSettings(BaseSettings):
         """K8s YAML 中空字符串 value: '' 会导致 bool 解析失败，需转为 False。"""
         if v == "" or v is None:
             return False
+        return v
+
+    @field_validator("docs_enabled", mode="before")
+    @classmethod
+    def _docs_empty_str_to_false(cls, v):
+        """兼容 K8s/Docker Compose 中空字符串值。"""
+        if v == "" or v is None:
+            return False
+        return v
+
+    @field_validator("performance_log_enabled", mode="before")
+    @classmethod
+    def _empty_str_to_true(cls, v):
+        """K8s YAML 中空字符串 value: '' 会导致 bool 解析失败，需转为默认值 True。"""
+        if v == "" or v is None:
+            return True
         return v
 
     @field_validator("workers", mode="before")
@@ -430,49 +448,17 @@ class CodeExecutionSettings(BaseSettings):
         env_file=".env", env_file_encoding="utf-8", extra="ignore"
     )
 
-class DataBaseSettings(BaseSettings):
-    password_provider_type: str = Field(
-        default="DEFAULT", validation_alias="DATASOURCE_PASSWORD_PROVIDER_TYPE"
-    )
-    password_provider_module: str = Field(
-        default="", validation_alias="DATASOURCE_PASSWORD_PROVIDER_MODULE"
-    )
-    password_provider_class: str = Field(
-        default="", validation_alias="DATASOURCE_PASSWORD_PROVIDER_CLASS"
-    )
-    db_type: Literal["mysql", "gaussdb"] = Field(
-        default="mysql", validation_alias="STORE_DB_TYPE"
-    )
-    host: str = Field(default="", validation_alias="STORE_DB_HOST")
-    port: str = Field(default="", validation_alias="STORE_DB_PORT")
-    user: str = Field(default="", validation_alias="STORE_DB_USER")
-    password: str = Field(default="", validation_alias="STORE_DB_PASSWORD")
-    database: str = Field(default="", validation_alias="STORE_DB_DATABASE")
-    db_schema: str = Field(default="", validation_alias="STORE_DB_SCHEMA")
-    sslmode: str = Field(default="disable", validation_alias="STORE_DB_SSLMODE")
-    model_config = SettingsConfigDict(
-        env_file=".env", env_file_encoding="utf-8", extra="ignore"
-    )
-
-    @model_validator(mode="after")
-    def _resolve_password(self):
-        if self.password_provider_type == "CUSTOM":
-            provider = get_password_provider(
-                custom_module=self.password_provider_module,
-                custom_class=self.password_provider_class,
-            )
-            self.password = provider.get_password(self.password)
-        elif self.password:
-            provider = get_password_provider()
-            self.password = provider.get_password(self.password)
-        return self
-
 
 class ConversationVariableSettings(BaseSettings):
     """会话变量存储配置。"""
 
     ttl_seconds: int = Field(
         default=259200, validation_alias="CONVERSATION_VARIABLE_STORE_TIME"
+    )
+
+    # 对话历史 Redis key 的过期时间（压测等场景可调短以控制内存）
+    conversation_ttl_seconds: int = Field(
+        default=86400, validation_alias="CONVERSATION_TTL_SECONDS"
     )
 
     model_config = SettingsConfigDict(
@@ -550,9 +536,9 @@ class Settings:
     checkpointer = CheckpointerSettings()
     otel = OtelSettings()
     code_execution = CodeExecutionSettings()
-    db_config = DataBaseSettings()
     conversation_variable = ConversationVariableSettings()
     openjiuwen_kb = OpenJiuwenKBSettings()
     kb = KnowledgeBaseSettings()
+
 
 settings = Settings()

@@ -117,7 +117,8 @@ export const getInitStrTypeReq = (
     validate_rule: '',
     validate_type: 'CHAR',
     visible: true,
-  };
+    isLeaf: true,
+  } as any;
 };
 
 export const getInitStrTypeRes = (): IResponseArgumentsBase => {
@@ -126,7 +127,8 @@ export const getInitStrTypeRes = (): IResponseArgumentsBase => {
     description: '',
     type: 'string',
     required: true,
-  };
+    isLeaf: true,
+  } as any;
 };
 
 export const schema2View = (
@@ -169,6 +171,7 @@ export const schema2View = (
       validate_rule,
       validate_type,
       validated,
+      env_var_ref: (property as any).env_var_ref,
     };
 
     if (isArraySchema(property)) {
@@ -189,6 +192,11 @@ export const schema2View = (
     if (isObjSchema(property)) {
       item.children = schema2View(property, depth + 1, item.type, ispath);
       item.expanded = true;
+    }
+
+    // 非 object/array<object> 类型设为叶子节点，避免 nz-tree 为简单类型显示展开按钮
+    if (!item.children) {
+      (item as any).isLeaf = true;
     }
 
     if (
@@ -234,6 +242,10 @@ export const view2Schema = (view: IRequestArgsView[]): IReqSchema => {
       type,
       description,
     };
+
+    if (item.env_var_ref) {
+      (property as any).env_var_ref = item.env_var_ref;
+    }
 
     if (property?.default === '') {
       delete property.default;
@@ -300,6 +312,11 @@ export const resSchema2View = (
     if (isResObjSchema(property)) {
       item.children = resSchema2View(property, depth + 1, item.type);
       item.expanded = true;
+    }
+
+    // 非 object/array<object> 类型设为叶子节点，避免 nz-tree 为简单类型显示展开按钮
+    if (!item.children) {
+      (item as any).isLeaf = true;
     }
 
     view.push(item);
@@ -480,17 +497,27 @@ export const reqSchema2Field = (schema: IReqSchema): IWorkflowField[] => {
       }
     }
 
+    const envVarRef = (property as any).env_var_ref;
+
     const field: IWorkflowField = {
       name: key,
       required: schema.required?.includes(key),
       description,
       type: type as IWorkflowFieldType,
-      value: {
+      value: envVarRef ? {
+        type: 'ref',
+        content: {
+          source: 'environment',
+          ref_var_name: envVarRef,
+          ref_node_id: 'envParams',
+        },
+        hint: '',
+      } : {
         type: 'literal',
         content,
         hint: '',
       },
-      source: 'user',
+      source: envVarRef ? 'environment' : 'user',
     };
 
     if (isArraySchema(property)) {
@@ -915,7 +942,9 @@ export function IWFViewListToSchema(obj: IWFView[]): any {
 
 export function mapTreeAddKeyIndex(tree, start) {
   return (tree || []).map((item, index) => {
-    item.keyindex = `${start}_${index}`;
+    const key = `${start}_${index}`;
+    item.keyindex = key;
+    item.key = key;
     if (item.children) {
       item.children = mapTreeAddKeyIndex(item.children, `${start}_${index}`);
     }
@@ -926,8 +955,10 @@ export function mapTreeAddKeyIndex(tree, start) {
 export function mapTreeAddKeyAndChildIndex(tree, start) {
   return (tree || []).map((item, index) => {
     item.key = `${index}`;
+    item.isLeaf = true;
     if (item?.schema?.length > 0 && item.type === 'object') {
       item.isObjRoot = true;
+      item.isLeaf = false;
       item.children = mapTreeSchemaIndex(item.schema, `${index}`, item.value.type);
       item.children = setAllChildrenVal(item.children, item.value);
     }
@@ -938,13 +969,17 @@ export function mapTreeAddKeyAndChildIndex(tree, start) {
 function mapTreeSchemaIndex(schema, start, rootValType) {
   return (schema || []).map((item, index) => {
     let newitem: any = {
-      options: [{ label: item.type, value: 'literal' }],
+      options: [{ label: capitalize(item.type), value: 'literal' }],
       key: `${start}_${index}`,
       type: item.type,
       isChild: true,
+      isLeaf: true,
       name: item.name,
+      required: item.required,
+      description: item.description,
       rootValType: rootValType,
       isObjChild: item.type === 'object',
+      hasObjChild: item?.schema?.length > 0 && item.type === 'object',
       value: {
         content: '',
         default: '',
@@ -954,6 +989,7 @@ function mapTreeSchemaIndex(schema, start, rootValType) {
     };
 
     if (item?.schema?.length > 0 && item.type === 'object') {
+      newitem.isLeaf = false;
       newitem.children = mapTreeSchemaIndex(item.schema, `${start}_${index}`, rootValType);
     }
     return newitem;
@@ -964,33 +1000,47 @@ export function eachChildrenToRootObj(children, value) {
   let res = {};
   (children || []).map((item, index) => {
     if (item?.children?.length > 0 && item.type === 'object') {
-      res[item.name] = eachChildrenToRootObj(item?.children, value);
+      const objStrVal = eachChildrenToRootObj(item?.children, value);
+      res[item.name] = objStrVal;
+      item.value.content = jsonObjToStr(objStrVal);
     } else {
       if (item.key === value.key) {
         if (item.type.startsWith('array')) {
-          try {
-            res[item.name] = JSON.parse(value.value.content);
-          } catch {
-            res[item.name] = null;
-          }
+          res[item.name] = jsonStrToObj(value.value.content);
         } else {
-          res[item.name] = value.value.content;
+          if (item.type === 'object') {
+            let itemVal = value.value.content;
+            itemVal = jsonStrToObj(itemVal);
+            res[item.name] = itemVal;
+          } else {
+            // string / number / integer / boolean — 按类型转换值
+            let content = value.value.content;
+            if (item.type === 'number' || item.type === 'integer') {
+              content = content === '' || content == null ? null : Number(content);
+              if (Number.isNaN(content as number)) {
+                content = null;
+              }
+            } else if (item.type === 'boolean') {
+              content = content === 'true' || content === true;
+            }
+            res[item.name] = content;
+          }
         }
       } else {
         let itemVal = item.value.content;
         if (item.type.startsWith('array')) {
-          try {
-            itemVal = JSON.parse(itemVal);
-          } catch {
-            itemVal = null;
-          }
+          itemVal = jsonStrToObj(itemVal);
         }
         if (item.type === 'object') {
-          try {
-            itemVal = JSON.parse(itemVal);
-          } catch {
+          itemVal = jsonStrToObj(itemVal);
+        }
+        if (item.type === 'number' || item.type === 'integer') {
+          itemVal = itemVal === '' || itemVal == null ? null : Number(itemVal);
+          if (Number.isNaN(itemVal as number)) {
             itemVal = null;
           }
+        } else if (item.type === 'boolean') {
+          itemVal = itemVal === 'true' || itemVal === true;
         }
         res[item.name] = itemVal;
       }
@@ -1001,11 +1051,7 @@ export function eachChildrenToRootObj(children, value) {
 
 export function setAllChildrenVal(children, value) {
   let obj = {};
-  try {
-    obj = JSON.parse(value.content);
-  } catch {
-    obj = {};
-  }
+  obj = jsonStrToObj(value.content);
   if (value.type !== 'literal') {
     obj = {};
   }
@@ -1014,7 +1060,7 @@ export function setAllChildrenVal(children, value) {
 }
 
 function setEachAllChildrenVal(children, objVal, rootValType) {
-  if (Object.keys(objVal).length <= 0) {
+  if (objVal === null || objVal === undefined || Object.keys(objVal).length <= 0) {
     return (children || []).map((item, index) => {
       item.rootValType = rootValType;
       item.value.content = '';
@@ -1031,11 +1077,16 @@ function setEachAllChildrenVal(children, objVal, rootValType) {
         if (item.type === 'object') {
           if (item.children) {
             item.children = setEachAllChildrenVal(item.children, objVal[item.name], rootValType);
+            if (newVal) {
+              item.value.content = jsonObjToStr(newVal);
+            }
+          } else if (newVal) {
+            item.value.content = jsonObjToStr(newVal);
           }
         } else {
           if (item.type.startsWith('array')) {
             if (newVal) {
-              newVal = JSON.stringify(newVal);
+              newVal = jsonObjToStr(newVal);
             } else {
               newVal = null;
             }
@@ -1046,5 +1097,21 @@ function setEachAllChildrenVal(children, objVal, rootValType) {
       }
       return item;
     });
+  }
+}
+
+function jsonObjToStr(val) {
+  try {
+    return JSON.stringify(val, null, 2);
+  } catch {
+    return null;
+  }
+}
+
+function jsonStrToObj(val) {
+  try {
+    return JSON.parse(val);
+  } catch {
+    return null;
   }
 }

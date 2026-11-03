@@ -16,6 +16,7 @@ import uuid
 from collections.abc import AsyncGenerator
 from typing import List, Tuple, Dict
 
+from jiuwen.common.exception.status_code import StatusCode
 from jiuwen.common.log.base import logger
 from jiuwen.context.history import ConversationHistory
 from jiuwen.controller.agent.control_mode.base_mode import BaseMode
@@ -168,12 +169,24 @@ class PlanExecuteMode(BaseMode):
                 yield self._create_task_end_stream_data()
 
         except Exception as e:
+            from model_service.env_resolver import friendly_message
+            # 面向用户的可读信息：剥离 [code] 前缀，避免错误码在「错误信息」正文中重复
+            err_message = friendly_message(e)
+            # 日志保留原始异常（含 [code]/类型信息，便于定位）
             error_msg = f"task_id: {self.task_id}| PlanExecute 模式执行失败: {e}"
             logger.error(error_msg)
             yield StreamData(
                 code=StreamCode.ERROR.value,
                 msg="PlanExecute execution failed",
-                data={"error": error_msg},
+                # 统一 ERROR 事件 data 形状为 {"code": int, "message": str}，与
+                # ReAct/Controller 的 adapt_error 一致。此前仅写 "error" 键、缺 "code"，
+                # 导致下游 _process_streaming_output 把 None 格式进「错误信息：None」、
+                # base_events 回退到 999999（用户看到 openjiuwen.999999 / 错误信息：None）。
+                # 103104 与 adapt_error 默认码一致，其 reason/suggestion 已覆盖占位符未配置场景。
+                data={
+                    "code": StatusCode.CONTROLLER_INTENT_DETECTION_ERROR.code,
+                    "message": err_message,
+                },
                 execution_id=self.task_id,
             )
 
@@ -749,15 +762,24 @@ class PlanExecuteMode(BaseMode):
             return filtered
 
         scene_tool_names = set(matched_scene.tools) if matched_scene.tools else set()
+        # 如果场景级工具为空，从指南中聚合所有工具名
+        if not scene_tool_names and matched_scene.guidelines:
+            for guideline in matched_scene.guidelines:
+                if guideline.tools:
+                    scene_tool_names.update(guideline.tools)
+            logger.info(
+                f"task_id: {self.task_id}| [StepExecute] Aggregated tools from guidelines: {scene_tool_names}"
+            )
         injected_names = (
             self._skill_context.tool_names if self._skill_context else set()
         )
         allowed_names = scene_tool_names | injected_names
-        filtered = [
-            p
-            for p in (plugins_source or [])
-            if self._get_plugin_name(p) in allowed_names
-        ]
+
+        def _matches(plugin):
+            pname = self._get_plugin_name(plugin)
+            return pname in allowed_names
+
+        filtered = [p for p in (plugins_source or []) if _matches(p)]
         logger.info(
             f"task_id: {self.task_id}| [StepExecute] Filtered {len(filtered)} plugins by scene",
             simple_log=f"task_id: {self.task_id}| [StepExecute] Filtered {len(filtered)} plugins",
@@ -779,11 +801,15 @@ class PlanExecuteMode(BaseMode):
             return all_workflows
 
         scene_tool_names = set(matched_scene.tools) if matched_scene.tools else set()
-        filtered = {
-            k: ctx
-            for k, ctx in all_workflows.items()
-            if ctx.workflow_name in scene_tool_names
-        }
+        # 如果场景级工具为空，从指南中聚合所有工具名
+        if not scene_tool_names and matched_scene.guidelines:
+            for guideline in matched_scene.guidelines:
+                if guideline.tools:
+                    scene_tool_names.update(guideline.tools)
+        filtered = {}
+        for k, ctx in all_workflows.items():
+            if ctx.workflow_name in scene_tool_names:
+                filtered[k] = ctx
         logger.info(
             f"task_id: {self.task_id}| [StepExecute] Filtered {len(filtered)} workflows by scene"
         )
@@ -827,6 +853,27 @@ class PlanExecuteMode(BaseMode):
     async def _call_llm_with_hint(self, hint_message: str, tools: List) -> dict:
         """使用 hint 消息调用 LLM"""
         messages = self._build_llm_messages(hint_message)
+        # 长期记忆注入：与 task_planner/planning_modules/llm_module.py 保持一致，
+        # 把检索到的记忆作为 user 消息附加到末尾，使 StepExecute 的回答能引用
+        # 记忆内容（未配置记忆/无记忆/检索失败时静默跳过，不影响执行）。
+        try:
+            memory_message = await self.context_manager.get_memory_message(
+                self.context_manager.get_latest_user_content()
+            )
+            if memory_message is not None and getattr(
+                memory_message, "content", ""
+            ):
+                messages.append(
+                    {
+                        "role": getattr(memory_message, "type", "user"),
+                        "content": memory_message.content,
+                    }
+                )
+        except Exception as mem_err:
+            logger.warning(
+                f"task_id: {self.task_id}| [StepExecute] memory retrieval failed, "
+                f"skip injection: {mem_err}"
+            )
         llm_output = await self._stream_llm_response(messages, tools)
 
         tool_calls, has_tool_calls = self._parse_tool_calls(llm_output)
@@ -1472,7 +1519,11 @@ class PlanExecuteMode(BaseMode):
             f"task_id: {self.task_id}| Intermediate message count: {len(msgs)}",
             simple_log=f"task_id: {self.task_id}| Intermediate message count: {len(msgs)}",
         )
-        formatted_msgs = ConversationHistory.convert_messages_to_chat_history_dict(msgs)
+        # filter_history=False：持久化序列化需保留enable_history=False的消息并输出
+        # 标志位，否则本轮query落库后下一轮被默认补True，"本轮不入历史"语义失效
+        formatted_msgs = ConversationHistory.convert_messages_to_chat_history_dict(
+            msgs, filter_history=False
+        )
         return StreamData(
             code=StreamCode.CONTROLLER_INTERMEDIATE_MESSAGE.value,
             msg="intermediate message",

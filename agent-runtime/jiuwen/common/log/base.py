@@ -28,6 +28,7 @@ from jiuwen.common.configs.env_constants import (
     JIUWEN_LOG_MAX_BYTES_KEY,
     JIUWEN_LOG_LEVEL_KEY,
     JIUWEN_LOG_PATH_KEY,
+    JIUWEN_PERF_LOG_LEVEL_KEY,
 )
 from jiuwen.common.exception.base import JiuWenBaseException
 from jiuwen.common.exception.status_code import StatusCode
@@ -334,7 +335,10 @@ class SingletonLogger:
 
     @classmethod
     def _get_logger(cls, log_type, log_config, output, log_file):
-        level = os.environ.get(JIUWEN_LOG_LEVEL_KEY, log_config.get("level", "WARNING"))
+        if log_type == "performance":
+            level = os.environ.get(JIUWEN_PERF_LOG_LEVEL_KEY, log_config.get("performance_level", "WARNING"))
+        else:
+            level = os.environ.get(JIUWEN_LOG_LEVEL_KEY, log_config.get("level", "WARNING"))
         max_bytes = (
             get_log_max_bytes(ast.literal_eval(ENV_MAX_BYTES))
             if ENV_MAX_BYTES
@@ -555,6 +559,7 @@ class LogRouter:
 
         @wraps(original_method)
         def wrapper(msg: str, *args: Any, **kwargs: Any) -> None:
+            has_simple_log = "simple_log" in kwargs
             simple_log = kwargs.pop("simple_log", msg)
             if self._verbose_mode:
                 processed_msg = msg
@@ -566,6 +571,10 @@ class LogRouter:
                 kwargs.setdefault("stacklevel", 2)
                 return original_method(msg, *args, **kwargs)
             kwargs.setdefault("stacklevel", 1)
+            if has_simple_log:
+                # simple 消息不含 msg 的占位符：丢弃其惰性格式化参数，
+                # 避免 non-verbose 下占位符与参数错配触发 logging 格式化错误
+                return original_method(processed_msg, **kwargs)
             return original_method(processed_msg, *args, **kwargs)
 
         return wrapper

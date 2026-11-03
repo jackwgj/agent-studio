@@ -1,4 +1,9 @@
 #model-test {
+  /* 图像理解上传：满 5 张后隐藏上传触发卡片（picture-card 的灰色空框） */
+  ::ng-deep .upload-full .ant-upload.ant-upload-select {
+    display: none;
+  }
+
   .top-title-area {
     display: flex;
     justify-content: space-between;
@@ -109,6 +114,21 @@
             /* nz-input-number自带高度和边框，这里仅限制宽度以保证样式协调 */
           }
         }
+      }
+      /* 模型服务API地址变量：URL校验错误态 */
+      .env-var-input-error {
+        border-color: #ff4d4f !important;
+        &:hover {
+          border-color: #ff7875 !important;
+        }
+        &:focus {
+          border-color: #ff4d4f !important;
+          box-shadow: 0 0 0 2px rgba(255, 77, 79, 0.2) !important;
+        }
+      }
+      .env-var-error-msg {
+        padding-left: 104px;
+        line-height: 1.4;
       }
     }
 

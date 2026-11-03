@@ -305,6 +305,11 @@ class End(BaseEnd):
         _user_fields_conf = conf_dict.get("userFields", {}) or {}
         self._user_fields_inputs: list[dict] = _user_fields_conf.get("inputs", []) or []
 
+        # mix 场景下由 IR converter 注入的 batch 引用（字段名/#end_字段名 -> "${...}"）。
+        # configs.userFields.inputs 只是类型声明（无 value 键），真正的引用在
+        # 节点顶层 inputs.userFields，组件自身拿不到，须经 set_batch_input_refs 传入。
+        self._batch_input_refs: dict[str, str] = {}
+
         # mix 模式协调：batch 路径只注入数据不渲染（防止 engine pickle 失败），
         # stream 路径负责 merge + render + signal
         # None 表示兼容 openjiuwen 默认行为；IR converter 会显式标记纯流式/混合场景。
@@ -400,6 +405,18 @@ class End(BaseEnd):
     def set_expect_mix(self, expect_mix: bool) -> None:
         self._expect_mix = expect_mix
 
+    def set_batch_input_refs(self, refs: dict) -> None:
+        """mix 场景注入 batch 引用（字段名 -> "${...}"），供 transform 从 io_state 解析。
+
+        refs 来自 IR converter 切分出的 batch_schema.userFields（引用非流式源
+        如 Start 的字段，含 #end_ 前缀的输出声明）。
+        """
+        self._batch_input_refs = {
+            key: value
+            for key, value in (refs or {}).items()
+            if isinstance(value, str) and value.startswith("${")
+        }
+
     def set_mix(self):
         if self._expect_mix is False:
             return
@@ -428,11 +445,40 @@ class End(BaseEnd):
         result["user_fields"] = user_fields
         return result
 
+    def _stream_path_alive(self, session) -> bool:
+        """判断 mix 流路径（collect/transform）是否还有可能启动。
+
+        流路径仅在某个声明流生产者向本节点发出首帧后才启动（StreamActor.send
+        以 first_frame 启动 stream_call），而首帧一旦发出，该生产者必然已进入
+        ActorManager._active_producer_ids。因此若本节点的所有流生产者都从未
+        产帧（分支未走到 / 执行了但零帧，其后发的 end_message 会被未启动的
+        actor 丢弃），流路径必不到达，批路径无需等满 3s 协调超时。
+        无法判断时保守返回 True（维持原 3s 等待）。
+        """
+        try:
+            if session is None:
+                return True
+            inner = getattr(session, "_inner", None)
+            actor_mgr = inner.actor_manager() if inner is not None else None
+            if actor_mgr is None:
+                return True
+            node_id = session.get_component_id()
+            producer_ids = (getattr(actor_mgr, "_consumer_dict", None) or {}).get(
+                node_id
+            )
+            if not producer_ids:
+                return False
+            active = getattr(actor_mgr, "_active_producer_ids", None) or {}
+            return any(pid in active for pid in producer_ids)
+        except Exception:
+            return True
+
     async def _mix_coordinate(
         self,
         key: str,
         inputs: dict,
         outputs: dict,
+        session=None,
     ) -> tuple[dict, dict, bool]:
         """mix 协调：push 数据到 _mix_data，等待另一条路径。
 
@@ -467,10 +513,15 @@ class End(BaseEnd):
 
         # ——— 批路径：只注入数据，等待流路径渲染 ———
         if key == "batch":
+            # 流路径必不到达（所有流生产者从未产帧）时跳过等待，
+            # 否则结束节点会白等满 3s 协调超时（分支未走到场景）。
+            wait_timeout = 3.0 if self._stream_path_alive(session) else 0.0
             async with self._mix_condition:
-                if not self._mix_render_complete:
+                if not self._mix_render_complete and wait_timeout > 0:
                     try:
-                        await asyncio.wait_for(self._mix_condition.wait(), timeout=3.0)
+                        await asyncio.wait_for(
+                            self._mix_condition.wait(), timeout=wait_timeout
+                        )
                     except asyncio.TimeoutError:
                         pass
             if self._mix_render_complete:
@@ -601,7 +652,7 @@ class End(BaseEnd):
 
         # mix 模式协调
         inputs, outputs, _mix_i_am_renderer = await self._mix_coordinate(
-            "batch", inputs, outputs
+            "batch", inputs, outputs, session
         )
         if not _mix_i_am_renderer:
             return None
@@ -644,7 +695,9 @@ class End(BaseEnd):
         query = session.get_global_state("query") or ""
         # outputs 来自 IR 中 outputs.userFields（#end_ 前缀映射），代表 End 节点最终输出，
         # 优先级高于 inputs（IR 的 inputs.userFields，仅作为兜底/原始引用）。
-        user_fields = {**inputs, **outputs, **{"query": query}}
+        # query 仅兜底：End 未配置 query 输出时才补用户输入，避免覆盖 End 固定值。
+        user_fields = {**inputs, **outputs}
+        user_fields.setdefault("query", query)
 
         # 构建带有 think 的 result（用于 message_end）
         result_with_think = get_output_data_with_metadata(
@@ -736,7 +789,7 @@ class End(BaseEnd):
 
         # mix 模式协调
         inputs, outputs, _mix_i_am_renderer = await self._mix_coordinate(
-            "batch", inputs, outputs
+            "batch", inputs, outputs, session
         )
         if not _mix_i_am_renderer:
             return
@@ -748,7 +801,8 @@ class End(BaseEnd):
             getattr(inner_session.state(), "_node_id", None) if inner_session else None
         )
         query = session.get_global_state("query") or ""
-        user_fields = {**inputs, **outputs, **{"query": query}}
+        user_fields = {**inputs, **outputs}
+        user_fields.setdefault("query", query)
         last_end_node_stream = None
         first_end_node_stream = True
         async for output in super().stream(inputs, session, context):
@@ -858,7 +912,8 @@ class End(BaseEnd):
             getattr(inner_session.state(), "_node_id", None) if inner_session else None
         )
         query = session.get_global_state("query") or ""
-        user_fields = {**inputs, **outputs, **{"query": query}}
+        user_fields = {**inputs, **outputs}
+        user_fields.setdefault("query", query)
 
         # 构建带有 think 的 result（用于 message_end）
         result_with_think = get_output_data_with_metadata(
@@ -955,7 +1010,7 @@ class End(BaseEnd):
 
         # mix 模式协调
         final_inputs, outputs, _mix_i_am_renderer = await self._mix_coordinate(
-            "stream", final_inputs, outputs
+            "stream", final_inputs, outputs, session
         )
         if not _mix_i_am_renderer:
             return None
@@ -995,7 +1050,8 @@ class End(BaseEnd):
         inner_session = getattr(session, "_inner", None)
         node_id = getattr(inner_session.state(), "_node_id", None)
         query = session.get_global_state("query") or ""
-        user_fields = {**final_inputs, **outputs, **{"query": query}}
+        user_fields = {**final_inputs, **outputs}
+        user_fields.setdefault("query", query)
 
         # 构建带有 think 的 result（用于 message_end）
         result_with_think = get_output_data_with_metadata(
@@ -1182,34 +1238,44 @@ class End(BaseEnd):
         # 从 state 解析 batch 字段（上游非流式节点已写入 state），注入 inputs。
         # 避免 _mix_coordinate 流路径等待 batch push（Pregel super-step barrier 导致
         # batch 路径延迟到 LLM 完成才 push）。
-        if self._mix and self._user_fields_inputs:
-            _batch_schema = {}
-            for _f in self._user_fields_inputs:
-                _fid = _f.get("id")
-                _fval = _f.get("value", "")
-                if _fid and _fval.startswith("${") and _fid not in inputs:
-                    _batch_schema[_fid] = _fval
-            if _batch_schema:
-                # batch_schema 形如 {"aaa": "${node_xxx.userFields.key0}"}
-                # 用 get_state_info 按 io_state 点分路径读取上游节点输出；
+        # 引用来源是 set_batch_input_refs 注入的 batch 引用（End 节点顶层
+        # inputs.userFields 的批源引用，含 #end_ 输出声明）：configs.userFields.inputs
+        # 只是类型声明、无 value 键，按其取引用恒为空（原实现注入从未生效，
+        # 导致流式下未赋值的 Start 引用字段从 user_fields 缺失）。
+        # 注入到去前缀的顶层键：字段有值时直接可用，未赋值时兜底空串，
+        # 保证输出字段存在（对齐非流式行为），同时避免 _render_stream 对
+        # None 值等待超时。
+        if self._mix and self._batch_input_refs:
+            for _raw_key, _ref in self._batch_input_refs.items():
+                _fid = (
+                    _raw_key[len(OUTPUT_PREFIX):]
+                    if _raw_key.startswith(OUTPUT_PREFIX)
+                    else _raw_key
+                )
+                if not _fid or _fid in inputs:
+                    continue
+                if not (_ref.startswith("${") and _ref.endswith("}")):
+                    continue
+                # get_state_info 按 io_state 点分路径读取上游节点输出；
                 # 它内部处理了 Session/NodeSession 差异（Session 类本身没有 state()）。
-                for _fid, _ref in _batch_schema.items():
-                    if not (isinstance(_ref, str) and _ref.startswith("${") and _ref.endswith("}")):
-                        continue
-                    _val = get_state_info(session, f"io_state.{_ref[2:-1]}")
-                    if _val is not None:
-                        inputs[_fid] = _val
-            # 兜底：state 读取失败（StreamActor 跨 Task，code 的 state 不可见）时，
-            # 把缺失的 batch 字段设为空串，防止 _render_stream 对 None 值等 5s 超时。
+                _val = get_state_info(session, f"io_state.{_ref[2:-1]}")
+                if _val is not None:
+                    inputs[_fid] = _val
+            # 兜底：state 读取失败/未赋值时把缺失的 batch 字段设为空串，
+            # 防止字段从 user_fields 缺失及 _render_stream 对 None 值等 5s 超时。
             # message_end 仍会从 origin_answer 带完整内容。
-            for _f in self._user_fields_inputs:
-                _fid = _f.get("id")
-                if _fid and _f.get("value", "").startswith("${") and _fid not in inputs:
+            for _raw_key in self._batch_input_refs:
+                _fid = (
+                    _raw_key[len(OUTPUT_PREFIX):]
+                    if _raw_key.startswith(OUTPUT_PREFIX)
+                    else _raw_key
+                )
+                if _fid and _fid not in inputs:
                     inputs[_fid] = ""
 
         # mix 模式协调
         inputs, outputs, _mix_i_am_renderer = await self._mix_coordinate(
-            "stream", inputs, outputs
+            "stream", inputs, outputs, session
         )
         if not _mix_i_am_renderer:
             return
@@ -1238,7 +1304,8 @@ class End(BaseEnd):
             getattr(inner_session.state(), "_node_id", None) if inner_session else None
         )
         query = session.get_global_state("query") or ""
-        user_fields = {**clean_input_values, **outputs, **{"query": query}}
+        user_fields = {**clean_input_values, **outputs}
+        user_fields.setdefault("query", query)
 
         first_end_node_stream = True
         last_output_index = 0
@@ -1438,7 +1505,8 @@ class End(BaseEnd):
             getattr(inner_session.state(), "_node_id", None) if inner_session else None
         )
         query = session.get_global_state("query") or ""
-        user_fields = {**clean_input_values, **outputs, **{"query": query}}
+        user_fields = {**clean_input_values, **outputs}
+        user_fields.setdefault("query", query)
 
         # 构建带有 think 的 result（用于 message_end）
         result_with_think = get_output_data_with_metadata(

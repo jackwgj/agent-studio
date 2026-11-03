@@ -21,6 +21,7 @@ import { I18nNamespace } from '@i18n';
 import { Router } from '@angular/router';
 import { NzModalService, NzModalRef, NzModalModule } from 'ng-zorro-antd/modal';
 import { cdnAssetUrl } from '../../../../../single-spa/assets-url';
+import { hasEnvPlaceholder } from '../../../../../utils/model-api-url.util';
 import { ModelManagementService } from '@services/repositories/model-management-new';
 import { ModelType } from '@enums/jiuwen-model.enum';
 import { CommonService } from '@services/common.service';
@@ -69,6 +70,12 @@ export class LLMSelectComponent implements OnDestroy {
   @Input() showError?: boolean = false;
 
   @Input() refreshSubscribe = true;
+
+  /** 单智能体场景传 true：禁用 api_url 含环境变量占位符的模型。
+   *  单智能体无环境选择 UI，运行时由 manager 兜底用项目默认环境解析占位符；
+   *  未配置默认环境时占位符仍无法解析，故仅在无默认环境时置灰不可选但显示，
+   *  并提示「请先在环境管理中设置默认环境」。多智能体有环境选择，默认 false 不禁用。 */
+  @Input() disableEnvPlaceholderModels: boolean = false;
 
   public serviceMap: object = {};
   public selectedModelInfo = {
@@ -195,11 +202,13 @@ export class LLMSelectComponent implements OnDestroy {
           ...o,
           children: o.children?.map(c => {
             const isSubscribed = o.isFirstPlatform ? (map.get(c.model_name) || c.is_subscribed) : undefined;
+            const envPlaceholderDisabled = this.disableEnvPlaceholderModels && hasEnvPlaceholder(c.api_url);
             return {
               ...c,
+              envPlaceholderDisabled,
               ...(o.isFirstPlatform ? {
                 isSubscribed,
-                disabled: c.type === 'button' ? false : !isSubscribed && !c.is_in_free_trial
+                disabled: c.type === 'button' ? false : ((!isSubscribed && !c.is_in_free_trial) || envPlaceholderDisabled)
               } : {})
             };
           })
@@ -216,6 +225,11 @@ export class LLMSelectComponent implements OnDestroy {
   ngOnChanges(changes: SimpleChanges): void {
     if (changes.modelType && changes.modelType.previousValue) {
       this.getModelOptions();
+    }
+    // 占位符禁用开关是普通 Input，构造器 effect 只跟踪信号、不会在其翻转时重算；
+    // 触发一次信号更新让 effect 重新执行，下拉选项的置灰状态与最新开关值一致
+    if (changes.disableEnvPlaceholderModels && !changes.disableEnvPlaceholderModels.firstChange) {
+      this._modelOptions.set(this._modelOptions().slice());
     }
     if (changes.selectedModel && changes.selectedModel.currentValue) {
       this.selectedModel = changes.selectedModel.currentValue;
@@ -253,6 +267,20 @@ export class LLMSelectComponent implements OnDestroy {
     return this.i18n.transform('not_validated', {
       ns: I18nNamespace.AGENT_CENTER,
     });
+  }
+
+  /**
+   * 当前选中模型是否为环境变量占位符模型（仅单智能体场景 disableEnvPlaceholderModels=true 时判定）。
+   * 用 serviceMap[selectedModel].api_url（分组接口返回，已确认含 api_url）判定。
+   * serviceMap 在 getModelOptions 的 then 里由 getServiceMap 填充、_modelOptions.set 触发 effect、
+   * 末尾 detectChanges 重新求值此 getter → 存量坏选择在列表加载后即显示告警，提示用户重新选择。
+   */
+  get selectedModelIsEnvPlaceholder(): boolean {
+    if (!this.disableEnvPlaceholderModels || !this.selectedModel) {
+      return false;
+    }
+    const m = this.serviceMap[this.selectedModel];
+    return !!m && hasEnvPlaceholder(m.api_url);
   }
 
   getModelOptions(params?: any) {
@@ -314,6 +342,11 @@ export class LLMSelectComponent implements OnDestroy {
   changeSelect(modelId: string) {
     //模型调测 需要返回模型对象 & index
     //路由策略需要加index
+
+    // 立即写回本地选中值：nz-select 显示的已是新选择，但父组件对 [selectedModel]
+    // 的回写要等保存成功后异步绕回，期间 selectedModelIsEnvPlaceholder 等派生状态
+    // 仍按旧模型判定（如存量占位符模型改选普通模型后红框不消失）。清空选择时置空串。
+    this.selectedModel = modelId || '';
 
     // 先设置选中模型的图标信息
     if (this.serviceMap[modelId]) {

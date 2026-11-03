@@ -16,6 +16,7 @@ from typing import Any, Optional
 
 from cachetools import LRUCache
 from common_utils.redis_manager import get_redis_client
+from redis import RedisError
 
 from storage import get_storage_provider
 from agent_runtime.common.config import settings
@@ -26,6 +27,9 @@ from jiuwen.common.utils.utils import safe_json_loads_raise_exception
 from openjiuwen.core.common.logging import workflow_logger
 
 from jiuwen.serve.common.logger.request_logger import log_function_timing
+
+
+_IR_LOAD_SLOW_CACHE_HIT_MS = 50
 
 
 class CacheUtils:
@@ -243,8 +247,16 @@ class CacheUtils:
             self._update_memory_cache(unique_key, value)
             return value, "memory"
 
-        # redis 缓存
-        value = await self.async_redis_cache.get(unique_key)
+        # redis 缓存（Redis 故障包装为带错误码的框架异常，与 RedisUtils 源头包装约定一致；
+        # 传播行为不变：上层 ir_load_failed / run_check 契约均预期 JiuWenBaseException）
+        try:
+            value = await self.async_redis_cache.get(unique_key)
+        except RedisError as e:
+            logger.error(f"cache get error, exception {e}", exc_info=True)
+            raise JiuWenBaseException(
+                StatusCode.REDIS_SERVICE_NOT_FOUND.code,
+                StatusCode.REDIS_SERVICE_NOT_FOUND.errmsg,
+            ) from e
         if value is not None:
             value = deserialize_object(value) if self.should_serialize else value
             self._update_memory_cache(unique_key, value)
@@ -315,8 +327,58 @@ def _log_ir_content(source: str, path: str, ir_data: dict):
         logger.warning("Failed to log IR content: source=%s, path=%s, error=%s", source, path, e)
 
 
+def _get_request_ir_load_cache() -> Optional[dict[str, asyncio.Task]]:
+    """Return the current request's in-flight/completed IR load cache."""
+    try:
+        from agent_runtime.context.request_context import _request_ctx
+
+        cache = getattr(_request_ctx.get(), "ir_load_cache", None)
+    except (AttributeError, LookupError):
+        return None
+    return cache if isinstance(cache, dict) else None
+
+
+def _discard_failed_request_ir_load(
+    request_cache: dict[str, asyncio.Task],
+    path: str,
+    load_task: asyncio.Task,
+) -> None:
+    """Evict failed request-local loads while keeping successful results memoized."""
+    if not load_task.done():
+        return
+
+    try:
+        failed = load_task.cancelled() or load_task.exception() is not None
+    except asyncio.CancelledError:
+        failed = True
+
+    if failed and request_cache.get(path) is load_task:
+        request_cache.pop(path, None)
+
+
 @log_function_timing
 async def async_ir_load(path: str) -> dict:
+    """Load one IR at most once per request for a given path."""
+    request_cache = _get_request_ir_load_cache()
+    if request_cache is None:
+        return await _async_ir_load_uncached(path)
+
+    load_task = request_cache.get(path)
+    if load_task is None:
+        load_task = asyncio.create_task(_async_ir_load_uncached(path))
+        request_cache[path] = load_task
+        load_task.add_done_callback(
+            lambda task: _discard_failed_request_ir_load(request_cache, path, task)
+        )
+
+    try:
+        return await asyncio.shield(load_task)
+    except BaseException:
+        _discard_failed_request_ir_load(request_cache, path, load_task)
+        raise
+
+
+async def _async_ir_load_uncached(path: str) -> dict:
     """异步加载IR内容，支持任意Python对象缓存。
 
     查找顺序：memory → redis → obs
@@ -325,21 +387,38 @@ async def async_ir_load(path: str) -> dict:
     from openjiuwen.core.common.logging import performance_logger
 
     t_start = time.perf_counter()
-    logger.info("Async Loading IR content from %s", path)
+    # 每次 IR 加载都打 INFO 过于频繁（621 次/10k 行），普通命中只保留 DEBUG。
+    logger.debug("Async Loading IR content from %s", path)
 
     ir_value, source = await cache_ir_queue.aget_with_source(path)
     if ir_value is not None:
+        source_label = "OBS" if source == "obs" else source.capitalize()
         if source == "memory":
-            logger.info("Cache HIT! Process %d async got cached data: %s", os.getpid(), path)
+            # 内存缓存命中（0ms）为预期路径，降级为 DEBUG。
+            logger.debug("Cache HIT! Process %d async got cached data: %s", os.getpid(), path)
         else:
-            logger.info(
-                "Redis HIT! Process %d async got cached data: %s, "
+            # Redis/OBS 命中同样是常态路径，先用 DEBUG 记录；慢命中在计时后补 INFO。
+            logger.debug(
+                "%s HIT! Process %d async got cached data: %s, "
                 "memory size %d/%d",
-                os.getpid(), path,
+                source_label, os.getpid(), path,
                 cache_ir_queue.memory_cache.currsize, cache_ir_queue.memory_cache.maxsize,
             )
+        cache_elapsed_ms = (
+            round((time.perf_counter() - t_start) * 1000)
+            if source != "memory"
+            else None
+        )
         _log_ir_content(source, path, ir_value)
-        performance_logger.info(f"ir_load|{round((time.perf_counter() - t_start) * 1000)}|{source}")
+        elapsed_ms = round((time.perf_counter() - t_start) * 1000)
+        if cache_elapsed_ms is not None and cache_elapsed_ms > _IR_LOAD_SLOW_CACHE_HIT_MS:
+            logger.info(
+                "Slow %s HIT! Process %d async got cached data: %s in %d ms, "
+                "memory size %d/%d",
+                source_label, os.getpid(), path, cache_elapsed_ms,
+                cache_ir_queue.memory_cache.currsize, cache_ir_queue.memory_cache.maxsize,
+            )
+        performance_logger.info(f"ir_load|{elapsed_ms}|{source}")
         return ir_value
 
     # obs 存储

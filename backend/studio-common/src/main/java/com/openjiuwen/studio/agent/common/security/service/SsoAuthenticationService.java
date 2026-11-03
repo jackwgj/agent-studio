@@ -33,6 +33,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.security.SecureRandom;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
@@ -119,9 +120,9 @@ public class SsoAuthenticationService {
      * 调用 SSO 鉴权接口验证 Token 并获取用户信息
      *
      * @param accessToken 访问令牌
-     * @return 用户信息，验证失败返回 null
+     * @return 用户信息，验证失败返回 Optional.empty()
      */
-    public SimpleUser authenticate(String accessToken) {
+    public Optional<SimpleUser> authenticate(String accessToken) {
         try {
             String ssoValidateUrl = authProperties.getSso().getValidateUrl();
             String ssoHeaderName = authProperties.getSso().getHeader();
@@ -132,7 +133,8 @@ public class SsoAuthenticationService {
             headers.set("Content-Type", "application/json");
             headers.set(ssoHeaderName, accessToken);
 
-            HttpEntity<String> entity = new HttpEntity<>(headers);
+            // 客户环境实测：SSO 校验接口需携带空 JSON 请求体（{}），仅 headers 会校验失败
+            HttpEntity<String> entity = new HttpEntity<>("{}", headers);
 
             Map<String, Object> responseBody = restTemplate.exchange(ssoValidateUrl, HttpMethod.POST, entity,
                 new ParameterizedTypeReference<Map<String, Object>>() {}).getBody();
@@ -140,11 +142,11 @@ public class SsoAuthenticationService {
                 log.info("SSO authentication successful");
                 SimpleUser userInfo = convertToUserInfo(responseBody);
                 tokenCache.put(accessToken, new CachedUserInfo(userInfo));
-                return userInfo;
+                return Optional.of(userInfo);
             }
 
             log.error("SSO authentication failed: response body is null, SSO service may be malfunctioning");
-            return null;
+            return Optional.empty();
 
         } catch (HttpClientErrorException e) {
             if (e.getStatusCode() == HttpStatusCode.valueOf(401)) {
@@ -153,7 +155,7 @@ public class SsoAuthenticationService {
             } else {
                 log.error("SSO authentication failed: SSO service returned HTTP {}", e.getStatusCode());
             }
-            return null;
+            return Optional.empty();
         } catch (ResourceAccessException e) {
             log.error("SSO service unavailable: {}", e.getMessage());
             return getFromCache(accessToken);
@@ -166,14 +168,14 @@ public class SsoAuthenticationService {
     /**
      * SSO 服务不可用时尝试从缓存获取用户信息
      */
-    private SimpleUser getFromCache(String accessToken) {
+    private Optional<SimpleUser> getFromCache(String accessToken) {
         CachedUserInfo cached = tokenCache.get(accessToken);
         if (cached != null && !cached.isExpired()) {
             log.warn("SSO service unavailable, using cached authentication result for token");
-            return cached.userInfo;
+            return Optional.ofNullable(cached.userInfo);
         }
         log.error("SSO service unavailable and no valid cache found, request will be rejected");
-        return null;
+        return Optional.empty();
     }
 
     /**
@@ -193,14 +195,23 @@ public class SsoAuthenticationService {
     }
 
     /**
-     * 从 SSO 响应中按 Claim 名称提取字段值
+     * 从 SSO 响应中按 Claim 路径提取字段值
+     *
+     * <p>claimPath 支持点号分隔的多层嵌套路径，例如 "result.user_id" 表示取
+     * 根节点下 result 对象的 user_id 字段；单层字段名（如 "user_id"）保持原有行为。</p>
      */
-    private String extractClaim(Map<String, Object> ssoUserInfo, String claimName) {
-        if (claimName == null || claimName.isBlank()) {
-            return null;
+    private String extractClaim(Map<String, Object> ssoUserInfo, String claimPath) {
+        if (claimPath == null || claimPath.isBlank()) {
+            return "";
         }
-        Object value = ssoUserInfo.get(claimName);
-        return value != null ? value.toString() : null;
+        Object value = ssoUserInfo;
+        for (String key : claimPath.split("\\.")) {
+            if (!(value instanceof Map)) {
+                return "";
+            }
+            value = ((Map<?, ?>) value).get(key);
+        }
+        return value != null ? value.toString() : "";
     }
 
     /**

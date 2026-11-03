@@ -9,7 +9,7 @@ Must be applied *after* ``apply_parallel_branch_grouping_patch``.
 
 from __future__ import annotations
 
-from collections import defaultdict
+from collections import defaultdict, deque
 from typing import Any
 
 from openjiuwen.core.common.logging import workflow_logger as logger
@@ -17,58 +17,116 @@ from openjiuwen.core.common.logging import workflow_logger as logger
 _NESTED_PATCH_APPLIED = False
 
 
+def _build_adjacency_list(self) -> dict[str, list[str]]:
+    """构建邻接表：dict[node -> [neighbors]]，覆盖所有边类型。
+
+    覆盖三类边：
+    1. 普通边 self.edges 中 src 是 str 的边
+    2. list-source 边 self.edges 中 src 是 list 的边（每个子节点都映射到 tgt）
+    3. 条件分支边 self.branches 中每个 router 的 _branches 的 target
+    """
+    adj: dict[str, list[str]] = defaultdict(list)
+    # 普通边 + list-source 边
+    for (src, tgt) in self.edges:
+        if isinstance(tgt, str):
+            if isinstance(src, str):
+                adj[src].append(tgt)
+            elif isinstance(src, list):
+                for s in src:
+                    adj[s].append(tgt)
+    # 条件分支边
+    for branch_node, routers in self.branches.items():
+        for _name, br in routers.items():
+            router = getattr(br, "condition", None)
+            if router is None:
+                continue
+            branches = getattr(router, "_branches", None)
+            if not branches:
+                continue
+            for b in branches:
+                tgt = b.target
+                if isinstance(tgt, str):
+                    tgt = [tgt]
+                for t in tgt or []:
+                    adj[branch_node].append(t)
+    return adj
+
+
 def _forward_reachable_patched(self, start_node: str) -> set[str]:
     """BFS forward search: all nodes reachable from *start_node*.
 
-    Fixes: traverse conditional edges (``self.branches``) and list-source edges.
+    使用邻接表 O(V+E)，覆盖普通边、list-source 边、条件分支边。
+    邻接表缓存在 self._adj_cache 上，整个 compile 期间图拓扑不变，可安全复用。
+    结果缓存在 self._reachable_cache 上，同一 start_node 只算一次。
     """
+    # 结果缓存：同一 start_node 只算一次
+    result_cache = getattr(self, "_reachable_cache", None)
+    if result_cache is None:
+        result_cache = {}
+        self._reachable_cache = result_cache  # type: ignore[attr-defined]
+    if start_node in result_cache:
+        return result_cache[start_node]
+
+    # 邻接表缓存：整个 compile 期间共享
+    adj = getattr(self, "_adj_cache", None)
+    if adj is None:
+        adj = _build_adjacency_list(self)
+        self._adj_cache = adj  # type: ignore[attr-defined]
+
     visited: set[str] = set()
-    queue = [start_node]
+    queue: deque[str] = deque([start_node])
     while queue:
-        node = queue.pop(0)
+        node = queue.popleft()
         if node in visited:
             continue
         visited.add(node)
-        for (src, tgt) in self.edges:
-            if isinstance(src, list):
-                if node in src and isinstance(tgt, str) and tgt not in visited:
-                    queue.append(tgt)
-            elif src == node and isinstance(tgt, str) and tgt not in visited:
-                queue.append(tgt)
-        if node in self.branches:
-            for _name, br in self.branches[node].items():
-                router = getattr(br, "condition", None)
-                if router is None:
-                    continue
-                branches = getattr(router, "_branches", None)
-                if not branches:
-                    continue
-                for b in branches:
-                    tgt = b.target
-                    if isinstance(tgt, str):
-                        tgt = [tgt]
-                    for t in tgt or []:
-                        if t not in visited:
-                            queue.append(t)
+        for neighbor in adj.get(node, []):
+            if neighbor not in visited:
+                queue.append(neighbor)
+    result_cache[start_node] = visited
     return visited
+
+
+def _would_create_cycle(
+    parent: dict[str, str], child: str, ancestor: str
+) -> bool:
+    """检查将 parent[child] = ancestor 是否会形成环。
+
+    沿 parent 链从 ancestor 向上遍历，如果能回到 child 则会成环。
+    """
+    node = ancestor
+    visited: set[str] = set()
+    while node in parent and node not in visited:
+        visited.add(node)
+        node = parent[node]
+        if node == child:
+            return True
+    return False
 
 
 def _build_branch_parent_patched(self) -> dict[str, str]:
     """Map nested branch nodes to their parent branch node.
 
     Uses ``_forward_reachable`` to detect indirect nesting.
+    赋值前检查是否会形成环（含 loop 的工作流中分支节点互相可达），
+    若会成环则跳过——环拓扑中的分支不是真正的嵌套关系。
     """
     parent: dict[str, str] = {}
     nested_branch_nodes = set(self.branch_targets) | set(self.branches)
     for branch_node_id, targets in self.branch_targets.items():
         for target in targets:
             if target in nested_branch_nodes:
-                parent[target] = branch_node_id
+                if target != branch_node_id and not _would_create_cycle(
+                    parent, target, branch_node_id
+                ):
+                    parent[target] = branch_node_id
             else:
                 reachable = self._forward_reachable(target)
                 for inner_bn in nested_branch_nodes:
                     if inner_bn != branch_node_id and inner_bn in reachable:
-                        if inner_bn not in parent:
+                        if inner_bn not in parent and not _would_create_cycle(
+                            parent, inner_bn, branch_node_id
+                        ):
                             parent[inner_bn] = branch_node_id
     return parent
 
@@ -193,9 +251,27 @@ def _resolve_barrier_groups_nested_patched(
     return result if result else source_list
 
 
+def _branch_root_patched(
+    branch_node_id: str, branch_parent: dict[str, str]
+) -> str:
+    """带环检测的 _branch_root，防止 parent dict 含环时死循环。
+
+    原始 _branch_root 假设 parent 是一棵树（无环），但含 loop 的
+    工作流中 _build_branch_parent_patched 可能产生环（已被 B 方案
+    源头修复），此为兜底防护。
+    """
+    root = branch_node_id
+    visited: set[str] = set()
+    while root in branch_parent and root not in visited:
+        visited.add(root)
+        root = branch_parent[root]
+    return root
+
+
 _original_forward_reachable: Any = None
 _original_resolve_barrier_groups: Any = None
 _original_build_branch_parent: Any = None
+_original_branch_root: Any = None
 
 
 def apply_nested_branch_barrier_patch() -> bool:
@@ -205,7 +281,7 @@ def apply_nested_branch_barrier_patch() -> bool:
     """
     global _NESTED_PATCH_APPLIED
     global _original_forward_reachable, _original_resolve_barrier_groups
-    global _original_build_branch_parent
+    global _original_build_branch_parent, _original_branch_root
 
     if _NESTED_PATCH_APPLIED:
         return False
@@ -215,10 +291,12 @@ def apply_nested_branch_barrier_patch() -> bool:
     _original_forward_reachable = PregelGraph._forward_reachable
     _original_resolve_barrier_groups = PregelGraph._resolve_barrier_groups
     _original_build_branch_parent = PregelGraph._build_branch_parent
+    _original_branch_root = PregelGraph._branch_root
 
     PregelGraph._forward_reachable = _forward_reachable_patched  # type: ignore[assignment]
     PregelGraph._resolve_barrier_groups = _resolve_barrier_groups_nested_patched  # type: ignore[assignment]
     PregelGraph._build_branch_parent = _build_branch_parent_patched  # type: ignore[assignment]
+    PregelGraph._branch_root = staticmethod(_branch_root_patched)  # type: ignore[assignment]
 
     _NESTED_PATCH_APPLIED = True
     logger.info("nested_branch_barrier_patch applied")

@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # coding=utf-8
 #  Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
-import os
 from typing import Optional, Dict, List, Any, Union
 
 from jiuwen.common.exception import JiuWenBaseException
@@ -184,8 +183,9 @@ class ContextManager:
         """
         self.load_workflow_contexts(agent_state.workflow_states)
         self.load_controller_context(agent_state.controller_state)
-        logger.info(
-            f"start workflow restore_from_agent_state: {agent_state.controller_state}",
+        logger.debug(
+            "start workflow restore_from_agent_state: %s",
+            agent_state.controller_state,
             simple_log="start workflow restore_from_agent_state",
         )
         # controller模式下更新全局变量
@@ -455,13 +455,15 @@ class ContextManager:
         return None
 
     def get_latest_user_message(self) -> Optional[ConversationMessage]:
-        """获取最新的user消息"""
-        enable_intent = os.getenv("ENABLE_INTENT_WORKFLOW", "false").lower() == "true"
+        """获取最新的user消息（即本轮query）
 
+        enable_history只控制消息是否进入后续历史上下文，不影响本轮query获取：
+        若在此跳过enable_history=False的本轮query，会导致意图识别取不到query
+        （103104 No valid query）或误用上一轮query。
+        """
         for msg in reversed(self.engine.get_messages()):
             if msg.role == "user":
-                if enable_intent or msg.enable_history:
-                    return msg
+                return msg
 
         return None
 

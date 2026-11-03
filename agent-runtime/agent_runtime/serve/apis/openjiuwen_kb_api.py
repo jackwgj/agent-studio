@@ -64,6 +64,7 @@ class UploadResponse(BaseModel):
 
     success: bool = Field(default=True)
     doc_count: int = Field(default=0)
+    doc_ids: List[str] = Field(default_factory=list)
     message: str = Field(default="")
 
     model_config = ConfigDict(populate_by_name=True, extra="ignore")
@@ -118,7 +119,7 @@ class ListKBResponse(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra="ignore")
 
 
-@openjiuwen_kb_router.post("/internal/v1/kb/create", response_model=KBResponse)
+@openjiuwen_kb_router.post("/internal/v1/kb/create", response_model=KBResponse, summary="创建知识库")
 async def create_kb(request: CreateKBRequest) -> KBResponse:
     """创建知识库。"""
     manager = OpenJiuwenKBManager()
@@ -131,7 +132,7 @@ async def create_kb(request: CreateKBRequest) -> KBResponse:
     return KBResponse(success=result["success"], message=result["message"])
 
 
-@openjiuwen_kb_router.post("/internal/v1/kb/upload", response_model=UploadResponse)
+@openjiuwen_kb_router.post("/internal/v1/kb/upload", response_model=UploadResponse, summary="上传文档到知识库")
 async def upload_documents(
     kb_id: str = Form(...),
     file: UploadFile = File(...),
@@ -158,6 +159,7 @@ async def upload_documents(
         return UploadResponse(
             success=result["success"],
             doc_count=result["doc_count"],
+            doc_ids=result.get("doc_ids", []),
             message=result["message"],
         )
     finally:
@@ -168,7 +170,7 @@ async def upload_documents(
                 logger.warning("Failed to clean up temp file: %s", path)
 
 
-@openjiuwen_kb_router.post("/internal/v1/kb/search", response_model=SearchResponse)
+@openjiuwen_kb_router.post("/internal/v1/kb/search", response_model=SearchResponse, summary="检索知识库")
 async def search_kb(request: SearchRequest) -> SearchResponse:
     """检索知识库。"""
     manager = OpenJiuwenKBManager()
@@ -187,7 +189,7 @@ async def search_kb(request: SearchRequest) -> SearchResponse:
     )
 
 
-@openjiuwen_kb_router.delete("/internal/v1/kb/delete", response_model=KBResponse)
+@openjiuwen_kb_router.delete("/internal/v1/kb/delete", response_model=KBResponse, summary="删除知识库")
 async def delete_kb(request: DeleteKBRequest) -> KBResponse:
     """删除知识库。"""
     manager = OpenJiuwenKBManager()
@@ -195,7 +197,24 @@ async def delete_kb(request: DeleteKBRequest) -> KBResponse:
     return KBResponse(success=result["success"], message=result["message"])
 
 
-@openjiuwen_kb_router.get("/internal/v1/kb/list", response_model=ListKBResponse)
+class DeleteDocumentsRequest(BaseModel):
+    """删除文档请求。"""
+
+    doc_ids: List[str] = Field(default_factory=list)
+
+    model_config = ConfigDict(populate_by_name=True, extra="ignore")
+
+
+@openjiuwen_kb_router.delete("/internal/v1/kb/{kb_id}/documents/{doc_id}", response_model=KBResponse, summary="删除知识库文档")
+async def delete_document(kb_id: str, doc_id: str, request: DeleteDocumentsRequest) -> KBResponse:
+    """删除知识库中的文档（通过 doc_ids 从向量库移除）。"""
+    manager = OpenJiuwenKBManager()
+    doc_ids = request.doc_ids if request.doc_ids else [doc_id]
+    result = await manager.delete_documents(kb_id, doc_ids)
+    return KBResponse(success=result["success"], message=result["message"])
+
+
+@openjiuwen_kb_router.get("/internal/v1/kb/list", response_model=ListKBResponse, summary="列出知识库")
 async def list_kbs(kb_ids: Optional[str] = None) -> ListKBResponse:
     """列出知识库存在状态。"""
     manager = OpenJiuwenKBManager()

@@ -7,11 +7,13 @@ Redis key格式: {conversationId}_{instanceId}_{userId}[_{versionId}]
 """
 
 import json
+import logging
 import os
 import time
 import traceback
 
 from openjiuwen.core.common.logging import workflow_logger
+from agent_runtime.common.config import settings
 from agent_runtime.event_handler.base.trace import Trace
 
 # 会话历史最大消息数
@@ -20,8 +22,8 @@ MAX_MESSAGE_NUM = int(os.getenv("MAX_MESSAGE_NUM", "100"))
 MAX_MESSAGE_SIZE = int(os.getenv("MAX_MESSAGE_SIZE", "5000000"))
 # Redis key 前缀
 KEY_PREFIX = "agentBuilder:conversation"
-# 默认 TTL 24小时
-DEFAULT_TTL = 86400
+# 默认 TTL 24小时（可用 CONVERSATION_TTL_SECONDS 覆盖，压测场景调短以控制内存）
+DEFAULT_TTL = settings.conversation_variable.conversation_ttl_seconds
 
 
 def _get_redis_client():
@@ -99,6 +101,11 @@ class ConversationManager:
                 if raw is not None:
                     data = raw.decode("utf-8") if isinstance(raw, bytes) else raw
                     conversation = json.loads(data)
+                    # manager Redisson JsonJacksonCodec 对 String 双重编码，redis-py 单次解码得 str。
+                    # 若结果是 str 再解一次（仅读侧兜底，不碰 update_conversation 写回路径，
+                    # 避免 runtime 写单编码 value 破坏 manager 后续 JsonJacksonCodec 读）。
+                    if isinstance(conversation, str):
+                        conversation = json.loads(conversation)
                     # 刷新TTL
                     await redis.expire(key, DEFAULT_TTL)
                     return conversation
@@ -179,9 +186,10 @@ class ConversationManager:
                     size += len(content)
 
                 if size > MAX_MESSAGE_SIZE:
-                    workflow_logger.warning(
-                        f"Conversation message size exceed limit. size={size} limit={MAX_MESSAGE_SIZE}"
-                    )
+                    if workflow_logger.logger().isEnabledFor(logging.WARNING):
+                        workflow_logger.warning(
+                            f"Conversation message size exceed limit. size={size} limit={MAX_MESSAGE_SIZE}"
+                        )
                     break
                 offset += 1
 
