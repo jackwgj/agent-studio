@@ -204,6 +204,7 @@ export class StartModalComponent extends ModalBaseComponent implements OnInit {
         ...getInitOutputParamConfig(),
         depth: 0,
         parentType: 'none' as IWFViewParentType,
+        isLeaf: true,
         type: ['string'],
       },
     ];
@@ -281,6 +282,38 @@ export class StartModalComponent extends ModalBaseComponent implements OnInit {
     return !!(control?.errors?.serviceName?.tiErrorMessage && (control.dirty || control.touched));
   }
 
+  /**
+   * 判断 origin 的任一后代字段名是否违规（向上传递标记用）。
+   * 复用各后代字段对应 form control 的校验错误状态（与 hasNameError 同源）。
+   * 仅用于父字段 input 框的视觉标红，不显示文案（父名字本身可能合法）。
+   */
+  hasDescendantNameError(origin: any): boolean {
+    const check = (node: any): boolean => {
+      const children = node?.children;
+      if (!children || !children.length) {
+        return false;
+      }
+      for (const child of children) {
+        const control = this.outputForm?.form?.get('outputFormName' + child.keyindex);
+        if (control?.errors?.serviceName?.tiErrorMessage) {
+          return true;
+        }
+        if (check(child)) {
+          return true;
+        }
+      }
+      return false;
+    };
+    return check(origin);
+  }
+
+  /**
+   * 父字段 input 框标红条件：自身名违规 或 任一后代名违规（纯视觉提示）。
+   */
+  hasNameErrorVisual(origin: any): boolean {
+    return this.hasNameError(origin) || this.hasDescendantNameError(origin);
+  }
+
   onStartNodeNameChange() {
     this.outputForm?.form?.markAsDirty();
   }
@@ -289,6 +322,7 @@ export class StartModalComponent extends ModalBaseComponent implements OnInit {
     const type = param.type.join('/');
     if (this.isSimpleType(type) && param?.children) {
       delete param?.children;
+      param.isLeaf = true;
       return;
     }
 
@@ -298,9 +332,11 @@ export class StartModalComponent extends ModalBaseComponent implements OnInit {
       param?.children
     ) {
       delete param?.children;
+      param.isLeaf = true;
     }
 
     if (this.isObjectLikeType(param.type)) {
+      param.isLeaf = false;
       if (!param?.children) {
         this.addChild(param);
       }
@@ -324,6 +360,7 @@ export class StartModalComponent extends ModalBaseComponent implements OnInit {
       parentNodeParam?.children?.length === 0
     ) {
       delete parentNodeParam.children;
+      parentNodeParam.isLeaf = true;
     }
     this.onSave();
   }
@@ -361,6 +398,7 @@ export class StartModalComponent extends ModalBaseComponent implements OnInit {
       ...getInitOutputParamConfig(),
       depth: param.depth + 1,
       parentType: param.type[0] as IWFViewParentType,
+      isLeaf: true,
       type: ['string'],
     };
 
@@ -370,6 +408,7 @@ export class StartModalComponent extends ModalBaseComponent implements OnInit {
       param.children = [child];
     }
 
+    param.isLeaf = false;
     param.expanded = true;
     this.onSave();
   }

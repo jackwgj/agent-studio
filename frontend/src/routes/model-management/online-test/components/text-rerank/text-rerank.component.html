@@ -71,6 +71,18 @@
               </div>
             </div>
 
+            <div class="flex w-full" *ngIf="errorMessage">
+              <div class="assistant-content chat-content">
+                <div class="cv-content">
+                  <div class="flex w-full gap-[12px]">
+                    <div class="content-text">
+                      <p>{{ errorMessage }}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div *ngIf="isLoading" class="pl-[5px]">
               <img alt=""
                 class="w-[20px] h-[20px]"
@@ -83,8 +95,9 @@
         </div>
 
       </div>
-      <div class="bottom-container">
-        <div *ngIf="isShowStopIcon" class="stop-button" (click)="stopChat()">
+      <!-- *ngIf 提到容器上：空容器会作为透明条覆盖预览区底部，吞掉落在其下方的点击 -->
+      <div class="bottom-container" *ngIf="isShowStopIcon">
+        <div class="stop-button" (click)="stopChat()">
           <div class="container">
             <!-- 旋转的边框层 -->
             <div class="rotating-border"></div>

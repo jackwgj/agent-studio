@@ -42,6 +42,7 @@ _DEBUG_EVENT_RETURN_TO_SERVICE: dict[str, str] = {
     "ComplexIntentDetection": "EI.ComplexIntentDetection",
     "FlowStreamTransform": "jiuwen.paramExtraction",
     "FlowMcp": "jiuwen.mcp",
+    "FlowSql": "jiuwen.sql",
 }
 
 _SKIP_COMPONENT_KEY: list[str] = [
@@ -263,6 +264,7 @@ class WorkflowStreamDataWrapper:
         history: list = None,
         query: str = "",
         is_resuming: bool = False,
+        start_time: int = 0,
     ):
         if node_id_to_name is None:
             node_id_to_name = {}
@@ -274,6 +276,7 @@ class WorkflowStreamDataWrapper:
         self._history = history or []
         self._query = query
         self._is_resuming = is_resuming
+        self._start_time = start_time
         # Collect field names that reference encrypted env vars, per node.
         # Flag-based: checks if the referenced env var key is in secretEnvKeys,
         # not value matching. Per-node mapping avoids cross-node field name
@@ -395,6 +398,15 @@ class WorkflowStreamDataWrapper:
 
         if not stream_data:
             return []
+
+        event_type = stream_data.get("event", "")
+        if event_type == "workflow_start":
+            self._start_time = stream_data.get("createdTime", int(time.time() * 1000))
+        elif event_type == "workflow_finished":
+            data = stream_data.get("data")
+            if isinstance(data, dict):
+                data["start_time"] = self._start_time
+                data["end_time"] = stream_data.get("createdTime", int(time.time() * 1000))
 
         return [stream_data]
 
@@ -886,9 +898,11 @@ class WorkflowStreamDataWrapper:
                     memory = last_item.get("memory")
             computed_status = "running"
         else:
+            # pre_invoke 帧统一下发 start 状态（含恢复请求中被恢复的提问器）：
+            # 前端调用链每轮清空后仅凭 node_started 帧追加节点，若恢复轮中
+            # 被恢复节点不下发 start，该轮调用链将缺失该节点（如仅剩结果
+            # 节点）；多轮 start/finish 配对由前端与历史回显侧专门处理。
             computed_status = "start"
-            if self._is_resuming and payload.get("componentType", "") == "Questioner":
-                computed_status = "running"
 
         end_time_override = None
         if inner_error is not None:
@@ -1364,10 +1378,13 @@ def _register_jiuwen_callbacks() -> None:
                     "node_type": node_type,
                     "node_name": node_name,
                 })
-                # 节点开始执行 common 日志
-                common_logger.info(
-                    f"The node starts to execute. "
-                    f"| flow_id: {workflow_id} | node type: {node_type} | node name: {node_name}"
+                # 节点开始执行 common 日志（%-style 惰性传参，DEBUG 关闭时 _emit 内部短路不拼接）
+                common_logger.debug(
+                    "The node starts to execute. "
+                    "| flow_id: %s | node type: %s | node name: %s",
+                    workflow_id,
+                    node_type,
+                    node_name,
                 )
             return (args, kwargs)
 
@@ -1385,10 +1402,13 @@ def _register_jiuwen_callbacks() -> None:
             workflow_id = ctx.get("workflow_id", "")
             node_type = ctx.get("node_type", "")
             node_name = ctx.get("node_name", "")
-            # 节点执行完成 common 日志
-            common_logger.info(
-                f"Node execution is complete. "
-                f"| flow_id: {workflow_id} | node type: {node_type} | node name: {node_name}"
+            # 节点执行完成 common 日志（%-style 惰性传参，DEBUG 关闭时 _emit 内部短路不拼接）
+            common_logger.debug(
+                "Node execution is complete. "
+                "| flow_id: %s | node type: %s | node name: %s",
+                workflow_id,
+                node_type,
+                node_name,
             )
             # label 格式: type_name (e.g. jiuwen.code_代码)
             if node_type and node_name:

@@ -3,6 +3,7 @@
 
 """This module contains an IRConverter."""
 
+import inspect
 import json
 import logging
 import os
@@ -59,6 +60,7 @@ from jiuwen.extension.workflow_node.flow_input import FlowInput
 from jiuwen.extension.workflow_node.flow_mcp import FlowMcp
 from jiuwen.extension.workflow_node.flow_message import Message
 from jiuwen.extension.workflow_node.flow_qa import FlowQA, build_struct_input_schemas
+from jiuwen.extension.workflow_node.flow_sql import FlowSql
 from jiuwen.extension.workflow_node.flow_stream_transform import FlowStreamTransform
 from jiuwen.extension.workflow_node.intent_detection import IntentDetection
 from jiuwen.extension.workflow_node.llm_chain import LLMChain
@@ -118,6 +120,21 @@ from agent_runtime.common.ir_exceptions import IRBuildException
 _AGENT_VERSION = "agentVersion"
 _WORKFLOW_VERSION = "workflowVersion"
 _USE_AGENT_CORE_MODEL_ENV = "USE_AGENT_CORE_MODEL"
+
+
+def _supports_workflow_comp_name(workflow_type: type) -> bool:
+    """Check whether a workflow implementation supports the optional name argument."""
+    try:
+        return "name" in inspect.signature(
+            workflow_type.add_workflow_comp
+        ).parameters
+    except (TypeError, ValueError, AttributeError):
+        return False
+
+
+# Detect API compatibility once at module import instead of reflecting per node.
+_WORKFLOW_ADD_COMP_SUPPORTS_NAME = _supports_workflow_comp_name(Workflow)
+_LOOP_GROUP_ADD_COMP_SUPPORTS_NAME = _supports_workflow_comp_name(LoopGroup)
 
 
 class _LLMModelIdentifiers(NamedTuple):
@@ -749,12 +766,20 @@ class _LoopPassThroughComponent(WorkflowComponent):
 class _ParallelInvokeLaneDoneComponent(WorkflowComponent):
     """Control marker emitted when one parallel lane has completed."""
 
+    def skip_trace(self) -> bool:
+        return True
+
+
     async def invoke(self, inputs, session, context):
         return {}
 
 
 class _ParallelTransformLaneDoneComponent(WorkflowComponent):
     """Stream-preserving control marker for a completed parallel lane."""
+
+    def skip_trace(self) -> bool:
+        return True
+
 
     async def transform(
         self, inputs: Any, session: Any, context: Any
@@ -800,6 +825,10 @@ class _LaneSentinelComponent(WorkflowComponent):
     does not route it -- the LLM field resolves to empty, matching the fact
     that the LLM branch did not execute.
     """
+
+    def skip_trace(self) -> bool:
+        return True
+
 
     async def stream(self, inputs: Any, session: Any, context: Any) -> AsyncIterator[Any]:
         # One empty data frame: its first_frame=True arrival starts the
@@ -1128,22 +1157,24 @@ class IRConverter:
         agent_id_in_config = f"{agent_id}_{agent_version}"
         plugin_irs = ir_data.get("configs", {}).get("plugins")
         plugins = None
-        logger.info(
-            f"[PluginLoad] create_agent_config: plugin_irs count={len(plugin_irs) if plugin_irs else 0}, "
-            f"agent_id={agent_id}, "
-            f"configs keys="
-            f"{list(ir_data.get('configs', {}).keys()) if isinstance(ir_data.get('configs'), dict) else 'N/A'}"
-        )
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug(
+                f"[PluginLoad] create_agent_config: plugin_irs count={len(plugin_irs) if plugin_irs else 0}, "
+                f"agent_id={agent_id}, "
+                f"configs keys="
+                f"{list(ir_data.get('configs', {}).keys()) if isinstance(ir_data.get('configs'), dict) else 'N/A'}"
+            )
         if plugin_irs:
             plugins = []
             for idx, plugin_ir in enumerate(plugin_irs):
                 try:
                     plugin = PluginIRConverter.ir_to_plugin(plugin_ir, agent_id, conversation_id)
                     plugins.append(plugin)
-                    logger.info(
-                        f"[PluginLoad] create_agent_config: "
-                        f"Successfully loaded plugin '{plugin_ir.get('name', 'unknown')}'"
-                    )
+                    if logger.isEnabledFor(logging.DEBUG):
+                        logger.debug(
+                            f"[PluginLoad] create_agent_config: "
+                            f"Successfully loaded plugin '{plugin_ir.get('name', 'unknown')}'"
+                        )
                 except Exception as e:
                     plugin_name = plugin_ir.get("name", plugin_ir.get("id", f"index_{idx}"))
                     logger.error(
@@ -1230,10 +1261,13 @@ class IRConverter:
             # check if current ir_data has child agents
             if current_ir_data.get("configs", {}).get("agents"):
                 for child in current_ir_data.get("configs", {}).get("agents"):
-                    logger.info(
-                        f"loading ir data of {child.get('id')}",
-                        simple_log="loading ir data of child",
-                    )
+                    # IR 转换递归热路径：每子代理一条 routine 进度日志，降级为 DEBUG 并加守卫
+                    if logger.isEnabledFor(logging.DEBUG):
+                        logger.debug(
+                            "loading ir data of %s",
+                            child.get("id"),
+                            simple_log="loading ir data of child",
+                        )
                     # 支持从父Agent修改子Agent描述
                     parent_description = child.get("description", "")
                     child_ir_data = await async_ir_load(child.get("ir_path"))
@@ -1252,10 +1286,11 @@ class IRConverter:
                     child_metadata_list.append(child_config.metadata)
 
             task_id = str(secrets.token_hex(24))
-            logger.info(
-                f"conversation_id: {conversation_id} generate task_id: {task_id} for this request",
-                simple_log="conversation generate task",
-            )
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug(
+                    f"conversation_id: {conversation_id} generate task_id: {task_id} for this request",
+                    simple_log="conversation generate task",
+                )
             task_model, model_configs = AgentIrUtils().get_task_model(
                 current_ir_data, task_id
             )
@@ -1273,17 +1308,19 @@ class IRConverter:
                 )
             else:
                 llm = None
-            logger.info(
-                f"processing agent config of {current_metadata.id}",
-                simple_log="processing agent config",
-            )
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug(
+                    f"processing agent config of {current_metadata.id}",
+                    simple_log="processing agent config",
+                )
             current_config = await IRConverter.create_agent_config(
                 current_ir_data, llm, task_model, task_id
             )
-            logger.info(
-                f"get agent config of {current_metadata.id} success",
-                simple_log="get agent config",
-            )
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug(
+                    f"get agent config of {current_metadata.id} success",
+                    simple_log="get agent config",
+                )
             current_config.metadata = current_metadata
             current_config.parent_agent_metadata = parent_metadata
             current_config.child_agents_metadata = child_metadata_list
@@ -1636,6 +1673,33 @@ class IRConverter:
         connections = _normalize_list(ir_data.get("connections") or [])
         parallel_join_nodes = collect_parallel_join_nodes(connections, node_by_id)
         parallel_join_plan = build_parallel_join_plan(connections, node_by_id)
+        # lane 机制接管的汇聚点不再叠加 wait_for_all：join 由 [done 列表] ->
+        # join_target 的列表边 barrier 完成 AND 等待。若叠加 wait_for_all，
+        # 入边会再经过 _resolve_barrier_groups 的 CNF 分组，在「判断节点分支
+        # 扇出到相同子图」场景下，各 lane-done 从分叉判断的两个条件都可达，
+        # 会被误并成一个 OR 组，barrier 退化为「任一到达即触发」→ 汇聚节点
+        # 按到达 token 数重复执行。仅当该汇聚点的全部入边都被 lane 覆盖时才
+        # 移除，避免未覆盖的直达边从 barrier 组退化为独立触发边。
+        # （build_parallel_join_plan 保证同一汇聚点至多注册一个 spec：多 spec
+        # 会产生多条列表边 barrier，无 wait_for_all 时按组重复触发，已在 plan
+        # 构建时整体回退。）
+        _lane_join_targets = {
+            spec.join_target for spec in parallel_join_plan.joins.values()
+        }
+        if _lane_join_targets:
+            _rewritten_keys = set(parallel_join_plan.terminal_to_done)
+            for _conn in connections:
+                _src = ((_conn.get("source") or {}).get("componentId") or "").strip()
+                _dst = ((_conn.get("target") or {}).get("componentId") or "").strip()
+                if not _src or not _dst or _dst not in _lane_join_targets:
+                    continue
+                if _src.endswith("_input") or _dst.endswith("_output"):
+                    continue
+                _bid = ((_conn.get("source") or {}).get("branchId") or "").strip() or None
+                if (_src, _dst, _bid) not in _rewritten_keys:
+                    _lane_join_targets.discard(_dst)
+            if _lane_join_targets:
+                parallel_join_nodes = parallel_join_nodes - _lane_join_targets
 
         component_by_id: dict[str, Any] = {}
 
@@ -1681,6 +1745,18 @@ class IRConverter:
                 # come from stream sources; otherwise use regular INVOKE path.
                 if target_type in IRConverter._AGGREGATE_TYPES:
                     continue
+                # A message that references only batch values (start userFields /
+                # memory defaults) must stay on the regular INVOKE path even when
+                # a stream-capable LLM sits upstream. Otherwise its batch $refs
+                # get wrapped as stream generators that starve (empty render,
+                # default values disappear).
+                if (
+                    target_type == "jiuwen.message"
+                    and not IRConverter._message_schema_has_stream_ref(
+                        node_by_id.get(target, {}), ir_stream_source_ids
+                    )
+                ):
+                    continue
                 stream_input_target_ids.add(target)
 
         parallel_stream_done_inputs: dict[str, dict] = {}
@@ -1698,6 +1774,18 @@ class IRConverter:
                 source in ir_stream_source_ids
                 and target_type in IRConverter._STREAM_INPUT_CAPABLE_TARGET_TYPES
                 and target_type not in IRConverter._AGGREGATE_TYPES
+                # Keep in sync with the message guard in stream_input_target_ids
+                # collection and _is_stream_connection: a message that references
+                # only batch values (start userFields / memory defaults) must not
+                # be treated as a streaming join terminal, otherwise its lane-done
+                # is wired as TRANSFORM while phase-2 connects a regular edge ->
+                # GRAPH_VERTEX_STREAM_CALL_ERROR at runtime.
+                and not (
+                    target_type == "jiuwen.message"
+                    and not IRConverter._message_schema_has_stream_ref(
+                        node_by_id.get(target, {}), ir_stream_source_ids
+                    )
+                )
             )
             if is_stream_join_edge:
                 parallel_stream_done_inputs[done_node] = {
@@ -1786,12 +1874,6 @@ class IRConverter:
         deferred_connections: list[tuple[str, str, bool]] = []
         branch_connections: list[tuple[str, str, str]] = []
         existing_connections: set[tuple[str, str]] = set()
-        # Track _parallel_done nodes that receive incoming edges from
-        # rewrite_target in both Phase 1 and Phase 2, so that orphaned
-        # done nodes (caused by terminal_to_done key overwrites across
-        # parallel groups sharing the same join target) can be filtered
-        # out during parallel join wiring.
-        active_done_nodes: set[str] = set()
 
         # Phase 1: wire branch routes before BranchComponent/IntentDetection join the
         # graph so add_workflow_comp → register_branch_targets sees populated routers.
@@ -1807,10 +1889,9 @@ class IRConverter:
                 continue
             if not branch_id or "@@" in branch_id:
                 continue
-            rewritten = parallel_join_plan.rewrite_target(source, target, branch_id)
-            if rewritten:
-                active_done_nodes.add(rewritten)
-                target = rewritten
+            target = (
+                parallel_join_plan.rewrite_target(source, target, branch_id) or target
+            )
             # Branch connections (default/non-default) are batch paths
             if target in end_node_ids:
                 batch_connection_targets.add(target)
@@ -1843,7 +1924,6 @@ class IRConverter:
             rewritten_target = parallel_join_plan.rewrite_target(source, target)
             if rewritten_target:
                 existing_connections.add((source, target))
-                active_done_nodes.add(rewritten_target)
                 # Mixed-lane sentinel: reroute non-stream terminal -> sentinel
                 # -> lane-done. The terminal->sentinel edge is batch (the
                 # terminal is non-stream); the sentinel->lane-done edge is
@@ -1925,13 +2005,78 @@ class IRConverter:
                         for terminal_source, _ in lane.terminals:
                             _parallel_stream_source_to_done[terminal_source] = lane.done_node
 
+        # lane 接管汇聚点的 schema 折叠判定提前到 End 注册之前：被折叠的流式
+        # 引用源不会再有流式边投递，End 的 schema 切分必须把这些源视作批量源
+        # （INVOKE 路径从 io_state 解析），否则字段会滞留在无人消费的
+        # streamInputs_schema 中被静默丢弃（引擎只为 add_stream_connection 的
+        # 目标建 StreamActor）。此处的 existing_connections 与 phase 2 后等价
+        # （deferred 循环仅重复添加已有对），判定结果与下方自动补边循环一致；
+        # 折叠对在此记入 existing_connections，补边循环经检查自然跳过。
+        # 注意：折叠源只作数据引用折叠（不加直达边、schema 按批量源切分），
+        # 绝不并入 [done 列表] barrier 的 AND 等待——引用源常位于条件分支内
+        # （如仅 if 分支执行的 LLM），互斥分支触发时该源永不执行，barrier 的
+        # 单元素 AND 组永不满足，汇聚点将静默死锁。lane 内引用源的完成由该
+        # lane 的 done 蕴含（源在 terminal 上游顺序完成）；互斥分支不执行时
+        # 其输出引用由 End/Message 的未执行引用兜底（sanitize / io_state 缺省）。
+        all_target_ids: set[str] = set()
+        for connection in connections:
+            s = ((connection.get("source") or {}).get("componentId") or "").strip()
+            t = ((connection.get("target") or {}).get("componentId") or "").strip()
+            bid = ((connection.get("source") or {}).get("branchId") or "").strip()
+            if s and t and not bid:
+                all_target_ids.add(t)
+
+        _stream_lane_end_join_ids = {
+            join_target
+            for join_target, has_stream_lane in _parallel_join_has_stream_lane.items()
+            if has_stream_lane and join_target in end_node_ids
+        }
+        _lane_folded_stream_sources: dict[str, set[str]] = {}
+        for target_id in all_target_ids:
+            target_node = node_by_id.get(target_id)
+            if not target_node:
+                continue
+            schema = _convert_schema(target_node.get("inputs") or {})
+            schema_source_ids = _extract_source_component_ids(schema, component_by_id)
+            has_stream_ref = any(
+                sid in ir_stream_source_ids for sid in schema_source_ids
+            )
+            target_type = target_node.get("type", "")
+            lane_fold_eligible = (
+                target_id in _lane_join_targets
+                and target_id not in _stream_lane_end_join_ids
+                and target_type in IRConverter._STREAM_INPUT_CAPABLE_TARGET_TYPES
+                and target_type not in IRConverter._AGGREGATE_TYPES
+            )
+            if not lane_fold_eligible:
+                continue
+            for source_id in schema_source_ids:
+                if source_id == target_id:
+                    continue
+                if (source_id, target_id) in existing_connections:
+                    continue
+                if source_id in ir_stream_source_ids or has_stream_ref:
+                    # 仅折叠为数据引用：不加直达边（避免独立触发边导致提前/
+                    # 重复执行）、流式源按批量源切分 schema；不并入 barrier
+                    #（互斥分支下源永不执行会导致 AND 死锁，见上方注释）。
+                    if source_id in ir_stream_source_ids:
+                        _lane_folded_stream_sources.setdefault(
+                            target_id, set()
+                        ).add(source_id)
+                    existing_connections.add((source_id, target_id))
+
         for pending in pending_end_nodes:
             node_id = pending["node_id"]
             end = pending["end"]
             inputs_schema = pending["inputs_schema"]
             is_stream_out = pending["is_stream_out"]
+            _deferred_node_name = pending.get("node_name")
+            # 被折叠进 lane barrier 列表边的流式引用源按批量源切分：这些源没有
+            # 流式边投递，字段须留在 inputs_schema 走 io_state 解析，避免滞留在
+            # 无人消费的 stream_inputs_schema 中被静默丢弃。
             batch_schema, stream_schema = _split_inputs_schema_by_source(
-                inputs_schema, ir_stream_source_ids
+                inputs_schema,
+                ir_stream_source_ids - _lane_folded_stream_sources.get(node_id, set()),
             )
             # Parallel join stream producer is _parallel_done, not the original source;
             # rewrite refs so StreamProcessor can resolve values by producer_id.
@@ -1948,6 +2093,14 @@ class IRConverter:
             if hasattr(end, "set_expect_mix"):
                 end.set_expect_mix(has_batch and has_stream)
 
+            # mix 场景把批源引用（如 End 引用 Start 参数，含 #end_ 输出声明）传给
+            # End 组件：transform（真流式）路径的 inputs 只含流源字段，批源字段
+            # 需由 End 自行从 io_state 解析，否则未赋值字段会从 user_fields 缺失。
+            if has_batch and has_stream and hasattr(end, "set_batch_input_refs"):
+                _batch_user_fields = (batch_schema or {}).get("userFields") or {}
+                if isinstance(_batch_user_fields, dict) and _batch_user_fields:
+                    end.set_batch_input_refs(_batch_user_fields)
+
             set_end_kwargs: dict = {}
             if has_batch and has_stream:
                 # Split schema by source type to avoid duplicate keys
@@ -1963,14 +2116,9 @@ class IRConverter:
                 set_end_kwargs["inputs_schema"] = inputs_schema
             if is_stream_out:
                 set_end_kwargs["response_mode"] = "streaming"
+            if _deferred_node_name is not None and "name" in inspect.signature(workflow.set_end_comp).parameters:
+                set_end_kwargs["name"] = _deferred_node_name
 
-            # Parallel-join End nodes must wait for all branches regardless of
-            # comp_ability.  set_end_comp derives wait_for_all from COLLECT/TRANSFORM
-            # ability, which is absent for batch-only End nodes.  Supplying an empty
-            # stream_inputs_schema triggers COLLECT ability so wait_for_all=True.
-            if parallel_join_nodes and node_id in parallel_join_nodes:
-                if "stream_inputs_schema" not in set_end_kwargs:
-                    set_end_kwargs["stream_inputs_schema"] = {}
             workflow.set_end_comp(node_id, end, **set_end_kwargs)
 
         for source, target, is_stream in deferred_connections:
@@ -1979,15 +2127,64 @@ class IRConverter:
                 workflow.add_stream_connection(source, target)
             else:
                 workflow.add_connection(source, target)
-        # When two parallel groups share the same join target and terminals,
-        # terminal_to_done entries from the second group overwrite the first,
-        # leaving some _parallel_done nodes with no incoming edges (orphaned).
-        # With wait_for_all=True, orphaned done nodes in BarrierChannel cause
-        # deadlock.  Filter them out using active_done_nodes tracked during
-        # Phase 1 and Phase 2 rewrite_target calls.
+
+        # Add missing connections based on schema references.
+        # Strategy:
+        # - Auto-complete stream edges only when target supports stream input.
+        # - Auto-complete batch edges for mix-mode targets (Message/End/Card/...)
+        #   when schema references a stream source. Aggregate reads all $ref fields
+        #   from io_state (incl. stream LLM via get_stream_output) and must not get
+        #   extra batch triggers here. Do NOT auto-add batch edges to pure-batch
+        #   nodes like Code — that bypasses intermediate nodes and can schedule them
+        #   before the stream producer finishes.
+        # 例外：lane 接管（wait_for_all 已移除）的汇聚点不能补直达边——直达边会
+        # 绕过 [done 列表] barrier 成为独立触发边，导致汇聚点提前/重复执行。这类
+        # 引用源已在上方预计算中折叠（记入 existing_connections：不加直达边、
+        # 不进 barrier，仅作数据引用从 io_state 解析），此处经 existing_connections
+        # 检查自然跳过。流式 End 汇聚点的分流接线（逐条 stream 边 + set_end_comp
+        # 自带 wait_for_all）不受影响。
+        # batch 补边对「以流式消费注册」的目标（stream_input_target_ids 中的
+        # Message/Card/streamTransform）是一条多余的独立触发边：COLLECT 节点被
+        # batch 边 INVOKE 触发而无流数据可收时抛 GRAPH_VERTEX_STREAM_CALL_ERROR
+        # （"no stream data in"）。条件分支场景（判断 if 直达 End，default 链上的
+        # Message 混合引用 start 字段）尤为明显：互斥分支未执行时目标仍被拉起。
+        # 这类目标的批量 $ref 本就不依赖该边取值（StreamProcessor 对未声明源有
+        # 超时兜底），跳过补边即可。End（wait_for_all barrier）不受此守卫影响。
+        # 目标无入边、纯靠 schema 引用拉入执行流时仍按原逻辑补边。
+        _stream_consumer_targets_no_batch_edge = stream_input_target_ids
+
+        for target_id in all_target_ids:
+            target_node = node_by_id.get(target_id)
+            if not target_node:
+                continue
+            schema = _convert_schema(target_node.get("inputs") or {})
+            schema_source_ids = _extract_source_component_ids(schema, component_by_id)
+            # Target participates in mix mode if its schema references any stream source
+            has_stream_ref = any(
+                sid in ir_stream_source_ids for sid in schema_source_ids
+            )
+            target_type = target_node.get("type", "")
+            stream_capable_target = (
+                target_type in IRConverter._STREAM_INPUT_CAPABLE_TARGET_TYPES
+                and target_type not in IRConverter._AGGREGATE_TYPES
+            )
+            for source_id in schema_source_ids:
+                if source_id == target_id:
+                    continue
+                if (source_id, target_id) in existing_connections:
+                    continue
+                is_stream = source_id in ir_stream_source_ids
+                if is_stream and stream_capable_target:
+                    workflow.add_stream_connection(source_id, target_id)
+                    existing_connections.add((source_id, target_id))
+                elif has_stream_ref and stream_capable_target:
+                    if target_id in _stream_consumer_targets_no_batch_edge:
+                        continue
+                    workflow.add_connection(source_id, target_id)
+                    existing_connections.add((source_id, target_id))
+
         for join_spec in parallel_join_plan.joins.values():
-            lane_done_nodes = [lane.done_node for lane in join_spec.lanes
-                               if lane.done_node in active_done_nodes]
+            lane_done_nodes = [lane.done_node for lane in join_spec.lanes]
             if len(lane_done_nodes) >= 2:
                 has_stream_lane = _parallel_join_has_stream_lane.get(
                     join_spec.join_target, False
@@ -2006,58 +2203,13 @@ class IRConverter:
                     if invoke_done_nodes:
                         workflow.add_connection(invoke_done_nodes, join_spec.join_target)
                 else:
-                    workflow.add_connection(lane_done_nodes, join_spec.join_target)
-            elif len(lane_done_nodes) == 1:
-                workflow.add_connection(lane_done_nodes[0], join_spec.join_target)
-
-        # Add missing connections based on schema references.
-        # Strategy:
-        # - Auto-complete stream edges only when target supports stream input.
-        # - Auto-complete batch edges for mix-mode targets (Message/End/Card/...)
-        #   when schema references a stream source. Aggregate reads all $ref fields
-        #   from io_state (incl. stream LLM via get_stream_output) and must not get
-        #   extra batch triggers here. Do NOT auto-add batch edges to pure-batch
-        #   nodes like Code — that bypasses intermediate nodes and can schedule them
-        #   before the stream producer finishes.
-        all_target_ids: set[str] = set()
-        for connection in connections:
-            s = ((connection.get("source") or {}).get("componentId") or "").strip()
-            t = ((connection.get("target") or {}).get("componentId") or "").strip()
-            bid = ((connection.get("source") or {}).get("branchId") or "").strip()
-            if s and t and not bid:
-                all_target_ids.add(t)
-
-        for target_id in all_target_ids:
-            target_node = node_by_id.get(target_id)
-            if not target_node:
-                continue
-            schema = _convert_schema(target_node.get("inputs") or {})
-            schema_source_ids = _extract_source_component_ids(schema, component_by_id)
-            # Target participates in mix mode if its schema references any stream source
-            has_stream_ref = any(
-                sid in ir_stream_source_ids for sid in schema_source_ids
-            )
-            target_type = target_node.get("type", "")
-            for source_id in schema_source_ids:
-                if source_id == target_id:
-                    continue
-                if (source_id, target_id) in existing_connections:
-                    continue
-                is_stream = source_id in ir_stream_source_ids
-                if (
-                    is_stream
-                    and target_type in IRConverter._STREAM_INPUT_CAPABLE_TARGET_TYPES
-                    and target_type not in IRConverter._AGGREGATE_TYPES
-                ):
-                    workflow.add_stream_connection(source_id, target_id)
-                    existing_connections.add((source_id, target_id))
-                elif (
-                    has_stream_ref
-                    and target_type in IRConverter._STREAM_INPUT_CAPABLE_TARGET_TYPES
-                    and target_type not in IRConverter._AGGREGATE_TYPES
-                ):
-                    workflow.add_connection(source_id, target_id)
-                    existing_connections.add((source_id, target_id))
+                    # barrier 仅由 lane-done 组成：汇聚点触发语义不受 schema
+                    # 引用源影响（折叠源见上方预计算注释），避免互斥分支下
+                    # 永不执行的引用源把 AND barrier 拖死。
+                    workflow.add_connection(
+                        lane_done_nodes,
+                        join_spec.join_target,
+                    )
 
         performance_logger.info(
             f"ir_build_total|{round((_time.perf_counter() - t_total) * 1000)}"
@@ -2454,6 +2606,9 @@ class IRConverter:
             )
             return FlowStreamTransform(configs, metadata), node_type, configs
 
+        if node_type == "jiuwen.sql":
+            return FlowSql(configs), node_type, configs
+
         raise ValueError(
             f"unsupported workflow component type for openjiuwen workflow: {node_type}"
         )
@@ -2495,6 +2650,7 @@ class IRConverter:
             "timeout": _timeout,
             "max_retries": _max_retries,
             "exception_config": exception_config,
+            "node_name": node.get("name"),
         }
         if parallel_join_nodes and node_id in parallel_join_nodes:
             _comp_reg["wait_for_all"] = True
@@ -2564,9 +2720,10 @@ class IRConverter:
         _attach_node_def(component, node, configs)
 
         if resolved_type == "jiuwen.start":
-            workflow.set_start_comp(
-                node_id, component, inputs_schema=_build_start_inputs_schema(node)
-            )
+            _start_kwargs = dict(inputs_schema=_build_start_inputs_schema(node))
+            if "name" in inspect.signature(workflow.set_start_comp).parameters:
+                _start_kwargs["name"] = node.get("name")
+            workflow.set_start_comp(node_id, component, **_start_kwargs)
             return component
 
         if resolved_type in {"jiuwen.branch", "jiuwen.intentDetection"}:
@@ -2579,6 +2736,7 @@ class IRConverter:
                         "timeout": _timeout,
                         "max_retries": _max_retries,
                         "exception_config": exception_config,
+                        "node_name": node.get("name"),
                     }
                 )
                 return component
@@ -2612,17 +2770,19 @@ class IRConverter:
                         "end": component,
                         "inputs_schema": inputs_schema,
                         "is_stream_out": bool(configs.get("isStreamOut")),
+                        "node_name": node.get("name"),
                     }
                 )
             elif bool(configs.get("isStreamOut")):
-                workflow.set_end_comp(
-                    node_id,
-                    component,
-                    stream_inputs_schema=inputs_schema,
-                    response_mode="streaming",
-                )
+                _end_kwargs = dict(stream_inputs_schema=inputs_schema, response_mode="streaming")
+                if "name" in inspect.signature(workflow.set_end_comp).parameters:
+                    _end_kwargs["name"] = node.get("name")
+                workflow.set_end_comp(node_id, component, **_end_kwargs)
             else:
-                workflow.set_end_comp(node_id, component, inputs_schema=inputs_schema)
+                _end_kwargs = dict(inputs_schema=inputs_schema)
+                if "name" in inspect.signature(workflow.set_end_comp).parameters:
+                    _end_kwargs["name"] = node.get("name")
+                workflow.set_end_comp(node_id, component, **_end_kwargs)
             return component
 
         if resolved_type == "jiuwen.message":
@@ -2916,6 +3076,7 @@ class IRConverter:
                 timeout=pending["timeout"],
                 max_retries=pending["max_retries"],
                 exception_config=pending["exception_config"],
+                node_name=pending.get("node_name"),
             )
 
     _AGGREGATE_TYPES = frozenset(
@@ -3009,8 +3170,37 @@ class IRConverter:
             source_id in stream_source_ids
             and target_type in IRConverter._STREAM_INPUT_CAPABLE_TARGET_TYPES
         ):
+            # A message referencing only batch values (start userFields / memory
+            # defaults) stays on the regular edge + INVOKE path. A stream edge
+            # would wrap its batch $refs as stream generators that starve
+            # (empty render, default values disappear).
+            if (
+                target_type == "jiuwen.message"
+                and not IRConverter._message_schema_has_stream_ref(
+                    target_node, stream_source_ids
+                )
+            ):
+                return False
             return True
         return False
+
+    @staticmethod
+    def _message_schema_has_stream_ref(
+        target_node: dict, stream_source_ids: set[str]
+    ) -> bool:
+        """True when a ``jiuwen.message`` node references at least one stream source.
+
+        A message only needs the stream-input path (COLLECT) when it actually
+        consumes streamed output from an upstream LLM. When it references only
+        batch values (start userFields / memory defaults), keep it on the
+        regular INVOKE path even if a stream-capable LLM sits upstream —
+        otherwise its batch ``$ref``s get wrapped as stream generators that
+        starve (empty render, default values disappear).
+        """
+        _, stream_schema = _split_inputs_schema_by_source(
+            _convert_schema(target_node.get("inputs") or {}), stream_source_ids
+        )
+        return stream_schema is not None
 
     @staticmethod
     def _add_normal_edge_spec_only(
@@ -3383,8 +3573,9 @@ class IRConverter:
         if not model_id:
             return
         if model_id in _AGENT_CORE_REGISTERED_MODEL_IDS:
-            logger.info(
-                f"Agent-core model resource already registered: model_id={model_id}",
+            logger.debug(
+                "Agent-core model resource already registered: model_id=%s",
+                model_id,
                 simple_log="agent-core model resource already registered",
             )
             return
@@ -3599,10 +3790,14 @@ class IRConverter:
                 mode=child.get("mode", "Controller"),
             )
             child_metadata_list.append(child_metadata)
-            logger.info(
-                f"Added child agent metadata: id={child.get('id')}, mode={child.get('mode')}",
-                simple_log="added child agent metadata",
-            )
+            # routine 元数据添加日志，降级为 DEBUG 并加守卫
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug(
+                    "Added child agent metadata: id=%s, mode=%s",
+                    child.get("id"),
+                    child.get("mode"),
+                    simple_log="added child agent metadata",
+                )
         agent_config.child_agents_metadata = child_metadata_list
 
     @staticmethod
@@ -3844,6 +4039,7 @@ def _add_workflow_comp_with_exception(
     stream_inputs_schema=None,
     comp_ability=None,
     wait_for_all: bool | None = None,
+    node_name: str | None = None,
 ) -> None:
     """Register a component on Workflow or LoopGroup.
 
@@ -3859,6 +4055,15 @@ def _add_workflow_comp_with_exception(
         kwargs["comp_ability"] = comp_ability
     if wait_for_all:
         kwargs["wait_for_all"] = True
+    if node_name is not None:
+        # Only pass name if the underlying Workflow supports it (openjiuwen >= 0.1.18)
+        supports_name = (
+            _LOOP_GROUP_ADD_COMP_SUPPORTS_NAME
+            if isinstance(workflow, LoopGroup)
+            else _WORKFLOW_ADD_COMP_SUPPORTS_NAME
+        )
+        if supports_name:
+            kwargs["name"] = node_name
     if isinstance(workflow, LoopGroup):
         workflow.add_workflow_comp(comp_id, component, **kwargs)
     else:
@@ -3888,7 +4093,13 @@ def _parse_exception_config(node: dict) -> ExceptionConfig | None:
     )
 
     node_type = node.get("type", "")
-    outputs_schema = _convert_schema(node.get("outputs") or {})
+    # MCP 节点的 outputs_schema 使用类型描述符（如 {"type": "array"}），
+    # 不适合作为 get_by_schema 的提取模板。置空后 _post_invoke 跳过 schema 提取，
+    # 错误恢复结果（defaultOutputs）直接通过。
+    if node_type in ("jiuwen.mcp", "jiuwen.flowMcp"):
+        outputs_schema = {}
+    else:
+        outputs_schema = _convert_schema(node.get("outputs") or {})
 
     timeout = ep.get("timeout", DEFAULT_EXECUTION_NODE_TIMEOUT)
     if not isinstance(timeout, (int, float)) or timeout < 0:
@@ -3925,8 +4136,10 @@ def _resolve_branch_condition(
         branch_config = _find_branch_config(source_node, branch_id)
         if branch_config is None:
             return "True"
-        return _normalize_branch_expression(
-            branch_config.get("boolExpression") or "True"
+        return _apply_none_short_circuit(
+            _normalize_branch_expression(
+                branch_config.get("boolExpression") or "True"
+            )
         )
     if source_type == "jiuwen.intentDetection":
         branch_config = _find_branch_config(source_node, branch_id)
@@ -4141,6 +4354,31 @@ def _normalize_branch_expression(expression: str) -> str:
     converted = converted.replace("&&", " and ").replace("||", " or ")
     converted = _NEGATION_PATTERN.sub(" not ", converted)
     return " ".join(converted.split())
+
+
+_LENGTH_COMPARE_PATTERN = re.compile(
+    r"length\((\$\{[^{}]+\})\)\s*(<=|>=|<|>)\s*(-?\d+(?:\.\d+)?)"
+)
+
+
+def _apply_none_short_circuit(expression: str) -> str:
+    """对 length(${ref}) 大小比较加 None 短路，对齐商用版 None 走 default 的语义。
+
+    openjiuwen core 的 _safe_len(None) 返回 0，导致 `length(None) <= 0`
+    求值为 True 而误走 if 分支；商用版 jiuwen 层对 None 参与比较
+    （除 ==/!=）直接判定失败。此处改写为
+    `(not (${ref} is None) and length(${ref}) <= 0)`，None 时条件为
+    False 走 default，非 None 值行为不变。core 的 _safe_len 对 None
+    返回 0 不抛错，因此 and 组合即使非短路求值也不会报错。
+    """
+    if not expression:
+        return expression
+
+    def _repl(match: re.Match) -> str:
+        ref = match.group(1)
+        return "(not ({} is None) and {})".format(ref, match.group(0))
+
+    return _LENGTH_COMPARE_PATTERN.sub(_repl, expression)
 
 
 def _compact_named_input_items(items: list[Any]) -> dict[str, Any] | None:

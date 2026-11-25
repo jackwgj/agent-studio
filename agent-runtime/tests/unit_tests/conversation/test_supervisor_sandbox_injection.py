@@ -24,6 +24,8 @@ from agent_runtime.conversation.sandbox import (
 from agent_runtime.conversation.runner import conversation_react_runner
 from agent_runtime.conversation.runner.conversation_react_runner import ConversationReActRunner
 from agent_runtime.conversation.rail import GracefulToolBudgetRail
+from agent_runtime.runner.react_agent_runner import ReActAgentRunner
+from agent_runtime.schemas.orchestration_mgr import ConversationHistoryMessage
 from openjiuwen.core.sys_operation import OperationMode
 from openjiuwen.core.runner import Runner
 from openjiuwen.core.runner.resources_manager.resource_manager import ResourceMgr
@@ -548,6 +550,10 @@ class _StreamingAgent(_Agent):
     def __init__(self):
         super().__init__()
         self.rails = []
+        self.context_engine = SimpleNamespace(
+            create_context=AsyncMock(),
+            save_contexts=AsyncMock(),
+        )
 
     def set_llm(self, _llm):
         return None
@@ -558,6 +564,64 @@ class _StreamingAgent(_Agent):
     async def stream(self, *_args):
         if False:
             yield None
+
+
+def test_conversation_agent_creation_keeps_upstream_context_window_and_workspace_prompt(
+    monkeypatch,
+):
+    context = _context()
+    token = execution_context_module.set_conversation_execution_context(context)
+    try:
+        config = MagicMock()
+        agent = MagicMock()
+        monkeypatch.setattr(
+            "agent_runtime.runner.react_agent_runner.ReActAgentConfig", lambda: config
+        )
+        monkeypatch.setattr(
+            "agent_runtime.runner.react_agent_runner.ReActAgent", lambda _card: agent
+        )
+
+        created_agent, agent_id = ConversationReActRunner()._create_agent(
+            {
+                "agentId": "conversation-react",
+                "configs": {
+                    "sysPromptTemplate": "Test assistant",
+                    "maxIteration": 7,
+                    "modelConfig": {"historySize": 4},
+                },
+            },
+            skill_work_dir="",
+            global_variables={},
+            has_file_links=False,
+        )
+
+        assert created_agent is agent
+        assert agent_id == "conversation-react"
+        config.configure_max_iterations.assert_called_once_with(max_iterations=7)
+        config.configure_context_engine.assert_called_once_with(default_window_round_num=5)
+        prompt = config.configure_prompt_template.call_args.args[0][0]["content"]
+        assert "Test assistant" in prompt
+        assert str(context.workspace.output_dir) in prompt
+        assert "## 对话历史" not in prompt
+    finally:
+        execution_context_module.reset_conversation_execution_context(token)
+
+
+@pytest.mark.asyncio
+async def test_shared_agent_tool_registration_entry_survives_upstream_merge():
+    runner = ReActAgentRunner()
+    calls = []
+    ir_json = {"configs": {}}
+    agent = object()
+    for method in ("_register_plugins", "_register_mcp_servers", "_register_workflows", "_register_skills"):
+        async def register(*args, _method=method):
+            assert args == (ir_json, agent, "child-agent")
+            calls.append(_method)
+        setattr(runner, method, register)
+
+    await runner.register_agent_tools(ir_json, agent, "child-agent")
+
+    assert calls == ["_register_plugins", "_register_mcp_servers", "_register_workflows", "_register_skills"]
 
 
 class _RunnerBinder:
@@ -587,6 +651,8 @@ def _streaming_request(
         ir_path="ignored",
         params=SimpleNamespace(
             conversation_history=[],
+            enable_history=True,
+            environment_variables=None,
             global_variables=global_variables,
             ir_cache={"agentName": "Supervisor", "configs": {}},
         ),
@@ -605,14 +671,96 @@ def _skill_streaming_request(global_variables: dict | None = None):
 def _configure_runner_for_stream(monkeypatch, runner, agent):
     runner._create_llm = AsyncMock(return_value=object())
     runner._download_skills = AsyncMock(return_value="/workspace/workspace-skills")
-    runner._create_agent = lambda *_args: (agent, "supervisor")
+    runner._create_agent = lambda *_args, **_kwargs: (agent, "supervisor")
     runner._register_plugins = AsyncMock()
     runner._register_mcp_servers = AsyncMock()
     runner._register_workflows = AsyncMock()
     runner._register_skills = AsyncMock()
     runner._attach_supervisor_skill_context = AsyncMock()
     runner._register_supervisor_handoff_tools = AsyncMock()
-    monkeypatch.setattr(conversation_react_runner, "create_agent_session", lambda **_kwargs: _Session())
+    monkeypatch.setattr(
+        conversation_react_runner,
+        "create_agent_session_with_trace",
+        lambda **_kwargs: _Session(),
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("enable_history", "has_history", "resume_input", "should_seed"),
+    [
+        (True, True, None, True),
+        (False, True, None, True),
+        (True, False, None, False),
+        (True, True, "approved", False),
+        (False, True, "approved", False),
+    ],
+    ids=["history", "history-disabled", "empty-preserves-checkpoint", "resume", "resume-history-disabled"],
+)
+async def test_conversation_stream_seeds_upstream_history_without_resetting_resume(
+    monkeypatch, enable_history, has_history, resume_input, should_seed
+):
+    context = _context()
+    token = execution_context_module.set_conversation_execution_context(context)
+    try:
+        runner = ConversationReActRunner()
+        agent = _StreamingAgent()
+        binder = _RunnerBinder()
+        _configure_runner_for_stream(monkeypatch, runner, agent)
+        monkeypatch.setattr(
+            conversation_react_runner,
+            "ConversationSandboxToolBinder",
+            SimpleNamespace(from_runtime_settings=lambda: binder),
+        )
+        request = _streaming_request()
+        request.resume_input = resume_input
+        request.params.enable_history = enable_history
+        request.params.environment_variables = {"plugin_url_params": {"host": "example.test"}}
+        if has_history:
+            request.params.conversation_history = [
+                ConversationHistoryMessage(role="user", content="previous question"),
+                ConversationHistoryMessage(role="assistant", content="previous answer"),
+            ]
+        session = _Session()
+        session_created = MagicMock(return_value=session)
+        monkeypatch.setattr(
+            conversation_react_runner, "create_agent_session_with_trace", session_created
+        )
+
+        async def stream(*_args):
+            # Seeding must finish before the official Agent restores its context.
+            assert agent.context_engine.save_contexts.await_count == int(should_seed)
+            if False:
+                yield None
+
+        agent.stream = stream
+        events = [event async for event in runner.run_streaming(request)]
+
+        assert all(event["event"] != "error" for event in events)
+        session_created.assert_called_once_with(
+            session_id=request.conversation_id, card=agent.card
+        )
+        runner._register_mcp_servers.assert_awaited_once_with(
+            request.params.ir_cache,
+            agent,
+            "supervisor",
+            environment_variables=request.params.environment_variables,
+        )
+        if should_seed:
+            agent.context_engine.create_context.assert_awaited_once()
+            kwargs = agent.context_engine.create_context.await_args.kwargs
+            assert kwargs["session"] is session
+            assert [(message.role, message.content) for message in kwargs["history_messages"]] == (
+                [("user", "previous question"), ("assistant", "previous answer")]
+                if enable_history else []
+            )
+            agent.context_engine.save_contexts.assert_awaited_once_with(session)
+        else:
+            agent.context_engine.create_context.assert_not_awaited()
+            agent.context_engine.save_contexts.assert_not_awaited()
+        assert binder.cleanup_count == 1
+    finally:
+        execution_context_module.reset_conversation_execution_context(token)
 
 
 @pytest.mark.asyncio
@@ -652,7 +800,7 @@ async def test_runner_enables_graceful_budget_only_for_builtin_supervisor(monkey
         captured_ir = {}
         _configure_runner_for_stream(monkeypatch, runner, agent)
 
-        def create_agent(ir_json, *_args):
+        def create_agent(ir_json, *_args, **_kwargs):
             captured_ir.update(ir_json)
             return agent, "supervisor"
 
@@ -946,7 +1094,7 @@ async def test_skill_configured_app_and_child_defer_skill_download_and_local_reg
         _configure_runner_for_stream(monkeypatch, runner, agent)
         created = {}
 
-        def create_agent(ir_json, *_args):
+        def create_agent(ir_json, *_args, **_kwargs):
             created["ir"] = ir_json
             return agent, "supervisor"
 

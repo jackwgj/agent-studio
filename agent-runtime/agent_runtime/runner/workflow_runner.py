@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import hashlib
 import os
 import re
 import time
+import uuid
 from enum import Enum
 from typing import AsyncGenerator
 
@@ -25,6 +27,7 @@ from agent_runtime.schemas.orchestration_mgr import (
 from jiuwen.serve.controllers.execution.ir_converter import IRConverter
 from jiuwen.serve.controllers.execution.open_utils import async_ir_load
 from jiuwen.common.exception.base import JiuWenBaseException
+from jiuwen.extension.workflow_node.start import Start
 from jiuwen.extension.workflow_node.utils import WorkflowAbortException
 from openjiuwen.core.common.exception.errors import ExecutionError, Termination, BaseError
 from openjiuwen.core.common.logging import workflow_logger
@@ -32,7 +35,32 @@ from openjiuwen.core.common.logging import performance_logger
 from openjiuwen.core.session.checkpointer.checkpointer import CheckpointerFactory
 from openjiuwen.core.session.interaction.interactive_input import InteractiveInput
 from openjiuwen.core.session.stream import BaseStreamMode
-from openjiuwen.core.workflow import create_workflow_session
+from agent_runtime.common.trace_compat import create_workflow_session_with_trace
+
+try:
+    from opentelemetry import trace as otel_trace
+    from opentelemetry import context as otel_context
+    from opentelemetry.trace import SpanContext, TraceFlags, TraceState
+    from opentelemetry.trace.span import NonRecordingSpan
+    _HAS_OTEL = True
+except ImportError:
+    _HAS_OTEL = False
+
+
+def _to_otel_trace_id(trace_id_str: str) -> int:
+    """Convert a string to a valid OTel 128-bit trace_id.
+
+    OTel trace_id must be 32 hex chars (128-bit). If the input is already
+    32 hex, use it directly; otherwise hash with md5 to get 32 hex chars.
+    """
+    _HEX_CHARS = set("0123456789abcdefABCDEF")
+    if len(trace_id_str) == 32 and all(ch in _HEX_CHARS for ch in trace_id_str):
+        val = int(trace_id_str, 16)
+        if val != 0:
+            return val
+    return int(hashlib.md5(trace_id_str.encode()).hexdigest(), 16)
+
+
 
 from agent_runtime.common.logging_context import apply_template_masking_patch
 
@@ -126,6 +154,67 @@ class ExecutionIdStore:
             return False
 
 
+
+
+class TraceIdStore:
+    """trace_id 的 Redis 存储管理，用于工作流中断恢复时保持 trace_id 一致
+
+    与 ExecutionIdStore 配合使用：工作流因 QA 节点中断时，保存当次的
+    trace_id；恢复执行时复用同一个 trace_id，使 OTel span 继续挂在同
+    一条 trace 上，从而保持 openjiuwen.trace.id 与 OTel trace_id 一致。
+    """
+
+    KEY_PREFIX = "agentBuilder:trace_id"
+    DEFAULT_TTL = 86400  # 24 hours
+
+    @classmethod
+    def _build_key(cls, workflow_id: str, session_id: str) -> str:
+        return f"{cls.KEY_PREFIX}:{workflow_id}:{session_id}"
+
+    @classmethod
+    async def save(
+        cls, workflow_id: str, session_id: str, trace_id: str, ttl: int = None
+    ) -> bool:
+        try:
+            redis_client = get_redis_client()
+            key = cls._build_key(workflow_id, session_id)
+            expire = ttl if ttl is not None else cls.DEFAULT_TTL
+            await redis_client.set(key, trace_id, ex=expire)
+            workflow_logger.debug("Saved trace_id: key={}, trace_id={}", key, trace_id)
+            return True
+        except Exception as e:
+            workflow_logger.warning("Failed to save trace_id to Redis: {}", e)
+            return False
+
+    @classmethod
+    async def get(cls, workflow_id: str, session_id: str) -> str | None:
+        try:
+            redis_client = get_redis_client()
+            key = cls._build_key(workflow_id, session_id)
+            trace_id = await redis_client.get(key)
+            if trace_id:
+                # Redis client uses decode_responses=False, so get() returns bytes.
+                if isinstance(trace_id, bytes):
+                    trace_id = trace_id.decode("utf-8")
+                workflow_logger.debug("Got saved trace_id: key={}, trace_id={}", key, trace_id)
+                return trace_id
+            return None
+        except Exception as e:
+            workflow_logger.warning("Failed to get trace_id from Redis: {}", e)
+            return None
+
+    @classmethod
+    async def delete(cls, workflow_id: str, session_id: str) -> bool:
+        try:
+            redis_client = get_redis_client()
+            key = cls._build_key(workflow_id, session_id)
+            await redis_client.delete(key)
+            workflow_logger.debug("Deleted trace_id: key={}", key)
+            return True
+        except Exception as e:
+            workflow_logger.warning("Failed to delete trace_id from Redis: {}", e)
+            return False
+
 class ModelConfigStrategy(Enum):
     """模型配置来源策略"""
 
@@ -175,6 +264,21 @@ class WorkflowRunner:
         checkpointer = CheckpointerFactory.get_checkpointer()
         return await checkpointer.session_exists(session_id)
 
+    async def _is_session_cancelled(self, conversation_id: str) -> bool:
+        """查询协作式取消标记（终止接口置位；键名与 serve/execution_registry.py 保持一致）
+
+        直读 Redis，不 import serve 层（依赖方向：runner 不依赖 serve）。
+        Redis 客户端 decode_responses=False，值为 bytes，按 bytes 语义比较。
+        """
+        value = await get_redis_client().get(f"cancel:{conversation_id}")
+        if isinstance(value, bytes):
+            return value == b"true"
+        return value == "true"
+
+    async def _clear_session_cancelled(self, conversation_id: str) -> None:
+        """清除协作式取消标记（检测到取消后调用，键名与 serve/execution_registry.py 保持一致）"""
+        await get_redis_client().delete(f"cancel:{conversation_id}")
+
     async def run_streaming(
         self,
         req: ExecutionRequest,
@@ -200,9 +304,18 @@ class WorkflowRunner:
             workflow_logger.error(
                 f"Failed to load IR from {ir_path}: {e}", exc_info=True
             )
+            error_code = _resolve_error_code_from_exception(e)
+            if error_code == -1:
+                error_code = GENERAL_ERROR
+                raw_msg = "Failed to load workflow configuration"
+            else:
+                raw_msg = getattr(e, "message", None) or "Failed to load workflow configuration"
             yield {
                 "event": "error",
-                "data": {"response": "Failed to load workflow configuration"},
+                "data": {
+                    "code": error_code,
+                    "message": _format_error_message(error_code, raw_msg),
+                },
                 "executionId": exec_id,
                 "index": 0,
                 "createdTime": int(time.time() * 1000),
@@ -253,174 +366,320 @@ class WorkflowRunner:
             f"context_creation|{round((time.perf_counter() - t_context) * 1000)}"
         )
 
-        # 4. 创建 session，使用固定的 session_id 以支持中断恢复
-        t_session = time.perf_counter()
-        session = create_workflow_session(session_id=session_id)
-        performance_logger.info(
-            f"session_creation|{round((time.perf_counter() - t_session) * 1000)}"
-        )
-
-        # 5. 检查会话是否处于中断状态，构建 inputs
+        # 4. 检查会话是否处于中断状态，构建 inputs
         t_checkpoint = time.perf_counter()
         is_interrupted = await self._is_session_interrupted(session_id)
+        # 取消标记检测（终止接口）：中断节点挂起期间被取消 → 不恢复中断态，
+        # 从入口重新执行（同会话 ID 再次输入从智能体入口重跑，US3）。
+        # 顺序约定：先清 checkpoint、成功后才清取消标记——清理失败时保留标记，
+        # 本次入口重跑撞 CHECKPOINTER_PRE_WORKFLOW_EXECUTION_ERROR 显性报错且下次
+        # 重发仍走入口重跑（取消意图不丢失），而非标记已丢、静默恢复旧中断态
+        if is_interrupted and await self._is_session_cancelled(session_id):
+            is_interrupted = False
+            checkpoint_cleared = False
+            # 丢弃中断态 checkpoint：从入口重跑=旧状态作废；否则 pre_workflow_execute
+            # 撞 workflow-state-exists 错误（CHECKPOINTER_PRE_WORKFLOW_EXECUTION_ERROR）
+            try:
+                checkpointer = CheckpointerFactory.get_checkpointer()
+                clear_checkpoint = getattr(
+                    checkpointer, "_clear_checkpoint_and_sentinel", None
+                )
+                if clear_checkpoint:
+                    await clear_checkpoint(
+                        # session 此时尚未创建（0996eb84 merge 后创建点后移到本块
+                        # 之后的 try/finally 内），传 None：FastRedisCheckpointer
+                        # 精确删除主路径（ns 索引 SMEMBERS + batch_delete + SREM）
+                        # 不依赖 session，仅精确删除失败时的 delegate 兜底降级为
+                        # 告警（同 release_workflow 传 None 先例）
+                        session_id, ir_json.get("workflowId", ""), None
+                    )
+                    checkpoint_cleared = True
+                else:
+                    # 非 fast checkpointer（如 FAST_CHECKPOINTER_ENABLED=false 时的底层
+                    # 实现）无该清理方法：保留取消标记，入口重跑将撞显性报错。可开
+                    # _force_del_workflow_state 开关让 pre_workflow_execute 删旧 state
+                    # 继续执行（openjiuwen persistence 层支持），恢复 US3 语义
+                    workflow_logger.warning(
+                        "Checkpointer lacks _clear_checkpoint_and_sentinel (non-fast "
+                        "checkpointer?): restart-from-entry will hit "
+                        "CHECKPOINTER_PRE_WORKFLOW_EXECUTION_ERROR unless "
+                        "_force_del_workflow_state is enabled, conv=%s",
+                        session_id,
+                    )
+            except Exception as clear_err:
+                workflow_logger.warning(
+                    "Failed to clear interrupted checkpoint after cancel "
+                    "(cancel flag kept for retry): conv=%s, %s",
+                    session_id,
+                    clear_err,
+                )
+            if checkpoint_cleared:
+                await self._clear_session_cancelled(session_id)
+                workflow_logger.info(
+                    "Session cancelled before resume: conv=%s, restart from entry",
+                    session_id,
+                )
+            else:
+                workflow_logger.warning(
+                    "Cancel flag kept: checkpoint not cleared, restart-from-entry "
+                    "will fail loudly and retry stays on restart path, conv=%s",
+                    session_id,
+                )
+        elif not is_interrupted:
+            # 全新执行（非恢复）开始即清残留取消标记：上次取消遗留的 true 若不清，
+            # 本执行一旦进入中断节点挂起，下次 resume 会被误判为已取消、误清本执行
+            # 的合法 checkpoint（检视意见②）。DEL 不存在键为 no-op；US3 的恢复分支
+            # （is_interrupted=true）不受影响。防御性清理：失败不阻断执行主流程
+            # （残留标记经 TTL 过期兜底）。旧 suspend 快照的清理在 stream_response
+            # 的 register 之前执行（此处已晚于 register 重写，不能再清）
+            try:
+                await self._clear_session_cancelled(session_id)
+            except Exception as stale_clear_err:  # noqa: BLE001
+                workflow_logger.warning(
+                    "Failed to clear stale cancel flag on new execution: conv=%s, %s",
+                    session_id,
+                    stale_clear_err,
+                )
         performance_logger.info(
             f"checkpoint_check|{round((time.perf_counter() - t_checkpoint) * 1000)}"
         )
 
         workflow_id = ir_json.get("workflowId", "")
 
-        t_inputs_build = time.perf_counter()
-        if is_interrupted:
-            # 恢复执行：使用 InteractiveInput(raw_inputs) 恢复 checkpoint
-            # 从 Redis 中恢复上一次保存的 exec_id
-            t_redis_get = time.perf_counter()
-            saved_exec_id = await ExecutionIdStore.get(workflow_id, session_id)
+        # 5. 创建 session，中断恢复时复用上一轮的 trace_id
+        t_session = time.perf_counter()
+        # Outer try/finally ensures OTel context token is always detached,
+        # even if client disconnects at early yield points (start/workflow_start).
+        try:
+            otel_token = None
+            if is_interrupted:
+                # QA resume: reuse the trace_id from the first execution of this
+                # round so the OTel handler keeps the cached root context.
+                saved_trace_id = await TraceIdStore.get(workflow_id, session_id)
+                if saved_trace_id:
+                    # Update current OTel context to use saved_trace_id
+                    if _HAS_OTEL:
+                        _otel_span_ctx = SpanContext(
+                            trace_id=_to_otel_trace_id(saved_trace_id),
+                            span_id=int(uuid.uuid4().hex[:16], 16),
+                            is_remote=False,
+                            trace_flags=TraceFlags(TraceFlags.SAMPLED),
+                            trace_state=TraceState(),
+                        )
+                        _otel_span = NonRecordingSpan(_otel_span_ctx)
+                        otel_token = otel_context.attach(otel_trace.set_span_in_context(_otel_span))
+                    session = create_workflow_session_with_trace(session_id=session_id, trace_id=saved_trace_id)
+                else:
+                    session = create_workflow_session_with_trace(session_id=session_id)
+            else:
+                session = create_workflow_session_with_trace(session_id=session_id)
             performance_logger.info(
-                f"redis_get_exec_id|{round((time.perf_counter() - t_redis_get) * 1000)}"
+                f"session_creation|{round((time.perf_counter() - t_session) * 1000)}"
             )
-            if saved_exec_id:
-                exec_id = saved_exec_id
-            # resume_input 为本次恢复的用户输入
-            resume_input = req.resume_input or req.query
-            inputs = InteractiveInput(raw_inputs=resume_input)
-            is_resuming = True
-        else:
-            # 首次执行：使用普通 query 输入
-            inputs = {
-                "query": req.query or "",
-                **self._build_global_state_params(req.params.model_dump(), node_defs),
-            }
-            # 保存 exec_id 到 Redis，以便中断恢复时使用
-            t_redis_save = time.perf_counter()
-            await ExecutionIdStore.save(workflow_id, session_id, exec_id)
-            performance_logger.info(
-                f"redis_save_exec_id|{round((time.perf_counter() - t_redis_save) * 1000)}"
-            )
-            is_resuming = False
-        performance_logger.info(
-            f"inputs_build|{round((time.perf_counter() - t_inputs_build) * 1000)}"
-        )
 
-        # 5.1 记忆检索：在工作流执行前检索相关记忆
-        if not is_resuming:
-            enable_memory_retrieve = inputs.get("enable_memory_retrieve", False)
-            # Prefer memory_repo_id from inputs (multi-agent injects its own
-            # repo id so sub-workflows use the multi-agent's memory repo),
-            # fall back to IR's configs.memory.memory_repo_id.
-            memory_repo_id = inputs.get("memory_repo_id", "") or (
-                (ir_json.get("configs") or {}).get("memory") or {}
-            ).get("memory_repo_id", "")
-            if enable_memory_retrieve and req.user_id and memory_repo_id:
-                memory_message = await self._retrieve_memory(
-                    user_id=req.user_id,
-                    scope_id=memory_repo_id,
-                    query=req.query or "",
+            t_inputs_build = time.perf_counter()
+            if is_interrupted:
+                # 恢复执行：使用 InteractiveInput(raw_inputs) 恢复 checkpoint
+                # 从 Redis 中恢复上一次保存的 exec_id
+                t_redis_get = time.perf_counter()
+                saved_exec_id = await ExecutionIdStore.get(workflow_id, session_id)
+                performance_logger.info(
+                    f"redis_get_exec_id|{round((time.perf_counter() - t_redis_get) * 1000)}"
                 )
-                if memory_message is not None:
-                    inputs["memory_message"] = getattr(
-                        memory_message, "content", memory_message
+                if saved_exec_id:
+                    exec_id = saved_exec_id
+                # resume_input 为本次恢复的用户输入
+                resume_input = req.resume_input or req.query
+                inputs = InteractiveInput(raw_inputs=resume_input)
+                is_resuming = True
+            else:
+                # 首次执行：使用普通 query 输入
+                start_field_defaults = self._extract_start_user_field_defaults(ir_json)
+                inputs = {
+                    "query": req.query or "",
+                    **self._build_global_state_params(
+                        req.params.model_dump(),
+                        node_defs,
+                        start_field_defaults=start_field_defaults,
+                    ),
+                }
+                # 保存 exec_id 和 trace_id 到 Redis，以便中断恢复时使用
+                t_redis_save = time.perf_counter()
+                await ExecutionIdStore.save(workflow_id, session_id, exec_id)
+                # Save the current trace_id so QA resume reuses the same OTel trace
+                current_trace_id = session.get_trace_id() if hasattr(session, "get_trace_id") else None
+                if current_trace_id:
+                    await TraceIdStore.save(workflow_id, session_id, current_trace_id)
+                performance_logger.info(
+                    f"redis_save_exec_id|{round((time.perf_counter() - t_redis_save) * 1000)}"
+                )
+                is_resuming = False
+            performance_logger.info(
+                f"inputs_build|{round((time.perf_counter() - t_inputs_build) * 1000)}"
+            )
+
+            # 5.1 记忆检索：在工作流执行前检索相关记忆
+            if not is_resuming:
+                enable_memory_retrieve = inputs.get("enable_memory_retrieve", False)
+                # Prefer memory_repo_id from inputs (multi-agent injects its own
+                # repo id so sub-workflows use the multi-agent's memory repo),
+                # fall back to IR's configs.memory.memory_repo_id.
+                memory_repo_id = inputs.get("memory_repo_id", "") or (
+                    (ir_json.get("configs") or {}).get("memory") or {}
+                ).get("memory_repo_id", "")
+                if enable_memory_retrieve and req.user_id and memory_repo_id:
+                    memory_message = await self._retrieve_memory(
+                        user_id=req.user_id,
+                        scope_id=memory_repo_id,
+                        query=req.query or "",
                     )
+                    if memory_message is not None:
+                        inputs["memory_message"] = getattr(
+                            memory_message, "content", memory_message
+                        )
 
-        performance_logger.info(
-            f"pre_exec_total|{round((time.perf_counter() - perf_start) * 1000)}"
-        )
+            performance_logger.info(
+                f"pre_exec_total|{round((time.perf_counter() - perf_start) * 1000)}"
+            )
 
-        # 6. 发送工作流开始帧（首次执行时）
-        yield {
-            "event": "start",
-            "data": {},
-            "index": 0,
-            "executionId": exec_id,
-            "createdTime": int(time.time() * 1000),
-        }
-
-        if not is_resuming:
+            # 6. 发送工作流开始帧（首次执行时）
             yield {
-                "event": "workflow_start",
+                "event": "start",
                 "data": {},
                 "index": 0,
                 "executionId": exec_id,
                 "createdTime": int(time.time() * 1000),
             }
 
-        # 7. 执行工作流
-        t_stream_start = time.perf_counter()
-        workflow_wrapper = None
-        # Collect assistant response for memory extraction
-        memory_response_parts: list[str] = []
-        try:
-            is_debug = req.params.is_debug
-            stream_modes = [BaseStreamMode.OUTPUT, BaseStreamMode.CUSTOM]
-            if is_debug:
-                stream_modes.append(BaseStreamMode.TRACE)
+            wf_start_time = int(time.time() * 1000)
+            if not is_resuming:
+                yield {
+                    "event": "workflow_start",
+                    "data": {},
+                    "index": 0,
+                    "executionId": exec_id,
+                    "createdTime": wf_start_time,
+                }
 
-            workflow_wrapper = WorkflowStreamDataWrapper(
-                execution_id=exec_id,
-                is_debug=is_debug,
-                conversation_id=req.conversation_id,
-                node_id_to_name=node_defs,
-                history=req.params.conversation_history,
-                query=req.query or "",
-                is_resuming=is_resuming,
-            )
+            # 7. 执行工作流
+            t_stream_start = time.perf_counter()
+            workflow_wrapper = None
+            # Collect assistant response for memory extraction
+            memory_response_parts: list[str] = []
+            try:
+                is_debug = req.params.is_debug
+                stream_modes = [BaseStreamMode.OUTPUT, BaseStreamMode.CUSTOM]
+                if is_debug:
+                    stream_modes.append(BaseStreamMode.TRACE)
 
-            t_compile_invoke_start = time.perf_counter()
-            chunk_count = 0
-            async for chunk in workflow.stream(
-                inputs, session, context=context, stream_modes=stream_modes
-            ):
-                if chunk_count == 0:
-                    performance_logger.info(
-                        f"first_chunk_latency|{round((time.perf_counter() - t_compile_invoke_start) * 1000)}"
-                    )
-                chunk_count += 1
-                for event in workflow_wrapper.wrap_stream_data(
-                    chunk, is_resuming=is_resuming
-                ):
-                    # Collect response text for memory extraction
-                    evt_type = event.get("event", "")
-                    if evt_type in ("message", "done"):
-                        answer = event.get("data", {}).get("answer", "")
-                        if answer:
-                            memory_response_parts.append(str(answer))
-                    yield event
-            performance_logger.info(
-                f"workflow_stream|{round((time.perf_counter() - t_stream_start) * 1000)}"
-            )
-            performance_logger.info(f"total_chunks|{chunk_count}")
-
-            # Trigger memory extraction after successful workflow execution
-            await self._trigger_memory_extraction(
-                MemoryExtractionContext(
-                    ir_json=ir_json,
-                    user_id=req.user_id,
+                workflow_wrapper = WorkflowStreamDataWrapper(
+                    execution_id=exec_id,
+                    is_debug=is_debug,
                     conversation_id=req.conversation_id,
-                    user_query=req.query or "",
-                    assistant_response="".join(memory_response_parts),
-                    enable_memory_extract=bool(req.params.enable_memory_extract),
+                    node_id_to_name=node_defs,
+                    history=req.params.conversation_history,
+                    query=req.query or "",
+                    is_resuming=is_resuming,
+                    start_time=wf_start_time,
                 )
-            )
-        except Termination:
-            raise
-        except ExecutionError as e:
-            last_node = workflow_wrapper.get_last_node()
-            node_id = last_node.get("node_id", "")
-            node_type = last_node.get("node_type", "")
-            node_name = _resolve_node_name(node_defs, workflow_id, node_id)
-            # WorkflowAbortException（异常结束节点）已通过流发出 exception 事件，
-            # 不再重复发送 error 事件，避免前端弹窗。
-            # 同时使用异常节点信息作为 done 事件的 node_id/node_name/node_type，
-            # 确保前端能正确识别异常终止的节点。
-            if isinstance(e, WorkflowAbortException):
-                if e.node_id:
-                    node_id = e.node_id
-                if e.node_name:
-                    node_name = e.node_name
-                if e.node_type:
-                    node_type = e.node_type
-            else:
+
+                t_compile_invoke_start = time.perf_counter()
+                chunk_count = 0
+                async for chunk in workflow.stream(
+                    inputs, session, context=context, stream_modes=stream_modes
+                ):
+                    if chunk_count == 0:
+                        performance_logger.info(
+                            f"first_chunk_latency|{round((time.perf_counter() - t_compile_invoke_start) * 1000)}"
+                        )
+                    chunk_count += 1
+                    for event in workflow_wrapper.wrap_stream_data(
+                        chunk, is_resuming=is_resuming
+                    ):
+                        # Collect response text for memory extraction
+                        evt_type = event.get("event", "")
+                        if evt_type in ("message", "done"):
+                            answer = event.get("data", {}).get("answer", "")
+                            if answer:
+                                memory_response_parts.append(str(answer))
+                        yield event
+                performance_logger.info(
+                    f"workflow_stream|{round((time.perf_counter() - t_stream_start) * 1000)}"
+                )
+                performance_logger.info(f"total_chunks|{chunk_count}")
+
+                # Trigger memory extraction after successful workflow execution
+                await self._trigger_memory_extraction(
+                    MemoryExtractionContext(
+                        ir_json=ir_json,
+                        user_id=req.user_id,
+                        conversation_id=req.conversation_id,
+                        user_query=req.query or "",
+                        assistant_response="".join(memory_response_parts),
+                        enable_memory_extract=bool(req.params.enable_memory_extract),
+                    )
+                )
+            except Termination:
+                raise
+            except ExecutionError as e:
+                last_node = workflow_wrapper.get_last_node()
+                node_id = last_node.get("node_id", "")
+                node_type = last_node.get("node_type", "")
+                node_name = _resolve_node_name(node_defs, workflow_id, node_id)
+                # WorkflowAbortException（异常结束节点）已通过流发出 exception 事件，
+                # 不再重复发送 error 事件，避免前端弹窗。
+                # 同时使用异常节点信息作为 done 事件的 node_id/node_name/node_type，
+                # 确保前端能正确识别异常终止的节点。
+                if isinstance(e, WorkflowAbortException):
+                    if e.node_id:
+                        node_id = e.node_id
+                    if e.node_name:
+                        node_name = e.node_name
+                    if e.node_type:
+                        node_type = e.node_type
+                else:
+                    error_code = _resolve_error_code_from_exception(e)
+                    error_msg = _format_error_message(error_code, e.message)
+                    yield {
+                        "event": "error",
+                        "data": {
+                            "code": error_code,
+                            "message": error_msg,
+                            "node_id": node_id,
+                            "node_name": node_name,
+                            "node_type": node_type,
+                            "workflow_id": workflow_id,
+                            "workflow_name": ir_json.get("workflowName", ""),
+                        },
+                        "executionId": exec_id,
+                        "index": 0,
+                        "createdTime": int(time.time() * 1000),
+                    }
+                yield {
+                    "event": "done",
+                    "data": {
+                        "node_id": node_id,
+                        "node_name": node_name,
+                        "node_type": node_type,
+                    },
+                    "executionId": exec_id,
+                    "index": 0,
+                    "createdTime": int(time.time() * 1000),
+                }
+                # 异常结束节点终止后，清除 Redis 中保存的 execution_id，
+                # 确保下次运行不会被误判为中断恢复
+                if isinstance(e, WorkflowAbortException):
+                    await ExecutionIdStore.delete(workflow_id, session_id)
+                    await TraceIdStore.delete(workflow_id, session_id)
+
+            except BaseError as e:
+                last_node = workflow_wrapper.get_last_node() if workflow_wrapper else {}
+                node_id = last_node.get("node_id", "")
+                node_type = last_node.get("node_type", "")
+                node_name = _resolve_node_name(node_defs, workflow_id, node_id)
                 error_code = _resolve_error_code_from_exception(e)
                 error_msg = _format_error_message(error_code, e.message)
+                workflow_logger.error(f"Workflow execution failed: {e}, type={type(e).__name__}")
                 yield {
                     "event": "error",
                     "data": {
@@ -436,92 +695,58 @@ class WorkflowRunner:
                     "index": 0,
                     "createdTime": int(time.time() * 1000),
                 }
-            yield {
-                "event": "done",
-                "data": {
-                    "node_id": node_id,
-                    "node_name": node_name,
-                    "node_type": node_type,
-                },
-                "executionId": exec_id,
-                "index": 0,
-                "createdTime": int(time.time() * 1000),
-            }
-            # 异常结束节点终止后，清除 Redis 中保存的 execution_id，
-            # 确保下次运行不会被误判为中断恢复
-            if isinstance(e, WorkflowAbortException):
-                await ExecutionIdStore.delete(workflow_id, session_id)
-        except BaseError as e:
-            last_node = workflow_wrapper.get_last_node() if workflow_wrapper else {}
-            node_id = last_node.get("node_id", "")
-            node_type = last_node.get("node_type", "")
-            node_name = _resolve_node_name(node_defs, workflow_id, node_id)
-            error_code = _resolve_error_code_from_exception(e)
-            error_msg = _format_error_message(error_code, e.message)
-            workflow_logger.error(f"Workflow execution failed: {e}, type={type(e).__name__}")
-            yield {
-                "event": "error",
-                "data": {
-                    "code": error_code,
-                    "message": error_msg,
-                    "node_id": node_id,
-                    "node_name": node_name,
-                    "node_type": node_type,
-                    "workflow_id": workflow_id,
-                    "workflow_name": ir_json.get("workflowName", ""),
-                },
-                "executionId": exec_id,
-                "index": 0,
-                "createdTime": int(time.time() * 1000),
-            }
-            yield {
-                "event": "done",
-                "data": {
-                    "node_id": node_id,
-                    "node_name": node_name,
-                    "node_type": node_type,
-                },
-                "executionId": exec_id,
-                "index": 0,
-                "createdTime": int(time.time() * 1000),
-            }
-        except Exception as e:
-            workflow_logger.error(f"Workflow execution failed: {e}, type={type(e).__name__}", exc_info=True)
-            last_node = workflow_wrapper.get_last_node() if workflow_wrapper else {}
-            node_id = last_node.get("node_id", "")
-            node_type = last_node.get("node_type", "")
-            node_name = _resolve_node_name(node_defs, workflow_id, node_id)
-            # 检查异常链：如果原始异常是 JiuWenBaseException（如变量校验错误），用原始错误码
-            raw_error_code = getattr(e, 'error_code', None)
-            cause = e.__cause__
-            while cause is not None and raw_error_code is None:
-                raw_error_code = getattr(cause, 'error_code', None)
+                yield {
+                    "event": "done",
+                    "data": {
+                        "node_id": node_id,
+                        "node_name": node_name,
+                        "node_type": node_type,
+                    },
+                    "executionId": exec_id,
+                    "index": 0,
+                    "createdTime": int(time.time() * 1000),
+                }
+            except Exception as e:
+                workflow_logger.error(f"Workflow execution failed: {e}, type={type(e).__name__}", exc_info=True)
+                last_node = workflow_wrapper.get_last_node() if workflow_wrapper else {}
+                node_id = last_node.get("node_id", "")
+                node_type = last_node.get("node_type", "")
+                node_name = _resolve_node_name(node_defs, workflow_id, node_id)
+                # 检查异常链：如果原始异常是 JiuWenBaseException（如变量校验错误），用原始错误码
+                raw_error_code = getattr(e, 'error_code', None)
+                cause = e.__cause__
+                while cause is not None and raw_error_code is None:
+                    raw_error_code = getattr(cause, 'error_code', None)
+                    if raw_error_code is not None:
+                        error_msg = str(cause)
+                        break
+                    cause = getattr(cause, '__cause__', None)
                 if raw_error_code is not None:
-                    error_msg = str(cause)
-                    break
-                cause = getattr(cause, '__cause__', None)
-            if raw_error_code is not None:
-                error_code = str(raw_error_code)
-                if 'error_msg' not in dir():
-                    error_msg = str(e)
-            else:
-                error_code = GENERAL_ERROR
-                error_msg = _format_error_message(error_code, "Workflow execution failed")
-            yield {
-                "event": "error",
-                "data": {
-                    "code": error_code,
-                    "message": error_msg,
-                    "node_id": node_id,
-                    "node_name": node_name,
-                    "node_type": node_type,
-                    "workflow_id": workflow_id,
-                    "workflow_name": ir_json.get("workflowName", ""),
-                },
-                "executionId": exec_id,
-                "index": 0,
-                "createdTime": int(time.time() * 1000),
-            }
+                    error_code = str(raw_error_code)
+                    if 'error_msg' not in dir():
+                        error_msg = str(e)
+                else:
+                    error_code = GENERAL_ERROR
+                    error_msg = _format_error_message(error_code, "Workflow execution failed")
+                yield {
+                    "event": "error",
+                    "data": {
+                        "code": error_code,
+                        "message": error_msg,
+                        "node_id": node_id,
+                        "node_name": node_name,
+                        "node_type": node_type,
+                        "workflow_id": workflow_id,
+                        "workflow_name": ir_json.get("workflowName", ""),
+                    },
+                    "executionId": exec_id,
+                    "index": 0,
+                    "createdTime": int(time.time() * 1000),
+                }
+        finally:
+            # Detach OTel context token if we attached one (QA resume)
+            if otel_token is not None:
+                otel_context.detach(otel_token)
 
     async def run_blocking(self, req: ExecutionRequest) -> str:
         """执行 IR 工作流并返回完整结果"""
@@ -566,9 +791,18 @@ class WorkflowRunner:
             workflow_logger.error(
                 f"Failed to load IR from {ir_path}: {e}", exc_info=True
             )
+            error_code = _resolve_error_code_from_exception(e)
+            if error_code == -1:
+                error_code = GENERAL_ERROR
+                raw_msg = "Failed to load workflow configuration"
+            else:
+                raw_msg = getattr(e, "message", None) or "Failed to load workflow configuration"
             yield {
                 "event": "error",
-                "data": {"response": "Failed to load workflow configuration"},
+                "data": {
+                    "code": error_code,
+                    "message": _format_error_message(error_code, raw_msg),
+                },
                 "executionId": exec_id,
                 "index": 0,
                 "createdTime": int(time.time() * 1000),
@@ -582,9 +816,18 @@ class WorkflowRunner:
             )
         except Exception as e:
             workflow_logger.error(f"Failed to create component: {e}", exc_info=True)
+            error_code = _resolve_error_code_from_exception(e)
+            if error_code == -1:
+                error_code = GENERAL_ERROR
+                raw_msg = f"Failed to create component: {e}"
+            else:
+                raw_msg = getattr(e, "message", None) or f"Failed to create component: {e}"
             yield {
                 "event": "error",
-                "data": {"response": f"Failed to create component: {e}"},
+                "data": {
+                    "code": error_code,
+                    "message": _format_error_message(error_code, raw_msg),
+                },
                 "executionId": exec_id,
                 "index": 0,
                 "createdTime": int(time.time() * 1000),
@@ -620,9 +863,21 @@ class WorkflowRunner:
             workflow_logger.error(
                 f"Debug component execution failed: {e}", exc_info=True
             )
+            error_code = _resolve_error_code_from_exception(e)
+            if error_code == -1:
+                error_code = GENERAL_ERROR
+                raw_msg = f"Debug component execution failed: {e}"
+            else:
+                raw_msg = (
+                    getattr(e, "message", None)
+                    or f"Debug component execution failed: {e}"
+                )
             yield {
                 "event": "error",
-                "data": {"response": f"Debug component execution failed: {e}"},
+                "data": {
+                    "code": error_code,
+                    "message": _format_error_message(error_code, raw_msg),
+                },
                 "executionId": exec_id,
                 "index": 0,
                 "createdTime": int(time.time() * 1000),
@@ -633,7 +888,9 @@ class WorkflowRunner:
         for event in formatter.finalize():
             yield event
 
-    def _build_global_state_params(self, params: dict, node_defs: dict) -> dict:
+    def _build_global_state_params(
+        self, params: dict, node_defs: dict, start_field_defaults: dict = None
+    ) -> dict:
         """构建需要通过 inputs → commit_user_inputs 写入 global_state 的参数。
 
         这些参数同时存在于 envs（由 _build_envs 生成），但 envs 不被 checkpoint 保存。
@@ -649,6 +906,10 @@ class WorkflowRunner:
                 for k, v in params["global_variables"].items()
                 if k not in excluded_keys
             }
+            if start_field_defaults:
+                for k, v in start_field_defaults.items():
+                    if result["_request"].get(k) is None:
+                        result["_request"][k] = v
             result["global_variables"] = params["global_variables"]
 
         runtime_keys = [
@@ -675,6 +936,39 @@ class WorkflowRunner:
 
         return result
 
+    @staticmethod
+    def _extract_start_user_field_defaults(ir_json: dict) -> dict:
+        """Extract Start node user field default values from IR.
+
+        ${_request.xxx} resolves against the io_state _request dict, which is
+        built from global_variables. Start node user fields (e.g. optional
+        parameters with default_value) are defined in the IR, not in the
+        request. Without merging defaults, ${_request.test} resolves to None
+        when the user does not pass the field, causing End node output filtering
+        (v is not None) to drop it entirely.
+
+        所有类型字段都注入默认值,默认值按声明类型归一(空默认:object -> {},
+        array -> [],integer -> 0,number -> 0.0,boolean -> False,string -> '');
+        直接注入 '' 会让 Start 输出 userFields 通过不了 openjiuwen IR 输出校验
+        (json.loads('')/int('') 失败,报 Incorrect type for key)。
+        """
+        defaults = {}
+        for comp in ir_json.get("components") or []:
+            if comp.get("type") != "jiuwen.start":
+                continue
+            user_fields = (comp.get("configs") or {}).get("userFields", {}) or {}
+            for field in user_fields.get("inputs") or []:
+                field_id = field.get("id")
+                if field_id and field_id not in defaults:
+                    converted = Start.convert_user_field_default(
+                        (field.get("type") or "").lower(),
+                        field.get("default_value", ""),
+                        field.get("schema"),
+                    )
+                    if converted is not None:
+                        defaults[field_id] = converted
+            break
+        return defaults
 
     async def _retrieve_memory(
         self,

@@ -19,6 +19,7 @@ from agent_runtime.conversation.config.supervisor_config import SupervisorConfig
 from agent_runtime.conversation.execution_context import get_conversation_execution_context
 from agent_runtime.conversation.rail import GracefulToolBudgetRail
 from agent_runtime.conversation.sandbox import ConversationSandboxToolBinder
+from agent_runtime.common.trace_compat import create_agent_session_with_trace
 from agent_runtime.runner.react_agent_runner import ReActAgentRunner
 from agent_runtime.supervisor.skill_context import (
     attach as attach_skill_context,
@@ -30,7 +31,7 @@ from agent_runtime.supervisor.skill_model import SkillDescriptor
 from agent_runtime.runner.react_stream_data_adapter import ReactStreamDataAdapter
 from agent_runtime.schemas.orchestration_mgr import ExecutionRequest
 from openjiuwen.core.common.logging import workflow_logger
-from openjiuwen.core.session.agent import Session, create_agent_session
+from openjiuwen.core.session.agent import Session
 from openjiuwen.core.session.stream import BaseStreamMode
 
 
@@ -42,7 +43,6 @@ class ConversationReActRunner(ReActAgentRunner):
     def _parse_prompt_template(
         self,
         ir_json: dict,
-        conversation_history: list | None = None,
         skill_work_dir: str = "",
         global_variables: dict | None = None,
         has_file_links: bool = False,
@@ -50,10 +50,9 @@ class ConversationReActRunner(ReActAgentRunner):
         """Append the conversation-only workspace contract to the official prompt."""
         messages = super()._parse_prompt_template(
             ir_json,
-            conversation_history,
-            skill_work_dir,
-            global_variables,
-            has_file_links,
+            skill_work_dir=skill_work_dir,
+            global_variables=global_variables,
+            has_file_links=has_file_links,
         )
         protocol = self._build_workspace_protocol_prompt()
         return [
@@ -290,10 +289,9 @@ class ConversationReActRunner(ReActAgentRunner):
         try:
             agent, agent_id = self._create_agent(
                 ir_json,
-                conversation_history,
-                skill_work_dir,
-                global_variables,
-                has_file_links,
+                skill_work_dir=skill_work_dir,
+                global_variables=global_variables,
+                has_file_links=has_file_links,
             )
             agent.set_llm(llm)
             observer = await self._register_usage_rail(
@@ -317,7 +315,12 @@ class ConversationReActRunner(ReActAgentRunner):
         try:
             try:
                 await self._register_plugins(ir_json, agent, agent_id)
-                await self._register_mcp_servers(ir_json, agent, agent_id)
+                await self._register_mcp_servers(
+                    ir_json,
+                    agent,
+                    agent_id,
+                    environment_variables=req.params.environment_variables,
+                )
                 await self._register_workflows(ir_json, agent, agent_id)
                 if has_file_links:
                     self._register_file_reader_tool(agent, agent_id)
@@ -372,11 +375,23 @@ class ConversationReActRunner(ReActAgentRunner):
             is_first_llm_call = True
             try:
                 session_id = req.conversation_id or "default_session"
-                session = create_agent_session(session_id=session_id, card=agent.card)
+                session = create_agent_session_with_trace(
+                    session_id=session_id, card=agent.card
+                )
                 await session.pre_run(inputs=inputs)
+                if req.resume_input is None:
+                    await self._seed_conversation_history(
+                        agent,
+                        session,
+                        conversation_history,
+                        req.params.enable_history,
+                    )
                 inputs.setdefault("_jiuwen_runtime_kwargs", {})["session"] = session
                 prompt_messages = self._parse_prompt_template(
-                    ir_json, conversation_history, skill_work_dir, global_variables, has_file_links
+                    ir_json,
+                    skill_work_dir=skill_work_dir,
+                    global_variables=global_variables,
+                    has_file_links=has_file_links,
                 )
                 llm_inputs = list(prompt_messages) + [{"role": "user", "content": query}]
                 functions = self._get_agent_functions(agent)

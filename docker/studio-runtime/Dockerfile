@@ -10,20 +10,24 @@ ENV LD_LIBRARY_PATH=/usr/local/lib:/usr/lib64
 
 WORKDIR $SERVICE_HOME
 
-# 安装运行时依赖（不含编译工具链）
+# 安装运行时系统依赖
 RUN if [ -f /etc/apt/sources.list.d/debian.sources ]; then \
       sed -i 's|deb.debian.org|mirrors.aliyun.com|g' /etc/apt/sources.list.d/debian.sources; \
     elif [ -f /etc/apt/sources.list ]; then \
       sed -i 's|deb.debian.org|mirrors.aliyun.com|g' /etc/apt/sources.list; \
     fi \
-    && apt-get update && apt-get install -y curl tar unzip net-tools wget iptables cron libpq-dev vim procps gawk hostname sed coreutils findutils bash nginx antiword \
+    && apt-get update && apt-get install -y curl tar unzip net-tools wget cron libpq-dev vim procps gawk hostname sed coreutils findutils bash nginx antiword \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# 先复制 requirements.txt，单独安装依赖以利用 Docker 层缓存
+# 安装 Python 依赖（临时安装编译工具链，编译完成后卸载）
 COPY requirements.txt $SERVICE_HOME/app/
-RUN pip3 config set global.index-url https://mirrors.aliyun.com/pypi/simple/ \
+RUN apt-get update && apt-get install -y --no-install-recommends gcc python3-dev \
+    && pip3 config set global.index-url https://mirrors.aliyun.com/pypi/simple/ \
     && pip3 config set global.trusted-host mirrors.aliyun.com \
+    && pip3 install --upgrade pip \
     && pip3 install -r $SERVICE_HOME/app/requirements.txt \
+    && apt-get remove -y gcc python3-dev && apt-get autoremove -y \
+    && apt-get clean && rm -rf /var/lib/apt/lists/* \
     && rm -rf ${PACKAGES_HOME}/future/backports/test
 
 # 再复制应用代码（变更频率高，放在依赖安装之后）
@@ -64,7 +68,7 @@ USER root
 RUN chmod 700 /opt/cloud/logs \
     && echo service >> /etc/cron.allow \
     && chmod u+s /usr/sbin/cron \
-    && touch /var/run/crond.pid && chmod 760 /var/run/crond.pid \
+    && touch /var/run/crond.pid && chown service:service /var/run/crond.pid && chmod 760 /var/run/crond.pid \
     && mkdir -p /var/lib/nginx/body /var/lib/nginx/proxy /var/lib/nginx/fastcgi /var/lib/nginx/uwsgi /var/lib/nginx/scgi \
     && chown -R service:service /var/lib/nginx \
     && mkdir -p /var/log/nginx \
@@ -72,6 +76,6 @@ RUN chmod 700 /opt/cloud/logs \
     && touch /run/nginx.pid \
     && chown service:service /run/nginx.pid
 
-USER service
+USER 1000:1000
 
 CMD ["/bin/bash", "-c", "cron;cd ${SERVICE_HOME};./bin/init.sh; if [ \"${NGINX_LOAD_BALANCING}\" = \"true\" ]; then ./bin/start_nginx_lb.sh; else ./bin/start.sh; fi"]

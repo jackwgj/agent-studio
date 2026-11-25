@@ -26,6 +26,7 @@ from openjiuwen.core.foundation.llm.schema.tool_call import ToolCall
 from openjiuwen.core.foundation.tool.schema import ToolInfo
 from openjiuwen.core.runner import Runner
 from openjiuwen.core.session.agent import create_agent_session
+from agent_runtime.common.trace_compat import create_agent_session_with_trace
 
 BJ_TZ = datetime.timezone(datetime.timedelta(hours=8), name="Asia/Beijing")
 
@@ -351,7 +352,7 @@ class ModelWrapper:
             raise ValueError("model_id and session_id are required")
 
         messages, tools = self._convert_input_to_model_format(inputs)
-        agent_session = create_agent_session(session_id=session_id)
+        agent_session = create_agent_session_with_trace(session_id=session_id)
         model = await Runner.resource_mgr.get_model(
             model_id=model_id, session=agent_session
         )
@@ -372,7 +373,11 @@ class ModelWrapper:
                 timeout=timeout,
             )
         except Exception as e:
-            error_msg = f"Model invoke failed: {e}"
+            # 病A：直接 ``{e}`` 会把内层 ``ModelServiceError`` 的 ``[MD_ENV_VAR_UNRESOLVED]``
+            # 等错误码前缀泄进消息。用 friendly_message 取干净信息（控制器/Agent 调用路径，
+            # 早期仅修了 workflow_node，此处补齐）。
+            from model_service.env_resolver import friendly_message
+            error_msg = f"Model invoke failed: {friendly_message(e)}"
             raise ModelError(StatusCode.MODEL_CALL_FAILED, msg=error_msg)
 
         cur_ai_message, tool_calls = self._post_stream_message(model_response)
@@ -416,7 +421,7 @@ class ModelWrapper:
         request_start_time = datetime.datetime.now(tz=BJ_TZ).isoformat()
         first_token_time = ""
         tc_id = ""
-        agent_session = create_agent_session(session_id=session_id)
+        agent_session = create_agent_session_with_trace(session_id=session_id)
         model = await Runner.resource_mgr.get_model(
             model_id=model_id, session=agent_session
         )

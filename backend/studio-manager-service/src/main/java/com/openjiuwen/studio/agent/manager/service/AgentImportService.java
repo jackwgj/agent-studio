@@ -39,6 +39,7 @@ import com.openjiuwen.studio.agent.manager.entity.MappingEntity;
 import com.openjiuwen.studio.agent.manager.entity.MemoryRepoEntity;
 import com.openjiuwen.studio.agent.manager.entity.ReleaseVersion;
 import com.openjiuwen.studio.agent.manager.entity.ShareInfo;
+import com.openjiuwen.studio.agent.manager.entity.ShareResourceEntity;
 import com.openjiuwen.studio.agent.manager.entity.SpaciousInfo;
 import com.openjiuwen.studio.agent.manager.entity.WorkflowEntity;
 import com.openjiuwen.studio.agent.manager.entity.md.ModelServiceBase;
@@ -49,8 +50,10 @@ import com.openjiuwen.studio.agent.manager.entity.plugin.PluginVO;
 import com.openjiuwen.studio.agent.manager.enums.ExportModeEnum;
 import com.openjiuwen.studio.agent.manager.enums.ResourceTypeEnum;
 import com.openjiuwen.studio.agent.manager.enums.controller.AgentNodeType;
+import com.openjiuwen.studio.agent.manager.enums.relation.ReferenceTypeEnum;
 import com.openjiuwen.studio.agent.manager.mapper.AgentMapper;
 import com.openjiuwen.studio.agent.manager.mapper.MappingMapper;
+import com.openjiuwen.studio.agent.manager.mapper.ShareResourceMapper;
 import com.openjiuwen.studio.agent.manager.mapper.MemoryRepoMapper;
 import com.openjiuwen.studio.agent.manager.mapper.ReleaseVersionMapper;
 import com.openjiuwen.studio.agent.manager.mapper.WorkflowMapper;
@@ -62,6 +65,7 @@ import com.openjiuwen.studio.agent.manager.service.md.ModelServiceManager;
 import com.openjiuwen.studio.agent.manager.utils.JsonUtils;
 import com.openjiuwen.studio.agent.manager.utils.MapReadUtil;
 import com.openjiuwen.studio.agent.manager.workflow.resource.adapt.ResourceAdapterFactory;
+import com.openjiuwen.studio.agent.manager.workflow.resource.model.ExportInfo;
 import com.openjiuwen.studio.agent.manager.workflow.resource.model.ImportCheckResult;
 import com.openjiuwen.studio.agent.manager.workflow.resource.model.ImportExportStatusEnum;
 import com.openjiuwen.studio.agent.manager.workflow.resource.model.ImportInfo;
@@ -76,10 +80,14 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import com.google.common.collect.Lists;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.BufferedReader;
@@ -88,6 +96,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -133,6 +142,9 @@ public class AgentImportService {
     private ShareResourceManagerService shareResourceManagerService;
 
     @Autowired
+    private ShareResourceMapper shareResourceMapper;
+
+    @Autowired
     private MappingMapper mappingMapper;
 
     @Autowired
@@ -152,6 +164,14 @@ public class AgentImportService {
 
     @Autowired
     private WorkflowCommonService workflowCommonService;
+
+    /**
+     * WorkflowManagementService 已注入本服务（importFile 透传），此处反向注入需 @Lazy 打破循环依赖，
+     * 仅用于导入兜底时复用 updateRefResources 重建草稿映射
+     */
+    @Lazy
+    @Autowired
+    private WorkflowManagementService workflowManagementService;
 
     @Autowired
     private ControllerManagementService controllerManagementService;
@@ -200,6 +220,10 @@ public class AgentImportService {
         skuManageService.validateAttrEnable(CommonConstant.SKU_ATTR_CODE.EXPORT_AND_IMPORT);
         List<ImportInfo> resourceList = getImportInfos(file);
         validateImportAppCount(workspaceId, resourceList);
+        return sortImportInfos(resourceList);
+    }
+
+    private List<ImportInfo> sortImportInfos(List<ImportInfo> resourceList) {
         return resourceList.stream().sorted((v1, v2) -> {
             int orderCompare = Integer.compare(v1.getOrder(), v2.getOrder());
             if (orderCompare != 0) {
@@ -291,6 +315,7 @@ public class AgentImportService {
      * @param file 前端传入的导入文件，文件内容格式为多条jsonl，每个资源一行
      * @return ImportRsp
      */
+    @Transactional(rollbackFor = Exception.class)
     public ImportRsp importFile(String projectId, String workspaceId, MultipartFile file) {
         return importFile(projectId, workspaceId, file, null);
     }
@@ -304,8 +329,40 @@ public class AgentImportService {
      * @param mode 导入模式
      * @return ImportRsp
      */
+    @Transactional(rollbackFor = Exception.class)
     public ImportRsp importFile(String projectId, String workspaceId, MultipartFile file, String mode) {
         List<ImportInfo> resourceList = getAndValidateImportInfos(workspaceId, file);
+        return doImport(projectId, workspaceId, resourceList, mode);
+    }
+
+    /**
+     * 从内存 ExportInfo 列表导入资源（不经文件中转），供跨空间复用调用
+     *
+     * @param projectId projectId
+     * @param targetWorkspaceId 目标空间id
+     * @param exportInfos 导出资源列表
+     * @return ImportRsp
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public ImportRsp importFromExportInfos(String projectId, String targetWorkspaceId,
+        List<ExportInfo> exportInfos) {
+        List<ImportInfo> resourceList = sortImportInfos(exportInfos.stream()
+            .map(this::convertToImportInfo)
+            .collect(Collectors.toList()));
+        validateImportAppCount(targetWorkspaceId, resourceList);
+        return doImport(projectId, targetWorkspaceId, resourceList, null);
+    }
+
+    /**
+     * 核心导入逻辑：遍历资源列表执行适配器导入，按模式选择后续处理
+     *
+     * @param projectId projectId
+     * @param workspaceId 目标空间id
+     * @param resourceList 已排序的导入资源列表
+     * @param mode 导入模式（null 走 STRICT）
+     * @return ImportRsp
+     */
+    private ImportRsp doImport(String projectId, String workspaceId, List<ImportInfo> resourceList, String mode) {
         List<ImportResourceResult> result = new ArrayList<>();
         resourceList.forEach(p -> {
             initImportData(workspaceId, projectId, p);
@@ -329,7 +386,465 @@ public class AgentImportService {
         } else {
             handleStrictImport(projectId, resourceList, result);
         }
+        // 兜底补建缺失的草稿态工作流映射：导出文件缺失子工作流行时（历史导出缺陷：
+        // 子工作流版本被删后导出被静默丢弃），handleMapping 按 parents 重建会遗漏父→子映射，
+        // 表现为引用数丢失、子工作流版本升级入口不出现。在两种模式的映射全部写入后统一检查：
+        // 父工作流 DSL 含子工作流引用节点但草稿映射中无 WORKFLOW 类型记录时，
+        // 复用既有 updateRefResources 按 DSL 重建（幂等）。正常导入（映射完整）零行为变化。
+        rebuildMissingWorkflowRefMappings(projectId, workspaceId, resourceList, result);
         return handleImportRsp(resourceList, result);
+    }
+
+    /**
+     * 导入收尾兜底：对导入成功的父资源（工作流/单智能体），若其 DSL 含子工作流引用，
+     * 但草稿映射中无任何 WORKFLOW 类型记录，则按 DSL 重建映射。
+     * 背景：导出时子工作流版本被删会静默丢弃子工作流行，导入后父→子映射缺失，
+     * 表现为引用数丢失、版本升级铃铛不出现。重建失败不影响导入主流程。
+     */
+    private void rebuildMissingWorkflowRefMappings(String projectId, String workspaceId, List<ImportInfo> resourceList,
+        List<ImportResourceResult> resultList) {
+        Map<String, ImportResourceResult> resultMap = resultList.stream()
+            .collect(Collectors.toMap(ImportResourceResult::getId, r -> r, (existing, incoming) -> existing));
+        for (ImportInfo importInfo : resourceList) {
+            ImportResourceResult importResult = resultMap.get(importInfo.getResourceId());
+            if (importResult == null || Strings.CS.equals(importResult.getStatus(),
+                ImportExportStatusEnum.FAILED.getCode())) {
+                continue;
+            }
+            if (Strings.CS.equals(importInfo.getResourceType(), ResourceTypeEnum.WORKFLOW.toString())) {
+                rebuildWorkflowSubFlowMappings(projectId, workspaceId, importInfo, importResult);
+            } else if (Strings.CS.equals(importInfo.getResourceType(), ResourceTypeEnum.AGENT.toString())) {
+                rebuildAgentWorkflowMappings(projectId, workspaceId, importInfo, importResult);
+            } else if (Strings.CS.equals(importInfo.getResourceType(), ResourceTypeEnum.CONTROLLER.toString())) {
+                rebuildControllerWorkflowMappings(projectId, workspaceId, importInfo, importResult);
+            }
+        }
+    }
+
+    /**
+     * 工作流父资源：DSL 的 Workflow 节点引用缺失时，按 DSL 重建映射
+     */
+    private void rebuildWorkflowSubFlowMappings(String projectId, String workspaceId, ImportInfo importInfo,
+        ImportResourceResult importResult) {
+        String workflowId = StringUtils.isNotEmpty(importResult.getNewId())
+            ? importResult.getNewId() : importInfo.getResourceId();
+        WorkflowVO workflowVO = JsonUtils.objectToClassTypeQuiet(importInfo.getDsl(), WorkflowVO.class);
+        if (workflowVO == null || CollectionUtils.isEmpty(workflowVO.getNodes())) {
+            return;
+        }
+        List<String> subWorkflowIds = collectSubWorkflowIds(workflowVO);
+        // 子工作流在当前空间（或以共享方式可用）不存在时跳过：getWorkflowById 按 id 全库查询
+        // 无 project/workspace 过滤，跨空间导入时 DSL 残留的源空间 ID 也能查到，直接放行会写入
+        // 指向他空间资源的无效映射，因此必须用与保存链路一致的可见性判定
+        if (subWorkflowIds.isEmpty()
+            || !subWorkflowIds.stream().allMatch(id -> isWorkflowVisible(projectId, workspaceId, id))) {
+            return;
+        }
+        // 只看草稿行（valid 传 null 不过滤，正常导入 handleMapping 写入的是 valid=true 行，
+        // 若传 false 只查失效行会漏看而误判"整条缺失"）；已发布行不参与缺失判定，
+        // 否则仅有已发布 WORKFLOW 行时会误判"不缺失"而漏触发重建
+        List<MappingEntity> draftMappings = selectDraftMappings(workflowId);
+        boolean missingWorkflowRef = draftMappings.stream()
+            .noneMatch(m -> ResourceTypeEnum.WORKFLOW.toString().equals(m.getResourceType()));
+        if (!missingWorkflowRef) {
+            return;
+        }
+        log.info("import workflow {} missing workflow reference mappings, rebuild from dsl", workflowId);
+        try {
+            workflowVO.setId(workflowId);
+            workflowManagementService.updateRefResources(workflowVO, null);
+        } catch (Exception e) {
+            log.error("import rebuild workflow reference mappings failed, workflowId: {}", workflowId, e);
+            // updateRefResources 为先删后插，重建中断可能已清空草稿映射；
+            // 确认草稿行已被清空时回插导入阶段建立的草稿映射，保证导入结果不劣化。
+            // 回滚判定同样只看草稿行：已发布行（app_version 非空）不会被 updateRefResources
+            // 删除，混入判定会导致"草稿已清空但已发布行仍在"时误判非空而漏回插
+            if (!CollectionUtils.isEmpty(draftMappings)
+                && CollectionUtils.isEmpty(selectDraftMappings(workflowId))) {
+                mappingMapper.insertBatch(draftMappings);
+            }
+        }
+    }
+
+    /**
+     * 单智能体父资源：DSL 的 workflows 列表引用缺失 mapping 时，按 DSL 重建 WORKFLOW 草稿映射。
+     * 单智能体的子工作流引用不在画布 DSL 中而在 AgentInfo.workflows（引用关系以 t_mapping 持久化），
+     * 导出缺陷丢行后 mapping 缺失，前端 getAppRefs 匹配不到 relation，版本升级铃铛永不出现。
+     */
+    private void rebuildAgentWorkflowMappings(String projectId, String workspaceId, ImportInfo importInfo,
+        ImportResourceResult importResult) {
+        String agentId = StringUtils.isNotEmpty(importResult.getNewId())
+            ? importResult.getNewId() : importInfo.getResourceId();
+        try {
+            AgentInfo agentInfo = JsonUtils.objectToClassTypeQuiet(importInfo.getDsl(), AgentInfo.class);
+            if (agentInfo == null || CollectionUtils.isEmpty(agentInfo.getWorkflows())) {
+                return;
+            }
+            // 只处理"整条 WORKFLOW 映射缺失"的情况（与工作流侧兜底的判定一致），部分缺失不干预。
+            // 只看草稿行（valid 传 null 不过滤）：handleMapping 正常写入的是 valid=true 行，
+            // 已发布行不参与缺失判定，否则仅有已发布 WORKFLOW 行时会误判"不缺失"而漏触发重建
+            List<MappingEntity> draftMappings = selectDraftMappings(agentId);
+            boolean missingWorkflowRef = draftMappings.stream()
+                .noneMatch(m -> ResourceTypeEnum.WORKFLOW.toString().equals(m.getResourceType()));
+            if (!missingWorkflowRef) {
+                return;
+            }
+            List<MappingEntity> rebuildList = new ArrayList<>();
+            Date now = new Date();
+            for (WorkflowReference workflowRef : agentInfo.getWorkflows()) {
+                String subWorkflowId = workflowRef.getWorkflowId();
+                if (StringUtils.isEmpty(subWorkflowId)) {
+                    continue;
+                }
+                WorkflowEntity workflowEntity = workflowMapper.getWorkflowById(subWorkflowId);
+                // 可见性判定与保存链路 generateAgentWorkflowReferences 一致（本空间 or 共享）：
+                // getWorkflowById 按 id 全库查询无 project/workspace 过滤，跨空间导入时 DSL 残留的
+                // 源空间 ID 也能查到，直接放行会写入指向他空间资源的无效映射。
+                // 实体已查出，走 entity 重载避免重复查询（内部含 null/deleted 判定）
+                if (!isWorkflowVisible(projectId, workspaceId, workflowEntity)) {
+                    continue;
+                }
+                MappingEntity mapping = new MappingEntity();
+                mapping.setMappingId(UUID.randomUUID().toString());
+                mapping.setAppId(agentId);
+                mapping.setAppType(CommonConstant.AGENT_TYPE);
+                mapping.setAppName(agentInfo.getName());
+                mapping.setAppVersion(null);
+                mapping.setAppWorkspaceId(RequestContextUtils.getRequestWorkspaceId());
+                mapping.setResourceId(subWorkflowId);
+                mapping.setResourceType(ResourceTypeEnum.WORKFLOW.toString());
+                // 按导出快照中记录的版本引用回填（而非当前最新版）：导出时引用的版本若已被删除，
+                // DSL 中保留的就是该已删版本号，与工作流画布"子工作流节点保留悬空版本"的行为对齐。
+                // 悬空版本会触发两个正确行为：
+                // 1) 发布时 validateAgentWorkflowVersionMappings 拦截并提示"子工作流版本不存在"；
+                // 2) 前端铃铛（resource_latest_version !== resource_version）提示可升级到最新版。
+                // 版本号为空表示跟随最新，保持为空。
+                String refVersion = workflowRef.getLastVersionId();
+                mapping.setResourceVersion(StringUtils.isEmpty(refVersion) ? null : refVersion);
+                mapping.setResourceName(workflowEntity.getName());
+                mapping.setResourceWorkspaceId(workflowEntity.getWorkspaceId());
+                // 共享授权（非本空间资源）时标记 SHARE 引用；版本引用同样原样回填：
+                // 引用版本不在共享授权内时保留悬空版本号，由发布校验拦截报"子工作流版本不存在"；
+                // 共享方发布新版本后（时间戳必然更大）铃铛出现，升级即修复，与本空间悬空版本语义一致
+                if (!Strings.CS.equals(workflowEntity.getWorkspaceId(), workspaceId)) {
+                    mapping.setReferenceType(ReferenceTypeEnum.SHARE.getValue());
+                }
+                mapping.setValid(true);
+                mapping.setCreatedOn(now);
+                rebuildList.add(mapping);
+            }
+            if (rebuildList.isEmpty()) {
+                return;
+            }
+            log.info("import agent {} missing workflow reference mappings, rebuild {} from dsl", agentId,
+                rebuildList.size());
+            mappingMapper.insertBatch(rebuildList);
+        } catch (Exception e) {
+            // 重建为兜底补偿，失败不影响导入主流程（与工作流侧兜底一致）；
+            // 本方法只做插入、无先删后插，失败不会留下中间态
+            log.error("import rebuild agent workflow reference mappings failed, agentId: {}", agentId, e);
+        }
+    }
+
+    /**
+     * 多智能体父资源：画布 DSL 引用缺失 mapping 时，按 DSL 重建草稿映射。
+     * 多智能体的子资源引用记录在画布 DSL 节点 configs 中（保存链路由
+     * ControllerManagementService#recordRefWorkflow/recordRefSubController 以 t_mapping 持久化），
+     * 导出缺陷丢行后 handleMapping 按 parents 重建遗漏映射，前端 getAppRefs 返回空，
+     * 版本升级铃铛永不出现、引用数丢失。版本号按节点 configs.version_id 回填（与
+     * recordRefWorkflow 的 nodeToMapping 语义一致），悬空版本交由发布校验与前端铃铛提示升级。
+     *
+     * <p>同时重建两类引用：WORKFLOW 节点（resource_type=workflow）与 SubController 节点
+     * （resource_type=controller，即子多智能体）。子多智能体行缺失与工作流行缺失同源
+     * （导出时引用版本被删被静默丢弃），缺失后铃铛与版本校验全部失效。
+     */
+    private void rebuildControllerWorkflowMappings(String projectId, String workspaceId, ImportInfo importInfo,
+        ImportResourceResult importResult) {
+        String controllerId = StringUtils.isNotEmpty(importResult.getNewId())
+            ? importResult.getNewId() : importInfo.getResourceId();
+        try {
+            ControllerVO controllerVO = JsonUtils.objectToClassTypeQuiet(importInfo.getDsl(), ControllerVO.class);
+            if (controllerVO == null || CollectionUtils.isEmpty(controllerVO.getNodes())) {
+                return;
+            }
+            List<ControllerNodeVO> workflowNodes = controllerVO.getNodes().stream()
+                .filter(node -> Strings.CS.equals(node.getType(), AgentNodeType.WORKFLOW.getType()))
+                .collect(Collectors.toList());
+            List<ControllerNodeVO> subControllerNodes = controllerVO.getNodes().stream()
+                .filter(node -> Strings.CS.equals(node.getType(), AgentNodeType.SUB_CONTROLLER.getType()))
+                .collect(Collectors.toList());
+            List<ControllerNodeVO> agentNodes = controllerVO.getNodes().stream()
+                .filter(node -> Strings.CS.equals(node.getType(), AgentNodeType.AGENT.getType()))
+                .collect(Collectors.toList());
+            if (CollectionUtils.isEmpty(workflowNodes) && CollectionUtils.isEmpty(subControllerNodes)
+                && CollectionUtils.isEmpty(agentNodes)) {
+                return;
+            }
+            // 各类型独立判断"整条映射缺失"（与工作流/单智能体侧兜底一致），部分缺失不干预。
+            // 只看草稿行（valid 传 null 不过滤）：handleMapping 正常写入的是 valid=true 行，
+            // 已发布行不参与缺失判定，否则仅有已发布引用行时会误判"不缺失"而漏触发重建
+            List<MappingEntity> draftMappings = selectDraftMappings(controllerId);
+            boolean missingWorkflowRef = !workflowNodes.isEmpty() && draftMappings.stream()
+                .noneMatch(m -> ResourceTypeEnum.WORKFLOW.toString().equals(m.getResourceType()));
+            boolean missingSubControllerRef = !subControllerNodes.isEmpty() && draftMappings.stream()
+                .noneMatch(m -> CommonConstant.CONTROLLER_TYPE.equals(m.getResourceType()));
+            boolean missingAgentRef = !agentNodes.isEmpty() && draftMappings.stream()
+                .noneMatch(m -> CommonConstant.AGENT_TYPE.equals(m.getResourceType()));
+            if (!missingWorkflowRef && !missingSubControllerRef && !missingAgentRef) {
+                return;
+            }
+            List<MappingEntity> rebuildList = new ArrayList<>();
+            if (missingWorkflowRef) {
+                rebuildWorkflowRefMappings(projectId, workspaceId, controllerVO, workflowNodes, controllerId,
+                    rebuildList);
+            }
+            if (missingSubControllerRef) {
+                rebuildSubControllerRefMappings(workspaceId, controllerVO, subControllerNodes, controllerId,
+                    rebuildList);
+            }
+            if (missingAgentRef) {
+                rebuildAgentRefMappings(workspaceId, controllerVO, agentNodes, controllerId, rebuildList);
+            }
+            if (!rebuildList.isEmpty()) {
+                log.info("import controller {} missing reference mappings, rebuild {} from dsl", controllerId,
+                    rebuildList.size());
+                mappingMapper.insertBatch(rebuildList);
+            }
+        } catch (Exception e) {
+            // 重建为兜底补偿，失败不影响导入主流程（与工作流/单智能体侧兜底一致）；
+            // 本方法只做插入、无先删后插，失败不会留下中间态
+            log.error("import rebuild controller reference mappings failed, controllerId: {}", controllerId, e);
+        }
+    }
+
+    /**
+     * 按 WORKFLOW 节点重建 controller→workflow 映射（resource_type=workflow），
+     * 字段语义与保存链路 recordRefWorkflow（业务工作流分支）一致。
+     */
+    private void rebuildWorkflowRefMappings(String projectId, String workspaceId, ControllerVO controllerVO,
+        List<ControllerNodeVO> workflowNodes, String controllerId, List<MappingEntity> rebuildList) {
+        Date now = new Date();
+        Set<String> handledIds = new HashSet<>();
+        for (ControllerNodeVO workflowNode : workflowNodes) {
+            Map<String, Object> configs = MapReadUtil.safeCastToMapWithStringKey(workflowNode.getConfigs());
+            Object idObj = configs.get(Constants.ID);
+            if (idObj == null || !handledIds.add(String.valueOf(idObj))) {
+                continue;
+            }
+            String subWorkflowId = String.valueOf(idObj);
+            WorkflowEntity workflowEntity = workflowMapper.getWorkflowById(subWorkflowId);
+            // 可见性判定与保存链路 recordRefWorkflow/validPermission 一致（本空间 or 共享）：
+            // getWorkflowById 按 id 全库查询无 project/workspace 过滤，跨空间导入时 DSL 残留的
+            // 源空间 ID 也能查到，直接放行会写入指向他空间资源的无效映射。
+            // 实体已查出，走 entity 重载避免重复查询（内部含 null/deleted 判定）
+            if (!isWorkflowVisible(projectId, workspaceId, workflowEntity)) {
+                continue;
+            }
+            MappingEntity mapping = new MappingEntity();
+            mapping.setMappingId(UUID.randomUUID().toString());
+            mapping.setAppId(controllerId);
+            // 与保存链路 recordRefWorkflow（业务工作流分支）及导入链路 handleMapping 一致：
+            // controller 父资源引用 workflow 时 app_type 写 controller
+            mapping.setAppType(CommonConstant.CONTROLLER);
+            mapping.setAppName(controllerVO.getName());
+            mapping.setAppVersion(null);
+            mapping.setAppWorkspaceId(RequestContextUtils.getRequestWorkspaceId());
+            mapping.setResourceId(subWorkflowId);
+            mapping.setResourceType(ResourceTypeEnum.WORKFLOW.toString());
+            // 按节点 configs 中记录的版本回填（与 nodeToMapping 一致）；版本为空表示跟随最新，保持为空
+            Object versionObj = configs.get("version_id");
+            String refVersion = versionObj == null ? null : String.valueOf(versionObj);
+            mapping.setResourceVersion(StringUtils.isEmpty(refVersion) ? null : refVersion);
+            mapping.setResourceName(workflowEntity.getName());
+            mapping.setResourceWorkspaceId(workflowEntity.getWorkspaceId());
+            // 共享授权（非本空间资源）时标记 SHARE 引用；版本引用同样原样回填：
+            // 引用版本不在共享授权内时保留悬空版本号，由试运行/发布校验拦截；
+            // 共享方发布新版本后（时间戳必然更大）铃铛出现，升级即修复，与本空间悬空版本语义一致
+            if (!Strings.CS.equals(workflowEntity.getWorkspaceId(), workspaceId)) {
+                mapping.setReferenceType(ReferenceTypeEnum.SHARE.getValue());
+            }
+            mapping.setValid(true);
+            mapping.setCreatedOn(now);
+            rebuildList.add(mapping);
+        }
+    }
+
+    /**
+     * 按 SubController 节点重建 controller→子多智能体映射（resource_type=controller）。
+     * 字段语义与保存链路 recordRefSubController 一致：app_type=controller；跨空间准入走共享
+     * 二维授权（checkWorkspaceAuthByResourceOrNot：共享行存在 + scope 授权目标空间）。
+     * 子多智能体引用的版本可能不存在（导出残留版本号），此时铃铛会提示升级、发布校验会拦截，
+     * 映射本身保留原版本号以暴露问题，与保存链路行为一致。
+     */
+    private void rebuildSubControllerRefMappings(String workspaceId, ControllerVO controllerVO,
+        List<ControllerNodeVO> subControllerNodes, String controllerId, List<MappingEntity> rebuildList) {
+        Date now = new Date();
+        Set<String> handledIds = new HashSet<>();
+        for (ControllerNodeVO subControllerNode : subControllerNodes) {
+            Map<String, Object> configs = MapReadUtil.safeCastToMapWithStringKey(subControllerNode.getConfigs());
+            Object idObj = configs.get(Constants.ID);
+            if (idObj == null || !handledIds.add(String.valueOf(idObj))) {
+                continue;
+            }
+            String subControllerId = String.valueOf(idObj);
+            if (Strings.CS.equals(subControllerId, controllerId)) {
+                continue;
+            }
+            Agent subAgent = agentMapper.selectById(subControllerId);
+            // 子多智能体在本库不存在（跨空间且未共享）时跳过，避免写入无效映射
+            if (subAgent == null || Boolean.TRUE.equals(subAgent.getDeleted())) {
+                continue;
+            }
+            MappingEntity mapping = new MappingEntity();
+            mapping.setMappingId(UUID.randomUUID().toString());
+            mapping.setAppId(controllerId);
+            // 与 recordRefSubController 的覆写一致：子控制器映射 app_type=controller
+            mapping.setAppType(CommonConstant.CONTROLLER);
+            mapping.setAppName(controllerVO.getName());
+            mapping.setAppVersion(null);
+            mapping.setAppWorkspaceId(RequestContextUtils.getRequestWorkspaceId());
+            mapping.setResourceId(subControllerId);
+            mapping.setResourceType(CommonConstant.CONTROLLER_TYPE);
+            Object versionObj = configs.get("version_id");
+            String refVersion = versionObj == null ? null : String.valueOf(versionObj);
+            mapping.setResourceVersion(StringUtils.isEmpty(refVersion) ? null : refVersion);
+            mapping.setResourceName(subAgent.getName());
+            mapping.setResourceWorkspaceId(subAgent.getWorkspaceId());
+            // 跨空间准入必须为共享二维授权（共享行存在 + scope 授权目标空间或 'all'），
+            // 与 isWorkflowVisible 的 checkWorkspaceAuthByResourceOrNot 同一入口：导入链路无前端
+            // 可见性过滤，仅查共享行存在会把共享给其他空间的资源误放行，建出未授权的无效映射。
+            // 授权通过即标 SHARE 引用；resource_workspace_id 保持为上面已设置的资源原属空间
+            if (!Strings.CS.equals(subAgent.getWorkspaceId(), workspaceId)) {
+                if (!shareResourceManagerService.checkWorkspaceAuthByResourceOrNot(workspaceId, subControllerId)) {
+                    continue;
+                }
+                mapping.setReferenceType(ReferenceTypeEnum.SHARE.getValue());
+            }
+            mapping.setValid(true);
+            mapping.setCreatedOn(now);
+            rebuildList.add(mapping);
+        }
+    }
+
+    /**
+     * 按 Agent 节点重建 controller→单智能体映射（resource_type=agent）。
+     * 版本引用按节点 configs 原样回填：引用版本不存在（导出残留版本号）时保留悬空版本号，
+     * 由试运行/发布校验（findMissingVersionSubAgentNodes）报"子智能体节点版本不存在"；
+     * 被引用单智能体发布新版本后（新版本时间戳必然大于悬空的历史时间戳），前端原有升级铃铛
+     * （resource_latest_version > 节点版本号）即出现，客户点击升级即可修复，
+     * 与工作流/子多智能体引用的处理语义一致。
+     * 单智能体跨空间时需共享二维授权（否则不可见），判定方式与 rebuildSubControllerRefMappings 一致。
+     * 映射字段语义与保存链路 recordRefAgent 一致：app_type=controller。
+     */
+    private void rebuildAgentRefMappings(String workspaceId, ControllerVO controllerVO,
+        List<ControllerNodeVO> agentNodes, String controllerId, List<MappingEntity> rebuildList) {
+        Date now = new Date();
+        Set<String> handledIds = new HashSet<>();
+        for (ControllerNodeVO agentNode : agentNodes) {
+            Map<String, Object> configs = MapReadUtil.safeCastToMapWithStringKey(agentNode.getConfigs());
+            Object idObj = configs.get(Constants.ID);
+            if (idObj == null || !handledIds.add(String.valueOf(idObj))) {
+                continue;
+            }
+            String subAgentId = String.valueOf(idObj);
+            Agent subAgent = agentMapper.selectById(subAgentId);
+            // 单智能体在本库不存在（跨空间且未共享）时跳过，避免写入无效映射
+            if (subAgent == null || Boolean.TRUE.equals(subAgent.getDeleted())) {
+                continue;
+            }
+            // 跨空间：需共享二维授权（共享行存在 + scope 授权目标空间）才可见，
+            // 判定与 rebuildSubControllerRefMappings 一致
+            if (!Strings.CS.equals(subAgent.getWorkspaceId(), workspaceId)
+                && !shareResourceManagerService.checkWorkspaceAuthByResourceOrNot(workspaceId, subAgentId)) {
+                continue;
+            }
+            MappingEntity mapping = new MappingEntity();
+            mapping.setMappingId(UUID.randomUUID().toString());
+            mapping.setAppId(controllerId);
+            // 与 recordRefAgent 的覆写一致：单智能体映射 app_type=controller
+            mapping.setAppType(CommonConstant.CONTROLLER);
+            mapping.setAppName(controllerVO.getName());
+            mapping.setAppVersion(null);
+            mapping.setAppWorkspaceId(RequestContextUtils.getRequestWorkspaceId());
+            mapping.setResourceId(subAgentId);
+            mapping.setResourceType(CommonConstant.AGENT_TYPE);
+            // 按节点 configs 中记录的版本引用原样回填（与 nodeToMapping 一致）：
+            // 悬空版本号保留（校验拦截 + 新版本出现后铃铛升级），不自动重绑
+            Object versionObj = configs.get("version_id");
+            String refVersion = versionObj == null ? null : String.valueOf(versionObj);
+            mapping.setResourceVersion(StringUtils.isEmpty(refVersion) ? null : refVersion);
+            Object nameObj = configs.get("name");
+            mapping.setResourceName(nameObj == null ? subAgent.getName() : String.valueOf(nameObj));
+            // 与保存链路 nodeToMapping 一致：agent 类型不做共享判定
+            mapping.setValid(true);
+            mapping.setCreatedOn(now);
+            rebuildList.add(mapping);
+        }
+    }
+
+    /**
+     * 查询 appId 的草稿映射行（app_version 为空）。
+     * selectByAppIdAndAppVersion 传 null 时 SQL 不加 app_version 条件，返回的是草稿+已发布全部行，
+     * 而导入兜底的缺失判定与回滚兜底只应关注草稿行（handleMapping 正常写入的是 valid=true 草稿行，
+     * updateRefResources 先删后插删的也只是草稿行）：已发布行混入判定会造成两类错误——
+     * 已发布引用行存在时缺失判定误判"不缺失"导致兜底漏生效；重建中断回滚时
+     * "草稿是否已清空"因已发布行仍在而误判非空，草稿映射无法回插。
+     */
+    private List<MappingEntity> selectDraftMappings(String appId) {
+        return mappingMapper.selectByAppIdAndAppVersion(appId, null, null, null).stream()
+            .filter(m -> m.getAppVersion() == null)
+            .collect(Collectors.toList());
+    }
+
+    /**
+     * 判定工作流对目标空间是否可见：本空间存在（且未删除），或已共享授权给目标空间。
+     * 与保存链路 generateAgentWorkflowReferences 的可用性判定一致：
+     * 1) 本空间为 project_id + workspace_id 双维度（同 selectByWorkflowSearchCriteria 的过滤条件）。
+     *    t_workspace 主键为 id 且 project_id 非空，workspace 唯一归属 project，正常数据下二者
+     *    等价；叠加 project_id 可过滤 project_id 与所属 workspace 不一致的脏数据。
+     * 2) 共享为二维授权，t_share_resource 存在共享行只是前提，还必须 t_share_scope
+     *    授权了目标空间（或 'all'）。
+     * getWorkflowById 按 id 全库查询、无 project/workspace 过滤，跨空间导入时 DSL 残留的
+     * 源空间 ID 同样能查到，不能单独作为可见性依据。
+     */
+    private boolean isWorkflowVisible(String projectId, String workspaceId, String workflowId) {
+        return isWorkflowVisible(projectId, workspaceId, workflowMapper.getWorkflowById(workflowId));
+    }
+
+    /**
+     * 同上，接受调用方已查出的实体，避免重复查询 t_agent_workflow
+     */
+    private boolean isWorkflowVisible(String projectId, String workspaceId, WorkflowEntity workflowEntity) {
+        if (workflowEntity == null || Boolean.TRUE.equals(workflowEntity.getDeleted())) {
+            return false;
+        }
+        if (Strings.CS.equals(workflowEntity.getProjectId(), projectId)
+            && Strings.CS.equals(workflowEntity.getWorkspaceId(), workspaceId)) {
+            return true;
+        }
+        // 已共享授权（scope 授权目标空间或 'all'）才可见。复用既有共享授权判定服务，
+        // 与发布校验/多智能体试运行校验同一入口（内部含共享行存在性 + scope 授权，支持 'all'）
+        return shareResourceManagerService.checkWorkspaceAuthByResourceOrNot(workspaceId, workflowEntity.getId());
+    }
+
+    /**
+     * 收集 DSL 中 Workflow 节点引用的子工作流 ID
+     */
+    private List<String> collectSubWorkflowIds(WorkflowVO workflowVO) {
+        return workflowVO.getNodes().stream()
+            .filter(node -> Strings.CS.equals(node.getType(), NodeType.WORKFLOW.getType()))
+            .map(node -> node.getConfigs())
+            .filter(configs -> configs != null && configs.get(Constants.ID) != null)
+            .map(configs -> configs.get(Constants.ID).toString())
+            .filter(StringUtils::isNotEmpty)
+            .distinct()
+            .collect(Collectors.toList());
+    }
+
+    private ImportInfo convertToImportInfo(ExportInfo exportInfo) {
+        ImportInfo importInfo = new ImportInfo();
+        BeanUtils.copyProperties(exportInfo, importInfo);
+        return importInfo;
     }
 
     /**
@@ -426,6 +941,15 @@ public class AgentImportService {
                         latestVersionId = versions.get(0).getVersionId();
                         latestVersionName = versions.get(0).getVersionName();
                     }
+                } else {
+                    // 宽松导入：本地查不到时，按 traceId 查共享给当前空间的共享资源（含团队共享 'all'），命中取最新版本
+                    SpaciousInfo shareInfo = findSharedSpaciousInfo(projectId, workspaceId,
+                        ResourceTypeEnum.WORKFLOW.toString(), mapping.getTraceId());
+                    if (shareInfo != null) {
+                        targetResourceId = shareInfo.getTargetResourceId();
+                        latestVersionId = shareInfo.getLatestVersionId();
+                        latestVersionName = shareInfo.getLatestVersionName();
+                    }
                 }
             } else if (Strings.CS.equals(mapping.getResourceType(), ResourceTypeEnum.CONTROLLER.toString())) {
                 List<Agent> agents = agentMapper.selectAgentByTraceIdAndWorkspaceId(projectId, workspaceId,
@@ -438,14 +962,27 @@ public class AgentImportService {
                         latestVersionId = versions.get(0).getVersionId();
                         latestVersionName = versions.get(0).getVersionName();
                     }
+                } else {
+                    // 宽松导入：本地查不到时，按 traceId 查共享给当前空间的共享资源（含团队共享 'all'），命中取最新版本
+                    SpaciousInfo shareInfo = findSharedSpaciousInfo(projectId, workspaceId,
+                        ResourceTypeEnum.CONTROLLER.toString(), mapping.getTraceId());
+                    if (shareInfo != null) {
+                        targetResourceId = shareInfo.getTargetResourceId();
+                        latestVersionId = shareInfo.getLatestVersionId();
+                        latestVersionName = shareInfo.getLatestVersionName();
+                    }
                 }
             } else if (Strings.CS.equals(mapping.getResourceType(), ResourceTypeEnum.MODEL.toString())) {
-                // 宽松导入：按模型 identityId 在目标空间匹配等价模型。源空间模型的 mapping.resourceId 即其 id，
-                // 首建模型 id==identityId，可直接作为查询键；导入来的模型 id!=identityId 时查不到则保持原值（不抛异常）。
-                List<ModelServiceBase> models = modelServiceMapper.queryByIdentityId(projectId, workspaceId,
-                    mapping.getResourceId());
-                if (CollectionUtils.isNotEmpty(models)) {
-                    targetResourceId = models.get(0).getId();
+                // 宽松导入：按模型 identityId 在目标空间匹配等价模型。
+                // mapping.resourceId 是源空间模型 id，需先查其 identityId（导入来的模型 id!=identityId），
+                // 再用 identityId 在目标空间 queryByIdentityId 查等价模型。查不到则保持原值（不抛异常）。
+                ModelServiceBase sourceModel = modelServiceMapper.queryById(mapping.getResourceId());
+                if (sourceModel != null && StringUtils.isNotEmpty(sourceModel.getIdentityId())) {
+                    List<ModelServiceBase> models = modelServiceMapper.queryByIdentityId(projectId, workspaceId,
+                        sourceModel.getIdentityId());
+                    if (CollectionUtils.isNotEmpty(models)) {
+                        targetResourceId = models.get(0).getId();
+                    }
                 }
             }
             if (StringUtils.isNotEmpty(targetResourceId)) {
@@ -458,6 +995,41 @@ public class AgentImportService {
             }
         }
         return spaciousInfoList;
+    }
+
+    /**
+     * 宽松导入：本地查不到子资源时，按 traceId 查共享给当前空间的共享资源（含团队共享 'all'）。
+     * 命中则取 version_list 中 versionId 最大的版本（与 selectByAppId 的 order by version_id desc 语义一致）。
+     * 查不到返回 null（保持原值不抛异常）。仅 getSpaciousInfos 宽松导入调用，不影响严格导入。
+     */
+    private SpaciousInfo findSharedSpaciousInfo(String projectId, String workspaceId, String resourceType,
+        String traceId) {
+        if (StringUtils.isEmpty(traceId)) {
+            return null;
+        }
+        List<ShareResourceEntity> shareResources = shareResourceMapper.selectSharedResourceByTraceIdAndAuthWorkspace(
+            projectId, workspaceId, resourceType, traceId);
+        if (CollectionUtils.isEmpty(shareResources)) {
+            return null;
+        }
+        ShareResourceEntity shareResource = shareResources.get(0);
+        SpaciousInfo spaciousInfo = new SpaciousInfo();
+        spaciousInfo.setTargetResourceId(shareResource.getResourceId());
+        spaciousInfo.setOriginalResourceId(shareResource.getResourceId());
+        // 从 version_list 取 versionId 最大的版本（versionId 为毫秒时间戳字符串，等长13位，字符串降序==数值降序）
+        List<ResourceVersionInfo> versionInfos = JsonUtils.json2Array(shareResource.getVersionList(),
+            ResourceVersionInfo.class);
+        if (CollectionUtils.isNotEmpty(versionInfos)) {
+            ResourceVersionInfo latest = versionInfos.stream()
+                .filter(v -> StringUtils.isNotEmpty(v.getVersionId()))
+                .max(Comparator.comparing(ResourceVersionInfo::getVersionId))
+                .orElse(null);
+            if (latest != null) {
+                spaciousInfo.setLatestVersionId(latest.getVersionId());
+                spaciousInfo.setLatestVersionName(latest.getVersionName());
+            }
+        }
+        return spaciousInfo;
     }
 
     private void handleSpaciousWorkflowDsl(WorkflowVO workflowVO, List<SpaciousInfo> spaciousInfoList) {
@@ -541,7 +1113,11 @@ public class AgentImportService {
             }
             mappingEntities.add(mappingEntity);
         }
-        mappingMapper.insertBatch(mappingEntities);
+        // 分批插入：openGauss 单条 PreparedStatement 参数数受 2 字节限制（≤32767）。
+        // t_mapping 单行 17 个参数，单批上限 = 32767/17 ≈ 1927 行；取 1000 留充足余量。
+        for (List<MappingEntity> batch : Lists.partition(mappingEntities, 1000)) {
+            mappingMapper.insertBatch(batch);
+        }
     }
 
     private void handleSpaciousSubController(ControllerVO controllerVO, String projectId, String workspaceId,
@@ -899,8 +1475,12 @@ public class AgentImportService {
         if (CollectionUtils.isNotEmpty(mappingList)) {
             // 分组并删除旧数据
             groupedDelete(mappingList);
-            // 批量插入新数据
-            mappingMapper.insertBatch(mappingList);
+            // 批量插入新数据：openGauss 单条 PreparedStatement 参数数受 2 字节限制（≤32767）。
+            // t_mapping 单行 17 个参数，单批上限 = 32767/17 ≈ 1927 行；取 1000 留充足余量，
+            // 大工作流导入产生的 mapping 较多时避免参数超限导致连接被打成 broken。
+            for (List<MappingEntity> batch : Lists.partition(mappingList, 1000)) {
+                mappingMapper.insertBatch(batch);
+            }
         }
     }
 
@@ -1055,13 +1635,13 @@ public class AgentImportService {
             allIdMappings.put(result.getId(), newId);
             ImportInfo info = resourceMap.get(result.getId());
             if (info != null && info.getMetadata() != null) {
-                try {
-                    WorkflowEntity workflowMeta = JsonUtils.objectToClassType(info.getMetadata(), WorkflowEntity.class);
-                    if (StringUtils.isNotEmpty(workflowMeta.getTraceId())
-                        && !Strings.CS.equals(workflowMeta.getTraceId(), result.getId())) {
-                        allIdMappings.put(workflowMeta.getTraceId(), newId);
-                    }
-                } catch (Exception ignored) {
+                // 探测性转换：仅 WORKFLOW/AGENT/CONTROLLER 等结构兼容的 metadata 能成功提取 traceId，
+                // 插件等资源（如 test_status 为 JSON 数组字符串）转换失败属预期，静默返回 null 即可，
+                // 不打 ERROR 堆栈误导排查
+                WorkflowEntity workflowMeta = JsonUtils.objectToClassTypeQuiet(info.getMetadata(), WorkflowEntity.class);
+                if (workflowMeta != null && StringUtils.isNotEmpty(workflowMeta.getTraceId())
+                    && !Strings.CS.equals(workflowMeta.getTraceId(), result.getId())) {
+                    allIdMappings.put(workflowMeta.getTraceId(), newId);
                 }
             }
         }
@@ -1098,24 +1678,33 @@ public class AgentImportService {
                     if (parentResource == null) {
                         return;
                     }
-                    switch (ResourceTypeEnum.fromValue(parentResource.getResourceType())) {
-                        case WORKFLOW -> handleWorkflowDsl(parentResource, parentResult, result);
-                        case AGENT -> handleAgentDsl(parentResource, parentResult, result);
-                        case CONTROLLER -> {
-                            handleControllerDsl(parentResource, parentResult, result, allIdMappings);
-                            if (CollectionUtils.isNotEmpty(parentResource.getParents())) {
-                                parentResource.getParents().forEach(grandParentId -> {
-                                    ImportInfo grandParentResource = resourceMap.get(grandParentId);
-                                    ImportResourceResult grandParentResult = resultMap.get(grandParentId);
-                                    if (grandParentResult == null || Strings.CS.equals(grandParentResult.getStatus(),
-                                        ImportExportStatusEnum.FAILED.getCode())) {
-                                        return;
-                                    }
-                                    handleGrandControllerDsl(grandParentResource, grandParentResult, result);
-                            });
+                    try {
+                        switch (ResourceTypeEnum.fromValue(parentResource.getResourceType())) {
+                            case WORKFLOW -> handleWorkflowDsl(parentResource, parentResult, result);
+                            case AGENT -> handleAgentDsl(parentResource, parentResult, result);
+                            case CONTROLLER -> {
+                                handleControllerDsl(parentResource, parentResult, result, allIdMappings);
+                                if (CollectionUtils.isNotEmpty(parentResource.getParents())) {
+                                    parentResource.getParents().forEach(grandParentId -> {
+                                        ImportInfo grandParentResource = resourceMap.get(grandParentId);
+                                        ImportResourceResult grandParentResult = resultMap.get(grandParentId);
+                                        if (grandParentResult == null || Strings.CS.equals(grandParentResult.getStatus(),
+                                            ImportExportStatusEnum.FAILED.getCode())) {
+                                            return;
+                                        }
+                                        handleGrandControllerDsl(grandParentResource, grandParentResult, result);
+                                    });
+                                }
+                            }
                         }
+                    } catch (Exception e) {
+                        // 单个父资源 DSL 处理失败只影响该资源，不得中断整个 handleResourceDsl：
+                        // 否则后续 DSL 上传循环被整体跳过，所有已落库资源 dsl_path/ir_path 悬空，
+                        // 而导入仍返回成功（假成功），点开资源报 OBS 404。
+                        // 失败的父资源将按导出包原样 DSL 上传（子资源引用替换不完整，见下方日志）。
+                        log.error("import update parent dsl failed, parentId: {}, parentType: {}, childId: {}",
+                            parentId, parentResource.getResourceType(), result.getId(), e);
                     }
-                }
                 });
             });
         });
@@ -1303,7 +1892,9 @@ public class AgentImportService {
             ControllerVO controllerVO = JsonUtils.objectToClassType(importInfo.getDsl(), ControllerVO.class);
             Map<String, Map<String, ControllerNodeVO>> nodesGroupByTypeId = controllerManagementService.groupDslNodes(
                 controllerVO);
-            ControllerIR ir = controllerManagementService.dslToIr(controllerVO, nodesGroupByTypeId);
+            // 导入链路跳过业务子工作流版本存在性校验：本方法异常被吞，校验抛出会连带跳过控制器 IR 上传，
+            // 使试运行报错从"子工作流 IR 缺失"退化为"控制器 IR 缺失"，更难定位。版本缺失交由运行时暴露
+            ControllerIR ir = controllerManagementService.dslToIr(controllerVO, nodesGroupByTypeId, false);
             // 上传IR文件
             if (StringUtils.isNotEmpty(versionId)) {
                 agentCommonService.uploadToObsNoNullWithVersion(agent, ir, CommonConstant.Workflow.IR, versionId);
@@ -1765,7 +2356,7 @@ public class AgentImportService {
             .filter(v -> Strings.CS.equalsAny(v.getType(), NodeType.LLM.getType(), NodeType.AGENT.getType()))
             .forEach(node -> {
                 Map<String, Object> config = node.getConfigs();
-                if (config.get("model") == null) {
+                if (config == null || config.get("model") == null) {
                     return;
                 }
                 Map<String, Object> model = MapReadUtil.safeCastToMapWithStringKey(config.get("model"));
@@ -1774,7 +2365,9 @@ public class AgentImportService {
             });
         Map<String, Object> workflowConfig = workflowVO.getConfigs();
         // 处理workflow dsl config中的default_model
-        if (workflowConfig.get("default_model") == null) {
+        // configs 为 null 的工作流（如无全局配置的子工作流）没有 default_model 可替换，直接跳过；
+        // 此前未判空导致 NPE 中断整个 handleResourceDsl，DSL 上传被整体跳过（点开工作流报 OBS 404）
+        if (workflowConfig == null || workflowConfig.get("default_model") == null) {
             return;
         }
         Map<String, String> defaultModel = JsonUtils.objectToClass(workflowConfig.get("default_model"));
@@ -2059,16 +2652,30 @@ public class AgentImportService {
         }
         List<WorkflowEntity> targetWorkflows = workflowMapper.selectByTraceId(projectId, workspaceId,
             String.valueOf(idObj));
-        if (CollectionUtils.isEmpty(targetWorkflows)) {
+        if (CollectionUtils.isNotEmpty(targetWorkflows)) {
+            // 本地命中：替换为本地新 id；version_id 为 {{latest}} 时用本地最新版本替换
+            WorkflowEntity targetWf = targetWorkflows.get(0);
+            configs.put("id", targetWf.getId());
+            if (Strings.CS.equals(String.valueOf(configs.get("version_id")), LATEST_PARAM)) {
+                List<ReleaseVersion> versions = releaseVersionMapper.selectByAppId(targetWf.getId());
+                if (CollectionUtils.isNotEmpty(versions)) {
+                    configs.put("version_id", versions.get(0).getVersionId());
+                    configs.put("version_name", versions.get(0).getVersionName());
+                }
+            }
             return;
         }
-        WorkflowEntity targetWf = targetWorkflows.get(0);
-        configs.put("id", targetWf.getId());
-        if (Strings.CS.equals(String.valueOf(configs.get("version_id")), LATEST_PARAM)) {
-            List<ReleaseVersion> versions = releaseVersionMapper.selectByAppId(targetWf.getId());
-            if (CollectionUtils.isNotEmpty(versions)) {
-                configs.put("version_id", versions.get(0).getVersionId());
-                configs.put("version_name", versions.get(0).getVersionName());
+        // 本地查不到：按 id（源空间 workflow id==traceId）查共享给当前空间的共享资源，命中则替换 version_id 为最新版本
+        // 共享工作流为纯引用，id 保持源空间id不变（运行时跨空间解析），仅替换版本为共享资源最新版本
+        SpaciousInfo shareInfo = findSharedSpaciousInfo(projectId, workspaceId,
+            ResourceTypeEnum.WORKFLOW.toString(), String.valueOf(idObj));
+        if (shareInfo != null) {
+            configs.put("id", shareInfo.getTargetResourceId());
+            if (Strings.CS.equals(String.valueOf(configs.get("version_id")), LATEST_PARAM)) {
+                if (StringUtils.isNotEmpty(shareInfo.getLatestVersionId())) {
+                    configs.put("version_id", shareInfo.getLatestVersionId());
+                    configs.put("version_name", shareInfo.getLatestVersionName());
+                }
             }
         }
     }

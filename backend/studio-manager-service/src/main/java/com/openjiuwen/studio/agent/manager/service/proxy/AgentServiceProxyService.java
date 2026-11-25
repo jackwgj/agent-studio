@@ -7,14 +7,11 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.obs.services.model.TemporarySignatureResponse;
 import com.openjiuwen.studio.agent.common.annotation.OperationLog;
-import com.openjiuwen.studio.agent.common.dto.BatchDeleteUserVariableMemoryResponseBody;
-import com.openjiuwen.studio.agent.common.dto.agent.Feedback;
 import com.openjiuwen.studio.agent.common.dto.agent.Message;
 import com.openjiuwen.studio.agent.common.dto.agent.Status;
 import com.openjiuwen.studio.agent.common.dto.analytics.AnalyticsEventReq;
 import com.openjiuwen.studio.agent.common.dto.analytics.AnalyticsEventResp;
 import com.openjiuwen.studio.agent.common.dto.knowledge.FileUploadRsp;
-import com.openjiuwen.studio.agent.common.dto.knowledge.ListUserVariableMemoryResponseBody;
 import com.openjiuwen.studio.agent.common.dto.mcp.McpValidationReq;
 import com.openjiuwen.studio.agent.common.dto.mcp.McpValidationResp;
 import com.openjiuwen.studio.agent.common.dto.md.ChatCompletionRequest;
@@ -24,6 +21,7 @@ import com.openjiuwen.studio.agent.common.entity.RouterStrategyEntity;
 import com.openjiuwen.studio.agent.common.entity.Text2AudioReq;
 import com.openjiuwen.studio.agent.common.enums.OperationType;
 import com.openjiuwen.studio.agent.common.dto.ErrorRsp;
+import com.openjiuwen.studio.agent.common.dto.ErrorDetail;
 import com.openjiuwen.studio.agent.common.enums.StudioError;
 import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
 import com.openjiuwen.studio.agent.common.utils.ErrorInfo;
@@ -39,27 +37,28 @@ import com.openjiuwen.studio.agent.manager.dto.*;
 import com.openjiuwen.studio.agent.common.dto.AgentExecutionInfo;
 import com.openjiuwen.studio.agent.manager.dto.AgentRunReq;
 import com.openjiuwen.studio.agent.manager.dto.AutoAddResultJsonObject;
-import com.openjiuwen.studio.agent.manager.dto.BatchDeleteUserVariableMemoryRequestBody;
-import com.openjiuwen.studio.agent.common.dto.BatchDeleteUserVariableMemoryResponseBody;
 import com.openjiuwen.studio.agent.manager.dto.CommonDeleteRsp;
-import com.openjiuwen.studio.agent.common.dto.run.ConversationDeleteResp;
 import com.openjiuwen.studio.agent.common.dto.ExecutionQueries;
 import com.openjiuwen.studio.agent.common.dto.mcp.McpValidationReq;
 import com.openjiuwen.studio.agent.manager.dto.MemoryVariable;
-import com.openjiuwen.studio.agent.common.dto.run.ResetUserVariableMemoryResponseBody;
 import com.openjiuwen.studio.agent.common.dto.run.RunToolRequestBody;
 import com.openjiuwen.studio.agent.common.dto.agent.Status;
+import com.openjiuwen.studio.agent.manager.dto.ControllerExecutionDetail;
 import com.openjiuwen.studio.agent.manager.dto.WorkflowRunReq;
 import com.openjiuwen.studio.agent.manager.dto.runtime.Audio2TextReq;
 import com.openjiuwen.studio.agent.manager.dto.runtime.EmbeddingRequest;
 import com.openjiuwen.studio.agent.manager.dto.runtime.RankDocumentsRequest;
 import com.openjiuwen.studio.agent.manager.dto.runtime.StsTextResp;
 import com.openjiuwen.studio.agent.manager.entity.Agent;
+import com.openjiuwen.studio.agent.manager.entity.EnvironmentManagerEntity;
+import com.openjiuwen.studio.agent.manager.entity.ReleaseChannel;
 import com.openjiuwen.studio.agent.manager.entity.ToolEntity;
 import com.openjiuwen.studio.agent.manager.entity.WorkflowEntity;
 import com.openjiuwen.studio.agent.manager.entity.insight.WorkflowRunResult;
 import com.openjiuwen.studio.agent.manager.entity.md.ModelServiceBase;
 import com.openjiuwen.studio.agent.manager.mapper.AgentMapper;
+import com.openjiuwen.studio.agent.manager.mapper.EnvironmentManagerMapper;
+import com.openjiuwen.studio.agent.manager.mapper.ReleaseChannelMapper;
 import com.openjiuwen.studio.agent.manager.mapper.ToolMapper;
 import com.openjiuwen.studio.agent.manager.mapper.WorkflowMapper;
 import com.openjiuwen.studio.agent.manager.mapper.md.FreeModelServiceMapper;
@@ -96,6 +95,8 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.time.Duration;
@@ -130,6 +131,10 @@ public class AgentServiceProxyService {
     private final FreeModelServiceMapper freeModelServiceMapper;
 
     private final ToolMapper toolMapper;
+
+    private final EnvironmentManagerMapper environmentManagerMapper;
+
+    private final ReleaseChannelMapper releaseChannelMapper;
 
     private final AgentRuntimeService agentRuntimeService;
 
@@ -219,7 +224,9 @@ public class AgentServiceProxyService {
     public AgentServiceProxyService(AgentRuntimeClient runtimeClient, AgentBuilderClient agentBuilderClient, RedisClient redisClient, AgentMapper agentMapper,
         WorkflowMapper workflowMapper, ModelServiceMapper modelServiceMapper, OkHttpClientUtils okHttpClientUtils,
         RouterStrategyMapper routerStrategyMapper, FreeModelServiceMapper freeModelServiceMapper,
-        ToolMapper toolMapper, AgentRuntimeService agentRuntimeService,
+        ToolMapper toolMapper, EnvironmentManagerMapper environmentManagerMapper,
+        ReleaseChannelMapper releaseChannelMapper,
+        AgentRuntimeService agentRuntimeService,
         ControllerDebuggingMgmtService controllerDebuggingMgmtService, MgObsService mgObsService) {
         this.runtimeClient = runtimeClient;
         this.builderClient = agentBuilderClient;
@@ -231,6 +238,8 @@ public class AgentServiceProxyService {
         this.routerStrategyMapper = routerStrategyMapper;
         this.freeModelServiceMapper = freeModelServiceMapper;
         this.toolMapper = toolMapper;
+        this.environmentManagerMapper = environmentManagerMapper;
+        this.releaseChannelMapper = releaseChannelMapper;
         this.agentRuntimeService = agentRuntimeService;
         this.controllerDebuggingMgmtService = controllerDebuggingMgmtService;
         this.mgObsService = mgObsService;
@@ -263,49 +272,6 @@ public class AgentServiceProxyService {
         return stream(url, httpHeaders, JsonUtils.encode(body));
     }
 
-    public ResponseEntity<String> createUserFeedback(String projectId, String appId, String conversationId,
-        String messageId, String appType, String versionId, Feedback body) {
-
-        return runtimeClient.createUserFeedback(getToken(), projectId, appId, conversationId, messageId, appType,
-            versionId, body);
-    }
-
-    @OperationLog(
-        operationType = OperationType.DELETE,
-        resourceType = "ConversationFeedback",
-        description = "删除用户反馈",
-        resourceId = "messageId",
-        resourceName = ""
-    )
-    public ResponseEntity<ConversationDeleteResp> deleteFeedback(String projectId, String appId, String conversationId,
-        String messageId, String versionId) {
-
-        return runtimeClient.deleteFeedback(getToken(), projectId, appId, conversationId, messageId, versionId);
-    }
-
-    ;
-
-    public ResponseEntity<BatchDeleteUserVariableMemoryResponseBody> batchDeleteUserVariableMemory(String projectId,
-        String agentId, String workspaceId, BatchDeleteUserVariableMemoryRequestBody body) {
-
-        checkAgentPermission(projectId, workspaceId, agentId);
-        return runtimeClient.batchDeleteUserVariableMemory(getToken(), projectId, agentId, workspaceId, body);
-    }
-
-    public ResponseEntity<ListUserVariableMemoryResponseBody> listUserVariableMemory(String projectId, String agentId,
-        String workspaceId) {
-
-        checkAgentPermission(projectId, workspaceId, agentId);
-        return runtimeClient.listUserVariableMemory(getToken(), projectId, agentId, workspaceId);
-    }
-
-    public ResponseEntity<ResetUserVariableMemoryResponseBody> resetUserVariableMemory(String projectId, String agentId,
-        String workspaceId) {
-
-        checkAgentPermission(projectId, workspaceId, agentId);
-        return runtimeClient.resetUserVariableMemory(getToken(), projectId, agentId, workspaceId);
-    }
-
 
 
 
@@ -319,59 +285,106 @@ public class AgentServiceProxyService {
     }
 
     public Object rerank(HttpHeaders headers, String workspaceId, RankDocumentsRequest request, Boolean refresh,
-        String projectId) {
+        String projectId, String apiUrlEnvVars) {
         String modelId = request.getModel();
         checkModelPermission(projectId, workspaceId, modelId);
-        return builderClient.rerank(getToken(), projectId, workspaceId, request, refresh);
+        String environmentId = headers.getFirst("X-Environment-Id");
+        try {
+            return builderClient.rerank(getToken(), environmentId, projectId, workspaceId, request, refresh, apiUrlEnvVars);
+        } catch (FeignException e) {
+            ResponseEntity<Object> errorResponse = parseModelServiceFeignError(e);
+            if (errorResponse != null) {
+                return errorResponse;
+            }
+            throw e;
+        }
     }
 
     public Object textEmbeddings(HttpHeaders headers, String workspaceId, EmbeddingRequest request, Boolean refresh,
-        String projectId) {
+        String projectId, String apiUrlEnvVars) {
 
         String modelId = request.getModel();
         checkModelPermission(projectId, workspaceId, modelId);
-        return builderClient.textEmbeddings(getToken(), projectId, workspaceId, request, refresh);
+        String environmentId = headers.getFirst("X-Environment-Id");
+        try {
+            return builderClient.textEmbeddings(getToken(), environmentId, projectId, workspaceId, request, refresh, apiUrlEnvVars);
+        } catch (FeignException e) {
+            ResponseEntity<Object> errorResponse = parseModelServiceFeignError(e);
+            if (errorResponse != null) {
+                return errorResponse;
+            }
+            throw e;
+        }
+    }
+
+    /**
+     * 解析模型服务 Feign 调用的错误响应体，提取错误信息及上游 details。
+     * 解析失败时退回通用错误码（MD_MODEL_SERVICE_NOT_AVAILABLE），透传上游 HTTP 状态码。
+     */
+    private ResponseEntity<Object> parseModelServiceFeignError(FeignException e) {
+        log.error("Model service call failed via Feign client.", e);
+        try {
+            String body = e.contentUTF8();
+            if (body != null) {
+                JSONObject errObj = JSONObject.parseObject(body);
+                if (errObj != null && errObj.containsKey("error_code")) {
+                    ErrorRsp errorRsp = new ErrorRsp()
+                        .setErrorCode(errObj.getString("error_code"))
+                        .setErrorMsg(errObj.getString("error_msg"))
+                        .setErrorReason(errObj.getString("error_reason"))
+                        .setErrorSuggestion(errObj.getString("error_suggestion"));
+                    if (errObj.containsKey("details")) {
+                        JSONArray detailsArr = errObj.getJSONArray("details");
+                        if (detailsArr != null) {
+                            List<ErrorDetail> details = new ArrayList<>();
+                            for (int i = 0; i < detailsArr.size(); i++) {
+                                JSONObject d = detailsArr.getJSONObject(i);
+                                if (d != null) {
+                                    details.add(new ErrorDetail()
+                                        .setErrorMsg(d.getString("error_msg")));
+                                }
+                            }
+                            errorRsp.setDetails(details);
+                        }
+                    }
+                    return ResponseEntity.status(e.status() > 0 ? e.status() : 500).body(errorRsp);
+                }
+            }
+        } catch (Exception parseEx) {
+            log.warn("Failed to parse Feign error body.", parseEx);
+        }
+        // 无法从 Feign 异常解析出 builder 的 error body 时，退回通用错误码（不带构造的 details，
+        // 避免透出对用户无意义的异常堆栈信息）
+        ErrorInfo errorInfo = i18nUtil.getMessage(
+            new AgentStudioException(StudioError.MD_MODEL_SERVICE_NOT_AVAILABLE));
+        ErrorRsp errorRsp = new ErrorRsp()
+            .setErrorCode(StudioError.MD_MODEL_SERVICE_NOT_AVAILABLE.getFullCode())
+            .setErrorMsg(errorInfo.getMessage())
+            .setErrorReason(errorInfo.getReason())
+            .setErrorSuggestion(errorInfo.getSuggestion());
+        int status = e.status() > 0 ? e.status() : 500;
+        return ResponseEntity.status(status).body(errorRsp);
     }
 
     public Object chatCompletions(HttpHeaders headers, String workspaceId, ChatCompletionRequest request,
-        Boolean refresh, String projectId) {
+        Boolean refresh, String projectId, String apiUrlEnvVars) {
 
         String modelId = request.getModel();
         checkModelPermission(projectId, workspaceId, modelId);
         if (request.getStream() == null || request.getStream()) {
             String url = agentBuilderEndpoint + "/v1/agent-builder/chat/completions?project_id=" + projectId + "&workspace_id="
                 + workspaceId + "&refresh=" + (Boolean.FALSE.equals(refresh) ? "false" : "true");
+            if (apiUrlEnvVars != null && !apiUrlEnvVars.isEmpty()) {
+                url += "&api_url_env_vars=" + URLEncoder.encode(apiUrlEnvVars, StandardCharsets.UTF_8);
+            }
 
             return stream(url, headers, JsonUtils.encode(request));
         }
+        String environmentId = headers.getFirst("X-Environment-Id");
         try {
-            return builderClient.chatCompletions(getToken(), projectId, workspaceId, request, refresh);
+            return builderClient.chatCompletions(getToken(), environmentId, projectId, workspaceId, request, refresh, apiUrlEnvVars);
         } catch (FeignException e) {
-            log.error("Model service call failed via Feign client.", e);
-            try {
-                String body = e.contentUTF8();
-                if (body != null) {
-                    JSONObject errObj = JSONObject.parseObject(body);
-                    if (errObj != null && errObj.containsKey("error_code")) {
-                        ErrorRsp errorRsp = new ErrorRsp()
-                            .setErrorCode(errObj.getString("error_code"))
-                            .setErrorMsg(errObj.getString("error_msg"))
-                            .setErrorReason(errObj.getString("error_reason"))
-                            .setErrorSuggestion(errObj.getString("error_suggestion"));
-                        return ResponseEntity.status(e.status() > 0 ? e.status() : 500).body(errorRsp);
-                    }
-                }
-            } catch (Exception parseEx) {
-                log.warn("Failed to parse Feign error body.", parseEx);
-            }
-            ErrorInfo errorInfo = i18nUtil.getMessage(
-                new AgentStudioException(StudioError.MD_MODEL_SERVICE_NOT_AVAILABLE));
-            ErrorRsp errorRsp = new ErrorRsp()
-                .setErrorCode(StudioError.MD_MODEL_SERVICE_NOT_AVAILABLE.getFullCode())
-                .setErrorMsg(errorInfo.getMessage())
-                .setErrorReason(errorInfo.getReason())
-                .setErrorSuggestion(errorInfo.getSuggestion());
-            return ResponseEntity.status(500).body(errorRsp);
+            return parseModelServiceFeignError(e);
         }
     }
 
@@ -431,8 +444,8 @@ public class AgentServiceProxyService {
     }
     //  MCP\rerank\Embedding 待确认鉴权方式
 
-    public ResponseEntity<Object> listControllerExecutions(String projectId, String agentId, String conversationId,
-        ListControllerExecutionsQo listControllerExecutionsQo, String workspaceId) {
+    public ResponseEntity<ListControllerExecutionsResp> listControllerExecutions(String projectId, String agentId,
+        String conversationId, ListControllerExecutionsQo listControllerExecutionsQo, String workspaceId) {
         List<ControllerExecutionBriefModel> briefModels = controllerDebuggingMgmtService.queryCtrlExecutions(
             agentId, conversationId, listControllerExecutionsQo);
 
@@ -452,13 +465,13 @@ public class AgentServiceProxyService {
         return ResponseEntity.ok(resp);
     }
 
-    public ResponseEntity<Object> getControllerExecutionDetail(String projectId, String agentId, String executionId,
-        GetControllerExecutionDetailQo body, String workspaceId) {
+    public ResponseEntity<ControllerExecutionDetail> getControllerExecutionDetail(String projectId, String agentId,
+        String executionId, GetControllerExecutionDetailQo body, String workspaceId) {
 
         ControllerExecutionDetailModel detailModel = controllerDebuggingMgmtService.queryCtrlExecutionDetail(
             agentId, executionId);
         if (detailModel == null || detailModel.getExecutionId() == null) {
-            return ResponseEntity.ok(new JSONObject());
+            return ResponseEntity.ok(new ControllerExecutionDetail());
         }
 
         try {
@@ -494,7 +507,7 @@ public class AgentServiceProxyService {
             return ResponseEntity.ok(detail);
         } catch (Exception e) {
             log.error("Failed to get controller execution detail", e);
-            return ResponseEntity.ok(new JSONObject());
+            return ResponseEntity.ok(new ControllerExecutionDetail());
         }
     }
 
@@ -532,23 +545,171 @@ public class AgentServiceProxyService {
 
     public Object runWebWorkflow(String shortCode, String projectId, HttpHeaders httpHeaders, String workspaceId,
         String conversationId, Boolean stream, WorkflowRunReq body) {
+        // 网页短链入口无鉴权：默认环境按 short_code 所属发布通道的 project 解析，
+        // 环境变量按 (environment_id, workspace_id) 维度存储，加载 workspace 同样取
+        // 发布通道 workspace（对齐 runWebAgent，保证占位符 URL 解析到发布方预期的变量值）
+        ReleaseChannel channel = lookupWebReleaseChannel(shortCode);
+        String environmentId = resolveChannelDefaultEnvironment(channel, shortCode);
+        String forwardWorkspaceId = workspaceId;
+        if (StringUtils.hasText(environmentId)) {
+            forwardWorkspaceId = channel.getWorkspaceId();
+        }
         if (stream == null || stream) {
             String url = runtimeEndpoint + "/v1/workflows/chat/" + shortCode + "/conversations/" + conversationId
-                + "?workspace_id=" + workspaceId;
-
+                + "?workspace_id=" + forwardWorkspaceId;
+            if (StringUtils.hasText(environmentId)) {
+                url = url + "&environment_id=" + environmentId;
+            }
             return stream(url, httpHeaders, JsonUtils.encode(body));
         }
-        return runtimeClient.runWebWorkflow(getToken(), shortCode, conversationId, workspaceId, body, false).getBody();
+        return runtimeClient.runWebWorkflow(getToken(), shortCode, conversationId, forwardWorkspaceId, environmentId,
+            body, false).getBody();
+    }
+
+    /**
+     * 智能体运行 environment_id 兜底：入参非空原样返回；
+     * 为空时回填项目默认环境 id（单智能体无环境选择，模型 api_url 占位符按默认环境解析）。
+     * 查不到默认环境或查询异常返回 null，转发 URL 不带参，行为与不兜底时一致。
+     *
+     * @param projectId 项目 id
+     * @param environmentId 请求携带的 environment_id，可为空
+     * @return 实际使用的 environment_id，可能为 null
+     */
+    public String resolveEnvironmentId(String projectId, String environmentId) {
+        if (StringUtils.hasText(environmentId)) {
+            return environmentId;
+        }
+        try {
+            List<EnvironmentManagerEntity> defaults = environmentManagerMapper
+                .findByProjectIdAndIsDefaultTrue(projectId);
+            if (defaults == null || defaults.isEmpty()) {
+                return null;
+            }
+            return defaults.get(0).getId();
+        } catch (Exception e) {
+            log.error("resolve default environment failed, projectId: {}", projectId, e);
+            return null;
+        }
+    }
+
+    /**
+     * 单智能体运行的 environment_id 兜底：入参非空原样返回；为空且目标智能体为
+     * 归属请求项目的单智能体（t_agent.type = agent 且 project_id 一致）时回填项目
+     * 默认环境 id。多智能体（controller）/高代码（agent_new）/智能体不存在/跨项目
+     * 共享智能体（opSvc 归属，checkAgentPermission 允许跨项目调用发布态）/查询
+     * 异常一律返回 null，转发不带 environment_id，保持既有运行行为——runtime 会话
+     * 路由同时服务单智能体与多智能体（百宝箱试用也复用），默认环境兜底只应作用于
+     * 无环境选择的单智能体链路，不向其他类型/归属其它项目的应用注入项目默认环境变量。
+     *
+     * @param projectId 项目 id
+     * @param agentId 智能体 id
+     * @param environmentId 请求携带的 environment_id，可为空
+     * @return 实际使用的 environment_id，可能为 null
+     */
+    public String resolveEnvironmentIdForSingleAgent(String projectId, String agentId, String environmentId) {
+        if (StringUtils.hasText(environmentId)) {
+            return environmentId;
+        }
+        try {
+            Agent agent = agentMapper.selectById(agentId);
+            if (agent == null || !CommonConstant.AGENT_TYPE.equals(agent.getType())) {
+                return null;
+            }
+            // 共享智能体（归属项目与请求项目不一致，仅 opSvc 发布态可达）不做兜底：
+            // runtime 按 environment:{envId}:workspaceId:{请求workspace} 加载变量，
+            // 回填调用方项目默认环境会把发布方占位符 api_url 解析到调用方环境配置的
+            // 端点（模型请求重定向、调用方变量值外流）
+            if (!Objects.equals(projectId, agent.getProjectId())) {
+                log.warn("agent {} belongs to project {}, not request project {}, skip default environment",
+                    agentId, agent.getProjectId(), projectId);
+                return null;
+            }
+            return resolveEnvironmentId(projectId, null);
+        } catch (Exception e) {
+            log.error("resolve single agent default environment failed, projectId: {}, agentId: {}",
+                projectId, agentId, e);
+            return null;
+        }
     }
 
     public Object runWebAgent(String shortCode, String projectId, HttpHeaders httpHeaders, String workspaceId,
         Boolean stream, AgentRunReq body) {
+        // 网页短链入口无鉴权：路径 project_id 与请求 workspace_id 均不可信
+        // - 默认环境按 short_code 所属发布通道的 project 解析，与 runtime 侧按 Redis
+        //   release_web_rel_{short_code} 中的 project_id 构造执行上下文的做法一致
+        // - 环境变量按 (environment_id, workspace_id) 维度存储，加载 workspace 同样
+        //   取发布通道 workspace：请求 workspace_id 可被换成发布项目下其它 workspace，
+        //   选取该项目其它空间写入的变量值，使占位符 api_url 解析到非发布方预期端点
+        // - workspace_id 在本执行链仅用于环境变量加载：未解析到默认环境时
+        //   environment_id 缺省、runtime 不加载变量，请求 workspace 原样转发
+        ReleaseChannel channel = lookupWebReleaseChannel(shortCode);
+        String environmentId = resolveChannelDefaultEnvironment(channel, shortCode);
+        String forwardWorkspaceId = workspaceId;
+        if (StringUtils.hasText(environmentId)) {
+            forwardWorkspaceId = channel.getWorkspaceId();
+        }
         if (stream == null || stream) {
-            String url = runtimeEndpoint + "/v1/agents/chat/" + shortCode + "?workspace_id=" + workspaceId;
-
+            String url = runtimeEndpoint + "/v1/agents/chat/" + shortCode + "?workspace_id=" + forwardWorkspaceId;
+            if (StringUtils.hasText(environmentId)) {
+                url = url + "&environment_id=" + environmentId;
+            }
             return stream(url, httpHeaders, JsonUtils.encode(body));
         }
-        return runtimeClient.runWebAgent(getToken(), shortCode, workspaceId, false, body).getBody();
+        return runtimeClient.runWebAgent(getToken(), shortCode, forwardWorkspaceId, false, environmentId, body).getBody();
+    }
+
+    /**
+     * 以 short_code 反查网页发布通道：WEB_PAGE / CLOUD_STORE 两类网页渠道均生成
+     * short_code，逐类反查（channelType 是 SQL 硬等值，不能传 null；projectId/id
+     * 传 null 走 if 跳过）。通道不存在或查表异常返回 null。
+     *
+     * @param shortCode 网页短链码
+     * @return 发布通道，可能为 null
+     */
+    private ReleaseChannel lookupWebReleaseChannel(String shortCode) {
+        try {
+            ReleaseChannel channel = releaseChannelMapper.selectByChannelIdOrShortCode(
+                null, null, shortCode, CommonConstant.WEB_PAGE_CHANNEL);
+            if (channel == null) {
+                channel = releaseChannelMapper.selectByChannelIdOrShortCode(
+                    null, null, shortCode, CommonConstant.CLOUD_STORE_CHANNEL);
+            }
+            return channel;
+        } catch (Exception e) {
+            log.error("lookup web release channel failed, shortCode: {}", shortCode, e);
+            return null;
+        }
+    }
+
+    /**
+     * 按网页发布通道解析默认环境：以通道所属 project 为准（不信任请求路径
+     * project_id）。通道不存在、发布应用非单智能体/工作流（appType 不属于
+     * agent / workflow，如多智能体发布，不走本兜底）、通道 workspace 缺失
+     * （无法安全确定环境变量加载维度，宁可不放行也不回退到请求 workspace）或
+     * 项目无默认环境时返回 null，转发不带 environment_id，行为与项目未配置
+     * 默认环境一致（占位符 URL 报错，不会借用其它项目/其它空间的环境变量）。
+     *
+     * @param channel 网页发布通道，可为 null
+     * @param shortCode 网页短链码（仅用于日志）
+     * @return 默认环境 id，可能为 null
+     */
+    private String resolveChannelDefaultEnvironment(ReleaseChannel channel, String shortCode) {
+        if (channel == null || !StringUtils.hasText(channel.getProjectId())) {
+            log.warn("web release channel not found or missing project, skip default environment, shortCode: {}",
+                shortCode);
+            return null;
+        }
+        if (!CommonConstant.AGENT_TYPE.equals(channel.getAppType())
+            && !CommonConstant.WORKFLOW_TYPE.equals(channel.getAppType())) {
+            log.warn("web release channel app is not single agent or workflow, skip default environment, shortCode: {}, "
+                + "appType: {}", shortCode, channel.getAppType());
+            return null;
+        }
+        if (!StringUtils.hasText(channel.getWorkspaceId())) {
+            log.warn("web release channel missing workspace, skip default environment, shortCode: {}", shortCode);
+            return null;
+        }
+        return resolveEnvironmentId(channel.getProjectId(), null);
     }
 
     public void checkToolsPermission(ToolEntity tool, String projectId, String workspaceId) {
@@ -845,10 +1006,15 @@ public class AgentServiceProxyService {
             // 如果是第一次上传，设置过期时间5分钟
             redisClient.expire(key, Duration.ofSeconds(timeScopeUploadNum));
         }
-        if (currentCount > maxUploadNum) {
+        // 用自增前的值判断：第 1~maxUploadNum 次返回 0~maxUploadNum-1，均放行；
+        // 第 maxUploadNum+1 次返回 maxUploadNum，>= 判定拒绝，与文案"最多上传N个"严格一致
+        if (currentCount >= maxUploadNum) {
             log.error("The number of the upload files exceeds the limit. currentCount:{}, maxUploadNum:{}",
                     currentCount, maxUploadNum);
-            throw new AgentStudioException(StudioError.AGENT_UPLOAD_FILE_NUM);
+            long minutes = timeScopeUploadNum / 60;
+            String timeWindowReadable = String.valueOf(minutes > 0 ? minutes : timeScopeUploadNum);
+            throw new AgentStudioException(StudioError.AGENT_UPLOAD_FILE_NUM,
+                    String.valueOf(maxUploadNum), timeWindowReadable);
         }
     }
 

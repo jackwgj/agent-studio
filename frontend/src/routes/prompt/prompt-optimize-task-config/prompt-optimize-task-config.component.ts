@@ -89,7 +89,7 @@ export class PromptOptimizeTaskConfigComponent {
     theObjectToApply: this.i18n.transform('prompt_optimize_task_the_object_to_apply'),
   };
   public basicInfoForm = this.fb.group({
-    taskName: new FormControl('', [Validators.required, Validators.maxLength(64)]),
+    taskName: new FormControl('', [Validators.required, Validators.maxLength(34)]),
     type: new FormControl(this.promptTypeOptions[0].value, [Validators.required]),
     desc: new FormControl('', [Validators.required]),
     prompt: new FormControl('', [Validators.required]),
@@ -228,8 +228,7 @@ export class PromptOptimizeTaskConfigComponent {
   }
 
   private getTaskNameErrorMessage(error: 'required' | 'maxlength'): string {
-    const messageKey =
-      error === 'required' ? 'prompt_optimize_task_config_1' : 'prompt_optimize_task_config_name_max_length';
+    const messageKey = error === 'required' ? 'prompt_optimize_task_config_1' : 'prompt_optimize_task_config_name_max_length';
     return this.i18n.transform(messageKey);
   }
 
@@ -239,6 +238,11 @@ export class PromptOptimizeTaskConfigComponent {
   isSpinning = false;
 
   private isEdit: boolean = false;
+
+  get basicInfoFormValuePrompt() {
+    return !this.basicInfoForm.value.prompt?.trim();
+  }
+
   constructor(
     private variableService: VariableService,
     private sidebarVisibilityServ: SetSidebarVisibilityService,
@@ -374,25 +378,26 @@ export class PromptOptimizeTaskConfigComponent {
     }, 1500);
   }
 
-  public handleConfirm() {
+  public async handleConfirm() {
     this.isSpinning = true;
-    this.promptOptimizeService
-      .createTask(this.taskId)
-      .then(res => {
-        MessageComponent.showSuccess(this.i18n.transform('task_create_success'));
-        StorageService.setSessionStorage('activeTab', '1');
-        this.router.navigate(['/home/agent-center/library-home'], {
-          state: {
-            activeTab: 1,
-          },
-          queryParams: {
-            tabId: 'prompt',
-          },
-        });
-      })
-      .finally(() => {
-        this.isSpinning = false;
+    try {
+      // 先持久化表单最新值(如优化最大轮次)再启动:自动保存有1s防抖+异步延迟,
+      // 直接启动会读到DB旧草稿,导致界面改的轮次/参数丢失
+      await this.saveDraft();
+      await this.promptOptimizeService.createTask(this.taskId);
+      MessageComponent.showSuccess(this.i18n.transform('task_create_success'));
+      StorageService.setSessionStorage('activeTab', '1');
+      this.router.navigate(['/home/agent-center/library-home'], {
+        state: {
+          activeTab: 1,
+        },
+        queryParams: {
+          tabId: 'prompt',
+        },
       });
+    } finally {
+      this.isSpinning = false;
+    }
   }
 
   public showInserter() {
@@ -422,12 +427,12 @@ export class PromptOptimizeTaskConfigComponent {
       nzWidth: '700px',
     });
     const instance = thisNzModal.getContentComponent();
-    instance.ensure.subscribe((res) => {
-      if(res){
+    instance.ensure.subscribe(res => {
+      if (res) {
         this.basicInfoForm.controls.type.setValue(value);
         this.modelType = ModelType.LLM;
         this.cdr.markForCheck();
-      }else{
+      } else {
         this.basicInfoForm.controls.type.setValue(this.promptTypeOptions[1].value);
         this.promptTypeSelected = this.promptTypeOptions[1].value;
         this.cdr.markForCheck();
@@ -739,7 +744,7 @@ export class PromptOptimizeTaskConfigComponent {
     // 不触发表单更新事件 { emitEvent: false }
     this.basicInfoForm.patchValue(
       {
-        taskName: `${example.title.substring(0, 50)}#${Date.now()}`,
+        taskName: `${example.title.substring(0, 50)}_${Date.now()}`,
         desc: example.title,
         prompt: example.value,
       },

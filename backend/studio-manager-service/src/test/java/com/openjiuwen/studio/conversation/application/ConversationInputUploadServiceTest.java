@@ -12,10 +12,15 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.mock.web.MockMultipartFile;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -88,5 +93,27 @@ class ConversationInputUploadServiceTest {
         verify(obsService).uploadObsFile(key.capture(), any(InputStream.class), eq(-1));
         assertTrue(key.getValue().endsWith("/Skill功能手工验证提示词.md"));
         assertEquals("Skill功能手工验证提示词.md", result.getFileName());
+    }
+
+    @Test
+    void upload_将压缩包作为单个原始文件上传() throws IOException {
+        ByteArrayOutputStream content = new ByteArrayOutputStream();
+        try (ZipOutputStream archive = new ZipOutputStream(content)) {
+            archive.putNextEntry(new ZipEntry("report.txt"));
+            archive.write("report".getBytes(StandardCharsets.UTF_8));
+            archive.closeEntry();
+        }
+        byte[] bytes = content.toByteArray();
+        String fileName = "项目资料.ZIP";
+        MockMultipartFile file = new MockMultipartFile("file", fileName, "application/octet-stream", bytes);
+
+        ConversationInputUploadVo result = service.upload("p1", "w1", file);
+
+        ArgumentCaptor<InputStream> uploaded = ArgumentCaptor.forClass(InputStream.class);
+        verify(obsService).uploadObsFile(eq(result.getObjectKey()), uploaded.capture(), eq(-1));
+        assertTrue(result.getObjectKey().endsWith("/" + fileName));
+        assertEquals(fileName, result.getFileName());
+        assertEquals(ConversationInputUploadService.sha256(bytes), result.getChecksum());
+        assertArrayEquals(bytes, uploaded.getValue().readAllBytes());
     }
 }

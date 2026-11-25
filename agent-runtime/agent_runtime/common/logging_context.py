@@ -2,6 +2,8 @@ import copy
 import logging
 import re
 
+from agent_runtime.common.config import settings
+from agent_runtime.common.session_state_access import get_state_info
 from agent_runtime.context.request_context import _request_ctx
 from openjiuwen.core.common.logging import get_session_id
 
@@ -201,6 +203,9 @@ def install_log_formatter_patch() -> None:
     _FORMATTER_PATCH_INSTALLED = True
     _OPENJIUWEN_LOGGING_MANAGED = True
 
+    if not settings.server.performance_log_enabled:
+        logging.getLogger("performance").disabled = True
+
 
 def install_request_id_log_record_factory() -> None:
     """Add request_id to stdlib LogRecords used by openjiuwen formatters."""
@@ -241,7 +246,9 @@ def get_secret_field_names_from_session(session):
     if not secret_keys:
         return {}
     try:
-        node_defs = session.get_global_state("__node_defs__")
+        # 引用式路径访问替代 get_global_state：后者每次 deepcopy 全部工作流的
+        # node-def 树，而该函数在每个节点的观察者回调中触发。
+        node_defs = get_state_info(session, "global_state.__node_defs__")
         if not isinstance(node_defs, dict):
             return {}
         workflow_id = session.get_workflow_id()

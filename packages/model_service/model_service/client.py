@@ -30,7 +30,7 @@ from openjiuwen.core.runner.callback import trigger
 from openjiuwen.core.runner.callback.events import LLMCallEvents
 
 from common_utils.customer_header import resolve, get_capture_keys, get_config
-from . import authz, dispatch, policy, resolver
+from . import authz, dispatch, env_resolver, policy, resolver
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +42,7 @@ class _ResolveInputs:
     workspace_id: str
     project_id: str
     refresh: bool
+    env_vars: dict
 
 
 @dataclass
@@ -203,7 +204,10 @@ class StudioModelClient(OpenAIModelClient):
             (headers.get("X-Workspace-Id") or headers.get("x-workspace-id") or "")
             if headers else ""
         )
-        return _ResolveInputs(model_service_id, auth_id, workspace_id, project_id, refresh)
+        env_vars = _env_variables()
+        return _ResolveInputs(
+            model_service_id, auth_id, workspace_id, project_id, refresh, env_vars,
+        )
 
     # openjiuwen 入口
 
@@ -214,6 +218,7 @@ class StudioModelClient(OpenAIModelClient):
         strategy = await resolver.resolve_strategy(
             inputs.model_service_id, inputs.project_id, inputs.workspace_id, inputs.auth_id,
             refresh=inputs.refresh,
+            env_vars=inputs.env_vars,
         )
         if strategy is None:
             raise resolver.ModelServiceError("MD_MODEL_SERVICE_NOT_PUBLISH",
@@ -250,6 +255,7 @@ class StudioModelClient(OpenAIModelClient):
         strategy = await resolver.resolve_strategy(
             inputs.model_service_id, inputs.project_id, inputs.workspace_id, inputs.auth_id,
             refresh=inputs.refresh,
+            env_vars=inputs.env_vars,
         )
         if strategy is None:
             raise resolver.ModelServiceError("MD_MODEL_SERVICE_NOT_PUBLISH",
@@ -335,11 +341,34 @@ class StudioModelClient(OpenAIModelClient):
                     extra.update(to_rename)
             if extra:
                 params["extra_headers"] = extra
+        # X-Request-Id / traceparent: propagate from request context to model API call
+        _extra = dict(params.get("extra_headers") or {})
+        _lower_keys = {k.lower() for k in _extra}
+        try:
+            from agent_runtime.context.request_context import _request_ctx
+            _ctx = _request_ctx.get()
+            if _ctx:
+                if _ctx.request_id and "x-request-id" not in _lower_keys:
+                    _extra["X-Request-Id"] = _ctx.request_id
+                if _ctx.execution_id and "x-execution-id" not in _lower_keys:
+                    _extra["X-Execution-Id"] = _ctx.execution_id
+        except ImportError:
+            workflow_logger.debug("X-Request-Id propagation skipped: agent_runtime not available")
+        _req_headers = _request_headers()
+        if _req_headers:
+            _tp = _req_headers.get("traceparent")
+            if _tp and "traceparent" not in _lower_keys:
+                _extra["traceparent"] = _tp
+        if _extra:
+            params["extra_headers"] = _extra
+
         workflow_logger.info(
             f"[customer-header] LLM customer header rename: target=RUNTIME_LLM_CHAT, "
             f"captured_keys={list(captured.keys()) if captured else []}, "
             f"projected_keys={list((params.get('extra_headers') or {}).keys())}"
         )
+        _trace_headers = {k: v for k, v in _extra.items() if k in ("X-Request-Id", "X-Execution-Id", "traceparent")}
+        workflow_logger.debug(f"LLM extra_headers injected: {_trace_headers}")
         # return_token_ids 需放入 body 供 vLLM（对应父类处理）。
         if "return_token_ids" in params:
             extra_body = dict(params.get("extra_body") or {})
@@ -487,7 +516,9 @@ class StudioModelClient(OpenAIModelClient):
                     await resp.aclose()
                     raise resolver.ModelServiceError(
                         "MD_INVOKE_MODEL_SERVICE_FAIL",
-                        f"upstream {url} returned {resp.status_code}: {text}",
+                        f"upstream {url} returned {resp.status_code}: {text}"
+                        + env_resolver.env_url_error_hint(
+                            detail.model.api_url_env_placeholders),
                     )
 
                 async def _parsed():
@@ -542,7 +573,9 @@ class StudioModelClient(OpenAIModelClient):
             if resp.status_code >= 300:
                 raise resolver.ModelServiceError(
                     "MD_INVOKE_MODEL_SERVICE_FAIL",
-                    f"upstream {url} returned {resp.status_code}: {resp.text}",
+                    f"upstream {url} returned {resp.status_code}: {resp.text}"
+                    + env_resolver.env_url_error_hint(
+                        detail.model.api_url_env_placeholders),
                 )
             data = resp.json()
             assistant_message = await self._parse_response(_wrap(data), output_parser)
@@ -599,3 +632,13 @@ def _request_headers() -> dict:
     from .ports import get_request_headers
     return get_request_headers()
 
+
+def _env_variables() -> dict:
+    """从请求上下文取已加载的环境变量（env_vars）。
+
+    经 ``ports.set_env_variables`` 由宿主注入：env_vars 在请求入口由
+    ``load_environment_variables`` 从 Redis 加载并写入请求上下文。用于解析 apiUrl
+    中的 ``${_env.plugin_url_params.VAR}`` 占位符（跨环境迁移的字面量 apiUrl）。
+    """
+    from .ports import get_env_variables
+    return get_env_variables()

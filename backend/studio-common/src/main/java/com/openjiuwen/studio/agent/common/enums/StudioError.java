@@ -27,6 +27,7 @@ import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.FORBIDDEN;
 import static org.springframework.http.HttpStatus.GATEWAY_TIMEOUT;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
+import static org.springframework.http.HttpStatus.METHOD_NOT_ALLOWED;
 import static org.springframework.http.HttpStatus.NOT_ACCEPTABLE;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.http.HttpStatus.OK;
@@ -671,6 +672,11 @@ public enum StudioError {
      * 上传大小超出最大限制
      */
     MAX_UPLOAD_SIZE_EXCEEDED(BAD_REQUEST, COMMON, "1128"),
+
+    /**
+     * 请求方法不支持（如对仅支持GET的接口使用POST调用）
+     */
+    METHOD_NOT_SUPPORTED(METHOD_NOT_ALLOWED, COMMON, "1129"),
 
 
     /**
@@ -1434,6 +1440,11 @@ public enum StudioError {
      */
     WORKFLOW_TEMPLATE_INVALID_JSON(BAD_REQUEST, WORKFLOW, "1098"),
 
+    /**
+     * 缺少工作流编码
+     */
+    WORKFLOW_CODE_REQUIRED(BAD_REQUEST, WORKFLOW, "1101"),
+
     /*
      * ============================== 多智能体相关错误码 ==============================
      */
@@ -1722,6 +1733,64 @@ public enum StudioError {
      * 意图样例重复
      */
     COMPLEX_INTENT_EXAMPLE_REPEATED(BAD_REQUEST, CONFIG, "1024"),
+
+    /**
+     * 导入的意图分支ID格式无效
+     */
+    IMPORT_COMPLEX_INTENT_BRANCH_ID_INVALID(BAD_REQUEST, CONFIG, "1025"),
+
+    /**
+     * 导入意图包时，sheet 页名称与已有意图包重名（列表页场景）
+     * args: [0]=撞名的 sheet 名
+     */
+    IMPORT_INTENT_PKG_NAME_DUPLICATE_BY_SHEET(BAD_REQUEST, CONFIG, "1026"),
+
+    /**
+     * 导入意图包时，意图包名输入框的值与已有意图包重名（详情页/新建页场景）
+     * args: [0]=撞名的意图包名
+     */
+    IMPORT_INTENT_PKG_NAME_DUPLICATE_BY_INPUT(BAD_REQUEST, CONFIG, "1027"),
+
+    /* ***********************数据源管理***********************/
+    /**
+     * 数据源不存在
+     */
+    DATASOURCE_NOT_FOUND(NOT_FOUND, CONFIG, "1028"),
+
+    /**
+     * 数据源名称重复
+     */
+    DATASOURCE_NAME_DUPLICATE(BAD_REQUEST, CONFIG, "1029"),
+
+    /**
+     * 数据源连接失败
+     */
+    DATASOURCE_CONNECTION_FAILED(INTERNAL_SERVER_ERROR, CONFIG, "1030"),
+
+    /**
+     * 数据源无权限
+     */
+    DATASOURCE_NO_PERMISSION(FORBIDDEN, CONFIG, "1031"),
+
+    /**
+     * SQL安全校验失败
+     */
+    DATASOURCE_SQL_SECURITY_VIOLATION(BAD_REQUEST, CONFIG, "1032"),
+
+    /**
+     * SQL执行失败
+     */
+    DATASOURCE_EXECUTE_FAILED(INTERNAL_SERVER_ERROR, CONFIG, "1033"),
+
+    /**
+     * 不支持的数据源类型
+     */
+    DATASOURCE_TYPE_UNSUPPORTED(BAD_REQUEST, CONFIG, "1034"),
+
+    /**
+     * 数据源参数校验失败
+     */
+    DATASOURCE_PARAM_INVALID(BAD_REQUEST, CONFIG, "1035"),
 
     /* ***********************模型接入***********************/
     /**
@@ -2012,6 +2081,21 @@ public enum StudioError {
      * 视频生成任务不存在
      */
     MD_VIDEO_GENERATION_TASK_NOT_EXIST(BAD_REQUEST, MODEL, "1071"),
+
+    /**
+     * 模型导入文件格式非法（非JSONL / 行解析失败 / payload缺失）
+     */
+    MODEL_IMPORT_FORMAT_INVALID(BAD_REQUEST, MODEL, "1081"),
+
+    /**
+     * 模型apiUrl环境变量占位符语法非法（与Python运行期MD_ENV_VAR_UNRESOLVED语义对齐：导入侧校验语法，运行期校验变量存在性）
+     */
+    MODEL_ENV_VAR_UNRESOLVED(BAD_REQUEST, MODEL, "1082"),
+
+    /**
+     * 模型导入冲突无法自动解决（COVER策略下删除失败等）
+     */
+    MODEL_IMPORT_CONFLICT(CONFLICT, MODEL, "1083"),
 
     /**
      * ============================== 组件（插件、MCP） ==============================
@@ -3734,6 +3818,11 @@ public enum StudioError {
      * 获取提示词优化任务详情失败
      */
     GET_PROMPT_TASK_DETAIL_FAILED(BAD_REQUEST, PE, "1185"),
+
+    /**
+     * 提示词优化任务在执行引擎中已丢失（被清理或重启后无持久化兜底）
+     */
+    JOB_NOT_FOUND_IN_BUILDER(BAD_REQUEST, PE, "1186"),
 
 
 

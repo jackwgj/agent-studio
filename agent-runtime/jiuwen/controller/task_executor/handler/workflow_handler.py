@@ -3,6 +3,7 @@
 #  Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
 import copy
 import json
+import logging
 import os
 import time
 from typing import Dict, Any, Generator, Optional, AsyncGenerator, List
@@ -37,6 +38,7 @@ from jiuwen.controller.task_executor.constants import (
 from jiuwen.controller.task_executor.handler.base_handler import BaseHandler
 from jiuwen.controller.utils.utils import MessageConverter
 from jiuwen.controller.workflow.workflow import SpiffWorkflowControllerWorkflow
+from jiuwen.extension.workflow_node.start import Start
 from jiuwen.extension.wrapper.workflow_instance_layer import (
     OpenJiuWenWorkflowInstanceLayer,
 )
@@ -121,8 +123,11 @@ class WorkflowHandler(BaseHandler):
         if WorkflowHandler._use_openjiuwen_workflow():
             agent_id = WorkflowHandler._resolve_workflow_agent_id(workflow_context)
             try:
+                workflow_shell = None
                 if workflow_context.workflow_ir:
-                    await ensure_openjiuwen_workflow_registered(
+                    # 保留返回的本地实例：执行时优先使用，避免并发会话通过全局注册表
+                    # 拿到同一 Workflow 实例导致 session 串扰（Vertex._session 互相覆盖）
+                    workflow_shell = await ensure_openjiuwen_workflow_registered(
                         workflow_context.workflow_ir,
                         workflow_id=workflow_context.workflow_id,
                         workflow_name=workflow_context.workflow_name,
@@ -165,6 +170,7 @@ class WorkflowHandler(BaseHandler):
                     agent_id=agent_id,
                     session_id=conversation_id,
                     node_name_type_map=component_name_type_map,
+                    workflow_instance=workflow_shell,
                 )
             except Exception as e:
                 logger.warning(
@@ -313,12 +319,18 @@ class WorkflowHandler(BaseHandler):
             mark_interrupted()
 
     @staticmethod
-    async def _cleanup_workflow_instance(workflow_instance) -> None:
+    async def _cleanup_workflow_instance(
+        workflow_instance, preserve_state: bool = False
+    ) -> None:
         cleanup = getattr(workflow_instance, "cleanup", None) or getattr(
             workflow_instance, "async_clean_up", None
         )
         if cleanup:
-            await cleanup()
+            try:
+                await cleanup(preserve_state=preserve_state)
+            except TypeError:
+                # 兼容不支持 preserve_state 参数的旧实现
+                await cleanup()
 
     @staticmethod
     def _get_workflow_execute_status(workflow_instance):
@@ -503,11 +515,14 @@ class WorkflowHandler(BaseHandler):
         workflow_req_params = self.prepare_workflow_params(
             workflow_req_params, workflow_context
         )
+        self.inject_start_field_defaults(workflow_req_params, workflow_context)
         global_variables = workflow_req_params.get("global_variables")
-        logger.info(
-            f"task_id: {self.task_id}| Workflow {workflow_context.workflow_name} request params with "
-            f"global vars: {global_variables}"
-        )
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug(
+                "task_id: %s| Workflow %s request params with "
+                "global vars: %s",
+                self.task_id, workflow_context.workflow_name, global_variables,
+            )
 
         # 调用流式执行逻辑
         async for exe_res in self._stream_execute_workflow(
@@ -558,6 +573,7 @@ class WorkflowHandler(BaseHandler):
                     global_variables[key] = value
             workflow_req_params["global_variables"] = global_variables
 
+        self.inject_start_field_defaults(workflow_req_params, workflow_context)
         final_answer = None
         async for exe_res in self._stream_execute_workflow(
             task, workflow_context, workflow_req_params, from_pe=True
@@ -639,7 +655,17 @@ class WorkflowHandler(BaseHandler):
             # 上层 _parse_workflow_output 会检测到空结果并触发 LLM fallback
             return
         finally:
-            await self._cleanup_workflow_instance(workflow_instance)
+            # 意图识别工作流与主工作流共享同一个 session_id（conversation_id），
+            # release(session_id) 会全量清理该 session 下所有 workflow 的 state，
+            # 误删主工作流的中断 checkpoint。意图识别的 state 已由框架
+            # post_workflow_execute 在正常完成/异常时清理，无需额外 release。
+            # 因此意图识别路径始终跳过 release（preserve_state=True）。
+            _workflow_instance = locals().get("workflow_instance")
+            if _workflow_instance is not None:
+                await self._cleanup_workflow_instance(
+                    _workflow_instance,
+                    preserve_state=True,
+                )
 
     def prepare_workflow_params(
         self,
@@ -823,7 +849,10 @@ class WorkflowHandler(BaseHandler):
                     workflow_context=workflow_context, exec_res=exec_res_dict
                 )
         finally:
-            await self._cleanup_workflow_instance(workflow_instance)
+            # 中断时保留 checkpoint state 供下一轮恢复；非中断时清理
+            await self._cleanup_workflow_instance(
+                workflow_instance, preserve_state=questioner_interrupted
+            )
 
     @staticmethod
     def _transform_function_call_to_interactive_input(function_call, workflow_context):
@@ -952,9 +981,12 @@ class WorkflowHandler(BaseHandler):
             ):
                 yield exec_res
 
-            logger.info(
-                f"task_id: {self.task_id}| Stream execute workflow current_node: {current_node}, "
-                f"workflow_status: {workflow_status}"
+            logger.debug(
+                "task_id: %s| Stream execute workflow current_node: %s, "
+                "workflow_status: %s",
+                self.task_id,
+                current_node,
+                workflow_status,
             )
 
             # 处理中断状态
@@ -974,7 +1006,21 @@ class WorkflowHandler(BaseHandler):
         finally:
             # 无论成功、失败还是中断，都同步 _REQUEST 变量
             self._sync_request_variables(workflow_instance)
-            await self._cleanup_workflow_instance(workflow_instance)
+            # 异常路径兜底：若流处理中已检测到 questioner 中断但异常打断了
+            # 后续 _handle_workflow_interruption 的执行，补设 INTERRUPTED 状态，
+            # 确保下一轮走恢复路径（InteractiveInput），而非首发执行触发 111121
+            if workflow_status.get("questioner_interrupted"):
+                self._handle_workflow_interruption(
+                    workflow_context, workflow_instance, workflow_status, current_node
+                )
+            # 中断时保留 openjiuwen session 的 checkpoint state 供下一轮恢复；
+            # 非中断（正常完成或异常）时清理 Redis 残留 state，避免下一轮
+            # 首发执行命中 "workflow state exists but non-interactive input
+            # and cleanup is disabled"（111121）
+            preserve = bool(workflow_status.get("questioner_interrupted"))
+            await self._cleanup_workflow_instance(
+                workflow_instance, preserve_state=preserve
+            )
 
     def _has_workflow_sequence(self) -> bool:
         """检查是否存在工作流序列"""
@@ -1035,6 +1081,47 @@ class WorkflowHandler(BaseHandler):
         self.context_manager.set_global_variables(
             WorkflowConstants.WORKFLOW_REQ_PARAMS_KEY, workflow_req_params
         )
+
+    @staticmethod
+    def inject_start_field_defaults(workflow_req_params: dict, workflow_context) -> None:
+        """Inject Start node user field defaults into global_variables.
+
+        ${_request.xxx} resolves against _request built from global_variables.
+        Start node user fields (e.g. optional parameters with default_value)
+        are defined in the sub-workflow IR, not in the request. Without
+        merging defaults, ${_request.test} resolves to None when the user
+        does not pass the field, causing End node output filtering to drop it.
+
+        所有类型字段都注入默认值,默认值按声明类型归一(空默认:object -> {},
+        array -> [],integer -> 0,number -> 0.0,boolean -> False,string -> '');
+        直接注入 '' 会让 Start 输出 userFields 通过不了 openjiuwen IR 输出校验
+        (json.loads('')/int('') 失败,报 Incorrect type for key)。
+        """
+        ir_json = getattr(workflow_context, "workflow_ir", None)
+        if not ir_json:
+            return
+        defaults = {}
+        for comp in ir_json.get("components") or []:
+            if comp.get("type") != "jiuwen.start":
+                continue
+            user_fields = (comp.get("configs") or {}).get("userFields", {}) or {}
+            for field in user_fields.get("inputs") or []:
+                field_id = field.get("id")
+                if field_id and field_id not in defaults:
+                    converted = Start.convert_user_field_default(
+                        (field.get("type") or "").lower(),
+                        field.get("default_value", ""),
+                        field.get("schema"),
+                    )
+                    if converted is not None:
+                        defaults[field_id] = converted
+            break
+        if not defaults:
+            return
+        global_variables = workflow_req_params.setdefault("global_variables", {})
+        for k, v in defaults.items():
+            if global_variables.get(k) is None:
+                global_variables[k] = v
 
     def _prepare_global_variables(self, workflow_req_params):
         def _filter_none(d: dict[str, Any] | None) -> dict[str, Any]:
@@ -1145,19 +1232,22 @@ class WorkflowHandler(BaseHandler):
                 # 拦截workflow流出的INTERMEDIATE_MESSAGE
                 if output.code == StreamCode.CONTROLLER_INTERMEDIATE_MESSAGE.value:
                     logger.debug(
-                        f"drop workflow intermediate_message data: {output}",
+                        "drop workflow intermediate_message data: %s",
+                        output,
                         simple_log="drop workflow intermediate_message data",
                     )
                     continue
-                # 检测工作流结束
+                # 检测工作流结束：中断时跳过，避免 end 在 QA 之前导致误判完成
                 if (
                     output.data.get("node_type") == WORKFLOW_END_TYPE
                     and output.code == StreamCode.FINISH.value
+                    and not workflow_status["questioner_interrupted"]
                 ):
                     workflow_status["workflow_end"] = True
                     # end组件输出更新写入controller global variables全局变量
-                    logger.info(
-                        f"task_id: {self.task_id}| End Message detected in workflow stream: {output.data}",
+                    logger.debug(
+                        "task_id: %s| End Message detected in workflow stream: %s",
+                        self.task_id, output.data,
                         simple_log="End Message detected in workflow stream",
                     )
                     action_after_completion_val = output.data.get(
@@ -1198,8 +1288,9 @@ class WorkflowHandler(BaseHandler):
                 ):
                     workflow_status["questioner_interrupted"] = True
                 elif output.data.get("node_type") == NodeType.QA.value:
-                    logger.info(
-                        f"task_id: {self.task_id}| QA Message detected in workflow stream: {output}",
+                    logger.debug(
+                        "task_id: %s| QA Message detected in workflow stream: %s",
+                        self.task_id, output,
                         simple_log="QA Message detected in workflow stream",
                     )
                     if output.data.get("need_reply", True):
@@ -1259,8 +1350,9 @@ class WorkflowHandler(BaseHandler):
         query: Optional[str] = None,
         current_node: Optional[NodeExecutionInfo] = None,
     ):
-        # 根据最终状态生成相应消息
-        if workflow_status["workflow_end"]:
+        # 根据最终状态生成相应消息：中断时即使 workflow_end=True 也不走完成路径（防御性守卫）
+        if workflow_status["workflow_end"] and not workflow_status["questioner_interrupted"]:
+            # 正常完成：清空 state，标记 COMPLETED
             self.context_manager.update_workflow_status(
                 workflow_context.workflow_id,
                 workflow_context.type,
@@ -1296,11 +1388,11 @@ class WorkflowHandler(BaseHandler):
         properties = workflow_context.workflow_parameters.get("parameters", {}).get(
             "properties", {}
         )
-        # 初始化missing_parameters，排除query参数
+        # 初始化missing_parameters，排除query、sys、conversationHistory参数
         missing_parameters = {
             key: value.get("description", "")
             for key, value in properties.items()
-            if value.get("required", False) and key not in ("query", "sys")
+            if value.get("required", False) and key not in ("query", "sys", "conversationHistory")
         }
         # 获取workflow_req_params
         workflow_req_params = self.context_manager.get_global_variables(
@@ -1317,8 +1409,9 @@ class WorkflowHandler(BaseHandler):
             for key, value in missing_parameters.items()
             if global_variables.get(key) is None
         }
-        logger.info(
-            f"task_id: {self.task_id}| missing_params: {missing_parameters}",
+        logger.debug(
+            "task_id: %s| missing_params: %s",
+            self.task_id, missing_parameters,
             simple_log="missing_params update successfully",
         )
         # 如果没有缺失参数，直接返回
@@ -1835,8 +1928,11 @@ class WorkflowHandler(BaseHandler):
             self.context_manager.set_global_variables(
                 REQUEST_VARIABLES, request_variables
             )
-            logger.info(
-                f"task_id: {self.task_id}| REQUEST variables synced to ContextManager: {request_variables}, "
-                f"controller_global_variables synced : {controller_global_variables}",
+            logger.debug(
+                "task_id: %s| REQUEST variables synced to ContextManager: %s, "
+                "controller_global_variables synced : %s",
+                self.task_id,
+                request_variables,
+                controller_global_variables,
                 simple_log="REQUEST variables synced to ContextManager",
             )

@@ -52,6 +52,11 @@ export class TextEmbeddingComponent {
   @Input() param: any = {
     content: '',
   };
+
+  @Input() envVarValues: Record<string, string> = {};
+  /** 默认环境 id（占位符模型免填时由后端按默认环境解析真实地址） */
+  @Input() environmentId: string | undefined;
+
   public isShowStopIcon = false;
 
   @ViewChild('chatContainerRef') chatContainerRef!: ElementRef;
@@ -150,9 +155,14 @@ export class TextEmbeddingComponent {
   private postMessage(param) {
     this.abortController = new AbortController();
     this.jiuwenModelServ
-      .modelTestEmbedding(param, this.abortController?.signal)
+      .modelTestEmbedding(param, this.abortController?.signal, this.envVarValues, this.environmentId)
       .then((content) => {
         this.result = `[${String(content[0]?.embedding)}]`;
+        this.scrollToBottom();
+      })
+      .catch((error) => {
+        if (this.abortController?.signal?.aborted) { return; }
+        this.result = this.extractErrorMsg(error);
         this.scrollToBottom();
       })
       .finally(() => {
@@ -161,6 +171,30 @@ export class TextEmbeddingComponent {
         this.isShowStopIcon = false;
         this.cdr.markForCheck();
       });
+  }
+
+  /**
+   * 从错误响应中提取可展示的错误信息（含上游 details）。
+   */
+  private extractErrorMsg(error: any): string {
+    try {
+      const errInfo =
+        typeof error?.error === 'string'
+          ? JSON.parse(error.error)
+          : error?.error || error;
+      const errMsg = errInfo?.error_msg || errInfo?.message || '';
+      const details = errInfo?.details;
+      let detailStr = '';
+      if (Array.isArray(details) && details.length > 0) {
+        detailStr = details
+          .map((d) => d?.error_msg || '')
+          .filter((m) => m)
+          .join('\n');
+      }
+      return detailStr || errMsg || this.i18n.transform('NetErrorTips');
+    } catch {
+      return this.i18n.transform('NetErrorTips');
+    }
   }
 
   private getDebugRunParam() {

@@ -18,7 +18,6 @@ LLMChain 组件 - 完整迁移自商用版本
 
 import asyncio
 import base64
-import html
 import ast
 import json
 import re
@@ -32,7 +31,6 @@ from jiuwen.common.exception.base import JiuWenBaseException
 from openjiuwen.core.common.logging import workflow_logger
 from openjiuwen.core.foundation.llm import Model
 from openjiuwen.core.foundation.prompt import PromptTemplate
-from jiuwen.prompt import Prompt, Template
 from openjiuwen.core.session.stream.base import CustomSchema
 from openjiuwen.core.workflow import WorkflowComponent
 from pydantic import BaseModel, StrictStr, Field, ValidationError
@@ -48,6 +46,17 @@ _CONTENT = "content"
 ROLE_MAP = {"user": "用户", "assistant": "助手", "system": "系统"}
 MESSAGE_TYPE_TO_ROLE = {"human": "user", "ai": "assistant", "system": "system"}
 _TYPE = "type"
+
+
+def _format_llm_error_detail(exc: Exception) -> str:
+    """格式化 LLM 调用异常详情用于用户可见错误信息。
+
+    统一委托 ``model_service.env_resolver.friendly_message``：对
+    ``ModelServiceError`` 取 ``.msg`` 剥 ``[code]`` 前缀（如「模型服务API地址配置有误：
+    ...未配置环境变量 ali」），其他异常保留 ``str(exc)``。
+    """
+    from model_service.env_resolver import friendly_message
+    return friendly_message(exc)
 
 
 class LLMChainModelConfig(BaseModel):
@@ -180,7 +189,7 @@ class LLMChain(WorkflowComponent):
         except Exception as e:
             raise build_error(
                 StatusCode.COMPONENT_LLM_INVOKE_CALL_FAILED,
-                error_msg=f"LLM invoke failed: {str(e)}",
+                error_msg=f"LLM invoke failed: {_format_llm_error_detail(e)}",
             ) from e
 
     def get_stream_output(self) -> dict | None:
@@ -270,7 +279,7 @@ class LLMChain(WorkflowComponent):
             except Exception as e:
                 raise build_error(
                     StatusCode.COMPONENT_LLM_INVOKE_CALL_FAILED,
-                    error_msg=f"LLM stream failed: {str(e)}",
+                    error_msg=f"LLM stream failed: {_format_llm_error_detail(e)}",
                 ) from e
 
     async def _process_thinking_stream(
@@ -314,7 +323,7 @@ class LLMChain(WorkflowComponent):
         except Exception as e:
             raise build_error(
                 StatusCode.COMPONENT_LLM_INVOKE_CALL_FAILED,
-                error_msg=f"LLM stream failed: {str(e)}",
+                error_msg=f"LLM stream failed: {_format_llm_error_detail(e)}",
             ) from e
 
         # 流消费完成，记录 total_token 性能指标
@@ -524,8 +533,7 @@ class LLMChain(WorkflowComponent):
 
             # content 真流式输出
             if chunk.content and chunk.content != "":
-                if getattr(chunk, "finish_reason", "null") == "null":
-                    accumulated_content += chunk.content
+                accumulated_content += chunk.content
                 yield {USER_FIELDS: {output_id: chunk.content}}
 
         # 流结束：性能统计 + trace + 最终帧
@@ -681,7 +689,11 @@ class LLMChain(WorkflowComponent):
             return messages
 
         messages[last_user_idx]["content"] = instruction.replace(
-            "${query}", html.escape(user_content)
+            # NOTE: 不做 html.escape(与 orchestration 栈 format_prompt 的修复保持一致)。
+            # 此处 user_content 是渲染后的工作流模板(模型文本 Prompt,HTML 转义会改变语义),
+            # 合法包含 JSON 示例引号("key": "value")与 "&" 连接符(如 "e5051&n消费卡");
+            # html.escape 会把它们转义成 &quot; / &amp;,破坏模型收到的格式指令。
+            "${query}", user_content
         )
         return messages
 

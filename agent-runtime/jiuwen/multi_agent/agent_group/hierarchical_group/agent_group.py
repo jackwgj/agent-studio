@@ -4,6 +4,7 @@
 
 """层次化智能体组"""
 
+import logging
 from typing import Union, AsyncGenerator, Optional, Dict, Any
 
 from jiuwen.common.exception.base import JiuWenBaseException
@@ -45,7 +46,8 @@ class HierarchicalAgentGroup(BaseAgentGroup):
             if state is None:
                 self._group_state = AgentGroupState()
 
-            logger.info(f"Starting AgentGroup {self.config.group_id}")
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug("Starting AgentGroup %s", self.config.group_id)
 
             if self.runner is None:
                 self.runner = StandaloneRunner()
@@ -63,7 +65,7 @@ class HierarchicalAgentGroup(BaseAgentGroup):
                 await self.runner.start()
 
             self._running = True
-            logger.info(f"AgentGroup {self.config.group_id} started successfully")
+            logger.debug("AgentGroup %s started successfully", self.config.group_id)
 
         except Exception as e:
             logger.error(
@@ -79,10 +81,11 @@ class HierarchicalAgentGroup(BaseAgentGroup):
             return
 
         try:
-            logger.info(f"Stopping AgentGroup {self.config.group_id}")
+            logger.debug("Stopping AgentGroup %s", self.config.group_id)
             self._running = False
             await self.runner.stop()
-            logger.info(f"AgentGroup {self.config.group_id} stopped successfully")
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug("AgentGroup %s stopped successfully", self.config.group_id)
         except Exception as e:
             logger.error(
                 f"Failed to stop AgentGroup: {e}",
@@ -110,7 +113,7 @@ class HierarchicalAgentGroup(BaseAgentGroup):
                 if result.type == MemberMessageType.STREAM:
                     yield result.data
                 elif result.type == MemberMessageType.INTERRUPT:
-                    logger.info(
+                    logger.debug(
                         "Received INTERRUPT message, saving state and stopping stream"
                     )
                     await self._group_state.save_agent_group_state(
@@ -174,7 +177,7 @@ class HierarchicalAgentGroup(BaseAgentGroup):
             config=self.config,
             runner=self.runner,
         )
-        logger.info("Hierarchical control agent created successfully")
+        logger.debug("Hierarchical control agent created successfully")
 
     def update_group_prompt(self, agent_info_map: Dict[str, Dict[str, Any]]):
         """注册prompt"""
@@ -187,6 +190,34 @@ class HierarchicalAgentGroup(BaseAgentGroup):
         Returns: task_end
         """
         return self.control_agent.task_end
+
+    async def has_pending_interrupted_workflows(self) -> bool:
+        """检查组内是否仍有待恢复的中断工作流。
+
+        遍历各成员 agent 的状态，任一成员存在 status==INTERRUPTED 的工作流
+        （AgentState.workflow_states 非空）即返回 True。用于任务结束时判断
+        AgentGroupState 是否可以删除——存在待恢复中断时必须保留，否则下一轮
+        无法回到中断入口（如：工作流A中断后，用户穿插执行了新工作流C，
+        C 完成时不能把 A 的中断记忆一起删掉）。
+
+        检查失败时保守返回 True：误保留状态只是多留一轮（下一轮可正常清理），
+        而误删除会把待恢复的中断上下文一并清掉，重新引入"无法回到中断入口"
+        的问题。不能上抛——调用方在异常分支会中断状态保存流程。
+        """
+        try:
+            run_state = await self.runner.get_state()
+            members_state = getattr(run_state, "members_state", None) or {}
+            for member_state in members_state.values():
+                if getattr(member_state, "workflow_states", None):
+                    return True
+            return False
+        except Exception as e:
+            logger.error(
+                f"Failed to check pending interrupted workflows, "
+                f"conservatively keeping agent group state: {e}",
+                simple_log="check pending interrupted workflows failed",
+            )
+            return True
 
     def clear_state(self):
         """
@@ -209,7 +240,8 @@ class HierarchicalAgentGroup(BaseAgentGroup):
             for cfg in self.config.agents:
                 self.agents.add(cfg.metadata.id)
                 self.runner.register_member(cfg.metadata.id, Agent, cfg)
-            logger.info(f"Registered {len(self.agents)} agents")
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug("Registered %s agents", len(self.agents))
         except Exception as e:
             logger.error("Failed to initialize agents")
             raise JiuWenBaseException(

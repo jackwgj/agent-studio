@@ -6,6 +6,10 @@ package com.openjiuwen.studio.agent.common.redis;
 
 import lombok.extern.slf4j.Slf4j;
 
+import com.alibaba.fastjson2.JSONException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.exc.StreamConstraintsException;
+
 import org.redisson.client.codec.Codec;
 import org.springframework.util.function.ThrowingSupplier;
 
@@ -36,7 +40,26 @@ public class RedisClientWrapper implements RedisClient {
 
     @Override
     public String get(String key) {
-        return run(() -> redisClient.get(key), "get");
+        long startTime = getStartTime();
+        try {
+            String result = redisClient.get(key);
+            redisCost(startTime, "get");
+            return result;
+        } catch (Exception e) {
+            redisCost(startTime, "get");
+            if (isStreamConstraintsException(e)) {
+                log.warn("Redis read overflow for key: {}", key, e);
+                throw new RedisReadOverflowException(key, e);
+            }
+            if (isDecodingException(e)) {
+                // 数据解码失败（格式损坏/不兼容）：可观测但降级返回 null，不影响主流程
+                log.warn("Redis data decode failed, method: get, key: {}, degraded to null", key, e);
+                return null;
+            }
+            // Redis 连接/超时等故障：服务降级返回 null
+            log.error("redis operation failed, method: get", e);
+            return null;
+        }
     }
 
     @Override
@@ -145,6 +168,31 @@ public class RedisClientWrapper implements RedisClient {
             return;
         }
         log.info("redis operation cost: {}ms, method: {}", System.currentTimeMillis() - startTime, method);
+    }
+
+    private boolean isStreamConstraintsException(Throwable e) {
+        while (e != null) {
+            if (e instanceof StreamConstraintsException) {
+                return true;
+            }
+            e = e.getCause();
+        }
+        return false;
+    }
+
+    /**
+     * 判断是否为数据解码失败（区别于 Redis 连接/超时故障）
+     * 解码失败异常链最终为 Jackson 解码异常（MismatchedInputException / InvalidTypeIdException / JsonParseException 等）
+     * 或 fastjson2 解析异常（JSON.parseObject 双编码还原）
+     */
+    private boolean isDecodingException(Throwable e) {
+        while (e != null) {
+            if (e instanceof JsonProcessingException || e instanceof JSONException) {
+                return true;
+            }
+            e = e.getCause();
+        }
+        return false;
     }
 
     @Override

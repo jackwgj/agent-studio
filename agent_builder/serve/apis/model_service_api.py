@@ -23,10 +23,11 @@
 - rerank 响应按 ``index`` 升序排序后截断到 ``top_n``（对应 Java ``MaasRerankRequestAdaptor.resBodyConvert``）。
 """
 
+import json
+import logging
 from typing import Dict, List, Optional, Union
 
 import httpx
-import logging
 from fastapi import APIRouter, Body, Query, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
@@ -34,7 +35,7 @@ from pydantic import BaseModel, Field
 # 导入 model_service 即触发 StudioModelClient 注册（client_provider="studio"），
 # 并复用 resolver / policy / dispatch 机制层。
 import model_service  # noqa: F401
-from model_service import dispatch, policy, resolver
+from model_service import dispatch, env_resolver, policy, resolver
 from model_service.ports import get_request_customer_headers
 from common_utils.customer_header import resolve, get_capture_keys, get_config
 from agent_builder.common.exception.model_codes import (
@@ -46,6 +47,35 @@ from agent_builder.common.exception.model_codes import (
 model_service_router = APIRouter(tags=["model-service"])
 
 logger = logging.getLogger("agent_builder.model_service_api")
+
+
+def _merge_env_var_overrides(base_env_vars: Optional[dict], api_url_env_vars: Optional[str]) -> dict:
+    """合并调测时的占位符真实值（query 参数 `api_url_env_vars`=JSON map）进 env_vars。
+
+    base_env_vars 来自请求上下文（X-Environment-Id 加载），api_url_env_vars 是用户在
+    调测页面为每个 {VAR} 占位符填入的临时值。后者覆盖前者同名键；仅调测用、不落库。
+    key 须匹配 ``[A-Za-z0-9_-]+``，否则 warn 丢弃；不 log value（可能敏感）。
+    """
+    env_vars = dict(base_env_vars or {})
+    if not api_url_env_vars:
+        return env_vars
+    try:
+        override = json.loads(api_url_env_vars)
+    except (ValueError, TypeError) as e:
+        logger.warning("invalid api_url_env_vars query (not JSON): %s", e)
+        return env_vars
+    if not isinstance(override, dict):
+        logger.warning("invalid api_url_env_vars query (not a JSON object)")
+        return env_vars
+    import re
+    pup = dict(env_vars.get("plugin_url_params") or {})
+    for k, v in override.items():
+        if re.fullmatch(r"[A-Za-z0-9_-]+", str(k)):
+            pup[str(k)] = v
+        else:
+            logger.warning("invalid api_url_env_vars key discarded: %s", k)
+    env_vars["plugin_url_params"] = pup
+    return env_vars
 
 
 # ----------------------------- DTO -----------------------------
@@ -215,8 +245,14 @@ def _error_response(exc: Exception) -> JSONResponse:
             "error_reason": spec.error_reason,
             "error_suggestion": spec.error_suggestion,
         }
-        if spec.with_details and upstream_body:
-            content["details"] = [{"error_msg": upstream_body}]
+        if spec.with_details:
+            if upstream_body:
+                content["details"] = [{"error_msg": upstream_body}]
+            elif msg:
+                # 上游无响应体（如 API 地址/endpoint 配错返回 404 空 body）时，
+                # 回退透出 msg（含上游 URL + 状态码），让调测页能看到是哪个地址、什么状态码，
+                # 避免前端只剩通用文案、无法定位是 API 地址配置问题。
+                content["details"] = [{"error_msg": msg}]
         status = upstream_status if (spec.use_upstream_status and upstream_status) else spec.http_status
         return JSONResponse(status_code=status, content=content)
     return JSONResponse(
@@ -309,10 +345,13 @@ async def chat_completions(
     body: dict = Body(...),
     workspace_id: Optional[str] = Query(default=None, pattern=r"^[a-zA-Z0-9_()-]+$", max_length=64),
     refresh: Optional[bool] = Query(default=None),
+    api_url_env_vars: Optional[str] = Query(default=None),
 ):
     """模型调测 — 对应 Java ``RuntimeModelServiceController.chatCompletions``。
 
     ``body`` 以 dict 透传（保留 OpenAI 全量字段）；``stream`` 取自 body.stream。
+    ``api_url_env_vars`` 为调测时用户为 {VAR} 占位符填入的临时值（JSON map），
+    merge 进 env_vars 后再 resolve_strategy（仅本次调测用，不落库）。
     """
     model_field = body.get("model", "")
     msid, project_id, workspace, auth_id, rf = _resolve_request_ctx(
@@ -322,8 +361,12 @@ async def chat_completions(
     stream = bool(body.get("stream"))
 
     try:
+        env_vars = _merge_env_var_overrides(
+            model_service.ports.get_env_variables(), api_url_env_vars
+        )
         strategy = await resolver.resolve_strategy(
-            msid, project_id, workspace, auth_id, refresh=rf
+            msid, project_id, workspace, auth_id, refresh=rf,
+            env_vars=env_vars,
         )
         if strategy is None:
             raise resolver.ModelServiceError(
@@ -344,7 +387,9 @@ async def chat_completions(
                     if resp.status_code >= 300:
                         raise resolver.ModelServiceError(
                             INVOKE_MODEL_SERVICE_FAIL,
-                            f"upstream {url} returned {resp.status_code}: {resp.text}",
+                            f"upstream {url} returned {resp.status_code}: {resp.text}"
+                            + env_resolver.env_url_error_hint(
+                                detail.model.api_url_env_placeholders),
                             upstream_status=resp.status_code,
                             upstream_body=resp.text,
                         )
@@ -371,7 +416,9 @@ async def chat_completions(
                 await client.aclose()
                 raise resolver.ModelServiceError(
                     INVOKE_MODEL_SERVICE_FAIL,
-                    f"upstream {url} returned {resp.status_code}: {text}",
+                    f"upstream {url} returned {resp.status_code}: {text}"
+                    + env_resolver.env_url_error_hint(
+                        detail.model.api_url_env_placeholders),
                     upstream_status=resp.status_code,
                     upstream_body=text,
                 )
@@ -404,6 +451,7 @@ async def text_embeddings(
     body: EmbeddingRequest,
     workspace_id: Optional[str] = Query(default=None, pattern=r"^[a-zA-Z0-9_()-]+$", max_length=64),
     refresh: Optional[bool] = Query(default=None),
+    api_url_env_vars: Optional[str] = Query(default=None),
 ):
     """文本向量化 — 对应 Java ``textEmbeddings``。上游 body 仅 ``{model, input}``。"""
     msid, project_id, workspace, auth_id, rf = _resolve_request_ctx(
@@ -411,8 +459,12 @@ async def text_embeddings(
     )
     workspace = workspace_id or workspace
     try:
+        env_vars = _merge_env_var_overrides(
+            model_service.ports.get_env_variables(), api_url_env_vars
+        )
         strategy = await resolver.resolve_strategy(
-            msid, project_id, workspace, auth_id, refresh=rf
+            msid, project_id, workspace, auth_id, refresh=rf,
+            env_vars=env_vars,
         )
         if strategy is None:
             raise resolver.ModelServiceError(
@@ -452,6 +504,7 @@ async def rerank(
     body: RankDocumentsRequest,
     workspace_id: Optional[str] = Query(default=None, pattern=r"^[a-zA-Z0-9_()-]+$", max_length=64),
     refresh: Optional[bool] = Query(default=None),
+    api_url_env_vars: Optional[str] = Query(default=None),
 ):
     """重排序 — 对应 Java ``rerank``。上游 body ``{model, query, documents}``，响应按 index 升序 + top_n 截断。"""
     msid, project_id, workspace, auth_id, rf = _resolve_request_ctx(
@@ -460,8 +513,12 @@ async def rerank(
     workspace = workspace_id or workspace
     url = ""  # dispatch.rerank 抛 httpx 时用于错误信息；httpx 仅可能发生在下方赋值之后
     try:
+        env_vars = _merge_env_var_overrides(
+            model_service.ports.get_env_variables(), api_url_env_vars
+        )
         strategy = await resolver.resolve_strategy(
-            msid, project_id, workspace, auth_id, refresh=rf
+            msid, project_id, workspace, auth_id, refresh=rf,
+            env_vars=env_vars,
         )
         if strategy is None:
             raise resolver.ModelServiceError(

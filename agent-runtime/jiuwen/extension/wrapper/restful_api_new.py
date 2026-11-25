@@ -76,6 +76,27 @@ _time_out_seconds = float(os.getenv(PLUGIN_REQUEST_TIMEOUT_KEY, REQUEST_TIME_OUT
 _time_out_aiohttp = aiohttp.ClientTimeout(total=_time_out_seconds)
 
 
+def _resolve_env_plugin_url_param(var_name: str):
+    """从请求上下文解析 ``_env.plugin_url_params.VAR`` 环境变量引用。
+
+    从 ``_request_ctx.env_variables.plugin_url_params`` 取值。
+    无环境变量或变量不存在时返回 None。
+    """
+    try:
+        from agent_runtime.context.request_context import _request_ctx
+
+        ctx = _request_ctx.get()
+        env_vars = getattr(ctx, "env_variables", None)
+        if env_vars:
+            params = env_vars.get("plugin_url_params") or {}
+            if var_name in params:
+                val = params[var_name]
+                return str(val).strip() if val is not None else ""
+    except Exception as e:
+        logger.warning(f"Failed to resolve env plugin_url_param '{var_name}': {e}")
+    return None
+
+
 class RestfulApiCardNew(ToolCard):
     """
     扩展的 RESTful API Card
@@ -175,7 +196,8 @@ class RestfulApiToolNew(Tool):
 
         if self._method not in HTTP_METHOD:
             raise exception.PluginCommonException(
-                message=exception.ExceptionsMessage.HttpMethodError
+                code=StatusCode.PLUGIN_PARAMS_CHECK_FAILED,
+                message=exception.ExceptionsMessage.HttpMethodError,
             )
 
         if self._cert and is_boolean_string(self._cert):
@@ -293,6 +315,27 @@ class RestfulApiToolNew(Tool):
         """检查响应状态是否成功 (200-299)"""
         return 200 <= code < 300
 
+    def _merge_input_parameters(self, inputs: dict) -> dict:
+        """合并 inputParameters 中的环境变量引用到 inputs。
+
+        对于 ``{{_env.plugin_url_params.VAR}}`` 类型的引用，强制用环境变量
+        实际值覆盖 inputs 中的值（LLM 可能生成推测值，必须被覆盖）。
+        """
+        if not self._input_parameters or not isinstance(inputs, dict):
+            return inputs
+        for param_name, template in self._input_parameters.items():
+            if not isinstance(template, str):
+                continue
+            template = template.strip()
+            if template.startswith("{{") and template.endswith("}}"):
+                inner = template[2:-2].strip()
+                if inner.startswith("_env.plugin_url_params."):
+                    var_name = inner[len("_env.plugin_url_params."):]
+                    value = _resolve_env_plugin_url_param(var_name)
+                    if value is not None:
+                        inputs[param_name] = value
+        return inputs
+
     async def invoke(self, inputs: Input, **kwargs) -> Output:
         """
         异步调用（Tool 接口）
@@ -303,6 +346,7 @@ class RestfulApiToolNew(Tool):
         """
         异步调用（与 RestFulAPI.ainvoke 完全一致）
         """
+        inputs = self._merge_input_parameters(inputs)
         trace_manager = self._create_tracer_manager(**kwargs)
         try:
             await trace_manager.on_plugin_start(inputs)
@@ -340,6 +384,7 @@ class RestfulApiToolNew(Tool):
         """
         异步流式输出接口（与 RestFulAPI.astream 完全一致）
         """
+        inputs = self._merge_input_parameters(inputs)
         trace_manager = self._create_tracer_manager(**kwargs)
         try:
             await trace_manager.on_plugin_start(inputs)
@@ -438,8 +483,14 @@ class RestfulApiToolNew(Tool):
             return self._format_output(
                 error.error_code, error.message, f"{error.message}"
             )
+        if hasattr(error, "error_code") and hasattr(error, "message"):
+            return self._format_output(
+                error.error_code, error.message, f"{error.message}"
+            )
         return self._format_output(
-            StatusCode.PLUGIN_UNEXPECTED_ERROR.code, "plugin request unknown error", ""
+            StatusCode.PLUGIN_UNEXPECTED_ERROR.code,
+            f"plugin request unknown error: {error}",
+            "",
         )
 
     def _create_error_stream_response(self, error: Exception):
@@ -455,19 +506,24 @@ class RestfulApiToolNew(Tool):
         ):
             raise exception.JiuWenBaseException(
                 StatusCode.PLUGIN_REQUEST_TIMEOUT_ERROR.code,
-                StatusCode.PLUGIN_REQUEST_TIMEOUT_ERROR.errmsg,
-            )
+                f"{StatusCode.PLUGIN_REQUEST_TIMEOUT_ERROR.errmsg}: {error}",
+            ) from error
         if isinstance(
             error, (requests.exceptions.ProxyError, aiohttp.ClientProxyConnectionError)
         ):
             raise exception.JiuWenBaseException(
                 StatusCode.PLUGIN_PROXY_CONNECT_ERROR.code,
-                StatusCode.PLUGIN_PROXY_CONNECT_ERROR.errmsg,
-            )
+                f"{StatusCode.PLUGIN_PROXY_CONNECT_ERROR.errmsg}: {error}",
+            ) from error
+        if isinstance(error, exception.JiuWenBaseException):
+            raise exception.JiuWenBaseException(
+                error.error_code,
+                error.message,
+            ) from error
         raise exception.JiuWenBaseException(
             StatusCode.PLUGIN_UNEXPECTED_ERROR.code,
-            StatusCode.PLUGIN_UNEXPECTED_ERROR.errmsg,
-        )
+            f"{StatusCode.PLUGIN_UNEXPECTED_ERROR.errmsg}: {error}",
+        ) from error
 
     def _format_output(
         self, status_code: int, message: str = None, output: Any = None
@@ -566,8 +622,13 @@ class RestfulApiToolNew(Tool):
                     message="async plugin request time out",
                 )
         except Exception as e:
+            logger.error(f"async post request failed: {e}")
+            if isinstance(e, exception.JiuWenBaseException):
+                err_code = e.error_code
+            else:
+                err_code = StatusCode.PLUGIN_UNEXPECTED_ERROR.code
             return self._format_output(
-                -1,
+                err_code,
                 format_exception_reason(e, reason="Async request processing failed"),
                 {},
             )
@@ -592,7 +653,8 @@ class RestfulApiToolNew(Tool):
             if status_result.get("status") == constant.AsyncPluginStatus.fail.value:
                 error = status_result.get("error")
                 raise exception.PluginCommonException(
-                    message=f"async plugin task failed {error}"
+                    code=StatusCode.PLUGIN_RESPONSE_HTTP_CODE_ERROR,
+                    message=f"async plugin task failed {error}",
                 )
 
         await asyncio.sleep(interval)
@@ -742,7 +804,8 @@ class RestfulApiToolNew(Tool):
         ):
             if not res or not isinstance(res, list):
                 raise exception.PluginCommonException(
-                    message="response is empty or not list when output_list is True"
+                    code=StatusCode.PLUGIN_RESPONSE_FORMAT_ERROR,
+                    message=StatusCode.PLUGIN_RESPONSE_FORMAT_ERROR.errmsg,
                 )
             res = res[0]
 
@@ -785,7 +848,8 @@ class RestfulApiToolNew(Tool):
         ):
             if not res or not isinstance(res, list):
                 raise exception.PluginCommonException(
-                    message="response is empty or not list when output_list is True"
+                    code=StatusCode.PLUGIN_RESPONSE_FORMAT_ERROR,
+                    message=StatusCode.PLUGIN_RESPONSE_FORMAT_ERROR.errmsg,
                 )
             res = res[0]
 

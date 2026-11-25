@@ -236,7 +236,21 @@ export class CmdTextareaComponent implements ControlValueAccessor {
       this.editor.nativeElement.innerHTML = '';
     }
     if (this.maxLength && this.getLength() > this.maxLength) {
-      document.execCommand('delete');
+      // 超长时一次性截断：先断开 Observer 防止 innerText 触发 processContent 卡死
+      const truncated = this.getEditorTextContent().replace(/\n$/, '').slice(0, this.maxLength);
+      this.editorObserver.disconnect();
+      this.editor.nativeElement.innerText = truncated;
+      const selection = window.getSelection();
+      const newRange = document.createRange();
+      newRange.selectNodeContents(this.editor.nativeElement);
+      newRange.collapse(false);
+      selection?.removeAllRanges();
+      selection?.addRange(newRange);
+      this.editorObserver.observe(this.editor.nativeElement, {
+        childList: true,
+        subtree: true,
+        characterData: true,
+      });
     }
     this.emit();
     this.updateSelection();
@@ -248,10 +262,30 @@ export class CmdTextareaComponent implements ControlValueAccessor {
     if (content === '\n') {
       return 0;
     }
-    return Math.max(
-      this.getEditorTextContent().length,
-      0,
-    );
+    // 去除末尾换行符，与 emit() 输出值保持一致，避免计数偏差
+    content = content.replace(/\n$/, '');
+    return Math.max(content.length, 0);
+  }
+
+  /**
+   * 计算当前选区内容的长度，口径与 getLength() 一致：
+   * 克隆选区内容到离屏容器后取 innerText（<br> 计为换行），去除零宽字符与末尾换行
+   */
+  private getSelectionLength(): number {
+    if (!this.range) {
+      return 0;
+    }
+    const tempDiv = document.createElement('div');
+    // 离屏但保持渲染：脱离文档时 innerText 会退化为 textContent，丢失 <br> 换行；
+    // white-space 与 .editor 保持一致（pre-wrap），避免空格折叠导致计数偏差
+    tempDiv.style.cssText =
+      'position:absolute; visibility:hidden; left:-9999px; top:0; white-space:pre-wrap;';
+    tempDiv.appendChild(this.range.cloneContents());
+    document.body.appendChild(tempDiv);
+    let content = tempDiv.innerText.replaceAll('\u200B', '');
+    tempDiv.remove();
+    content = content.replace(/\n$/, '');
+    return Math.max(content.length, 0);
   }
 
   handlePaste(event: ClipboardEvent) {
@@ -269,27 +303,27 @@ export class CmdTextareaComponent implements ControlValueAccessor {
       return;
     }
 
-    // 超过最大长度截断
+    // 超过最大长度截断（粘贴会替换选区内容，需补回选区长度）
     if (this.maxLength) {
-      let contentLength = clipboardContent.length;
-      const leaveLength = this.maxLength - this.getLength();
-      while (contentLength > leaveLength) {
-        const extraCharactersNum = contentLength - leaveLength;
-        clipboardContent = clipboardContent.slice(
-          0,
-          clipboardContent.length - extraCharactersNum,
-        );
-        contentLength = clipboardContent.length;
+      const leaveLength = Math.max(
+        this.maxLength - this.getLength() + this.getSelectionLength(),
+        0,
+      );
+      if (clipboardContent.length > leaveLength) {
+        clipboardContent = clipboardContent.slice(0, leaveLength);
       }
     }
 
     // 创建文本节点
     const textNode = document.createTextNode(clipboardContent);
 
+    // 先删除选区内容再插入（光标处粘贴时选区为空，删除无影响）
+    this.range.deleteContents();
     // 插入文本到光标位置
     this.range.insertNode(textNode);
     // 移动光标到插入内容之后
     this.range.setStartAfter(textNode);
+    this.range.collapse(true);
 
     // 触发内容更新
     this.emit();
@@ -300,6 +334,19 @@ export class CmdTextareaComponent implements ControlValueAccessor {
     if (
       ['ArrowUp', 'ArrowDown', 'Enter'].includes(event.key) &&
       this.showList
+    ) {
+      event.preventDefault();
+      return;
+    }
+
+    // 达到 maxLength 后阻止可见字符输入（事前拦截，避免快速连续敲击突破限制）
+    if (
+      this.maxLength &&
+      this.getLength() >= this.maxLength &&
+      event.key.length === 1 &&
+      !event.ctrlKey &&
+      !event.metaKey &&
+      !event.altKey
     ) {
       event.preventDefault();
       return;

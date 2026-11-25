@@ -2,6 +2,7 @@
 package com.openjiuwen.studio.agent.manager.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.openjiuwen.studio.agent.common.enums.StudioError;
 import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
 import com.openjiuwen.studio.agent.common.utils.I18nUtil;
 import com.openjiuwen.studio.agent.common.utils.RequestContextUtils;
@@ -21,6 +22,8 @@ import com.openjiuwen.studio.agent.manager.obs.MgObsService;
 import com.openjiuwen.studio.agent.manager.service.md.ModelServiceMgmtService;
 import com.openjiuwen.studio.agent.manager.service.md.RouterStrategyMgmtService;
 import com.openjiuwen.studio.agent.manager.workflow.resource.adapt.ResourceAdapterFactory;
+import com.openjiuwen.studio.agent.manager.workflow.resource.model.ExportInfo;
+import com.openjiuwen.studio.agent.manager.workflow.resource.model.ExportResp;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -217,11 +220,11 @@ class AgentExportServiceTest {
     }
 
     /**
-     * T11: 不存在的 versionId → 容错处理（对齐旧版 lumina validResource）：
-     * 不抛异常中断导出，而是把该资源作为失败项加入 exportResps 并 continue 跳过，导出仍返回 200 + downloadUrl。
+     * T11: 单资源 + 不存在的 versionId → 直接抛错（不生成空文件，不返回 200+空下载链接）。
+     * 历史行为曾是"容错+空文件返回 200"，但这让 API 调用方无法感知失败，修正为明确 400。
      */
     @Test
-    void testExportWorkflow_NonExistVersion_ToleratesAndSkips() {
+    void testExportWorkflow_NonExistSingleVersion_Throws() {
         try (MockedStatic<RequestContextUtils> mockedStatic = Mockito.mockStatic(RequestContextUtils.class)) {
             mockedStatic.when(RequestContextUtils::getRequestProjectId).thenReturn("p1");
             mockedStatic.when(RequestContextUtils::getRequestWorkspaceId).thenReturn("w1");
@@ -232,7 +235,7 @@ class AgentExportServiceTest {
                 new ExportResourceVersion().setResourceId("wf-1").setResourceVersion("non-exist")));
             params.setResourceType("WORKFLOW");
 
-            com.openjiuwen.studio.agent.manager.entity.WorkflowEntity wf = new com.openjiuwen.studio.agent.manager.entity.WorkflowEntity();
+            WorkflowEntity wf = new WorkflowEntity();
             wf.setId("wf-1");
             wf.setName("wf-name");
             when(workflowMapper.selectByWorkflowIds("p1", "w1", List.of("wf-1"))).thenReturn(List.of(wf));
@@ -240,19 +243,13 @@ class AgentExportServiceTest {
             when(workflowMapper.selectByWorkflowId("p1", "w1", "wf-1")).thenReturn(wf);
             // 版本不存在
             when(releaseVersionMapper.selectByAppIdAndVersionId("wf-1", "non-exist")).thenReturn(null);
-            // mock OBS 上传（容错后仍会走 buildExportFile 上传空 jsonl）
-            mockObsForExport();
 
-            // 不抛异常（容错，对齐旧版 lumina）
-            com.openjiuwen.studio.agent.manager.dto.ExportResourceRsp rsp1 = assertDoesNotThrow(() ->
+            AgentStudioException ex = assertThrows(AgentStudioException.class, () ->
                 agentExportService.exportResource("p1", "w1", null, params));
-            // 验证校验了版本存在性
-            verify(releaseVersionMapper).selectByAppIdAndVersionId("wf-1", "non-exist");
-            // 验证未查版本 mapping（版本不存在，continue 跳过，不进入子资源导出）
+            assertEquals(StudioError.EXPORT_RESOURCE_NOT_EXISTS, ex.getErrorCode());
+            // 未进入 mapping 查询，也未上传 OBS（无成功资源即短路抛错）
             verify(mappingMapper, never()).selectByAppIdAndAppVersion(eq("wf-1"), anyString(), isNull(), isNull());
-            // 导出仍返回下载 URL（不中断）
-            assertNotNull(rsp1);
-            assertNotNull(rsp1.getDownloadUrl());
+            verify(obsService, never()).uploadObsFile(anyString(), any(ByteArrayInputStream.class), anyInt());
         }
     }
 
@@ -410,6 +407,215 @@ class AgentExportServiceTest {
 
         ExportResourceRsp rsp = agentExportService.exportResource("p1", "w1", null, params);
         assertNotNull(rsp);
+    }
+
+    /**
+     * 用例描述：buildExportResps 在 agent 存在且 mapping 为空时返回非 null 的导出结果列表
+     * 预制条件：agentMapper 返回有效 agent，mappingMapper 返回空列表，adapter.parseExport 返回 null
+     * 输入参数：projectId="p1", workspaceId="w1", agentId="agent-1"
+     * 预期结果：返回非 null 的空列表（无子资源导出）
+     */
+    @Test
+    void testBuildExportRespsShouldReturnEmptyListWhenNoSubResources() {
+        Agent agent = new Agent();
+        agent.setAgentId("agent-1");
+        agent.setName("test-agent");
+        when(agentMapper.selectByIdsAndProjectIdAndWorkspaceId("p1", "w1", List.of("agent-1")))
+            .thenReturn(List.of(agent));
+        when(agentMapper.selectById("agent-1")).thenReturn(agent);
+        when(mappingMapper.selectByAppIdAndAppVersion(eq("agent-1"), eq("latest"), isNull(), isNull()))
+            .thenReturn(Collections.emptyList());
+
+        com.openjiuwen.studio.agent.manager.workflow.resource.adapt.ResourceAdapter adapter = mock(
+            com.openjiuwen.studio.agent.manager.workflow.resource.adapt.ResourceAdapter.class);
+        when(resourceAdapterFactory.getAdapter(anyString())).thenReturn(adapter);
+        when(adapter.parseExport(anyList())).thenReturn(null);
+
+        when(modelServiceMgmtService.buildModelExportEntity(anyString(), anyString(), anyList(), eq(true), eq(false)))
+            .thenReturn(Collections.emptyList());
+        when(strategyMgmtService.buildModelStrategyExport(anyString(), anyString(), anyList()))
+            .thenReturn(Collections.emptyList());
+
+        List<ExportResp> result = agentExportService.buildExportResps("p1", "w1", "agent-1", "agent");
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+    }
+
+    /**
+     * 用例描述：buildExportResps 在 adapter 返回 ExportResp 时正确收集导出结果
+     * 预制条件：agent 存在，mapping 为空，adapter 仅在有匹配资源时返回 ExportResp
+     * 输入参数：projectId="p1", workspaceId="w1", agentId="agent-1"
+     * 预期结果：返回包含 ExportResp 的非空列表，仅 AGENT 类型匹配
+     */
+    @Test
+    void testBuildExportRespsShouldReturnExportRespsWhenAdapterReturnsData() {
+        Agent agent = new Agent();
+        agent.setAgentId("agent-1");
+        agent.setName("test-agent");
+        when(agentMapper.selectByIdsAndProjectIdAndWorkspaceId("p1", "w1", List.of("agent-1")))
+            .thenReturn(List.of(agent));
+        when(agentMapper.selectById("agent-1")).thenReturn(agent);
+        when(mappingMapper.selectByAppIdAndAppVersion(eq("agent-1"), eq("latest"), isNull(), isNull()))
+            .thenReturn(Collections.emptyList());
+
+        ExportResp exportResp = new ExportResp();
+        ExportInfo exportInfo = new ExportInfo();
+        exportInfo.setResourceId("agent-1");
+        exportInfo.setResourceType("agent");
+        exportInfo.setResourceName("test-agent");
+        exportInfo.setResourceLevel(1);
+        exportResp.setExportInfos(List.of(exportInfo));
+
+        com.openjiuwen.studio.agent.manager.workflow.resource.adapt.ResourceAdapter adapter = mock(
+            com.openjiuwen.studio.agent.manager.workflow.resource.adapt.ResourceAdapter.class);
+        when(resourceAdapterFactory.getAdapter(anyString())).thenReturn(adapter);
+        when(adapter.parseExport(anyList())).thenAnswer(invocation -> {
+            List<?> units = invocation.getArgument(0);
+            if (units == null || units.isEmpty()) {
+                return null;
+            }
+            return exportResp;
+        });
+
+        when(modelServiceMgmtService.buildModelExportEntity(anyString(), anyString(), anyList(), eq(true), eq(false)))
+            .thenReturn(Collections.emptyList());
+        when(strategyMgmtService.buildModelStrategyExport(anyString(), anyString(), anyList()))
+            .thenReturn(Collections.emptyList());
+
+        List<ExportResp> result = agentExportService.buildExportResps("p1", "w1", "agent-1", "agent");
+
+        assertNotNull(result);
+        assertFalse(result.isEmpty());
+        assertEquals(1, result.size());
+        assertNotNull(result.get(0).getExportInfos());
+        assertEquals("agent-1", result.get(0).getExportInfos().get(0).getResourceId());
+    }
+
+    /**
+     * 用例描述：buildExportResps 在 agent 不存在时抛出 AgentStudioException
+     * 预制条件：agentMapper 返回空列表
+     * 输入参数：projectId="p1", workspaceId="w1", agentId="non-exist"
+     * 预期结果：抛出 AgentStudioException
+     */
+    @Test
+    void testBuildExportRespsShouldThrowWhenAgentNotExist() {
+        when(agentMapper.selectByIdsAndProjectIdAndWorkspaceId("p1", "w1", List.of("non-exist")))
+            .thenReturn(Collections.emptyList());
+
+        assertThrows(AgentStudioException.class, () ->
+            agentExportService.buildExportResps("p1", "w1", "non-exist", "agent"));
+    }
+
+    /**
+     * 用例描述：buildExportResps 在 collectExportResps 内部异常时包装为 AgentStudioException
+     * 预制条件：agent 存在但 mappingMapper 抛异常
+     * 输入参数：projectId="p1", workspaceId="w1", agentId="agent-1", agentType="agent"
+     * 预期结果：抛出 AgentStudioException
+     */
+    @Test
+    void testBuildExportRespsShouldThrowWhenSelectByIdReturnsNull() {
+        Agent agent = new Agent();
+        agent.setAgentId("agent-1");
+        agent.setName("test-agent");
+        when(agentMapper.selectByIdsAndProjectIdAndWorkspaceId("p1", "w1", List.of("agent-1")))
+            .thenReturn(List.of(agent));
+        when(agentMapper.selectById("agent-1")).thenReturn(agent);
+        when(mappingMapper.selectByAppIdAndAppVersion(eq("agent-1"), eq("latest"), isNull(), isNull()))
+            .thenThrow(new RuntimeException("DB error"));
+
+        assertThrows(AgentStudioException.class, () ->
+            agentExportService.buildExportResps("p1", "w1", "agent-1", "agent"));
+    }
+
+    /**
+     * 用例描述：flattenExportInfos 对相同 resourceId 的 ExportInfo 进行去重并合并 parents 列表
+     * 预制条件：两个 ExportResp 各包含一个相同 resourceId 的 ExportInfo，parents 不同
+     * 输入参数：包含两个 ExportResp 的列表
+     * 预期结果：返回1个 ExportInfo，parents 包含两个父资源 ID 且去重
+     */
+    @Test
+    void testFlattenExportInfosShouldDeduplicateAndMergeParents() {
+        ExportInfo info1 = new ExportInfo();
+        info1.setResourceId("res-1");
+        info1.setResourceLevel(1);
+        info1.setParents(List.of("parent-A"));
+
+        ExportInfo info2 = new ExportInfo();
+        info2.setResourceId("res-1");
+        info2.setResourceLevel(1);
+        info2.setParents(List.of("parent-B"));
+
+        ExportResp resp1 = new ExportResp();
+        resp1.setExportInfos(List.of(info1));
+        ExportResp resp2 = new ExportResp();
+        resp2.setExportInfos(List.of(info2));
+
+        List<ExportInfo> result = agentExportService.flattenExportInfos(List.of(resp1, resp2));
+
+        assertEquals(1, result.size());
+        ExportInfo merged = result.get(0);
+        assertEquals("res-1", merged.getResourceId());
+        assertEquals(2, merged.getParents().size());
+        assertTrue(merged.getParents().contains("parent-A"));
+        assertTrue(merged.getParents().contains("parent-B"));
+    }
+
+    /**
+     * 用例描述：flattenExportInfos 在输入为空列表时返回空列表
+     * 预制条件：无
+     * 输入参数：空列表
+     * 预期结果：返回空列表
+     */
+    @Test
+    void testFlattenExportInfosShouldReturnEmptyForEmptyInput() {
+        List<ExportInfo> result = agentExportService.flattenExportInfos(Collections.emptyList());
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+    }
+
+    /**
+     * 用例描述：flattenExportInfos 过滤掉 exportInfos 为 null 或空的 ExportResp
+     * 预制条件：ExportResp 的 exportInfos 为 null
+     * 输入参数：包含 null exportInfos 的 ExportResp
+     * 预期结果：返回空列表
+     */
+    @Test
+    void testFlattenExportInfosShouldFilterNullExportInfos() {
+        ExportResp resp = new ExportResp();
+        resp.setExportInfos(null);
+
+        List<ExportInfo> result = agentExportService.flattenExportInfos(List.of(resp));
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+    }
+
+    /**
+     * 用例描述：flattenExportInfos 在 releaseVersion 为 null 时使用空字符串作为去重键
+     * 预制条件：ExportInfo 的 releaseVersion 为 null
+     * 输入参数：包含 null releaseVersion 的不同 resourceId 的 ExportInfo
+     * 预期结果：正确去重，不抛 NPE
+     */
+    @Test
+    void testFlattenExportInfosShouldHandleNullReleaseVersion() {
+        ExportInfo info1 = new ExportInfo();
+        info1.setResourceId("res-1");
+        info1.setResourceLevel(1);
+        info1.setReleaseVersion(null);
+        info1.setParents(List.of("parent-A"));
+
+        ExportInfo info2 = new ExportInfo();
+        info2.setResourceId("res-2");
+        info2.setResourceLevel(2);
+        info2.setReleaseVersion(null);
+        info2.setParents(List.of("parent-B"));
+
+        ExportResp resp = new ExportResp();
+        resp.setExportInfos(List.of(info1, info2));
+
+        List<ExportInfo> result = agentExportService.flattenExportInfos(List.of(resp));
+
+        assertEquals(2, result.size());
     }
 
     private void mockObsForExport() {

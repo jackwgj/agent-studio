@@ -2,6 +2,7 @@
 
 package com.openjiuwen.studio.agent.manager.service;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -18,12 +19,17 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.alibaba.fastjson2.JSONObject;
+import com.openjiuwen.studio.agent.common.enums.StudioError;
 import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
 import com.openjiuwen.studio.agent.common.utils.RequestContextUtils;
 import com.openjiuwen.studio.agent.manager.bo.WfImportDataWrapper;
+import com.openjiuwen.studio.agent.manager.dto.QueryShareResourceInfoByResourceIdQo;
 import com.openjiuwen.studio.agent.manager.dto.QueryShareResourceListQo;
 import com.openjiuwen.studio.agent.manager.dto.QuerySharedResourceListQo;
+import com.openjiuwen.studio.agent.manager.dto.ResourceVersionInfo;
 import com.openjiuwen.studio.agent.manager.dto.ShareResourceListRsp;
+import com.openjiuwen.studio.agent.manager.dto.ShareResourceResp;
 import com.openjiuwen.studio.agent.manager.dto.ShareResourceRequestInfo;
 import com.openjiuwen.studio.agent.manager.dto.WorkspaceInfo;
 import com.openjiuwen.studio.agent.manager.entity.Agent;
@@ -403,7 +409,7 @@ class ShareResourceManagerServiceTest {
 
         ShareResourceEntity entity = new ShareResourceEntity()
             .setResourceId(RESOURCE_ID)
-            .setVersionList("[{\"versionId\":\"v2\",\"versionName\":\"2.0\"}]");
+            .setVersionList("[{\"version_id\":\"v2\",\"version_name\":\"2.0\"}]");
         when(shareResourceMapper.selectShareResourceEntityByResourceId(RESOURCE_ID))
             .thenReturn(entity);
 
@@ -421,7 +427,7 @@ class ShareResourceManagerServiceTest {
 
         ShareResourceEntity entity = new ShareResourceEntity()
             .setResourceId(RESOURCE_ID)
-            .setVersionList("[{\"versionId\":\"v1\",\"versionName\":\"1.0\"}]");
+            .setVersionList("[{\"version_id\":\"v1\",\"version_name\":\"1.0\"}]");
         when(shareResourceMapper.selectShareResourceEntityByResourceId(RESOURCE_ID))
             .thenReturn(entity);
 
@@ -920,5 +926,223 @@ class ShareResourceManagerServiceTest {
             assertTrue(result);
             verify(workflowMapper).updateWorkflowShareStatus(RESOURCE_ID, 1);
         }
+    }
+
+    // ==================== checkVersionSharedOrNot ====================
+
+    @Test
+    void testCheckVersionSharedOrNot_nullOrBlankArgs_noop() {
+        // 空参数不应查库、不应抛异常
+        assertDoesNotThrow(() -> shareResourceManagerService.checkVersionSharedOrNot(null, "v1"));
+        assertDoesNotThrow(() -> shareResourceManagerService.checkVersionSharedOrNot("", "v1"));
+        assertDoesNotThrow(() -> shareResourceManagerService.checkVersionSharedOrNot(RESOURCE_ID, null));
+        assertDoesNotThrow(() -> shareResourceManagerService.checkVersionSharedOrNot(RESOURCE_ID, "  "));
+        verify(shareResourceMapper, never()).selectShareResourceEntityByResourceId(anyString());
+    }
+
+    @Test
+    void testCheckVersionSharedOrNot_noShareRecord_noop() {
+        when(shareResourceMapper.selectShareResourceEntityByResourceId(RESOURCE_ID)).thenReturn(null);
+
+        assertDoesNotThrow(() -> shareResourceManagerService.checkVersionSharedOrNot(RESOURCE_ID, "v1"));
+    }
+
+    @Test
+    void testCheckVersionSharedOrNot_shareRecordVersionListEmpty_noop() {
+        ShareResourceEntity share = new ShareResourceEntity();
+        share.setVersionList(null);
+        when(shareResourceMapper.selectShareResourceEntityByResourceId(RESOURCE_ID)).thenReturn(share);
+
+        assertDoesNotThrow(() -> shareResourceManagerService.checkVersionSharedOrNot(RESOURCE_ID, "v1"));
+
+        share.setVersionList("");
+        assertDoesNotThrow(() -> shareResourceManagerService.checkVersionSharedOrNot(RESOURCE_ID, "v1"));
+    }
+
+    @Test
+    void testCheckVersionSharedOrNot_versionNotInList_noop() {
+        ShareResourceEntity share = new ShareResourceEntity();
+        share.setVersionList("[{\"version_id\":\"v0\",\"version_name\":\"0.9\"}]");
+        when(shareResourceMapper.selectShareResourceEntityByResourceId(RESOURCE_ID)).thenReturn(share);
+
+        // v1 不在已共享版本列表中，应放行
+        assertDoesNotThrow(() -> shareResourceManagerService.checkVersionSharedOrNot(RESOURCE_ID, "v1"));
+    }
+
+    @Test
+    void testCheckVersionSharedOrNot_versionIsShared_throwsCannotDelete() {
+        // versionList 中精确包含目标 versionId 时应抛错
+        ShareResourceEntity share = new ShareResourceEntity();
+        share.setVersionList("[{\"version_id\":\"v1\",\"version_name\":\"1.0\"},{\"version_id\":\"v2\",\"version_name\":\"2.0\"}]");
+        when(shareResourceMapper.selectShareResourceEntityByResourceId(RESOURCE_ID)).thenReturn(share);
+
+        AgentStudioException ex = assertThrows(AgentStudioException.class, () ->
+            shareResourceManagerService.checkVersionSharedOrNot(RESOURCE_ID, "v1"));
+        assertEquals(StudioError.SHARE_RESOURCE_CANNOT_BE_DELETE_DIRECTLY, ex.getErrorCode());
+    }
+
+    @Test
+    void testCheckVersionSharedOrNot_versionIdIsSubstringOfSharedVersion_noop() {
+        // 版本号仅是已共享版本号的子串但自身不在共享列表中时，不应误判为已共享（精确匹配）
+        ShareResourceEntity share = new ShareResourceEntity();
+        share.setVersionList("[{\"version_id\":\"1789548359671\",\"version_name\":\"1.0\"}]");
+        when(shareResourceMapper.selectShareResourceEntityByResourceId(RESOURCE_ID)).thenReturn(share);
+
+        assertDoesNotThrow(() -> shareResourceManagerService.checkVersionSharedOrNot(RESOURCE_ID, "178"));
+        // 完整版本号可精确匹配到，证明共享列表解析正常
+        AgentStudioException ex = assertThrows(AgentStudioException.class, () ->
+            shareResourceManagerService.checkVersionSharedOrNot(RESOURCE_ID, "1789548359671"));
+        assertEquals(StudioError.SHARE_RESOURCE_CANNOT_BE_DELETE_DIRECTLY, ex.getErrorCode());
+    }
+
+    @Test
+    void testCheckVersionSharedOrNot_legacyCommaSeparatedVersionList() {
+        // 兼容历史格式：逗号分隔的版本号串，逐项精确匹配
+        ShareResourceEntity share = new ShareResourceEntity();
+        share.setVersionList("1789548359671,1788000000000");
+        when(shareResourceMapper.selectShareResourceEntityByResourceId(RESOURCE_ID)).thenReturn(share);
+
+        // 子串不误判为已共享
+        assertDoesNotThrow(() -> shareResourceManagerService.checkVersionSharedOrNot(RESOURCE_ID, "178"));
+        // 精确匹配到已共享版本
+        AgentStudioException ex = assertThrows(AgentStudioException.class, () ->
+            shareResourceManagerService.checkVersionSharedOrNot(RESOURCE_ID, "1788000000000"));
+        assertEquals(StudioError.SHARE_RESOURCE_CANNOT_BE_DELETE_DIRECTLY, ex.getErrorCode());
+    }
+
+    // ==================== queryShareResourceInfoByResourceId 详情名与卡片同源 ====================
+
+    @Test
+    void testQueryShareResourceInfoByResourceId_WorkflowNameUsesLiveName() {
+        try (MockedStatic<RequestContextUtils> reqCtx = mockStatic(RequestContextUtils.class)) {
+            reqCtx.when(RequestContextUtils::getRequestWorkspaceId).thenReturn(WORKSPACE_ID);
+
+            ShareResourceEntity entity = new ShareResourceEntity()
+                .setResourceId(RESOURCE_ID)
+                .setResourceName("旧名快照")
+                .setResourceType("workflow")
+                .setWorkspaceId(WORKSPACE_ID)
+                .setVersionList("[{\"versionId\":\"v1\",\"versionName\":\"1.0\"}]");
+            when(shareResourceMapper.selectShareResourceEntityByResourceId(RESOURCE_ID)).thenReturn(entity);
+            when(shareScopeMapper.selectShareScopesByResourceId(RESOURCE_ID)).thenReturn(new ArrayList<>());
+            when(workspaceMapper.selectWorkspaceByWorkspaceIdList(anyList())).thenReturn(new ArrayList<>());
+
+            ReleaseVersion releaseVersion = new ReleaseVersion();
+            releaseVersion.setVersionId("v1");
+            releaseVersion.setDslPath("dsl/path.json");
+            when(releaseVersionMapper.selectByAppIdAndVersionId(RESOURCE_ID, "v1")).thenReturn(releaseVersion);
+
+            WorkflowEntity workflowEntity = new WorkflowEntity();
+            workflowEntity.setId(RESOURCE_ID);
+            workflowEntity.setName("工作流活名");
+            when(workflowMapper.selectByWorkflowId(PROJECT_ID, WORKSPACE_ID, RESOURCE_ID))
+                .thenReturn(workflowEntity);
+
+            // DSL 含 node_start 开始节点，规避 getWorkflowNodeID 对缺失节点的异常
+            when(obsService.downloadObsFile(any()))
+                .thenReturn("{\"nodes\":[{\"id\":\"node_start\",\"outputs\":[]}]}");
+
+            QueryShareResourceInfoByResourceIdQo qo = new QueryShareResourceInfoByResourceIdQo();
+            qo.setWorkspaceId(WORKSPACE_ID);
+            qo.setReleaseVersion("v1");
+
+            ShareResourceResp resp = shareResourceManagerService
+                .queryShareResourceInfoByResourceId(PROJECT_ID, RESOURCE_ID, qo);
+
+            assertNotNull(resp);
+            // 详情名取活表现值（与列表卡片一致），而非共享表快照名
+            assertEquals("工作流活名", resp.getResourceName());
+        }
+    }
+
+    @Test
+    void testQueryShareResourceInfoByResourceId_ControllerNameUsesLiveName() {
+        try (MockedStatic<RequestContextUtils> reqCtx = mockStatic(RequestContextUtils.class)) {
+            reqCtx.when(RequestContextUtils::getRequestWorkspaceId).thenReturn(WORKSPACE_ID);
+
+            ShareResourceEntity entity = new ShareResourceEntity()
+                .setResourceId(RESOURCE_ID)
+                .setResourceName("旧名快照")
+                .setResourceType("controller")
+                .setWorkspaceId(WORKSPACE_ID)
+                .setVersionList("[{\"versionId\":\"v1\",\"versionName\":\"1.0\"}]");
+            when(shareResourceMapper.selectShareResourceEntityByResourceId(RESOURCE_ID)).thenReturn(entity);
+            when(shareScopeMapper.selectShareScopesByResourceId(RESOURCE_ID)).thenReturn(new ArrayList<>());
+            when(workspaceMapper.selectWorkspaceByWorkspaceIdList(anyList())).thenReturn(new ArrayList<>());
+
+            ReleaseVersion releaseVersion = new ReleaseVersion();
+            releaseVersion.setVersionId("v1");
+            releaseVersion.setDslPath("dsl/path.json");
+            when(releaseVersionMapper.selectByAppIdAndVersionId(RESOURCE_ID, "v1")).thenReturn(releaseVersion);
+
+            Agent agent = new Agent();
+            agent.setAgentId(RESOURCE_ID);
+            agent.setName("智能体活名");
+            when(agentMapper.selectByProjectIdAndWorkspaceId(PROJECT_ID, WORKSPACE_ID, RESOURCE_ID))
+                .thenReturn(agent);
+
+            when(obsService.downloadObsFile(any())).thenReturn("{}");
+
+            QueryShareResourceInfoByResourceIdQo qo = new QueryShareResourceInfoByResourceIdQo();
+            qo.setWorkspaceId(WORKSPACE_ID);
+            qo.setReleaseVersion("v1");
+
+            ShareResourceResp resp = shareResourceManagerService
+                .queryShareResourceInfoByResourceId(PROJECT_ID, RESOURCE_ID, qo);
+
+            assertNotNull(resp);
+            // 详情名取活表现值（与列表卡片一致），而非共享表快照名
+            assertEquals("智能体活名", resp.getResourceName());
+        }
+    }
+
+    @Test
+    void testContainsVersion_writeReadRoundTripWithSpecialAndLongVersionIds() {
+        // 模拟真实写入路径（JSONObject.toJSONString）与containsVersion读取路径的对称性，
+        // 并覆盖特殊字符（引号/逗号/括号/中文/emoji）与超长版本号
+        List<ResourceVersionInfo> versionInfos = new ArrayList<>();
+        versionInfos.add(new ResourceVersionInfo().setVersionId("1789548359671").setVersionName("1.0"));
+        versionInfos.add(new ResourceVersionInfo().setVersionId("a\"b{c,}[中文🎉").setVersionName("特殊字符"));
+        versionInfos.add(new ResourceVersionInfo().setVersionId("v".repeat(4096)).setVersionName("超长版本号"));
+        ShareResourceEntity entity = new ShareResourceEntity()
+            .setVersionList(JSONObject.toJSONString(versionInfos));
+
+        assertTrue(entity.containsVersion("1789548359671"));
+        assertTrue(entity.containsVersion("a\"b{c,}[中文🎉"));
+        assertTrue(entity.containsVersion("v".repeat(4096)));
+        // 子串/null/空串不误判
+        assertFalse(entity.containsVersion("178"));
+        assertFalse(entity.containsVersion(""));
+        assertFalse(entity.containsVersion(null));
+    }
+
+    @Test
+    void testContainsVersion_versionListEdgeCases() {
+        ShareResourceEntity entity = new ShareResourceEntity();
+        // null/空/空白versionList均安全返回false
+        assertFalse(entity.containsVersion("123"));
+        entity.setVersionList("");
+        assertFalse(entity.containsVersion("123"));
+        entity.setVersionList("   ");
+        assertFalse(entity.containsVersion("123"));
+        // 空JSON数组
+        entity.setVersionList("[]");
+        assertFalse(entity.containsVersion("123"));
+        // JSON数组含null元素（合法JSON脏数据），不抛NPE且其余元素正常匹配
+        entity.setVersionList("[null,{\"version_id\":\"123\"}]");
+        assertTrue(entity.containsVersion("123"));
+        // 元素缺version_id时安全跳过（equals(null)为false）
+        entity.setVersionList("[{\"version_name\":\"1.0\"},{\"version_id\":\"123\"}]");
+        assertTrue(entity.containsVersion("123"));
+        // 历史逗号格式：首尾空格、元素间空格、尾部逗号
+        entity.setVersionList(" 123 , 456 ,");
+        assertTrue(entity.containsVersion("123"));
+        assertTrue(entity.containsVersion("456"));
+        assertFalse(entity.containsVersion("23"));
+        // 逗号格式下含逗号的versionId无法表示（格式固有限制），安全返回false不崩溃
+        assertFalse(entity.containsVersion("123,456"));
+        // "null"字面量串不误判
+        entity.setVersionList("null");
+        assertFalse(entity.containsVersion("123"));
     }
 }

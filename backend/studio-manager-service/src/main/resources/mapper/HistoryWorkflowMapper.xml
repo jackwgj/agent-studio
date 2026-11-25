@@ -15,7 +15,8 @@
         )
         VALUES
         (
-            UUID(),
+            <if test="_databaseId == 'postgres'">gen_random_uuid(),</if>
+            <if test="_databaseId == null or _databaseId != 'postgres'">UUID(),</if>
             #{id,jdbcType=VARCHAR},
             #{name,jdbcType=VARCHAR},
             #{description,jdbcType=VARCHAR},
@@ -40,10 +41,10 @@
             #{traceId,jdbcType=VARCHAR},
             #{deployWfVersion,jdbcType=BIGINT},
             #{customizeNode,jdbcType=TINYINT},
-            #{deleted,jdbcType=TINYINT},
+            #{deleted,jdbcType=BOOLEAN},
             #{workflowType,jdbcType=VARCHAR},
             #{lastVersionId,jdbcType=VARCHAR},
-            #{testStatus,jdbcType=VARCHAR},
+            #{testStatus,jdbcType=TINYINT},
             #{isShare,jdbcType=TINYINT}
         )
     </insert>
@@ -51,7 +52,7 @@
         SELECT id
         FROM t_history_agent_workflow
         WHERE 1 = 1
-          AND updated_at &lt;= #{time}
+          AND updated_at &lt;= #{time,jdbcType=BIGINT}
     </select>
     <select id="selectByWorkflowIds" parameterType="map" resultMap="BaseResultMap">
         select
