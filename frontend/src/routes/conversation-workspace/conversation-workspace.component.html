@@ -118,7 +118,7 @@
           <nz-icon *ngIf="file.progress === 'loading'" nzType="loading" nzTheme="outline"></nz-icon>
           <meta-upload-file-icon *ngIf="file.progress !== 'loading'" [fileName]="file.fileName"></meta-upload-file-icon>
           <span class="attachment-name" [title]="file.fileName">{{ file.fileName }}</span>
-          <span class="attachment-status" *ngIf="file.progress === 'failed'">上传失败</span>
+          <span class="attachment-status" *ngIf="file.progress === 'failed'" role="status">{{ file.uploadError || '上传失败' }}</span>
           <button nz-button nzType="text" nzShape="circle" class="attachment-remove" nz-tooltip nzTooltipTitle="移除附件" (click)="removeUploadedFile(file.fileId)">
             <nz-icon nzType="close" nzTheme="outline"></nz-icon>
           </button>
@@ -146,7 +146,7 @@
             nz-button
             class="tool-btn"
             nz-tooltip
-            nzTooltipTitle="上传办公文件"
+            nzTooltipTitle="上传附件（支持 ZIP、RAR、7z）"
             [disabled]="isSending || uploadedFiles.length >= 10"
             (click)="openFilePicker()"
           >

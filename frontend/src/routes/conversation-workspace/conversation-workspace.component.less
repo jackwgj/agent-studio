@@ -643,7 +643,7 @@
       align-items: center;
       gap: 6px;
       min-width: 0;
-      max-width: 280px;
+      max-width: min(280px, 100%);
       min-height: 32px;
       padding: 4px 6px 4px 8px;
       border: 1px solid #e8e8e8;
@@ -660,7 +660,9 @@
       }
 
       .attachment-status {
-        flex: 0 0 auto;
+        flex: 0 1 auto;
+        min-width: 0;
+        overflow-wrap: anywhere;
         color: #ff4d4f;
       }
 

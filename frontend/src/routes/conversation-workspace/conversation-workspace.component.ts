@@ -139,10 +139,10 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
   skillCatalogUnavailable = false;
   recommendedSkills: ConversationSkillItem[] = [];
   activatedSkills: ActivatedSkill[] = [];
-  uploadedFiles: ConversationFileReference[] = [];
-  readonly acceptedFileTypes = '.txt,.md,.json,.xml,.html,.docx,.pdf,.xlsx,.xls,.csv';
+  uploadedFiles: Array<ConversationFileReference & { uploadError?: string }> = [];
+  readonly acceptedFileTypes = '.txt,.md,.json,.xml,.html,.docx,.pdf,.xlsx,.xls,.csv,.zip,.rar,.7z';
   private readonly maxFiles = 10;
-  private readonly maxFileSize = 60 * 1024 * 1024;
+  private readonly maxFileSizeMiB = 60;
   @ViewChild('fileInput') private fileInput?: ElementRef<HTMLInputElement>;
   @ViewChild('messageList') private messageList?: ElementRef<HTMLElement>;
   @ViewChild(SkillSelectorComponent) private skillSelector?: SkillSelectorComponent;
@@ -540,14 +540,15 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
   }
 
   private uploadFile(file: File): void {
-    const extension = file.name.split('.').pop()?.toLowerCase() ?? '';
-    const accepted = this.acceptedFileTypes
-      .split(',')
-      .map((item) => item.replace('.', ''));
-    if (!accepted.includes(extension) || file.size > this.maxFileSize) {
+    const extensionIndex = file.name.lastIndexOf('.');
+    const extension = extensionIndex < 0 ? '' : file.name.slice(extensionIndex).toLowerCase();
+    const uploadError = file.size > this.maxFileSizeMiB * 1024 * 1024
+      ? `文件超过 ${this.maxFileSizeMiB} MiB 上限`
+      : this.acceptedFileTypes.split(',').includes(extension) ? undefined : '不支持此文件格式';
+    if (uploadError) {
       this.uploadedFiles = [
         ...this.uploadedFiles,
-        { fileId: uuidV4(), fileName: file.name, objectKey: '', size: 0, checksum: '', progress: 'failed' },
+        { fileId: uuidV4(), fileName: file.name, objectKey: '', size: 0, checksum: '', progress: 'failed', uploadError },
       ];
       this.cdr.markForCheck();
       return;
@@ -566,24 +567,27 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('file_name_base64', this.encodeFileName(file.name));
+    const requestFailureMessage = '上传请求失败，请重试';
     this.conversationWorkspaceService.uploadInputFile(formData)
       .then((result) => {
+        const hasObjectKey = Boolean(result?.objectKey?.trim());
         this.uploadedFiles = this.uploadedFiles.map((current) =>
           current.fileId === fileId
             ? {
               ...current,
-              objectKey: result?.objectKey ?? '',
+              objectKey: hasObjectKey ? result.objectKey : '',
               fileName: current.fileName,
               size: result?.size ?? 0,
               checksum: result?.checksum ?? '',
-              progress: result?.objectKey ? 'succeeded' : 'failed',
+              progress: hasObjectKey ? 'succeeded' : 'failed',
+              uploadError: hasObjectKey ? undefined : requestFailureMessage,
             }
             : current,
         );
       })
       .catch(() => {
         this.uploadedFiles = this.uploadedFiles.map((current) =>
-          current.fileId === fileId ? { ...current, progress: 'failed' } : current,
+          current.fileId === fileId ? { ...current, progress: 'failed', uploadError: requestFailureMessage } : current,
         );
       })
       .finally(() => this.cdr.markForCheck());

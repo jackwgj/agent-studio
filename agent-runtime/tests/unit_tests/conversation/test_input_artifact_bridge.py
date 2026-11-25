@@ -1,4 +1,6 @@
 import hashlib
+import io
+import zipfile
 from types import SimpleNamespace
 
 import pytest
@@ -54,7 +56,7 @@ def _artifact(data=b"report contents", file_name="report.pdf"):
             "244210e48437b6556980a70249a99369934a352429034cef9d7bd253b3bf2c01/"
             "21a3230e03772a58aff1b3709a9e232850916337e1fba95c434076b6668c6e08/"
             "04f8996da763b7a969b1028ee3007569eaf3a635486ddab211d512c85b9df8fb/"
-            "00000000-0000-0000-0000-000000000001/report.pdf"
+            f"00000000-0000-0000-0000-000000000001/{file_name}"
         ),
         fileName=file_name,
         size=len(data),
@@ -94,9 +96,16 @@ def test_input_artifact_rejects_path_shaped_file_names(file_name):
 
 
 @pytest.mark.asyncio
-async def test_bridge_writes_verified_bytes_to_server_derived_input_path_only():
-    artifact = _artifact()
-    storage = BytesStorage(b"report contents")
+@pytest.mark.parametrize("file_name", ["report.pdf", "项目资料.ZIP"])
+async def test_bridge_writes_verified_bytes_to_server_derived_input_path_only(file_name):
+    content = b"report contents"
+    if file_name.endswith(".ZIP"):
+        output = io.BytesIO()
+        with zipfile.ZipFile(output, "w") as archive:
+            archive.writestr("inner-report.txt", content)
+        content = output.getvalue()
+    artifact = _artifact(data=content, file_name=file_name)
+    storage = BytesStorage(content)
     fs = RecordingFs()
     bridge = InputArtifactBridge(storage, lambda: RecordingOperation(fs), max_file_size=1024)
     token = set_conversation_execution_context(_context())
@@ -109,8 +118,8 @@ async def test_bridge_writes_verified_bytes_to_server_derived_input_path_only():
     assert paths == [fs.calls[0][0]]
     assert paths[0].startswith("/workspace/")
     assert "/input/" in paths[0]
-    assert paths[0].endswith("/report.pdf")
-    assert fs.calls == [(paths[0], b"report contents", {
+    assert paths[0].endswith(f"/{file_name}")
+    assert fs.calls == [(paths[0], content, {
         "mode": "bytes", "prepend_newline": False, "append_newline": False,
     })]
 

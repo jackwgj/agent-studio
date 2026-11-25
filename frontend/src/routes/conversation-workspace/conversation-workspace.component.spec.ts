@@ -235,6 +235,82 @@ describe('ConversationWorkspaceComponent', () => {
     expect((component as any).uploadedFiles[0].fileName).toBe(originalName);
   });
 
+  it('让 ZIP、RAR 和 7z 通过现有附件接口上传，并在发送时保留原始文件名', async () => {
+    const files = ['资料.ZIP', '资料.rar', '资料.7z'].map((name) => new File(['archive'], name));
+    const picker: HTMLInputElement = fixture.nativeElement.querySelector('input[type=file]');
+    expect(picker.accept.split(',')).toEqual(jasmine.arrayContaining(['.zip', '.rar', '.7z', '.pdf']));
+    service.uploadInputFile.and.callFake((formData: FormData) => {
+      const file = formData.get('file') as File;
+      return Promise.resolve({
+        objectKey: `conversation-inputs/p/w/u/id/${file.name}`,
+        fileName: file.name,
+        size: file.size,
+        checksum: '0'.repeat(64),
+      });
+    });
+    const selected = new DataTransfer();
+    files.forEach((file) => selected.items.add(file));
+    picker.files = selected.files;
+    picker.dispatchEvent(new Event('change'));
+    await Promise.resolve();
+
+    const uploaded = service.uploadInputFile.calls.allArgs().map(([formData]: [FormData]) => formData.get('file'));
+    expect(uploaded.map((file: File) => file.name)).toEqual(files.map((file) => file.name));
+    component.currentSession = session('c1');
+    component.inputText = '处理压缩包';
+    component.send();
+
+    expect(service.chatSSE).toHaveBeenCalledWith('c1', jasmine.objectContaining({
+      file_ids: files.map((file) => ({
+        object_key: `conversation-inputs/p/w/u/id/${file.name}`,
+        file_name: file.name,
+        size: file.size,
+        checksum: '0'.repeat(64),
+      })),
+    }), jasmine.any(Object));
+  });
+
+  it('单文件刚好 60 MiB 会尝试上传，超出一个字节则在卡片上显示上限', () => {
+    const atLimit = new File(['archive'], '正好.zip');
+    const oversized = new File(['archive'], '超限.zip');
+    spyOnProperty(atLimit, 'size', 'get').and.returnValue(60 * 1024 * 1024);
+    spyOnProperty(oversized, 'size', 'get').and.returnValue(60 * 1024 * 1024 + 1);
+
+    (component as any).uploadFile(atLimit);
+    (component as any).uploadFile(oversized);
+    fixture.detectChanges();
+
+    expect(service.uploadInputFile).toHaveBeenCalledTimes(1);
+    expect((service.uploadInputFile.calls.mostRecent().args[0].get('file') as File).name).toBe('正好.zip');
+    expect(fixture.nativeElement.querySelector('.attachment-status').textContent.trim()).toBe('文件超过 60 MiB 上限');
+  });
+
+  it('不支持的格式显示具体提示，并且不发起上传', () => {
+    (component as any).uploadFile(new File(['file'], '资料.exe'));
+    (component as any).uploadFile(new File(['file'], 'zip'));
+    fixture.detectChanges();
+
+    expect(service.uploadInputFile).not.toHaveBeenCalled();
+    const statuses = Array.from(fixture.nativeElement.querySelectorAll('.attachment-status') as NodeListOf<HTMLElement>);
+    expect(statuses.map((status) => status.textContent?.trim())).toEqual(['不支持此文件格式', '不支持此文件格式']);
+  });
+
+  it('请求被拒绝或响应没有有效对象键时提示重试，且发送时不包含这些附件', async () => {
+    service.uploadInputFile.and.rejectWith(new Error('backend diagnostic'));
+    (component as any).uploadFile(new File(['archive'], '请求失败.rar'));
+    service.uploadInputFile.and.resolveTo({ objectKey: '  ' });
+    (component as any).uploadFile(new File(['archive'], '响应缺少对象键.7z'));
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const statuses = Array.from(fixture.nativeElement.querySelectorAll('.attachment-status') as NodeListOf<HTMLElement>);
+    expect(statuses.map((status) => status.textContent?.trim())).toEqual(['上传请求失败，请重试', '上传请求失败，请重试']);
+    component.currentSession = session('c1');
+    component.inputText = '普通对话';
+    component.send();
+    expect(service.chatSSE.calls.mostRecent().args[1].file_ids ?? []).toEqual([]);
+  });
+
   it('连接前失败保留输入和推荐以便重试，并刷新目录', () => {
     (component as any).recommendedSkills = [skill('s1')];
     component.currentSession = session('c1');
