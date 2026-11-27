@@ -712,6 +712,9 @@ public class IrAdapterService {
         if (configs == null) {
             return irConfigs;
         }
+        if (Boolean.TRUE.equals(configs.get("conversation_image_attachment"))) {
+            irConfigs.put("conversation_image_attachment", true);
+        }
         // 替换模型配置
         if (configs.get(DEFAULT_MODEL) != null) {
             configs.put(MODEL, configs.get(DEFAULT_MODEL));

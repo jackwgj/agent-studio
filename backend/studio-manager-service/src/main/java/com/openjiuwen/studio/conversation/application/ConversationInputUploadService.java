@@ -46,21 +46,30 @@ public class ConversationInputUploadService {
     public ConversationInputUploadVo upload(String projectId, String workspaceId, MultipartFile file,
                                             String fileNameBase64) {
         accessGuard.requireAccess(projectId, workspaceId);
-        if (file == null || file.isEmpty() || file.getSize() > MAX_INPUT_FILE_SIZE) {
+        if (file == null || file.isEmpty()) {
             throw new AgentStudioException(StudioError.FILE_SIZE_EXCEED_LIMIT);
         }
         String fileName = StringUtils.isBlank(fileNameBase64)
             ? safeBasename(file.getOriginalFilename())
             : decodeFileName(fileNameBase64);
+        String mediaType = ConversationImageAttachment.mediaTypeForName(fileName);
+        if (mediaType != null) {
+            ConversationImageAttachment.checkByteLimit(file.getSize());
+        } else if (file.getSize() > MAX_INPUT_FILE_SIZE) {
+            throw new AgentStudioException(StudioError.FILE_SIZE_EXCEED_LIMIT);
+        }
         byte[] bytes = readBytes(file);
         if (bytes.length == 0 || bytes.length > MAX_INPUT_FILE_SIZE) {
             throw new AgentStudioException(StudioError.FILE_SIZE_EXCEED_LIMIT);
+        }
+        if (mediaType != null) {
+            ConversationImageAttachment.validate(bytes, mediaType);
         }
         String objectKey = String.format("%s/%s/%s/%s/%s/%s", PREFIX, sha256(projectId), sha256(workspaceId),
             sha256(RequestContextUtils.getRequestUserId()), UUID.randomUUID(), fileName);
         mgObsService.uploadObsFile(objectKey, new ByteArrayInputStream(bytes), -1);
         return ConversationInputUploadVo.builder().objectKey(objectKey).fileName(fileName).size(bytes.length)
-            .checksum(sha256(bytes)).build();
+            .checksum(sha256(bytes)).mediaType(mediaType).build();
     }
 
     private static String decodeFileName(String encodedFileName) {

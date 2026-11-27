@@ -15,6 +15,8 @@ import com.openjiuwen.studio.agent.manager.service.plugin.impl.PluginBaseImpl;
 import com.openjiuwen.studio.agent.manager.service.workspace.WorkspaceMappingService;
 import com.openjiuwen.studio.common.service.service.EncryptionAdapter;
 
+import java.util.Map;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockitoAnnotations;
@@ -24,6 +26,16 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class IrAdapterServiceTest {
+
+    @Test
+    void conversationImageOptInMustBeExplicitBoolean() {
+        var enabled = (Map<?, ?>) ReflectionTestUtils.invokeMethod(irAdapterService, "adaptConfigs",
+            Map.of("conversation_image_attachment", true));
+        var disabled = (Map<?, ?>) ReflectionTestUtils.invokeMethod(irAdapterService, "adaptConfigs",
+            Map.of("conversation_image_attachment", "true"));
+        assertEquals(Boolean.TRUE, enabled.get("conversation_image_attachment"));
+        assertFalse(disabled.containsKey("conversation_image_attachment"));
+    }
 
     private MappingMapper mappingMapper;
     private MgObsService obsService;

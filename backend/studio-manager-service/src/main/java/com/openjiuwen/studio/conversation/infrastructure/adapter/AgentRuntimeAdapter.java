@@ -62,6 +62,9 @@ public class AgentRuntimeAdapter {
     @Value("${agent_runtime_endpoint:http://127.0.0.1:31014}")
     private String runtimeEndpoint;
 
+    @Value("${CONVERSATION_IMAGE_INTERNAL_TOKEN:}")
+    private String imageInternalToken;
+
     /** 团队子 Agent ID 列表（内置常量，POC：团队变更时改此处，不再走 yml 配置） */
     private static final String TEAM_AGENT_IDS =
         "d321fa88-a768-4b63-8d68-13cd743c6903,8dafdc64-2c52-40b5-9b24-49894314b763";
@@ -104,6 +107,12 @@ public class AgentRuntimeAdapter {
             toolRegistrationService.ensureTools(describeTools(body));
         } catch (Exception e) {
             log.warn("Conversation tool registration skipped, degrade to runtime-only registration.", e);
+        }
+        if ("APP".equals(cmd.getSelectType()) && !cmd.getVerifiedImages().isEmpty()
+            && StringUtils.isNotBlank(imageInternalToken) && StringUtils.isNotBlank(cmd.getImageAgentReleaseId())) {
+            body.put("imageGrant", ConversationImageGrant.issue(objectMapper, imageInternalToken, conversation,
+                cmd.getAppId(), cmd.getImageAgentReleaseId(), executionId, cmd.getVerifiedImages(),
+                cmd.getOmittedCurrentImages()));
         }
 
         Request.Builder builder = new Request.Builder()

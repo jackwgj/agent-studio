@@ -14,4 +14,5 @@ public class ConversationInputUploadVo {
     private String fileName;
     private long size;
     private String checksum;
+    private String mediaType;
 }

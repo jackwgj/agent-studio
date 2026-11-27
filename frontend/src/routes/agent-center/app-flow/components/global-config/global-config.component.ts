@@ -164,6 +164,7 @@ export class GlobalConfigComponent
   public modelOptions: IModel[] = [];
   public defaultModel = "";
   public modelSwitch = false;
+  public conversationImageAttachment = false;
   public autoMemos: IWorkflowField[] = [];
   public assignmentMemos: IWFView[] = [];
   public outputDataTypes = getOutputParamTypes();
@@ -274,6 +275,7 @@ export class GlobalConfigComponent
       this.modelOptions
     );
     this.modelSwitch = this.configs?.default_model_switch;
+    this.conversationImageAttachment = this.configs?.conversation_image_attachment === true;
 
     this.questions = cloneDeep(this.configs?.suggest_queries) ?? [];
     if (this.questions.length < QUES_LIMIT) {
@@ -837,6 +839,7 @@ export class GlobalConfigComponent
     newConf.prologue = this.prologue;
     newConf.suggest_queries = this.questions.filter((question) => question);
     newConf.default_model_switch = this.modelSwitch;
+    newConf.conversation_image_attachment = this.conversationImageAttachment;
     newConf.long_memory_enabled = this.longTermMemo;
     newConf.memory = [
       ...NodeUtils.getDtoInputs(this.autoMemos),

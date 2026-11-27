@@ -270,6 +270,49 @@ describe('ConversationWorkspaceComponent', () => {
     }), jasmine.any(Object));
   });
 
+  it('接受 PNG 和 JPEG，并区分图片与普通附件的大小上限', () => {
+    const picker: HTMLInputElement = fixture.nativeElement.querySelector('input[type=file]');
+    expect(picker.accept.split(',')).toEqual(jasmine.arrayContaining(['.png', '.jpg', '.jpeg', '.zip']));
+    const exactLimitImage = new File(['image'], '截图.PNG');
+    const oversizedImage = new File(['image'], '照片.jpeg');
+    spyOnProperty(exactLimitImage, 'size', 'get').and.returnValue(10 * 1024 * 1024);
+    spyOnProperty(oversizedImage, 'size', 'get').and.returnValue(10 * 1024 * 1024 + 1);
+
+    (component as any).uploadFile(exactLimitImage);
+    (component as any).uploadFile(oversizedImage);
+    (component as any).uploadFile(new File(['image'], '照片.jpg'));
+    fixture.detectChanges();
+
+    expect(service.uploadInputFile).toHaveBeenCalledTimes(2);
+    expect(fixture.nativeElement.querySelector('.attachment-status').textContent.trim()).toBe('图片超过 10 MiB 上限');
+  });
+
+  it('图片内容被服务端拒绝时显示可处理的原因', async () => {
+    service.uploadInputFile.and.rejectWith({ error: { error_code: 'openjiuwen.02001007' } });
+    (component as any).uploadFile(new File(['not an image'], '截图.png'));
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.attachment-status').textContent.trim()).toBe('图片内容无效或与文件后缀不符');
+  });
+
+  it('单智能体可以仅发送上传完成的图片，仍走普通附件协议', () => {
+    component.executionTargets = [{ id: 'agent-1', name: '通用智能体', type: 'SINGLE_AGENT' }];
+    component.currentSession = session('c1');
+    const objectKey = 'conversation-inputs/p/w/u/id/截图.png';
+    (component as any).uploadedFiles = [{ objectKey, fileName: '截图.png', size: 10,
+      checksum: '0'.repeat(64), progress: 'succeeded' }];
+    component.onExecutionPathChange(['agent-1']);
+    fixture.detectChanges();
+    const send: HTMLButtonElement = fixture.nativeElement.querySelector('.send-btn');
+    expect(send.disabled).toBeFalse();
+    send.click();
+    expect(service.chatSSE).toHaveBeenCalledWith('c1', jasmine.objectContaining({
+      query: '请识别本轮上传的图片。', app_id: 'agent-1',
+      file_ids: [jasmine.objectContaining({ object_key: objectKey, file_name: '截图.png' })],
+    }), jasmine.any(Object));
+  });
+
   it('单文件刚好 60 MiB 会尝试上传，超出一个字节则在卡片上显示上限', () => {
     const atLimit = new File(['archive'], '正好.zip');
     const oversized = new File(['archive'], '超限.zip');

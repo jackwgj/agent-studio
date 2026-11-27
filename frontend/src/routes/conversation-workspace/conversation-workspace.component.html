@@ -204,7 +204,7 @@
             nzShape="circle"
             class="send-btn"
             [nzLoading]="streaming"
-            [disabled]="!inputText.trim() || isSending || hasPendingUploads || !selectedExecutionTarget || (selectedExecutionTarget === 'default-team' && !selectedModel)"
+            [disabled]="(!inputText.trim() && !canSendImageOnly) || isSending || hasPendingUploads || !selectedExecutionTarget || (selectedExecutionTarget === 'default-team' && !selectedModel)"
             (click)="send()"
           >
             <nz-icon nzType="send" nzTheme="outline"></nz-icon>
