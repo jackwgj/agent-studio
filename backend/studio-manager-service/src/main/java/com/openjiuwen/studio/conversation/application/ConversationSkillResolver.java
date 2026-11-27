@@ -94,7 +94,8 @@ public class ConversationSkillResolver {
             .setStatus(SkillStatus.DEVELOPED.getValue());
         List<ConversationSkillDescriptor> result = new ArrayList<>();
         for (int offset = 0; ; offset += PAGE_SIZE) {
-            List<SkillDetails> page = skillMapper.search(condition, offset, PAGE_SIZE, null, null, 0);
+            // 上架状态只影响展示，不决定当前空间内的 Skill 是否可执行。
+            List<SkillDetails> page = skillMapper.search(condition, offset, PAGE_SIZE, null, null, null);
             page.stream()
                 .filter(item -> Objects.equals(domainId, item.getDomainId()))
                 .filter(item -> Objects.equals(projectId, item.getProjectId()))
