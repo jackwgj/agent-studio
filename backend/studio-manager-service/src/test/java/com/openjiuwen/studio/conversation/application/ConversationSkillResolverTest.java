@@ -8,6 +8,10 @@ import com.openjiuwen.studio.agent.manager.mapper.SkillMapper;
 import com.openjiuwen.studio.conversation.application.dto.ConversationSkillContext;
 import com.openjiuwen.studio.conversation.application.dto.ConversationSkillVo;
 
+import org.apache.ibatis.builder.xml.XMLMapperBuilder;
+import org.apache.ibatis.io.Resources;
+import org.apache.ibatis.reflection.ParamNameResolver;
+import org.apache.ibatis.session.Configuration;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -16,11 +20,13 @@ import java.util.ArrayList;
 import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -32,8 +38,48 @@ class ConversationSkillResolverTest {
     private final ConversationSkillResolver resolver = new ConversationSkillResolver(skillMapper);
 
     @Test
+    void 已上架和未上架技能均可推荐且保留已上架技能的绑定身份() {
+        SkillDetails unlisted = skill("unlisted", "d1", "p1", "w1", "developed", "v1", "skills/unlisted.zip");
+        SkillDetails listed = skill("listed", "d1", "p1", "w1", "developed", "v2", "skills/listed.zip");
+        when(skillMapper.search(any(), eq(0), eq(1000), isNull(), isNull(), nullable(Integer.class)))
+            .thenAnswer(call -> call.getArgument(5) == null ? List.of(unlisted, listed) : List.of(unlisted));
+
+        assertEquals(List.of("unlisted", "listed"), resolver.listAvailable("p1", "w1", "d1").stream()
+            .map(ConversationSkillVo::getSkillId).toList());
+        ConversationSkillContext context = resolver.resolveForRun("p1", "w1", "d1", List.of("listed"),
+            List.of("listed"));
+        assertEquals(List.of("listed"), context.getRecommendedSkillIds());
+        assertEquals(List.of("listed"), context.getAgentBoundSkillIds());
+        assertEquals("skills/listed.zip", context.getCatalog().get(1).getObjectKey());
+    }
+
+    @Test
+    void search_仅显式指定上架状态时生成对应的过滤条件() throws Exception {
+        Configuration configuration = new Configuration();
+        String resource = "mapper/SkillMapper.xml";
+        try (var input = Resources.getResourceAsStream(resource)) {
+            new XMLMapperBuilder(input, configuration, resource, configuration.getSqlFragments()).parse();
+        }
+        var params = new ParamNameResolver(configuration, SkillMapper.class.getMethod("search", SkillEntity.class,
+            int.class, int.class, String.class, String.class, Integer.class));
+        var statement = configuration.getMappedStatement(SkillMapper.class.getName() + ".search");
+        var condition = new SkillEntity().setProjectId("p1").setWorkspaceId("w1").setDomainId("d1")
+            .setStatus("developed");
+        String workbenchSql = statement.getBoundSql(params.getNamedParams(
+            new Object[]{condition, 0, 1000, null, null, null})).getSql();
+        assertFalse(workbenchSql.contains("published_asset"));
+        assertTrue(workbenchSql.contains("project_id") && workbenchSql.contains("workspace_id")
+            && workbenchSql.contains("domain_id") && workbenchSql.contains("status"));
+        for (int publishedAsset : new int[]{0, 1}) {
+            String filteredSql = statement.getBoundSql(params.getNamedParams(
+                new Object[]{condition, 0, 1000, null, null, publishedAsset})).getSql();
+            assertTrue(filteredSql.contains("published_asset"));
+        }
+    }
+
+    @Test
     void listAvailable_只返回当前边界内可执行目录项() {
-        when(skillMapper.search(any(), eq(0), eq(1000), isNull(), isNull(), eq(0)))
+        when(skillMapper.search(any(), eq(0), eq(1000), isNull(), isNull(), isNull()))
             .thenReturn(List.of(
                 skill("s1", "d1", "p1", "w1", "developed", "v1", "u1/skills/s1/v1/a.zip"),
                 skill("s2", "d1", "p1", "w1", "developing", "v2", "u1/skills/s2/v2/b.zip"),
@@ -51,7 +97,7 @@ class ConversationSkillResolverTest {
         assertEquals(List.of("s1"), context.getCatalog().stream().map(item -> item.getSkillId()).toList());
         assertEquals(List.of("s1"), context.getRecommendedSkillIds());
         org.mockito.ArgumentCaptor<SkillEntity> condition = org.mockito.ArgumentCaptor.forClass(SkillEntity.class);
-        verify(skillMapper, times(2)).search(condition.capture(), eq(0), eq(1000), isNull(), isNull(), eq(0));
+        verify(skillMapper, times(2)).search(condition.capture(), eq(0), eq(1000), isNull(), isNull(), isNull());
         assertEquals("p1", condition.getValue().getProjectId());
         assertEquals("w1", condition.getValue().getWorkspaceId());
         assertEquals("d1", condition.getValue().getDomainId());
@@ -64,21 +110,21 @@ class ConversationSkillResolverTest {
             .mapToObj(i -> skill("s" + i, "d1", "p1", "w1", "developed", "v" + i,
                 "u1/skills/s" + i + "/v" + i + "/a.zip"))
             .toList();
-        when(skillMapper.search(any(), eq(0), eq(1000), isNull(), isNull(), eq(0))).thenReturn(firstPage);
-        when(skillMapper.search(any(), eq(1000), eq(1000), isNull(), isNull(), eq(0))).thenReturn(List.of(
+        when(skillMapper.search(any(), eq(0), eq(1000), isNull(), isNull(), isNull())).thenReturn(firstPage);
+        when(skillMapper.search(any(), eq(1000), eq(1000), isNull(), isNull(), isNull())).thenReturn(List.of(
             skill("s1000", "d1", "p1", "w1", "developed", "v1000", "u1/skills/s1000/v1000/a.zip")));
 
         List<ConversationSkillVo> result = resolver.listAvailable("p1", "w1", "d1");
 
         assertEquals(1001, result.size());
         assertEquals("s1000", result.get(1000).getSkillId());
-        verify(skillMapper).search(any(), eq(0), eq(1000), isNull(), isNull(), eq(0));
-        verify(skillMapper).search(any(), eq(1000), eq(1000), isNull(), isNull(), eq(0));
+        verify(skillMapper).search(any(), eq(0), eq(1000), isNull(), isNull(), isNull());
+        verify(skillMapper).search(any(), eq(1000), eq(1000), isNull(), isNull(), isNull());
     }
 
     @Test
     void resolveForRun_仅构建当前边界内的可信目录() {
-        when(skillMapper.search(any(), eq(0), eq(1000), isNull(), isNull(), eq(0)))
+        when(skillMapper.search(any(), eq(0), eq(1000), isNull(), isNull(), isNull()))
             .thenReturn(List.of(
                 skill("s1", "d1", "p1", "w1", "developed", "v1", "u1/skills/s1/v1/a.zip"),
                 skill("s2", "d1", "p1", "w1", "developing", "v2", "u1/skills/s2/v2/b.zip")));
@@ -102,7 +148,7 @@ class ConversationSkillResolverTest {
 
     @Test
     void resolveForRun_按绑定ID分类且保留同名不同ID() {
-        when(skillMapper.search(any(), eq(0), eq(1000), isNull(), isNull(), eq(0)))
+        when(skillMapper.search(any(), eq(0), eq(1000), isNull(), isNull(), isNull()))
             .thenReturn(List.of(
                 skill("s-bound", "d1", "p1", "w1", "developed", "v-bound",
                     "u1/skills/s-bound/v-bound/a.zip").setName("weather"),
@@ -151,7 +197,7 @@ class ConversationSkillResolverTest {
 
     @Test
     void resolveForRun_无推荐时目录异常降级为空目录() {
-        when(skillMapper.search(any(), any(Integer.class), any(Integer.class), any(), any(), any(Integer.class)))
+        when(skillMapper.search(any(), any(Integer.class), any(Integer.class), any(), any(), isNull()))
             .thenThrow(new RuntimeException("db unavailable"));
 
         ConversationSkillContext context = resolver.resolveForRun("p1", "w1", "d1", List.of());
@@ -162,7 +208,7 @@ class ConversationSkillResolverTest {
 
     @Test
     void resolveForRun_有推荐时目录异常不得静默执行() {
-        when(skillMapper.search(any(), any(Integer.class), any(Integer.class), any(), any(), any(Integer.class)))
+        when(skillMapper.search(any(), any(Integer.class), any(Integer.class), any(), any(), isNull()))
             .thenThrow(new RuntimeException("db unavailable"));
 
         AgentStudioException exception = assertThrows(AgentStudioException.class,
@@ -176,7 +222,7 @@ class ConversationSkillResolverTest {
             .map(id -> skill(id, "d1", "p1", "w1", "developed", "v-" + id,
                 "u1/skills/" + id + "/v-" + id + "/a.zip"))
             .toList();
-        when(skillMapper.search(any(), eq(0), eq(1000), isNull(), isNull(), eq(0))).thenReturn(items);
+        when(skillMapper.search(any(), eq(0), eq(1000), isNull(), isNull(), isNull())).thenReturn(items);
     }
 
     private SkillDetails skill(String id, String domainId, String projectId, String workspaceId,

@@ -28,9 +28,10 @@ public interface SkillMapper {
     int delete(String skillId);
 
     /**
-     * 模糊搜索
+     * 模糊搜索；publishedAsset 为 null 时不按上架状态筛选。
      */
-    List<SkillDetails> search(SkillEntity skill, int offset, int limit, String priorityStatus, String tagId, int publishedAsset);
+    List<SkillDetails> search(SkillEntity skill, int offset, int limit, String priorityStatus, String tagId,
+                              Integer publishedAsset);
 
     /**
      * 获取符合要求的 Skill 的数量
