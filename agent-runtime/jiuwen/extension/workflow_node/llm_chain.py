@@ -159,27 +159,38 @@ class LLMChain(WorkflowComponent):
 
     async def invoke(self, inputs: dict[str, Any], session, context):
         """LLM 组件非流式调用接口"""
+        from agent_runtime.conversation.private_vision import is_private_image_call, redact_private_vision
+
         await self._initialize_if_needed()
         self._session = session
         self._context = context
 
+        private_image = is_private_image_call()
         inputs_data = inputs.get(USER_FIELDS, {})
+        if private_image:
+            inputs_data = dict(inputs_data)
         self._process_inputs(inputs_data)
-        await self._resolve_vision_urls(inputs_data)
+        # Private bytes must not replace fields on the workflow's trace/checkpoint input.
+        vision_inputs = dict(inputs_data) if private_image else inputs_data
+        await self._resolve_vision_urls(vision_inputs)
 
-        language_model_inputs = self._get_model_input(inputs=inputs_data)
+        language_model_inputs = (
+            self._get_model_input(inputs_data, vision_inputs=vision_inputs)
+            if private_image else self._get_model_input(inputs_data)
+        )
 
         try:
             llm_output = await self._llm.invoke(messages=language_model_inputs)
 
+            raw_content = llm_output.content
+            reasoning = getattr(llm_output, "reasoning_content", None)
+            if private_image:
+                raw_content = redact_private_vision(raw_content)
+                reasoning = redact_private_vision(reasoning)
             formatted_res = self._format_response(
-                llm_output.content,
+                raw_content,
                 self._get_response_format().get("type"),
-                (
-                    llm_output.reasoning_content
-                    if hasattr(llm_output, "reasoning_content")
-                    else None
-                ),
+                reasoning,
             )
 
             final_output = {USER_FIELDS: formatted_res}
@@ -187,6 +198,9 @@ class LLMChain(WorkflowComponent):
             return final_output
 
         except Exception as e:
+            if private_image:
+                raise build_error(StatusCode.COMPONENT_LLM_INVOKE_CALL_FAILED,
+                                  error_msg="图片理解暂时失败，请重试") from None
             raise build_error(
                 StatusCode.COMPONENT_LLM_INVOKE_CALL_FAILED,
                 error_msg=f"LLM invoke failed: {_format_llm_error_detail(e)}",
@@ -204,6 +218,8 @@ class LLMChain(WorkflowComponent):
           None     → _is_thinking_enabled()=False 且 type 未设置 → content 真流式 + reasoning 真流式
           disabled → _is_thinking_enabled()=False 且 type=disabled → content 真流式，丢弃 reasoning
         """
+        from agent_runtime.conversation.private_vision import is_private_image_call
+
         await self._initialize_if_needed()
         self._session = session
         node_id = session.get_component_id()
@@ -211,7 +227,8 @@ class LLMChain(WorkflowComponent):
         self._stream_final_output = None
 
         inputs_data = inputs.get(USER_FIELDS, {})
-        self._process_inputs(inputs_data)
+        if not is_private_image_call():
+            self._process_inputs(inputs_data)
 
         # 三态判断：enabled / None / disabled
         thinking_config = (
@@ -223,8 +240,9 @@ class LLMChain(WorkflowComponent):
         is_none = not thinking_type
         output_reasoning = is_enabled or is_none
 
-        if self._get_response_format().get("type") == "json":
-            # JSON 模式：非流式调用后一次性输出
+        if self._get_response_format().get("type") == "json" or is_private_image_call():
+            # Private vision output is sanitized as a whole, so a model echo
+            # cannot expose an image payload split across several output chunks.
             result = await self.invoke(inputs, session, context)
             custom_data = {
                 "node_id": node_id,
@@ -747,7 +765,7 @@ class LLMChain(WorkflowComponent):
         ):
             final_output.update(llm_output.usage_metadata.model_dump())
 
-    def _get_model_input(self, inputs: dict) -> List[dict]:
+    def _get_model_input(self, inputs: dict, *, vision_inputs: dict | None = None) -> List[dict]:
         """获取模型输入，包含系统提示和对话历史"""
         prompt_template = self._get_template_content()
         try:
@@ -791,7 +809,7 @@ class LLMChain(WorkflowComponent):
         messages = self._apply_format_instructions(messages)
 
         # 多模态视觉输入注入
-        messages = self._get_vision(messages, inputs)
+        messages = self._get_vision(messages, inputs if vision_inputs is None else vision_inputs)
 
         return messages
 
@@ -800,10 +818,15 @@ class LLMChain(WorkflowComponent):
 
         在 invoke/stream 入口调用，将网络 I/O 与消息组装解耦。
         """
+        from agent_runtime.conversation.private_vision import is_private_image_call, resolve_private_image
+        from agent_runtime.conversation.image_reference import PrivateImageError
+
+        private_image = is_private_image_call()
         model_conf = self._conf.get("model", {})
         extension = model_conf.get("extension", {})
         if not extension.get("vl_enable"):
             return
+        resolved_private = False
         for key in list(inputs.keys()):
             if "image_vision" not in key.lower():
                 continue
@@ -813,10 +836,14 @@ class LLMChain(WorkflowComponent):
             resolved = []
             for url in urls:
                 if isinstance(url, str) and url:
-                    resolved.append(await self._resolve_image_url(url))
+                    safe = await resolve_private_image(url)
+                    resolved_private = resolved_private or safe is not None
+                    resolved.append(safe if safe is not None else await self._resolve_image_url(url))
                 else:
                     resolved.append(url)
             inputs[key] = resolved
+        if private_image and any("image_vision" in key.lower() for key in inputs) and not resolved_private:
+            raise PrivateImageError("指定工作流没有收到选中的图片引用")
 
     def _get_vision(self, messages: list[dict], inputs: dict) -> list[dict]:
         """多模态理解大模型视觉输入填充，考虑到历史会话将视觉输入放在最后一条 user 消息"""

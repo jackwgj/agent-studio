@@ -88,12 +88,14 @@ def register_llm_call_logging_callbacks() -> None:
     @fw.on(LLMCallEvents.LLM_CALL_ERROR)
     async def _log_error(model_name=None, model_provider=None, error=None, **kwargs):
         """打印模型调用错误"""
+        from agent_runtime.conversation.private_vision import is_private_image_call
+
         workflow_logger.error(
             "model call error, model=%s, provider=%s, is_stream=%s, error=%s",
             model_name or "unknown",
             model_provider or "unknown",
             kwargs.get("is_stream", False),
-            error,
+            "[private image model error]" if is_private_image_call() else error,
         )
 
     # 检查 WORKFLOW_LOG_LEVEL，INFO 及更细级别才注册 input/output 回调
@@ -106,6 +108,11 @@ def register_llm_call_logging_callbacks() -> None:
                            tools=None, temperature=None, top_p=None,
                            max_tokens=None, **kwargs):
         """打印模型请求体"""
+        from agent_runtime.conversation.private_vision import is_private_image_call
+
+        if is_private_image_call():
+            workflow_logger.info("model call request data: [private image request]")
+            return
         params = kwargs.get("params")
         if params is not None:
             # trigger 携带完整 pre-send params 时，构造 wire-body 等效内容：
@@ -160,6 +167,11 @@ def register_llm_call_logging_callbacks() -> None:
         非流式调用通过 response 参数传递内容；
         流式调用（SiliconFlow / InferenceAffinity 等）通过 result 参数传递。
         """
+        from agent_runtime.conversation.private_vision import is_private_image_call
+
+        if is_private_image_call():
+            workflow_logger.info("model call response data: [private image response]")
+            return
         # response（非流式）或 result（流式），优先 response
         output = response or result
         if output:

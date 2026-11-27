@@ -202,6 +202,7 @@ class SecuritySandboxSettings(BaseSettings):
     cleanup_internal_token: str = Field(
         default="", validation_alias="CONVERSATION_CLEANUP_INTERNAL_TOKEN"
     )
+    image_internal_token: str = Field(default="", validation_alias="CONVERSATION_IMAGE_INTERNAL_TOKEN", repr=False)
     execution_cleanup_ttl_seconds: int = Field(
         default=600, validation_alias="CONVERSATION_EXECUTION_CLEANUP_TTL"
     )

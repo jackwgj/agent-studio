@@ -385,6 +385,76 @@ class ConversationWorkspaceAppServiceTest {
     }
 
     @Test
+    void sendMessage_APP验证本轮图片并将历史图片与普通附件分开() throws Exception {
+        Conversation conv = ownedConversation("c1");
+        when(repository.findById("c1")).thenReturn(Optional.of(conv));
+        var bytes = new ByteArrayOutputStream();
+        javax.imageio.ImageIO.write(new java.awt.image.BufferedImage(1, 1, java.awt.image.BufferedImage.TYPE_INT_RGB),
+            "png", bytes);
+        byte[] image = bytes.toByteArray();
+        String name = "截图.png";
+        String key = "conversation-inputs/" + ConversationInputUploadService.sha256("p1") + "/"
+            + ConversationInputUploadService.sha256("w1") + "/" + ConversationInputUploadService.sha256("u1")
+            + "/00000000-0000-0000-0000-000000000001/" + name;
+        var ref = new ConversationInputFileRef();
+        ref.setObjectKey(key);
+        ref.setFileName(name);
+        ref.setSize(image.length);
+        ref.setChecksum(ConversationInputUploadService.sha256(image));
+        when(mgObsService.readObsFileStream(key)).thenReturn(new ByteArrayInputStream(image));
+        when(agentResourceResolver.requirePublished("p1", "w1", "agent-1")).thenReturn(new AgentInfo());
+        when(historyAssembler.assemble(conv)).thenReturn(List.of());
+        SendMessageCmd now = imageAppCommand(List.of(ref));
+        appService.sendMessage("p1", "w1", "c1", now, new HttpHeaders());
+        assertEquals(new FileRef(key, name, (long) image.length, "image/png", ref.getChecksum(), null),
+            now.getVerifiedImages().get(0).ref());
+        assertTrue(now.getVerifiedImages().get(0).current());
+        assertEquals(1, now.getVerifiedImages().get(0).ordinal());
+        verify(mgObsService).readObsFileStream(key);
+
+        FileRef verified = now.getVerifiedImages().get(0).ref();
+        conv.setMessages(List.of(
+            ConversationMessage.builder().role("user").fileRefs(List.of(verified)).build(),
+            ConversationMessage.builder().role("assistant").fileRefs(List.of(
+                new FileRef("conversation-inputs/other", "other.png", 1L, "image/png", "a".repeat(64), null))).build(),
+            ConversationMessage.builder().role("user").fileRefs(List.of(new FileRef("old", "old.png"))).build()));
+        SendMessageCmd followup = imageAppCommand(List.of());
+        appService.sendMessage("p1", "w1", "c1", followup, new HttpHeaders());
+        assertEquals(1, followup.getVerifiedImages().size());
+        assertEquals(verified, followup.getVerifiedImages().get(0).ref());
+        assertFalse(followup.getVerifiedImages().get(0).current());
+        assertEquals(1, followup.getVerifiedImages().get(0).ordinal());
+        assertTrue(followup.getFileIds().isEmpty());
+        verifyNoMoreInteractions(mgObsService);
+        assertFalse(new ObjectMapper().valueToTree(followup).has("verifiedImages"));
+        SendMessageCmd forged = new ObjectMapper().readValue("{\"verifiedImages\":[{}]}", SendMessageCmd.class);
+        assertTrue(forged.getVerifiedImages().isEmpty());
+    }
+
+    @Test
+    void imageCandidatesKeepStableOrdinalsAndBoundedHistory() {
+        List<FileRef> all = java.util.stream.IntStream.rangeClosed(1, 22)
+            .mapToObj(i -> new FileRef("conversation-inputs/test/" + i + ".png", i + ".png", 1L,
+                "image/png", "a".repeat(64), null))
+            .toList();
+        var previous = ConversationMessage.builder().role("user").fileRefs(all.subList(0, 10)).build();
+        var selected = ConversationImageAttachment.pick(all.subList(10, 22), List.of(previous));
+        assertEquals(2, selected.omittedCurrent());
+        assertEquals(List.of(11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 1, 4, 5, 6, 7, 8, 9, 10),
+            selected.images().stream().map(candidate -> candidate.ordinal()).toList());
+        assertEquals(10L, selected.images().stream().filter(candidate -> candidate.current()).count());
+    }
+
+    private SendMessageCmd imageAppCommand(List<ConversationInputFileRef> attachments) {
+        SendMessageCmd cmd = new SendMessageCmd();
+        cmd.setQuery("读取截图");
+        cmd.setSelectType("app");
+        cmd.setAppId("agent-1");
+        cmd.setFileIds(attachments);
+        return cmd;
+    }
+
+    @Test
     void sendMessage_拒绝前缀内伪造路径和不一致文件名且不落库() {
         Conversation conv = ownedConversation("c1");
         when(repository.findById("c1")).thenReturn(Optional.of(conv));

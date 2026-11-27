@@ -1,6 +1,7 @@
 package com.openjiuwen.studio.conversation.application;
 
 import com.openjiuwen.studio.agent.common.dto.simple.SimpleUser;
+import com.openjiuwen.studio.agent.common.enums.StudioError;
 import com.openjiuwen.studio.agent.common.exception.AgentStudioException;
 import com.openjiuwen.studio.agent.common.utils.RequestContextUtils;
 import com.openjiuwen.studio.agent.manager.obs.MgObsService;
@@ -15,10 +16,15 @@ import org.springframework.mock.web.MockMultipartFile;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.awt.image.BufferedImage;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.zip.CRC32;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+
+import javax.imageio.ImageIO;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -28,6 +34,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 class ConversationInputUploadServiceTest {
     private MgObsService obsService;
@@ -115,5 +122,57 @@ class ConversationInputUploadServiceTest {
         assertEquals(fileName, result.getFileName());
         assertEquals(ConversationInputUploadService.sha256(bytes), result.getChecksum());
         assertArrayEquals(bytes, uploaded.getValue().readAllBytes());
+    }
+
+    @Test
+    void upload_按实际格式识别PNG和JPEG而非浏览器声明() throws IOException {
+        for (String format : new String[]{"png", "jpeg"}) {
+            byte[] bytes = imageBytes(format);
+            String fileName = "测试图片." + format.toUpperCase(java.util.Locale.ROOT);
+            MockMultipartFile file = new MockMultipartFile("file", fileName, "application/octet-stream", bytes);
+
+            ConversationInputUploadVo result = service.upload("p1", "w1", file);
+
+            assertEquals("image/" + format, result.getMediaType());
+            assertEquals(fileName, result.getFileName());
+            ArgumentCaptor<InputStream> uploaded = ArgumentCaptor.forClass(InputStream.class);
+            verify(obsService).uploadObsFile(eq(result.getObjectKey()), uploaded.capture(), eq(-1));
+            assertArrayEquals(bytes, uploaded.getValue().readAllBytes());
+        }
+    }
+
+    @Test
+    void upload_拒绝伪造或后缀不匹配的图片() throws IOException {
+        for (byte[] bytes : new byte[][]{"not PNG".getBytes(StandardCharsets.UTF_8), imageBytes("jpeg")}) {
+            MockMultipartFile file = new MockMultipartFile("file", "fake.png", "image/png", bytes);
+            AgentStudioException error = assertThrows(AgentStudioException.class, () -> service.upload("p1", "w1", file));
+            assertEquals(StudioError.ILLEGAL_FILE_TYPE, error.getErrorCode());
+        }
+        verifyNoInteractions(obsService);
+    }
+
+    @Test
+    void upload_拒绝超过独立字节或像素限制的图片() throws IOException {
+        MockMultipartFile large = mock(MockMultipartFile.class);
+        org.mockito.Mockito.when(large.getOriginalFilename()).thenReturn("large.jpg");
+        org.mockito.Mockito.when(large.getSize()).thenReturn(10L * 1024 * 1024 + 1);
+        byte[] hugeDimensions = imageBytes("png");
+        ByteBuffer.wrap(hugeDimensions).putInt(16, 5000).putInt(20, 5000);
+        CRC32 crc = new CRC32();
+        crc.update(hugeDimensions, 12, 17);
+        ByteBuffer.wrap(hugeDimensions).putInt(29, (int) crc.getValue());
+        MockMultipartFile pixelLimit = new MockMultipartFile("file", "large.png", "image/png", hugeDimensions);
+
+        for (MockMultipartFile file : new MockMultipartFile[]{large, pixelLimit}) {
+            AgentStudioException error = assertThrows(AgentStudioException.class, () -> service.upload("p1", "w1", file));
+            assertEquals(StudioError.PICTURE_FILE_SIZE_EXCEED_LIMIT, error.getErrorCode());
+        }
+        verifyNoInteractions(obsService);
+    }
+
+    private static byte[] imageBytes(String format) throws IOException {
+        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        assertTrue(ImageIO.write(new BufferedImage(12, 8, BufferedImage.TYPE_INT_RGB), format, buffer));
+        return buffer.toByteArray();
     }
 }

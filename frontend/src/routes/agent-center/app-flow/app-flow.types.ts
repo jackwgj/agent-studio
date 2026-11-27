@@ -114,6 +114,7 @@ export interface IFlowTrigger {
 }
 
 export interface IFlowConfigs {
+  conversation_image_attachment?: boolean;
   default_model: {
     model_name: string;
     model_deployment_id: string;

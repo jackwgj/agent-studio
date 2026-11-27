@@ -17,6 +17,7 @@ from agent_runtime.conversation.usage import (
 )
 from agent_runtime.conversation.config.supervisor_config import SupervisorConfig
 from agent_runtime.conversation.execution_context import get_conversation_execution_context
+from agent_runtime.conversation.image_reference import current_image_catalog
 from agent_runtime.conversation.rail import GracefulToolBudgetRail
 from agent_runtime.conversation.sandbox import ConversationSandboxToolBinder
 from agent_runtime.common.trace_compat import create_agent_session_with_trace
@@ -55,6 +56,10 @@ class ConversationReActRunner(ReActAgentRunner):
             has_file_links=has_file_links,
         )
         protocol = self._build_workspace_protocol_prompt()
+        team = (global_variables or {}).get("conversationTeam") or {}
+        catalog = current_image_catalog.get()
+        if team.get("type") == "APP" and catalog is not None:
+            protocol += catalog.tool_guidance()
         return [
             {
                 **message,
@@ -230,6 +235,34 @@ class ConversationReActRunner(ReActAgentRunner):
         )
         return observer
 
+    @staticmethod
+    def _is_conversation_image_workflow(binding: dict, ir_data: dict) -> bool:
+        catalog = current_image_catalog.get()
+        return (catalog is not None and binding == catalog.binding
+                and ir_data.get("workflowId") == catalog.workflow_id)
+
+    def _registered_workflow_name(self, binding: dict, ir_data: dict, name: str) -> str:
+        if self._is_conversation_image_workflow(binding, ir_data):
+            return current_image_catalog.get().tool_name
+        return super()._registered_workflow_name(binding, ir_data, name)
+
+    def _registered_workflow_description(self, binding: dict, ir_data: dict) -> str:
+        if self._is_conversation_image_workflow(binding, ir_data):
+            return ("看一张图，回答用户关于这张图的问题。需要看本轮新图时，优先用这个工具。"
+                    "image_source 填本轮图片清单里的引用，query 填想了解的问题。")
+        return super()._registered_workflow_description(binding, ir_data)
+
+    async def _make_registered_workflow(self, binding: dict, ir_data: dict, **kwargs):
+        if self._is_conversation_image_workflow(binding, ir_data):
+            from agent_runtime.conversation.private_vision import ConversationImageWorkflow
+            from jiuwen.serve.controllers.execution.ir_converter import _convert_global_variable_refs_in_ir
+
+            catalog = current_image_catalog.get()
+            return ConversationImageWorkflow(
+                _convert_global_variable_refs_in_ir(copy.deepcopy(catalog.workflow_ir)), build_kwargs=kwargs
+            )
+        return await super()._make_registered_workflow(binding, ir_data, **kwargs)
+
     async def run_streaming(
         self, req: ExecutionRequest, execution_id: str | None = None
     ) -> AsyncGenerator[Dict, None]:
@@ -273,13 +306,18 @@ class ConversationReActRunner(ReActAgentRunner):
         recommendation_prompt = self._build_request_skill_recommendation(team_config)
         if recommendation_prompt:
             query = f"{query}\n\n{recommendation_prompt}"
+        image_catalog = current_image_catalog.get() if team_config.get("type") == "APP" else None
+        vision_paths: set[str] = set()
+        if image_catalog is not None:
+            query += image_catalog.prompt()
+            vision_paths = image_catalog.sandbox_input_paths()
         prepared_inputs = list(global_variables.get("conversationInputFiles") or [])
         if prepared_inputs:
             input_lines = [
                 "以下本轮上传文件已准备到当前会话沙箱 input 目录；只能使用这些沙箱路径："
             ]
             for item in prepared_inputs:
-                if isinstance(item, dict) and item.get("path"):
+                if isinstance(item, dict) and item.get("path") and item["path"] not in vision_paths:
                     input_lines.append(
                         f"- {item.get('fileName') or '未命名文件'}: {item['path']}"
                     )

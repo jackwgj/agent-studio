@@ -439,6 +439,17 @@ class ReActAgentRunner:
         workflow_logger.info(f"Registered {len(tool_ids)} MCP tools success")
         return tool_ids
 
+    def _registered_workflow_description(self, binding: dict, ir_data: dict) -> str:
+        return ir_data.get("workflow", {}).get("description", "")
+
+    def _registered_workflow_name(self, binding: dict, ir_data: dict, name: str) -> str:
+        return name
+
+    async def _make_registered_workflow(self, binding: dict, ir_data: dict, **kwargs):
+        from jiuwen.serve.controllers.execution.ir_converter import IRConverter
+
+        return await IRConverter.async_ir_to_workflow(ir_data, **kwargs)
+
     async def _register_workflows(self, ir_json: dict, agent: ReActAgent, agent_id: str) -> list[str]:
         """注册原生 Workflow ability。
 
@@ -466,8 +477,8 @@ class ReActAgentRunner:
                 if not workflow_id:
                     workflow_id = str(uuid.uuid4())
 
-                wf_name = workflow.card.name
-                wf_desc = sub_ir.get("workflow", {}).get("description", "")
+                wf_name = self._registered_workflow_name(wf_conf, sub_ir, workflow.card.name)
+                wf_desc = self._registered_workflow_description(wf_conf, sub_ir)
 
                 input_params = {
                     "type": "object",
@@ -486,7 +497,8 @@ class ReActAgentRunner:
                 }
 
                 # 清理旧注册
-                for key in (workflow.card.id, wf_name):
+                cleanup_keys = (workflow.card.id, wf_name) if wf_name == workflow.card.name else (wf_name,)
+                for key in cleanup_keys:
                     try:
                         Runner.resource_mgr.remove_workflow(workflow_id=key, tag=agent_id)
                         Runner.resource_mgr.remove_tool(tool_id=key, tag=agent_id)
@@ -505,14 +517,14 @@ class ReActAgentRunner:
                     input_params=input_params,
                 )
 
-                async def workflow_provider(ir_data=sub_ir):
+                async def workflow_provider(ir_data=sub_ir, binding=wf_conf):
                     # 子工作流继承请求级 customer headers
                     from agent_runtime.context.request_context import _request_ctx
                     _ctx = _request_ctx.get()
                     _cust_headers = _ctx.customer_headers if _ctx else {}
                     _project_id = _ctx.project_id if _ctx else ""
-                    return await IRConverter.async_ir_to_workflow(
-                        ir_data,
+                    return await self._make_registered_workflow(
+                        binding, ir_data,
                         cust_headers=_cust_headers,
                         project_id=_project_id,
                     )

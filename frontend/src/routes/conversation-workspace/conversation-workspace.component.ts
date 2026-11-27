@@ -140,9 +140,11 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
   recommendedSkills: ConversationSkillItem[] = [];
   activatedSkills: ActivatedSkill[] = [];
   uploadedFiles: Array<ConversationFileReference & { uploadError?: string }> = [];
-  readonly acceptedFileTypes = '.txt,.md,.json,.xml,.html,.docx,.pdf,.xlsx,.xls,.csv,.zip,.rar,.7z';
+  private readonly imageFileTypes = ['.png', '.jpg', '.jpeg'];
+  readonly acceptedFileTypes = ['.txt,.md,.json,.xml,.html,.docx,.pdf,.xlsx,.xls,.csv,.zip,.rar,.7z', ...this.imageFileTypes].join(',');
   private readonly maxFiles = 10;
   private readonly maxFileSizeMiB = 60;
+  private readonly maxImageSizeMiB = 10;
   @ViewChild('fileInput') private fileInput?: ElementRef<HTMLInputElement>;
   @ViewChild('messageList') private messageList?: ElementRef<HTMLElement>;
   @ViewChild(SkillSelectorComponent) private skillSelector?: SkillSelectorComponent;
@@ -473,12 +475,13 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
   /** 发送消息（多轮对话入口；草稿先落库，仅首次真正交互才创建会话） */
   public send(): void {
     const inputSnapshot = this.inputText;
-    const query = inputSnapshot.trim();
+    const query = inputSnapshot.trim() || (this.canSendImageOnly ? '请识别本轮上传的图片。' : '');
     const recommendationSnapshot = [...this.recommendedSkills];
     const selectedTarget = this.executionTargets.find(
       (target) => target.id === this.selectedExecutionTarget,
     );
-    if (!query || this.isSending || !selectedTarget || (selectedTarget.type === 'SUPERVISOR' && !this.selectedModel)) {
+    if (!query || this.isSending || this.hasPendingUploads || !selectedTarget
+        || (selectedTarget.type === 'SUPERVISOR' && !this.selectedModel)) {
       return;
     }
     if (!this.currentSession?.conversation_id) {
@@ -542,8 +545,10 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
   private uploadFile(file: File): void {
     const extensionIndex = file.name.lastIndexOf('.');
     const extension = extensionIndex < 0 ? '' : file.name.slice(extensionIndex).toLowerCase();
-    const uploadError = file.size > this.maxFileSizeMiB * 1024 * 1024
-      ? `文件超过 ${this.maxFileSizeMiB} MiB 上限`
+    const image = this.imageFileTypes.includes(extension);
+    const limit = image ? this.maxImageSizeMiB : this.maxFileSizeMiB;
+    const uploadError = file.size > limit * 1024 * 1024
+      ? `${image ? '图片' : '文件'}超过 ${limit} MiB 上限`
       : this.acceptedFileTypes.split(',').includes(extension) ? undefined : '不支持此文件格式';
     if (uploadError) {
       this.uploadedFiles = [
@@ -585,9 +590,15 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
             : current,
         );
       })
-      .catch(() => {
+      .catch((error) => {
+        const code = String(error?.error?.error_code ?? '').toLowerCase();
+        const failureMessage = image && code === 'openjiuwen.02001007'
+          ? '图片内容无效或与文件后缀不符'
+          : image && code === 'openjiuwen.02001013'
+            ? '图片文件大小或像素尺寸超过上限'
+            : requestFailureMessage;
         this.uploadedFiles = this.uploadedFiles.map((current) =>
-          current.fileId === fileId ? { ...current, progress: 'failed', uploadError: requestFailureMessage } : current,
+          current.fileId === fileId ? { ...current, progress: 'failed', uploadError: failureMessage } : current,
         );
       })
       .finally(() => this.cdr.markForCheck());
@@ -612,6 +623,12 @@ export class ConversationWorkspaceComponent implements OnInit, OnDestroy {
 
   public get hasPendingUploads(): boolean {
     return this.uploadedFiles.some((file) => file.progress === 'loading');
+  }
+
+  public get canSendImageOnly(): boolean {
+    return this.executionTargets.some((target) => target.id === this.selectedExecutionTarget && target.type === 'SINGLE_AGENT')
+      && this.uploadedFiles.some((file) => file.progress === 'succeeded'
+        && /\.(png|jpe?g)$/i.test(file.fileName ?? ''));
   }
 
   public get isSending(): boolean {

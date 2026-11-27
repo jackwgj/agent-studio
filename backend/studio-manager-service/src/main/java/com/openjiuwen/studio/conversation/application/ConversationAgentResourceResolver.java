@@ -56,6 +56,14 @@ public class ConversationAgentResourceResolver {
         return SINGLE_AGENT_TYPE.equals(type) || MULTI_AGENT_TYPE.equals(type);
     }
 
+    /** The caller has already validated this APP and its workspace before asking for an image grant. */
+    public String resolveImageAgentReleaseId(String projectId, String workspaceId, String appId) {
+        VersionListRsp versions = agentManagementService.listAgentVersions(projectId, appId,
+            new ListAgentVersionsQo().setWorkspaceId(workspaceId).setOffset(0).setLimit(1));
+        return versions == null || versions.getVersionList() == null || versions.getVersionList().isEmpty()
+            ? null : versions.getVersionList().get(0).getVersionId();
+    }
+
     private AgentStudioException invalid(String message) {
         return new AgentStudioException(
             com.openjiuwen.studio.agent.common.enums.StudioError.METHOD_ARGUMENT_NOT_VALID,

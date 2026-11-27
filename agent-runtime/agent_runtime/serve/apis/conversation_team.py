@@ -24,6 +24,7 @@ from agent_runtime.conversation.execution_context import (
 from agent_runtime.conversation.execution_coordinator import (
     acquire_conversation_execution,
 )
+from agent_runtime.conversation.image_reference import MAX_GRANT_LENGTH
 from agent_runtime.conversation.usage import TokenEstimateAccumulator
 from agent_runtime.conversation.input_artifact_bridge import (
     ConversationInputArtifact,
@@ -118,6 +119,7 @@ class ConversationTeamReq(BaseModel):
     file_ids: list[ConversationInputArtifact] = Field(
         default_factory=list, alias="fileIds"
     )
+    image_grant: str | None = Field(default=None, alias="imageGrant", repr=False, max_length=MAX_GRANT_LENGTH)
 
     @model_validator(mode="before")
     @classmethod
@@ -136,6 +138,7 @@ class ConversationTeamReq(BaseModel):
             ("recommendedSkillIds", "recommended_skill_ids"),
             ("agentBoundSkillIds", "agent_bound_skill_ids"),
             ("fileIds", "file_ids"),
+            ("imageGrant", "image_grant"),
             ("selectType", "select_type"),
             ("appId", "app_id"),
         )

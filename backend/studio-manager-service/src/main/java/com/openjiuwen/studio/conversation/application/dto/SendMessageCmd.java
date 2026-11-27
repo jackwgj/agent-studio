@@ -4,6 +4,7 @@
 
 package com.openjiuwen.studio.conversation.application.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -51,6 +52,16 @@ public class SendMessageCmd {
     /** 本轮上传文件引用；仅接受对话专用接口返回的持久对象元数据。 */
     @JsonProperty("file_ids")
     private List<ConversationInputFileRef> fileIds = new ArrayList<>();
+
+    /** Populated only after Manager validates the current conversation and its attachments. */
+    @JsonIgnore
+    private List<ConversationImageCandidate> verifiedImages = List.of();
+
+    @JsonIgnore
+    private int omittedCurrentImages;
+
+    @JsonIgnore
+    private String imageAgentReleaseId;
 
     public void setFileIds(List<ConversationInputFileRef> fileIds) {
         this.fileIds = fileIds == null ? new ArrayList<>() : new ArrayList<>(fileIds);

@@ -37,6 +37,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.LinkedHashSet;
@@ -268,13 +270,23 @@ public class ConversationWorkspaceAppService {
 
         // 本轮 execution_id（调用方生成，经 X-Execution-Id 下发引擎，事件原样携带）
         String executionId = UUID.randomUUID().toString();
+        List<FileRef> currentFileRefs = toFileRefs(projectId, workspaceId, cmd.getFileIds());
+        if (app) {
+            var imageSelection = ConversationImageAttachment.pick(currentFileRefs, conversation.getMessages());
+            cmd.setVerifiedImages(imageSelection.images());
+            cmd.setOmittedCurrentImages(imageSelection.omittedCurrent());
+            if (!imageSelection.images().isEmpty()) {
+                cmd.setImageAgentReleaseId(conversationAgentResourceResolver.resolveImageAgentReleaseId(
+                    projectId, workspaceId, cmd.getAppId()));
+            }
+        }
 
         // 运行前落库 user 消息
         ConversationMessage userMessage = ConversationMessage.builder()
             .role("user")
             .content(cmd.getQuery())
             .executionRef(new ExecutionRef(executionId, null, null, "agent"))
-            .fileRefs(toFileRefs(projectId, workspaceId, cmd.getFileIds()))
+            .fileRefs(currentFileRefs)
             .modelDeploymentId(cmd.getModelDeploymentId())
             .event("user_message")
             .createdAt(new Date())
@@ -348,7 +360,27 @@ public class ConversationWorkspaceAppService {
             throw new AgentStudioException(StudioError.METHOD_ARGUMENT_NOT_VALID,
                 List.of("file_ids must contain trusted conversation input objects"));
         }
-        return new FileRef(item.getObjectKey(), item.getFileName());
+        String mediaType = ConversationImageAttachment.mediaTypeForName(item.getFileName());
+        if (mediaType == null) {
+            return new FileRef(item.getObjectKey(), item.getFileName());
+        }
+        // Upload metadata in a browser request is not proof of the object's contents.
+        ConversationImageAttachment.checkByteLimit(item.getSize());
+        try (InputStream stream = mgObsService.readObsFileStream(item.getObjectKey())) {
+            if (stream == null) {
+                throw new AgentStudioException(StudioError.OBS_FAILED);
+            }
+            byte[] bytes = stream.readNBytes(ConversationImageAttachment.MAX_IMAGE_BYTES + 1);
+            ConversationImageAttachment.checkByteLimit(bytes.length);
+            if (bytes.length != item.getSize() || !ConversationInputUploadService.sha256(bytes).equals(item.getChecksum())) {
+                throw new AgentStudioException(StudioError.METHOD_ARGUMENT_NOT_VALID, "图片附件元数据不匹配，请重新上传");
+            }
+            ConversationImageAttachment.validate(bytes, mediaType);
+            return new FileRef(item.getObjectKey(), item.getFileName(), (long) bytes.length, mediaType,
+                item.getChecksum(), null);
+        } catch (IOException exception) {
+            throw new AgentStudioException(StudioError.OBS_FAILED);
+        }
     }
 
     private boolean isCanonicalUuid(String value) {

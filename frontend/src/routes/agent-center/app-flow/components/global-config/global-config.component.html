@@ -25,6 +25,11 @@
         </ng-template>
       </meta-acc-block>
 
+      <div class="mt-[16px]">
+        <label nz-checkbox [(ngModel)]="conversationImageAttachment">支持工作台图片附件</label>
+        <p class="mt-2 text-gray-500">发布后，绑定此版本的通用单智能体可读取会话图片。需要字符串输入 image_source、query 和已启用图片输入的视觉节点。</p>
+      </div>
+
       <div class="my-[16px] h-[1px] bg-[#f0f0f0]" *ngIf="workflowType === 'chat'"></div>
 
       <meta-acc-block *ngIf="workflowType === 'chat'" class="block">

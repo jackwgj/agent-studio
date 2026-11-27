@@ -9,6 +9,13 @@ from typing import Any
 from agent_runtime.conversation.execution_context import (
     get_conversation_execution_context,
 )
+from agent_runtime.common.config import settings
+from agent_runtime.conversation.image_reference import (
+    PrivateImageError,
+    current_image_catalog,
+    open_image_catalog,
+    verify_image_grant,
+)
 from agent_runtime.conversation.runner.conversation_runner_factory import (
     ConversationRunnerFactory,
 )
@@ -118,14 +125,37 @@ async def stream_application(
         headers={},
     )
     execution_request.params = prepare_params(execution_request)
+    image_catalog = None
+    if mode == "ReAct" and getattr(req, "image_grant", None):
+        try:
+            grant = verify_image_grant(
+                req.image_grant, settings.security_sandbox.image_internal_token, identity, req.app_id
+            )
+        except PrivateImageError:
+            grant = None  # Reject the image grant, not the user's ordinary conversation.
+        if grant is not None:
+            try:
+                published_ir = await async_ir_load(grant.agent_release_path)
+            except Exception:
+                published_ir = None
+            if isinstance(published_ir, dict):
+                image_catalog = await open_image_catalog(grant, identity, req.app_id, published_ir, async_ir_load)
+                if image_catalog is not None:
+                    # The exact Agent snapshot used for authorization must also execute.
+                    execution_request.ir_path = grant.agent_release_path
+                    execution_request.params.ir_cache = published_ir
     runner = _conversation_runner_factory.get(mode)
     raw_stream = runner.run_streaming(execution_request, execution_id)
+    image_context = current_image_catalog.set(image_catalog)
     try:
         async for raw in raw_stream:
             event = _adapt_event(raw, execution_id, identity.conversation_id)
             if event is not None:
                 yield event
     finally:
-        close = getattr(raw_stream, "aclose", None)
-        if close is not None:
-            await close()
+        try:
+            close = getattr(raw_stream, "aclose", None)
+            if close is not None:
+                await close()
+        finally:
+            current_image_catalog.reset(image_context)
